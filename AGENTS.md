@@ -12,6 +12,36 @@ Instructions for AI coding assistants working on Freddie.
 - `anentrypoint-design` v0.0.27 — webjsx + ripple-ui. Use for any web UI; do NOT add React. Source in C:/dev/anentrypoint-design; freddie links via `file:../anentrypoint-design`.
 - `xstate` v5 — every long-lived state machine (agent turns, gateway lifecycle, approvals).
 
+## Plugin architecture (2026-05-03, pre-v1, no compat shims)
+
+The monolith was decomposed into a universal plugin contract. Every tool, platform, memory provider, GUI route, and core subsystem is a plugin under `plugins/<name>/`. The old paths (`src/tools/registry.js`, `src/tools/*.js`, `src/gateway/platforms/*.js`, `src/plugins/memory/*.js`) are GONE — do not reach for them.
+
+Contract: `{ name, version?, surfaces: 'pi'|'gui'|'both', requires?: [...names], register(ctx) }` — defined in `src/host/contract.js` (39L).
+- PI_VERBS: tool, env, command, cron, platform, memory, skill, context, agentExt, cli
+- GUI_VERBS: route, page, nav, debug, api, asset
+- HOOK_NAMES: preToolCall, postToolCall, preLlmCall, postLlmCall, onSessionStart, onSessionEnd, onTurnStart, onTurnEnd, onMessageInbound, onMessageOutbound
+- Surface guard throws `plugin <name>: surface verb '<verb>' not allowed (declared surfaces=<name>)` at load
+- `requires` cycles throw `plugin cycle: a -> b -> a` synchronously
+
+Host: `src/host/host.js` (157L) — `createHost({surfaces, configStore, env})` + `discoverPlugins(roots)`. Singleton in `src/host/index.js`: `host()`, `bootHost(extraRoots)`, `resetHostForTests()`. Roots walked: `<repo>/plugins`, `~/.freddie/plugins/`, `<cwd>/.freddie/plugins/`.
+
+`register(ctx)` receives `{ pi, gui, hooks, log, config, host, env }`:
+- `log` — scoped JSONL with plugin name
+- `config` — scoped under `plugins.<name>` (`get/set/all`)
+- `host` — `{plugins(), get(name)}`
+
+Migrated 120+ in-tree plugins: 70 tools, 27 platforms, 8 memory providers, 11 GUI dashboard plugins (`gui-sessions/tools/cron/skills/config/env/debug/chat/batch/gateway/profiles-commands-health`), 6 core plugins (`core-cli/skills/cron/commands/agent-machine/context-engine/compressor`). Tool plugins lay out as `plugins/<name>/{plugin,handler}.js` where handler exports `_tool` or `_tool0`/`_tool1` for multi-tool files; `plugin.js` calls `pi.tools.register(_tool)`.
+
+Thin shims (still resolved through host, do not bypass):
+- `src/plugins/manager.js` — over the host
+- `src/web/server.js` (23L) — iterates `host.gui.routes.list()`
+- `bin/freddie.js` (19L) — iterates `host.pi.cli.list()` and registers commander commands
+- `src/gateway/platforms.js` — `makePlatform/getPlatformAdapter/listPlatformNames` (finds adapter by `*Adapter$` name match)
+- `src/plugins/memory/provider.js` — host-router (`createMemoryProvider`, `listMemoryProviders`, `registerMemoryProvider`, `MemoryProvider`)
+- All consumers (`acp/server.js`, `acp/tools.js`, `mcp/server.js`, `agent/machine.js`, `toolsets.js`, `cli/gateway_cli.js`) resolve via `bootHost()`
+
+Witness 2026-05-03: test.js 12/12 green @ 195L (asserts `host.plugins().length>=100`, `platforms.list>=18`, `memory.list>=8`, surface guard throws, cycle throws). `node bin/freddie.js tools` shows 70. `help-all` 32 lines. 11 dashboard `/api/*` routes return 200.
+
 ## Layout
 
 ```
@@ -49,20 +79,29 @@ bin/freddie.js                     # commander CLI: tools, skills, profile, skin
 
 ## Adding a tool
 
-```js
-import { registry } from './tools/registry.js'
+Tools are now plugins. Create `plugins/<name>/plugin.js` + `plugins/<name>/handler.js`:
 
-registry.register({
+```js
+// plugins/my-tool/handler.js
+export const _tool = {
     name: 'my_tool',
     toolset: 'core',
     schema: { name: 'my_tool', description: '…', parameters: { type: 'object', properties: { x: { type: 'string' } }, required: ['x'] } },
     handler: async (args, ctx) => ({ ok: true, x: args.x }),
     checkFn: () => !!process.env.MY_KEY,
     requiresEnv: ['MY_KEY'],
-})
+}
+
+// plugins/my-tool/plugin.js
+import { _tool } from './handler.js'
+export default {
+    name: 'my-tool',
+    surfaces: 'pi',
+    register({ pi }) { pi.tools.register(_tool) },
+}
 ```
 
-Drop the file in `src/tools/`. Auto-discovered by `discoverBuiltinTools()`.
+Auto-discovered on `bootHost()`. For multi-tool files export `_tool0`, `_tool1`, ….
 
 ## Adding a slash command
 
@@ -76,9 +115,26 @@ Dispatch happens against the canonical name resolved via `resolveCommand()`. Gat
 
 ## Adding a gateway platform
 
-1. Drop `src/gateway/platforms/<name>.js`
-2. Extend `EventEmitter`, implement `start/stop/send`, emit `'message'`
-3. `Gateway.register('name', adapter)` wires inbound to the agent
+Platforms are plugins. Create `plugins/platform-<name>/{plugin,handler}.js`:
+
+```js
+// handler.js — class name MUST end with `Adapter` for getPlatformAdapter() to resolve it
+export class MynameAdapter extends EventEmitter {
+    async start() { /* … */ }
+    async stop() { /* … */ }
+    async send(msg) { /* … */ }
+}
+
+// plugin.js
+import * as module from './handler.js'
+export default {
+    name: 'platform-myname',
+    surfaces: 'pi',
+    register({ pi }) { pi.platforms.register({ name: 'myname', module }) },
+}
+```
+
+`makePlatform('myname', opts)` (from `src/gateway/platforms.js`) instantiates the adapter via `*Adapter$` name match.
 
 ## Profile-safe code
 
@@ -172,6 +228,7 @@ All 12 test.js named groups passing: home+config+skin, sessions+FTS5, tools+tool
 - 2026-05-03 (session 2): Ingested feedback/app-js-size-violation (src/web/app.js 548L violation) into AGENTS.md Substrate gotchas. rs-learn store unavailable (exec:memorize missing binary). 0 migration audit items queried. 1 new fact added.
 - 2026-05-03 (session 3): Added Website theme + YAML caveats section (3 items: structured-YAML rendering, YAML colon-space trap, SSR innerHTML injection). rs-learn store still unavailable (exec:memorize → exit 127, command not found). 0 migration audit items queried. 3 new facts added to AGENTS.md only.
 - 2026-05-03 (session 3): Ingested libsql-async-debt-class into AGENTS.md Substrate gotchas (sessions.js + cron/scheduler.js async callsites; silent TypeError class; test.js passes while CLI broken). rs-learn store still unavailable (exec:memorize/exec:recall not on PATH). 0 migration audit items queried. 1 new fact added.
+- 2026-05-03 (session 4): Plugin-architecture decomposition recorded — added "Plugin architecture" section before Layout, rewrote "Adding a tool" + "Adding a gateway platform" for plugins/<name>/{plugin,handler}.js shape. Ingested 6 facts to rs-learn (project/freddie-plugin-architecture, reference/freddie-host-contract, reference/freddie-plugin-ctx, project/freddie-migrated-subsystems, reference/freddie-thin-shims, project/freddie-plugin-witness). Audit: 5 queries fired (pi-ai env keys, profile safe paths, libsql async debt, browser inline module errors, yaml colon space trap, plus self-test on freddie-plugin-architecture) — all returned "No recall results". rs-learn ingest path live but retrieval side empty for this session (likely needs learn-build propagation). 0 items migrated; AGENTS.md items retained.
 
 ## Dashboard web UI caveats
 
