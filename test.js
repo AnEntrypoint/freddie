@@ -36,6 +36,7 @@ await T('host+tools+toolsets', async () => {
     await D('file_operations', { action: 'copy', src: tf, dest: tf2 }); assert.ok(fs.existsSync(tf2)); assert.ok((await D('skill_usage', { action: 'record', name: 'sk' })).recorded)
     const ts = await import('./src/toolsets.js'); assert.ok((await ts.getEnabledToolSchemas(['core'])).length >= ts._FREDDIE_CORE_TOOLS.length)
     const { definePlugin: dp, HookType: HT } = await import('./src/host/contract.js'); const pp = dp({ name: 'sdk-smoke' }); assert.equal(pp.name, 'sdk-smoke'); assert.equal(HT.PRE_TOOL_USE, 'pre_tool_use')
+    const skills = h.pi.skills.list(); const gmSkills = skills.filter(s => s.name.startsWith('gm:')); assert.ok(gmSkills.length >= 12, 'gm skills: ' + gmSkills.length); const gm_expected = ['browser','code-search','create-lang-plugin','gm','gm-complete','gm-emit','gm-execute','governance','pages','planning','ssh','update-docs']; for (const n of gm_expected) assert.ok(gmSkills.some(s => s.name === 'gm:' + n), 'gm:' + n)
 })
 await T('agent-machine', async () => {
     const { runTurn } = await import('./src/agent/machine.js')
