@@ -42,6 +42,8 @@ Thin shims (still resolved through host, do not bypass):
 
 Witness 2026-05-03: test.js 12/12 green @ 195L (asserts `host.plugins().length>=100`, `platforms.list>=18`, `memory.list>=8`, surface guard throws, cycle throws). `node bin/freddie.js tools` shows 70. `help-all` 32 lines. 11 dashboard `/api/*` routes return 200.
 
+**gm-cc plugin integration** (2026-05-04) — gm-cc npm package (v2.0.727) successfully integrated via `plugins/gm-cc/plugin.js`. Plugin auto-discovers 12 SKILL.md files from gm-cc package, extracts name/description from YAML frontmatter, registers via `pi.skills.register({name: 'gm:'+name, description, content, source:'gm-cc'})`. Skills: browser, code-search, create-lang-plugin, gm, gm-complete, gm-emit, gm-execute, governance, pages, planning, ssh, update-docs. All accessible via `gm:*` namespace in pi.skills registry.
+
 ## Layout
 
 ```
