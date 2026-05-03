@@ -203,6 +203,12 @@ One `test.js` at project root. ≤200 lines. Plain assertions, real data, real s
 - **rs-plugkit exec utility verbs** (2026-04-30) — The plugkit.exe binary advertises `exec:status`, `exec:close`, `exec:sleep` in hook help, but the Cmd enum was missing Status/Close/Sleep variants. Fix applied to c:\dev\rs-plugkit\src\main.rs; awaiting CI rebuild. Until rebuilt: use `exec:wait <secs>` for waits, read task output files directly via fs.readFileSync instead of exec:status.
 - **rs-exec timeout alias** — Both `--timeout` (long-form) and `--timeout-ms` (plugin convention) are accepted due to alias added to c:\dev\rs-exec\src\main.rs. Both Cmd::Exec and Cmd::Bash support either form.
 
+
+## Plugsdk integration
+
+- **plugsdk peerDependencies zod conflict** (2026-05-03) — plugsdk v1.0.6 declared `peerDependencies: { zod: "^3.23.0" }`, causing ERESOLVE when freddie installs with zod@^4.0.0. Fixed in plugsdk v1.0.7 by relaxing peer to `^3.23.0 || ^4.0.0`. Freddie now pins plugsdk@^1.0.7 (currently 1.0.8 on npm registry).
+- **plugsdk package-lock.json symlink blockage** (2026-05-03) — freddie's package-lock.json contained a stale symlink entry from a prior `file:` dependency: `"resolved": "../plugsdk", "link": true`. This blocked `npm ci` in CI (non-registry installs fail when symlink target is missing or differs). Fix: removed the symlink entry, ran `npm install` to sync lockfile, then committed. Always install plugsdk from registry, not via file: dep.
+- **plugsdk auto-publish workflow** — plugsdk publishes automatically to npm registry on push to main branch. Current version 1.0.8. freddie's contract.js re-exports `piAdapter`, `HookType`, `allowResult`, `blockResult`, `modifyResult` from plugsdk + uses `HookType` constants in `FREDDIE_TO_SDK_HOOK` mapping.
 ## Integration test status (2026-04-30)
 
 All 21 named integration tests in `test.js` pass (exit 0). Subsystem coverage:
