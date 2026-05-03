@@ -1,6 +1,6 @@
 export const SURFACES = ['pi', 'gui', 'both']
 
-export const PI_VERBS = ['tool', 'env', 'command', 'cron', 'platform', 'memory', 'skill', 'context', 'agentExt']
+export const PI_VERBS = ['tool', 'env', 'command', 'cron', 'platform', 'memory', 'skill', 'context', 'agentExt', 'cli']
 export const GUI_VERBS = ['route', 'page', 'nav', 'debug', 'api', 'asset']
 
 export const HOOK_NAMES = [
