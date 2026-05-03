@@ -68,15 +68,25 @@ node bin/freddie.js acp
 
 ## Tools
 
-Built-in: `bash`, `read`, `write`, `edit`, `grep`, `todo`, `memory`, `delegate`, `web_search`, `image_gen`, `browser`. Auto-discovered from `src/tools/*.js`.
+70 built-in tools auto-discovered from `plugins/*/`. Core set: `bash`, `read`, `write`, `edit`, `grep`, `todo`, `memory`, `delegate`, `web_search`, `image_gen`, `browser`.
 
 ## Platforms
 
-`src/gateway/platforms/`: webhook, api_server, telegram, discord, slack, whatsapp, signal, matrix, mattermost, email, sms, dingtalk, wecom, weixin, feishu, qqbot, bluebubbles, homeassistant. Each adapter exposes `getRequiredEnv()` and throws clear messages when credentials are absent.
+`plugins/platform-*/`: webhook, api_server, telegram, discord, slack, whatsapp, signal, matrix, mattermost, email, sms, dingtalk, wecom, weixin, feishu, qqbot, bluebubbles, homeassistant. Each adapter exposes `getRequiredEnv()` and throws clear messages when credentials are absent.
 
 ## Memory providers
 
-`src/plugins/memory/`: honcho, mem0, supermemory, byterover, hindsight, holographic (local-FS), openviking, retaindb. Set `memory.provider` in `~/.freddie/config.yaml` and the corresponding `*_API_KEY`.
+`plugins/memory-*/`: honcho, mem0, supermemory, byterover, hindsight, holographic (local-FS), openviking, retaindb. Set `memory.provider` in `~/.freddie/config.yaml` and the corresponding `*_API_KEY`.
+
+## Plugin compatibility
+
+Freddie accepts three plugin shapes:
+
+- **Native**: `{ name, surfaces, register(ctx) }` — the standard freddie contract
+- **plugsdk** (`definePlugin()` format): `{ name, tools, hooks, meta }` — auto-detected and wrapped by `wrapPlugsdkPlugin()` in `src/host/host.js`
+- **gm-cc**: installed as `gm-cc` npm dep; `plugins/gm-cc/plugin.js` discovers and registers all 12 SKILL.md files under the `gm:*` namespace in `pi.skills`
+
+plugdsdk adapters: freddie/pi, MCP, OpenAI, LangChain, Cursor/VSCode, Aider (9 adapters total).
 
 ## Layout
 
@@ -89,7 +99,7 @@ freddie/
 │   ├── sessions.js               # SQLite + FTS5
 │   ├── auth.js                   # FileAuthStore (~/.freddie/auth/)
 │   ├── batch.js                  # parallel batch runner
-│   ├── tools/                    # registry + 11 built-in tools + environments/
+│   ├── tools/                    # registry + environments/ (tools now in plugins/*/)
 │   ├── toolsets.js
 │   ├── agent/{machine,pi-bridge}.js   # xstate turn machine + pi-ai bridge
 │   ├── commands/{registry,profile}.js # CommandDef + CRUD
@@ -97,7 +107,7 @@ freddie/
 │   ├── context/engine.js         # pluggable context blocks
 │   ├── cron/{scheduler,cron-parse}.js
 │   ├── web/{server,index.html}   # dashboard
-│   ├── gateway/                  # Gateway + 18 platform adapters
+│   ├── gateway/                  # Gateway (platform adapters now in plugins/platform-*/)
 │   ├── acp/server.js             # JSON-RPC stdio
 │   ├── plugins/                  # PluginManager + 8 memory backends
 │   ├── skills/index.js           # SKILL.md loader
@@ -108,12 +118,12 @@ freddie/
 ├── website/                      # flatspace-powered docs site (content/pages/*.yaml + theme.mjs)
 ├── AGENTS.md
 ├── CHANGELOG.md
-└── test.js                       # 21 named groups, ≤200 lines, real services
+└── test.js                       # 12 named groups, ≤200 lines, real services
 ```
 
 ## Status
 
-Tier 0.3 complete and witnessed: 21 named tests passing, dashboard + website both live-witnessed via headless browser.
+v0.1.1 complete and witnessed: 12/12 named tests passing, dashboard + website both live-witnessed via headless browser.
 
 - 16 gateway platforms with functional wire-format code (no throwing stubs)
 - 8 memory providers call real endpoints (or local-FS for `holographic`)
