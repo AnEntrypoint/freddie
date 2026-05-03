@@ -32,6 +32,9 @@ node bin/freddie.js help-all
 # Interactive REPL (skin-aware, slash commands routed via registry)
 node bin/freddie.js run
 
+# Run a single prompt non-interactively (exits after response)
+node bin/freddie.js exec --prompt "list 3 penguin species"
+
 # Profile management (~/.freddie/profiles/*)
 node bin/freddie.js profile list
 node bin/freddie.js profile create coder
