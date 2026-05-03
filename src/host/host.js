@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { validatePlugin, topoSort, HOOK_NAMES, PI_VERBS, GUI_VERBS } from './contract.js'
+import { validatePlugin, topoSort, HOOK_NAMES, PI_VERBS, GUI_VERBS, FREDDIE_TO_SDK_HOOK, piAdapter } from './contract.js'
 
 function makePiSurface() {
     const tools = new Map()
@@ -76,8 +76,16 @@ function makeHooks() {
             reg[name].push(fn)
         },
         async invoke(name, payload) {
+            const sdkHook = FREDDIE_TO_SDK_HOOK[name]
             let cur = payload
-            for (const fn of reg[name] || []) { cur = (await fn(cur)) ?? cur }
+            for (const fn of reg[name] || []) {
+                const raw = await fn(cur)
+                if (raw !== undefined && raw !== null && sdkHook && typeof raw === 'object' && 'behavior' in raw) {
+                    cur = piAdapter.translateHookOutput(sdkHook, raw)
+                } else {
+                    cur = raw ?? cur
+                }
+            }
             return cur
         },
         names() { return HOOK_NAMES },
