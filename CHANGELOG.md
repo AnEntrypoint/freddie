@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.2] - 2026-05-04
+
+### Verified
+- gm-cc plugin integration complete: 12 SKILL.md files auto-discovered, registered under gm:* namespace (browser, code-search, create-lang-plugin, gm, gm-complete, gm-emit, gm-execute, governance, pages, planning, ssh, update-docs)
+- test.js assertion added to host+tools+toolsets group: confirms ≥12 gm:* skills present with correct names; test.js 200 lines exactly, all 12 groups passing
+
 ## [0.1.2] - 2026-05-03
 
 ### Fixed
