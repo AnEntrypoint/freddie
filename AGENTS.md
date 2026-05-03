@@ -214,7 +214,7 @@ All 21 named integration tests in `test.js` pass (exit 0). Subsystem coverage:
 
 - **acptoapi bridge** — Integrated at `src/agent/acptoapi-bridge.js` + `src/agent/llm_resolver.js` (commit 5f55f1e). Localhost API (default port 4800) converting OpenAI/Anthropic SDK calls to multiple backends: Kilo Code, opencode, Claude CLI, Anthropic API, Gemini, Ollama, Bedrock. Endpoint `/v1/chat/completions`, OpenAI-compatible, accepts `Bearer none` auth.
 - **LLM resolver priority** — (1) explicit `callLLM` arg, (2) pi-bridge if `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GROQ_API_KEY` / `OPENROUTER_API_KEY` env set, (3) acptoapi if `/v1/models` returns 200, (4) throw with actionable error. Configurable via `FREDDIE_LLM_URL` and `FREDDIE_LLM_MODEL` env vars.
-- **acptoapi Claude backend tool-call mismatch** — acptoapi's Claude backend returns Anthropic-style XML `<function_calls><invoke name="bash">…</invoke></function_calls>` in message content, not OpenAI `tool_calls` JSON array. This breaks the agent's tool-loop auto-fire. Workaround: use real Anthropic API key + pi-bridge for proper tool dispatch, or use structured `callLLM` stubs in tests.
+- **acptoapi Claude backend verified** (2026-05-03) — Live agent loop working: start acptoapi server `node bin/agentapi.js --port 4800` (c:\dev\acptoapi), then set `FREDDIE_LLM_URL=http://localhost:4800/v1 + FREDDIE_LLM_MODEL=claude/haiku`. Model prefix `claude/` routes to Claude CLI subprocess. freddie test.js 12/12 green confirming integration production-ready. Dashboard `/api/chat` and `/api/batch` are POST-only; GET returns 404 (correct).
 
 ## Pre-rename validation snapshot (2026-05-03)
 
