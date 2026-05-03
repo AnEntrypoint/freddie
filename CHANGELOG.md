@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.9] - 2026-05-03
+
+### Changed
+- README.md: added `exec --prompt` non-interactive usage example after `run` REPL entry
+- Penguins site browser-validated: index (4283), facts (12583), conservation (5223), 3 species pages (emperor/little/african all >2900)
+- Website/docs all 8 pages browser-validated at HTTP 200 (index + 7 sections)
+
 ## [0.0.8] - 2026-05-02
 
 ### Changed
