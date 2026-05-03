@@ -11,21 +11,21 @@ const ACTIONS = {
     add: async ({ session_id = null, content }) => {
         if (!content) return { error: 'content required' }
         const d = await init(); const now = Date.now()
-        const info = d.prepare(`INSERT INTO todos (session_id, content, status, created, updated) VALUES (?, ?, 'pending', ?, ?)`).run(session_id, content, now, now)
-        return { id: info.lastInsertRowid, content, status: 'pending' }
+        const info = await d.prepare(`INSERT INTO todos (session_id, content, status, created, updated) VALUES (?, ?, 'pending', ?, ?)`).run(session_id, content, now, now)
+        return { id: Number(info.lastInsertRowid), content, status: 'pending' }
     },
     list: async ({ session_id = null }) => {
         const d = await init()
-        const rows = session_id ? d.prepare(`SELECT * FROM todos WHERE session_id = ? ORDER BY id DESC`).all(session_id) : d.prepare(`SELECT * FROM todos ORDER BY id DESC`).all()
+        const rows = session_id ? await d.prepare(`SELECT * FROM todos WHERE session_id = ? ORDER BY id DESC`).all(session_id) : await d.prepare(`SELECT * FROM todos ORDER BY id DESC`).all()
         return { todos: rows }
     },
     update: async ({ id, status }) => {
         if (!id) return { error: 'id required' }
-        (await init()).prepare(`UPDATE todos SET status = ?, updated = ? WHERE id = ?`).run(status, Date.now(), id)
+        await (await init()).prepare(`UPDATE todos SET status = ?, updated = ? WHERE id = ?`).run(status, Date.now(), id)
         return { id, status }
     },
     complete: async ({ id }) => ACTIONS.update({ id, status: 'completed' }),
-    delete: async ({ id }) => { (await init()).prepare(`DELETE FROM todos WHERE id = ?`).run(id); return { id, deleted: true } },
+    delete: async ({ id }) => { await (await init()).prepare(`DELETE FROM todos WHERE id = ?`).run(id); return { id, deleted: true } },
 }
 
 registry.register({
