@@ -49,6 +49,14 @@ export default {
             try { ({ callLLM } = await import('../../src/agent/pi-bridge.js')) } catch {}
             await interactive({ callLLM })
         } })
+        C({ name: 'exec', description: 'Run a single prompt through the agent and exit', options: [{ flag: '--prompt <prompt>', required: true }, { flag: '--model <model>', default: '' }, { flag: '--timeout <ms>', default: '60000' }], action: async (opts) => {
+            const { runTurn } = await import('../../src/agent/machine.js')
+            const { callLLM } = await import('../../src/agent/acptoapi-bridge.js')
+            const out = await runTurn({ prompt: opts.prompt, callLLM, model: opts.model || undefined, timeoutMs: Number(opts.timeout) })
+            if (out.error) { console.error('error:', out.error); process.exit(1) }
+            console.log(out.result || out.messages?.at(-1)?.content || '')
+            process.exit(0)
+        } })
         C({ name: 'cron', description: 'Manage cron jobs', args: [{ name: 'action', default: 'list' }, { name: 'a1' }, { name: 'a2' }], action: async (action, a1, a2) => {
             const { listJobs, createJob, cancelJob, deleteJob, tick } = await import('../../src/cron/scheduler.js')
             if (action === 'list') { for (const j of await listJobs()) console.log(`${j.id}\t${j.cron}\t${j.enabled ? 'on ' : 'off'}\t${j.prompt.slice(0, 60)}`); return }

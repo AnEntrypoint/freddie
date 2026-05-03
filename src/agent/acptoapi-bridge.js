@@ -17,7 +17,7 @@ export async function callLLM({ messages, tools = [], model } = {}) {
         model: useModel,
         messages: messages.map(adaptMessage),
         stream: false,
-        max_tokens: 1024,
+        max_tokens: 4096,
     }
     if (Array.isArray(tools) && tools.length) body.tools = tools.map(adaptTool)
     const res = await fetch(base.replace(/\/$/, '') + '/chat/completions', {
