@@ -1,5 +1,5 @@
 import { createMachine, createActor, assign, fromPromise } from 'xstate'
-import { registry } from '../tools/registry.js'
+import { bootHost } from '../host/index.js'
 import { getEnabledToolSchemas } from '../toolsets.js'
 import { logger } from '../observability/log.js'
 import { resolveCallLLM } from './llm_resolver.js'
@@ -59,11 +59,12 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
             executing_tools: {
                 invoke: {
                     src: fromPromise(async ({ input }) => {
+                        const h = await bootHost()
                         const last = input.messages[input.messages.length - 1]
                         const calls = last.tool_calls || []
                         const results = []
                         for (const call of calls) {
-                            const res = await registry.dispatch(call.name || call.function?.name, call.arguments || call.function?.arguments || {})
+                            const res = await h.pi.dispatchTool(call.name || call.function?.name, call.arguments || call.function?.arguments || {})
                             results.push({ tool_call_id: call.id || call.tool_call_id, content: res })
                         }
                         return results

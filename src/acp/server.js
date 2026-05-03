@@ -1,6 +1,6 @@
 import readline from 'node:readline'
 import { EventEmitter } from 'node:events'
-import { registry, discoverBuiltinTools } from '../tools/registry.js'
+import { bootHost } from '../host/index.js'
 import { runTurn } from '../agent/machine.js'
 import { logger } from '../observability/log.js'
 import { Events } from './events.js'
@@ -59,8 +59,8 @@ const METHODS = {
     'session.list': (srv) => srv.sessions.list(),
     'session.end': (srv, { sessionId }) => { Events.sessionEnded((o) => srv.send(o), { sessionId }); return srv.sessions.end(sessionId) },
     'tool.list': async () => {
-        await discoverBuiltinTools()
-        return { tools: registry.list().map(t => ({ name: t.name, toolset: t.toolset, schema: t.schema })) }
+        const h = await bootHost()
+        return { tools: h.pi.tools.list().map(t => ({ name: t.name, toolset: t.toolset, schema: t.schema })) }
     },
     'permission.respond': (srv, { reqId, decision }) => {
         const pending = srv._pendingPerm.get(reqId)
