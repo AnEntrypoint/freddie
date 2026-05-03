@@ -6,5 +6,5 @@ import { totalLifetime } from '../agent/account_usage.js'
 import { runDoctor } from './doctor.js'
 export async function systemStatus() {
     const rt = await activeRuntime()
-    return { runtime: rt, profile: activeProfile(), skin: getActiveSkin().name, sessions: listSessions(5).length, lifetimeUsage: totalLifetime(), doctor: runDoctor().filter(c => !c.ok) }
+    return { runtime: rt, profile: activeProfile(), skin: getActiveSkin().name, sessions: (await listSessions(5)).length, lifetimeUsage: await totalLifetime(), doctor: runDoctor().filter(c => !c.ok) }
 }

@@ -30,3 +30,9 @@ All notable changes to this project will be documented in this file.
 ## Previous Releases
 
 See git history for earlier versions.
+
+## v0.1.1 — Website expressiveness + async callsite repair
+
+- website: theme.mjs now consumes structured YAML (hero/sections/examples) and renders via the 247420 design vocabulary — railed panels, badges, CTAs, mono-rank explore lists. Six content pages rewritten to express explicit when/why/how lines + per-row benefit framings.
+- bug: repaired async callsite debt across bin/freddie.js, src/web/server.js, src/cli/dump.js, src/cli/status.js, src/tools/session_search.js, src/tools/cronjob.js, src/acp/session.js — every consumer of sessions.js and cron/scheduler.js now awaits. `freddie sessions`, `freddie cron list`, `freddie search` exit 0.
+- tests: test.js still 12/12. tools registered: 70.

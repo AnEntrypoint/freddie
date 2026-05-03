@@ -48,8 +48,8 @@ program.command('skin')
         setActiveSkin(name); console.log('switched to:', name)
     })
 
-program.command('sessions').action(() => { for (const s of listSessions()) console.log(`${s.id}\t${s.platform}\t${new Date(s.updated_at).toISOString()}\t${s.title || ''}`) })
-program.command('search').argument('<query>').action((q) => { for (const r of search(q)) console.log(`${r.session_id}\t${(r.content || '').slice(0, 100)}`) })
+program.command('sessions').action(async () => { for (const s of await listSessions()) console.log(`${s.id}\t${s.platform}\t${new Date(s.updated_at).toISOString()}\t${s.title || ''}`) })
+program.command('search').argument('<query>').action(async (q) => { for (const r of await search(q)) console.log(`${r.session_id}\t${(r.content || '').slice(0, 100)}`) })
 
 program.command('gateway')
     .option('--port <port>', 'webhook port', '0')
@@ -84,10 +84,10 @@ program.command('cron')
     .argument('[arg2]')
     .action(async (action, a1, a2) => {
         const { listJobs, createJob, cancelJob, deleteJob, tick } = await import('../src/cron/scheduler.js')
-        if (action === 'list') { for (const j of listJobs()) console.log(`${j.id}\t${j.cron}\t${j.enabled ? 'on ' : 'off'}\t${j.prompt.slice(0, 60)}`); return }
-        if (action === 'add') { const id = createJob({ cron: a1, prompt: a2 }); console.log('created:', id); return }
-        if (action === 'cancel') { cancelJob(Number(a1)); console.log('cancelled:', a1); return }
-        if (action === 'delete') { deleteJob(Number(a1)); console.log('deleted:', a1); return }
+        if (action === 'list') { for (const j of await listJobs()) console.log(`${j.id}\t${j.cron}\t${j.enabled ? 'on ' : 'off'}\t${j.prompt.slice(0, 60)}`); return }
+        if (action === 'add') { const id = await createJob({ cron: a1, prompt: a2 }); console.log('created:', id); return }
+        if (action === 'cancel') { await cancelJob(Number(a1)); console.log('cancelled:', a1); return }
+        if (action === 'delete') { await deleteJob(Number(a1)); console.log('deleted:', a1); return }
         if (action === 'tick') { console.log('fired:', (await tick()).length); return }
     })
 

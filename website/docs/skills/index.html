@@ -3,16 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Skills — Freddie — Freddie</title>
+<title>Skills — Freddie</title>
 <link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
 <script type="importmap">
 { "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
 </script>
 <style>
-.page-body h1 { margin-top: 0; }
-.page-body h2 { margin-top: 32px; }
-.page-body h3 { margin-top: 24px; }
-.page-body pre { margin: 12px 0; }
+.page-body h1 { margin-top: 0 }
+.page-body h2 { margin-top: 32px }
+.page-body h3 { margin-top: 24px }
+.page-body pre { margin: 12px 0; background: var(--panel-2, #F0E9DA); padding: 12px; border-radius: 8px; overflow-x: auto }
+.ds-hero { padding: 48px 28px 36px; background: var(--panel-1, #FBF6EB); border-radius: 20px; margin: 24px 0 }
+.ds-hero-title { font-family: 'Archivo Black', sans-serif; font-size: clamp(40px, 6vw, 72px); margin: 0 0 16px; letter-spacing: -0.02em }
+.ds-hero-body { font-size: 17px; line-height: 1.55; max-width: 64ch; opacity: 0.85 }
+.ds-hero-accent { color: var(--mascot, #F07AA8); font-weight: 600 }
+.ds-hero-badges { margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap }
+.chip { padding: 6px 12px; border-radius: 6px; background: var(--panel-2, #F0E9DA); font-size: 13px }
+.btn, .btn-primary { display: inline-block; padding: 10px 18px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px }
+.btn { background: var(--panel-2, #F0E9DA); color: inherit }
+.btn-primary { background: var(--ink, #1F1B16); color: var(--paper, #F5F0E4) }
+.rail-green { box-shadow: inset 4px 0 0 var(--green, #3F8A4A) }
+.rail-purple { box-shadow: inset 4px 0 0 var(--purple, #6B3A78) }
+.rail-mascot { box-shadow: inset 4px 0 0 var(--mascot, #F07AA8) }
+.rail-sun { box-shadow: inset 4px 0 0 var(--sun, #FFD86B) }
+.rail-flame { box-shadow: inset 4px 0 0 var(--flame, #FF8454) }
+.rail-sky { box-shadow: inset 4px 0 0 var(--sky, #6FA9FF) }
+.dot-green { color: var(--green, #3F8A4A) } .dot-purple { color: var(--purple, #6B3A78) }
+.dot-mascot { color: var(--mascot, #F07AA8) } .dot-sun { color: var(--sun, #FFD86B) }
+.dot-flame { color: var(--flame, #FF8454) } .dot-sky { color: var(--sky, #6FA9FF) }
+body { margin: 0 }
+.app-stage { max-width: 1100px; margin: 0 auto; padding: 24px }
 </style>
 </head>
 <body>
@@ -20,55 +40,11 @@
 <script type="module">
 import { mount, components as C } from 'anentrypoint-design';
 const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
-const pageSlug = 'skills';
-const pageTitle = 'Skills — Freddie';
-const pageBody = `<h1>Skills</h1>
-<p>5 bundled skill categories + user-extensible via <code>~/.freddie/skills/</code>.</p>
-<h2>Bundled Categories</h2>
-<h3>Creative</h3>
-<p>ASCII video generation, architecture diagrams, concept sketching. 3 skills.</p>
-<h3>Software Development</h3>
-<p>Systematic debugging, code review, RFC authoring. 3 skills.</p>
-<h3>Operations</h3>
-<p>Incident response, log triage. 2 skills.</p>
-<h3>Data</h3>
-<p>ETL pipelines, SQL explanation. 2 skills.</p>
-<h3>Planning</h3>
-<p>Weekly review, OKR drafting. 2 skills.</p>
-<h2>Custom Skills</h2>
-<p>Drop additional <code>SKILL.md</code> files in:</p>
-<ul>
-<li><code>~/.freddie/skills/</code> (user directory, always auto-discovered)</li>
-<li><code>&lt;cwd&gt;/skills/</code> (project directory, scanned on startup)</li>
-</ul>
-<h2>SKILL.md Shape</h2>
-<pre>
----
-name: my-skill
-description: One-liner picked up by /skill list
-category: software-development
-platforms: [linux, macos, windows]   # optional gating
----
-
-# Body
-
-Free-form markdown. Injected as a user message when invoked via /skill &lt;name&gt;.
-</pre>`;
-
 mount(document.getElementById('app'), () => C.AppShell({
-  topbar: C.Topbar({ brand: 'Freddie', items: navItems }),
-  crumb: C.Crumb({ leaf: pageTitle }),
-  main: C.Section({
-    id: 'main',
-    children: [
-      C.Panel({
-        children: [
-          C.h(null, { innerHTML: pageBody, className: 'page-body' })
-        ]
-      })
-    ]
-  }),
-  status: C.Status({ left: ['main'], right: ['live'] })
+  topbar: C.Topbar({ brand: 'Freddie', items: navItems, active: "Skills" }),
+  crumb: C.Crumb({ leaf: "Skills" }),
+  main: C.h('div', { class: 'app-stage', innerHTML: "<div class=\"ds-hero\">\n  <h1 class=\"ds-hero-title\">skills</h1>\n  <p class=\"ds-hero-body\">SKILL.md files that teach the agent how to do specific things <span class=\"ds-hero-accent\">skills are how you encode your team's know-how.</span></p>\n  <p class=\"ds-hero-body\">a skill is a markdown file with a name, a description, and a body. invoke `/skill &lt;name&gt;` and the body becomes a user message. agents inherit your team's playbooks instead of reinventing them every turn.</p>\n  <div class=\"ds-hero-badges\"><span class=\"chip\"><strong>5</strong><span style=\"opacity:.7\"> bundled categories</span></span> <span class=\"chip\"><strong>SKILL.md</strong><span style=\"opacity:.7\"> portable format</span></span> <span class=\"chip\"><strong>~/.freddie/skills/</strong><span style=\"opacity:.7\"> user-extensible</span></span></div>\n  <div class=\"ds-hero-ctas\" style=\"margin-top:16px;display:flex;gap:8px;flex-wrap:wrap\"><a class=\"btn-primary\" href=\"https://github.com/AnEntrypoint/freddie/tree/master/skills\">bundled tree</a><a class=\"btn\" href=\"#how-to-write\">write your own</a></div>\n</div><section class=\"ds-section rail-green\" id=\"when\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">when does a skill beat a tool?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">tools act on the world. skills shape how the agent thinks before it acts.</p>\n  <div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">you have a process, not a function</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">code review, incident response, weekly review, rfc writing — multi-step thinking with implicit constraints.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">capture the \"how we do this\" once, replay it forever.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">you want the prompt to be inspectable</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">SKILL.md is plain markdown. anyone on the team can read it, edit it, version it, ship it.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">prompts as code, reviewed in pull requests.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">you want skills to compose</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">invoke a skill mid-turn (<code>/skill code-review</code>); chain skills inside other skills via the <code>skill</code> tool.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">build playbooks out of playbooks.</div>\n</div>\n  \n</section>\n<section class=\"ds-section rail-purple\" id=\"why\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">why this format over a framework?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">SKILL.md is just markdown with a yaml frontmatter. no parser, no schema, no abstraction.</p>\n  <div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">portable</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">every editor renders it. every git host previews it. every llm can read it raw.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">skills move with you. no lock-in.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">discoverable</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">the loader scans <code>~/.freddie/skills/</code> and the bundled tree. <code>freddie skills</code> lists them all.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">drop a file in, skill appears. no registry mutations.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">gated by platform + env</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">optional <code>platforms: [linux, macos, windows]</code> and <code>requiresEnv</code> keep skills off systems where they can't run.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">a skill that needs `gh` won't show up on a box without `gh`.</div>\n</div>\n  \n</section>\n<section class=\"ds-section rail-mascot\" id=\"bundled\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">bundled categories</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">5 categories ship with freddie out of the box. browse them, or copy them as templates.</p>\n  <div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">creative</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">ascii video, architecture diagrams, concept sketching.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">software-development</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">systematic debugging, code review, rfc writing.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">ops</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">incident response, log triage.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">data</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">etl pipelines, sql explanation.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">planning</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">weekly review, okr drafting.</div>\n  \n</div>\n  \n</section>\n<section class=\"ds-section rail-sun\" id=\"how-to-write\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">how do I write a skill?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">a skill is just markdown.</p>\n  <div class=\"row rail-sun\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-sun\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">1 — pick a path</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>~/.freddie/skills/my-skill/SKILL.md</code> (always loaded) or <code>&lt;cwd&gt;/skills/...</code> (per-project).</div>\n  \n</div>\n<div class=\"row rail-sun\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-sun\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">2 — write the frontmatter</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>name</code>, <code>description</code>, optional <code>category</code>, <code>platforms</code>, <code>requiresEnv</code>.</div>\n  \n</div>\n<div class=\"row rail-sun\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-sun\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">3 — write the body</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">free-form markdown. headings, lists, code blocks. injected verbatim as a user message.</div>\n  \n</div>\n<div class=\"row rail-sun\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-sun\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">4 — invoke</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>/skill &lt;name&gt;</code> in the repl, or <code>freddie skill &lt;name&gt;</code> from the cli, or call the <code>skill</code> tool from another turn.</div>\n  \n</div>\n  \n</section><section class=\"ds-section\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">explore</h2>\n  <a class=\"row rail-purple\" href=\"https://github.com/AnEntrypoint/freddie/tree/master/skills\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">01</span>\n  <span class=\"title\" style=\"font-weight:600\">bundled tree</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— 5 categories</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-mascot\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/skills/index.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">02</span>\n  <span class=\"title\" style=\"font-weight:600\">skill loader</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— how discovery works</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-sun\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/tools/skill.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">03</span>\n  <span class=\"title\" style=\"font-weight:600\">skill tool</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— invocation</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n</section><section class=\"ds-section page-body\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\"><h2>SKILL.md shape</h2>\n<pre>\n---\nname: my-skill\ndescription: One-liner that shows up in /skill list\ncategory: software-development\nplatforms: [linux, macos, windows]\n---\n\n# body\n\nfree-form markdown. headings, lists, code blocks.\n\ninjected as a user message when invoked via /skill &lt;name&gt;.\n</pre>\n<h2>sharing skills</h2>\n<pre>\nfreddie skills_sync --repo https://github.com/your-org/skills\n</pre>\n<p>pulls into <code>~/.freddie/skills/</code> so the next session has them.</p></section>" }),
+  status: C.Status({ left: ['freddie', "skills"], right: ['live'] })
 }));
 </script>
 </body>

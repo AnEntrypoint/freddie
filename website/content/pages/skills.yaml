@@ -1,64 +1,96 @@
-title: Skills — Freddie
+title: Skills
 slug: skills
+hero:
+  heading: skills
+  subheading: SKILL.md files that teach the agent how to do specific things
+  accent: skills are how you encode your team's know-how.
+  body: a skill is a markdown file with a name, a description, and a body. invoke `/skill <name>` and the body becomes a user message. agents inherit your team's playbooks instead of reinventing them every turn.
+  badges:
+    - { label: "5", desc: bundled categories }
+    - { label: SKILL.md, desc: portable format }
+    - { label: "~/.freddie/skills/", desc: user-extensible }
+  ctas:
+    - { label: bundled tree, href: "https://github.com/AnEntrypoint/freddie/tree/master/skills" }
+    - { label: write your own, href: "#how-to-write" }
 sections:
-  - id: bundled-categories
-    name: Bundled Categories
+  - id: when
+    name: when does a skill beat a tool?
+    lede: tools act on the world. skills shape how the agent thinks before it acts.
     features:
-      - name: Creative
-        desc: "ASCII video generation, architecture diagrams, concept sketching. 3 skills"
-      - name: Software Development
-        desc: "Systematic debugging, code review, RFC authoring. 3 skills"
-      - name: Operations
-        desc: "Incident response, log triage. 2 skills"
-      - name: Data
-        desc: "ETL pipelines, SQL explanation. 2 skills"
-      - name: Planning
-        desc: "Weekly review, OKR drafting. 2 skills"
+      - name: you have a process, not a function
+        desc: code review, incident response, weekly review, rfc writing — multi-step thinking with implicit constraints.
+        benefit: capture the "how we do this" once, replay it forever.
+      - name: you want the prompt to be inspectable
+        desc: SKILL.md is plain markdown. anyone on the team can read it, edit it, version it, ship it.
+        benefit: prompts as code, reviewed in pull requests.
+      - name: you want skills to compose
+        desc: invoke a skill mid-turn (`/skill code-review`); chain skills inside other skills via the `skill` tool.
+        benefit: build playbooks out of playbooks.
+  - id: why
+    name: why this format over a framework?
+    lede: SKILL.md is just markdown with a yaml frontmatter. no parser, no schema, no abstraction.
+    features:
+      - name: portable
+        desc: every editor renders it. every git host previews it. every llm can read it raw.
+        benefit: skills move with you. no lock-in.
+      - name: discoverable
+        desc: the loader scans `~/.freddie/skills/` and the bundled tree. `freddie skills` lists them all.
+        benefit: drop a file in, skill appears. no registry mutations.
+      - name: gated by platform + env
+        desc: "optional `platforms: [linux, macos, windows]` and `requiresEnv` keep skills off systems where they can't run."
+        benefit: a skill that needs `gh` won't show up on a box without `gh`.
+  - id: bundled
+    name: bundled categories
+    lede: 5 categories ship with freddie out of the box. browse them, or copy them as templates.
+    features:
+      - name: creative
+        desc: "ascii video, architecture diagrams, concept sketching."
+      - name: software-development
+        desc: "systematic debugging, code review, rfc writing."
+      - name: ops
+        desc: "incident response, log triage."
+      - name: data
+        desc: "etl pipelines, sql explanation."
+      - name: planning
+        desc: "weekly review, okr drafting."
+  - id: how-to-write
+    name: how do I write a skill?
+    lede: a skill is just markdown.
+    features:
+      - name: 1 — pick a path
+        desc: "`~/.freddie/skills/my-skill/SKILL.md` (always loaded) or `<cwd>/skills/...` (per-project)."
+      - name: 2 — write the frontmatter
+        desc: "`name`, `description`, optional `category`, `platforms`, `requiresEnv`."
+      - name: 3 — write the body
+        desc: free-form markdown. headings, lists, code blocks. injected verbatim as a user message.
+      - name: 4 — invoke
+        desc: "`/skill <name>` in the repl, or `freddie skill <name>` from the cli, or call the `skill` tool from another turn."
 examples:
-  - label: Bundled Categories
-    href: "#bundled-categories"
-  - label: Custom Skills
-    href: "#custom-skills"
+  - { label: bundled tree, href: "https://github.com/AnEntrypoint/freddie/tree/master/skills", desc: 5 categories }
+  - { label: skill loader, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/skills/index.js", desc: how discovery works }
+  - { label: skill tool, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/tools/skill.js", desc: invocation }
 body: |
-  # Skills
-
-  5 bundled skill categories + user-extensible via `~/.freddie/skills/`.
-
-  ## Bundled Categories
-
-  ### Creative
-  ASCII video generation, architecture diagrams, concept sketching. 3 skills.
-
-  ### Software Development
-  Systematic debugging, code review, RFC authoring. 3 skills.
-
-  ### Operations
-  Incident response, log triage. 2 skills.
-
-  ### Data
-  ETL pipelines, SQL explanation. 2 skills.
-
-  ### Planning
-  Weekly review, OKR drafting. 2 skills.
-
-  ## Custom Skills
-
-  Drop additional `SKILL.md` files in:
-
-  - `~/.freddie/skills/` (user directory, always auto-discovered)
-  - `<cwd>/skills/` (project directory, scanned on startup)
-
-  ## SKILL.md Shape
+  ## SKILL.md shape
 
   ```
   ---
   name: my-skill
-  description: One-liner picked up by /skill list
+  description: One-liner that shows up in /skill list
   category: software-development
-  platforms: [linux, macos, windows]   # optional gating
+  platforms: [linux, macos, windows]
   ---
 
-  # Body
+  # body
 
-  Free-form markdown. Injected as a user message when invoked via /skill <name>.
+  free-form markdown. headings, lists, code blocks.
+
+  injected as a user message when invoked via /skill <name>.
   ```
+
+  ## sharing skills
+
+  ```
+  freddie skills_sync --repo https://github.com/your-org/skills
+  ```
+
+  pulls into `~/.freddie/skills/` so the next session has them.
