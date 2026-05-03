@@ -119,6 +119,30 @@ function nullStore() {
     return { get: (k, d) => m.has(k) ? m.get(k) : d, set: (k, v) => m.set(k, v), all: (prefix) => Object.fromEntries([...m.entries()].filter(([k]) => k.startsWith(prefix))) }
 }
 
+const SDK_TO_FREDDIE = Object.fromEntries(Object.entries(FREDDIE_TO_SDK_HOOK).map(([f, s]) => [s, f]))
+
+function wrapPlugsdkPlugin(p) {
+    if (typeof p.register === 'function') return p
+    if (!p.tools && !p.hooks) return p
+    return {
+        name: p.name,
+        surfaces: 'pi',
+        register(ctx) {
+            for (const [id, tool] of Object.entries(p.tools || {})) {
+                ctx.pi.tools.register({
+                    name: id,
+                    schema: { name: id, description: tool.description, parameters: tool.parameters },
+                    handler: (args, rctx) => tool.execute(args, rctx),
+                })
+            }
+            for (const [hookType, fn] of Object.entries(p.hooks || {})) {
+                const freddieName = SDK_TO_FREDDIE[hookType]
+                if (freddieName) ctx.hooks.on(freddieName, fn)
+            }
+        },
+    }
+}
+
 export function createHost({ surfaces = ['pi', 'gui'], configStore = nullStore(), env = process.env } = {}) {
     const pi = makePiSurface()
     const gui = makeGuiSurface()
@@ -132,7 +156,7 @@ export function createHost({ surfaces = ['pi', 'gui'], configStore = nullStore()
         get: (name) => loaded.find(p => p.name === name) || null,
     }
     async function loadAll(plugins) {
-        const validated = plugins.map(validatePlugin)
+        const validated = plugins.map(p => wrapPlugsdkPlugin(p)).map(validatePlugin)
         const sorted = topoSort(validated)
         for (const p of sorted) {
             const want = p.surfaces
