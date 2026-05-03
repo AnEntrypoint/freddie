@@ -1,0 +1,9 @@
+import { listSessions, search, getMessages } from '../../src/sessions.js'
+export default {
+    name: 'gui-sessions', surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/sessions', async (_, res) => res.json(await listSessions()))
+        gui.route('GET', '/api/sessions/:id/messages', async (req, res) => res.json(await getMessages(req.params.id)))
+        gui.route('GET', '/api/search', async (req, res) => res.json(await search(String(req.query.q || ''))))
+    },
+}

@@ -1,5 +1,6 @@
 const NAV = [
     ['Home', '/'],
+    ['Plugins', '/plugins/'],
     ['Architecture', '/architecture/'],
     ['CLI', '/cli/'],
     ['Tools', '/tools/'],

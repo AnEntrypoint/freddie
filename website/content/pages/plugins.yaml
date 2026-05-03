@@ -1,0 +1,137 @@
+title: Plugins
+slug: plugins
+hero:
+  heading: plugins
+  subheading: every subsystem in freddie is a plugin against one universal contract
+  accent: pi for headless, gui for the dashboard, both for full-stack.
+  body: tools, gateway adapters, memory backends, skills, cron handlers, dashboard pages, agent extensions, slash commands, CLI subcommands — they all live as plugin directories under `plugins/`. each one declares which surfaces it touches, what it depends on, and registers itself through one register(ctx) call.
+  badges:
+    - { label: "120+", desc: in-tree plugins }
+    - { label: "1 contract", desc: pi + gui }
+    - { label: topo-sort, desc: dependency-aware }
+    - { label: surface guard, desc: enforced at load }
+  ctas:
+    - { label: contract source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/contract.js" }
+    - { label: host source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/host.js" }
+    - { label: write your own, href: "#how-to-write" }
+sections:
+  - id: when
+    name: when do you reach for a plugin?
+    lede: "every time you want to add behavior. there is no other extension surface."
+    features:
+      - name: a tool the agent can call
+        desc: "drop `plugins/<name>/{plugin,handler}.js`. plugin.js calls `pi.tools.register(spec)`."
+        benefit: "tool is live next boot. no glue, no decorators, no manifest."
+      - name: a gateway adapter for a new platform
+        desc: "drop `plugins/platform-<name>/`. plugin.js calls `pi.platforms.register({name, module})` exposing an EventEmitter adapter class."
+        benefit: "gateway picks it up via `makePlatform(name)`."
+      - name: a memory provider
+        desc: "drop `plugins/memory-<name>/`. plugin.js calls `pi.memory.register({name, module})` exposing a class with syncTurn + prefetch."
+        benefit: "`createMemoryProvider(name)` resolves it without touching freddie core."
+      - name: a dashboard route or page
+        desc: "drop `plugins/gui-<name>/`. plugin.js calls `gui.route('GET', '/api/x', handler)` or `gui.page(slug, def)`."
+        benefit: "express picks up routes, AppShell picks up pages, no server.js edit."
+      - name: a CLI subcommand
+        desc: "any plugin can call `pi.cli.register({name, description, args, options, action})`."
+        benefit: "`node bin/freddie.js <name>` works on next boot. the CLI is itself plugin-driven."
+      - name: a hook on the agent loop
+        desc: "any plugin can call `hooks.on('preToolCall' | 'preLlmCall' | 'onTurnStart' | …, async fn)`."
+        benefit: "middleware-style intercept without forking the agent machine."
+  - id: why
+    name: why this design over a framework?
+    lede: "one contract is the only abstraction. everything else is a function call against a registry."
+    features:
+      - name: one shape covers every concern
+        desc: "`{ name, surfaces: 'pi'|'gui'|'both', requires?: [...], register(ctx) }`. ctx exposes pi (headless verbs), gui (dashboard verbs), hooks, log, config, host, env."
+        benefit: "nothing to learn beyond the four ctx slots and the verbs you actually call."
+      - name: surfaces are guarded at load time
+        desc: "a `surfaces:'pi'` plugin that calls `gui.route(...)` throws with the plugin name and the verb name. impossible to ship a leaky surface boundary."
+        benefit: "load-time guarantee replaces runtime drift."
+      - name: requires is topo-sorted, cycles throw
+        desc: "`requires: ['core-agent-machine']` means the host calls register() in dependency order. cycle = synchronous error with the path."
+        benefit: "load order is data, not convention."
+      - name: zero compat shims
+        desc: "pre-v1. the old src/tools/registry.js is gone, src/gateway/platforms/ is gone, src/plugins/memory/ is gone. one path to extend, no legacy way."
+        benefit: "the codebase has one extension story, told once, no archaeology."
+      - name: same surfaces, two lenses
+        desc: "a `surfaces:'both'` plugin sees both `ctx.pi` and `ctx.gui`. e.g. an observability plugin can register a `pi` debug snapshot AND a `gui` route in the same file."
+        benefit: "cross-cutting concerns stop fragmenting across two layers."
+      - name: every subsystem becomes liftable
+        desc: "each `plugins/<name>/` directory has its own deps and entry. lifting it to a separate npm package is moving the directory. the contract does not change."
+        benefit: "npm-publishable plugins on day one, no rewrite."
+  - id: how-to-write
+    name: how do I write a plugin?
+    lede: "one directory, one file, one default export."
+    features:
+      - name: 1 — pick a category
+        desc: "tools/<name>/, platform-<name>/, memory-<name>/, gui-<name>/, core-<name>/, or any prefix you like. naming is convention, not contract."
+      - name: 2 — declare surfaces
+        desc: "`surfaces: 'pi'` (headless), `'gui'` (dashboard), or `'both'`. anything else throws on load."
+      - name: 3 — declare requires (optional)
+        desc: "`requires: ['core-agent-machine', 'tool-bash']` — names of plugins that must register before yours."
+      - name: 4 — implement register(ctx)
+        desc: "ctx = { pi, gui, hooks, log, config, host, env }. call the verbs you need. throw on hard errors."
+      - name: 5 — drop the directory
+        desc: "`plugins/<name>/plugin.js` (default export). next boot the host discovers and loads it."
+  - id: ctx
+    name: what's inside ctx?
+    lede: "a small set of registries and one logger. that's the whole api."
+    features:
+      - name: ctx.pi — headless verbs
+        desc: "tools, envs, commands, crons, platforms, memory, skills, contexts, agentExts, cli — each is a `{register, get, list, has, size}` registry."
+      - name: ctx.gui — dashboard verbs
+        desc: "route(method, path, handler), page(slug, def), nav(item), debug(name, snapshotFn), api(group, def), asset(path, content)."
+      - name: ctx.hooks — middleware
+        desc: "on(name, fn) and invoke(name, payload). names: preToolCall, postToolCall, preLlmCall, postLlmCall, onSessionStart, onSessionEnd, onTurnStart, onTurnEnd, onMessageInbound, onMessageOutbound."
+      - name: ctx.log — scoped logger
+        desc: "info/warn/error each emit a structured JSON line tagged with the plugin name."
+      - name: ctx.config — scoped config
+        desc: "get(k, default), set(k, v), all() — namespaced under `plugins.<plugin-name>` so plugins can't stomp each other."
+      - name: ctx.host — read access to the wider host
+        desc: "host.plugins() and host.get(name) for cross-plugin introspection."
+      - name: ctx.env — process.env passthrough
+        desc: "read-only proxy. respects the parent env, no surprise mutations."
+examples:
+  - { label: contract source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/contract.js", desc: 39 lines, the whole shape }
+  - { label: host source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/host.js", desc: load + dispatch }
+  - { label: bash plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/bash", desc: simplest tool }
+  - { label: memory provider plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/memory-honcho", desc: provider shape }
+  - { label: gui route plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/gui-sessions", desc: dashboard route }
+  - { label: core-cli plugin, href: "https://github.com/AnEntrypoint/freddie/blob/master/plugins/core-cli/plugin.js", desc: CLI is itself plugin-sourced }
+body: |
+  ## one-shot writing template
+
+  ```
+  // plugins/my-thing/plugin.js
+  export default {
+      name: 'my-thing',
+      surfaces: 'pi',
+      requires: ['core-agent-machine'],
+      register({ pi, hooks, log, config }) {
+          pi.tools.register({
+              name: 'my_tool',
+              schema: { name: 'my_tool', description: '…', parameters: { type: 'object', properties: { x: { type: 'string' } }, required: ['x'] } },
+              handler: async ({ x }) => ({ ok: true, x }),
+          })
+          hooks.on('preToolCall', async (p) => { log.info('tool fired', { name: p.name }); return p })
+      },
+  }
+  ```
+
+  ## boot the host yourself
+
+  ```
+  import { bootHost } from 'freddie/src/host/index.js'
+  const host = await bootHost()
+  console.log(host.plugins().length)         // 120+
+  console.log(host.pi.tools.list().length)   // 70+
+  console.log(host.gui.routes.list().length) // 30+
+  await host.pi.dispatchTool('bash', { command: 'echo hi', timeout_ms: 5000 })
+  ```
+
+  ## philosophy
+
+  - one contract, one host, no compat shims.
+  - extension is a directory and a default export.
+  - surfaces guarded at load. cycles thrown synchronously. no silent fallbacks.
+  - every subsystem is liftable to its own npm package without changing the contract.

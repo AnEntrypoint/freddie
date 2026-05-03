@@ -39,7 +39,7 @@ body { margin: 0 }
 <div id="app"></div>
 <script type="module">
 import { mount, components as C } from 'anentrypoint-design';
-const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
+const navItems = [["Home","/"],["Plugins","/plugins/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
 mount(document.getElementById('app'), () => C.AppShell({
   topbar: C.Topbar({ brand: 'Freddie', items: navItems, active: "CLI" }),
   crumb: C.Crumb({ leaf: "CLI" }),

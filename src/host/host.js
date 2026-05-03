@@ -13,8 +13,9 @@ function makePiSurface() {
     const skills = new Map()
     const contexts = new Map()
     const agentExts = new Map()
+    const cli = new Map()
     return {
-        _state: { tools, envs, commands, crons, platforms, memory, skills, contexts, agentExts },
+        _state: { tools, envs, commands, crons, platforms, memory, skills, contexts, agentExts, cli },
         tools: regOf(tools, 'tool'),
         envs: regOf(envs, 'env'),
         commands: regOf(commands, 'command'),
@@ -24,6 +25,7 @@ function makePiSurface() {
         skills: regOf(skills, 'skill'),
         contexts: regOf(contexts, 'context'),
         agentExts: regOf(agentExts, 'agentExt'),
+        cli: regOf(cli, 'cli'),
         async dispatchTool(name, args = {}, ctx = {}) {
             const t = tools.get(name)
             if (!t) return JSON.stringify({ error: `unknown tool: ${name}` })
