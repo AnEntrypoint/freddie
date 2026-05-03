@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2026-05-03
+
+### Added
+- plugsdk bridge: `wrapPlugsdkPlugin()` in `src/host/host.js` — auto-detects `definePlugin()` shape `{tools,hooks,meta}` and wraps to native freddie contract; native plugins unchanged
+- gm-cc integration: `plugins/gm-cc/plugin.js` registers all 12 gm-cc SKILL.md files under `gm:*` namespace in freddie's skill registry
+- plugsdk adapters: MCP, OpenAI, LangChain, Cursor/VSCode, Aider — 9 total adapters in `C:/dev/plugsdk`
+- test.js: 12/12 green
+
 ## [0.1.0] - 2026-05-03
 
 ### Validated
