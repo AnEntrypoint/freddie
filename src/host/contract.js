@@ -13,13 +13,15 @@ export const HOOK_NAMES = [
     'onMessageInbound', 'onMessageOutbound',
 ]
 
+import { HookType } from 'plugsdk'
+
 export const FREDDIE_TO_SDK_HOOK = {
-    preToolCall:        'pre_tool_use',
-    postToolCall:       'post_tool_use',
-    onSessionStart:     'session_start',
-    onSessionEnd:       'session_end',
-    onMessageInbound:   'prompt_submit',
-    onMessageOutbound:  'after_response',
+    preToolCall:        HookType.PRE_TOOL_USE,
+    postToolCall:       HookType.POST_TOOL_USE,
+    onSessionStart:     HookType.SESSION_START,
+    onSessionEnd:       HookType.SESSION_END,
+    onMessageInbound:   HookType.PROMPT_SUBMIT,
+    onMessageOutbound:  HookType.AFTER_RESPONSE,
 }
 
 export function validatePlugin(p) {
