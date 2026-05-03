@@ -26,6 +26,15 @@
     "xstate": "^5.31.0",
     "zod": "^4.0.0"
   },
+  "optionalDependencies": {
+    "@libsql/darwin-arm64": "0.3.19",
+    "@libsql/darwin-x64": "0.3.19",
+    "@libsql/linux-arm64-gnu": "0.3.19",
+    "@libsql/linux-arm64-musl": "0.3.19",
+    "@libsql/linux-x64-gnu": "0.3.19",
+    "@libsql/linux-x64-musl": "0.3.19",
+    "@libsql/win32-x64-msvc": "0.3.19"
+  },
   "engines": {
     "node": ">=20.6.0"
   },
