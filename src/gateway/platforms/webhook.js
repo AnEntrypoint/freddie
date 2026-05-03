@@ -1,0 +1,19 @@
+import express from 'express'
+import { EventEmitter } from 'node:events'
+
+export class WebhookAdapter extends EventEmitter {
+    constructor({ port = 0, path = '/webhook' } = {}) { super(); this.port = port; this.path = path; this._server = null; this.outbox = [] }
+    async start() {
+        const app = express()
+        app.use(express.json())
+        app.post(this.path, (req, res) => {
+            const m = { from: req.body?.from || 'webhook', text: req.body?.text || '', raw: req.body }
+            this.emit('message', m)
+            res.json({ ok: true })
+        })
+        await new Promise(resolve => { this._server = app.listen(this.port, () => resolve()) })
+        this.port = this._server.address().port
+    }
+    async stop() { if (this._server) await new Promise(r => this._server.close(() => r())) }
+    async send(reply) { this.outbox.push(reply) }
+}

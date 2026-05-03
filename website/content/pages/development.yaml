@@ -1,0 +1,136 @@
+title: Development — Freddie
+slug: development
+sections:
+  - id: testing
+    name: Testing
+    features:
+      - name: Integration Tests
+        desc: "One test.js at project root. 21 integration tests passing, ≤200 lines"
+      - name: Real Services
+        desc: "Real data, no mocks. Failure regresses to EXECUTE"
+      - name: Coverage
+        desc: "Agent loop, CLI, gateway, plugins, skills, sessions, cron, batch, dashboard, ACP"
+  - id: project-layout
+    name: Project Layout
+    features:
+      - name: CLI
+        desc: "bin/freddie.js (commander entry)"
+      - name: Agent & Tools
+        desc: "src/agent/* (xstate machine, context compressor, pi-bridge)"
+      - name: Execution
+        desc: "src/tools/* (bash, read, write, edit, grep, todo, memory, delegate, browser)"
+      - name: Gateway & Platforms
+        desc: "src/gateway/* (16 functional adapters: Telegram, Discord, Slack, WhatsApp, etc)"
+      - name: Dashboard
+        desc: "src/web/* (anentrypoint-design webjsx, express server)"
+      - name: Storage
+        desc: "src/sessions.js (better-sqlite3), src/auth.js (FileAuthStore)"
+  - id: website-build
+    name: Website Build
+    features:
+      - name: Flatspace
+        desc: "Static site builder: website/content/pages/*.yaml → website/docs/*.html"
+      - name: Theme
+        desc: "website/theme.mjs renderer (anentrypoint-design webjsx, unpkg CDN)"
+      - name: GitHub Pages
+        desc: "Automated deploy via .github/workflows/pages.yml"
+  - id: resources
+    name: Resources
+    features:
+      - name: CHANGELOG.md
+        desc: "Release history and feature announcements"
+      - name: AGENTS.md
+        desc: "Subsystem deep dives and architecture guide"
+      - name: Architecture Page
+        desc: "11 subsystems: agent loop, context engine, tools, gateway, sessions, memory, skills, dashboard, auth, cron, observability"
+examples:
+  - label: Testing
+    href: "#testing"
+  - label: Project Layout
+    href: "#project-layout"
+  - label: Website Build
+    href: "#website-build"
+  - label: Resources
+    href: "#resources"
+body: |
+  # Development
+
+  ## Integration Tests
+
+  One `test.js` at project root. 21 integration tests passing, ≤200 lines.
+
+  ```
+  node test.js
+  ```
+
+  Tests cover: agent loop, CLI, gateway, plugins, skills, sessions, cron, batch, dashboard, ACP, web, context-engine, compressor, auth, observability.
+
+  Real services, real data, no mocks. Failure regresses to EXECUTE.
+
+  ## Project Layout
+
+  ```
+  freddie/
+  ├── bin/freddie.js                   # CLI entry (commander)
+  ├── src/
+  │   ├── index.js, home.js, config.js, sessions.js, auth.js
+  │   ├── tools/
+  │   │   ├── registry.js
+  │   │   ├── bash.js, read.js, write.js, edit.js, grep.js
+  │   │   ├── todo.js, memory.js, delegate.js
+  │   │   ├── web_search.js, image_gen.js, browser.js
+  │   │   └── environments/{local,docker,ssh,index}.js
+  │   ├── agent/
+  │   │   ├── machine.js (xstate)
+  │   │   ├── pi-bridge.js
+  │   │   └── compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js
+  │   ├── commands/{registry,profile}.js
+  │   ├── cli/interactive.js
+  │   ├── context/engine.js
+  │   ├── cron/{scheduler,cron-parse}.js
+  │   ├── batch.js
+  │   ├── web/{server,index.html} (anentrypoint-design webjsx)
+  │   ├── gateway/{run,platforms/*.js}
+  │   ├── acp/server.js
+  │   ├── plugins/{manager,memory/*.js}
+  │   ├── skills/index.js
+  │   ├── skin/engine.js
+  │   └── observability/{log,debug}.js
+  ├── skills/                        # bundled SKILL.md (5 categories)
+  ├── website/                       # this site (flatspace + anentrypoint-design)
+  └── test.js                        # integration test
+  ```
+
+  ## Build Website
+
+  Flatspace static site builder. Converts `website/content/pages/*.yaml` → `website/docs/*.html` using `website/theme.mjs` renderer.
+
+  ```bash
+  cd website
+  node ../node_modules/flatspace/bin/flatspace.js build
+  ```
+
+  Output: `website/docs/` (GitHub Pages).
+
+  ## Recent Releases
+
+  - **v0.0.7** — Use npm anentrypoint-design instead of file: link so CI can install it.
+  - **v0.0.6** — Redesign dashboard web view with anentrypoint-design pro-rata patterns.
+  - **v0.0.5** — Full platform adapter set (Telegram, Discord, Slack, email, SMS, WhatsApp, etc).
+
+  See [CHANGELOG.md](https://github.com/AnEntrypoint/freddie/blob/master/CHANGELOG.md) for full history.
+
+  ## Architecture Guide
+
+  For subsystem deep dives, see [AGENTS.md](https://github.com/AnEntrypoint/freddie/blob/master/AGENTS.md).
+
+  Topics:
+  - Agent loop + context compressor
+  - Tool registry + environments
+  - Gateway platforms + adapters
+  - Session store + auth
+  - Memory provider backends
+  - Skills loader
+  - Dashboard web UI (anentrypoint-design webjsx)
+  - Cron scheduler + batch runner
+  - Observability (JSONL logs, /debug endpoints)

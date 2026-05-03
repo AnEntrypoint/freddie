@@ -1,0 +1,64 @@
+title: Skills — Freddie
+slug: skills
+sections:
+  - id: bundled-categories
+    name: Bundled Categories
+    features:
+      - name: Creative
+        desc: "ASCII video generation, architecture diagrams, concept sketching. 3 skills"
+      - name: Software Development
+        desc: "Systematic debugging, code review, RFC authoring. 3 skills"
+      - name: Operations
+        desc: "Incident response, log triage. 2 skills"
+      - name: Data
+        desc: "ETL pipelines, SQL explanation. 2 skills"
+      - name: Planning
+        desc: "Weekly review, OKR drafting. 2 skills"
+examples:
+  - label: Bundled Categories
+    href: "#bundled-categories"
+  - label: Custom Skills
+    href: "#custom-skills"
+body: |
+  # Skills
+
+  5 bundled skill categories + user-extensible via `~/.freddie/skills/`.
+
+  ## Bundled Categories
+
+  ### Creative
+  ASCII video generation, architecture diagrams, concept sketching. 3 skills.
+
+  ### Software Development
+  Systematic debugging, code review, RFC authoring. 3 skills.
+
+  ### Operations
+  Incident response, log triage. 2 skills.
+
+  ### Data
+  ETL pipelines, SQL explanation. 2 skills.
+
+  ### Planning
+  Weekly review, OKR drafting. 2 skills.
+
+  ## Custom Skills
+
+  Drop additional `SKILL.md` files in:
+
+  - `~/.freddie/skills/` (user directory, always auto-discovered)
+  - `<cwd>/skills/` (project directory, scanned on startup)
+
+  ## SKILL.md Shape
+
+  ```
+  ---
+  name: my-skill
+  description: One-liner picked up by /skill list
+  category: software-development
+  platforms: [linux, macos, windows]   # optional gating
+  ---
+
+  # Body
+
+  Free-form markdown. Injected as a user message when invoked via /skill <name>.
+  ```

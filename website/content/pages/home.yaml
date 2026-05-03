@@ -1,0 +1,112 @@
+title: Freddie
+slug: home
+hero:
+  heading: Freddie
+  subheading: Open JS agent harness built on pi-mono + floosie + xstate + anentrypoint-design
+  badges:
+    - label: "21/21"
+      desc: integration tests
+    - label: "11"
+      desc: built-in tools
+    - label: "16"
+      desc: gateway platforms
+    - label: "8"
+      desc: memory backends
+sections:
+  - id: substrate
+    name: Substrate
+    features:
+      - name: "@mariozechner/pi-coding-agent"
+        desc: agent loop, providers, TUI primitives
+      - name: floosie
+        desc: gateway stream pipeline (xstate-backed)
+      - name: xstate
+        desc: agent turn machine + lifecycle
+      - name: anentrypoint-design
+        desc: webjsx + ripple-ui design system for the dashboard
+      - name: flatspace
+        desc: flat-file CMS + static site builder
+  - id: quick-start
+    name: Quick Start
+    body: |
+      ```
+      npm install
+      node bin/freddie.js tools
+      node bin/freddie.js run
+      node bin/freddie.js dashboard --port 3000
+      ```
+  - id: architecture
+    name: Architecture
+    features:
+      - name: Agent machine
+        desc: xstate turn machine + context compressor (head/middle/tail policy + handoff + iterative updates)
+      - name: Session store
+        desc: better-sqlite3 + FTS5 + FileAuthStore credentials
+      - name: Scheduler
+        desc: cron jobs + batch runner for multi-turn workflows
+      - name: Skills
+        desc: bundled + user-extensible via ~/.freddie/skills/
+      - name: Dashboard
+        desc: anentrypoint-design webjsx with live chat, analytics, cron monitoring
+examples:
+  - label: Architecture
+    href: /architecture/
+  - label: Tools
+    href: /tools/
+  - label: Platforms
+    href: /platforms/
+  - label: Skills
+    href: /skills/
+  - label: CLI
+    href: /cli/
+  - label: Development
+    href: /development/
+body: |
+  # Freddie
+
+  Open JS agent harness built on **pi-mono + floosie + xstate + anentrypoint-design**.
+
+  ## What is Freddie?
+
+  Freddie is a JavaScript rebuild of [hermes-agent](https://github.com/nousresearch/hermes-agent) user-visible behavior, with our preferred architecture. It ships as a CLI, web dashboard, and programmable agent harness for multi-platform messaging (Telegram, Discord, Slack, email, SMS, WhatsApp, Matrix, and more).
+
+  ## Substrate
+
+  - **@mariozechner/pi-coding-agent + pi-agent-core + pi-ai + pi-tui** — agent loop, providers, TUI primitives.
+  - **floosie** — gateway stream pipeline (xstate-backed).
+  - **xstate** — agent turn machine + lifecycle.
+  - **anentrypoint-design** — webjsx + ripple-ui design system for the dashboard.
+  - **flatspace** — this very website (flat-file CMS + static site builder).
+
+  ## Quick Start
+
+  ```
+  npm install
+  node bin/freddie.js tools
+  node bin/freddie.js run
+  node bin/freddie.js dashboard --port 3000
+  ```
+
+  ## Test Coverage
+
+  - **21/21** integration tests passing (agent loop, CLI, gateway, plugins, skills, sessions, cron, batch, dashboard, ACP, web, context-engine, compressor, auth, observability).
+  - **11** built-in tools (bash, read, write, edit, grep, todo, memory, delegate, web_search, image_gen, browser).
+  - **16** functional gateway platforms (Telegram, Discord, Slack, email, SMS, WhatsApp, Matrix, Signal, Dingtalk, Feishu, WeChat, QQ, Mattermost, Zulip, BlueBubbles, Misskey).
+  - **8** memory provider backends (Honcho, Mem0, Supermemory, Byterover, Hindsight, Openviking, Retaindb, Holographic).
+
+  ## Architecture
+
+  - Agent turn machine (xstate) + context compressor (head/middle/tail policy + handoff prompt + iterative updates).
+  - Session store (better-sqlite3 + FTS5) + auth store (FileAuthStore).
+  - Cron scheduler + batch runner for multi-turn workflows.
+  - Full skill loader (bundled + user-extensible via ~/.freddie/skills/).
+  - Dashboard web UI (anentrypoint-design webjsx) with live chat, analytics, cron monitoring.
+
+  ## Learn More
+
+  - [Architecture](/architecture/) — subsystem guide + AGENTS.md
+  - [Tools](/tools/) — all 11 built-in tools + usage
+  - [Platforms](/platforms/) — 16 gateway adapters + setup
+  - [Skills](/skills/) — bundled skill categories
+  - [CLI](/cli/) — command reference
+  - [Development](/development/) — integration test coverage + contributing

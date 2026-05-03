@@ -1,0 +1,129 @@
+title: CLI — Freddie
+slug: cli
+sections:
+  - id: top-commands
+    name: Top Commands
+    features:
+      - name: freddie tools
+        desc: List available tools (bash, read, write, edit, grep, memory, etc)
+      - name: freddie run
+        desc: Start interactive agent REPL with slash command support
+      - name: freddie dashboard
+        desc: Web UI for sessions, chat, analytics, cron, skills, config, logs
+      - name: freddie gateway
+        desc: Start messaging gateway (Telegram, Discord, Slack, WhatsApp, SMS, etc)
+  - id: session-history
+    name: Session & History
+    features:
+      - name: freddie sessions
+        desc: List recent sessions with full-text search
+      - name: freddie search
+        desc: Query message history across all sessions
+      - name: freddie resume
+        desc: Continue a previous session by ID
+  - id: configuration
+    name: Configuration
+    features:
+      - name: freddie profile
+        desc: Multi-user profiles (list, create, switch, delete)
+      - name: freddie skin
+        desc: Switch UI theme
+      - name: freddie config
+        desc: View and set configuration values
+  - id: workflows
+    name: Workflows
+    features:
+      - name: freddie cron
+        desc: Scheduled jobs (list, add, cancel, tick)
+      - name: freddie batch
+        desc: Parallel task runner from file
+      - name: freddie acp
+        desc: JSON-RPC stdio for IDE integration
+examples:
+  - label: Top Commands
+    href: "#top-commands"
+  - label: Session & History
+    href: "#session-history"
+  - label: Configuration
+    href: "#configuration"
+  - label: Workflows
+    href: "#workflows"
+body: |
+  # CLI
+
+  Freddie ships as `freddie` command. Install via npm:
+
+  ```bash
+  npm install -g freddie
+  ```
+
+  ## Top Commands
+
+  ### freddie tools
+  List available tools (bash, read, write, edit, grep, memory, delegate, browser, etc).
+
+  ```
+  $ freddie tools
+  11 tools registered (core: 8 + env: 2 + external: 1)
+  ```
+
+  ### freddie run
+  Start interactive agent REPL. Press Ctrl+C to exit.
+
+  ```
+  $ freddie run
+  Agent ready. Type your prompt or /help for slash commands.
+  ```
+
+  ### freddie dashboard --port 3000
+  Web UI: sessions, chat, analytics, cron jobs, skills, config, logs.
+
+  ```
+  $ freddie dashboard --port 3000
+  Dashboard running at http://localhost:3000
+  ```
+
+  ### freddie gateway --platform telegram
+  Start messaging gateway (webhook + agent loop). Requires platform credentials.
+
+  ```
+  $ export TELEGRAM_BOT_TOKEN=...
+  $ freddie gateway --platform telegram --port 3001
+  Gateway listening at http://localhost:3001
+  ```
+
+  ## Full Reference
+
+  ### Session & History
+  - `freddie sessions` — list recent sessions + search
+  - `freddie search "<query>"` — full-text search over messages
+  - `freddie resume <id>` — continue a session
+
+  ### Configuration
+  - `freddie profile [list|create|switch|delete]` — multi-user profiles
+  - `freddie skin [name]` — switch UI theme
+  - `freddie config [key] [value]` — view/set config
+
+  ### Skills & Tools
+  - `freddie skills` — list bundled + custom skills
+  - `freddie skill <name>` — show skill details
+  - `freddie tools` — list + filter tools
+
+  ### Workflows
+  - `freddie cron [list|add|cancel|tick]` — scheduled jobs
+  - `freddie batch <file>` — parallel task runner
+  - `freddie acp` — JSON-RPC stdio for IDE integration
+
+  ### Help
+  - `freddie help-all` — all slash commands (inside REPL)
+  - `freddie -h` — command-line help
+
+  ## Slash Commands in REPL
+
+  - `/help`, `/quit`, `/clear`
+  - `/profile [list|switch <name>]`
+  - `/sessions`, `/search <query>`, `/resume <id>`
+  - `/model [name]`, `/provider [name]`
+  - `/toolsets`, `/tools`, `/skills`, `/skill <name>`
+  - `/memory`, `/skin [name]`, `/config [key] [value]`
+  - `/logs`, `/status`, `/copy`, `/paste`, `/reset`

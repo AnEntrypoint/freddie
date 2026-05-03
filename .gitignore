@@ -1,0 +1,34 @@
+node_modules
+.thoth-test-home
+*.log
+.DS_Store
+.env
+dist
+.cache
+# >>> gm managed (do not edit between markers)
+.gm-stop-verified
+.gm/prd-state.json
+.gm/rslearn-counter.json
+.gm/git-block-counter.json
+.gm/learning-state.md
+.gm/trajectory-drafts/
+.gm/ingest-drafts/
+.gm/needs-gm
+.gm/lastskill
+.gm/turn-state.json
+.gm/no-memorize-this-turn
+.gm/prd.paused.yml
+.gm/rs-learn.db-shm
+.gm/rs-learn.db-wal
+# tracked: .gm/rs-learn.db, .gm/code-search/, AGENTS.md, .gm/prd.yml
+# <<< gm managed
+
+
+
+.plugkit-browser-profile/
+.plugkit-browser-profile-*/
+.plugkit-agent-worktree/
+*.stackdump
+.codeinsight
+.gm/rs-learn.db-shm
+.gm/rs-learn.db-wal

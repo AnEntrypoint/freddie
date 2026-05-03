@@ -1,0 +1,183 @@
+title: Architecture — Freddie
+slug: architecture
+sections:
+  - id: agent-loop
+    name: Agent Loop
+    features:
+      - name: Machine
+        desc: "src/agent/machine.js (xstate v5 turn choreography)"
+      - name: LLM Bridge
+        desc: "src/agent/pi-bridge.js (pi-ai provider adapter)"
+      - name: Substrate
+        desc: "@mariozechner/pi-agent-core (runAgentLoop, agentLoop)"
+  - id: context-compressor
+    name: Context Engine & Compressor
+    features:
+      - name: Builder
+        desc: "src/context/engine.js (blocksToSystemMessage)"
+      - name: Compressor
+        desc: "src/agent/compress/ (policy, tokens, prune, prompt, fallback)"
+      - name: Strategy
+        desc: head/middle/tail cutoff; preserve recent context; maintain handoff invariant
+  - id: tool-registry
+    name: Tool Registry
+    features:
+      - name: Registry
+        desc: "src/tools/registry.js (registration + schema introspection)"
+      - name: Tools
+        desc: bash, read, write, edit, grep, todo, memory, delegate, web_search, image_gen, browser
+      - name: Environments
+        desc: "src/tools/environments/{local,docker,ssh}.js"
+  - id: gateway-platforms
+    name: Gateway & Platforms
+    features:
+      - name: Gateway
+        desc: "src/gateway/run.js (event hub + agent wiring)"
+      - name: Platforms
+        desc: "src/gateway/platforms/*.js (adapter implementations)"
+      - name: Hooks
+        desc: gateway-level filtering + rate limiting
+  - id: session-store
+    name: Session Store
+    features:
+      - name: Store
+        desc: "src/sessions.js (better-sqlite3, FTS5 full-text search)"
+  - id: memory-plugins
+    name: Memory & Plugins
+    features:
+      - name: Providers
+        desc: "Honcho, Mem0, Supermemory, Byterover, Hindsight, Openviking, Retaindb, Holographic"
+      - name: Manager
+        desc: "src/plugins/manager.js (lifecycle + health)"
+      - name: Tool
+        desc: "src/tools/memory.js (store/recall/search)"
+  - id: skills
+    name: Skills
+    features:
+      - name: Loader
+        desc: "src/skills/index.js (discovers ~/.freddie/skills/ + bundled)"
+      - name: Format
+        desc: "SKILL.md markdown (name, description, examples, tools)"
+  - id: dashboard
+    name: Dashboard Web UI
+    features:
+      - name: App
+        desc: "src/web/app.js (547L, Section + motion + chat)"
+      - name: Server
+        desc: "src/web/server.js (express + /api endpoints)"
+      - name: Framework
+        desc: webjsx (no React)
+  - id: auth-profiles
+    name: Auth & Profiles
+    features:
+      - name: Auth
+        desc: "src/auth.js (credential storage + pi-ai integration)"
+      - name: Home
+        desc: "src/home.js (getFreddieHome, profile-safe paths)"
+  - id: cron-batch
+    name: Cron & Batch
+    features:
+      - name: Cron
+        desc: "src/cron/{scheduler,cron-parse}.js (persistent jobs, syntax parser)"
+      - name: Batch
+        desc: "src/batch.js (Promise.allSettled, aggregation)"
+  - id: observability
+    name: Observability
+    features:
+      - name: Logs
+        desc: "src/observability/log.js (events: subsystem, severity, ts, fields)"
+      - name: Debug
+        desc: "src/observability/debug.js (/debug/subsystem endpoints)"
+body: |
+  # Architecture
+
+  Freddie is an open JS agent harness built with substrate-first construction. Internal modules stay small (<=200 lines) and compose through dependency-injected primitives.
+
+  ## Agent Loop
+
+  Xstate turn machine that orchestrates agent rounds: receive input → expand context → compress if needed → call LLM → dispatch tool calls → collect results → summarize → emit.
+
+  - **Machine**: `src/agent/machine.js` (xstate v5 turn choreography)
+  - **LLM Bridge**: `src/agent/pi-bridge.js` (pi-ai provider adapter)
+  - **Substrate**: `@mariozechner/pi-agent-core` (runAgentLoop, agentLoop)
+
+  ## Context Engine & Compressor
+
+  Builds system message from file context, skills, memory, tools. Compresses history when budget exceeded using head/middle/tail policy.
+
+  - **Builder**: `src/context/engine.js` (blocksToSystemMessage)
+  - **Compressor**: `src/agent/compress/` (policy, tokens, prune, prompt, fallback)
+  - **Strategy**: head/middle/tail cutoff; preserve recent context; maintain handoff invariant
+
+  ## Tool Registry
+
+  11 built-in tools auto-discovered. Tools run in execution environments: local (subprocess), docker (podman), ssh (remote).
+
+  - **Registry**: `src/tools/registry.js` (registration + schema introspection)
+  - **Tools**: bash, read, write, edit, grep, todo, memory, delegate, web_search, image_gen, browser
+  - **Environments**: `src/tools/environments/{local,docker,ssh}.js`
+
+  ## Gateway & Platforms
+
+  16 functional adapters for inbound messaging. Each adapter extends EventEmitter, emits 'message' events. Supported: Telegram, Discord, Slack, email, SMS, WhatsApp, Matrix, Signal, Dingtalk, Feishu, WeChat, QQ, Mattermost, Zulip, BlueBubbles, Misskey.
+
+  - **Gateway**: `src/gateway/run.js` (event hub + agent wiring)
+  - **Platforms**: `src/gateway/platforms/*.js` (adapter implementations)
+  - **Hooks**: gateway-level filtering + rate limiting
+
+  ## Session Store
+
+  Persistent history + FTS5 full-text search. Schema: session_id, turns (JSON), metadata, created_at, updated_at.
+
+  - **Store**: `src/sessions.js` (better-sqlite3)
+
+  ## Memory & Plugins
+
+  8 provider backends: Honcho, Mem0, Supermemory, Byterover, Hindsight, Openviking, Retaindb, Holographic. Plugin manager handles lifecycle + health.
+
+  - **Providers**: `src/plugins/memory/{honcho,mem0,supermemory,byterover,hindsight,openviking,retaindb,holographic}.js`
+  - **Manager**: `src/plugins/manager.js`
+  - **Tool**: `src/tools/memory.js` (store/recall/search)
+
+  ## Skills
+
+  Bundled SKILL.md files in 5 categories: creative, software-development, ops, data, planning. User can extend via ~/.freddie/skills/.
+
+  - **Loader**: `src/skills/index.js` (discovers ~/.freddie/skills/ + bundled)
+  - **Format**: SKILL.md markdown (name, description, examples, tools)
+
+  ## Dashboard Web UI
+
+  anentrypoint-design webjsx + ripple-ui. 14 routes: home, chat (SSE live), sessions, analytics, cron, batch, tools, models, skills, logs, config, env, docs, gateway.
+
+  - **App**: `src/web/app.js` (547L, Section + motion + chat)
+  - **Server**: `src/web/server.js` (express + /api endpoints)
+  - **Framework**: webjsx (no React)
+
+  ## Auth & Profiles
+
+  FileAuthStore for credential persistence. Profile support for multi-user isolation.
+
+  - **Auth**: `src/auth.js` (credential storage + pi-ai integration)
+  - **Home**: `src/home.js` (getFreddieHome, profile-safe paths)
+
+  ## Cron & Batch
+
+  Cron scheduler for recurring workflows. Batch runner for parallel task execution.
+
+  - **Cron**: `src/cron/{scheduler,cron-parse}.js` (persistent jobs, syntax parser)
+  - **Batch**: `src/batch.js` (Promise.allSettled, aggregation)
+
+  ## Observability
+
+  Structured logging (JSONL) + /debug endpoints. window.__debug for client introspection.
+
+  - **Logs**: `src/observability/log.js` (events: subsystem, severity, ts, fields)
+  - **Debug**: `src/observability/debug.js` (/debug/subsystem endpoints)
+
+  ## Conventions
+
+  - 4-space indent, single quotes, no semicolons in JS
+  - One file = one concern; <=200 lines
+  - No comments in code; documentation lives in markdown
+  - Every subsystem registers `/debug/<name>` for introspection

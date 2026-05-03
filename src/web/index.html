@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en" class="ds-247420" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Freddie Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600&family=Archivo+Black&family=JetBrains+Mono:wght@400;500&display=swap">
+<script type="importmap">
+{ "imports": { "anentrypoint-design": "/vendor/anentrypoint-design/247420.js" } }
+</script>
+<style>
+html, body {
+    margin: 0; padding: 0; min-height: 100vh;
+}
+
+html[data-theme="light"] body { background: var(--paper, #F5F0E4); color: var(--ink, #1F1B16); }
+html[data-theme="dark"] body  { background: var(--panel-0, #1A1B1E); color: var(--panel-text, #E8EAED); }
+
+html[data-theme="light"] .ds-247420 {
+    --paper:       #F5F0E4;
+    --ink:         #1F1B16;
+    --panel-0:     #F5F0E4;
+    --panel-1:     #FBF6EB;
+    --panel-2:     #F0E9DA;
+    --panel-3:     #E3DAC7;
+    --panel-hover: #EBE1CD;
+    --panel-select: #D8ECCB;
+    --panel-text:   #1F1B16;
+    --panel-text-2: #6B6B6B;
+    --panel-text-3: #8A8A8A;
+    --panel-accent:    #3A66FF;
+    --panel-accent-2:  #3A66FF;
+    --panel-accent-fg: #FFFFFF;
+    --green:  #3F8A4A;
+    --purple: #6B3A78;
+    --mascot: #F07AA8;
+    --sun:    #FFD86B;
+    --flame:  #FF8454;
+    --sky:    #6FA9FF;
+    --live:   #2BB07F;
+    --warn:   #FF6B4A;
+    --link:   #3A66FF;
+}
+
+html[data-theme="dark"] .ds-247420 {
+    --paper:       #2D2E30;
+    --ink:         #E8EAED;
+    --panel-0:     #1A1B1E;
+    --panel-1:     #24252A;
+    --panel-2:     #2D2E30;
+    --panel-3:     #36383E;
+    --panel-hover: #3D3F45;
+    --panel-select: #1F3A2F;
+    --panel-text:   #E8EAED;
+    --panel-text-2: #A0A0A0;
+    --panel-text-3: #7D7D7D;
+    --panel-accent:    #8AB4F8;
+    --panel-accent-2:  #8AB4F8;
+    --panel-accent-fg: #1A1B1E;
+    --green:  #5CB85C;
+    --purple: #BA68C8;
+    --mascot: #F48FB1;
+    --sun:    #FFD68A;
+    --flame:  #FF9B6B;
+    --sky:    #90CAF9;
+    --live:   #4CAF50;
+    --warn:   #FF7043;
+    --link:   #90CAF9;
+}
+
+.ds-247420, .ds-247420 * {
+    font-family: Nunito, -apple-system, system-ui, sans-serif;
+}
+.ds-247420 h1, .ds-247420 h2, .ds-247420 h3, .ds-247420 h4, .ds-247420 h5, .ds-247420 h6 {
+    font-family: 'Archivo Black', sans-serif;
+}
+.ds-247420 code, .ds-247420 pre, .ds-247420 .code, .ds-247420 .meta, .ds-247420 .cli,
+.ds-247420 [class*="mono"], .ds-247420 kbd {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.ds-247420 .panel { border-radius: 20px; }
+.ds-247420 .app-side a.active {
+    background: var(--panel-select);
+    color: var(--panel-text);
+    font-weight: 600;
+}
+
+.ds-247420 .app-status {
+    background: var(--panel-0);
+    color: var(--panel-text-2);
+    padding: 6px 16px;
+    border-top: none;
+    height: auto;
+}
+
+.ds-247420 input, .ds-247420 textarea, .ds-247420 select {
+    background: var(--panel-1);
+    color: var(--panel-text);
+    border: none;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+}
+.ds-247420 input:focus, .ds-247420 textarea:focus {
+    background: var(--panel-2);
+    box-shadow: inset 0 0 0 2px var(--panel-accent-2);
+}
+
+.ds-247420 button {
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 10px;
+    font-weight: 600;
+    border: none;
+    padding: 8px 16px;
+}
+.ds-247420 button.primary {
+    background: var(--panel-accent-2);
+    color: var(--panel-accent-fg);
+}
+.ds-247420 button.danger {
+    background: var(--warn);
+    color: white;
+}
+.ds-247420 button.ghost {
+    background: transparent;
+    color: var(--panel-text);
+    border: 1px solid var(--panel-2);
+}
+.ds-247420 button:hover {
+    background: var(--panel-hover);
+}
+
+.ds-247420 table { width: 100%; border-collapse: collapse; }
+.ds-247420 th, .ds-247420 td { text-align: left; padding: 8px 14px; border-bottom: 1px solid var(--panel-2); font-size: 13px; }
+.ds-247420 th { color: var(--panel-text-2); font-weight: 600; background: var(--panel-1); }
+.ds-247420 tr.clickable { cursor: pointer; }
+.ds-247420 tr.clickable:hover td { background: var(--panel-hover); }
+
+.ds-247420 .kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; background: var(--panel-2); padding: 1px; border-radius: 20px; overflow: hidden; }
+.ds-247420 .kpi-card { background: var(--panel-1); padding: 14px 18px; }
+.ds-247420 .kpi-card .num { font-size: 1.75rem; color: var(--panel-text); font-weight: 400; font-family: 'JetBrains Mono', monospace; }
+.ds-247420 .kpi-card .lbl { font-size: 0.75rem; color: var(--panel-text-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+
+.ds-247420 .row-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: stretch; margin-bottom: 12px; }
+.ds-247420 .row-form input { flex: 1; min-width: 140px; }
+
+.ds-247420 .chat .chat-thread { max-height: calc(100vh - 320px); overflow-y: auto; }
+
+.ds-247420 .chip { border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; display: inline-block; }
+.ds-247420 .chip.ok   { background: var(--green); color: white; }
+.ds-247420 .chip.miss { background: var(--warn); color: white; }
+
+.ds-247420 .empty { color: var(--panel-text-3); padding: 12px 0; }
+.ds-247420 a { color: var(--link); text-decoration: none; }
+.ds-247420 a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

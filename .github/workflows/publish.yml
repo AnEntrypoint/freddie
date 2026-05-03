@@ -1,0 +1,50 @@
+name: publish
+on:
+  push:
+    branches: [master]
+
+jobs:
+  publish:
+    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Prepare package.json for publish
+        run: node .github/workflows/prepare-publish.cjs
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Test
+        run: node test.js
+
+      - name: Publish
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Commit version bump
+        run: |
+          node .github/workflows/restore-package.cjs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -- package-lock.json 2>/dev/null || true
+          git add package.json
+          if git diff --cached --quiet; then
+            echo "no changes"
+          else
+            VERSION=$(node -p "require('./package.json').version")
+            git commit -m "chore(release): v$VERSION [skip-bump]"
+            git push origin HEAD:master || echo "push failed (non-fatal)"
+          fi

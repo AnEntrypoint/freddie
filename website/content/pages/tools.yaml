@@ -1,0 +1,121 @@
+title: Tools — Freddie
+slug: tools
+sections:
+  - id: core-tools
+    name: Core Tools
+    features:
+      - name: Bash
+        desc: "Cross-platform subprocess spawn. Parameters: cmd, cwd, timeout_ms, background"
+      - name: Read
+        desc: "File reader with line numbering. Parameters: path, offset, limit"
+      - name: Write
+        desc: "File writer with directory creation. Parameters: path, content"
+      - name: Edit
+        desc: "In-place string replacement. Parameters: path, old_string, new_string, replace_all"
+      - name: Grep
+        desc: "Recursive regex search (ripgrep). Parameters: pattern, path, glob, head_limit"
+  - id: context-tools
+    name: Context Tools
+    features:
+      - name: Todo
+        desc: "Per-session task management. Subcommands: add, list, update, complete, delete"
+      - name: Memory
+        desc: "Long-term memory interface. Routes to Honcho, Mem0, or SQLite fallback"
+      - name: Delegate
+        desc: "Sub-agent spawning with depth guard. Prevents unbounded recursion"
+  - id: external-tools
+    name: External Tools
+    features:
+      - name: Web Search
+        desc: "Internet search via SerpAPI or DuckDuckGo. Requires: SERPAPI_KEY (optional)"
+      - name: Image Generation
+        desc: "Image synthesis via OpenAI or Replicate. Requires: API tokens"
+      - name: Browser
+        desc: "Headless browser automation (puppeteer-core). Commands: navigate, click, evaluate"
+examples:
+  - label: Core Tools
+    href: "#core-tools"
+  - label: Context Tools
+    href: "#context-tools"
+  - label: External Tools
+    href: "#external-tools"
+body: |
+  # Tools
+
+  11 built-in tools auto-discovered from `src/tools/*.js`. Each tool registers schema, handler, optional `checkFn`, and `requiresEnv`.
+
+  ## Core Tools
+
+  ### Bash
+  Cross-platform subprocess spawn. Parameters: `cmd`, `cwd?`, `timeout_ms?`, `background?`.
+  Supports Unix shell syntax on all platforms (Mac/Linux/Windows).
+
+  ### Read
+  File reader with line numbering. Parameters: `path`, `offset?`, `limit?`.
+  Returns numbered lines; supports offset + limit for large files.
+
+  ### Write
+  File writer with directory creation. Parameters: `path`, `content`.
+  Auto-creates parent directories.
+
+  ### Edit
+  In-place string replacement. Parameters: `path`, `old_string`, `new_string`, `replace_all?`.
+  Refuses ambiguous matches; supports whole-file replace mode.
+
+  ### Grep
+  Recursive regex search (ripgrep). Parameters: `pattern`, `path?`, `glob?`, `head_limit?`, `ignore_case?`.
+  Output modes: content, files_with_matches, count.
+
+  ## Context Tools
+
+  ### Todo
+  Per-session task management. Subcommands: `add|list|update|complete|delete`.
+  Persisted in SQLite; scoped to session.
+
+  ### Memory
+  Long-term memory interface. Subcommands: `add|search|list`.
+  Routes to configured provider (Honcho, Mem0, etc); SQLite + FTS5 fallback.
+
+  ### Delegate
+  Sub-agent spawning with depth guard. Spawns new agent with parent context + task.
+  Prevents unbounded recursion.
+
+  ## External Tools
+
+  ### Web Search
+  Internet search. Prefers SerpAPI when keyed; falls back to DuckDuckGo HTML scrape.
+  Requires: `SERPAPI_KEY` (optional).
+
+  ### Image Generation
+  Image synthesis. Supports OpenAI images + Replicate model predictions.
+  Requires: `OPENAI_API_KEY` or `REPLICATE_API_TOKEN`.
+
+  ### Browser
+  Headless browser automation (puppeteer-core, lazy-loaded).
+  Commands: navigate, click, type, evaluate, screenshot, text extraction.
+  Requires: no env vars (chromium bundled).
+
+  ## Adding a Tool
+
+  ```js
+  import { registry } from './tools/registry.js'
+
+  registry.register({
+      name: 'my_tool',
+      toolset: 'core',
+      schema: {
+          name: 'my_tool',
+          description: 'One-liner description',
+          parameters: {
+              type: 'object',
+              properties: { x: { type: 'string' } },
+              required: ['x']
+          }
+      },
+      handler: async (args, ctx) => ({ ok: true }),
+      checkFn: () => !!process.env.MY_KEY,
+      requiresEnv: ['MY_KEY'],
+  })
+  ```
+
+  Drop the file in `src/tools/`. Auto-discovered by `discoverBuiltinTools()`.

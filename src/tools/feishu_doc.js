@@ -1,0 +1,15 @@
+import { registry } from './registry.js'
+registry.register({
+    name: 'feishu_doc',
+    toolset: 'core',
+    schema: { name: 'feishu_doc', description: 'Read or update a Feishu doc by token.', parameters: { type: 'object', properties: { action: { type: 'string', enum: ['get', 'patch'] }, doc_token: { type: 'string' }, content: {} }, required: ['action', 'doc_token'] } },
+    requiresEnv: ['FEISHU_APP_TOKEN'],
+    checkFn: () => Boolean(process.env.FEISHU_APP_TOKEN),
+    handler: async ({ action, doc_token, content }) => {
+        const auth = { authorization: `Bearer ${process.env.FEISHU_APP_TOKEN}` }
+        const base = 'https://open.feishu.cn/open-apis/docx/v1/documents/' + doc_token
+        if (action === 'get') return await (await fetch(base, { headers: auth })).json()
+        if (action === 'patch') return await (await fetch(base + '/blocks', { method: 'PATCH', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify(content) })).json()
+        return { error: 'unknown action' }
+    },
+})

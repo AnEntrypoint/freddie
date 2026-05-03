@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en" class="ds-247420" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tools — Freddie — Freddie</title>
+<link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
+<script type="importmap">
+{ "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
+</script>
+<style>
+.page-body h1 { margin-top: 0; }
+.page-body h2 { margin-top: 32px; }
+.page-body h3 { margin-top: 24px; }
+.page-body pre { margin: 12px 0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { mount, components as C } from 'anentrypoint-design';
+const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
+const pageSlug = 'tools';
+const pageTitle = 'Tools — Freddie';
+const pageBody = `<h1>Tools</h1>
+<p>11 built-in tools auto-discovered from <code>src/tools/*.js</code>. Each tool registers schema, handler, optional <code>checkFn</code>, and <code>requiresEnv</code>.</p>
+<h2>Core Tools</h2>
+<h3>Bash</h3>
+<p>Cross-platform subprocess spawn. Parameters: <code>cmd</code>, <code>cwd?</code>, <code>timeout_ms?</code>, <code>background?</code>.</p>
+<p>Supports Unix shell syntax on all platforms (Mac/Linux/Windows).</p>
+<h3>Read</h3>
+<p>File reader with line numbering. Parameters: <code>path</code>, <code>offset?</code>, <code>limit?</code>.</p>
+<p>Returns numbered lines; supports offset + limit for large files.</p>
+<h3>Write</h3>
+<p>File writer with directory creation. Parameters: <code>path</code>, <code>content</code>.</p>
+<p>Auto-creates parent directories.</p>
+<h3>Edit</h3>
+<p>In-place string replacement. Parameters: <code>path</code>, <code>old_string</code>, <code>new_string</code>, <code>replace_all?</code>.</p>
+<p>Refuses ambiguous matches; supports whole-file replace mode.</p>
+<h3>Grep</h3>
+<p>Recursive regex search (ripgrep). Parameters: <code>pattern</code>, <code>path?</code>, <code>glob?</code>, <code>head_limit?</code>, <code>ignore_case?</code>.</p>
+<p>Output modes: content, files_with_matches, count.</p>
+<h2>Context Tools</h2>
+<h3>Todo</h3>
+<p>Per-session task management. Subcommands: <code>add|list|update|complete|delete</code>.</p>
+<p>Persisted in SQLite; scoped to session.</p>
+<h3>Memory</h3>
+<p>Long-term memory interface. Subcommands: <code>add|search|list</code>.</p>
+<p>Routes to configured provider (Honcho, Mem0, etc); SQLite + FTS5 fallback.</p>
+<h3>Delegate</h3>
+<p>Sub-agent spawning with depth guard. Spawns new agent with parent context + task.</p>
+<p>Prevents unbounded recursion.</p>
+<h2>External Tools</h2>
+<h3>Web Search</h3>
+<p>Internet search. Prefers SerpAPI when keyed; falls back to DuckDuckGo HTML scrape.</p>
+<p>Requires: <code>SERPAPI_KEY</code> (optional).</p>
+<h3>Image Generation</h3>
+<p>Image synthesis. Supports OpenAI images + Replicate model predictions.</p>
+<p>Requires: <code>OPENAI_API_KEY</code> or <code>REPLICATE_API_TOKEN</code>.</p>
+<h3>Browser</h3>
+<p>Headless browser automation (puppeteer-core, lazy-loaded).</p>
+<p>Commands: navigate, click, type, evaluate, screenshot, text extraction.</p>
+<p>Requires: no env vars (chromium bundled).</p>
+<h2>Adding a Tool</h2>
+<pre>
+import { registry } from './tools/registry.js'
+
+registry.register({
+    name: 'my_tool',
+    toolset: 'core',
+    schema: {
+        name: 'my_tool',
+        description: 'One-liner description',
+        parameters: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x']
+        }
+    },
+    handler: async (args, ctx) =&gt; ({ ok: true }),
+    checkFn: () =&gt; !!process.env.MY_KEY,
+    requiresEnv: ['MY_KEY'],
+})
+</pre>
+<p>Drop the file in <code>src/tools/</code>. Auto-discovered by <code>discoverBuiltinTools()</code>.</p>`;
+
+mount(document.getElementById('app'), () => C.AppShell({
+  topbar: C.Topbar({ brand: 'Freddie', items: navItems }),
+  crumb: C.Crumb({ leaf: pageTitle }),
+  main: C.Section({
+    id: 'main',
+    children: [
+      C.Panel({
+        children: [
+          C.h(null, { innerHTML: pageBody, className: 'page-body' })
+        ]
+      })
+    ]
+  }),
+  status: C.Status({ left: ['main'], right: ['live'] })
+}));
+</script>
+</body>
+</html>

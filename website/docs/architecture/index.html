@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en" class="ds-247420" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture — Freddie — Freddie</title>
+<link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
+<script type="importmap">
+{ "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
+</script>
+<style>
+.page-body h1 { margin-top: 0; }
+.page-body h2 { margin-top: 32px; }
+.page-body h3 { margin-top: 24px; }
+.page-body pre { margin: 12px 0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { mount, components as C } from 'anentrypoint-design';
+const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
+const pageSlug = 'architecture';
+const pageTitle = 'Architecture — Freddie';
+const pageBody = `<h1>Architecture</h1>
+<p>Freddie is an open JS agent harness built with substrate-first construction. Internal modules stay small (&lt;=200 lines) and compose through dependency-injected primitives.</p>
+<h2>Agent Loop</h2>
+<p>Xstate turn machine that orchestrates agent rounds: receive input → expand context → compress if needed → call LLM → dispatch tool calls → collect results → summarize → emit.</p>
+<ul>
+<li><strong>Machine</strong>: <code>src/agent/machine.js</code> (xstate v5 turn choreography)</li>
+<li><strong>LLM Bridge</strong>: <code>src/agent/pi-bridge.js</code> (pi-ai provider adapter)</li>
+<li><strong>Substrate</strong>: <code>@mariozechner/pi-agent-core</code> (runAgentLoop, agentLoop)</li>
+</ul>
+<h2>Context Engine &amp; Compressor</h2>
+<p>Builds system message from file context, skills, memory, tools. Compresses history when budget exceeded using head/middle/tail policy.</p>
+<ul>
+<li><strong>Builder</strong>: <code>src/context/engine.js</code> (blocksToSystemMessage)</li>
+<li><strong>Compressor</strong>: <code>src/agent/compress/</code> (policy, tokens, prune, prompt, fallback)</li>
+<li><strong>Strategy</strong>: head/middle/tail cutoff; preserve recent context; maintain handoff invariant</li>
+</ul>
+<h2>Tool Registry</h2>
+<p>11 built-in tools auto-discovered. Tools run in execution environments: local (subprocess), docker (podman), ssh (remote).</p>
+<ul>
+<li><strong>Registry</strong>: <code>src/tools/registry.js</code> (registration + schema introspection)</li>
+<li><strong>Tools</strong>: bash, read, write, edit, grep, todo, memory, delegate, web_search, image_gen, browser</li>
+<li><strong>Environments</strong>: <code>src/tools/environments/{local,docker,ssh}.js</code></li>
+</ul>
+<h2>Gateway &amp; Platforms</h2>
+<p>16 functional adapters for inbound messaging. Each adapter extends EventEmitter, emits 'message' events. Supported: Telegram, Discord, Slack, email, SMS, WhatsApp, Matrix, Signal, Dingtalk, Feishu, WeChat, QQ, Mattermost, Zulip, BlueBubbles, Misskey.</p>
+<ul>
+<li><strong>Gateway</strong>: <code>src/gateway/run.js</code> (event hub + agent wiring)</li>
+<li><strong>Platforms</strong>: <code>src/gateway/platforms/*.js</code> (adapter implementations)</li>
+<li><strong>Hooks</strong>: gateway-level filtering + rate limiting</li>
+</ul>
+<h2>Session Store</h2>
+<p>Persistent history + FTS5 full-text search. Schema: session_id, turns (JSON), metadata, created_at, updated_at.</p>
+<ul>
+<li><strong>Store</strong>: <code>src/sessions.js</code> (better-sqlite3)</li>
+</ul>
+<h2>Memory &amp; Plugins</h2>
+<p>8 provider backends: Honcho, Mem0, Supermemory, Byterover, Hindsight, Openviking, Retaindb, Holographic. Plugin manager handles lifecycle + health.</p>
+<ul>
+<li><strong>Providers</strong>: <code>src/plugins/memory/{honcho,mem0,supermemory,byterover,hindsight,openviking,retaindb,holographic}.js</code></li>
+<li><strong>Manager</strong>: <code>src/plugins/manager.js</code></li>
+<li><strong>Tool</strong>: <code>src/tools/memory.js</code> (store/recall/search)</li>
+</ul>
+<h2>Skills</h2>
+<p>Bundled SKILL.md files in 5 categories: creative, software-development, ops, data, planning. User can extend via ~/.freddie/skills/.</p>
+<ul>
+<li><strong>Loader</strong>: <code>src/skills/index.js</code> (discovers ~/.freddie/skills/ + bundled)</li>
+<li><strong>Format</strong>: SKILL.md markdown (name, description, examples, tools)</li>
+</ul>
+<h2>Dashboard Web UI</h2>
+<p>anentrypoint-design webjsx + ripple-ui. 14 routes: home, chat (SSE live), sessions, analytics, cron, batch, tools, models, skills, logs, config, env, docs, gateway.</p>
+<ul>
+<li><strong>App</strong>: <code>src/web/app.js</code> (547L, Section + motion + chat)</li>
+<li><strong>Server</strong>: <code>src/web/server.js</code> (express + /api endpoints)</li>
+<li><strong>Framework</strong>: webjsx (no React)</li>
+</ul>
+<h2>Auth &amp; Profiles</h2>
+<p>FileAuthStore for credential persistence. Profile support for multi-user isolation.</p>
+<ul>
+<li><strong>Auth</strong>: <code>src/auth.js</code> (credential storage + pi-ai integration)</li>
+<li><strong>Home</strong>: <code>src/home.js</code> (getFreddieHome, profile-safe paths)</li>
+</ul>
+<h2>Cron &amp; Batch</h2>
+<p>Cron scheduler for recurring workflows. Batch runner for parallel task execution.</p>
+<ul>
+<li><strong>Cron</strong>: <code>src/cron/{scheduler,cron-parse}.js</code> (persistent jobs, syntax parser)</li>
+<li><strong>Batch</strong>: <code>src/batch.js</code> (Promise.allSettled, aggregation)</li>
+</ul>
+<h2>Observability</h2>
+<p>Structured logging (JSONL) + /debug endpoints. window.__debug for client introspection.</p>
+<ul>
+<li><strong>Logs</strong>: <code>src/observability/log.js</code> (events: subsystem, severity, ts, fields)</li>
+<li><strong>Debug</strong>: <code>src/observability/debug.js</code> (/debug/subsystem endpoints)</li>
+</ul>
+<h2>Conventions</h2>
+<ul>
+<li>4-space indent, single quotes, no semicolons in JS</li>
+<li>One file = one concern; &lt;=200 lines</li>
+<li>No comments in code; documentation lives in markdown</li>
+<li>Every subsystem registers <code>/debug/&lt;name&gt;</code> for introspection</li>
+</ul>`;
+
+mount(document.getElementById('app'), () => C.AppShell({
+  topbar: C.Topbar({ brand: 'Freddie', items: navItems }),
+  crumb: C.Crumb({ leaf: pageTitle }),
+  main: C.Section({
+    id: 'main',
+    children: [
+      C.Panel({
+        children: [
+          C.h(null, { innerHTML: pageBody, className: 'page-body' })
+        ]
+      })
+    ]
+  }),
+  status: C.Status({ left: ['main'], right: ['live'] })
+}));
+</script>
+</body>
+</html>

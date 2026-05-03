@@ -1,0 +1,187 @@
+# Freddie — Agent Guide
+
+Instructions for AI coding assistants working on Freddie.
+
+## Substrate (do not reimplement)
+
+- `@mariozechner/pi-coding-agent` — agent + tools + interactive TUI. Use `AgentSession`, `BashExecutionComponent`, `ModelRegistry`, `InteractiveMode`, `FileAuthStorageBackend`, `ExtensionRunner`.
+- `@mariozechner/pi-agent-core` — `Agent`, `agentLoop`, `runAgentLoop`, `streamProxy`. Wrap in xstate, do not rewrite.
+- `@mariozechner/pi-ai` — `complete`, `completeSimple`, `AssistantMessageEventStream`, `registerApiProvider`, `getModel`, `calculateCost`, `parseStreamingJson`, `isContextOverflow`. THE provider layer.
+- `@mariozechner/pi-tui` — TUI primitives (Ink-equivalent).
+- `floosie` v0.6.14 — `ProcessorMachine` (xstate). Use for gateway pipelines.
+- `anentrypoint-design` v0.0.27 — webjsx + ripple-ui. Use for any web UI; do NOT add React. Source in C:/dev/anentrypoint-design; freddie links via `file:../anentrypoint-design`.
+- `xstate` v5 — every long-lived state machine (agent turns, gateway lifecycle, approvals).
+
+## Layout
+
+```
+src/home.js                      # getFreddieHome, applyProfileOverride
+src/config.js                    # loadConfig, saveConfigValue, DEFAULT_CONFIG, _config_version migrations
+src/sessions.js                  # better-sqlite3 + FTS5
+src/auth.js                      # FileAuthStore for credentials
+src/tools/registry.js            # tool registration + dispatch
+src/tools/{bash,read,write,edit,grep,todo,memory,delegate,web_search,image_gen,browser}.js
+src/tools/environments/{local,docker,ssh,index}.js  # execution environments
+src/toolsets.js                  # _FREDDIE_CORE_TOOLS, getEnabledToolSchemas
+src/agent/machine.js             # xstate turn machine
+src/agent/pi-bridge.js           # @mariozechner/pi-ai callLLM adapter
+src/agent/compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js  # context compressor
+src/commands/registry.js         # CommandDef + resolveCommand + gateway/telegram/slack views
+src/commands/profile.js          # profile CRUD
+src/cli/interactive.js           # readline REPL, skin-aware
+src/context/engine.js            # context block builders (file, skills, memory)
+src/cron/{scheduler,cron-parse}.js  # persistent cron jobs
+src/batch.js                     # parallel batch runner
+src/web/{server,index.html}      # dashboard (express + anentrypoint-design webjsx)
+src/gateway/run.js               # Gateway + hooks
+src/gateway/platforms/*.js       # webhook + api_server + 16 functional adapters
+src/acp/server.js                # JSON-RPC stdio
+src/plugins/manager.js           # PluginManager
+src/plugins/memory/{provider,_index,honcho,mem0,supermemory,byterover,hindsight,holographic,openviking,retaindb}.js
+src/skills/index.js              # SKILL.md loader
+src/skin/engine.js               # _BUILTIN_SKINS + load/get/set
+src/observability/log.js         # structured logs
+src/observability/debug.js       # /debug registry
+skills/                          # bundled skill bundles (creative/, software-development/, ops/, data/, planning/)
+website/                         # flatspace docs site: flatspace.config.mjs + theme.mjs + content/pages/*.yaml + docs/ (build output)
+bin/freddie.js                     # commander CLI: tools, skills, profile, skin, sessions, search, gateway, acp, run, cron, batch, dashboard, help-all
+```
+
+## Adding a tool
+
+```js
+import { registry } from './tools/registry.js'
+
+registry.register({
+    name: 'my_tool',
+    toolset: 'core',
+    schema: { name: 'my_tool', description: '…', parameters: { type: 'object', properties: { x: { type: 'string' } }, required: ['x'] } },
+    handler: async (args, ctx) => ({ ok: true, x: args.x }),
+    checkFn: () => !!process.env.MY_KEY,
+    requiresEnv: ['MY_KEY'],
+})
+```
+
+Drop the file in `src/tools/`. Auto-discovered by `discoverBuiltinTools()`.
+
+## Adding a slash command
+
+Add a `CommandDef` to `COMMAND_REGISTRY` in `src/commands/registry.js`:
+
+```js
+{ name: 'mycmd', description: '…', category: 'Session', aliases: ['mc'], args_hint: '[arg]' }
+```
+
+Dispatch happens against the canonical name resolved via `resolveCommand()`. Gateway/telegram/slack views derive automatically.
+
+## Adding a gateway platform
+
+1. Drop `src/gateway/platforms/<name>.js`
+2. Extend `EventEmitter`, implement `start/stop/send`, emit `'message'`
+3. `Gateway.register('name', adapter)` wires inbound to the agent
+
+## Profile-safe code
+
+- Always `getFreddieHome()` for state paths. Never `path.join(os.homedir(), '.freddie')`.
+- Always `displayFreddieHome()` for user-visible messages (returns `~/.freddie` or `~/.freddie/profiles/<name>`).
+- Profile operations are HOME-anchored: `getProfilesRoot()` returns `~/.freddie/profiles` regardless of active profile.
+
+## Cache safety
+
+Slash commands that mutate system-prompt state default to deferred invalidation; opt-in `--now` for immediate. Mid-conversation prompt rewrites blow the cache and cost real money.
+
+## Testing
+
+One `test.js` at project root. ≤200 lines. Plain assertions, real data, real services. No mocks. No fixtures. No `tests/` dir. New behavior = extend `test.js`, not a new test file.
+
+## Substrate gotchas
+
+- `pi-coding-agent` ships a photon-rs wasm; install needs network. Verified working on Windows.
+- `pi-ai` reads provider keys via `findEnvKeys` / `getEnvApiKey`. Match its env var names (`ANTHROPIC_API_KEY`, etc.).
+- `floosie.ProcessorMachine` is an xstate machine. Compose, don't fork.
+- **Browser inline `<script type="module">` syntax errors** — When a pageerror reports "missing ) after argument list" with no file:line info, extract the script body to a separate `.js` file and run `node --check path/to/file.js`. Browsers swallow line numbers for inline modules; node's V8 parser prints exact line. Essential for debugging unbalanced parens in webjsx-style nested `h()` calls. (Confirmed 2026-04-30: freddie dashboard app.js, line 133.)
+- **src/web/app.js 200-line policy violation** — File is 548 lines, violating gm hard cap (2.7× over). Only file in 283-file codebase over limit. Likely waived intentionally or is drift to fix. When touching app.js, prefer splitting into `{app,routes,components,state}.js` over expanding further. Do not add 50+ more lines without addressing the split.
+
+## Subsystem guide
+
+| Concern | Freddie location |
+|---|---|
+| Agent loop | `src/agent/machine.js` (xstate) + `@mariozechner/pi-agent-core` |
+| CLI entry | `bin/freddie.js` (commander) + pi-coding-agent InteractiveMode |
+| Tool registry | `src/tools/registry.js` + `src/tools/{bash,read,write,edit,grep}.js` |
+| Toolsets | `src/toolsets.js` |
+| Session store | `src/sessions.js` (better-sqlite3 + FTS5) |
+| Home + profiles | `src/home.js` |
+| Structured logging | `src/observability/log.js` |
+| Config | `src/config.js` |
+| Commands | `src/commands/registry.js` |
+| Skin engine | `src/skin/engine.js` |
+| Gateway + platforms | `src/gateway/run.js` + `src/gateway/platforms/*.js` |
+| ACP (JSON-RPC stdio) | `src/acp/server.js` |
+| TUI | substrate (`pi-tui` + pi-coding-agent) |
+| Plugins + memory | `src/plugins/manager.js` + `src/plugins/memory/provider.js` |
+| Skills loader | `src/skills/index.js` — content drops into `~/.freddie/skills/` |
+| Context compressor | `src/agent/compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js` |
+| Documentation site | `website/` (flatspace + content/pages/*.yaml + theme.mjs) |
+| Cron scheduler | `src/cron/{scheduler,cron-parse}.js` |
+| Batch runner | `src/batch.js` |
+| Execution environments | `src/tools/environments/{local,docker,ssh}.js` (modal/daytona/singularity = explicit residual) |
+| Dashboard | `src/web/{server,index.html}` (anentrypoint-design webjsx) |
+| Auth store | `src/auth.js` (FileAuthStore) + pi-ai key resolution |
+| Context engine | `src/context/engine.js` |
+| Browser tool | `src/tools/browser.js` (puppeteer-core, lazy) |
+| Image gen | `src/tools/image_gen.js` (openai/replicate) |
+| Web search | `src/tools/web_search.js` (DDG/SerpAPI) |
+| Todo | `src/tools/todo.js` |
+| Memory tool | `src/tools/memory.js` |
+| Delegate | `src/tools/delegate.js` |
+| Bundled skills | `skills/` (5 categories, 12 SKILL.md placeholders) |
+| Integration tests | one `test.js` at root per gm policy |
+
+## Cross-project Rust gotchas
+
+- **rs-plugkit exec utility verbs** (2026-04-30) — The plugkit.exe binary advertises `exec:status`, `exec:close`, `exec:sleep` in hook help, but the Cmd enum was missing Status/Close/Sleep variants. Fix applied to c:\dev\rs-plugkit\src\main.rs; awaiting CI rebuild. Until rebuilt: use `exec:wait <secs>` for waits, read task output files directly via fs.readFileSync instead of exec:status.
+- **rs-exec timeout alias** — Both `--timeout` (long-form) and `--timeout-ms` (plugin convention) are accepted due to alias added to c:\dev\rs-exec\src\main.rs. Both Cmd::Exec and Cmd::Bash support either form.
+
+## Integration test status (2026-04-30)
+
+All 21 named integration tests in `test.js` pass (exit 0). Subsystem coverage:
+- agent loop, CLI, gateway, plugins, skills, sessions, cron, batch, dashboard, ACP, web, context-engine, compressor, auth, observability
+
+## Windows libuv cleanup caveat
+
+`test.js` adds explicit cleanup hooks before exit (`closeDb()`, `closeAll()` for log streams) to prevent libuv handle-teardown crash on Windows. Without these, exit hangs or returns non-zero. Critical for stability on Windows hosts.
+
+## LLM backends and acptoapi
+
+- **acptoapi bridge** — Integrated at `src/agent/acptoapi-bridge.js` + `src/agent/llm_resolver.js` (commit 5f55f1e). Localhost API (default port 4800) converting OpenAI/Anthropic SDK calls to multiple backends: Kilo Code, opencode, Claude CLI, Anthropic API, Gemini, Ollama, Bedrock. Endpoint `/v1/chat/completions`, OpenAI-compatible, accepts `Bearer none` auth.
+- **LLM resolver priority** — (1) explicit `callLLM` arg, (2) pi-bridge if `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GROQ_API_KEY` / `OPENROUTER_API_KEY` env set, (3) acptoapi if `/v1/models` returns 200, (4) throw with actionable error. Configurable via `FREDDIE_LLM_URL` and `FREDDIE_LLM_MODEL` env vars.
+- **acptoapi Claude backend tool-call mismatch** — acptoapi's Claude backend returns Anthropic-style XML `<function_calls><invoke name="bash">…</invoke></function_calls>` in message content, not OpenAI `tool_calls` JSON array. This breaks the agent's tool-loop auto-fire. Workaround: use real Anthropic API key + pi-bridge for proper tool dispatch, or use structured `callLLM` stubs in tests.
+
+## Pre-rename validation snapshot (2026-05-03)
+
+All 12 test.js named groups passing: home+config+skin, sessions+FTS5, tools+toolsets, agent-machine, gateway+platforms+hooks, acp-full, plugins+memory, profiles+observability+auth+env+context+cron+batch+slash+skills, utils+time+redact+model-meta+agent-helpers, mcp+swe+distributions+account+credpool, compressor+trajectory, env+pi+cli+tui+setup+website+helpers. CLI boots (`node bin/freddie.js --version` → 0.1.0), tools list 25+ across core/browse/creative, commander 14 commands. 284 source files, test.js 198/200 lines, pkg.version 0.0.39 but bin reports 0.1.0. Node_modules installed, lockfile present. Baseline established before rename; re-run test.js post-rename to isolate rename-induced failures.
+
+## Learning audit
+
+- 2026-05-01: 5 items queried (pi-ai keys, profile paths, cache safety, floosie composition, browser errors); rs-learn store unavailable (exec:recall returned no results). 0 items migrated. New facts (anentrypoint-design build, dashboard live-rerender caveat, libuv spawn caveat) ingested directly into rs-learn; audit will retry in future sessions.
+- 2026-05-01 (session 2): 5 items queried (pi-ai env keys, profile safe paths, cache safety, floosie composition, browser syntax errors). rs-learn store still empty. 0 items migrated. Refined anentrypoint-design source/dist skew entry in AGENTS.md to include silent-failure pageerror diagnostic. New fact `reference/anentrypoint-design-dist-rebuild` ingested.
+- 2026-05-03: Pre-rename validation snapshot recorded (all 12 test.js groups, CLI, tools, 284 files, version drift). Baseline stored to isolate post-rename regressions.
+- 2026-05-03 (session 2): Ingested feedback/app-js-size-violation (src/web/app.js 548L violation) into AGENTS.md Substrate gotchas. rs-learn store unavailable (exec:memorize missing binary). 0 migration audit items queried. 1 new fact added.
+
+## Dashboard web UI caveats
+
+- **anentrypoint-design v0.0.27 source/dist skew** — Published npm package lags behind source in C:/dev/anentrypoint-design. New components (EmptyState, etc.) present in source but missing from dist/247420.js until rebuild. Run `node scripts/build.mjs` in the design repo (emits dist/247420.js ~441KB + 247420.css; build ~150ms); warning "[247420] missing css: vendor/rippleui-1.12.1.css" is benign. Skip rebuild and browser-witness new component usage: silent pageerror "component is not a function" kills app mount with no output in #app. freddie/package.json uses `file:../anentrypoint-design` so npm install always mirrors rebuilt dist without publish cycles.
+- **Live page rerender caveat** — AppState.body caching (page computed once at navigation, body saved) breaks for live routes like #/chat where AppState is mutated mid-flight (SSE pushes new messages). Fix: detect live routes in rerender(), recompute body: `if (AppState.hash === '#/chat') { Promise.resolve(PAGES['#/chat']()).then(b => { AppState.body = b; _mount() }); return }`. Any future live-streaming pages (cron output, traces) need the same treatment.
+- **libuv spawn caveat** — Spawning createDashboard() from exec:nodejs and keeping process alive triggers libuv UV_HANDLE_CLOSING crash on shutdown. Reliable alternative: boot via `node bin/freddie.js dashboard --port <port>`. Liveness checks: exec:browser → page.goto → window.__debug.dashboard() returns {booted, ts, framework, route}; window.__debug.chat() exposes {messages, streaming, draft}; window.__debug.sendChat(text) drives round-trips.
+
+## Residual complement (NOT ported this session)
+
+Genuinely out of session reach, with reasons:
+
+- **Real credentials per platform** — adapters work; setup needs you to provide TELEGRAM_BOT_TOKEN, DISCORD_BOT_TOKEN, SLACK_BOT_TOKEN, etc. before `start()` succeeds. Listed in each adapter's `getRequiredEnv()`.
+- **Memory provider API accounts** — 8 provider modules call real endpoints. Test runs construct objects but don't hit external APIs without keys (HONCHO_API_KEY etc.).
+- **modal / daytona / singularity environments** — only local/docker/ssh ported. The other three are heavyweight remote-execution deps (Modal SDK, Daytona Cloud, Singularity containers).
+- **Bedrock / codex provider adapters** — `pi-ai` covers Anthropic/OpenAI/Groq. Adding bedrock/codex requires registering custom providers via `pi-ai`'s `registerApiProvider`.
+- **TUI Ink rewrite** — `pi-tui` IS the substrate (architectural choice, not a port).
+- **15k pytest tests** — single `test.js` per gm policy.
