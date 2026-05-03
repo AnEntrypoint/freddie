@@ -3,16 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CLI — Freddie — Freddie</title>
+<title>CLI — Freddie</title>
 <link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
 <script type="importmap">
 { "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
 </script>
 <style>
-.page-body h1 { margin-top: 0; }
-.page-body h2 { margin-top: 32px; }
-.page-body h3 { margin-top: 24px; }
-.page-body pre { margin: 12px 0; }
+.page-body h1 { margin-top: 0 }
+.page-body h2 { margin-top: 32px }
+.page-body h3 { margin-top: 24px }
+.page-body pre { margin: 12px 0; background: var(--panel-2, #F0E9DA); padding: 12px; border-radius: 8px; overflow-x: auto }
+.ds-hero { padding: 48px 28px 36px; background: var(--panel-1, #FBF6EB); border-radius: 20px; margin: 24px 0 }
+.ds-hero-title { font-family: 'Archivo Black', sans-serif; font-size: clamp(40px, 6vw, 72px); margin: 0 0 16px; letter-spacing: -0.02em }
+.ds-hero-body { font-size: 17px; line-height: 1.55; max-width: 64ch; opacity: 0.85 }
+.ds-hero-accent { color: var(--mascot, #F07AA8); font-weight: 600 }
+.ds-hero-badges { margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap }
+.chip { padding: 6px 12px; border-radius: 6px; background: var(--panel-2, #F0E9DA); font-size: 13px }
+.btn, .btn-primary { display: inline-block; padding: 10px 18px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px }
+.btn { background: var(--panel-2, #F0E9DA); color: inherit }
+.btn-primary { background: var(--ink, #1F1B16); color: var(--paper, #F5F0E4) }
+.rail-green { box-shadow: inset 4px 0 0 var(--green, #3F8A4A) }
+.rail-purple { box-shadow: inset 4px 0 0 var(--purple, #6B3A78) }
+.rail-mascot { box-shadow: inset 4px 0 0 var(--mascot, #F07AA8) }
+.rail-sun { box-shadow: inset 4px 0 0 var(--sun, #FFD86B) }
+.rail-flame { box-shadow: inset 4px 0 0 var(--flame, #FF8454) }
+.rail-sky { box-shadow: inset 4px 0 0 var(--sky, #6FA9FF) }
+.dot-green { color: var(--green, #3F8A4A) } .dot-purple { color: var(--purple, #6B3A78) }
+.dot-mascot { color: var(--mascot, #F07AA8) } .dot-sun { color: var(--sun, #FFD86B) }
+.dot-flame { color: var(--flame, #FF8454) } .dot-sky { color: var(--sky, #6FA9FF) }
+body { margin: 0 }
+.app-stage { max-width: 1100px; margin: 0 auto; padding: 24px }
 </style>
 </head>
 <body>
@@ -20,94 +40,11 @@
 <script type="module">
 import { mount, components as C } from 'anentrypoint-design';
 const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
-const pageSlug = 'cli';
-const pageTitle = 'CLI — Freddie';
-const pageBody = `<h1>CLI</h1>
-<p>Freddie ships as <code>freddie</code> command. Install via npm:</p>
-<pre>
-npm install -g freddie
-</pre>
-<h2>Top Commands</h2>
-<h3>freddie tools</h3>
-<p>List available tools (bash, read, write, edit, grep, memory, delegate, browser, etc).</p>
-<pre>
-$ freddie tools
-11 tools registered (core: 8 + env: 2 + external: 1)
-</pre>
-<h3>freddie run</h3>
-<p>Start interactive agent REPL. Press Ctrl+C to exit.</p>
-<pre>
-$ freddie run
-Agent ready. Type your prompt or /help for slash commands.
-</pre>
-<h3>freddie dashboard --port 3000</h3>
-<p>Web UI: sessions, chat, analytics, cron jobs, skills, config, logs.</p>
-<pre>
-$ freddie dashboard --port 3000
-Dashboard running at http://localhost:3000
-</pre>
-<h3>freddie gateway --platform telegram</h3>
-<p>Start messaging gateway (webhook + agent loop). Requires platform credentials.</p>
-<pre>
-$ export TELEGRAM_BOT_TOKEN=...
-$ freddie gateway --platform telegram --port 3001
-Gateway listening at http://localhost:3001
-</pre>
-<h2>Full Reference</h2>
-<h3>Session &amp; History</h3>
-<ul>
-<li><code>freddie sessions</code> — list recent sessions + search</li>
-<li><code>freddie search "&lt;query&gt;"</code> — full-text search over messages</li>
-<li><code>freddie resume &lt;id&gt;</code> — continue a session</li>
-</ul>
-<h3>Configuration</h3>
-<ul>
-<li><code>freddie profile [list|create|switch|delete]</code> — multi-user profiles</li>
-<li><code>freddie skin [name]</code> — switch UI theme</li>
-<li><code>freddie config [key] [value]</code> — view/set config</li>
-</ul>
-<h3>Skills &amp; Tools</h3>
-<ul>
-<li><code>freddie skills</code> — list bundled + custom skills</li>
-<li><code>freddie skill &lt;name&gt;</code> — show skill details</li>
-<li><code>freddie tools</code> — list + filter tools</li>
-</ul>
-<h3>Workflows</h3>
-<ul>
-<li><code>freddie cron [list|add|cancel|tick]</code> — scheduled jobs</li>
-<li><code>freddie batch &lt;file&gt;</code> — parallel task runner</li>
-<li><code>freddie acp</code> — JSON-RPC stdio for IDE integration</li>
-</ul>
-<h3>Help</h3>
-<ul>
-<li><code>freddie help-all</code> — all slash commands (inside REPL)</li>
-<li><code>freddie -h</code> — command-line help</li>
-</ul>
-<h2>Slash Commands in REPL</h2>
-<ul>
-<li><code>/help</code>, <code>/quit</code>, <code>/clear</code></li>
-<li><code>/profile [list|switch &lt;name&gt;]</code></li>
-<li><code>/sessions</code>, <code>/search &lt;query&gt;</code>, <code>/resume &lt;id&gt;</code></li>
-<li><code>/model [name]</code>, <code>/provider [name]</code></li>
-<li><code>/toolsets</code>, <code>/tools</code>, <code>/skills</code>, <code>/skill &lt;name&gt;</code></li>
-<li><code>/memory</code>, <code>/skin [name]</code>, <code>/config [key] [value]</code></li>
-<li><code>/logs</code>, <code>/status</code>, <code>/copy</code>, <code>/paste</code>, <code>/reset</code></li>
-</ul>`;
-
 mount(document.getElementById('app'), () => C.AppShell({
-  topbar: C.Topbar({ brand: 'Freddie', items: navItems }),
-  crumb: C.Crumb({ leaf: pageTitle }),
-  main: C.Section({
-    id: 'main',
-    children: [
-      C.Panel({
-        children: [
-          C.h(null, { innerHTML: pageBody, className: 'page-body' })
-        ]
-      })
-    ]
-  }),
-  status: C.Status({ left: ['main'], right: ['live'] })
+  topbar: C.Topbar({ brand: 'Freddie', items: navItems, active: "CLI" }),
+  crumb: C.Crumb({ leaf: "CLI" }),
+  main: C.h('div', { class: 'app-stage', innerHTML: "<div class=\"ds-hero\">\n  <h1 class=\"ds-hero-title\">cli</h1>\n  <p class=\"ds-hero-body\">every freddie surface starts as one command in your terminal <span class=\"ds-hero-accent\">install it once. ssh in. it just works.</span></p>\n  <p class=\"ds-hero-body\">the cli wraps the agent loop, the dashboard, the gateway, the acp server, the cron, the batch runner, and the session store. each subcommand is one verb. no daemons, no configs to author before you can poke.</p>\n  <div class=\"ds-hero-badges\"><span class=\"chip\"><strong>commander</strong><span style=\"opacity:.7\"> js cli framework</span></span> <span class=\"chip\"><strong>14 verbs</strong><span style=\"opacity:.7\"> top-level subcommands</span></span> <span class=\"chip\"><strong>/help-all</strong><span style=\"opacity:.7\"> in-repl reference</span></span></div>\n  <div class=\"ds-hero-ctas\" style=\"margin-top:16px;display:flex;gap:8px;flex-wrap:wrap\"><a class=\"btn-primary\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js\">bin/freddie.js</a></div>\n</div><section class=\"ds-section rail-green\" id=\"when\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">when do I use which command?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">pick the verb by what you're doing.</p>\n  <div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">chatting → `freddie run`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">interactive repl. tools dispatch live, slash commands work, sessions persist across runs.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">fastest path to \"is the model online\".</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">monitoring → `freddie dashboard`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">web ui at localhost. chat, sessions, analytics, cron, batch, tools, models, skills, logs, config, env, gateway.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">one page to see what the agent is doing right now.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">bridging → `freddie gateway`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">starts the messaging gateway. webhook receivers + outbound senders. agent loop on the other side.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">turns freddie into a multi-platform bot in one process.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">integrating → `freddie acp`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">json-rpc stdio server (agent-context-protocol). designed for ide plugins.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">drop freddie into vscode/jetbrains/zed without writing a transport.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">scheduling → `freddie cron`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">persistent cron jobs. add/list/cancel/delete. fires the agent on a schedule.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">unattended work — daily standup, hourly check-in, weekly digest.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">parallelizing → `freddie batch`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">read prompts from a file, run them in parallel with bounded concurrency.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">bulk eval, content gen, codebase analysis without a queue system.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">spelunking → `freddie sessions` + `freddie search`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">list past sessions. fts5 full-text search across every message ever.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">never lose a thread. every conversation is recallable.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">switching context → `freddie profile` + `freddie skin`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">profiles isolate state per persona. skins switch the ui theme.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">client/personal/dev profiles with separate sessions and config.</div>\n</div>\n  \n</section>\n<section class=\"ds-section rail-purple\" id=\"why\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">why a single binary?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">a single js binary is portable, debuggable, and one-line installable.</p>\n  <div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">ssh-friendly</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">works on a $5 vps. no system services, no port openings beyond what you start.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">deploy by `git clone &amp;&amp; npm install`.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">zero global state</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">everything lives under <code>~/.freddie/</code> (or your <code>FREDDIE_PROFILE</code>). delete the dir, you're back to defaults.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">no registry, no `/etc/freddie/`, no services to uninstall.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">discoverable</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>freddie help-all</code> lists every subcommand and slash command in one screen.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">you don't have to memorize anything.</div>\n</div>\n  \n</section>\n<section class=\"ds-section rail-mascot\" id=\"how\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">how does the repl actually feel?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">a real terminal. real readline. real ansi. slash commands tab-complete.</p>\n  <div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">slash commands</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">/help, /quit, /clear, /profile, /sessions, /search, /resume, /model, /provider, /toolsets, /tools, /skills, /skill, /memory, /skin, /config, /logs, /status, /copy, /paste, /reset.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">tool dispatch</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">agent decides which tools to call. you see each call + result inline.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">session resumption</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">ctrl+c is safe. reload via <code>freddie run --resume &lt;id&gt;</code> or <code>/resume &lt;id&gt;</code>.</div>\n  \n</div>\n  \n</section><section class=\"ds-section\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">explore</h2>\n  <a class=\"row rail-purple\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">01</span>\n  <span class=\"title\" style=\"font-weight:600\">bin/freddie.js</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— commander entry</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-mascot\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/cli/interactive.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">02</span>\n  <span class=\"title\" style=\"font-weight:600\">interactive repl</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— readline + slash commands</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-sun\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/commands/registry.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">03</span>\n  <span class=\"title\" style=\"font-weight:600\">command registry</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— slash command defs</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n</section><section class=\"ds-section page-body\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\"><h2>install</h2>\n<pre>\nnpm install -g freddie\n# or, in this repo:\nnpm install\n</pre>\n<h2>the verbs</h2>\n<pre>\nfreddie tools                 # list tools\nfreddie skills                # list skills\nfreddie sessions              # list past sessions\nfreddie search \"&lt;query&gt;\"      # fts5 across messages\nfreddie run                   # interactive repl\nfreddie dashboard --port 3000 # web ui\nfreddie gateway --port 3001   # messaging bridge\nfreddie acp                   # json-rpc stdio\nfreddie cron list             # scheduled jobs\nfreddie batch &lt;file&gt;          # parallel runner\nfreddie profile [list|create|switch|delete]\nfreddie skin [name]\nfreddie help-all              # all subcommands + slash commands\n</pre>\n<h2>environment</h2>\n<ul>\n<li><code>FREDDIE_HOME</code> — override <code>~/.freddie/</code>.</li>\n<li><code>FREDDIE_PROFILE</code> — switch to a profile-scoped home (<code>~/.freddie/profiles/&lt;name&gt;/</code>).</li>\n<li><code>ANTHROPIC_API_KEY</code> / <code>OPENAI_API_KEY</code> / <code>GROQ_API_KEY</code> / <code>OPENROUTER_API_KEY</code> — provider keys, picked up by pi-ai.</li>\n<li>platform tokens (<code>TELEGRAM_BOT_TOKEN</code> etc) — light up the gateway adapters.</li>\n</ul></section>" }),
+  status: C.Status({ left: ['freddie', "cli"], right: ['live'] })
 }));
 </script>
 </body>

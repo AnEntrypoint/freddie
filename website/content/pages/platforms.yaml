@@ -1,148 +1,87 @@
-title: Platforms — Freddie
+title: Platforms
 slug: platforms
+hero:
+  heading: platforms
+  subheading: 16 functional gateway adapters — meet your users where they are
+  accent: same agent, sixteen surfaces.
+  body: every adapter extends EventEmitter, exposes `getRequiredEnv()`, emits `'message'` events. drop credentials in env, start the gateway, the agent talks to your users on whichever channel they prefer. inbound webhooks fan in to one loop. outbound replies fan back out.
+  badges:
+    - { label: "16", desc: production adapters }
+    - { label: webhook, desc: catch-all }
+    - { label: "REST + long-poll", desc: transports }
+  ctas:
+    - { label: gateway source, href: "https://github.com/AnEntrypoint/freddie/tree/master/src/gateway/platforms" }
+    - { label: how to add, href: "#how-to-add" }
 sections:
-  - id: chat-platforms
-    name: Chat Platforms
+  - id: when
+    name: when do you turn on a platform?
+    lede: platforms are opt-in by env. set the credentials, the gateway lights up. omit them, the adapter quietly stays dark.
     features:
-      - name: Telegram
-        desc: "Long-polling getUpdates + sendMessage. Requires: TELEGRAM_BOT_TOKEN"
-      - name: Discord
-        desc: "REST API + gateway URL lookup. Requires: DISCORD_BOT_TOKEN"
-      - name: Slack
-        desc: "Events webhook + chat.postMessage. Requires: SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET"
-      - name: Matrix
-        desc: "Sync long-poll + send. Requires: MATRIX_HOMESERVER, MATRIX_ACCESS_TOKEN"
-      - name: Signal
-        desc: "signal-cli HTTP bridge. Requires: SIGNAL_CLI_URL, SIGNAL_NUMBER"
-      - name: Mattermost
-        desc: "Incoming hook + posts API. Requires: MATTERMOST_URL, MATTERMOST_TOKEN"
-      - name: Zulip
-        desc: "Zulip API integration. Requires: Zulip server credentials"
-  - id: messaging-platforms
-    name: Messaging Platforms
+      - name: chat
+        desc: telegram, discord, slack, matrix, signal, mattermost, zulip — for community ops, support, devrel.
+        benefit: one bot persona across every chat your team uses.
+      - name: messaging
+        desc: whatsapp (meta graph), sms (twilio), email (raw smtp) — for transactional + 1:1 user reach.
+        benefit: hit users on rails they already check.
+      - name: enterprise
+        desc: dingtalk, feishu, wechat, wecom, qq — for asia-pacific deployments.
+        benefit: regional reach without rebuilding the agent.
+      - name: other
+        desc: bluebubbles (imessage relay), home assistant, generic webhook, api server — long-tail integrations.
+        benefit: anything that speaks http can wire in via the webhook adapter.
+  - id: why
+    name: why one gateway, not n bots?
+    lede: every adapter is the same shape. the gateway is one express server with n adapter mounts.
     features:
-      - name: WhatsApp
-        desc: "Meta Graph API webhook. Requires: WHATSAPP_API_TOKEN, WHATSAPP_PHONE_NUMBER_ID"
-      - name: SMS (Twilio)
-        desc: "Twilio webhook + Messages API. Requires: TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM"
-      - name: Email
-        desc: "SMTP via raw socket. Requires: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS"
-  - id: enterprise-platforms
-    name: Enterprise Platforms
+      - name: one process, n surfaces
+        desc: gateway boots once. each adapter mounts its routes (webhook) or starts its long-poll loop (telegram, matrix). all inbound messages route to one agent loop.
+        benefit: one log, one config, one deploy. no fanout deployment headache.
+      - name: hooks for filtering and rate limits
+        desc: per-platform hook chain runs before the agent sees a message. drop, transform, throttle, redact.
+        benefit: spam control + abuse prevention without touching the agent code.
+      - name: outbound buffer
+        desc: api_server adapter lets pull-based clients (mobile, embedded) poll for replies via `GET /messages`.
+        benefit: works behind nat, no inbound port required.
+      - name: env-gated start
+        desc: every adapter throws on `start()` if required credentials are absent. the gateway logs which adapters started, which were skipped.
+        benefit: clear startup line shows you exactly what's live and what's missing.
+  - id: how-to-add
+    name: how do I add a platform?
+    lede: drop a js file in src/gateway/platforms/ extending EventEmitter, implement start/stop/send.
     features:
-      - name: Dingtalk
-        desc: "Alibaba DingTalk webhook. Requires: DINGTALK_ACCESS_TOKEN"
-      - name: Feishu
-        desc: "Bytedance Feishu webhook. Requires: FEISHU_APP_TOKEN"
-      - name: WeChat
-        desc: "WeChat Work webhook. Requires: WEIXIN_TOKEN"
-      - name: WeChat Enterprise (Wecom)
-        desc: "WeChat Enterprise webhook. Requires: WECOM_WEBHOOK_KEY"
-      - name: QQ Bot
-        desc: "QQ official bot API. Requires: QQBOT_TOKEN"
-  - id: other-platforms
-    name: Other Platforms
-    features:
-      - name: BlueBubbles
-        desc: "iMessage relay via BlueBubbles server. Requires: BLUEBUBBLES_PASSWORD"
-      - name: Home Assistant
-        desc: "Home automation webhook integration. Requires: HASS_TOKEN"
-      - name: Generic Webhook
-        desc: "Catch-all POST /webhook receiver for custom integrations"
-      - name: API Server
-        desc: "Generic /messages outbound buffer for pull-based clients"
+      - name: 1 — extend EventEmitter
+        desc: "`class MyAdapter extends EventEmitter`"
+      - name: 2 — declare credentials
+        desc: "`getRequiredEnv() { return ['MY_TOKEN'] }`"
+      - name: 3 — implement lifecycle
+        desc: "`async start()`, `async stop()`, `async send(recipient, content)`"
+      - name: 4 — emit messages
+        desc: "`this.emit('message', { recipient, content, raw })` on inbound"
+      - name: 5 — register
+        desc: "`Gateway.register('my_platform', new MyAdapter())`"
 examples:
-  - label: Chat Platforms
-    href: "#chat-platforms"
-  - label: Messaging Platforms
-    href: "#messaging-platforms"
-  - label: Enterprise Platforms
-    href: "#enterprise-platforms"
-  - label: Other Platforms
-    href: "#other-platforms"
+  - { label: gateway source, href: "https://github.com/AnEntrypoint/freddie/tree/master/src/gateway/platforms", desc: 16 adapters }
+  - { label: telegram adapter, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/gateway/platforms/telegram.js", desc: long-poll example }
+  - { label: webhook adapter, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/gateway/platforms/webhook.js", desc: catch-all }
 body: |
-  # Gateway Platforms
+  ## starting the gateway
 
-  16 functional adapters for inbound messaging. Each adapter extends `EventEmitter`, exposes `getRequiredEnv()`, and emits `'message'` events.
-
-  ## Chat Platforms
-
-  ### Telegram
-  Long-polling `getUpdates` + `sendMessage`. Requires: `TELEGRAM_BOT_TOKEN`.
-
-  ### Discord
-  REST API + gateway URL lookup. Requires: `DISCORD_BOT_TOKEN`.
-
-  ### Slack
-  Events webhook + `chat.postMessage`. Requires: `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`.
-
-  ### Matrix
-  Sync long-poll + send. Requires: `MATRIX_HOMESERVER`, `MATRIX_ACCESS_TOKEN`.
-
-  ### Signal
-  signal-cli HTTP bridge (`/v1/receive` + `/v2/send`). Requires: `SIGNAL_CLI_URL`, `SIGNAL_NUMBER`.
-
-  ### Mattermost
-  Incoming hook + posts API. Requires: `MATTERMOST_URL`, `MATTERMOST_TOKEN`.
-
-  ### Zulip
-  Zulip API integration. Requires: Zulip server credentials.
-
-  ## Messaging Platforms
-
-  ### WhatsApp
-  Meta Graph API webhook + `messages` endpoint. Requires: `WHATSAPP_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`.
-
-  ### SMS (Twilio)
-  Twilio webhook + Messages API. Requires: `TWILIO_SID`, `TWILIO_TOKEN`, `TWILIO_FROM`.
-
-  ### Email
-  SMTP via raw socket (EHLO/AUTH LOGIN/MAIL/RCPT/DATA). Requires: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`.
-
-  ## Enterprise Platforms
-
-  ### Dingtalk
-  Alibaba DingTalk webhook + send. Requires: `DINGTALK_ACCESS_TOKEN`.
-
-  ### Feishu
-  Bytedance Feishu webhook + send. Requires: `FEISHU_APP_TOKEN`.
-
-  ### WeChat
-  WeChat Work webhook. Requires: `WEIXIN_TOKEN`.
-
-  ### WeChat Enterprise (Wecom)
-  WeChat Enterprise webhook. Requires: `WECOM_WEBHOOK_KEY`.
-
-  ### QQ Bot
-  QQ official bot API. Requires: `QQBOT_TOKEN`.
-
-  ## Other Platforms
-
-  ### BlueBubbles
-  iMessage relay via BlueBubbles server. Requires: `BLUEBUBBLES_PASSWORD`.
-
-  ### Home Assistant
-  Home automation webhook integration. Requires: `HASS_TOKEN`.
-
-  ### Generic Webhook
-  Catch-all POST `/webhook` receiver for custom integrations.
-
-  ### API Server
-  Generic `/messages` outbound buffer for pull-based clients.
-
-  ## Setup
-
-  Adapters throw on `start()` if required credentials are absent. Inspect required env vars:
-
-  ```js
-  import { TelegramAdapter } from 'freddie/src/gateway/platforms/telegram.js'
-  const a = new TelegramAdapter({})
-  a.getRequiredEnv() // ['TELEGRAM_BOT_TOKEN']
   ```
-
-  Set env vars before starting the gateway:
-
-  ```bash
   export TELEGRAM_BOT_TOKEN=<token>
-  node bin/freddie.js gateway --platform telegram
+  export DISCORD_BOT_TOKEN=<token>
+  node bin/freddie.js gateway --port 3001
   ```
+
+  the gateway logs which adapters lit up and which stayed dark for missing credentials.
+
+  ## inspecting required env per adapter
+
+  ```
+  import { TelegramAdapter } from './src/gateway/platforms/telegram.js'
+  new TelegramAdapter({}).getRequiredEnv()
+  // ['TELEGRAM_BOT_TOKEN']
+  ```
+
+  ## hooks
+
+  install hooks via `gateway.use(fn)`. each hook is `async (msg, next) => ...` and can drop, mutate, or throttle before the agent sees the message.

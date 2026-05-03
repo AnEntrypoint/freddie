@@ -1,103 +1,86 @@
-title: Tools — Freddie
+title: Tools
 slug: tools
+hero:
+  heading: tools
+  subheading: 70+ built-in tools, all auto-discovered, all sandbox-aware
+  accent: every tool is one js file under 200 lines.
+  body: tools are how the agent acts on the world. read files, edit code, run shells, hit apis, manage memory, schedule crons, drive a browser, summon a sub-agent. every tool registers a json schema and a handler — no glue layer required.
+  badges:
+    - { label: "70+", desc: registered tools }
+    - { label: core, desc: "default toolset" }
+    - { label: browse, desc: "web access" }
+    - { label: creative, desc: "media + voice" }
+  ctas:
+    - { label: registry source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/tools/registry.js" }
+    - { label: add a tool, href: "#how-to-add" }
 sections:
-  - id: core-tools
-    name: Core Tools
+  - id: when
+    name: when does freddie reach for a tool?
+    lede: every turn, the agent picks zero or more tools to invoke. you decide which ones it can see by configuring toolsets.
     features:
-      - name: Bash
-        desc: "Cross-platform subprocess spawn. Parameters: cmd, cwd, timeout_ms, background"
-      - name: Read
-        desc: "File reader with line numbering. Parameters: path, offset, limit"
-      - name: Write
-        desc: "File writer with directory creation. Parameters: path, content"
-      - name: Edit
-        desc: "In-place string replacement. Parameters: path, old_string, new_string, replace_all"
-      - name: Grep
-        desc: "Recursive regex search (ripgrep). Parameters: pattern, path, glob, head_limit"
-  - id: context-tools
-    name: Context Tools
+      - name: file work
+        desc: read, write, edit, grep, file_operations, file_state. the bread-and-butter of agentic coding.
+        benefit: precise diffs, no copy-paste, full audit trail of what was touched.
+      - name: shell + processes
+        desc: bash, terminal (long-lived), process_registry, code_execution. cross-platform subprocess + persistent shells.
+        benefit: same agent on mac, linux, windows — `bash` works everywhere.
+      - name: memory + sessions
+        desc: memory (8 providers + sqlite fallback), session_search, session_list, todo, checkpoint.
+        benefit: agent recalls users, decisions, todos across days and across machines.
+      - name: web + research
+        desc: web_search, web_fetch, web_extract, browser (puppeteer-core), url_safety, website_policy.
+        benefit: research with rate limits and url-safety baked in, not an afterthought.
+      - name: media + voice
+        desc: image_gen, vision, tts, transcription, voice_mode, neutts_synth.
+        benefit: full multimodal turn — see an image, generate one, listen, speak.
+      - name: orchestration
+        desc: delegate (sub-agent spawn with depth guard), mixture_of_agents, cronjob, send_message.
+        benefit: parallelize work and schedule it, without leaving the agent loop.
+      - name: safety + policy
+        desc: path_security, schema_sanitizer, skills_guard, tirith_security, tool_output_limits, osv_check.
+        benefit: prevents `rm -rf /`, fork bombs, prototype pollution, oversized outputs, and known-vulnerable deps.
+      - name: skills + extensions
+        desc: skill, skill_manager, skills_index, skills_sync, skills_hub, skill_usage, mcp_tool, swe_bench.
+        benefit: every SKILL.md becomes a callable, every MCP server becomes a tool, every benchmark becomes a target.
+  - id: why
+    name: why this design over a tool framework?
+    lede: tools in freddie are plain functions registered against a json schema. zero abstraction, zero ceremony.
     features:
-      - name: Todo
-        desc: "Per-session task management. Subcommands: add, list, update, complete, delete"
-      - name: Memory
-        desc: "Long-term memory interface. Routes to Honcho, Mem0, or SQLite fallback"
-      - name: Delegate
-        desc: "Sub-agent spawning with depth guard. Prevents unbounded recursion"
-  - id: external-tools
-    name: External Tools
+      - name: drop-in registration
+        desc: "`registry.register({ name, schema, handler })` and the tool is live. auto-discovered on `discoverBuiltinTools()` from `src/tools/*.js`."
+        benefit: one file = one tool. no decorators, no inheritance, no plugin manifests.
+      - name: schema is the contract
+        desc: every tool exposes a json schema (openai/anthropic compatible). the agent sees only the schema; the handler receives the typed args.
+        benefit: works with every llm tool-calling api unchanged.
+      - name: env-gated by checkFn
+        desc: optional `checkFn()` predicate decides whether the tool is registered at all (e.g. only if `OPENAI_API_KEY` is set).
+        benefit: missing creds → tool quietly disappears, agent never tries to call it and fail.
+      - name: environments are pluggable
+        desc: tools that exec code can run in local subprocess, docker, or ssh — selected by `src/tools/environments/index.js`.
+        benefit: same `bash` tool, runs on the host or in a container, transparent to the agent.
+  - id: how-to-add
+    name: how do I add my own tool?
+    lede: drop one js file in src/tools/ and it's live next boot.
     features:
-      - name: Web Search
-        desc: "Internet search via SerpAPI or DuckDuckGo. Requires: SERPAPI_KEY (optional)"
-      - name: Image Generation
-        desc: "Image synthesis via OpenAI or Replicate. Requires: API tokens"
-      - name: Browser
-        desc: "Headless browser automation (puppeteer-core). Commands: navigate, click, evaluate"
+      - name: 1 — write the file
+        desc: import the registry, call `registry.register({ name, toolset, schema, handler })`.
+      - name: 2 — declare a json schema
+        desc: name, description, parameters (object with properties + required). this is what the llm sees.
+      - name: 3 — implement the handler
+        desc: "`async (args, ctx) => result`. ctx carries session info, env, signals."
+      - name: 4 — gate optional deps
+        desc: "add `requiresEnv: ['MY_KEY']` and `checkFn: () => !!process.env.MY_KEY` so the tool self-disables when unconfigured."
+      - name: 5 — restart freddie
+        desc: "`discoverBuiltinTools()` picks it up automatically. `freddie tools` shows the new entry."
 examples:
-  - label: Core Tools
-    href: "#core-tools"
-  - label: Context Tools
-    href: "#context-tools"
-  - label: External Tools
-    href: "#external-tools"
+  - { label: registry source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/tools/registry.js", desc: registration api }
+  - { label: bash tool, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/tools/bash.js", desc: simple example }
+  - { label: memory tool, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/tools/memory.js", desc: provider-routed example }
+  - { label: browser tool, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/tools/browser.js", desc: lazy-loaded example }
 body: |
-  # Tools
+  ## adding a tool — full example
 
-  11 built-in tools auto-discovered from `src/tools/*.js`. Each tool registers schema, handler, optional `checkFn`, and `requiresEnv`.
-
-  ## Core Tools
-
-  ### Bash
-  Cross-platform subprocess spawn. Parameters: `cmd`, `cwd?`, `timeout_ms?`, `background?`.
-  Supports Unix shell syntax on all platforms (Mac/Linux/Windows).
-
-  ### Read
-  File reader with line numbering. Parameters: `path`, `offset?`, `limit?`.
-  Returns numbered lines; supports offset + limit for large files.
-
-  ### Write
-  File writer with directory creation. Parameters: `path`, `content`.
-  Auto-creates parent directories.
-
-  ### Edit
-  In-place string replacement. Parameters: `path`, `old_string`, `new_string`, `replace_all?`.
-  Refuses ambiguous matches; supports whole-file replace mode.
-
-  ### Grep
-  Recursive regex search (ripgrep). Parameters: `pattern`, `path?`, `glob?`, `head_limit?`, `ignore_case?`.
-  Output modes: content, files_with_matches, count.
-
-  ## Context Tools
-
-  ### Todo
-  Per-session task management. Subcommands: `add|list|update|complete|delete`.
-  Persisted in SQLite; scoped to session.
-
-  ### Memory
-  Long-term memory interface. Subcommands: `add|search|list`.
-  Routes to configured provider (Honcho, Mem0, etc); SQLite + FTS5 fallback.
-
-  ### Delegate
-  Sub-agent spawning with depth guard. Spawns new agent with parent context + task.
-  Prevents unbounded recursion.
-
-  ## External Tools
-
-  ### Web Search
-  Internet search. Prefers SerpAPI when keyed; falls back to DuckDuckGo HTML scrape.
-  Requires: `SERPAPI_KEY` (optional).
-
-  ### Image Generation
-  Image synthesis. Supports OpenAI images + Replicate model predictions.
-  Requires: `OPENAI_API_KEY` or `REPLICATE_API_TOKEN`.
-
-  ### Browser
-  Headless browser automation (puppeteer-core, lazy-loaded).
-  Commands: navigate, click, type, evaluate, screenshot, text extraction.
-  Requires: no env vars (chromium bundled).
-
-  ## Adding a Tool
-
-  ```js
+  ```
   import { registry } from './tools/registry.js'
 
   registry.register({
@@ -105,17 +88,29 @@ body: |
       toolset: 'core',
       schema: {
           name: 'my_tool',
-          description: 'One-liner description',
+          description: 'Do the thing',
           parameters: {
               type: 'object',
               properties: { x: { type: 'string' } },
-              required: ['x']
-          }
+              required: ['x'],
+          },
       },
-      handler: async (args, ctx) => ({ ok: true }),
+      handler: async (args, ctx) => ({ ok: true, x: args.x }),
       checkFn: () => !!process.env.MY_KEY,
       requiresEnv: ['MY_KEY'],
   })
   ```
 
-  Drop the file in `src/tools/`. Auto-discovered by `discoverBuiltinTools()`.
+  drop in `src/tools/`. auto-discovered on next boot.
+
+  ## listing tools
+
+  ```
+  node bin/freddie.js tools
+  ```
+
+  prints `<toolset> <name> <description>` for every registered tool, including ones gated off by missing env.
+
+  ## toolsets
+
+  toolsets group tools so a profile can opt in to a subset. defaults: `core`, `browse`, `creative`. configure via `~/.freddie/config.json` → `toolsets: ['core']`.

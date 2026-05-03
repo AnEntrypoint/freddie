@@ -3,16 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Development — Freddie — Freddie</title>
+<title>Development — Freddie</title>
 <link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
 <script type="importmap">
 { "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
 </script>
 <style>
-.page-body h1 { margin-top: 0; }
-.page-body h2 { margin-top: 32px; }
-.page-body h3 { margin-top: 24px; }
-.page-body pre { margin: 12px 0; }
+.page-body h1 { margin-top: 0 }
+.page-body h2 { margin-top: 32px }
+.page-body h3 { margin-top: 24px }
+.page-body pre { margin: 12px 0; background: var(--panel-2, #F0E9DA); padding: 12px; border-radius: 8px; overflow-x: auto }
+.ds-hero { padding: 48px 28px 36px; background: var(--panel-1, #FBF6EB); border-radius: 20px; margin: 24px 0 }
+.ds-hero-title { font-family: 'Archivo Black', sans-serif; font-size: clamp(40px, 6vw, 72px); margin: 0 0 16px; letter-spacing: -0.02em }
+.ds-hero-body { font-size: 17px; line-height: 1.55; max-width: 64ch; opacity: 0.85 }
+.ds-hero-accent { color: var(--mascot, #F07AA8); font-weight: 600 }
+.ds-hero-badges { margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap }
+.chip { padding: 6px 12px; border-radius: 6px; background: var(--panel-2, #F0E9DA); font-size: 13px }
+.btn, .btn-primary { display: inline-block; padding: 10px 18px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px }
+.btn { background: var(--panel-2, #F0E9DA); color: inherit }
+.btn-primary { background: var(--ink, #1F1B16); color: var(--paper, #F5F0E4) }
+.rail-green { box-shadow: inset 4px 0 0 var(--green, #3F8A4A) }
+.rail-purple { box-shadow: inset 4px 0 0 var(--purple, #6B3A78) }
+.rail-mascot { box-shadow: inset 4px 0 0 var(--mascot, #F07AA8) }
+.rail-sun { box-shadow: inset 4px 0 0 var(--sun, #FFD86B) }
+.rail-flame { box-shadow: inset 4px 0 0 var(--flame, #FF8454) }
+.rail-sky { box-shadow: inset 4px 0 0 var(--sky, #6FA9FF) }
+.dot-green { color: var(--green, #3F8A4A) } .dot-purple { color: var(--purple, #6B3A78) }
+.dot-mascot { color: var(--mascot, #F07AA8) } .dot-sun { color: var(--sun, #FFD86B) }
+.dot-flame { color: var(--flame, #FF8454) } .dot-sky { color: var(--sky, #6FA9FF) }
+body { margin: 0 }
+.app-stage { max-width: 1100px; margin: 0 auto; padding: 24px }
 </style>
 </head>
 <body>
@@ -20,91 +40,11 @@
 <script type="module">
 import { mount, components as C } from 'anentrypoint-design';
 const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
-const pageSlug = 'development';
-const pageTitle = 'Development — Freddie';
-const pageBody = `<h1>Development</h1>
-<h2>Integration Tests</h2>
-<p>One <code>test.js</code> at project root. 21 integration tests passing, ≤200 lines.</p>
-<pre>
-node test.js
-</pre>
-<p>Tests cover: agent loop, CLI, gateway, plugins, skills, sessions, cron, batch, dashboard, ACP, web, context-engine, compressor, auth, observability.</p>
-<p>Real services, real data, no mocks. Failure regresses to EXECUTE.</p>
-<h2>Project Layout</h2>
-<pre>
-freddie/
-├── bin/freddie.js                   # CLI entry (commander)
-├── src/
-│   ├── index.js, home.js, config.js, sessions.js, auth.js
-│   ├── tools/
-│   │   ├── registry.js
-│   │   ├── bash.js, read.js, write.js, edit.js, grep.js
-│   │   ├── todo.js, memory.js, delegate.js
-│   │   ├── web_search.js, image_gen.js, browser.js
-│   │   └── environments/{local,docker,ssh,index}.js
-│   ├── agent/
-│   │   ├── machine.js (xstate)
-│   │   ├── pi-bridge.js
-│   │   └── compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js
-│   ├── commands/{registry,profile}.js
-│   ├── cli/interactive.js
-│   ├── context/engine.js
-│   ├── cron/{scheduler,cron-parse}.js
-│   ├── batch.js
-│   ├── web/{server,index.html} (anentrypoint-design webjsx)
-│   ├── gateway/{run,platforms/*.js}
-│   ├── acp/server.js
-│   ├── plugins/{manager,memory/*.js}
-│   ├── skills/index.js
-│   ├── skin/engine.js
-│   └── observability/{log,debug}.js
-├── skills/                        # bundled SKILL.md (5 categories)
-├── website/                       # this site (flatspace + anentrypoint-design)
-└── test.js                        # integration test
-</pre>
-<h2>Build Website</h2>
-<p>Flatspace static site builder. Converts <code>website/content/pages/*.yaml</code> → <code>website/docs/*.html</code> using <code>website/theme.mjs</code> renderer.</p>
-<pre>
-cd website
-node ../node_modules/flatspace/bin/flatspace.js build
-</pre>
-<p>Output: <code>website/docs/</code> (GitHub Pages).</p>
-<h2>Recent Releases</h2>
-<ul>
-<li><strong>v0.0.7</strong> — Use npm anentrypoint-design instead of file: link so CI can install it.</li>
-<li><strong>v0.0.6</strong> — Redesign dashboard web view with anentrypoint-design pro-rata patterns.</li>
-<li><strong>v0.0.5</strong> — Full platform adapter set (Telegram, Discord, Slack, email, SMS, WhatsApp, etc).</li>
-</ul>
-<p>See <a href="https://github.com/AnEntrypoint/freddie/blob/master/CHANGELOG.md">CHANGELOG.md</a> for full history.</p>
-<h2>Architecture Guide</h2>
-<p>For subsystem deep dives, see <a href="https://github.com/AnEntrypoint/freddie/blob/master/AGENTS.md">AGENTS.md</a>.</p>
-<p>Topics:</p>
-<ul>
-<li>Agent loop + context compressor</li>
-<li>Tool registry + environments</li>
-<li>Gateway platforms + adapters</li>
-<li>Session store + auth</li>
-<li>Memory provider backends</li>
-<li>Skills loader</li>
-<li>Dashboard web UI (anentrypoint-design webjsx)</li>
-<li>Cron scheduler + batch runner</li>
-<li>Observability (JSONL logs, /debug endpoints)</li>
-</ul>`;
-
 mount(document.getElementById('app'), () => C.AppShell({
-  topbar: C.Topbar({ brand: 'Freddie', items: navItems }),
-  crumb: C.Crumb({ leaf: pageTitle }),
-  main: C.Section({
-    id: 'main',
-    children: [
-      C.Panel({
-        children: [
-          C.h(null, { innerHTML: pageBody, className: 'page-body' })
-        ]
-      })
-    ]
-  }),
-  status: C.Status({ left: ['main'], right: ['live'] })
+  topbar: C.Topbar({ brand: 'Freddie', items: navItems, active: "Development" }),
+  crumb: C.Crumb({ leaf: "Development" }),
+  main: C.h('div', { class: 'app-stage', innerHTML: "<div class=\"ds-hero\">\n  <h1 class=\"ds-hero-title\">development</h1>\n  <p class=\"ds-hero-body\">one test.js, one PRD, one rule per file <span class=\"ds-hero-accent\">discipline ships features. yelling does not.</span></p>\n  <p class=\"ds-hero-body\">freddie's development style is enforced by the code, not the readme. one integration test at the root, capped at 200 lines. one concern per file, capped at 200 lines. no mocks, no scattered tests, no leftover comments. PRDs in `.gm/prd.yml` carry every change.</p>\n  <div class=\"ds-hero-badges\"><span class=\"chip\"><strong>12/12</strong><span style=\"opacity:.7\"> integration groups green</span></span> <span class=\"chip\"><strong>200L</strong><span style=\"opacity:.7\"> per-file cap</span></span> <span class=\"chip\"><strong>real services</strong><span style=\"opacity:.7\"> no mocks ever</span></span></div>\n  <div class=\"ds-hero-ctas\" style=\"margin-top:16px;display:flex;gap:8px;flex-wrap:wrap\"><a class=\"btn-primary\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/AGENTS.md\">AGENTS.md</a><a class=\"btn\" href=\"https://github.com/AnEntrypoint/freddie/issues\">open issues</a></div>\n</div><section class=\"ds-section rail-green\" id=\"when\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">when do you contribute?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">when the test surface tells you what to add, and the PRD format tells you how to plan it.</p>\n  <div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">a tool you wish freddie had</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">drop a file in <code>src/tools/</code>. extend <code>tools+toolsets</code> in <code>test.js</code> with one dispatch assertion.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">tool is live + tested in one PR.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">a platform you want to bridge</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">extend EventEmitter, implement start/stop/send. extend <code>gateway+platforms+hooks</code> group with a stub-shape loop check.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">adapter is registered + smoke-tested in one PR.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">a skill that captures your team's process</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">drop <code>SKILL.md</code> under <code>skills/&lt;category&gt;/&lt;name&gt;/</code>. the loader picks it up.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">skill is bundled in next release.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">a memory provider for a backend you use</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">drop a file in <code>src/plugins/memory/</code>, implement <code>syncTurn</code> + <code>prefetch</code>. extend <code>plugins+memory</code> group.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">provider works against the real api in `test.js`.</div>\n</div>\n  \n</section>\n<section class=\"ds-section rail-purple\" id=\"testing\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">how testing works</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">one test.js. 200 lines. no fixtures. no mocks. real sqlite, real express, real cron, real adapters.</p>\n  <div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">12 named groups</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">home+config+skin · sessions+FTS5 · tools+toolsets · agent-machine · gateway+platforms+hooks · acp-full · plugins+memory · profiles+observability+auth+env+context+cron+batch+slash+skills · utils+time+redact+model-meta+agent-helpers · mcp+swe+distributions+account+credpool · compressor+trajectory · env+pi+cli+tui+setup+website+helpers</div>\n  \n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">combined groups by design</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">subsystem A's test exercises B as a side effect → drop B's redundant assertion. test surface grows linearly with subsystem count.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">200 lines covers the entire surface; new subsystem usually folds into an existing group.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">real-services rule</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">tests boot real express, real libsql, real cron, real gateway adapters. fails when prod fails.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">green test = green prod. no mock-divergence.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">hygiene at edit time</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">every change to <code>test.js</code> prefers compaction over expansion. budget is the forcing function.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">file never bloats; coverage never drops.</div>\n</div>\n  \n</section>\n<section class=\"ds-section rail-mascot\" id=\"layout\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">project layout</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">ten directories, one job each.</p>\n  <div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">bin/</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">cli entry (<code>freddie.js</code>, commander).</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">src/agent/</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">xstate turn machine, pi-bridge, llm resolver, compressor.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">src/tools/</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">70+ tool files + registry + environments.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">src/gateway/</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">gateway runtime + 16 platform adapters.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">src/web/</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">dashboard server + webjsx app.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">src/plugins/memory/</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">8 memory provider modules.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">src/skills/</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">skill loader (looks at <code>~/.freddie/skills/</code> + bundled).</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">src/cron/, src/batch.js</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">scheduler + parallel runner.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">src/observability/</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">jsonl logs + <code>/debug/&lt;name&gt;</code> registry.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">skills/</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">bundled SKILL.md tree (5 categories).</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">website/</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">this site (flatspace + anentrypoint-design).</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">test.js</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">integration test, ≤200 lines, real services.</div>\n  \n</div>\n  \n</section>\n<section class=\"ds-section rail-sun\" id=\"how\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">how do I contribute?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">open an issue, or send a pr against `master`.</p>\n  <div class=\"row rail-sun\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-sun\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">1 — read AGENTS.md</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">subsystem deep dives, gotchas, conventions.</div>\n  \n</div>\n<div class=\"row rail-sun\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-sun\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">2 — write a PRD</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">any non-trivial change goes through <code>.gm/prd.yml</code>. the format is at the top of <code>AGENTS.md</code>.</div>\n  \n</div>\n<div class=\"row rail-sun\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-sun\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">3 — extend test.js</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">prefer folding into an existing group. only add a new group when failure mode is genuinely orthogonal.</div>\n  \n</div>\n<div class=\"row rail-sun\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-sun\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">4 — keep files ≤200 lines</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">hard cap. when a file outgrows the budget, split by concern.</div>\n  \n</div>\n<div class=\"row rail-sun\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-sun\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">5 — push</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">ci runs test.js, builds the website, deploys to gh-pages.</div>\n  \n</div>\n  \n</section><section class=\"ds-section\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">explore</h2>\n  <a class=\"row rail-purple\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/AGENTS.md\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">01</span>\n  <span class=\"title\" style=\"font-weight:600\">AGENTS.md</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— full agent guide</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-mascot\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/test.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">02</span>\n  <span class=\"title\" style=\"font-weight:600\">test.js</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— 12 integration groups</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-sun\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/CHANGELOG.md\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">03</span>\n  <span class=\"title\" style=\"font-weight:600\">CHANGELOG.md</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— release history</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-flame\" href=\"https://github.com/AnEntrypoint/freddie/issues\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">04</span>\n  <span class=\"title\" style=\"font-weight:600\">open issues</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— where to start</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n</section><section class=\"ds-section page-body\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\"><h2>quick contributor checklist</h2>\n<ul>\n<li>[ ] file is ≤200 lines</li>\n<li>[ ] no <code>// TODO</code> and no commented-out blocks</li>\n<li>[ ] test.js still passes (<code>node test.js</code>)</li>\n<li>[ ] new behavior covered in an existing or new group</li>\n<li>[ ] CHANGELOG.md gets a one-liner</li>\n</ul>\n<h2>website</h2>\n<pre>\ncd website\nnpx flatspace build\n</pre>\n<p>output: <code>website/docs/</code> (deployed to gh-pages by ci).</p>\n<h2>release</h2>\n<p>CHANGELOG.md → bump version in <code>package.json</code> → tag → push.</p></section>" }),
+  status: C.Status({ left: ['freddie', "development"], right: ['live'] })
 }));
 </script>
 </body>

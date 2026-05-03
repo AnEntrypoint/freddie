@@ -3,16 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Platforms — Freddie — Freddie</title>
+<title>Platforms — Freddie</title>
 <link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
 <script type="importmap">
 { "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
 </script>
 <style>
-.page-body h1 { margin-top: 0; }
-.page-body h2 { margin-top: 32px; }
-.page-body h3 { margin-top: 24px; }
-.page-body pre { margin: 12px 0; }
+.page-body h1 { margin-top: 0 }
+.page-body h2 { margin-top: 32px }
+.page-body h3 { margin-top: 24px }
+.page-body pre { margin: 12px 0; background: var(--panel-2, #F0E9DA); padding: 12px; border-radius: 8px; overflow-x: auto }
+.ds-hero { padding: 48px 28px 36px; background: var(--panel-1, #FBF6EB); border-radius: 20px; margin: 24px 0 }
+.ds-hero-title { font-family: 'Archivo Black', sans-serif; font-size: clamp(40px, 6vw, 72px); margin: 0 0 16px; letter-spacing: -0.02em }
+.ds-hero-body { font-size: 17px; line-height: 1.55; max-width: 64ch; opacity: 0.85 }
+.ds-hero-accent { color: var(--mascot, #F07AA8); font-weight: 600 }
+.ds-hero-badges { margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap }
+.chip { padding: 6px 12px; border-radius: 6px; background: var(--panel-2, #F0E9DA); font-size: 13px }
+.btn, .btn-primary { display: inline-block; padding: 10px 18px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px }
+.btn { background: var(--panel-2, #F0E9DA); color: inherit }
+.btn-primary { background: var(--ink, #1F1B16); color: var(--paper, #F5F0E4) }
+.rail-green { box-shadow: inset 4px 0 0 var(--green, #3F8A4A) }
+.rail-purple { box-shadow: inset 4px 0 0 var(--purple, #6B3A78) }
+.rail-mascot { box-shadow: inset 4px 0 0 var(--mascot, #F07AA8) }
+.rail-sun { box-shadow: inset 4px 0 0 var(--sun, #FFD86B) }
+.rail-flame { box-shadow: inset 4px 0 0 var(--flame, #FF8454) }
+.rail-sky { box-shadow: inset 4px 0 0 var(--sky, #6FA9FF) }
+.dot-green { color: var(--green, #3F8A4A) } .dot-purple { color: var(--purple, #6B3A78) }
+.dot-mascot { color: var(--mascot, #F07AA8) } .dot-sun { color: var(--sun, #FFD86B) }
+.dot-flame { color: var(--flame, #FF8454) } .dot-sky { color: var(--sky, #6FA9FF) }
+body { margin: 0 }
+.app-stage { max-width: 1100px; margin: 0 auto; padding: 24px }
 </style>
 </head>
 <body>
@@ -20,79 +40,11 @@
 <script type="module">
 import { mount, components as C } from 'anentrypoint-design';
 const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
-const pageSlug = 'platforms';
-const pageTitle = 'Platforms — Freddie';
-const pageBody = `<h1>Gateway Platforms</h1>
-<p>16 functional adapters for inbound messaging. Each adapter extends <code>EventEmitter</code>, exposes <code>getRequiredEnv()</code>, and emits <code>'message'</code> events.</p>
-<h2>Chat Platforms</h2>
-<h3>Telegram</h3>
-<p>Long-polling <code>getUpdates</code> + <code>sendMessage</code>. Requires: <code>TELEGRAM_BOT_TOKEN</code>.</p>
-<h3>Discord</h3>
-<p>REST API + gateway URL lookup. Requires: <code>DISCORD_BOT_TOKEN</code>.</p>
-<h3>Slack</h3>
-<p>Events webhook + <code>chat.postMessage</code>. Requires: <code>SLACK_BOT_TOKEN</code>, <code>SLACK_SIGNING_SECRET</code>.</p>
-<h3>Matrix</h3>
-<p>Sync long-poll + send. Requires: <code>MATRIX_HOMESERVER</code>, <code>MATRIX_ACCESS_TOKEN</code>.</p>
-<h3>Signal</h3>
-<p>signal-cli HTTP bridge (<code>/v1/receive</code> + <code>/v2/send</code>). Requires: <code>SIGNAL_CLI_URL</code>, <code>SIGNAL_NUMBER</code>.</p>
-<h3>Mattermost</h3>
-<p>Incoming hook + posts API. Requires: <code>MATTERMOST_URL</code>, <code>MATTERMOST_TOKEN</code>.</p>
-<h3>Zulip</h3>
-<p>Zulip API integration. Requires: Zulip server credentials.</p>
-<h2>Messaging Platforms</h2>
-<h3>WhatsApp</h3>
-<p>Meta Graph API webhook + <code>messages</code> endpoint. Requires: <code>WHATSAPP_API_TOKEN</code>, <code>WHATSAPP_PHONE_NUMBER_ID</code>, <code>WHATSAPP_VERIFY_TOKEN</code>.</p>
-<h3>SMS (Twilio)</h3>
-<p>Twilio webhook + Messages API. Requires: <code>TWILIO_SID</code>, <code>TWILIO_TOKEN</code>, <code>TWILIO_FROM</code>.</p>
-<h3>Email</h3>
-<p>SMTP via raw socket (EHLO/AUTH LOGIN/MAIL/RCPT/DATA). Requires: <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>.</p>
-<h2>Enterprise Platforms</h2>
-<h3>Dingtalk</h3>
-<p>Alibaba DingTalk webhook + send. Requires: <code>DINGTALK_ACCESS_TOKEN</code>.</p>
-<h3>Feishu</h3>
-<p>Bytedance Feishu webhook + send. Requires: <code>FEISHU_APP_TOKEN</code>.</p>
-<h3>WeChat</h3>
-<p>WeChat Work webhook. Requires: <code>WEIXIN_TOKEN</code>.</p>
-<h3>WeChat Enterprise (Wecom)</h3>
-<p>WeChat Enterprise webhook. Requires: <code>WECOM_WEBHOOK_KEY</code>.</p>
-<h3>QQ Bot</h3>
-<p>QQ official bot API. Requires: <code>QQBOT_TOKEN</code>.</p>
-<h2>Other Platforms</h2>
-<h3>BlueBubbles</h3>
-<p>iMessage relay via BlueBubbles server. Requires: <code>BLUEBUBBLES_PASSWORD</code>.</p>
-<h3>Home Assistant</h3>
-<p>Home automation webhook integration. Requires: <code>HASS_TOKEN</code>.</p>
-<h3>Generic Webhook</h3>
-<p>Catch-all POST <code>/webhook</code> receiver for custom integrations.</p>
-<h3>API Server</h3>
-<p>Generic <code>/messages</code> outbound buffer for pull-based clients.</p>
-<h2>Setup</h2>
-<p>Adapters throw on <code>start()</code> if required credentials are absent. Inspect required env vars:</p>
-<pre>
-import { TelegramAdapter } from 'freddie/src/gateway/platforms/telegram.js'
-const a = new TelegramAdapter({})
-a.getRequiredEnv() // ['TELEGRAM_BOT_TOKEN']
-</pre>
-<p>Set env vars before starting the gateway:</p>
-<pre>
-export TELEGRAM_BOT_TOKEN=&lt;token&gt;
-node bin/freddie.js gateway --platform telegram
-</pre>`;
-
 mount(document.getElementById('app'), () => C.AppShell({
-  topbar: C.Topbar({ brand: 'Freddie', items: navItems }),
-  crumb: C.Crumb({ leaf: pageTitle }),
-  main: C.Section({
-    id: 'main',
-    children: [
-      C.Panel({
-        children: [
-          C.h(null, { innerHTML: pageBody, className: 'page-body' })
-        ]
-      })
-    ]
-  }),
-  status: C.Status({ left: ['main'], right: ['live'] })
+  topbar: C.Topbar({ brand: 'Freddie', items: navItems, active: "Platforms" }),
+  crumb: C.Crumb({ leaf: "Platforms" }),
+  main: C.h('div', { class: 'app-stage', innerHTML: "<div class=\"ds-hero\">\n  <h1 class=\"ds-hero-title\">platforms</h1>\n  <p class=\"ds-hero-body\">16 functional gateway adapters — meet your users where they are <span class=\"ds-hero-accent\">same agent, sixteen surfaces.</span></p>\n  <p class=\"ds-hero-body\">every adapter extends EventEmitter, exposes `getRequiredEnv()`, emits `'message'` events. drop credentials in env, start the gateway, the agent talks to your users on whichever channel they prefer. inbound webhooks fan in to one loop. outbound replies fan back out.</p>\n  <div class=\"ds-hero-badges\"><span class=\"chip\"><strong>16</strong><span style=\"opacity:.7\"> production adapters</span></span> <span class=\"chip\"><strong>webhook</strong><span style=\"opacity:.7\"> catch-all</span></span> <span class=\"chip\"><strong>REST + long-poll</strong><span style=\"opacity:.7\"> transports</span></span></div>\n  <div class=\"ds-hero-ctas\" style=\"margin-top:16px;display:flex;gap:8px;flex-wrap:wrap\"><a class=\"btn-primary\" href=\"https://github.com/AnEntrypoint/freddie/tree/master/src/gateway/platforms\">gateway source</a><a class=\"btn\" href=\"#how-to-add\">how to add</a></div>\n</div><section class=\"ds-section rail-green\" id=\"when\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">when do you turn on a platform?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">platforms are opt-in by env. set the credentials, the gateway lights up. omit them, the adapter quietly stays dark.</p>\n  <div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">chat</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">telegram, discord, slack, matrix, signal, mattermost, zulip — for community ops, support, devrel.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">one bot persona across every chat your team uses.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">messaging</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">whatsapp (meta graph), sms (twilio), email (raw smtp) — for transactional + 1:1 user reach.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">hit users on rails they already check.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">enterprise</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">dingtalk, feishu, wechat, wecom, qq — for asia-pacific deployments.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">regional reach without rebuilding the agent.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">other</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">bluebubbles (imessage relay), home assistant, generic webhook, api server — long-tail integrations.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">anything that speaks http can wire in via the webhook adapter.</div>\n</div>\n  \n</section>\n<section class=\"ds-section rail-purple\" id=\"why\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">why one gateway, not n bots?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">every adapter is the same shape. the gateway is one express server with n adapter mounts.</p>\n  <div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">one process, n surfaces</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">gateway boots once. each adapter mounts its routes (webhook) or starts its long-poll loop (telegram, matrix). all inbound messages route to one agent loop.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">one log, one config, one deploy. no fanout deployment headache.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">hooks for filtering and rate limits</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">per-platform hook chain runs before the agent sees a message. drop, transform, throttle, redact.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">spam control + abuse prevention without touching the agent code.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">outbound buffer</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">api_server adapter lets pull-based clients (mobile, embedded) poll for replies via <code>GET /messages</code>.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">works behind nat, no inbound port required.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">env-gated start</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">every adapter throws on <code>start()</code> if required credentials are absent. the gateway logs which adapters started, which were skipped.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">clear startup line shows you exactly what's live and what's missing.</div>\n</div>\n  \n</section>\n<section class=\"ds-section rail-mascot\" id=\"how-to-add\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">how do I add a platform?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">drop a js file in src/gateway/platforms/ extending EventEmitter, implement start/stop/send.</p>\n  <div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">1 — extend EventEmitter</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>class MyAdapter extends EventEmitter</code></div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">2 — declare credentials</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>getRequiredEnv() { return ['MY_TOKEN'] }</code></div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">3 — implement lifecycle</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>async start()</code>, <code>async stop()</code>, <code>async send(recipient, content)</code></div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">4 — emit messages</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>this.emit('message', { recipient, content, raw })</code> on inbound</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">5 — register</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>Gateway.register('my_platform', new MyAdapter())</code></div>\n  \n</div>\n  \n</section><section class=\"ds-section\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">explore</h2>\n  <a class=\"row rail-purple\" href=\"https://github.com/AnEntrypoint/freddie/tree/master/src/gateway/platforms\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">01</span>\n  <span class=\"title\" style=\"font-weight:600\">gateway source</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— 16 adapters</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-mascot\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/gateway/platforms/telegram.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">02</span>\n  <span class=\"title\" style=\"font-weight:600\">telegram adapter</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— long-poll example</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-sun\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/gateway/platforms/webhook.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">03</span>\n  <span class=\"title\" style=\"font-weight:600\">webhook adapter</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— catch-all</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n</section><section class=\"ds-section page-body\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\"><h2>starting the gateway</h2>\n<pre>\nexport TELEGRAM_BOT_TOKEN=&lt;token&gt;\nexport DISCORD_BOT_TOKEN=&lt;token&gt;\nnode bin/freddie.js gateway --port 3001\n</pre>\n<p>the gateway logs which adapters lit up and which stayed dark for missing credentials.</p>\n<h2>inspecting required env per adapter</h2>\n<pre>\nimport { TelegramAdapter } from './src/gateway/platforms/telegram.js'\nnew TelegramAdapter({}).getRequiredEnv()\n// ['TELEGRAM_BOT_TOKEN']\n</pre>\n<h2>hooks</h2>\n<p>install hooks via <code>gateway.use(fn)</code>. each hook is <code>async (msg, next) =&gt; ...</code> and can drop, mutate, or throttle before the agent sees the message.</p></section>" }),
+  status: C.Status({ left: ['freddie', "platforms"], right: ['live'] })
 }));
 </script>
 </body>

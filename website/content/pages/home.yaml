@@ -1,112 +1,114 @@
 title: Freddie
 slug: home
 hero:
-  heading: Freddie
-  subheading: Open JS agent harness built on pi-mono + floosie + xstate + anentrypoint-design
+  heading: freddie
+  subheading: an open js agent harness — multi-platform, multi-tool, multi-memory
+  accent: built so you own the loop, not the vendor.
+  body: spin up an agent that lives in your terminal, your dashboard, telegram, slack, discord, sms, signal, matrix, whatsapp, email, and a dozen more. swap the model. swap the memory backend. extend with skills. all from one config tree, no rewrites.
   badges:
-    - label: "21/21"
-      desc: integration tests
-    - label: "11"
-      desc: built-in tools
-    - label: "16"
-      desc: gateway platforms
-    - label: "8"
-      desc: memory backends
+    - { label: "12/12", desc: integration groups green }
+    - { label: "70+", desc: built-in tools }
+    - { label: "16", desc: gateway platforms }
+    - { label: "8", desc: memory backends }
+    - { label: "JS", desc: no python, no docker required }
+  ctas:
+    - { label: get started, href: "#quick-start" }
+    - { label: architecture, href: /architecture/ }
+    - { label: github, href: "https://github.com/AnEntrypoint/freddie" }
 sections:
+  - id: when
+    name: when do I reach for freddie?
+    lede: pick freddie when you need an agent that goes where your users are, not where the vendor's chat box lives.
+    features:
+      - name: you want one agent across many surfaces
+        desc: terminal repl, web dashboard, telegram bot, discord bot, slack app, sms, email — same brain, same tools, same memory, one process to run.
+        benefit: stop building three half-finished bots. one config, one loop, n adapters.
+      - name: you want to own the model layer
+        desc: anthropic, openai, groq, openrouter, gemini, ollama, bedrock, kilo, opencode, claude-cli — pi-ai routes them all, freddie wraps them in xstate.
+        benefit: vendor down → switch model in config, not in code.
+      - name: you want memory that survives sessions
+        desc: 8 provider backends (honcho, mem0, supermemory, byterover, hindsight, openviking, retaindb, holographic) plus a sqlite fts5 fallback.
+        benefit: agent remembers a user across conversations without you wiring redis yourself.
+      - name: you want to ship without a stack
+        desc: pure node. no python, no docker, no kubernetes. `npm install` and you have a dashboard, a cron, a gateway, an acp server, and a cli.
+        benefit: a $5 vps runs your full agent surface.
+  - id: why
+    name: why this over the alternatives?
+    lede: most agent harnesses give you a chat box. freddie gives you a substrate.
+    features:
+      - name: substrate-first, not framework-first
+        desc: pi-coding-agent (loop), pi-ai (providers), pi-tui (terminal), floosie (gateway xstate), anentrypoint-design (dashboard), xstate v5. we compose published packages, we don't fork them.
+        benefit: when upstream ships a fix, you get it. no fork to maintain.
+      - name: real services, real tests
+        desc: one `test.js` at the root, ≤200 lines, no mocks, no fixtures. exercises real sqlite, real express, real cron, real adapters. 12 named groups cover the whole surface.
+        benefit: green test = green production. no "works in mock" failure mode.
+      - name: every subsystem is observed
+        desc: structured jsonl logs (`subsystem, severity, ts`) under `~/.freddie/logs/`. `/api/debug` for live introspection. `window.__debug` registry in the dashboard.
+        benefit: when a turn goes weird, the answer is one tail away — never a print-statement scramble.
+      - name: profile-safe by default
+        desc: "`FREDDIE_PROFILE=alice` gives alice her own home, sessions, sqlite, auth, config — same binary, isolated state."
+        benefit: ship a multi-tenant agent on day one, no rewrites.
+  - id: how
+    name: how do I start?
+    lede: three commands gets you a working agent. five minutes gets you a dashboard you can chat with.
+    features:
+      - name: 1 — install
+        desc: "`npm install` in the repo, or `npm install -g freddie` for a global cli. no native deps, no pythons, no rust toolchain."
+      - name: 2 — pick a model
+        desc: "set `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`). pi-ai picks the first one it sees. no model? freddie falls back to the local acptoapi bridge."
+      - name: 3 — run
+        desc: "`node bin/freddie.js run` for the repl. or `node bin/freddie.js dashboard --port 3000` for the web ui. or `node bin/freddie.js gateway --port 3001` to start the messaging bridge."
+      - name: 4 — extend
+        desc: "drop a tool in `src/tools/` (auto-discovered). drop a SKILL.md in `~/.freddie/skills/`. add a platform in `src/gateway/platforms/`. configure a cron with `freddie cron add '0 9 * * *' '<prompt>'`."
   - id: substrate
-    name: Substrate
+    name: substrate (the things we don't reimplement)
+    lede: every named dependency below is a published package we treat as a black box. when you run freddie, you're running the union of these.
     features:
       - name: "@mariozechner/pi-coding-agent"
-        desc: agent loop, providers, TUI primitives
+        desc: agent loop, tool dispatch, interactive tui, file auth store, extension runner.
+      - name: "@mariozechner/pi-ai"
+        desc: "provider layer. `complete`, streaming, cost calc, registerApiProvider, getModel."
+      - name: "@mariozechner/pi-agent-core"
+        desc: "`agentLoop`, `runAgentLoop`, `streamProxy`. wrapped by xstate, never rewritten."
       - name: floosie
-        desc: gateway stream pipeline (xstate-backed)
-      - name: xstate
-        desc: agent turn machine + lifecycle
+        desc: gateway pipeline as an xstate ProcessorMachine. compose, don't fork.
       - name: anentrypoint-design
-        desc: webjsx + ripple-ui design system for the dashboard
-      - name: flatspace
-        desc: flat-file CMS + static site builder
-  - id: quick-start
-    name: Quick Start
-    body: |
-      ```
-      npm install
-      node bin/freddie.js tools
-      node bin/freddie.js run
-      node bin/freddie.js dashboard --port 3000
-      ```
-  - id: architecture
-    name: Architecture
-    features:
-      - name: Agent machine
-        desc: xstate turn machine + context compressor (head/middle/tail policy + handoff + iterative updates)
-      - name: Session store
-        desc: better-sqlite3 + FTS5 + FileAuthStore credentials
-      - name: Scheduler
-        desc: cron jobs + batch runner for multi-turn workflows
-      - name: Skills
-        desc: bundled + user-extensible via ~/.freddie/skills/
-      - name: Dashboard
-        desc: anentrypoint-design webjsx with live chat, analytics, cron monitoring
+        desc: webjsx + ripple-ui design system. dashboard ships with hero, panel, row, chat, file viewer, cron monitor primitives baked in.
+      - name: xstate v5
+        desc: every long-lived machine — turns, gateways, approvals, compressor — is a real state machine, not a soup of booleans.
 examples:
-  - label: Architecture
-    href: /architecture/
-  - label: Tools
-    href: /tools/
-  - label: Platforms
-    href: /platforms/
-  - label: Skills
-    href: /skills/
-  - label: CLI
-    href: /cli/
-  - label: Development
-    href: /development/
+  - { label: architecture, href: /architecture/, desc: subsystem deep dive }
+  - { label: cli, href: /cli/, desc: every command, every flag }
+  - { label: tools, href: /tools/, desc: what the agent can do }
+  - { label: platforms, href: /platforms/, desc: every gateway adapter }
+  - { label: skills, href: /skills/, desc: bundled + how to write your own }
+  - { label: development, href: /development/, desc: tests, layout, how to contribute }
 body: |
-  # Freddie
-
-  Open JS agent harness built on **pi-mono + floosie + xstate + anentrypoint-design**.
-
-  ## What is Freddie?
-
-  Freddie is a JavaScript rebuild of [hermes-agent](https://github.com/nousresearch/hermes-agent) user-visible behavior, with our preferred architecture. It ships as a CLI, web dashboard, and programmable agent harness for multi-platform messaging (Telegram, Discord, Slack, email, SMS, WhatsApp, Matrix, and more).
-
-  ## Substrate
-
-  - **@mariozechner/pi-coding-agent + pi-agent-core + pi-ai + pi-tui** — agent loop, providers, TUI primitives.
-  - **floosie** — gateway stream pipeline (xstate-backed).
-  - **xstate** — agent turn machine + lifecycle.
-  - **anentrypoint-design** — webjsx + ripple-ui design system for the dashboard.
-  - **flatspace** — this very website (flat-file CMS + static site builder).
-
-  ## Quick Start
+  ## quick-start
 
   ```
-  npm install
-  node bin/freddie.js tools
+  git clone https://github.com/AnEntrypoint/freddie
+  cd freddie && npm install
+  export ANTHROPIC_API_KEY=sk-ant-...
   node bin/freddie.js run
   node bin/freddie.js dashboard --port 3000
+  node bin/freddie.js gateway --port 3001
   ```
 
-  ## Test Coverage
+  ## what you get out of the box
 
-  - **21/21** integration tests passing (agent loop, CLI, gateway, plugins, skills, sessions, cron, batch, dashboard, ACP, web, context-engine, compressor, auth, observability).
-  - **11** built-in tools (bash, read, write, edit, grep, todo, memory, delegate, web_search, image_gen, browser).
-  - **16** functional gateway platforms (Telegram, Discord, Slack, email, SMS, WhatsApp, Matrix, Signal, Dingtalk, Feishu, WeChat, QQ, Mattermost, Zulip, BlueBubbles, Misskey).
-  - **8** memory provider backends (Honcho, Mem0, Supermemory, Byterover, Hindsight, Openviking, Retaindb, Holographic).
+  - **a repl** that talks to any major LLM, with tool dispatch, slash commands, sessions, FTS search, skill loading.
+  - **a dashboard** — chat, sessions, analytics, cron, batch, tools, models, skills, logs, config, env, gateway monitor.
+  - **a gateway** that bridges 16 messaging platforms to one agent loop.
+  - **an acp server** (json-rpc stdio) for ide integration.
+  - **a cron scheduler** + **batch runner** for unattended workflows.
+  - **a memory layer** with 8 provider backends + a local sqlite fts5 fallback.
+  - **a skills loader** that picks up SKILL.md files from `~/.freddie/skills/` and the bundled tree.
 
-  ## Architecture
+  ## philosophy
 
-  - Agent turn machine (xstate) + context compressor (head/middle/tail policy + handoff prompt + iterative updates).
-  - Session store (better-sqlite3 + FTS5) + auth store (FileAuthStore).
-  - Cron scheduler + batch runner for multi-turn workflows.
-  - Full skill loader (bundled + user-extensible via ~/.freddie/skills/).
-  - Dashboard web UI (anentrypoint-design webjsx) with live chat, analytics, cron monitoring.
-
-  ## Learn More
-
-  - [Architecture](/architecture/) — subsystem guide + AGENTS.md
-  - [Tools](/tools/) — all 11 built-in tools + usage
-  - [Platforms](/platforms/) — 16 gateway adapters + setup
-  - [Skills](/skills/) — bundled skill categories
-  - [CLI](/cli/) — command reference
-  - [Development](/development/) — integration test coverage + contributing
+  - one file, one concern, ≤200 lines.
+  - no comments — naming carries the weight.
+  - real tests against real services, no mocks.
+  - every subsystem registers `/debug/<name>` and emits structured logs.
+  - we compose published packages; we don't maintain forks.

@@ -38,14 +38,14 @@ export async function createDashboard({ port = 0 } = {}) {
     app.use(express.json())
     app.use(express.static(__dirname))
     app.use('/vendor/anentrypoint-design', express.static(path.join(__dirname, '..', '..', 'node_modules', 'anentrypoint-design', 'dist')))
-    app.get('/api/sessions', (_, res) => res.json(listSessions()))
-    app.get('/api/sessions/:id/messages', (req, res) => res.json(getMessages(req.params.id)))
-    app.get('/api/search', (req, res) => res.json(search(String(req.query.q || ''))))
+    app.get('/api/sessions', async (_, res) => res.json(await listSessions()))
+    app.get('/api/sessions/:id/messages', async (req, res) => res.json(await getMessages(req.params.id)))
+    app.get('/api/search', async (req, res) => res.json(await search(String(req.query.q || ''))))
     app.get('/api/tools', (_, res) => res.json(registry.list().map(t => ({ name: t.name, toolset: t.toolset, schema: t.schema }))))
     app.get('/api/debug', (_, res) => res.json(listDebug()))
     app.get('/api/debug-all', (_, res) => res.json(snapshotAll()))
     app.get('/api/config', (_, res) => res.json(loadConfig()))
-    app.get('/api/cron', (_, res) => res.json(listJobs()))
+    app.get('/api/cron', async (_, res) => res.json(await listJobs()))
     app.get('/api/skills', (_, res) => {
         const home = listSkills()
         const bundled = listSkills([path.resolve('skills')])
@@ -73,12 +73,12 @@ export async function createDashboard({ port = 0 } = {}) {
         try { res.json(await runBatch({ prompts, concurrency, model })) } catch (e) { res.status(500).json({ error: String(e.message || e) }) }
     })
 
-    app.post('/api/cron', (req, res) => {
+    app.post('/api/cron', async (req, res) => {
         const { cron, prompt, model = null } = req.body || {}
         if (!cron || !prompt) return res.status(400).json({ error: 'cron and prompt required' })
-        try { res.json({ id: createJob({ cron, prompt, model }) }) } catch (e) { res.status(400).json({ error: String(e.message || e) }) }
+        try { res.json({ id: await createJob({ cron, prompt, model }) }) } catch (e) { res.status(400).json({ error: String(e.message || e) }) }
     })
-    app.delete('/api/cron/:id', (req, res) => { deleteJob(Number(req.params.id)); res.json({ ok: true }) })
+    app.delete('/api/cron/:id', async (req, res) => { await deleteJob(Number(req.params.id)); res.json({ ok: true }) })
 
     app.post('/api/config', (req, res) => {
         const { key, value } = req.body || {}

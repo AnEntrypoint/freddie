@@ -3,16 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tools — Freddie — Freddie</title>
+<title>Tools — Freddie</title>
 <link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
 <script type="importmap">
 { "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
 </script>
 <style>
-.page-body h1 { margin-top: 0; }
-.page-body h2 { margin-top: 32px; }
-.page-body h3 { margin-top: 24px; }
-.page-body pre { margin: 12px 0; }
+.page-body h1 { margin-top: 0 }
+.page-body h2 { margin-top: 32px }
+.page-body h3 { margin-top: 24px }
+.page-body pre { margin: 12px 0; background: var(--panel-2, #F0E9DA); padding: 12px; border-radius: 8px; overflow-x: auto }
+.ds-hero { padding: 48px 28px 36px; background: var(--panel-1, #FBF6EB); border-radius: 20px; margin: 24px 0 }
+.ds-hero-title { font-family: 'Archivo Black', sans-serif; font-size: clamp(40px, 6vw, 72px); margin: 0 0 16px; letter-spacing: -0.02em }
+.ds-hero-body { font-size: 17px; line-height: 1.55; max-width: 64ch; opacity: 0.85 }
+.ds-hero-accent { color: var(--mascot, #F07AA8); font-weight: 600 }
+.ds-hero-badges { margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap }
+.chip { padding: 6px 12px; border-radius: 6px; background: var(--panel-2, #F0E9DA); font-size: 13px }
+.btn, .btn-primary { display: inline-block; padding: 10px 18px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px }
+.btn { background: var(--panel-2, #F0E9DA); color: inherit }
+.btn-primary { background: var(--ink, #1F1B16); color: var(--paper, #F5F0E4) }
+.rail-green { box-shadow: inset 4px 0 0 var(--green, #3F8A4A) }
+.rail-purple { box-shadow: inset 4px 0 0 var(--purple, #6B3A78) }
+.rail-mascot { box-shadow: inset 4px 0 0 var(--mascot, #F07AA8) }
+.rail-sun { box-shadow: inset 4px 0 0 var(--sun, #FFD86B) }
+.rail-flame { box-shadow: inset 4px 0 0 var(--flame, #FF8454) }
+.rail-sky { box-shadow: inset 4px 0 0 var(--sky, #6FA9FF) }
+.dot-green { color: var(--green, #3F8A4A) } .dot-purple { color: var(--purple, #6B3A78) }
+.dot-mascot { color: var(--mascot, #F07AA8) } .dot-sun { color: var(--sun, #FFD86B) }
+.dot-flame { color: var(--flame, #FF8454) } .dot-sky { color: var(--sky, #6FA9FF) }
+body { margin: 0 }
+.app-stage { max-width: 1100px; margin: 0 auto; padding: 24px }
 </style>
 </head>
 <body>
@@ -20,84 +40,11 @@
 <script type="module">
 import { mount, components as C } from 'anentrypoint-design';
 const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
-const pageSlug = 'tools';
-const pageTitle = 'Tools — Freddie';
-const pageBody = `<h1>Tools</h1>
-<p>11 built-in tools auto-discovered from <code>src/tools/*.js</code>. Each tool registers schema, handler, optional <code>checkFn</code>, and <code>requiresEnv</code>.</p>
-<h2>Core Tools</h2>
-<h3>Bash</h3>
-<p>Cross-platform subprocess spawn. Parameters: <code>cmd</code>, <code>cwd?</code>, <code>timeout_ms?</code>, <code>background?</code>.</p>
-<p>Supports Unix shell syntax on all platforms (Mac/Linux/Windows).</p>
-<h3>Read</h3>
-<p>File reader with line numbering. Parameters: <code>path</code>, <code>offset?</code>, <code>limit?</code>.</p>
-<p>Returns numbered lines; supports offset + limit for large files.</p>
-<h3>Write</h3>
-<p>File writer with directory creation. Parameters: <code>path</code>, <code>content</code>.</p>
-<p>Auto-creates parent directories.</p>
-<h3>Edit</h3>
-<p>In-place string replacement. Parameters: <code>path</code>, <code>old_string</code>, <code>new_string</code>, <code>replace_all?</code>.</p>
-<p>Refuses ambiguous matches; supports whole-file replace mode.</p>
-<h3>Grep</h3>
-<p>Recursive regex search (ripgrep). Parameters: <code>pattern</code>, <code>path?</code>, <code>glob?</code>, <code>head_limit?</code>, <code>ignore_case?</code>.</p>
-<p>Output modes: content, files_with_matches, count.</p>
-<h2>Context Tools</h2>
-<h3>Todo</h3>
-<p>Per-session task management. Subcommands: <code>add|list|update|complete|delete</code>.</p>
-<p>Persisted in SQLite; scoped to session.</p>
-<h3>Memory</h3>
-<p>Long-term memory interface. Subcommands: <code>add|search|list</code>.</p>
-<p>Routes to configured provider (Honcho, Mem0, etc); SQLite + FTS5 fallback.</p>
-<h3>Delegate</h3>
-<p>Sub-agent spawning with depth guard. Spawns new agent with parent context + task.</p>
-<p>Prevents unbounded recursion.</p>
-<h2>External Tools</h2>
-<h3>Web Search</h3>
-<p>Internet search. Prefers SerpAPI when keyed; falls back to DuckDuckGo HTML scrape.</p>
-<p>Requires: <code>SERPAPI_KEY</code> (optional).</p>
-<h3>Image Generation</h3>
-<p>Image synthesis. Supports OpenAI images + Replicate model predictions.</p>
-<p>Requires: <code>OPENAI_API_KEY</code> or <code>REPLICATE_API_TOKEN</code>.</p>
-<h3>Browser</h3>
-<p>Headless browser automation (puppeteer-core, lazy-loaded).</p>
-<p>Commands: navigate, click, type, evaluate, screenshot, text extraction.</p>
-<p>Requires: no env vars (chromium bundled).</p>
-<h2>Adding a Tool</h2>
-<pre>
-import { registry } from './tools/registry.js'
-
-registry.register({
-    name: 'my_tool',
-    toolset: 'core',
-    schema: {
-        name: 'my_tool',
-        description: 'One-liner description',
-        parameters: {
-            type: 'object',
-            properties: { x: { type: 'string' } },
-            required: ['x']
-        }
-    },
-    handler: async (args, ctx) =&gt; ({ ok: true }),
-    checkFn: () =&gt; !!process.env.MY_KEY,
-    requiresEnv: ['MY_KEY'],
-})
-</pre>
-<p>Drop the file in <code>src/tools/</code>. Auto-discovered by <code>discoverBuiltinTools()</code>.</p>`;
-
 mount(document.getElementById('app'), () => C.AppShell({
-  topbar: C.Topbar({ brand: 'Freddie', items: navItems }),
-  crumb: C.Crumb({ leaf: pageTitle }),
-  main: C.Section({
-    id: 'main',
-    children: [
-      C.Panel({
-        children: [
-          C.h(null, { innerHTML: pageBody, className: 'page-body' })
-        ]
-      })
-    ]
-  }),
-  status: C.Status({ left: ['main'], right: ['live'] })
+  topbar: C.Topbar({ brand: 'Freddie', items: navItems, active: "Tools" }),
+  crumb: C.Crumb({ leaf: "Tools" }),
+  main: C.h('div', { class: 'app-stage', innerHTML: "<div class=\"ds-hero\">\n  <h1 class=\"ds-hero-title\">tools</h1>\n  <p class=\"ds-hero-body\">70+ built-in tools, all auto-discovered, all sandbox-aware <span class=\"ds-hero-accent\">every tool is one js file under 200 lines.</span></p>\n  <p class=\"ds-hero-body\">tools are how the agent acts on the world. read files, edit code, run shells, hit apis, manage memory, schedule crons, drive a browser, summon a sub-agent. every tool registers a json schema and a handler — no glue layer required.</p>\n  <div class=\"ds-hero-badges\"><span class=\"chip\"><strong>70+</strong><span style=\"opacity:.7\"> registered tools</span></span> <span class=\"chip\"><strong>core</strong><span style=\"opacity:.7\"> default toolset</span></span> <span class=\"chip\"><strong>browse</strong><span style=\"opacity:.7\"> web access</span></span> <span class=\"chip\"><strong>creative</strong><span style=\"opacity:.7\"> media + voice</span></span></div>\n  <div class=\"ds-hero-ctas\" style=\"margin-top:16px;display:flex;gap:8px;flex-wrap:wrap\"><a class=\"btn-primary\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/tools/registry.js\">registry source</a><a class=\"btn\" href=\"#how-to-add\">add a tool</a></div>\n</div><section class=\"ds-section rail-green\" id=\"when\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">when does freddie reach for a tool?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">every turn, the agent picks zero or more tools to invoke. you decide which ones it can see by configuring toolsets.</p>\n  <div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">file work</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">read, write, edit, grep, file_operations, file_state. the bread-and-butter of agentic coding.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">precise diffs, no copy-paste, full audit trail of what was touched.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">shell + processes</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">bash, terminal (long-lived), process_registry, code_execution. cross-platform subprocess + persistent shells.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">same agent on mac, linux, windows — `bash` works everywhere.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">memory + sessions</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">memory (8 providers + sqlite fallback), session_search, session_list, todo, checkpoint.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">agent recalls users, decisions, todos across days and across machines.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">web + research</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">web_search, web_fetch, web_extract, browser (puppeteer-core), url_safety, website_policy.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">research with rate limits and url-safety baked in, not an afterthought.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">media + voice</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">image_gen, vision, tts, transcription, voice_mode, neutts_synth.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">full multimodal turn — see an image, generate one, listen, speak.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">orchestration</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">delegate (sub-agent spawn with depth guard), mixture_of_agents, cronjob, send_message.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">parallelize work and schedule it, without leaving the agent loop.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">safety + policy</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">path_security, schema_sanitizer, skills_guard, tirith_security, tool_output_limits, osv_check.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">prevents `rm -rf /`, fork bombs, prototype pollution, oversized outputs, and known-vulnerable deps.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">skills + extensions</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">skill, skill_manager, skills_index, skills_sync, skills_hub, skill_usage, mcp_tool, swe_bench.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">every SKILL.md becomes a callable, every MCP server becomes a tool, every benchmark becomes a target.</div>\n</div>\n  \n</section>\n<section class=\"ds-section rail-purple\" id=\"why\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">why this design over a tool framework?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">tools in freddie are plain functions registered against a json schema. zero abstraction, zero ceremony.</p>\n  <div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">drop-in registration</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>registry.register({ name, schema, handler })</code> and the tool is live. auto-discovered on <code>discoverBuiltinTools()</code> from <code>src/tools/*.js</code>.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">one file = one tool. no decorators, no inheritance, no plugin manifests.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">schema is the contract</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">every tool exposes a json schema (openai/anthropic compatible). the agent sees only the schema; the handler receives the typed args.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">works with every llm tool-calling api unchanged.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">env-gated by checkFn</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">optional <code>checkFn()</code> predicate decides whether the tool is registered at all (e.g. only if <code>OPENAI_API_KEY</code> is set).</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">missing creds → tool quietly disappears, agent never tries to call it and fail.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">environments are pluggable</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">tools that exec code can run in local subprocess, docker, or ssh — selected by <code>src/tools/environments/index.js</code>.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">same `bash` tool, runs on the host or in a container, transparent to the agent.</div>\n</div>\n  \n</section>\n<section class=\"ds-section rail-mascot\" id=\"how-to-add\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">how do I add my own tool?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">drop one js file in src/tools/ and it's live next boot.</p>\n  <div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">1 — write the file</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">import the registry, call <code>registry.register({ name, toolset, schema, handler })</code>.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">2 — declare a json schema</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">name, description, parameters (object with properties + required). this is what the llm sees.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">3 — implement the handler</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>async (args, ctx) =&gt; result</code>. ctx carries session info, env, signals.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">4 — gate optional deps</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">add <code>requiresEnv: ['MY_KEY']</code> and <code>checkFn: () =&gt; !!process.env.MY_KEY</code> so the tool self-disables when unconfigured.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">5 — restart freddie</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>discoverBuiltinTools()</code> picks it up automatically. <code>freddie tools</code> shows the new entry.</div>\n  \n</div>\n  \n</section><section class=\"ds-section\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">explore</h2>\n  <a class=\"row rail-purple\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/tools/registry.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">01</span>\n  <span class=\"title\" style=\"font-weight:600\">registry source</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— registration api</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-mascot\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/tools/bash.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">02</span>\n  <span class=\"title\" style=\"font-weight:600\">bash tool</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— simple example</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-sun\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/tools/memory.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">03</span>\n  <span class=\"title\" style=\"font-weight:600\">memory tool</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— provider-routed example</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-flame\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/tools/browser.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">04</span>\n  <span class=\"title\" style=\"font-weight:600\">browser tool</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— lazy-loaded example</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n</section><section class=\"ds-section page-body\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\"><h2>adding a tool — full example</h2>\n<pre>\nimport { registry } from './tools/registry.js'\n\nregistry.register({\n    name: 'my_tool',\n    toolset: 'core',\n    schema: {\n        name: 'my_tool',\n        description: 'Do the thing',\n        parameters: {\n            type: 'object',\n            properties: { x: { type: 'string' } },\n            required: ['x'],\n        },\n    },\n    handler: async (args, ctx) =&gt; ({ ok: true, x: args.x }),\n    checkFn: () =&gt; !!process.env.MY_KEY,\n    requiresEnv: ['MY_KEY'],\n})\n</pre>\n<p>drop in <code>src/tools/</code>. auto-discovered on next boot.</p>\n<h2>listing tools</h2>\n<pre>\nnode bin/freddie.js tools\n</pre>\n<p>prints <code>&lt;toolset&gt; &lt;name&gt; &lt;description&gt;</code> for every registered tool, including ones gated off by missing env.</p>\n<h2>toolsets</h2>\n<p>toolsets group tools so a profile can opt in to a subset. defaults: <code>core</code>, <code>browse</code>, <code>creative</code>. configure via <code>~/.freddie/config.json</code> → <code>toolsets: ['core']</code>.</p></section>" }),
+  status: C.Status({ left: ['freddie', "tools"], right: ['live'] })
 }));
 </script>
 </body>

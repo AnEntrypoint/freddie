@@ -1,129 +1,102 @@
-title: CLI — Freddie
+title: CLI
 slug: cli
+hero:
+  heading: cli
+  subheading: every freddie surface starts as one command in your terminal
+  accent: install it once. ssh in. it just works.
+  body: the cli wraps the agent loop, the dashboard, the gateway, the acp server, the cron, the batch runner, and the session store. each subcommand is one verb. no daemons, no configs to author before you can poke.
+  badges:
+    - { label: commander, desc: js cli framework }
+    - { label: "14 verbs", desc: top-level subcommands }
+    - { label: "/help-all", desc: in-repl reference }
+  ctas:
+    - { label: bin/freddie.js, href: "https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js" }
 sections:
-  - id: top-commands
-    name: Top Commands
+  - id: when
+    name: when do I use which command?
+    lede: pick the verb by what you're doing.
     features:
-      - name: freddie tools
-        desc: List available tools (bash, read, write, edit, grep, memory, etc)
-      - name: freddie run
-        desc: Start interactive agent REPL with slash command support
-      - name: freddie dashboard
-        desc: Web UI for sessions, chat, analytics, cron, skills, config, logs
-      - name: freddie gateway
-        desc: Start messaging gateway (Telegram, Discord, Slack, WhatsApp, SMS, etc)
-  - id: session-history
-    name: Session & History
+      - name: chatting → `freddie run`
+        desc: interactive repl. tools dispatch live, slash commands work, sessions persist across runs.
+        benefit: fastest path to "is the model online".
+      - name: monitoring → `freddie dashboard`
+        desc: web ui at localhost. chat, sessions, analytics, cron, batch, tools, models, skills, logs, config, env, gateway.
+        benefit: one page to see what the agent is doing right now.
+      - name: bridging → `freddie gateway`
+        desc: starts the messaging gateway. webhook receivers + outbound senders. agent loop on the other side.
+        benefit: turns freddie into a multi-platform bot in one process.
+      - name: integrating → `freddie acp`
+        desc: json-rpc stdio server (agent-context-protocol). designed for ide plugins.
+        benefit: drop freddie into vscode/jetbrains/zed without writing a transport.
+      - name: scheduling → `freddie cron`
+        desc: persistent cron jobs. add/list/cancel/delete. fires the agent on a schedule.
+        benefit: unattended work — daily standup, hourly check-in, weekly digest.
+      - name: parallelizing → `freddie batch`
+        desc: read prompts from a file, run them in parallel with bounded concurrency.
+        benefit: bulk eval, content gen, codebase analysis without a queue system.
+      - name: spelunking → `freddie sessions` + `freddie search`
+        desc: list past sessions. fts5 full-text search across every message ever.
+        benefit: never lose a thread. every conversation is recallable.
+      - name: switching context → `freddie profile` + `freddie skin`
+        desc: profiles isolate state per persona. skins switch the ui theme.
+        benefit: client/personal/dev profiles with separate sessions and config.
+  - id: why
+    name: why a single binary?
+    lede: a single js binary is portable, debuggable, and one-line installable.
     features:
-      - name: freddie sessions
-        desc: List recent sessions with full-text search
-      - name: freddie search
-        desc: Query message history across all sessions
-      - name: freddie resume
-        desc: Continue a previous session by ID
-  - id: configuration
-    name: Configuration
+      - name: ssh-friendly
+        desc: works on a $5 vps. no system services, no port openings beyond what you start.
+        benefit: deploy by `git clone && npm install`.
+      - name: zero global state
+        desc: everything lives under `~/.freddie/` (or your `FREDDIE_PROFILE`). delete the dir, you're back to defaults.
+        benefit: no registry, no `/etc/freddie/`, no services to uninstall.
+      - name: discoverable
+        desc: "`freddie help-all` lists every subcommand and slash command in one screen."
+        benefit: you don't have to memorize anything.
+  - id: how
+    name: how does the repl actually feel?
+    lede: a real terminal. real readline. real ansi. slash commands tab-complete.
     features:
-      - name: freddie profile
-        desc: Multi-user profiles (list, create, switch, delete)
-      - name: freddie skin
-        desc: Switch UI theme
-      - name: freddie config
-        desc: View and set configuration values
-  - id: workflows
-    name: Workflows
-    features:
-      - name: freddie cron
-        desc: Scheduled jobs (list, add, cancel, tick)
-      - name: freddie batch
-        desc: Parallel task runner from file
-      - name: freddie acp
-        desc: JSON-RPC stdio for IDE integration
+      - name: slash commands
+        desc: "/help, /quit, /clear, /profile, /sessions, /search, /resume, /model, /provider, /toolsets, /tools, /skills, /skill, /memory, /skin, /config, /logs, /status, /copy, /paste, /reset."
+      - name: tool dispatch
+        desc: agent decides which tools to call. you see each call + result inline.
+      - name: session resumption
+        desc: ctrl+c is safe. reload via `freddie run --resume <id>` or `/resume <id>`.
 examples:
-  - label: Top Commands
-    href: "#top-commands"
-  - label: Session & History
-    href: "#session-history"
-  - label: Configuration
-    href: "#configuration"
-  - label: Workflows
-    href: "#workflows"
+  - { label: bin/freddie.js, href: "https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js", desc: commander entry }
+  - { label: interactive repl, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/cli/interactive.js", desc: readline + slash commands }
+  - { label: command registry, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/commands/registry.js", desc: slash command defs }
 body: |
-  # CLI
+  ## install
 
-  Freddie ships as `freddie` command. Install via npm:
-
-  ```bash
+  ```
   npm install -g freddie
+  # or, in this repo:
+  npm install
   ```
 
-  ## Top Commands
-
-  ### freddie tools
-  List available tools (bash, read, write, edit, grep, memory, delegate, browser, etc).
+  ## the verbs
 
   ```
-  $ freddie tools
-  11 tools registered (core: 8 + env: 2 + external: 1)
+  freddie tools                 # list tools
+  freddie skills                # list skills
+  freddie sessions              # list past sessions
+  freddie search "<query>"      # fts5 across messages
+  freddie run                   # interactive repl
+  freddie dashboard --port 3000 # web ui
+  freddie gateway --port 3001   # messaging bridge
+  freddie acp                   # json-rpc stdio
+  freddie cron list             # scheduled jobs
+  freddie batch <file>          # parallel runner
+  freddie profile [list|create|switch|delete]
+  freddie skin [name]
+  freddie help-all              # all subcommands + slash commands
   ```
 
-  ### freddie run
-  Start interactive agent REPL. Press Ctrl+C to exit.
+  ## environment
 
-  ```
-  $ freddie run
-  Agent ready. Type your prompt or /help for slash commands.
-  ```
-
-  ### freddie dashboard --port 3000
-  Web UI: sessions, chat, analytics, cron jobs, skills, config, logs.
-
-  ```
-  $ freddie dashboard --port 3000
-  Dashboard running at http://localhost:3000
-  ```
-
-  ### freddie gateway --platform telegram
-  Start messaging gateway (webhook + agent loop). Requires platform credentials.
-
-  ```
-  $ export TELEGRAM_BOT_TOKEN=...
-  $ freddie gateway --platform telegram --port 3001
-  Gateway listening at http://localhost:3001
-  ```
-
-  ## Full Reference
-
-  ### Session & History
-  - `freddie sessions` — list recent sessions + search
-  - `freddie search "<query>"` — full-text search over messages
-  - `freddie resume <id>` — continue a session
-
-  ### Configuration
-  - `freddie profile [list|create|switch|delete]` — multi-user profiles
-  - `freddie skin [name]` — switch UI theme
-  - `freddie config [key] [value]` — view/set config
-
-  ### Skills & Tools
-  - `freddie skills` — list bundled + custom skills
-  - `freddie skill <name>` — show skill details
-  - `freddie tools` — list + filter tools
-
-  ### Workflows
-  - `freddie cron [list|add|cancel|tick]` — scheduled jobs
-  - `freddie batch <file>` — parallel task runner
-  - `freddie acp` — JSON-RPC stdio for IDE integration
-
-  ### Help
-  - `freddie help-all` — all slash commands (inside REPL)
-  - `freddie -h` — command-line help
-
-  ## Slash Commands in REPL
-
-  - `/help`, `/quit`, `/clear`
-  - `/profile [list|switch <name>]`
-  - `/sessions`, `/search <query>`, `/resume <id>`
-  - `/model [name]`, `/provider [name]`
-  - `/toolsets`, `/tools`, `/skills`, `/skill <name>`
-  - `/memory`, `/skin [name]`, `/config [key] [value]`
-  - `/logs`, `/status`, `/copy`, `/paste`, `/reset`
+  - `FREDDIE_HOME` — override `~/.freddie/`.
+  - `FREDDIE_PROFILE` — switch to a profile-scoped home (`~/.freddie/profiles/<name>/`).
+  - `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GROQ_API_KEY` / `OPENROUTER_API_KEY` — provider keys, picked up by pi-ai.
+  - platform tokens (`TELEGRAM_BOT_TOKEN` etc) — light up the gateway adapters.
