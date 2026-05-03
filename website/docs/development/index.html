@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en" class="ds-247420" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Development — Freddie — Freddie</title>
+<link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
+<script type="importmap">
+{ "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
+</script>
+<style>
+.page-body h1 { margin-top: 0; }
+.page-body h2 { margin-top: 32px; }
+.page-body h3 { margin-top: 24px; }
+.page-body pre { margin: 12px 0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { mount, components as C } from 'anentrypoint-design';
+const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
+const pageSlug = 'development';
+const pageTitle = 'Development — Freddie';
+const pageBody = `<h1>Development</h1>
+<h2>Integration Tests</h2>
+<p>One <code>test.js</code> at project root. 21 integration tests passing, ≤200 lines.</p>
+<pre>
+node test.js
+</pre>
+<p>Tests cover: agent loop, CLI, gateway, plugins, skills, sessions, cron, batch, dashboard, ACP, web, context-engine, compressor, auth, observability.</p>
+<p>Real services, real data, no mocks. Failure regresses to EXECUTE.</p>
+<h2>Project Layout</h2>
+<pre>
+freddie/
+├── bin/freddie.js                   # CLI entry (commander)
+├── src/
+│   ├── index.js, home.js, config.js, sessions.js, auth.js
+│   ├── tools/
+│   │   ├── registry.js
+│   │   ├── bash.js, read.js, write.js, edit.js, grep.js
+│   │   ├── todo.js, memory.js, delegate.js
+│   │   ├── web_search.js, image_gen.js, browser.js
+│   │   └── environments/{local,docker,ssh,index}.js
+│   ├── agent/
+│   │   ├── machine.js (xstate)
+│   │   ├── pi-bridge.js
+│   │   └── compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js
+│   ├── commands/{registry,profile}.js
+│   ├── cli/interactive.js
+│   ├── context/engine.js
+│   ├── cron/{scheduler,cron-parse}.js
+│   ├── batch.js
+│   ├── web/{server,index.html} (anentrypoint-design webjsx)
+│   ├── gateway/{run,platforms/*.js}
+│   ├── acp/server.js
+│   ├── plugins/{manager,memory/*.js}
+│   ├── skills/index.js
+│   ├── skin/engine.js
+│   └── observability/{log,debug}.js
+├── skills/                        # bundled SKILL.md (5 categories)
+├── website/                       # this site (flatspace + anentrypoint-design)
+└── test.js                        # integration test
+</pre>
+<h2>Build Website</h2>
+<p>Flatspace static site builder. Converts <code>website/content/pages/*.yaml</code> → <code>website/docs/*.html</code> using <code>website/theme.mjs</code> renderer.</p>
+<pre>
+cd website
+node ../node_modules/flatspace/bin/flatspace.js build
+</pre>
+<p>Output: <code>website/docs/</code> (GitHub Pages).</p>
+<h2>Recent Releases</h2>
+<ul>
+<li><strong>v0.0.7</strong> — Use npm anentrypoint-design instead of file: link so CI can install it.</li>
+<li><strong>v0.0.6</strong> — Redesign dashboard web view with anentrypoint-design pro-rata patterns.</li>
+<li><strong>v0.0.5</strong> — Full platform adapter set (Telegram, Discord, Slack, email, SMS, WhatsApp, etc).</li>
+</ul>
+<p>See <a href="https://github.com/AnEntrypoint/freddie/blob/master/CHANGELOG.md">CHANGELOG.md</a> for full history.</p>
+<h2>Architecture Guide</h2>
+<p>For subsystem deep dives, see <a href="https://github.com/AnEntrypoint/freddie/blob/master/AGENTS.md">AGENTS.md</a>.</p>
+<p>Topics:</p>
+<ul>
+<li>Agent loop + context compressor</li>
+<li>Tool registry + environments</li>
+<li>Gateway platforms + adapters</li>
+<li>Session store + auth</li>
+<li>Memory provider backends</li>
+<li>Skills loader</li>
+<li>Dashboard web UI (anentrypoint-design webjsx)</li>
+<li>Cron scheduler + batch runner</li>
+<li>Observability (JSONL logs, /debug endpoints)</li>
+</ul>`;
+
+mount(document.getElementById('app'), () => C.AppShell({
+  topbar: C.Topbar({ brand: 'Freddie', items: navItems }),
+  crumb: C.Crumb({ leaf: pageTitle }),
+  main: C.Section({
+    id: 'main',
+    children: [
+      C.Panel({
+        children: [
+          C.h(null, { innerHTML: pageBody, className: 'page-body' })
+        ]
+      })
+    ]
+  }),
+  status: C.Status({ left: ['main'], right: ['live'] })
+}));
+</script>
+</body>
+</html>

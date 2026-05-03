@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en" class="ds-247420" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skills — Freddie — Freddie</title>
+<link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
+<script type="importmap">
+{ "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
+</script>
+<style>
+.page-body h1 { margin-top: 0; }
+.page-body h2 { margin-top: 32px; }
+.page-body h3 { margin-top: 24px; }
+.page-body pre { margin: 12px 0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { mount, components as C } from 'anentrypoint-design';
+const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
+const pageSlug = 'skills';
+const pageTitle = 'Skills — Freddie';
+const pageBody = `<h1>Skills</h1>
+<p>5 bundled skill categories + user-extensible via <code>~/.freddie/skills/</code>.</p>
+<h2>Bundled Categories</h2>
+<h3>Creative</h3>
+<p>ASCII video generation, architecture diagrams, concept sketching. 3 skills.</p>
+<h3>Software Development</h3>
+<p>Systematic debugging, code review, RFC authoring. 3 skills.</p>
+<h3>Operations</h3>
+<p>Incident response, log triage. 2 skills.</p>
+<h3>Data</h3>
+<p>ETL pipelines, SQL explanation. 2 skills.</p>
+<h3>Planning</h3>
+<p>Weekly review, OKR drafting. 2 skills.</p>
+<h2>Custom Skills</h2>
+<p>Drop additional <code>SKILL.md</code> files in:</p>
+<ul>
+<li><code>~/.freddie/skills/</code> (user directory, always auto-discovered)</li>
+<li><code>&lt;cwd&gt;/skills/</code> (project directory, scanned on startup)</li>
+</ul>
+<h2>SKILL.md Shape</h2>
+<pre>
+---
+name: my-skill
+description: One-liner picked up by /skill list
+category: software-development
+platforms: [linux, macos, windows]   # optional gating
+---
+
+# Body
+
+Free-form markdown. Injected as a user message when invoked via /skill &lt;name&gt;.
+</pre>`;
+
+mount(document.getElementById('app'), () => C.AppShell({
+  topbar: C.Topbar({ brand: 'Freddie', items: navItems }),
+  crumb: C.Crumb({ leaf: pageTitle }),
+  main: C.Section({
+    id: 'main',
+    children: [
+      C.Panel({
+        children: [
+          C.h(null, { innerHTML: pageBody, className: 'page-body' })
+        ]
+      })
+    ]
+  }),
+  status: C.Status({ left: ['main'], right: ['live'] })
+}));
+</script>
+</body>
+</html>

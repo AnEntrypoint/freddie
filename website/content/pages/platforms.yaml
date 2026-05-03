@@ -1,0 +1,148 @@
+title: Platforms — Freddie
+slug: platforms
+sections:
+  - id: chat-platforms
+    name: Chat Platforms
+    features:
+      - name: Telegram
+        desc: "Long-polling getUpdates + sendMessage. Requires: TELEGRAM_BOT_TOKEN"
+      - name: Discord
+        desc: "REST API + gateway URL lookup. Requires: DISCORD_BOT_TOKEN"
+      - name: Slack
+        desc: "Events webhook + chat.postMessage. Requires: SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET"
+      - name: Matrix
+        desc: "Sync long-poll + send. Requires: MATRIX_HOMESERVER, MATRIX_ACCESS_TOKEN"
+      - name: Signal
+        desc: "signal-cli HTTP bridge. Requires: SIGNAL_CLI_URL, SIGNAL_NUMBER"
+      - name: Mattermost
+        desc: "Incoming hook + posts API. Requires: MATTERMOST_URL, MATTERMOST_TOKEN"
+      - name: Zulip
+        desc: "Zulip API integration. Requires: Zulip server credentials"
+  - id: messaging-platforms
+    name: Messaging Platforms
+    features:
+      - name: WhatsApp
+        desc: "Meta Graph API webhook. Requires: WHATSAPP_API_TOKEN, WHATSAPP_PHONE_NUMBER_ID"
+      - name: SMS (Twilio)
+        desc: "Twilio webhook + Messages API. Requires: TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM"
+      - name: Email
+        desc: "SMTP via raw socket. Requires: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS"
+  - id: enterprise-platforms
+    name: Enterprise Platforms
+    features:
+      - name: Dingtalk
+        desc: "Alibaba DingTalk webhook. Requires: DINGTALK_ACCESS_TOKEN"
+      - name: Feishu
+        desc: "Bytedance Feishu webhook. Requires: FEISHU_APP_TOKEN"
+      - name: WeChat
+        desc: "WeChat Work webhook. Requires: WEIXIN_TOKEN"
+      - name: WeChat Enterprise (Wecom)
+        desc: "WeChat Enterprise webhook. Requires: WECOM_WEBHOOK_KEY"
+      - name: QQ Bot
+        desc: "QQ official bot API. Requires: QQBOT_TOKEN"
+  - id: other-platforms
+    name: Other Platforms
+    features:
+      - name: BlueBubbles
+        desc: "iMessage relay via BlueBubbles server. Requires: BLUEBUBBLES_PASSWORD"
+      - name: Home Assistant
+        desc: "Home automation webhook integration. Requires: HASS_TOKEN"
+      - name: Generic Webhook
+        desc: "Catch-all POST /webhook receiver for custom integrations"
+      - name: API Server
+        desc: "Generic /messages outbound buffer for pull-based clients"
+examples:
+  - label: Chat Platforms
+    href: "#chat-platforms"
+  - label: Messaging Platforms
+    href: "#messaging-platforms"
+  - label: Enterprise Platforms
+    href: "#enterprise-platforms"
+  - label: Other Platforms
+    href: "#other-platforms"
+body: |
+  # Gateway Platforms
+
+  16 functional adapters for inbound messaging. Each adapter extends `EventEmitter`, exposes `getRequiredEnv()`, and emits `'message'` events.
+
+  ## Chat Platforms
+
+  ### Telegram
+  Long-polling `getUpdates` + `sendMessage`. Requires: `TELEGRAM_BOT_TOKEN`.
+
+  ### Discord
+  REST API + gateway URL lookup. Requires: `DISCORD_BOT_TOKEN`.
+
+  ### Slack
+  Events webhook + `chat.postMessage`. Requires: `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`.
+
+  ### Matrix
+  Sync long-poll + send. Requires: `MATRIX_HOMESERVER`, `MATRIX_ACCESS_TOKEN`.
+
+  ### Signal
+  signal-cli HTTP bridge (`/v1/receive` + `/v2/send`). Requires: `SIGNAL_CLI_URL`, `SIGNAL_NUMBER`.
+
+  ### Mattermost
+  Incoming hook + posts API. Requires: `MATTERMOST_URL`, `MATTERMOST_TOKEN`.
+
+  ### Zulip
+  Zulip API integration. Requires: Zulip server credentials.
+
+  ## Messaging Platforms
+
+  ### WhatsApp
+  Meta Graph API webhook + `messages` endpoint. Requires: `WHATSAPP_API_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`.
+
+  ### SMS (Twilio)
+  Twilio webhook + Messages API. Requires: `TWILIO_SID`, `TWILIO_TOKEN`, `TWILIO_FROM`.
+
+  ### Email
+  SMTP via raw socket (EHLO/AUTH LOGIN/MAIL/RCPT/DATA). Requires: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`.
+
+  ## Enterprise Platforms
+
+  ### Dingtalk
+  Alibaba DingTalk webhook + send. Requires: `DINGTALK_ACCESS_TOKEN`.
+
+  ### Feishu
+  Bytedance Feishu webhook + send. Requires: `FEISHU_APP_TOKEN`.
+
+  ### WeChat
+  WeChat Work webhook. Requires: `WEIXIN_TOKEN`.
+
+  ### WeChat Enterprise (Wecom)
+  WeChat Enterprise webhook. Requires: `WECOM_WEBHOOK_KEY`.
+
+  ### QQ Bot
+  QQ official bot API. Requires: `QQBOT_TOKEN`.
+
+  ## Other Platforms
+
+  ### BlueBubbles
+  iMessage relay via BlueBubbles server. Requires: `BLUEBUBBLES_PASSWORD`.
+
+  ### Home Assistant
+  Home automation webhook integration. Requires: `HASS_TOKEN`.
+
+  ### Generic Webhook
+  Catch-all POST `/webhook` receiver for custom integrations.
+
+  ### API Server
+  Generic `/messages` outbound buffer for pull-based clients.
+
+  ## Setup
+
+  Adapters throw on `start()` if required credentials are absent. Inspect required env vars:
+
+  ```js
+  import { TelegramAdapter } from 'freddie/src/gateway/platforms/telegram.js'
+  const a = new TelegramAdapter({})
+  a.getRequiredEnv() // ['TELEGRAM_BOT_TOKEN']
+  ```
+
+  Set env vars before starting the gateway:
+
+  ```bash
+  export TELEGRAM_BOT_TOKEN=<token>
+  node bin/freddie.js gateway --platform telegram
+  ```

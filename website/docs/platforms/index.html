@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en" class="ds-247420" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Platforms — Freddie — Freddie</title>
+<link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
+<script type="importmap">
+{ "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
+</script>
+<style>
+.page-body h1 { margin-top: 0; }
+.page-body h2 { margin-top: 32px; }
+.page-body h3 { margin-top: 24px; }
+.page-body pre { margin: 12px 0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { mount, components as C } from 'anentrypoint-design';
+const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
+const pageSlug = 'platforms';
+const pageTitle = 'Platforms — Freddie';
+const pageBody = `<h1>Gateway Platforms</h1>
+<p>16 functional adapters for inbound messaging. Each adapter extends <code>EventEmitter</code>, exposes <code>getRequiredEnv()</code>, and emits <code>'message'</code> events.</p>
+<h2>Chat Platforms</h2>
+<h3>Telegram</h3>
+<p>Long-polling <code>getUpdates</code> + <code>sendMessage</code>. Requires: <code>TELEGRAM_BOT_TOKEN</code>.</p>
+<h3>Discord</h3>
+<p>REST API + gateway URL lookup. Requires: <code>DISCORD_BOT_TOKEN</code>.</p>
+<h3>Slack</h3>
+<p>Events webhook + <code>chat.postMessage</code>. Requires: <code>SLACK_BOT_TOKEN</code>, <code>SLACK_SIGNING_SECRET</code>.</p>
+<h3>Matrix</h3>
+<p>Sync long-poll + send. Requires: <code>MATRIX_HOMESERVER</code>, <code>MATRIX_ACCESS_TOKEN</code>.</p>
+<h3>Signal</h3>
+<p>signal-cli HTTP bridge (<code>/v1/receive</code> + <code>/v2/send</code>). Requires: <code>SIGNAL_CLI_URL</code>, <code>SIGNAL_NUMBER</code>.</p>
+<h3>Mattermost</h3>
+<p>Incoming hook + posts API. Requires: <code>MATTERMOST_URL</code>, <code>MATTERMOST_TOKEN</code>.</p>
+<h3>Zulip</h3>
+<p>Zulip API integration. Requires: Zulip server credentials.</p>
+<h2>Messaging Platforms</h2>
+<h3>WhatsApp</h3>
+<p>Meta Graph API webhook + <code>messages</code> endpoint. Requires: <code>WHATSAPP_API_TOKEN</code>, <code>WHATSAPP_PHONE_NUMBER_ID</code>, <code>WHATSAPP_VERIFY_TOKEN</code>.</p>
+<h3>SMS (Twilio)</h3>
+<p>Twilio webhook + Messages API. Requires: <code>TWILIO_SID</code>, <code>TWILIO_TOKEN</code>, <code>TWILIO_FROM</code>.</p>
+<h3>Email</h3>
+<p>SMTP via raw socket (EHLO/AUTH LOGIN/MAIL/RCPT/DATA). Requires: <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>.</p>
+<h2>Enterprise Platforms</h2>
+<h3>Dingtalk</h3>
+<p>Alibaba DingTalk webhook + send. Requires: <code>DINGTALK_ACCESS_TOKEN</code>.</p>
+<h3>Feishu</h3>
+<p>Bytedance Feishu webhook + send. Requires: <code>FEISHU_APP_TOKEN</code>.</p>
+<h3>WeChat</h3>
+<p>WeChat Work webhook. Requires: <code>WEIXIN_TOKEN</code>.</p>
+<h3>WeChat Enterprise (Wecom)</h3>
+<p>WeChat Enterprise webhook. Requires: <code>WECOM_WEBHOOK_KEY</code>.</p>
+<h3>QQ Bot</h3>
+<p>QQ official bot API. Requires: <code>QQBOT_TOKEN</code>.</p>
+<h2>Other Platforms</h2>
+<h3>BlueBubbles</h3>
+<p>iMessage relay via BlueBubbles server. Requires: <code>BLUEBUBBLES_PASSWORD</code>.</p>
+<h3>Home Assistant</h3>
+<p>Home automation webhook integration. Requires: <code>HASS_TOKEN</code>.</p>
+<h3>Generic Webhook</h3>
+<p>Catch-all POST <code>/webhook</code> receiver for custom integrations.</p>
+<h3>API Server</h3>
+<p>Generic <code>/messages</code> outbound buffer for pull-based clients.</p>
+<h2>Setup</h2>
+<p>Adapters throw on <code>start()</code> if required credentials are absent. Inspect required env vars:</p>
+<pre>
+import { TelegramAdapter } from 'freddie/src/gateway/platforms/telegram.js'
+const a = new TelegramAdapter({})
+a.getRequiredEnv() // ['TELEGRAM_BOT_TOKEN']
+</pre>
+<p>Set env vars before starting the gateway:</p>
+<pre>
+export TELEGRAM_BOT_TOKEN=&lt;token&gt;
+node bin/freddie.js gateway --platform telegram
+</pre>`;
+
+mount(document.getElementById('app'), () => C.AppShell({
+  topbar: C.Topbar({ brand: 'Freddie', items: navItems }),
+  crumb: C.Crumb({ leaf: pageTitle }),
+  main: C.Section({
+    id: 'main',
+    children: [
+      C.Panel({
+        children: [
+          C.h(null, { innerHTML: pageBody, className: 'page-body' })
+        ]
+      })
+    ]
+  }),
+  status: C.Status({ left: ['main'], right: ['live'] })
+}));
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+import crypto from 'node:crypto'
+export function sha1(...parts) { return crypto.createHash('sha1').update(parts.sort().join('')).digest('hex') }
+export function verifyMsgSignature({ token, timestamp, nonce, encrypt, signature }) {
+    return sha1(token, timestamp, nonce, encrypt) === signature
+}
+export function decryptMsg(encryptedB64, encodingAesKey) {
+    const aesKey = Buffer.from(encodingAesKey + '=', 'base64')
+    const iv = aesKey.slice(0, 16)
+    const decipher = crypto.createDecipheriv('aes-256-cbc', aesKey, iv)
+    decipher.setAutoPadding(false)
+    const decrypted = Buffer.concat([decipher.update(Buffer.from(encryptedB64, 'base64')), decipher.final()])
+    const padLen = decrypted[decrypted.length - 1]
+    const trimmed = decrypted.slice(16, decrypted.length - padLen)
+    const xmlLen = trimmed.readUInt32BE(0)
+    return { xml: trimmed.slice(4, 4 + xmlLen).toString('utf8'), corpId: trimmed.slice(4 + xmlLen).toString('utf8') }
+}

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en" class="ds-247420" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Freddie — Freddie</title>
+<link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
+<script type="importmap">
+{ "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
+</script>
+<style>
+.page-body h1 { margin-top: 0; }
+.page-body h2 { margin-top: 32px; }
+.page-body h3 { margin-top: 24px; }
+.page-body pre { margin: 12px 0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { mount, components as C } from 'anentrypoint-design';
+const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
+const pageSlug = 'home';
+const pageTitle = 'Freddie';
+const pageBody = `<h1>Freddie</h1>
+<p>Open JS agent harness built on <strong>pi-mono + floosie + xstate + anentrypoint-design</strong>.</p>
+<h2>What is Freddie?</h2>
+<p>Freddie is a JavaScript rebuild of <a href="https://github.com/nousresearch/hermes-agent">hermes-agent</a> user-visible behavior, with our preferred architecture. It ships as a CLI, web dashboard, and programmable agent harness for multi-platform messaging (Telegram, Discord, Slack, email, SMS, WhatsApp, Matrix, and more).</p>
+<h2>Substrate</h2>
+<ul>
+<li><strong>@mariozechner/pi-coding-agent + pi-agent-core + pi-ai + pi-tui</strong> — agent loop, providers, TUI primitives.</li>
+<li><strong>floosie</strong> — gateway stream pipeline (xstate-backed).</li>
+<li><strong>xstate</strong> — agent turn machine + lifecycle.</li>
+<li><strong>anentrypoint-design</strong> — webjsx + ripple-ui design system for the dashboard.</li>
+<li><strong>flatspace</strong> — this very website (flat-file CMS + static site builder).</li>
+</ul>
+<h2>Quick Start</h2>
+<pre>
+npm install
+node bin/freddie.js tools
+node bin/freddie.js run
+node bin/freddie.js dashboard --port 3000
+</pre>
+<h2>Test Coverage</h2>
+<ul>
+<li><strong>21/21</strong> integration tests passing (agent loop, CLI, gateway, plugins, skills, sessions, cron, batch, dashboard, ACP, web, context-engine, compressor, auth, observability).</li>
+<li><strong>11</strong> built-in tools (bash, read, write, edit, grep, todo, memory, delegate, web_search, image_gen, browser).</li>
+<li><strong>16</strong> functional gateway platforms (Telegram, Discord, Slack, email, SMS, WhatsApp, Matrix, Signal, Dingtalk, Feishu, WeChat, QQ, Mattermost, Zulip, BlueBubbles, Misskey).</li>
+<li><strong>8</strong> memory provider backends (Honcho, Mem0, Supermemory, Byterover, Hindsight, Openviking, Retaindb, Holographic).</li>
+</ul>
+<h2>Architecture</h2>
+<ul>
+<li>Agent turn machine (xstate) + context compressor (head/middle/tail policy + handoff prompt + iterative updates).</li>
+<li>Session store (better-sqlite3 + FTS5) + auth store (FileAuthStore).</li>
+<li>Cron scheduler + batch runner for multi-turn workflows.</li>
+<li>Full skill loader (bundled + user-extensible via ~/.freddie/skills/).</li>
+<li>Dashboard web UI (anentrypoint-design webjsx) with live chat, analytics, cron monitoring.</li>
+</ul>
+<h2>Learn More</h2>
+<ul>
+<li><a href="/architecture/">Architecture</a> — subsystem guide + AGENTS.md</li>
+<li><a href="/tools/">Tools</a> — all 11 built-in tools + usage</li>
+<li><a href="/platforms/">Platforms</a> — 16 gateway adapters + setup</li>
+<li><a href="/skills/">Skills</a> — bundled skill categories</li>
+<li><a href="/cli/">CLI</a> — command reference</li>
+<li><a href="/development/">Development</a> — integration test coverage + contributing</li>
+</ul>`;
+
+mount(document.getElementById('app'), () => C.AppShell({
+  topbar: C.Topbar({ brand: 'Freddie', items: navItems }),
+  crumb: C.Crumb({ leaf: pageTitle }),
+  main: C.Section({
+    id: 'main',
+    children: [
+      C.Panel({
+        children: [
+          C.h(null, { innerHTML: pageBody, className: 'page-body' })
+        ]
+      })
+    ]
+  }),
+  status: C.Status({ left: ['main'], right: ['live'] })
+}));
+</script>
+</body>
+</html>

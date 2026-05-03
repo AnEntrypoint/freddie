@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en" class="ds-247420" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLI — Freddie — Freddie</title>
+<link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
+<script type="importmap">
+{ "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
+</script>
+<style>
+.page-body h1 { margin-top: 0; }
+.page-body h2 { margin-top: 32px; }
+.page-body h3 { margin-top: 24px; }
+.page-body pre { margin: 12px 0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { mount, components as C } from 'anentrypoint-design';
+const navItems = [["Home","/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
+const pageSlug = 'cli';
+const pageTitle = 'CLI — Freddie';
+const pageBody = `<h1>CLI</h1>
+<p>Freddie ships as <code>freddie</code> command. Install via npm:</p>
+<pre>
+npm install -g freddie
+</pre>
+<h2>Top Commands</h2>
+<h3>freddie tools</h3>
+<p>List available tools (bash, read, write, edit, grep, memory, delegate, browser, etc).</p>
+<pre>
+$ freddie tools
+11 tools registered (core: 8 + env: 2 + external: 1)
+</pre>
+<h3>freddie run</h3>
+<p>Start interactive agent REPL. Press Ctrl+C to exit.</p>
+<pre>
+$ freddie run
+Agent ready. Type your prompt or /help for slash commands.
+</pre>
+<h3>freddie dashboard --port 3000</h3>
+<p>Web UI: sessions, chat, analytics, cron jobs, skills, config, logs.</p>
+<pre>
+$ freddie dashboard --port 3000
+Dashboard running at http://localhost:3000
+</pre>
+<h3>freddie gateway --platform telegram</h3>
+<p>Start messaging gateway (webhook + agent loop). Requires platform credentials.</p>
+<pre>
+$ export TELEGRAM_BOT_TOKEN=...
+$ freddie gateway --platform telegram --port 3001
+Gateway listening at http://localhost:3001
+</pre>
+<h2>Full Reference</h2>
+<h3>Session &amp; History</h3>
+<ul>
+<li><code>freddie sessions</code> — list recent sessions + search</li>
+<li><code>freddie search "&lt;query&gt;"</code> — full-text search over messages</li>
+<li><code>freddie resume &lt;id&gt;</code> — continue a session</li>
+</ul>
+<h3>Configuration</h3>
+<ul>
+<li><code>freddie profile [list|create|switch|delete]</code> — multi-user profiles</li>
+<li><code>freddie skin [name]</code> — switch UI theme</li>
+<li><code>freddie config [key] [value]</code> — view/set config</li>
+</ul>
+<h3>Skills &amp; Tools</h3>
+<ul>
+<li><code>freddie skills</code> — list bundled + custom skills</li>
+<li><code>freddie skill &lt;name&gt;</code> — show skill details</li>
+<li><code>freddie tools</code> — list + filter tools</li>
+</ul>
+<h3>Workflows</h3>
+<ul>
+<li><code>freddie cron [list|add|cancel|tick]</code> — scheduled jobs</li>
+<li><code>freddie batch &lt;file&gt;</code> — parallel task runner</li>
+<li><code>freddie acp</code> — JSON-RPC stdio for IDE integration</li>
+</ul>
+<h3>Help</h3>
+<ul>
+<li><code>freddie help-all</code> — all slash commands (inside REPL)</li>
+<li><code>freddie -h</code> — command-line help</li>
+</ul>
+<h2>Slash Commands in REPL</h2>
+<ul>
+<li><code>/help</code>, <code>/quit</code>, <code>/clear</code></li>
+<li><code>/profile [list|switch &lt;name&gt;]</code></li>
+<li><code>/sessions</code>, <code>/search &lt;query&gt;</code>, <code>/resume &lt;id&gt;</code></li>
+<li><code>/model [name]</code>, <code>/provider [name]</code></li>
+<li><code>/toolsets</code>, <code>/tools</code>, <code>/skills</code>, <code>/skill &lt;name&gt;</code></li>
+<li><code>/memory</code>, <code>/skin [name]</code>, <code>/config [key] [value]</code></li>
+<li><code>/logs</code>, <code>/status</code>, <code>/copy</code>, <code>/paste</code>, <code>/reset</code></li>
+</ul>`;
+
+mount(document.getElementById('app'), () => C.AppShell({
+  topbar: C.Topbar({ brand: 'Freddie', items: navItems }),
+  crumb: C.Crumb({ leaf: pageTitle }),
+  main: C.Section({
+    id: 'main',
+    children: [
+      C.Panel({
+        children: [
+          C.h(null, { innerHTML: pageBody, className: 'page-body' })
+        ]
+      })
+    ]
+  }),
+  status: C.Status({ left: ['main'], right: ['live'] })
+}));
+</script>
+</body>
+</html>

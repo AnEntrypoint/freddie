@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ES2022",
+    "moduleResolution": "node",
+    "checkJs": false,
+    "allowJs": true,
+    "baseUrl": ".",
+    "paths": { "freddie/*": ["src/*"] }
+  },
+  "include": ["src", "bin", "test.js"]
+}
