@@ -4,18 +4,12 @@ import fs from 'node:fs'
 
 let _cached = null
 
-const LEGACY_HOME_ENV = 'FOPH' + '_HOME'
-const LEGACY_PROFILE_ENV = 'FOPH' + '_PROFILE'
-const LEGACY_DIR = '.' + 'foph'
-
 export function getFreddieHome() {
     if (_cached) return _cached
-    const env = process.env.FREDDIE_HOME || process.env[LEGACY_HOME_ENV]
+    const env = process.env.FREDDIE_HOME
     if (env) { _cached = env; ensure(env); return env }
-    const profile = process.env.FREDDIE_PROFILE || process.env[LEGACY_PROFILE_ENV]
-    const newRoot = path.join(os.homedir(), '.freddie')
-    const legacyRoot = path.join(os.homedir(), LEGACY_DIR)
-    const root = fs.existsSync(newRoot) ? newRoot : (fs.existsSync(legacyRoot) ? legacyRoot : newRoot)
+    const profile = process.env.FREDDIE_PROFILE
+    const root = path.join(os.homedir(), '.freddie')
     const home = profile ? path.join(root, 'profiles', profile) : root
     _cached = home
     ensure(home)
