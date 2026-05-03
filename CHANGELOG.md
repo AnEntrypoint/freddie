@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.2] - 2026-05-03
+
+### Fixed
+- plugsdk zod peer dependency conflict: bumped plugsdk to v1.0.7 with peerDeps zod "^3.23.0 || ^4.0.0" — freddie CI can now install plugsdk from npm registry
+- Removed stale local symlink from package-lock.json; plugsdk now resolves from https://registry.npmjs.org/
+
+### Changed
+- contract.js: FREDDIE_TO_SDK_HOOK values now reference HookType.* constants from plugsdk instead of string literals
+- contract.js: re-exports piAdapter, HookType, allowResult, blockResult, modifyResult, PluginRunner, PluginRuntime from plugsdk
+
+
 All notable changes to this project will be documented in this file.
 
 ## [0.1.1] - 2026-05-03
