@@ -86,7 +86,9 @@ Freddie accepts three plugin shapes:
 - **plugsdk** (`definePlugin()` format): `{ name, tools, hooks, meta }` — auto-detected and wrapped by `wrapPlugsdkPlugin()` in `src/host/host.js`
 - **gm-cc**: installed as `gm-cc` npm dep; `plugins/gm-cc/plugin.js` discovers and registers all 12 SKILL.md files under the `gm:*` namespace in `pi.skills`
 
-plugdsdk adapters: freddie/pi, MCP, OpenAI, LangChain, Cursor/VSCode, Aider (9 adapters total).
+[`plugsdk`](https://www.npmjs.com/package/plugsdk) is an npm dependency (`^1.0.7`). `src/host/contract.js` re-exports `definePlugin`, `HookType`, `allowResult`, `blockResult`, `modifyResult`, `PluginRunner`, `PluginRuntime`, and `piAdapter` from it. `FREDDIE_TO_SDK_HOOK` maps freddie hook names to `HookType.*` constants (e.g. `HookType.PRE_TOOL_USE`).
+
+plugsdk adapters: freddie/pi, MCP, OpenAI, LangChain, Cursor/VSCode, Aider (9 adapters total).
 
 ## Layout
 
