@@ -181,9 +181,9 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     for (const m of ['./src/agent/pi-bridge.js','./src/cli/interactive.js','./src/tui/index.js','./src/cli/main.js']) { const mm = await import(m); assert.ok(Object.values(mm).some(v => typeof v === 'function'), m) }
     assert.match((await import('./src/cli/colors.js')).fg.red('hi'), /\x1b\[31m/); assert.equal((await import('./src/cli/model_normalize.js')).normalizeModel('sonnet'), 'claude-sonnet-4-6')
     const wh = await import('./src/gateway/helpers.js'); assert.ok((await import('./src/cli/model_catalog.js')).listCatalog().length >= 5 && (await import('./src/cli/doctor.js')).runDoctor().some(c => c.name === 'node-version') && wh.hmacVerify('s', 'b', wh.hmacSign('s', 'b')))
-    assert.ok((await (await import('./src/acp/auth.js')).authenticateRequest({})).ok && (await (await import('./src/acp/tools.js')).listToolsForAcp()).length >= 50 && fs.existsSync(path.join('website', 'docs/index.html')))
-    const { createDashboard } = await import('./src/web/server.js')
-    const dash = await createDashboard({ port: 0 })
+    assert.ok((await (await import('./src/acp/auth.js')).authenticateRequest({})).ok && (await (await import('./src/acp/tools.js')).listToolsForAcp()).length >= 50)
+    const wh2 = fs.readFileSync(path.join('website', 'docs/index.html'), 'utf8'); for (const m of ['ds-hero-title', 'rail-green', 'when do I reach']) assert.ok(wh2.includes(m), m)
+    const dash = await (await import('./src/web/server.js')).createDashboard({ port: 0 })
     const sse = await fetch(dash.url + 'api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: 'ping-from-test' }) })
     assert.equal(sse.status, 200); assert.match(sse.headers.get('content-type') || '', /event-stream/)
     const txt = await sse.text(); assert.match(txt, /event: (start|done|error|message)/)
