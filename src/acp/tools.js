@@ -1,13 +1,14 @@
-import { registry, discoverBuiltinTools } from '../tools/registry.js'
+import { bootHost } from '../host/index.js'
 import { Events } from './events.js'
 export async function listToolsForAcp() {
-    await discoverBuiltinTools()
-    return registry.list().map(t => ({ name: t.name, toolset: t.toolset, schema: t.schema, requiresEnv: t.requiresEnv || [] }))
+    const h = await bootHost()
+    return h.pi.tools.list().map(t => ({ name: t.name, toolset: t.toolset, schema: t.schema, requiresEnv: t.requiresEnv || [] }))
 }
 export async function dispatchWithEvents({ name, args, send, sessionId = null }) {
+    const h = await bootHost()
     Events.toolStart(send, { sessionId, name, args })
     try {
-        const result = await registry.dispatch(name, args, { sessionId })
+        const result = await h.pi.dispatchTool(name, args, { sessionId })
         Events.toolComplete(send, { sessionId, name, result })
         return { ok: true, result }
     } catch (e) {

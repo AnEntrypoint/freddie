@@ -1,5 +1,5 @@
 import readline from 'node:readline'
-import { registry, discoverBuiltinTools } from '../tools/registry.js'
+import { bootHost } from '../host/index.js'
 import { listSkills } from '../skills/index.js'
 import { logger } from '../observability/log.js'
 
@@ -34,11 +34,12 @@ const METHODS = {
         serverInfo: { name: 'freddie-mcp', version: '0.4.0' },
     }),
     'tools/list': async () => {
-        await discoverBuiltinTools()
-        return { tools: registry.list().map(t => ({ name: t.name, description: t.schema.description, inputSchema: t.schema.parameters || {} })) }
+        const h = await bootHost()
+        return { tools: h.pi.tools.list().map(t => ({ name: t.name, description: t.schema?.description, inputSchema: t.schema?.parameters || {} })) }
     },
     'tools/call': async ({ name, arguments: args = {} }) => {
-        const out = await registry.dispatch(name, args)
+        const h = await bootHost()
+        const out = await h.pi.dispatchTool(name, args)
         return { content: [{ type: 'text', text: typeof out === 'string' ? out : JSON.stringify(out) }] }
     },
     'prompts/list': async () => {

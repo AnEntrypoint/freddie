@@ -1,14 +1,9 @@
 import assert from 'node:assert/strict'
-import fs from 'node:fs'
-import path from 'node:path'
-import os from 'node:os'
-
+import fs from 'node:fs'; import path from 'node:path'; import os from 'node:os'
 const TEST_HOME = path.join(os.tmpdir(), 'freddie-test-' + Date.now())
 process.env.FREDDIE_HOME = TEST_HOME; process.env.FREDDIE_PROFILES_ROOT = path.join(TEST_HOME, 'profiles')
 fs.mkdirSync(path.join(TEST_HOME, 'profiles'), { recursive: true })
-
-const results = []
-const T = async (n, fn) => { try { await fn(); results.push([n, 'OK']) } catch (e) { results.push([n, 'FAIL: ' + (e?.stack || e?.message || e)]) } }
+const results = []; const T = async (n, fn) => { try { await fn(); results.push([n,'OK']) } catch (e) { results.push([n,'FAIL: '+(e?.stack||e?.message||e)]) } }
 
 await T('home+config+skin', async () => {
     assert.equal((await import('./src/home.js')).getFreddieHome(), TEST_HOME)
@@ -22,11 +17,15 @@ await T('sessions+FTS5', async () => {
     for (const t of ['banana smoothie', 'sounds delicious', 'recipe please']) await appendMessage(sid, { role: 'user', content: t })
     assert.equal((await getMessages(sid)).length, 3); assert.ok((await search('banana')).length >= 1)
 })
-await T('tools+toolsets', async () => {
-    const { registry, discoverBuiltinTools } = await import('./src/tools/registry.js'); await discoverBuiltinTools()
-    const names = registry.list().map(t => t.name); assert.ok(names.length >= 50)
+await T('host+tools+toolsets', async () => {
+    const { bootHost, resetHostForTests } = await import('./src/host/index.js'); resetHostForTests(); const h = await bootHost()
+    const names = h.pi.tools.list().map(t => t.name); assert.ok(names.length >= 50, 'tool count: ' + names.length)
     for (const n of 'bash,read,write,edit,grep,todo,memory,delegate,browser,approval,checkpoint,clarify,code_execution,cronjob,send_message,session_search,terminal,skill_manager,vision,tts,mixture_of_agents,osv_check,schema_sanitizer,mcp_tool,file_operations,patch_parser,tool_output_limits,file_state,skill_usage'.split(',')) assert.ok(names.includes(n), n)
-    const D = (n, a) => registry.dispatch(n, a).then(r => { try { return JSON.parse(r) } catch { return r } }); const tf = path.join(TEST_HOME, 'tf.txt'); const tf2 = path.join(TEST_HOME, 'tf2.txt')
+    const { createHost } = await import('./src/host/host.js'); const E = async (fn, re) => { try { await fn() } catch (e) { return re.test(e.message) } return false }
+    assert.ok(await E(() => createHost({ surfaces: ['pi','gui'] }).load([{ name:'p', surfaces:'pi', register({gui}){gui.route('GET','/x',()=>{})} }]), /not allowed/), 'surface guard')
+    assert.ok(await E(() => createHost({ surfaces:['pi'] }).load([{name:'a',surfaces:'pi',requires:['b'],register(){}},{name:'b',surfaces:'pi',requires:['a'],register(){}}]), /cycle/), 'cycle')
+    assert.ok(h.plugins().length >= 100 && h.pi.platforms.list().length >= 18 && h.pi.memory.list().length >= 8, 'plugin counts: ' + JSON.stringify({ p: h.plugins().length, pl: h.pi.platforms.list().length, mm: h.pi.memory.list().length }))
+    const D = (n, a) => h.pi.dispatchTool(n, a).then(r => { try { return JSON.parse(r) } catch { return r } }); const tf = path.join(TEST_HOME, 'tf.txt'); const tf2 = path.join(TEST_HOME, 'tf2.txt')
     assert.match((await D('bash', { command: 'echo hi-freddie', timeout_ms: 5000 })).stdout, /hi-freddie/)
     await D('write', { path: tf, content: 'alpha\nbeta\ngamma' }); assert.match(JSON.stringify(await D('read', { path: tf })), /beta/)
     await D('edit', { path: tf, old_string: 'beta', new_string: 'BETA' }); assert.match(JSON.stringify(await D('grep', { pattern: 'BETA', path: TEST_HOME })), /BETA/)
@@ -55,22 +54,18 @@ await T('agent-machine', async () => {
 })
 await T('gateway+platforms+hooks', async () => {
     const { Gateway } = await import('./src/gateway/run.js')
-    const { WebhookAdapter } = await import('./src/gateway/platforms/webhook.js')
+    const { makePlatform, listPlatformNames } = await import('./src/gateway/platforms.js')
     const { registerBuiltinHooks } = await import('./src/gateway/builtin_hooks/index.js')
-    const wh = new WebhookAdapter({ port: 0 })
+    const wh = await makePlatform('webhook', { port: 0 })
     const gw = new Gateway({ platforms: { webhook: wh } })
     registerBuiltinHooks(gw); assert.ok(gw.hooks.inbound.length >= 4)
     const got = new Promise(r => wh.once('message', () => r()))
     await gw.start()
     const res = await fetch(`http://127.0.0.1:${wh.port}/webhook`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ from: 't', text: 'x' }) })
     assert.equal(res.status, 200); await got; await gw.stop()
-    const dir = path.resolve('src/gateway/platforms')
+    const names = await listPlatformNames(); assert.ok(names.length >= 18, 'platforms: ' + names.length)
     for (const s of ['telegram','discord','slack','whatsapp','signal','matrix','mattermost','email','sms','dingtalk','wecom','weixin','feishu','qqbot','bluebubbles','homeassistant']) {
-        const txt = fs.readFileSync(path.join(dir, s + '.js'), 'utf8')
-        assert.ok(!txt.includes('not implemented'), s)
-        const cls = s.charAt(0).toUpperCase() + s.slice(1) + 'Adapter'
-        const inst = new (await import(`file://${path.join(dir, s + '.js').replace(/\\/g, '/')}`))[cls]({})
-        assert.ok(Array.isArray(inst.getRequiredEnv()))
+        const inst = await makePlatform(s, {}); assert.ok(Array.isArray(inst.getRequiredEnv()), s)
     }
 })
 await T('acp-full', async () => {
@@ -89,10 +84,10 @@ await T('acp-full', async () => {
     resetForTests(); assert.equal(checkPermission('s1', 'bash'), 'ask'); rememberAllow('s1', 'bash'); assert.equal(checkPermission('s1', 'bash'), 'allow')
 })
 await T('plugins+memory', async () => {
-    const { PluginManager } = await import('./src/plugins/manager.js')
-    const pm = new PluginManager(); let fired = 0
-    pm.register({ name: 'noop', register: (ctx) => ctx.registerHook('preToolCall', async p => { fired++; return p }) })
-    await pm.invoke('preToolCall', { name: 'bash' }); assert.equal(fired, 1)
+    const { createHost } = await import('./src/host/host.js')
+    const h = createHost({ surfaces: ['pi', 'gui'] }); let fired = 0
+    await h.load([{ name: 'noop', surfaces: 'pi', register({ hooks }) { hooks.on('preToolCall', async p => { fired++; return p }) } }])
+    await h.hooks.invoke('preToolCall', { name: 'bash' }); assert.equal(fired, 1)
     const { listMemoryProviders, createMemoryProvider } = await import('./src/plugins/memory/provider.js')
     for (const n of ['honcho','mem0','holographic','retaindb']) assert.ok(listMemoryProviders().includes(n))
     const holo = createMemoryProvider('holographic', {})

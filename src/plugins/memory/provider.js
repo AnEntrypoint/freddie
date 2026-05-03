@@ -1,35 +1,35 @@
-import { HonchoMemory, Mem0Memory, SupermemoryMemory, ByteroverMemory, HindsightMemory, HolographicMemory, OpenvikingMemory, RetaindbMemory } from './_index.js'
+import { host, bootHost } from '../../host/index.js'
 
-const _registered = new Map()
+const _custom = new Map()
+
+function ensureBoot() {
+    const h = host()
+    return h.pi && h.pi.memory.size() > 0 ? h : bootHost()
+}
+
+export function listMemoryProviders() {
+    const h = host()
+    const names = (h.pi && h.pi.memory) ? h.pi.memory.list().map(m => m.name) : []
+    return [...new Set([...names, ..._custom.keys()])]
+}
+
+export function createMemoryProvider(name, opts = {}) {
+    if (_custom.has(name)) return new (_custom.get(name))(opts)
+    const h = host()
+    const rec = h.pi?.memory.get(name)
+    if (!rec) throw new Error(`memory provider not found: ${name}. Boot host first or register a provider class.`)
+    const mod = rec.module || {}
+    const cls = Object.values(mod).find(v => typeof v === 'function' && /Memory$/.test(v.name)) || Object.values(mod).find(v => typeof v === 'function')
+    if (!cls) throw new Error(`memory provider ${name}: no class exported`)
+    return new cls(opts)
+}
+
+export function registerMemoryProvider(name, cls) { _custom.set(name, cls) }
 
 export class MemoryProvider {
-    constructor(opts = {}) { this.opts = opts; this.name = 'base' }
-    async syncTurn(_messages) { throw new Error('syncTurn not implemented') }
-    async prefetch(_query) { throw new Error('prefetch not implemented') }
-    async shutdown() {}
-    async postSetup(_home, _config) {}
-    getRequiredEnv() { return [] }
+    constructor(opts = {}) { Object.assign(this, opts) }
+    async syncTurn() {}
+    async prefetch() { return { items: [] } }
 }
 
-export function registerMemoryProvider(name, factory) { _registered.set(name, factory) }
-export function listMemoryProviders() { return [..._registered.keys()] }
-export function createMemoryProvider(name, opts) {
-    const factory = _registered.get(name)
-    if (!factory) throw new Error(`unknown memory provider: ${name}. Available: ${[..._registered.keys()].join(',') || 'none'}`)
-    return factory(opts)
-}
-
-const PROVIDERS = {
-    honcho: HonchoMemory,
-    mem0: Mem0Memory,
-    supermemory: SupermemoryMemory,
-    byterover: ByteroverMemory,
-    hindsight: HindsightMemory,
-    holographic: HolographicMemory,
-    openviking: OpenvikingMemory,
-    retaindb: RetaindbMemory,
-}
-
-for (const [name, Cls] of Object.entries(PROVIDERS)) {
-    registerMemoryProvider(name, (opts) => new Cls(opts))
-}
+export async function ensureProvidersLoaded() { await ensureBoot() }

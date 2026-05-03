@@ -3,7 +3,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { listSessions, search, getMessages } from '../sessions.js'
-import { registry, discoverBuiltinTools } from '../tools/registry.js'
+import { bootHost } from '../host/index.js'
 import { listDebug, snapshot, snapshotAll, attachDebugRoutes } from '../observability/debug.js'
 import { loadConfig, saveConfigValue } from '../config.js'
 import { listJobs, createJob, deleteJob } from '../cron/scheduler.js'
@@ -33,7 +33,8 @@ function readLogs(subsystem, max = 200) {
 }
 
 export async function createDashboard({ port = 0 } = {}) {
-    await discoverBuiltinTools()
+    const __host = await bootHost()
+    const registry = { list: () => __host.pi.tools.list() }
     const app = express()
     app.use(express.json())
     app.use(express.static(__dirname))

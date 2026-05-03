@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 import { Command } from 'commander'
-import { registry, discoverBuiltinTools } from '../src/tools/registry.js'
+import { bootHost } from '../src/host/index.js'
 import { listAllProfiles, createProfile, deleteProfile, switchProfile } from '../src/commands/profile.js'
 import { listSkills } from '../src/skills/index.js'
 import { Gateway } from '../src/gateway/run.js'
-import { WebhookAdapter } from '../src/gateway/platforms/webhook.js'
-import { ApiServerAdapter } from '../src/gateway/platforms/api_server.js'
+import { makePlatform } from '../src/gateway/platforms.js'
 import { AcpServer } from '../src/acp/server.js'
 import { COMMAND_REGISTRY, COMMANDS_BY_CATEGORY } from '../src/commands/registry.js'
 import { getActiveSkin, listBuiltinSkins, setActiveSkin } from '../src/skin/engine.js'
@@ -19,9 +18,9 @@ program.command('tools')
     .argument('[action]', 'list | get', 'list')
     .argument('[name]')
     .action(async (action, name) => {
-        await discoverBuiltinTools()
-        if (action === 'get' && name) { console.log(JSON.stringify(registry.get(name)?.schema, null, 2)); return }
-        for (const t of registry.list()) console.log(`${t.toolset.padEnd(10)} ${t.name}\t${t.schema.description.slice(0, 60)}`)
+        const h = await bootHost()
+        if (action === 'get' && name) { console.log(JSON.stringify(h.pi.tools.get(name)?.schema, null, 2)); return }
+        for (const t of h.pi.tools.list()) console.log(`${(t.toolset || 'core').padEnd(10)} ${t.name}\t${(t.schema?.description || '').slice(0, 60)}`)
     })
 
 program.command('skills')
@@ -54,8 +53,8 @@ program.command('search').argument('<query>').action(async (q) => { for (const r
 program.command('gateway')
     .option('--port <port>', 'webhook port', '0')
     .action(async (opts) => {
-        const webhook = new WebhookAdapter({ port: Number(opts.port) })
-        const api = new ApiServerAdapter({ port: 0 })
+        const webhook = await makePlatform('webhook', { port: Number(opts.port) })
+        const api = await makePlatform('api_server', { port: 0 })
         const gw = new Gateway({ platforms: { webhook, api_server: api } })
         await gw.start()
         console.log('webhook port:', webhook.port, '\napi_server port:', api.port)

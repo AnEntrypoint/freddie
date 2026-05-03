@@ -36,3 +36,13 @@ See git history for earlier versions.
 - website: theme.mjs now consumes structured YAML (hero/sections/examples) and renders via the 247420 design vocabulary — railed panels, badges, CTAs, mono-rank explore lists. Six content pages rewritten to express explicit when/why/how lines + per-row benefit framings.
 - bug: repaired async callsite debt across bin/freddie.js, src/web/server.js, src/cli/dump.js, src/cli/status.js, src/tools/session_search.js, src/tools/cronjob.js, src/acp/session.js — every consumer of sessions.js and cron/scheduler.js now awaits. `freddie sessions`, `freddie cron list`, `freddie search` exit 0.
 - tests: test.js still 12/12. tools registered: 70.
+
+## v0.2.0 â Plugin architecture foundation
+
+- Universal plugin contract at src/host/contract.js: { name, surfaces: pi|gui|both, requires?, register(ctx) } with topo-sorted load, surface guards, dep cycle detection, hook registry.
+- src/host/host.js implements createHost, surface registries (pi: tools/envs/commands/crons/platforms/memory/skills/contexts/agentExts; gui: routes/pages/nav/debug/api/asset), and discoverPlugins.
+- src/host/index.js exposes singleton bootHost() that walks bundled plugins/ + ~/.freddie/plugins/ + .freddie/plugins/.
+- 103 in-tree plugins shipped: 70 tools (plugins/<name>/), 27 platforms (plugins/platform-<name>/), 8 memory providers (plugins/memory-<name>/), plus the prior 6 stub plugins.
+- src/tools/registry.js, src/tools/*.js, src/gateway/platforms/*.js all deleted; legacy src/plugins/manager.js becomes a thin shim over the new host.
+- Consumers (bin/freddie.js, src/agent/machine.js, src/web/server.js, src/acp/server.js, src/acp/tools.js, src/mcp/server.js, src/cli/gateway_cli.js, src/toolsets.js) now resolve everything via bootHost().
+- test.js asserts surface-guard throws, requires-cycle throws, plugin counts (>=100 plugins, >=18 platforms, >=8 memory). 12/12 groups green at 195 lines.
