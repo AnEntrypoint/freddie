@@ -75,6 +75,8 @@ function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : 
 export async function isReachable() {
     try {
         const res = await fetch(getAcptoapiUrl().replace(/\/$/, '') + '/models', { headers: { authorization: 'Bearer none' } })
-        return res.ok
+        if (!res.ok) return false
+        const json = await res.json()
+        return Array.isArray(json.data) && json.data.length > 0
     } catch { return false }
 }
