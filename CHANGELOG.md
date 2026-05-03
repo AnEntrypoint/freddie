@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0] - 2026-05-03
+
+### Validated
+- Dashboard browser-witnessed: HTTP 200, window.__debug.dashboard() booted, all 11 hash routes (#/sessions #/tools #/cron #/skills #/config #/env #/debug #/chat #/batch #/gateway #/profiles), /api/tools=70, /api/sessions/cron/skills/config/env/gateway all 200
+- Penguins all 18 species browser-witnessed (15 remaining: adelie/chinstrap/erect-crested/fiordland/galapagos/gentoo/humboldt/king/macaroni/magellanic/rockhopper/royal/snares/white-flippered/yellow-eyed all 2600-3384 bytes, all link back to index)
+- CLI DX validated via module imports: 70 tools, 5 command categories, 4 skins, sessions resolves
+- test.js 12/12 green
+
 ## [0.0.9] - 2026-05-03
 
 ### Changed
