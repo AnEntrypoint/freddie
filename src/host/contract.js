@@ -1,3 +1,5 @@
+export { definePlugin, HookType, allowResult, blockResult, modifyResult, PluginRunner, PluginRuntime, piAdapter } from 'plugsdk'
+
 export const SURFACES = ['pi', 'gui', 'both']
 
 export const PI_VERBS = ['tool', 'env', 'command', 'cron', 'platform', 'memory', 'skill', 'context', 'agentExt', 'cli']
@@ -10,6 +12,15 @@ export const HOOK_NAMES = [
     'onTurnStart', 'onTurnEnd',
     'onMessageInbound', 'onMessageOutbound',
 ]
+
+export const FREDDIE_TO_SDK_HOOK = {
+    preToolCall:        'pre_tool_use',
+    postToolCall:       'post_tool_use',
+    onSessionStart:     'session_start',
+    onSessionEnd:       'session_end',
+    onMessageInbound:   'prompt_submit',
+    onMessageOutbound:  'after_response',
+}
 
 export function validatePlugin(p) {
     if (!p || typeof p !== 'object') throw new Error('plugin: object required')

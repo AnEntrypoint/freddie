@@ -35,6 +35,7 @@ await T('host+tools+toolsets', async () => {
     await D('file_state', { action: 'record', session_id: 's1', file_path: tf, op: 'write' }); assert.match(JSON.stringify(await D('file_state', { action: 'list', session_id: 's1' })), /tf\.txt/)
     await D('file_operations', { action: 'copy', src: tf, dest: tf2 }); assert.ok(fs.existsSync(tf2)); assert.ok((await D('skill_usage', { action: 'record', name: 'sk' })).recorded)
     const ts = await import('./src/toolsets.js'); assert.ok((await ts.getEnabledToolSchemas(['core'])).length >= ts._FREDDIE_CORE_TOOLS.length)
+    const { definePlugin: dp, HookType: HT } = await import('./src/host/contract.js'); const pp = dp({ name: 'sdk-smoke' }); assert.equal(pp.name, 'sdk-smoke'); assert.equal(HT.PRE_TOOL_USE, 'pre_tool_use')
 })
 await T('agent-machine', async () => {
     const { runTurn } = await import('./src/agent/machine.js')
