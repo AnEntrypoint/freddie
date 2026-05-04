@@ -44,10 +44,26 @@ Witness 2026-05-03: test.js 12/12 green @ 195L (asserts `host.plugins().length>=
 
 **gm-cc plugin integration** (2026-05-04) — gm-cc npm package (v2.0.727) successfully integrated via `plugins/gm-cc/plugin.js`. Plugin auto-discovers 12 SKILL.md files from gm-cc package, extracts name/description from YAML frontmatter, registers via `pi.skills.register({name: 'gm:'+name, description, content, source:'gm-cc'})`. Skills: browser, code-search, create-lang-plugin, gm, gm-complete, gm-emit, gm-execute, governance, pages, planning, ssh, update-docs. All accessible via `gm:*` namespace in pi.skills registry.
 
+## Multi-project workspace system (2026-05-04)
+
+Freddie supports multiple isolated projects, each with its own home directory and plugin set. Registry at `~/.freddie/projects.json` stores `{ active, projects: [{name, path, created_at}] }`. Default project (`~/.freddie`) is protected from deletion.
+
+Code:
+- `src/projects.js` — CRUD: `loadRegistry()`, `listProjects()`, `getActiveProject()`, `createProject({name, projectPath})`, `deleteProject(name)`, `setActiveProject(name)`, `applyActiveProjectFromRegistry()`. 
+- `src/home.js` — added `applyHomeOverride(absPath)` to set `FREDDIE_HOME` env and clear cached home.
+- `src/host/index.js` — `bootHost()` calls `applyActiveProjectFromRegistry()` before plugin discovery, so plugins resolve against active project root.
+- `plugins/gui-projects/plugin.js` — GUI plugin exposing `GET /api/projects`, `POST /api/projects` (create), `DELETE /api/projects/:name`, `POST /api/projects/active` (switch).
+- `src/web/app.js` — `#/projects` route, project pill in topbar, full CRUD UI.
+
+Isolation boundary: Each project gets its own sessions DB, config.json, skills/, plugins/, cron.db, batches/, logs/, auth.json (all under `getFreddieHome()`). Plugins re-read paths per-request via `getFreddieHome()`.
+
+**Runtime switch caveat** — Switching active project calls `resetHostForTests()` and clears caches but does NOT re-discover plugins in the running dashboard. UI alerts user to restart dashboard for plugin reload. New process auto-picks up active project via `applyActiveProjectFromRegistry()` on `bootHost()`. Gap: if user switches project then uses a plugin-registered tool before restarting, the OLD project's tool set loads. `/api/health` returns `{ freddie_home: "<active-project-path>" }` after project switch. Needs improvement: in-process plugin re-discovery on project switch.
+
 ## Layout
 
 ```
-src/home.js                      # getFreddieHome, applyProfileOverride
+src/home.js                      # getFreddieHome, applyProfileOverride, applyHomeOverride
+src/projects.js                  # Multi-project registry CRUD (loadRegistry, createProject, deleteProject, setActiveProject)
 src/config.js                    # loadConfig, saveConfigValue, DEFAULT_CONFIG, _config_version migrations
 src/sessions.js                  # better-sqlite3 + FTS5
 src/auth.js                      # FileAuthStore for credentials
@@ -176,6 +192,7 @@ One `test.js` at project root. ≤200 lines. Plain assertions, real data, real s
 | Toolsets | `src/toolsets.js` |
 | Session store | `src/sessions.js` (better-sqlite3 + FTS5) |
 | Home + profiles | `src/home.js` |
+| Multi-project registry | `src/projects.js` (isolated FREDDIE_HOME per project) |
 | Structured logging | `src/observability/log.js` |
 | Config | `src/config.js` |
 | Commands | `src/commands/registry.js` |
@@ -234,6 +251,8 @@ All 12 test.js named groups passing: home+config+skin, sessions+FTS5, tools+tool
 
 ## Learning audit
 
+- 2026-05-04 (session 1): Multi-project workspace system documented. Registry, CRUD ops, isolation boundaries, GUI plugin, and runtime plugin switch caveat added. 4 facts ingested to rs-learn: project/freddie-multi-project-registry, reference/freddie-projects-module, reference/freddie-gui-projects-endpoints, feedback/freddie-project-switch-reload-limitation. Reach check passed (in-reach). AGENTS.md updated with new subsystem section + Layout entries + subsystem guide row.
+- 2026-05-04 (session 2): Audit cycle — 5 queries fired (pi-ai env keys, profile safe paths, libsql async debt, browser syntax errors, plugin architecture contract). rs-learn store still returning "No recall results" or off-topic trajectory entries. All 5 recalls failed. 0 items migrated; all AGENTS.md facts retained (safe default). Ingest path confirmed live (4 facts accepted), but retrieval side empty. Likely requires backend indexing rebuild or cross-session propagation.
 - 2026-05-01: 5 items queried (pi-ai keys, profile paths, cache safety, floosie composition, browser errors); rs-learn store unavailable (exec:recall returned no results). 0 items migrated. New facts (anentrypoint-design build, dashboard live-rerender caveat, libuv spawn caveat) ingested directly into rs-learn; audit will retry in future sessions.
 - 2026-05-01 (session 2): 5 items queried (pi-ai env keys, profile safe paths, cache safety, floosie composition, browser syntax errors). rs-learn store still empty. 0 items migrated. Refined anentrypoint-design source/dist skew entry in AGENTS.md to include silent-failure pageerror diagnostic. New fact `reference/anentrypoint-design-dist-rebuild` ingested.
 - 2026-05-03: Pre-rename validation snapshot recorded (all 12 test.js groups, CLI, tools, 284 files, version drift). Baseline stored to isolate post-rename regressions.
