@@ -41,7 +41,7 @@ const AppState = {
     batch: { results: null, running: false },
     agents: { count: 0, active: null },
 }
-function applyTheme() { document.documentElement.setAttribute('data-theme', AppState.theme) }
+function applyTheme() { document.body.setAttribute('data-theme', AppState.theme) }
 applyTheme()
 window.__debug.state = () => AppState
 
