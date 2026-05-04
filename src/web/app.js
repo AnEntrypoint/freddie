@@ -1,6 +1,8 @@
 import ds, { mount, installStyles, h, components, renderMarkdown, motion } from 'anentrypoint-design'
 const { AppShell, Topbar, Crumb, Side, Status, Panel, Row, Btn, Chip, Chat, ChatComposer, ChatMessage, AICat,
-    Brand, EmptyState, RowLink, Receipt, Changelog, Hero, ConfirmDialog, Section, Install } = components
+    Brand, EmptyState, RowLink, Receipt, Changelog, Hero, ConfirmDialog, Section, Install, Kpi, Table } = components
+const kpi = (items) => Kpi({ items })
+const table = (headers, rows, opts = {}) => Table({ headers, rows, onRowClick: opts.onRowClick })
 
 await installStyles()
 
@@ -43,19 +45,6 @@ function applyTheme() { document.documentElement.setAttribute('data-theme', AppS
 applyTheme()
 window.__debug.state = () => AppState
 
-function table(headers, rows, opts = {}) {
-    if (!rows || rows.length === 0) return EmptyState({ text: 'no rows' })
-    return h('table', {},
-        h('thead', {}, h('tr', {}, ...headers.map(hd => h('th', {}, hd)))),
-        h('tbody', {}, ...rows.map((row, i) => h('tr', {
-            class: opts.onRowClick ? 'clickable' : '',
-            onclick: opts.onRowClick ? () => opts.onRowClick(i) : null
-        }, ...row.map(c => h('td', {}, c == null ? '' : String(c)))))))
-}
-function kpi(items) {
-    return h('div', { class: 'kpi' }, ...items.map(([n, l]) =>
-        h('div', { class: 'kpi-card' }, h('div', { class: 'num' }, String(n)), h('div', { class: 'lbl' }, l))))
-}
 function pre(obj) { return h('pre', {}, typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2)) }
 
 function timeNow() {

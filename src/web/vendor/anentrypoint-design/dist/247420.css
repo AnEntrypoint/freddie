@@ -757,6 +757,28 @@
 .ds-247420 :focus-visible { outline: 2px solid var(--panel-accent) !important; outline-offset: 2px; }
 .ds-247420, .ds-247420 body { margin: 0; padding: 0; }
 
+/* Base element padding — browser UA stylesheets strip padding on button/textarea
+   in some reset contexts; restore sane defaults so raw elements look right. */
+.ds-247420 button {
+  padding: 8px 18px;
+  border-radius: var(--r-2);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  background: var(--bg-2);
+  color: var(--fg);
+}
+.ds-247420 textarea {
+  padding: 10px 12px;
+  border-radius: var(--r-2);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-sm);
+  background: var(--bg-2);
+  color: var(--fg);
+  resize: vertical;
+}
+.ds-247420 textarea::placeholder { color: var(--fg-3); }
+
 /* app-shell.css */
 /* ============================================================
    App shell — IDE-modern density patterns
@@ -1316,6 +1338,26 @@
     align-items: center;
 }
 .ds-247420 .cli .copy:hover { background: var(--panel-hover); color: var(--panel-text); }
+
+/* Base input element styles — text-like inputs get tonal padding to match btn/textarea */
+.ds-247420 input[type="text"],
+.ds-247420 input[type="email"],
+.ds-247420 input[type="password"],
+.ds-247420 input[type="search"],
+.ds-247420 input[type="number"],
+.ds-247420 input:not([type]) {
+    padding: 8px 12px;
+    background: var(--panel-2);
+    color: var(--panel-text);
+    font-family: var(--ff-ui);
+    font-size: 14px;
+    border-radius: 10px;
+    border: 0;
+    outline: 0;
+    transition: background 80ms ease;
+}
+.ds-247420 input[type="text"]:hover, .ds-247420 input[type="text"]:focus, .ds-247420 input[type="email"]:hover, .ds-247420 input[type="email"]:focus, .ds-247420 input[type="password"]:hover, .ds-247420 input[type="password"]:focus, .ds-247420 input[type="search"]:hover, .ds-247420 input[type="search"]:focus, .ds-247420 input[type="number"]:hover, .ds-247420 input[type="number"]:focus, .ds-247420 input:not([type]):hover, .ds-247420 input:not([type]):focus { background: var(--panel-3); }
+.ds-247420 input[type="text"]::placeholder, .ds-247420 input[type="email"]::placeholder, .ds-247420 input[type="password"]::placeholder, .ds-247420 input[type="search"]::placeholder, .ds-247420 input[type="number"]::placeholder, .ds-247420 input:not([type])::placeholder { color: var(--panel-text-2); }
 
 /* Buttons */
 .ds-247420 .btn {
@@ -2223,3 +2265,95 @@
     .ds-247420 .app-body { grid-template-columns: 360px 1fr; }
 }
 .ds-247420 .ds-preview-truncated { color: var(--panel-text-3); font-style: italic; padding: var(--space-2) 0 0 0; }
+
+
+/* ============================================================
+   KPI grid · row form · rails+dots · chip tones · empty · table clickable
+   Moved from consumer (freddie dashboard + theme) — generic 247420 primitives.
+   ============================================================ */
+
+.ds-247420 .kpi {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--panel-2);
+    padding: 1px;
+    border-radius: 20px;
+    overflow: hidden;
+}
+.ds-247420 .kpi-card { background: var(--panel-1); padding: 14px 18px; }
+.ds-247420 .kpi-card .num {
+    font-size: 1.75rem;
+    color: var(--panel-text);
+    font-weight: 400;
+    font-family: var(--ff-mono);
+}
+.ds-247420 .kpi-card .lbl {
+    font-size: 0.75rem;
+    color: var(--panel-text-2);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+}
+
+.ds-247420 .row-form {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.ds-247420 .row-form input { flex: 1; min-width: 140px; padding: 10px 12px; }
+
+.ds-247420 .chip.ok   { background: var(--green); color: #fff; }
+.ds-247420 .chip.miss { background: var(--warn);  color: #fff; }
+
+.ds-247420 .empty { color: var(--panel-text-3); padding: 12px 0; }
+
+.ds-247420 tr.clickable { cursor: pointer; }
+.ds-247420 tr.clickable:hover td { background: var(--panel-hover); }
+
+.ds-247420 .rail-green  { box-shadow: inset 4px 0 0 var(--green); }
+.ds-247420 .rail-purple { box-shadow: inset 4px 0 0 var(--purple); }
+.ds-247420 .rail-mascot { box-shadow: inset 4px 0 0 var(--mascot); }
+.ds-247420 .rail-sun    { box-shadow: inset 4px 0 0 var(--sun); }
+.ds-247420 .rail-flame  { box-shadow: inset 4px 0 0 var(--flame); }
+.ds-247420 .rail-sky    { box-shadow: inset 4px 0 0 var(--sky); }
+.ds-247420 .dot-green  { color: var(--green); }
+.ds-247420 .dot-purple { color: var(--purple); }
+.ds-247420 .dot-mascot { color: var(--mascot); }
+.ds-247420 .dot-sun    { color: var(--sun); }
+.ds-247420 .dot-flame  { color: var(--flame); }
+.ds-247420 .dot-sky    { color: var(--sky); }
+
+.ds-247420 .ds-section {
+    margin: 32px 0;
+    padding: 18px 22px;
+    background: var(--panel-1);
+    border-radius: 20px;
+}
+.ds-247420 .ds-section .ds-section-title { margin-top: 0; }
+.ds-247420 .ds-section .ds-lede { opacity: 0.8; max-width: 60ch; }
+.ds-247420 .ds-section .row {
+    border-radius: 10px;
+    margin: 6px 0;
+    padding: 10px 14px;
+    background: var(--panel-2);
+}
+.ds-247420 .ds-section .row .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    background: currentColor;
+    opacity: 0.8;
+}
+.ds-247420 .ds-section .row-benefit { opacity: 0.75; margin-top: 4px; font-style: italic; }
+.ds-247420 .ds-section .row .sub { opacity: 0.85; margin-top: 4px; }
+.ds-247420 .ds-section a.row { display: block; text-decoration: none; color: inherit; }
+.ds-247420 .ds-section a.row .code {
+    font-family: var(--ff-mono);
+    opacity: 0.6;
+    margin-right: 12px;
+}
