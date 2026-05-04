@@ -2,6 +2,17 @@
 
 ## [0.1.2] - 2026-05-04
 
+### Fixed
+- Dashboard padding: #app container now has 16px vertical / 20px horizontal padding (previously 0px), resolving UI crowding on all viewport widths ≥1024px
+
+### Verified
+- anentrypoint-design integration correct: framework imports successfully, CSS variables applied (--panel-0, --panel-text, --panel-accent), vendor path accessible at /vendor/anentrypoint-design/247420.js, no console errors
+
+### Documented
+- Dashboard agents section deferred: agent state not exposed via HTTP API; requires architectural decision on metrics to expose (count, perf data, session associations). Documented in AGENTS.md with design-decision-blocked status pending user clarification.
+
+## [0.1.2] - 2026-05-04
+
 ### Verified
 - gm-cc plugin integration complete: 12 SKILL.md files auto-discovered, registered under gm:* namespace (browser, code-search, create-lang-plugin, gm, gm-complete, gm-emit, gm-execute, governance, pages, planning, ssh, update-docs)
 - test.js assertion added to host+tools+toolsets group: confirms ≥12 gm:* skills present with correct names; test.js 200 lines exactly, all 12 groups passing
