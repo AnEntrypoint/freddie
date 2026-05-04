@@ -1,28 +1,26 @@
-import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
-import path from 'path';
-import fs from 'fs';
+import { createRequire } from 'module'
+import path from 'path'
+import fs from 'fs'
+import { loadClaudePlugin } from 'plugsdk'
 
-const _require = createRequire(import.meta.url);
-const gmCcBase = path.dirname(_require.resolve('gm-cc/package.json'));
+const _require = createRequire(import.meta.url)
+const gmCcBase = path.dirname(_require.resolve('gm-cc/package.json'))
 
 export default {
     name: 'gm-cc',
     surfaces: 'pi',
     register({ pi }) {
-        const skillsDir = path.join(gmCcBase, 'skills');
-        if (!fs.existsSync(skillsDir)) return;
-        for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
-            const skillMd = entry.isDirectory()
-                ? path.join(skillsDir, entry.name, 'SKILL.md')
-                : entry.name.endsWith('.md') ? path.join(skillsDir, entry.name) : null;
-            if (!skillMd || !fs.existsSync(skillMd)) continue;
-            const raw = fs.readFileSync(skillMd, 'utf8');
-            const nameMatch = raw.match(/^name:\s*(.+)$/m);
-            const descMatch = raw.match(/^description:\s*(.+)$/m);
-            const name = nameMatch ? nameMatch[1].trim() : entry.name.replace(/\.md$/, '');
-            const description = descMatch ? descMatch[1].trim() : '';
-            pi.skills.register({ name: 'gm:' + name, description, content: raw, source: 'gm-cc' });
+        if (!fs.existsSync(path.join(gmCcBase, 'skills'))) return
+        const cc = loadClaudePlugin(gmCcBase)
+        for (const s of cc.skills) {
+            pi.skills.register({
+                name: 'gm:' + s.name,
+                description: s.fields.description || '',
+                content: s.body,
+                source: 'gm-cc',
+                frontmatter: s.fields,
+                file: s.file,
+            })
         }
     },
-};
+}

@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { validatePlugin, topoSort, HOOK_NAMES, PI_VERBS, GUI_VERBS, FREDDIE_TO_SDK_HOOK } from './contract.js'
+import { loadClaudePlugin, createHookDispatcher } from 'plugsdk'
+import { validatePlugin, topoSort, HOOK_NAMES, PI_VERBS, GUI_VERBS, FREDDIE_TO_NATIVE_HOOK } from './contract.js'
 
 function makePiSurface() {
     const tools = new Map()
@@ -68,23 +69,32 @@ function makeGuiSurface() {
     }
 }
 
-function makeHooks() {
+function ccPayloadFor(freddieHook, payload) {
+    if (freddieHook === 'preToolCall' || freddieHook === 'postToolCall')
+        return { tool_name: payload?.name, tool_input: payload?.args || payload?.input, tool_response: payload?.result }
+    if (freddieHook === 'onMessageInbound' || freddieHook === 'onMessageOutbound')
+        return { prompt: payload?.content || payload?.text || '' }
+    return payload || {}
+}
+
+function makeHooks(ccPlugins) {
     const reg = Object.fromEntries(HOOK_NAMES.map(n => [n, []]))
+    const ccDispatch = createHookDispatcher(ccPlugins)
     return {
         on(name, fn) {
             if (!HOOK_NAMES.includes(name)) throw new Error(`unknown hook: ${name}`)
             reg[name].push(fn)
         },
         async invoke(name, payload) {
-            const sdkHook = FREDDIE_TO_SDK_HOOK[name]
             let cur = payload
-            for (const fn of reg[name] || []) {
-                const raw = await fn(cur)
-                if (raw !== undefined && raw !== null && sdkHook && typeof raw === 'object' && 'behavior' in raw) {
-                    cur = piAdapter.translateHookOutput(sdkHook, raw)
-                } else {
-                    cur = raw ?? cur
-                }
+            for (const fn of reg[name] || []) cur = (await fn(cur)) ?? cur
+            const native = FREDDIE_TO_NATIVE_HOOK[name]
+            if (native && ccPlugins.length) {
+                const r = await ccDispatch(native, ccPayloadFor(name, cur))
+                if (r.decision === 'block') return { ...cur, behavior: 'block', reason: r.reason }
+                const pd = r.hookSpecificOutput?.permissionDecision
+                if (pd === 'deny') return { ...cur, behavior: 'block', reason: r.hookSpecificOutput?.permissionDecisionReason || 'denied' }
+                if (r.hookSpecificOutput?.updatedInput) return { ...cur, ...r.hookSpecificOutput.updatedInput }
             }
             return cur
         },
@@ -119,44 +129,22 @@ function nullStore() {
     return { get: (k, d) => m.has(k) ? m.get(k) : d, set: (k, v) => m.set(k, v), all: (prefix) => Object.fromEntries([...m.entries()].filter(([k]) => k.startsWith(prefix))) }
 }
 
-const SDK_TO_FREDDIE = Object.fromEntries(Object.entries(FREDDIE_TO_SDK_HOOK).map(([f, s]) => [s, f]))
-
-function wrapPlugsdkPlugin(p) {
-    if (typeof p.register === 'function') return p
-    if (!p.tools && !p.hooks) return p
-    return {
-        name: p.name,
-        surfaces: 'pi',
-        register(ctx) {
-            for (const [id, tool] of Object.entries(p.tools || {})) {
-                ctx.pi.tools.register({
-                    name: id,
-                    schema: { name: id, description: tool.description, parameters: tool.parameters },
-                    handler: (args, rctx) => tool.execute(args, rctx),
-                })
-            }
-            for (const [hookType, fn] of Object.entries(p.hooks || {})) {
-                const freddieName = SDK_TO_FREDDIE[hookType]
-                if (freddieName) ctx.hooks.on(freddieName, fn)
-            }
-        },
-    }
-}
-
 export function createHost({ surfaces = ['pi', 'gui'], configStore = nullStore(), env = process.env } = {}) {
     const pi = makePiSurface()
     const gui = makeGuiSurface()
-    const hooks = makeHooks()
+    const ccPlugins = []
+    const hooks = makeHooks(ccPlugins)
     const loaded = []
     const host = {
         pi: surfaces.includes('pi') ? pi : null,
         gui: surfaces.includes('gui') ? gui : null,
         hooks,
+        ccPlugins: () => ccPlugins.slice(),
         plugins: () => loaded.map(p => ({ name: p.name, version: p.version || null, surfaces: p.surfaces, requires: p.requires || [] })),
         get: (name) => loaded.find(p => p.name === name) || null,
     }
     async function loadAll(plugins) {
-        const validated = plugins.map(p => wrapPlugsdkPlugin(p)).map(validatePlugin)
+        const validated = plugins.map(validatePlugin)
         const sorted = topoSort(validated)
         for (const p of sorted) {
             const want = p.surfaces
@@ -170,7 +158,31 @@ export function createHost({ surfaces = ['pi', 'gui'], configStore = nullStore()
         }
         return loaded.length
     }
+    async function loadCcPlugins(roots) {
+        for (const root of roots) {
+            if (!root || !fs.existsSync(root)) continue
+            for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+                if (!entry.isDirectory()) continue
+                const dir = path.join(root, entry.name)
+                if (!fs.existsSync(path.join(dir, '.claude-plugin', 'plugin.json'))) continue
+                try {
+                    const cc = loadClaudePlugin(dir)
+                    ccPlugins.push(cc)
+                    if (surfaces.includes('pi')) {
+                        for (const s of cc.skills)
+                            pi.skills.register({ name: cc.manifest.name + ':' + s.name, description: s.fields.description || '', content: s.body, source: 'cc:' + cc.manifest.name, frontmatter: s.fields, file: s.file })
+                        for (const a of cc.agents)
+                            pi.agentExts.register({ name: cc.manifest.name + ':' + a.name, description: a.fields.description || '', frontmatter: a.fields, body: a.body, source: 'cc:' + cc.manifest.name, file: a.file })
+                    }
+                } catch (e) {
+                    if (env.FREDDIE_LOG_STDOUT) console.error(`cc-plugin ${dir} failed: ${e.message}`)
+                }
+            }
+        }
+        return ccPlugins.length
+    }
     host.load = loadAll
+    host.loadCcPlugins = loadCcPlugins
     return host
 }
 
