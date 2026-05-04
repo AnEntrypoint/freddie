@@ -12,6 +12,7 @@ export default {
             send('start', { ts: Date.now(), sessionId })
             try {
                 const out = await runTurn({ prompt, timeoutMs: 30000 })
+                if (out.error) { send('error', { error: out.error }); res.end(); return }
                 for (const m of out.messages) send('message', m)
                 send('done', { result: out.result || '', iterations: out.iterations })
             } catch (e) { send('error', { error: String(e.message || e) }) }

@@ -13,8 +13,9 @@ export function resolveCallLLM({ provider, model } = {}) {
         if (await acptoapiReachable()) {
             return await acptoapiCall({ ...input, model: model || input.model })
         }
+        const DEFAULTS = { anthropic: 'claude-3-5-haiku-20241022', openai: 'gpt-4o-mini', groq: 'llama3-8b-8192', openrouter: 'openai/gpt-4o-mini' }
         for (const [p, k] of Object.entries(KEYS)) {
-            if (process.env[k]) return await piCall({ ...input, provider: p, model: model || input.model })
+            if (process.env[k]) return await piCall({ ...input, provider: p, model: model || input.model || DEFAULTS[p] })
         }
         throw new Error('no LLM backend reachable: start acptoapi (http://127.0.0.1:4800/v1) or set ANTHROPIC_API_KEY/OPENAI_API_KEY/GROQ_API_KEY/OPENROUTER_API_KEY')
     }
