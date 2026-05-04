@@ -6,15 +6,17 @@ let _piAi = null
 async function pi() {
     if (_piAi) return _piAi
     _piAi = await import('@mariozechner/pi-ai')
+    _piAi.registerBuiltInApiProviders()
     return _piAi
 }
 
 export async function callLLM({ messages, tools = [], model, provider = 'anthropic' } = {}) {
     const m = await pi()
     const modelObj = m.getModel ? m.getModel(provider, model) : { provider, id: model }
+    if (!modelObj) throw new Error(`pi-bridge: unknown model ${model} for provider ${provider}`)
     const apiKey = m.getEnvApiKey ? m.getEnvApiKey(provider) : process.env[providerEnv(provider)]
     if (!apiKey) throw new Error(`pi-bridge: no API key for ${provider} (set ${providerEnv(provider)})`)
-    const result = await m.complete({ model: modelObj, apiKey, messages: messages.map(adaptMessage), tools: tools.map(adaptTool) })
+    const result = await m.complete(modelObj, { messages: messages.map(adaptMessage), tools: tools.map(adaptTool) }, { apiKey })
     log.info('completed', { model: model || 'default', usage: result.usage })
     return adaptResponse(result)
 }
