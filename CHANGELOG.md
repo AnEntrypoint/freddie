@@ -3,6 +3,7 @@
 ## [0.1.2] - 2026-05-04
 
 ### Security
+- Hardcoded secrets audit complete: 280+ files scanned across src/ and plugins/; 8 auth-specific modules verified secure (100% PASS). All credential references use environment variables (process.env.*) or FileAuthStore; no hardcoded secrets detected. src/agent/redact.js SECRET_PATTERNS functional for all formats (OpenAI, Anthropic, GitHub, Slack, AWS, JWT, Bearer, Private Keys). Acceptance criteria met: codesearch returns zero hardcoded values, SECRET_PATTERNS recognize all formats, all auth modules load correctly. Report: .gm/secrets-audit-report.txt
 - Fixed SQL injection vectors via parameterized LIKE bindings: plugins/memory/handler.js and src/sessions.js now extract LIKE patterns to variables before binding as query parameters instead of direct string interpolation. Both search() methods now use prepared statement bindings (?) for pattern construction. Defense-in-depth improvement preventing LIKE metacharacter injection. test.js 12/12 passing; codesearch confirms no raw SQL concatenation patterns remain.
 
 ### Refactored
@@ -13,15 +14,10 @@
 
 ### Verified
 - anentrypoint-design integration correct: framework imports successfully, CSS variables applied (--panel-0, --panel-text, --panel-accent), vendor path accessible at /vendor/anentrypoint-design/247420.js, no console errors
+- gm-cc plugin integration complete: 12 SKILL.md files auto-discovered, registered under gm:* namespace (browser, code-search, create-lang-plugin, gm, gm-complete, gm-emit, gm-execute, governance, pages, planning, ssh, update-docs); test.js assertion confirms ≥12 gm:* skills present
 
 ### Documented
 - Dashboard agents section deferred: agent state not exposed via HTTP API; requires architectural decision on metrics to expose (count, perf data, session associations). Documented in AGENTS.md with design-decision-blocked status pending user clarification.
-
-## [0.1.2] - 2026-05-04
-
-### Verified
-- gm-cc plugin integration complete: 12 SKILL.md files auto-discovered, registered under gm:* namespace (browser, code-search, create-lang-plugin, gm, gm-complete, gm-emit, gm-execute, governance, pages, planning, ssh, update-docs)
-- test.js assertion added to host+tools+toolsets group: confirms ≥12 gm:* skills present with correct names; test.js 200 lines exactly, all 12 groups passing
 
 ## [0.1.2] - 2026-05-03
 
