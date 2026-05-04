@@ -21,6 +21,8 @@ export async function bootHost(extraRoots = []) {
     const roots = [REPO_PLUGINS, path.join(getFreddieHome(), 'plugins'), path.join(process.cwd(), '.freddie', 'plugins'), ...extraRoots]
     const plugins = await discoverPlugins(roots)
     await h.load(plugins)
+    const ccRoots = [path.join(getFreddieHome(), 'cc-plugins'), path.join(process.cwd(), '.freddie', 'cc-plugins')]
+    await h.loadCcPlugins(ccRoots)
     return h
 }
 
