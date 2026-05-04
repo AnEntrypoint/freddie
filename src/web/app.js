@@ -22,7 +22,6 @@ const ROUTES = [
     { path: '#/skills',    label: 'Skills',        glyph: '◈' },
     { path: '#/config',    label: 'Config',        glyph: '⚙' },
     { path: '#/env',       label: 'Keys',          glyph: '⚿' },
-    { path: '#/docs',      label: 'Documentation', glyph: '✎' },
     { path: '#/tools',     label: 'Tools',         glyph: '⚒' },
     { path: '#/batch',     label: 'Batch',         glyph: '⊞' },
     { path: '#/gateway',   label: 'Gateway',       glyph: '⇌' },
@@ -377,40 +376,6 @@ const PAGES = {
         ]
     },
 
-    '#/docs': async () => [
-        Section({ title: '// documentation', children: [
-            Panel({ title: 'freddie — open JS agent harness', children: h('div', {},
-                h('p', { style: 'margin-bottom:16px;opacity:0.75;line-height:1.6' },
-                    'Built on pi-mono, xstate, floosie, and anentrypoint-design. 70+ tools, 18 gateway platforms, 12 bundled skills.'),
-                Receipt({ rows: [
-                    ['agent loop', 'xstate + @mariozechner/pi-agent-core'],
-                    ['provider layer', '@mariozechner/pi-ai (Anthropic / OpenAI / Groq)'],
-                    ['gateway', '18 platform adapters (telegram, discord, slack, …)'],
-                    ['tools', '11 built-ins + auto-discovered from src/tools/'],
-                    ['dashboard', 'anentrypoint-design webjsx'],
-                ] })) }),
-            Panel({ title: 'Links', children: h('div', {},
-                RowLink({ code: '↗', title: 'GitHub · AnEntrypoint/freddie', href: 'https://github.com/AnEntrypoint/freddie' }),
-                RowLink({ code: '↗', title: 'API health', href: '/api/health' }),
-                RowLink({ code: '↗', title: 'Debug — all subsystems', href: '/api/debug-all' }),
-                RowLink({ code: '↗', title: 'anentrypoint-design', href: 'https://anentrypoint.io/design' }),
-            ) }),
-            Panel({ title: 'Quick reference', children: Receipt({ rows: [
-                ['interactive REPL', 'freddie run'],
-                ['dashboard', 'freddie dashboard --port 3000'],
-                ['gateway', 'freddie gateway --port 4000'],
-                ['list tools', 'freddie tools'],
-                ['list skills', 'freddie skills'],
-                ['manage profiles', 'freddie profile list'],
-                ['run batch', 'freddie batch prompts.txt'],
-                ['search sessions', 'freddie search "my query"'],
-            ]}) }),
-        ] }),
-        Panel({ title: 'Recent changelog', children: Changelog({ entries: [
-            { date: '2026-05-01', ver: 'v0.0.1', msg: 'Initial release — 70 tools, 18 gateway platforms, 12 bundled skills' },
-            { date: '2026-05-01', ver: 'v0.1.0', msg: 'Dashboard routes: #/tools #/batch #/gateway, anentrypoint-design pro-rata upgrade' },
-        ]}) }),
-    ],
 }
 
 async function pageSessionDetail(id) {

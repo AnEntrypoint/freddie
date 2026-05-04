@@ -71,6 +71,7 @@ html[data-theme="dark"] .ds-247420 {
 
 .ds-247420, .ds-247420 * {
     font-family: Nunito, -apple-system, system-ui, sans-serif;
+    box-sizing: border-box;
 }
 .ds-247420 h1, .ds-247420 h2, .ds-247420 h3, .ds-247420 h4, .ds-247420 h5, .ds-247420 h6 {
     font-family: 'Archivo Black', sans-serif;
@@ -149,9 +150,11 @@ html[data-theme="dark"] .ds-247420 {
 .ds-247420 .row-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
 .ds-247420 .row-form input { flex: 1; min-width: 140px; padding: 10px 12px !important; }
 
-.ds-247420 .chat { display: flex; flex-direction: column; height: 100%; }
-.ds-247420 .chat .chat-thread { flex: 1; max-height: calc(100vh - 320px); overflow-y: auto; }
-.ds-247420 .chat .chat-composer { padding-top: 12px; border-top: 1px solid var(--panel-2); }
+.ds-247420 .chat { display: flex; flex-direction: column; height: 100%; min-height: 0; box-sizing: border-box; }
+.ds-247420 .chat .chat-thread { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+.ds-247420 .chat .chat-composer { flex: 0 0 auto; padding-top: 12px; border-top: 1px solid var(--panel-2); box-sizing: border-box; }
+.ds-247420 .chat .chat-composer textarea,
+.ds-247420 .chat .chat-composer input { box-sizing: border-box; width: 100%; max-width: 100%; }
 
 .ds-247420 .chip { border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; display: inline-block; }
 .ds-247420 .chip.ok   { background: var(--green); color: white; }
@@ -161,7 +164,7 @@ html[data-theme="dark"] .ds-247420 {
 .ds-247420 a { color: var(--link); text-decoration: none; }
 .ds-247420 a:hover { text-decoration: underline; }
 
-#app { padding: 16px 20px; }
+#app { padding: 16px 20px; box-sizing: border-box; }
 </style>
 </head>
 <body>
