@@ -146,10 +146,12 @@ html[data-theme="dark"] .ds-247420 {
 .ds-247420 .kpi-card .num { font-size: 1.75rem; color: var(--panel-text); font-weight: 400; font-family: 'JetBrains Mono', monospace; }
 .ds-247420 .kpi-card .lbl { font-size: 0.75rem; color: var(--panel-text-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
 
-.ds-247420 .row-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: stretch; margin-bottom: 12px; }
-.ds-247420 .row-form input { flex: 1; min-width: 140px; }
+.ds-247420 .row-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.ds-247420 .row-form input { flex: 1; min-width: 140px; padding: 10px 12px !important; }
 
-.ds-247420 .chat .chat-thread { max-height: calc(100vh - 320px); overflow-y: auto; }
+.ds-247420 .chat { display: flex; flex-direction: column; height: 100%; }
+.ds-247420 .chat .chat-thread { flex: 1; max-height: calc(100vh - 320px); overflow-y: auto; }
+.ds-247420 .chat .chat-composer { padding-top: 12px; border-top: 1px solid var(--panel-2); }
 
 .ds-247420 .chip { border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; display: inline-block; }
 .ds-247420 .chip.ok   { background: var(--green); color: white; }
