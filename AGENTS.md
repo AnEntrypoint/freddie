@@ -262,3 +262,15 @@ Genuinely out of session reach, with reasons:
 - **Bedrock / codex provider adapters** — `pi-ai` covers Anthropic/OpenAI/Groq. Adding bedrock/codex requires registering custom providers via `pi-ai`'s `registerApiProvider`.
 - **TUI Ink rewrite** — `pi-tui` IS the substrate (architectural choice, not a port).
 - **15k pytest tests** — single `test.js` per gm policy.
+
+## Dashboard Agents Section — Design Decision Needed (2026-05-04)
+
+User requested "agents section" for dashboard. Exploration result: agent state is **not exposed** via HTTP API. Dashboard is client-side UI consuming only HTTP endpoints. Current endpoints: `/api/sessions`, `/api/tools`, `/api/health`. No `/api/agents`.
+
+To implement:
+1. Export agent machine state (xstate snapshot) from `src/agent/machine.js`
+2. Create new HTTP endpoint `/api/agents` returning count, active agent, metrics
+3. Add `#/agents` route + new PAGES entry to `src/web/app.js`
+4. Register `window.__debug.agents()` observability global
+
+**Blocked on**: Design decision (what metrics? count only? session associations? perf data?). Deferred pending user clarification.
