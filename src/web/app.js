@@ -6,6 +6,7 @@ await installStyles()
 
 if (!window.__debug) { try { window.__debug = {} } catch { Object.defineProperty(window, '__debug', { value: {}, writable: true, configurable: true }) } }
 window.__debug.dashboard = () => ({ booted: true, ts: Date.now(), framework: 'anentrypoint-design+webjsx', route: location.hash || '#/sessions' })
+window.__debug.agents = () => ({ registered: true, active: AppState.agents?.active || null, count: AppState.agents?.count || 0 })
 
 const j = async (u, opts) => { try { const r = await fetch(u, opts); if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return await r.json() } catch (e) { return { __error: String(e) } } }
 
@@ -13,6 +14,7 @@ const ROUTES = [
     { path: '#/home',      label: 'Home',          glyph: '⌂' },
     { path: '#/chat',      label: 'Chat',          glyph: '⌨' },
     { path: '#/sessions',  label: 'Sessions',      glyph: '✉' },
+    { path: '#/agents',    label: 'Agents',        glyph: '◈' },
     { path: '#/analytics', label: 'Analytics',     glyph: '◉' },
     { path: '#/models',    label: 'Models',        glyph: '◎' },
     { path: '#/logs',      label: 'Logs',          glyph: '☰' },
@@ -36,6 +38,7 @@ const AppState = {
     sessionsFilter: '',
     chat: { messages: [], draft: '', streaming: false },
     batch: { results: null, running: false },
+    agents: { count: 0, active: null },
 }
 function applyTheme() { document.documentElement.setAttribute('data-theme', AppState.theme) }
 applyTheme()
@@ -138,6 +141,20 @@ const PAGES = {
                         RowLink({ key: s.id, href: '#/session/' + s.id,
                             code: s.id?.slice(0, 8), title: s.title || s.platform || 'untitled',
                             sub: s.model || '', meta: new Date(s.updated_at || 0).toLocaleString() }))) }),
+        ]
+    },
+
+    '#/agents': async () => {
+        const agents = await j('/api/agents')
+        const count = agents.__error ? 0 : (agents.count || 0)
+        const active = agents.active || null
+        return [
+            kpi([[count || 0, 'Total agents'], [active ? 1 : 0, 'Active']]),
+            Panel({ title: 'Agent overview', children: Receipt({ rows: [
+                ['Total agent turns', String(agents.turns || 0)],
+                ['Active agent', active || '(none)'],
+                ['Last activity', agents.last_activity ? new Date(agents.last_activity).toLocaleString() : '—'],
+            ]}) }),
         ]
     },
 
