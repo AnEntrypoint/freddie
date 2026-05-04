@@ -23,8 +23,8 @@ export async function bootHost(extraRoots = []) {
     await h.load(plugins)
     const ccRoots = [path.join(getFreddieHome(), 'cc-plugins'), path.join(process.cwd(), '.freddie', 'cc-plugins')]
     await h.loadCcPlugins(ccRoots)
-    await h.loadCcFromNodeModules(__dirname)
-    await h.loadCcFromNodeModules(process.cwd())
+    const extra = (process.env.FREDDIE_EXTRA_CC_ROOTS || '').split(path.delimiter).filter(Boolean)
+    for (const r of [__dirname, process.cwd(), ...extra]) await h.loadCcFromNodeModules(r)
     return h
 }
 
