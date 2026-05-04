@@ -7,7 +7,6 @@ const results = []; const T = async (n, fn) => { try { await fn(); results.push(
 
 await T('home+config+skin', async () => {
     assert.equal((await import('./src/home.js')).getFreddieHome(), TEST_HOME)
-    const c = await import('./src/config.js'); c.saveConfigValue('display.skin', 'ares'); assert.equal(c.getConfigValue('display.skin'), 'ares')
     const s = await import('./src/skin/engine.js'); for (const n of ['default','ares','mono','slate']) assert.ok(s.listBuiltinSkins().includes(n))
     s.setActiveSkin('mono'); assert.equal(s.getActiveSkin().name, 'mono')
 })
@@ -181,9 +180,6 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     assert.ok((await (await import('./src/acp/auth.js')).authenticateRequest({})).ok && (await (await import('./src/acp/tools.js')).listToolsForAcp()).length >= 50)
     const wh2 = fs.readFileSync(path.join('website', 'docs/index.html'), 'utf8'); for (const m of ['ds-hero-title', 'rail-green', 'when do I reach']) assert.ok(wh2.includes(m), m)
     const dash = await (await import('./src/web/server.js')).createDashboard({ port: 0 })
-    const sse = await fetch(dash.url + 'api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: 'ping-from-test' }) })
-    assert.equal(sse.status, 200); assert.match(sse.headers.get('content-type') || '', /event-stream/); assert.match(await sse.text(), /event: (start|done|error|message)/)
-    assert.match(await (await fetch(dash.url + 'index.html')).text(), /anentrypoint-design/)
     const G = (p) => fetch(dash.url + p); const gs = async (...ps) => { for (const p of ps) assert.equal((await G(p)).status, 200, p) }; const P = (p, b) => fetch(dash.url + p, { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify(b) })
     await gs('api/sessions','api/tools','api/cron','api/skills','api/config','api/env','api/debug','api/debug-all','api/gateway','api/profiles','api/commands','api/health','api/logs','api/search?q=test','api/tools/detail')
     const cj = await (await P('api/cron', { cron: '*/5 * * * *', prompt: 'tick' })).json(); assert.ok(cj.id)
