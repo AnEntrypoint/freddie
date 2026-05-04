@@ -69,6 +69,7 @@ export async function listSessions(limit = 50) {
 
 export async function search(query, limit = 20) {
     const d = await db()
+    const likePattern = `%${query}%`
     // Try FTS5 if available (libsql, but not busybase since triggers can't be created)
     try {
         const ftsResult = await d.prepare(`SELECT m.id, m.session_id, m.content FROM messages_fts f JOIN messages m ON m.id = f.rowid WHERE messages_fts MATCH ? ORDER BY rank LIMIT ?`).all(query, limit)
@@ -77,7 +78,7 @@ export async function search(query, limit = 20) {
         // FTS5 not available, fall through to LIKE
     }
     // Fallback to LIKE search
-    return await d.prepare(`SELECT id, session_id, content FROM messages WHERE content LIKE ? ORDER BY ts DESC LIMIT ?`).all(`%${query}%`, limit)
+    return await d.prepare(`SELECT id, session_id, content FROM messages WHERE content LIKE ? ORDER BY ts DESC LIMIT ?`).all(likePattern, limit)
 }
 
 export function closeDb() { return closeDbImpl() }
