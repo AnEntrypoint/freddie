@@ -9,8 +9,13 @@
 ### Refactored
 - test.js: reduced from 203 to 198 lines by removing 7 redundant assertions while keeping all 12 groups passing. Removed config mutation test (saveConfigValue/getConfigValue covered by validateConfigStructure in profiles group) and duplicate sessions API test (covered by dashboard /api/sessions endpoint validation). All load-bearing assertions preserved; test budget restored.
 
+### Added
+- Agents dashboard section: new #/agents route with agent overview KPI (total agents, active count, total turns). REST endpoint POST /api/agents returns { count, active, turns, last_activity } populated from session list (agents with activity <5min considered active). window.__debug.agents() observability global registered.
+
 ### Fixed
 - Dashboard padding: #app container now has 16px vertical / 20px horizontal padding (previously 0px), resolving UI crowding on all viewport widths ≥1024px
+- Sessions filter alignment: row-form now uses align-items: center + input padding 10px 12px for consistent vertical centering
+- Chat prompt alignment: chat layout switched to flex column with proper composer padding-top: 12px and border-top separator
 
 ### Verified
 - anentrypoint-design integration correct: framework imports successfully, CSS variables applied (--panel-0, --panel-text, --panel-accent), vendor path accessible at /vendor/anentrypoint-design/247420.js, no console errors
