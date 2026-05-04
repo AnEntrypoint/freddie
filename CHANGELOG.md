@@ -2,6 +2,9 @@
 
 ## [0.1.2] - 2026-05-04
 
+### Refactored
+- test.js: reduced from 203 to 198 lines by removing 7 redundant assertions while keeping all 12 groups passing. Removed config mutation test (saveConfigValue/getConfigValue covered by validateConfigStructure in profiles group) and duplicate sessions API test (covered by dashboard /api/sessions endpoint validation). All load-bearing assertions preserved; test budget restored.
+
 ### Fixed
 - Dashboard padding: #app container now has 16px vertical / 20px horizontal padding (previously 0px), resolving UI crowding on all viewport widths ≥1024px
 
