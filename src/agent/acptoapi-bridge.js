@@ -13,16 +13,28 @@ export function getAcptoapiModel() {
 export async function callLLM({ messages, tools = [], model } = {}) {
     const base = getAcptoapiUrl()
     const useModel = model || getAcptoapiModel()
+    const hasTools = Array.isArray(tools) && tools.length > 0
+    const adaptedMessages = messages.map(adaptMessage)
+    if (hasTools) {
+        const cwd = process.cwd()
+        const sysIdx = adaptedMessages.findIndex(m => m.role === 'system')
+        const cwdNote = `\nWorking directory: ${cwd}\nUse your built-in tools (Bash, Read, Write) to explore files in this directory when needed.`
+        if (sysIdx >= 0) adaptedMessages[sysIdx] = { ...adaptedMessages[sysIdx], content: (adaptedMessages[sysIdx].content || '') + cwdNote }
+        else adaptedMessages.unshift({ role: 'system', content: cwdNote.trim() })
+    }
     const body = {
         model: useModel,
-        messages: messages.map(adaptMessage),
+        messages: adaptedMessages,
         stream: false,
         max_tokens: 4096,
     }
-    if (Array.isArray(tools) && tools.length) body.tools = tools.map(adaptTool)
+    if (hasTools) body.tools = tools.map(adaptTool)
+    const headers = { 'content-type': 'application/json', authorization: 'Bearer none' }
+    const cwd = process.cwd()
+    if (Array.isArray(tools) && tools.length) headers['x-cwd'] = cwd
     const res = await fetch(base.replace(/\/$/, '') + '/chat/completions', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: 'Bearer none' },
+        headers,
         body: JSON.stringify(body),
     })
     if (!res.ok) {
