@@ -27,6 +27,13 @@ export function applyProfileOverride(name) {
     _cached = null
 }
 
+export function applyHomeOverride(absPath) {
+    if (!absPath) { delete process.env.FREDDIE_HOME; _cached = null; return }
+    process.env.FREDDIE_HOME = absPath
+    _cached = null
+    ensure(absPath)
+}
+
 export function getProfilesRoot() {
     if (process.env.FREDDIE_PROFILES_ROOT) return process.env.FREDDIE_PROFILES_ROOT
     if (process.env.FREDDIE_HOME) return path.join(process.env.FREDDIE_HOME, 'profiles')

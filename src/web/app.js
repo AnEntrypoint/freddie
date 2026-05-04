@@ -13,6 +13,7 @@ window.__debug.agents = () => ({ registered: true, active: AppState.agents?.acti
 const j = async (u, opts) => { try { const r = await fetch(u, opts); if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return await r.json() } catch (e) { return { __error: String(e) } } }
 
 const ROUTES = [
+    { path: '#/projects',  label: 'Projects',      glyph: '◆' },
     { path: '#/home',      label: 'Home',          glyph: '⌂' },
     { path: '#/chat',      label: 'Chat',          glyph: '⌨' },
     { path: '#/sessions',  label: 'Sessions',      glyph: '✉' },
@@ -40,6 +41,7 @@ const AppState = {
     chat: { messages: [], draft: '', streaming: false },
     batch: { results: null, running: false },
     agents: { count: 0, active: null },
+    projects: { active: null, all: [] },
 }
 function applyTheme() { document.body.setAttribute('data-theme', AppState.theme) }
 applyTheme()
@@ -77,6 +79,51 @@ function toChatMsg(m, key) {
 }
 
 const PAGES = {
+    '#/projects': async () => {
+        const data = await j('/api/projects')
+        const all = data.projects || []
+        const active = data.active || null
+        AppState.projects = { active, all }
+        return [
+            Hero({ title: 'Projects', body: 'Each project is its own ~/.freddie home: separate sessions, agents, skills, config, env, cron, batches. Switch the active project to swap everything.', accent: active ? 'active · ' + active.name : 'no project active' }),
+            kpi([[all.length, 'Projects'], [active?.name || '—', 'Active'], [active?.path?.length > 30 ? '…'+active.path.slice(-28) : (active?.path || '—'), 'Path']]),
+            Panel({ title: 'Add a project', children: h('form', { class: 'row-form', onsubmit: async (ev) => {
+                ev.preventDefault()
+                const f = ev.target.elements
+                const r = await j('/api/projects', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: f.name.value, path: f.path.value }) })
+                if (r.__error || r.error) { alert('Error: ' + (r.error || r.__error)); return }
+                f.name.value = ''; f.path.value = ''; rerender()
+            } },
+                h('input', { name: 'name', placeholder: 'project name (e.g. penguins)', required: true }),
+                h('input', { name: 'path', placeholder: 'absolute path (e.g. C:\\dev\\penguins)', required: true, style: 'flex:2' }),
+                h('button', { type: 'submit', class: 'primary' }, 'Add')) }),
+            Panel({ title: 'All projects', count: all.length, right: active ? Chip({ tone: 'ok', children: 'active: ' + active.name }) : null,
+                children: h('div', {}, ...all.map(p => h('div', { class: 'row', style: 'cursor:pointer', onclick: async () => {
+                    if (p.name === active?.name) return
+                    const r = await j('/api/projects/active', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: p.name }) })
+                    if (r.__error || r.error) { alert('Switch failed: ' + (r.error || r.__error)); return }
+                    alert('Switched to project "' + p.name + '". Restart the dashboard to load its plugins/data, then reload this page.')
+                    rerender()
+                } },
+                    h('span', { class: 'code' }, p.name === active?.name ? '●' : '○'),
+                    h('span', { class: 'title' }, p.name + (p.name === active?.name ? '  (active)' : '')),
+                    h('span', { class: 'meta' }, p.path),
+                    p.name !== 'default' ? h('button', { class: 'danger', style: 'margin-left:8px',
+                        onclick: async (ev) => { ev.stopPropagation(); if (!confirm('Remove project "'+p.name+'" from registry? Files on disk are kept.')) return; await fetch('/api/projects/' + p.name, { method: 'DELETE' }); rerender() } }, 'remove') : null,
+                ))) }),
+            Panel({ title: 'How encapsulation works', children: Receipt({ rows: [
+                ['Sessions DB', '<project>/sessions.db'],
+                ['Config', '<project>/config.json'],
+                ['Skills', '<project>/skills/'],
+                ['Plugins', '<project>/plugins/ + repo/plugins'],
+                ['Cron jobs', '<project>/cron.db'],
+                ['Batches', '<project>/batches/'],
+                ['Logs', '<project>/logs/'],
+                ['Auth credentials', '<project>/auth.json'],
+            ]}) }),
+        ]
+    },
+
     '#/chat': async () => {
         const messages = AppState.chat.messages.map((m, i) => toChatMsg(m, 'm' + i))
         return AICat({
@@ -455,8 +502,15 @@ function render(state) {
         onkeydown: (ev) => { if (ev.key === 'Enter') doSearch(ev.target.value) },
         style: 'min-width:240px',
     })
+    const projectPill = h('a', {
+        href: '#/projects',
+        class: 'project-pill',
+        title: state.projects.active ? 'Active project: ' + state.projects.active.name + ' — ' + state.projects.active.path : 'No active project',
+        style: 'display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:var(--panel-2);color:var(--panel-text);text-decoration:none;font-size:12px;font-weight:500',
+    }, h('span', { style: 'opacity:0.6' }, '◆'), h('span', {}, state.projects.active?.name || 'default'))
     const topbarWithControls = h('header', { class: 'app-topbar' },
         Brand({ name: 'freddie', leaf: 'dashboard' }),
+        projectPill,
         h('div', { style: 'flex:1' }),
         searchInput,
         themeBtn,
@@ -480,11 +534,17 @@ function render(state) {
 
 let _mount
 
+async function refreshProject() {
+    const data = await j('/api/projects')
+    if (!data.__error) AppState.projects = { active: data.active || null, all: data.projects || [] }
+}
+
 async function go() {
-    AppState.hash = location.hash || '#/home'
+    AppState.hash = location.hash || '#/projects'
     AppState.ts = new Date().toLocaleTimeString()
     AppState.body = EmptyState({ text: 'loading…', glyph: '◌' })
     if (_mount) _mount()
+    refreshProject()
     let body
     if (AppState.hash.startsWith('#/session/')) {
         body = await pageSessionDetail(AppState.hash.slice('#/session/'.length))

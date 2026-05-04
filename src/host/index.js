@@ -2,6 +2,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHost, discoverPlugins } from './host.js'
 import { getFreddieHome } from '../home.js'
+import { applyActiveProjectFromRegistry } from '../projects.js'
 
 let _host = null
 let _loaded = false
@@ -18,6 +19,7 @@ export async function bootHost(extraRoots = []) {
     const h = host()
     if (_loaded) return h
     _loaded = true
+    if (!process.env.FREDDIE_HOME && !process.env.FREDDIE_PROFILE) applyActiveProjectFromRegistry()
     const roots = [REPO_PLUGINS, path.join(getFreddieHome(), 'plugins'), path.join(process.cwd(), '.freddie', 'plugins'), ...extraRoots]
     const plugins = await discoverPlugins(roots)
     await h.load(plugins)
