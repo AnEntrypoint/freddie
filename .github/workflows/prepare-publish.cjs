@@ -3,8 +3,9 @@ const { execSync } = require('child_process')
 
 const p = JSON.parse(fs.readFileSync('package.json', 'utf8'))
 
+// Remove file: dep so npm publish doesn't reject it; design assets are vendored into src/web/vendor/
 if (p.dependencies && p.dependencies['anentrypoint-design'] && p.dependencies['anentrypoint-design'].startsWith('file:')) {
-    p.dependencies['anentrypoint-design'] = '^0.0.29'
+    delete p.dependencies['anentrypoint-design']
 }
 
 let published = '0.0.0'
