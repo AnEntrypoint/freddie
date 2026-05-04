@@ -73,7 +73,8 @@ export default {
             const out = await runBatch({ prompts, concurrency: Number(opts.concurrency), model: opts.model })
             console.log('batch:', out.id, '\nfile:', out.file, '\nresults:', out.results.length)
         } })
-        C({ name: 'dashboard', description: 'Boot web dashboard', options: [{ flag: '--port <port>', default: '0' }], action: async (opts) => {
+        C({ name: 'dashboard', description: 'Boot web dashboard', options: [{ flag: '--port <port>', default: '0' }, { flag: '--cwd <dir>', default: '' }], action: async (opts) => {
+            if (opts.cwd) { const p = process.platform === 'win32' ? opts.cwd.replace(/^\/([a-z])\//i, '$1:/') : opts.cwd; process.chdir(p) }
             const { createDashboard } = await import('../../src/web/server.js')
             const d = await createDashboard({ port: Number(opts.port) })
             console.log('dashboard:', d.url)

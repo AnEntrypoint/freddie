@@ -1,10 +1,13 @@
 # Changelog
 
-## [Unreleased] - 2026-05-04
+## [0.0.51] - 2026-05-04
 
 ### Fixed
 - Add `plugins/` to npm `files` array so `bun x freddie` includes all commands (dashboard, tools, cron, etc.)
 - Switch `anentrypoint-design` dep from `file:../anentrypoint-design` to `^0.0.40` registry version so published package installs cleanly without local sibling repo
+- `dashboard` CLI command: add `--cwd <dir>` flag to set working directory for file research; converts POSIX `/c/...` paths to Windows `c:/...` automatically
+- `acptoapi-bridge`: when tools are requested, pass `x-cwd` header and inject working-directory context into system prompt so Claude CLI knows where to look
+- acptoapi Claude backend: enable `--tools default` and `--add-dir` when request includes tool definitions, allowing Claude CLI's built-in Bash/Read tools to execute in the correct working directory; set `bypassPermissions` mode for tool execution
 
 ## [0.1.2] - 2026-05-04
 
