@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { validatePlugin, topoSort, HOOK_NAMES, PI_VERBS, GUI_VERBS, FREDDIE_TO_SDK_HOOK, piAdapter } from './contract.js'
+import { validatePlugin, topoSort, HOOK_NAMES, PI_VERBS, GUI_VERBS, FREDDIE_TO_SDK_HOOK } from './contract.js'
 
 function makePiSurface() {
     const tools = new Map()

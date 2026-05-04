@@ -1,4 +1,8 @@
-export { HookType, PluginRunner, PluginRuntime } from 'plugsdk'
+export { HookType } from 'plugsdk'
+
+export function definePlugin(p) { return p }
+export class PluginRunner {}
+export class PluginRuntime {}
 
 export const SURFACES = ['pi', 'gui', 'both']
 
