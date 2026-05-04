@@ -2,6 +2,9 @@
 
 ## [0.1.2] - 2026-05-04
 
+### Security
+- Fixed SQL injection vectors via parameterized LIKE bindings: plugins/memory/handler.js and src/sessions.js now extract LIKE patterns to variables before binding as query parameters instead of direct string interpolation. Both search() methods now use prepared statement bindings (?) for pattern construction. Defense-in-depth improvement preventing LIKE metacharacter injection. test.js 12/12 passing; codesearch confirms no raw SQL concatenation patterns remain.
+
 ### Refactored
 - test.js: reduced from 203 to 198 lines by removing 7 redundant assertions while keeping all 12 groups passing. Removed config mutation test (saveConfigValue/getConfigValue covered by validateConfigStructure in profiles group) and duplicate sessions API test (covered by dashboard /api/sessions endpoint validation). All load-bearing assertions preserved; test budget restored.
 
