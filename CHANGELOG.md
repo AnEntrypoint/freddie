@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased] - 2026-05-04
+
+### Fixed
+- Add `plugins/` to npm `files` array so `bun x freddie` includes all commands (dashboard, tools, cron, etc.)
+- Switch `anentrypoint-design` dep from `file:../anentrypoint-design` to `^0.0.40` registry version so published package installs cleanly without local sibling repo
+
 ## [0.1.2] - 2026-05-04
 
 ### Security
