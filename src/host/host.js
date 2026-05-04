@@ -130,21 +130,52 @@ export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(),
         }
         return loaded.length
     }
+    function isCcPluginDir(dir) {
+        if (fs.existsSync(path.join(dir, '.claude-plugin', 'plugin.json'))) return true
+        if (!fs.existsSync(path.join(dir, 'plugin.json'))) return false
+        return fs.existsSync(path.join(dir, 'hooks', 'hooks.json'))
+            || fs.existsSync(path.join(dir, 'skills'))
+            || fs.existsSync(path.join(dir, 'agents'))
+    }
+    async function useCcDir(dir) {
+        try { await ccHost.use(loadClaudePlugin(dir)) }
+        catch (e) { if (env.FREDDIE_LOG_STDOUT) console.error(`cc-plugin ${dir} failed: ${e.message}`) }
+    }
     async function loadCcPlugins(roots) {
         for (const root of roots) {
             if (!root || !fs.existsSync(root)) continue
             for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
                 if (!entry.isDirectory()) continue
                 const dir = path.join(root, entry.name)
-                if (!fs.existsSync(path.join(dir, '.claude-plugin', 'plugin.json'))) continue
-                try { await ccHost.use(loadClaudePlugin(dir)) }
-                catch (e) { if (env.FREDDIE_LOG_STDOUT) console.error(`cc-plugin ${dir} failed: ${e.message}`) }
+                if (isCcPluginDir(dir)) await useCcDir(dir)
             }
+        }
+        return ccHost.plugins().length
+    }
+    async function loadCcFromNodeModules(startDir) {
+        const seen = new Set(ccHost.plugins().map(p => p.root))
+        let cur = path.resolve(startDir)
+        while (true) {
+            const nm = path.join(cur, 'node_modules')
+            if (fs.existsSync(nm)) for (const entry of fs.readdirSync(nm, { withFileTypes: true })) {
+                if (!entry.isDirectory()) continue
+                const dirs = entry.name.startsWith('@')
+                    ? fs.readdirSync(path.join(nm, entry.name), { withFileTypes: true }).filter(e => e.isDirectory()).map(e => path.join(nm, entry.name, e.name))
+                    : [path.join(nm, entry.name)]
+                for (const d of dirs) {
+                    if (seen.has(d) || !isCcPluginDir(d)) continue
+                    seen.add(d); await useCcDir(d)
+                }
+            }
+            const parent = path.dirname(cur)
+            if (parent === cur) break
+            cur = parent
         }
         return ccHost.plugins().length
     }
     host.load = load
     host.loadCcPlugins = loadCcPlugins
+    host.loadCcFromNodeModules = loadCcFromNodeModules
     return host
 }
 
