@@ -1,0 +1,19 @@
+body { margin: 0; padding: 24px; font-family: var(--os-font); background: var(--os-bg-0); color: var(--os-fg); }
+h1 { margin: 0 0 8px 0; font-size: 22px; font-weight: 600; }
+h3 { margin: 18px 0 6px 0; color: var(--os-fg-2); font-size: 13px; font-weight: 600; }
+.sub { color: var(--os-fg-2); margin-bottom: 20px; }
+table { border-collapse: collapse; width: 100%; max-width: 760px; }
+td { padding: 6px 12px; border-bottom: 1px solid var(--os-bg-3); }
+td.k { width: 280px; color: var(--os-fg-2); }
+td.v { font-weight: 600; }
+td.v.pass { color: var(--os-accent); }
+td.v.fail { color: var(--os-red); }
+td.v.pending { color: var(--os-amber); }
+.all { margin-top: 16px; padding: 12px; background: var(--os-bg-1); max-width: 760px; border-radius: var(--os-radius-sm); }
+.all.green { color: var(--os-accent); }
+.all.red { color: var(--os-red); }
+.err { color: var(--os-red); white-space: pre-wrap; margin-top: 12px; }
+a { color: var(--os-accent); text-decoration: none; }
+a:hover { color: var(--os-accent-2); }
+iframe.osframe { position: absolute; left: -9999px; top: 0; width: 1280px; height: 900px; border: 0; }
+iframe.osframe-phone { position: absolute; left: -9999px; top: 0; width: 414px; height: 720px; border: 0; }
