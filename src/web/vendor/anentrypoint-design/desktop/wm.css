@@ -1,0 +1,115 @@
+/* ============================================================
+   Window Manager visuals — paired with createWM() behavior
+   Tokens: --os-* (defined by desktop/theme.css)
+   Bible: tonal surfaces, no borders for chrome, inset rail for focus.
+   ============================================================ */
+
+.wm-root {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9000;
+}
+
+.wm-win {
+    position: absolute;
+    min-width: 200px;
+    min-height: 120px;
+    background: var(--os-bg-1);
+    color: var(--os-fg);
+    border: none;
+    border-radius: var(--r-3, 18px);
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto;
+    overflow: hidden;
+}
+.wm-win.wm-focused { box-shadow: inset 4px 0 0 var(--os-accent); }
+
+.wm-bar {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    background: var(--os-bg-2);
+    cursor: move;
+    user-select: none;
+    gap: 8px;
+    touch-action: none;
+    border: none;
+}
+.wm-title {
+    flex: 1;
+    font: 12px var(--os-font);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: lowercase;
+}
+
+.wm-btns { display: flex; gap: 4px; }
+.wm-btn {
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: var(--os-bg-3);
+    color: var(--os-fg-2);
+    cursor: pointer;
+    padding: 0;
+    font: 600 12px var(--os-mono);
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--r-1, 6px);
+    transition: background 100ms ease, color 100ms ease;
+}
+.wm-btn:hover { background: var(--panel-hover, var(--os-bg-2)); color: var(--os-fg); }
+
+.wm-body {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+    background: var(--os-bg-1);
+}
+
+.wm-resize {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 14px;
+    height: 14px;
+    cursor: nwse-resize;
+    background: transparent;
+    color: var(--os-fg-3);
+    opacity: 0.4;
+    font: 10px var(--os-mono);
+    line-height: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    touch-action: none;
+}
+.wm-resize::after { content: '\25E2'; }
+
+.wm-win.wm-min .wm-body,
+.wm-win.wm-min .wm-resize { display: none; }
+
+.wm-win.wm-max {
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0;
+}
+
+@media (max-width: 767px) {
+    .wm-win {
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 0;
+        border: none;
+    }
+    .wm-resize { display: none; }
+}

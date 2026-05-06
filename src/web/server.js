@@ -15,6 +15,10 @@ export async function createDashboard({ port = 0 } = {}) {
     const fs = await import('node:fs')
     const designDist = fs.existsSync(vendored) ? vendored : fromNodeModules
     app.use('/vendor/anentrypoint-design', express.static(designDist))
+    const vendoredDesktop = path.join(__dirname, 'vendor', 'anentrypoint-design', 'desktop')
+    const nmDesktop = path.join(__dirname, '..', '..', 'node_modules', 'anentrypoint-design', 'src', 'desktop')
+    const desktopSrc = fs.existsSync(vendoredDesktop) ? vendoredDesktop : nmDesktop
+    app.use('/vendor/anentrypoint-design/desktop', express.static(desktopSrc))
     for (const r of host.gui.routes.list()) {
         const verb = r.method.toLowerCase()
         if (typeof app[verb] === 'function') app[verb](r.path, r.handler)
