@@ -76,5 +76,5 @@ const inst = { id: 'web', fs: { list: () => Promise.resolve([]) }, host };
 const { node } = createFreddieDashboard({ instance: inst });
 root.appendChild(node);
 
-window.__debug = window.__debug || {};
+if (!window.__debug) window.__debug = {};
 window.__debug.dashboard = () => ({ booted: true, mode: 'fetchHost', tools: host.pi.tools.size, skills: host.pi.skills.size });

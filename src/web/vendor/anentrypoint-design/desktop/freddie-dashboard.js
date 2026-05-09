@@ -395,7 +395,7 @@ export function createFreddieDashboard({ instance, bootHost, osSurfaces }) {
     setActive('home');
 
     if (typeof window !== 'undefined') {
-        window.__debug = window.__debug || {};
+        if (!window.__debug) window.__debug = {};
         window.__debug.instances = window.__debug.instances || {};
         window.__debug.instances[instance.id] = window.__debug.instances[instance.id] || {};
         window.__debug.instances[instance.id].dashboard = { root, routes: [...ROUTES, ...OS_ROUTES].map(r => r.path), setActive, get active() { return active; } };
