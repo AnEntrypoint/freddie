@@ -28,6 +28,7 @@ dist
 
 
 
+
 .plugkit-browser-profile/
 .plugkit-browser-profile-*/
 .plugkit-agent-worktree/
@@ -39,5 +40,5 @@ dist
 .gm/*.png
 .gm/exec-spool/
 _pw_test.js
-chat_page.png
+*.png
 emperor-penguin.md
