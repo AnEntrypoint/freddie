@@ -44,17 +44,16 @@ await T('agent-machine', async () => {
     const { runTurn } = await import('./src/agent/machine.js')
     const echo = async ({ messages }) => ({ content: 'echo: ' + (messages[messages.length - 1]?.content || ''), tool_calls: [] })
     assert.match((await runTurn({ prompt: 'ping', callLLM: echo, timeoutMs: 5000 })).messages[1].content, /ping/)
-    let phase = 0
-    const callLLM = async () => phase++ === 0 ? { content: '', tool_calls: [{ id: 'c1', name: 'bash', arguments: { command: 'echo loop-ok', timeout_ms: 5000 } }] } : { content: 'done', tool_calls: [] }
-    const out = await runTurn({ prompt: 'use tool', callLLM, timeoutMs: 10000 })
-    assert.equal(out.result, 'done'); assert.match(out.messages.find(m => m.role === 'tool').content, /loop-ok/)
-    const { resolveCallLLM } = await import('./src/agent/llm_resolver.js')
+    let phase = 0; const callLLM = async () => phase++ === 0 ? { content: '', tool_calls: [{ id: 'c1', name: 'bash', arguments: { command: 'echo loop-ok', timeout_ms: 5000 } }] } : { content: 'done', tool_calls: [] }
+    const out = await runTurn({ prompt: 'use tool', callLLM, timeoutMs: 10000 }); assert.equal(out.result, 'done'); assert.match(out.messages.find(m => m.role === 'tool').content, /loop-ok/)
+    const { resolveCallLLM, PROVIDER_KEYS, DEFAULTS } = await import('./src/agent/llm_resolver.js')
     const { isReachable } = await import('./src/agent/acptoapi-bridge.js')
-    if (await isReachable()) {
-        const real = resolveCallLLM({ model: 'claude/haiku' })
-        const r = await real({ messages: [{ role: 'user', content: 'reply with exactly: REAL_OK' }], tools: [] })
-        assert.match(r.content, /REAL_OK/)
-    }
+    const { markFailed, isAvailable, resetAvailability, getStatus, stopSampler } = await import('./src/agent/model-sampler.js')
+    assert.equal(isAvailable('testprov-x'), true); markFailed('testprov-x'); assert.equal(isAvailable('testprov-x'), false)
+    for (let i = 0; i < 5; i++) markFailed('testprov-x'); const st = getStatus().find(s => s.provider === 'testprov-x'); assert.ok(st.failCount === 6 && st.nextCheckIn <= 480_000 && st.nextCheckIn > 0); resetAvailability('testprov-x'); assert.equal(isAvailable('testprov-x'), true); stopSampler()
+    assert.ok(Object.keys(PROVIDER_KEYS).length >= 15 && DEFAULTS.cerebras && DEFAULTS.google && DEFAULTS.mistral)
+    const savedKeys = {}; for (const k of Object.values(PROVIDER_KEYS)) { savedKeys[k] = process.env[k]; delete process.env[k] }; try { await resolveCallLLM({})({ messages: [{ role: 'user', content: 'x' }], tools: [] }) } catch (e) { assert.match(e.message, /no LLM backend/) }; for (const [k, v] of Object.entries(savedKeys)) { if (v !== undefined) process.env[k] = v }
+    if (await isReachable()) { const r = await resolveCallLLM({ model: 'claude/haiku' })({ messages: [{ role: 'user', content: 'reply with exactly: REAL_OK' }], tools: [] }); assert.match(r.content, /REAL_OK/) }
 })
 await T('gateway+platforms+hooks', async () => {
     const { Gateway } = await import('./src/gateway/run.js')

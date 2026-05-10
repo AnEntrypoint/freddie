@@ -1,3 +1,12 @@
+## [Unreleased]
+
+### Added
+- Expanded LLM provider support: cerebras, google, mistral, codestral, cloudflare-workers-ai, xai, zai, opencode, nvidia, sambanova, qwen (15 providers total)
+- `src/agent/model-sampler.js`: background availability sampler with exponential backoff (30s→60s→120s→240s→480s cap)
+- `agent.model_preference` config key (ordered list of {provider, model} objects) for user-defined failover priority
+- `resolveCallLLM` now walks preference list, skips unavailable providers via sampler, marks failed providers on error
+- Config schema version bumped to 2 with automatic migration
+
 # Changelog
 
 ## [0.0.51] - 2026-05-04
