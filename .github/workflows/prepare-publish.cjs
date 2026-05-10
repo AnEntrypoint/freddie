@@ -3,9 +3,12 @@ const { execSync } = require('child_process')
 
 const p = JSON.parse(fs.readFileSync('package.json', 'utf8'))
 
-// Remove file: dep so npm publish doesn't reject it; design assets are vendored into src/web/vendor/
+// Replace file: dep with published npm version so npm publish doesn't reject it
 if (p.dependencies && p.dependencies['anentrypoint-design'] && p.dependencies['anentrypoint-design'].startsWith('file:')) {
-    delete p.dependencies['anentrypoint-design']
+    let dv = '0.0.0'
+    try { dv = execSync('npm view anentrypoint-design version', { encoding: 'utf8' }).trim() } catch {}
+    p.dependencies['anentrypoint-design'] = '^' + dv
+    console.log('Pinned anentrypoint-design to', p.dependencies['anentrypoint-design'])
 }
 
 // Replace acptoapi file: dep with the published npm version

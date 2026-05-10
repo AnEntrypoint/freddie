@@ -1,6 +1,11 @@
 ## [Unreleased]
 
+### Fixed
+- `src/agent/llm_resolver.js`: fixed tool-calling for all openai-compat providers (groq, mistral, cerebras, openrouter, nvidia, etc.) — `sdk.chat()` was internally using `from:'openai'` format which stripped `url` and `apiKey` before sending to the provider, causing "Failed to parse URL from undefined"; replaced with direct `fetch()` for openai-compat, bypassing the sdk format pipeline entirely
+- `src/agent/llm_resolver.js`: tool schemas (from `getEnabledToolSchemas`) were never passed to the LLM API — `tools: undefined` was hardcoded; now converts freddie tool schemas to OpenAI `{type:'function', function:{...}}` format and passes them in the request body
+
 ### Changed
+- `src/web/app.js` refactored from 548L monolith to 59L shim; state/host helpers extracted to `src/web/state.js` (131L); all page components extracted to `src/web/routes.js` (289L)
 - `acptoapi` dep switched to `file:../acptoapi` — always tracks local SDK, same pattern as `anentrypoint-design`
 - `src/agent/model-sampler.js` is now a thin re-export shim; sampler logic lives in acptoapi `lib/sampler.js`
 - `src/agent/llm_resolver.js` simplified to 95 lines: `PROVIDER_KEYS`/`DEFAULTS` imported from acptoapi, `OPENAI_COMPAT` block removed, auto-scan uses acptoapi `buildAutoChain()`, preference failover calls acptoapi `chat()`

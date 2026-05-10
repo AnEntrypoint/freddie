@@ -1050,7 +1050,9 @@
     align-items: center;
     gap: 12px;
 }
-.ds-247420 .panel-body { padding: 0; background: var(--panel-1); }
+.ds-247420 .panel-body { padding: 12px 16px; background: var(--panel-1); }
+.ds-247420 .panel-body > .row, .ds-247420 .panel-body > div > .row { border-radius: 0; margin-bottom: 0; }
+.ds-247420 .panel-body > .row-form, .ds-247420 .panel-body > form.row-form { margin-bottom: 0; }
 
 /* Row — airy list item, tonal hover/select */
 .ds-247420 .row {
@@ -2357,3 +2359,62 @@
     opacity: 0.6;
     margin-right: 12px;
 }
+
+/* ============================================================
+   Responsive — collapse sidebar below 860px and turn it into
+   a horizontal scroll-pill nav at the top of the main area
+   ============================================================ */
+@media (max-width: 860px) {
+    .ds-247420 .app-body { grid-template-columns: 1fr; }
+    .ds-247420 .app-side-shell {
+        grid-row: 1;
+        position: sticky;
+        top: 56px;
+        z-index: 90;
+        background: var(--panel-0);
+    }
+    .ds-247420 .app-side {
+        height: auto;
+        padding: 8px 12px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        border-bottom: 1px solid var(--panel-2);
+    }
+    .ds-247420 .app-side .group { display: none; }
+    .ds-247420 .app-side > div, .ds-247420 .app-side nav, .ds-247420 .app-side > section {
+        display: inline-flex;
+        gap: 4px;
+        flex-wrap: nowrap;
+    }
+    .ds-247420 .app-side a {
+        display: inline-flex;
+        margin: 0 2px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: var(--panel-2);
+        font-size: 12px;
+    }
+    .ds-247420 .app-side a.active { background: var(--panel-accent); color: var(--panel-accent-fg); }
+    .ds-247420 .app-topbar { padding: 0 12px; gap: 8px; }
+    .ds-247420 .app-topbar .brand { font-size: 13px; }
+    .ds-247420 .app-topbar input[type=search] { min-width: 120px !important; max-width: 180px; }
+    .ds-247420 .app-main { padding: 12px 14px 80px 14px; }
+    .ds-247420 .app-crumb { padding: 6px 14px; }
+}
+
+@media (max-width: 480px) {
+    .ds-247420 .app-topbar .brand .leaf { display: none; }
+    .ds-247420 .app-topbar input[type=search] { display: none; }
+    .ds-247420 .app-main { padding: 10px 10px 80px 10px; }
+    .ds-247420 .panel-body { padding: 10px 12px; }
+    .ds-247420 .row { grid-template-columns: 60px 1fr auto; gap: 8px; padding: 8px 12px; font-size: 12px; }
+    .ds-247420 .row .meta { font-size: 10px; }
+    .ds-247420 h1 { font-size: 22px !important; }
+}
+
+/* file-browser stage + utility surfaces — replaces inline style strings in kit/fsbrowse */
+.ds-247420 .ds-file-stage { padding: var(--space-4) var(--space-5); }
+.ds-247420 .ds-meta-mono { color: var(--panel-text-3); font-family: var(--ff-mono); font-size: var(--fs-xs); }
+.ds-247420 .ds-error-banner { background: var(--flame); color: var(--ink); padding: var(--space-2) var(--space-3); border-radius: var(--r-3); margin-bottom: var(--space-3); cursor: pointer; }

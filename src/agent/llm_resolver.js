@@ -9,8 +9,35 @@ const sdk = _require('acptoapi')
 export const PROVIDER_KEYS = sdk.PROVIDER_KEYS
 export const DEFAULTS = sdk.PROVIDER_DEFAULTS
 
+function toOpenAITools(schemas) {
+    if (!schemas?.length) return undefined
+    return schemas.map(s => ({ type: 'function', function: { name: s.name, description: s.description || '', parameters: s.parameters || { type: 'object', properties: {} } } }))
+}
+
+async function directOpenAICompatChat(url, apiKey, model, messages, tools) {
+    const body = { model, messages, ...(tools?.length ? { tools } : {}) }
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(120000),
+    })
+    if (!res.ok) { const t = await res.text(); throw new Error(`${res.status} ${t.slice(0, 200)}`) }
+    return res.json()
+}
+
 async function sdkChat(provider, model, input) {
-    const result = await sdk.chat({ model: `${provider}/${model}`, messages: input.messages })
+    const { resolveModel } = sdk
+    const r = resolveModel(`${provider}/${model}`)
+    const apiKey = r.env ? process.env[r.env] : undefined
+    const openaiTools = toOpenAITools(input.tools)
+    let result
+    if (r.provider === 'openai-compat') {
+        result = await directOpenAICompatChat(r.url, apiKey, r.model, input.messages, openaiTools)
+    } else {
+        const { buffer: sdkBuffer } = sdk
+        result = await sdkBuffer({ from: null, to: 'openai', provider: r.provider, model: r.model, messages: input.messages, apiKey, ...(openaiTools ? { tools: openaiTools } : {}) })
+    }
     const choice = result?.choices?.[0]?.message || {}
     const content = typeof choice.content === 'string' ? choice.content : ''
     const tool_calls = Array.isArray(choice.tool_calls)
