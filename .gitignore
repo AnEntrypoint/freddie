@@ -4,7 +4,7 @@ node_modules
 .DS_Store
 .env
 dist
-!src/web/vendor/anentrypoint-design/dist/
+src/web/vendor/
 .cache
 # >>> gm managed (do not edit between markers)
 .gm-stop-verified
@@ -23,6 +23,7 @@ dist
 .gm/rs-learn.db-wal
 # tracked: .gm/rs-learn.db, .gm/code-search/, AGENTS.md, .gm/prd.yml
 # <<< gm managed
+
 
 
 

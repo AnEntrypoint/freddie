@@ -1,7 +1,7 @@
 import { h, components } from 'anentrypoint-design';
-import { j, post, pre, mkForm, getRecentPaths, saveRecentPath, skillLabel, renderChatMessages } from './state.js';
+import { j, post, pre, getRecentPaths, saveRecentPath, skillLabel, renderChatMessages } from './state.js';
 
-const { Panel, Row, Hero, Receipt, Kpi, Table, EmptyState, Chip } = components;
+const { Panel, Row, Hero, Receipt, Kpi, Table, EmptyState, Chip, Form } = components;
 
 export const PAGES = {
     async home(h0) {
@@ -166,7 +166,7 @@ export const PAGES = {
         return [
             Hero({ title: 'projects', body: 'each project is its own ~/.freddie home.', accent: active ? 'active · ' + active.name : 'no active project' }),
             Kpi({ items: [[list.length, 'projects'], [active?.name || '—', 'active']] }),
-            Panel({ title: 'add project', children: mkForm({ fields: [{ name: 'name', placeholder: 'name', required: true }, { name: 'path', placeholder: '/abs/path' }], submit: 'add',
+            Panel({ title: 'add project', children: Form({ fields: [{ name: 'name', placeholder: 'name', required: true }, { name: 'path', placeholder: '/abs/path' }], submit: 'add',
                 onSubmit: ev => { h0.pi.projects.create({ name: ev.target.elements.name.value, path: ev.target.elements.path.value }); } }) }),
             Panel({ title: 'all projects', count: list.length, children: rows.length ? rows : EmptyState({ text: 'no projects', glyph: '◆' }) }),
         ];
@@ -196,7 +196,7 @@ export const PAGES = {
         return [
             Kpi({ items: [[agent.provider || '—', 'provider'], [agent.model || '—', 'model']] }),
             Panel({ title: 'active model', children: Receipt({ rows: [['provider', agent.provider || '(unset)'], ['model', agent.model || '(unset)'], ['max_tokens', String(agent.max_tokens || '—')]] }) }),
-            Panel({ title: 'change model', children: mkForm({ fields: [{ name: 'provider', placeholder: 'provider', value: agent.provider || '' }, { name: 'model', placeholder: 'model id', value: agent.model || '' }], submit: 'update',
+            Panel({ title: 'change model', children: Form({ fields: [{ name: 'provider', placeholder: 'provider', value: agent.provider || '' }, { name: 'model', placeholder: 'model id', value: agent.model || '' }], submit: 'update',
                 onSubmit: async ev => { await h0.pi.config.saveValue('agent.provider', ev.target.elements.provider.value); await h0.pi.config.saveValue('agent.model', ev.target.elements.model.value); } }) }),
             Panel({ title: 'availability', children: h('div', { class: 'fd-chips' }, ...providers.map(p => Chip({ tone: p.configured ? (p.available ? 'ok' : 'warn') : 'miss', children: p.name + (p.configured ? (p.available ? ' ●' : ' ○') : ' ·') }))) }),
         ];
@@ -205,7 +205,7 @@ export const PAGES = {
         const list = await h0.pi.cron.list();
         return [
             Kpi({ items: [[list.length, 'jobs']] }),
-            Panel({ title: 'add job', children: mkForm({ fields: [{ name: 'cron', placeholder: '* * * * *', required: true }, { name: 'prompt', placeholder: 'prompt', required: true }], submit: 'create',
+            Panel({ title: 'add job', children: Form({ fields: [{ name: 'cron', placeholder: '* * * * *', required: true }, { name: 'prompt', placeholder: 'prompt', required: true }], submit: 'create',
                 onSubmit: async ev => { await h0.pi.cron.create({ cron: ev.target.elements.cron.value, prompt: ev.target.elements.prompt.value }); } }) }),
             Panel({ title: 'jobs', count: list.length, children: list.length === 0 ? EmptyState({ text: 'no cron jobs', glyph: '◷' }) : Table({ headers: ['id', 'cron', 'prompt', 'enabled'], rows: list.map(j => [j.id, j.cron, (j.prompt || '').slice(0, 40), j.enabled ? 'yes' : 'no']) }) }),
         ];
@@ -224,7 +224,7 @@ export const PAGES = {
         const commands = typeof h0.pi.cli?.values === 'function' ? [...h0.pi.cli.values()] : [];
         return [
             Kpi({ items: [[commands.length, 'commands'], [cfg._config_version || 0, 'config version']] }),
-            Panel({ title: 'set config value', children: mkForm({ fields: [{ name: 'key', placeholder: 'dotted.key', required: true }, { name: 'value', placeholder: 'value (json or string)', required: true }], submit: 'save',
+            Panel({ title: 'set config value', children: Form({ fields: [{ name: 'key', placeholder: 'dotted.key', required: true }, { name: 'value', placeholder: 'value (json or string)', required: true }], submit: 'save',
                 onSubmit: async ev => { let v = ev.target.elements.value.value; try { v = JSON.parse(v); } catch {} await h0.pi.config.saveValue(ev.target.elements.key.value, v); } }) }),
             Panel({ title: 'commands', count: commands.length, children: Table({ headers: ['name', 'description'], rows: commands.map(c => [c.name, c.description || '']) }) }),
             Panel({ title: 'active config', children: pre(cfg) }),
@@ -256,7 +256,7 @@ export const PAGES = {
     async batch(h0) {
         const out = h('div', { id: 'fd-batch-out' });
         return [
-            Panel({ title: 'run batch', children: mkForm({
+            Panel({ title: 'run batch', children: Form({
                 fields: [{ name: 'prompts', kind: 'textarea', placeholder: 'one prompt per line', rows: 6 }, { name: 'concurrency', type: 'number', value: '4' }],
                 submit: 'run',
                 onSubmit: async ev => {
