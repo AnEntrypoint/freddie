@@ -94,7 +94,7 @@ export const PAGES = {
                 title: 'chat',
                 right: h('button', { class: 'btn-primary', onclick: ev => { ev.preventDefault(); newSession(); } }, '+ new'),
                 children: [
-                    h('form', { class: 'row-form', onsubmit: sendChat },
+                    h('form', { class: 'fd-chat-form', onsubmit: sendChat },
                         h('label', { class: 'fd-label' }, 'WORKING DIRECTORY'),
                         h('input', { name: 'cwd', type: 'text', placeholder: 'e.g. C:/dev/myproject', value: cs.cwd, oninput: ev => { cs.cwd = ev.target.value; } }),
                         h('div', { class: 'fd-row' },
@@ -119,7 +119,7 @@ export const PAGES = {
                                 h('input', { name: 'model', type: 'text', placeholder: 'default', value: cs.model, oninput: ev => { cs.model = ev.target.value; } })
                             )
                         ),
-                        h('div', { class: 'fd-row fd-row-send' },
+                        h('div', { class: 'fd-chat-send-row' },
                             h('textarea', { name: 'prompt', placeholder: 'describe what you want…', rows: 4,
                                 oninput: ev => { ev.target.style.height = 'auto'; ev.target.style.height = Math.min(ev.target.scrollHeight, 240) + 'px'; } }),
                             h('button', { type: 'submit', class: 'btn-primary', disabled: cs.busy ? 'true' : null }, cs.busy ? '…' : 'send')
@@ -227,7 +227,7 @@ export const PAGES = {
             Panel({ title: 'set config value', children: Form({ fields: [{ name: 'key', placeholder: 'dotted.key', required: true }, { name: 'value', placeholder: 'value (json or string)', required: true }], submit: 'save',
                 onSubmit: async ev => { let v = ev.target.elements.value.value; try { v = JSON.parse(v); } catch {} await h0.pi.config.saveValue(ev.target.elements.key.value, v); } }) }),
             Panel({ title: 'commands', count: commands.length, children: Table({ headers: ['name', 'description'], rows: commands.map(c => [c.name, c.description || '']) }) }),
-            Panel({ title: 'active config', children: pre(cfg) }),
+            Panel({ title: 'active config', children: Receipt({ rows: Object.entries(cfg).map(([k,v]) => [k, typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v ?? '')]) }) }),
         ];
     },
     async env(h0) {
@@ -267,7 +267,15 @@ export const PAGES = {
                     if (node) node.textContent = 'running…';
                     try {
                         const r = await h0.pi.batch.run({ prompts, concurrency: Number(ev.target.elements.concurrency.value) || 4 });
-                        if (node) node.textContent = JSON.stringify(r, null, 2);
+                        if (node) {
+                        const results = Array.isArray(r) ? r : (r && typeof r === 'object' ? Object.entries(r).map(([k,v]) => ({ prompt: k, result: v })) : []);
+                        const tbl = document.createElement('table');
+                        const thead = tbl.createTHead(); const hr = thead.insertRow();
+                        ['#', 'prompt', 'result', 'status'].forEach(h => { const th = document.createElement('th'); th.textContent = h; hr.appendChild(th); });
+                        const tbody = tbl.createTBody();
+                        results.forEach((item, i) => { const row = tbody.insertRow(); [i+1, (item.prompt||'').slice(0,60), (item.result||item.error||'').slice(0,120), item.error ? 'error' : 'ok'].forEach(v => { const td = row.insertCell(); td.textContent = String(v); }); });
+                        node.innerHTML = ''; node.appendChild(tbl);
+                    }
                     } catch (e) { if (node) node.textContent = 'error: ' + (e.message || e); }
                 },
             }) }),
