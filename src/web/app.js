@@ -51,7 +51,7 @@ async function loadActive() {
         if (state.active !== active) return;
         state.error = String(e && e.stack || e);
         const { Panel } = components;
-        state.body = Panel({ title: 'error', children: h('pre', { class: 'fd-pre' }, state.error) });
+        state.body = Panel({ title: 'page error', children: h('pre', { class: 'fd-pre', style: 'max-height:200px;overflow-y:auto' }, state.error) });
     }
     state.ts = new Date().toLocaleTimeString();
     applyDiff(root, view());

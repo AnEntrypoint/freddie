@@ -17,7 +17,7 @@ html, body { margin: 0; padding: 0; height: 100%; }
 .fd-col { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
 .fd-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 4px; }
 .fd-chip-wrap { cursor: pointer; }
-.fd-chat-thread { max-height: 420px; overflow-y: auto; border-radius: 10px; padding: 4px; margin-top: 8px; background: rgba(0,0,0,0.08); }
+.fd-chat-thread { max-height: 50vh; overflow-y: auto; border-radius: 10px; padding: 4px; margin-top: 8px; background: rgba(0,0,0,0.08); }
 .fd-msg { padding: 6px 10px; border-bottom: 1px solid rgba(128,128,128,0.1); white-space: pre-wrap; word-break: break-word; }
 .fd-msg-assistant { opacity: 0.9; }
 .fd-tool-call { margin: 4px 0; padding: 4px 8px; background: rgba(0,0,0,0.12); border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
@@ -25,6 +25,10 @@ html, body { margin: 0; padding: 0; height: 100%; }
 .fd-tool-body { margin: 4px 0 0; white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow-y: auto; }
 .fd-pre { white-space: pre-wrap; word-break: break-all; font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
 .row-form { display: flex; flex-direction: column; gap: 8px; }
+.fd-chat-form { display: flex; flex-direction: column; gap: 8px; }
+.fd-chat-send-row { display: flex; gap: 8px; align-items: flex-end; }
+.fd-chat-send-row textarea { flex: 1; resize: vertical; }
+.fd-chat-send-row .btn-primary { flex-shrink: 0; align-self: flex-end; padding: 10px 20px; }
 </style>
 </head>
 <body data-theme="light">
