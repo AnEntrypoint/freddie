@@ -134,6 +134,8 @@ v0.1.1 complete and witnessed: 12/12 named tests passing, dashboard + website bo
 - **Full context compressor** (`src/agent/compress/*`) with handoff-framed summary prefix, structured summarizer prompt, head/middle/tail policy, tool-output pre-pruning, summary-budget ratio, iterative summary update, and 600s failure cooldown
 - **Documentation site** at `website/` powered by `flatspace` (NOT docusaurus). Build with `cd website && node ../node_modules/flatspace/bin/flatspace.js build` — output to `website/docs/` for GitHub Pages.
 
+**LLM providers**: anthropic, openai, groq, openrouter, cerebras, google, mistral, codestral, cloudflare-workers-ai, xai, zai, opencode, nvidia, sambanova, qwen — plus acptoapi localhost bridge. Set `agent.model_preference` in `~/.freddie/config.yaml` for ordered failover with exponential backoff.
+
 What's not in the box yet (residual, see AGENTS.md): real credentials per platform / memory backend; modal / daytona / singularity environments; bedrock / codex provider adapters.
 
 ## Testing
