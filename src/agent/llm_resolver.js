@@ -88,6 +88,10 @@ export function resolveCallLLM({ provider, model } = {}) {
             return await callProvider(explicitProvider, input, model)
         }
 
+        if (await acptoapiReachable()) {
+            return await acptoapiCall({ ...input, model: model || input.model })
+        }
+
         const preference = getConfigValue('agent.model_preference', [])
 
         if (Array.isArray(preference) && preference.length > 0) {
@@ -108,10 +112,6 @@ export function resolveCallLLM({ provider, model } = {}) {
                 const status = getStatus().map(s => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(', ')
                 throw new Error(`all preference providers failed: ${errors.join('; ')} | sampler: ${status}`)
             }
-        }
-
-        if (await acptoapiReachable()) {
-            return await acptoapiCall({ ...input, model: model || input.model })
         }
 
         for (const [p, k] of Object.entries(PROVIDER_KEYS)) {

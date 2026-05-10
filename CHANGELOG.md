@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Changed
+- `resolveCallLLM`: acptoapi is now priority 1 (before direct API keys and preference list); direct-key providers remain as fallback when acptoapi is unreachable
+
 ### Added
 - Expanded LLM provider support: cerebras, google, mistral, codestral, cloudflare-workers-ai, xai, zai, opencode, nvidia, sambanova, qwen (15 providers total)
 - `src/agent/model-sampler.js`: background availability sampler with exponential backoff (30s→60s→120s→240s→480s cap)
