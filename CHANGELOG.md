@@ -5,6 +5,7 @@
 - `src/agent/llm_resolver.js`: tool schemas (from `getEnabledToolSchemas`) were never passed to the LLM API — `tools: undefined` was hardcoded; now converts freddie tool schemas to OpenAI `{type:'function', function:{...}}` format and passes them in the request body
 
 ### Changed
+- `src/web/vendor/anentrypoint-design/` removed; `server.js` now always serves SDK from `node_modules`; `file:../anentrypoint-design` dep keeps node_modules in sync with live SDK source
 - `src/web/app.js` refactored from 548L monolith to 59L shim; state/host helpers extracted to `src/web/state.js` (131L); all page components extracted to `src/web/routes.js` (289L)
 - `acptoapi` dep switched to `file:../acptoapi` — always tracks local SDK, same pattern as `anentrypoint-design`
 - `src/agent/model-sampler.js` is now a thin re-export shim; sampler logic lives in acptoapi `lib/sampler.js`
