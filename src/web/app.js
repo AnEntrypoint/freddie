@@ -23,26 +23,32 @@ function buildSide() {
 
 function view() {
     const route = ROUTES.find(r => r.path === state.active) || ROUTES[0];
+    const body = state.body || EmptyState({ text: 'loading…', glyph: '◌' });
+    const main = h('div', { key: state.active, class: 'fd-page' }, ...(Array.isArray(body) ? body : [body]));
     return AppShell({
         topbar: Topbar({ brand: 'freddie', leaf: 'dashboard', items: [], active: '' }),
         crumb: Crumb({ trail: ['freddie'], leaf: route.path, right: state.error ? Chip({ tone: 'miss', children: 'error' }) : Chip({ tone: 'ok', children: 'live' }) }),
         side: buildSide(),
-        main: state.body || EmptyState({ text: 'loading…', glyph: '◌' }),
+        main,
         status: Status({ left: ['ds-247420 · webjsx · ' + ROUTES.length + ' routes'], right: [state.ts] }),
     });
 }
 
-function rerender() { applyDiff(root, view()); loadActive(); }
+function rerender() { applyDiff(root, view()); }
 
-function setActive(p) { state.active = p; rerender(); }
+function setActive(p) { state.active = p; state.body = null; rerender(); loadActive(); }
 if (typeof window !== 'undefined') window.__fd_nav = setActive;
 
 async function loadActive() {
+    const active = state.active;
     try {
-        const page = PAGES[state.active] || PAGES.home;
-        state.body = await page(host0);
+        const page = PAGES[active] || PAGES.home;
+        const body = await page(host0);
+        if (state.active !== active) return;
+        state.body = body;
         state.error = null;
     } catch (e) {
+        if (state.active !== active) return;
         state.error = String(e && e.stack || e);
         const { Panel } = components;
         state.body = Panel({ title: 'error', children: h('pre', { class: 'fd-pre' }, state.error) });
