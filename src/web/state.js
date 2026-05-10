@@ -81,43 +81,4 @@ export function pre(obj) {
     return h('pre', { class: 'fd-pre' }, typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
 }
 
-
-export function getRecentPaths() {
-    try { return JSON.parse(localStorage.getItem('fd_recent_cwds') || '[]'); } catch { return []; }
-}
-export function saveRecentPath(p) {
-    if (!p) return;
-    try {
-        const prev = getRecentPaths().filter(x => x !== p);
-        localStorage.setItem('fd_recent_cwds', JSON.stringify([p, ...prev].slice(0, 5)));
-    } catch {}
-}
-export function skillLabel(s) {
-    const n = s.name || '';
-    return n.replace(/^gm:/, '').replace(/^software-development$/, 'software dev').replace(/-/g, ' ');
-}
-
-export function renderChatMessages(container, messages) {
-    if (!container) return;
-    container.innerHTML = '';
-    for (const m of messages) {
-        if (m.role === 'tool') {
-            const det = document.createElement('details');
-            det.className = 'fd-tool-call';
-            const sum = document.createElement('summary');
-            sum.textContent = '⚒ ' + m.name + (m.argsSummary ? ' ' + m.argsSummary : '');
-            det.appendChild(sum);
-            const body = document.createElement('pre');
-            body.className = 'fd-tool-body';
-            body.textContent = m.content || '';
-            det.appendChild(body);
-            container.appendChild(det);
-        } else {
-            const el = document.createElement('div');
-            el.className = 'fd-msg fd-msg-' + (m.role === 'assistant' ? 'assistant' : 'user');
-            el.textContent = (m.role === 'assistant' ? '◈ ' : '▷ ') + (m.content || '');
-            container.appendChild(el);
-        }
-    }
-    container.scrollTop = container.scrollHeight;
-}
+export { skillLabel, getRecentPaths, saveRecentPath, renderChatMessages } from 'anentrypoint-design';
