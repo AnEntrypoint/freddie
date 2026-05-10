@@ -85,9 +85,18 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
     })
 }
 
-export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000 } = {}) {
+export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill } = {}) {
+    const initMessages = [...messages]
+    const systemParts = []
+    if (cwd) systemParts.push(`Working directory: ${cwd}. Always pass cwd="${cwd}" to bash tool calls. When reading or writing files use paths relative to this directory or absolute paths under it.`)
+    if (skill) {
+        const h = await bootHost()
+        const skillDef = h.pi.skills.get(skill)
+        if (skillDef?.content) systemParts.push('Skill context:\n' + skillDef.content)
+    }
+    if (systemParts.length > 0) initMessages.unshift({ role: 'user', content: systemParts.join('\n\n') })
     const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations })
-    const actor = createActor(machine, { input: { messages } })
+    const actor = createActor(machine, { input: { messages: initMessages } })
     actor.start()
     actor.send({ type: 'SUBMIT', prompt })
     return await new Promise((resolve, reject) => {
