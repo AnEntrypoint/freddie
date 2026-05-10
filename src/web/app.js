@@ -14,7 +14,7 @@ root.innerHTML = '';
 const state = { active: 'home', ts: new Date().toLocaleTimeString(), body: null, error: null };
 
 function buildSide() {
-    return Side({ sections: [{ group: 'FREDDIE', items: ROUTES.map(r => ({
+    return Side({ sections: [{ group: 'freddie', items: ROUTES.map(r => ({
         glyph: r.glyph, label: r.label, href: '#fd-' + r.path,
         active: state.active === r.path,
         onClick: ev => { ev.preventDefault(); setActive(r.path); },
@@ -51,7 +51,7 @@ async function loadActive() {
         if (state.active !== active) return;
         state.error = String(e && e.stack || e);
         const { Panel } = components;
-        state.body = Panel({ title: 'page error', children: h('pre', { class: 'fd-pre', style: 'max-height:200px;overflow-y:auto' }, state.error) });
+        state.body = Panel({ title: 'page error', children: h('pre', { class: 'fd-pre fd-page-error' }, state.error) });
     }
     state.ts = new Date().toLocaleTimeString();
     applyDiff(root, view());
