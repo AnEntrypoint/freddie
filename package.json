@@ -27,7 +27,7 @@
     "xstate": "^5.31.0",
     "zod": "^4.0.0",
     "anentrypoint-design": "^0.0.65",
-    "acptoapi": "file:../acptoapi"
+    "acptoapi": "^1.0.40"
   },
   "optionalDependencies": {
     "@libsql/darwin-arm64": "0.3.19",
