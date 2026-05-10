@@ -12,7 +12,8 @@ async function initDb() {
         CREATE TABLE IF NOT EXISTS sessions (
             id TEXT PRIMARY KEY,
             platform TEXT, user_id TEXT, chat_id TEXT, thread_id TEXT,
-            title TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, model TEXT
+            title TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, model TEXT,
+            cwd TEXT, skill TEXT
         );
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,6 +23,11 @@ async function initDb() {
         );
         CREATE INDEX IF NOT EXISTS idx_msg_session ON messages(session_id, ts);
     `)
+
+    // migrate: add cwd and skill columns if absent
+    for (const col of ['cwd', 'skill']) {
+        try { await d.exec(`ALTER TABLE sessions ADD COLUMN ${col} TEXT`) } catch {}
+    }
 
     // libsql supports FTS5 natively; create FTS virtual table
     try {
@@ -38,12 +44,12 @@ async function db() {
     return await initDb()
 }
 
-export async function createSession({ platform = 'cli', userId = null, chatId = null, threadId = null, title = null, model = null } = {}) {
+export async function createSession({ platform = 'cli', userId = null, chatId = null, threadId = null, title = null, model = null, cwd = null, skill = null } = {}) {
     const d = await db()
     const id = randomUUID()
     const now = Date.now()
-    await d.prepare(`INSERT INTO sessions (id, platform, user_id, chat_id, thread_id, title, created_at, updated_at, model) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-        .run(id, platform, userId, chatId, threadId, title, now, now, model)
+    await d.prepare(`INSERT INTO sessions (id, platform, user_id, chat_id, thread_id, title, created_at, updated_at, model, cwd, skill) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .run(id, platform, userId, chatId, threadId, title, now, now, model, cwd, skill)
     return id
 }
 
@@ -64,7 +70,7 @@ export async function getMessages(sessionId) {
 
 export async function listSessions(limit = 50) {
     const d = await db()
-    return await d.prepare(`SELECT id, platform, title, created_at, updated_at, model FROM sessions ORDER BY updated_at DESC LIMIT ?`).all(limit)
+    return await d.prepare(`SELECT id, platform, title, created_at, updated_at, model, cwd, skill FROM sessions ORDER BY updated_at DESC LIMIT ?`).all(limit)
 }
 
 export async function search(query, limit = 20) {
