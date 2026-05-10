@@ -8,6 +8,14 @@ if (p.dependencies && p.dependencies['anentrypoint-design'] && p.dependencies['a
     delete p.dependencies['anentrypoint-design']
 }
 
+// Replace acptoapi file: dep with the published npm version
+if (p.dependencies && p.dependencies['acptoapi'] && p.dependencies['acptoapi'].startsWith('file:')) {
+    let v = '0.0.0'
+    try { v = execSync('npm view acptoapi version', { encoding: 'utf8' }).trim() } catch {}
+    p.dependencies['acptoapi'] = '^' + v
+    console.log('Pinned acptoapi to', p.dependencies['acptoapi'])
+}
+
 let published = '0.0.0'
 try {
     published = execSync('npm view freddie version', { encoding: 'utf8' }).trim()
