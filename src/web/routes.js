@@ -193,12 +193,38 @@ export const PAGES = {
         const cfg = typeof h0.pi.config?.load === 'function' ? await h0.pi.config.load() : {};
         const agent = cfg.agent || {};
         const providers = await fetch('/api/providers').then(r => r.json()).catch(() => []);
+        const configured = providers.filter(p => p.configured);
+        const probeState = window.__fd_probeState = window.__fd_probeState || {};
+        async function probeAll() {
+            await Promise.allSettled(configured.map(async p => {
+                probeState[p.name] = 'loading';
+                try {
+                    const r = await fetch('/api/providers/' + p.name + '/probe', { method: 'POST' }).then(x => x.json());
+                    probeState[p.name] = r.models || r.error || '?';
+                } catch (e) { probeState[p.name] = 'error: ' + e.message; }
+            }));
+            if (typeof window.__fd_nav === 'function') window.__fd_nav('models');
+        }
+        const modelPanels = configured.map(p => {
+            const cached = p.models;
+            const err = p.modelsError;
+            const loading = probeState[p.name] === 'loading';
+            const probed = Array.isArray(probeState[p.name]) ? probeState[p.name] : null;
+            const models = probed || cached;
+            const children = loading
+                ? h('span', {}, 'probing…')
+                : models && models.length > 0
+                    ? Table({ headers: ['model id'], rows: models.map(m => [m]) })
+                    : h('span', { class: 'fd-muted' }, err ? ('error: ' + err) : 'not probed — click "probe all"');
+            return Panel({ title: p.name + (p.available ? ' ●' : ' ○'), children });
+        });
         return [
-            Kpi({ items: [[agent.provider || '—', 'provider'], [agent.model || '—', 'model']] }),
-            Panel({ title: 'active model', children: Receipt({ rows: [['provider', agent.provider || '(unset)'], ['model', agent.model || '(unset)'], ['max_tokens', String(agent.max_tokens || '—')]] }) }),
-            Panel({ title: 'change model', children: Form({ fields: [{ name: 'provider', placeholder: 'provider', value: agent.provider || '' }, { name: 'model', placeholder: 'model id', value: agent.model || '' }], submit: 'update',
+            Kpi({ items: [[configured.length, 'configured'], [providers.filter(p => p.available).length, 'available']] }),
+            Panel({ title: 'change active model', children: Form({ fields: [{ name: 'provider', placeholder: 'provider', value: agent.provider || '' }, { name: 'model', placeholder: 'model id', value: agent.model || '' }], submit: 'update',
                 onSubmit: async ev => { await h0.pi.config.saveValue('agent.provider', ev.target.elements.provider.value); await h0.pi.config.saveValue('agent.model', ev.target.elements.model.value); } }) }),
-            Panel({ title: 'availability', children: h('div', { class: 'fd-chips' }, ...providers.map(p => Chip({ tone: p.configured ? (p.available ? 'ok' : 'warn') : 'miss', children: p.name + (p.configured ? (p.available ? ' ●' : ' ○') : ' ·') }))) }),
+            Panel({ title: 'providers', right: h('button', { class: 'btn-primary', onclick: ev => { ev.preventDefault(); probeAll(); } }, 'probe all'),
+                children: h('div', { class: 'fd-chips' }, ...providers.map(p => Chip({ tone: p.configured ? (p.available ? 'ok' : 'warn') : 'miss', children: p.name + (p.configured ? (p.available ? ' ●' : ' ○') : ' ·') }))) }),
+            ...modelPanels,
         ];
     },
     async cron(h0) {

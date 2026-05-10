@@ -1,9 +1,12 @@
+import { createRequire } from 'module'
 import { listAllProfiles } from '../../src/commands/profile.js'
 import { COMMAND_REGISTRY } from '../../src/commands/registry.js'
 import { getFreddieHome } from '../../src/home.js'
 import { PROVIDER_KEYS, DEFAULTS } from '../../src/agent/llm_resolver.js'
 import { getStatus } from '../../src/agent/model-sampler.js'
 import { resolveKey } from '../../src/agent/credential_sources.js'
+const _require = createRequire(import.meta.url)
+const { probeModels, getCachedModels } = _require('acptoapi')
 export default {
     name: 'gui-profiles-commands-health', surfaces: 'gui',
     register({ gui }) {
@@ -18,9 +21,17 @@ export default {
                 const configured = !!(resolved.value || (envKey && process.env[envKey]))
                 const s = status.find(x => x.provider === name)
                 const available = configured && (s ? s.ok !== false : true)
-                return { name, configured, available, defaultModel: DEFAULTS[name] || '' }
+                const cached = getCachedModels(name)
+                return { name, configured, available, defaultModel: DEFAULTS[name] || '', models: cached?.models || null, modelsError: cached?.error || null }
             }))
             res.json(providers)
+        })
+        gui.route('POST', '/api/providers/:name/probe', async (req, res) => {
+            const { name } = req.params
+            const resolved = await resolveKey(name).catch(() => ({ value: null }))
+            if (!resolved.value) return res.status(400).json({ error: 'no key' })
+            const result = await probeModels(name, resolved.value)
+            res.json(result)
         })
     },
 }
