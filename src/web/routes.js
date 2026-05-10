@@ -87,7 +87,6 @@ export const PAGES = {
             cs.busy = false;
             renderChatMessages(getMsgs(), cs.messages);
         };
-        const recentPaths = getRecentPaths();
         const byCat = skills.reduce((a, s) => { const c = s.category || 'other'; (a[c] = a[c] || []).push(s); return a; }, {});
         setTimeout(() => renderChatMessages(getMsgs(), cs.messages), 50);
         return [
@@ -95,10 +94,9 @@ export const PAGES = {
                 title: 'chat',
                 right: h('button', { class: 'btn-primary', onclick: ev => { ev.preventDefault(); newSession(); } }, '+ new'),
                 children: [
-                    h('datalist', { id: 'fd-cwd-list' }, ...recentPaths.map(p => h('option', { value: p }))),
                     h('form', { class: 'row-form', onsubmit: sendChat },
                         h('label', { class: 'fd-label' }, 'WORKING DIRECTORY'),
-                        h('input', { name: 'cwd', type: 'text', placeholder: 'e.g. C:/dev/myproject', value: cs.cwd, list: 'fd-cwd-list', oninput: ev => { cs.cwd = ev.target.value; } }),
+                        h('input', { name: 'cwd', type: 'text', placeholder: 'e.g. C:/dev/myproject', value: cs.cwd, oninput: ev => { cs.cwd = ev.target.value; } }),
                         h('div', { class: 'fd-row' },
                             h('div', { class: 'fd-col' },
                                 h('label', { class: 'fd-label' }, 'SKILL'),

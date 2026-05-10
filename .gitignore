@@ -21,9 +21,6 @@ dist
 .gm/prd.paused.yml
 .gm/rs-learn.db-shm
 .gm/rs-learn.db-wal
-.gm/exec-spool.in
-.gm/exec-spool.out
-.gm/exec-spool.started
 # tracked: .gm/rs-learn.db, .gm/code-search/, AGENTS.md, .gm/prd.yml
 # <<< gm managed
 
@@ -38,3 +35,9 @@ dist
 .codeinsight
 .gm/rs-learn.db-shm
 .gm/rs-learn.db-wal
+.gm/*.mjs
+.gm/*.png
+.gm/exec-spool/
+_pw_test.js
+chat_page.png
+emperor-penguin.md
