@@ -4,13 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Freddie Dashboard</title>
+<link rel="stylesheet" href="/vendor/anentrypoint-design/247420.css">
 <script type="importmap">
 { "imports": { "anentrypoint-design": "/vendor/anentrypoint-design/247420.js" } }
 </script>
 <style>
-/* Freddie-only overrides — all generic primitives ship via SDK installStyles() */
-html, body { margin: 0; padding: 0; min-height: 100vh; }
-#app { padding: 16px 20px; box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+#app { height: 100%; }
+.fd-label { font-size: 0.75em; opacity: 0.7; letter-spacing: 0.05em; display: block; margin-bottom: 2px; }
+.fd-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.fd-row-send { align-items: flex-end; }
+.fd-col { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
+.fd-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 4px; }
+.fd-chip-wrap { cursor: pointer; }
+.fd-chat-thread { max-height: 420px; overflow-y: auto; border-radius: 10px; padding: 4px; margin-top: 8px; background: rgba(0,0,0,0.08); }
+.fd-msg { padding: 6px 10px; border-bottom: 1px solid rgba(128,128,128,0.1); white-space: pre-wrap; word-break: break-word; }
+.fd-msg-assistant { opacity: 0.9; }
+.fd-tool-call { margin: 4px 0; padding: 4px 8px; background: rgba(0,0,0,0.12); border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
+.fd-tool-call summary { cursor: pointer; padding: 2px 0; }
+.fd-tool-body { margin: 4px 0 0; white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow-y: auto; }
+.fd-pre { white-space: pre-wrap; word-break: break-all; font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
+.row-form { display: flex; flex-direction: column; gap: 8px; }
 </style>
 </head>
 <body data-theme="dark">
