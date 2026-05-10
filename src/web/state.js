@@ -51,7 +51,7 @@ export async function fetchHost() {
             health: () => health,
             config: {
                 load: () => j('/api/config').catch(() => ({})),
-                saveValue: (path, value) => post('/api/config', { path, value }),
+                saveValue: (key, value) => post('/api/config', { key, value }),
             },
             chat: { send: text => post('/api/chat', { text }) },
             batch: { run: (prompts, conc) => post('/api/batch', { prompts, concurrency: conc }) },
