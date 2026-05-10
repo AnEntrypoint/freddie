@@ -2,6 +2,7 @@ import { createRequire } from 'module'
 import { callLLM as acptoapiCall, isReachable as acptoapiReachable } from './acptoapi-bridge.js'
 import { isAvailable, markFailed, getStatus } from './model-sampler.js'
 import { getConfigValue } from '../config.js'
+import { resolveKey } from './credential_sources.js'
 
 const _require = createRequire(import.meta.url)
 const sdk = _require('acptoapi')
@@ -29,7 +30,8 @@ async function directOpenAICompatChat(url, apiKey, model, messages, tools) {
 async function sdkChat(provider, model, input) {
     const { resolveModel } = sdk
     const r = resolveModel(`${provider}/${model}`)
-    const apiKey = r.env ? process.env[r.env] : undefined
+    const resolved = await resolveKey(provider).catch(() => ({ value: null }))
+    const apiKey = resolved.value || (r.env ? process.env[r.env] : undefined)
     const openaiTools = toOpenAITools(input.tools)
     let result
     if (r.provider === 'openai-compat') {
@@ -48,9 +50,9 @@ async function sdkChat(provider, model, input) {
 
 function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : (s || {}) } catch { return {} } }
 
-function hasKey(provider) {
-    const envKey = PROVIDER_KEYS[provider]
-    return !!(envKey && process.env[envKey])
+async function hasKey(provider) {
+    const resolved = await resolveKey(provider).catch(() => ({ value: null }))
+    return !!resolved.value
 }
 
 function defaultModel(provider) {
@@ -61,7 +63,7 @@ export function resolveCallLLM({ provider, model } = {}) {
     return async (input) => {
         const explicitProvider = provider || input.provider
 
-        if (explicitProvider && hasKey(explicitProvider)) {
+        if (explicitProvider && await hasKey(explicitProvider)) {
             const m = model || input.model || defaultModel(explicitProvider)
             if (!isAvailable(explicitProvider)) {
                 const status = getStatus().map(s => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(', ')
@@ -85,7 +87,7 @@ export function resolveCallLLM({ provider, model } = {}) {
             for (const pref of preference) {
                 const p = pref.provider
                 const m = pref.model || model || input.model || defaultModel(p)
-                if (!hasKey(p)) continue
+                if (!await hasKey(p)) continue
                 if (!isAvailable(p)) continue
                 try {
                     return await sdkChat(p, m, input)
@@ -101,10 +103,10 @@ export function resolveCallLLM({ provider, model } = {}) {
         }
 
         const links = sdk.buildAutoChain(model || input.model)
-        const availableLinks = links.filter(l => {
+        const availableLinks = (await Promise.all(links.map(async l => {
             const prefix = l.model.split('/')[0]
-            return hasKey(prefix) && isAvailable(prefix)
-        })
+            return (await hasKey(prefix)) && isAvailable(prefix) ? l : null
+        }))).filter(Boolean)
 
         for (const link of availableLinks) {
             const prefix = link.model.split('/')[0]
