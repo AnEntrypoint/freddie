@@ -1,6 +1,9 @@
 ## [Unreleased]
 
 ### Changed
+- `acptoapi` dep switched to `file:../acptoapi` — always tracks local SDK, same pattern as `anentrypoint-design`
+- `src/agent/model-sampler.js` is now a thin re-export shim; sampler logic lives in acptoapi `lib/sampler.js`
+- `src/agent/llm_resolver.js` simplified to 95 lines: `PROVIDER_KEYS`/`DEFAULTS` imported from acptoapi, `OPENAI_COMPAT` block removed, auto-scan uses acptoapi `buildAutoChain()`, preference failover calls acptoapi `chat()`
 - `resolveCallLLM`: acptoapi is now priority 1 (before direct API keys and preference list); direct-key providers remain as fallback when acptoapi is unreachable
 
 ### Added
