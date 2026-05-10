@@ -13,6 +13,8 @@
 - `resolveCallLLM`: acptoapi is now priority 1 (before direct API keys and preference list); direct-key providers remain as fallback when acptoapi is unreachable
 
 ### Added
+- Per-provider model list probing: `POST /api/providers/:name/probe` fetches live model list; `/api/providers` includes cached `models`/`modelsError`; models page shows model list per provider with probe-all button
+- `hasKey()` fixed to use `resolveKey()` 4-source chain (env → auth-store → freddie.env → acptoapi.env); previously only checked `process.env`, causing keys stored via auth-store to be invisible to the LLM resolver
 - Expanded LLM provider support: cerebras, google, mistral, codestral, cloudflare-workers-ai, xai, zai, opencode, nvidia, sambanova, qwen (15 providers total)
 - `src/agent/model-sampler.js`: background availability sampler with exponential backoff (30s→60s→120s→240s→480s cap)
 - `agent.model_preference` config key (ordered list of {provider, model} objects) for user-defined failover priority
