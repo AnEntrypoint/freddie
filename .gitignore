@@ -44,6 +44,7 @@ src/web/vendor/
 .gm/*.mjs
 .gm/*.png
 .gm/exec-spool/
+.gm/residual-check-fired
 _pw_test.js
 *.png
 emperor-penguin.md
