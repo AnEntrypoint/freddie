@@ -11,7 +11,12 @@ root.textContent = 'loading…';
 const host0 = await fetchHost();
 root.innerHTML = '';
 
-const state = { active: 'home', ts: new Date().toLocaleTimeString(), body: null, error: null };
+function routeFromHash() {
+    const m = String(location.hash || '').match(/^#(?:fd-)?([a-z]+)/i);
+    const p = m && m[1];
+    return ROUTES.find(r => r.path === p) ? p : 'home';
+}
+const state = { active: routeFromHash(), ts: new Date().toLocaleTimeString(), body: null, error: null };
 
 function buildSide() {
     return Side({ sections: [{ group: 'freddie', items: ROUTES.map(r => ({
@@ -36,8 +41,17 @@ function view() {
 
 function rerender() { applyDiff(root, view()); }
 
-function setActive(p) { state.active = p; state.body = null; rerender(); loadActive(); }
-if (typeof window !== 'undefined') window.__fd_nav = setActive;
+function setActive(p) {
+    if (state.active === p) return;
+    state.active = p; state.body = null;
+    const want = '#fd-' + p;
+    if (location.hash !== want) { try { history.replaceState(null, '', want); } catch { location.hash = want; } }
+    rerender(); loadActive();
+}
+if (typeof window !== 'undefined') {
+    window.__fd_nav = setActive;
+    window.addEventListener('hashchange', () => setActive(routeFromHash()));
+}
 
 async function loadActive() {
     const active = state.active;
