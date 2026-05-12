@@ -52,3 +52,15 @@ src/web/vendor/
 _pw_test.js
 *.png
 emperor-penguin.md
+.gm/agent-run.out
+.gm/agent-run.err
+.gm/dashboard.out
+.gm/dashboard.err
+.gm/opencode-serve.out
+.gm/opencode-serve.err
+.gm/thebird-serve.out
+.gm/thebird-serve.err
+.gm/handoff.md
+.gm/mutables.yml
+.gm/browser-witness.json
+.gm/llm-validation.json

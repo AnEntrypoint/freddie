@@ -1,0 +1,15 @@
+{
+  "anentrypoint_mounted": true,
+  "mounted_evidence": {
+    "ds_247420_elements": 0,
+    "wm_windows": 2,
+    "design_css_var_present": false,
+    "font_stack": "Nunito, Inter, system-ui, sans-serif"
+  },
+  "page_title": "thebird / web os",
+  "freddie_call": {
+    "status": 200,
+    "body_excerpt": "{\"home\":[{\"file\":\"C:\\\\dev\\\\freddie\\\\skills\\\\creative\\\\architecture-diagram\\\\SKILL.md\",\"name\":\"architecture-diagram\",\"description\":\"\",\"body\":\"---\\r\\nname: architecture-diagram\\r\\ndescription: Generate "
+  },
+  "pageErrors": []
+}
