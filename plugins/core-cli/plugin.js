@@ -56,12 +56,12 @@ export default {
             try { ({ callLLM } = await import('../../src/agent/pi-bridge.js')) } catch {}
             await interactive({ callLLM })
         } })
-        C({ name: 'exec', description: 'Run a single prompt through the agent and exit', options: [{ flag: '--prompt <prompt>', required: true }, { flag: '--model <model>', default: '' }, { flag: '--provider <provider>', default: '' }, { flag: '--skill <skill>', default: '' }, { flag: '--cwd <cwd>', default: '' }, { flag: '--timeout <ms>', default: '60000' }], action: async (opts) => {
+        C({ name: 'exec', description: 'Run a single prompt through the agent and exit', options: [{ flag: '--prompt <prompt>', required: true }, { flag: '--model <model>', default: '' }, { flag: '--provider <provider>', default: '' }, { flag: '--skill <skill>', default: '' }, { flag: '--cwd <cwd>', default: '' }, { flag: '--timeout <ms>', default: '60000' }, { flag: '--witness <path>', default: '' }], action: async (opts) => {
             const { runTurn } = await import('../../src/agent/machine.js')
             let provider = opts.provider || undefined
             let model = opts.model || undefined
             if (!provider && model && /^[a-z][a-z0-9-]*\//.test(model)) { provider = model.split('/')[0]; model = model.slice(provider.length + 1) }
-            const out = await runTurn({ prompt: opts.prompt, provider, model, skill: opts.skill || undefined, cwd: opts.cwd || undefined, timeoutMs: Number(opts.timeout) })
+            const out = await runTurn({ prompt: opts.prompt, provider, model, skill: opts.skill || undefined, cwd: opts.cwd || undefined, timeoutMs: Number(opts.timeout), witnessPath: opts.witness || undefined })
             if (out.error) { console.error('error:', out.error); process.exit(1) }
             console.log(out.result || out.messages?.at(-1)?.content || '')
             process.exit(0)
