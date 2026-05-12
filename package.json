@@ -23,7 +23,7 @@
     "floosie": "^0.6.14",
     "gm-cc": "^2.0.727",
     "js-yaml": "^4.1.0",
-    "plugsdk": "^1.0.15",
+    "plugsdk": "^1.0.16",
     "xstate": "^5.31.0",
     "zod": "^4.0.0",
     "anentrypoint-design": "^0.0.94",
