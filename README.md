@@ -136,6 +136,8 @@ v0.1.1 complete and witnessed: 12/12 named tests passing, dashboard + website bo
 
 **LLM providers**: anthropic, openai, groq, openrouter, cerebras, google, mistral, codestral, cloudflare-workers-ai, xai, zai, opencode, nvidia, sambanova, qwen — plus acptoapi localhost bridge. Set `agent.model_preference` in `~/.freddie/config.yaml` for ordered failover with exponential backoff.
 
+**Model availability matrix**: `scripts/build-model-availability.js` cross-probes every (provider × model × access_mode) cell across 7 modes (`direct_api`, `acptoapi_passthrough`, `freddie_v1`, `kilo_acp`, `opencode_acp`, `claude_cli`, `freddie_agent_loop`). Sampler-aware on both `probeDirect` and `probeAgentLoop` — failures feed acptoapi's per-provider exponential backoff (5-step 30s→480s). Output: `.gm/model-availability.json` with `{timestamp, config, daemons, providers[].models[].modes{}, sampler, summary}`. Three dashboard endpoints in `plugins/gui-models-discover/plugin.js`: `GET /api/models/availability` (full JSON or 404), `GET /api/models/availability/summary` (timestamp+daemons+summary only), `POST /api/models/availability/rebuild` (202 background spawn). See AGENTS.md for full schema + skipped-reason taxonomy.
+
 What's not in the box yet (residual, see AGENTS.md): real credentials per platform / memory backend; modal / daytona / singularity environments; bedrock / codex provider adapters.
 
 ## Testing
