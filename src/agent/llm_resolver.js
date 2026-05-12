@@ -115,7 +115,9 @@ function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : 
 async function hasKey(provider) {
     if (provider === 'claude-cli' || provider === 'kilo' || provider === 'opencode') return true
     const resolved = await resolveKey(provider).catch(() => ({ value: null }))
-    return !!resolved.value
+    if (!resolved.value) return false
+    if (provider === 'cloudflare' && !process.env.CLOUDFLARE_ACCOUNT_ID) return false
+    return true
 }
 
 function defaultModel(provider) {
