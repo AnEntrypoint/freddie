@@ -85,6 +85,35 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
     })
 }
 
+async function writeTrajectory(out, { prompt, provider, model, skill, cwd }) {
+    try {
+        const { getConfigValue } = await import('../config.js')
+        if (!getConfigValue('agent.save_trajectories', false)) return
+        const { getFreddieHome } = await import('../home.js')
+        const fs = await import('node:fs')
+        const path = await import('node:path')
+        const dir = path.join(getFreddieHome(), 'trajectories')
+        fs.mkdirSync(dir, { recursive: true })
+        const states = []
+        const toolCalls = []
+        for (const m of out.messages || []) {
+            if (m.role === 'assistant' && m.tool_calls?.length) { states.push('EXECUTE'); for (const tc of m.tool_calls) toolCalls.push({ name: tc.name || tc.function?.name, arguments: tc.arguments || tc.function?.arguments || {} }) }
+            else if (m.role === 'user') states.push('PLAN')
+            else if (m.role === 'assistant') states.push('COMPLETE')
+            else if (m.role === 'tool') states.push('VERIFY')
+        }
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').replace(/Z$/, '')
+        const slug = (prompt || 'turn').slice(0, 40).replace(/[^a-zA-Z0-9-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase()
+        const file = path.join(dir, `${ts}-${slug}.json`)
+        fs.writeFileSync(file, JSON.stringify({
+            ts, prompt, provider, model, skill, cwd,
+            iterations: out.iterations, result: out.result, error: out.error,
+            state_transitions: states, tool_calls: toolCalls,
+            messages: out.messages,
+        }, null, 2))
+    } catch (_) {}
+}
+
 export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill } = {}) {
     const initMessages = [...messages]
     const systemParts = []
@@ -104,7 +133,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
         actor.subscribe(snap => {
             if (snap.status === 'done') {
                 clearTimeout(t)
-                resolve(snap.output)
+                writeTrajectory(snap.output, { prompt, provider, model, skill, cwd }).finally(() => resolve(snap.output))
             }
         })
     })
