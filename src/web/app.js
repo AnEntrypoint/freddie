@@ -16,7 +16,17 @@ function routeFromHash() {
     const p = m && m[1];
     return ROUTES.find(r => r.path === p) ? p : 'home';
 }
-const state = { active: routeFromHash(), ts: new Date().toLocaleTimeString(), body: null, error: null };
+const state = { active: routeFromHash(), ts: new Date().toLocaleTimeString(), body: null, error: null, sampler: { ok: 0, bad: 0, total: 0 } };
+
+async function refreshSampler() {
+    try {
+        const j = await fetch('/api/models/sampler').then(r => r.json());
+        const ents = Object.values(j.status || {});
+        state.sampler = { total: ents.length, ok: ents.filter(s => s && s.available !== false).length, bad: ents.filter(s => s && s.available === false).length };
+    } catch { state.sampler = { ok: 0, bad: 0, total: 0 }; }
+}
+await refreshSampler();
+setInterval(() => { refreshSampler().then(rerender); }, 15000);
 
 function buildSide() {
     return Side({ sections: [{ group: 'freddie', items: ROUTES.map(r => ({
@@ -30,8 +40,11 @@ function view() {
     const route = ROUTES.find(r => r.path === state.active) || ROUTES[0];
     const body = state.body || EmptyState({ text: 'loading…', glyph: '◌' });
     const main = h('div', { key: state.active, class: 'fd-page' }, ...(Array.isArray(body) ? body : [body]));
+    const samplerPill = state.sampler.total > 0
+        ? Chip({ tone: state.sampler.bad > 0 ? 'miss' : 'ok', children: 'sampler ' + state.sampler.ok + '/' + state.sampler.total })
+        : Chip({ tone: 'neutral', children: 'sampler —' });
     return AppShell({
-        topbar: Topbar({ brand: 'freddie', leaf: 'dashboard', items: [], active: '' }),
+        topbar: Topbar({ brand: 'freddie', leaf: samplerPill, items: [], active: '' }),
         crumb: Crumb({ trail: ['freddie'], leaf: route.path, right: state.error ? Chip({ tone: 'miss', children: 'error' }) : Chip({ tone: 'ok', children: 'live' }) }),
         side: buildSide(),
         main,
@@ -75,4 +88,12 @@ applyDiff(root, view());
 loadActive();
 
 if (!window.__debug) window.__debug = {};
-window.__debug.dashboard = () => ({ booted: true, tools: host0.pi.tools.size, skills: host0.pi.skills.size, active: state.active });
+window.__debug.dashboard = () => ({ booted: true, tools: host0.pi.tools.size, skills: host0.pi.skills.size, active: state.active, sampler: state.sampler });
+
+window.addEventListener('keydown', ev => {
+    if ((ev.metaKey || ev.ctrlKey) && (ev.key === 'k' || ev.key === 'K')) {
+        ev.preventDefault();
+        if (state.active !== 'chat') setActive('chat');
+        setTimeout(() => { const ta = root.querySelector('textarea[name="prompt"]'); if (ta) ta.focus(); }, 100);
+    }
+});
