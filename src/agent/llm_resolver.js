@@ -49,7 +49,10 @@ export function resolveCallLLM({ provider, model } = {}) {
         try {
             const isSimple = typeof m === 'string' && !m.includes(',') && !/^queue\//.test(m)
             if (isSimple && await bridgeReachable()) return await bridgeCall({ ...input, model: m })
-            const r = await sdk.chat({ model: m, messages: toMsgs(input.messages), tools: toTools(input.tools), queuesMap: getConfigValue('agent.model_queues', {}) || {}, matrixSource: process.env.FREDDIE_MATRIX_URL || MATRIX_FILE, onFallback: input.onFallback, output: 'openai' })
+            const opts = { model: m, messages: toMsgs(input.messages), tools: toTools(input.tools), onFallback: input.onFallback, output: 'openai' }
+            if (/^queue\//.test(m)) opts.queuesMap = getConfigValue('agent.model_queues', {}) || {}
+            if (m.includes(',') || /^queue\//.test(m)) opts.matrixSource = process.env.FREDDIE_MATRIX_URL || MATRIX_FILE
+            const r = await sdk.chat(opts)
             return adapt(r)
         } catch (e) {
             if (/queue not found or empty/i.test(e.message)) throw e
