@@ -8,6 +8,10 @@
 - `scripts/validate-llm-providers.js`: now invokes the matrix builder by default. `--single-shot` retains the legacy one-model-per-provider behavior; `--with-single-shot` runs both.
 - `test.js`: asserts both `scripts/build-model-availability.js` exists and the `/api/models/availability` endpoint returns 200|404 with valid schema when present.
 
+### Fixed
+- `scripts/build-model-availability.js`: `probeAgentLoop` now feeds acptoapi sampler (`markOk`/`markFailed`) symmetric with `probeDirect`, closing the asymmetric-sampler-state gap where agent-loop failures bypassed per-provider backoff. Witnessed 2026-05-13: test.js 12/12 green.
+- `AGENTS.md`: added "Model availability matrix" section documenting the JSON schema, 7 modes, 6 skipped-reasons, and 3 dashboard endpoints (`/availability`, `/availability/summary`, `/availability/rebuild`).
+
 ### Refactored
 - `src/host/host.js`: createHost split from 111L → 24L body. Helper factories (`makePi`, `makeGui`, `makeCcHooks`, `makeHooksRegistry`, `makeCcLoaders`, plus `reg`/`guard`/`scopedCfg`/`nullStore`) extracted to new `src/host/host_helpers.js`. host.js drops from 197L → 64L, host_helpers.js is 152L. Both well under the 200L hard cap. Witnessed: test.js 12/12 green, plugins>=100, platforms>=18, memory>=8, surface guard + cycle errors still throw.
 - `test.js`: trimmed from 202L → 199L (within the 200L cap) by collapsing redundant blank lines and joining the final two control statements. Every assertion preserved. Witnessed 12/12 green.
