@@ -27,7 +27,7 @@
     "xstate": "^5.31.0",
     "zod": "^4.0.0",
     "anentrypoint-design": "^0.0.94",
-    "acptoapi": "^1.0.52"
+    "acptoapi": "^1.0.55"
   },
   "optionalDependencies": {
     "@libsql/darwin-arm64": "0.3.19",
@@ -40,6 +40,9 @@
   },
   "engines": {
     "node": ">=20.6.0"
+  },
+  "overrides": {
+    "fast-xml-builder": "^1.1.7"
   },
   "files": [
     "bin/",
