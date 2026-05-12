@@ -53,6 +53,15 @@ async function probeOne(provider, model) {
 
 async function main() {
     loadEnv()
+    const argv = process.argv.slice(2)
+    const allModes = !argv.includes('--single-shot')
+    if (allModes) {
+        const { buildMatrix } = await import('./build-model-availability.js')
+        const matrix = await buildMatrix()
+        console.log('artifact:', JSON_PATH.replace(/llm-validation\.json$/, 'model-availability.json'))
+        console.log('summary:', JSON.stringify(matrix.summary))
+        if (argv.includes('--single-shot-also') === false && !argv.includes('--with-single-shot')) return
+    }
     const inv = envKeyToProvider()
     const envKeys = Object.keys(loadEnv())
     const seen = new Set()

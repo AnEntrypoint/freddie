@@ -1,0 +1,692 @@
+{
+  "timestamp": "2026-05-12T22:01:25.474Z",
+  "config": {
+    "MAX_MODELS_PER_PROVIDER": 2,
+    "PER_CELL_TIMEOUT_MS": 12000,
+    "modes": [
+      "direct_api",
+      "acptoapi_passthrough",
+      "freddie_v1",
+      "kilo_acp",
+      "opencode_acp",
+      "claude_cli",
+      "freddie_agent_loop"
+    ]
+  },
+  "daemons": {
+    "acptoapi_passthrough": true,
+    "freddie_v1": false,
+    "kilo_acp": false,
+    "opencode_acp": false,
+    "claude_cli": true
+  },
+  "providers": [
+    {
+      "id": "anthropic",
+      "key_present": false,
+      "discovery_error": "no_key",
+      "models": []
+    },
+    {
+      "id": "cerebras",
+      "key_present": true,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "llama3.1-8b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 414,
+              "error": "402 {\"message\":\"Payment required to access this resource. Visit your billing tab.\",\"type\":\"payment_required_error\",\"param\":\"quota\",\"code\":\"payment_required\"}"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 6,
+              "error": "fetch failed"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4790"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "gpt-oss-120b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 3,
+              "error": "fetch failed"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4790"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "claude-cli",
+      "key_present": true,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "claude-haiku-4-5",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": true,
+              "latency_ms": 4179,
+              "excerpt": "REAL_OK"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 3,
+              "error": "fetch failed"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4790"
+            },
+            "claude_cli": {
+              "ok": true,
+              "latency_ms": 5948,
+              "excerpt": "REAL_OK"
+            },
+            "freddie_agent_loop": {
+              "ok": true,
+              "latency_ms": 3689,
+              "iterations": 1,
+              "excerpt": "REAL_OK"
+            }
+          },
+          "usable_in_any_mode": true
+        },
+        {
+          "id": "claude-sonnet-4-6",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": true,
+              "latency_ms": 8597,
+              "excerpt": "REAL_OK"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 4,
+              "error": "fetch failed"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4790"
+            },
+            "claude_cli": {
+              "ok": true,
+              "latency_ms": 4724,
+              "excerpt": "REAL_OK"
+            },
+            "freddie_agent_loop": {
+              "ok": true,
+              "latency_ms": 4994,
+              "iterations": 1,
+              "excerpt": "REAL_OK"
+            }
+          },
+          "usable_in_any_mode": true
+        }
+      ]
+    },
+    {
+      "id": "cloudflare",
+      "key_present": true,
+      "discovery_error": "cloudflare provider requires CLOUDFLARE_ACCOUNT_ID env (token at CLOUDFLARE_API_KEY set); list accounts: curl -H \"Authorization: Bearer $CLOUDFLARE_API_KEY\" https://api.cloudflare.com/client/v4/accounts",
+      "models": []
+    },
+    {
+      "id": "codestral",
+      "key_present": true,
+      "discovery_error": "The operation was aborted due to timeout",
+      "models": []
+    },
+    {
+      "id": "deepseek",
+      "key_present": false,
+      "discovery_error": "no_key",
+      "models": []
+    },
+    {
+      "id": "fireworks",
+      "key_present": false,
+      "discovery_error": "no_key",
+      "models": []
+    },
+    {
+      "id": "gemini",
+      "key_present": false,
+      "discovery_error": "The operation was aborted due to timeout",
+      "models": []
+    },
+    {
+      "id": "groq",
+      "key_present": true,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "openai/gpt-oss-20b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": true,
+              "latency_ms": 587,
+              "excerpt": "REAL_OK"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 2,
+              "error": "fetch failed"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4790"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": true,
+              "latency_ms": 455,
+              "iterations": 1,
+              "excerpt": "REAL_OK"
+            }
+          },
+          "usable_in_any_mode": true
+        },
+        {
+          "id": "canopylabs/orpheus-arabic-saudi",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 378,
+              "error": "400 {\"error\":{\"message\":\"The model `canopylabs/orpheus-arabic-saudi` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.com/playground?model=canopylabs%2Forp"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 3,
+              "error": "fetch failed"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4790"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "kilo",
+      "key_present": true,
+      "discovery_error": "fetch failed",
+      "models": [
+        {
+          "id": "x-ai/grok-code-fast-1:optimized:free",
+          "discovered_via": [
+            "known_fallback"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 22,
+              "error": "fetch failed"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 40,
+              "error": "fetch failed"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4790"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "mistral",
+      "key_present": true,
+      "discovery_error": "The operation was aborted due to timeout",
+      "models": []
+    },
+    {
+      "id": "nvidia",
+      "key_present": true,
+      "discovery_error": "The operation was aborted due to timeout",
+      "models": []
+    },
+    {
+      "id": "ollama",
+      "key_present": true,
+      "discovery_error": "fetch failed",
+      "models": []
+    },
+    {
+      "id": "openai",
+      "key_present": false,
+      "discovery_error": "no_key",
+      "models": []
+    },
+    {
+      "id": "opencode",
+      "key_present": true,
+      "discovery_error": "fetch failed",
+      "models": [
+        {
+          "id": "minimax-m2.5-free",
+          "discovered_via": [
+            "known_fallback"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 24,
+              "error": "fetch failed"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 40,
+              "error": "fetch failed"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4790"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "opencode-zen",
+      "key_present": true,
+      "discovery_error": "The operation was aborted due to timeout",
+      "models": []
+    },
+    {
+      "id": "openrouter",
+      "key_present": true,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "anthropic/claude-opus-4.7-fast",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 508,
+              "error": "402 {\"error\":{\"message\":\"This request requires more credits, or fewer max_tokens. You requested up to 65536 tokens, but can only afford 145. To increase, visit https://openrouter.ai/settings/credits a"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 2,
+              "error": "fetch failed"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4790"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "perceptron/perceptron-mk1",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 2,
+              "error": "fetch failed"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4790"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "perplexity",
+      "key_present": false,
+      "discovery_error": "no_key",
+      "models": []
+    },
+    {
+      "id": "qwen",
+      "key_present": true,
+      "discovery_error": "The operation was aborted due to timeout",
+      "models": []
+    },
+    {
+      "id": "sambanova",
+      "key_present": true,
+      "discovery_error": "The operation was aborted due to timeout",
+      "models": []
+    },
+    {
+      "id": "together",
+      "key_present": false,
+      "discovery_error": "no_key",
+      "models": []
+    },
+    {
+      "id": "xai",
+      "key_present": false,
+      "discovery_error": "no_key",
+      "models": []
+    },
+    {
+      "id": "zai",
+      "key_present": true,
+      "discovery_error": "The operation was aborted due to timeout",
+      "models": []
+    }
+  ],
+  "sampler": [
+    {
+      "provider": "cerebras",
+      "ok": false,
+      "failCount": 2,
+      "nextCheckIn": 28227
+    },
+    {
+      "provider": "claude-cli",
+      "ok": true,
+      "failCount": 0,
+      "nextCheckIn": 0
+    },
+    {
+      "provider": "groq",
+      "ok": false,
+      "failCount": 2,
+      "nextCheckIn": 29237
+    },
+    {
+      "provider": "kilo",
+      "ok": false,
+      "failCount": 2,
+      "nextCheckIn": 27836
+    },
+    {
+      "provider": "opencode",
+      "ok": false,
+      "failCount": 2,
+      "nextCheckIn": 27838
+    },
+    {
+      "provider": "openrouter",
+      "ok": false,
+      "failCount": 2,
+      "nextCheckIn": 28323
+    }
+  ],
+  "summary": {
+    "total_providers": 23,
+    "total_models": 10,
+    "usable_in_any_mode": 3,
+    "per_mode_counts": {
+      "direct_api": {
+        "ok": 3,
+        "fail": 5,
+        "skipped": 2
+      },
+      "acptoapi_passthrough": {
+        "ok": 0,
+        "fail": 10,
+        "skipped": 0
+      },
+      "freddie_v1": {
+        "ok": 0,
+        "fail": 0,
+        "skipped": 10
+      },
+      "kilo_acp": {
+        "ok": 0,
+        "fail": 0,
+        "skipped": 10
+      },
+      "opencode_acp": {
+        "ok": 0,
+        "fail": 0,
+        "skipped": 10
+      },
+      "claude_cli": {
+        "ok": 2,
+        "fail": 0,
+        "skipped": 8
+      },
+      "freddie_agent_loop": {
+        "ok": 3,
+        "fail": 0,
+        "skipped": 7
+      }
+    }
+  }
+}

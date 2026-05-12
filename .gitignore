@@ -64,3 +64,8 @@ emperor-penguin.md
 .gm/mutables.yml
 .gm/browser-witness.json
 .gm/llm-validation.json
+.gm/*.pid
+.gm/acptoapi-sidecar.*
+.gm/llm-validation.*
+.gm/prd.yml
+.codeinsight.digest

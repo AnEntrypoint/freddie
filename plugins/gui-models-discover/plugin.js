@@ -2,6 +2,12 @@ import { discoverAndPersist, listKnownProviders } from '../../src/agent/model-di
 import { PROVIDER_KEYS, DEFAULTS } from '../../src/agent/llm_resolver.js'
 import { getConfigValue, saveConfigValue } from '../../src/config.js'
 import { getStatus } from '../../src/agent/model-sampler.js'
+import fs from 'node:fs'
+import path from 'node:path'
+import { spawn } from 'node:child_process'
+
+const MATRIX_PATH = path.resolve(new URL('.', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'), '..', '..', '.gm', 'model-availability.json')
+let _rebuildInFlight = null
 
 export default {
     name: 'gui-models-discover', surfaces: 'gui',
@@ -28,5 +34,22 @@ export default {
             res.json({ ok: true })
         })
         gui.route('GET', '/api/models/sampler', (_, res) => res.json({ status: getStatus() }))
+        gui.route('GET', '/api/models/availability', (_, res) => {
+            if (!fs.existsSync(MATRIX_PATH)) return res.status(404).json({ error: 'not_found', hint: 'run: node scripts/build-model-availability.js' })
+            try { res.json(JSON.parse(fs.readFileSync(MATRIX_PATH, 'utf8'))) }
+            catch (e) { res.status(500).json({ error: String(e.message || e) }) }
+        })
+        gui.route('GET', '/api/models/availability/summary', (_, res) => {
+            if (!fs.existsSync(MATRIX_PATH)) return res.status(404).json({ error: 'not_found' })
+            try { const j = JSON.parse(fs.readFileSync(MATRIX_PATH, 'utf8')); res.json({ timestamp: j.timestamp, daemons: j.daemons, summary: j.summary }) }
+            catch (e) { res.status(500).json({ error: String(e.message || e) }) }
+        })
+        gui.route('POST', '/api/models/availability/rebuild', (_, res) => {
+            if (_rebuildInFlight && !_rebuildInFlight.killed) return res.status(409).json({ error: 'rebuild_in_progress', pid: _rebuildInFlight.pid })
+            const script = path.resolve(path.dirname(MATRIX_PATH), '..', 'scripts', 'build-model-availability.js')
+            _rebuildInFlight = spawn(process.execPath, [script], { detached: true, stdio: 'ignore', cwd: path.dirname(path.dirname(MATRIX_PATH)) })
+            _rebuildInFlight.unref()
+            res.status(202).json({ ok: true, pid: _rebuildInFlight.pid, jobId: String(Date.now()) })
+        })
     },
 }

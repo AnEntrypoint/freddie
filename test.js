@@ -188,7 +188,7 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     const cj = await (await P('api/cron', { cron: '*/5 * * * *', prompt: 'tick' })).json(); assert.ok(cj.id)
     assert.equal((await fetch(dash.url + 'api/cron/' + cj.id, { method: 'DELETE' })).status, 200); assert.equal((await P('api/config', { key: 'display.skin', value: 'mono' })).status, 200); assert.equal((await P('api/batch', { prompts: [] })).status, 400)
     const pp = path.join('..', 'penguins'); if (fs.existsSync(pp) && fs.existsSync(path.join(pp, 'species.json'))) { assert.ok(JSON.parse(fs.readFileSync(path.join(pp, 'species.json'), 'utf8')).length === 18, 'penguins: 18 species'); assert.ok(JSON.parse(fs.readFileSync(path.join(pp, 'facts.json'), 'utf8')).length >= 60, 'penguins: 60+ facts') }
-    assert.ok(fs.existsSync('scripts/validate-llm-providers.js'), 'cli-validation script exists')
+    assert.ok(fs.existsSync('scripts/validate-llm-providers.js') && fs.existsSync('scripts/build-model-availability.js'), 'validator + matrix-builder scripts exist'); { const av = await G('api/models/availability'); assert.ok([200,404].includes(av.status), 'availability endpoint reachable'); if (av.status === 200) { const j = await av.json(); assert.ok(Array.isArray(j.providers) && j.summary && typeof j.summary.total_models === 'number', 'matrix schema') } }
     if (process.env.LIVE_LLM === '1') { const { spawnSync } = await import('node:child_process'); const r = spawnSync(process.execPath, ['scripts/validate-llm-providers.js'], { encoding: 'utf8', timeout: 180000 }); assert.ok(/REAL_OK/.test(r.stdout || ''), 'LIVE_LLM: at least 1 provider returned REAL_OK') }
     await dash.stop()
 })
