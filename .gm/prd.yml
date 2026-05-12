@@ -1,0 +1,246 @@
+- id: witness-cli-backends
+  subject: Witness shape of claude-client.js, kilo --acp, opencode acp endpoint
+  status: pending
+  description: Resolve mutables claude-client-shape, opencode-cli-broken-local, kilo-acp-backend-live, cli-clients-as-llm-providers, anentrypoint-design-chat-shape, gui-chat-model-picker-current. Read source files and probe live endpoints.
+  effort: small
+  category: infra
+  route_family: grounding
+  load: 0.6
+  failure_modes: [grounding/unwitnessed-assumption]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: []
+  mutables: [claude-client-shape, opencode-cli-broken-local, kilo-acp-backend-live, cli-clients-as-llm-providers, anentrypoint-design-chat-shape, gui-chat-model-picker-current]
+  acceptance:
+    - All 6 listed mutables resolved to witnessed with concrete file:line or fetch response evidence
+    - File contents of claude-client.js read into context
+  edge_cases:
+    - kilo not running on 4780 — record as "needs start instruction" not blocker
+    - opencode backend offline — same
+
+- id: expand-model-discovery-providers
+  subject: Expand model-discovery to cover all 17 BRANDS via acptoapi model-prober
+  status: pending
+  description: Replace src/agent/model-discovery.js hand-rolled ENDPOINTS map with a wrapper around acptoapi's createModelProber() + BRANDS list, so all 17 providers (groq, openrouter, together, deepseek, xai, cerebras, perplexity, mistral, fireworks, openai, nvidia, sambanova, cloudflare, zai, qwen, codestral, opencode-zen) plus anthropic+gemini+ollama get probed automatically. Keep existing discoverModels/discoverAndPersist/listKnownProviders API stable.
+  effort: medium
+  category: feature
+  route_family: representation
+  load: 0.7
+  failure_modes: [representation/duplicate-source-of-truth]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: [witness-cli-backends]
+  acceptance:
+    - listKnownProviders() returns >=17 providers
+    - POST /api/models/discover hits every provider with a key in .env and returns models or error
+    - test.js asserts >=10 providers in the cached map after a discover call
+  edge_cases:
+    - rate limit on probe — already handled by acptoapi prober's 5min cache
+    - provider returns non-OpenAI shape — parseModels in prober handles {data} and {models}
+
+- id: real-v1-models-endpoint
+  subject: Make /v1/models return real discovered models from cache, not stub
+  status: pending
+  description: Rewrite gui-llm-passthrough /v1/models handler to read agent.discovered_models from config, flatten {provider, models[]} into [{id:"provider/model", owned_by:provider, ...}], include configured model_queues as pseudo-model ids ({id:"queue/<name>"}). Used by anentrypoint-design chat UI as the dynamic source.
+  effort: small
+  category: feature
+  route_family: state
+  load: 0.6
+  failure_modes: [state/stale-cache, representation/wrong-shape]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: [expand-model-discovery-providers, model-queues-feature]
+  acceptance:
+    - GET /v1/models returns data[] with >=10 entries after discover
+    - Each entry has id, object='model', owned_by, created
+    - queue/<name> entries appear when queues configured
+
+- id: model-queues-feature
+  subject: Add named "model queues" as pseudo-models in config + resolver
+  status: pending
+  description: New config key agent.model_queues = { "<name>": [{provider, model}, ...] }. Add saveConfigValue helpers. resolveCallLLM detects model="queue/<name>" and iterates that queue's entries with sampler-gated failover (same logic as model_preference). Expose via /api/models/queues (GET/POST/DELETE).
+  effort: medium
+  category: feature
+  route_family: state
+  load: 0.7
+  failure_modes: [state/missing-feature]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: [witness-cli-backends]
+  acceptance:
+    - getConfigValue('agent.model_queues') returns {} by default after migration v3
+    - POST /api/models/queues creates queue; DELETE removes; GET lists
+    - resolveCallLLM({model:'queue/fast'}) iterates queue entries, marks failures
+    - test.js asserts queue create+resolve+failover
+
+- id: dashboard-models-page
+  subject: Build #/models dashboard page with discovery, ranking, queues
+  status: pending
+  description: New GUI page #/models. Sections (1) Provider keys: list 17 providers, show key-present, last-probe-status, last-ok-at, button "Discover now" per provider, models count. (2) Fallback order: drag-reorder list of {provider, model} pairs persisting to agent.model_preference. (3) Queues: create/edit/delete named queues, drag-add models from discovered cache. (4) Sampler status: live tile from getStatus(). Implemented in anentrypoint-design page module so chat picker can reuse data — or as standalone page in src/web routes. Pick whichever wires fastest.
+  effort: large
+  category: feature
+  route_family: observability
+  load: 0.8
+  failure_modes: [observability/no-debug-surface, execution/wrong-route]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: [model-queues-feature, real-v1-models-endpoint]
+  acceptance:
+    - GET /#/models in browser shows providers, models, ranking, queues
+    - Drag reorder persists to agent.model_preference; refresh shows same order
+    - Sampler status tile updates on probe failure
+    - window.__debug.models() returns {providers, queues, ranking, sampler}
+
+- id: dynamic-model-picker-everywhere
+  subject: Replace every manual model input with a dynamic dropdown sourced from /v1/models
+  status: pending
+  description: Audit every model input field (chat composer, batch runner UI, profile editor, gateway config, CLI prompts). All must (1) fetch /v1/models on mount, (2) render dropdown grouped by provider, (3) show only available models (sampler isAvailable=true OR last_ok_at within 24h). CLI: bin/freddie.js commands accepting --model show a chooser when stdout is TTY and no --model given. No bare text input for model anywhere.
+  effort: large
+  category: refactor
+  route_family: representation
+  load: 0.8
+  failure_modes: [representation/manual-entry-trap]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: [real-v1-models-endpoint, dashboard-models-page]
+  acceptance:
+    - grep "type=\"text\".*model" in plugins/ returns 0 hits (chat, batch, profile UIs)
+    - bin/freddie.js exec without --model prompts from live list when interactive
+    - window.__debug.modelPickers() lists every picker mount on current page; all read from /v1/models
+
+- id: claude-cli-as-llm-provider
+  subject: Wire claude-code-cli as a first-class LLM provider via acptoapi
+  status: pending
+  description: Ensure acptoapi's claude-client.js + claude-translate.js is exposed as a provider that resolveCallLLM can pick. Provider id="claude-cli", spawned subprocess `claude` with prompt over stdin, streams output. Add models: claude-cli/sonnet, claude-cli/haiku, claude-cli/opus. Register in PROVIDER_KEYS as no-key (or CLAUDE_CODE_OAUTH_TOKEN). Append to discover so /v1/models includes it.
+  effort: medium
+  category: feature
+  route_family: execution
+  load: 0.8
+  failure_modes: [execution/subprocess-hang, execution/timeout]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: [witness-cli-backends]
+  acceptance:
+    - resolveCallLLM({provider:'claude-cli', model:'sonnet'})({messages:[{role:'user',content:'reply REAL_OK'}]}) returns content matching /REAL_OK/i
+    - /v1/models includes claude-cli/* entries
+    - sampler tracks claude-cli availability separately
+
+- id: kilo-opencode-acp-as-llm-providers
+  subject: Surface kilo + opencode ACP backends as discoverable LLM providers
+  status: pending
+  description: Add a "probe" pass in model-discovery that pings http://localhost:4780/session (kilo) and 4790 (opencode); if reachable, list known models. resolveCallLLM treats provider in [kilo,opencode] specially — drive via acptoapi's acp-client.js. Document how to start each (likely `kilo --acp` and `opencode acp` or external launcher) in penguins .env and AGENTS.md.
+  effort: medium
+  category: feature
+  route_family: execution
+  load: 0.8
+  failure_modes: [execution/backend-not-running, grounding/unwitnessed-assumption]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: [witness-cli-backends]
+  acceptance:
+    - GET /api/models/cached shows kilo + opencode entries when their ACP endpoints up
+    - If endpoints down, entries show error="not-reachable" with retry-after
+    - resolveCallLLM({provider:'kilo', model:'<id>'}) routes through acp-client and returns content
+    - Documented startup commands in AGENTS.md
+
+- id: penguins-as-agent-workspace
+  subject: Convert c:/dev/penguins into a fully-driven freddie agent workspace
+  status: pending
+  description: (1) Add .env (symlink-or-shared with freddie/.env keys). (2) Add penguins/.freddie/config.yaml with agent.model_preference picking small/cheap models from discover. (3) Create a sample task script penguins/freddie-task.js that uses freddie/bin to ask "expand species/<slug>.html with 200 more words and a citation; verify test.js still passes". (4) Test gm-cc functions inside that workspace by booting host with FREDDIE_HOME=c:/dev/penguins/.freddie and asserting gm:* skills present. (5) Confirm plugsdk plugin loading works from project-local penguins/.freddie/plugins/.
+  effort: large
+  category: feature
+  route_family: execution
+  load: 0.7
+  failure_modes: [execution/project-isolation, grounding/wrong-workspace]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: [witness-cli-backends, claude-cli-as-llm-provider]
+  mutables: [penguins-no-env-no-agent-entry, gm-cc-in-penguins-not-tested]
+  acceptance:
+    - FREDDIE_HOME=c:/dev/penguins/.freddie node freddie/bin/freddie.js exec --prompt "say PENGUIN_OK" outputs PENGUIN_OK
+    - bootHost() under that home loads gm-cc plugin, gm:* skills count >= 12
+    - A demo plugsdk plugin in penguins/.freddie/plugins/foo/ registers and is listed
+    - penguins/test.js still passes after agent task
+
+- id: penguins-agent-research-cycle
+  subject: Drive freddie agent to do real research+edit work on penguins repo end-to-end
+  status: pending
+  description: Pick one species page (e.g. king-penguin.html). Use freddie agent (via real LLM, via dynamic model picker selecting a discovered working model) to: read species.json record, add a new "Recent research 2024-2025" subsection with 3 facts and cite sources, update facts.json with 3 new facts referencing the new content, ensure penguins/test.js still passes. This validates the whole stack: dynamic model registry, sampler, plugin host, gm-cc skills, in a real workspace.
+  effort: large
+  category: feature
+  route_family: execution
+  load: 0.9
+  failure_modes: [execution/agent-loop-error, state/test-regression, reasoning/hallucinated-fact]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: [penguins-as-agent-workspace, dynamic-model-picker-everywhere]
+  acceptance:
+    - king-penguin.html (or chosen page) has a new "Recent research" section
+    - facts.json has >=3 new entries with category and species set correctly
+    - cd c:/dev/penguins && node test.js exits 0
+    - Trace artifact saved to penguins/.freddie/trajectories/ showing model used + iterations
+
+- id: ux-polish-pass-dashboard
+  subject: UX polish — dashboard chat + models + sessions page upgrades
+  status: pending
+  description: Destructive UX pass on dashboard. (1) Chat page: split into composer (top) + stream pane (middle) + footer (model+session+session-list collapse). Persist last-selected model in localStorage. Show streaming spinner + token counter live. (2) Models page (new): provider grid with green/red dots for available/unavailable. (3) Sessions: filter by model, by skill, by date; click row -> detail with replay button. (4) Topbar: project switcher pill (already exists) + sampler health pill. (5) Keyboard shortcuts: cmd+k focuses chat input, cmd+/ opens skill picker.
+  effort: large
+  category: feature
+  route_family: representation
+  load: 0.7
+  failure_modes: [representation/poor-ux]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: [dashboard-models-page, dynamic-model-picker-everywhere]
+  acceptance:
+    - Browser-witnessed: cmd+k focuses chat textarea
+    - Models page renders provider grid with availability dots
+    - localStorage persists last model across reload
+    - window.__debug.chat() reports model selected
+
+- id: extensive-cli-validation
+  subject: Build CLI test harness validating all three CLI-LLM-providers end-to-end
+  status: pending
+  description: Add a script scripts/validate-llm-providers.js that: (a) lists providers with keys, (b) runs a real probe + chat round-trip for each (claude-cli, kilo, opencode if up, plus 5 cheapest discovered API providers), (c) prints pass/fail table with latency and first 60 chars of response. Wired into test.js as an opt-in group LIVE_LLM=1 so default test stays sub-30s.
+  effort: medium
+  category: infra
+  route_family: observability
+  load: 0.7
+  failure_modes: [observability/no-witness]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: [claude-cli-as-llm-provider, kilo-opencode-acp-as-llm-providers, expand-model-discovery-providers]
+  acceptance:
+    - LIVE_LLM=1 node test.js runs validate-llm-providers and at least 3 providers return content matching /OK/i
+    - Default test.js (no LIVE_LLM) still exits 0
+    - scripts/validate-llm-providers.js callable standalone
+
+- id: browser-witness-everything
+  subject: Add browser-witnessed test (Playwright via gm:browser) for dashboard pages
+  status: pending
+  description: Use gm:browser skill to (1) open dashboard, (2) navigate to /#/models, /#/chat, /#/sessions, (3) confirm window.__debug.* registry entries exist, (4) drag-reorder a fallback list and confirm /api/config persists, (5) send a chat message picking from dropdown and assert SSE 'message' arrives. Saved screenshots to .gm/shots/ as evidence.
+  effort: medium
+  category: infra
+  route_family: observability
+  load: 0.7
+  failure_modes: [observability/no-witness]
+  route_fit: examined
+  authorization: weak_prior
+  blocking: []
+  blockedBy: [ux-polish-pass-dashboard, dashboard-models-page]
+  acceptance:
+    - .gm/shots/models-page.png exists, shows provider grid
+    - .gm/shots/chat-after-send.png shows assistant response bubble
+    - window.__debug snapshot logged to .gm/browser-witness.json

@@ -1,4 +1,5 @@
 import { resolveCallLLM } from '../../src/agent/llm_resolver.js'
+import { flattenForOpenAI } from '../../src/agent/model-discovery.js'
 import { logger } from '../../src/observability/log.js'
 
 const log = logger('gui-llm-passthrough')
@@ -7,7 +8,9 @@ export default {
     name: 'gui-llm-passthrough', surfaces: 'gui',
     register({ gui }) {
         gui.route('GET', '/v1/models', (_, res) => {
-            res.json({ object: 'list', data: [{ id: 'freddie/auto', object: 'model', created: Math.floor(Date.now() / 1000), owned_by: 'freddie' }] })
+            const data = flattenForOpenAI()
+            if (data.length === 0) data.push({ id: 'freddie/auto', object: 'model', created: Math.floor(Date.now() / 1000), owned_by: 'freddie' })
+            res.json({ object: 'list', data })
         })
         gui.route('POST', '/v1/chat/completions', async (req, res) => {
             const { model, messages, tools, stream } = req.body || {}

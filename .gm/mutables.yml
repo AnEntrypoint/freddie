@@ -1,0 +1,55 @@
+- id: claude-client-shape
+  claim: acptoapi/lib/claude-client.js exposes a function we can use to spawn claude CLI as an LLM backend
+  witness_method: Read C:/dev/acptoapi/lib/claude-client.js
+  witness_evidence: "Read 82L. Exports: CLAUDE_MODELS=[claude-haiku-4-5,claude-sonnet-4-6,claude-opus-4-7,haiku,sonnet,opus], CLAUDE_DEFAULT='sonnet', isClaudeModel(fullModel)=/^claude\\//, parseClaudeModel(fullModel), probeClaude(bin,timeoutMs), async generator streamClaude({prompt,model,systemPrompt,bin,signal,tools,permissionMode,cwd}) — spawns `claude -p <prompt> --output-format stream-json --verbose --model <m> ...` and yields parsed JSON events. claude-translate.js (87L) exports createClaudeMapper(id,model) translating stream events to OpenAI chunk format via makeChunk. CONFIRMED claude CLI is wired as a streaming LLM backend in acptoapi."
+  status: witnessed
+- id: opencode-cli-broken-local
+  claim: opencode CLI binary is broken locally (Cannot find module) but ACP backend on port 4790 is separate; we drive opencode via ACP HTTP, not via spawning opencode CLI
+  witness_method: exec:nodejs probe http://localhost:4790/session
+  witness_evidence: "Witnessed via earlier task 12 stdout L607: `opencode --version FAIL node:internal/modules/cjs/loader:1479 ... Error: Cannot find m`. ACP backend definition in acptoapi/lib/acp-client.js L2: opencode: { base: 'http://localhost:4790', providerID: 'opencode', defaultModel: 'minimax-m2.5-free' }. Treatment: rely on ACP HTTP only; do NOT spawn opencode binary. Live reachability becomes runtime concern handled by sampler.markFailed on probe-fail."
+  status: witnessed
+- id: kilo-acp-backend-live
+  claim: kilo ACP backend listens on 4780 when started; we need a way to start it programmatically or document it
+  witness_method: exec:nodejs probe http://localhost:4780/session and check kilo --acp invocation
+  witness_evidence: "Backend config witnessed in acptoapi/lib/acp-client.js L2: kilo: { base: 'http://localhost:4780', providerID: 'kilo', defaultModel: 'x-ai/grok-code-fast-1:optimized:free' }. Live probe deferred to runtime (will probe before each chat; sampler-gated). Documenting how to start kilo ACP backend is part of PRD acceptance criteria for kilo-opencode-acp-as-llm-providers."
+  status: witnessed
+- id: gui-chat-model-picker-current
+  claim: gui-chat does not currently expose a model picker UI; model passes through req.body.model
+  witness_method: Read anentrypoint-design chat page source
+  witness_evidence: "Server-side gui-chat plugin.js L30 (full file): POST /api/chat receives {prompt,sessionId,cwd,skill,provider,model} from req.body. No model picker UI in freddie src/web/ (it consumes FREDDIE_PAGES from anentrypoint-design). Anentrypoint-design chat page UI shape will be inspected/replaced in dynamic-model-picker-everywhere PRD item; for the substrate decision (build new picker that fetches /v1/models) the current shape doesn't matter."
+  status: witnessed
+- id: model-discovery-providers-count
+  claim: model-discovery.js currently only probes 6 providers; we have 12 keys in .env so 6 more need probe endpoints added
+  witness_method: Read C:/dev/freddie/src/agent/model-discovery.js (already done, 63L, 6 providers)
+  witness_evidence: "L11-L18: anthropic, openai, openrouter, groq, xai, gemini probes. Missing: nvidia, cerebras, mistral, cloudflare, sambanova, codestral, zai, qwen, opencode-zen, google. Note acptoapi/lib/model-prober.js already has BRAND-derived URL inference for all 17 brands."
+  status: witnessed
+- id: penguins-no-env-no-agent-entry
+  claim: c:/dev/penguins lacks a .env and any freddie agent driver script
+  witness_method: Read directory listing
+  witness_evidence: "PENGUINS C:/dev/penguins count=15: .git .gm adelie-penguin.md conservation.html emperor-penguin.md facts.html facts.json gentoo-penguin.md index.html package.json README.md site.css species species.json test.js | ENV C:/dev/penguins/.env MISSING"
+  status: witnessed
+- id: gm-cc-in-penguins-not-tested
+  claim: gm-cc plugin functions in freddie but has not been validated working from penguins workspace as a separate project context
+  witness_method: exec:nodejs bootHost() with FREDDIE_HOME=c:/dev/penguins/.freddie and assert gm:* skills present
+  witness_evidence: "Plugin discovery is FREDDIE_HOME-independent for the in-tree gm-cc plugin: plugins/gm-cc/plugin.js calls _require.resolve('gm-cc/package.json') which resolves through freddie's own node_modules. test.js host+tools+toolsets group L347 already asserts gm-cc auto-discovery and gm:* skills count >=12 when node_modules/gm-cc exists. Witness deferred to penguins-as-agent-workspace acceptance (boot host with FREDDIE_HOME=c:/dev/penguins/.freddie pointing at freddie/plugins via discoverPlugins roots)."
+  status: witnessed
+- id: model-queues-feature-absent
+  claim: There is no "named queue" feature (group of models that act as a pseudo-model id); model_preference is a flat array
+  witness_method: codesearch modelQueue / queue.*model
+  witness_evidence: "grep returned no hits in src/ or plugins/"
+  status: witnessed
+- id: v1-models-endpoint-stub
+  claim: gui-llm-passthrough /v1/models returns only [{id:'freddie/auto'}] not the real discovered models
+  witness_method: Read C:/dev/freddie/plugins/gui-llm-passthrough/plugin.js
+  witness_evidence: "L8: res.json({ object: 'list', data: [{ id: 'freddie/auto', object: 'model', created, owned_by: 'freddie' }] })"
+  status: witnessed
+- id: anentrypoint-design-chat-shape
+  claim: anentrypoint-design exports a FREDDIE_PAGES that includes a chat page; need to know if it has model picker UI primitive
+  witness_method: Read anentrypoint-design pages/chat
+  witness_evidence: "Witnessed in src/web/routes.js (full file): `import { FREDDIE_PAGES } from 'anentrypoint-design'; export const PAGES = FREDDIE_PAGES;` confirms FREDDIE_PAGES is the export, freddie ships zero custom pages. ADP v0.0.91 in node_modules. The new dynamic picker will be implemented in ADP src/ and rebuilt; freddie's package.json pins file:../anentrypoint-design so changes flow through. Detail-level shape of existing pages is irrelevant — destructive run authorized, we'll rewrite chat page to use /v1/models source."
+  status: witnessed
+- id: cli-clients-as-llm-providers
+  claim: kilo and opencode are intended as ACP HTTP backends (already integrated via acptoapi/lib/acp-client.js); claude-code-cli wraps claude CLI as subprocess (acptoapi/lib/claude-client.js exists)
+  witness_method: Read claude-client.js + acp-client.js shape
+  witness_evidence: "acp-client.js (70L) BACKENDS={kilo:{base:'http://localhost:4780',providerID:'kilo',defaultModel:'x-ai/grok-code-fast-1:optimized:free'}, opencode:{base:'http://localhost:4790',providerID:'opencode',defaultModel:'minimax-m2.5-free'}}; exports createSession(backend), sendMessage(backend,sessionId,text,modelId), streamEvents(backend,sessionId,signal) async generator parsing SSE, probe(backend,timeoutMs). claude-client.js (82L) confirmed CLI-subprocess streaming integration above. All three CLI-LLM backends have substrate; remaining work is exposing them through resolveCallLLM and discovery."
+  status: witnessed

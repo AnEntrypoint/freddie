@@ -6,9 +6,59 @@ import { resolveKey } from './credential_sources.js'
 
 const _require = createRequire(import.meta.url)
 const sdk = _require('acptoapi')
+const { streamClaude, CLAUDE_DEFAULT } = _require('acptoapi/lib/claude-client')
 
 export const PROVIDER_KEYS = sdk.PROVIDER_KEYS
 export const DEFAULTS = sdk.PROVIDER_DEFAULTS
+
+const ACP_BACKENDS = {
+    kilo: { base: 'http://localhost:4780', providerID: 'kilo', defaultModel: 'x-ai/grok-code-fast-1:optimized:free' },
+    opencode: { base: 'http://localhost:4790', providerID: 'opencode', defaultModel: 'minimax-m2.5-free' },
+}
+
+async function claudeCliChat(model, input) {
+    const userMsg = input.messages.filter(m => m.role === 'user').slice(-1)[0]?.content
+    const systemMsg = input.messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n') || undefined
+    const prompt = typeof userMsg === 'string' ? userMsg : JSON.stringify(userMsg || '')
+    let content = ''; const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 120000)
+    try {
+        for await (const ev of streamClaude({ prompt, model: model || CLAUDE_DEFAULT, systemPrompt: systemMsg, signal: ctrl.signal })) {
+            if (ev.type === 'assistant' && Array.isArray(ev.message?.content)) for (const part of ev.message.content) { if (part.type === 'text' && part.text) content += part.text }
+            if (ev.type === 'result' && typeof ev.result === 'string') content = ev.result
+        }
+    } finally { clearTimeout(t) }
+    return { content: content.trim(), tool_calls: [], raw: { provider: 'claude-cli', model } }
+}
+
+async function acpChat(prefix, model, input) {
+    const b = ACP_BACKENDS[prefix]; if (!b) throw new Error(`unknown acp backend: ${prefix}`)
+    const sessRes = await fetch(`${b.base}/session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(5000) })
+    if (!sessRes.ok) throw new Error(`ACP ${prefix} /session ${sessRes.status}`)
+    const sessionId = (await sessRes.json()).id
+    const userMsg = input.messages.filter(m => m.role === 'user').slice(-1)[0]?.content || ''
+    const body = { parts: [{ type: 'text', text: String(userMsg) }] }
+    if (b.providerID === 'opencode') body.model = { providerID: 'opencode', modelID: model || b.defaultModel }
+    else { body.providerID = 'kilo'; body.modelID = model || b.defaultModel }
+    await fetch(`${b.base}/session/${sessionId}/message`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(120000) })
+    let content = ''
+    const evRes = await fetch(`${b.base}/event`, { method: 'GET', signal: AbortSignal.timeout(120000) })
+    if (!evRes.ok) throw new Error(`ACP ${prefix} /event ${evRes.status}`)
+    const reader = evRes.body.getReader(); const dec = new TextDecoder(); let buf = ''
+    while (true) {
+        const { value, done } = await reader.read(); if (done) break
+        buf += dec.decode(value, { stream: true }); let idx
+        while ((idx = buf.indexOf('\n\n')) >= 0) {
+            const raw = buf.slice(0, idx); buf = buf.slice(idx + 2)
+            if (!raw.startsWith('data: ')) continue
+            try { const ev = JSON.parse(raw.slice(6))
+                if (ev.properties?.sessionID && ev.properties.sessionID !== sessionId) continue
+                if (ev.properties?.part?.type === 'text' && ev.properties.part.text) content += ev.properties.part.text
+                if (ev.event === 'session.complete' || ev.properties?.complete) return { content: content.trim(), tool_calls: [], raw: { provider: prefix, model } }
+            } catch {}
+        }
+    }
+    return { content: content.trim(), tool_calls: [], raw: { provider: prefix, model } }
+}
 
 function toOpenAITools(schemas) {
     if (!schemas?.length) return undefined
@@ -28,6 +78,8 @@ async function directOpenAICompatChat(url, apiKey, model, messages, tools) {
 }
 
 async function sdkChat(provider, model, input) {
+    if (provider === 'claude-cli') return await claudeCliChat(model, input)
+    if (provider === 'kilo' || provider === 'opencode') return await acpChat(provider, model, input)
     const { resolveModel } = sdk
     const r = resolveModel(`${provider}/${model}`)
     const resolved = await resolveKey(provider).catch(() => ({ value: null }))
@@ -51,6 +103,7 @@ async function sdkChat(provider, model, input) {
 function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : (s || {}) } catch { return {} } }
 
 async function hasKey(provider) {
+    if (provider === 'claude-cli' || provider === 'kilo' || provider === 'opencode') return true
     const resolved = await resolveKey(provider).catch(() => ({ value: null }))
     return !!resolved.value
 }
@@ -59,8 +112,28 @@ function defaultModel(provider) {
     return DEFAULTS[provider] || ''
 }
 
+async function tryChain(entries, input, model) {
+    const errors = []
+    for (const pref of entries) {
+        const p = pref.provider; const m = pref.model || model || input.model || (DEFAULTS[p] || '')
+        if (!await hasKey(p) || !isAvailable(p)) continue
+        try { return await sdkChat(p, m, input) } catch (e) { markFailed(p); errors.push(`${p}: ${e.message}`) }
+    }
+    if (errors.length) throw new Error(`chain exhausted: ${errors.join('; ')}`)
+    throw new Error('chain empty: no available providers')
+}
+
 export function resolveCallLLM({ provider, model } = {}) {
     return async (input) => {
+        const mdl = model || input.model
+        const queueMatch = typeof mdl === 'string' && /^queue\//.test(mdl)
+        if (queueMatch) {
+            const name = mdl.slice('queue/'.length)
+            const queues = getConfigValue('agent.model_queues', {}) || {}
+            const entries = Array.isArray(queues[name]) ? queues[name] : null
+            if (!entries || entries.length === 0) throw new Error(`queue not found or empty: ${name}`)
+            return await tryChain(entries, input, undefined)
+        }
         const explicitProvider = provider || input.provider
 
         if (explicitProvider && await hasKey(explicitProvider)) {

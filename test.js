@@ -51,7 +51,8 @@ await T('agent-machine', async () => {
     const { markFailed, isAvailable, resetAvailability, getStatus, stopSampler } = await import('./src/agent/model-sampler.js')
     assert.equal(isAvailable('testprov-x'), true); markFailed('testprov-x'); assert.equal(isAvailable('testprov-x'), false)
     for (let i = 0; i < 5; i++) markFailed('testprov-x'); const st = getStatus().find(s => s.provider === 'testprov-x'); assert.ok(st.failCount === 6 && st.nextCheckIn <= 480_000 && st.nextCheckIn > 0); resetAvailability('testprov-x'); assert.equal(isAvailable('testprov-x'), true); stopSampler()
-    assert.ok(Object.keys(PROVIDER_KEYS).length >= 15 && DEFAULTS.cerebras && DEFAULTS.google && DEFAULTS.mistral)
+    const md = await import('./src/agent/model-discovery.js'); const kp = md.listKnownProviders(); assert.ok(Object.keys(PROVIDER_KEYS).length >= 15 && DEFAULTS.cerebras && DEFAULTS.google && DEFAULTS.mistral && kp.length >= 17 && kp.includes('claude-cli') && kp.includes('kilo') && kp.includes('opencode'), 'providers: '+kp.length)
+    const cv = await import('./src/config.js'); cv.saveConfigValue('agent.model_queues', { test_q: [{ provider: 'no-such-provider', model: 'x' }] }); try { await resolveCallLLM({ model: 'queue/nonexistent' })({ messages: [{ role: 'user', content: 'x' }], tools: [] }) } catch (e) { assert.match(e.message, /queue not found/) }; try { await resolveCallLLM({ model: 'queue/test_q' })({ messages: [{ role: 'user', content: 'x' }], tools: [] }) } catch (e) { assert.match(e.message, /chain (exhausted|empty)/) }; cv.saveConfigValue('agent.model_queues', {})
     const savedKeys = {}; for (const k of Object.values(PROVIDER_KEYS)) { savedKeys[k] = process.env[k]; delete process.env[k] }; try { await resolveCallLLM({})({ messages: [{ role: 'user', content: 'x' }], tools: [] }) } catch (e) { assert.match(e.message, /no LLM backend/) }; for (const [k, v] of Object.entries(savedKeys)) { if (v !== undefined) process.env[k] = v }
     if (await isReachable()) { const r = await resolveCallLLM({ model: 'claude/haiku' })({ messages: [{ role: 'user', content: 'reply with exactly: REAL_OK' }], tools: [] }); assert.match(r.content, /REAL_OK/) }
 })
@@ -166,11 +167,9 @@ await T('compressor+trajectory', async () => {
     const { compress, shouldCompress, SUMMARY_PREFIX } = await import('./src/agent/compress/index.js')
     const long = Array.from({ length: 60 }, (_, i) => ({ role: i % 2 === 0 ? 'user' : 'assistant', content: 'msg-' + i + ' '.repeat(800) }))
     assert.equal(shouldCompress({ messages: long, modelContextLength: 1000 }), true)
-    const callLLM = async () => ({ content: '## Active Task\nfoo', tool_calls: [] })
-    const out = await compress({ messages: long, modelContextLength: 1000, callLLM })
+    const out = await compress({ messages: long, modelContextLength: 1000, callLLM: async () => ({ content: '## Active Task\nfoo', tool_calls: [] }) })
     assert.equal(out.didCompress, true); assert.ok(out.compressedMessages.some(m => typeof m.content === 'string' && m.content.startsWith(SUMMARY_PREFIX)))
-    const { compressTrajectory } = await import('./src/agent/trajectory.js')
-    assert.ok(compressTrajectory({ messages: long, maxKeep: 5 }).compressed.length < long.length)
+    assert.ok((await import('./src/agent/trajectory.js')).compressTrajectory({ messages: long, maxKeep: 5 }).compressed.length < long.length)
 })
 await T('env+pi+cli+tui+setup+website+helpers', async () => {
     const envs = await import('./src/tools/environments/index.js'); assert.match((await envs.createEnvironment('local', {}).run('echo env-ok')).stdout, /env-ok/)
@@ -183,8 +182,9 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     const wh2 = fs.readFileSync(path.join('website', 'docs/index.html'), 'utf8'); for (const m of ['ds-hero-title', 'rail-green', 'when do I reach']) assert.ok(wh2.includes(m), m)
     const dash = await (await import('./src/web/server.js')).createDashboard({ port: 0 })
     const G = (p) => fetch(dash.url + p); const gs = async (...ps) => { for (const p of ps) assert.equal((await G(p)).status, 200, p) }; const P = (p, b) => fetch(dash.url + p, { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify(b) })
-    await gs('api/sessions','api/tools','api/cron','api/skills','api/config','api/env','api/debug','api/debug-all','api/gateway','api/profiles','api/commands','api/health','api/logs','api/search?q=test','api/tools/detail','api/models/providers','api/models/cached','v1/models')
-    const { listKnownProviders } = await import('./src/agent/model-discovery.js'); assert.ok(listKnownProviders().includes('anthropic') && listKnownProviders().includes('openai'))
+    await gs('api/sessions','api/tools','api/cron','api/skills','api/config','api/env','api/debug','api/debug-all','api/gateway','api/profiles','api/commands','api/health','api/logs','api/search?q=test','api/tools/detail','api/models/providers','api/models/cached','api/models/queues','api/models/sampler','v1/models')
+    const { listKnownProviders, flattenForOpenAI } = await import('./src/agent/model-discovery.js'); assert.ok(listKnownProviders().includes('anthropic') && listKnownProviders().includes('openai') && listKnownProviders().includes('claude-cli') && listKnownProviders().length >= 17)
+    const qr = await P('api/models/queues', { name: 'q1', entries: [{ provider: 'groq', model: 'x' }] }); assert.equal(qr.status, 200); const qg = await (await G('api/models/queues')).json(); assert.ok(qg.q1); const qd = await fetch(dash.url + 'api/models/queues/q1', { method: 'DELETE' }); assert.equal(qd.status, 200); assert.ok(Array.isArray(flattenForOpenAI()))
     const v1bad = await P('v1/chat/completions', { messages: [] }); assert.equal(v1bad.status, 400)
     const cj = await (await P('api/cron', { cron: '*/5 * * * *', prompt: 'tick' })).json(); assert.ok(cj.id)
     assert.equal((await fetch(dash.url + 'api/cron/' + cj.id, { method: 'DELETE' })).status, 200); assert.equal((await P('api/config', { key: 'display.skin', value: 'mono' })).status, 200); assert.equal((await P('api/batch', { prompts: [] })).status, 400)
@@ -192,10 +192,8 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     await dash.stop()
 })
 
-console.log('\n=== test.js results ===')
-for (const [n, s] of results) console.log(`  ${s.startsWith('OK') ? '✓' : '✗'} ${n}\t${s}`)
+console.log('\n=== test.js results ==='); for (const [n, s] of results) console.log(`  ${s.startsWith('OK') ? '✓' : '✗'} ${n}\t${s}`)
 const failed = results.filter(r => !r[1].startsWith('OK'))
 try { (await import('./src/sessions.js')).closeDb() } catch {}; try { (await import('./src/observability/log.js')).closeAll() } catch {}
 if (failed.length) { console.error(`\n${failed.length} FAILED`); process.exit(1) }
-console.log(`\n${results.length} passed`)
-await new Promise(r => setTimeout(r, 100)); process.exit(0)
+console.log(`\n${results.length} passed`); await new Promise(r => setTimeout(r, 100)); process.exit(0)

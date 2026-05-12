@@ -26,8 +26,8 @@
     "plugsdk": "^1.0.15",
     "xstate": "^5.31.0",
     "zod": "^4.0.0",
-    "anentrypoint-design": "^0.0.92",
-    "acptoapi": "^1.0.50"
+    "anentrypoint-design": "file:../anentrypoint-design",
+    "acptoapi": "file:../acptoapi"
   },
   "optionalDependencies": {
     "@libsql/darwin-arm64": "0.3.19",
