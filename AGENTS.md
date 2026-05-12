@@ -366,3 +366,30 @@ Note: kilo + opencode ACP backends return content only, no tool_calls (the LLM-s
 
 `node scripts/sync-upstream.mjs [--dry-run] [pkg ...]` bumps sibling dep entries (plugsdk, acptoapi, anentrypoint-design, gm-cc) in package.json to `^<latest>` from npm registry, then runs `npm install --package-lock-only`. Skips `file:` deps (local-dev pattern). Wired into `.github/workflows/sync-upstream.yml` (weekly cron + workflow_dispatch) which opens a PR via peter-evans/create-pull-request@v6 when changes land. Dry-run validated: detected `acptoapi: ^1.0.52 -> ^1.0.54`.
 
+## Model availability matrix (2026-05-13)
+
+`scripts/build-model-availability.js` writes `.gm/model-availability.json` — a Cartesian witness of every (provider × model × mode) cell. Per-cell probe with `PER_CELL_TIMEOUT_MS` (15s default) and `MAX_MODELS_PER_PROVIDER` (5 default). Provider keys read from `.env`. Feeds acptoapi sampler: `probeDirect` and `probeAgentLoop` both call `markOk`/`markFailed` on outcome; both skip when `isAvailable(provider)===false` (sampler-backoff respected).
+
+Schema:
+
+```
+{
+  timestamp, config:{MAX_MODELS_PER_PROVIDER, PER_CELL_TIMEOUT_MS, modes:[7]},
+  daemons:{acptoapi_passthrough, freddie_v1, kilo_acp, opencode_acp, claude_cli},
+  providers:[{id, key_present, discovery_error, models:[{id, discovered_via, modes:{<mode>:{ok,latency_ms,excerpt?,error?,skipped?,reason?}}, usable_in_any_mode}]}],
+  sampler:[{provider, ok, failCount, nextCheckIn}],
+  summary:{total_providers, total_models, usable_in_any_mode, per_mode_counts:{<mode>:{ok,fail,skipped}}}
+}
+```
+
+7 modes: `direct_api`, `acptoapi_passthrough`, `freddie_v1`, `kilo_acp`, `opencode_acp`, `claude_cli`, `freddie_agent_loop`.
+
+6 skipped-reasons: `no_api_key_for_provider`, `sampler_backoff_active`, `daemon_not_running:<PORT>`, `mode_mismatch:<detail>`, `claude_cli_not_installed`, `unknown_mode`.
+
+3 dashboard endpoints (registered in `plugins/gui-models-discover/plugin.js`):
+- `GET /api/models/availability` → full JSON (404 with `{error,hint}` if file absent)
+- `GET /api/models/availability/summary` → `{timestamp, daemons, summary}` (truncated)
+- `POST /api/models/availability/rebuild` → 202 `{ok, pid, jobId}` (spawns matrix build; 409 if rebuild already in flight)
+
+Sampler integration: agent-loop failures now feed acptoapi's per-provider backoff (5-step 30s→480s). Provider-scoped granularity only — per-(provider,model) would need acptoapi sampler schema change.
+
