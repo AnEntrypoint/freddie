@@ -4,7 +4,6 @@ const TEST_HOME = path.join(os.tmpdir(), 'freddie-test-' + Date.now())
 process.env.FREDDIE_HOME = TEST_HOME; process.env.FREDDIE_PROFILES_ROOT = path.join(TEST_HOME, 'profiles')
 fs.mkdirSync(path.join(TEST_HOME, 'profiles'), { recursive: true })
 const results = []; const T = async (n, fn) => { try { await fn(); results.push([n,'OK']) } catch (e) { results.push([n,'FAIL: '+(e?.stack||e?.message||e)]) } }
-
 await T('home+config+skin', async () => {
     assert.equal((await import('./src/home.js')).getFreddieHome(), TEST_HOME)
     const s = await import('./src/skin/engine.js'); for (const n of ['default','ares','mono','slate']) assert.ok(s.listBuiltinSkins().includes(n))
@@ -197,5 +196,4 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
 console.log('\n=== test.js results ==='); for (const [n, s] of results) console.log(`  ${s.startsWith('OK') ? '✓' : '✗'} ${n}\t${s}`)
 const failed = results.filter(r => !r[1].startsWith('OK'))
 try { (await import('./src/sessions.js')).closeDb() } catch {}; try { (await import('./src/observability/log.js')).closeAll() } catch {}
-if (failed.length) { console.error(`\n${failed.length} FAILED`); process.exit(1) }
-console.log(`\n${results.length} passed`); await new Promise(r => setTimeout(r, 100)); process.exit(0)
+if (failed.length) { console.error(`\n${failed.length} FAILED`); process.exit(1) }; console.log(`\n${results.length} passed`); await new Promise(r => setTimeout(r, 100)); process.exit(0)
