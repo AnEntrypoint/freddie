@@ -15,7 +15,14 @@ export default {
             if (action === 'get' && name) { console.log(JSON.stringify(host.pi.tools.get(name)?.schema, null, 2)); return }
             for (const t of host.pi.tools.list()) console.log(`${(t.toolset || 'core').padEnd(10)} ${t.name}\t${(t.schema?.description || '').slice(0, 60)}`)
         } })
-        C({ name: 'skills', description: 'List skills', args: [{ name: 'action', default: 'list' }], action: () => { for (const s of listSkills()) console.log(`${s.name}\t${(s.description || '').slice(0, 80)}`) } })
+        C({ name: 'skills', description: 'List/show skills (filesystem + registered via pi.skills)', args: [{ name: 'action', default: 'list' }, { name: 'name' }], action: (action, name) => {
+            const fsSkills = listSkills().map(s => ({ name: s.name, description: s.description || '', source: 'fs', body: s.body, file: s.file }))
+            const piSkills = host.pi.skills.list().map(s => ({ name: s.name, description: s.description || '', source: s.source || 'pi', body: s.content || s.body || '', file: s.file }))
+            const seen = new Set(); const all = []
+            for (const s of [...piSkills, ...fsSkills]) { if (seen.has(s.name)) continue; seen.add(s.name); all.push(s) }
+            if (action === 'show' && name) { const s = all.find(x => x.name === name); if (!s) { console.error('skill not found:', name); process.exit(1) } console.log(s.body); return }
+            for (const s of all) console.log(`${(s.source || 'fs').padEnd(8)} ${s.name}\t${s.description.slice(0, 80)}`)
+        } })
         C({ name: 'profile', description: 'Manage profiles', args: [{ name: 'action', default: 'list' }, { name: 'name' }], action: (action, name) => {
             if (action === 'list') { for (const p of listAllProfiles()) console.log(p); return }
             if (action === 'create') { createProfile(name); console.log('created:', name); return }
