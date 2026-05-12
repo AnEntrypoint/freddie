@@ -73,6 +73,15 @@ export default {
             const out = await runBatch({ prompts, concurrency: Number(opts.concurrency), model: opts.model })
             console.log('batch:', out.id, '\nfile:', out.file, '\nresults:', out.results.length)
         } })
+        C({ name: 'models', description: 'Discover working models per provider key', args: [{ name: 'action', default: 'discover' }, { name: 'provider' }], action: async (action, provider) => {
+            const { discoverAndPersist, listKnownProviders } = await import('../../src/agent/model-discovery.js')
+            if (action === 'providers') { for (const p of listKnownProviders()) console.log(p); return }
+            const result = await discoverAndPersist({ provider })
+            for (const [p, r] of Object.entries(result)) {
+                if (r.error) console.log(`${p.padEnd(12)} ✗ ${r.error}`)
+                else console.log(`${p.padEnd(12)} ✓ ${r.models.length} models — ${r.models.slice(0, 5).join(', ')}${r.models.length > 5 ? ', …' : ''}`)
+            }
+        } })
         C({ name: 'dashboard', description: 'Boot web dashboard', options: [{ flag: '--port <port>', default: '0' }, { flag: '--cwd <dir>', default: '' }], action: async (opts) => {
             if (opts.cwd) { const p = process.platform === 'win32' ? opts.cwd.replace(/^\/([a-z])\//i, '$1:/') : opts.cwd; process.chdir(p) }
             const { createDashboard } = await import('../../src/web/server.js')
