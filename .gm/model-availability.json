@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-05-12T22:01:25.474Z",
+  "timestamp": "2026-05-12T22:33:30.866Z",
   "config": {
-    "MAX_MODELS_PER_PROVIDER": 2,
-    "PER_CELL_TIMEOUT_MS": 12000,
+    "MAX_MODELS_PER_PROVIDER": 3,
+    "PER_CELL_TIMEOUT_MS": 20000,
     "modes": [
       "direct_api",
       "acptoapi_passthrough",
@@ -15,9 +15,9 @@
   },
   "daemons": {
     "acptoapi_passthrough": true,
-    "freddie_v1": false,
+    "freddie_v1": true,
     "kilo_acp": false,
-    "opencode_acp": false,
+    "opencode_acp": true,
     "claude_cli": true
   },
   "providers": [
@@ -33,25 +33,25 @@
       "discovery_error": null,
       "models": [
         {
-          "id": "llama3.1-8b",
+          "id": "zai-glm-4.7",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
               "ok": false,
-              "latency_ms": 414,
+              "latency_ms": 452,
               "error": "402 {\"message\":\"Payment required to access this resource. Visit your billing tab.\",\"type\":\"payment_required_error\",\"param\":\"quota\",\"code\":\"payment_required\"}"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 6,
-              "error": "fetch failed"
+              "latency_ms": 0,
+              "error": "Unable to connect. Is the computer able to access the url?"
             },
             "freddie_v1": {
               "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4900"
+              "latency_ms": 9,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
             },
             "kilo_acp": {
               "ok": false,
@@ -61,7 +61,7 @@
             "opencode_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4790"
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
             },
             "claude_cli": {
               "ok": false,
@@ -89,13 +89,13 @@
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 3,
-              "error": "fetch failed"
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
             },
             "freddie_v1": {
               "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4900"
+              "latency_ms": 10,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
             },
             "kilo_acp": {
               "ok": false,
@@ -105,7 +105,51 @@
             "opencode_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4790"
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "llama3.1-8b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 12,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
             },
             "claude_cli": {
               "ok": false,
@@ -135,18 +179,18 @@
           "modes": {
             "direct_api": {
               "ok": true,
-              "latency_ms": 4179,
+              "latency_ms": 3362,
               "excerpt": "REAL_OK"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 3,
-              "error": "fetch failed"
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
             },
             "freddie_v1": {
-              "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4900"
+              "ok": true,
+              "latency_ms": 12874,
+              "excerpt": "REAL_OK"
             },
             "kilo_acp": {
               "ok": false,
@@ -156,16 +200,16 @@
             "opencode_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4790"
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
             },
             "claude_cli": {
               "ok": true,
-              "latency_ms": 5948,
+              "latency_ms": 4942,
               "excerpt": "REAL_OK"
             },
             "freddie_agent_loop": {
               "ok": true,
-              "latency_ms": 3689,
+              "latency_ms": 3484,
               "iterations": 1,
               "excerpt": "REAL_OK"
             }
@@ -180,18 +224,18 @@
           "modes": {
             "direct_api": {
               "ok": true,
-              "latency_ms": 8597,
+              "latency_ms": 3666,
               "excerpt": "REAL_OK"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 4,
-              "error": "fetch failed"
+              "latency_ms": 2,
+              "error": "Unable to connect. Is the computer able to access the url?"
             },
             "freddie_v1": {
-              "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4900"
+              "ok": true,
+              "latency_ms": 3422,
+              "excerpt": "REAL_OK"
             },
             "kilo_acp": {
               "ok": false,
@@ -201,16 +245,61 @@
             "opencode_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4790"
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
             },
             "claude_cli": {
               "ok": true,
-              "latency_ms": 4724,
+              "latency_ms": 3536,
               "excerpt": "REAL_OK"
             },
             "freddie_agent_loop": {
               "ok": true,
-              "latency_ms": 4994,
+              "latency_ms": 3007,
+              "iterations": 1,
+              "excerpt": "REAL_OK"
+            }
+          },
+          "usable_in_any_mode": true
+        },
+        {
+          "id": "claude-opus-4-7",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": true,
+              "latency_ms": 4187,
+              "excerpt": "REAL_OK"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 22,
+              "error": "The socket connection was closed unexpectedly. For more information, pass `verbose: true` in the second argument to fetch()"
+            },
+            "freddie_v1": {
+              "ok": true,
+              "latency_ms": 3644,
+              "excerpt": "REAL_OK"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": true,
+              "latency_ms": 3933,
+              "excerpt": "REAL_OK"
+            },
+            "freddie_agent_loop": {
+              "ok": true,
+              "latency_ms": 3779,
               "iterations": 1,
               "excerpt": "REAL_OK"
             }
@@ -228,7 +317,7 @@
     {
       "id": "codestral",
       "key_present": true,
-      "discovery_error": "The operation was aborted due to timeout",
+      "discovery_error": "404",
       "models": []
     },
     {
@@ -246,34 +335,28 @@
     {
       "id": "gemini",
       "key_present": false,
-      "discovery_error": "The operation was aborted due to timeout",
-      "models": []
-    },
-    {
-      "id": "groq",
-      "key_present": true,
       "discovery_error": null,
       "models": [
         {
-          "id": "openai/gpt-oss-20b",
+          "id": "gemini-2.5-flash",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
-              "ok": true,
-              "latency_ms": 587,
-              "excerpt": "REAL_OK"
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 2,
-              "error": "fetch failed"
+              "latency_ms": 23,
+              "error": "Unable to connect. Is the computer able to access the url?"
             },
             "freddie_v1": {
               "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4900"
+              "latency_ms": 75,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
             },
             "kilo_acp": {
               "ok": false,
@@ -283,7 +366,146 @@
             "opencode_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4790"
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "gemini-2.5-pro",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 3,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 7,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "gemini-2.0-flash",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 3,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 7,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "groq",
+      "key_present": true,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "groq/compound",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": true,
+              "latency_ms": 690,
+              "excerpt": "REAL_OK"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 4,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
             },
             "claude_cli": {
               "ok": false,
@@ -292,7 +514,7 @@
             },
             "freddie_agent_loop": {
               "ok": true,
-              "latency_ms": 455,
+              "latency_ms": 1177,
               "iterations": 1,
               "excerpt": "REAL_OK"
             }
@@ -300,25 +522,25 @@
           "usable_in_any_mode": true
         },
         {
-          "id": "canopylabs/orpheus-arabic-saudi",
+          "id": "llama-3.3-70b-versatile",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
-              "ok": false,
-              "latency_ms": 378,
-              "error": "400 {\"error\":{\"message\":\"The model `canopylabs/orpheus-arabic-saudi` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.com/playground?model=canopylabs%2Forp"
+              "ok": true,
+              "latency_ms": 272,
+              "excerpt": "REAL_OK"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 3,
-              "error": "fetch failed"
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
             },
             "freddie_v1": {
               "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4900"
+              "latency_ms": 4,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
             },
             "kilo_acp": {
               "ok": false,
@@ -328,7 +550,52 @@
             "opencode_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4790"
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": true,
+              "latency_ms": 271,
+              "iterations": 1,
+              "excerpt": "REAL_OK"
+            }
+          },
+          "usable_in_any_mode": true
+        },
+        {
+          "id": "canopylabs/orpheus-v1-english",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 208,
+              "error": "400 {\"error\":{\"message\":\"The model `canopylabs/orpheus-v1-english` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.com/playground?model=canopylabs%2Forphe"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 5,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
             },
             "claude_cli": {
               "ok": false,
@@ -348,7 +615,7 @@
     {
       "id": "kilo",
       "key_present": true,
-      "discovery_error": "fetch failed",
+      "discovery_error": "Unable to connect. Is the computer able to access the url?",
       "models": [
         {
           "id": "x-ai/grok-code-fast-1:optimized:free",
@@ -358,18 +625,18 @@
           "modes": {
             "direct_api": {
               "ok": false,
-              "latency_ms": 22,
-              "error": "fetch failed"
+              "latency_ms": 19,
+              "error": "Unable to connect. Is the computer able to access the url?"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 40,
-              "error": "fetch failed"
+              "latency_ms": 19,
+              "error": "The socket connection was closed unexpectedly. For more information, pass `verbose: true` in the second argument to fetch()"
             },
             "freddie_v1": {
               "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4900"
+              "latency_ms": 76,
+              "error": "500:{\"error\":{\"message\":\"fetch failed\",\"type\":\"upstream_error\"}}"
             },
             "kilo_acp": {
               "ok": false,
@@ -379,7 +646,7 @@
             "opencode_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4790"
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
             },
             "claude_cli": {
               "ok": false,
@@ -399,19 +666,288 @@
     {
       "id": "mistral",
       "key_present": true,
-      "discovery_error": "The operation was aborted due to timeout",
-      "models": []
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "mistral-medium-2505",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": true,
+              "latency_ms": 683,
+              "excerpt": "REAL_OK"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 5,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": true,
+              "latency_ms": 682,
+              "iterations": 1,
+              "excerpt": "REAL_OK"
+            }
+          },
+          "usable_in_any_mode": true
+        },
+        {
+          "id": "mistral-medium-2508",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": true,
+              "latency_ms": 604,
+              "excerpt": "REAL_OK"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 5,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": true,
+              "latency_ms": 639,
+              "iterations": 1,
+              "excerpt": "REAL_OK"
+            }
+          },
+          "usable_in_any_mode": true
+        },
+        {
+          "id": "mistral-medium-latest",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": true,
+              "latency_ms": 547,
+              "excerpt": "REAL_OK"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 5,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": true,
+              "latency_ms": 624,
+              "iterations": 1,
+              "excerpt": "REAL_OK"
+            }
+          },
+          "usable_in_any_mode": true
+        }
+      ]
     },
     {
       "id": "nvidia",
       "key_present": true,
-      "discovery_error": "The operation was aborted due to timeout",
-      "models": []
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "01-ai/yi-large",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 451,
+              "error": "404 {\"status\":404,\"title\":\"Not Found\",\"detail\":\"Function '23bd454d-b225-49a3-8118-582a62fc51b8': Not found for account 'itvzHBy2eKJs9j1RtAgyW3A-v0yeN9YHQAibUwzdh-Y'\"}"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 12,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "abacusai/dracarys-llama-3.1-70b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 10,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "adept/fuyu-8b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 13,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
     },
     {
       "id": "ollama",
       "key_present": true,
-      "discovery_error": "fetch failed",
+      "discovery_error": "Unable to connect. Is the computer able to access the url?",
       "models": []
     },
     {
@@ -423,28 +959,28 @@
     {
       "id": "opencode",
       "key_present": true,
-      "discovery_error": "fetch failed",
+      "discovery_error": null,
       "models": [
         {
           "id": "minimax-m2.5-free",
           "discovered_via": [
-            "known_fallback"
+            "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
               "ok": false,
-              "latency_ms": 24,
-              "error": "fetch failed"
+              "latency_ms": 3182,
+              "excerpt": ""
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 40,
-              "error": "fetch failed"
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
             },
             "freddie_v1": {
               "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4900"
+              "latency_ms": 4045,
+              "excerpt": ""
             },
             "kilo_acp": {
               "ok": false,
@@ -453,8 +989,8 @@
             },
             "opencode_acp": {
               "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4790"
+              "latency_ms": 10,
+              "error": "acp_probe_not_implemented_for_arbitrary_models"
             },
             "claude_cli": {
               "ok": false,
@@ -474,7 +1010,7 @@
     {
       "id": "opencode-zen",
       "key_present": true,
-      "discovery_error": "The operation was aborted due to timeout",
+      "discovery_error": "Failed to parse JSON",
       "models": []
     },
     {
@@ -490,18 +1026,18 @@
           "modes": {
             "direct_api": {
               "ok": false,
-              "latency_ms": 508,
+              "latency_ms": 583,
               "error": "402 {\"error\":{\"message\":\"This request requires more credits, or fewer max_tokens. You requested up to 65536 tokens, but can only afford 145. To increase, visit https://openrouter.ai/settings/credits a"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 2,
-              "error": "fetch failed"
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
             },
             "freddie_v1": {
               "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4900"
+              "latency_ms": 6,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
             },
             "kilo_acp": {
               "ok": false,
@@ -511,7 +1047,7 @@
             "opencode_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4790"
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
             },
             "claude_cli": {
               "ok": false,
@@ -540,12 +1076,12 @@
             "acptoapi_passthrough": {
               "ok": false,
               "latency_ms": 2,
-              "error": "fetch failed"
+              "error": "Unable to connect. Is the computer able to access the url?"
             },
             "freddie_v1": {
               "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4900"
+              "latency_ms": 6,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
             },
             "kilo_acp": {
               "ok": false,
@@ -555,7 +1091,51 @@
             "opencode_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4790"
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "inclusionai/ring-2.6-1t:free",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 2,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 7,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
             },
             "claude_cli": {
               "ok": false,
@@ -581,14 +1161,147 @@
     {
       "id": "qwen",
       "key_present": true,
-      "discovery_error": "The operation was aborted due to timeout",
+      "discovery_error": "401",
       "models": []
     },
     {
       "id": "sambanova",
       "key_present": true,
-      "discovery_error": "The operation was aborted due to timeout",
-      "models": []
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "DeepSeek-V3.1",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 613,
+              "excerpt": "REAL"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 6,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "DeepSeek-V3.2",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 1,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 6,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "Llama-4-Maverick-17B-128E-Instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 2,
+              "error": "Unable to connect. Is the computer able to access the url?"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "latency_ms": 5,
+              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4780"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
     },
     {
       "id": "together",
@@ -605,7 +1318,7 @@
     {
       "id": "zai",
       "key_present": true,
-      "discovery_error": "The operation was aborted due to timeout",
+      "discovery_error": "404",
       "models": []
     }
   ],
@@ -614,7 +1327,7 @@
       "provider": "cerebras",
       "ok": false,
       "failCount": 2,
-      "nextCheckIn": 28227
+      "nextCheckIn": 6589
     },
     {
       "provider": "claude-cli",
@@ -626,66 +1339,84 @@
       "provider": "groq",
       "ok": false,
       "failCount": 2,
-      "nextCheckIn": 29237
+      "nextCheckIn": 8766
     },
     {
       "provider": "kilo",
       "ok": false,
       "failCount": 2,
-      "nextCheckIn": 27836
+      "nextCheckIn": 6157
+    },
+    {
+      "provider": "mistral",
+      "ok": true,
+      "failCount": 0,
+      "nextCheckIn": 0
+    },
+    {
+      "provider": "nvidia",
+      "ok": false,
+      "failCount": 2,
+      "nextCheckIn": 6589
     },
     {
       "provider": "opencode",
       "ok": false,
-      "failCount": 2,
-      "nextCheckIn": 27838
+      "failCount": 1,
+      "nextCheckIn": 0
     },
     {
       "provider": "openrouter",
       "ok": false,
       "failCount": 2,
-      "nextCheckIn": 28323
+      "nextCheckIn": 6722
+    },
+    {
+      "provider": "sambanova",
+      "ok": false,
+      "failCount": 1,
+      "nextCheckIn": 0
     }
   ],
   "summary": {
     "total_providers": 23,
-    "total_models": 10,
-    "usable_in_any_mode": 3,
+    "total_models": 26,
+    "usable_in_any_mode": 8,
     "per_mode_counts": {
       "direct_api": {
-        "ok": 3,
-        "fail": 5,
-        "skipped": 2
+        "ok": 8,
+        "fail": 7,
+        "skipped": 11
       },
       "acptoapi_passthrough": {
         "ok": 0,
-        "fail": 10,
+        "fail": 26,
         "skipped": 0
       },
       "freddie_v1": {
-        "ok": 0,
-        "fail": 0,
-        "skipped": 10
+        "ok": 3,
+        "fail": 23,
+        "skipped": 0
       },
       "kilo_acp": {
         "ok": 0,
         "fail": 0,
-        "skipped": 10
+        "skipped": 26
       },
       "opencode_acp": {
         "ok": 0,
-        "fail": 0,
-        "skipped": 10
+        "fail": 1,
+        "skipped": 25
       },
       "claude_cli": {
-        "ok": 2,
-        "fail": 0,
-        "skipped": 8
-      },
-      "freddie_agent_loop": {
         "ok": 3,
         "fail": 0,
-        "skipped": 7
+        "skipped": 23
+      },
+      "freddie_agent_loop": {
+        "ok": 8,
+        "fail": 0,
+        "skipped": 18
       }
     }
   }
