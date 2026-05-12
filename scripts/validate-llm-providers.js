@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { createRequire } from 'module'
 import { resolveCallLLM } from '../src/agent/llm_resolver.js'
-import { isAvailable, getStatus } from '../src/agent/model-sampler.js'
 import fs from 'node:fs'
 import path from 'node:path'
 const _require = createRequire(import.meta.url)
+const { isAvailable, getStatus } = _require('acptoapi')
 const ROOT = path.resolve(new URL('.', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'), '..')
 const ENV_PATH = path.join(ROOT, '.env')
 const LOG_PATH = path.join(ROOT, '.gm', 'llm-validation.log')

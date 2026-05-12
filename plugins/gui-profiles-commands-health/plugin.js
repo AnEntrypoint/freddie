@@ -2,11 +2,9 @@ import { createRequire } from 'module'
 import { listAllProfiles } from '../../src/commands/profile.js'
 import { COMMAND_REGISTRY } from '../../src/commands/registry.js'
 import { getFreddieHome } from '../../src/home.js'
-import { PROVIDER_KEYS, DEFAULTS } from '../../src/agent/llm_resolver.js'
-import { getStatus } from '../../src/agent/model-sampler.js'
 import { resolveKey } from '../../src/agent/credential_sources.js'
 const _require = createRequire(import.meta.url)
-const { probeModels, getCachedModels } = _require('acptoapi')
+const { probeModels, getCachedModels, PROVIDER_KEYS, PROVIDER_DEFAULTS: DEFAULTS, getStatus, peekStatus } = _require('acptoapi')
 export default {
     name: 'gui-profiles-commands-health', surfaces: 'gui',
     register({ gui }) {
