@@ -1,6 +1,18 @@
 ## [Unreleased]
 
 ### Fixed
+- `src/agent/llm_resolver.js`: assistant tool_calls returning to provider on the second turn were missing OpenAI's required `type:"function"` and `function:{name,arguments:string}` wrapping. Added `toOpenAIMessages()` that wraps assistant tool_calls and stringifies tool message content. Witnessed: mistral previously errored 422 `messages.2.tool_calls.0.type : property "type" is missing`; after fix returns `Emperor Penguin` through full PLAN → EXECUTE → VERIFY → COMPLETE loop. Trajectory artifact at `penguins/.freddie/trajectories/2026-05-12T15-54-49-902-...json`.
+- `plugins/core-cli/plugin.js`: `freddie exec` now uses `resolveCallLLM` instead of hardcoded acptoapi `callLLM` — previously failed `fetch failed` when acptoapi daemon wasn't running, even with valid `--model` and provider key. Added `--provider`, `--skill`, `--cwd` flags; auto-parses `provider/model` from `--model`.
+
+### Added
+- `src/agent/machine.js`: `writeTrajectory()` writes per-turn JSON to `$FREDDIE_HOME/trajectories/<ts>-<slug>.json` when `agent.save_trajectories=true`. Records prompt, provider, model, cwd, iterations, result, error, state_transitions (PLAN/EXECUTE/VERIFY/COMPLETE), tool_calls, full messages. Filled gap: config flag existed but had no implementation.
+- `scripts/validate-llm-providers.js`: rewritten to dynamically enumerate `.env` keys × acptoapi `PROVIDER_KEYS`. Emits `.gm/llm-validation.log` + `.gm/llm-validation.json`. Live witnessed run: 5/15 REAL_OK across groq, mistral, openrouter, sambanova, claude-cli.
+
+### Witnessed broken (documented honestly, not fixed)
+- opencode `serve --port 4790` listens but every HTTP endpoint times out — likely needs `OPENCODE_SERVER_PASSWORD` or non-HTTP transport.
+- kilo ACP `POST /session` returns 200 but `GET /event` hangs in SSE reader.
+- nvidia/cerebras default models in `acptoapi/lib/auto-chain.js` are stale.
+
 - `src/agent/llm_resolver.js`: fixed tool-calling for all openai-compat providers (groq, mistral, cerebras, openrouter, nvidia, etc.) — `sdk.chat()` was internally using `from:'openai'` format which stripped `url` and `apiKey` before sending to the provider, causing "Failed to parse URL from undefined"; replaced with direct `fetch()` for openai-compat, bypassing the sdk format pipeline entirely
 - `src/agent/llm_resolver.js`: tool schemas (from `getEnabledToolSchemas`) were never passed to the LLM API — `tools: undefined` was hardcoded; now converts freddie tool schemas to OpenAI `{type:'function', function:{...}}` format and passes them in the request body
 

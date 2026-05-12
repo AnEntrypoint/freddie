@@ -65,8 +65,18 @@ function toOpenAITools(schemas) {
     return schemas.map(s => ({ type: 'function', function: { name: s.name, description: s.description || '', parameters: s.parameters || { type: 'object', properties: {} } } }))
 }
 
+function toOpenAIMessages(messages) {
+    return messages.map(m => {
+        if (m.role === 'assistant' && Array.isArray(m.tool_calls) && m.tool_calls.length) {
+            return { role: 'assistant', content: m.content || '', tool_calls: m.tool_calls.map(tc => ({ id: tc.id, type: 'function', function: { name: tc.name || tc.function?.name, arguments: typeof (tc.arguments || tc.function?.arguments) === 'string' ? (tc.arguments || tc.function?.arguments) : JSON.stringify(tc.arguments || tc.function?.arguments || {}) } })) }
+        }
+        if (m.role === 'tool') return { role: 'tool', tool_call_id: m.tool_call_id, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) }
+        return m
+    })
+}
+
 async function directOpenAICompatChat(url, apiKey, model, messages, tools) {
-    const body = { model, messages, ...(tools?.length ? { tools } : {}) }
+    const body = { model, messages: toOpenAIMessages(messages), ...(tools?.length ? { tools } : {}) }
     const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
@@ -90,7 +100,7 @@ async function sdkChat(provider, model, input) {
         result = await directOpenAICompatChat(r.url, apiKey, r.model, input.messages, openaiTools)
     } else {
         const { buffer: sdkBuffer } = sdk
-        result = await sdkBuffer({ from: null, to: 'openai', provider: r.provider, model: r.model, messages: input.messages, apiKey, ...(openaiTools ? { tools: openaiTools } : {}) })
+        result = await sdkBuffer({ from: null, to: 'openai', provider: r.provider, model: r.model, messages: toOpenAIMessages(input.messages), apiKey, ...(openaiTools ? { tools: openaiTools } : {}) })
     }
     const choice = result?.choices?.[0]?.message || {}
     const content = typeof choice.content === 'string' ? choice.content : ''
@@ -156,23 +166,7 @@ export function resolveCallLLM({ provider, model } = {}) {
 
         const preference = getConfigValue('agent.model_preference', [])
         if (Array.isArray(preference) && preference.length > 0) {
-            const errors = []
-            for (const pref of preference) {
-                const p = pref.provider
-                const m = pref.model || model || input.model || defaultModel(p)
-                if (!await hasKey(p)) continue
-                if (!isAvailable(p)) continue
-                try {
-                    return await sdkChat(p, m, input)
-                } catch (e) {
-                    markFailed(p)
-                    errors.push(`${p}: ${e.message}`)
-                }
-            }
-            if (errors.length) {
-                const status = getStatus().map(s => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(', ')
-                throw new Error(`all preference providers failed: ${errors.join('; ')} | sampler: ${status}`)
-            }
+            try { return await tryChain(preference, input, model) } catch (e) { if (!/chain empty/.test(e.message)) throw e }
         }
 
         const links = sdk.buildAutoChain(model || input.model)
