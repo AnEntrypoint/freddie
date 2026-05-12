@@ -12,7 +12,7 @@ export const PROVIDER_KEYS = sdk.PROVIDER_KEYS
 export const DEFAULTS = sdk.PROVIDER_DEFAULTS
 
 const ACP_BACKENDS = {
-    kilo: { base: 'http://localhost:4780', providerID: 'kilo', defaultModel: 'x-ai/grok-code-fast-1:optimized:free' },
+    kilo: { base: 'http://localhost:4780', providerID: 'kilo', defaultModel: 'openrouter/free' },
     opencode: { base: 'http://localhost:4790', providerID: 'opencode', defaultModel: 'minimax-m2.5-free' },
 }
 
@@ -36,13 +36,12 @@ async function acpChat(prefix, model, input) {
     if (!sessRes.ok) throw new Error(`ACP ${prefix} /session ${sessRes.status}`)
     const sessionId = (await sessRes.json()).id
     const userMsg = input.messages.filter(m => m.role === 'user').slice(-1)[0]?.content || ''
-    const body = { parts: [{ type: 'text', text: String(userMsg) }] }
-    if (b.providerID === 'opencode') body.model = { providerID: 'opencode', modelID: model || b.defaultModel }
-    else { body.providerID = 'kilo'; body.modelID = model || b.defaultModel }
-    await fetch(`${b.base}/session/${sessionId}/message`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(120000) })
-    let content = ''
+    const body = { parts: [{ type: 'text', text: String(userMsg) }], model: { providerID: b.providerID, modelID: model || b.defaultModel } }
     const evRes = await fetch(`${b.base}/event`, { method: 'GET', signal: AbortSignal.timeout(120000) })
     if (!evRes.ok) throw new Error(`ACP ${prefix} /event ${evRes.status}`)
+    const msgRes = await fetch(`${b.base}/session/${sessionId}/message`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(120000) })
+    if (!msgRes.ok) throw new Error(`ACP ${prefix} /message ${msgRes.status}: ${(await msgRes.text()).slice(0,200)}`)
+    let content = ''; let sawAssistantText = false
     const reader = evRes.body.getReader(); const dec = new TextDecoder(); let buf = ''
     while (true) {
         const { value, done } = await reader.read(); if (done) break
@@ -52,9 +51,10 @@ async function acpChat(prefix, model, input) {
             if (!raw.startsWith('data: ')) continue
             try { const ev = JSON.parse(raw.slice(6))
                 if (ev.properties?.sessionID && ev.properties.sessionID !== sessionId) continue
-                if (ev.properties?.part?.type === 'text' && ev.properties.part.text) content += ev.properties.part.text
-                if (ev.event === 'session.complete' || ev.properties?.complete) return { content: content.trim(), tool_calls: [], raw: { provider: prefix, model } }
-            } catch {}
+                if (ev.type === 'message.part.updated' && ev.properties?.part?.type === 'text' && ev.properties.part.text) { content = ev.properties.part.text; sawAssistantText = true }
+                if (ev.type === 'session.error') throw new Error(`ACP ${prefix} session.error: ${JSON.stringify(ev.properties?.error || {}).slice(0,200)}`)
+                if (ev.type === 'session.idle') return { content: content.trim(), tool_calls: [], raw: { provider: prefix, model } }
+            } catch (e) { if (/session.error/.test(e.message)) throw e }
         }
     }
     return { content: content.trim(), tool_calls: [], raw: { provider: prefix, model } }
