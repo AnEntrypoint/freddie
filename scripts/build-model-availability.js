@@ -56,8 +56,8 @@ async function probeAcpEndpoint(baseUrl, providerID, model){
 
 async function probeAgentLoop(provider, model){
     const t0=Date.now()
-    try{ const call=resolveCallLLM({ provider, model }); const r=await withTimeout(call({ messages:[{role:'user',content:PROMPT}], tools:[] }), PER_CELL_TIMEOUT_MS, 'agent'); return { ok: ok(r.content), latency_ms: Date.now()-t0, iterations: 1, excerpt: excerpt(r.content) } }
-    catch(e){ return { ok:false, latency_ms:Date.now()-t0, error:String(e.message||e).slice(0,200) } }
+    try{ const call=resolveCallLLM({ provider, model }); const r=await withTimeout(call({ messages:[{role:'user',content:PROMPT}], tools:[] }), PER_CELL_TIMEOUT_MS, 'agent'); const good=ok(r.content); good?markOk(provider):markFailed(provider); return { ok: good, latency_ms: Date.now()-t0, iterations: 1, excerpt: excerpt(r.content) } }
+    catch(e){ markFailed(provider); return { ok:false, latency_ms:Date.now()-t0, error:String(e.message||e).slice(0,200) } }
 }
 
 let _claudeCliAvailable = null
