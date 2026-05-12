@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Rewrite file: deps to registry versions
+      - name: Rewrite local-file deps to registry versions
         run: node .github/workflows/rewrite-file-deps.cjs
 
       - name: Install dependencies
