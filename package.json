@@ -1,6 +1,6 @@
 {
   "name": "freddie",
-  "version": "0.0.99",
+  "version": "0.0.100",
   "type": "module",
   "description": "Open JS agent harness built on pi-mono, floosie, xstate, and anentrypoint-design",
   "bin": {
@@ -26,8 +26,8 @@
     "plugsdk": "^1.0.16",
     "xstate": "^5.31.0",
     "zod": "^4.0.0",
-    "anentrypoint-design": "^0.0.94",
-    "acptoapi": "^1.0.63"
+    "anentrypoint-design": "^0.0.95",
+    "acptoapi": "^1.0.65"
   },
   "optionalDependencies": {
     "@libsql/darwin-arm64": "0.3.19",
