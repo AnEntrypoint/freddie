@@ -28,8 +28,11 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Rewrite file: deps to registry versions
+        run: node .github/workflows/rewrite-file-deps.cjs
+
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm install --no-audit --no-fund
 
       - name: Build website
         run: cd website && node ../node_modules/flatspace/bin/flatspace.js build
