@@ -183,7 +183,9 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     const wh2 = fs.readFileSync(path.join('website', 'docs/index.html'), 'utf8'); for (const m of ['ds-hero-title', 'rail-green', 'when do I reach']) assert.ok(wh2.includes(m), m)
     const dash = await (await import('./src/web/server.js')).createDashboard({ port: 0 })
     const G = (p) => fetch(dash.url + p); const gs = async (...ps) => { for (const p of ps) assert.equal((await G(p)).status, 200, p) }; const P = (p, b) => fetch(dash.url + p, { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify(b) })
-    await gs('api/sessions','api/tools','api/cron','api/skills','api/config','api/env','api/debug','api/debug-all','api/gateway','api/profiles','api/commands','api/health','api/logs','api/search?q=test','api/tools/detail')
+    await gs('api/sessions','api/tools','api/cron','api/skills','api/config','api/env','api/debug','api/debug-all','api/gateway','api/profiles','api/commands','api/health','api/logs','api/search?q=test','api/tools/detail','api/models/providers','api/models/cached','v1/models')
+    const { listKnownProviders } = await import('./src/agent/model-discovery.js'); assert.ok(listKnownProviders().includes('anthropic') && listKnownProviders().includes('openai'))
+    const v1bad = await P('v1/chat/completions', { messages: [] }); assert.equal(v1bad.status, 400)
     const cj = await (await P('api/cron', { cron: '*/5 * * * *', prompt: 'tick' })).json(); assert.ok(cj.id)
     assert.equal((await fetch(dash.url + 'api/cron/' + cj.id, { method: 'DELETE' })).status, 200); assert.equal((await P('api/config', { key: 'display.skin', value: 'mono' })).status, 200); assert.equal((await P('api/batch', { prompts: [] })).status, 400)
     const pp = path.join('..', 'penguins'); if (fs.existsSync(pp) && fs.existsSync(path.join(pp, 'species.json'))) { assert.ok(JSON.parse(fs.readFileSync(path.join(pp, 'species.json'), 'utf8')).length === 18, 'penguins: 18 species'); assert.ok(JSON.parse(fs.readFileSync(path.join(pp, 'facts.json'), 'utf8')).length >= 60, 'penguins: 60+ facts') }
