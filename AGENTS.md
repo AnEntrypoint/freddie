@@ -9,7 +9,7 @@ Instructions for AI coding assistants working on Freddie.
 - `@mariozechner/pi-ai` — `complete`, `completeSimple`, `AssistantMessageEventStream`, `registerApiProvider`, `getModel`, `calculateCost`, `parseStreamingJson`, `isContextOverflow`. THE provider layer.
 - `@mariozechner/pi-tui` — TUI primitives (Ink-equivalent).
 - `floosie` v0.6.14 — `ProcessorMachine` (xstate). Use for gateway pipelines.
-- `anentrypoint-design` v0.0.27 — webjsx + ripple-ui. Use for any web UI; do NOT add React. Source in C:/dev/anentrypoint-design; freddie links via `file:../anentrypoint-design`.
+- `anentrypoint-design` ^0.0.94 — webjsx + ripple-ui. Use for any web UI; do NOT add React. Source in C:/dev/anentrypoint-design; freddie depends on the registry build (^0.0.94). For local SDK iteration, swap to `file:../anentrypoint-design` and rebuild via `node scripts/build.mjs`.
 - `xstate` v5 — every long-lived state machine (agent turns, gateway lifecycle, approvals).
 
 ## Plugin architecture (2026-05-03, pre-v1, no compat shims)
@@ -242,7 +242,7 @@ All 21 named integration tests in `test.js` pass (exit 0). Subsystem coverage:
 ## LLM backends and acptoapi
 
 - **acptoapi bridge** — Integrated at `src/agent/acptoapi-bridge.js` + `src/agent/llm_resolver.js` (commit 5f55f1e). Localhost API (default port 4800) converting OpenAI/Anthropic SDK calls to multiple backends: Kilo Code, opencode, Claude CLI, Anthropic API, Gemini, Ollama, Bedrock. Endpoint `/v1/chat/completions`, OpenAI-compatible, accepts `Bearer none` auth.
-- **acptoapi dep pattern** (2026-05-10) — `package.json` pins `"acptoapi": "file:../acptoapi"` (same pattern as `anentrypoint-design`). Always tracks local SDK without publish cycles. CJS/ESM boundary bridged via `createRequire(import.meta.url)` in freddie ESM files that import acptoapi CJS exports.
+- **acptoapi dep pattern** (2026-05-12) — `package.json` now pins `"acptoapi": "^1.0.55"` from the npm registry (CI auto-bumps on each acptoapi push; restore-package.cjs ROOT FIX prevents file: regressions). For local SDK iteration, swap to `file:../acptoapi` temporarily. CJS/ESM boundary bridged via `createRequire(import.meta.url)` in freddie ESM files that import acptoapi CJS exports.
 - **LLM resolver priority** (2026-05-10) — (1) explicit provider+key, (2) acptoapi if `/v1/models` returns 200, (3) `agent.model_preference` config array (ordered failover, sampler-gated), (4) `sdk.buildAutoChain()` env-key scan, (5) throw. `PROVIDER_KEYS` and `PROVIDER_DEFAULTS` imported from `acptoapi` — not maintained in freddie. `sdk.chat()` returns OpenAI `{choices:[{message}]}` format; `sdkChat()` adapter in llm_resolver converts to freddie's `{content, tool_calls, raw}`.
 - **Model sampler — re-export shim** (2026-05-10) — `src/agent/model-sampler.js` is a 13-line re-export shim over acptoapi sampler. Sampler logic (5-step backoff 30s→480s, createSampler factory, singleton) lives in `c:\dev\acptoapi\lib\sampler.js`. Exports: `isAvailable`, `markFailed`, `markOk`, `resetAvailability`, `getStatus`, `probe`, `startSampler`, `stopSampler`, `createSampler`.
 - **model_preference config key** (2026-05-10) — `agent.model_preference: []` in `~/.freddie/config.yaml`. Array of `{ provider, model? }` objects; `resolveCallLLM` tries each in order, skipping unavailable (sampler-gated) and marking failures with backoff. Config v2 migration adds the key on upgrade from v1.
