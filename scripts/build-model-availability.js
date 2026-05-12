@@ -2,9 +2,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
-import { resolveCallLLM, PROVIDER_KEYS } from '../src/agent/llm_resolver.js'
+import { createRequire } from 'module'
+import { resolveCallLLM } from '../src/agent/llm_resolver.js'
 import { discoverModels, listKnownProviders } from '../src/agent/model-discovery.js'
-import { isAvailable, markFailed, markOk, getStatus } from '../src/agent/model-sampler.js'
+const _require = createRequire(import.meta.url)
+const { PROVIDER_KEYS, isAvailable, markFailed, markOk, getStatus } = _require('acptoapi')
 
 const ROOT = path.resolve(new URL('.', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'), '..')
 const ENV_PATH = path.join(ROOT, '.env')

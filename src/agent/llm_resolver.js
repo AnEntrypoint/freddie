@@ -1,6 +1,7 @@
 import { createRequire } from 'module'
 import { getConfigValue } from '../config.js'
 import { MATRIX_FILE } from './model-matrix.js'
+import { callLLM as bridgeCall, isReachable as bridgeReachable } from './acptoapi-bridge.js'
 export { matrixUsable } from './model-matrix.js'
 
 const _require = createRequire(import.meta.url)
@@ -46,6 +47,8 @@ export function resolveCallLLM({ provider, model } = {}) {
             throw new Error('no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1)' + (status ? ' | sampler: ' + status : ''))
         }
         try {
+            const isSimple = typeof m === 'string' && !m.includes(',') && !/^queue\//.test(m)
+            if (isSimple && await bridgeReachable()) return await bridgeCall({ ...input, model: m })
             const r = await sdk.chat({ model: m, messages: toMsgs(input.messages), tools: toTools(input.tools), queuesMap: getConfigValue('agent.model_queues', {}) || {}, matrixSource: process.env.FREDDIE_MATRIX_URL || MATRIX_FILE, onFallback: input.onFallback, output: 'openai' })
             return adapt(r)
         } catch (e) {

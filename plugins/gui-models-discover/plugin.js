@@ -1,10 +1,12 @@
+import { createRequire } from 'module'
 import { discoverAndPersist, listKnownProviders } from '../../src/agent/model-discovery.js'
-import { PROVIDER_KEYS, DEFAULTS } from '../../src/agent/llm_resolver.js'
 import { getConfigValue, saveConfigValue } from '../../src/config.js'
-import { getStatus } from '../../src/agent/model-sampler.js'
+import { MATRIX_FILE } from '../../src/agent/model-matrix.js'
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
+const _require = createRequire(import.meta.url)
+const { PROVIDER_KEYS, PROVIDER_DEFAULTS: DEFAULTS, getStatus, peekStatus, listAllQueues } = _require('acptoapi')
 
 const MATRIX_PATH = path.resolve(new URL('.', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'), '..', '..', '.gm', 'model-availability.json')
 let _rebuildInFlight = null
@@ -18,7 +20,19 @@ export default {
             try { const provider = req.body?.provider; const result = await discoverAndPersist({ provider }); res.json(result) }
             catch (e) { res.status(500).json({ error: String(e.message || e) }) }
         })
-        gui.route('GET', '/api/models/queues', (_, res) => res.json(getConfigValue('agent.model_queues', {}) || {}))
+        gui.route('GET', '/api/models/queues', (_, res) => {
+            const local = getConfigValue('agent.model_queues', {}) || {}
+            try {
+                const all = listAllQueues({ queuesMap: local })
+                const merged = { ...local }
+                for (const q of all) if (!merged[q.name]) merged[q.name] = q.links.map(m => ({ model: m, source: q.source }))
+                res.json(merged)
+            } catch { res.json(local) }
+        })
+        gui.route('GET', '/api/models/sampler/peek/:provider', (req, res) => {
+            try { res.json(peekStatus(req.params.provider)) }
+            catch (e) { res.status(500).json({ error: String(e.message || e) }) }
+        })
         gui.route('POST', '/api/models/queues', (req, res) => {
             const { name, entries } = req.body || {}
             if (!name || !Array.isArray(entries)) return res.status(400).json({ error: 'name and entries[] required' })
