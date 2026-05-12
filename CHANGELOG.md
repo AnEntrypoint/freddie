@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Added
+- Dynamic per-(provider × model × access_mode) availability matrix system. New `scripts/build-model-availability.js` enumerates models via existing `discoverModels()` and cross-probes each (model, mode) cell across 7 modes: `direct_api`, `acptoapi_passthrough` (:4800), `freddie_v1` (:4900), `kilo_acp` (:4780), `opencode_acp` (:4790), `claude_cli`, `freddie_agent_loop`. Sampler-aware (`markFailed` on per-cell failure), per-cell timeout 15s, per-provider model cap 5 (both env-tunable). Output: `.gm/model-availability.json` with `{timestamp, config, daemons, providers[].models[].modes{}, sampler, summary}`. Every cell is one of `{ok:true, latency_ms, excerpt}`, `{ok:false, latency_ms, error}`, or `{ok:false, skipped:true, reason}` — no blanks. Witnessed 2026-05-13: 23 providers × up to 5 models × 7 modes; 3 models green-in-any-mode (groq/gpt-oss-20b + claude-cli/haiku + claude-cli/sonnet); 8 individual cells green.
+- `src/agent/model-matrix.js` (28L): `loadMatrix()` + `matrixUsable(provider, model)`. 24h TTL on consumption.
+- `src/agent/llm_resolver.js`: `buildAutoChain` now consults `matrixUsable` and drops links marked `ok:false in all modes`. Matrix-absent path unchanged (preserves existing behavior). Side effect: stale defaults like `nvidia/deepseek-r1` (410 Gone) auto-drop without editing static lists.
+- `plugins/gui-models-discover/plugin.js`: 3 new endpoints — `GET /api/models/availability` (200 with full matrix, 404 if absent), `GET /api/models/availability/summary` (lightweight), `POST /api/models/availability/rebuild` (202 background spawn, 409 if rebuild in flight).
+- `scripts/validate-llm-providers.js`: now invokes the matrix builder by default. `--single-shot` retains the legacy one-model-per-provider behavior; `--with-single-shot` runs both.
+- `test.js`: asserts both `scripts/build-model-availability.js` exists and the `/api/models/availability` endpoint returns 200|404 with valid schema when present.
+
 ### Refactored
 - `src/host/host.js`: createHost split from 111L → 24L body. Helper factories (`makePi`, `makeGui`, `makeCcHooks`, `makeHooksRegistry`, `makeCcLoaders`, plus `reg`/`guard`/`scopedCfg`/`nullStore`) extracted to new `src/host/host_helpers.js`. host.js drops from 197L → 64L, host_helpers.js is 152L. Both well under the 200L hard cap. Witnessed: test.js 12/12 green, plugins>=100, platforms>=18, memory>=8, surface guard + cycle errors still throw.
 - `test.js`: trimmed from 202L → 199L (within the 200L cap) by collapsing redundant blank lines and joining the final two control statements. Every assertion preserved. Witnessed 12/12 green.

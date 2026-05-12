@@ -3,6 +3,8 @@ import { callLLM as acptoapiCall, isReachable as acptoapiReachable } from './acp
 import { isAvailable, markFailed, getStatus } from './model-sampler.js'
 import { getConfigValue } from '../config.js'
 import { resolveKey } from './credential_sources.js'
+import { matrixUsable } from './model-matrix.js'
+export { matrixUsable } from './model-matrix.js'
 
 const _require = createRequire(import.meta.url)
 const sdk = _require('acptoapi')
@@ -174,7 +176,10 @@ export function resolveCallLLM({ provider, model } = {}) {
         const links = sdk.buildAutoChain(model || input.model)
         const availableLinks = (await Promise.all(links.map(async l => {
             const prefix = l.model.split('/')[0]
-            return (await hasKey(prefix)) && isAvailable(prefix) ? l : null
+            if (!(await hasKey(prefix)) || !isAvailable(prefix)) return null
+            const mu = matrixUsable(prefix, l.model.replace(/^[^/]+\//, ''))
+            if (mu === false) return null
+            return l
         }))).filter(Boolean)
 
         for (const link of availableLinks) {
