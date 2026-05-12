@@ -4,9 +4,9 @@ import yaml from 'js-yaml'
 import { getFreddieHome } from './home.js'
 
 export const DEFAULT_CONFIG = {
-    _config_version: 2,
+    _config_version: 3,
     display: { skin: 'default', tool_progress_command: false, background_process_notifications: 'all' },
-    agent: { provider: 'anthropic', model: '', max_iterations: 90, fallback_model: null, save_trajectories: false, model_preference: [] },
+    agent: { provider: 'anthropic', model: '', max_iterations: 90, fallback_model: null, save_trajectories: false, model_preference: [], model_queues: {}, discovered_models: {} },
     memory: { provider: null },
     skills: { config: {} },
     terminal: { cwd: null },
@@ -18,6 +18,7 @@ export const DEFAULT_CONFIG = {
 const MIGRATIONS = {
     1: cfg => cfg,
     2: cfg => { if (!cfg.agent) cfg.agent = {}; if (!Array.isArray(cfg.agent.model_preference)) cfg.agent.model_preference = []; return cfg },
+    3: cfg => { if (!cfg.agent) cfg.agent = {}; if (!cfg.agent.model_queues || typeof cfg.agent.model_queues !== 'object') cfg.agent.model_queues = {}; if (!cfg.agent.discovered_models || typeof cfg.agent.discovered_models !== 'object') cfg.agent.discovered_models = {}; return cfg },
 }
 
 export function configPath() { return path.join(getFreddieHome(), 'config.yaml') }
