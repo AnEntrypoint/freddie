@@ -48,6 +48,7 @@ src/web/vendor/
 .gm/audit-*.txt
 .gm/audit-*.js
 .gm/inp*.txt
+.gm/browser-probe.cjs
 _pw_test.js
 *.png
 emperor-penguin.md
