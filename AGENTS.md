@@ -12,6 +12,16 @@ Instructions for AI coding assistants working on Freddie.
 - `anentrypoint-design` ^0.0.94 — webjsx + ripple-ui. Use for any web UI; do NOT add React. Source in C:/dev/anentrypoint-design; freddie depends on the registry build (^0.0.94). For local SDK iteration, swap to `file:../anentrypoint-design` and rebuild via `node scripts/build.mjs`.
 - `xstate` v5 — every long-lived state machine (agent turns, gateway lifecycle, approvals).
 
+## acptoapi is THE SDK (since 1.0.59 / 2026-05-13)
+
+**Do not reimplement LLM resolution, chain fallback, sampler backoff, or matrix-aware scoring in freddie.** acptoapi is the single source of truth. `src/agent/llm_resolver.js` is now a 61-line thin shim over `acptoapi.chat({model, messages, tools, queuesMap, matrixSource, onFallback, output})`. It builds a single comma-list model string from `[explicit, input.model, agent.model_preference, keyed buildAutoChain]` and delegates everything else.
+
+Consume these top-level acptoapi exports directly (no re-export shim, no helper module): `chat`, `stream`, `chain`, `chatChain`, `streamChain`, `fallback`, `buildAutoChain`, `resolveModel`, `parseCommaList`, `splitPrefix`, `listAllModelsAndQueues`, `resolveQueue`, `listAllQueues`, `loadMatrix`, `matrixScore`, `clearMatrixCache`, `peekStatus`, `getStatus`, `isAvailable`, `markFailed`, `markOk`, `resetAvailability`, `startSampler`, `stopSampler`, `createSampler`, `probe`, `probeModels`, `getCachedModels`, `getRunHistory`, `PROVIDER_KEYS`, `PROVIDER_DEFAULTS`.
+
+Public surface reference: `node_modules/acptoapi/AGENTS.md` "Public API — unified chain SDK". Acceptable freddie-side adapters (cannot be deleted yet): `model-discovery.js` (claude-cli/ACP/ollama probing breadth acptoapi doesn't cover), `model-sampler.js` (13L re-export shim — test.js imports from it), `model-matrix.js` (28L MATRIX_FILE path helper), `acptoapi-bridge.js` (HTTP daemon passthrough at FREDDIE_LLM_URL when reachable, for `claude/*` etc that need the OAuth-managed daemon).
+
+Matrix wired: shim passes `matrixSource: process.env.FREDDIE_MATRIX_URL || <repo>/.gm/model-availability.json` only for comma-list or `queue/<name>` model strings (single-shot omits to avoid leaking chain opts into upstream HTTP body — bug fixed in acptoapi 1.0.62 buildParams/_stripChainOpts, but the conditional pass-through stays as defense-in-depth).
+
 ## Plugin architecture (2026-05-03, pre-v1, no compat shims)
 
 The monolith was decomposed into a universal plugin contract. Every tool, platform, memory provider, GUI route, and core subsystem is a plugin under `plugins/<name>/`. The old paths (`src/tools/registry.js`, `src/tools/*.js`, `src/gateway/platforms/*.js`, `src/plugins/memory/*.js`) are GONE — do not reach for them.
