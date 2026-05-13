@@ -24,10 +24,21 @@ function adapt(result) {
     return { content: typeof c.content === 'string' ? c.content : '', tool_calls: Array.isArray(c.tool_calls) ? c.tool_calls.map(tc => ({ id: tc.id, name: tc.function?.name, arguments: tryJson(tc.function?.arguments) })) : [], raw: result }
 }
 
+// Names callers can use as model= to select a curated acptoapi chain.
+// Mirror lib/named-chains.js BUILTIN — acptoapi resolves unknown names.
+const NAMED_CHAIN_NAMES = new Set(['fast', 'cheap', 'smart', 'reasoning', 'free', 'local', 'auto'])
+
 function buildModel({ provider, model, inputModel }) {
     if (provider) return `${provider}/${model || DEFAULTS[provider] || ''}`.replace(/\/$/, '')
     if (model) return model
-    if (inputModel) return inputModel
+    if (inputModel) {
+        // Bare name with no slash/comma and matching a known chain → pass through
+        // so acptoapi's named-chain resolver picks the curated list.
+        if (typeof inputModel === 'string' && !inputModel.includes('/') && !inputModel.includes(',') && NAMED_CHAIN_NAMES.has(inputModel)) {
+            return inputModel
+        }
+        return inputModel
+    }
     const pref = getConfigValue('agent.model_preference', [])
     if (Array.isArray(pref) && pref.length) {
         const links = pref.map(p => `${p.provider}/${p.model || DEFAULTS[p.provider] || ''}`.replace(/\/$/, '')).filter(s => s.includes('/'))
