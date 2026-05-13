@@ -12,6 +12,18 @@ Instructions for AI coding assistants working on Freddie.
 - `anentrypoint-design` ^0.0.94 — webjsx + ripple-ui. Use for any web UI; do NOT add React. Source in C:/dev/anentrypoint-design; freddie depends on the registry build (^0.0.94). For local SDK iteration, swap to `file:../anentrypoint-design` and rebuild via `node scripts/build.mjs`.
 - `xstate` v5 — every long-lived state machine (agent turns, gateway lifecycle, approvals).
 
+## Dynamic stack contract (2026-05-13)
+
+The stack is **thebird → freddie → acptoapi**. Each layer owns one concern:
+
+- **acptoapi** owns all upstream LLM/provider connectivity: HTTP/SSE to OpenAI, Anthropic, Gemini, brand providers, ACP daemons, Claude CLI. Plus chain/queue/sampler/matrix.
+- **freddie** owns agent-loop orchestration: tools, skills, sessions, memory. It calls *only* acptoapi for LLM access. No direct `fetch('https://api.openai.com/...')` etc. — those are migration debt to move into acptoapi (currently still present in `plugins/vision`, `plugins/image_gen`, `plugins/tts`, `plugins/transcription`, `src/agent/codex_responses_adapter.js`, `src/agent/image_gen_provider.js`, `src/agent/model-discovery.js`).
+- **thebird** owns browser presentation: webjsx UI, pyodide hermes shell. Talks to freddie for everything LLM-related when freddie is reachable; falls back to direct acptoapi only when there is no freddie.
+
+Versioning: freddie pins `acptoapi: "latest"` so `npm install` always picks up the newest published acptoapi. Thebird vendors freddie via `scripts/sync-upstream.mjs` against upstream main. No manual version-bump churn between sibling repos.
+
+When you touch one of the four direct-fetch utility plugins above, the right fix is to add the corresponding endpoint to acptoapi (POST /v1/images/generations, POST /v1/audio/transcriptions, etc.) and have freddie call acptoapi instead of the upstream vendor.
+
 ## acptoapi is THE SDK (since 1.0.59 / 2026-05-13)
 
 **Do not reimplement LLM resolution, chain fallback, sampler backoff, or matrix-aware scoring in freddie.** acptoapi is the single source of truth. `src/agent/llm_resolver.js` is now a 61-line thin shim over `acptoapi.chat({model, messages, tools, queuesMap, matrixSource, onFallback, output})`. It builds a single comma-list model string from `[explicit, input.model, agent.model_preference, keyed buildAutoChain]` and delegates everything else.
