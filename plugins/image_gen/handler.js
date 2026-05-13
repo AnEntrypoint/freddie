@@ -1,9 +1,12 @@
+// All upstream connectivity lives in acptoapi. This handler is a thin wrapper.
+import { getAcptoapiUrl } from '../../src/agent/acptoapi-bridge.js'
+
 export const _tool = ({
     name: 'image_gen',
     toolset: 'creative',
     schema: {
         name: 'image_gen',
-        description: 'Generate an image from a prompt. Provider via config.image_gen.provider (openai|replicate).',
+        description: 'Generate an image from a prompt. Routes through acptoapi /v1/images/generations.',
         parameters: {
             type: 'object',
             properties: {
@@ -19,13 +22,15 @@ export const _tool = ({
     requiresEnv: ['OPENAI_API_KEY or REPLICATE_API_TOKEN'],
     handler: async ({ prompt, provider, size = '1024x1024', model }) => {
         const which = provider || (process.env.OPENAI_API_KEY ? 'openai' : 'replicate')
-        if (which === 'openai') {
-            if (!process.env.OPENAI_API_KEY) return { error: 'OPENAI_API_KEY required' }
-            const res = await fetch('https://api.openai.com/v1/images/generations', { method: 'POST', headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify({ model: model || 'gpt-image-1', prompt, size }) })
-            return await res.json()
-        }
-        if (!process.env.REPLICATE_API_TOKEN) return { error: 'REPLICATE_API_TOKEN required' }
-        const res = await fetch('https://api.replicate.com/v1/predictions', { method: 'POST', headers: { authorization: `Token ${process.env.REPLICATE_API_TOKEN}`, 'content-type': 'application/json' }, body: JSON.stringify({ version: model || 'black-forest-labs/flux-schnell', input: { prompt } }) })
-        return await res.json()
+        const base = getAcptoapiUrl().replace(/\/v1\/?$/, '')
+        const body = which === 'openai'
+            ? { model: model || 'gpt-image-1', prompt, size }
+            : { version: model || 'black-forest-labs/flux-schnell', input: { prompt } }
+        const r = await fetch(base + '/v1/images/generations', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-provider': which, authorization: 'Bearer none' },
+            body: JSON.stringify(body),
+        })
+        return await r.json()
     },
 })
