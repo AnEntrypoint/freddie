@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'; import path from 'node:path'; import os from 'node:os'
 const TEST_HOME = path.join(os.tmpdir(), 'freddie-test-' + Date.now())
-process.env.FREDDIE_HOME = TEST_HOME; process.env.FREDDIE_PROFILES_ROOT = path.join(TEST_HOME, 'profiles')
+process.env.FREDDIE_HOME = TEST_HOME; process.env.FREDDIE_PROFILES_ROOT = path.join(TEST_HOME, 'profiles'); process.env.FREDDIE_DISABLE_CC_HOOKS = '1'
 fs.mkdirSync(path.join(TEST_HOME, 'profiles'), { recursive: true })
 const results = []; const T = async (n, fn) => { try { await fn(); results.push([n,'OK']) } catch (e) { results.push([n,'FAIL: '+(e?.stack||e?.message||e)]) } }
 await T('home+config+skin', async () => {
@@ -89,12 +89,12 @@ await T('acp-full', async () => {
 await T('plugins+memory', async () => {
     const { createHost } = await import('./src/host/host.js')
     const h = createHost({ surfaces: ['pi', 'gui'] }); let fired = 0
-    await h.load([{ name: 'noop', surfaces: 'pi', register({ hooks }) { hooks.on('preToolCall', async p => { fired++; return p }) } }])
-    await h.hooks.invoke('preToolCall', { name: 'bash' }); assert.equal(fired, 1)
-    const { listMemoryProviders, createMemoryProvider } = await import('./src/plugins/memory/provider.js')
-    for (const n of ['honcho','mem0','holographic','retaindb']) assert.ok(listMemoryProviders().includes(n))
-    const holo = createMemoryProvider('holographic', {})
-    await holo.syncTurn([{ role: 'user', content: 'test' }]); assert.ok((await holo.prefetch('test')).items.length >= 1)
+    await h.load([{ name: 'noop', surfaces: 'pi', register({ hooks }) { hooks.on('preToolCall', async p => { fired++; return p?.args?.deny ? { ...p, behavior:'block', reason:'no' } : { ...p, systemMessage:'sm', additionalContext:'ac' } }); for (const n of ['onPreCompact','onPostCompact','onMessageInbound','onMessageOutbound','onSessionStart','onSessionEnd','postToolCall']) hooks.on(n, async p => p) } }])
+    const hr = await h.hooks.invoke('preToolCall', { name: 'bash', args: {} }); assert.equal(fired, 1); assert.equal(hr.systemMessage, 'sm'); assert.equal(hr.additionalContext, 'ac'); assert.equal((await h.hooks.invoke('preToolCall', { name: 'bash', args: { deny: true } })).behavior, 'block')
+    const { FREDDIE_TO_SDK_HOOK: FS, FREDDIE_TO_NATIVE_HOOK: FN, HOOK_NAMES: HN } = await import('./src/host/contract.js'); for (const n of ['onPreCompact','onPostCompact','onMessageInbound','onMessageOutbound','onSessionStart','onSessionEnd','preToolCall','postToolCall']) assert.ok(HN.includes(n) && FS[n] && FN[n], n)
+    const { runTurn, invokeCompactHooks } = await import('./src/agent/machine.js'); const { bootHost: bh } = await import('./src/host/index.js'); const sh = await bh(); sh.hooks.on('preToolCall', async p => p?.args?.deny ? { ...p, behavior:'block', reason:'no' } : p); let bk = 0; const blocked = await runTurn({ prompt: 'p', callLLM: async () => bk++ === 0 ? { content: '', tool_calls: [{ id: 'd1', name: 'bash', arguments: { deny: true } }] } : { content: 'done', tool_calls: [] }, timeoutMs: 10000 }); assert.match(JSON.stringify(blocked.messages), /tool call denied by plugsdk hook/, 'denial chat error'); const ch = await invokeCompactHooks({ trigger:'manual', messages:[{role:'user',content:'x'}] }); assert.ok(ch.pre || ch.skipped, 'compact')
+    const { listMemoryProviders, createMemoryProvider } = await import('./src/plugins/memory/provider.js'); for (const n of ['honcho','mem0','holographic','retaindb']) assert.ok(listMemoryProviders().includes(n))
+    const holo = createMemoryProvider('holographic', {}); await holo.syncTurn([{ role: 'user', content: 'test' }]); assert.ok((await holo.prefetch('test')).items.length >= 1)
     const { metricsText, inc } = await import('./src/plugins/observability/index.js')
     inc('test_counter', 7); assert.match(metricsText(), /freddie_counter\{name="test_counter"\} 7/)
     const { award, listAchievements } = await import('./src/plugins/achievements/index.js')

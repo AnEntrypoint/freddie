@@ -16,6 +16,7 @@ export const HOOK_NAMES = [
     'onSessionStart', 'onSessionEnd',
     'onTurnStart', 'onTurnEnd',
     'onMessageInbound', 'onMessageOutbound',
+    'onPreCompact', 'onPostCompact',
 ]
 
 export const FREDDIE_TO_SDK_HOOK = {
@@ -25,6 +26,8 @@ export const FREDDIE_TO_SDK_HOOK = {
     onSessionEnd:       HookType.SESSION_END,
     onMessageInbound:   HookType.PROMPT_SUBMIT,
     onMessageOutbound:  HookType.STOP,
+    onPreCompact:       HookType.PRE_COMPACT,
+    onPostCompact:      HookType.POST_COMPACT,
 }
 
 export const FREDDIE_TO_NATIVE_HOOK = {
@@ -34,6 +37,8 @@ export const FREDDIE_TO_NATIVE_HOOK = {
     onSessionEnd:      'SessionEnd',
     onMessageInbound:  'UserPromptSubmit',
     onMessageOutbound: 'Stop',
+    onPreCompact:      'PreCompact',
+    onPostCompact:     'PostCompact',
 }
 
 export function validatePlugin(p) {
