@@ -48,6 +48,8 @@ function ccPayloadFor(name, payload) {
         return { tool_name: payload?.name, tool_input: payload?.args || payload?.input, tool_response: payload?.result }
     if (name === 'onMessageInbound' || name === 'onMessageOutbound')
         return { prompt: payload?.content || payload?.text || '' }
+    if (name === 'onPreCompact' || name === 'onPostCompact')
+        return { trigger: payload?.trigger || 'auto', messages_count: payload?.messages?.length ?? 0, summary: payload?.summary ?? null }
     return payload || {}
 }
 
@@ -90,12 +92,17 @@ export function makeHooksRegistry(ccHost) {
             let cur = payload
             for (const fn of reg2[name] || []) cur = (await fn(cur)) ?? cur
             const native = FREDDIE_TO_NATIVE_HOOK[name]
-            if (native && ccHost.plugins().length) {
+            if (native && ccHost.plugins().length && !process.env.FREDDIE_DISABLE_CC_HOOKS) {
                 const r = await ccHost.dispatch(native, ccPayloadFor(name, cur))
-                if (r.decision === 'block') return { ...cur, behavior: 'block', reason: r.reason }
+                const extras = {}
+                if (typeof r.systemMessage === 'string' && r.systemMessage.length) extras.systemMessage = r.systemMessage
+                const addCtx = r.hookSpecificOutput?.additionalContext
+                if (typeof addCtx === 'string' && addCtx.length) extras.additionalContext = addCtx
+                if (r.decision === 'block') return { ...cur, ...extras, behavior: 'block', reason: r.reason }
                 const pd = r.hookSpecificOutput?.permissionDecision
-                if (pd === 'deny') return { ...cur, behavior: 'block', reason: r.hookSpecificOutput?.permissionDecisionReason || 'denied' }
-                if (r.hookSpecificOutput?.updatedInput) return { ...cur, ...r.hookSpecificOutput.updatedInput }
+                if (pd === 'deny') return { ...cur, ...extras, behavior: 'block', reason: r.hookSpecificOutput?.permissionDecisionReason || 'denied' }
+                if (r.hookSpecificOutput?.updatedInput) return { ...cur, ...extras, ...r.hookSpecificOutput.updatedInput }
+                if (Object.keys(extras).length) return { ...cur, ...extras }
             }
             return cur
         },

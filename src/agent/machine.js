@@ -74,15 +74,23 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                         const last = input.messages[input.messages.length - 1]
                         const calls = last.tool_calls || []
                         const results = []
+                        const extras = []
                         for (const call of calls) {
-                            const res = await h.pi.dispatchTool(call.name || call.function?.name, call.arguments || call.function?.arguments || {})
-                            results.push({ tool_call_id: call.id || call.tool_call_id, content: res })
+                            const tname = call.name || call.function?.name
+                            const targs = call.arguments || call.function?.arguments || {}
+                            const tcid = call.id || call.tool_call_id
+                            const pushExtras = r => { if (r?.systemMessage) extras.push({ role: 'system', content: '[hook] ' + r.systemMessage }); if (r?.additionalContext) extras.push({ role: 'system', content: r.additionalContext }) }
+                            const pre = await h.hooks.invoke('preToolCall', { name: tname, args: targs }); pushExtras(pre)
+                            if (pre?.behavior === 'block') { results.push({ tool_call_id: tcid, content: JSON.stringify({ error: 'tool call denied by plugsdk hook', tool: tname, reason: pre.reason || 'denied' }) }); continue }
+                            const res = await h.pi.dispatchTool(tname, (pre && pre.args) || targs)
+                            pushExtras(await h.hooks.invoke('postToolCall', { name: tname, args: targs, result: res }))
+                            results.push({ tool_call_id: tcid, content: res })
                         }
-                        return results
+                        return { results, extras }
                     }),
                     input: ({ context }) => ({ messages: context.messages }),
                     onDone: { target: 'prompting', actions: assign({
-                        messages: ({ context, event }) => [...context.messages, ...event.output.map(r => ({ role: 'tool', tool_call_id: r.tool_call_id, content: r.content }))],
+                        messages: ({ context, event }) => [...context.messages, ...event.output.results.map(r => ({ role: 'tool', tool_call_id: r.tool_call_id, content: r.content })), ...event.output.extras],
                         iterations: ({ context }) => context.iterations + 1,
                     }) },
                     onError: { target: 'done', actions: assign({ error: ({ event }) => String(event.error?.message || event.error) }) },
@@ -143,30 +151,45 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
     } catch (_) {}
 }
 
+function mergeHookExtras(messages, r, tag) {
+    if (!r) return messages
+    const e = []
+    if (r.systemMessage) e.push({ role: 'system', content: '[hook:' + tag + '] ' + r.systemMessage })
+    if (r.additionalContext) e.push({ role: 'system', content: r.additionalContext })
+    return e.length ? [...messages, ...e] : messages
+}
+
 export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath } = {}) {
-    const events = []
-    const initMessages = [...messages]
-    const systemParts = []
-    if (cwd) systemParts.push(`Working directory: ${cwd}. Always pass cwd="${cwd}" to bash tool calls. When reading or writing files use paths relative to this directory or absolute paths under it.`)
-    if (skill) {
-        const h = await bootHost()
-        const skillDef = h.pi.skills.get(skill)
-        if (skillDef?.content) systemParts.push('Skill context:\n' + skillDef.content)
-    }
-    if (systemParts.length > 0) initMessages.unshift({ role: 'user', content: systemParts.join('\n\n') })
+    const events = []; const h = await bootHost()
+    await h.hooks.invoke('onSessionStart', { prompt, model, provider, skill, cwd })
+    let initMessages = [...messages]; const sysParts = []
+    if (cwd) sysParts.push(`Working directory: ${cwd}. Always pass cwd="${cwd}" to bash tool calls. When reading or writing files use paths relative to this directory or absolute paths under it.`)
+    if (skill) { const sd = h.pi.skills.get(skill); if (sd?.content) sysParts.push('Skill context:\n' + sd.content) }
+    if (sysParts.length) initMessages.unshift({ role: 'user', content: sysParts.join('\n\n') })
+    const inbound = await h.hooks.invoke('onMessageInbound', { content: prompt })
+    if (inbound?.behavior === 'block') { await h.hooks.invoke('onSessionEnd', { reason: 'prompt_blocked' }); return { messages: initMessages, result: null, error: 'prompt blocked by plugsdk hook: ' + (inbound.reason || 'denied'), iterations: 0 } }
+    initMessages = mergeHookExtras(initMessages, inbound, 'onMessageInbound')
     const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events })
-    const actor = createActor(machine, { input: { messages: initMessages } })
-    actor.start()
-    actor.send({ type: 'SUBMIT', prompt })
+    const actor = createActor(machine, { input: { messages: initMessages } }); actor.start(); actor.send({ type: 'SUBMIT', prompt })
     return await new Promise((resolve, reject) => {
         const t = setTimeout(() => { try { actor.stop() } catch {} reject(new Error('agent turn timeout')) }, timeoutMs)
-        actor.subscribe(snap => {
-            if (snap.status === 'done') {
-                clearTimeout(t)
-                const errorStack = snap.output?.error ? (events.find(e => e.type === 'llm_call' && !e.ok)?.stack || null) : null
-                writeTrajectory(snap.output, { prompt, provider, model, skill, cwd, events, errorStack, witnessPath }).finally(() => resolve(snap.output))
-            }
+        actor.subscribe(snap => { if (snap.status !== 'done') return; clearTimeout(t)
+            ;(async () => {
+                const out = snap.output
+                const outbound = await h.hooks.invoke('onMessageOutbound', { content: out?.result || '' })
+                if (outbound?.systemMessage || outbound?.additionalContext) out.messages = mergeHookExtras(out.messages || [], outbound, 'onMessageOutbound')
+                await h.hooks.invoke('onSessionEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
+                const errorStack = out?.error ? (events.find(e => e.type === 'llm_call' && !e.ok)?.stack || null) : null
+                await writeTrajectory(out, { prompt, provider, model, skill, cwd, events, errorStack, witnessPath }); resolve(out)
+            })().catch(reject)
         })
     })
+}
+
+export async function invokeCompactHooks({ trigger = 'auto', messages = [] } = {}) {
+    const h = await bootHost()
+    const pre = await h.hooks.invoke('onPreCompact', { trigger, messages })
+    if (pre?.behavior === 'block') return { skipped: true, reason: pre.reason || 'blocked' }
+    return { pre, post: async (summary) => h.hooks.invoke('onPostCompact', { trigger, messages, summary }) }
 }
 
