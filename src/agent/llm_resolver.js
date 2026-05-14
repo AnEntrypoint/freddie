@@ -6,6 +6,18 @@ export { matrixUsable } from './model-matrix.js'
 
 const _require = createRequire(import.meta.url)
 const sdk = _require('acptoapi')
+let AnthropicSDK = null
+function getAnthropicSDK() {
+    if (!AnthropicSDK) {
+        try {
+            AnthropicSDK = _require('@anthropic-ai/sdk')
+        } catch (e) {
+            return null
+        }
+    }
+    return AnthropicSDK
+}
+
 export const PROVIDER_KEYS = sdk.PROVIDER_KEYS
 export const DEFAULTS = sdk.PROVIDER_DEFAULTS
 
@@ -22,6 +34,51 @@ const tryJson = s => { try { return typeof s === 'string' ? JSON.parse(s) : (s |
 function adapt(result) {
     const c = result?.choices?.[0]?.message || {}
     return { content: typeof c.content === 'string' ? c.content : '', tool_calls: Array.isArray(c.tool_calls) ? c.tool_calls.map(tc => ({ id: tc.id, name: tc.function?.name, arguments: tryJson(tc.function?.arguments) })) : [], raw: result }
+}
+
+async function callAnthropicSDK({ messages, tools, model }) {
+    const Anthropic = getAnthropicSDK()
+    if (!Anthropic) throw new Error('Anthropic SDK not installed')
+
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY environment variable not set')
+
+    const client = new Anthropic({ apiKey })
+    const useModel = model || 'claude-3-5-sonnet-20241022'
+
+    const params = {
+        model: useModel,
+        max_tokens: 4096,
+        messages: messages.map(m => ({
+            role: m.role === 'tool' ? 'user' : m.role,
+            content: m.role === 'tool' ? JSON.stringify({ type: 'tool_result', tool_use_id: m.tool_call_id, content: m.content }) : m.content
+        }))
+    }
+
+    if (Array.isArray(tools) && tools.length > 0) {
+        params.tools = tools.map(t => ({
+            name: t.function?.name || t.name,
+            description: t.function?.description || t.description || '',
+            input_schema: t.function?.parameters || t.parameters || { type: 'object', properties: {} }
+        }))
+    }
+
+    const response = await client.messages.create(params)
+
+    const content = response.content.map(block => {
+        if (block.type === 'text') return block.text
+        return ''
+    }).filter(Boolean).join('')
+
+    const tool_calls = response.content
+        .filter(block => block.type === 'tool_use')
+        .map(block => ({
+            id: block.id,
+            name: block.name,
+            arguments: tryJson(block.input)
+        }))
+
+    return { content, tool_calls, raw: response }
 }
 
 // Names callers can use as model= to select a curated acptoapi chain.
@@ -59,12 +116,35 @@ export function resolveCallLLM({ provider, model } = {}) {
         }
         try {
             const isSimple = typeof m === 'string' && !m.includes(',') && !/^queue\//.test(m)
-            if (isSimple && await bridgeReachable()) return await bridgeCall({ ...input, model: m })
+
+            if (isSimple && await bridgeReachable()) {
+                try {
+                    return await bridgeCall({ ...input, model: m })
+                } catch (bridgeErr) {
+                    const fallbackErr = new Error(`acptoapi failed: ${bridgeErr.message}`)
+                    fallbackErr.cause = bridgeErr
+                    try {
+                        return await callAnthropicSDK({ messages: input.messages, tools: input.tools, model: m.split('/')[1] || model })
+                    } catch (sdkErr) {
+                        throw new Error(`both providers failed: acptoapi (${bridgeErr.message}) and SDK (${sdkErr.message})`)
+                    }
+                }
+            }
+
             const opts = { model: m, messages: toMsgs(input.messages), tools: toTools(input.tools), onFallback: input.onFallback, output: 'openai' }
             if (/^queue\//.test(m)) opts.queuesMap = getConfigValue('agent.model_queues', {}) || {}
             if (m.includes(',') || /^queue\//.test(m)) opts.matrixSource = process.env.FREDDIE_MATRIX_URL || MATRIX_FILE
-            const r = await sdk.chat(opts)
-            return adapt(r)
+
+            try {
+                const r = await sdk.chat(opts)
+                return adapt(r)
+            } catch (sdkErr) {
+                try {
+                    return await callAnthropicSDK({ messages: input.messages, tools: input.tools, model: m.split('/')[1] || model })
+                } catch (fallbackErr) {
+                    throw new Error(`acptoapi SDK wrapper failed (${sdkErr.message}), Anthropic SDK fallback also failed (${fallbackErr.message})`)
+                }
+            }
         } catch (e) {
             if (/queue not found or empty/i.test(e.message)) throw e
             if (e.chainHistory || /All chain links failed|chain\(\) requires/i.test(e.message)) throw new Error(`chain exhausted: ${(e.attempted || []).map(a => `${a.model}:${a.reason || 'ok'}`).join('; ') || e.message}`)
