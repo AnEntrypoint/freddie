@@ -84,11 +84,21 @@ function adaptResponse(r) {
 
 function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : (s || {}) } catch { return {} } }
 
-export async function isReachable() {
+export async function isReachable(timeoutMs = 2000) {
     try {
-        const res = await fetch(getAcptoapiUrl().replace(/\/$/, '') + '/models', { headers: { authorization: 'Bearer none' } })
-        if (!res.ok) return false
-        const json = await res.json()
-        return Array.isArray(json.data) && json.data.length > 0
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+        try {
+            const res = await fetch(getAcptoapiUrl().replace(/\/$/, '') + '/models', {
+                headers: { authorization: 'Bearer none' },
+                signal: controller.signal
+            })
+            clearTimeout(timeoutId)
+            if (!res.ok) return false
+            const json = await res.json()
+            return Array.isArray(json.data) && json.data.length > 0
+        } finally {
+            clearTimeout(timeoutId)
+        }
     } catch { return false }
 }

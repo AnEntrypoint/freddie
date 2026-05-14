@@ -1,0 +1,5 @@
+{"event":"session_start","ts":"2026-05-12T23-34-27-476","prompt":"Reply with exactly: REAL_OK_QUEUE","provider":"nvidia","model":"does-not-exist-eol-model-xyz, groq/llama-3.3-70b-versatile, mistral/mistral-tiny-2407"}
+{"event":"message","index":0,"role":"user","content":"Reply with exactly: REAL_OK_QUEUE","tool_calls":null,"tool_call_id":null}
+{"event":"message","index":1,"role":"assistant","content":"REAL_OK_QUEUE","tool_calls":null,"tool_call_id":null}
+{"event":"llm_call","type":"llm_call","ok":true,"durationMs":1698,"provider":"nvidia","model":"does-not-exist-eol-model-xyz, groq/llama-3.3-70b-versatile, mistral/mistral-tiny-2407","content_length":13,"tool_calls_count":0,"ts":"2026-05-12T23:34:27.459Z"}
+{"event":"session_end","iterations":0,"error":null,"error_stack":null,"compressor_invocations":0}

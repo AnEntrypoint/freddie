@@ -1,0 +1,49 @@
+[chain] chat try provider=unknown model=x attempt=1/1
+[chain] fallback reason=error from=x (exhausted)
+[chain] chat try provider=openrouter model=openrouter/google/gemini-3.1-flash-lite attempt=1/9
+[chain] fallback reason=error from=openrouter/google/gemini-3.1-flash-lite to=groq/meta-llama/llama-4-scout-17b-16e-instruct
+[chain] chat try provider=groq model=groq/meta-llama/llama-4-scout-17b-16e-instruct attempt=2/9
+[chain] chat try provider=openrouter model=openrouter/google/gemini-3.1-flash-lite attempt=1/9
+[chain] chat try provider=openrouter model=openrouter/google/gemini-3.1-flash-lite attempt=1/9
+[chain] fallback reason=error from=groq/meta-llama/llama-4-scout-17b-16e-instruct to=mistral/mistral-tiny-2407
+[chain] chat try provider=mistral model=mistral/mistral-tiny-2407 attempt=3/9
+[chain] fallback reason=error from=openrouter/google/gemini-3.1-flash-lite to=groq/meta-llama/llama-4-scout-17b-16e-instruct
+[chain] chat try provider=groq model=groq/meta-llama/llama-4-scout-17b-16e-instruct attempt=2/9
+[chain] fallback reason=error from=openrouter/google/gemini-3.1-flash-lite to=groq/meta-llama/llama-4-scout-17b-16e-instruct
+[chain] chat try provider=groq model=groq/meta-llama/llama-4-scout-17b-16e-instruct attempt=2/9
+[chain] fallback reason=error from=groq/meta-llama/llama-4-scout-17b-16e-instruct to=mistral/mistral-tiny-2407
+[chain] chat try provider=mistral model=mistral/mistral-tiny-2407 attempt=3/9
+[chain] fallback reason=error from=groq/meta-llama/llama-4-scout-17b-16e-instruct to=mistral/mistral-tiny-2407
+[chain] chat try provider=mistral model=mistral/mistral-tiny-2407 attempt=3/9
+[chain] chat try provider=openrouter model=openrouter/google/gemini-3.1-flash-lite attempt=1/9
+[chain] fallback reason=error from=openrouter/google/gemini-3.1-flash-lite to=groq/meta-llama/llama-4-scout-17b-16e-instruct
+[chain] chat try provider=groq model=groq/meta-llama/llama-4-scout-17b-16e-instruct attempt=2/9
+[chain] fallback reason=error from=groq/meta-llama/llama-4-scout-17b-16e-instruct to=mistral/mistral-tiny-2407
+[chain] skip reason=sampler_backoff model=mistral/mistral-tiny-2407 -> codestral/codestral-latest
+[chain] chat try provider=codestral model=codestral/codestral-latest attempt=4/9
+[chain] fallback reason=error from=codestral/codestral-latest to=qwen/qwen-plus
+[chain] chat try provider=qwen model=qwen/qwen-plus attempt=5/9
+[chain] fallback reason=error from=qwen/qwen-plus to=zai/glm-4-plus
+[chain] chat try provider=zai model=zai/glm-4-plus attempt=6/9
+[chain] fallback reason=error from=zai/glm-4-plus to=nvidia/adept/fuyu-8b
+[chain] skip reason=matrix_block model=nvidia/adept/fuyu-8b -> cerebras/llama3.1-8b
+[chain] skip reason=matrix_block model=cerebras/llama3.1-8b -> sambanova/Llama-4-Maverick-17B-128E-Instruct
+[chain] skip reason=matrix_block model=sambanova/Llama-4-Maverick-17B-128E-Instruct (exhausted)
+
+=== test.js results ===
+  ✓ home+config+skin	OK
+  ✓ sessions+FTS5	OK
+  ✓ host+tools+toolsets	OK
+  ✓ agent-machine	OK
+  ✓ gateway+platforms+hooks	OK
+  ✓ acp-full	OK
+  ✓ plugins+memory	OK
+  ✓ profiles+observability+auth+env+context+cron+batch+slash+skills	OK
+  ✓ utils+time+redact+model-meta+agent-helpers	OK
+  ✓ mcp+swe+distributions+account+credpool	OK
+  ✓ compressor+trajectory	OK
+  ✓ env+pi+cli+tui+setup+website+helpers	OK
+
+12 passed
+
+---STDERR---
