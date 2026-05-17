@@ -134,6 +134,7 @@ export function makeCcLoaders(ccHost, env) {
         }
         return ccHost.plugins().length
     }
+    const CC_EXCLUDE = new Set(['gm-cc'])
     async function loadCcFromNodeModules(startDir) {
         const seen = new Set(ccHost.plugins().map(p => p.root))
         let cur = path.resolve(startDir)
@@ -145,7 +146,7 @@ export function makeCcLoaders(ccHost, env) {
                     ? fs.readdirSync(path.join(nm, entry.name), { withFileTypes: true }).filter(e => e.isDirectory()).map(e => path.join(nm, entry.name, e.name))
                     : [path.join(nm, entry.name)]
                 for (const d of dirs) {
-                    if (seen.has(d) || !isCcPluginDir(d)) continue
+                    if (seen.has(d) || !isCcPluginDir(d) || CC_EXCLUDE.has(path.basename(d))) continue
                     seen.add(d); await useCcDir(d)
                 }
             }

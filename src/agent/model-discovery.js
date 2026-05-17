@@ -1,14 +1,20 @@
 // Upstream model enumeration lives in acptoapi. This module is a thin shim
 // over GET /v1/models so freddie has zero direct vendor connectivity.
+import { createRequire } from 'module'
 import { getAcptoapiUrl } from './acptoapi-bridge.js'
 import { saveConfigValue, getConfigValue } from '../config.js'
 import { logger } from '../observability/log.js'
 
+const _require = createRequire(import.meta.url)
+const _sdk = _require('acptoapi')
 const log = logger('model-discovery')
+
+const NON_KEY_PROVIDERS = ['claude-cli', 'kilo', 'opencode', 'ollama']
 
 export function listKnownProviders() {
     const cached = getConfigValue('agent.discovered_models', {}) || {}
-    return Object.keys(cached)
+    const set = new Set([...Object.keys(cached), ...Object.keys(_sdk.PROVIDER_KEYS || {}), ...NON_KEY_PROVIDERS])
+    return [...set]
 }
 
 export async function discoverModels({ provider } = {}) {
