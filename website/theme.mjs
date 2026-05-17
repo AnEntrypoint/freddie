@@ -36,6 +36,7 @@ export default {
                     body: page.body,
                     navItems: NAV,
                     siteName: 'Freddie',
+                    basePath: '/freddie/',
                 }),
             })
         }
