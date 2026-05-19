@@ -1,0 +1,98 @@
+[
+  {
+    "id": "creative/architecture-diagram",
+    "category": "creative",
+    "shortName": "architecture-diagram",
+    "name": "creative/architecture-diagram",
+    "description": "",
+    "path": "creative/architecture-diagram/SKILL.md"
+  },
+  {
+    "id": "creative/ascii-video",
+    "category": "creative",
+    "shortName": "ascii-video",
+    "name": "creative/ascii-video",
+    "description": "",
+    "path": "creative/ascii-video/SKILL.md"
+  },
+  {
+    "id": "creative/concept-diagrams",
+    "category": "creative",
+    "shortName": "concept-diagrams",
+    "name": "creative/concept-diagrams",
+    "description": "",
+    "path": "creative/concept-diagrams/SKILL.md"
+  },
+  {
+    "id": "data/etl-pipelines",
+    "category": "data",
+    "shortName": "etl-pipelines",
+    "name": "data/etl-pipelines",
+    "description": "",
+    "path": "data/etl-pipelines/SKILL.md"
+  },
+  {
+    "id": "data/sql-explainer",
+    "category": "data",
+    "shortName": "sql-explainer",
+    "name": "data/sql-explainer",
+    "description": "",
+    "path": "data/sql-explainer/SKILL.md"
+  },
+  {
+    "id": "ops/incident-response",
+    "category": "ops",
+    "shortName": "incident-response",
+    "name": "ops/incident-response",
+    "description": "",
+    "path": "ops/incident-response/SKILL.md"
+  },
+  {
+    "id": "ops/log-triage",
+    "category": "ops",
+    "shortName": "log-triage",
+    "name": "ops/log-triage",
+    "description": "",
+    "path": "ops/log-triage/SKILL.md"
+  },
+  {
+    "id": "planning/okr-drafter",
+    "category": "planning",
+    "shortName": "okr-drafter",
+    "name": "planning/okr-drafter",
+    "description": "",
+    "path": "planning/okr-drafter/SKILL.md"
+  },
+  {
+    "id": "planning/weekly-review",
+    "category": "planning",
+    "shortName": "weekly-review",
+    "name": "planning/weekly-review",
+    "description": "",
+    "path": "planning/weekly-review/SKILL.md"
+  },
+  {
+    "id": "software-development/code-review",
+    "category": "software-development",
+    "shortName": "code-review",
+    "name": "software-development/code-review",
+    "description": "",
+    "path": "software-development/code-review/SKILL.md"
+  },
+  {
+    "id": "software-development/rfc-writer",
+    "category": "software-development",
+    "shortName": "rfc-writer",
+    "name": "software-development/rfc-writer",
+    "description": "",
+    "path": "software-development/rfc-writer/SKILL.md"
+  },
+  {
+    "id": "software-development/systematic-debugging",
+    "category": "software-development",
+    "shortName": "systematic-debugging",
+    "name": "software-development/systematic-debugging",
+    "description": "",
+    "path": "software-development/systematic-debugging/SKILL.md"
+  }
+]
