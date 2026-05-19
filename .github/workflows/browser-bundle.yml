@@ -1,0 +1,39 @@
+name: browser-bundle
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      - name: Build browser bundle
+        run: npm run build:browser
+
+      - name: Stage publish dir
+        run: |
+          mkdir -p publish/browser
+          cp -r dist/browser/* publish/browser/
+
+      - name: Publish to gh-pages /browser/
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./publish
+          publish_branch: gh-pages
+          keep_files: true
+          destination_dir: .
