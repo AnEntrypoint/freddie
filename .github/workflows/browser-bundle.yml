@@ -28,6 +28,32 @@ jobs:
         run: |
           mkdir -p publish/browser
           cp -r dist/browser/* publish/browser/
+          mkdir -p publish/skills
+          if [ -d skills ]; then cp -r skills/* publish/skills/; fi
+
+      - name: Generate skills manifest
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const root = 'publish/skills';
+            const out = [];
+            function walk(dir, rel) {
+              for (const e of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
+                const sub = dir ? dir + '/' + e.name : e.name;
+                if (e.isDirectory()) walk(sub, rel);
+                else if (e.name === 'SKILL.md') {
+                  const id = dir;
+                  const category = dir.split('/')[0] || '';
+                  const shortName = dir.split('/').slice(1).join('/') || dir;
+                  out.push({ id, category, shortName, name: id, description: '', path: dir + '/SKILL.md' });
+                }
+              }
+            }
+            if (fs.existsSync(root)) walk('', '');
+            fs.writeFileSync(path.join(root, 'manifest.json'), JSON.stringify(out, null, 2));
+            console.log('manifest entries:', out.length);
+          "
 
       - name: Publish to gh-pages /browser/
         uses: peaceiris/actions-gh-pages@v4
