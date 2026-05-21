@@ -3911,9 +3911,14 @@ async function isReachable(timeoutMs = 2e3) {
 }
 //#endregion
 //#region src/agent/llm_resolver.js
-var sdk = (0, import___vite_browser_external.createRequire)(import.meta.url)("acptoapi");
-var PROVIDER_KEYS = sdk.PROVIDER_KEYS;
-var DEFAULTS = sdk.PROVIDER_DEFAULTS;
+var sdk = {};
+try {
+	sdk = (0, import___vite_browser_external.createRequire)(import.meta.url)("acptoapi") || {};
+} catch {
+	sdk = {};
+}
+var PROVIDER_KEYS = sdk.PROVIDER_KEYS || {};
+var DEFAULTS = sdk.PROVIDER_DEFAULTS || {};
 var toTools = (s) => s?.length ? s.map((t) => ({
 	type: "function",
 	function: {
@@ -3985,7 +3990,7 @@ function buildModel({ provider, model, inputModel }) {
 		const links = pref.map((p) => `${p.provider}/${p.model || DEFAULTS[p.provider] || ""}`.replace(/\/$/, "")).filter((s) => s.includes("/"));
 		if (links.length) return links.join(", ");
 	}
-	const auto = sdk.buildAutoChain(void 0);
+	const auto = typeof sdk.buildAutoChain === "function" ? sdk.buildAutoChain(void 0) : [];
 	const keyed = Array.isArray(auto) ? auto.filter((l) => {
 		const env = PROVIDER_KEYS[l.model.split("/")[0]];
 		return env && process.env[env];
@@ -4001,7 +4006,7 @@ function resolveCallLLM({ provider, model } = {}) {
 			inputModel: input.model
 		});
 		if (!m) {
-			const status = sdk.getStatus().map((s) => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(", ");
+			const status = typeof sdk.getStatus === "function" ? sdk.getStatus().map((s) => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(", ") : "";
 			throw new Error("no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1)" + (status ? " | sampler: " + status : ""));
 		}
 		try {
@@ -4018,6 +4023,10 @@ function resolveCallLLM({ provider, model } = {}) {
 			};
 			if (/^queue\//.test(m)) opts.queuesMap = getConfigValue("agent.model_queues", {}) || {};
 			if (m.includes(",") || /^queue\//.test(m)) opts.matrixSource = process.env.FREDDIE_MATRIX_URL || MATRIX_FILE;
+			if (typeof sdk.chat !== "function") return await callLLM({
+				...input,
+				model: m
+			});
 			return adapt(await sdk.chat(opts));
 		} catch (e) {
 			if (/queue not found or empty/i.test(e.message)) throw e;
