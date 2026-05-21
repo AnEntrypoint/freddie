@@ -7,14 +7,21 @@ const _require = createRequire(import.meta.url)
 function resolveSkillMd() {
     const home = process.env.USERPROFILE || process.env.HOME
     if (home) {
-        const userSkill = path.join(home, '.claude', 'skills', 'gm-skill', 'SKILL.md')
-        if (fs.existsSync(userSkill)) return userSkill
+        const candidates = [
+            path.join(home, '.agents', 'skills', 'gm-skill', 'SKILL.md'),
+            path.join(home, '.claude', 'skills', 'gm-skill', 'SKILL.md'),
+        ]
+        for (const p of candidates) {
+            if (fs.existsSync(p)) return p
+        }
     }
-    try {
-        const pkgPath = _require.resolve('gm-cc/package.json')
-        const candidate = path.join(path.dirname(pkgPath), 'skills', 'gm-skill', 'SKILL.md')
-        if (fs.existsSync(candidate)) return candidate
-    } catch {}
+    for (const pkg of ['gm-skill', 'gm-cc']) {
+        try {
+            const pkgPath = _require.resolve(`${pkg}/package.json`)
+            const candidate = path.join(path.dirname(pkgPath), 'skills', 'gm-skill', 'SKILL.md')
+            if (fs.existsSync(candidate)) return candidate
+        } catch {}
+    }
     return null
 }
 
