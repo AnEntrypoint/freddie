@@ -4,11 +4,20 @@ import { MATRIX_FILE } from './model-matrix.js'
 import { callLLM as bridgeCall, isReachable as bridgeReachable } from './acptoapi-bridge.js'
 export { matrixUsable } from './model-matrix.js'
 
-const _require = createRequire(import.meta.url)
-const sdk = _require('acptoapi')
+// In browser bundles createRequire('acptoapi') resolves to an empty/stub
+// module — acptoapi is a node-only CJS package. Guard so consumers (browser
+// freddie) fall through to the acptoapi-bridge HTTP path instead of crashing
+// with 'sdk.buildAutoChain is not a function'.
+let sdk = {}
+try {
+    const _require = createRequire(import.meta.url)
+    sdk = _require('acptoapi') || {}
+} catch {
+    sdk = {}
+}
 
-export const PROVIDER_KEYS = sdk.PROVIDER_KEYS
-export const DEFAULTS = sdk.PROVIDER_DEFAULTS
+export const PROVIDER_KEYS = sdk.PROVIDER_KEYS || {}
+export const DEFAULTS = sdk.PROVIDER_DEFAULTS || {}
 
 const toTools = s => s?.length ? s.map(t => ({ type: 'function', function: { name: t.name, description: t.description || '', parameters: t.parameters || { type: 'object', properties: {} } } })) : undefined
 
@@ -45,7 +54,7 @@ function buildModel({ provider, model, inputModel }) {
         const links = pref.map(p => `${p.provider}/${p.model || DEFAULTS[p.provider] || ''}`.replace(/\/$/, '')).filter(s => s.includes('/'))
         if (links.length) return links.join(', ')
     }
-    const auto = sdk.buildAutoChain(undefined)
+    const auto = typeof sdk.buildAutoChain === 'function' ? sdk.buildAutoChain(undefined) : []
     const keyed = Array.isArray(auto) ? auto.filter(l => { const p = l.model.split('/')[0]; const env = PROVIDER_KEYS[p]; return env && process.env[env] }) : []
     if (keyed.length) return keyed.map(l => l.model).join(', ')
     return null
@@ -55,7 +64,7 @@ export function resolveCallLLM({ provider, model } = {}) {
     return async (input) => {
         const m = buildModel({ provider, model, inputModel: input.model })
         if (!m) {
-            const status = sdk.getStatus().map(s => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(', ')
+            const status = typeof sdk.getStatus === 'function' ? sdk.getStatus().map(s => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(', ') : ''
             throw new Error('no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1)' + (status ? ' | sampler: ' + status : ''))
         }
         try {
@@ -69,6 +78,10 @@ export function resolveCallLLM({ provider, model } = {}) {
             if (/^queue\//.test(m)) opts.queuesMap = getConfigValue('agent.model_queues', {}) || {}
             if (m.includes(',') || /^queue\//.test(m)) opts.matrixSource = process.env.FREDDIE_MATRIX_URL || MATRIX_FILE
 
+            if (typeof sdk.chat !== 'function') {
+                // Browser context: no node-side sdk; route via HTTP bridge.
+                return await bridgeCall({ ...input, model: m })
+            }
             const r = await sdk.chat(opts)
             return adapt(r)
         } catch (e) {
