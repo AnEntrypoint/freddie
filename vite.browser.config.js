@@ -20,6 +20,7 @@ export default defineConfig({
         if (id.startsWith('node:')) return true
         if (id === 'xstate') return true
         if (id === 'anentrypoint-design' || id.startsWith('anentrypoint-design/')) return true
+        if (id === 'acptoapi') return true
         return false
       },
       output: {
