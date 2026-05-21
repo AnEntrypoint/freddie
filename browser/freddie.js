@@ -3967,7 +3967,7 @@ var NAMED_CHAIN_NAMES = new Set([
 	"local",
 	"auto"
 ]);
-function buildModel({ provider, model, inputModel }) {
+async function buildModel({ provider, model, inputModel }) {
 	if (provider) return `${provider}/${model || DEFAULTS[provider] || ""}`.replace(/\/$/, "");
 	if (model) return model;
 	if (inputModel) {
@@ -3985,11 +3985,12 @@ function buildModel({ provider, model, inputModel }) {
 		return env && process.env[env];
 	}) : [];
 	if (keyed.length) return keyed.map((l) => l.model).join(", ");
+	if (await isReachable()) return process.env.FREDDIE_LLM_MODEL || "auto";
 	return null;
 }
 function resolveCallLLM({ provider, model } = {}) {
 	return async (input) => {
-		const m = buildModel({
+		const m = await buildModel({
 			provider,
 			model,
 			inputModel: input.model
