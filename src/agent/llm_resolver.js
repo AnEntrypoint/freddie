@@ -1,20 +1,14 @@
-import { createRequire } from 'module'
 import { getConfigValue } from '../config.js'
 import { MATRIX_FILE } from './model-matrix.js'
 import { callLLM as bridgeCall, isReachable as bridgeReachable } from './acptoapi-bridge.js'
+import * as sdkNs from 'acptoapi'
 export { matrixUsable } from './model-matrix.js'
 
-// In browser bundles createRequire('acptoapi') resolves to an empty/stub
-// module — acptoapi is a node-only CJS package. Guard so consumers (browser
-// freddie) fall through to the acptoapi-bridge HTTP path instead of crashing
-// with 'sdk.buildAutoChain is not a function'.
-let sdk = {}
-try {
-    const _require = createRequire(import.meta.url)
-    sdk = _require('acptoapi') || {}
-} catch {
-    sdk = {}
-}
+// `acptoapi` is externalized by vite (browser) so the host environment
+// supplies it (thebird ships docs/lib/acptoapi-browser.js via importmap).
+// Node CLI gets the real CJS package. Defensive `|| {}` keeps the bundle
+// boot-safe if either env hands back an empty namespace.
+const sdk = (sdkNs && (sdkNs.default || sdkNs)) || {}
 
 export const PROVIDER_KEYS = sdk.PROVIDER_KEYS || {}
 export const DEFAULTS = sdk.PROVIDER_DEFAULTS || {}
