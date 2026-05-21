@@ -9,8 +9,14 @@ let _streams = new Map()
 function streamFor(name) {
     if (_streams.has(name)) return _streams.get(name)
     const dir = path.join(getFreddieHome(), 'logs')
-    fs.mkdirSync(dir, { recursive: true })
-    const s = fs.createWriteStream(path.join(dir, `${name}.log`), { flags: 'a' })
+    try { fs.mkdirSync(dir, { recursive: true }) } catch {}
+    let s
+    if (typeof fs.createWriteStream === 'function') {
+        s = fs.createWriteStream(path.join(dir, `${name}.log`), { flags: 'a' })
+    } else {
+        // Browser fs shim without createWriteStream — fall back to console.
+        s = { write(line) { try { console.log('[' + name + ']', line.trim()) } catch {} }, end() {} }
+    }
     _streams.set(name, s)
     return s
 }
