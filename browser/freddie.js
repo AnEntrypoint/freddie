@@ -4,10 +4,10 @@ import fs, { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "
 import { spawn } from "node:child_process";
 import os, { homedir } from "node:os";
 import { assign, assign as assign$1, createActor, createActor as createActor$1, createMachine, createMachine as createMachine$1, fromPromise, fromPromise as fromPromise$1, waitFor } from "xstate";
+import * as sdkNs from "acptoapi";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
 var __esmMin = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
-var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod), cb = null), mod.exports);
 var __exportAll = (all, no_symbols) => {
 	let target = {};
 	for (var name in all) __defProp(target, name, {
@@ -1551,11 +1551,6 @@ function logger(subsystem) {
 		})
 	};
 }
-//#endregion
-//#region __vite-browser-external
-var require___vite_browser_external = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = {};
-}));
 //#endregion
 //#region node_modules/js-yaml/dist/js-yaml.mjs
 /*! js-yaml 4.1.1 https://github.com/nodeca/js-yaml @license MIT */
@@ -3775,7 +3770,6 @@ var init_config = __esmMin((() => {
 }));
 //#endregion
 //#region src/agent/model-matrix.js
-var import___vite_browser_external = require___vite_browser_external();
 init_config();
 var MATRIX_FILE = path.resolve(new URL(".", "" + import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), "..", "..", ".gm", "model-availability.json");
 //#endregion
@@ -3911,12 +3905,7 @@ async function isReachable(timeoutMs = 2e3) {
 }
 //#endregion
 //#region src/agent/llm_resolver.js
-var sdk = {};
-try {
-	sdk = (0, import___vite_browser_external.createRequire)(import.meta.url)("acptoapi") || {};
-} catch {
-	sdk = {};
-}
+var sdk = sdkNs && (sdkNs.default || sdkNs) || {};
 var PROVIDER_KEYS = sdk.PROVIDER_KEYS || {};
 var DEFAULTS = sdk.PROVIDER_DEFAULTS || {};
 var toTools = (s) => s?.length ? s.map((t) => ({
