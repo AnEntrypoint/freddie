@@ -32,7 +32,7 @@ function adapt(result) {
 // Mirror lib/named-chains.js BUILTIN — acptoapi resolves unknown names.
 const NAMED_CHAIN_NAMES = new Set(['fast', 'cheap', 'smart', 'reasoning', 'free', 'local', 'auto'])
 
-function buildModel({ provider, model, inputModel }) {
+async function buildModel({ provider, model, inputModel }) {
     if (provider) return `${provider}/${model || DEFAULTS[provider] || ''}`.replace(/\/$/, '')
     if (model) return model
     if (inputModel) {
@@ -51,12 +51,14 @@ function buildModel({ provider, model, inputModel }) {
     const auto = typeof sdk.buildAutoChain === 'function' ? sdk.buildAutoChain(undefined) : []
     const keyed = Array.isArray(auto) ? auto.filter(l => { const p = l.model.split('/')[0]; const env = PROVIDER_KEYS[p]; return env && process.env[env] }) : []
     if (keyed.length) return keyed.map(l => l.model).join(', ')
+    // No local provider keys — delegate to acptoapi if reachable.
+    if (await bridgeReachable()) return process.env.FREDDIE_LLM_MODEL || 'auto'
     return null
 }
 
 export function resolveCallLLM({ provider, model } = {}) {
     return async (input) => {
-        const m = buildModel({ provider, model, inputModel: input.model })
+        const m = await buildModel({ provider, model, inputModel: input.model })
         if (!m) {
             const status = typeof sdk.getStatus === 'function' ? sdk.getStatus().map(s => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(', ') : ''
             throw new Error('no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1)' + (status ? ' | sampler: ' + status : ''))
