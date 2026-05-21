@@ -4,10 +4,10 @@ import fs, { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "
 import { spawn } from "node:child_process";
 import os, { homedir } from "node:os";
 import { assign, assign as assign$1, createActor, createActor as createActor$1, createMachine, createMachine as createMachine$1, fromPromise, fromPromise as fromPromise$1, waitFor } from "xstate";
+import * as sdkNs from "acptoapi";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
 var __esmMin = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
-var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod), cb = null), mod.exports);
 var __exportAll = (all, no_symbols) => {
 	let target = {};
 	for (var name in all) __defProp(target, name, {
@@ -1551,11 +1551,6 @@ function logger(subsystem) {
 		})
 	};
 }
-//#endregion
-//#region __vite-browser-external
-var require___vite_browser_external = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = {};
-}));
 //#endregion
 //#region node_modules/js-yaml/dist/js-yaml.mjs
 /*! js-yaml 4.1.1 https://github.com/nodeca/js-yaml @license MIT */
@@ -3775,7 +3770,6 @@ var init_config = __esmMin((() => {
 }));
 //#endregion
 //#region src/agent/model-matrix.js
-var import___vite_browser_external = require___vite_browser_external();
 init_config();
 var MATRIX_FILE = path.resolve(new URL(".", "" + import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), "..", "..", ".gm", "model-availability.json");
 //#endregion
@@ -3911,9 +3905,9 @@ async function isReachable(timeoutMs = 2e3) {
 }
 //#endregion
 //#region src/agent/llm_resolver.js
-var sdk = (0, import___vite_browser_external.createRequire)(import.meta.url)("acptoapi");
-var PROVIDER_KEYS = sdk.PROVIDER_KEYS;
-var DEFAULTS = sdk.PROVIDER_DEFAULTS;
+var sdk = sdkNs && (sdkNs.default || sdkNs) || {};
+var PROVIDER_KEYS = sdk.PROVIDER_KEYS || {};
+var DEFAULTS = sdk.PROVIDER_DEFAULTS || {};
 var toTools = (s) => s?.length ? s.map((t) => ({
 	type: "function",
 	function: {
@@ -3973,7 +3967,7 @@ var NAMED_CHAIN_NAMES = new Set([
 	"local",
 	"auto"
 ]);
-function buildModel({ provider, model, inputModel }) {
+async function buildModel({ provider, model, inputModel }) {
 	if (provider) return `${provider}/${model || DEFAULTS[provider] || ""}`.replace(/\/$/, "");
 	if (model) return model;
 	if (inputModel) {
@@ -3985,23 +3979,24 @@ function buildModel({ provider, model, inputModel }) {
 		const links = pref.map((p) => `${p.provider}/${p.model || DEFAULTS[p.provider] || ""}`.replace(/\/$/, "")).filter((s) => s.includes("/"));
 		if (links.length) return links.join(", ");
 	}
-	const auto = sdk.buildAutoChain(void 0);
+	const auto = typeof sdk.buildAutoChain === "function" ? sdk.buildAutoChain(void 0) : [];
 	const keyed = Array.isArray(auto) ? auto.filter((l) => {
 		const env = PROVIDER_KEYS[l.model.split("/")[0]];
 		return env && process.env[env];
 	}) : [];
 	if (keyed.length) return keyed.map((l) => l.model).join(", ");
+	if (await isReachable()) return process.env.FREDDIE_LLM_MODEL || "auto";
 	return null;
 }
 function resolveCallLLM({ provider, model } = {}) {
 	return async (input) => {
-		const m = buildModel({
+		const m = await buildModel({
 			provider,
 			model,
 			inputModel: input.model
 		});
 		if (!m) {
-			const status = sdk.getStatus().map((s) => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(", ");
+			const status = typeof sdk.getStatus === "function" ? sdk.getStatus().map((s) => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(", ") : "";
 			throw new Error("no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1)" + (status ? " | sampler: " + status : ""));
 		}
 		try {
@@ -4018,6 +4013,10 @@ function resolveCallLLM({ provider, model } = {}) {
 			};
 			if (/^queue\//.test(m)) opts.queuesMap = getConfigValue("agent.model_queues", {}) || {};
 			if (m.includes(",") || /^queue\//.test(m)) opts.matrixSource = process.env.FREDDIE_MATRIX_URL || MATRIX_FILE;
+			if (typeof sdk.chat !== "function") return await callLLM({
+				...input,
+				model: m
+			});
 			return adapt(await sdk.chat(opts));
 		} catch (e) {
 			if (/queue not found or empty/i.test(e.message)) throw e;
