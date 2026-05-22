@@ -1,6 +1,6 @@
 {
   "name": "freddie",
-  "version": "0.0.111",
+  "version": "0.0.112",
   "type": "module",
   "description": "Open JS agent harness built on pi-mono, floosie, xstate, and anentrypoint-design",
   "bin": {
@@ -26,7 +26,7 @@
     "@mariozechner/pi-ai": "^0.70.6",
     "@mariozechner/pi-coding-agent": "^0.70.6",
     "@mariozechner/pi-tui": "^0.70.6",
-    "acptoapi": "^1.0.107",
+    "acptoapi": "^1.0.109",
     "anentrypoint-design": "^0.0.132",
     "commander": "^14.0.0",
     "express": "^5.0.0",
