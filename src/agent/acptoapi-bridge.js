@@ -32,11 +32,23 @@ export async function callLLM({ messages, tools = [], model } = {}) {
     const headers = { 'content-type': 'application/json', authorization: 'Bearer none' }
     const cwd = process.cwd()
     if (Array.isArray(tools) && tools.length) headers['x-cwd'] = cwd
-    const res = await fetch(base.replace(/\/$/, '') + '/chat/completions', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-    })
+    // Fast-fail timeout + skip loopback when page is on a remote origin
+    // (gh-pages → http://localhost:4800 hangs forever under Chrome private-network rules).
+    const _u = (() => { try { return new URL(base, (typeof location !== 'undefined' && location.href) || 'http://_/') } catch { return null } })()
+    const _isLb = _u && /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i.test(_u.hostname)
+    const _pageLb = (() => { try { const h = ((typeof location !== 'undefined' && location.hostname) || '').toLowerCase(); return h === 'localhost' || h === '127.0.0.1' || h === '' || h === '::1' } catch { return true } })()
+    if (_isLb && !_pageLb) throw new Error(`acptoapi unreachable: page on ${typeof location !== 'undefined' ? location.hostname : '?'} cannot reach loopback ${base}`)
+    const _ac = new AbortController()
+    const _tid = setTimeout(() => _ac.abort(new Error('acptoapi fetch timeout')), 8000)
+    let res
+    try {
+        res = await fetch(base.replace(/\/$/, '') + '/chat/completions', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body),
+            signal: _ac.signal,
+        })
+    } finally { clearTimeout(_tid) }
     if (!res.ok) {
         const text = await res.text()
         throw new Error(`acptoapi ${res.status}: ${text.slice(0, 400)}`)
