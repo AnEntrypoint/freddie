@@ -3982,15 +3982,36 @@ var tryJson = (s) => {
 		return {};
 	}
 };
+function flattenContent(c) {
+	if (typeof c === "string") return {
+		text: c,
+		toolUses: []
+	};
+	if (Array.isArray(c)) return {
+		text: c.filter((p) => p && (p.type === "text" || typeof p.text === "string")).map((p) => p.text || "").join(""),
+		toolUses: c.filter((p) => p && p.type === "tool_use")
+	};
+	return {
+		text: "",
+		toolUses: []
+	};
+}
 function adapt(result) {
 	const c = result?.choices?.[0]?.message || {};
+	const flat = flattenContent(c.content);
+	const openaiTC = Array.isArray(c.tool_calls) ? c.tool_calls.map((tc) => ({
+		id: tc.id,
+		name: tc.function?.name,
+		arguments: tryJson(tc.function?.arguments)
+	})) : [];
+	const anthropicTC = flat.toolUses.map((t) => ({
+		id: t.id,
+		name: t.name,
+		arguments: t.input || {}
+	}));
 	return {
-		content: typeof c.content === "string" ? c.content : "",
-		tool_calls: Array.isArray(c.tool_calls) ? c.tool_calls.map((tc) => ({
-			id: tc.id,
-			name: tc.function?.name,
-			arguments: tryJson(tc.function?.arguments)
-		})) : [],
+		content: flat.text,
+		tool_calls: openaiTC.concat(anthropicTC),
 		raw: result
 	};
 }
@@ -4045,7 +4066,13 @@ function resolveCallLLM({ provider, model } = {}) {
 				messages: toMsgs(input.messages),
 				tools: toTools(input.tools),
 				onFallback: input.onFallback,
-				output: "openai"
+				output: "openai",
+				fallbackOn: [
+					"error",
+					"rate_limit",
+					"timeout",
+					"empty"
+				]
 			};
 			if (/^queue\//.test(m)) opts.queuesMap = getConfigValue("agent.model_queues", {}) || {};
 			if (m.includes(",") || /^queue\//.test(m)) opts.matrixSource = process.env.FREDDIE_MATRIX_URL || MATRIX_FILE;
