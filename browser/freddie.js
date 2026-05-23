@@ -3823,25 +3823,8 @@ async function callLLM({ messages, tools = [], model } = {}) {
 	};
 	const cwd = process.cwd();
 	if (Array.isArray(tools) && tools.length) headers["x-cwd"] = cwd;
-	const _u = (() => {
-		try {
-			return new URL(base, typeof location !== "undefined" && location.href || "http://_/");
-		} catch {
-			return null;
-		}
-	})();
-	const _isLb = _u && /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i.test(_u.hostname);
-	const _pageLb = (() => {
-		try {
-			const h = (typeof location !== "undefined" && location.hostname || "").toLowerCase();
-			return h === "localhost" || h === "127.0.0.1" || h === "" || h === "::1";
-		} catch {
-			return true;
-		}
-	})();
-	if (_isLb && !_pageLb) throw new Error(`acptoapi unreachable: page on ${typeof location !== "undefined" ? location.hostname : "?"} cannot reach loopback ${base}`);
 	const _ac = new AbortController();
-	const _tid = setTimeout(() => _ac.abort(/* @__PURE__ */ new Error("acptoapi fetch timeout")), 8e3);
+	const _tid = setTimeout(() => _ac.abort(/* @__PURE__ */ new Error("acptoapi fetch timeout")), 6e4);
 	let res;
 	try {
 		res = await fetch(base.replace(/\/$/, "") + "/chat/completions", {
