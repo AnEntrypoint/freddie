@@ -32,14 +32,12 @@ export async function callLLM({ messages, tools = [], model } = {}) {
     const headers = { 'content-type': 'application/json', authorization: 'Bearer none' }
     const cwd = process.cwd()
     if (Array.isArray(tools) && tools.length) headers['x-cwd'] = cwd
-    // Fast-fail timeout + skip loopback when page is on a remote origin
-    // (gh-pages → http://localhost:4800 hangs forever under Chrome private-network rules).
-    const _u = (() => { try { return new URL(base, (typeof location !== 'undefined' && location.href) || 'http://_/') } catch { return null } })()
-    const _isLb = _u && /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i.test(_u.hostname)
-    const _pageLb = (() => { try { const h = ((typeof location !== 'undefined' && location.hostname) || '').toLowerCase(); return h === 'localhost' || h === '127.0.0.1' || h === '' || h === '::1' } catch { return true } })()
-    if (_isLb && !_pageLb) throw new Error(`acptoapi unreachable: page on ${typeof location !== 'undefined' ? location.hostname : '?'} cannot reach loopback ${base}`)
+    // Rely on AbortController timeout. acptoapi v1+ ships CORS + Private
+    // Network Access headers so cross-origin loopback (gh-pages → localhost)
+    // succeeds when acptoapi is running. The earlier preemptive loopback
+    // refusal caused false negatives on reachable endpoints.
     const _ac = new AbortController()
-    const _tid = setTimeout(() => _ac.abort(new Error('acptoapi fetch timeout')), 8000)
+    const _tid = setTimeout(() => _ac.abort(new Error('acptoapi fetch timeout')), 60000)
     let res
     try {
         res = await fetch(base.replace(/\/$/, '') + '/chat/completions', {
