@@ -37,6 +37,40 @@ jobs:
       - name: Build website
         run: cd website && node ../node_modules/flatspace/bin/flatspace.js build
 
+      # Build + fold the browser bundle and skills into the SAME Pages artifact.
+      # GitHub Pages serves ONE source; this repo uses Actions-mode Pages
+      # (actions/deploy-pages below), so the gh-pages *branch* that
+      # browser-bundle.yml pushes to via peaceiris is NOT served — its
+      # /browser/freddie.js 404s. thebird's freddie-loader depends on
+      # https://anentrypoint.github.io/freddie/browser/freddie.js, so the
+      # bundle must live inside this artifact, not just the ignored branch.
+      - name: Build browser bundle
+        run: npm run build:browser
+
+      - name: Fold browser bundle + skills into website artifact
+        run: |
+          mkdir -p website/docs/browser
+          cp -r dist/browser/* website/docs/browser/
+          mkdir -p website/docs/skills
+          if [ -d skills ]; then cp -r skills/* website/docs/skills/; fi
+          node -e "
+            const fs = require('fs'); const path = require('path');
+            const root = 'website/docs/skills'; const out = [];
+            function walk(dir) {
+              if (!fs.existsSync(path.join(root, dir))) return;
+              for (const e of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
+                const sub = dir ? dir + '/' + e.name : e.name;
+                if (e.isDirectory()) walk(sub);
+                else if (e.name === 'SKILL.md') {
+                  out.push({ id: dir, category: dir.split('/')[0] || '', shortName: dir.split('/').slice(1).join('/') || dir, name: dir, description: '', path: dir + '/SKILL.md' });
+                }
+              }
+            }
+            if (fs.existsSync(root)) walk('');
+            fs.writeFileSync(path.join(root, 'manifest.json'), JSON.stringify(out, null, 2));
+            console.log('skills manifest entries:', out.length);
+          "
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
