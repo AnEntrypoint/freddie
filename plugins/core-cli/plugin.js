@@ -62,9 +62,15 @@ export default {
             let model = opts.model || undefined
             if (!provider && model && /^[a-z][a-z0-9-]*\//.test(model)) { provider = model.split('/')[0]; model = model.slice(provider.length + 1) }
             const out = await runTurn({ prompt: opts.prompt, provider, model, skill: opts.skill || undefined, cwd: opts.cwd || undefined, timeoutMs: Number(opts.timeout), witnessPath: opts.witness || undefined })
-            if (out.error) { console.error('error:', out.error); process.exit(1) }
-            console.log(out.result || out.messages?.at(-1)?.content || '')
-            process.exit(0)
+            console.log(out.error ? '' : (out.result || out.messages?.at(-1)?.content || ''))
+            if (out.error) console.error('error:', out.error)
+            // Tear down cleanly instead of process.exit(): force-closing the
+            // process while undici keep-alive sockets and a pending setImmediate
+            // are still live makes libuv double-close its async handle and assert
+            // UV_HANDLE_CLOSING on Windows. Close the HTTP dispatcher's sockets,
+            // then set exitCode and let the event loop drain on its own.
+            try { const u = await import('undici'); await u.getGlobalDispatcher()?.close?.() } catch {}
+            process.exitCode = out.error ? 1 : 0
         } })
         C({ name: 'cron', description: 'Manage cron jobs', args: [{ name: 'action', default: 'list' }, { name: 'a1' }, { name: 'a2' }], action: async (action, a1, a2) => {
             const { listJobs, createJob, cancelJob, deleteJob, tick } = await import('../../src/cron/scheduler.js')
