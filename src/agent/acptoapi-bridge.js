@@ -121,7 +121,7 @@ function adaptResponse(r) {
 
 function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : (s || {}) } catch { return {} } }
 
-export async function isReachable(timeoutMs = 2000) {
+export async function isReachable(timeoutMs = 10000) {
     try {
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs)

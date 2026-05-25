@@ -55,7 +55,18 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                     input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets }),
                     onDone: [
                         { guard: ({ event }) => Array.isArray(event.output?.tool_calls) && event.output.tool_calls.length > 0, target: 'tool_calls', actions: assign({ messages: ({ context, event }) => [...context.messages, { role: 'assistant', content: event.output.content || '', tool_calls: event.output.tool_calls }] }) },
-                        { target: 'done', actions: assign({ messages: ({ context, event }) => [...context.messages, { role: 'assistant', content: event.output.content || '' }], lastResult: ({ event }) => event.output.content || '' }) },
+                        { target: 'done', actions: assign({ messages: ({ context, event }) => [...context.messages, { role: 'assistant', content: event.output.content || '' }], lastResult: ({ context, event }) => {
+                            // Prefer this turn's content, but if the model ended with empty
+                            // text (it may have put its answer in an earlier turn alongside a
+                            // tool_call), fall back to the last non-empty assistant message so
+                            // the caller never gets an empty result after a successful run.
+                            if (event.output.content && event.output.content.trim()) return event.output.content;
+                            for (let i = context.messages.length - 1; i >= 0; i--) {
+                                const m = context.messages[i];
+                                if (m.role === 'assistant' && typeof m.content === 'string' && m.content.trim()) return m.content;
+                            }
+                            return event.output.content || '';
+                        } }) },
                     ],
                     onError: { target: 'done', actions: assign({ error: ({ event }) => String(event.error?.message || event.error) }) },
                 },
