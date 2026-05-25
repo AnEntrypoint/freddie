@@ -25522,7 +25522,7 @@ function tryParseJson(s) {
 		return {};
 	}
 }
-async function isReachable(timeoutMs = 2e3) {
+async function isReachable(timeoutMs = 1e4) {
 	try {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -25794,7 +25794,14 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 							role: "assistant",
 							content: event.output.content || ""
 						}],
-						lastResult: ({ event }) => event.output.content || ""
+						lastResult: ({ context, event }) => {
+							if (event.output.content && event.output.content.trim()) return event.output.content;
+							for (let i = context.messages.length - 1; i >= 0; i--) {
+								const m = context.messages[i];
+								if (m.role === "assistant" && typeof m.content === "string" && m.content.trim()) return m.content;
+							}
+							return event.output.content || "";
+						}
 					})
 				}],
 				onError: {
