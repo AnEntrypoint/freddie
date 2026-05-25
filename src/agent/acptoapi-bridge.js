@@ -2,6 +2,32 @@ import { logger } from '../observability/log.js'
 
 const log = logger('acptoapi')
 
+// acptoapi may take minutes to answer when it serially walks dead providers
+// (each ~90s timeout) before a live one responds. Node's default undici
+// headersTimeout/bodyTimeout (~300s) would throw UND_ERR_HEADERS_TIMEOUT
+// mid-walk, so we raise them to 0 (disabled) on the global dispatcher and let
+// our AbortController be the single source of truth for the overall deadline
+// (default 240s, override via FREDDIE_LLM_TIMEOUT_MS). Use setGlobalDispatcher
+// once rather than a per-request Agent so we don't leak a dispatcher per call.
+const ACPTOAPI_TIMEOUT_MS = Number(process.env.FREDDIE_LLM_TIMEOUT_MS) || 240000
+let _dispatcherSet = false
+async function ensureLongTimeoutDispatcher() {
+    if (_dispatcherSet) return
+    _dispatcherSet = true
+    try {
+        const undici = await import('undici')
+        // headersTimeout/bodyTimeout 0: tolerate acptoapi's minutes-long walk.
+        // keepAlive*Timeout 1ms: close the socket right after the response so no
+        // keep-alive socket lingers between calls.
+        undici.setGlobalDispatcher(new undici.Agent({
+            headersTimeout: 0,
+            bodyTimeout: 0,
+            keepAliveTimeout: 1,
+            keepAliveMaxTimeout: 1,
+        }))
+    } catch { /* undici not available — rely on AbortController + defaults */ }
+}
+
 export function getAcptoapiUrl() {
     return process.env.FREDDIE_LLM_URL || 'http://127.0.0.1:4800/v1'
 }
@@ -36,8 +62,9 @@ export async function callLLM({ messages, tools = [], model } = {}) {
     // Network Access headers so cross-origin loopback (gh-pages → localhost)
     // succeeds when acptoapi is running. The earlier preemptive loopback
     // refusal caused false negatives on reachable endpoints.
+    await ensureLongTimeoutDispatcher()
     const _ac = new AbortController()
-    const _tid = setTimeout(() => _ac.abort(new Error('acptoapi fetch timeout')), 60000)
+    const _tid = setTimeout(() => _ac.abort(new Error('acptoapi fetch timeout')), ACPTOAPI_TIMEOUT_MS)
     let res
     try {
         res = await fetch(base.replace(/\/$/, '') + '/chat/completions', {
