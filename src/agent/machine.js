@@ -180,7 +180,11 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
                 if (outbound?.systemMessage || outbound?.additionalContext) out.messages = mergeHookExtras(out.messages || [], outbound, 'onMessageOutbound')
                 await h.hooks.invoke('onSessionEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
                 const errorStack = out?.error ? (events.find(e => e.type === 'llm_call' && !e.ok)?.stack || null) : null
-                await writeTrajectory(out, { prompt, provider, model, skill, cwd, events, errorStack, witnessPath }); resolve(out)
+                await writeTrajectory(out, { prompt, provider, model, skill, cwd, events, errorStack, witnessPath })
+                // Stop the actor once the turn is done — a finished actor should
+                // not be left running with live subscriptions/handles.
+                try { actor.stop() } catch {}
+                resolve(out)
             })().catch(reject)
         })
     })
