@@ -172,8 +172,10 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events })
     const actor = createActor(machine, { input: { messages: initMessages } }); actor.start(); actor.send({ type: 'SUBMIT', prompt })
     return await new Promise((resolve, reject) => {
-        const t = setTimeout(() => { try { actor.stop() } catch {} reject(new Error('agent turn timeout')) }, timeoutMs)
-        actor.subscribe(snap => { if (snap.status !== 'done') return; clearTimeout(t)
+        let sub
+        const cleanup = () => { try { sub?.unsubscribe() } catch {} try { actor.stop() } catch {} }
+        const t = setTimeout(() => { cleanup(); reject(new Error('agent turn timeout')) }, timeoutMs)
+        sub = actor.subscribe(snap => { if (snap.status !== 'done') return; clearTimeout(t)
             ;(async () => {
                 const out = snap.output
                 const outbound = await h.hooks.invoke('onMessageOutbound', { content: out?.result || '' })
@@ -181,11 +183,11 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
                 await h.hooks.invoke('onSessionEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
                 const errorStack = out?.error ? (events.find(e => e.type === 'llm_call' && !e.ok)?.stack || null) : null
                 await writeTrajectory(out, { prompt, provider, model, skill, cwd, events, errorStack, witnessPath })
-                // Stop the actor once the turn is done — a finished actor should
-                // not be left running with live subscriptions/handles.
-                try { actor.stop() } catch {}
+                // Unsubscribe + stop the actor once the turn is done — a finished
+                // actor should not be left running with live subscriptions/handles.
+                cleanup()
                 resolve(out)
-            })().catch(reject)
+            })().catch(e => { cleanup(); reject(e) })
         })
     })
 }
