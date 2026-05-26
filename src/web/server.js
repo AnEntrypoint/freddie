@@ -7,6 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export async function createDashboard({ port = 0 } = {}) {
     const host = await bootHost()
+    // Rehydrate any interrupted machines (agent turns, batches) from their
+    // persisted snapshots; surface lifecycle markers. Non-blocking on failure.
+    try { const { resumeAll } = await import('../machines/resume.js'); await resumeAll() } catch (_) {}
     const app = express()
     app.use(express.json())
     app.use(express.static(__dirname))

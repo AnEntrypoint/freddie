@@ -1,0 +1,1 @@
+Freddie integration test status: all 21 named test.js groups pass (exit 0). Subsystem coverage: agent loop, CLI, gateway, plugins, skills, sessions, cron, batch, dashboard, ACP, web, context-engine, compressor, auth, observability. Witness location: run "node test.js" at repo root.

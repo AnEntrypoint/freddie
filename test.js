@@ -85,6 +85,43 @@ await T('acp-full', async () => {
     const { checkPermission, rememberAllow, resetForTests } = await import('./src/acp/permissions.js')
     resetForTests(); assert.equal(checkPermission('s1', 'bash'), 'ask'); rememberAllow('s1', 'bash'); assert.equal(checkPermission('s1', 'bash'), 'allow')
 })
+await T('machines-resumability', async () => {
+    const { createMachine, createActor } = await import('xstate')
+    const ss = await import('./src/machines/snapshot-store.js')
+    const { createPersistentActor } = await import('./src/machines/persistent-actor.js')
+    // load() returns null for missing snapshot — consumers fall back to fresh, never throw.
+    assert.equal(await ss.load('agent', 'no-such-key'), null)
+    // Persist a mid-state snapshot, simulate restart by rehydrating into a fresh actor.
+    const m = createMachine({ id: 'tmach', initial: 'a', context: ({ input }) => ({ n: input?.n || 0 }), states: { a: { on: { GO: 'b' } }, b: { on: { FIN: 'done' } }, done: { type: 'final' } } })
+    const pa = await createPersistentActor(m, { kind: 'test', key: 'k1', input: { n: 7 } })
+    pa.actor.send({ type: 'GO' }); await pa.flush()
+    const row = await ss.load('test', 'k1'); assert.ok(row, 'snapshot persisted')
+    const revived = createActor(m, { snapshot: row }); revived.start()
+    assert.equal(revived.getSnapshot().value, 'b', 'resumes at same state'); assert.equal(revived.getSnapshot().context.n, 7, 'resumes with same context'); revived.stop()
+    // Rehydrating via createPersistentActor sets resumed=true and continues from 'b'.
+    const pa2 = await createPersistentActor(m, { kind: 'test', key: 'k1', input: { n: 0 } })
+    assert.equal(pa2.resumed, true); assert.equal(pa2.actor.getSnapshot().value, 'b', 'persistent resume at b')
+    // Reaching final clears the snapshot — no resurrection on next boot.
+    pa2.actor.send({ type: 'FIN' }); await pa2.flush()
+    assert.equal(await ss.load('test', 'k1'), null, 'final state cleared snapshot')
+    // schema_version mismatch discards stale snapshot on load.
+    await ss.persist('test', 'k2', { status: 'active', value: 'x' })
+    const { db } = await import('./src/db.js'); await (await db()).prepare(`UPDATE machine_snapshots SET schema_version = 999 WHERE kind='test' AND key='k2'`).run()
+    assert.equal(await ss.load('test', 'k2'), null, 'schema mismatch discarded')
+    // list() filters by status; sweepDone removes final rows.
+    await ss.persist('test', 'k3', { status: 'active', value: 'live' }); await ss.persist('test', 'k4', { status: 'done', value: 'fin' })
+    assert.ok((await ss.list({ kind: 'test', status: 'active' })).some(r => r.key === 'k3'))
+    await ss.sweepDone(); assert.ok(!(await ss.list({ kind: 'test', status: null })).some(r => r.key === 'k4'), 'sweepDone removed final')
+    await ss.clear('test', 'k3')
+    // resumeAll runs without throwing on a clean store.
+    const { resumeAll } = await import('./src/machines/resume.js'); const sum = await resumeAll(); assert.ok(typeof sum.resumed === 'object' || Array.isArray(sum.resumed))
+    // /api/machines route returns census.
+    const dash = await (await import('./src/web/server.js')).createDashboard({ port: 0 })
+    await ss.persist('agent', 'route-probe', { status: 'active', value: 'prompting' })
+    const mr = await (await fetch(dash.url + 'api/machines')).json(); assert.ok(typeof mr.count === 'number' && mr.kinds && Array.isArray(mr.machines), 'machines census')
+    assert.ok(mr.machines.some(x => x.kind === 'agent' && x.key === 'route-probe' && x.state === 'prompting'), 'route surfaces snapshot state')
+    await ss.clear('agent', 'route-probe'); await dash.stop()
+})
 await T('plugins+memory', async () => {
     const { createHost } = await import('./src/host/host.js')
     const h = createHost({ surfaces: ['pi', 'gui'] }); let fired = 0

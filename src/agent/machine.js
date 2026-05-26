@@ -3,6 +3,8 @@ import { bootHost } from '../host/index.js'
 import { getEnabledToolSchemas } from '../toolsets.js'
 import { logger } from '../observability/log.js'
 import { resolveCallLLM } from './llm_resolver.js'
+import { createPersistentActor } from '../machines/persistent-actor.js'
+import { randomUUID } from 'node:crypto'
 
 const log = logger('agent')
 
@@ -170,7 +172,34 @@ function mergeHookExtras(messages, r, tag) {
     return e.length ? [...messages, ...e] : messages
 }
 
-export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath } = {}) {
+// Drive a started persistent agent actor to its final state, wiring timeout +
+// session-end hooks + trajectory. Shared by runTurn (fresh) and resumeTurn
+// (rehydrated from a persisted snapshot after a refresh/restart).
+async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs }) {
+    const { actor } = pa
+    return await new Promise((resolve, reject) => {
+        let sub
+        const cleanup = () => { try { sub?.unsubscribe() } catch {} ; pa.flush().catch(() => {}).finally(() => { try { actor.stop() } catch {} }) }
+        const t = setTimeout(() => { cleanup(); reject(new Error('agent turn timeout')) }, timeoutMs)
+        sub = actor.subscribe(snap => { if (snap.status !== 'done') return; clearTimeout(t)
+            ;(async () => {
+                const out = snap.output
+                const outbound = await h.hooks.invoke('onMessageOutbound', { content: out?.result || '' })
+                if (outbound?.systemMessage || outbound?.additionalContext) out.messages = mergeHookExtras(out.messages || [], outbound, 'onMessageOutbound')
+                await h.hooks.invoke('onSessionEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
+                const errorStack = out?.error ? (events.find(e => e.type === 'llm_call' && !e.ok)?.stack || null) : null
+                await writeTrajectory(out, { prompt, provider, model, skill, cwd, events, errorStack, witnessPath })
+                // Unsubscribe, flush the final snapshot (persistent-actor clears it on
+                // the done state) + stop the actor — a finished actor should not be
+                // left running with live subscriptions/handles.
+                cleanup()
+                resolve(out)
+            })().catch(e => { cleanup(); reject(e) })
+        })
+    })
+}
+
+export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, sessionKey } = {}) {
     const events = []; const h = await bootHost()
     await h.hooks.invoke('onSessionStart', { prompt, model, provider, skill, cwd })
     let initMessages = [...messages]; const sysParts = []
@@ -181,26 +210,26 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     if (inbound?.behavior === 'block') { await h.hooks.invoke('onSessionEnd', { reason: 'prompt_blocked' }); return { messages: initMessages, result: null, error: 'prompt blocked by plugsdk hook: ' + (inbound.reason || 'denied'), iterations: 0 } }
     initMessages = mergeHookExtras(initMessages, inbound, 'onMessageInbound')
     const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events })
-    const actor = createActor(machine, { input: { messages: initMessages } }); actor.start(); actor.send({ type: 'SUBMIT', prompt })
-    return await new Promise((resolve, reject) => {
-        let sub
-        const cleanup = () => { try { sub?.unsubscribe() } catch {} try { actor.stop() } catch {} }
-        const t = setTimeout(() => { cleanup(); reject(new Error('agent turn timeout')) }, timeoutMs)
-        sub = actor.subscribe(snap => { if (snap.status !== 'done') return; clearTimeout(t)
-            ;(async () => {
-                const out = snap.output
-                const outbound = await h.hooks.invoke('onMessageOutbound', { content: out?.result || '' })
-                if (outbound?.systemMessage || outbound?.additionalContext) out.messages = mergeHookExtras(out.messages || [], outbound, 'onMessageOutbound')
-                await h.hooks.invoke('onSessionEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
-                const errorStack = out?.error ? (events.find(e => e.type === 'llm_call' && !e.ok)?.stack || null) : null
-                await writeTrajectory(out, { prompt, provider, model, skill, cwd, events, errorStack, witnessPath })
-                // Unsubscribe + stop the actor once the turn is done — a finished
-                // actor should not be left running with live subscriptions/handles.
-                cleanup()
-                resolve(out)
-            })().catch(e => { cleanup(); reject(e) })
-        })
-    })
+    // Persist the turn snapshot under kind=agent so an interrupted turn (process
+    // refresh mid-tool-call) resumes exactly where it stopped via resumeTurn.
+    const key = sessionKey || randomUUID()
+    const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages } })
+    pa.actor.send({ type: 'SUBMIT', prompt })
+    return await driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs })
+}
+
+// Rehydrate an interrupted turn from its persisted snapshot and drive it to
+// completion. Returns null if no live snapshot exists for the key (already
+// completed or never persisted) — caller falls back to a fresh runTurn.
+export async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath } = {}) {
+    if (!sessionKey) throw new Error('resumeTurn requires sessionKey')
+    const { load } = await import('../machines/snapshot-store.js')
+    if (!(await load('agent', sessionKey))) return null
+    const events = []; const h = await bootHost()
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events })
+    const pa = await createPersistentActor(machine, { kind: 'agent', key: sessionKey, input: { messages: [] } })
+    if (!pa.resumed) { await pa.forget(); return null }
+    return await driveAgentActor({ pa, h, events, prompt: '', provider, model, skill, cwd, witnessPath, timeoutMs })
 }
 
 export async function invokeCompactHooks({ trigger = 'auto', messages = [] } = {}) {
