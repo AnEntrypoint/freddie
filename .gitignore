@@ -24,7 +24,12 @@ src/web/vendor/
 .gm/exec-spool.in
 .gm/exec-spool.out
 .gm/exec-spool.started
-# tracked: .gm/rs-learn.db, .gm/code-search/, AGENTS.md, .gm/prd.yml
+.gm/exec-spool/
+.gm/last-instruction-ts
+.gm/last-prompt.txt
+.gm/long-gap-retry-state
+.gm/next-step.md
+# tracked: .gm/rs-learn.db, .gm/code-search/, AGENTS.md, .gm/prd.yml, .gm/disciplines/
 # <<< gm managed
 
 

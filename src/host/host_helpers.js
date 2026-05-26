@@ -134,7 +134,13 @@ export function makeCcLoaders(ccHost, env) {
         }
         return ccHost.plugins().length
     }
+    // gm-cc must never be auto-discovered as a cc-plugin: it ships the 24
+    // deprecated gm-* platform-variant skills under a manifest named 'gm', and the
+    // single canonical gm-skill is registered by plugins/gm-skill instead. The
+    // package extracts into node_modules under both 'gm-cc' and pnpm/bun temp dirs
+    // like '.gm-cc-<hash>', so exclude by basename prefix, not exact match.
     const CC_EXCLUDE = new Set(['gm-cc'])
+    const isExcludedCc = (base) => CC_EXCLUDE.has(base) || /^\.?gm-cc(-|$)/.test(base)
     async function loadCcFromNodeModules(startDir) {
         const seen = new Set(ccHost.plugins().map(p => p.root))
         let cur = path.resolve(startDir)
@@ -146,7 +152,7 @@ export function makeCcLoaders(ccHost, env) {
                     ? fs.readdirSync(path.join(nm, entry.name), { withFileTypes: true }).filter(e => e.isDirectory()).map(e => path.join(nm, entry.name, e.name))
                     : [path.join(nm, entry.name)]
                 for (const d of dirs) {
-                    if (seen.has(d) || !isCcPluginDir(d) || CC_EXCLUDE.has(path.basename(d))) continue
+                    if (seen.has(d) || !isCcPluginDir(d) || isExcludedCc(path.basename(d))) continue
                     seen.add(d); await useCcDir(d)
                 }
             }

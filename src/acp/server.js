@@ -6,8 +6,25 @@ import { logger } from '../observability/log.js'
 import { Events } from './events.js'
 import { checkPermission, rememberAllow, rememberDeny } from './permissions.js'
 import { AcpSessionManager } from './session.js'
+import { createMachine, createActor } from 'xstate'
+import { persist, load, clear } from '../machines/snapshot-store.js'
 
 const log = logger('acp')
+
+// ACP server lifecycle machine: stopped -> running -> stopped. Persisted so an
+// active snapshot on boot signals the server was serving; per-prompt processing
+// is persisted separately under kind=acp-prompt so an interrupted prompt.submit
+// is observable + resumable after a restart.
+export function createAcpMachine() {
+    return createMachine({
+        id: 'freddie-acp',
+        initial: 'stopped',
+        states: {
+            stopped: { on: { START: 'running' } },
+            running: { on: { STOP: 'stopped' } },
+        },
+    })
+}
 
 const CAPABILITIES = {
     name: 'freddie', version: '0.4.0',
@@ -21,13 +38,19 @@ export class AcpServer extends EventEmitter {
         this.in = stdin; this.out = stdout; this.callLLM = callLLM
         this.sessions = new AcpSessionManager()
         this._pendingPerm = new Map()
+        this.machine = createAcpMachine()
+        this.actor = createActor(this.machine)
+        this.actor.subscribe(() => { persist('acp', 'lifecycle', this.actor.getPersistedSnapshot()).catch(() => {}) })
+        this.actor.start()
     }
+    get state() { return this.actor.getSnapshot().value }
     start() {
         const rl = readline.createInterface({ input: this.in, crlfDelay: Infinity })
         rl.on('line', (l) => this.handle(l).catch(e => this.send({ jsonrpc: '2.0', error: { message: String(e) } })))
         this.rl = rl
+        this.actor.send({ type: 'START' })
     }
-    stop() { this.rl?.close() }
+    stop() { this.rl?.close(); try { this.actor.send({ type: 'STOP' }) } catch {} }
     send(o) { this.out.write(JSON.stringify(o) + '\n') }
     async handle(line) {
         if (!line.trim()) return
@@ -75,7 +98,12 @@ const METHODS = {
         if (!srv.sessions.isActive(sessionId)) throw new Error('session not active')
         srv.sessions.appendUser(sessionId, prompt)
         Events.messageDelta((o) => srv.send(o), { sessionId, role: 'user', content: prompt })
-        const out = await runTurn({ prompt, callLLM: srv.callLLM })
+        // Persist in-flight prompt under kind=acp-prompt keyed by sessionId so a
+        // refresh mid-turn is observable + resumable (the agent snapshot for the
+        // turn itself lives under kind=agent via runTurn sessionKey).
+        await persist('acp-prompt', sessionId, { status: 'active', value: 'running', context: { sessionId, prompt } })
+        const out = await runTurn({ prompt, callLLM: srv.callLLM, sessionKey: 'acp:' + sessionId })
+        await clear('acp-prompt', sessionId)
         srv.sessions.appendAssistant(sessionId, out.result || '')
         Events.messageComplete((o) => srv.send(o), { sessionId, role: 'assistant', content: out.result || '' })
         return { result: out.result, error: out.error, iterations: out.iterations }
