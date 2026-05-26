@@ -187,8 +187,12 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
     return await new Promise((resolve, reject) => {
         let sub
         const cleanup = () => { try { sub?.unsubscribe() } catch {} ; pa.flush().catch(() => {}).finally(() => { try { actor.stop() } catch {} }) }
-        const t = setTimeout(() => { cleanup(); reject(new Error('agent turn timeout')) }, timeoutMs)
-        sub = actor.subscribe(snap => { if (snap.status !== 'done') return; clearTimeout(t)
+        let settled = false
+        const t = setTimeout(() => { if (settled) return; settled = true; cleanup(); reject(new Error('agent turn timeout')) }, timeoutMs)
+        // Do not let a pending turn-timeout timer keep the event loop alive or fire
+        // during process teardown after the awaiting caller has already moved on.
+        if (typeof t?.unref === 'function') t.unref()
+        sub = actor.subscribe(snap => { if (snap.status !== 'done') return; if (settled) return; settled = true; clearTimeout(t)
             ;(async () => {
                 const out = snap.output
                 const outbound = await h.hooks.invoke('onMessageOutbound', { content: out?.result || '' })

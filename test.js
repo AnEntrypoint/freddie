@@ -175,7 +175,8 @@ await T('profiles+observability+auth+env+context+cron+batch+slash+skills', async
     assert.ok((await (await import('./src/context/engine.js')).buildContext({ plugins: ['file'], options: { cwd: fix } })).find(b => b.body.includes('hello-ctx')))
     const cp = await import('./src/cron/cron-parse.js'); assert.ok(cp.matches(cp.parseCron('* * * * *'), new Date()))
     const sch = await import('./src/cron/scheduler.js'); const id = await sch.createJob({ cron: '*/5 * * * *', prompt: 'tick' }); assert.ok((await sch.listJobs()).some(j => j.id === id)); await sch.deleteJob(id)
-    assert.equal((await (await import('./src/batch.js')).runBatch({ prompts: ['a', 'b', 'c'], concurrency: 2 })).results.length, 3)
+    const batchLLM = async ({ messages }) => ({ content: 'b:' + (messages[messages.length - 1]?.content || ''), tool_calls: [] })
+    assert.equal((await (await import('./src/batch.js')).runBatch({ prompts: ['a', 'b', 'c'], concurrency: 2, callLLM: batchLLM })).results.length, 3)
 })
 await T('utils+time+redact+model-meta+agent-helpers', async () => {
     const u = await import('./src/utils.js')
