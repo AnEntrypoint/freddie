@@ -25395,7 +25395,7 @@ var require_undici = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region src/agent/acptoapi-bridge.js
-var log$3 = logger("acptoapi");
+var log$4 = logger("acptoapi");
 var ACPTOAPI_TIMEOUT_MS = Number(process.env.FREDDIE_LLM_TIMEOUT_MS) || 24e4;
 var _dispatcherSet = false;
 async function ensureLongTimeoutDispatcher() {
@@ -25467,7 +25467,7 @@ async function callLLM({ messages, tools = [], model } = {}) {
 		throw new Error(`acptoapi ${res.status}: ${text.slice(0, 400)}`);
 	}
 	const json = await res.json();
-	log$3.info("completed", {
+	log$4.info("completed", {
 		model: useModel,
 		usage: json.usage
 	});
@@ -30068,9 +30068,9 @@ var init_db = __esmMin((() => {
 }));
 //#endregion
 //#region src/machines/snapshot-store.js
-async function init() {
+async function init$1() {
 	const d = await db();
-	if (!_inited) {
+	if (!_inited$1) {
 		await d.exec(`CREATE TABLE IF NOT EXISTS machine_snapshots (
             kind TEXT NOT NULL,
             key TEXT NOT NULL,
@@ -30081,13 +30081,13 @@ async function init() {
             updated INTEGER NOT NULL,
             PRIMARY KEY (kind, key)
         )`);
-		_inited = true;
+		_inited$1 = true;
 	}
 	return d;
 }
 async function persist(kind, key, snapshot, { machineId = null } = {}) {
 	if (!kind || !key) throw new Error("persist requires kind and key");
-	const d = await init();
+	const d = await init$1();
 	const status = snapshot?.status || "active";
 	const json = JSON.stringify(snapshot);
 	await d.prepare(`INSERT INTO machine_snapshots (kind, key, schema_version, machine_id, snapshot_json, status, updated)
@@ -30105,10 +30105,10 @@ async function persist(kind, key, snapshot, { machineId = null } = {}) {
 	};
 }
 async function load(kind, key, { machineId = null } = {}) {
-	const row = await (await init()).prepare(`SELECT * FROM machine_snapshots WHERE kind = ? AND key = ?`).get(kind, key);
+	const row = await (await init$1()).prepare(`SELECT * FROM machine_snapshots WHERE kind = ? AND key = ?`).get(kind, key);
 	if (!row) return null;
 	if (Number(row.schema_version) !== 1) {
-		log$2.info("discarding stale snapshot (schema mismatch)", {
+		log$3.info("discarding stale snapshot (schema mismatch)", {
 			kind,
 			key,
 			had: row.schema_version,
@@ -30118,7 +30118,7 @@ async function load(kind, key, { machineId = null } = {}) {
 		return null;
 	}
 	if (machineId && row.machine_id && row.machine_id !== machineId) {
-		log$2.info("discarding stale snapshot (machine id mismatch)", {
+		log$3.info("discarding stale snapshot (machine id mismatch)", {
 			kind,
 			key,
 			had: row.machine_id,
@@ -30130,7 +30130,7 @@ async function load(kind, key, { machineId = null } = {}) {
 	try {
 		return JSON.parse(row.snapshot_json);
 	} catch (e) {
-		log$2.error("unparseable snapshot, discarding", {
+		log$3.error("unparseable snapshot, discarding", {
 			kind,
 			key,
 			err: String(e)
@@ -30140,19 +30140,19 @@ async function load(kind, key, { machineId = null } = {}) {
 	}
 }
 async function clear(kind, key) {
-	await (await init()).prepare(`DELETE FROM machine_snapshots WHERE kind = ? AND key = ?`).run(kind, key);
+	await (await init$1()).prepare(`DELETE FROM machine_snapshots WHERE kind = ? AND key = ?`).run(kind, key);
 }
-var log$2, _inited;
+var log$3, _inited$1;
 //#endregion
 //#region src/machines/persistent-actor.js
 __esmMin((() => {
 	init_db();
 	init_log();
-	log$2 = logger("snapshot-store");
-	_inited = false;
+	log$3 = logger("snapshot-store");
+	_inited$1 = false;
 }))();
 init_log();
-var log$1 = logger("persistent-actor");
+var log$2 = logger("persistent-actor");
 async function createPersistentActor(machine, { kind, key, input, onTransition } = {}) {
 	if (!kind || !key) throw new Error("createPersistentActor requires kind and key");
 	const machineId = machine?.id || machine?.config?.id || null;
@@ -30168,7 +30168,7 @@ async function createPersistentActor(machine, { kind, key, input, onTransition }
 				else await clear(kind, key);
 				onTransition?.(snap);
 			} catch (e) {
-				log$1.error("persist failed", {
+				log$2.error("persist failed", {
 					kind,
 					key,
 					err: String(e)
@@ -30176,7 +30176,7 @@ async function createPersistentActor(machine, { kind, key, input, onTransition }
 			}
 		});
 	});
-	if (resumed) log$1.info("actor resumed from snapshot", {
+	if (resumed) log$2.info("actor resumed from snapshot", {
 		kind,
 		key,
 		machineId
@@ -30201,9 +30201,78 @@ async function createPersistentActor(machine, { kind, key, input, onTransition }
 	};
 }
 //#endregion
+//#region src/machines/step-journal.js
+init_db();
+init_log();
+var log$1 = logger("step-journal");
+var _inited = false;
+async function init() {
+	const d = await db();
+	if (!_inited) {
+		await d.exec(`CREATE TABLE IF NOT EXISTS step_results (
+            session_key TEXT NOT NULL,
+            step_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            result_json TEXT,
+            started INTEGER NOT NULL,
+            done INTEGER,
+            PRIMARY KEY (session_key, step_id)
+        )`);
+		_inited = true;
+	}
+	return d;
+}
+var _inflight = /* @__PURE__ */ new Map();
+async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, deserialize = JSON.parse } = {}) {
+	if (!sessionKey || !stepId) return await fn();
+	const d = await init();
+	const lockKey = sessionKey + "\0" + stepId;
+	if (_inflight.has(lockKey)) return await _inflight.get(lockKey);
+	const exec = (async () => {
+		const row = await d.prepare(`SELECT status, result_json FROM step_results WHERE session_key = ? AND step_id = ?`).get(sessionKey, stepId);
+		if (row && row.status === "done") try {
+			return deserialize(row.result_json);
+		} catch (e) {
+			log$1.error("cached step result unparseable, re-running", {
+				sessionKey,
+				stepId,
+				err: String(e)
+			});
+			await d.prepare(`DELETE FROM step_results WHERE session_key = ? AND step_id = ?`).run(sessionKey, stepId);
+		}
+		await d.prepare(`INSERT INTO step_results (session_key, step_id, status, started, done)
+            VALUES (?, ?, 'started', ?, NULL)
+            ON CONFLICT(session_key, step_id) DO UPDATE SET status='started', started=excluded.started, done=NULL`).run(sessionKey, stepId, Date.now());
+		const result = await fn();
+		let json;
+		try {
+			json = serialize(result);
+		} catch (e) {
+			log$1.error("step result not serializable; not journaled (resume will re-run)", {
+				sessionKey,
+				stepId,
+				err: String(e)
+			});
+			return result;
+		}
+		await d.prepare(`UPDATE step_results SET status='done', result_json=?, done=? WHERE session_key = ? AND step_id = ?`).run(json, Date.now(), sessionKey, stepId);
+		return result;
+	})();
+	_inflight.set(lockKey, exec);
+	try {
+		return await exec;
+	} finally {
+		_inflight.delete(lockKey);
+	}
+}
+async function clearSteps(sessionKey) {
+	if (!sessionKey) return;
+	await (await init()).prepare(`DELETE FROM step_results WHERE session_key = ?`).run(sessionKey);
+}
+//#endregion
 //#region src/agent/machine.js
 init_log();
-function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ["core"], disabledToolsets = [], events } = {}) {
+function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ["core"], disabledToolsets = [], events, sessionKey } = {}) {
 	const baseLLM = callLLM || resolveCallLLM({
 		provider,
 		model
@@ -30256,7 +30325,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 			provider,
 			model,
 			enabledToolsets,
-			disabledToolsets
+			disabledToolsets,
+			sessionKey
 		}),
 		states: {
 			idle: { on: {
@@ -30277,19 +30347,21 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 			prompting: { invoke: {
 				src: fromPromise$1(async ({ input }) => {
 					const schemas = await getEnabledToolSchemas(input.enabledToolsets, input.disabledToolsets);
-					return llm({
+					return await runStep(input.sessionKey, "llm:" + input.iterations, () => llm({
 						messages: input.messages,
 						tools: schemas,
 						model: input.model,
 						provider: input.provider
-					});
+					}));
 				}),
 				input: ({ context }) => ({
 					messages: context.messages,
 					model: context.model,
 					provider: context.provider,
 					enabledToolsets: context.enabledToolsets,
-					disabledToolsets: context.disabledToolsets
+					disabledToolsets: context.disabledToolsets,
+					sessionKey: context.sessionKey,
+					iterations: context.iterations
 				}),
 				onDone: [{
 					guard: ({ event }) => Array.isArray(event.output?.tool_calls) && event.output.tool_calls.length > 0,
@@ -30344,49 +30416,58 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 						const tname = call.name || call.function?.name;
 						const targs = call.arguments || call.function?.arguments || {};
 						const tcid = call.id || call.tool_call_id;
-						const pushExtras = (r) => {
-							if (r?.systemMessage) extras.push({
-								role: "system",
-								content: "[hook] " + r.systemMessage
+						const ret = await runStep(input.sessionKey, "tool:" + input.iterations + ":" + tcid, async () => {
+							const callExtras = [];
+							const pushExtras = (r) => {
+								if (r?.systemMessage) callExtras.push({
+									role: "system",
+									content: "[hook] " + r.systemMessage
+								});
+								if (r?.additionalContext) callExtras.push({
+									role: "system",
+									content: r.additionalContext
+								});
+							};
+							const pre = await h.hooks.invoke("preToolCall", {
+								name: tname,
+								args: targs
 							});
-							if (r?.additionalContext) extras.push({
-								role: "system",
-								content: r.additionalContext
-							});
-						};
-						const pre = await h.hooks.invoke("preToolCall", {
-							name: tname,
-							args: targs
-						});
-						pushExtras(pre);
-						if (pre?.behavior === "block") {
-							results.push({
-								tool_call_id: tcid,
+							pushExtras(pre);
+							if (pre?.behavior === "block") return {
 								content: JSON.stringify({
 									error: "tool call denied by plugsdk hook",
 									tool: tname,
 									reason: pre.reason || "denied"
-								})
-							});
-							continue;
-						}
-						const res = await h.pi.dispatchTool(tname, pre && pre.args || targs);
-						pushExtras(await h.hooks.invoke("postToolCall", {
-							name: tname,
-							args: targs,
-							result: res
-						}));
+								}),
+								extras: callExtras
+							};
+							const res = await h.pi.dispatchTool(tname, pre && pre.args || targs);
+							pushExtras(await h.hooks.invoke("postToolCall", {
+								name: tname,
+								args: targs,
+								result: res
+							}));
+							return {
+								content: res,
+								extras: callExtras
+							};
+						});
 						results.push({
 							tool_call_id: tcid,
-							content: res
+							content: ret.content
 						});
+						extras.push(...ret.extras);
 					}
 					return {
 						results,
 						extras
 					};
 				}),
-				input: ({ context }) => ({ messages: context.messages }),
+				input: ({ context }) => ({
+					messages: context.messages,
+					sessionKey: context.sessionKey,
+					iterations: context.iterations
+				}),
 				onDone: {
 					target: "prompting",
 					actions: assign$1({
@@ -30527,7 +30608,7 @@ function mergeHookExtras(messages, r, tag) {
 	});
 	return e.length ? [...messages, ...e] : messages;
 }
-async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs }) {
+async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey }) {
 	const { actor } = pa;
 	return await new Promise((resolve, reject) => {
 		let sub;
@@ -30541,12 +30622,18 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 				} catch {}
 			});
 		};
+		let settled = false;
 		const t = setTimeout(() => {
+			if (settled) return;
+			settled = true;
 			cleanup();
 			reject(/* @__PURE__ */ new Error("agent turn timeout"));
 		}, timeoutMs);
+		if (typeof t?.unref === "function") t.unref();
 		sub = actor.subscribe((snap) => {
 			if (snap.status !== "done") return;
+			if (settled) return;
+			settled = true;
 			clearTimeout(t);
 			(async () => {
 				const out = snap.output;
@@ -30566,6 +30653,7 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 					errorStack: out?.error ? events.find((e) => e.type === "llm_call" && !e.ok)?.stack || null : null,
 					witnessPath
 				});
+				await clearSteps(sessionKey);
 				cleanup();
 				resolve(out);
 			})().catch((e) => {
@@ -30607,6 +30695,7 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		};
 	}
 	initMessages = mergeHookExtras(initMessages, inbound, "onMessageInbound");
+	const key = sessionKey || randomUUID();
 	const pa = await createPersistentActor(createAgentMachine({
 		model,
 		provider,
@@ -30614,10 +30703,11 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		enabledToolsets,
 		disabledToolsets,
 		maxIterations,
-		events
+		events,
+		sessionKey: key
 	}), {
 		kind: "agent",
-		key: sessionKey || randomUUID(),
+		key,
 		input: { messages: initMessages }
 	});
 	pa.actor.send({
@@ -30634,7 +30724,8 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		skill,
 		cwd,
 		witnessPath,
-		timeoutMs
+		timeoutMs,
+		sessionKey: key
 	});
 }
 //#endregion
