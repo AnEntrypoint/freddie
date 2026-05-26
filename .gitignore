@@ -29,7 +29,11 @@ src/web/vendor/
 .gm/last-prompt.txt
 .gm/long-gap-retry-state
 .gm/next-step.md
+.claude/
+tests/
+thebird-plugin.json
 # tracked: .gm/rs-learn.db, .gm/code-search/, AGENTS.md, .gm/prd.yml, .gm/disciplines/
+# ignored above: .claude/ (harness config), tests/ (stray dir; project uses single root test.js), thebird-plugin.json (sibling-project manifest)
 # <<< gm managed
 
 
