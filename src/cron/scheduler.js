@@ -4,6 +4,7 @@ import { runTurn } from '../agent/machine.js'
 import { logger } from '../observability/log.js'
 import { createMachine, assign, fromPromise } from 'xstate'
 import { createPersistentActor } from '../machines/persistent-actor.js'
+import { runStep } from '../machines/step-journal.js'
 
 const log = logger('cron')
 
@@ -46,7 +47,10 @@ export async function tick(now = new Date(), { callLLM = null } = {}) {
             if (j.last_run && Math.floor(j.last_run / 60000) === minuteKey) continue
             await d.prepare(`UPDATE cron_jobs SET last_run = ? WHERE id = ?`).run(now.getTime(), j.id)
             fired.push(j)
-            runTurn({ prompt: j.prompt, callLLM }).catch(e => log.error('cron run failed', { id: j.id, err: String(e) }))
+            // runStep makes the fire idempotent within the minute as a second layer
+            // atop the last_run guard. Cron step rows accumulate (one per fired
+            // minute-key) but are tiny; minute-keys rotate so they don't collide.
+            runStep('cron:' + j.id, 'fire:' + minuteKey, () => runTurn({ prompt: j.prompt, callLLM })).catch(e => log.error('cron run failed', { id: j.id, err: String(e) }))
         } catch (e) { log.error('cron tick failed', { id: j.id, err: String(e) }) }
     }
     return fired

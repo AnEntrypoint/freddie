@@ -1,0 +1,3 @@
+## Resolved mutable: step-result-fidelity
+
+src/host/host_helpers.js:27 dispatchTool always returns string (typeof r===string ? r : JSON.stringify(r)); LLM result is plain {content,tool_calls,raw} object — both JSON-round-trippable. runStep stores JSON.stringify(result); defensive fallback re-runs on serialize failure per corner-step-result-serialization row.

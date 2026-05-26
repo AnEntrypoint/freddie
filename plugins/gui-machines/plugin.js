@@ -41,6 +41,10 @@ export default {
             try { res.json({ machines: await snapshotRows(req.params.kind) }) }
             catch (e) { res.status(500).json({ error: String(e.message || e) }) }
         })
+        gui.route('GET', '/api/machines/steps/:key', async (req, res) => {
+            try { const { listSteps } = await import('../../src/machines/step-journal.js'); res.json({ key: req.params.key, steps: await listSteps(req.params.key) }) }
+            catch (e) { res.status(500).json({ error: String(e.message || e) }) }
+        })
         gui.route('POST', '/api/machines/resume', async (_req, res) => {
             try { const { resumeAll } = await import('../../src/machines/resume.js'); res.json({ ok: true, summary: await resumeAll() }) }
             catch (e) { res.status(500).json({ error: String(e.message || e) }) }

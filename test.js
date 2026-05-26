@@ -122,6 +122,22 @@ await T('machines-resumability', async () => {
     assert.ok(mr.machines.some(x => x.kind === 'agent' && x.key === 'route-probe' && x.state === 'prompting'), 'route surfaces snapshot state')
     await ss.clear('agent', 'route-probe'); await dash.stop()
 })
+await T('step-journal-compute', async () => {
+    const { runStep, isStepDone, listSteps, clearSteps } = await import('./src/machines/step-journal.js')
+    await clearSteps('s-test')
+    let calls = 0; const fn = async () => { calls++; return { v: 42 } }
+    const r1 = await runStep('s-test', 'step1', fn); const r2 = await runStep('s-test', 'step1', fn)
+    assert.deepEqual(r1, { v: 42 }); assert.deepEqual(r2, { v: 42 }); assert.equal(calls, 1, 'fn ran once (cache hit)')
+    assert.equal(await isStepDone('s-test', 'step1'), true); assert.equal(await isStepDone('s-test', 'nope'), false)
+    assert.ok((await listSteps('s-test')).some(s => s.step_id === 'step1' && s.status === 'done'), 'listSteps shows done step1')
+    let c2 = 0; await runStep('s-test', 'step2', async () => { c2++; return 1 }); await runStep('s-test', 'step2', async () => { c2++; return 1 }); assert.equal(c2, 1); assert.equal(calls, 1, 'no cross-contamination')
+    await clearSteps('s-test'); assert.equal((await listSteps('s-test')).length, 0); assert.equal(await isStepDone('s-test', 'step1'), false)
+    let c3 = 0; await runStep(null, 'x', async () => { c3++; return 9 }); await runStep(null, 'x', async () => { c3++; return 9 }); assert.equal(c3, 2, 'falsy sessionKey bypasses journaling')
+    const { runTurn } = await import('./src/agent/machine.js')
+    let llmCalls = 0; const callLLM = async () => { llmCalls++; return llmCalls === 1 ? { content: '', tool_calls: [{ id: 'jc1', name: 'bash', arguments: { command: 'echo journaled', timeout_ms: 5000 } }] } : { content: 'done', tool_calls: [] } }
+    const out = await runTurn({ prompt: 'p', callLLM, sessionKey: 'resume-test', timeoutMs: 10000 })
+    assert.equal(out.result, 'done'); assert.ok(out.messages.find(m => m.role === 'tool')?.content.includes('journaled'), 'journaling does not break agent loop')
+})
 await T('plugins+memory', async () => {
     const { createHost } = await import('./src/host/host.js')
     const h = createHost({ surfaces: ['pi', 'gui'] }); let fired = 0
