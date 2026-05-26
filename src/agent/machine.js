@@ -4,11 +4,12 @@ import { getEnabledToolSchemas } from '../toolsets.js'
 import { logger } from '../observability/log.js'
 import { resolveCallLLM } from './llm_resolver.js'
 import { createPersistentActor } from '../machines/persistent-actor.js'
+import { runStep, clearSteps } from '../machines/step-journal.js'
 import { randomUUID } from 'node:crypto'
 
 const log = logger('agent')
 
-export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events } = {}) {
+export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events, sessionKey } = {}) {
     const baseLLM = callLLM || resolveCallLLM({ provider, model })
     const llm = events ? async (input) => {
         const t0 = Date.now()
@@ -34,6 +35,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
             error: null,
             provider, model,
             enabledToolsets, disabledToolsets,
+            sessionKey,
         }),
         states: {
             idle: {
@@ -52,9 +54,9 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                 invoke: {
                     src: fromPromise(async ({ input }) => {
                         const schemas = await getEnabledToolSchemas(input.enabledToolsets, input.disabledToolsets)
-                        return llm({ messages: input.messages, tools: schemas, model: input.model, provider: input.provider })
+                        return await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: input.messages, tools: schemas, model: input.model, provider: input.provider }))
                     }),
-                    input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets }),
+                    input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, sessionKey: context.sessionKey, iterations: context.iterations }),
                     onDone: [
                         { guard: ({ event }) => Array.isArray(event.output?.tool_calls) && event.output.tool_calls.length > 0, target: 'tool_calls', actions: assign({ messages: ({ context, event }) => [...context.messages, { role: 'assistant', content: event.output.content || '', tool_calls: event.output.tool_calls }] }) },
                         { target: 'done', actions: assign({ messages: ({ context, event }) => [...context.messages, { role: 'assistant', content: event.output.content || '' }], lastResult: ({ context, event }) => {
@@ -92,16 +94,21 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                             const tname = call.name || call.function?.name
                             const targs = call.arguments || call.function?.arguments || {}
                             const tcid = call.id || call.tool_call_id
-                            const pushExtras = r => { if (r?.systemMessage) extras.push({ role: 'system', content: '[hook] ' + r.systemMessage }); if (r?.additionalContext) extras.push({ role: 'system', content: r.additionalContext }) }
-                            const pre = await h.hooks.invoke('preToolCall', { name: tname, args: targs }); pushExtras(pre)
-                            if (pre?.behavior === 'block') { results.push({ tool_call_id: tcid, content: JSON.stringify({ error: 'tool call denied by plugsdk hook', tool: tname, reason: pre.reason || 'denied' }) }); continue }
-                            const res = await h.pi.dispatchTool(tname, (pre && pre.args) || targs)
-                            pushExtras(await h.hooks.invoke('postToolCall', { name: tname, args: targs, result: res }))
-                            results.push({ tool_call_id: tcid, content: res })
+                            const ret = await runStep(input.sessionKey, 'tool:' + input.iterations + ':' + tcid, async () => {
+                                const callExtras = []
+                                const pushExtras = r => { if (r?.systemMessage) callExtras.push({ role: 'system', content: '[hook] ' + r.systemMessage }); if (r?.additionalContext) callExtras.push({ role: 'system', content: r.additionalContext }) }
+                                const pre = await h.hooks.invoke('preToolCall', { name: tname, args: targs }); pushExtras(pre)
+                                if (pre?.behavior === 'block') { return { content: JSON.stringify({ error: 'tool call denied by plugsdk hook', tool: tname, reason: pre.reason || 'denied' }), extras: callExtras } }
+                                const res = await h.pi.dispatchTool(tname, (pre && pre.args) || targs)
+                                pushExtras(await h.hooks.invoke('postToolCall', { name: tname, args: targs, result: res }))
+                                return { content: res, extras: callExtras }
+                            })
+                            results.push({ tool_call_id: tcid, content: ret.content })
+                            extras.push(...ret.extras)
                         }
                         return { results, extras }
                     }),
-                    input: ({ context }) => ({ messages: context.messages }),
+                    input: ({ context }) => ({ messages: context.messages, sessionKey: context.sessionKey, iterations: context.iterations }),
                     onDone: { target: 'prompting', actions: assign({
                         messages: ({ context, event }) => [...context.messages, ...event.output.results.map(r => ({ role: 'tool', tool_call_id: r.tool_call_id, content: r.content })), ...event.output.extras],
                         iterations: ({ context }) => context.iterations + 1,
@@ -175,7 +182,7 @@ function mergeHookExtras(messages, r, tag) {
 // Drive a started persistent agent actor to its final state, wiring timeout +
 // session-end hooks + trajectory. Shared by runTurn (fresh) and resumeTurn
 // (rehydrated from a persisted snapshot after a refresh/restart).
-async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs }) {
+async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey }) {
     const { actor } = pa
     return await new Promise((resolve, reject) => {
         let sub
@@ -189,6 +196,8 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
                 await h.hooks.invoke('onSessionEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
                 const errorStack = out?.error ? (events.find(e => e.type === 'llm_call' && !e.ok)?.stack || null) : null
                 await writeTrajectory(out, { prompt, provider, model, skill, cwd, events, errorStack, witnessPath })
+                // Completed turn leaves no step-journal residue.
+                await clearSteps(sessionKey)
                 // Unsubscribe, flush the final snapshot (persistent-actor clears it on
                 // the done state) + stop the actor — a finished actor should not be
                 // left running with live subscriptions/handles.
@@ -209,13 +218,13 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     const inbound = await h.hooks.invoke('onMessageInbound', { content: prompt })
     if (inbound?.behavior === 'block') { await h.hooks.invoke('onSessionEnd', { reason: 'prompt_blocked' }); return { messages: initMessages, result: null, error: 'prompt blocked by plugsdk hook: ' + (inbound.reason || 'denied'), iterations: 0 } }
     initMessages = mergeHookExtras(initMessages, inbound, 'onMessageInbound')
-    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events })
     // Persist the turn snapshot under kind=agent so an interrupted turn (process
     // refresh mid-tool-call) resumes exactly where it stopped via resumeTurn.
     const key = sessionKey || randomUUID()
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key })
     const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages } })
     pa.actor.send({ type: 'SUBMIT', prompt })
-    return await driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs })
+    return await driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey: key })
 }
 
 // Rehydrate an interrupted turn from its persisted snapshot and drive it to
@@ -226,10 +235,10 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
     const { load } = await import('../machines/snapshot-store.js')
     if (!(await load('agent', sessionKey))) return null
     const events = []; const h = await bootHost()
-    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events })
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey })
     const pa = await createPersistentActor(machine, { kind: 'agent', key: sessionKey, input: { messages: [] } })
     if (!pa.resumed) { await pa.forget(); return null }
-    return await driveAgentActor({ pa, h, events, prompt: '', provider, model, skill, cwd, witnessPath, timeoutMs })
+    return await driveAgentActor({ pa, h, events, prompt: '', provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey })
 }
 
 export async function invokeCompactHooks({ trigger = 'auto', messages = [] } = {}) {

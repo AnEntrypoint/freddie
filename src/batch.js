@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { createMachine, assign, fromPromise } from 'xstate'
 import { createPersistentActor } from './machines/persistent-actor.js'
 import { load } from './machines/snapshot-store.js'
+import { runStep, clearSteps } from './machines/step-journal.js'
 
 // Run one prompt and append its result to the batch jsonl file.
 async function runOne({ job, model, callLLM, file }) {
@@ -43,7 +44,7 @@ export function createBatchMachine({ prompts, concurrency, model, callLLM, file 
                             .map((p, i) => ({ i, p }))
                             .filter(({ i }) => !context.done.includes(i))
                             .slice(0, context.concurrency)
-                        return await Promise.all(pending.map(job => runOne({ job, model: context.model, callLLM, file: context.file })))
+                        return await Promise.all(pending.map(job => runStep(context.id, 'prompt:' + job.i, () => runOne({ job, model: context.model, callLLM, file: context.file }))))
                     }),
                     input: ({ context }) => ({ context }),
                     onDone: {
@@ -89,7 +90,7 @@ function driveBatch(pa) {
         const sub = actor.subscribe(snap => {
             if (snap.status !== 'done') return
             const out = snap.output
-            pa.flush().catch(() => {}).finally(() => { try { sub.unsubscribe() } catch {}; try { actor.stop() } catch {}; resolve(out) })
+            pa.flush().catch(() => {}).then(() => clearSteps(out.id)).catch(() => {}).finally(() => { try { sub.unsubscribe() } catch {}; try { actor.stop() } catch {}; resolve(out) })
         })
         actor.subscribe({ error: (e) => { try { sub.unsubscribe() } catch {}; reject(e) } })
     })

@@ -2,6 +2,7 @@ import { logger } from '../observability/log.js'
 import { runTurn } from '../agent/machine.js'
 import { createMachine, assign, fromPromise, createActor } from 'xstate'
 import { persist, load, clear } from '../machines/snapshot-store.js'
+import { runStep, clearSteps } from '../machines/step-journal.js'
 import { randomUUID } from 'node:crypto'
 
 const log = logger('gateway')
@@ -65,12 +66,13 @@ export class Gateway {
         await persist('gateway-msg', msgKey, { status: 'active', value: 'processing', context: { platform, from: msg.from, text: msg.text } })
         let cur = { ...msg, platform }
         for (const h of this.hooks.inbound) cur = (await h(cur)) || cur
-        const result = await runTurn({ prompt: cur.text || '', callLLM: this.callLLM })
+        const result = await runStep(msgKey, 'run', () => runTurn({ prompt: cur.text || '', callLLM: this.callLLM }))
         let reply = { to: msg.from, text: result.result || result.error || '', platform, result }
         for (const h of this.hooks.outbound) reply = (await h(reply)) || reply
         const adapter = this.platforms.get(platform)
         await adapter.send?.(reply)
         await clear('gateway-msg', msgKey)
+        await clearSteps(msgKey)
         return reply
     }
 }

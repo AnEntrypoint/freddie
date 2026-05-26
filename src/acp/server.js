@@ -8,6 +8,7 @@ import { checkPermission, rememberAllow, rememberDeny } from './permissions.js'
 import { AcpSessionManager } from './session.js'
 import { createMachine, createActor } from 'xstate'
 import { persist, load, clear } from '../machines/snapshot-store.js'
+import { runStep, clearSteps } from '../machines/step-journal.js'
 
 const log = logger('acp')
 
@@ -102,9 +103,15 @@ const METHODS = {
         // refresh mid-turn is observable + resumable (the agent snapshot for the
         // turn itself lives under kind=agent via runTurn sessionKey).
         await persist('acp-prompt', sessionId, { status: 'active', value: 'running', context: { sessionId, prompt } })
-        const out = await runTurn({ prompt, callLLM: srv.callLLM, sessionKey: 'acp:' + sessionId })
+        const sk = 'acp:' + sessionId
+        // The agent turn itself is step-journaled under sessionKey=sk (at-most-once
+        // LLM + tool effects). The post-turn persistence (session append) is its
+        // own journaled step so a crash between runTurn return and appendAssistant
+        // does not double-append on resume.
+        const out = await runTurn({ prompt, callLLM: srv.callLLM, sessionKey: sk })
+        await runStep(sk, 'acp-persist', async () => { await srv.sessions.appendAssistant(sessionId, out.result || ''); return { ok: true } })
         await clear('acp-prompt', sessionId)
-        srv.sessions.appendAssistant(sessionId, out.result || '')
+        await clearSteps(sk)
         Events.messageComplete((o) => srv.send(o), { sessionId, role: 'assistant', content: out.result || '' })
         return { result: out.result, error: out.error, iterations: out.iterations }
     },
