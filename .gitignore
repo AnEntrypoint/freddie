@@ -78,3 +78,6 @@ emperor-penguin.md
 .gm/llm-validation.*
 .gm/prd.yml
 .codeinsight.digest
+.gm/browser-profile/
+.gm/browser-profile-*/
+.gm/witness-pages.js

@@ -1,0 +1,2 @@
+./plugins/binary_extensions/handler.js:19:19 
+async ({ filename }) => ({ binary: isBinary(filename), known: BINARY_EXTENSIONS.size })

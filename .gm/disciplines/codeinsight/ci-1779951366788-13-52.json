@@ -1,0 +1,2 @@
+./plugins/env_passthrough/handler.js:13:13 
+async () => ({ env: buildBashEnv() })

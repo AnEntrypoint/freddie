@@ -1,0 +1,9 @@
+./plugins/gui-acptoapi-chains/plugin.js:9:16 fwd
+async function fwd(url, init) {
+    try {
+        const r = await fetch(url, init)
+        const ct = r.headers.get('content-type') || ''
+        if (ct.includes('json')) return { status: r.status, json: await r.json() }
+        return { status: r.status, text: await r.text() }
+    } catch (e) { return { status: 502, json: { error: { message: e.message, via: url } } } }
+}

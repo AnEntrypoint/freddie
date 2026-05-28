@@ -1,0 +1,5 @@
+./plugins/grep/handler.js:46:49 matchGlob
+function matchGlob(name, glob) {
+    const re = new RegExp('^' + glob.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i')
+    return re.test(name)
+}

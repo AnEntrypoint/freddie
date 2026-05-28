@@ -1,0 +1,7 @@
+./plugins/env_passthrough/handler.js:3:8 buildBashEnv
+function buildBashEnv() {
+    const allow = getConfigValue('terminal.env_passthrough', ['HOME', 'USER', 'LANG', 'PATH', 'SHELL']) || []
+    const out = {}
+    for (const k of allow) if (process.env[k]) out[k] = process.env[k]
+    return out
+}

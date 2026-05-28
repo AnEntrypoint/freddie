@@ -1,0 +1,7 @@
+./plugins/checkpoint/handler.js:7:12 
+({ name, data }) => {
+        if (!name) return { error: 'name required' }
+        const p = path.join(dir(), name + '.json')
+        fs.writeFileSync(p, JSON.stringify(data || {}, null, 2), 'utf8')
+        return { saved: p }
+    }

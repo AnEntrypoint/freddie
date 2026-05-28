@@ -1,0 +1,8 @@
+./plugins/file_state/handler.js:7:13 
+async ({ action, session_id, file_path, op }) => {
+        const d = await init()
+        if (action === 'record') { await d.prepare('INSERT INTO file_state (session_id, file_path, action, ts) VALUES (?, ?, ?, ?)').run(session_id, file_path, op, Date.now()); return { recorded: true } }
+        if (action === 'list') return { items: await d.prepare('SELECT * FROM file_state WHERE session_id = ? ORDER BY id DESC').all(session_id) }
+        if (action === 'changed_in_session') return { files: [...new Set((await d.prepare('SELECT file_path FROM file_state WHERE session_id = ?').all(session_id)).map(r => r.file_path))] }
+        return { error: 'unknown action' }
+    }

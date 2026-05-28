@@ -1,0 +1,5 @@
+./plugins/clarify/handler.js:9:12 
+async ({ question, options = [] }, ctx = {}) => {
+        if (typeof ctx.askUser === 'function') return await ctx.askUser({ question, options })
+        return { error: 'no interactive channel; assume defaults', question, options }
+    }

@@ -1,0 +1,9 @@
+./plugins/credential_files/handler.js:6:13 
+async ({ action, name, value }) => {
+        const s = getAuthStore()
+        if (action === 'get') return { credential: await s.getCredential(name) }
+        if (action === 'set') return await s.setCredential(name, value)
+        if (action === 'list') return { credentials: await s.listCredentials() }
+        if (action === 'delete') return await s.deleteCredential(name)
+        return { error: 'unknown action' }
+    }

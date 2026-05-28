@@ -1,0 +1,5 @@
+./plugins/approval/handler.js:9:12 
+async ({ action, reason = '' }, ctx = {}) => {
+        if (typeof ctx.askApproval === 'function') return await ctx.askApproval({ action, reason })
+        return { decision: 'deny', reason: 'no interactive approval channel; supply ctx.askApproval' }
+    }

@@ -1,0 +1,2 @@
+./plugins/cronjob/handler.js:5:5 
+async ({ id }) => { await cancelJob(id); return { id, cancelled: true } }

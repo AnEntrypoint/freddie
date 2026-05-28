@@ -1,0 +1,3 @@
+## Resolved mutable: page-richness-baseline
+
+src/components/freddie.js: all 16 pages = make(label)=>renderPageStub; thebird/docs/vendor/components/freddie.js identical 33-line stub file. No rich bodies anywhere.

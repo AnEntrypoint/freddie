@@ -1,0 +1,2 @@
+./plugins/file_operations/handler.js:8:8 
+({ path: p }) => { const s = fs.statSync(p); return { size: s.size, mtime: s.mtimeMs, isDir: s.isDirectory() } }

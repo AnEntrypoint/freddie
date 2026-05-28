@@ -1,0 +1,15 @@
+./plugins/gm-skill/plugin.js:42:55 register
+register({ pi }) {
+        const skillPath = resolveSkillMd()
+        if (!skillPath) return
+        const raw = fs.readFileSync(skillPath, 'utf8')
+        const { fields, body } = parseFrontmatter(raw)
+        pi.skills.register({
+            name: 'gm-skill',
+            description: fields.description || 'AI-native software engineering harness',
+            content: body,
+            source: 'gm-skill',
+            frontmatter: fields,
+            file: skillPath,
+        })
+    }

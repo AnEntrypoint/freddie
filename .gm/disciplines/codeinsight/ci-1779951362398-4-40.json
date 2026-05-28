@@ -1,0 +1,2 @@
+./plugins/cronjob/handler.js:4:4 
+async () => ({ jobs: await listJobs() })

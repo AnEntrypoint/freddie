@@ -1,0 +1,2 @@
+./plugins/debug_helpers/handler.js:7:7 
+async ({ name }) => name ? snapshotAll()[name] || { error: 'unknown subsystem: ' + name } : { subsystems: listDebug() }

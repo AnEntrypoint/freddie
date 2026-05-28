@@ -1,0 +1,2 @@
+./plugins/checkpoint/handler.js:19:19 
+({ name }) => { const p = path.join(dir(), name + '.json'); if (fs.existsSync(p)) fs.unlinkSync(p); return { deleted: name } }

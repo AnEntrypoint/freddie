@@ -1,0 +1,2 @@
+./plugins/cronjob/handler.js:6:6 
+async ({ id }) => { await deleteJob(id); return { id, deleted: true } }

@@ -1,0 +1,14 @@
+./plugins/code_execution/handler.js:12:24 
+async ({ code, runner = 'python', timeout_ms = 30000 }) => {
+        const cmd = RUNNERS[runner]
+        if (!cmd) return { error: 'unknown runner: ' + runner }
+        return await new Promise(resolve => {
+            const child = spawn(cmd[0], [cmd[1], code], { env: process.env })
+            let stdout = '', stderr = ''
+            const t = setTimeout(() => { try { child.kill('SIGKILL') } catch {} resolve({ exitCode: -1, stdout, stderr: stderr + '\n[timeout]' }) }, timeout_ms)
+            child.stdout?.on('data', d => stdout += d.toString())
+            child.stderr?.on('data', d => stderr += d.toString())
+            child.on('close', code => { clearTimeout(t); resolve({ exitCode: code, stdout, stderr }) })
+            child.on('error', e => { clearTimeout(t); resolve({ exitCode: -1, stdout, stderr: stderr + '\n' + e.message }) })
+        })
+    }

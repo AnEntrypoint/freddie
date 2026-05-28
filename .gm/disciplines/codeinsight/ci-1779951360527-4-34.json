@@ -1,0 +1,4 @@
+./plugins/core-skills/plugin.js:4:6 register
+register({ pi }) {
+        for (const s of listSkills()) pi.skills.register({ name: s.name, description: s.description, path: s.path, body: s.body })
+    }

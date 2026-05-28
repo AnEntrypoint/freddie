@@ -243,6 +243,20 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     const pp = path.join('..', 'penguins'); if (fs.existsSync(pp) && fs.existsSync(path.join(pp, 'species.json'))) { assert.ok(JSON.parse(fs.readFileSync(path.join(pp, 'species.json'), 'utf8')).length === 18, 'penguins: 18 species'); assert.ok(JSON.parse(fs.readFileSync(path.join(pp, 'facts.json'), 'utf8')).length >= 60, 'penguins: 60+ facts') }
     assert.ok(fs.existsSync('scripts/validate-llm-providers.js') && fs.existsSync('scripts/build-model-availability.js'), 'validator + matrix-builder scripts exist'); { const av = await G('api/models/availability'); assert.ok([200,404].includes(av.status), 'availability endpoint reachable'); if (av.status === 200) { const j = await av.json(); assert.ok(Array.isArray(j.providers) && j.summary && typeof j.summary.total_models === 'number', 'matrix schema') } }
     if (process.env.LIVE_LLM === '1') { const { spawnSync } = await import('node:child_process'); const r = spawnSync(process.execPath, ['scripts/validate-llm-providers.js'], { encoding: 'utf8', timeout: 180000 }); assert.ok(/REAL_OK/.test(r.stdout || ''), 'LIVE_LLM: at least 1 provider returned REAL_OK') }
+    // FREDDIE_PAGES are real renderers (not stubs) and cover every nav route.
+    // Parse the SDK source (not the browser bundle — it references HTMLElement
+    // at module top-level and cannot import in Node).
+    const fSrc = fs.readFileSync(path.join('node_modules','anentrypoint-design','src','components','freddie.js'), 'utf8')
+    assert.ok(!/const make = \(label\) => \(props\) => renderPageStub/.test(fSrc), 'freddie.js no longer ships stub renderers')
+    assert.ok(/from '\.\/freddie\/runtime\.js'/.test(fSrc), 'freddie.js uses real page runtime')
+    const pageKeys = (fSrc.match(/export const ([a-z]+) = makePage\(/g) || []).map(m => m.replace(/export const | = makePage\(/g, ''))
+    assert.ok(pageKeys.length >= 16, 'FREDDIE_PAGES has >=16 real makePage renderers, got ' + pageKeys.length)
+    for (const k of ['home','chat','sessions','projects','models','config','tools','machines','health','debug']) assert.ok(pageKeys.includes(k), 'page ' + k + ' is a real renderer')
+    // Parse ROUTES from state.js source (importing it pulls the browser bundle).
+    const stateSrc = fs.readFileSync(path.join('src','web','state.js'), 'utf8')
+    const routePaths = (stateSrc.match(/path: '([a-z]+)'/g) || []).map(m => m.replace(/path: '|'/g, ''))
+    assert.ok(routePaths.length >= 16, 'ROUTES has >=16 entries, got ' + routePaths.length)
+    for (const p of routePaths) assert.ok(pageKeys.includes(p), 'route ' + p + ' has a FREDDIE_PAGES renderer')
     await dash.stop()
 })
 

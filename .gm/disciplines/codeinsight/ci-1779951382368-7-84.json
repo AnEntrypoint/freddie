@@ -1,0 +1,2 @@
+./plugins/gui-acptoapi-chains/plugin.js:7:7 
+() => ({ 'content-type': 'application/json', authorization: 'Bearer none' })

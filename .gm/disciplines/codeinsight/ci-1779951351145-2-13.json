@@ -1,0 +1,6 @@
+./plugins/browser/handler.js:2:6 probe
+async function probe() {
+    if (_puppeteerAvail !== null) return _puppeteerAvail
+    try { await import('puppeteer-core'); _puppeteerAvail = true } catch { _puppeteerAvail = false }
+    return _puppeteerAvail
+}

@@ -1,0 +1,2 @@
+./plugins/cronjob/handler.js:3:3 
+async ({ cron, prompt, model = null }) => ({ id: await createJob({ cron, prompt, model }) })

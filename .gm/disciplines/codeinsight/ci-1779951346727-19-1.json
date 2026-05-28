@@ -1,0 +1,2 @@
+./bin/freddie.js:19:19 
+e => { console.error(e); process.exit(1) }

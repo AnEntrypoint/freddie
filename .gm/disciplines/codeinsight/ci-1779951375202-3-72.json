@@ -1,0 +1,10 @@
+./plugins/file_tools/handler.js:3:11 walk
+function walk(dir, out, skip) {
+    let entries; try { entries = fs.readdirSync(dir, { withFileTypes: true }) } catch { return }
+    for (const e of entries) {
+        if (skip.has(e.name)) continue
+        const full = path.join(dir, e.name)
+        if (e.isDirectory()) walk(full, out, skip)
+        else out.push(full)
+    }
+}

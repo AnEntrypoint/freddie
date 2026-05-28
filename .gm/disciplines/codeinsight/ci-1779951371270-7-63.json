@@ -1,0 +1,2 @@
+./plugins/file_operations/handler.js:7:7 
+({ path: p }) => { fs.mkdirSync(p, { recursive: true }); return { created: p } }

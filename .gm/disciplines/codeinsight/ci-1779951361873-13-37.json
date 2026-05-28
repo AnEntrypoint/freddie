@@ -1,0 +1,2 @@
+./plugins/cronjob/handler.js:13:13 
+async (args) => { const fn = ACTIONS[args.action]; if (!fn) return { error: 'unknown action' }; try { return await fn(args) } catch (e) { return { error: String(e.message || e) } } }

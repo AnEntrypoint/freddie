@@ -1,0 +1,2 @@
+./plugins/ansi_strip/handler.js:6:6 
+async ({ text }) => ({ text: ansiStrip(text) })
