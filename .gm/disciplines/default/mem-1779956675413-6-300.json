@@ -1,0 +1,3 @@
+## Resolved mutable: mut-form-labels-associated
+
+content.js:265-271 TextField returns h('label',{class:'ds-field'},span.label,input) implicit assoc; :286-290 Select same. GAP: SearchInput (:238-249) is bare h('input',{type:'search',placeholder}) with NO label/aria-label. PARTIAL — fix SearchInput.

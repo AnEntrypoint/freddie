@@ -1,0 +1,3 @@
+## Resolved mutable: mut-doc-title-routing
+
+freddie src/web/app.js:59-65 setActive sets state.active+location.hash+rerender but no document.title assignment anywhere in file; index.html <title> static. ABSENT — fix: set document.title in setActive/loadActive.

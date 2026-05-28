@@ -1,0 +1,3 @@
+## Resolved mutable: mut-table-rowclick-a11y
+
+content.js:161-167 Table tbody rows: onclick + tabindex:'0' + onkeydown:(e)=>{if(e.key==='Enter')onRowClick(i)} + role:'row'. GAPS: Space not handled (Enter only); no role=button; no aria-label. PARTIAL.

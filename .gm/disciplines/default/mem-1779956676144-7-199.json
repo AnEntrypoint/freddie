@@ -1,0 +1,3 @@
+## Resolved mutable: mut-theme-toggle-controller
+
+freddie src/web/app.js:5 'const {...,ThemeToggle}=components'; :47 ThemeToggle({compact:true}) rendered in topbar leaf. SDK owns controller. PRESENT.
