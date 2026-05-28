@@ -56,11 +56,20 @@ function view() {
 
 function rerender() { applyDiff(root, view()); }
 
+function setDocTitle(p) {
+    const r = ROUTES.find(x => x.path === p);
+    document.title = 'freddie · ' + (r ? (r.label || r.path) : p);
+}
+function focusMain() {
+    const main = root.querySelector('#app-main');
+    if (main) { main.setAttribute('tabindex', '-1'); main.focus({ preventScroll: false }); }
+}
 function setActive(p) {
     if (state.active === p) return;
     state.active = p; state.body = null;
     const want = '#fd-' + p;
     if (location.hash !== want) { try { history.replaceState(null, '', want); } catch { location.hash = want; } }
+    setDocTitle(p);
     rerender(); loadActive();
 }
 if (typeof window !== 'undefined') {
@@ -84,8 +93,10 @@ async function loadActive() {
     }
     state.ts = new Date().toLocaleTimeString();
     applyDiff(root, view());
+    focusMain();
 }
 
+setDocTitle(state.active);
 applyDiff(root, view());
 loadActive();
 

@@ -1,0 +1,3 @@
+## Resolved mutable: mut-skip-link-css
+
+app-shell.css:17-29 .skip-link{position:absolute;top:-40px;...} :30-34 .skip-link:focus{top:10px;outline:2px solid var(--accent)}. shell.js:149 AppShell first child a.skip-link href=#app-main. PRESENT.

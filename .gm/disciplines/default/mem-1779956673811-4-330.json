@@ -1,0 +1,3 @@
+## Resolved mutable: mut-reduced-motion-present
+
+app-shell.css:2147-2153 @media (prefers-reduced-motion: reduce){*{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}} globally neutralizes ds-spinner ds-bounce keyframe (:2326-2329) and all transitions. PRESENT, no work.

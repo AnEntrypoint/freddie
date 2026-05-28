@@ -257,6 +257,23 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     const routePaths = (stateSrc.match(/path: '([a-z]+)'/g) || []).map(m => m.replace(/path: '|'/g, ''))
     assert.ok(routePaths.length >= 16, 'ROUTES has >=16 entries, got ' + routePaths.length)
     for (const p of routePaths) assert.ok(pageKeys.includes(p), 'route ' + p + ' has a FREDDIE_PAGES renderer')
+    // GUI-validation regression guards (this chain): a11y + UX invariants live in
+    // the SDK source so they cannot silently regress on a rebuild.
+    const cSrc = fs.readFileSync(path.join('node_modules','anentrypoint-design','src','components','content.js'), 'utf8')
+    assert.ok(/rowLabels/.test(cSrc) && /labelFor/.test(cSrc), 'Table supports rowLabels for meaningful row aria-label')
+    assert.ok(/e\.key === ' '/.test(cSrc), 'Table clickable rows handle Space key (a11y parity)')
+    assert.ok(/SearchInput[\s\S]{0,400}'aria-label'/.test(cSrc), 'SearchInput has aria-label')
+    const aSrc = fs.readFileSync(path.join('node_modules','anentrypoint-design','app-shell.css'), 'utf8')
+    assert.ok(/tr\.clickable:focus-visible/.test(aSrc), 'clickable table rows have a focus-visible ring')
+    assert.ok(/prefers-reduced-motion: reduce/.test(aSrc), 'reduced-motion preference honored')
+    assert.ok(/\.skip-link/.test(aSrc), 'skip-link styled')
+    const mSrc = fs.readFileSync(path.join('node_modules','anentrypoint-design','community.css'), 'utf8')
+    assert.ok(/\.fd-sr-live/.test(mSrc), 'visually-hidden live region class present')
+    assert.ok(/refreshBtn/.test(fSrc) && /liveRegion/.test(fSrc) && /stickyScroll/.test(fSrc), 'freddie pages: refresh + live-region + sticky-scroll helpers')
+    assert.ok(/voice = makePage[\s\S]{0,400}\/api\/voice/.test(fSrc), 'voice page is presence-aware (probes /api/voice), not a dead empty-state')
+    const appSrc = fs.readFileSync(path.join('src','web','app.js'), 'utf8')
+    assert.ok(/document\.title = 'freddie · '/.test(appSrc), 'dashboard sets document.title per route')
+    assert.ok(/focusMain\(\)/.test(appSrc), 'dashboard moves focus to main on route change')
     await dash.stop()
 })
 
