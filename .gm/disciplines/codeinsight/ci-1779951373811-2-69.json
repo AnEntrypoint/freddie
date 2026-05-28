@@ -1,0 +1,2 @@
+./plugins/file_state/handler.js:2:2 init
+async function init() { const d = await db(); await d.exec(`CREATE TABLE IF NOT EXISTS file_state (id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT, file_path TEXT NOT NULL, action TEXT NOT NULL, ts INTEGER NOT NULL)`); return d }

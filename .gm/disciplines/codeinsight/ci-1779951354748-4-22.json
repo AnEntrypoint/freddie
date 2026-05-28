@@ -1,0 +1,2 @@
+./plugins/checkpoint/handler.js:4:4 dir
+function dir() { const d = path.join(getFreddieHome(), 'checkpoints'); fs.mkdirSync(d, { recursive: true }); return d }

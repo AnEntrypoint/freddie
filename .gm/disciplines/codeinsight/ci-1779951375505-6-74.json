@@ -1,0 +1,2 @@
+./plugins/fuzzy_match/handler.js:6:6 
+async ({ needle, haystack }) => ({ score: helper(needle, haystack) })

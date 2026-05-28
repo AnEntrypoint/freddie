@@ -1,0 +1,2 @@
+./plugins/file_operations/handler.js:14:14 
+async (a) => { const fn = ACTIONS[a.action]; try { return fn ? fn(a) : { error: 'unknown action' } } catch (e) { return { error: String(e.message || e) } } }

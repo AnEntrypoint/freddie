@@ -1,0 +1,6 @@
+./plugins/discord_tool/handler.js:7:11 
+async ({ channel_id, content }) => {
+        if (!process.env.DISCORD_BOT_TOKEN) return { error: 'DISCORD_BOT_TOKEN required' }
+        const r = await fetch(`https://discord.com/api/v10/channels/${channel_id}/messages`, { method: 'POST', headers: { authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`, 'content-type': 'application/json' }, body: JSON.stringify({ content }) })
+        return await r.json()
+    }

@@ -1,0 +1,4 @@
+./plugins/core-cron/plugin.js:4:6 register
+register({ pi }) {
+        pi.crons.register({ name: 'scheduler', list: listJobs, create: createJob, cancel: cancelJob, delete: deleteJob, tick, start: startScheduler, stop: stopScheduler })
+    }

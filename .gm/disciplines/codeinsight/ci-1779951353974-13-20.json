@@ -1,0 +1,6 @@
+./plugins/checkpoint/handler.js:13:17 
+({ name }) => {
+        const p = path.join(dir(), name + '.json')
+        if (!fs.existsSync(p)) return { error: 'not found' }
+        return { data: JSON.parse(fs.readFileSync(p, 'utf8')) }
+    }

@@ -1,0 +1,2 @@
+./plugins/file_operations/handler.js:4:4 
+({ src, dest }) => { fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.renameSync(src, dest); return { moved: dest } }

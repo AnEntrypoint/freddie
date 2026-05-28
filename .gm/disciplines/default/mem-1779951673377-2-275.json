@@ -1,0 +1,3 @@
+## Resolved mutable: design-css-vocabulary
+
+colors_and_type.css tokens --paper/ink/green/purple/mascot/sun/flame/sky/warn/danger/success/live/bg/fg/accent/panel-*; app-shell.css 2456L AppShell/Topbar/Crumb/Side/Status/.panel/.chip/.btn; shell.js factories emit these classes.

@@ -1,0 +1,2 @@
+./plugins/file_operations/handler.js:5:5 
+({ src, dest }) => { fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.copyFileSync(src, dest); return { copied: dest } }

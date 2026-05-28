@@ -1,0 +1,11 @@
+./plugins/gm-skill/plugin.js:28:37 parseFrontmatter
+function parseFrontmatter(md) {
+    const m = md.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/)
+    if (!m) return { fields: {}, body: md }
+    const fields = {}
+    for (const line of m[1].split(/\r?\n/)) {
+        const kv = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/)
+        if (kv) fields[kv[1]] = kv[2]
+    }
+    return { fields, body: m[2] }
+}

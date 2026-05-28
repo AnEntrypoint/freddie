@@ -1,0 +1,4 @@
+./plugins/core-context-engine/plugin.js:4:6 register
+register({ pi }) {
+        pi.contexts.register({ name: 'engine', build: buildContext, render: blocksToSystemMessage, plugins: ContextPlugins })
+    }

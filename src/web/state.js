@@ -76,6 +76,10 @@ export const ROUTES = [
     { path: 'tools',     label: 'tools',     glyph: '⚒' },
     { path: 'batch',     label: 'batch',     glyph: '⊞' },
     { path: 'gateway',   label: 'gateway',   glyph: '⇌' },
+    { path: 'chains',    label: 'chains',    glyph: '⛓' },
+    { path: 'machines',  label: 'machines',  glyph: '⚙' },
+    { path: 'health',    label: 'health',    glyph: '✚' },
+    { path: 'debug',     label: 'debug',     glyph: '☲' },
 ];
 
 export function pre(obj) {

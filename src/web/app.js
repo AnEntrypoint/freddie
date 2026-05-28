@@ -2,7 +2,7 @@ import { h, applyDiff, installStyles, components } from 'anentrypoint-design';
 import { fetchHost, ROUTES } from './state.js';
 import { PAGES } from './routes.js';
 
-const { AppShell, Topbar, Side, Crumb, Status, EmptyState, Chip } = components;
+const { AppShell, Topbar, Side, Crumb, Status, EmptyState, Chip, ThemeToggle } = components;
 
 await installStyles();
 
@@ -43,9 +43,11 @@ function view() {
     const samplerPill = state.sampler.total > 0
         ? Chip({ tone: state.sampler.bad > 0 ? 'miss' : 'ok', children: 'sampler ' + state.sampler.ok + '/' + state.sampler.total })
         : Chip({ tone: 'neutral', children: 'sampler —' });
+    const leaf = h('span', { class: 'fd-topbar-leaf', style: 'display:inline-flex;gap:8px;align-items:center' },
+        samplerPill, ThemeToggle ? ThemeToggle({ compact: true }) : null);
     return AppShell({
-        topbar: Topbar({ brand: 'freddie', leaf: samplerPill, items: [], active: '' }),
-        crumb: Crumb({ trail: ['freddie'], leaf: route.path, right: state.error ? Chip({ tone: 'miss', children: 'error' }) : Chip({ tone: 'ok', children: 'live' }) }),
+        topbar: Topbar({ brand: 'freddie', leaf, items: [], active: '' }),
+        crumb: Crumb({ trail: ['freddie'], leaf: route.label || route.path, right: state.error ? Chip({ tone: 'miss', children: 'error' }) : Chip({ tone: 'ok', children: 'live' }) }),
         side: buildSide(),
         main,
         status: Status({ left: ['ds-247420 · webjsx · ' + ROUTES.length + ' routes'], right: [state.ts] }),

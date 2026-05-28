@@ -1,0 +1,2 @@
+./plugins/discord_tool/handler.js:6:6 
+() => Boolean(process.env.DISCORD_BOT_TOKEN)

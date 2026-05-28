@@ -1,0 +1,6 @@
+./plugins/file_tools/handler.js:16:20 
+async ({ dir = '.', ext, limit = 1000 }) => {
+        const out = []; walk(dir, out, new Set(['node_modules', '.git', 'dist', '.cache', 'build']))
+        const filtered = ext ? out.filter(f => f.endsWith(ext)) : out
+        return { files: filtered.slice(0, limit), total: filtered.length, truncated: filtered.length > limit }
+    }

@@ -1,0 +1,7 @@
+./plugins/delegate/handler.js:21:26 
+async ({ task, model, max_iterations = 30 }, ctx = {}) => {
+        const depth = (ctx.depth || 0) + 1
+        if (depth > MAX_DEPTH) return { error: `delegate recursion depth exceeded (${MAX_DEPTH})` }
+        const out = await runTurn({ prompt: task, model, callLLM: ctx.callLLM, maxIterations: max_iterations, timeoutMs: 60000 })
+        return { result: out.result, error: out.error, iterations: out.iterations, depth }
+    }

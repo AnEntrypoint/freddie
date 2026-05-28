@@ -1,0 +1,2 @@
+./plugins/file_operations/handler.js:6:6 
+({ path: p }) => { if (fs.existsSync(p)) fs.rmSync(p, { recursive: true, force: true }); return { deleted: p } }

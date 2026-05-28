@@ -1,0 +1,2 @@
+./plugins/feishu_drive/handler.js:6:6 
+() => Boolean(process.env.FEISHU_APP_TOKEN)
