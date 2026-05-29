@@ -25,7 +25,7 @@ sections:
         benefit: stop building three half-finished bots. one config, one loop, n adapters.
       - name: you want to own the model layer
         desc: anthropic, openai, groq, openrouter, gemini, ollama, bedrock, kilo, opencode, claude-cli — pi-ai routes them all, freddie wraps them in xstate.
-        benefit: vendor down → switch model in config, not in code.
+        benefit: vendor down -> switch model in config, not in code.
       - name: you want memory that survives sessions
         desc: 8 provider backends (honcho, mem0, supermemory, byterover, hindsight, openviking, retaindb, holographic) plus a sqlite fts5 fallback.
         benefit: agent remembers a user across conversations without you wiring redis yourself.

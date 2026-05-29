@@ -17,14 +17,14 @@ sections:
     lede: when you want to know where a behavior lives, or where to add one.
     features:
       - name: you're tracing a turn
-        desc: agent loop → tool dispatch → session append → memory sync. follow the path through `src/agent/machine.js`.
+        desc: agent loop -> tool dispatch -> session append -> memory sync. follow the path through `src/agent/machine.js`.
         benefit: every transition is a named state. xstate makes the graph explicit.
       - name: you're adding a feature
         desc: this page tells you which subsystem owns it. add a tool? `src/tools/`. add a platform? `src/gateway/platforms/`. add a memory provider? `src/plugins/memory/`.
         benefit: no "where does this go" guessing.
       - name: you're debugging
         desc: every subsystem has `/debug/<name>` and a jsonl log. `tail` the log, hit the endpoint, read the state.
-        benefit: incident → root cause in minutes, not hours.
+        benefit: incident -> root cause in minutes, not hours.
   - id: agent-loop
     name: agent loop
     lede: xstate v5 turn machine wraps `@mariozechner/pi-agent-core`'s `runAgentLoop`.
@@ -34,7 +34,7 @@ sections:
       - name: llm bridge
         desc: "`src/agent/pi-bridge.js` — pi-ai provider adapter (anthropic/openai/groq/openrouter)."
       - name: resolver
-        desc: "`src/agent/llm_resolver.js` — picks pi-bridge → acptoapi → throw, in priority order."
+        desc: "`src/agent/llm_resolver.js` — picks pi-bridge -> acptoapi -> throw, in priority order."
   - id: context-engine
     name: context engine + compressor
     lede: builds the system message, prunes history when the budget is tight.

@@ -54,7 +54,7 @@ sections:
         benefit: works with every llm tool-calling api unchanged.
       - name: env-gated by checkFn
         desc: optional `checkFn()` predicate decides whether the tool is registered at all (e.g. only if `OPENAI_API_KEY` is set).
-        benefit: missing creds → tool quietly disappears, agent never tries to call it and fail.
+        benefit: missing creds -> tool quietly disappears, agent never tries to call it and fail.
       - name: environments are pluggable
         desc: tools that exec code can run in local subprocess, docker, or ssh — selected by `src/tools/environments/index.js`.
         benefit: same `bash` tool, runs on the host or in a container, transparent to the agent.
@@ -113,4 +113,4 @@ body: |
 
   ## toolsets
 
-  toolsets group tools so a profile can opt in to a subset. defaults: `core`, `browse`, `creative`. configure via `~/.freddie/config.json` → `toolsets: ['core']`.
+  toolsets group tools so a profile can opt in to a subset. defaults: `core`, `browse`, `creative`. configure via `~/.freddie/config.json` -> `toolsets: ['core']`.

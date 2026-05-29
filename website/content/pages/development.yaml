@@ -36,7 +36,7 @@ sections:
       - name: 12 named groups
         desc: "home+config+skin · sessions+FTS5 · tools+toolsets · agent-machine · gateway+platforms+hooks · acp-full · plugins+memory · profiles+observability+auth+env+context+cron+batch+slash+skills · utils+time+redact+model-meta+agent-helpers · mcp+swe+distributions+account+credpool · compressor+trajectory · env+pi+cli+tui+setup+website+helpers"
       - name: combined groups by design
-        desc: subsystem A's test exercises B as a side effect → drop B's redundant assertion. test surface grows linearly with subsystem count.
+        desc: subsystem A's test exercises B as a side effect -> drop B's redundant assertion. test surface grows linearly with subsystem count.
         benefit: 200 lines covers the entire surface; new subsystem usually folds into an existing group.
       - name: real-services rule
         desc: tests boot real express, real libsql, real cron, real gateway adapters. fails when prod fails.
@@ -111,4 +111,4 @@ body: |
 
   ## release
 
-  CHANGELOG.md → bump version in `package.json` → tag → push.
+  CHANGELOG.md -> bump version in `package.json` -> tag -> push.

@@ -2,7 +2,7 @@ import { h, applyDiff, installStyles, components } from 'anentrypoint-design';
 import { fetchHost, ROUTES } from './state.js';
 import { PAGES } from './routes.js';
 
-const { AppShell, Topbar, Side, Crumb, Status, EmptyState, Chip, ThemeToggle } = components;
+const { AppShell, Topbar, Side, Crumb, Status, EmptyState, Chip, ThemeToggle, Icon } = components;
 
 await installStyles();
 
@@ -30,7 +30,7 @@ setInterval(() => { refreshSampler().then(rerender); }, 15000);
 
 function buildSide() {
     return Side({ sections: [{ group: 'freddie', items: ROUTES.map(r => ({
-        glyph: r.glyph, label: r.label, href: '#fd-' + r.path,
+        glyph: Icon ? Icon(r.icon) : null, label: r.label, href: '#fd-' + r.path,
         active: state.active === r.path,
         onClick: ev => { ev.preventDefault(); setActive(r.path); },
     })) }] });
@@ -38,12 +38,12 @@ function buildSide() {
 
 function view() {
     const route = ROUTES.find(r => r.path === state.active) || ROUTES[0];
-    const body = state.body || EmptyState({ text: 'loading…', glyph: '◌' });
+    const body = state.body || EmptyState({ text: 'loading…' });
     const main = h('div', { key: state.active, class: 'fd-page' }, ...(Array.isArray(body) ? body : [body]));
     const samplerPill = state.sampler.total > 0
         ? Chip({ tone: state.sampler.bad > 0 ? 'miss' : 'ok', children: 'sampler ' + state.sampler.ok + '/' + state.sampler.total })
         : Chip({ tone: 'neutral', children: 'sampler —' });
-    const leaf = h('span', { class: 'fd-topbar-leaf', style: 'display:inline-flex;gap:8px;align-items:center' },
+    const leaf = h('span', { class: 'fd-topbar-leaf', style: 'display:inline-flex;gap:var(--space-2,8px);align-items:center' },
         samplerPill, ThemeToggle ? ThemeToggle({ compact: true }) : null);
     return AppShell({
         topbar: Topbar({ brand: 'freddie', leaf, items: [], active: '' }),

@@ -16,28 +16,28 @@ sections:
     name: when do I use which command?
     lede: pick the verb by what you're doing.
     features:
-      - name: chatting → `freddie run`
+      - name: chatting -> `freddie run`
         desc: interactive repl. tools dispatch live, slash commands work, sessions persist across runs.
         benefit: fastest path to "is the model online".
-      - name: monitoring → `freddie dashboard`
+      - name: monitoring -> `freddie dashboard`
         desc: web ui at localhost. chat, sessions, analytics, cron, batch, tools, models, skills, logs, config, env, gateway.
         benefit: one page to see what the agent is doing right now.
-      - name: bridging → `freddie gateway`
+      - name: bridging -> `freddie gateway`
         desc: starts the messaging gateway. webhook receivers + outbound senders. agent loop on the other side.
         benefit: turns freddie into a multi-platform bot in one process.
-      - name: integrating → `freddie acp`
+      - name: integrating -> `freddie acp`
         desc: json-rpc stdio server (agent-context-protocol). designed for ide plugins.
         benefit: drop freddie into vscode/jetbrains/zed without writing a transport.
-      - name: scheduling → `freddie cron`
+      - name: scheduling -> `freddie cron`
         desc: persistent cron jobs. add/list/cancel/delete. fires the agent on a schedule.
         benefit: unattended work — daily standup, hourly check-in, weekly digest.
-      - name: parallelizing → `freddie batch`
+      - name: parallelizing -> `freddie batch`
         desc: read prompts from a file, run them in parallel with bounded concurrency.
         benefit: bulk eval, content gen, codebase analysis without a queue system.
-      - name: spelunking → `freddie sessions` + `freddie search`
+      - name: spelunking -> `freddie sessions` + `freddie search`
         desc: list past sessions. fts5 full-text search across every message ever.
         benefit: never lose a thread. every conversation is recallable.
-      - name: switching context → `freddie profile` + `freddie skin`
+      - name: switching context -> `freddie profile` + `freddie skin`
         desc: profiles isolate state per persona. skins switch the ui theme.
         benefit: client/personal/dev profiles with separate sessions and config.
   - id: why
