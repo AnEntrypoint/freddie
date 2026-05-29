@@ -81,3 +81,5 @@ emperor-penguin.md
 .gm/browser-profile/
 .gm/browser-profile-*/
 .gm/witness-pages.js
+.gm/pw-sock-*/
+.gm/last-dispatch-ts

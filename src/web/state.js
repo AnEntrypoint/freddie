@@ -60,26 +60,28 @@ export async function fetchHost() {
     };
 }
 
+// `icon` is an anentrypoint-design SDK Icon() name (monochrome inline SVG),
+// not a decorative unicode glyph — the nav chrome reads as one icon set.
 export const ROUTES = [
-    { path: 'home',      label: 'home',      glyph: '⌂' },
-    { path: 'chat',      label: 'chat',      glyph: '⌨' },
-    { path: 'voice',     label: 'voice',     glyph: '◍' },
-    { path: 'sessions',  label: 'sessions',  glyph: '✉' },
-    { path: 'projects',  label: 'projects',  glyph: '◆' },
-    { path: 'agents',    label: 'agents',    glyph: '◈' },
-    { path: 'analytics', label: 'analytics', glyph: '◉' },
-    { path: 'models',    label: 'models',    glyph: '◎' },
-    { path: 'cron',      label: 'cron',      glyph: '◷' },
-    { path: 'skills',    label: 'skills',    glyph: '✦' },
-    { path: 'config',    label: 'config',    glyph: '⚙' },
-    { path: 'env',       label: 'keys',      glyph: '⚿' },
-    { path: 'tools',     label: 'tools',     glyph: '⚒' },
-    { path: 'batch',     label: 'batch',     glyph: '⊞' },
-    { path: 'gateway',   label: 'gateway',   glyph: '⇌' },
-    { path: 'chains',    label: 'chains',    glyph: '⛓' },
-    { path: 'machines',  label: 'machines',  glyph: '⚙' },
-    { path: 'health',    label: 'health',    glyph: '✚' },
-    { path: 'debug',     label: 'debug',     glyph: '☲' },
+    { path: 'home',      label: 'home',      icon: 'page' },
+    { path: 'chat',      label: 'chat',      icon: 'forum' },
+    { path: 'voice',     label: 'voice',     icon: 'mic' },
+    { path: 'sessions',  label: 'sessions',  icon: 'thread' },
+    { path: 'projects',  label: 'projects',  icon: 'square' },
+    { path: 'agents',    label: 'agents',    icon: 'members' },
+    { path: 'analytics', label: 'analytics', icon: 'activity' },
+    { path: 'models',    label: 'models',    icon: 'circle-dot' },
+    { path: 'cron',      label: 'cron',      icon: 'play' },
+    { path: 'skills',    label: 'skills',    icon: 'check' },
+    { path: 'config',    label: 'config',    icon: 'settings' },
+    { path: 'env',       label: 'keys',      icon: 'hash' },
+    { path: 'tools',     label: 'tools',     icon: 'more-horizontal' },
+    { path: 'batch',     label: 'batch',     icon: 'square' },
+    { path: 'gateway',   label: 'gateway',   icon: 'arrow-right' },
+    { path: 'chains',    label: 'chains',    icon: 'chevron-right' },
+    { path: 'machines',  label: 'machines',  icon: 'settings' },
+    { path: 'health',    label: 'health',    icon: 'activity' },
+    { path: 'debug',     label: 'debug',     icon: 'circle' },
 ];
 
 export function pre(obj) {

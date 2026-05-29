@@ -11,6 +11,9 @@
 <style>
 html, body { margin: 0; padding: 0; height: 100%; }
 #app { height: 100%; }
+/* Cap raw-JSON/code dumps so unbounded payloads scroll instead of blowing
+   the page layout. */
+.fd-pre { max-height: 60vh; overflow: auto; }
 </style>
 </head>
 <body>
