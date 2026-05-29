@@ -10,7 +10,7 @@ hero:
     - { label: "70+", desc: built-in tools }
     - { label: "16", desc: gateway platforms }
     - { label: "8", desc: memory backends }
-    - { label: "JS", desc: no python, no docker required }
+    - { label: "JS", desc: "no python, no docker required" }
   ctas:
     - { label: get started, href: "#quick-start" }
     - { label: architecture, href: /architecture/ }
@@ -78,11 +78,11 @@ sections:
         desc: every long-lived machine — turns, gateways, approvals, compressor — is a real state machine, not a soup of booleans.
 examples:
   - { label: architecture, href: /architecture/, desc: subsystem deep dive }
-  - { label: cli, href: /cli/, desc: every command, every flag }
+  - { label: cli, href: /cli/, desc: "every command, every flag" }
   - { label: tools, href: /tools/, desc: what the agent can do }
   - { label: platforms, href: /platforms/, desc: every gateway adapter }
   - { label: skills, href: /skills/, desc: bundled + how to write your own }
-  - { label: development, href: /development/, desc: tests, layout, how to contribute }
+  - { label: development, href: /development/, desc: "tests, layout, how to contribute" }
 body: |
   ## quick-start
 

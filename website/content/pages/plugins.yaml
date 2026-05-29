@@ -92,7 +92,7 @@ sections:
       - name: ctx.env — process.env passthrough
         desc: "read-only proxy. respects the parent env, no surprise mutations."
 examples:
-  - { label: contract source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/contract.js", desc: 39 lines, the whole shape }
+  - { label: contract source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/contract.js", desc: "39 lines, the whole shape" }
   - { label: host source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/host.js", desc: load + dispatch }
   - { label: bash plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/bash", desc: simplest tool }
   - { label: memory provider plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/memory-honcho", desc: provider shape }
