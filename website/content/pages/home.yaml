@@ -59,7 +59,7 @@ sections:
       - name: 3 — run
         desc: "`node bin/freddie.js run` for the repl. or `node bin/freddie.js dashboard --port 3000` for the web ui. or `node bin/freddie.js gateway --port 3001` to start the messaging bridge."
       - name: 4 — extend
-        desc: "drop a tool in `src/tools/` (auto-discovered). drop a SKILL.md in `~/.freddie/skills/`. add a platform in `src/gateway/platforms/`. configure a cron with `freddie cron add '0 9 * * *' '<prompt>'`."
+        desc: "create `plugins/<name>/{plugin,handler}.js` (auto-discovered on bootHost). drop a SKILL.md in `~/.freddie/skills/`. add a platform as `plugins/platform-<name>/`. configure a cron with `freddie cron add '0 9 * * *' '<prompt>'`."
   - id: substrate
     name: substrate (the things we don't reimplement)
     lede: every named dependency below is a published package we treat as a black box. when you run freddie, you're running the union of these.

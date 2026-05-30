@@ -11,7 +11,7 @@ hero:
     - { label: browse, desc: "web access" }
     - { label: creative, desc: "media + voice" }
   ctas:
-    - { label: registry source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/tools/registry.js" }
+    - { label: bash plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/bash" }
     - { label: add a tool, href: "#how-to-add" }
 sections:
   - id: when
@@ -47,8 +47,8 @@ sections:
     lede: tools in freddie are plain functions registered against a json schema. zero abstraction, zero ceremony.
     features:
       - name: drop-in registration
-        desc: "`registry.register({ name, schema, handler })` and the tool is live. auto-discovered on `discoverBuiltinTools()` from `src/tools/*.js`."
-        benefit: one file = one tool. no decorators, no inheritance, no plugin manifests.
+        desc: "a plugin calls `pi.tools.register({ name, schema, handler })` and the tool is live. auto-discovered on `bootHost()` from `plugins/<name>/plugin.js`."
+        benefit: one folder = one plugin. no decorators, no inheritance, no central registry to edit.
       - name: schema is the contract
         desc: every tool exposes a json schema (openai/anthropic compatible). the agent sees only the schema; the handler receives the typed args.
         benefit: works with every llm tool-calling api unchanged.
@@ -60,30 +60,29 @@ sections:
         benefit: same `bash` tool, runs on the host or in a container, transparent to the agent.
   - id: how-to-add
     name: how do I add my own tool?
-    lede: drop one js file in src/tools/ and it's live next boot.
+    lede: "create `plugins/<name>/{plugin,handler}.js` and it's live next boot."
     features:
-      - name: 1 — write the file
-        desc: import the registry, call `registry.register({ name, toolset, schema, handler })`.
+      - name: 1 — write the handler
+        desc: "`handler.js` exports `_tool = { name, toolset, schema, handler, checkFn?, requiresEnv? }`. for multi-tool files export `_tool0`, `_tool1`, …"
       - name: 2 — declare a json schema
         desc: name, description, parameters (object with properties + required). this is what the llm sees.
-      - name: 3 — implement the handler
-        desc: "`async (args, ctx) => result`. ctx carries session info, env, signals."
+      - name: 3 — register in plugin.js
+        desc: "default-export `{ name, surfaces: 'pi', register({ pi }) { pi.tools.register(_tool) } }`."
       - name: 4 — gate optional deps
         desc: "add `requiresEnv: ['MY_KEY']` and `checkFn: () => !!process.env.MY_KEY` so the tool self-disables when unconfigured."
       - name: 5 — restart freddie
-        desc: "`discoverBuiltinTools()` picks it up automatically. `freddie tools` shows the new entry."
+        desc: "`bootHost()` discovers the plugin automatically. `freddie tools` shows the new entry."
 examples:
-  - { label: registry source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/tools/registry.js", desc: registration api }
-  - { label: bash tool, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/tools/bash.js", desc: simple example }
-  - { label: memory tool, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/tools/memory.js", desc: provider-routed example }
-  - { label: browser tool, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/tools/browser.js", desc: lazy-loaded example }
+  - { label: bash plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/bash", desc: simple example }
+  - { label: browser plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/browser", desc: lazy-loaded example }
+  - { label: host + discovery, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/host.js", desc: how plugins load }
+  - { label: AGENTS.md, href: "https://github.com/AnEntrypoint/freddie/blob/master/AGENTS.md", desc: full plugin contract }
 body: |
   ## adding a tool — full example
 
   ```
-  import { registry } from './tools/registry.js'
-
-  registry.register({
+  // plugins/my-tool/handler.js
+  export const _tool = {
       name: 'my_tool',
       toolset: 'core',
       schema: {
@@ -98,10 +97,18 @@ body: |
       handler: async (args, ctx) => ({ ok: true, x: args.x }),
       checkFn: () => !!process.env.MY_KEY,
       requiresEnv: ['MY_KEY'],
-  })
+  }
+
+  // plugins/my-tool/plugin.js
+  import { _tool } from './handler.js'
+  export default {
+      name: 'my-tool',
+      surfaces: 'pi',
+      register({ pi }) { pi.tools.register(_tool) },
+  }
   ```
 
-  drop in `src/tools/`. auto-discovered on next boot.
+  drop the folder in `plugins/`. auto-discovered on next `bootHost()`.
 
   ## listing tools
 

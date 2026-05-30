@@ -5,6 +5,6 @@ export default {
     site: {
         title: 'Freddie',
         tagline: 'JS rebuild of hermes-agent — pi-mono + flatspace + xstate + anentrypoint-design',
-        baseUrl: '/',
+        baseUrl: '/freddie/',
     },
 }

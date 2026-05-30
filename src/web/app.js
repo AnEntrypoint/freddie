@@ -5,25 +5,43 @@ import { PAGES } from './routes.js';
 const { AppShell, Topbar, Side, Crumb, Status, EmptyState, Chip, ThemeToggle, Icon } = components;
 
 await installStyles();
+// Styles installed — lift the FOUC visibility guard (see index.html reset).
+document.body.setAttribute('data-ready', '');
 
 const root = document.getElementById('app');
 root.textContent = 'loading…';
 const host0 = await fetchHost();
 root.innerHTML = '';
 
+// Lightweight transient error surface for mutation failures (config.saveValue,
+// chat.send, cron.create, …). state.js's mutators reject; the catch handler in
+// each callsite — or state.js's wrapMutation — routes the message here so a
+// thrown error is shown to the user instead of vanishing into the console.
+let _toastTimer = null;
+function notify(msg, tone = 'error') {
+    let el = document.getElementById('fd-toast');
+    if (!el) { el = document.createElement('div'); el.id = 'fd-toast'; el.className = 'fd-toast'; el.setAttribute('role', 'alert'); document.body.appendChild(el); }
+    el.textContent = String(msg || '').slice(0, 300);
+    el.dataset.tone = tone;
+    el.style.display = 'block';
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { el.style.display = 'none'; }, 6000);
+}
+if (typeof window !== 'undefined') window.__fd_notify = notify;
+
 function routeFromHash() {
     const m = String(location.hash || '').match(/^#(?:fd-)?([a-z]+)/i);
     const p = m && m[1];
     return ROUTES.find(r => r.path === p) ? p : 'home';
 }
-const state = { active: routeFromHash(), ts: new Date().toLocaleTimeString(), body: null, error: null, sampler: { ok: 0, bad: 0, total: 0 } };
+const state = { active: routeFromHash(), ts: new Date().toLocaleTimeString(), body: null, error: null, sampler: { ok: 0, bad: 0, total: 0, error: false } };
 
 async function refreshSampler() {
     try {
         const j = await fetch('/api/models/sampler').then(r => r.json());
         const ents = Object.values(j.status || {});
-        state.sampler = { total: ents.length, ok: ents.filter(s => s && s.available !== false).length, bad: ents.filter(s => s && s.available === false).length };
-    } catch { state.sampler = { ok: 0, bad: 0, total: 0 }; }
+        state.sampler = { total: ents.length, ok: ents.filter(s => s && s.available !== false).length, bad: ents.filter(s => s && s.available === false).length, error: false };
+    } catch { state.sampler = { ok: 0, bad: 0, total: 0, error: true }; }
 }
 await refreshSampler();
 setInterval(() => { refreshSampler().then(rerender); }, 15000);
@@ -40,10 +58,13 @@ function view() {
     const route = ROUTES.find(r => r.path === state.active) || ROUTES[0];
     const body = state.body || EmptyState({ text: 'loading…' });
     const main = h('div', { key: state.active, class: 'fd-page' }, ...(Array.isArray(body) ? body : [body]));
-    const samplerPill = state.sampler.total > 0
-        ? Chip({ tone: state.sampler.bad > 0 ? 'miss' : 'ok', children: 'sampler ' + state.sampler.ok + '/' + state.sampler.total })
-        : Chip({ tone: 'neutral', children: 'sampler —' });
-    const leaf = h('span', { class: 'fd-topbar-leaf', style: 'display:inline-flex;gap:var(--space-2,8px);align-items:center' },
+    const samplerPill = state.sampler.error
+        ? Chip({ tone: 'miss', children: 'sampler err' })
+        : state.sampler.total > 0
+            ? Chip({ tone: state.sampler.bad > 0 ? 'miss' : 'ok', children: 'sampler ' + state.sampler.ok + '/' + state.sampler.total })
+            : Chip({ tone: 'neutral', children: 'sampler —' });
+    // Layout lives in .fd-topbar-leaf (index.html reset block) — zero inline CSS.
+    const leaf = h('span', { class: 'fd-topbar-leaf' },
         samplerPill, ThemeToggle ? ThemeToggle({ compact: true }) : null);
     return AppShell({
         topbar: Topbar({ brand: 'freddie', leaf, items: [], active: '' }),
@@ -54,7 +75,14 @@ function view() {
     });
 }
 
-function rerender() { applyDiff(root, view()); }
+function rerender() {
+    // LIVE-ROUTE RECOMPUTE HOOK: rerender() reuses the cached state.body. No
+    // freddie route currently streams (SSE/live updates) — pages are computed
+    // once per nav in loadActive(). If a live route is added (e.g. 'chat' with
+    // SSE), recompute its body here before applyDiff, per AGENTS.md:
+    //   if (state.active === 'chat') { Promise.resolve(PAGES.chat(host0)).then(b => { state.body = b; applyDiff(root, view()); }); return; }
+    applyDiff(root, view());
+}
 
 function setDocTitle(p) {
     const r = ROUTES.find(x => x.path === p);
@@ -88,6 +116,8 @@ async function loadActive() {
     } catch (e) {
         if (state.active !== active) return;
         state.error = String(e && e.stack || e);
+        // Reflect the error in the tab title (success path sets it in setActive).
+        document.title = 'freddie · ' + active + ' (error)';
         const { Panel } = components;
         state.body = Panel({ title: 'page error', children: h('pre', { class: 'fd-pre fd-page-error' }, state.error) });
     }

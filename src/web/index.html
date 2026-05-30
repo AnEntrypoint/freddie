@@ -1,19 +1,43 @@
 <!doctype html>
-<html lang="en" class="ds-247420" data-theme="auto">
+<html lang="en" class="ds-247420">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Freddie Dashboard</title>
-<link rel="stylesheet" href="/vendor/anentrypoint-design/247420.css">
+<link rel="stylesheet" href="/vendor/anentrypoint-design/sdk.css">
 <script type="importmap">
-{ "imports": { "anentrypoint-design": "/vendor/anentrypoint-design/247420.js" } }
+{ "imports": { "anentrypoint-design": "/vendor/anentrypoint-design/sdk.js" } }
+</script>
+<!-- Theme: the SDK ThemeToggle controller is the single source of truth and
+     persists to <html data-theme> (verified in browser). Pre-paint the saved or
+     system theme onto <html> here, BEFORE the module loads, so first paint
+     matches the controller and there is no wrong-theme flash. -->
+<script>
+(function () {
+  var t;
+  try { t = localStorage.getItem('247420:theme'); } catch (e) {}
+  if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
 </script>
 <style>
 html, body { margin: 0; padding: 0; height: 100%; }
 #app { height: 100%; }
+/* FOUC guard: hide the document until app.js signals ready (after installStyles)
+   so #app never paints raw unstyled 'loading…' text. */
+body { visibility: hidden; }
+body[data-ready] { visibility: visible; }
 /* Cap raw-JSON/code dumps so unbounded payloads scroll instead of blowing
-   the page layout. */
+   the page layout. Ideally belongs in the anentrypoint-design SDK CSS. */
 .fd-pre { max-height: 60vh; overflow: auto; }
+/* Topbar leaf layout (sampler pill + theme toggle). One utility class so app.js
+   carries no inline style string. Ideally belongs in the SDK CSS. */
+.fd-topbar-leaf { display: inline-flex; gap: 8px; align-items: center; }
+/* Transient mutation-error toast (see app.js notify()). */
+.fd-toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 1000; max-width: 90vw; padding: 8px 14px; border-radius: 8px;
+  background: #b3261e; color: #fff; font: 13px/1.4 system-ui, sans-serif;
+  box-shadow: 0 4px 16px rgba(0,0,0,.3); }
 </style>
 </head>
 <body>
