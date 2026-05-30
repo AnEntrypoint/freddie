@@ -18,23 +18,29 @@ sections:
     lede: when the test surface tells you what to add, and the PRD format tells you how to plan it.
     features:
       - name: a tool you wish freddie had
-        desc: "drop a file in `src/tools/`. extend `tools+toolsets` in `test.js` with one dispatch assertion."
+        desc: "create `plugins/<name>/{plugin,handler}.js`. extend `tools+toolsets` in `test.js` with one dispatch assertion."
         benefit: tool is live + tested in one PR.
       - name: a platform you want to bridge
-        desc: "extend EventEmitter, implement start/stop/send. extend `gateway+platforms+hooks` group with a stub-shape loop check."
+        desc: "create `plugins/platform-<name>/` with a class ending in `Adapter`, implement start/stop/send. extend `gateway+platforms+hooks` group with a stub-shape loop check."
         benefit: adapter is registered + smoke-tested in one PR.
       - name: a skill that captures your team's process
         desc: drop `SKILL.md` under `skills/<category>/<name>/`. the loader picks it up.
         benefit: skill is bundled in next release.
       - name: a memory provider for a backend you use
-        desc: drop a file in `src/plugins/memory/`, implement `syncTurn` + `prefetch`. extend `plugins+memory` group.
+        desc: "create `plugins/memory-<name>/`, implement `syncTurn` + `prefetch`. extend `plugins+memory` group."
         benefit: provider works against the real api in `test.js`.
   - id: testing
     name: how testing works
     lede: one test.js. 200 lines. no fixtures. no mocks. real sqlite, real express, real cron, real adapters.
     features:
       - name: 12 named groups
-        desc: "home+config+skin · sessions+FTS5 · tools+toolsets · agent-machine · gateway+platforms+hooks · acp-full · plugins+memory · profiles+observability+auth+env+context+cron+batch+slash+skills · utils+time+redact+model-meta+agent-helpers · mcp+swe+distributions+account+credpool · compressor+trajectory · env+pi+cli+tui+setup+website+helpers"
+        desc: "twelve groups partition the whole surface, each owning a cluster of subsystems. each maps to a contiguous block of `test.js` assertions."
+      - name: "groups 1–4"
+        desc: "`home+config+skin` · `sessions+FTS5` · `tools+toolsets` · `agent-machine`."
+      - name: "groups 5–8"
+        desc: "`gateway+platforms+hooks` · `acp-full` · `plugins+memory` · `profiles+observability+auth+env+context+cron+batch+slash+skills`."
+      - name: "groups 9–12"
+        desc: "`utils+time+redact+model-meta+agent-helpers` · `mcp+swe+distributions+account+credpool` · `compressor+trajectory` · `env+pi+cli+tui+setup+website+helpers`."
       - name: combined groups by design
         desc: subsystem A's test exercises B as a side effect -> drop B's redundant assertion. test surface grows linearly with subsystem count.
         benefit: 200 lines covers the entire surface; new subsystem usually folds into an existing group.
@@ -46,26 +52,28 @@ sections:
         benefit: file never bloats; coverage never drops.
   - id: layout
     name: project layout
-    lede: ten directories, one job each.
+    lede: a thin src/ core plus one plugins/ tree, one job each.
     features:
       - name: bin/
         desc: cli entry (`freddie.js`, commander).
+      - name: plugins/
+        desc: "~150 plugins — every tool, platform (`platform-*`), and memory provider (`memory-*`) lives here as `plugins/<name>/{plugin,handler}.js`, auto-discovered on `bootHost()`."
+      - name: src/host/
+        desc: "`{contract,host,host_helpers,index}.js` — plugin contract + `discoverPlugins()` + singleton."
       - name: src/agent/
-        desc: xstate turn machine, pi-bridge, llm resolver, compressor.
-      - name: src/tools/
-        desc: 70+ tool files + registry + environments.
+        desc: xstate turn machine, pi-bridge, llm resolver (thin shim over acptoapi), compressor.
       - name: src/gateway/
-        desc: gateway runtime + 16 platform adapters.
-      - name: src/web/
-        desc: dashboard server + webjsx app.
+        desc: "gateway runtime (`run.js`) + `platforms.js` shim resolving `*Adapter` plugins."
       - name: src/plugins/memory/
-        desc: 8 memory provider modules.
+        desc: "`provider.js` host-router (providers themselves live in `plugins/memory-*/`)."
+      - name: src/web/
+        desc: thin dashboard mount over the anentrypoint-design SDK.
       - name: src/skills/
         desc: skill loader (looks at `~/.freddie/skills/` + bundled).
-      - name: src/cron/, src/batch.js
+      - name: "src/cron/, src/batch.js"
         desc: scheduler + parallel runner.
       - name: src/observability/
-        desc: jsonl logs + `/debug/<name>` registry.
+        desc: "jsonl logs + `/debug/<name>` registry."
       - name: skills/
         desc: bundled SKILL.md tree (5 categories).
       - name: website/
@@ -94,11 +102,11 @@ examples:
 body: |
   ## quick contributor checklist
 
-  - [ ] file is ≤200 lines
-  - [ ] no `// TODO` and no commented-out blocks
-  - [ ] test.js still passes (`node test.js`)
-  - [ ] new behavior covered in an existing or new group
-  - [ ] CHANGELOG.md gets a one-liner
+  - file is ≤200 lines
+  - no `// TODO` and no commented-out blocks
+  - test.js still passes (`node test.js`)
+  - new behavior covered in an existing or new group
+  - CHANGELOG.md gets a one-liner
 
   ## website
 
