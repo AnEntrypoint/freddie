@@ -88,7 +88,8 @@ export async function fetchHost() {
                 load: () => j('/api/config').catch(() => ({})),
                 saveValue: wrapMutation('save config', (key, value) => post('/api/config', { key, value })),
             },
-            chat: { send: wrapMutation('send message', text => post('/api/chat', { text })) },
+            // Handler reads `prompt` and (for plain fetch) returns `{ result }`.
+            chat: { send: wrapMutation('send message', prompt => post('/api/chat', { prompt })) },
             batch: { run: wrapMutation('run batch', (prompts, conc) => post('/api/batch', { prompts, concurrency: conc })) },
             hooks: {},
         },
