@@ -1,4 +1,5 @@
 import { logger } from '../observability/log.js'
+import { parseTextToolCalls } from './tool_call_text.js'
 
 const log = logger('acptoapi')
 
@@ -116,6 +117,12 @@ function adaptResponse(r) {
     const tool_calls = Array.isArray(choice.tool_calls)
         ? choice.tool_calls.map(tc => ({ id: tc.id, name: tc.function?.name, arguments: tryParseJson(tc.function?.arguments) }))
         : []
+    // Recover text-format tool calls (kimi <|tool_call_begin|> / llama
+    // <|python_tag|>) from weak models that don't emit structured tool_calls.
+    if (!tool_calls.length) {
+        const textTC = parseTextToolCalls(content)
+        if (textTC.length) return { content: '', tool_calls: textTC, raw: r }
+    }
     return { content, tool_calls, raw: r }
 }
 

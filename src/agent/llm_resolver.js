@@ -1,6 +1,7 @@
 import { getConfigValue } from '../config.js'
 import { MATRIX_FILE } from './model-matrix.js'
 import { callLLM as bridgeCall, isReachable as bridgeReachable } from './acptoapi-bridge.js'
+import { parseTextToolCalls } from './tool_call_text.js'
 import * as sdkNs from 'acptoapi'
 export { matrixUsable } from './model-matrix.js'
 
@@ -42,7 +43,15 @@ function adapt(result) {
     const flat = flattenContent(c.content)
     const openaiTC = Array.isArray(c.tool_calls) ? c.tool_calls.map(tc => ({ id: tc.id, name: tc.function?.name, arguments: tryJson(tc.function?.arguments) })) : []
     const anthropicTC = flat.toolUses.map(t => ({ id: t.id, name: t.name, arguments: t.input || {} }))
-    return { content: flat.text, tool_calls: openaiTC.concat(anthropicTC), raw: result }
+    const tool_calls = openaiTC.concat(anthropicTC)
+    // Weak models may emit tool calls as text (kimi <|tool_call_begin|> / llama
+    // <|python_tag|>) instead of structured tool_calls. Recover them so the loop
+    // iterates; clear the text content since it was the call, not a reply.
+    if (!tool_calls.length) {
+        const textTC = parseTextToolCalls(flat.text)
+        if (textTC.length) return { content: '', tool_calls: textTC, raw: result }
+    }
+    return { content: flat.text, tool_calls, raw: result }
 }
 
 // Names callers can use as model= to select a curated acptoapi chain.
