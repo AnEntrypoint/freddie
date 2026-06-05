@@ -11,6 +11,10 @@
 export { bootHost, host, resetHostForTests } from '../host/index.js'
 export { createAgentMachine, runTurn } from '../agent/machine.js'
 export { createActor, createMachine, assign, fromPromise, waitFor } from 'xstate'
+// Text-format tool-call recovery (kimi <|tool_call_begin|> / llama <|python_tag|>).
+// Exported so hosts that supply their own callLLM (e.g. thebird's gateway path)
+// can reuse the same parser instead of duplicating it.
+export { parseTextToolCalls } from '../agent/tool_call_text.js'
 
 // Re-export config defaults under the documented browser name.
 import { DEFAULT_CONFIG } from '../config.js'
