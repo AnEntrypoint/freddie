@@ -260,7 +260,28 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     const wh2 = fs.readFileSync(path.join('website', 'docs/index.html'), 'utf8'); for (const m of ['ds-hero-title', 'rail-green', 'when do I reach']) assert.ok(wh2.includes(m), m)
     const dash = await (await import('./src/web/server.js')).createDashboard({ port: 0 })
     const G = (p) => fetch(dash.url + p); const gs = async (...ps) => { for (const p of ps) assert.equal((await G(p)).status, 200, p) }; const P = (p, b) => fetch(dash.url + p, { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify(b) })
-    await gs('api/sessions','api/tools','api/cron','api/skills','api/config','api/env','api/debug','api/debug-all','api/gateway','api/profiles','api/commands','api/health','api/logs','api/search?q=test','api/tools/detail','api/models/providers','api/models/cached','api/models/queues','api/models/sampler','v1/models')
+    await gs('api/sessions','api/auth','api/tools','api/cron','api/skills','api/config','api/env','api/debug','api/debug-all','api/gateway','api/profiles','api/commands','api/health','api/logs','api/search?q=test','api/tools/detail','api/models/providers','api/models/cached','api/models/queues','api/models/sampler','v1/models')
+    // Dashboard key management (gui-auth): set/inspect/remove a provider key.
+    const SECRET = 'sk-test-DASHBOARD-KEY-9999'
+    // Use a provider whose env var is NOT present in the test process so the
+    // stored-source path is exercised deterministically.
+    const KP = ['deepseek','zai','kimi','perplexity'].find(p => !process.env[({deepseek:'DEEPSEEK_API_KEY',zai:'ZAI_API_KEY',kimi:'KIMI_API_KEY',perplexity:'PERPLEXITY_API_KEY'})[p]]) || 'deepseek'
+    const aset = await P('api/auth', { provider: KP, key: SECRET }); assert.equal(aset.status, 200, 'POST /api/auth set')
+    const alist = await (await G('api/auth')).json()
+    const mrow = alist.find(r => r.provider === KP); assert.ok(mrow && mrow.set && mrow.source === 'stored', 'auth shows stored key for ' + KP)
+    assert.ok(!JSON.stringify(alist).includes(SECRET), 'GET /api/auth never leaks the raw key')
+    assert.equal(mrow.fingerprint, SECRET.slice(0,4) + '…' + SECRET.slice(-4), 'fingerprint masks the key')
+    const adel = await fetch(dash.url + 'api/auth/' + KP, { method: 'DELETE' }); assert.equal(adel.status, 200)
+    assert.ok(!(await (await G('api/auth')).json()).find(r => r.provider === KP).set, 'stored key removed')
+    assert.equal((await P('api/auth', { provider: 'bogus', key: 'x' })).status, 400, 'unknown provider -> 400')
+    assert.equal((await P('api/auth', { provider: 'mistral', key: '' })).status, 400, 'empty key -> 400')
+    // gui-sessions delete + single-get
+    const { createSession: _cs, appendMessage: _am } = await import('./src/sessions.js')
+    const delSid = await _cs({ platform: 'cli' }); await _am(delSid, { role: 'user', content: 'gui-delete-me' })
+    assert.equal((await G('api/sessions/' + delSid)).status, 200, 'GET single session')
+    assert.equal((await G('api/sessions/no-such-id')).status, 404, 'missing session -> 404')
+    assert.equal((await fetch(dash.url + 'api/sessions/' + delSid, { method: 'DELETE' })).status, 200, 'DELETE session')
+    assert.equal((await G('api/sessions/' + delSid)).status, 404, 'session gone after delete')
     const { listKnownProviders, flattenForOpenAI } = await import('./src/agent/model-discovery.js'); assert.ok(listKnownProviders().includes('anthropic') && listKnownProviders().includes('openai') && listKnownProviders().includes('claude-cli') && listKnownProviders().length >= 17)
     const qr = await P('api/models/queues', { name: 'q1', entries: [{ provider: 'groq', model: 'x' }] }); assert.equal(qr.status, 200); const qg = await (await G('api/models/queues')).json(); assert.ok(qg.q1); const qd = await fetch(dash.url + 'api/models/queues/q1', { method: 'DELETE' }); assert.equal(qd.status, 200); assert.ok(Array.isArray(flattenForOpenAI()))
     const v1bad = await P('v1/chat/completions', { messages: [] }); assert.equal(v1bad.status, 400)
