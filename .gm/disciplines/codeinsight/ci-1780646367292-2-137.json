@@ -1,0 +1,2 @@
+./plugins/memory-holographic/plugin.js:2:2 register
+register({ pi }) { pi.memory.register({ name: 'holographic', module: mod }) }

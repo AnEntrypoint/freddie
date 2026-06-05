@@ -1,0 +1,11 @@
+./plugins/schema_sanitizer/handler.js:2:11 sanitizeSchema
+function sanitizeSchema(schema) {
+    if (!schema || typeof schema !== 'object') return schema
+    const out = JSON.parse(JSON.stringify(schema))
+    if (out.parameters?.properties) {
+        for (const k of Object.keys(out.parameters.properties)) {
+            if (DANGEROUS_PARAM_NAMES.has(k)) delete out.parameters.properties[k]
+        }
+    }
+    return out
+}

@@ -1,0 +1,7 @@
+./plugins/path_security/handler.js:3:8 isPathSafe
+function isPathSafe(p, { cwd = process.cwd() } = {}) {
+    const abs = path.resolve(cwd, p)
+    for (const bad of FORBIDDEN) if (abs.includes(bad)) return { safe: false, reason: 'forbidden: ' + bad }
+    if (abs.includes('..')) return { safe: false, reason: 'parent reference in resolved path' }
+    return { safe: true, abs }
+}

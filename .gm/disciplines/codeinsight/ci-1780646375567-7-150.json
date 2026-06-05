@@ -1,0 +1,6 @@
+./plugins/neutts_synth/handler.js:7:11 
+async ({ text, voice = 'default' }) => {
+        if (!process.env.NEUTTS_URL) return { error: 'NEUTTS_URL required' }
+        const r = await fetch(process.env.NEUTTS_URL + '/synthesize', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, voice }) })
+        return { status: r.status, bytes: (await r.arrayBuffer()).byteLength }
+    }

@@ -1,0 +1,2 @@
+./plugins/openrouter_client/handler.js:6:6 
+() => Boolean(process.env.OPENROUTER_API_KEY)

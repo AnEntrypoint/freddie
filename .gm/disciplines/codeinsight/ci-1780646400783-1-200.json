@@ -1,0 +1,5 @@
+./plugins/platform-telegram_network/handler.js:1:4 tgFloodWait
+function tgFloodWait(error) {
+    const m = String(error?.message || '').match(/FLOOD_WAIT_(\d+)/)
+    return m ? Number(m[1]) * 1000 : null
+}

@@ -1,0 +1,6 @@
+./plugins/memory/handler.js:61:65 
+async (args) => {
+        const fn = ACTIONS[args.action]
+        if (!fn) return { error: 'unknown action: ' + args.action }
+        return await fn(args)
+    }

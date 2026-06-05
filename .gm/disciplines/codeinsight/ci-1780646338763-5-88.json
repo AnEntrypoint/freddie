@@ -1,0 +1,42 @@
+./plugins/gui-chat/plugin.js:5:45 register
+register({ gui }) {
+        gui.route('POST', '/api/chat', async (req, res) => {
+            const { prompt, sessionId: incomingSessionId = null, cwd, skill, provider, model } = req.body || {}
+            if (!prompt) return res.status(400).json({ error: 'prompt required' })
+            // Content negotiation: the SDK dashboard chat client does a plain
+            // fetch().json() and reads `.result`/`.messages` — it is NOT an
+            // EventSource consumer. Default to a single JSON response so that
+            // path works; stream SSE only when the caller explicitly asks via
+            // `Accept: text/event-stream` (curl / EventSource clients).
+            const wantsSse = String(req.headers.accept || '').includes('text/event-stream')
+            let sessionId = incomingSessionId
+            if (!sessionId) {
+                try {
+                    sessionId = await createSession({ platform: 'web', title: prompt.slice(0, 80), cwd: cwd || null, skill: skill || null, model: model || null })
+                } catch (_) { sessionId = null }
+            }
+
+            if (!wantsSse) {
+                try {
+                    const out = await runTurn({ prompt, timeoutMs: 120000, cwd, skill, provider, model })
+                    if (out.error) return res.status(500).json({ error: out.error, sessionId })
+                    return res.json({ result: out.result || '', messages: out.messages || [], iterations: out.iterations, sessionId })
+                } catch (e) {
+                    return res.status(500).json({ error: String(e.message || e), sessionId })
+                }
+            }
+
+            res.setHeader('Content-Type', 'text/event-stream')
+            res.setHeader('Cache-Control', 'no-cache')
+            res.setHeader('Connection', 'keep-alive')
+            const send = (event, data) => res.write('event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n')
+            send('start', { ts: Date.now(), sessionId })
+            try {
+                const out = await runTurn({ prompt, timeoutMs: 120000, cwd, skill, provider, model })
+                if (out.error) { send('error', { error: out.error }); res.end(); return }
+                for (const m of out.messages) send('message', m)
+                send('done', { result: out.result || '', iterations: out.iterations, sessionId })
+            } catch (e) { send('error', { error: String(e.message || e) }) }
+            res.end()
+        })
+    }
