@@ -1,0 +1,6 @@
+./plugins/osv_check/handler.js:5:9 
+async (args) => {
+        const body = args.commit_sha ? { commit: args.commit_sha } : { package: { name: args.package, ecosystem: args.ecosystem || 'npm' }, version: args.version }
+        const r = await fetch('https://api.osv.dev/v1/query', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+        return await r.json()
+    }

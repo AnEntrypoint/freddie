@@ -1,0 +1,2 @@
+./plugins/interrupt/handler.js:4:4 clearInterrupt
+function clearInterrupt(sessionId) { _flags.delete(sessionId) }

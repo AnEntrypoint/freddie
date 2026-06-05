@@ -1,0 +1,2 @@
+./plugins/interrupt/handler.js:3:3 isInterrupted
+function isInterrupted(sessionId) { return _flags.get(sessionId) === true }

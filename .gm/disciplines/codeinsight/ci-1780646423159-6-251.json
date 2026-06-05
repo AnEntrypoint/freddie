@@ -1,0 +1,7 @@
+./plugins/skills_index/handler.js:6:11 
+async ({ query }) => {
+        const all = listSkills().map(s => ({ name: s.name, description: s.description, hint: (s.body || '').split('\n').find(l => l.trim()) || '' }))
+        if (!query) return { items: all }
+        const q = String(query).toLowerCase()
+        return { items: all.filter(s => (s.name + ' ' + s.description + ' ' + s.hint).toLowerCase().includes(q)) }
+    }

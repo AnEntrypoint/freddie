@@ -1,0 +1,14 @@
+./plugins/send_message/handler.js:17:29 
+async ({ platform, to, text }) => {
+        const mod = PLATFORM_MODULES[platform]
+        if (!mod) return { error: 'unknown platform: ' + platform }
+        const m = await import(mod)
+        const cls = Object.values(m)[0]
+        const inst = new cls({})
+        try { await inst.start() } catch (e) { return { error: String(e.message || e) } }
+        try {
+            const out = await inst.send({ to, text })
+            await inst.stop?.()
+            return { ok: true, response: out }
+        } catch (e) { await inst.stop?.(); return { error: String(e.message || e) } }
+    }

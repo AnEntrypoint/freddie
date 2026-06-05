@@ -1,0 +1,2 @@
+./plugins/gui-llm-passthrough/plugin.js:11:11 matrixSource
+function matrixSource() { return process.env.FREDDIE_MATRIX_URL || MATRIX_FILE }

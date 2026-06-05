@@ -1,0 +1,5 @@
+./plugins/platform-feishu_comment/handler.js:1:4 listComments
+async function listComments({ token, docToken }) {
+    const r = await fetch('https://open.feishu.cn/open-apis/comments/v1/files/' + docToken + '/comments', { headers: { authorization: 'Bearer ' + token } })
+    return await r.json()
+}

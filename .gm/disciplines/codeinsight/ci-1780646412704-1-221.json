@@ -1,0 +1,4 @@
+./plugins/platform-yuanbao_proto/handler.js:1:3 buildChatPayload
+function buildChatPayload({ model = 'hunyuan-pro', messages, stream = false, tools = [] }) {
+    return { model, messages, stream, ...(tools.length ? { tools: tools.map(t => ({ type: 'function', function: t })) } : {}) }
+}
