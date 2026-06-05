@@ -25469,7 +25469,14 @@ var require_undici = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region src/agent/acptoapi-bridge.js
 var log$4 = logger("acptoapi");
-var ACPTOAPI_TIMEOUT_MS = Number(process.env.FREDDIE_LLM_TIMEOUT_MS) || 24e4;
+var envVal = (k) => {
+	try {
+		return typeof process !== "undefined" && process.env ? process.env[k] : void 0;
+	} catch {
+		return;
+	}
+};
+var ACPTOAPI_TIMEOUT_MS = Number(envVal("FREDDIE_LLM_TIMEOUT_MS")) || 24e4;
 var _dispatcherSet = false;
 async function ensureLongTimeoutDispatcher() {
 	if (_dispatcherSet) return;
@@ -25485,10 +25492,10 @@ async function ensureLongTimeoutDispatcher() {
 	} catch {}
 }
 function getAcptoapiUrl() {
-	return process.env.FREDDIE_LLM_URL || "http://127.0.0.1:4800/v1";
+	return envVal("FREDDIE_LLM_URL") || "http://127.0.0.1:4800/v1";
 }
 function getAcptoapiModel() {
-	return process.env.FREDDIE_LLM_MODEL || "claude/haiku";
+	return envVal("FREDDIE_LLM_MODEL") || "claude/haiku";
 }
 async function callLLM({ messages, tools = [], model } = {}) {
 	const base = getAcptoapiUrl();
