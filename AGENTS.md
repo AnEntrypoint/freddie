@@ -102,7 +102,12 @@ All web UI for freddie + thebird lives in `anentrypoint-design`. Consumers must 
 - **thebird** consumes the same SDK. Bespoke windowing (`wm.js`, `launcher.js`, `shell.js`) and any context-menu / theme-toggle DOM should migrate into the SDK as reusable kits; do not extend them in thebird.
 - Theme toggle: SDK owns the controller. Consumers import it; they do NOT reimplement localStorage + `prefers-color-scheme` listeners.
 
-Build: `node scripts/build.mjs` in `C:/dev/anentrypoint-design` emits `dist/247420.js` + `dist/247420.css`. Rebuild after SDK edits or `component is not a function` kills mount silently. `server.js` serves SDK from `node_modules/anentrypoint-design/dist/`.
+Build: `node scripts/build.mjs` in `C:/dev/anentrypoint-design` emits `dist/247420.js` + `dist/247420.css`. Rebuild after SDK edits or `component is not a function` kills mount silently. `server.js` serves SDK from `node_modules/anentrypoint-design/dist/`. To witness a local SDK edit, rebuild then `cp dist/247420.{js,css}` into freddie's `node_modules/anentrypoint-design/dist/` (server aliases `sdk.js`/`sdk.css` → `247420.*`). SPA routes are `#fd-<page>` (e.g. `#fd-env`), not `#/<page>` — navigate by clicking the nav link when browser-witnessing.
+
+GUI key/path/conversation endpoints (freddie-owned `plugins/gui-*`, consumed by the SDK pages):
+- **Keys** (`plugins/gui-auth`): `GET /api/auth` (per-provider env|stored|none + masked `fingerprint`, never the raw value), `POST /api/auth {provider,key}` (stores via auth store), `DELETE /api/auth/:provider`. The SDK `env` page (labelled "keys") renders a masked-input + save/remove per provider. `GET /api/env` (`plugins/gui-env`) now reports auth-store keys too, not just `process.env`.
+- **Conversations** (`plugins/gui-sessions`): `GET /api/sessions/:id` (single), `DELETE /api/sessions/:id` (purges messages + FTS), alongside the existing list/messages/search.
+- **Paths** (`plugins/gui-projects`): full CRUD already (`GET/POST/DELETE /api/projects`, `POST /api/projects/active`).
 
 Theme attribute scoping: `class="ds-247420"` on `<html>`, `data-theme="dark|light"` on `<body>`. Putting both on the same node breaks the descendant selector and themes do not switch.
 
