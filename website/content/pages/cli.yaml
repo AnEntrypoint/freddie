@@ -7,11 +7,27 @@ hero:
   body: the cli wraps the agent loop, the dashboard, the gateway, the acp server, the cron, the batch runner, and the session store. each subcommand is one verb. no daemons, no configs to author before you can poke.
   badges:
     - { label: commander, desc: js cli framework }
-    - { label: "14 verbs", desc: top-level subcommands }
+    - { label: "19 verbs", desc: top-level subcommands }
     - { label: "/help-all", desc: in-repl reference }
   ctas:
     - { label: bin/freddie.js, href: "https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js" }
 sections:
+  - id: start
+    name: getting started in three commands
+    lede: keys, a workspace, a conversation — each is one verb.
+    features:
+      - name: "keys -> `freddie auth set <provider>`"
+        desc: paste your api key once. read from stdin or a masked prompt, never argv, so it never lands in shell history. `freddie auth list` shows what's set and where it came from (env or stored).
+        benefit: no editing dotfiles to get online.
+      - name: "workspace -> `freddie project use <name>`"
+        desc: each project is an isolated home (own sessions, config, plugins). `freddie project list` marks the active one. `create <name> <path>` makes a new one.
+        benefit: client and personal work never share state.
+      - name: "conversation -> `freddie run --resume`"
+        desc: every chat persists. `freddie session list` shows them by title, `session show <id>` prints the transcript, and `run --resume [id]` picks up where you left off.
+        benefit: ctrl+c is safe and nothing is ever lost.
+      - name: "health -> `freddie doctor`"
+        desc: one screen — which keys are live, the active project and its home path, how many conversations are saved, and the environment checks. `freddie setup` walks a first-run wizard.
+        benefit: when something's off, doctor tells you what.
   - id: when
     name: when do I use which command?
     lede: pick the verb by what you're doing.
@@ -79,11 +95,16 @@ body: |
   ## the verbs
 
   ```
+  freddie setup                 # guided first-run: provider, key, defaults
+  freddie doctor                # health: keys, project, conversations, env
+  freddie auth [list|set <provider>|rm <provider>|test|show]   # provider api keys
+  freddie project [list|create <name> <path>|use <name>|rm <name>|current]  # workspaces
+  freddie session [list|show <id>|rm <id>]   # conversation transcripts
   freddie tools                 # list tools
   freddie skills                # list skills
   freddie sessions              # list past sessions
   freddie search "<query>"      # fts5 across messages
-  freddie run                   # interactive repl
+  freddie run [--resume <id>]   # interactive repl (--resume continues a chat)
   freddie dashboard --port 3000 # web ui
   freddie gateway --port 3001   # messaging bridge
   freddie acp                   # json-rpc stdio
