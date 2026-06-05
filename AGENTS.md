@@ -288,8 +288,7 @@ On Windows, test.js must call `closeDb()` and log-stream `closeAll()` before exi
 
 ## Cross-project Rust gotchas
 
-- **rs-plugkit exec utility verbs**: binary advertises `exec:status`, `exec:close`, `exec:sleep` in hook help. If the Cmd enum is missing variants, use `exec:wait <secs>` for waits and read task output files via `fs.readFileSync` instead of `exec:status`.
-- **rs-exec timeout alias**: both `--timeout` (long-form) and `--timeout-ms` (plugin convention) are accepted on `Cmd::Exec` and `Cmd::Bash`.
+rs-plugkit exec utility verbs + rs-exec timeout aliases — see rs-learn (recall "Freddie cross-project Rust gotchas").
 
 ## Plugsdk integration
 
@@ -299,9 +298,7 @@ On Windows, test.js must call `closeDb()` and log-stream `closeAll()` before exi
 
 ## opencode CLI shim
 
-On Windows, use the npm install: `npm install -g opencode-ai` → `C:\Users\user\AppData\Roaming\npm\opencode.cmd`. The bun-installed shim (`C:\Users\user\.bun\bin\opencode.exe`) is broken — its wrapper looks for `C:\Users\user\node_modules\opencode-ai\bin\opencode` and fails with `MODULE_NOT_FOUND`. Do NOT `bun install -g opencode-ai`.
-
-Start ACP daemon: `& 'C:\Users\user\AppData\Roaming\npm\opencode.cmd' serve --port 4790 --hostname 127.0.0.1`. Verify via `GET http://127.0.0.1:4790/` returning 200. `OPENCODE_SERVER_PASSWORD is not set` warning is harmless for localhost.
+Windows: use the npm install (`opencode.cmd`), not the broken bun shim; ACP daemon on 4790 — see rs-learn (recall "Freddie opencode CLI shim Windows").
 
 ## scripts/sync-upstream.mjs
 
