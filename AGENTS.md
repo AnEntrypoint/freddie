@@ -149,7 +149,8 @@ src/host/{contract,host,host_helpers,index}.js  # plugin contract + discovery + 
 plugins/<name>/{plugin,handler}.js               # ~150 plugins: tools, platforms, memory, gui, core
 skills/                          # bundled skill bundles (creative/, software-development/, ops/, data/, planning/)
 website/                         # flatspace docs site: flatspace.config.mjs + theme.mjs + content/pages/*.yaml
-bin/freddie.js                   # commander CLI: tools, skills, profile, skin, sessions, search, gateway, acp, run, cron, batch, dashboard, help-all
+bin/freddie.js                   # commander CLI: tools, skills, profile, skin, sessions, search, gateway, acp, run, cron, batch, dashboard, help-all + user-facing key/path/conversation verbs: auth, project, session, doctor, setup
+src/cli/stdin_secret.js          # readStdinSecret — masked/piped key entry (never argv) for `auth set`
 ```
 
 ## Adding a tool
@@ -210,6 +211,17 @@ export default {
 ```
 
 `makePlatform('myname', opts)` in `src/gateway/platforms.js` instantiates the adapter via `*Adapter$` name match.
+
+## User-facing CLI: keys, paths, conversations
+
+The first-run user surface lives in `plugins/core-cli/plugin.js` (registered via `pi.cli`). Keep these terse and friendly — they are the zero-to-first-conversation path, so errors print one line, never a stack:
+
+- **Keys** — `freddie auth list|set <provider>|rm <provider>|test [provider]|show`. `set` reads the key from stdin/masked-TTY via `src/cli/stdin_secret.js` (never argv — argv leaks to shell history/`ps`); stores through `src/auth.js` `getAuthStore()`. `list` shows env var + `[set]/[--]` + source `(env|stored|none)`. Unknown provider prints the valid list (`isKnownAuthProvider` guard), never a silent no-op. `test` reuses acptoapi `isAvailable` — does NOT reimplement provider HTTP.
+- **Paths/workspaces** — `freddie project list|create <name> <path>|use <name>|rm <name>|current` over `src/projects.js`. `list` marks the active project `[*]` and shows its home path. `rm default` surfaces the projects.js guard as a friendly error. Mirrors the `gui-projects` HTTP CRUD.
+- **Conversations** — `freddie session list|show <id>|rm <id>` over `src/sessions.js`. `session list` shows the auto-derived title (first user prompt). `freddie run --resume [id]` continues the most-recent (or matched) conversation: `src/cli/interactive.js` loads prior `getMessages` into `state.messages`. The REPL also has `/sessions`, `/resume <id>`, `/keys`, `/project` slash commands.
+- **Onboarding** — `freddie doctor` (one-glance health: env checks via `src/cli/doctor.js` `runDoctor()` + provider keys + active project/home + saved-conversation count) and `freddie setup` (guided first-run via `src/cli/setup.js` `setupWizard`). Reuse these modules — do not reimplement.
+
+`src/sessions.js` exposes `getSession(id)`, `deleteSession(id)` (purges messages + rebuilds the external-content `messages_fts` index), `setSessionTitle`, and auto-derives a title from the first user prompt in `appendMessage`. **All session calls are async (libsql) — every callsite must `await`** (a bare call silently rejects and the conversation is never persisted; this was the REPL history-loss bug).
 
 ## Profile-safe code
 

@@ -10,10 +10,36 @@ await T('home+config+skin', async () => {
     s.setActiveSkin('mono'); assert.equal(s.getActiveSkin().name, 'mono')
 })
 await T('sessions+FTS5', async () => {
-    const { createSession, appendMessage, getMessages, search } = await import('./src/sessions.js')
+    const { createSession, appendMessage, getMessages, getSession, deleteSession, listSessions, search } = await import('./src/sessions.js')
     const sid = await createSession({ platform: 'cli' })
     for (const t of ['banana smoothie', 'sounds delicious', 'recipe please']) await appendMessage(sid, { role: 'user', content: t })
     assert.equal((await getMessages(sid)).length, 3); assert.ok((await search('banana')).length >= 1)
+    // title auto-derives from the first user prompt (scannable session list)
+    assert.equal((await getSession(sid)).title, 'banana smoothie', 'title auto-derived from first prompt')
+    assert.ok((await listSessions()).some(s => s.id === sid))
+    // deleteSession removes the row, its messages, and purges the FTS index
+    const del = await deleteSession(sid); assert.ok(del.deleted)
+    assert.equal(await getSession(sid), null, 'session row gone after delete')
+    assert.equal((await getMessages(sid)).length, 0, 'messages gone after delete')
+    assert.ok(!(await search('banana')).some(r => r.session_id === sid), 'FTS purged after delete')
+})
+await T('cli-verbs-smoke', async () => {
+    // test.js can pass while the CLI is broken; smoke each new user-facing verb
+    // through the real commander entry so a registration/await regression fails here.
+    const { spawnSync } = await import('node:child_process')
+    const run = (args) => spawnSync(process.execPath, ['bin/freddie.js', ...args], { encoding: 'utf8', timeout: 60000, env: { ...process.env, FREDDIE_HOME: TEST_HOME } })
+    for (const args of [['auth', 'list'], ['project', 'list'], ['project', 'current'], ['session', 'list'], ['doctor'], ['help-all']]) {
+        const r = run(args)
+        assert.equal(r.status, 0, `freddie ${args.join(' ')} exit ${r.status}: ${(r.stderr || '').slice(0, 200)}`)
+    }
+    // auth list surfaces a known provider with its env var
+    assert.match(run(['auth', 'list']).stdout, /anthropic\s+ANTHROPIC_API_KEY/, 'auth list shows provider+env')
+    // project list shows the protected default with an active marker
+    assert.match(run(['project', 'list']).stdout, /\[\*\]\s+default/, 'project list marks active default')
+    // unknown provider is rejected with the valid list, not a silent no-op
+    const bad = run(['auth', 'set', 'no-such-provider']); assert.notEqual(bad.status, 0); assert.match(bad.stderr, /unknown provider/, 'auth set rejects unknown provider')
+    // doctor reports the workspace + conversation sections
+    assert.match(run(['doctor']).stdout, /# workspace[\s\S]*active project: default/, 'doctor shows active project')
 })
 await T('host+tools+toolsets', async () => {
     const ccDir = path.join(TEST_HOME, 'cc-plugins', 'demo'); fs.mkdirSync(path.join(ccDir, '.claude-plugin'), { recursive: true }); fs.mkdirSync(path.join(ccDir, 'skills', 'hello'), { recursive: true }); fs.mkdirSync(path.join(ccDir, 'agents'), { recursive: true }); fs.mkdirSync(path.join(ccDir, 'hooks'), { recursive: true }); fs.writeFileSync(path.join(ccDir, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'demo', version: '1.0.0' })); fs.writeFileSync(path.join(ccDir, 'skills', 'hello', 'SKILL.md'), '---\ndescription: hi\n---\nhi'); fs.writeFileSync(path.join(ccDir, 'agents', 'rev.md'), '---\nname: rev\ndescription: r\n---\nbody'); const denyScript = path.join(ccDir, 'deny.mjs'); fs.writeFileSync(denyScript, "process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:'no'}}))"); fs.writeFileSync(path.join(ccDir, 'hooks', 'hooks.json'), JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'bash', hooks: [{ type: 'command', command: `"${process.execPath}" "${denyScript.replace(/\\/g, '/')}"` }] }] } }))
@@ -277,7 +303,7 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     await dash.stop()
 })
 
-console.log('\n=== test.js results ==='); for (const [n, s] of results) console.log(`  ${s.startsWith('OK') ? '✓' : '✗'} ${n}\t${s}`)
+console.log('\n=== test.js results ==='); for (const [n, s] of results) console.log(`  ${s.startsWith('OK') ? '[ok]' : '[FAIL]'} ${n}\t${s}`)
 const failed = results.filter(r => !r[1].startsWith('OK'))
 try { (await import('./src/sessions.js')).closeDb() } catch {}; try { (await import('./src/observability/log.js')).closeAll() } catch {}
 if (failed.length) { console.error(`\n${failed.length} FAILED`); process.exit(1) }; console.log(`\n${results.length} passed`); await new Promise(r => setTimeout(r, 100)); process.exit(0)
