@@ -1,43 +1,71 @@
 // gm rs-learn — freddie's primary learning mechanism.
 //
 // Routes all of freddie's learning (memory tool, turn-context recall, auto-recall on turn
-// entry, auto-learn on turn completion) through gm-plugkit's rs-learn store, in-process.
-// One wasm instance is loaded lazily on first use and cached process-wide. Every call
-// degrades to a no-op (never throws into the agent loop) when gm-plugkit or the wasm is
-// unavailable, so a freddie process without gm installed still runs.
+// entry, auto-learn on turn completion) through gm-plugkit's rs-learn store. One backend is
+// chosen lazily on first use and cached process-wide:
 //
-// The wasm host functions resolve .gm/rs-learn.db from CLAUDE_PROJECT_DIR||cwd of this
-// process, so memories land in the active project's .gm dir.
-import { createRequire } from 'node:module'
-import path from 'node:path'
+//   - Node:    gm-plugkit's wasm wrapper is imported in-process (createPlugkit), resolving
+//              .gm/rs-learn.db from CLAUDE_PROJECT_DIR||cwd of this process.
+//   - Browser: a host-provided bridge (globalThis.__GM_DISPATCH__) routes verbs to the
+//              gm wasm instance the host already loaded in-page (e.g. thebird's
+//              window.__debug.gm.dispatch). This is what makes freddie LEARN on gh-pages,
+//              where node:module is unavailable and an in-process import would throw.
+//
+// Every call degrades to a no-op (never throws into the agent loop) when no backend is
+// available, so a freddie process/page without gm installed still runs.
 
-const _require = createRequire(import.meta.url)
-
-let _initPromise = null // shared in-flight instantiation (no double cold-load)
+let _initPromise = null // shared in-flight backend selection (no double cold-load)
 let _failed = false // sticky failure flag — stop retrying a missing/broken install
-let _pk = null // cached { dispatch, version }
+let _pk = null // cached backend: { dispatch(verb, body) -> json|Promise<json>, version() }
 
-function resolveWrapperUrl() {
+const _isBrowser = typeof window !== 'undefined' || typeof importScripts === 'function'
+
+// The host-provided in-page bridge contract. A host (thebird) sets one of:
+//   globalThis.__GM_DISPATCH__(verb, body) -> json | Promise<json>      (preferred)
+//   globalThis.__gm.dispatch(verb, body)   -> json | Promise<json>      (fallback shape)
+// We probe lazily on every ensure() so a late-loading wasm (149MB cold-load) is picked up
+// once it becomes available rather than being cached as "failed" forever.
+function findBrowserBridge() {
+    const g = (typeof globalThis !== 'undefined') ? globalThis : null
+    if (!g) return null
+    if (typeof g.__GM_DISPATCH__ === 'function') return { dispatch: g.__GM_DISPATCH__ }
+    const gm = g.__gm || (g.__debug && g.__debug.gm)
+    if (gm && typeof gm.dispatch === 'function') return { dispatch: (v, b) => gm.dispatch(v, b) }
+    return null
+}
+
+async function ensureNodePlugkit() {
+    const { createRequire } = await import('node:module')
+    const path = (await import('node:path')).default
+    const _require = createRequire(import.meta.url)
     // index.js is CommonJS; the createPlugkit export lives on the ESM wrapper file, so resolve
     // the wrapper path off the package and import it directly.
     const pkgJson = _require.resolve('gm-plugkit/package.json')
     const wrapper = path.join(path.dirname(pkgJson), 'plugkit-wasm-wrapper.js')
-    return 'file://' + wrapper.replace(/\\/g, '/')
+    const url = 'file://' + wrapper.replace(/\\/g, '/')
+    const mod = await import(url)
+    if (typeof mod.createPlugkit !== 'function') throw new Error('gm-plugkit createPlugkit export missing (update gm-plugkit)')
+    return mod.createPlugkit()
 }
 
 async function ensurePlugkit() {
     if (_pk) return _pk
+    // In the browser the bridge can appear AFTER first probe (wasm cold-load). Never set the
+    // sticky _failed flag there — just re-probe each call until the host wires the global.
+    if (_isBrowser) {
+        const bridge = findBrowserBridge()
+        if (!bridge) return null
+        _pk = { dispatch: bridge.dispatch, version: () => 'browser-bridge' }
+        return _pk
+    }
     if (_failed) return null
     if (_initPromise) return _initPromise
     _initPromise = (async () => {
         try {
-            const mod = await import(resolveWrapperUrl())
-            if (typeof mod.createPlugkit !== 'function') throw new Error('gm-plugkit createPlugkit export missing (update gm-plugkit)')
-            _pk = await mod.createPlugkit()
+            _pk = await ensureNodePlugkit()
             return _pk
         } catch (e) {
             _failed = true
-            // Log once; learning is best-effort and must never crash a turn.
             try { console.error('[gm-learn] disabled (gm rs-learn unavailable):', e && e.message) } catch (_) {}
             return null
         } finally {
@@ -47,11 +75,22 @@ async function ensurePlugkit() {
     return _initPromise
 }
 
-export function learnAvailable() { return Boolean(_pk) && !_failed }
+export function learnAvailable() { return Boolean(_pk) || Boolean(_isBrowser && findBrowserBridge()) }
 
-// Per-project namespace isolation, matching gm's namespace model. Falls back to 'default'
-// if the projects module is unavailable (e.g. early boot).
+// Per-project namespace isolation, matching gm's namespace model.
+//   - Browser: the host sets globalThis.__GM_NAMESPACE__ (a string, or a fn returning one)
+//              to the active workspace/instance so memories isolate per thebird instance.
+//   - Node:    derive from the freddie project registry (src/projects.js).
+// Falls back to 'default' if neither is resolvable (e.g. early boot).
 export async function projectNamespace() {
+    if (_isBrowser) {
+        try {
+            const g = globalThis
+            const ns = typeof g.__GM_NAMESPACE__ === 'function' ? g.__GM_NAMESPACE__() : g.__GM_NAMESPACE__
+            const s = (ns == null ? '' : String(ns)).trim()
+            return s || 'default'
+        } catch (_) { return 'default' }
+    }
     try {
         const mod = await import('../projects.js')
         const p = mod.getActiveProject && mod.getActiveProject()
@@ -81,7 +120,7 @@ export async function memorize(text, { namespace = 'default', key = null } = {})
     try {
         const body = { text: t, namespace }
         if (key) body.key = key
-        const r = pk.dispatch('memorize-fire', body)
+        const r = await pk.dispatch('memorize-fire', body)
         if (r && r.ok === false) return null
         return (r && r.data && r.data.key) || (r && r.key) || null
     } catch (e) {
@@ -97,7 +136,7 @@ export async function recall(query, { limit = 5, namespace = 'default' } = {}) {
     const pk = await ensurePlugkit()
     if (!pk) return []
     try {
-        const r = pk.dispatch('recall', { query: q, limit, namespace })
+        const r = await pk.dispatch('recall', { query: q, limit, namespace })
         if (r && r.ok === false) return []
         return normalizeHits(r).slice(0, limit)
     } catch (e) {
@@ -114,7 +153,7 @@ export async function autoRecall(prompt, { limit = 5, namespace = 'default' } = 
     const pk = await ensurePlugkit()
     if (!pk) return []
     try {
-        let r = pk.dispatch('auto-recall', p)
+        const r = await pk.dispatch('auto-recall', p)
         // auto-recall may return {hits} directly or under data; fall back to plain recall.
         let hits = normalizeHits(r)
         if (!hits.length) hits = await recall(p, { limit, namespace })
@@ -131,7 +170,7 @@ export async function prune(keys) {
     const pk = await ensurePlugkit()
     if (!pk) return { pruned: 0 }
     try {
-        const r = pk.dispatch('memorize-prune', { keys: list })
+        const r = await pk.dispatch('memorize-prune', { keys: list })
         return (r && r.data) || r || { pruned: list.length }
     } catch (e) {
         try { console.error('[gm-learn] prune failed:', e && e.message) } catch (_) {}

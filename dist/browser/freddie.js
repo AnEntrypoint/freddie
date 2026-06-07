@@ -1435,16 +1435,15 @@ var init_home = __esmMin((() => {
 }));
 //#endregion
 //#region src/projects.js
-init_home();
-var REGISTRY_PATH = path.join(os.homedir(), ".freddie", "projects.json");
-var DEFAULT_REGISTRY = {
-	active: "default",
-	projects: [{
-		name: "default",
-		path: path.join(os.homedir(), ".freddie"),
-		created_at: (/* @__PURE__ */ new Date()).toISOString()
-	}]
-};
+var projects_exports = /* @__PURE__ */ __exportAll({
+	applyActiveProjectFromRegistry: () => applyActiveProjectFromRegistry,
+	createProject: () => createProject,
+	deleteProject: () => deleteProject,
+	getActiveProject: () => getActiveProject,
+	listProjects: () => listProjects,
+	loadRegistry: () => loadRegistry,
+	setActiveProject: () => setActiveProject
+});
 function ensureRegistry() {
 	const dir = path.dirname(REGISTRY_PATH);
 	if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -1462,18 +1461,69 @@ function loadRegistry() {
 		return DEFAULT_REGISTRY;
 	}
 }
+function saveRegistry(reg) {
+	ensureRegistry();
+	fs.writeFileSync(REGISTRY_PATH, JSON.stringify(reg, null, 2));
+}
+function listProjects() {
+	return loadRegistry().projects;
+}
 function getActiveProject() {
 	const reg = loadRegistry();
 	return reg.projects.find((p) => p.name === reg.active) || reg.projects[0];
+}
+function createProject({ name, projectPath }) {
+	if (!name || !projectPath) throw new Error("name and path are required");
+	if (!path.isAbsolute(projectPath)) throw new Error("path must be absolute");
+	const reg = loadRegistry();
+	if (reg.projects.find((p) => p.name === name)) throw new Error("project name already exists");
+	if (!fs.existsSync(projectPath)) fs.mkdirSync(projectPath, { recursive: true });
+	reg.projects.push({
+		name,
+		path: projectPath,
+		created_at: (/* @__PURE__ */ new Date()).toISOString()
+	});
+	saveRegistry(reg);
+	return reg.projects[reg.projects.length - 1];
+}
+function deleteProject(name) {
+	if (name === "default") throw new Error("cannot delete default project");
+	const reg = loadRegistry();
+	reg.projects = reg.projects.filter((p) => p.name !== name);
+	if (reg.active === name) reg.active = "default";
+	saveRegistry(reg);
+}
+function setActiveProject(name) {
+	const reg = loadRegistry();
+	const proj = reg.projects.find((p) => p.name === name);
+	if (!proj) throw new Error("unknown project: " + name);
+	reg.active = name;
+	saveRegistry(reg);
+	applyHomeOverride(proj.path);
+	return proj;
 }
 function applyActiveProjectFromRegistry() {
 	const proj = getActiveProject();
 	if (proj) applyHomeOverride(proj.path);
 	return proj;
 }
+var REGISTRY_PATH, DEFAULT_REGISTRY;
+var init_projects = __esmMin((() => {
+	init_home();
+	REGISTRY_PATH = path.join(os.homedir(), ".freddie", "projects.json");
+	DEFAULT_REGISTRY = {
+		active: "default",
+		projects: [{
+			name: "default",
+			path: path.join(os.homedir(), ".freddie"),
+			created_at: (/* @__PURE__ */ new Date()).toISOString()
+		}]
+	};
+}));
 //#endregion
 //#region src/host/index.js
 init_home();
+init_projects();
 var _host = null;
 var _loaded = false;
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -30369,6 +30419,170 @@ async function clearSteps(sessionKey) {
 	await (await init()).prepare(`DELETE FROM step_results WHERE session_key = ?`).run(sessionKey);
 }
 //#endregion
+//#region src/learn/gm-learn.js
+var gm_learn_exports = /* @__PURE__ */ __exportAll({
+	autoRecall: () => autoRecall,
+	learnAvailable: () => learnAvailable,
+	memorize: () => memorize,
+	projectNamespace: () => projectNamespace,
+	prune: () => prune,
+	recall: () => recall
+});
+function findBrowserBridge() {
+	const g = typeof globalThis !== "undefined" ? globalThis : null;
+	if (!g) return null;
+	if (typeof g.__GM_DISPATCH__ === "function") return { dispatch: g.__GM_DISPATCH__ };
+	const gm = g.__gm || g.__debug && g.__debug.gm;
+	if (gm && typeof gm.dispatch === "function") return { dispatch: (v, b) => gm.dispatch(v, b) };
+	return null;
+}
+async function ensureNodePlugkit() {
+	const { createRequire } = await import("node:module");
+	const path = (await import("node:path")).default;
+	const pkgJson = createRequire(import.meta.url).resolve("gm-plugkit/package.json");
+	const mod = await import("file://" + path.join(path.dirname(pkgJson), "plugkit-wasm-wrapper.js").replace(/\\/g, "/"));
+	if (typeof mod.createPlugkit !== "function") throw new Error("gm-plugkit createPlugkit export missing (update gm-plugkit)");
+	return mod.createPlugkit();
+}
+async function ensurePlugkit() {
+	if (_pk) return _pk;
+	if (_isBrowser) {
+		const bridge = findBrowserBridge();
+		if (!bridge) return null;
+		_pk = {
+			dispatch: bridge.dispatch,
+			version: () => "browser-bridge"
+		};
+		return _pk;
+	}
+	if (_failed) return null;
+	if (_initPromise) return _initPromise;
+	_initPromise = (async () => {
+		try {
+			_pk = await ensureNodePlugkit();
+			return _pk;
+		} catch (e) {
+			_failed = true;
+			try {
+				console.error("[gm-learn] disabled (gm rs-learn unavailable):", e && e.message);
+			} catch (_) {}
+			return null;
+		} finally {
+			_initPromise = null;
+		}
+	})();
+	return _initPromise;
+}
+function learnAvailable() {
+	return Boolean(_pk) || Boolean(_isBrowser && findBrowserBridge());
+}
+async function projectNamespace() {
+	if (_isBrowser) try {
+		const g = globalThis;
+		const ns = typeof g.__GM_NAMESPACE__ === "function" ? g.__GM_NAMESPACE__() : g.__GM_NAMESPACE__;
+		return (ns == null ? "" : String(ns)).trim() || "default";
+	} catch (_) {
+		return "default";
+	}
+	try {
+		const mod = await Promise.resolve().then(() => (init_projects(), projects_exports));
+		const p = mod.getActiveProject && mod.getActiveProject();
+		return p && p.name || "default";
+	} catch (_) {
+		return "default";
+	}
+}
+function normalizeHits(resp) {
+	return (resp && resp.data && Array.isArray(resp.data.hits) ? resp.data.hits : resp && Array.isArray(resp.hits) ? resp.hits : []).map((h) => ({
+		text: h.text != null ? String(h.text) : "",
+		score: typeof h.score === "number" ? h.score : typeof h.cos === "number" ? h.cos : 0,
+		key: h.key || null,
+		namespace: h.namespace || "default"
+	})).filter((h) => h.text);
+}
+async function memorize(text, { namespace = "default", key = null } = {}) {
+	const t = (text || "").toString().trim();
+	if (!t) return null;
+	const pk = await ensurePlugkit();
+	if (!pk) return null;
+	try {
+		const body = {
+			text: t,
+			namespace
+		};
+		if (key) body.key = key;
+		const r = await pk.dispatch("memorize-fire", body);
+		if (r && r.ok === false) return null;
+		return r && r.data && r.data.key || r && r.key || null;
+	} catch (e) {
+		try {
+			console.error("[gm-learn] memorize failed:", e && e.message);
+		} catch (_) {}
+		return null;
+	}
+}
+async function recall(query, { limit = 5, namespace = "default" } = {}) {
+	const q = (query || "").toString().trim();
+	if (!q) return [];
+	const pk = await ensurePlugkit();
+	if (!pk) return [];
+	try {
+		const r = await pk.dispatch("recall", {
+			query: q,
+			limit,
+			namespace
+		});
+		if (r && r.ok === false) return [];
+		return normalizeHits(r).slice(0, limit);
+	} catch (e) {
+		try {
+			console.error("[gm-learn] recall failed:", e && e.message);
+		} catch (_) {}
+		return [];
+	}
+}
+async function autoRecall(prompt, { limit = 5, namespace = "default" } = {}) {
+	const p = (prompt || "").toString().trim();
+	if (!p) return [];
+	const pk = await ensurePlugkit();
+	if (!pk) return [];
+	try {
+		let hits = normalizeHits(await pk.dispatch("auto-recall", p));
+		if (!hits.length) hits = await recall(p, {
+			limit,
+			namespace
+		});
+		return hits.slice(0, limit);
+	} catch (_) {
+		return recall(p, {
+			limit,
+			namespace
+		});
+	}
+}
+async function prune(keys) {
+	const list = Array.isArray(keys) ? keys.filter(Boolean) : keys ? [keys] : [];
+	if (!list.length) return { pruned: 0 };
+	const pk = await ensurePlugkit();
+	if (!pk) return { pruned: 0 };
+	try {
+		const r = await pk.dispatch("memorize-prune", { keys: list });
+		return r && r.data || r || { pruned: list.length };
+	} catch (e) {
+		try {
+			console.error("[gm-learn] prune failed:", e && e.message);
+		} catch (_) {}
+		return { pruned: 0 };
+	}
+}
+var _initPromise, _failed, _pk, _isBrowser;
+var init_gm_learn = __esmMin((() => {
+	_initPromise = null;
+	_failed = false;
+	_pk = null;
+	_isBrowser = typeof window !== "undefined" || typeof importScripts === "function";
+}));
+//#endregion
 //#region src/agent/machine.js
 init_log();
 function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ["core"], disabledToolsets = [], events, sessionKey } = {}) {
@@ -30707,6 +30921,24 @@ function mergeHookExtras(messages, r, tag) {
 	});
 	return e.length ? [...messages, ...e] : messages;
 }
+var AUTOLEARN_MIN_LEN = 40;
+var AUTOLEARN_DEDUPE_COS = .92;
+async function autoLearnTurn({ prompt, out }) {
+	try {
+		if (!out || out.error) return;
+		const result = (out.result || "").toString().trim();
+		if (result.length < AUTOLEARN_MIN_LEN) return;
+		const { memorize, recall, projectNamespace } = await Promise.resolve().then(() => (init_gm_learn(), gm_learn_exports));
+		const namespace = await projectNamespace();
+		const fact = `Q: ${(prompt || "").toString().trim().slice(0, 200)}\nA: ${result.slice(0, 600)}`;
+		const existing = await recall(fact, {
+			limit: 1,
+			namespace
+		});
+		if (existing.length && existing[0].score >= AUTOLEARN_DEDUPE_COS) return;
+		await memorize(fact, { namespace });
+	} catch (_) {}
+}
 async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey }) {
 	const { actor } = pa;
 	return await new Promise((resolve, reject) => {
@@ -30752,6 +30984,10 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 					errorStack: out?.error ? events.find((e) => e.type === "llm_call" && !e.ok)?.stack || null : null,
 					witnessPath
 				});
+				await autoLearnTurn({
+					prompt,
+					out
+				});
 				await clearSteps(sessionKey);
 				cleanup();
 				resolve(out);
@@ -30779,6 +31015,14 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		const sd = h.pi.skills.get(skill);
 		if (sd?.content) sysParts.push("Skill context:\n" + sd.content);
 	}
+	try {
+		const { autoRecall, projectNamespace } = await Promise.resolve().then(() => (init_gm_learn(), gm_learn_exports));
+		const hits = await autoRecall(prompt, {
+			limit: 5,
+			namespace: await projectNamespace()
+		});
+		if (hits.length) sysParts.push("Relevant memories (gm rs-learn):\n" + hits.map((h) => "- " + h.text).join("\n"));
+	} catch (_) {}
 	if (sysParts.length) initMessages.unshift({
 		role: "user",
 		content: sysParts.join("\n\n")
@@ -30911,12 +31155,16 @@ var ContextPlugins = {
 			body: s.description
 		}));
 	},
-	memory: async ({ provider } = {}) => {
-		if (!provider) return [];
+	memory: async ({ message = "", namespace = null } = {}) => {
 		try {
-			return ((await provider.prefetch("")).items || []).slice(0, 5).map((it, i) => ({
+			const { recall, projectNamespace } = await Promise.resolve().then(() => (init_gm_learn(), gm_learn_exports));
+			const ns = namespace || await projectNamespace();
+			return (await recall((message || "").toString().trim() || "project notes facts decisions", {
+				limit: 5,
+				namespace: ns
+			})).map((h, i) => ({
 				name: "memory:" + i,
-				body: typeof it === "string" ? it : JSON.stringify(it)
+				body: h.text
 			}));
 		} catch {
 			return [];

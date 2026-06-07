@@ -88,6 +88,7 @@ freddie learns through **gm rs-learn**, in-process, via `src/learn/gm-learn.js`.
 - **The `memory` tool** (`plugins/memory/handler.js`) is the explicit manual surface over the same store: `add`->memorize, `search`->recall (score-ranked), `list`->broad recall, `forget`->prune by explicit key.
 - **gm-plugkit in-process API:** `createPlugkit()` is consumed by importing the wrapper file directly (`index.js` is CJS; the export lives on the ESM wrapper). The wrapper's CLI IIFE is guarded by `_isCliEntry` so importing it does not start the daemon.
 - Legacy migration: `node scripts/migrate-memory-to-gm.mjs [namespace]` drains old `memory_local` rows into rs-learn. `src/cli/memory_setup.js` defaults `memory.provider='gm'` (no key/config); third-party providers stay behind explicit `configureProvider`.
+- **Browser / gh-pages path:** `src/learn/gm-learn.js` is environment-aware. Where `node:module` is unavailable (e.g. thebird on gh-pages) it skips the `createPlugkit()` import and instead routes memorize-fire/recall/auto-recall/prune through a host bridge: `globalThis.__GM_DISPATCH__(verb, body) -> json|Promise<json>` (the host's already-loaded in-page plugkit.wasm) and `globalThis.__GM_NAMESPACE__` (string or fn -> active-workspace namespace). gm-learn probes both lazily each call (so a cold-loading wasm is picked up once ready) and degrades to no-op when the bridge is absent. This makes freddie LEARN in-browser with no node deps.
 
 ## Multi-project workspace
 
