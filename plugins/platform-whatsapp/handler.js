@@ -1,4 +1,5 @@
 import express from 'express'
+import crypto from 'node:crypto'
 import { EventEmitter } from 'node:events'
 
 export class WhatsappAdapter extends EventEmitter {
@@ -8,24 +9,49 @@ export class WhatsappAdapter extends EventEmitter {
         this.token = opts.token || process.env.WHATSAPP_API_TOKEN
         this.phoneId = opts.phoneId || process.env.WHATSAPP_PHONE_NUMBER_ID
         this.verifyToken = opts.verifyToken || process.env.WHATSAPP_VERIFY_TOKEN || 'freddie'
-        this.port = opts.port || 0
+        // App secret enables X-Hub-Signature-256 verification on inbound webhooks.
+        // When set, unsigned or wrongly-signed requests are rejected.
+        this.appSecret = opts.appSecret || process.env.WHATSAPP_APP_SECRET || ''
+        this.port = opts.port ?? Number(process.env.WHATSAPP_WEBHOOK_PORT || 0)
+        this.path = opts.path || process.env.WHATSAPP_WEBHOOK_PATH || '/webhook'
         this.api = opts.api || 'https://graph.facebook.com/v20.0'
         this._server = null
     }
     getRequiredEnv() { return ['WHATSAPP_API_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID'] }
+
+    // Verify Meta's HMAC-SHA256 signature over the raw request body.
+    _verifySignature(req) {
+        if (!this.appSecret) return true   // verification disabled when no secret
+        const sig = req.get('x-hub-signature-256') || ''
+        if (!sig.startsWith('sha256=')) return false
+        const expected = 'sha256=' + crypto.createHmac('sha256', this.appSecret).update(req.rawBody || Buffer.alloc(0)).digest('hex')
+        try { return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)) } catch { return false }
+    }
+
     async start() {
         if (!this.token || !this.phoneId) throw new Error('WhatsappAdapter: WHATSAPP_API_TOKEN + WHATSAPP_PHONE_NUMBER_ID required')
         const app = express()
-        app.use(express.json())
-        app.get('/webhook', (req, res) => {
+        // Capture the raw body so the signature can be verified over exact bytes.
+        app.use(express.json({ verify: (req, _res, buf) => { req.rawBody = buf } }))
+
+        app.get(this.path, (req, res) => {
             if (req.query['hub.verify_token'] === this.verifyToken) return res.send(req.query['hub.challenge'])
             res.sendStatus(403)
         })
-        app.post('/webhook', (req, res) => {
+        app.post(this.path, (req, res) => {
+            if (!this._verifySignature(req)) return res.sendStatus(401)
             const entries = req.body?.entry || []
             for (const e of entries) for (const c of (e.changes || [])) {
                 const msgs = c.value?.messages || []
-                for (const m of msgs) this.emit('message', { from: m.from, text: m.text?.body || '', raw: m })
+                for (const m of msgs) {
+                    this.emit('message', {
+                        from: m.from,
+                        text: m.text?.body || '',
+                        // surface the platform message id for dedup, and the message type
+                        // so media-only messages are recognisable upstream.
+                        raw: { ...m, id: m.id, type: m.type },
+                    })
+                }
             }
             res.json({ ok: true })
         })
