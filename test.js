@@ -208,6 +208,52 @@ await T('gm-learn', async () => {
         assert.ok(gl.learnAvailable() === false, 'no key only acceptable when gm rs-learn unavailable')
     }
 })
+await T('gm-learn-browser', async () => {
+    // Exercise the BROWSER learning path WITHOUT the real wasm. gm-learn detects the
+    // browser via `typeof window !== 'undefined'`, then routes verbs through a
+    // host-provided globalThis.__GM_DISPATCH__ bridge.
+    try {
+        // Trip _isBrowser + install a mock dispatch BEFORE the (cache-busted) import,
+        // so the fresh module instance picks them up on a clean _pk singleton.
+        globalThis.window = {}
+        globalThis.__GM_DISPATCH__ = (verb, body) => {
+            if (verb === 'memorize-fire') return { ok: true, data: { key: 'mem-test-1' } }
+            if (verb === 'recall') return { ok: true, data: { hits: [{ text: 'browser fact', score: 0.9, key: 'mem-test-1', namespace: 'ns1' }] } }
+            if (verb === 'auto-recall') return { hits: [] }
+            if (verb === 'memorize-prune') return { ok: true, data: { pruned: 1 } }
+            return { ok: false }
+        }
+        const gl = await import('./src/learn/gm-learn.js?browsertest=' + Date.now())
+        assert.equal(gl.learnAvailable(), true, 'browser bridge makes learn available')
+        // memorize routes 'memorize-fire' through the bridge and returns the host key.
+        assert.equal(await gl.memorize('x'), 'mem-test-1', 'browser memorize returns host key')
+        // recall normalizes the bridge response into a flat hit list.
+        const hits = await gl.recall('q')
+        assert.equal(hits.length, 1, 'browser recall returns one hit')
+        assert.equal(hits[0].text, 'browser fact', 'browser recall hit text')
+        assert.equal(hits[0].score, 0.9, 'browser recall hit score')
+        // projectNamespace falls back to 'default' when __GM_NAMESPACE__ unset.
+        assert.equal(await gl.projectNamespace(), 'default', 'namespace defaults to "default"')
+        // ...and resolves a function-valued __GM_NAMESPACE__ when the host sets one.
+        globalThis.__GM_NAMESPACE__ = () => 'ns-x'
+        assert.equal(await gl.projectNamespace(), 'ns-x', 'namespace resolves host fn')
+        delete globalThis.__GM_NAMESPACE__
+        // prune routes 'memorize-prune' and surfaces the host's pruned count.
+        assert.deepEqual(await gl.prune('mem-test-1'), { pruned: 1 }, 'browser prune returns host count')
+
+        // Graceful no-op: with no bridge wired, a FRESH module instance degrades to
+        // empty results and never throws into the agent loop.
+        delete globalThis.__GM_DISPATCH__
+        const gl2 = await import('./src/learn/gm-learn.js?browsertest=' + Date.now())
+        assert.equal(gl2.learnAvailable(), false, 'no bridge -> learn unavailable')
+        assert.deepEqual(await gl2.recall('q'), [], 'no-bridge recall -> []')
+        assert.equal(await gl2.memorize('x'), null, 'no-bridge memorize -> null')
+    } finally {
+        delete globalThis.window
+        delete globalThis.__GM_DISPATCH__
+        delete globalThis.__GM_NAMESPACE__
+    }
+})
 await T('profiles+observability+auth+env+context+cron+batch+slash+skills', async () => {
     const cr = await import('./src/commands/registry.js')
     assert.ok(cr.COMMAND_REGISTRY.length >= 10 && cr.resolveCommand('/bg') === 'background' && cr.gatewayHelpLines().length >= 5 && cr.slackAppManifest().features.slash_commands[0].command.startsWith('/') && cr.discordSkillCommands().length >= 1)
