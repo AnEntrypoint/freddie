@@ -180,6 +180,26 @@ function mergeHookExtras(messages, r, tag) {
 }
 
 // Drive a started persistent agent actor to its final state, wiring timeout +
+// Auto-learn: distill a salient fact from a completed turn and memorize it into gm rs-learn.
+// Only fires on substantive, non-error outcomes; dedupes against existing near-identical
+// memories so the store does not fill with restatements. Best-effort — never throws.
+const AUTOLEARN_MIN_LEN = 40 // skip trivial one-liners
+const AUTOLEARN_DEDUPE_COS = 0.92 // a hit this similar means we already know it
+async function autoLearnTurn({ prompt, out }) {
+    try {
+        if (!out || out.error) return
+        const result = (out.result || '').toString().trim()
+        if (result.length < AUTOLEARN_MIN_LEN) return
+        const { memorize, recall, projectNamespace } = await import('../learn/gm-learn.js')
+        const namespace = await projectNamespace()
+        // Concise salient fact: the user's ask + the outcome, capped to keep recall sharp.
+        const fact = `Q: ${(prompt || '').toString().trim().slice(0, 200)}\nA: ${result.slice(0, 600)}`
+        const existing = await recall(fact, { limit: 1, namespace })
+        if (existing.length && existing[0].score >= AUTOLEARN_DEDUPE_COS) return
+        await memorize(fact, { namespace })
+    } catch (_) {}
+}
+
 // session-end hooks + trajectory. Shared by runTurn (fresh) and resumeTurn
 // (rehydrated from a persisted snapshot after a refresh/restart).
 async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey }) {
@@ -200,6 +220,9 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
                 await h.hooks.invoke('onSessionEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
                 const errorStack = out?.error ? (events.find(e => e.type === 'llm_call' && !e.ok)?.stack || null) : null
                 await writeTrajectory(out, { prompt, provider, model, skill, cwd, events, errorStack, witnessPath })
+                // Auto-learn: memorize a salient summary of this turn into gm rs-learn so
+                // freddie learns from each substantive turn. Best-effort, deduped, capped.
+                await autoLearnTurn({ prompt, out })
                 // Completed turn leaves no step-journal residue.
                 await clearSteps(sessionKey)
                 // Unsubscribe, flush the final snapshot (persistent-actor clears it on
@@ -218,6 +241,13 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     let initMessages = [...messages]; const sysParts = []
     if (cwd) sysParts.push(`Working directory: ${cwd}. Always pass cwd="${cwd}" to bash tool calls. When reading or writing files use paths relative to this directory or absolute paths under it.`)
     if (skill) { const sd = h.pi.skills.get(skill); if (sd?.content) sysParts.push('Skill context:\n' + sd.content) }
+    // Auto-recall on turn entry: surface salient learned memories for this prompt from gm
+    // rs-learn (freddie's primary learning store). Best-effort; never blocks the turn.
+    try {
+        const { autoRecall, projectNamespace } = await import('../learn/gm-learn.js')
+        const hits = await autoRecall(prompt, { limit: 5, namespace: await projectNamespace() })
+        if (hits.length) sysParts.push('Relevant memories (gm rs-learn):\n' + hits.map(h => '- ' + h.text).join('\n'))
+    } catch (_) {}
     if (sysParts.length) initMessages.unshift({ role: 'user', content: sysParts.join('\n\n') })
     const inbound = await h.hooks.invoke('onMessageInbound', { content: prompt })
     if (inbound?.behavior === 'block') { await h.hooks.invoke('onSessionEnd', { reason: 'prompt_blocked' }); return { messages: initMessages, result: null, error: 'prompt blocked by plugsdk hook: ' + (inbound.reason || 'denied'), iterations: 0 } }

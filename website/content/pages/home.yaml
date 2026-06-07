@@ -27,7 +27,7 @@ sections:
         desc: anthropic, openai, groq, openrouter, gemini, ollama, bedrock, kilo, opencode, claude-cli — pi-ai routes them all, freddie wraps them in xstate.
         benefit: vendor down -> switch model in config, not in code.
       - name: you want memory that survives sessions
-        desc: 8 provider backends (honcho, mem0, supermemory, byterover, hindsight, openviking, retaindb, holographic) plus a sqlite fts5 fallback.
+        desc: gm rs-learn (in-process semantic vector recall) is the primary learning store — every turn auto-recalls relevant memories and auto-learns salient outcomes. Eight legacy provider backends remain opt-in.
         benefit: agent remembers a user across conversations without you wiring redis yourself.
       - name: you want to ship without a stack
         desc: pure node. no python, no docker, no kubernetes. `npm install` and you have a dashboard, a cron, a gateway, an acp server, and a cli.
@@ -102,7 +102,7 @@ body: |
   - **a gateway** that bridges 16 messaging platforms to one agent loop.
   - **an acp server** (json-rpc stdio) for ide integration.
   - **a cron scheduler** + **batch runner** for unattended workflows.
-  - **a memory layer** with 8 provider backends + a local sqlite fts5 fallback.
+  - **a learning layer** backed by gm rs-learn (in-process semantic recall), with auto-recall + auto-learn on every turn; eight legacy memory providers remain opt-in.
   - **a skills loader** that picks up SKILL.md files from `~/.freddie/skills/` and the bundled tree.
 
   ## philosophy

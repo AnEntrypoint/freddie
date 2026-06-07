@@ -67,14 +67,14 @@ sections:
         desc: "`plugins/platform-<name>/{plugin,handler}.js` — telegram, discord, slack, whatsapp, sms, email, matrix, signal, mattermost, dingtalk, feishu, weixin, wecom, qqbot, bluebubbles, homeassistant, webhook, api_server. each handler exports a class ending in `Adapter`."
   - id: storage
     name: storage + memory
-    lede: sqlite for sessions + 8 plugin backends for memory.
+    lede: sqlite for sessions + gm rs-learn for memory.
     features:
       - name: sessions
         desc: "`src/sessions.js` — libsql + fts5 full-text search."
-      - name: memory router
-        desc: "`src/plugins/memory/provider.js` — host-router that routes to the configured provider, falls back to local sqlite."
-      - name: providers
-        desc: "`plugins/memory-{honcho,mem0,supermemory,byterover,hindsight,openviking,retaindb,holographic}/`."
+      - name: learning (gm rs-learn)
+        desc: "`src/learn/gm-learn.js` — freddie's primary learning store. In-process gm rs-learn (semantic vector recall) via gm-plugkit `createPlugkit()`. Every turn auto-recalls relevant memories and auto-learns salient outcomes."
+      - name: legacy providers
+        desc: "`plugins/memory-{honcho,mem0,supermemory,byterover,hindsight,openviking,retaindb,holographic}/` are legacy opt-in only; gm rs-learn is the default."
       - name: auth
         desc: "`src/auth.js` — FileAuthStore for credential persistence (pi-ai compatible)."
   - id: skills

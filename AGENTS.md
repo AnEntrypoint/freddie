@@ -52,9 +52,7 @@ Matrix wired: shim passes `matrixSource: process.env.FREDDIE_MATRIX_URL || <repo
 
 `agent.model_preference: []` in `~/.freddie/config.yaml` is an array of `{ provider, model? }` objects; `resolveCallLLM` tries each in order, skipping unavailable (sampler-gated) and marking failures with backoff.
 
-`src/agent/acptoapi-bridge.js` `max_tokens` defaults to 4096 — never lower. 1024 silently truncates generation tasks.
-
-`src/agent/llm_resolver.js::acpChat()` speaks the kilo ACP protocol: POST `/session` → GET `/event` (SSE) → POST `/session/<id>/message`. Streams `message.part.updated` events to assemble content; terminates on `session.idle`. **`/event` must be opened BEFORE `/message` POST or messages drop.** `ACP_BACKENDS`: kilo on `http://localhost:4780`, opencode on `http://localhost:4790`. kilo + opencode ACP backends return content only, no tool_calls — for multi-iteration tool-using loops, use OpenAI-compatible providers (mistral, openrouter, sambanova, groq).
+ACP protocol detail (`acpChat`, kilo/opencode backends, `/event`-before-`/message`, max_tokens 4096 floor) — see rs-learn (recall "Freddie ACP protocol detail").
 
 ## Plugin architecture
 
@@ -80,6 +78,16 @@ Thin shims (resolved through host, do not bypass): `src/plugins/manager.js`, `sr
 ## gm-skill plugin
 
 `plugins/gm-skill/plugin.js` registers ONE canonical skill named `gm-skill`. Resolution order: (1) `~/.claude/skills/gm-skill/SKILL.md`, (2) `node_modules/gm-cc/skills/gm-skill/SKILL.md`. All other `gm-*` platform variants (gm-cc, gm-codex, gm-cursor, gm-jetbrains, gm-kilo, gm-oc, gm-vscode, gm-zed, gm-gc, gm-copilot-cli) are DEPRECATED — do not register them. `src/host/host_helpers.js::loadCcFromNodeModules` carries `CC_EXCLUDE = new Set(['gm-cc'])` so the gm-cc npm package is not auto-discovered as a cc-plugin. test.js asserts exactly one gm-prefixed skill is registered, named `gm-skill`.
+
+## Learning: gm rs-learn is THE memory mechanism
+
+freddie learns through **gm rs-learn**, in-process, via `src/learn/gm-learn.js`. This is the single canonical learning store; the local-SQLite store is gone and the third-party providers (`plugins/memory-*/`) are legacy opt-in only.
+
+- `src/learn/gm-learn.js` lazy-loads gm-plugkit's wasm via the ESM `createPlugkit()` export (`gm-plugkit/plugkit-wasm-wrapper.js`), caches one instance process-wide, and exposes `memorize`/`recall`/`autoRecall`/`prune`/`projectNamespace`. Every call degrades to a no-op (never throws into a turn) when gm/wasm is absent. First call cold-loads the wasm + BAAI/bge-small-en-v1.5 embed model, so it is lazy off the hot path. The wasm resolves `.gm/rs-learn.db` from process cwd; namespace is per active project (`projectNamespace()`).
+- **The learning loop (workflow):** every turn (`src/agent/machine.js`) auto-recalls salient memories for the prompt on entry (injected as a "Relevant memories (gm rs-learn)" system part) and auto-learns a deduped `Q:..A:..` salient fact on substantive, non-error completion (`autoLearnTurn`, dedupe cos>=0.92, min len 40). `src/context/engine.js` `ContextPlugins.memory` does query-aware recall over the same store.
+- **The `memory` tool** (`plugins/memory/handler.js`) is the explicit manual surface over the same store: `add`->memorize, `search`->recall (score-ranked), `list`->broad recall, `forget`->prune by explicit key.
+- **gm-plugkit in-process API:** `createPlugkit()` is consumed by importing the wrapper file directly (`index.js` is CJS; the export lives on the ESM wrapper). The wrapper's CLI IIFE is guarded by `_isCliEntry` so importing it does not start the daemon.
+- Legacy migration: `node scripts/migrate-memory-to-gm.mjs [namespace]` drains old `memory_local` rows into rs-learn. `src/cli/memory_setup.js` defaults `memory.provider='gm'` (no key/config); third-party providers stay behind explicit `configureProvider`.
 
 ## Multi-project workspace
 

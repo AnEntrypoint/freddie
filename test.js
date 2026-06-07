@@ -58,7 +58,7 @@ await T('host+tools+toolsets', async () => {
     await D('edit', { path: tf, old_string: 'beta', new_string: 'BETA' }); assert.match(JSON.stringify(await D('grep', { pattern: 'BETA', path: TEST_HOME })), /BETA/)
     await D('todo', { action: 'add', content: 'task-x' }); assert.match(JSON.stringify(await D('todo', { action: 'list' })), /task-x/)
     await D('checkpoint', { action: 'save', name: 'cp1', data: { v: 1 } }); assert.equal((await D('checkpoint', { action: 'load', name: 'cp1' })).data.v, 1)
-    await D('memory', { action: 'add', content: 'mem-x' }); assert.match(JSON.stringify(await D('memory', { action: 'list' })), /mem-x/)
+    { const mfact = 'freddie memory smoke fact: the quick brown fox sentinel ' + Date.now(); const ma = await D('memory', { action: 'add', content: mfact, namespace: 'freddie-test' }); assert.ok(ma.key || ma.stored === 'noop', 'memory add: ' + JSON.stringify(ma)); if (ma.key) { const ms = await D('memory', { action: 'search', query: 'quick brown fox sentinel', namespace: 'freddie-test', limit: 3 }); assert.match(JSON.stringify(ms), /quick brown fox sentinel/, 'memory search roundtrip') } }
     await D('file_state', { action: 'record', session_id: 's1', file_path: tf, op: 'write' }); assert.match(JSON.stringify(await D('file_state', { action: 'list', session_id: 's1' })), /tf\.txt/)
     await D('file_operations', { action: 'copy', src: tf, dest: tf2 }); assert.ok(fs.existsSync(tf2)); assert.ok((await D('skill_usage', { action: 'record', name: 'sk' })).recorded)
     const ts = await import('./src/toolsets.js'); assert.ok((await ts.getEnabledToolSchemas(['core'])).length >= ts._FREDDIE_CORE_TOOLS.length)
@@ -177,6 +177,36 @@ await T('plugins+memory', async () => {
     inc('test_counter', 7); assert.match(metricsText(), /freddie_counter\{name="test_counter"\} 7/)
     const { award, listAchievements } = await import('./src/plugins/achievements/index.js')
     await award('test-award'); assert.ok((await listAchievements()).some(a => a.name === 'test-award'))
+})
+await T('gm-learn', async () => {
+    const gl = await import('./src/learn/gm-learn.js')
+    // Empty/whitespace inputs are no-ops without touching the wasm.
+    assert.equal(await gl.memorize('   '), null, 'empty memorize -> null')
+    assert.deepEqual(await gl.recall(''), [], 'empty recall -> []')
+    assert.deepEqual(await gl.prune([]), { pruned: 0 }, 'empty prune -> 0')
+    // Semantic roundtrip (best-effort: skips assertion if gm wasm unavailable, never fails).
+    const ns = 'freddie-gmlearn-test'
+    const fact = 'gm-learn group sentinel: the platypus eats the violet pancake ' + Date.now()
+    const key = await gl.memorize(fact, { namespace: ns })
+    if (key) {
+        assert.ok(typeof key === 'string', 'memorize returns a key')
+        const hits = await gl.recall('platypus violet pancake', { limit: 3, namespace: ns })
+        assert.ok(hits.length >= 1, 'recall returns the memorized fact')
+        assert.ok(hits[0].text.includes('platypus'), 'recall hit content')
+        assert.ok(typeof hits[0].score === 'number', 'recall hit has score')
+        // Empty-db corner: a never-used namespace recalls cleanly to [].
+        const none = await gl.recall('zzz nonexistent query', { limit: 3, namespace: 'freddie-empty-ns-' + Date.now() })
+        assert.ok(Array.isArray(none), 'recall on empty namespace returns array')
+        // Context engine uses query-aware recall over gm rs-learn.
+        const { buildContext } = await import('./src/context/engine.js')
+        const blocks = await buildContext({ plugins: ['memory'], message: 'platypus violet pancake', options: { namespace: ns } })
+        assert.ok(blocks.some(b => /platypus/.test(b.body)), 'context memory block recalls fact')
+        // prune requires an explicit key (never blind similarity-delete).
+        const forget = await (await import('./src/host/index.js')).bootHost().then(h => h.pi.dispatchTool('memory', { action: 'forget' }))
+        assert.match(JSON.stringify(forget), /key required/, 'forget without key errors')
+    } else {
+        assert.ok(gl.learnAvailable() === false, 'no key only acceptable when gm rs-learn unavailable')
+    }
 })
 await T('profiles+observability+auth+env+context+cron+batch+slash+skills', async () => {
     const cr = await import('./src/commands/registry.js')
