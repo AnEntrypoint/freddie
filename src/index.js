@@ -21,6 +21,7 @@ export { createEnvironment, defaultEnvironment, LocalEnvironment, DockerEnvironm
 export { getAuthStore } from './auth.js'
 export { buildContext, blocksToSystemMessage, ContextPlugins } from './context/engine.js'
 export { callLLM as piCallLLM } from './agent/pi-bridge.js'
+export { callLLM as acptoapiCallLLM, isReachable as acptoapiReachable, getAcptoapiUrl, getAcptoapiModel } from './agent/acptoapi-bridge.js'
 export { interactive } from './cli/interactive.js'
 export { listMemoryProviders, createMemoryProvider, registerMemoryProvider } from './plugins/memory/provider.js'
 export { compress, shouldCompress, computeCompressionPlan, SUMMARY_PREFIX, estimateMessagesTokens, pruneOldToolResults, markFailure as compressMarkFailure, shouldRetry as compressShouldRetry, clearFailure as compressClearFailure } from './agent/compress/index.js'
