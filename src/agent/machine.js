@@ -266,12 +266,14 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
 // completed or never persisted) — caller falls back to a fresh runTurn.
 export async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath } = {}) {
     if (!sessionKey) throw new Error('resumeTurn requires sessionKey')
-    const { load } = await import('../machines/snapshot-store.js')
-    if (!(await load('agent', sessionKey))) return null
     const events = []; const h = await bootHost()
     const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey })
+    // createPersistentActor.load() already handles a missing/stale snapshot and
+    // leaves pa.resumed=false, so the prior pre-check load() was a redundant
+    // second read that opened a TOCTOU window (a concurrent delete between the two
+    // reads made forget() delete a snapshot we had just confirmed). One read only.
     const pa = await createPersistentActor(machine, { kind: 'agent', key: sessionKey, input: { messages: [] } })
-    if (!pa.resumed) { await pa.forget(); return null }
+    if (!pa.resumed) return null
     return await driveAgentActor({ pa, h, events, prompt: '', provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey })
 }
 

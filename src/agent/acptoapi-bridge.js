@@ -48,7 +48,7 @@ export async function callLLM({ messages, tools = [], model } = {}) {
     const hasTools = Array.isArray(tools) && tools.length > 0
     const adaptedMessages = messages.map(adaptMessage)
     if (hasTools) {
-        const cwd = process.cwd()
+        const cwd = typeof process !== 'undefined' ? process.cwd() : ''
         const sysIdx = adaptedMessages.findIndex(m => m.role === 'system')
         const cwdNote = `\nWorking directory: ${cwd}\nUse your built-in tools (Bash, Read, Write) to explore files in this directory when needed.`
         if (sysIdx >= 0) adaptedMessages[sysIdx] = { ...adaptedMessages[sysIdx], content: (adaptedMessages[sysIdx].content || '') + cwdNote }
@@ -62,7 +62,7 @@ export async function callLLM({ messages, tools = [], model } = {}) {
     }
     if (hasTools) body.tools = tools.map(adaptTool)
     const headers = { 'content-type': 'application/json', authorization: 'Bearer none' }
-    const cwd = process.cwd()
+    const cwd = typeof process !== 'undefined' ? process.cwd() : ''
     if (Array.isArray(tools) && tools.length) headers['x-cwd'] = cwd
     // Rely on AbortController timeout. acptoapi v1+ ships CORS + Private
     // Network Access headers so cross-origin loopback (gh-pages → localhost)
@@ -84,7 +84,12 @@ export async function callLLM({ messages, tools = [], model } = {}) {
         const text = await res.text()
         throw new Error(`acptoapi ${res.status}: ${text.slice(0, 400)}`)
     }
-    const json = await res.json()
+    let json
+    try {
+        json = await res.json()
+    } catch (e) {
+        throw new Error(`acptoapi ${res.status}: invalid JSON response: ${String(e)}`)
+    }
     log.info('completed', { model: useModel, usage: json.usage })
     return adaptResponse(json)
 }
