@@ -71,7 +71,16 @@ export async function appendMessage(sessionId, { role, content = '', toolCalls =
 export async function getMessages(sessionId) {
     const d = await db()
     const rows = await d.prepare(`SELECT id, role, content, tool_calls, tool_call_id, ts FROM messages WHERE session_id = ? ORDER BY ts ASC, id ASC`).all(sessionId)
-    return rows.map(r => ({ ...r, tool_calls: r.tool_calls ? JSON.parse(r.tool_calls) : null }))
+    return rows.map(r => {
+        let tool_calls = null
+        if (r.tool_calls) {
+            // A corrupted tool_calls cell (manual DB edit, a crash mid-serialize)
+            // must not crash every reader of this session -- degrade to null.
+            try { tool_calls = JSON.parse(r.tool_calls) }
+            catch (e) { console.error('sessions.js: corrupted tool_calls, treating as null', { id: r.id, error: String(e) }) }
+        }
+        return { ...r, tool_calls }
+    })
 }
 
 export async function listSessions(limit = 50) {

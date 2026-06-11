@@ -41,7 +41,7 @@ export class AcpServer extends EventEmitter {
         this._pendingPerm = new Map()
         this.machine = createAcpMachine()
         this.actor = createActor(this.machine)
-        this.actor.subscribe(() => { persist('acp', 'lifecycle', this.actor.getPersistedSnapshot()).catch(() => {}) })
+        this.actor.subscribe(() => { persist('acp', 'lifecycle', this.actor.getPersistedSnapshot()).catch(e => log.error('acp lifecycle persist failed', { err: String(e) })) })
         this.actor.start()
     }
     get state() { return this.actor.getSnapshot().value }

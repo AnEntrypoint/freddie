@@ -20,5 +20,5 @@ export async function getEnabledToolNames(enabled = ['core'], disabled = []) {
 
 export async function getAvailableToolsets() {
     const h = await bootHost()
-    return [...new Set(h.pi.tools.list().map(t => t.toolset || 'core'))]
+    return [...new Set(available(h).map(t => t.toolset || 'core'))]
 }
