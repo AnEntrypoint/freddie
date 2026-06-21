@@ -39,11 +39,23 @@ function parseFrontmatter(md) {
 export default {
     name: 'gm-skill',
     surfaces: 'pi',
-    register({ pi }) {
+    register({ pi, log }) {
+        const warn = (msg, data) => { try { (log && log.warn) ? log.warn(msg, data) : console.warn(`[gm-skill] ${msg}`, data || '') } catch {} }
         const skillPath = resolveSkillMd()
-        if (!skillPath) return
-        const raw = fs.readFileSync(skillPath, 'utf8')
-        const { fields, body } = parseFrontmatter(raw)
+        if (!skillPath) {
+            warn('SKILL.md unresolvable; gm-skill not registered. Run `bun x gm-plugkit@latest spool` to provision it, or install the gm-skill package.', {
+                searched: ['~/.agents/skills/gm-skill/SKILL.md', '~/.claude/skills/gm-skill/SKILL.md', 'node_modules: gm-skill, gm-cc'],
+            })
+            return
+        }
+        let raw, fields, body
+        try {
+            raw = fs.readFileSync(skillPath, 'utf8')
+            ;({ fields, body } = parseFrontmatter(raw))
+        } catch (e) {
+            warn('failed reading/parsing SKILL.md; gm-skill not registered', { file: skillPath, error: e && e.message })
+            return
+        }
         pi.skills.register({
             name: 'gm-skill',
             description: fields.description || 'AI-native software engineering harness',
