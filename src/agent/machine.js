@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto'
 
 const log = logger('agent')
 
-export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events, sessionKey } = {}) {
+export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events, sessionKey, toolCtx = null } = {}) {
     const baseLLM = callLLM || resolveCallLLM({ provider, model })
     const llm = events ? async (input) => {
         const t0 = Date.now()
@@ -36,6 +36,10 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
             provider, model,
             enabledToolsets, disabledToolsets,
             sessionKey,
+            // Opaque per-turn context handed to every tool handler (author/role/
+            // active-case/store etc.). The agent loop is identity-blind; tools that
+            // need who-is-asking read it from here. Null for a plain turn.
+            toolCtx,
         }),
         states: {
             idle: {
@@ -99,7 +103,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                 const pushExtras = r => { if (r?.systemMessage) callExtras.push({ role: 'system', content: '[hook] ' + r.systemMessage }); if (r?.additionalContext) callExtras.push({ role: 'system', content: r.additionalContext }) }
                                 const pre = await h.hooks.invoke('preToolCall', { name: tname, args: targs }); pushExtras(pre)
                                 if (pre?.behavior === 'block') { return { content: JSON.stringify({ error: 'tool call denied by plugsdk hook', tool: tname, reason: pre.reason || 'denied' }), extras: callExtras } }
-                                const res = await h.pi.dispatchTool(tname, (pre && pre.args) || targs)
+                                const res = await h.pi.dispatchTool(tname, (pre && pre.args) || targs, input.toolCtx || {})
                                 pushExtras(await h.hooks.invoke('postToolCall', { name: tname, args: targs, result: res }))
                                 return { content: res, extras: callExtras }
                             })
@@ -108,7 +112,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                         }
                         return { results, extras }
                     }),
-                    input: ({ context }) => ({ messages: context.messages, sessionKey: context.sessionKey, iterations: context.iterations }),
+                    input: ({ context }) => ({ messages: context.messages, sessionKey: context.sessionKey, iterations: context.iterations, toolCtx: context.toolCtx }),
                     onDone: { target: 'prompting', actions: assign({
                         messages: ({ context, event }) => [...context.messages, ...event.output.results.map(r => ({ role: 'tool', tool_call_id: r.tool_call_id, content: r.content })), ...event.output.extras],
                         iterations: ({ context }) => context.iterations + 1,
@@ -235,7 +239,7 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
     })
 }
 
-export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, sessionKey } = {}) {
+export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, sessionKey, toolCtx = null } = {}) {
     const events = []; const h = await bootHost()
     await h.hooks.invoke('onSessionStart', { prompt, model, provider, skill, cwd })
     let initMessages = [...messages]; const sysParts = []
@@ -255,7 +259,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     // Persist the turn snapshot under kind=agent so an interrupted turn (process
     // refresh mid-tool-call) resumes exactly where it stopped via resumeTurn.
     const key = sessionKey || randomUUID()
-    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key })
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx })
     const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages } })
     pa.actor.send({ type: 'SUBMIT', prompt })
     return await driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey: key })
@@ -264,10 +268,10 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
 // Rehydrate an interrupted turn from its persisted snapshot and drive it to
 // completion. Returns null if no live snapshot exists for the key (already
 // completed or never persisted) — caller falls back to a fresh runTurn.
-export async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath } = {}) {
+export async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, toolCtx = null } = {}) {
     if (!sessionKey) throw new Error('resumeTurn requires sessionKey')
     const events = []; const h = await bootHost()
-    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey })
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey, toolCtx })
     // createPersistentActor.load() already handles a missing/stale snapshot and
     // leaves pa.resumed=false, so the prior pre-check load() was a redundant
     // second read that opened a TOCTOU window (a concurrent delete between the two
