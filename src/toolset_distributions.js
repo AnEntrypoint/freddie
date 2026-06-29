@@ -6,6 +6,9 @@ export const DEFAULT_DISTRIBUTIONS = {
     ops: { enabledToolsets: ['core'], disabledToolsets: ['creative', 'browse'] },
     minimal: { enabledToolsets: ['core'], disabledToolsets: ['browse', 'creative'] },
     full: { enabledToolsets: ['core', 'browse', 'creative'], disabledToolsets: [] },
+    // A field worker on a CRM "case" surface: the core tools plus the case/enquiry
+    // toolset (case_* + case_mine/today/near/select/new). No browse/creative.
+    'field-worker': { enabledToolsets: ['core', 'cases'], disabledToolsets: ['browse', 'creative'] },
 }
 export function listDistributions() { return Object.keys(DEFAULT_DISTRIBUTIONS) }
 export function getDistribution(name) { return DEFAULT_DISTRIBUTIONS[name] || null }
