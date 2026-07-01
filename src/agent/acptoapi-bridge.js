@@ -42,7 +42,7 @@ export function getAcptoapiModel() {
     return envVal('FREDDIE_LLM_MODEL') || 'claude/haiku'
 }
 
-export async function callLLM({ messages, tools = [], model } = {}) {
+export async function callLLM({ messages, tools = [], model, tool_choice } = {}) {
     const base = getAcptoapiUrl()
     const useModel = model || getAcptoapiModel()
     const hasTools = Array.isArray(tools) && tools.length > 0
@@ -61,6 +61,9 @@ export async function callLLM({ messages, tools = [], model } = {}) {
         max_tokens: 4096,
     }
     if (hasTools) body.tools = tools.map(adaptTool)
+    // Forward a forced tool_choice (e.g. 'required') so a caller can compel a tool
+    // call on a turn. Only when tools are present; absent -> the model chooses.
+    if (hasTools && tool_choice) body.tool_choice = tool_choice
     const headers = { 'content-type': 'application/json', authorization: 'Bearer none' }
     const cwd = typeof process !== 'undefined' ? process.cwd() : ''
     if (Array.isArray(tools) && tools.length) headers['x-cwd'] = cwd

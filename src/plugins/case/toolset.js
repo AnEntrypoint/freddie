@@ -82,24 +82,36 @@ export function buildCaseToolset({ resolveStore = null, config = null, slimCase 
       const c = await store.getCase(id)
       if (!c) return { error: `no case ${id}` }
       const events = await store.listEvents(id, { limit: 30 })
-      return { case: slimCase(c), events: events.map(slimEvent) }
+      // PII projection by caller: a worker-facing status read gets the enquiryRow
+      // whitelist (no external_id/contact_id/phone) so a model-narrated status answer
+      // can never echo a contact identifier; an operator/dashboard read keeps the full
+      // slimCase. Default to the safe (worker) projection when the role is unknown.
+      const operator = ctx?.role === 'operator' || ctx?.principal?.role === 'operator' || ctx?.role === 'dashboard'
+      return { case: operator ? slimCase(c) : enquiryRow(c), events: events.map(slimEvent) }
     })
 
   T('case_list',
-    { description: 'List cases, optionally filtered by status/channel/assignee. Returns most-recently-active first.',
+    { description: 'List cases, optionally filtered by status/channel/assignee/location. Use `location` (a town, area, or province name the person mentions) to find reports in a place -- this is the place-enquiry tool (case_near needs GPS the worker rarely has). Returns most-recently-active first, PII-free.',
       parameters: { type: 'object', properties: {
         status: str('Filter by workflow status', { enum: statusEnum }),
         channel: str('Filter by channel'), assignee: str('Filter by assignee'),
+        location: str('A place name (town/area/province) to match reports whose location contains it'),
         limit: { type: 'number', default: 25 },
       } } },
-    async ({ status, channel, assignee, limit = 25 }, ctx) => {
+    async ({ status, channel, assignee, location, limit = 25 }, ctx) => {
       const store = storeFrom(ctx, resolveStore)
       const where = {}
       if (status) where.status = status
       if (channel) where.channel = channel
       if (assignee) where.assignee = assignee
+      // A place-name enquiry: match reports whose location contains the token. Rides
+      // thatcher's $ilike operator-where (no gazetteer regex -- the model supplies the
+      // place). The store's feature-detect shim falls back to a JS contains filter.
+      if (location) where.location = { $ilike: `%${String(location).toLowerCase()}%` }
       const rows = await store.listCases(where, { limit })
-      return { count: rows.length, cases: rows.map(slimCase) }
+      // enquiryRow (PII-free) not slimCase -- a worker-facing list must never carry
+      // external_id/contact_id/phone.
+      return { count: rows.length, cases: rows.map(enquiryRow) }
     })
 
   T('case_update',
@@ -229,6 +241,35 @@ export function buildCaseToolset({ resolveStore = null, config = null, slimCase 
       if (store.setActiveCase && ctx?.author) await store.setActiveCase(ctx.author, c.id)
       await store.appendEvent(c.id, { kind: 'note', actor: 'system', text: `case explicitly opened by worker ${ctx?.author || 'unknown'}` })
       return { ok: true, activeCase: enquiryRow(c) }
+    })
+
+  // ---- service controls the agent can ACT on (opt-out / human handoff) ----
+  T('case_stop',
+    { description: 'The person asked to STOP receiving messages (opt out). Records the opt-out so no more automatic replies go to them. Use ONLY on a clear opt-out.',
+      parameters: { type: 'object', properties: { id: str('Case id') }, required: ['id'] } },
+    async ({ id }, ctx) => {
+      const store = storeFrom(ctx, resolveStore)
+      const c = await store.getCase(id)
+      if (!c) return { error: `no case ${id}` }
+      const tags = String(c.tags || '').split(',').map(s => s.trim()).filter(Boolean)
+      if (!tags.includes('opted-out')) tags.push('opted-out')
+      await store.updateCase(id, { tags: tags.join(',') }, ctx?.principal || undefined)
+      await store.appendEvent(id, { kind: 'observation', actor: 'agent', text: 'OPT-OUT: the person asked to stop; no more automatic replies.' })
+      return { ok: true }
+    })
+
+  T('case_handoff',
+    { description: 'The person wants a real person / operator to help. Flags the case for a human and records the request. Use on a clear ask for a person.',
+      parameters: { type: 'object', properties: { id: str('Case id') }, required: ['id'] } },
+    async ({ id }, ctx) => {
+      const store = storeFrom(ctx, resolveStore)
+      const c = await store.getCase(id)
+      if (!c) return { error: `no case ${id}` }
+      const tags = String(c.tags || '').split(',').map(s => s.trim()).filter(Boolean)
+      if (!tags.includes('needs-human')) tags.push('needs-human')
+      await store.updateCase(id, { tags: tags.join(',') }, ctx?.principal || undefined)
+      await store.appendEvent(id, { kind: 'observation', actor: 'agent', text: 'HANDOFF REQUESTED: the person asked for a real person.' })
+      return { ok: true }
     })
 
   return tools
