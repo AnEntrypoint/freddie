@@ -65,6 +65,12 @@ export function buildCaseToolset({ resolveStore = null, config = null, slimCase 
   const projection = cfg.get('enquiryProjection', DEFAULT_PROJECTION)
   const actor = cfg.get('actor', 'agent')
   const terminalStatuses = cfg.get('terminalStatuses', ['resolved', 'closed'])
+  // The field that identifies the REPORTER of a case (who messaged it in). A worker's
+  // "my cases" itinerary must scope by who REPORTED the case, not who it is assigned
+  // to -- the reporter is the channel author (external_id), never an operator assignee,
+  // so an assignee-scoped "my cases" returned nothing for the asking worker. Default
+  // external_id; a host keys it via plugins.case.reporterField.
+  const reporterField = cfg.get('reporterField', 'external_id')
 
   // A case row scrubbed for enquiry output -- slim first (structured report), then
   // project to the PII-free whitelist.
@@ -165,9 +171,13 @@ export function buildCaseToolset({ resolveStore = null, config = null, slimCase 
       parameters: { type: 'object', properties: { status: str('Optional status filter', { enum: statusEnum }), limit: { type: 'number', default: 20 } } } },
     async ({ status, limit = 20 }, ctx) => {
       const store = storeFrom(ctx, resolveStore)
-      const where = { assignee: ctx?.author }
+      // Scope by REPORTER (the channel author), not assignee -- a worker's own cases
+      // are the ones they reported. The equality filter already isolates the worker,
+      // so no row_access user scope is needed (and external_id is stripped by
+      // enquiryRow, so filtering on it never leaks it).
+      const where = ctx?.author ? { [reporterField]: ctx.author } : {}
       if (status) where.status = status
-      const rows = await store.listCases(where, { limit, user: ctx?.principal })
+      const rows = await store.listCases(where, { limit })
       return { count: rows.length, cases: rows.map(enquiryRow) }
     })
 
@@ -180,8 +190,8 @@ export function buildCaseToolset({ resolveStore = null, config = null, slimCase 
       dayStart.setHours(0, 0, 0, 0)
       const since = String(Math.floor(dayStart.getTime() / 1000))   // case timestamps are unix seconds
       const where = { last_event_at: { $gte: since } }
-      if (mineOnly && ctx?.author) where.assignee = ctx.author
-      const rows = await store.listCases(where, { limit, user: ctx?.principal })
+      if (mineOnly && ctx?.author) where[reporterField] = ctx.author   // reporter scope, not assignee
+      const rows = await store.listCases(where, { limit: mineOnly ? limit : limit, ...(mineOnly ? {} : { user: ctx?.principal }) })
       return { count: rows.length, cases: rows.map(enquiryRow) }
     })
 
@@ -270,6 +280,22 @@ export function buildCaseToolset({ resolveStore = null, config = null, slimCase 
       await store.updateCase(id, { tags: tags.join(',') }, ctx?.principal || undefined)
       await store.appendEvent(id, { kind: 'observation', actor: 'agent', text: 'HANDOFF REQUESTED: the person asked for a real person.' })
       return { ok: true }
+    })
+
+  // The agent DECLARES which phase the conversation is now in; the host reads this
+  // observation back and applies the durable state transition (dstate). Append-only,
+  // like case_intent -- keeps the state I/O in the host, not the tool.
+  T('case_stage',
+    { description: 'Declare which phase the conversation is now in: greeting (a warm opener), gathering (collecting the report), enquiring (the worker asked about their work), answering (a general question), complete (the report is on record), handoff (a person is needed), or closed (they asked to stop). Call this when the phase changes so you keep your place and never repeat a question.',
+      parameters: { type: 'object', properties: {
+        to: str('Conversation phase', { enum: ['greeting', 'gathering', 'enquiring', 'answering', 'complete', 'handoff', 'closed'] }),
+      }, required: ['to'] } },
+    async ({ to }, ctx) => {
+      const store = storeFrom(ctx, resolveStore)
+      const id = ctx?.activeCaseId
+      if (!id) return { error: 'no active case' }
+      await store.appendEvent(id, { kind: 'observation', actor: 'agent', text: `STAGE-DECLARED ${to}` })
+      return { ok: true, stage: to }
     })
 
   return tools
