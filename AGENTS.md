@@ -381,3 +381,5 @@ Sampler integration: agent-loop failures feed acptoapi's per-provider backoff (5
 - `website/theme.mjs` renders structured YAML via 247420 design vocabulary, not raw markdown. Consumes `page.hero` (heading/subheading/accent/body/badges/ctas), `page.sections[]` (rotating rail color green→purple→mascot→sun→flame→sky by section index, optional `lede` + per-item `benefit` italic), `page.examples[]` (railed link list with mono numeric ranks + ↗ glyph). Falls back to `page.body` markdown for prose. Style block inlined so rail/dot/chip/btn classes work without ds-247420 SDK CSS loading first. Prefer enriching hero+sections+examples over expanding body markdown.
 - **YAML colon-space trap**: in `website/content/pages/*.yaml`, any value containing `: ` outside backticks (e.g. `[linux, macos, windows]`, `requiresEnv: ['MY_KEY']` snippets) MUST be double-quoted. The parser otherwise interprets the embedded colon as a mapping and the file fails to load.
 - SSR innerHTML injection beats client dispatch for site pages — emit HTML with rail/dot/chip/btn classes + inline styles so it paints before the SDK loads.
+
+@.gm/next-step.md
