@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto'
 
 const log = logger('agent')
 
-export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events, sessionKey, toolCtx = null } = {}) {
+export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice } = {}) {
     const baseLLM = callLLM || resolveCallLLM({ provider, model })
     const llm = events ? async (input) => {
         const t0 = Date.now()
@@ -36,6 +36,10 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
             provider, model,
             enabledToolsets, disabledToolsets,
             sessionKey,
+            // Optional forced tool_choice (e.g. 'required') threaded to the llm call so
+            // a caller can force a tool on a turn. Undefined = the model's own choice
+            // (existing behaviour unchanged).
+            tool_choice,
             // Opaque per-turn context handed to every tool handler (author/role/
             // active-case/store etc.). The agent loop is identity-blind; tools that
             // need who-is-asking read it from here. Null for a plain turn.
@@ -58,9 +62,9 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                 invoke: {
                     src: fromPromise(async ({ input }) => {
                         const schemas = await getEnabledToolSchemas(input.enabledToolsets, input.disabledToolsets)
-                        return await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: input.messages, tools: schemas, model: input.model, provider: input.provider }))
+                        return await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: input.messages, tools: schemas, model: input.model, provider: input.provider, tool_choice: input.tool_choice }))
                     }),
-                    input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, sessionKey: context.sessionKey, iterations: context.iterations }),
+                    input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, sessionKey: context.sessionKey, iterations: context.iterations, tool_choice: context.tool_choice }),
                     onDone: [
                         { guard: ({ event }) => Array.isArray(event.output?.tool_calls) && event.output.tool_calls.length > 0, target: 'tool_calls', actions: assign({ messages: ({ context, event }) => [...context.messages, { role: 'assistant', content: event.output.content || '', tool_calls: event.output.tool_calls }] }) },
                         { target: 'done', actions: assign({ messages: ({ context, event }) => [...context.messages, { role: 'assistant', content: event.output.content || '' }], lastResult: ({ context, event }) => {
@@ -239,7 +243,7 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
     })
 }
 
-export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, sessionKey, toolCtx = null } = {}) {
+export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice } = {}) {
     const events = []; const h = await bootHost()
     await h.hooks.invoke('onSessionStart', { prompt, model, provider, skill, cwd })
     let initMessages = [...messages]; const sysParts = []
@@ -259,7 +263,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     // Persist the turn snapshot under kind=agent so an interrupted turn (process
     // refresh mid-tool-call) resumes exactly where it stopped via resumeTurn.
     const key = sessionKey || randomUUID()
-    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx })
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx, tool_choice })
     const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages } })
     pa.actor.send({ type: 'SUBMIT', prompt })
     return await driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey: key })
