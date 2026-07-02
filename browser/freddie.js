@@ -1435,16 +1435,15 @@ var init_home = __esmMin((() => {
 }));
 //#endregion
 //#region src/projects.js
-init_home();
-var REGISTRY_PATH = path.join(os.homedir(), ".freddie", "projects.json");
-var DEFAULT_REGISTRY = {
-	active: "default",
-	projects: [{
-		name: "default",
-		path: path.join(os.homedir(), ".freddie"),
-		created_at: (/* @__PURE__ */ new Date()).toISOString()
-	}]
-};
+var projects_exports = /* @__PURE__ */ __exportAll({
+	applyActiveProjectFromRegistry: () => applyActiveProjectFromRegistry,
+	createProject: () => createProject,
+	deleteProject: () => deleteProject,
+	getActiveProject: () => getActiveProject,
+	listProjects: () => listProjects,
+	loadRegistry: () => loadRegistry,
+	setActiveProject: () => setActiveProject
+});
 function ensureRegistry() {
 	const dir = path.dirname(REGISTRY_PATH);
 	if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -1462,18 +1461,69 @@ function loadRegistry() {
 		return DEFAULT_REGISTRY;
 	}
 }
+function saveRegistry(reg) {
+	ensureRegistry();
+	fs.writeFileSync(REGISTRY_PATH, JSON.stringify(reg, null, 2));
+}
+function listProjects() {
+	return loadRegistry().projects;
+}
 function getActiveProject() {
 	const reg = loadRegistry();
 	return reg.projects.find((p) => p.name === reg.active) || reg.projects[0];
+}
+function createProject({ name, projectPath }) {
+	if (!name || !projectPath) throw new Error("name and path are required");
+	if (!path.isAbsolute(projectPath)) throw new Error("path must be absolute");
+	const reg = loadRegistry();
+	if (reg.projects.find((p) => p.name === name)) throw new Error("project name already exists");
+	if (!fs.existsSync(projectPath)) fs.mkdirSync(projectPath, { recursive: true });
+	reg.projects.push({
+		name,
+		path: projectPath,
+		created_at: (/* @__PURE__ */ new Date()).toISOString()
+	});
+	saveRegistry(reg);
+	return reg.projects[reg.projects.length - 1];
+}
+function deleteProject(name) {
+	if (name === "default") throw new Error("cannot delete default project");
+	const reg = loadRegistry();
+	reg.projects = reg.projects.filter((p) => p.name !== name);
+	if (reg.active === name) reg.active = "default";
+	saveRegistry(reg);
+}
+function setActiveProject(name) {
+	const reg = loadRegistry();
+	const proj = reg.projects.find((p) => p.name === name);
+	if (!proj) throw new Error("unknown project: " + name);
+	reg.active = name;
+	saveRegistry(reg);
+	applyHomeOverride(proj.path);
+	return proj;
 }
 function applyActiveProjectFromRegistry() {
 	const proj = getActiveProject();
 	if (proj) applyHomeOverride(proj.path);
 	return proj;
 }
+var REGISTRY_PATH, DEFAULT_REGISTRY;
+var init_projects = __esmMin((() => {
+	init_home();
+	REGISTRY_PATH = path.join(os.homedir(), ".freddie", "projects.json");
+	DEFAULT_REGISTRY = {
+		active: "default",
+		projects: [{
+			name: "default",
+			path: path.join(os.homedir(), ".freddie"),
+			created_at: (/* @__PURE__ */ new Date()).toISOString()
+		}]
+	};
+}));
 //#endregion
 //#region src/host/index.js
 init_home();
+init_projects();
 var _host = null;
 var _loaded = false;
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1521,6 +1571,14 @@ async function getEnabledToolSchemas(enabled = ["core"], disabled = []) {
 }
 //#endregion
 //#region src/observability/log.js
+init_home();
+var SEVERITIES = {
+	debug: 10,
+	info: 20,
+	warning: 30,
+	error: 40
+};
+var _streams = /* @__PURE__ */ new Map();
 function streamFor(name) {
 	if (_streams.has(name)) return _streams.get(name);
 	const dir = path.join(getFreddieHome(), "logs");
@@ -1580,17 +1638,6 @@ function logger(subsystem) {
 		})
 	};
 }
-var SEVERITIES, _streams;
-var init_log = __esmMin((() => {
-	init_home();
-	SEVERITIES = {
-		debug: 10,
-		info: 20,
-		warning: 30,
-		error: 40
-	};
-	_streams = /* @__PURE__ */ new Map();
-}));
 //#endregion
 //#region node_modules/js-yaml/dist/js-yaml.mjs
 /*! js-yaml 4.1.1 https://github.com/nodeca/js-yaml @license MIT */
@@ -3760,7 +3807,7 @@ function getMissingConfigFields(cfg = loadConfig()) {
 	return missing;
 }
 var DEFAULT_CONFIG, MIGRATIONS;
-var init_config$1 = __esmMin((() => {
+var init_config = __esmMin((() => {
 	init_js_yaml();
 	init_home();
 	DEFAULT_CONFIG = {
@@ -3810,9 +3857,81 @@ var init_config$1 = __esmMin((() => {
 }));
 //#endregion
 //#region src/agent/model-matrix.js
-init_log();
-init_config$1();
+init_config();
 var MATRIX_FILE = path.resolve(new URL(".", "" + import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), "..", "..", ".gm", "model-availability.json");
+//#endregion
+//#region src/agent/tool_call_text.js
+function randId() {
+	return "call_" + Math.random().toString(36).slice(2, 10);
+}
+function parseKimiSection(content) {
+	if (!content.includes("<|tool_call_begin|>")) return [];
+	const re = /<\|tool_call_begin\|>\s*([\s\S]*?)\s*<\|tool_call_argument_begin\|>\s*([\s\S]*?)\s*<\|tool_call_end\|>/g;
+	const out = [];
+	let m;
+	while ((m = re.exec(content)) !== null) {
+		const name = (m[1] || "").replace(/^functions\./, "").replace(/:\d+\s*$/, "").trim();
+		let args;
+		try {
+			args = JSON.parse((m[2] || "").trim());
+		} catch {
+			args = {};
+		}
+		if (name) out.push({
+			id: randId(),
+			name,
+			arguments: args
+		});
+	}
+	return out;
+}
+function parsePythonTag(content) {
+	if (!content.includes("<|python_tag|>")) return [];
+	const after = content.slice(content.indexOf("<|python_tag|>") + 14).trim().split("\n")[0];
+	const mc = /^([A-Za-z_][A-Za-z0-9_.]*)\s*\(([\s\S]*?)\)\s*$/.exec(after);
+	if (!mc) return [];
+	const name = mc[1].split(".")[0];
+	const inner = mc[2].trim();
+	let args = {};
+	if (/^\{[\s\S]*\}$/.test(inner)) try {
+		args = JSON.parse(inner);
+	} catch {
+		args = {};
+	}
+	else if (/^"[\s\S]*"$/.test(inner)) {
+		const s = inner.slice(1, -1);
+		args = {
+			query: s,
+			input: s
+		};
+	} else if (/=/.test(inner)) {
+		const kwRe = /([A-Za-z_][A-Za-z0-9_]*)\s*=\s*("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[\d.]+|true|false|null)/g;
+		let mm;
+		while ((mm = kwRe.exec(inner)) !== null) {
+			let v = mm[2];
+			if (/^["']/.test(v)) v = v.slice(1, -1);
+			else if (/^[\d.]+$/.test(v)) v = Number(v);
+			else if (v === "true") v = true;
+			else if (v === "false") v = false;
+			else if (v === "null") v = null;
+			args[mm[1]] = v;
+		}
+	} else if (inner) args = {
+		query: inner,
+		input: inner
+	};
+	return name ? [{
+		id: randId(),
+		name,
+		arguments: args
+	}] : [];
+}
+function parseTextToolCalls(content) {
+	if (typeof content !== "string" || !content) return [];
+	const kimi = parseKimiSection(content);
+	if (kimi.length) return kimi;
+	return parsePythonTag(content);
+}
 //#endregion
 //#region node_modules/undici/lib/core/symbols.js
 var require_symbols = /* @__PURE__ */ __commonJSMin(((exports, module) => {
@@ -25396,7 +25515,14 @@ var require_undici = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region src/agent/acptoapi-bridge.js
 var log$4 = logger("acptoapi");
-var ACPTOAPI_TIMEOUT_MS = Number(process.env.FREDDIE_LLM_TIMEOUT_MS) || 24e4;
+var envVal = (k) => {
+	try {
+		return typeof process !== "undefined" && process.env ? process.env[k] : void 0;
+	} catch {
+		return;
+	}
+};
+var ACPTOAPI_TIMEOUT_MS = Number(envVal("FREDDIE_LLM_TIMEOUT_MS")) || 24e4;
 var _dispatcherSet = false;
 async function ensureLongTimeoutDispatcher() {
 	if (_dispatcherSet) return;
@@ -25412,18 +25538,17 @@ async function ensureLongTimeoutDispatcher() {
 	} catch {}
 }
 function getAcptoapiUrl() {
-	return process.env.FREDDIE_LLM_URL || "http://127.0.0.1:4800/v1";
+	return envVal("FREDDIE_LLM_URL") || "http://127.0.0.1:4800/v1";
 }
 function getAcptoapiModel() {
-	return process.env.FREDDIE_LLM_MODEL || "claude/haiku";
+	return envVal("FREDDIE_LLM_MODEL") || "claude/haiku";
 }
-async function callLLM({ messages, tools = [], model } = {}) {
+async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } = {}) {
 	const base = getAcptoapiUrl();
 	const useModel = model || getAcptoapiModel();
 	const hasTools = Array.isArray(tools) && tools.length > 0;
 	const adaptedMessages = messages.map(adaptMessage);
-	if (hasTools) {
-		const cwd = process.cwd();
+	if (hasTools && cwd) {
 		const sysIdx = adaptedMessages.findIndex((m) => m.role === "system");
 		const cwdNote = `\nWorking directory: ${cwd}\nUse your built-in tools (Bash, Read, Write) to explore files in this directory when needed.`;
 		if (sysIdx >= 0) adaptedMessages[sysIdx] = {
@@ -25442,12 +25567,12 @@ async function callLLM({ messages, tools = [], model } = {}) {
 		max_tokens: 4096
 	};
 	if (hasTools) body.tools = tools.map(adaptTool);
+	if (hasTools && tool_choice) body.tool_choice = tool_choice;
 	const headers = {
 		"content-type": "application/json",
 		authorization: "Bearer none"
 	};
-	const cwd = process.cwd();
-	if (Array.isArray(tools) && tools.length) headers["x-cwd"] = cwd;
+	if (hasTools && cwd) headers["x-cwd"] = cwd;
 	await ensureLongTimeoutDispatcher();
 	const _ac = new AbortController();
 	const _tid = setTimeout(() => _ac.abort(/* @__PURE__ */ new Error("acptoapi fetch timeout")), ACPTOAPI_TIMEOUT_MS);
@@ -25466,7 +25591,12 @@ async function callLLM({ messages, tools = [], model } = {}) {
 		const text = await res.text();
 		throw new Error(`acptoapi ${res.status}: ${text.slice(0, 400)}`);
 	}
-	const json = await res.json();
+	let json;
+	try {
+		json = await res.json();
+	} catch (e) {
+		throw new Error(`acptoapi ${res.status}: invalid JSON response: ${String(e)}`);
+	}
 	log$4.info("completed", {
 		model: useModel,
 		usage: json.usage
@@ -25511,13 +25641,23 @@ function adaptTool(t) {
 }
 function adaptResponse(r) {
 	const choice = r.choices?.[0]?.message || {};
+	const content = typeof choice.content === "string" ? choice.content : "";
+	const tool_calls = Array.isArray(choice.tool_calls) ? choice.tool_calls.map((tc) => ({
+		id: tc.id,
+		name: tc.function?.name,
+		arguments: tryParseJson(tc.function?.arguments)
+	})) : [];
+	if (!tool_calls.length) {
+		const textTC = parseTextToolCalls(content);
+		if (textTC.length) return {
+			content: "",
+			tool_calls: textTC,
+			raw: r
+		};
+	}
 	return {
-		content: typeof choice.content === "string" ? choice.content : "",
-		tool_calls: Array.isArray(choice.tool_calls) ? choice.tool_calls.map((tc) => ({
-			id: tc.id,
-			name: tc.function?.name,
-			arguments: tryParseJson(tc.function?.arguments)
-		})) : [],
+		content,
+		tool_calls,
 		raw: r
 	};
 }
@@ -25618,9 +25758,18 @@ function adapt(result) {
 		name: t.name,
 		arguments: t.input || {}
 	}));
+	const tool_calls = openaiTC.concat(anthropicTC);
+	if (!tool_calls.length) {
+		const textTC = parseTextToolCalls(flat.text);
+		if (textTC.length) return {
+			content: "",
+			tool_calls: textTC,
+			raw: result
+		};
+	}
 	return {
 		content: flat.text,
-		tool_calls: openaiTC.concat(anthropicTC),
+		tool_calls,
 		raw: result
 	};
 }
@@ -25699,22 +25848,20 @@ function resolveCallLLM({ provider, model } = {}) {
 }
 //#endregion
 //#region node_modules/@libsql/core/lib-esm/api.js
-var LibsqlError;
-var init_api = __esmMin((() => {
-	LibsqlError = class extends Error {
-		/** Machine-readable error code. */
-		code;
-		/** Raw numeric error code */
-		rawCode;
-		constructor(message, code, rawCode, cause) {
-			if (code !== void 0) message = `${code}: ${message}`;
-			super(message, { cause });
-			this.code = code;
-			this.rawCode = rawCode;
-			this.name = "LibsqlError";
-		}
-	};
-}));
+/** Error thrown by the client. */
+var LibsqlError = class extends Error {
+	/** Machine-readable error code. */
+	code;
+	/** Raw numeric error code */
+	rawCode;
+	constructor(message, code, rawCode, cause) {
+		if (code !== void 0) message = `${code}: ${message}`;
+		super(message, { cause });
+		this.code = code;
+		this.rawCode = rawCode;
+		this.name = "LibsqlError";
+	}
+};
 //#endregion
 //#region node_modules/@libsql/core/lib-esm/uri.js
 function parseUri(text) {
@@ -25729,6 +25876,7 @@ function parseUri(text) {
 		fragment: groups["fragment"] !== void 0 ? percentDecode(groups["fragment"]) : void 0
 	};
 }
+var URI_RE = new RegExp(`^(?<scheme>[A-Za-z][A-Za-z.+-]*):(//(?<authority>[^/?#]*))?(?<path>[^?#]*)(\\?(?<query>[^#]*))?(#(?<fragment>.*))?$`, "su");
 function parseAuthority(text) {
 	const match = AUTHORITY_RE.exec(text);
 	if (match === null) throw new LibsqlError("The authority part of the URL is not in a valid format", "URL_INVALID");
@@ -25742,6 +25890,7 @@ function parseAuthority(text) {
 		} : void 0
 	};
 }
+var AUTHORITY_RE = new RegExp(`^((?<username>[^:]*)(:(?<password>.*))?@)?((?<host>[^:\\[\\]]*)|(\\[(?<host_br>[^\\[\\]]*)\\]))(:(?<port>[0-9]*))?$`, "su");
 function parseQuery(text) {
 	const sequences = text.split("&");
 	const pairs = [];
@@ -25792,173 +25941,263 @@ function encodeUserinfo(userinfo) {
 	if (userinfo === void 0) return "";
 	return `${encodeURIComponent(userinfo.username)}${userinfo.password !== void 0 ? `:${encodeURIComponent(userinfo.password)}` : ""}@`;
 }
-var URI_RE, AUTHORITY_RE;
-var init_uri = __esmMin((() => {
-	init_api();
-	URI_RE = new RegExp(`^(?<scheme>[A-Za-z][A-Za-z.+-]*):(//(?<authority>[^/?#]*))?(?<path>[^?#]*)(\\?(?<query>[^#]*))?(#(?<fragment>.*))?$`, "su");
-	AUTHORITY_RE = new RegExp(`^((?<username>[^:]*)(:(?<password>.*))?@)?((?<host>[^:\\[\\]]*)|(\\[(?<host_br>[^\\[\\]]*)\\]))(:(?<port>[0-9]*))?$`, "su");
-}));
 //#endregion
 //#region node_modules/js-base64/base64.mjs
-var version, VERSION, _hasBuffer, _TD, _TE, b64chs, b64tab, b64re, _fromCC, _U8Afrom, _mkUriSafe, _tidyB64, btoaPolyfill, _btoa, _fromUint8Array, fromUint8Array, cb_utob, re_utob, utob, _encode, encode, encodeURI$1, re_btou, cb_btou, btou, atobPolyfill, _atob, _toUint8Array, toUint8Array, _decode, _unURI, decode, isValid, _noEnum, extendString, extendUint8Array, extendBuiltins, gBase64;
-var init_base64 = __esmMin((() => {
-	version = "3.7.8";
-	VERSION = version;
-	_hasBuffer = typeof Buffer === "function";
-	_TD = typeof TextDecoder === "function" ? new TextDecoder() : void 0;
-	_TE = typeof TextEncoder === "function" ? new TextEncoder() : void 0;
-	b64chs = Array.prototype.slice.call("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=");
-	b64tab = ((a) => {
-		let tab = {};
-		a.forEach((c, i) => tab[c] = i);
-		return tab;
-	})(b64chs);
-	b64re = /^(?:[A-Za-z\d+\/]{4})*?(?:[A-Za-z\d+\/]{2}(?:==)?|[A-Za-z\d+\/]{3}=?)?$/;
-	_fromCC = String.fromCharCode.bind(String);
-	_U8Afrom = typeof Uint8Array.from === "function" ? Uint8Array.from.bind(Uint8Array) : (it) => new Uint8Array(Array.prototype.slice.call(it, 0));
-	_mkUriSafe = (src) => src.replace(/=/g, "").replace(/[+\/]/g, (m0) => m0 == "+" ? "-" : "_");
-	_tidyB64 = (s) => s.replace(/[^A-Za-z0-9\+\/]/g, "");
-	btoaPolyfill = (bin) => {
-		let u32, c0, c1, c2, asc = "";
-		const pad = bin.length % 3;
-		for (let i = 0; i < bin.length;) {
-			if ((c0 = bin.charCodeAt(i++)) > 255 || (c1 = bin.charCodeAt(i++)) > 255 || (c2 = bin.charCodeAt(i++)) > 255) throw new TypeError("invalid character found");
-			u32 = c0 << 16 | c1 << 8 | c2;
-			asc += b64chs[u32 >> 18 & 63] + b64chs[u32 >> 12 & 63] + b64chs[u32 >> 6 & 63] + b64chs[u32 & 63];
-		}
-		return pad ? asc.slice(0, pad - 3) + "===".substring(pad) : asc;
+/**
+*  base64.ts
+*
+*  Licensed under the BSD 3-Clause License.
+*    http://opensource.org/licenses/BSD-3-Clause
+*
+*  References:
+*    http://en.wikipedia.org/wiki/Base64
+*
+* @author Dan Kogai (https://github.com/dankogai)
+*/
+var version = "3.7.8";
+/**
+* @deprecated use lowercase `version`.
+*/
+var VERSION = version;
+var _hasBuffer = typeof Buffer === "function";
+var _TD = typeof TextDecoder === "function" ? new TextDecoder() : void 0;
+var _TE = typeof TextEncoder === "function" ? new TextEncoder() : void 0;
+var b64chs = Array.prototype.slice.call("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=");
+var b64tab = ((a) => {
+	let tab = {};
+	a.forEach((c, i) => tab[c] = i);
+	return tab;
+})(b64chs);
+var b64re = /^(?:[A-Za-z\d+\/]{4})*?(?:[A-Za-z\d+\/]{2}(?:==)?|[A-Za-z\d+\/]{3}=?)?$/;
+var _fromCC = String.fromCharCode.bind(String);
+var _U8Afrom = typeof Uint8Array.from === "function" ? Uint8Array.from.bind(Uint8Array) : (it) => new Uint8Array(Array.prototype.slice.call(it, 0));
+var _mkUriSafe = (src) => src.replace(/=/g, "").replace(/[+\/]/g, (m0) => m0 == "+" ? "-" : "_");
+var _tidyB64 = (s) => s.replace(/[^A-Za-z0-9\+\/]/g, "");
+/**
+* polyfill version of `btoa`
+*/
+var btoaPolyfill = (bin) => {
+	let u32, c0, c1, c2, asc = "";
+	const pad = bin.length % 3;
+	for (let i = 0; i < bin.length;) {
+		if ((c0 = bin.charCodeAt(i++)) > 255 || (c1 = bin.charCodeAt(i++)) > 255 || (c2 = bin.charCodeAt(i++)) > 255) throw new TypeError("invalid character found");
+		u32 = c0 << 16 | c1 << 8 | c2;
+		asc += b64chs[u32 >> 18 & 63] + b64chs[u32 >> 12 & 63] + b64chs[u32 >> 6 & 63] + b64chs[u32 & 63];
+	}
+	return pad ? asc.slice(0, pad - 3) + "===".substring(pad) : asc;
+};
+/**
+* does what `window.btoa` of web browsers do.
+* @param {String} bin binary string
+* @returns {string} Base64-encoded string
+*/
+var _btoa = typeof btoa === "function" ? (bin) => btoa(bin) : _hasBuffer ? (bin) => Buffer.from(bin, "binary").toString("base64") : btoaPolyfill;
+var _fromUint8Array = _hasBuffer ? (u8a) => Buffer.from(u8a).toString("base64") : (u8a) => {
+	const maxargs = 4096;
+	let strs = [];
+	for (let i = 0, l = u8a.length; i < l; i += maxargs) strs.push(_fromCC.apply(null, u8a.subarray(i, i + maxargs)));
+	return _btoa(strs.join(""));
+};
+/**
+* converts a Uint8Array to a Base64 string.
+* @param {boolean} [urlsafe] URL-and-filename-safe a la RFC4648 §5
+* @returns {string} Base64 string
+*/
+var fromUint8Array = (u8a, urlsafe = false) => urlsafe ? _mkUriSafe(_fromUint8Array(u8a)) : _fromUint8Array(u8a);
+var cb_utob = (c) => {
+	if (c.length < 2) {
+		var cc = c.charCodeAt(0);
+		return cc < 128 ? c : cc < 2048 ? _fromCC(192 | cc >>> 6) + _fromCC(128 | cc & 63) : _fromCC(224 | cc >>> 12 & 15) + _fromCC(128 | cc >>> 6 & 63) + _fromCC(128 | cc & 63);
+	} else {
+		var cc = 65536 + (c.charCodeAt(0) - 55296) * 1024 + (c.charCodeAt(1) - 56320);
+		return _fromCC(240 | cc >>> 18 & 7) + _fromCC(128 | cc >>> 12 & 63) + _fromCC(128 | cc >>> 6 & 63) + _fromCC(128 | cc & 63);
+	}
+};
+var re_utob = /[\uD800-\uDBFF][\uDC00-\uDFFFF]|[^\x00-\x7F]/g;
+/**
+* @deprecated should have been internal use only.
+* @param {string} src UTF-8 string
+* @returns {string} UTF-16 string
+*/
+var utob = (u) => u.replace(re_utob, cb_utob);
+var _encode = _hasBuffer ? (s) => Buffer.from(s, "utf8").toString("base64") : _TE ? (s) => _fromUint8Array(_TE.encode(s)) : (s) => _btoa(utob(s));
+/**
+* converts a UTF-8-encoded string to a Base64 string.
+* @param {boolean} [urlsafe] if `true` make the result URL-safe
+* @returns {string} Base64 string
+*/
+var encode = (src, urlsafe = false) => urlsafe ? _mkUriSafe(_encode(src)) : _encode(src);
+/**
+* converts a UTF-8-encoded string to URL-safe Base64 RFC4648 §5.
+* @returns {string} Base64 string
+*/
+var encodeURI$1 = (src) => encode(src, true);
+var re_btou = /[\xC0-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF7][\x80-\xBF]{3}/g;
+var cb_btou = (cccc) => {
+	switch (cccc.length) {
+		case 4:
+			var offset = ((7 & cccc.charCodeAt(0)) << 18 | (63 & cccc.charCodeAt(1)) << 12 | (63 & cccc.charCodeAt(2)) << 6 | 63 & cccc.charCodeAt(3)) - 65536;
+			return _fromCC((offset >>> 10) + 55296) + _fromCC((offset & 1023) + 56320);
+		case 3: return _fromCC((15 & cccc.charCodeAt(0)) << 12 | (63 & cccc.charCodeAt(1)) << 6 | 63 & cccc.charCodeAt(2));
+		default: return _fromCC((31 & cccc.charCodeAt(0)) << 6 | 63 & cccc.charCodeAt(1));
+	}
+};
+/**
+* @deprecated should have been internal use only.
+* @param {string} src UTF-16 string
+* @returns {string} UTF-8 string
+*/
+var btou = (b) => b.replace(re_btou, cb_btou);
+/**
+* polyfill version of `atob`
+*/
+var atobPolyfill = (asc) => {
+	asc = asc.replace(/\s+/g, "");
+	if (!b64re.test(asc)) throw new TypeError("malformed base64.");
+	asc += "==".slice(2 - (asc.length & 3));
+	let u24, r1, r2;
+	let binArray = [];
+	for (let i = 0; i < asc.length;) {
+		u24 = b64tab[asc.charAt(i++)] << 18 | b64tab[asc.charAt(i++)] << 12 | (r1 = b64tab[asc.charAt(i++)]) << 6 | (r2 = b64tab[asc.charAt(i++)]);
+		if (r1 === 64) binArray.push(_fromCC(u24 >> 16 & 255));
+		else if (r2 === 64) binArray.push(_fromCC(u24 >> 16 & 255, u24 >> 8 & 255));
+		else binArray.push(_fromCC(u24 >> 16 & 255, u24 >> 8 & 255, u24 & 255));
+	}
+	return binArray.join("");
+};
+/**
+* does what `window.atob` of web browsers do.
+* @param {String} asc Base64-encoded string
+* @returns {string} binary string
+*/
+var _atob = typeof atob === "function" ? (asc) => atob(_tidyB64(asc)) : _hasBuffer ? (asc) => Buffer.from(asc, "base64").toString("binary") : atobPolyfill;
+var _toUint8Array = _hasBuffer ? (a) => _U8Afrom(Buffer.from(a, "base64")) : (a) => _U8Afrom(_atob(a).split("").map((c) => c.charCodeAt(0)));
+/**
+* converts a Base64 string to a Uint8Array.
+*/
+var toUint8Array = (a) => _toUint8Array(_unURI(a));
+var _decode = _hasBuffer ? (a) => Buffer.from(a, "base64").toString("utf8") : _TD ? (a) => _TD.decode(_toUint8Array(a)) : (a) => btou(_atob(a));
+var _unURI = (a) => _tidyB64(a.replace(/[-_]/g, (m0) => m0 == "-" ? "+" : "/"));
+/**
+* converts a Base64 string to a UTF-8 string.
+* @param {String} src Base64 string.  Both normal and URL-safe are supported
+* @returns {string} UTF-8 string
+*/
+var decode = (src) => _decode(_unURI(src));
+/**
+* check if a value is a valid Base64 string
+* @param {String} src a value to check
+*/
+var isValid = (src) => {
+	if (typeof src !== "string") return false;
+	const s = src.replace(/\s+/g, "").replace(/={0,2}$/, "");
+	return !/[^\s0-9a-zA-Z\+/]/.test(s) || !/[^\s0-9a-zA-Z\-_]/.test(s);
+};
+var _noEnum = (v) => {
+	return {
+		value: v,
+		enumerable: false,
+		writable: true,
+		configurable: true
 	};
-	_btoa = typeof btoa === "function" ? (bin) => btoa(bin) : _hasBuffer ? (bin) => Buffer.from(bin, "binary").toString("base64") : btoaPolyfill;
-	_fromUint8Array = _hasBuffer ? (u8a) => Buffer.from(u8a).toString("base64") : (u8a) => {
-		const maxargs = 4096;
-		let strs = [];
-		for (let i = 0, l = u8a.length; i < l; i += maxargs) strs.push(_fromCC.apply(null, u8a.subarray(i, i + maxargs)));
-		return _btoa(strs.join(""));
-	};
-	fromUint8Array = (u8a, urlsafe = false) => urlsafe ? _mkUriSafe(_fromUint8Array(u8a)) : _fromUint8Array(u8a);
-	cb_utob = (c) => {
-		if (c.length < 2) {
-			var cc = c.charCodeAt(0);
-			return cc < 128 ? c : cc < 2048 ? _fromCC(192 | cc >>> 6) + _fromCC(128 | cc & 63) : _fromCC(224 | cc >>> 12 & 15) + _fromCC(128 | cc >>> 6 & 63) + _fromCC(128 | cc & 63);
-		} else {
-			var cc = 65536 + (c.charCodeAt(0) - 55296) * 1024 + (c.charCodeAt(1) - 56320);
-			return _fromCC(240 | cc >>> 18 & 7) + _fromCC(128 | cc >>> 12 & 63) + _fromCC(128 | cc >>> 6 & 63) + _fromCC(128 | cc & 63);
-		}
-	};
-	re_utob = /[\uD800-\uDBFF][\uDC00-\uDFFFF]|[^\x00-\x7F]/g;
-	utob = (u) => u.replace(re_utob, cb_utob);
-	_encode = _hasBuffer ? (s) => Buffer.from(s, "utf8").toString("base64") : _TE ? (s) => _fromUint8Array(_TE.encode(s)) : (s) => _btoa(utob(s));
-	encode = (src, urlsafe = false) => urlsafe ? _mkUriSafe(_encode(src)) : _encode(src);
-	encodeURI$1 = (src) => encode(src, true);
-	re_btou = /[\xC0-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF7][\x80-\xBF]{3}/g;
-	cb_btou = (cccc) => {
-		switch (cccc.length) {
-			case 4:
-				var offset = ((7 & cccc.charCodeAt(0)) << 18 | (63 & cccc.charCodeAt(1)) << 12 | (63 & cccc.charCodeAt(2)) << 6 | 63 & cccc.charCodeAt(3)) - 65536;
-				return _fromCC((offset >>> 10) + 55296) + _fromCC((offset & 1023) + 56320);
-			case 3: return _fromCC((15 & cccc.charCodeAt(0)) << 12 | (63 & cccc.charCodeAt(1)) << 6 | 63 & cccc.charCodeAt(2));
-			default: return _fromCC((31 & cccc.charCodeAt(0)) << 6 | 63 & cccc.charCodeAt(1));
-		}
-	};
-	btou = (b) => b.replace(re_btou, cb_btou);
-	atobPolyfill = (asc) => {
-		asc = asc.replace(/\s+/g, "");
-		if (!b64re.test(asc)) throw new TypeError("malformed base64.");
-		asc += "==".slice(2 - (asc.length & 3));
-		let u24, r1, r2;
-		let binArray = [];
-		for (let i = 0; i < asc.length;) {
-			u24 = b64tab[asc.charAt(i++)] << 18 | b64tab[asc.charAt(i++)] << 12 | (r1 = b64tab[asc.charAt(i++)]) << 6 | (r2 = b64tab[asc.charAt(i++)]);
-			if (r1 === 64) binArray.push(_fromCC(u24 >> 16 & 255));
-			else if (r2 === 64) binArray.push(_fromCC(u24 >> 16 & 255, u24 >> 8 & 255));
-			else binArray.push(_fromCC(u24 >> 16 & 255, u24 >> 8 & 255, u24 & 255));
-		}
-		return binArray.join("");
-	};
-	_atob = typeof atob === "function" ? (asc) => atob(_tidyB64(asc)) : _hasBuffer ? (asc) => Buffer.from(asc, "base64").toString("binary") : atobPolyfill;
-	_toUint8Array = _hasBuffer ? (a) => _U8Afrom(Buffer.from(a, "base64")) : (a) => _U8Afrom(_atob(a).split("").map((c) => c.charCodeAt(0)));
-	toUint8Array = (a) => _toUint8Array(_unURI(a));
-	_decode = _hasBuffer ? (a) => Buffer.from(a, "base64").toString("utf8") : _TD ? (a) => _TD.decode(_toUint8Array(a)) : (a) => btou(_atob(a));
-	_unURI = (a) => _tidyB64(a.replace(/[-_]/g, (m0) => m0 == "-" ? "+" : "/"));
-	decode = (src) => _decode(_unURI(src));
-	isValid = (src) => {
-		if (typeof src !== "string") return false;
-		const s = src.replace(/\s+/g, "").replace(/={0,2}$/, "");
-		return !/[^\s0-9a-zA-Z\+/]/.test(s) || !/[^\s0-9a-zA-Z\-_]/.test(s);
-	};
-	_noEnum = (v) => {
-		return {
-			value: v,
-			enumerable: false,
-			writable: true,
-			configurable: true
-		};
-	};
-	extendString = function() {
-		const _add = (name, body) => Object.defineProperty(String.prototype, name, _noEnum(body));
-		_add("fromBase64", function() {
-			return decode(this);
-		});
-		_add("toBase64", function(urlsafe) {
-			return encode(this, urlsafe);
-		});
-		_add("toBase64URI", function() {
-			return encode(this, true);
-		});
-		_add("toBase64URL", function() {
-			return encode(this, true);
-		});
-		_add("toUint8Array", function() {
-			return toUint8Array(this);
-		});
-	};
-	extendUint8Array = function() {
-		const _add = (name, body) => Object.defineProperty(Uint8Array.prototype, name, _noEnum(body));
-		_add("toBase64", function(urlsafe) {
-			return fromUint8Array(this, urlsafe);
-		});
-		_add("toBase64URI", function() {
-			return fromUint8Array(this, true);
-		});
-		_add("toBase64URL", function() {
-			return fromUint8Array(this, true);
-		});
-	};
-	extendBuiltins = () => {
-		extendString();
-		extendUint8Array();
-	};
-	gBase64 = {
-		version,
-		VERSION,
-		atob: _atob,
-		atobPolyfill,
-		btoa: _btoa,
-		btoaPolyfill,
-		fromBase64: decode,
-		toBase64: encode,
-		encode,
-		encodeURI: encodeURI$1,
-		encodeURL: encodeURI$1,
-		utob,
-		btou,
-		decode,
-		isValid,
-		fromUint8Array,
-		toUint8Array,
-		extendString,
-		extendUint8Array,
-		extendBuiltins
-	};
-}));
+};
+/**
+* extend String.prototype with relevant methods
+*/
+var extendString = function() {
+	const _add = (name, body) => Object.defineProperty(String.prototype, name, _noEnum(body));
+	_add("fromBase64", function() {
+		return decode(this);
+	});
+	_add("toBase64", function(urlsafe) {
+		return encode(this, urlsafe);
+	});
+	_add("toBase64URI", function() {
+		return encode(this, true);
+	});
+	_add("toBase64URL", function() {
+		return encode(this, true);
+	});
+	_add("toUint8Array", function() {
+		return toUint8Array(this);
+	});
+};
+/**
+* extend Uint8Array.prototype with relevant methods
+*/
+var extendUint8Array = function() {
+	const _add = (name, body) => Object.defineProperty(Uint8Array.prototype, name, _noEnum(body));
+	_add("toBase64", function(urlsafe) {
+		return fromUint8Array(this, urlsafe);
+	});
+	_add("toBase64URI", function() {
+		return fromUint8Array(this, true);
+	});
+	_add("toBase64URL", function() {
+		return fromUint8Array(this, true);
+	});
+};
+/**
+* extend Builtin prototypes with relevant methods
+*/
+var extendBuiltins = () => {
+	extendString();
+	extendUint8Array();
+};
+var gBase64 = {
+	version,
+	VERSION,
+	atob: _atob,
+	atobPolyfill,
+	btoa: _btoa,
+	btoaPolyfill,
+	fromBase64: decode,
+	toBase64: encode,
+	encode,
+	encodeURI: encodeURI$1,
+	encodeURL: encodeURI$1,
+	utob,
+	btou,
+	decode,
+	isValid,
+	fromUint8Array,
+	toUint8Array,
+	extendString,
+	extendUint8Array,
+	extendBuiltins
+};
 //#endregion
 //#region node_modules/@libsql/core/lib-esm/util.js
+var supportedUrlLink = "https://github.com/libsql/libsql-client-ts#supported-urls";
 function transactionModeToBegin(mode) {
 	if (mode === "write") return "BEGIN IMMEDIATE";
 	else if (mode === "read") return "BEGIN TRANSACTION READONLY";
 	else if (mode === "deferred") return "BEGIN DEFERRED";
 	else throw RangeError("Unknown transaction mode, supported values are \"write\", \"read\" and \"deferred\"");
 }
+var ResultSetImpl = class {
+	columns;
+	columnTypes;
+	rows;
+	rowsAffected;
+	lastInsertRowid;
+	constructor(columns, columnTypes, rows, rowsAffected, lastInsertRowid) {
+		this.columns = columns;
+		this.columnTypes = columnTypes;
+		this.rows = rows;
+		this.rowsAffected = rowsAffected;
+		this.lastInsertRowid = lastInsertRowid;
+	}
+	toJSON() {
+		return {
+			"columns": this.columns,
+			"columnTypes": this.columnTypes,
+			"rows": this.rows.map(rowToJson),
+			"rowsAffected": this.rowsAffected,
+			"lastInsertRowid": this.lastInsertRowid !== void 0 ? "" + this.lastInsertRowid : null
+		};
+	}
+};
 function rowToJson(row) {
 	return Array.prototype.map.call(row, valueToJson);
 }
@@ -25967,34 +26206,6 @@ function valueToJson(value) {
 	else if (value instanceof ArrayBuffer) return gBase64.fromUint8Array(new Uint8Array(value));
 	else return value;
 }
-var supportedUrlLink, ResultSetImpl;
-var init_util$2 = __esmMin((() => {
-	init_base64();
-	supportedUrlLink = "https://github.com/libsql/libsql-client-ts#supported-urls";
-	ResultSetImpl = class {
-		columns;
-		columnTypes;
-		rows;
-		rowsAffected;
-		lastInsertRowid;
-		constructor(columns, columnTypes, rows, rowsAffected, lastInsertRowid) {
-			this.columns = columns;
-			this.columnTypes = columnTypes;
-			this.rows = rows;
-			this.rowsAffected = rowsAffected;
-			this.lastInsertRowid = lastInsertRowid;
-		}
-		toJSON() {
-			return {
-				"columns": this.columns,
-				"columnTypes": this.columnTypes,
-				"rows": this.rows.map(rowToJson),
-				"rowsAffected": this.rowsAffected,
-				"lastInsertRowid": this.lastInsertRowid !== void 0 ? "" + this.lastInsertRowid : null
-			};
-		}
-	};
-}));
 //#endregion
 //#region node_modules/@libsql/core/lib-esm/config.js
 function expandConfig(config, preferHttp) {
@@ -26050,123 +26261,121 @@ function expandConfig(config, preferHttp) {
 		fetch: config.fetch
 	};
 }
-var init_config = __esmMin((() => {
-	init_api();
-	init_uri();
-	init_util$2();
-}));
 //#endregion
 //#region node_modules/@libsql/isomorphic-ws/web.mjs
 var _WebSocket;
-var init_web$2 = __esmMin((() => {
-	if (typeof WebSocket !== "undefined") _WebSocket = WebSocket;
-	else if (typeof global !== "undefined") _WebSocket = global.WebSocket;
-	else if (typeof window !== "undefined") _WebSocket = window.WebSocket;
-	else if (typeof self !== "undefined") _WebSocket = self.WebSocket;
-}));
+if (typeof WebSocket !== "undefined") _WebSocket = WebSocket;
+else if (typeof global !== "undefined") _WebSocket = global.WebSocket;
+else if (typeof window !== "undefined") _WebSocket = window.WebSocket;
+else if (typeof self !== "undefined") _WebSocket = self.WebSocket;
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/client.js
-var Client;
-var init_client$2 = __esmMin((() => {
-	Client = class {
-		/** @private */
-		constructor() {
-			this.intMode = "number";
-		}
-		/** Representation of integers returned from the database. See {@link IntMode}.
-		*
-		* This value is inherited by {@link Stream} objects created with {@link openStream}, but you can
-		* override the integer mode for every stream by setting {@link Stream.intMode} on the stream.
-		*/
-		intMode;
-	};
-}));
+/** A client for the Hrana protocol (a "database connection pool"). */
+var Client = class {
+	/** @private */
+	constructor() {
+		this.intMode = "number";
+	}
+	/** Representation of integers returned from the database. See {@link IntMode}.
+	*
+	* This value is inherited by {@link Stream} objects created with {@link openStream}, but you can
+	* override the integer mode for every stream by setting {@link Stream.intMode} on the stream.
+	*/
+	intMode;
+};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/errors.js
-var ClientError, ProtoError, ResponseError, ClosedError, WebSocketUnsupportedError, WebSocketError, HttpServerError, ProtocolVersionError, InternalError, MisuseError;
-var init_errors = __esmMin((() => {
-	ClientError = class extends Error {
-		/** @private */
-		constructor(message) {
-			super(message);
-			this.name = "ClientError";
-		}
-	};
-	ProtoError = class extends ClientError {
-		/** @private */
-		constructor(message) {
-			super(message);
-			this.name = "ProtoError";
-		}
-	};
-	ResponseError = class extends ClientError {
-		code;
-		/** @internal */
-		proto;
-		/** @private */
-		constructor(message, protoError) {
-			super(message);
-			this.name = "ResponseError";
-			this.code = protoError.code;
-			this.proto = protoError;
-			this.stack = void 0;
-		}
-	};
-	ClosedError = class extends ClientError {
-		/** @private */
-		constructor(message, cause) {
-			if (cause !== void 0) {
-				super(`${message}: ${cause}`);
-				this.cause = cause;
-			} else super(message);
-			this.name = "ClosedError";
-		}
-	};
-	WebSocketUnsupportedError = class extends ClientError {
-		/** @private */
-		constructor(message) {
-			super(message);
-			this.name = "WebSocketUnsupportedError";
-		}
-	};
-	WebSocketError = class extends ClientError {
-		/** @private */
-		constructor(message) {
-			super(message);
-			this.name = "WebSocketError";
-		}
-	};
-	HttpServerError = class extends ClientError {
-		status;
-		/** @private */
-		constructor(message, status) {
-			super(message);
-			this.status = status;
-			this.name = "HttpServerError";
-		}
-	};
-	ProtocolVersionError = class extends ClientError {
-		/** @private */
-		constructor(message) {
-			super(message);
-			this.name = "ProtocolVersionError";
-		}
-	};
-	InternalError = class extends ClientError {
-		/** @private */
-		constructor(message) {
-			super(message);
-			this.name = "InternalError";
-		}
-	};
-	MisuseError = class extends ClientError {
-		/** @private */
-		constructor(message) {
-			super(message);
-			this.name = "MisuseError";
-		}
-	};
-}));
+/** Generic error produced by the Hrana client. */
+var ClientError = class extends Error {
+	/** @private */
+	constructor(message) {
+		super(message);
+		this.name = "ClientError";
+	}
+};
+/** Error thrown when the server violates the protocol. */
+var ProtoError = class extends ClientError {
+	/** @private */
+	constructor(message) {
+		super(message);
+		this.name = "ProtoError";
+	}
+};
+/** Error thrown when the server returns an error response. */
+var ResponseError = class extends ClientError {
+	code;
+	/** @internal */
+	proto;
+	/** @private */
+	constructor(message, protoError) {
+		super(message);
+		this.name = "ResponseError";
+		this.code = protoError.code;
+		this.proto = protoError;
+		this.stack = void 0;
+	}
+};
+/** Error thrown when the client or stream is closed. */
+var ClosedError = class extends ClientError {
+	/** @private */
+	constructor(message, cause) {
+		if (cause !== void 0) {
+			super(`${message}: ${cause}`);
+			this.cause = cause;
+		} else super(message);
+		this.name = "ClosedError";
+	}
+};
+/** Error thrown when the environment does not seem to support WebSockets. */
+var WebSocketUnsupportedError = class extends ClientError {
+	/** @private */
+	constructor(message) {
+		super(message);
+		this.name = "WebSocketUnsupportedError";
+	}
+};
+/** Error thrown when we encounter a WebSocket error. */
+var WebSocketError = class extends ClientError {
+	/** @private */
+	constructor(message) {
+		super(message);
+		this.name = "WebSocketError";
+	}
+};
+/** Error thrown when the HTTP server returns an error response. */
+var HttpServerError = class extends ClientError {
+	status;
+	/** @private */
+	constructor(message, status) {
+		super(message);
+		this.status = status;
+		this.name = "HttpServerError";
+	}
+};
+/** Error thrown when the protocol version is too low to support a feature. */
+var ProtocolVersionError = class extends ClientError {
+	/** @private */
+	constructor(message) {
+		super(message);
+		this.name = "ProtocolVersionError";
+	}
+};
+/** Error thrown when an internal client error happens. */
+var InternalError = class extends ClientError {
+	/** @private */
+	constructor(message) {
+		super(message);
+		this.name = "InternalError";
+	}
+};
+/** Error thrown when the API is misused. */
+var MisuseError = class extends ClientError {
+	/** @private */
+	constructor(message) {
+		super(message);
+		this.name = "MisuseError";
+	}
+};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/encoding/json/decode.js
 function string(value) {
@@ -26207,11 +26416,67 @@ function typeError(value, expected) {
 function readJsonObject(value, fun) {
 	return fun(object(value));
 }
-var init_decode$1 = __esmMin((() => {
-	init_errors();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/encoding/json/encode.js
+var ObjectWriter = class {
+	#output;
+	#isFirst;
+	constructor(output) {
+		this.#output = output;
+		this.#isFirst = false;
+	}
+	begin() {
+		this.#output.push("{");
+		this.#isFirst = true;
+	}
+	end() {
+		this.#output.push("}");
+		this.#isFirst = false;
+	}
+	#key(name) {
+		if (this.#isFirst) {
+			this.#output.push("\"");
+			this.#isFirst = false;
+		} else this.#output.push(",\"");
+		this.#output.push(name);
+		this.#output.push("\":");
+	}
+	string(name, value) {
+		this.#key(name);
+		this.#output.push(JSON.stringify(value));
+	}
+	stringRaw(name, value) {
+		this.#key(name);
+		this.#output.push("\"");
+		this.#output.push(value);
+		this.#output.push("\"");
+	}
+	number(name, value) {
+		this.#key(name);
+		this.#output.push("" + value);
+	}
+	boolean(name, value) {
+		this.#key(name);
+		this.#output.push(value ? "true" : "false");
+	}
+	object(name, value, valueFun) {
+		this.#key(name);
+		this.begin();
+		valueFun(this, value);
+		this.end();
+	}
+	arrayObjects(name, values, valueFun) {
+		this.#key(name);
+		this.#output.push("[");
+		for (let i = 0; i < values.length; ++i) {
+			if (i !== 0) this.#output.push(",");
+			this.begin();
+			valueFun(this, values[i]);
+			this.end();
+		}
+		this.#output.push("]");
+	}
+};
 function writeJsonObject(value, fun) {
 	const output = [];
 	const writer = new ObjectWriter(output);
@@ -26220,73 +26485,114 @@ function writeJsonObject(value, fun) {
 	writer.end();
 	return output.join("");
 }
-var ObjectWriter;
-var init_encode$1 = __esmMin((() => {
-	ObjectWriter = class {
-		#output;
-		#isFirst;
-		constructor(output) {
-			this.#output = output;
-			this.#isFirst = false;
-		}
-		begin() {
-			this.#output.push("{");
-			this.#isFirst = true;
-		}
-		end() {
-			this.#output.push("}");
-			this.#isFirst = false;
-		}
-		#key(name) {
-			if (this.#isFirst) {
-				this.#output.push("\"");
-				this.#isFirst = false;
-			} else this.#output.push(",\"");
-			this.#output.push(name);
-			this.#output.push("\":");
-		}
-		string(name, value) {
-			this.#key(name);
-			this.#output.push(JSON.stringify(value));
-		}
-		stringRaw(name, value) {
-			this.#key(name);
-			this.#output.push("\"");
-			this.#output.push(value);
-			this.#output.push("\"");
-		}
-		number(name, value) {
-			this.#key(name);
-			this.#output.push("" + value);
-		}
-		boolean(name, value) {
-			this.#key(name);
-			this.#output.push(value ? "true" : "false");
-		}
-		object(name, value, valueFun) {
-			this.#key(name);
-			this.begin();
-			valueFun(this, value);
-			this.end();
-		}
-		arrayObjects(name, values, valueFun) {
-			this.#key(name);
-			this.#output.push("[");
-			for (let i = 0; i < values.length; ++i) {
-				if (i !== 0) this.#output.push(",");
-				this.begin();
-				valueFun(this, values[i]);
-				this.end();
-			}
-			this.#output.push("]");
-		}
-	};
-}));
-//#endregion
-//#region node_modules/@libsql/hrana-client/lib-esm/encoding/protobuf/util.js
-var init_util$1 = __esmMin((() => {}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/encoding/protobuf/decode.js
+var MessageReader = class {
+	#array;
+	#view;
+	#pos;
+	constructor(array) {
+		this.#array = array;
+		this.#view = new DataView(array.buffer, array.byteOffset, array.byteLength);
+		this.#pos = 0;
+	}
+	varint() {
+		let value = 0;
+		for (let shift = 0;; shift += 7) {
+			const byte = this.#array[this.#pos++];
+			value |= (byte & 127) << shift;
+			if (!(byte & 128)) break;
+		}
+		return value;
+	}
+	varintBig() {
+		let value = 0n;
+		for (let shift = 0n;; shift += 7n) {
+			const byte = this.#array[this.#pos++];
+			value |= BigInt(byte & 127) << shift;
+			if (!(byte & 128)) break;
+		}
+		return value;
+	}
+	bytes(length) {
+		const array = new Uint8Array(this.#array.buffer, this.#array.byteOffset + this.#pos, length);
+		this.#pos += length;
+		return array;
+	}
+	double() {
+		const value = this.#view.getFloat64(this.#pos, true);
+		this.#pos += 8;
+		return value;
+	}
+	skipVarint() {
+		for (;;) if (!(this.#array[this.#pos++] & 128)) break;
+	}
+	skip(count) {
+		this.#pos += count;
+	}
+	eof() {
+		return this.#pos >= this.#array.byteLength;
+	}
+};
+var FieldReader = class {
+	#reader;
+	#wireType;
+	constructor(reader) {
+		this.#reader = reader;
+		this.#wireType = -1;
+	}
+	setup(wireType) {
+		this.#wireType = wireType;
+	}
+	#expect(expectedWireType) {
+		if (this.#wireType !== expectedWireType) throw new ProtoError(`Expected wire type ${expectedWireType}, got ${this.#wireType}`);
+		this.#wireType = -1;
+	}
+	bytes() {
+		this.#expect(2);
+		const length = this.#reader.varint();
+		return this.#reader.bytes(length);
+	}
+	string() {
+		return new TextDecoder().decode(this.bytes());
+	}
+	message(def) {
+		return readProtobufMessage(this.bytes(), def);
+	}
+	int32() {
+		this.#expect(0);
+		return this.#reader.varint();
+	}
+	uint32() {
+		return this.int32();
+	}
+	bool() {
+		return this.int32() !== 0;
+	}
+	uint64() {
+		this.#expect(0);
+		return this.#reader.varintBig();
+	}
+	sint64() {
+		const value = this.uint64();
+		return value >> 1n ^ -(value & 1n);
+	}
+	double() {
+		this.#expect(1);
+		return this.#reader.double();
+	}
+	maybeSkip() {
+		if (this.#wireType < 0) return;
+		else if (this.#wireType === 0) this.#reader.skipVarint();
+		else if (this.#wireType === 1) this.#reader.skip(8);
+		else if (this.#wireType === 2) {
+			const length = this.#reader.varint();
+			this.#reader.skip(length);
+		} else if (this.#wireType === 5) this.#reader.skip(4);
+		else throw new ProtoError(`Unexpected wire type ${this.#wireType}`);
+		this.#wireType = -1;
+	}
+};
 function readProtobufMessage(data, def) {
 	const msgReader = new MessageReader(data);
 	const fieldReader = new FieldReader(msgReader);
@@ -26305,259 +26611,129 @@ function readProtobufMessage(data, def) {
 	}
 	return value;
 }
-var MessageReader, FieldReader;
-var init_decode = __esmMin((() => {
-	init_errors();
-	init_util$1();
-	MessageReader = class {
-		#array;
-		#view;
-		#pos;
-		constructor(array) {
-			this.#array = array;
-			this.#view = new DataView(array.buffer, array.byteOffset, array.byteLength);
-			this.#pos = 0;
-		}
-		varint() {
-			let value = 0;
-			for (let shift = 0;; shift += 7) {
-				const byte = this.#array[this.#pos++];
-				value |= (byte & 127) << shift;
-				if (!(byte & 128)) break;
-			}
-			return value;
-		}
-		varintBig() {
-			let value = 0n;
-			for (let shift = 0n;; shift += 7n) {
-				const byte = this.#array[this.#pos++];
-				value |= BigInt(byte & 127) << shift;
-				if (!(byte & 128)) break;
-			}
-			return value;
-		}
-		bytes(length) {
-			const array = new Uint8Array(this.#array.buffer, this.#array.byteOffset + this.#pos, length);
-			this.#pos += length;
-			return array;
-		}
-		double() {
-			const value = this.#view.getFloat64(this.#pos, true);
-			this.#pos += 8;
-			return value;
-		}
-		skipVarint() {
-			for (;;) if (!(this.#array[this.#pos++] & 128)) break;
-		}
-		skip(count) {
-			this.#pos += count;
-		}
-		eof() {
-			return this.#pos >= this.#array.byteLength;
-		}
-	};
-	FieldReader = class {
-		#reader;
-		#wireType;
-		constructor(reader) {
-			this.#reader = reader;
-			this.#wireType = -1;
-		}
-		setup(wireType) {
-			this.#wireType = wireType;
-		}
-		#expect(expectedWireType) {
-			if (this.#wireType !== expectedWireType) throw new ProtoError(`Expected wire type ${expectedWireType}, got ${this.#wireType}`);
-			this.#wireType = -1;
-		}
-		bytes() {
-			this.#expect(2);
-			const length = this.#reader.varint();
-			return this.#reader.bytes(length);
-		}
-		string() {
-			return new TextDecoder().decode(this.bytes());
-		}
-		message(def) {
-			return readProtobufMessage(this.bytes(), def);
-		}
-		int32() {
-			this.#expect(0);
-			return this.#reader.varint();
-		}
-		uint32() {
-			return this.int32();
-		}
-		bool() {
-			return this.int32() !== 0;
-		}
-		uint64() {
-			this.#expect(0);
-			return this.#reader.varintBig();
-		}
-		sint64() {
-			const value = this.uint64();
-			return value >> 1n ^ -(value & 1n);
-		}
-		double() {
-			this.#expect(1);
-			return this.#reader.double();
-		}
-		maybeSkip() {
-			if (this.#wireType < 0) return;
-			else if (this.#wireType === 0) this.#reader.skipVarint();
-			else if (this.#wireType === 1) this.#reader.skip(8);
-			else if (this.#wireType === 2) {
-				const length = this.#reader.varint();
-				this.#reader.skip(length);
-			} else if (this.#wireType === 5) this.#reader.skip(4);
-			else throw new ProtoError(`Unexpected wire type ${this.#wireType}`);
-			this.#wireType = -1;
-		}
-	};
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/encoding/protobuf/encode.js
+var MessageWriter = class MessageWriter {
+	#buf;
+	#array;
+	#view;
+	#pos;
+	constructor() {
+		this.#buf = /* @__PURE__ */ new ArrayBuffer(256);
+		this.#array = new Uint8Array(this.#buf);
+		this.#view = new DataView(this.#buf);
+		this.#pos = 0;
+	}
+	#ensure(extra) {
+		if (this.#pos + extra <= this.#buf.byteLength) return;
+		let newCap = this.#buf.byteLength;
+		while (newCap < this.#pos + extra) newCap *= 2;
+		const newBuf = new ArrayBuffer(newCap);
+		const newArray = new Uint8Array(newBuf);
+		const newView = new DataView(newBuf);
+		newArray.set(new Uint8Array(this.#buf, 0, this.#pos));
+		this.#buf = newBuf;
+		this.#array = newArray;
+		this.#view = newView;
+	}
+	#varint(value) {
+		this.#ensure(5);
+		value = 0 | value;
+		do {
+			let byte = value & 127;
+			value >>>= 7;
+			byte |= value ? 128 : 0;
+			this.#array[this.#pos++] = byte;
+		} while (value);
+	}
+	#varintBig(value) {
+		this.#ensure(10);
+		value = value & 18446744073709551615n;
+		do {
+			let byte = Number(value & 127n);
+			value >>= 7n;
+			byte |= value ? 128 : 0;
+			this.#array[this.#pos++] = byte;
+		} while (value);
+	}
+	#tag(tag, wireType) {
+		this.#varint(tag << 3 | wireType);
+	}
+	bytes(tag, value) {
+		this.#tag(tag, 2);
+		this.#varint(value.byteLength);
+		this.#ensure(value.byteLength);
+		this.#array.set(value, this.#pos);
+		this.#pos += value.byteLength;
+	}
+	string(tag, value) {
+		this.bytes(tag, new TextEncoder().encode(value));
+	}
+	message(tag, value, fun) {
+		const writer = new MessageWriter();
+		fun(writer, value);
+		this.bytes(tag, writer.data());
+	}
+	int32(tag, value) {
+		this.#tag(tag, 0);
+		this.#varint(value);
+	}
+	uint32(tag, value) {
+		this.int32(tag, value);
+	}
+	bool(tag, value) {
+		this.int32(tag, value ? 1 : 0);
+	}
+	sint64(tag, value) {
+		this.#tag(tag, 0);
+		this.#varintBig(value << 1n ^ value >> 63n);
+	}
+	double(tag, value) {
+		this.#tag(tag, 1);
+		this.#ensure(8);
+		this.#view.setFloat64(this.#pos, value, true);
+		this.#pos += 8;
+	}
+	data() {
+		return new Uint8Array(this.#buf, 0, this.#pos);
+	}
+};
 function writeProtobufMessage(value, fun) {
 	const w = new MessageWriter();
 	fun(w, value);
 	return w.data();
 }
-var MessageWriter;
-var init_encode = __esmMin((() => {
-	init_util$1();
-	MessageWriter = class MessageWriter {
-		#buf;
-		#array;
-		#view;
-		#pos;
-		constructor() {
-			this.#buf = /* @__PURE__ */ new ArrayBuffer(256);
-			this.#array = new Uint8Array(this.#buf);
-			this.#view = new DataView(this.#buf);
-			this.#pos = 0;
-		}
-		#ensure(extra) {
-			if (this.#pos + extra <= this.#buf.byteLength) return;
-			let newCap = this.#buf.byteLength;
-			while (newCap < this.#pos + extra) newCap *= 2;
-			const newBuf = new ArrayBuffer(newCap);
-			const newArray = new Uint8Array(newBuf);
-			const newView = new DataView(newBuf);
-			newArray.set(new Uint8Array(this.#buf, 0, this.#pos));
-			this.#buf = newBuf;
-			this.#array = newArray;
-			this.#view = newView;
-		}
-		#varint(value) {
-			this.#ensure(5);
-			value = 0 | value;
-			do {
-				let byte = value & 127;
-				value >>>= 7;
-				byte |= value ? 128 : 0;
-				this.#array[this.#pos++] = byte;
-			} while (value);
-		}
-		#varintBig(value) {
-			this.#ensure(10);
-			value = value & 18446744073709551615n;
-			do {
-				let byte = Number(value & 127n);
-				value >>= 7n;
-				byte |= value ? 128 : 0;
-				this.#array[this.#pos++] = byte;
-			} while (value);
-		}
-		#tag(tag, wireType) {
-			this.#varint(tag << 3 | wireType);
-		}
-		bytes(tag, value) {
-			this.#tag(tag, 2);
-			this.#varint(value.byteLength);
-			this.#ensure(value.byteLength);
-			this.#array.set(value, this.#pos);
-			this.#pos += value.byteLength;
-		}
-		string(tag, value) {
-			this.bytes(tag, new TextEncoder().encode(value));
-		}
-		message(tag, value, fun) {
-			const writer = new MessageWriter();
-			fun(writer, value);
-			this.bytes(tag, writer.data());
-		}
-		int32(tag, value) {
-			this.#tag(tag, 0);
-			this.#varint(value);
-		}
-		uint32(tag, value) {
-			this.int32(tag, value);
-		}
-		bool(tag, value) {
-			this.int32(tag, value ? 1 : 0);
-		}
-		sint64(tag, value) {
-			this.#tag(tag, 0);
-			this.#varintBig(value << 1n ^ value >> 63n);
-		}
-		double(tag, value) {
-			this.#tag(tag, 1);
-			this.#ensure(8);
-			this.#view.setFloat64(this.#pos, value, true);
-			this.#pos += 8;
-		}
-		data() {
-			return new Uint8Array(this.#buf, 0, this.#pos);
-		}
-	};
-}));
-//#endregion
-//#region node_modules/@libsql/hrana-client/lib-esm/encoding/index.js
-var init_encoding = __esmMin((() => {
-	init_decode$1();
-	init_encode$1();
-	init_decode();
-	init_encode();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/id_alloc.js
-var IdAlloc;
-var init_id_alloc = __esmMin((() => {
-	init_errors();
-	IdAlloc = class {
-		#usedIds;
-		#freeIds;
-		constructor() {
-			this.#usedIds = /* @__PURE__ */ new Set();
-			this.#freeIds = /* @__PURE__ */ new Set();
-		}
-		alloc() {
-			for (const freeId of this.#freeIds) {
-				this.#freeIds.delete(freeId);
-				this.#usedIds.add(freeId);
-				if (!this.#usedIds.has(this.#usedIds.size - 1)) this.#freeIds.add(this.#usedIds.size - 1);
-				return freeId;
-			}
-			const freeId = this.#usedIds.size;
+var IdAlloc = class {
+	#usedIds;
+	#freeIds;
+	constructor() {
+		this.#usedIds = /* @__PURE__ */ new Set();
+		this.#freeIds = /* @__PURE__ */ new Set();
+	}
+	alloc() {
+		for (const freeId of this.#freeIds) {
+			this.#freeIds.delete(freeId);
 			this.#usedIds.add(freeId);
+			if (!this.#usedIds.has(this.#usedIds.size - 1)) this.#freeIds.add(this.#usedIds.size - 1);
 			return freeId;
 		}
-		free(id) {
-			if (!this.#usedIds.delete(id)) throw new InternalError("Freeing an id that is not allocated");
-			this.#freeIds.delete(this.#usedIds.size);
-			if (id < this.#usedIds.size) this.#freeIds.add(id);
-		}
-	};
-}));
+		const freeId = this.#usedIds.size;
+		this.#usedIds.add(freeId);
+		return freeId;
+	}
+	free(id) {
+		if (!this.#usedIds.delete(id)) throw new InternalError("Freeing an id that is not allocated");
+		this.#freeIds.delete(this.#usedIds.size);
+		if (id < this.#usedIds.size) this.#freeIds.add(id);
+	}
+};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/util.js
 function impossible(value, message) {
 	throw new InternalError(message);
 }
-var init_util = __esmMin((() => {
-	init_errors();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/value.js
 function valueToProto(value) {
@@ -26576,6 +26752,8 @@ function valueToProto(value) {
 	else if (typeof value === "object") return "" + value.toString();
 	else throw new TypeError("Unsupported type of value");
 }
+var minInteger = -9223372036854775808n;
+var maxInteger = 9223372036854775807n;
 function valueFromProto(value, intMode) {
 	if (value === null) return null;
 	else if (typeof value === "number") return value;
@@ -26591,13 +26769,6 @@ function valueFromProto(value, intMode) {
 	else if (value === void 0) throw new ProtoError("Received unrecognized type of Value");
 	else throw impossible(value, "Impossible type of Value");
 }
-var minInteger, maxInteger;
-var init_value = __esmMin((() => {
-	init_errors();
-	init_util();
-	minInteger = -9223372036854775808n;
-	maxInteger = 9223372036854775807n;
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/result.js
 function stmtResultFromProto(result) {
@@ -26651,83 +26822,113 @@ function rowFromProto(colNames, values, intMode) {
 function errorFromProto(error) {
 	return new ResponseError(error.message, error);
 }
-var init_result = __esmMin((() => {
-	init_errors();
-	init_value();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/sql.js
+/** Text of an SQL statement cached on the server. */
+var Sql = class {
+	#owner;
+	#sqlId;
+	#closed;
+	/** @private */
+	constructor(owner, sqlId) {
+		this.#owner = owner;
+		this.#sqlId = sqlId;
+		this.#closed = void 0;
+	}
+	/** @private */
+	_getSqlId(owner) {
+		if (this.#owner !== owner) throw new MisuseError("Attempted to use SQL text opened with other object");
+		else if (this.#closed !== void 0) throw new ClosedError("SQL text is closed", this.#closed);
+		return this.#sqlId;
+	}
+	/** Remove the SQL text from the server, releasing resouces. */
+	close() {
+		this._setClosed(new ClientError("SQL text was manually closed"));
+	}
+	/** @private */
+	_setClosed(error) {
+		if (this.#closed === void 0) {
+			this.#closed = error;
+			this.#owner._closeSql(this.#sqlId);
+		}
+	}
+	/** True if the SQL text is closed (removed from the server). */
+	get closed() {
+		return this.#closed !== void 0;
+	}
+};
 function sqlToProto(owner, sql) {
 	if (sql instanceof Sql) return { sqlId: sql._getSqlId(owner) };
 	else return { sql: "" + sql };
 }
-var Sql;
-var init_sql = __esmMin((() => {
-	init_errors();
-	Sql = class {
-		#owner;
-		#sqlId;
-		#closed;
-		/** @private */
-		constructor(owner, sqlId) {
-			this.#owner = owner;
-			this.#sqlId = sqlId;
-			this.#closed = void 0;
-		}
-		/** @private */
-		_getSqlId(owner) {
-			if (this.#owner !== owner) throw new MisuseError("Attempted to use SQL text opened with other object");
-			else if (this.#closed !== void 0) throw new ClosedError("SQL text is closed", this.#closed);
-			return this.#sqlId;
-		}
-		/** Remove the SQL text from the server, releasing resouces. */
-		close() {
-			this._setClosed(new ClientError("SQL text was manually closed"));
-		}
-		/** @private */
-		_setClosed(error) {
-			if (this.#closed === void 0) {
-				this.#closed = error;
-				this.#owner._closeSql(this.#sqlId);
-			}
-		}
-		/** True if the SQL text is closed (removed from the server). */
-		get closed() {
-			return this.#closed !== void 0;
-		}
-	};
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/queue.js
-var Queue;
-var init_queue = __esmMin((() => {
-	Queue = class {
-		#pushStack;
-		#shiftStack;
-		constructor() {
+var Queue = class {
+	#pushStack;
+	#shiftStack;
+	constructor() {
+		this.#pushStack = [];
+		this.#shiftStack = [];
+	}
+	get length() {
+		return this.#pushStack.length + this.#shiftStack.length;
+	}
+	push(elem) {
+		this.#pushStack.push(elem);
+	}
+	shift() {
+		if (this.#shiftStack.length === 0 && this.#pushStack.length > 0) {
+			this.#shiftStack = this.#pushStack.reverse();
 			this.#pushStack = [];
-			this.#shiftStack = [];
 		}
-		get length() {
-			return this.#pushStack.length + this.#shiftStack.length;
-		}
-		push(elem) {
-			this.#pushStack.push(elem);
-		}
-		shift() {
-			if (this.#shiftStack.length === 0 && this.#pushStack.length > 0) {
-				this.#shiftStack = this.#pushStack.reverse();
-				this.#pushStack = [];
-			}
-			return this.#shiftStack.pop();
-		}
-		first() {
-			return this.#shiftStack.length !== 0 ? this.#shiftStack[this.#shiftStack.length - 1] : this.#pushStack[0];
-		}
-	};
-}));
+		return this.#shiftStack.pop();
+	}
+	first() {
+		return this.#shiftStack.length !== 0 ? this.#shiftStack[this.#shiftStack.length - 1] : this.#pushStack[0];
+	}
+};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/stmt.js
+/** A statement that can be evaluated by the database. Besides the SQL text, it also contains the positional
+* and named arguments. */
+var Stmt$2 = class {
+	/** The SQL statement text. */
+	sql;
+	/** @private */
+	_args;
+	/** @private */
+	_namedArgs;
+	/** Initialize the statement with given SQL text. */
+	constructor(sql) {
+		this.sql = sql;
+		this._args = [];
+		this._namedArgs = /* @__PURE__ */ new Map();
+	}
+	/** Binds positional parameters from the given `values`. All previous positional bindings are cleared. */
+	bindIndexes(values) {
+		this._args.length = 0;
+		for (const value of values) this._args.push(valueToProto(value));
+		return this;
+	}
+	/** Binds a parameter by a 1-based index. */
+	bindIndex(index, value) {
+		if (index !== (index | 0) || index <= 0) throw new RangeError("Index of a positional argument must be positive integer");
+		while (this._args.length < index) this._args.push(null);
+		this._args[index - 1] = valueToProto(value);
+		return this;
+	}
+	/** Binds a parameter by name. */
+	bindName(name, value) {
+		this._namedArgs.set(name, valueToProto(value));
+		return this;
+	}
+	/** Clears all bindings. */
+	unbindAll() {
+		this._args.length = 0;
+		this._namedArgs.clear();
+		return this;
+	}
+};
 function stmtToProto(sqlOwner, stmt, wantRows) {
 	let inSql;
 	let args = [];
@@ -26758,51 +26959,36 @@ function stmtToProto(sqlOwner, stmt, wantRows) {
 		wantRows
 	};
 }
-var Stmt$2;
-var init_stmt = __esmMin((() => {
-	init_sql();
-	init_value();
-	Stmt$2 = class {
-		/** The SQL statement text. */
-		sql;
-		/** @private */
-		_args;
-		/** @private */
-		_namedArgs;
-		/** Initialize the statement with given SQL text. */
-		constructor(sql) {
-			this.sql = sql;
-			this._args = [];
-			this._namedArgs = /* @__PURE__ */ new Map();
-		}
-		/** Binds positional parameters from the given `values`. All previous positional bindings are cleared. */
-		bindIndexes(values) {
-			this._args.length = 0;
-			for (const value of values) this._args.push(valueToProto(value));
-			return this;
-		}
-		/** Binds a parameter by a 1-based index. */
-		bindIndex(index, value) {
-			if (index !== (index | 0) || index <= 0) throw new RangeError("Index of a positional argument must be positive integer");
-			while (this._args.length < index) this._args.push(null);
-			this._args[index - 1] = valueToProto(value);
-			return this;
-		}
-		/** Binds a parameter by name. */
-		bindName(name, value) {
-			this._namedArgs.set(name, valueToProto(value));
-			return this;
-		}
-		/** Clears all bindings. */
-		unbindAll() {
-			this._args.length = 0;
-			this._namedArgs.clear();
-			return this;
-		}
-	};
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/batch.js
+/** A builder for creating a batch and executing it on the server. */
+var Batch$2 = class {
+	/** @private */
+	_stream;
+	#useCursor;
+	/** @private */
+	_steps;
+	#executed;
+	/** @private */
+	constructor(stream, useCursor) {
+		this._stream = stream;
+		this.#useCursor = useCursor;
+		this._steps = [];
+		this.#executed = false;
+	}
+	/** Return a builder for adding a step to the batch. */
+	step() {
+		return new BatchStep$2(this);
+	}
+	/** Execute the batch. */
+	execute() {
+		if (this.#executed) throw new MisuseError("This batch has already been executed");
+		this.#executed = true;
+		const batch = { steps: this._steps.map((step) => step.proto) };
+		if (this.#useCursor) return executeCursor(this._stream, this._steps, batch);
+		else return executeRegular(this._stream, this._steps, batch);
+	}
+};
 function executeRegular(stream, steps, batch) {
 	return stream._batch(batch).then((result) => {
 		for (let step = 0; step < steps.length; ++step) {
@@ -26863,6 +27049,136 @@ async function executeCursor(stream, steps, batch) {
 		cursor.close();
 	}
 }
+/** A builder for adding a step to the batch. */
+var BatchStep$2 = class {
+	/** @private */
+	_batch;
+	#conds;
+	/** @private */
+	_index;
+	/** @private */
+	constructor(batch) {
+		this._batch = batch;
+		this.#conds = [];
+		this._index = void 0;
+	}
+	/** Add the condition that needs to be satisfied to execute the statement. If you use this method multiple
+	* times, we join the conditions with a logical AND. */
+	condition(cond) {
+		this.#conds.push(cond._proto);
+		return this;
+	}
+	/** Add a statement that returns rows. */
+	query(stmt) {
+		return this.#add(stmt, true, rowsResultFromProto);
+	}
+	/** Add a statement that returns at most a single row. */
+	queryRow(stmt) {
+		return this.#add(stmt, true, rowResultFromProto);
+	}
+	/** Add a statement that returns at most a single value. */
+	queryValue(stmt) {
+		return this.#add(stmt, true, valueResultFromProto);
+	}
+	/** Add a statement without returning rows. */
+	run(stmt) {
+		return this.#add(stmt, false, stmtResultFromProto);
+	}
+	#add(inStmt, wantRows, fromProto) {
+		if (this._index !== void 0) throw new MisuseError("This BatchStep has already been added to the batch");
+		const stmt = stmtToProto(this._batch._stream._sqlOwner(), inStmt, wantRows);
+		let condition;
+		if (this.#conds.length === 0) condition = void 0;
+		else if (this.#conds.length === 1) condition = this.#conds[0];
+		else condition = {
+			type: "and",
+			conds: this.#conds.slice()
+		};
+		const proto = {
+			stmt,
+			condition
+		};
+		return new Promise((outputCallback, errorCallback) => {
+			const callback = (stepResult, stepError) => {
+				if (stepResult !== void 0 && stepError !== void 0) errorCallback(new ProtoError("Server returned both result and error"));
+				else if (stepError !== void 0) errorCallback(errorFromProto(stepError));
+				else if (stepResult !== void 0) outputCallback(fromProto(stepResult, this._batch._stream.intMode));
+				else outputCallback(void 0);
+			};
+			this._index = this._batch._steps.length;
+			this._batch._steps.push({
+				proto,
+				callback
+			});
+		});
+	}
+};
+var BatchCond$2 = class BatchCond$2 {
+	/** @private */
+	_batch;
+	/** @private */
+	_proto;
+	/** @private */
+	constructor(batch, proto) {
+		this._batch = batch;
+		this._proto = proto;
+	}
+	/** Create a condition that evaluates to true when the given step executes successfully.
+	*
+	* If the given step fails error or is skipped because its condition evaluated to false, this
+	* condition evaluates to false.
+	*/
+	static ok(step) {
+		return new BatchCond$2(step._batch, {
+			type: "ok",
+			step: stepIndex(step)
+		});
+	}
+	/** Create a condition that evaluates to true when the given step fails.
+	*
+	* If the given step succeeds or is skipped because its condition evaluated to false, this condition
+	* evaluates to false.
+	*/
+	static error(step) {
+		return new BatchCond$2(step._batch, {
+			type: "error",
+			step: stepIndex(step)
+		});
+	}
+	/** Create a condition that is a logical negation of another condition.
+	*/
+	static not(cond) {
+		return new BatchCond$2(cond._batch, {
+			type: "not",
+			cond: cond._proto
+		});
+	}
+	/** Create a condition that is a logical AND of other conditions.
+	*/
+	static and(batch, conds) {
+		for (const cond of conds) checkCondBatch(batch, cond);
+		return new BatchCond$2(batch, {
+			type: "and",
+			conds: conds.map((e) => e._proto)
+		});
+	}
+	/** Create a condition that is a logical OR of other conditions.
+	*/
+	static or(batch, conds) {
+		for (const cond of conds) checkCondBatch(batch, cond);
+		return new BatchCond$2(batch, {
+			type: "or",
+			conds: conds.map((e) => e._proto)
+		});
+	}
+	/** Create a condition that evaluates to true when the SQL connection is in autocommit mode (not inside an
+	* explicit transaction). This requires protocol version 3 or higher.
+	*/
+	static isAutocommit(batch) {
+		batch._stream.client()._ensureVersion(3, "BatchCond.isAutocommit()");
+		return new BatchCond$2(batch, { type: "is_autocommit" });
+	}
+};
 function stepIndex(step) {
 	if (step._index === void 0) throw new MisuseError("Cannot add a condition referencing a step that has not been added to the batch");
 	return step._index;
@@ -26870,169 +27186,6 @@ function stepIndex(step) {
 function checkCondBatch(expectedBatch, cond) {
 	if (cond._batch !== expectedBatch) throw new MisuseError("Cannot mix BatchCond objects for different Batch objects");
 }
-var Batch$2, BatchStep$2, BatchCond$2;
-var init_batch = __esmMin((() => {
-	init_errors();
-	init_result();
-	init_stmt();
-	init_util();
-	Batch$2 = class {
-		/** @private */
-		_stream;
-		#useCursor;
-		/** @private */
-		_steps;
-		#executed;
-		/** @private */
-		constructor(stream, useCursor) {
-			this._stream = stream;
-			this.#useCursor = useCursor;
-			this._steps = [];
-			this.#executed = false;
-		}
-		/** Return a builder for adding a step to the batch. */
-		step() {
-			return new BatchStep$2(this);
-		}
-		/** Execute the batch. */
-		execute() {
-			if (this.#executed) throw new MisuseError("This batch has already been executed");
-			this.#executed = true;
-			const batch = { steps: this._steps.map((step) => step.proto) };
-			if (this.#useCursor) return executeCursor(this._stream, this._steps, batch);
-			else return executeRegular(this._stream, this._steps, batch);
-		}
-	};
-	BatchStep$2 = class {
-		/** @private */
-		_batch;
-		#conds;
-		/** @private */
-		_index;
-		/** @private */
-		constructor(batch) {
-			this._batch = batch;
-			this.#conds = [];
-			this._index = void 0;
-		}
-		/** Add the condition that needs to be satisfied to execute the statement. If you use this method multiple
-		* times, we join the conditions with a logical AND. */
-		condition(cond) {
-			this.#conds.push(cond._proto);
-			return this;
-		}
-		/** Add a statement that returns rows. */
-		query(stmt) {
-			return this.#add(stmt, true, rowsResultFromProto);
-		}
-		/** Add a statement that returns at most a single row. */
-		queryRow(stmt) {
-			return this.#add(stmt, true, rowResultFromProto);
-		}
-		/** Add a statement that returns at most a single value. */
-		queryValue(stmt) {
-			return this.#add(stmt, true, valueResultFromProto);
-		}
-		/** Add a statement without returning rows. */
-		run(stmt) {
-			return this.#add(stmt, false, stmtResultFromProto);
-		}
-		#add(inStmt, wantRows, fromProto) {
-			if (this._index !== void 0) throw new MisuseError("This BatchStep has already been added to the batch");
-			const stmt = stmtToProto(this._batch._stream._sqlOwner(), inStmt, wantRows);
-			let condition;
-			if (this.#conds.length === 0) condition = void 0;
-			else if (this.#conds.length === 1) condition = this.#conds[0];
-			else condition = {
-				type: "and",
-				conds: this.#conds.slice()
-			};
-			const proto = {
-				stmt,
-				condition
-			};
-			return new Promise((outputCallback, errorCallback) => {
-				const callback = (stepResult, stepError) => {
-					if (stepResult !== void 0 && stepError !== void 0) errorCallback(new ProtoError("Server returned both result and error"));
-					else if (stepError !== void 0) errorCallback(errorFromProto(stepError));
-					else if (stepResult !== void 0) outputCallback(fromProto(stepResult, this._batch._stream.intMode));
-					else outputCallback(void 0);
-				};
-				this._index = this._batch._steps.length;
-				this._batch._steps.push({
-					proto,
-					callback
-				});
-			});
-		}
-	};
-	BatchCond$2 = class BatchCond$2 {
-		/** @private */
-		_batch;
-		/** @private */
-		_proto;
-		/** @private */
-		constructor(batch, proto) {
-			this._batch = batch;
-			this._proto = proto;
-		}
-		/** Create a condition that evaluates to true when the given step executes successfully.
-		*
-		* If the given step fails error or is skipped because its condition evaluated to false, this
-		* condition evaluates to false.
-		*/
-		static ok(step) {
-			return new BatchCond$2(step._batch, {
-				type: "ok",
-				step: stepIndex(step)
-			});
-		}
-		/** Create a condition that evaluates to true when the given step fails.
-		*
-		* If the given step succeeds or is skipped because its condition evaluated to false, this condition
-		* evaluates to false.
-		*/
-		static error(step) {
-			return new BatchCond$2(step._batch, {
-				type: "error",
-				step: stepIndex(step)
-			});
-		}
-		/** Create a condition that is a logical negation of another condition.
-		*/
-		static not(cond) {
-			return new BatchCond$2(cond._batch, {
-				type: "not",
-				cond: cond._proto
-			});
-		}
-		/** Create a condition that is a logical AND of other conditions.
-		*/
-		static and(batch, conds) {
-			for (const cond of conds) checkCondBatch(batch, cond);
-			return new BatchCond$2(batch, {
-				type: "and",
-				conds: conds.map((e) => e._proto)
-			});
-		}
-		/** Create a condition that is a logical OR of other conditions.
-		*/
-		static or(batch, conds) {
-			for (const cond of conds) checkCondBatch(batch, cond);
-			return new BatchCond$2(batch, {
-				type: "or",
-				conds: conds.map((e) => e._proto)
-			});
-		}
-		/** Create a condition that evaluates to true when the SQL connection is in autocommit mode (not inside an
-		* explicit transaction). This requires protocol version 3 or higher.
-		*/
-		static isAutocommit(batch) {
-			batch._stream.client()._ensureVersion(3, "BatchCond.isAutocommit()");
-			return new BatchCond$2(batch, { type: "is_autocommit" });
-		}
-	};
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/describe.js
 function describeResultFromProto(result) {
@@ -27043,365 +27196,341 @@ function describeResultFromProto(result) {
 		isReadonly: result.isReadonly
 	};
 }
-var init_describe = __esmMin((() => {}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/stream.js
-var Stream;
-var init_stream$2 = __esmMin((() => {
-	init_batch();
-	init_describe();
-	init_result();
-	init_sql();
-	init_stmt();
-	Stream = class {
-		/** @private */
-		constructor(intMode) {
-			this.intMode = intMode;
-		}
-		/** Execute a statement and return rows. */
-		query(stmt) {
-			return this.#execute(stmt, true, rowsResultFromProto);
-		}
-		/** Execute a statement and return at most a single row. */
-		queryRow(stmt) {
-			return this.#execute(stmt, true, rowResultFromProto);
-		}
-		/** Execute a statement and return at most a single value. */
-		queryValue(stmt) {
-			return this.#execute(stmt, true, valueResultFromProto);
-		}
-		/** Execute a statement without returning rows. */
-		run(stmt) {
-			return this.#execute(stmt, false, stmtResultFromProto);
-		}
-		#execute(inStmt, wantRows, fromProto) {
-			const stmt = stmtToProto(this._sqlOwner(), inStmt, wantRows);
-			return this._execute(stmt).then((r) => fromProto(r, this.intMode));
-		}
-		/** Return a builder for creating and executing a batch.
-		*
-		* If `useCursor` is true, the batch will be executed using a Hrana cursor, which will stream results from
-		* the server to the client, which consumes less memory on the server. This requires protocol version 3 or
-		* higher.
-		*/
-		batch(useCursor = false) {
-			return new Batch$2(this, useCursor);
-		}
-		/** Parse and analyze a statement. This requires protocol version 2 or higher. */
-		describe(inSql) {
-			const protoSql = sqlToProto(this._sqlOwner(), inSql);
-			return this._describe(protoSql).then(describeResultFromProto);
-		}
-		/** Execute a sequence of statements separated by semicolons. This requires protocol version 2 or higher.
-		* */
-		sequence(inSql) {
-			const protoSql = sqlToProto(this._sqlOwner(), inSql);
-			return this._sequence(protoSql);
-		}
-		/** Representation of integers returned from the database. See {@link IntMode}.
-		*
-		* This value affects the results of all operations on this stream.
-		*/
-		intMode;
-	};
-}));
+/** A stream for executing SQL statements (a "database connection"). */
+var Stream = class {
+	/** @private */
+	constructor(intMode) {
+		this.intMode = intMode;
+	}
+	/** Execute a statement and return rows. */
+	query(stmt) {
+		return this.#execute(stmt, true, rowsResultFromProto);
+	}
+	/** Execute a statement and return at most a single row. */
+	queryRow(stmt) {
+		return this.#execute(stmt, true, rowResultFromProto);
+	}
+	/** Execute a statement and return at most a single value. */
+	queryValue(stmt) {
+		return this.#execute(stmt, true, valueResultFromProto);
+	}
+	/** Execute a statement without returning rows. */
+	run(stmt) {
+		return this.#execute(stmt, false, stmtResultFromProto);
+	}
+	#execute(inStmt, wantRows, fromProto) {
+		const stmt = stmtToProto(this._sqlOwner(), inStmt, wantRows);
+		return this._execute(stmt).then((r) => fromProto(r, this.intMode));
+	}
+	/** Return a builder for creating and executing a batch.
+	*
+	* If `useCursor` is true, the batch will be executed using a Hrana cursor, which will stream results from
+	* the server to the client, which consumes less memory on the server. This requires protocol version 3 or
+	* higher.
+	*/
+	batch(useCursor = false) {
+		return new Batch$2(this, useCursor);
+	}
+	/** Parse and analyze a statement. This requires protocol version 2 or higher. */
+	describe(inSql) {
+		const protoSql = sqlToProto(this._sqlOwner(), inSql);
+		return this._describe(protoSql).then(describeResultFromProto);
+	}
+	/** Execute a sequence of statements separated by semicolons. This requires protocol version 2 or higher.
+	* */
+	sequence(inSql) {
+		const protoSql = sqlToProto(this._sqlOwner(), inSql);
+		return this._sequence(protoSql);
+	}
+	/** Representation of integers returned from the database. See {@link IntMode}.
+	*
+	* This value affects the results of all operations on this stream.
+	*/
+	intMode;
+};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/cursor.js
-var Cursor;
-var init_cursor$2 = __esmMin((() => {
-	Cursor = class {};
-}));
+var Cursor = class {};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/ws/cursor.js
-var fetchChunkSize, fetchQueueSize, WsCursor;
-var init_cursor$1 = __esmMin((() => {
-	init_errors();
-	init_cursor$2();
-	init_queue();
-	fetchChunkSize = 1e3;
-	fetchQueueSize = 10;
-	WsCursor = class extends Cursor {
-		#client;
-		#stream;
-		#cursorId;
-		#entryQueue;
-		#fetchQueue;
-		#closed;
-		#done;
-		/** @private */
-		constructor(client, stream, cursorId) {
-			super();
-			this.#client = client;
-			this.#stream = stream;
-			this.#cursorId = cursorId;
-			this.#entryQueue = new Queue();
-			this.#fetchQueue = new Queue();
-			this.#closed = void 0;
-			this.#done = false;
-		}
-		/** Fetch the next entry from the cursor. */
-		async next() {
-			for (;;) {
-				if (this.#closed !== void 0) throw new ClosedError("Cursor is closed", this.#closed);
-				while (!this.#done && this.#fetchQueue.length < fetchQueueSize) this.#fetchQueue.push(this.#fetch());
-				const entry = this.#entryQueue.shift();
-				if (this.#done || entry !== void 0) return entry;
-				await this.#fetchQueue.shift().then((response) => {
-					if (response === void 0) return;
-					for (const entry of response.entries) this.#entryQueue.push(entry);
-					this.#done ||= response.done;
-				});
-			}
-		}
-		#fetch() {
-			return this.#stream._sendCursorRequest(this, {
-				type: "fetch_cursor",
-				cursorId: this.#cursorId,
-				maxCount: fetchChunkSize
-			}).then((resp) => resp, (error) => {
-				this._setClosed(error);
+var fetchChunkSize = 1e3;
+var fetchQueueSize = 10;
+var WsCursor = class extends Cursor {
+	#client;
+	#stream;
+	#cursorId;
+	#entryQueue;
+	#fetchQueue;
+	#closed;
+	#done;
+	/** @private */
+	constructor(client, stream, cursorId) {
+		super();
+		this.#client = client;
+		this.#stream = stream;
+		this.#cursorId = cursorId;
+		this.#entryQueue = new Queue();
+		this.#fetchQueue = new Queue();
+		this.#closed = void 0;
+		this.#done = false;
+	}
+	/** Fetch the next entry from the cursor. */
+	async next() {
+		for (;;) {
+			if (this.#closed !== void 0) throw new ClosedError("Cursor is closed", this.#closed);
+			while (!this.#done && this.#fetchQueue.length < fetchQueueSize) this.#fetchQueue.push(this.#fetch());
+			const entry = this.#entryQueue.shift();
+			if (this.#done || entry !== void 0) return entry;
+			await this.#fetchQueue.shift().then((response) => {
+				if (response === void 0) return;
+				for (const entry of response.entries) this.#entryQueue.push(entry);
+				this.#done ||= response.done;
 			});
 		}
-		/** @private */
-		_setClosed(error) {
-			if (this.#closed !== void 0) return;
-			this.#closed = error;
-			this.#stream._sendCursorRequest(this, {
-				type: "close_cursor",
-				cursorId: this.#cursorId
-			}).catch(() => void 0);
-			this.#stream._cursorClosed(this);
-		}
-		/** Close the cursor. */
-		close() {
-			this._setClosed(new ClientError("Cursor was manually closed"));
-		}
-		/** True if the cursor is closed. */
-		get closed() {
-			return this.#closed !== void 0;
-		}
-	};
-}));
+	}
+	#fetch() {
+		return this.#stream._sendCursorRequest(this, {
+			type: "fetch_cursor",
+			cursorId: this.#cursorId,
+			maxCount: fetchChunkSize
+		}).then((resp) => resp, (error) => {
+			this._setClosed(error);
+		});
+	}
+	/** @private */
+	_setClosed(error) {
+		if (this.#closed !== void 0) return;
+		this.#closed = error;
+		this.#stream._sendCursorRequest(this, {
+			type: "close_cursor",
+			cursorId: this.#cursorId
+		}).catch(() => void 0);
+		this.#stream._cursorClosed(this);
+	}
+	/** Close the cursor. */
+	close() {
+		this._setClosed(new ClientError("Cursor was manually closed"));
+	}
+	/** True if the cursor is closed. */
+	get closed() {
+		return this.#closed !== void 0;
+	}
+};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/ws/stream.js
-var WsStream;
-var init_stream$1 = __esmMin((() => {
-	init_errors();
-	init_queue();
-	init_stream$2();
-	init_cursor$1();
-	WsStream = class WsStream extends Stream {
-		#client;
-		#streamId;
-		#queue;
-		#cursor;
-		#closing;
-		#closed;
-		/** @private */
-		static open(client) {
-			const streamId = client._streamIdAlloc.alloc();
-			const stream = new WsStream(client, streamId);
-			const responseCallback = () => void 0;
-			const errorCallback = (e) => stream.#setClosed(e);
-			const request = {
-				type: "open_stream",
-				streamId
-			};
-			client._sendRequest(request, {
+var WsStream = class WsStream extends Stream {
+	#client;
+	#streamId;
+	#queue;
+	#cursor;
+	#closing;
+	#closed;
+	/** @private */
+	static open(client) {
+		const streamId = client._streamIdAlloc.alloc();
+		const stream = new WsStream(client, streamId);
+		const responseCallback = () => void 0;
+		const errorCallback = (e) => stream.#setClosed(e);
+		const request = {
+			type: "open_stream",
+			streamId
+		};
+		client._sendRequest(request, {
+			responseCallback,
+			errorCallback
+		});
+		return stream;
+	}
+	/** @private */
+	constructor(client, streamId) {
+		super(client.intMode);
+		this.#client = client;
+		this.#streamId = streamId;
+		this.#queue = new Queue();
+		this.#cursor = void 0;
+		this.#closing = false;
+		this.#closed = void 0;
+	}
+	/** Get the {@link WsClient} object that this stream belongs to. */
+	client() {
+		return this.#client;
+	}
+	/** @private */
+	_sqlOwner() {
+		return this.#client;
+	}
+	/** @private */
+	_execute(stmt) {
+		return this.#sendStreamRequest({
+			type: "execute",
+			streamId: this.#streamId,
+			stmt
+		}).then((response) => {
+			return response.result;
+		});
+	}
+	/** @private */
+	_batch(batch) {
+		return this.#sendStreamRequest({
+			type: "batch",
+			streamId: this.#streamId,
+			batch
+		}).then((response) => {
+			return response.result;
+		});
+	}
+	/** @private */
+	_describe(protoSql) {
+		this.#client._ensureVersion(2, "describe()");
+		return this.#sendStreamRequest({
+			type: "describe",
+			streamId: this.#streamId,
+			sql: protoSql.sql,
+			sqlId: protoSql.sqlId
+		}).then((response) => {
+			return response.result;
+		});
+	}
+	/** @private */
+	_sequence(protoSql) {
+		this.#client._ensureVersion(2, "sequence()");
+		return this.#sendStreamRequest({
+			type: "sequence",
+			streamId: this.#streamId,
+			sql: protoSql.sql,
+			sqlId: protoSql.sqlId
+		}).then((_response) => {});
+	}
+	/** Check whether the SQL connection underlying this stream is in autocommit state (i.e., outside of an
+	* explicit transaction). This requires protocol version 3 or higher.
+	*/
+	getAutocommit() {
+		this.#client._ensureVersion(3, "getAutocommit()");
+		return this.#sendStreamRequest({
+			type: "get_autocommit",
+			streamId: this.#streamId
+		}).then((response) => {
+			return response.isAutocommit;
+		});
+	}
+	#sendStreamRequest(request) {
+		return new Promise((responseCallback, errorCallback) => {
+			this.#pushToQueue({
+				type: "request",
+				request,
 				responseCallback,
 				errorCallback
 			});
-			return stream;
-		}
-		/** @private */
-		constructor(client, streamId) {
-			super(client.intMode);
-			this.#client = client;
-			this.#streamId = streamId;
-			this.#queue = new Queue();
-			this.#cursor = void 0;
-			this.#closing = false;
-			this.#closed = void 0;
-		}
-		/** Get the {@link WsClient} object that this stream belongs to. */
-		client() {
-			return this.#client;
-		}
-		/** @private */
-		_sqlOwner() {
-			return this.#client;
-		}
-		/** @private */
-		_execute(stmt) {
-			return this.#sendStreamRequest({
-				type: "execute",
-				streamId: this.#streamId,
-				stmt
-			}).then((response) => {
-				return response.result;
+		});
+	}
+	/** @private */
+	_openCursor(batch) {
+		this.#client._ensureVersion(3, "cursor");
+		return new Promise((cursorCallback, errorCallback) => {
+			this.#pushToQueue({
+				type: "cursor",
+				batch,
+				cursorCallback,
+				errorCallback
 			});
-		}
-		/** @private */
-		_batch(batch) {
-			return this.#sendStreamRequest({
-				type: "batch",
-				streamId: this.#streamId,
-				batch
-			}).then((response) => {
-				return response.result;
-			});
-		}
-		/** @private */
-		_describe(protoSql) {
-			this.#client._ensureVersion(2, "describe()");
-			return this.#sendStreamRequest({
-				type: "describe",
-				streamId: this.#streamId,
-				sql: protoSql.sql,
-				sqlId: protoSql.sqlId
-			}).then((response) => {
-				return response.result;
-			});
-		}
-		/** @private */
-		_sequence(protoSql) {
-			this.#client._ensureVersion(2, "sequence()");
-			return this.#sendStreamRequest({
-				type: "sequence",
-				streamId: this.#streamId,
-				sql: protoSql.sql,
-				sqlId: protoSql.sqlId
-			}).then((_response) => {});
-		}
-		/** Check whether the SQL connection underlying this stream is in autocommit state (i.e., outside of an
-		* explicit transaction). This requires protocol version 3 or higher.
-		*/
-		getAutocommit() {
-			this.#client._ensureVersion(3, "getAutocommit()");
-			return this.#sendStreamRequest({
-				type: "get_autocommit",
-				streamId: this.#streamId
-			}).then((response) => {
-				return response.isAutocommit;
-			});
-		}
-		#sendStreamRequest(request) {
-			return new Promise((responseCallback, errorCallback) => {
-				this.#pushToQueue({
-					type: "request",
-					request,
-					responseCallback,
-					errorCallback
-				});
-			});
-		}
-		/** @private */
-		_openCursor(batch) {
-			this.#client._ensureVersion(3, "cursor");
-			return new Promise((cursorCallback, errorCallback) => {
-				this.#pushToQueue({
-					type: "cursor",
-					batch,
-					cursorCallback,
-					errorCallback
-				});
-			});
-		}
-		/** @private */
-		_sendCursorRequest(cursor, request) {
-			if (cursor !== this.#cursor) throw new InternalError("Cursor not associated with the stream attempted to execute a request");
-			return new Promise((responseCallback, errorCallback) => {
-				if (this.#closed !== void 0) errorCallback(new ClosedError("Stream is closed", this.#closed));
-				else this.#client._sendRequest(request, {
-					responseCallback,
-					errorCallback
-				});
-			});
-		}
-		/** @private */
-		_cursorClosed(cursor) {
-			if (cursor !== this.#cursor) throw new InternalError("Cursor was closed, but it was not associated with the stream");
-			this.#cursor = void 0;
-			this.#flushQueue();
-		}
-		#pushToQueue(entry) {
-			if (this.#closed !== void 0) entry.errorCallback(new ClosedError("Stream is closed", this.#closed));
-			else if (this.#closing) entry.errorCallback(new ClosedError("Stream is closing", void 0));
-			else {
-				this.#queue.push(entry);
-				this.#flushQueue();
-			}
-		}
-		#flushQueue() {
-			for (;;) {
-				const entry = this.#queue.first();
-				if (entry === void 0 && this.#cursor === void 0 && this.#closing) {
-					this.#setClosed(new ClientError("Stream was gracefully closed"));
-					break;
-				} else if (entry?.type === "request" && this.#cursor === void 0) {
-					const { request, responseCallback, errorCallback } = entry;
-					this.#queue.shift();
-					this.#client._sendRequest(request, {
-						responseCallback,
-						errorCallback
-					});
-				} else if (entry?.type === "cursor" && this.#cursor === void 0) {
-					const { batch, cursorCallback } = entry;
-					this.#queue.shift();
-					const cursorId = this.#client._cursorIdAlloc.alloc();
-					const cursor = new WsCursor(this.#client, this, cursorId);
-					const request = {
-						type: "open_cursor",
-						streamId: this.#streamId,
-						cursorId,
-						batch
-					};
-					const responseCallback = () => void 0;
-					const errorCallback = (e) => cursor._setClosed(e);
-					this.#client._sendRequest(request, {
-						responseCallback,
-						errorCallback
-					});
-					this.#cursor = cursor;
-					cursorCallback(cursor);
-				} else break;
-			}
-		}
-		#setClosed(error) {
-			if (this.#closed !== void 0) return;
-			this.#closed = error;
-			if (this.#cursor !== void 0) this.#cursor._setClosed(error);
-			for (;;) {
-				const entry = this.#queue.shift();
-				if (entry !== void 0) entry.errorCallback(error);
-				else break;
-			}
-			const request = {
-				type: "close_stream",
-				streamId: this.#streamId
-			};
-			const responseCallback = () => this.#client._streamIdAlloc.free(this.#streamId);
-			const errorCallback = () => void 0;
-			this.#client._sendRequest(request, {
+		});
+	}
+	/** @private */
+	_sendCursorRequest(cursor, request) {
+		if (cursor !== this.#cursor) throw new InternalError("Cursor not associated with the stream attempted to execute a request");
+		return new Promise((responseCallback, errorCallback) => {
+			if (this.#closed !== void 0) errorCallback(new ClosedError("Stream is closed", this.#closed));
+			else this.#client._sendRequest(request, {
 				responseCallback,
 				errorCallback
 			});
-		}
-		/** Immediately close the stream. */
-		close() {
-			this.#setClosed(new ClientError("Stream was manually closed"));
-		}
-		/** Gracefully close the stream. */
-		closeGracefully() {
-			this.#closing = true;
+		});
+	}
+	/** @private */
+	_cursorClosed(cursor) {
+		if (cursor !== this.#cursor) throw new InternalError("Cursor was closed, but it was not associated with the stream");
+		this.#cursor = void 0;
+		this.#flushQueue();
+	}
+	#pushToQueue(entry) {
+		if (this.#closed !== void 0) entry.errorCallback(new ClosedError("Stream is closed", this.#closed));
+		else if (this.#closing) entry.errorCallback(new ClosedError("Stream is closing", void 0));
+		else {
+			this.#queue.push(entry);
 			this.#flushQueue();
 		}
-		/** True if the stream is closed or closing. */
-		get closed() {
-			return this.#closed !== void 0 || this.#closing;
+	}
+	#flushQueue() {
+		for (;;) {
+			const entry = this.#queue.first();
+			if (entry === void 0 && this.#cursor === void 0 && this.#closing) {
+				this.#setClosed(new ClientError("Stream was gracefully closed"));
+				break;
+			} else if (entry?.type === "request" && this.#cursor === void 0) {
+				const { request, responseCallback, errorCallback } = entry;
+				this.#queue.shift();
+				this.#client._sendRequest(request, {
+					responseCallback,
+					errorCallback
+				});
+			} else if (entry?.type === "cursor" && this.#cursor === void 0) {
+				const { batch, cursorCallback } = entry;
+				this.#queue.shift();
+				const cursorId = this.#client._cursorIdAlloc.alloc();
+				const cursor = new WsCursor(this.#client, this, cursorId);
+				const request = {
+					type: "open_cursor",
+					streamId: this.#streamId,
+					cursorId,
+					batch
+				};
+				const responseCallback = () => void 0;
+				const errorCallback = (e) => cursor._setClosed(e);
+				this.#client._sendRequest(request, {
+					responseCallback,
+					errorCallback
+				});
+				this.#cursor = cursor;
+				cursorCallback(cursor);
+			} else break;
 		}
-	};
-}));
+	}
+	#setClosed(error) {
+		if (this.#closed !== void 0) return;
+		this.#closed = error;
+		if (this.#cursor !== void 0) this.#cursor._setClosed(error);
+		for (;;) {
+			const entry = this.#queue.shift();
+			if (entry !== void 0) entry.errorCallback(error);
+			else break;
+		}
+		const request = {
+			type: "close_stream",
+			streamId: this.#streamId
+		};
+		const responseCallback = () => this.#client._streamIdAlloc.free(this.#streamId);
+		const errorCallback = () => void 0;
+		this.#client._sendRequest(request, {
+			responseCallback,
+			errorCallback
+		});
+	}
+	/** Immediately close the stream. */
+	close() {
+		this.#setClosed(new ClientError("Stream was manually closed"));
+	}
+	/** Gracefully close the stream. */
+	closeGracefully() {
+		this.#closing = true;
+		this.#flushQueue();
+	}
+	/** True if the stream is closed or closing. */
+	get closed() {
+		return this.#closed !== void 0 || this.#closing;
+	}
+};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/shared/json_encode.js
 function Stmt$1(w, msg) {
@@ -27445,10 +27574,6 @@ function Value$3(w, msg) {
 		w.stringRaw("base64", gBase64.fromUint8Array(msg));
 	} else if (msg === void 0) {} else throw impossible(msg, "Impossible type of Value");
 }
-var init_json_encode$2 = __esmMin((() => {
-	init_base64();
-	init_util();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/ws/json_encode.js
 function ClientMsg$1(w, msg) {
@@ -27493,10 +27618,6 @@ function Request$1(w, msg) {
 	else if (msg.type === "get_autocommit") w.number("stream_id", msg.streamId);
 	else throw impossible(msg, "Impossible type of Request");
 }
-var init_json_encode$1 = __esmMin((() => {
-	init_json_encode$2();
-	init_util();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/shared/protobuf_encode.js
 function Stmt(w, msg) {
@@ -27538,9 +27659,6 @@ function Value$2(w, msg) {
 	else if (msg === void 0) {} else throw impossible(msg, "Impossible type of Value");
 }
 function Empty(_w, _msg) {}
-var init_protobuf_encode$2 = __esmMin((() => {
-	init_util();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/ws/protobuf_encode.js
 function ClientMsg(w, msg) {
@@ -27614,10 +27732,6 @@ function CloseSqlReq(w, msg) {
 function GetAutocommitReq(w, msg) {
 	w.int32(1, msg.streamId);
 }
-var init_protobuf_encode$1 = __esmMin((() => {
-	init_protobuf_encode$2();
-	init_util();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/shared/json_decode.js
 function Error$2(obj) {
@@ -27716,11 +27830,6 @@ function Value$1(obj) {
 	else if (type === "blob") return gBase64.toUint8Array(string(obj["base64"]));
 	else throw new ProtoError("Unexpected type of Value");
 }
-var init_json_decode$2 = __esmMin((() => {
-	init_base64();
-	init_errors();
-	init_decode$1();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/ws/json_decode.js
 function ServerMsg$1(obj) {
@@ -27774,754 +27883,720 @@ function Response(obj) {
 	};
 	else throw new ProtoError("Unexpected type of Response");
 }
-var init_json_decode$1 = __esmMin((() => {
-	init_errors();
-	init_decode$1();
-	init_json_decode$2();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/shared/protobuf_decode.js
-var Error$1, StmtResult, Col, Row, BatchResult, BatchResultStepResult, BatchResultStepError, CursorEntry, StepBeginEntry, StepEndEntry, StepErrorEntry, DescribeResult, DescribeParam, DescribeCol, Value;
-var init_protobuf_decode$2 = __esmMin((() => {
-	Error$1 = {
-		default() {
-			return {
-				message: "",
-				code: void 0
-			};
-		},
-		1(r, msg) {
-			msg.message = r.string();
-		},
-		2(r, msg) {
-			msg.code = r.string();
-		}
-	};
-	StmtResult = {
-		default() {
-			return {
-				cols: [],
-				rows: [],
-				affectedRowCount: 0,
-				lastInsertRowid: void 0
-			};
-		},
-		1(r, msg) {
-			msg.cols.push(r.message(Col));
-		},
-		2(r, msg) {
-			msg.rows.push(r.message(Row));
-		},
-		3(r, msg) {
-			msg.affectedRowCount = Number(r.uint64());
-		},
-		4(r, msg) {
-			msg.lastInsertRowid = r.sint64();
-		}
-	};
-	Col = {
-		default() {
-			return {
-				name: void 0,
-				decltype: void 0
-			};
-		},
-		1(r, msg) {
-			msg.name = r.string();
-		},
-		2(r, msg) {
-			msg.decltype = r.string();
-		}
-	};
-	Row = {
-		default() {
-			return [];
-		},
-		1(r, msg) {
-			msg.push(r.message(Value));
-		}
-	};
-	BatchResult = {
-		default() {
-			return {
-				stepResults: /* @__PURE__ */ new Map(),
-				stepErrors: /* @__PURE__ */ new Map()
-			};
-		},
-		1(r, msg) {
-			const [key, value] = r.message(BatchResultStepResult);
-			msg.stepResults.set(key, value);
-		},
-		2(r, msg) {
-			const [key, value] = r.message(BatchResultStepError);
-			msg.stepErrors.set(key, value);
-		}
-	};
-	BatchResultStepResult = {
-		default() {
-			return [0, StmtResult.default()];
-		},
-		1(r, msg) {
-			msg[0] = r.uint32();
-		},
-		2(r, msg) {
-			msg[1] = r.message(StmtResult);
-		}
-	};
-	BatchResultStepError = {
-		default() {
-			return [0, Error$1.default()];
-		},
-		1(r, msg) {
-			msg[0] = r.uint32();
-		},
-		2(r, msg) {
-			msg[1] = r.message(Error$1);
-		}
-	};
-	CursorEntry = {
-		default() {
-			return { type: "none" };
-		},
-		1(r) {
-			return r.message(StepBeginEntry);
-		},
-		2(r) {
-			return r.message(StepEndEntry);
-		},
-		3(r) {
-			return r.message(StepErrorEntry);
-		},
-		4(r) {
-			return {
-				type: "row",
-				row: r.message(Row)
-			};
-		},
-		5(r) {
-			return {
-				type: "error",
-				error: r.message(Error$1)
-			};
-		}
-	};
-	StepBeginEntry = {
-		default() {
-			return {
-				type: "step_begin",
-				step: 0,
-				cols: []
-			};
-		},
-		1(r, msg) {
-			msg.step = r.uint32();
-		},
-		2(r, msg) {
-			msg.cols.push(r.message(Col));
-		}
-	};
-	StepEndEntry = {
-		default() {
-			return {
-				type: "step_end",
-				affectedRowCount: 0,
-				lastInsertRowid: void 0
-			};
-		},
-		1(r, msg) {
-			msg.affectedRowCount = r.uint32();
-		},
-		2(r, msg) {
-			msg.lastInsertRowid = r.uint64();
-		}
-	};
-	StepErrorEntry = {
-		default() {
-			return {
-				type: "step_error",
-				step: 0,
-				error: Error$1.default()
-			};
-		},
-		1(r, msg) {
-			msg.step = r.uint32();
-		},
-		2(r, msg) {
-			msg.error = r.message(Error$1);
-		}
-	};
-	DescribeResult = {
-		default() {
-			return {
-				params: [],
-				cols: [],
-				isExplain: false,
-				isReadonly: false
-			};
-		},
-		1(r, msg) {
-			msg.params.push(r.message(DescribeParam));
-		},
-		2(r, msg) {
-			msg.cols.push(r.message(DescribeCol));
-		},
-		3(r, msg) {
-			msg.isExplain = r.bool();
-		},
-		4(r, msg) {
-			msg.isReadonly = r.bool();
-		}
-	};
-	DescribeParam = {
-		default() {
-			return { name: void 0 };
-		},
-		1(r, msg) {
-			msg.name = r.string();
-		}
-	};
-	DescribeCol = {
-		default() {
-			return {
-				name: "",
-				decltype: void 0
-			};
-		},
-		1(r, msg) {
-			msg.name = r.string();
-		},
-		2(r, msg) {
-			msg.decltype = r.string();
-		}
-	};
-	Value = {
-		default() {},
-		1(r) {
-			return null;
-		},
-		2(r) {
-			return r.sint64();
-		},
-		3(r) {
-			return r.double();
-		},
-		4(r) {
-			return r.string();
-		},
-		5(r) {
-			return r.bytes();
-		}
-	};
-}));
+var Error$1 = {
+	default() {
+		return {
+			message: "",
+			code: void 0
+		};
+	},
+	1(r, msg) {
+		msg.message = r.string();
+	},
+	2(r, msg) {
+		msg.code = r.string();
+	}
+};
+var StmtResult = {
+	default() {
+		return {
+			cols: [],
+			rows: [],
+			affectedRowCount: 0,
+			lastInsertRowid: void 0
+		};
+	},
+	1(r, msg) {
+		msg.cols.push(r.message(Col));
+	},
+	2(r, msg) {
+		msg.rows.push(r.message(Row));
+	},
+	3(r, msg) {
+		msg.affectedRowCount = Number(r.uint64());
+	},
+	4(r, msg) {
+		msg.lastInsertRowid = r.sint64();
+	}
+};
+var Col = {
+	default() {
+		return {
+			name: void 0,
+			decltype: void 0
+		};
+	},
+	1(r, msg) {
+		msg.name = r.string();
+	},
+	2(r, msg) {
+		msg.decltype = r.string();
+	}
+};
+var Row = {
+	default() {
+		return [];
+	},
+	1(r, msg) {
+		msg.push(r.message(Value));
+	}
+};
+var BatchResult = {
+	default() {
+		return {
+			stepResults: /* @__PURE__ */ new Map(),
+			stepErrors: /* @__PURE__ */ new Map()
+		};
+	},
+	1(r, msg) {
+		const [key, value] = r.message(BatchResultStepResult);
+		msg.stepResults.set(key, value);
+	},
+	2(r, msg) {
+		const [key, value] = r.message(BatchResultStepError);
+		msg.stepErrors.set(key, value);
+	}
+};
+var BatchResultStepResult = {
+	default() {
+		return [0, StmtResult.default()];
+	},
+	1(r, msg) {
+		msg[0] = r.uint32();
+	},
+	2(r, msg) {
+		msg[1] = r.message(StmtResult);
+	}
+};
+var BatchResultStepError = {
+	default() {
+		return [0, Error$1.default()];
+	},
+	1(r, msg) {
+		msg[0] = r.uint32();
+	},
+	2(r, msg) {
+		msg[1] = r.message(Error$1);
+	}
+};
+var CursorEntry = {
+	default() {
+		return { type: "none" };
+	},
+	1(r) {
+		return r.message(StepBeginEntry);
+	},
+	2(r) {
+		return r.message(StepEndEntry);
+	},
+	3(r) {
+		return r.message(StepErrorEntry);
+	},
+	4(r) {
+		return {
+			type: "row",
+			row: r.message(Row)
+		};
+	},
+	5(r) {
+		return {
+			type: "error",
+			error: r.message(Error$1)
+		};
+	}
+};
+var StepBeginEntry = {
+	default() {
+		return {
+			type: "step_begin",
+			step: 0,
+			cols: []
+		};
+	},
+	1(r, msg) {
+		msg.step = r.uint32();
+	},
+	2(r, msg) {
+		msg.cols.push(r.message(Col));
+	}
+};
+var StepEndEntry = {
+	default() {
+		return {
+			type: "step_end",
+			affectedRowCount: 0,
+			lastInsertRowid: void 0
+		};
+	},
+	1(r, msg) {
+		msg.affectedRowCount = r.uint32();
+	},
+	2(r, msg) {
+		msg.lastInsertRowid = r.uint64();
+	}
+};
+var StepErrorEntry = {
+	default() {
+		return {
+			type: "step_error",
+			step: 0,
+			error: Error$1.default()
+		};
+	},
+	1(r, msg) {
+		msg.step = r.uint32();
+	},
+	2(r, msg) {
+		msg.error = r.message(Error$1);
+	}
+};
+var DescribeResult = {
+	default() {
+		return {
+			params: [],
+			cols: [],
+			isExplain: false,
+			isReadonly: false
+		};
+	},
+	1(r, msg) {
+		msg.params.push(r.message(DescribeParam));
+	},
+	2(r, msg) {
+		msg.cols.push(r.message(DescribeCol));
+	},
+	3(r, msg) {
+		msg.isExplain = r.bool();
+	},
+	4(r, msg) {
+		msg.isReadonly = r.bool();
+	}
+};
+var DescribeParam = {
+	default() {
+		return { name: void 0 };
+	},
+	1(r, msg) {
+		msg.name = r.string();
+	}
+};
+var DescribeCol = {
+	default() {
+		return {
+			name: "",
+			decltype: void 0
+		};
+	},
+	1(r, msg) {
+		msg.name = r.string();
+	},
+	2(r, msg) {
+		msg.decltype = r.string();
+	}
+};
+var Value = {
+	default() {},
+	1(r) {
+		return null;
+	},
+	2(r) {
+		return r.sint64();
+	},
+	3(r) {
+		return r.double();
+	},
+	4(r) {
+		return r.string();
+	},
+	5(r) {
+		return r.bytes();
+	}
+};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/ws/protobuf_decode.js
-var ServerMsg, HelloErrorMsg, ResponseErrorMsg, ResponseOkMsg, ExecuteResp, BatchResp, FetchCursorResp, DescribeResp, GetAutocommitResp;
-var init_protobuf_decode$1 = __esmMin((() => {
-	init_protobuf_decode$2();
-	ServerMsg = {
-		default() {
-			return { type: "none" };
-		},
-		1(r) {
-			return { type: "hello_ok" };
-		},
-		2(r) {
-			return r.message(HelloErrorMsg);
-		},
-		3(r) {
-			return r.message(ResponseOkMsg);
-		},
-		4(r) {
-			return r.message(ResponseErrorMsg);
-		}
-	};
-	HelloErrorMsg = {
-		default() {
-			return {
-				type: "hello_error",
-				error: Error$1.default()
-			};
-		},
-		1(r, msg) {
-			msg.error = r.message(Error$1);
-		}
-	};
-	ResponseErrorMsg = {
-		default() {
-			return {
-				type: "response_error",
-				requestId: 0,
-				error: Error$1.default()
-			};
-		},
-		1(r, msg) {
-			msg.requestId = r.int32();
-		},
-		2(r, msg) {
-			msg.error = r.message(Error$1);
-		}
-	};
-	ResponseOkMsg = {
-		default() {
-			return {
-				type: "response_ok",
-				requestId: 0,
-				response: { type: "none" }
-			};
-		},
-		1(r, msg) {
-			msg.requestId = r.int32();
-		},
-		2(r, msg) {
-			msg.response = { type: "open_stream" };
-		},
-		3(r, msg) {
-			msg.response = { type: "close_stream" };
-		},
-		4(r, msg) {
-			msg.response = r.message(ExecuteResp);
-		},
-		5(r, msg) {
-			msg.response = r.message(BatchResp);
-		},
-		6(r, msg) {
-			msg.response = { type: "open_cursor" };
-		},
-		7(r, msg) {
-			msg.response = { type: "close_cursor" };
-		},
-		8(r, msg) {
-			msg.response = r.message(FetchCursorResp);
-		},
-		9(r, msg) {
-			msg.response = { type: "sequence" };
-		},
-		10(r, msg) {
-			msg.response = r.message(DescribeResp);
-		},
-		11(r, msg) {
-			msg.response = { type: "store_sql" };
-		},
-		12(r, msg) {
-			msg.response = { type: "close_sql" };
-		},
-		13(r, msg) {
-			msg.response = r.message(GetAutocommitResp);
-		}
-	};
-	ExecuteResp = {
-		default() {
-			return {
-				type: "execute",
-				result: StmtResult.default()
-			};
-		},
-		1(r, msg) {
-			msg.result = r.message(StmtResult);
-		}
-	};
-	BatchResp = {
-		default() {
-			return {
-				type: "batch",
-				result: BatchResult.default()
-			};
-		},
-		1(r, msg) {
-			msg.result = r.message(BatchResult);
-		}
-	};
-	FetchCursorResp = {
-		default() {
-			return {
-				type: "fetch_cursor",
-				entries: [],
-				done: false
-			};
-		},
-		1(r, msg) {
-			msg.entries.push(r.message(CursorEntry));
-		},
-		2(r, msg) {
-			msg.done = r.bool();
-		}
-	};
-	DescribeResp = {
-		default() {
-			return {
-				type: "describe",
-				result: DescribeResult.default()
-			};
-		},
-		1(r, msg) {
-			msg.result = r.message(DescribeResult);
-		}
-	};
-	GetAutocommitResp = {
-		default() {
-			return {
-				type: "get_autocommit",
-				isAutocommit: false
-			};
-		},
-		1(r, msg) {
-			msg.isAutocommit = r.bool();
-		}
-	};
-}));
+var ServerMsg = {
+	default() {
+		return { type: "none" };
+	},
+	1(r) {
+		return { type: "hello_ok" };
+	},
+	2(r) {
+		return r.message(HelloErrorMsg);
+	},
+	3(r) {
+		return r.message(ResponseOkMsg);
+	},
+	4(r) {
+		return r.message(ResponseErrorMsg);
+	}
+};
+var HelloErrorMsg = {
+	default() {
+		return {
+			type: "hello_error",
+			error: Error$1.default()
+		};
+	},
+	1(r, msg) {
+		msg.error = r.message(Error$1);
+	}
+};
+var ResponseErrorMsg = {
+	default() {
+		return {
+			type: "response_error",
+			requestId: 0,
+			error: Error$1.default()
+		};
+	},
+	1(r, msg) {
+		msg.requestId = r.int32();
+	},
+	2(r, msg) {
+		msg.error = r.message(Error$1);
+	}
+};
+var ResponseOkMsg = {
+	default() {
+		return {
+			type: "response_ok",
+			requestId: 0,
+			response: { type: "none" }
+		};
+	},
+	1(r, msg) {
+		msg.requestId = r.int32();
+	},
+	2(r, msg) {
+		msg.response = { type: "open_stream" };
+	},
+	3(r, msg) {
+		msg.response = { type: "close_stream" };
+	},
+	4(r, msg) {
+		msg.response = r.message(ExecuteResp);
+	},
+	5(r, msg) {
+		msg.response = r.message(BatchResp);
+	},
+	6(r, msg) {
+		msg.response = { type: "open_cursor" };
+	},
+	7(r, msg) {
+		msg.response = { type: "close_cursor" };
+	},
+	8(r, msg) {
+		msg.response = r.message(FetchCursorResp);
+	},
+	9(r, msg) {
+		msg.response = { type: "sequence" };
+	},
+	10(r, msg) {
+		msg.response = r.message(DescribeResp);
+	},
+	11(r, msg) {
+		msg.response = { type: "store_sql" };
+	},
+	12(r, msg) {
+		msg.response = { type: "close_sql" };
+	},
+	13(r, msg) {
+		msg.response = r.message(GetAutocommitResp);
+	}
+};
+var ExecuteResp = {
+	default() {
+		return {
+			type: "execute",
+			result: StmtResult.default()
+		};
+	},
+	1(r, msg) {
+		msg.result = r.message(StmtResult);
+	}
+};
+var BatchResp = {
+	default() {
+		return {
+			type: "batch",
+			result: BatchResult.default()
+		};
+	},
+	1(r, msg) {
+		msg.result = r.message(BatchResult);
+	}
+};
+var FetchCursorResp = {
+	default() {
+		return {
+			type: "fetch_cursor",
+			entries: [],
+			done: false
+		};
+	},
+	1(r, msg) {
+		msg.entries.push(r.message(CursorEntry));
+	},
+	2(r, msg) {
+		msg.done = r.bool();
+	}
+};
+var DescribeResp = {
+	default() {
+		return {
+			type: "describe",
+			result: DescribeResult.default()
+		};
+	},
+	1(r, msg) {
+		msg.result = r.message(DescribeResult);
+	}
+};
+var GetAutocommitResp = {
+	default() {
+		return {
+			type: "get_autocommit",
+			isAutocommit: false
+		};
+	},
+	1(r, msg) {
+		msg.isAutocommit = r.bool();
+	}
+};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/ws/client.js
-var subprotocolsV2, subprotocolsV3, WsClient$1;
-var init_client$1 = __esmMin((() => {
-	init_client$2();
-	init_encoding();
-	init_errors();
-	init_id_alloc();
-	init_result();
-	init_sql();
-	init_util();
-	init_stream$1();
-	init_json_encode$1();
-	init_protobuf_encode$1();
-	init_json_decode$1();
-	init_protobuf_decode$1();
-	subprotocolsV2 = new Map([["hrana2", {
+var subprotocolsV2 = new Map([["hrana2", {
+	version: 2,
+	encoding: "json"
+}], ["hrana1", {
+	version: 1,
+	encoding: "json"
+}]]);
+var subprotocolsV3 = new Map([
+	["hrana3-protobuf", {
+		version: 3,
+		encoding: "protobuf"
+	}],
+	["hrana3", {
+		version: 3,
+		encoding: "json"
+	}],
+	["hrana2", {
 		version: 2,
 		encoding: "json"
-	}], ["hrana1", {
+	}],
+	["hrana1", {
 		version: 1,
 		encoding: "json"
-	}]]);
-	subprotocolsV3 = new Map([
-		["hrana3-protobuf", {
-			version: 3,
-			encoding: "protobuf"
-		}],
-		["hrana3", {
-			version: 3,
-			encoding: "json"
-		}],
-		["hrana2", {
-			version: 2,
-			encoding: "json"
-		}],
-		["hrana1", {
-			version: 1,
-			encoding: "json"
-		}]
-	]);
-	WsClient$1 = class extends Client {
-		#socket;
-		#openCallbacks;
-		#opened;
-		#closed;
-		#recvdHello;
-		#subprotocol;
-		#getVersionCalled;
-		#responseMap;
-		#requestIdAlloc;
-		/** @private */
-		_streamIdAlloc;
-		/** @private */
-		_cursorIdAlloc;
-		#sqlIdAlloc;
-		/** @private */
-		constructor(socket, jwt) {
-			super();
-			this.#socket = socket;
-			this.#openCallbacks = [];
-			this.#opened = false;
-			this.#closed = void 0;
-			this.#recvdHello = false;
-			this.#subprotocol = void 0;
-			this.#getVersionCalled = false;
-			this.#responseMap = /* @__PURE__ */ new Map();
-			this.#requestIdAlloc = new IdAlloc();
-			this._streamIdAlloc = new IdAlloc();
-			this._cursorIdAlloc = new IdAlloc();
-			this.#sqlIdAlloc = new IdAlloc();
-			this.#socket.binaryType = "arraybuffer";
-			this.#socket.addEventListener("open", () => this.#onSocketOpen());
-			this.#socket.addEventListener("close", (event) => this.#onSocketClose(event));
-			this.#socket.addEventListener("error", (event) => this.#onSocketError(event));
-			this.#socket.addEventListener("message", (event) => this.#onSocketMessage(event));
-			this.#send({
-				type: "hello",
-				jwt
+	}]
+]);
+/** A client for the Hrana protocol over a WebSocket. */
+var WsClient$1 = class extends Client {
+	#socket;
+	#openCallbacks;
+	#opened;
+	#closed;
+	#recvdHello;
+	#subprotocol;
+	#getVersionCalled;
+	#responseMap;
+	#requestIdAlloc;
+	/** @private */
+	_streamIdAlloc;
+	/** @private */
+	_cursorIdAlloc;
+	#sqlIdAlloc;
+	/** @private */
+	constructor(socket, jwt) {
+		super();
+		this.#socket = socket;
+		this.#openCallbacks = [];
+		this.#opened = false;
+		this.#closed = void 0;
+		this.#recvdHello = false;
+		this.#subprotocol = void 0;
+		this.#getVersionCalled = false;
+		this.#responseMap = /* @__PURE__ */ new Map();
+		this.#requestIdAlloc = new IdAlloc();
+		this._streamIdAlloc = new IdAlloc();
+		this._cursorIdAlloc = new IdAlloc();
+		this.#sqlIdAlloc = new IdAlloc();
+		this.#socket.binaryType = "arraybuffer";
+		this.#socket.addEventListener("open", () => this.#onSocketOpen());
+		this.#socket.addEventListener("close", (event) => this.#onSocketClose(event));
+		this.#socket.addEventListener("error", (event) => this.#onSocketError(event));
+		this.#socket.addEventListener("message", (event) => this.#onSocketMessage(event));
+		this.#send({
+			type: "hello",
+			jwt
+		});
+	}
+	#send(msg) {
+		if (this.#closed !== void 0) throw new InternalError("Trying to send a message on a closed client");
+		if (this.#opened) this.#sendToSocket(msg);
+		else {
+			const openCallback = () => this.#sendToSocket(msg);
+			const errorCallback = () => void 0;
+			this.#openCallbacks.push({
+				openCallback,
+				errorCallback
 			});
 		}
-		#send(msg) {
-			if (this.#closed !== void 0) throw new InternalError("Trying to send a message on a closed client");
-			if (this.#opened) this.#sendToSocket(msg);
-			else {
-				const openCallback = () => this.#sendToSocket(msg);
-				const errorCallback = () => void 0;
+	}
+	#onSocketOpen() {
+		const protocol = this.#socket.protocol;
+		if (protocol === void 0) {
+			this.#setClosed(new ClientError("The `WebSocket.protocol` property is undefined. This most likely means that the WebSocket implementation provided by the environment is broken. If you are using Miniflare 2, please update to Miniflare 3, which fixes this problem."));
+			return;
+		} else if (protocol === "") this.#subprotocol = {
+			version: 1,
+			encoding: "json"
+		};
+		else {
+			this.#subprotocol = subprotocolsV3.get(protocol);
+			if (this.#subprotocol === void 0) {
+				this.#setClosed(new ProtoError(`Unrecognized WebSocket subprotocol: ${JSON.stringify(protocol)}`));
+				return;
+			}
+		}
+		for (const callbacks of this.#openCallbacks) callbacks.openCallback();
+		this.#openCallbacks.length = 0;
+		this.#opened = true;
+	}
+	#sendToSocket(msg) {
+		const encoding = this.#subprotocol.encoding;
+		if (encoding === "json") {
+			const jsonMsg = writeJsonObject(msg, ClientMsg$1);
+			this.#socket.send(jsonMsg);
+		} else if (encoding === "protobuf") {
+			const protobufMsg = writeProtobufMessage(msg, ClientMsg);
+			this.#socket.send(protobufMsg);
+		} else throw impossible(encoding, "Impossible encoding");
+	}
+	/** Get the protocol version negotiated with the server, possibly waiting until the socket is open. */
+	getVersion() {
+		return new Promise((versionCallback, errorCallback) => {
+			this.#getVersionCalled = true;
+			if (this.#closed !== void 0) errorCallback(this.#closed);
+			else if (!this.#opened) {
+				const openCallback = () => versionCallback(this.#subprotocol.version);
 				this.#openCallbacks.push({
 					openCallback,
 					errorCallback
 				});
-			}
+			} else versionCallback(this.#subprotocol.version);
+		});
+	}
+	/** @private */
+	_ensureVersion(minVersion, feature) {
+		if (this.#subprotocol === void 0 || !this.#getVersionCalled) throw new ProtocolVersionError(`${feature} is supported only on protocol version ${minVersion} and higher, but the version supported by the WebSocket server is not yet known. Use Client.getVersion() to wait until the version is available.`);
+		else if (this.#subprotocol.version < minVersion) throw new ProtocolVersionError(`${feature} is supported on protocol version ${minVersion} and higher, but the WebSocket server only supports version ${this.#subprotocol.version}`);
+	}
+	/** @private */
+	_sendRequest(request, callbacks) {
+		if (this.#closed !== void 0) {
+			callbacks.errorCallback(new ClosedError("Client is closed", this.#closed));
+			return;
 		}
-		#onSocketOpen() {
-			const protocol = this.#socket.protocol;
-			if (protocol === void 0) {
-				this.#setClosed(new ClientError("The `WebSocket.protocol` property is undefined. This most likely means that the WebSocket implementation provided by the environment is broken. If you are using Miniflare 2, please update to Miniflare 3, which fixes this problem."));
-				return;
-			} else if (protocol === "") this.#subprotocol = {
-				version: 1,
-				encoding: "json"
-			};
-			else {
-				this.#subprotocol = subprotocolsV3.get(protocol);
-				if (this.#subprotocol === void 0) {
-					this.#setClosed(new ProtoError(`Unrecognized WebSocket subprotocol: ${JSON.stringify(protocol)}`));
-					return;
-				}
-			}
-			for (const callbacks of this.#openCallbacks) callbacks.openCallback();
-			this.#openCallbacks.length = 0;
-			this.#opened = true;
+		const requestId = this.#requestIdAlloc.alloc();
+		this.#responseMap.set(requestId, {
+			...callbacks,
+			type: request.type
+		});
+		this.#send({
+			type: "request",
+			requestId,
+			request
+		});
+	}
+	#onSocketError(event) {
+		const message = event.message ?? "WebSocket was closed due to an error";
+		this.#setClosed(new WebSocketError(message));
+	}
+	#onSocketClose(event) {
+		let message = `WebSocket was closed with code ${event.code}`;
+		if (event.reason) message += `: ${event.reason}`;
+		this.#setClosed(new WebSocketError(message));
+	}
+	#setClosed(error) {
+		if (this.#closed !== void 0) return;
+		this.#closed = error;
+		for (const callbacks of this.#openCallbacks) callbacks.errorCallback(error);
+		this.#openCallbacks.length = 0;
+		for (const [requestId, responseState] of this.#responseMap.entries()) {
+			responseState.errorCallback(error);
+			this.#requestIdAlloc.free(requestId);
 		}
-		#sendToSocket(msg) {
+		this.#responseMap.clear();
+		this.#socket.close();
+	}
+	#onSocketMessage(event) {
+		if (this.#closed !== void 0) return;
+		try {
+			let msg;
 			const encoding = this.#subprotocol.encoding;
 			if (encoding === "json") {
-				const jsonMsg = writeJsonObject(msg, ClientMsg$1);
-				this.#socket.send(jsonMsg);
-			} else if (encoding === "protobuf") {
-				const protobufMsg = writeProtobufMessage(msg, ClientMsg);
-				this.#socket.send(protobufMsg);
-			} else throw impossible(encoding, "Impossible encoding");
-		}
-		/** Get the protocol version negotiated with the server, possibly waiting until the socket is open. */
-		getVersion() {
-			return new Promise((versionCallback, errorCallback) => {
-				this.#getVersionCalled = true;
-				if (this.#closed !== void 0) errorCallback(this.#closed);
-				else if (!this.#opened) {
-					const openCallback = () => versionCallback(this.#subprotocol.version);
-					this.#openCallbacks.push({
-						openCallback,
-						errorCallback
-					});
-				} else versionCallback(this.#subprotocol.version);
-			});
-		}
-		/** @private */
-		_ensureVersion(minVersion, feature) {
-			if (this.#subprotocol === void 0 || !this.#getVersionCalled) throw new ProtocolVersionError(`${feature} is supported only on protocol version ${minVersion} and higher, but the version supported by the WebSocket server is not yet known. Use Client.getVersion() to wait until the version is available.`);
-			else if (this.#subprotocol.version < minVersion) throw new ProtocolVersionError(`${feature} is supported on protocol version ${minVersion} and higher, but the WebSocket server only supports version ${this.#subprotocol.version}`);
-		}
-		/** @private */
-		_sendRequest(request, callbacks) {
-			if (this.#closed !== void 0) {
-				callbacks.errorCallback(new ClosedError("Client is closed", this.#closed));
-				return;
-			}
-			const requestId = this.#requestIdAlloc.alloc();
-			this.#responseMap.set(requestId, {
-				...callbacks,
-				type: request.type
-			});
-			this.#send({
-				type: "request",
-				requestId,
-				request
-			});
-		}
-		#onSocketError(event) {
-			const message = event.message ?? "WebSocket was closed due to an error";
-			this.#setClosed(new WebSocketError(message));
-		}
-		#onSocketClose(event) {
-			let message = `WebSocket was closed with code ${event.code}`;
-			if (event.reason) message += `: ${event.reason}`;
-			this.#setClosed(new WebSocketError(message));
-		}
-		#setClosed(error) {
-			if (this.#closed !== void 0) return;
-			this.#closed = error;
-			for (const callbacks of this.#openCallbacks) callbacks.errorCallback(error);
-			this.#openCallbacks.length = 0;
-			for (const [requestId, responseState] of this.#responseMap.entries()) {
-				responseState.errorCallback(error);
-				this.#requestIdAlloc.free(requestId);
-			}
-			this.#responseMap.clear();
-			this.#socket.close();
-		}
-		#onSocketMessage(event) {
-			if (this.#closed !== void 0) return;
-			try {
-				let msg;
-				const encoding = this.#subprotocol.encoding;
-				if (encoding === "json") {
-					if (typeof event.data !== "string") {
-						this.#socket.close(3003, "Only text messages are accepted with JSON encoding");
-						this.#setClosed(new ProtoError("Received non-text message from server with JSON encoding"));
-						return;
-					}
-					msg = readJsonObject(JSON.parse(event.data), ServerMsg$1);
-				} else if (encoding === "protobuf") {
-					if (!(event.data instanceof ArrayBuffer)) {
-						this.#socket.close(3003, "Only binary messages are accepted with Protobuf encoding");
-						this.#setClosed(new ProtoError("Received non-binary message from server with Protobuf encoding"));
-						return;
-					}
-					msg = readProtobufMessage(new Uint8Array(event.data), ServerMsg);
-				} else throw impossible(encoding, "Impossible encoding");
-				this.#handleMsg(msg);
-			} catch (e) {
-				this.#socket.close(3007, "Could not handle message");
-				this.#setClosed(e);
-			}
-		}
-		#handleMsg(msg) {
-			if (msg.type === "none") throw new ProtoError("Received an unrecognized ServerMsg");
-			else if (msg.type === "hello_ok" || msg.type === "hello_error") {
-				if (this.#recvdHello) throw new ProtoError("Received a duplicated hello response");
-				this.#recvdHello = true;
-				if (msg.type === "hello_error") throw errorFromProto(msg.error);
-				return;
-			} else if (!this.#recvdHello) throw new ProtoError("Received a non-hello message before a hello response");
-			if (msg.type === "response_ok") {
-				const requestId = msg.requestId;
-				const responseState = this.#responseMap.get(requestId);
-				this.#responseMap.delete(requestId);
-				if (responseState === void 0) throw new ProtoError("Received unexpected OK response");
-				this.#requestIdAlloc.free(requestId);
-				try {
-					if (responseState.type !== msg.response.type) {
-						console.dir({
-							responseState,
-							msg
-						});
-						throw new ProtoError("Received unexpected type of response");
-					}
-					responseState.responseCallback(msg.response);
-				} catch (e) {
-					responseState.errorCallback(e);
-					throw e;
+				if (typeof event.data !== "string") {
+					this.#socket.close(3003, "Only text messages are accepted with JSON encoding");
+					this.#setClosed(new ProtoError("Received non-text message from server with JSON encoding"));
+					return;
 				}
-			} else if (msg.type === "response_error") {
-				const requestId = msg.requestId;
-				const responseState = this.#responseMap.get(requestId);
-				this.#responseMap.delete(requestId);
-				if (responseState === void 0) throw new ProtoError("Received unexpected error response");
-				this.#requestIdAlloc.free(requestId);
-				responseState.errorCallback(errorFromProto(msg.error));
-			} else throw impossible(msg, "Impossible ServerMsg type");
+				msg = readJsonObject(JSON.parse(event.data), ServerMsg$1);
+			} else if (encoding === "protobuf") {
+				if (!(event.data instanceof ArrayBuffer)) {
+					this.#socket.close(3003, "Only binary messages are accepted with Protobuf encoding");
+					this.#setClosed(new ProtoError("Received non-binary message from server with Protobuf encoding"));
+					return;
+				}
+				msg = readProtobufMessage(new Uint8Array(event.data), ServerMsg);
+			} else throw impossible(encoding, "Impossible encoding");
+			this.#handleMsg(msg);
+		} catch (e) {
+			this.#socket.close(3007, "Could not handle message");
+			this.#setClosed(e);
 		}
-		/** Open a {@link WsStream}, a stream for executing SQL statements. */
-		openStream() {
-			return WsStream.open(this);
-		}
-		/** Cache a SQL text on the server. This requires protocol version 2 or higher. */
-		storeSql(sql) {
-			this._ensureVersion(2, "storeSql()");
-			const sqlId = this.#sqlIdAlloc.alloc();
-			const sqlObj = new Sql(this, sqlId);
-			const responseCallback = () => void 0;
-			const errorCallback = (e) => sqlObj._setClosed(e);
-			const request = {
-				type: "store_sql",
-				sqlId,
-				sql
-			};
-			this._sendRequest(request, {
-				responseCallback,
-				errorCallback
-			});
-			return sqlObj;
-		}
-		/** @private */
-		_closeSql(sqlId) {
-			if (this.#closed !== void 0) return;
-			const responseCallback = () => this.#sqlIdAlloc.free(sqlId);
-			const errorCallback = (e) => this.#setClosed(e);
-			const request = {
-				type: "close_sql",
-				sqlId
-			};
-			this._sendRequest(request, {
-				responseCallback,
-				errorCallback
-			});
-		}
-		/** Close the client and the WebSocket. */
-		close() {
-			this.#setClosed(new ClientError("Client was manually closed"));
-		}
-		/** True if the client is closed. */
-		get closed() {
-			return this.#closed !== void 0;
-		}
-	};
-}));
+	}
+	#handleMsg(msg) {
+		if (msg.type === "none") throw new ProtoError("Received an unrecognized ServerMsg");
+		else if (msg.type === "hello_ok" || msg.type === "hello_error") {
+			if (this.#recvdHello) throw new ProtoError("Received a duplicated hello response");
+			this.#recvdHello = true;
+			if (msg.type === "hello_error") throw errorFromProto(msg.error);
+			return;
+		} else if (!this.#recvdHello) throw new ProtoError("Received a non-hello message before a hello response");
+		if (msg.type === "response_ok") {
+			const requestId = msg.requestId;
+			const responseState = this.#responseMap.get(requestId);
+			this.#responseMap.delete(requestId);
+			if (responseState === void 0) throw new ProtoError("Received unexpected OK response");
+			this.#requestIdAlloc.free(requestId);
+			try {
+				if (responseState.type !== msg.response.type) {
+					console.dir({
+						responseState,
+						msg
+					});
+					throw new ProtoError("Received unexpected type of response");
+				}
+				responseState.responseCallback(msg.response);
+			} catch (e) {
+				responseState.errorCallback(e);
+				throw e;
+			}
+		} else if (msg.type === "response_error") {
+			const requestId = msg.requestId;
+			const responseState = this.#responseMap.get(requestId);
+			this.#responseMap.delete(requestId);
+			if (responseState === void 0) throw new ProtoError("Received unexpected error response");
+			this.#requestIdAlloc.free(requestId);
+			responseState.errorCallback(errorFromProto(msg.error));
+		} else throw impossible(msg, "Impossible ServerMsg type");
+	}
+	/** Open a {@link WsStream}, a stream for executing SQL statements. */
+	openStream() {
+		return WsStream.open(this);
+	}
+	/** Cache a SQL text on the server. This requires protocol version 2 or higher. */
+	storeSql(sql) {
+		this._ensureVersion(2, "storeSql()");
+		const sqlId = this.#sqlIdAlloc.alloc();
+		const sqlObj = new Sql(this, sqlId);
+		const responseCallback = () => void 0;
+		const errorCallback = (e) => sqlObj._setClosed(e);
+		const request = {
+			type: "store_sql",
+			sqlId,
+			sql
+		};
+		this._sendRequest(request, {
+			responseCallback,
+			errorCallback
+		});
+		return sqlObj;
+	}
+	/** @private */
+	_closeSql(sqlId) {
+		if (this.#closed !== void 0) return;
+		const responseCallback = () => this.#sqlIdAlloc.free(sqlId);
+		const errorCallback = (e) => this.#setClosed(e);
+		const request = {
+			type: "close_sql",
+			sqlId
+		};
+		this._sendRequest(request, {
+			responseCallback,
+			errorCallback
+		});
+	}
+	/** Close the client and the WebSocket. */
+	close() {
+		this.#setClosed(new ClientError("Client was manually closed"));
+	}
+	/** True if the client is closed. */
+	get closed() {
+		return this.#closed !== void 0;
+	}
+};
 //#endregion
 //#region node_modules/@libsql/isomorphic-fetch/web.js
-var _fetch, _Request, _Headers;
-var init_web$1 = __esmMin((() => {
-	_fetch = fetch;
-	_Request = Request;
-	_Headers = Headers;
-}));
+var _fetch = fetch;
+var _Request = Request;
+var _Headers = Headers;
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/queue_microtask.js
 var _queueMicrotask;
-var init_queue_microtask = __esmMin((() => {
-	if (typeof queueMicrotask !== "undefined") _queueMicrotask = queueMicrotask;
-	else {
-		const resolved = Promise.resolve();
-		_queueMicrotask = (callback) => {
-			resolved.then(callback);
-		};
-	}
-}));
+if (typeof queueMicrotask !== "undefined") _queueMicrotask = queueMicrotask;
+else {
+	const resolved = Promise.resolve();
+	_queueMicrotask = (callback) => {
+		resolved.then(callback);
+	};
+}
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/byte_queue.js
-var ByteQueue;
-var init_byte_queue = __esmMin((() => {
-	ByteQueue = class {
-		#array;
-		#shiftPos;
-		#pushPos;
-		constructor(initialCap) {
-			this.#array = new Uint8Array(new ArrayBuffer(initialCap));
-			this.#shiftPos = 0;
-			this.#pushPos = 0;
+var ByteQueue = class {
+	#array;
+	#shiftPos;
+	#pushPos;
+	constructor(initialCap) {
+		this.#array = new Uint8Array(new ArrayBuffer(initialCap));
+		this.#shiftPos = 0;
+		this.#pushPos = 0;
+	}
+	get length() {
+		return this.#pushPos - this.#shiftPos;
+	}
+	data() {
+		return this.#array.slice(this.#shiftPos, this.#pushPos);
+	}
+	push(chunk) {
+		this.#ensurePush(chunk.byteLength);
+		this.#array.set(chunk, this.#pushPos);
+		this.#pushPos += chunk.byteLength;
+	}
+	#ensurePush(pushLength) {
+		if (this.#pushPos + pushLength <= this.#array.byteLength) return;
+		const filledLength = this.#pushPos - this.#shiftPos;
+		if (filledLength + pushLength <= this.#array.byteLength && 2 * this.#pushPos >= this.#array.byteLength) this.#array.copyWithin(0, this.#shiftPos, this.#pushPos);
+		else {
+			let newCap = this.#array.byteLength;
+			do
+				newCap *= 2;
+			while (filledLength + pushLength > newCap);
+			const newArray = new Uint8Array(new ArrayBuffer(newCap));
+			newArray.set(this.#array.slice(this.#shiftPos, this.#pushPos), 0);
+			this.#array = newArray;
 		}
-		get length() {
-			return this.#pushPos - this.#shiftPos;
-		}
-		data() {
-			return this.#array.slice(this.#shiftPos, this.#pushPos);
-		}
-		push(chunk) {
-			this.#ensurePush(chunk.byteLength);
-			this.#array.set(chunk, this.#pushPos);
-			this.#pushPos += chunk.byteLength;
-		}
-		#ensurePush(pushLength) {
-			if (this.#pushPos + pushLength <= this.#array.byteLength) return;
-			const filledLength = this.#pushPos - this.#shiftPos;
-			if (filledLength + pushLength <= this.#array.byteLength && 2 * this.#pushPos >= this.#array.byteLength) this.#array.copyWithin(0, this.#shiftPos, this.#pushPos);
-			else {
-				let newCap = this.#array.byteLength;
-				do
-					newCap *= 2;
-				while (filledLength + pushLength > newCap);
-				const newArray = new Uint8Array(new ArrayBuffer(newCap));
-				newArray.set(this.#array.slice(this.#shiftPos, this.#pushPos), 0);
-				this.#array = newArray;
-			}
-			this.#pushPos = filledLength;
-			this.#shiftPos = 0;
-		}
-		shift(length) {
-			this.#shiftPos += length;
-		}
-	};
-}));
+		this.#pushPos = filledLength;
+		this.#shiftPos = 0;
+	}
+	shift(length) {
+		this.#shiftPos += length;
+	}
+};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/http/json_decode.js
 function PipelineRespBody$1(obj) {
@@ -28573,243 +28648,221 @@ function CursorRespBody$1(obj) {
 		baseUrl: stringOpt(obj["base_url"])
 	};
 }
-var init_json_decode = __esmMin((() => {
-	init_errors();
-	init_decode$1();
-	init_json_decode$2();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/http/protobuf_decode.js
-var PipelineRespBody, StreamResult, StreamResponse, ExecuteStreamResp, BatchStreamResp, DescribeStreamResp, GetAutocommitStreamResp, CursorRespBody;
-var init_protobuf_decode = __esmMin((() => {
-	init_protobuf_decode$2();
-	PipelineRespBody = {
-		default() {
-			return {
-				baton: void 0,
-				baseUrl: void 0,
-				results: []
-			};
-		},
-		1(r, msg) {
-			msg.baton = r.string();
-		},
-		2(r, msg) {
-			msg.baseUrl = r.string();
-		},
-		3(r, msg) {
-			msg.results.push(r.message(StreamResult));
-		}
-	};
-	StreamResult = {
-		default() {
-			return { type: "none" };
-		},
-		1(r) {
-			return {
-				type: "ok",
-				response: r.message(StreamResponse)
-			};
-		},
-		2(r) {
-			return {
-				type: "error",
-				error: r.message(Error$1)
-			};
-		}
-	};
-	StreamResponse = {
-		default() {
-			return { type: "none" };
-		},
-		1(r) {
-			return { type: "close" };
-		},
-		2(r) {
-			return r.message(ExecuteStreamResp);
-		},
-		3(r) {
-			return r.message(BatchStreamResp);
-		},
-		4(r) {
-			return { type: "sequence" };
-		},
-		5(r) {
-			return r.message(DescribeStreamResp);
-		},
-		6(r) {
-			return { type: "store_sql" };
-		},
-		7(r) {
-			return { type: "close_sql" };
-		},
-		8(r) {
-			return r.message(GetAutocommitStreamResp);
-		}
-	};
-	ExecuteStreamResp = {
-		default() {
-			return {
-				type: "execute",
-				result: StmtResult.default()
-			};
-		},
-		1(r, msg) {
-			msg.result = r.message(StmtResult);
-		}
-	};
-	BatchStreamResp = {
-		default() {
-			return {
-				type: "batch",
-				result: BatchResult.default()
-			};
-		},
-		1(r, msg) {
-			msg.result = r.message(BatchResult);
-		}
-	};
-	DescribeStreamResp = {
-		default() {
-			return {
-				type: "describe",
-				result: DescribeResult.default()
-			};
-		},
-		1(r, msg) {
-			msg.result = r.message(DescribeResult);
-		}
-	};
-	GetAutocommitStreamResp = {
-		default() {
-			return {
-				type: "get_autocommit",
-				isAutocommit: false
-			};
-		},
-		1(r, msg) {
-			msg.isAutocommit = r.bool();
-		}
-	};
-	CursorRespBody = {
-		default() {
-			return {
-				baton: void 0,
-				baseUrl: void 0
-			};
-		},
-		1(r, msg) {
-			msg.baton = r.string();
-		},
-		2(r, msg) {
-			msg.baseUrl = r.string();
-		}
-	};
-}));
+var PipelineRespBody = {
+	default() {
+		return {
+			baton: void 0,
+			baseUrl: void 0,
+			results: []
+		};
+	},
+	1(r, msg) {
+		msg.baton = r.string();
+	},
+	2(r, msg) {
+		msg.baseUrl = r.string();
+	},
+	3(r, msg) {
+		msg.results.push(r.message(StreamResult));
+	}
+};
+var StreamResult = {
+	default() {
+		return { type: "none" };
+	},
+	1(r) {
+		return {
+			type: "ok",
+			response: r.message(StreamResponse)
+		};
+	},
+	2(r) {
+		return {
+			type: "error",
+			error: r.message(Error$1)
+		};
+	}
+};
+var StreamResponse = {
+	default() {
+		return { type: "none" };
+	},
+	1(r) {
+		return { type: "close" };
+	},
+	2(r) {
+		return r.message(ExecuteStreamResp);
+	},
+	3(r) {
+		return r.message(BatchStreamResp);
+	},
+	4(r) {
+		return { type: "sequence" };
+	},
+	5(r) {
+		return r.message(DescribeStreamResp);
+	},
+	6(r) {
+		return { type: "store_sql" };
+	},
+	7(r) {
+		return { type: "close_sql" };
+	},
+	8(r) {
+		return r.message(GetAutocommitStreamResp);
+	}
+};
+var ExecuteStreamResp = {
+	default() {
+		return {
+			type: "execute",
+			result: StmtResult.default()
+		};
+	},
+	1(r, msg) {
+		msg.result = r.message(StmtResult);
+	}
+};
+var BatchStreamResp = {
+	default() {
+		return {
+			type: "batch",
+			result: BatchResult.default()
+		};
+	},
+	1(r, msg) {
+		msg.result = r.message(BatchResult);
+	}
+};
+var DescribeStreamResp = {
+	default() {
+		return {
+			type: "describe",
+			result: DescribeResult.default()
+		};
+	},
+	1(r, msg) {
+		msg.result = r.message(DescribeResult);
+	}
+};
+var GetAutocommitStreamResp = {
+	default() {
+		return {
+			type: "get_autocommit",
+			isAutocommit: false
+		};
+	},
+	1(r, msg) {
+		msg.isAutocommit = r.bool();
+	}
+};
+var CursorRespBody = {
+	default() {
+		return {
+			baton: void 0,
+			baseUrl: void 0
+		};
+	},
+	1(r, msg) {
+		msg.baton = r.string();
+	},
+	2(r, msg) {
+		msg.baseUrl = r.string();
+	}
+};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/http/cursor.js
-var HttpCursor;
-var init_cursor = __esmMin((() => {
-	init_byte_queue();
-	init_cursor$2();
-	init_decode$1();
-	init_decode();
-	init_errors();
-	init_util();
-	init_json_decode();
-	init_protobuf_decode();
-	init_json_decode$2();
-	init_protobuf_decode$2();
-	HttpCursor = class extends Cursor {
-		#stream;
-		#encoding;
-		#reader;
-		#queue;
-		#closed;
-		#done;
-		/** @private */
-		constructor(stream, encoding) {
-			super();
-			this.#stream = stream;
-			this.#encoding = encoding;
-			this.#reader = void 0;
-			this.#queue = new ByteQueue(16 * 1024);
-			this.#closed = void 0;
-			this.#done = false;
+var HttpCursor = class extends Cursor {
+	#stream;
+	#encoding;
+	#reader;
+	#queue;
+	#closed;
+	#done;
+	/** @private */
+	constructor(stream, encoding) {
+		super();
+		this.#stream = stream;
+		this.#encoding = encoding;
+		this.#reader = void 0;
+		this.#queue = new ByteQueue(16 * 1024);
+		this.#closed = void 0;
+		this.#done = false;
+	}
+	async open(response) {
+		if (response.body === null) throw new ProtoError("No response body for cursor request");
+		this.#reader = response.body.getReader();
+		const respBody = await this.#nextItem(CursorRespBody$1, CursorRespBody);
+		if (respBody === void 0) throw new ProtoError("Empty response to cursor request");
+		return respBody;
+	}
+	/** Fetch the next entry from the cursor. */
+	next() {
+		return this.#nextItem(CursorEntry$1, CursorEntry);
+	}
+	/** Close the cursor. */
+	close() {
+		this._setClosed(new ClientError("Cursor was manually closed"));
+	}
+	/** @private */
+	_setClosed(error) {
+		if (this.#closed !== void 0) return;
+		this.#closed = error;
+		this.#stream._cursorClosed(this);
+		if (this.#reader !== void 0) this.#reader.cancel();
+	}
+	/** True if the cursor is closed. */
+	get closed() {
+		return this.#closed !== void 0;
+	}
+	async #nextItem(jsonFun, protobufDef) {
+		for (;;) {
+			if (this.#done) return;
+			else if (this.#closed !== void 0) throw new ClosedError("Cursor is closed", this.#closed);
+			if (this.#encoding === "json") {
+				const jsonData = this.#parseItemJson();
+				if (jsonData !== void 0) {
+					const jsonText = new TextDecoder().decode(jsonData);
+					return readJsonObject(JSON.parse(jsonText), jsonFun);
+				}
+			} else if (this.#encoding === "protobuf") {
+				const protobufData = this.#parseItemProtobuf();
+				if (protobufData !== void 0) return readProtobufMessage(protobufData, protobufDef);
+			} else throw impossible(this.#encoding, "Impossible encoding");
+			if (this.#reader === void 0) throw new InternalError("Attempted to read from HTTP cursor before it was opened");
+			const { value, done } = await this.#reader.read();
+			if (done && this.#queue.length === 0) this.#done = true;
+			else if (done) throw new ProtoError("Unexpected end of cursor stream");
+			else this.#queue.push(value);
 		}
-		async open(response) {
-			if (response.body === null) throw new ProtoError("No response body for cursor request");
-			this.#reader = response.body.getReader();
-			const respBody = await this.#nextItem(CursorRespBody$1, CursorRespBody);
-			if (respBody === void 0) throw new ProtoError("Empty response to cursor request");
-			return respBody;
+	}
+	#parseItemJson() {
+		const data = this.#queue.data();
+		const newlinePos = data.indexOf(10);
+		if (newlinePos < 0) return;
+		const jsonData = data.slice(0, newlinePos);
+		this.#queue.shift(newlinePos + 1);
+		return jsonData;
+	}
+	#parseItemProtobuf() {
+		const data = this.#queue.data();
+		let varintValue = 0;
+		let varintLength = 0;
+		for (;;) {
+			if (varintLength >= data.byteLength) return;
+			const byte = data[varintLength];
+			varintValue |= (byte & 127) << 7 * varintLength;
+			varintLength += 1;
+			if (!(byte & 128)) break;
 		}
-		/** Fetch the next entry from the cursor. */
-		next() {
-			return this.#nextItem(CursorEntry$1, CursorEntry);
-		}
-		/** Close the cursor. */
-		close() {
-			this._setClosed(new ClientError("Cursor was manually closed"));
-		}
-		/** @private */
-		_setClosed(error) {
-			if (this.#closed !== void 0) return;
-			this.#closed = error;
-			this.#stream._cursorClosed(this);
-			if (this.#reader !== void 0) this.#reader.cancel();
-		}
-		/** True if the cursor is closed. */
-		get closed() {
-			return this.#closed !== void 0;
-		}
-		async #nextItem(jsonFun, protobufDef) {
-			for (;;) {
-				if (this.#done) return;
-				else if (this.#closed !== void 0) throw new ClosedError("Cursor is closed", this.#closed);
-				if (this.#encoding === "json") {
-					const jsonData = this.#parseItemJson();
-					if (jsonData !== void 0) {
-						const jsonText = new TextDecoder().decode(jsonData);
-						return readJsonObject(JSON.parse(jsonText), jsonFun);
-					}
-				} else if (this.#encoding === "protobuf") {
-					const protobufData = this.#parseItemProtobuf();
-					if (protobufData !== void 0) return readProtobufMessage(protobufData, protobufDef);
-				} else throw impossible(this.#encoding, "Impossible encoding");
-				if (this.#reader === void 0) throw new InternalError("Attempted to read from HTTP cursor before it was opened");
-				const { value, done } = await this.#reader.read();
-				if (done && this.#queue.length === 0) this.#done = true;
-				else if (done) throw new ProtoError("Unexpected end of cursor stream");
-				else this.#queue.push(value);
-			}
-		}
-		#parseItemJson() {
-			const data = this.#queue.data();
-			const newlinePos = data.indexOf(10);
-			if (newlinePos < 0) return;
-			const jsonData = data.slice(0, newlinePos);
-			this.#queue.shift(newlinePos + 1);
-			return jsonData;
-		}
-		#parseItemProtobuf() {
-			const data = this.#queue.data();
-			let varintValue = 0;
-			let varintLength = 0;
-			for (;;) {
-				if (varintLength >= data.byteLength) return;
-				const byte = data[varintLength];
-				varintValue |= (byte & 127) << 7 * varintLength;
-				varintLength += 1;
-				if (!(byte & 128)) break;
-			}
-			if (data.byteLength < varintLength + varintValue) return;
-			const protobufData = data.slice(varintLength, varintLength + varintValue);
-			this.#queue.shift(varintLength + varintValue);
-			return protobufData;
-		}
-	};
-}));
+		if (data.byteLength < varintLength + varintValue) return;
+		const protobufData = data.slice(varintLength, varintLength + varintValue);
+		this.#queue.shift(varintLength + varintValue);
+		return protobufData;
+	}
+};
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/http/json_encode.js
 function PipelineReqBody$1(w, msg) {
@@ -28836,10 +28889,6 @@ function CursorReqBody$1(w, msg) {
 	if (msg.baton !== void 0) w.string("baton", msg.baton);
 	w.object("batch", msg.batch, Batch$1);
 }
-var init_json_encode = __esmMin((() => {
-	init_json_encode$2();
-	init_util();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/http/protobuf_encode.js
 function PipelineReqBody(w, msg) {
@@ -28884,12 +28933,280 @@ function CursorReqBody(w, msg) {
 	if (msg.baton !== void 0) w.string(1, msg.baton);
 	w.message(2, msg.batch, Batch);
 }
-var init_protobuf_encode = __esmMin((() => {
-	init_protobuf_encode$2();
-	init_util();
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/http/stream.js
+var HttpStream = class extends Stream {
+	#client;
+	#baseUrl;
+	#jwt;
+	#fetch;
+	#baton;
+	#queue;
+	#flushing;
+	#cursor;
+	#closing;
+	#closeQueued;
+	#closed;
+	#sqlIdAlloc;
+	/** @private */
+	constructor(client, baseUrl, jwt, customFetch) {
+		super(client.intMode);
+		this.#client = client;
+		this.#baseUrl = baseUrl.toString();
+		this.#jwt = jwt;
+		this.#fetch = customFetch;
+		this.#baton = void 0;
+		this.#queue = new Queue();
+		this.#flushing = false;
+		this.#closing = false;
+		this.#closeQueued = false;
+		this.#closed = void 0;
+		this.#sqlIdAlloc = new IdAlloc();
+	}
+	/** Get the {@link HttpClient} object that this stream belongs to. */
+	client() {
+		return this.#client;
+	}
+	/** @private */
+	_sqlOwner() {
+		return this;
+	}
+	/** Cache a SQL text on the server. */
+	storeSql(sql) {
+		const sqlId = this.#sqlIdAlloc.alloc();
+		this.#sendStreamRequest({
+			type: "store_sql",
+			sqlId,
+			sql
+		}).then(() => void 0, (error) => this._setClosed(error));
+		return new Sql(this, sqlId);
+	}
+	/** @private */
+	_closeSql(sqlId) {
+		if (this.#closed !== void 0) return;
+		this.#sendStreamRequest({
+			type: "close_sql",
+			sqlId
+		}).then(() => this.#sqlIdAlloc.free(sqlId), (error) => this._setClosed(error));
+	}
+	/** @private */
+	_execute(stmt) {
+		return this.#sendStreamRequest({
+			type: "execute",
+			stmt
+		}).then((response) => {
+			return response.result;
+		});
+	}
+	/** @private */
+	_batch(batch) {
+		return this.#sendStreamRequest({
+			type: "batch",
+			batch
+		}).then((response) => {
+			return response.result;
+		});
+	}
+	/** @private */
+	_describe(protoSql) {
+		return this.#sendStreamRequest({
+			type: "describe",
+			sql: protoSql.sql,
+			sqlId: protoSql.sqlId
+		}).then((response) => {
+			return response.result;
+		});
+	}
+	/** @private */
+	_sequence(protoSql) {
+		return this.#sendStreamRequest({
+			type: "sequence",
+			sql: protoSql.sql,
+			sqlId: protoSql.sqlId
+		}).then((_response) => {});
+	}
+	/** Check whether the SQL connection underlying this stream is in autocommit state (i.e., outside of an
+	* explicit transaction). This requires protocol version 3 or higher.
+	*/
+	getAutocommit() {
+		this.#client._ensureVersion(3, "getAutocommit()");
+		return this.#sendStreamRequest({ type: "get_autocommit" }).then((response) => {
+			return response.isAutocommit;
+		});
+	}
+	#sendStreamRequest(request) {
+		return new Promise((responseCallback, errorCallback) => {
+			this.#pushToQueue({
+				type: "pipeline",
+				request,
+				responseCallback,
+				errorCallback
+			});
+		});
+	}
+	/** @private */
+	_openCursor(batch) {
+		return new Promise((cursorCallback, errorCallback) => {
+			this.#pushToQueue({
+				type: "cursor",
+				batch,
+				cursorCallback,
+				errorCallback
+			});
+		});
+	}
+	/** @private */
+	_cursorClosed(cursor) {
+		if (cursor !== this.#cursor) throw new InternalError("Cursor was closed, but it was not associated with the stream");
+		this.#cursor = void 0;
+		_queueMicrotask(() => this.#flushQueue());
+	}
+	/** Immediately close the stream. */
+	close() {
+		this._setClosed(new ClientError("Stream was manually closed"));
+	}
+	/** Gracefully close the stream. */
+	closeGracefully() {
+		this.#closing = true;
+		_queueMicrotask(() => this.#flushQueue());
+	}
+	/** True if the stream is closed. */
+	get closed() {
+		return this.#closed !== void 0 || this.#closing;
+	}
+	/** @private */
+	_setClosed(error) {
+		if (this.#closed !== void 0) return;
+		this.#closed = error;
+		if (this.#cursor !== void 0) this.#cursor._setClosed(error);
+		this.#client._streamClosed(this);
+		for (;;) {
+			const entry = this.#queue.shift();
+			if (entry !== void 0) entry.errorCallback(error);
+			else break;
+		}
+		if ((this.#baton !== void 0 || this.#flushing) && !this.#closeQueued) {
+			this.#queue.push({
+				type: "pipeline",
+				request: { type: "close" },
+				responseCallback: () => void 0,
+				errorCallback: () => void 0
+			});
+			this.#closeQueued = true;
+			_queueMicrotask(() => this.#flushQueue());
+		}
+	}
+	#pushToQueue(entry) {
+		if (this.#closed !== void 0) throw new ClosedError("Stream is closed", this.#closed);
+		else if (this.#closing) throw new ClosedError("Stream is closing", void 0);
+		else {
+			this.#queue.push(entry);
+			_queueMicrotask(() => this.#flushQueue());
+		}
+	}
+	#flushQueue() {
+		if (this.#flushing || this.#cursor !== void 0) return;
+		if (this.#closing && this.#queue.length === 0) {
+			this._setClosed(new ClientError("Stream was gracefully closed"));
+			return;
+		}
+		const endpoint = this.#client._endpoint;
+		if (endpoint === void 0) {
+			this.#client._endpointPromise.then(() => this.#flushQueue(), (error) => this._setClosed(error));
+			return;
+		}
+		const firstEntry = this.#queue.shift();
+		if (firstEntry === void 0) return;
+		else if (firstEntry.type === "pipeline") {
+			const pipeline = [firstEntry];
+			for (;;) {
+				const entry = this.#queue.first();
+				if (entry !== void 0 && entry.type === "pipeline") {
+					pipeline.push(entry);
+					this.#queue.shift();
+				} else if (entry === void 0 && this.#closing && !this.#closeQueued) {
+					pipeline.push({
+						type: "pipeline",
+						request: { type: "close" },
+						responseCallback: () => void 0,
+						errorCallback: () => void 0
+					});
+					this.#closeQueued = true;
+					break;
+				} else break;
+			}
+			this.#flushPipeline(endpoint, pipeline);
+		} else if (firstEntry.type === "cursor") this.#flushCursor(endpoint, firstEntry);
+		else throw impossible(firstEntry, "Impossible type of QueueEntry");
+	}
+	#flushPipeline(endpoint, pipeline) {
+		this.#flush(() => this.#createPipelineRequest(pipeline, endpoint), (resp) => decodePipelineResponse(resp, endpoint.encoding), (respBody) => respBody.baton, (respBody) => respBody.baseUrl, (respBody) => handlePipelineResponse(pipeline, respBody), (error) => pipeline.forEach((entry) => entry.errorCallback(error)));
+	}
+	#flushCursor(endpoint, entry) {
+		const cursor = new HttpCursor(this, endpoint.encoding);
+		this.#cursor = cursor;
+		this.#flush(() => this.#createCursorRequest(entry, endpoint), (resp) => cursor.open(resp), (respBody) => respBody.baton, (respBody) => respBody.baseUrl, (_respBody) => entry.cursorCallback(cursor), (error) => entry.errorCallback(error));
+	}
+	#flush(createRequest, decodeResponse, getBaton, getBaseUrl, handleResponse, handleError) {
+		let promise;
+		try {
+			const request = createRequest();
+			const fetch = this.#fetch;
+			promise = fetch(request);
+		} catch (error) {
+			promise = Promise.reject(error);
+		}
+		this.#flushing = true;
+		promise.then((resp) => {
+			if (!resp.ok) return errorFromResponse(resp).then((error) => {
+				throw error;
+			});
+			return decodeResponse(resp);
+		}).then((r) => {
+			this.#baton = getBaton(r);
+			this.#baseUrl = getBaseUrl(r) ?? this.#baseUrl;
+			handleResponse(r);
+		}).catch((error) => {
+			this._setClosed(error);
+			handleError(error);
+		}).finally(() => {
+			this.#flushing = false;
+			this.#flushQueue();
+		});
+	}
+	#createPipelineRequest(pipeline, endpoint) {
+		return this.#createRequest(new URL(endpoint.pipelinePath, this.#baseUrl), {
+			baton: this.#baton,
+			requests: pipeline.map((entry) => entry.request)
+		}, endpoint.encoding, PipelineReqBody$1, PipelineReqBody);
+	}
+	#createCursorRequest(entry, endpoint) {
+		if (endpoint.cursorPath === void 0) throw new ProtocolVersionError(`Cursors are supported only on protocol version 3 and higher, but the HTTP server only supports version ${endpoint.version}.`);
+		return this.#createRequest(new URL(endpoint.cursorPath, this.#baseUrl), {
+			baton: this.#baton,
+			batch: entry.batch
+		}, endpoint.encoding, CursorReqBody$1, CursorReqBody);
+	}
+	#createRequest(url, reqBody, encoding, jsonFun, protobufFun) {
+		let bodyData;
+		let contentType;
+		if (encoding === "json") {
+			bodyData = writeJsonObject(reqBody, jsonFun);
+			contentType = "application/json";
+		} else if (encoding === "protobuf") {
+			bodyData = writeProtobufMessage(reqBody, protobufFun);
+			contentType = "application/x-protobuf";
+		} else throw impossible(encoding, "Impossible encoding");
+		const headers = new _Headers();
+		headers.set("content-type", contentType);
+		if (this.#jwt !== void 0) headers.set("authorization", `Bearer ${this.#jwt}`);
+		return new _Request(url.toString(), {
+			method: "POST",
+			headers,
+			body: bodyData
+		});
+	}
+};
 function handlePipelineResponse(pipeline, respBody) {
 	if (respBody.results.length !== pipeline.length) throw new ProtoError("Server returned unexpected number of pipeline results");
 	for (let i = 0; i < pipeline.length; ++i) {
@@ -28924,298 +29241,85 @@ async function errorFromResponse(resp) {
 	if (resp.status === 404) message += ". It seems that the libsql server is outdated, please try updating the database.";
 	return new HttpServerError(message, resp.status);
 }
-var HttpStream;
-var init_stream = __esmMin((() => {
-	init_web$1();
-	init_errors();
-	init_encoding();
-	init_id_alloc();
-	init_queue();
-	init_queue_microtask();
-	init_result();
-	init_sql();
-	init_stream$2();
-	init_util();
-	init_cursor();
-	init_json_encode();
-	init_protobuf_encode();
-	init_json_decode();
-	init_protobuf_decode();
-	HttpStream = class extends Stream {
-		#client;
-		#baseUrl;
-		#jwt;
-		#fetch;
-		#baton;
-		#queue;
-		#flushing;
-		#cursor;
-		#closing;
-		#closeQueued;
-		#closed;
-		#sqlIdAlloc;
-		/** @private */
-		constructor(client, baseUrl, jwt, customFetch) {
-			super(client.intMode);
-			this.#client = client;
-			this.#baseUrl = baseUrl.toString();
-			this.#jwt = jwt;
-			this.#fetch = customFetch;
-			this.#baton = void 0;
-			this.#queue = new Queue();
-			this.#flushing = false;
-			this.#closing = false;
-			this.#closeQueued = false;
-			this.#closed = void 0;
-			this.#sqlIdAlloc = new IdAlloc();
-		}
-		/** Get the {@link HttpClient} object that this stream belongs to. */
-		client() {
-			return this.#client;
-		}
-		/** @private */
-		_sqlOwner() {
-			return this;
-		}
-		/** Cache a SQL text on the server. */
-		storeSql(sql) {
-			const sqlId = this.#sqlIdAlloc.alloc();
-			this.#sendStreamRequest({
-				type: "store_sql",
-				sqlId,
-				sql
-			}).then(() => void 0, (error) => this._setClosed(error));
-			return new Sql(this, sqlId);
-		}
-		/** @private */
-		_closeSql(sqlId) {
-			if (this.#closed !== void 0) return;
-			this.#sendStreamRequest({
-				type: "close_sql",
-				sqlId
-			}).then(() => this.#sqlIdAlloc.free(sqlId), (error) => this._setClosed(error));
-		}
-		/** @private */
-		_execute(stmt) {
-			return this.#sendStreamRequest({
-				type: "execute",
-				stmt
-			}).then((response) => {
-				return response.result;
-			});
-		}
-		/** @private */
-		_batch(batch) {
-			return this.#sendStreamRequest({
-				type: "batch",
-				batch
-			}).then((response) => {
-				return response.result;
-			});
-		}
-		/** @private */
-		_describe(protoSql) {
-			return this.#sendStreamRequest({
-				type: "describe",
-				sql: protoSql.sql,
-				sqlId: protoSql.sqlId
-			}).then((response) => {
-				return response.result;
-			});
-		}
-		/** @private */
-		_sequence(protoSql) {
-			return this.#sendStreamRequest({
-				type: "sequence",
-				sql: protoSql.sql,
-				sqlId: protoSql.sqlId
-			}).then((_response) => {});
-		}
-		/** Check whether the SQL connection underlying this stream is in autocommit state (i.e., outside of an
-		* explicit transaction). This requires protocol version 3 or higher.
-		*/
-		getAutocommit() {
-			this.#client._ensureVersion(3, "getAutocommit()");
-			return this.#sendStreamRequest({ type: "get_autocommit" }).then((response) => {
-				return response.isAutocommit;
-			});
-		}
-		#sendStreamRequest(request) {
-			return new Promise((responseCallback, errorCallback) => {
-				this.#pushToQueue({
-					type: "pipeline",
-					request,
-					responseCallback,
-					errorCallback
-				});
-			});
-		}
-		/** @private */
-		_openCursor(batch) {
-			return new Promise((cursorCallback, errorCallback) => {
-				this.#pushToQueue({
-					type: "cursor",
-					batch,
-					cursorCallback,
-					errorCallback
-				});
-			});
-		}
-		/** @private */
-		_cursorClosed(cursor) {
-			if (cursor !== this.#cursor) throw new InternalError("Cursor was closed, but it was not associated with the stream");
-			this.#cursor = void 0;
-			_queueMicrotask(() => this.#flushQueue());
-		}
-		/** Immediately close the stream. */
-		close() {
-			this._setClosed(new ClientError("Stream was manually closed"));
-		}
-		/** Gracefully close the stream. */
-		closeGracefully() {
-			this.#closing = true;
-			_queueMicrotask(() => this.#flushQueue());
-		}
-		/** True if the stream is closed. */
-		get closed() {
-			return this.#closed !== void 0 || this.#closing;
-		}
-		/** @private */
-		_setClosed(error) {
-			if (this.#closed !== void 0) return;
-			this.#closed = error;
-			if (this.#cursor !== void 0) this.#cursor._setClosed(error);
-			this.#client._streamClosed(this);
-			for (;;) {
-				const entry = this.#queue.shift();
-				if (entry !== void 0) entry.errorCallback(error);
-				else break;
-			}
-			if ((this.#baton !== void 0 || this.#flushing) && !this.#closeQueued) {
-				this.#queue.push({
-					type: "pipeline",
-					request: { type: "close" },
-					responseCallback: () => void 0,
-					errorCallback: () => void 0
-				});
-				this.#closeQueued = true;
-				_queueMicrotask(() => this.#flushQueue());
-			}
-		}
-		#pushToQueue(entry) {
-			if (this.#closed !== void 0) throw new ClosedError("Stream is closed", this.#closed);
-			else if (this.#closing) throw new ClosedError("Stream is closing", void 0);
-			else {
-				this.#queue.push(entry);
-				_queueMicrotask(() => this.#flushQueue());
-			}
-		}
-		#flushQueue() {
-			if (this.#flushing || this.#cursor !== void 0) return;
-			if (this.#closing && this.#queue.length === 0) {
-				this._setClosed(new ClientError("Stream was gracefully closed"));
-				return;
-			}
-			const endpoint = this.#client._endpoint;
-			if (endpoint === void 0) {
-				this.#client._endpointPromise.then(() => this.#flushQueue(), (error) => this._setClosed(error));
-				return;
-			}
-			const firstEntry = this.#queue.shift();
-			if (firstEntry === void 0) return;
-			else if (firstEntry.type === "pipeline") {
-				const pipeline = [firstEntry];
-				for (;;) {
-					const entry = this.#queue.first();
-					if (entry !== void 0 && entry.type === "pipeline") {
-						pipeline.push(entry);
-						this.#queue.shift();
-					} else if (entry === void 0 && this.#closing && !this.#closeQueued) {
-						pipeline.push({
-							type: "pipeline",
-							request: { type: "close" },
-							responseCallback: () => void 0,
-							errorCallback: () => void 0
-						});
-						this.#closeQueued = true;
-						break;
-					} else break;
-				}
-				this.#flushPipeline(endpoint, pipeline);
-			} else if (firstEntry.type === "cursor") this.#flushCursor(endpoint, firstEntry);
-			else throw impossible(firstEntry, "Impossible type of QueueEntry");
-		}
-		#flushPipeline(endpoint, pipeline) {
-			this.#flush(() => this.#createPipelineRequest(pipeline, endpoint), (resp) => decodePipelineResponse(resp, endpoint.encoding), (respBody) => respBody.baton, (respBody) => respBody.baseUrl, (respBody) => handlePipelineResponse(pipeline, respBody), (error) => pipeline.forEach((entry) => entry.errorCallback(error)));
-		}
-		#flushCursor(endpoint, entry) {
-			const cursor = new HttpCursor(this, endpoint.encoding);
-			this.#cursor = cursor;
-			this.#flush(() => this.#createCursorRequest(entry, endpoint), (resp) => cursor.open(resp), (respBody) => respBody.baton, (respBody) => respBody.baseUrl, (_respBody) => entry.cursorCallback(cursor), (error) => entry.errorCallback(error));
-		}
-		#flush(createRequest, decodeResponse, getBaton, getBaseUrl, handleResponse, handleError) {
-			let promise;
-			try {
-				const request = createRequest();
-				const fetch = this.#fetch;
-				promise = fetch(request);
-			} catch (error) {
-				promise = Promise.reject(error);
-			}
-			this.#flushing = true;
-			promise.then((resp) => {
-				if (!resp.ok) return errorFromResponse(resp).then((error) => {
-					throw error;
-				});
-				return decodeResponse(resp);
-			}).then((r) => {
-				this.#baton = getBaton(r);
-				this.#baseUrl = getBaseUrl(r) ?? this.#baseUrl;
-				handleResponse(r);
-			}).catch((error) => {
-				this._setClosed(error);
-				handleError(error);
-			}).finally(() => {
-				this.#flushing = false;
-				this.#flushQueue();
-			});
-		}
-		#createPipelineRequest(pipeline, endpoint) {
-			return this.#createRequest(new URL(endpoint.pipelinePath, this.#baseUrl), {
-				baton: this.#baton,
-				requests: pipeline.map((entry) => entry.request)
-			}, endpoint.encoding, PipelineReqBody$1, PipelineReqBody);
-		}
-		#createCursorRequest(entry, endpoint) {
-			if (endpoint.cursorPath === void 0) throw new ProtocolVersionError(`Cursors are supported only on protocol version 3 and higher, but the HTTP server only supports version ${endpoint.version}.`);
-			return this.#createRequest(new URL(endpoint.cursorPath, this.#baseUrl), {
-				baton: this.#baton,
-				batch: entry.batch
-			}, endpoint.encoding, CursorReqBody$1, CursorReqBody);
-		}
-		#createRequest(url, reqBody, encoding, jsonFun, protobufFun) {
-			let bodyData;
-			let contentType;
-			if (encoding === "json") {
-				bodyData = writeJsonObject(reqBody, jsonFun);
-				contentType = "application/json";
-			} else if (encoding === "protobuf") {
-				bodyData = writeProtobufMessage(reqBody, protobufFun);
-				contentType = "application/x-protobuf";
-			} else throw impossible(encoding, "Impossible encoding");
-			const headers = new _Headers();
-			headers.set("content-type", contentType);
-			if (this.#jwt !== void 0) headers.set("authorization", `Bearer ${this.#jwt}`);
-			return new _Request(url.toString(), {
-				method: "POST",
-				headers,
-				body: bodyData
-			});
-		}
-	};
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/http/client.js
+var checkEndpoints = [{
+	versionPath: "v3-protobuf",
+	pipelinePath: "v3-protobuf/pipeline",
+	cursorPath: "v3-protobuf/cursor",
+	version: 3,
+	encoding: "protobuf"
+}];
+var fallbackEndpoint = {
+	versionPath: "v2",
+	pipelinePath: "v2/pipeline",
+	cursorPath: void 0,
+	version: 2,
+	encoding: "json"
+};
+/** A client for the Hrana protocol over HTTP. */
+var HttpClient$1 = class extends Client {
+	#url;
+	#jwt;
+	#fetch;
+	#closed;
+	#streams;
+	/** @private */
+	_endpointPromise;
+	/** @private */
+	_endpoint;
+	/** @private */
+	constructor(url, jwt, customFetch, protocolVersion = 2) {
+		super();
+		this.#url = url;
+		this.#jwt = jwt;
+		this.#fetch = customFetch ?? _fetch;
+		this.#closed = void 0;
+		this.#streams = /* @__PURE__ */ new Set();
+		if (protocolVersion == 3) {
+			this._endpointPromise = findEndpoint(this.#fetch, this.#url);
+			this._endpointPromise.then((endpoint) => this._endpoint = endpoint, (error) => this.#setClosed(error));
+		} else {
+			this._endpointPromise = Promise.resolve(fallbackEndpoint);
+			this._endpointPromise.then((endpoint) => this._endpoint = endpoint, (error) => this.#setClosed(error));
+		}
+	}
+	/** Get the protocol version supported by the server. */
+	async getVersion() {
+		if (this._endpoint !== void 0) return this._endpoint.version;
+		return (await this._endpointPromise).version;
+	}
+	/** @private */
+	_ensureVersion(minVersion, feature) {
+		if (minVersion <= fallbackEndpoint.version) return;
+		else if (this._endpoint === void 0) throw new ProtocolVersionError(`${feature} is supported only on protocol version ${minVersion} and higher, but the version supported by the HTTP server is not yet known. Use Client.getVersion() to wait until the version is available.`);
+		else if (this._endpoint.version < minVersion) throw new ProtocolVersionError(`${feature} is supported only on protocol version ${minVersion} and higher, but the HTTP server only supports version ${this._endpoint.version}.`);
+	}
+	/** Open a {@link HttpStream}, a stream for executing SQL statements. */
+	openStream() {
+		if (this.#closed !== void 0) throw new ClosedError("Client is closed", this.#closed);
+		const stream = new HttpStream(this, this.#url, this.#jwt, this.#fetch);
+		this.#streams.add(stream);
+		return stream;
+	}
+	/** @private */
+	_streamClosed(stream) {
+		this.#streams.delete(stream);
+	}
+	/** Close the client and all its streams. */
+	close() {
+		this.#setClosed(new ClientError("Client was manually closed"));
+	}
+	/** True if the client is closed. */
+	get closed() {
+		return this.#closed !== void 0;
+	}
+	#setClosed(error) {
+		if (this.#closed !== void 0) return;
+		this.#closed = error;
+		for (const stream of Array.from(this.#streams)) stream._setClosed(new ClosedError("Client was closed", error));
+	}
+};
 async function findEndpoint(customFetch, clientUrl) {
 	const fetch = customFetch;
 	for (const endpoint of checkEndpoints) {
@@ -29225,89 +29329,6 @@ async function findEndpoint(customFetch, clientUrl) {
 	}
 	return fallbackEndpoint;
 }
-var checkEndpoints, fallbackEndpoint, HttpClient$1;
-var init_client = __esmMin((() => {
-	init_web$1();
-	init_client$2();
-	init_errors();
-	init_stream();
-	checkEndpoints = [{
-		versionPath: "v3-protobuf",
-		pipelinePath: "v3-protobuf/pipeline",
-		cursorPath: "v3-protobuf/cursor",
-		version: 3,
-		encoding: "protobuf"
-	}];
-	fallbackEndpoint = {
-		versionPath: "v2",
-		pipelinePath: "v2/pipeline",
-		cursorPath: void 0,
-		version: 2,
-		encoding: "json"
-	};
-	HttpClient$1 = class extends Client {
-		#url;
-		#jwt;
-		#fetch;
-		#closed;
-		#streams;
-		/** @private */
-		_endpointPromise;
-		/** @private */
-		_endpoint;
-		/** @private */
-		constructor(url, jwt, customFetch, protocolVersion = 2) {
-			super();
-			this.#url = url;
-			this.#jwt = jwt;
-			this.#fetch = customFetch ?? _fetch;
-			this.#closed = void 0;
-			this.#streams = /* @__PURE__ */ new Set();
-			if (protocolVersion == 3) {
-				this._endpointPromise = findEndpoint(this.#fetch, this.#url);
-				this._endpointPromise.then((endpoint) => this._endpoint = endpoint, (error) => this.#setClosed(error));
-			} else {
-				this._endpointPromise = Promise.resolve(fallbackEndpoint);
-				this._endpointPromise.then((endpoint) => this._endpoint = endpoint, (error) => this.#setClosed(error));
-			}
-		}
-		/** Get the protocol version supported by the server. */
-		async getVersion() {
-			if (this._endpoint !== void 0) return this._endpoint.version;
-			return (await this._endpointPromise).version;
-		}
-		/** @private */
-		_ensureVersion(minVersion, feature) {
-			if (minVersion <= fallbackEndpoint.version) return;
-			else if (this._endpoint === void 0) throw new ProtocolVersionError(`${feature} is supported only on protocol version ${minVersion} and higher, but the version supported by the HTTP server is not yet known. Use Client.getVersion() to wait until the version is available.`);
-			else if (this._endpoint.version < minVersion) throw new ProtocolVersionError(`${feature} is supported only on protocol version ${minVersion} and higher, but the HTTP server only supports version ${this._endpoint.version}.`);
-		}
-		/** Open a {@link HttpStream}, a stream for executing SQL statements. */
-		openStream() {
-			if (this.#closed !== void 0) throw new ClosedError("Client is closed", this.#closed);
-			const stream = new HttpStream(this, this.#url, this.#jwt, this.#fetch);
-			this.#streams.add(stream);
-			return stream;
-		}
-		/** @private */
-		_streamClosed(stream) {
-			this.#streams.delete(stream);
-		}
-		/** Close the client and all its streams. */
-		close() {
-			this.#setClosed(new ClientError("Client was manually closed"));
-		}
-		/** True if the client is closed. */
-		get closed() {
-			return this.#closed !== void 0;
-		}
-		#setClosed(error) {
-			if (this.#closed !== void 0) return;
-			this.#closed = error;
-			for (const stream of Array.from(this.#streams)) stream._setClosed(new ClosedError("Client was closed", error));
-		}
-	};
-}));
 //#endregion
 //#region node_modules/@libsql/hrana-client/lib-esm/index.js
 /** Open a Hrana client over WebSocket connected to the given `url`. */
@@ -29327,23 +29348,127 @@ function openWs(url, jwt, protocolVersion = 2) {
 function openHttp(url, jwt, customFetch, protocolVersion = 2) {
 	return new HttpClient$1(url instanceof URL ? url : new URL(url), jwt, customFetch, protocolVersion);
 }
-var init_lib_esm = __esmMin((() => {
-	init_web$2();
-	init_client$1();
-	init_errors();
-	init_client();
-	init_web$1();
-	init_client$2();
-	init_errors();
-	init_batch();
-	init_sql();
-	init_stmt();
-	init_stream$2();
-	init_stream();
-	init_stream$1();
-}));
 //#endregion
 //#region node_modules/@libsql/client/lib-esm/hrana.js
+var HranaTransaction = class {
+	#mode;
+	#version;
+	#started;
+	/** @private */
+	constructor(mode, version) {
+		this.#mode = mode;
+		this.#version = version;
+		this.#started = void 0;
+	}
+	execute(stmt) {
+		return this.batch([stmt]).then((results) => results[0]);
+	}
+	async batch(stmts) {
+		const stream = this._getStream();
+		if (stream.closed) throw new LibsqlError("Cannot execute statements because the transaction is closed", "TRANSACTION_CLOSED");
+		try {
+			const hranaStmts = stmts.map(stmtToHrana);
+			let rowsPromises;
+			if (this.#started === void 0) {
+				this._getSqlCache().apply(hranaStmts);
+				const batch = stream.batch(this.#version >= 3);
+				const beginStep = batch.step();
+				const beginPromise = beginStep.run(transactionModeToBegin(this.#mode));
+				let lastStep = beginStep;
+				rowsPromises = hranaStmts.map((hranaStmt) => {
+					const stmtStep = batch.step().condition(BatchCond$2.ok(lastStep));
+					if (this.#version >= 3) stmtStep.condition(BatchCond$2.not(BatchCond$2.isAutocommit(batch)));
+					const rowsPromise = stmtStep.query(hranaStmt);
+					rowsPromise.catch(() => void 0);
+					lastStep = stmtStep;
+					return rowsPromise;
+				});
+				this.#started = batch.execute().then(() => beginPromise).then(() => void 0);
+				try {
+					await this.#started;
+				} catch (e) {
+					this.close();
+					throw e;
+				}
+			} else {
+				if (this.#version < 3) await this.#started;
+				this._getSqlCache().apply(hranaStmts);
+				const batch = stream.batch(this.#version >= 3);
+				let lastStep = void 0;
+				rowsPromises = hranaStmts.map((hranaStmt) => {
+					const stmtStep = batch.step();
+					if (lastStep !== void 0) stmtStep.condition(BatchCond$2.ok(lastStep));
+					if (this.#version >= 3) stmtStep.condition(BatchCond$2.not(BatchCond$2.isAutocommit(batch)));
+					const rowsPromise = stmtStep.query(hranaStmt);
+					rowsPromise.catch(() => void 0);
+					lastStep = stmtStep;
+					return rowsPromise;
+				});
+				await batch.execute();
+			}
+			const resultSets = [];
+			for (const rowsPromise of rowsPromises) {
+				const rows = await rowsPromise;
+				if (rows === void 0) throw new LibsqlError("Statement in a transaction was not executed, probably because the transaction has been rolled back", "TRANSACTION_CLOSED");
+				resultSets.push(resultSetFromHrana(rows));
+			}
+			return resultSets;
+		} catch (e) {
+			throw mapHranaError(e);
+		}
+	}
+	async executeMultiple(sql) {
+		const stream = this._getStream();
+		if (stream.closed) throw new LibsqlError("Cannot execute statements because the transaction is closed", "TRANSACTION_CLOSED");
+		try {
+			if (this.#started === void 0) {
+				this.#started = stream.run(transactionModeToBegin(this.#mode)).then(() => void 0);
+				try {
+					await this.#started;
+				} catch (e) {
+					this.close();
+					throw e;
+				}
+			} else await this.#started;
+			await stream.sequence(sql);
+		} catch (e) {
+			throw mapHranaError(e);
+		}
+	}
+	async rollback() {
+		try {
+			const stream = this._getStream();
+			if (stream.closed) return;
+			if (this.#started !== void 0) {} else return;
+			const promise = stream.run("ROLLBACK").catch((e) => {
+				throw mapHranaError(e);
+			});
+			stream.closeGracefully();
+			await promise;
+		} catch (e) {
+			throw mapHranaError(e);
+		} finally {
+			this.close();
+		}
+	}
+	async commit() {
+		try {
+			const stream = this._getStream();
+			if (stream.closed) throw new LibsqlError("Cannot commit the transaction because it is already closed", "TRANSACTION_CLOSED");
+			if (this.#started !== void 0) await this.#started;
+			else return;
+			const promise = stream.run("COMMIT").catch((e) => {
+				throw mapHranaError(e);
+			});
+			stream.closeGracefully();
+			await promise;
+		} catch (e) {
+			throw mapHranaError(e);
+		} finally {
+			this.close();
+		}
+	}
+};
 async function executeHranaBatch(mode, version, batch, hranaStmts) {
 	const beginStep = batch.step();
 	const beginPromise = beginStep.run(transactionModeToBegin(mode));
@@ -29401,197 +29526,69 @@ function mapHranaErrorCode(e) {
 	else if (e instanceof InternalError) return "INTERNAL_ERROR";
 	else return "UNKNOWN";
 }
-var HranaTransaction;
-var init_hrana = __esmMin((() => {
-	init_lib_esm();
-	init_api();
-	init_util$2();
-	HranaTransaction = class {
-		#mode;
-		#version;
-		#started;
-		/** @private */
-		constructor(mode, version) {
-			this.#mode = mode;
-			this.#version = version;
-			this.#started = void 0;
-		}
-		execute(stmt) {
-			return this.batch([stmt]).then((results) => results[0]);
-		}
-		async batch(stmts) {
-			const stream = this._getStream();
-			if (stream.closed) throw new LibsqlError("Cannot execute statements because the transaction is closed", "TRANSACTION_CLOSED");
-			try {
-				const hranaStmts = stmts.map(stmtToHrana);
-				let rowsPromises;
-				if (this.#started === void 0) {
-					this._getSqlCache().apply(hranaStmts);
-					const batch = stream.batch(this.#version >= 3);
-					const beginStep = batch.step();
-					const beginPromise = beginStep.run(transactionModeToBegin(this.#mode));
-					let lastStep = beginStep;
-					rowsPromises = hranaStmts.map((hranaStmt) => {
-						const stmtStep = batch.step().condition(BatchCond$2.ok(lastStep));
-						if (this.#version >= 3) stmtStep.condition(BatchCond$2.not(BatchCond$2.isAutocommit(batch)));
-						const rowsPromise = stmtStep.query(hranaStmt);
-						rowsPromise.catch(() => void 0);
-						lastStep = stmtStep;
-						return rowsPromise;
-					});
-					this.#started = batch.execute().then(() => beginPromise).then(() => void 0);
-					try {
-						await this.#started;
-					} catch (e) {
-						this.close();
-						throw e;
-					}
-				} else {
-					if (this.#version < 3) await this.#started;
-					this._getSqlCache().apply(hranaStmts);
-					const batch = stream.batch(this.#version >= 3);
-					let lastStep = void 0;
-					rowsPromises = hranaStmts.map((hranaStmt) => {
-						const stmtStep = batch.step();
-						if (lastStep !== void 0) stmtStep.condition(BatchCond$2.ok(lastStep));
-						if (this.#version >= 3) stmtStep.condition(BatchCond$2.not(BatchCond$2.isAutocommit(batch)));
-						const rowsPromise = stmtStep.query(hranaStmt);
-						rowsPromise.catch(() => void 0);
-						lastStep = stmtStep;
-						return rowsPromise;
-					});
-					await batch.execute();
-				}
-				const resultSets = [];
-				for (const rowsPromise of rowsPromises) {
-					const rows = await rowsPromise;
-					if (rows === void 0) throw new LibsqlError("Statement in a transaction was not executed, probably because the transaction has been rolled back", "TRANSACTION_CLOSED");
-					resultSets.push(resultSetFromHrana(rows));
-				}
-				return resultSets;
-			} catch (e) {
-				throw mapHranaError(e);
-			}
-		}
-		async executeMultiple(sql) {
-			const stream = this._getStream();
-			if (stream.closed) throw new LibsqlError("Cannot execute statements because the transaction is closed", "TRANSACTION_CLOSED");
-			try {
-				if (this.#started === void 0) {
-					this.#started = stream.run(transactionModeToBegin(this.#mode)).then(() => void 0);
-					try {
-						await this.#started;
-					} catch (e) {
-						this.close();
-						throw e;
-					}
-				} else await this.#started;
-				await stream.sequence(sql);
-			} catch (e) {
-				throw mapHranaError(e);
-			}
-		}
-		async rollback() {
-			try {
-				const stream = this._getStream();
-				if (stream.closed) return;
-				if (this.#started !== void 0) {} else return;
-				const promise = stream.run("ROLLBACK").catch((e) => {
-					throw mapHranaError(e);
-				});
-				stream.closeGracefully();
-				await promise;
-			} catch (e) {
-				throw mapHranaError(e);
-			} finally {
-				this.close();
-			}
-		}
-		async commit() {
-			try {
-				const stream = this._getStream();
-				if (stream.closed) throw new LibsqlError("Cannot commit the transaction because it is already closed", "TRANSACTION_CLOSED");
-				if (this.#started !== void 0) await this.#started;
-				else return;
-				const promise = stream.run("COMMIT").catch((e) => {
-					throw mapHranaError(e);
-				});
-				stream.closeGracefully();
-				await promise;
-			} catch (e) {
-				throw mapHranaError(e);
-			} finally {
-				this.close();
-			}
-		}
-	};
-}));
 //#endregion
 //#region node_modules/@libsql/client/lib-esm/sql_cache.js
-var SqlCache, Lru;
-var init_sql_cache = __esmMin((() => {
-	SqlCache = class {
-		#owner;
-		#sqls;
-		capacity;
-		constructor(owner, capacity) {
-			this.#owner = owner;
-			this.#sqls = new Lru();
-			this.capacity = capacity;
-		}
-		apply(hranaStmts) {
-			if (this.capacity <= 0) return;
-			const usedSqlObjs = /* @__PURE__ */ new Set();
-			for (const hranaStmt of hranaStmts) {
-				if (typeof hranaStmt.sql !== "string") continue;
-				const sqlText = hranaStmt.sql;
-				let sqlObj = this.#sqls.get(sqlText);
-				if (sqlObj === void 0) {
-					while (this.#sqls.size + 1 > this.capacity) {
-						const [evictSqlText, evictSqlObj] = this.#sqls.peekLru();
-						if (usedSqlObjs.has(evictSqlObj)) break;
-						evictSqlObj.close();
-						this.#sqls.delete(evictSqlText);
-					}
-					if (this.#sqls.size + 1 <= this.capacity) {
-						sqlObj = this.#owner.storeSql(sqlText);
-						this.#sqls.set(sqlText, sqlObj);
-					}
+var SqlCache = class {
+	#owner;
+	#sqls;
+	capacity;
+	constructor(owner, capacity) {
+		this.#owner = owner;
+		this.#sqls = new Lru();
+		this.capacity = capacity;
+	}
+	apply(hranaStmts) {
+		if (this.capacity <= 0) return;
+		const usedSqlObjs = /* @__PURE__ */ new Set();
+		for (const hranaStmt of hranaStmts) {
+			if (typeof hranaStmt.sql !== "string") continue;
+			const sqlText = hranaStmt.sql;
+			let sqlObj = this.#sqls.get(sqlText);
+			if (sqlObj === void 0) {
+				while (this.#sqls.size + 1 > this.capacity) {
+					const [evictSqlText, evictSqlObj] = this.#sqls.peekLru();
+					if (usedSqlObjs.has(evictSqlObj)) break;
+					evictSqlObj.close();
+					this.#sqls.delete(evictSqlText);
 				}
-				if (sqlObj !== void 0) {
-					hranaStmt.sql = sqlObj;
-					usedSqlObjs.add(sqlObj);
+				if (this.#sqls.size + 1 <= this.capacity) {
+					sqlObj = this.#owner.storeSql(sqlText);
+					this.#sqls.set(sqlText, sqlObj);
 				}
 			}
-		}
-	};
-	Lru = class {
-		#cache;
-		constructor() {
-			this.#cache = /* @__PURE__ */ new Map();
-		}
-		get(key) {
-			const value = this.#cache.get(key);
-			if (value !== void 0) {
-				this.#cache.delete(key);
-				this.#cache.set(key, value);
+			if (sqlObj !== void 0) {
+				hranaStmt.sql = sqlObj;
+				usedSqlObjs.add(sqlObj);
 			}
-			return value;
 		}
-		set(key, value) {
+	}
+};
+var Lru = class {
+	#cache;
+	constructor() {
+		this.#cache = /* @__PURE__ */ new Map();
+	}
+	get(key) {
+		const value = this.#cache.get(key);
+		if (value !== void 0) {
+			this.#cache.delete(key);
 			this.#cache.set(key, value);
 		}
-		peekLru() {
-			for (const entry of this.#cache.entries()) return entry;
-		}
-		delete(key) {
-			this.#cache.delete(key);
-		}
-		get size() {
-			return this.#cache.size;
-		}
-	};
-}));
+		return value;
+	}
+	set(key, value) {
+		this.#cache.set(key, value);
+	}
+	peekLru() {
+		for (const entry of this.#cache.entries()) return entry;
+	}
+	delete(key) {
+		this.#cache.delete(key);
+	}
+	get size() {
+		return this.#cache.size;
+	}
+};
 //#endregion
 //#region node_modules/@libsql/client/lib-esm/ws.js
 /** @private */
@@ -29614,177 +29611,166 @@ function _createClient$2(config) {
 	}
 	return new WsClient(client, url, config.authToken, config.intMode);
 }
-var maxConnAgeMillis, sqlCacheCapacity$1, WsClient, WsTransaction;
-var init_ws = __esmMin((() => {
-	init_lib_esm();
-	init_api();
-	init_config();
-	init_hrana();
-	init_sql_cache();
-	init_uri();
-	init_util$2();
-	init_api();
-	maxConnAgeMillis = 60 * 1e3;
-	sqlCacheCapacity$1 = 100;
-	WsClient = class {
-		#url;
-		#authToken;
-		#intMode;
-		#connState;
-		#futureConnState;
-		closed;
-		protocol;
-		/** @private */
-		constructor(client, url, authToken, intMode) {
-			this.#url = url;
-			this.#authToken = authToken;
-			this.#intMode = intMode;
-			this.#connState = this.#openConn(client);
-			this.#futureConnState = void 0;
-			this.closed = false;
-			this.protocol = "ws";
+var maxConnAgeMillis = 60 * 1e3;
+var sqlCacheCapacity$1 = 100;
+var WsClient = class {
+	#url;
+	#authToken;
+	#intMode;
+	#connState;
+	#futureConnState;
+	closed;
+	protocol;
+	/** @private */
+	constructor(client, url, authToken, intMode) {
+		this.#url = url;
+		this.#authToken = authToken;
+		this.#intMode = intMode;
+		this.#connState = this.#openConn(client);
+		this.#futureConnState = void 0;
+		this.closed = false;
+		this.protocol = "ws";
+	}
+	async execute(stmt) {
+		const streamState = await this.#openStream();
+		try {
+			const hranaStmt = stmtToHrana(stmt);
+			streamState.conn.sqlCache.apply([hranaStmt]);
+			const hranaRowsPromise = streamState.stream.query(hranaStmt);
+			streamState.stream.closeGracefully();
+			return resultSetFromHrana(await hranaRowsPromise);
+		} catch (e) {
+			throw mapHranaError(e);
+		} finally {
+			this._closeStream(streamState);
 		}
-		async execute(stmt) {
-			const streamState = await this.#openStream();
-			try {
-				const hranaStmt = stmtToHrana(stmt);
-				streamState.conn.sqlCache.apply([hranaStmt]);
-				const hranaRowsPromise = streamState.stream.query(hranaStmt);
-				streamState.stream.closeGracefully();
-				return resultSetFromHrana(await hranaRowsPromise);
-			} catch (e) {
-				throw mapHranaError(e);
-			} finally {
-				this._closeStream(streamState);
-			}
+	}
+	async batch(stmts, mode = "deferred") {
+		const streamState = await this.#openStream();
+		try {
+			const hranaStmts = stmts.map(stmtToHrana);
+			const version = await streamState.conn.client.getVersion();
+			streamState.conn.sqlCache.apply(hranaStmts);
+			return await executeHranaBatch(mode, version, streamState.stream.batch(version >= 3), hranaStmts);
+		} catch (e) {
+			throw mapHranaError(e);
+		} finally {
+			this._closeStream(streamState);
 		}
-		async batch(stmts, mode = "deferred") {
-			const streamState = await this.#openStream();
-			try {
-				const hranaStmts = stmts.map(stmtToHrana);
-				const version = await streamState.conn.client.getVersion();
-				streamState.conn.sqlCache.apply(hranaStmts);
-				return await executeHranaBatch(mode, version, streamState.stream.batch(version >= 3), hranaStmts);
-			} catch (e) {
-				throw mapHranaError(e);
-			} finally {
-				this._closeStream(streamState);
-			}
+	}
+	async transaction(mode = "write") {
+		const streamState = await this.#openStream();
+		try {
+			const version = await streamState.conn.client.getVersion();
+			return new WsTransaction(this, streamState, mode, version);
+		} catch (e) {
+			this._closeStream(streamState);
+			throw mapHranaError(e);
 		}
-		async transaction(mode = "write") {
-			const streamState = await this.#openStream();
-			try {
-				const version = await streamState.conn.client.getVersion();
-				return new WsTransaction(this, streamState, mode, version);
-			} catch (e) {
-				this._closeStream(streamState);
-				throw mapHranaError(e);
-			}
+	}
+	async executeMultiple(sql) {
+		const streamState = await this.#openStream();
+		try {
+			const promise = streamState.stream.sequence(sql);
+			streamState.stream.closeGracefully();
+			await promise;
+		} catch (e) {
+			throw mapHranaError(e);
+		} finally {
+			this._closeStream(streamState);
 		}
-		async executeMultiple(sql) {
-			const streamState = await this.#openStream();
-			try {
-				const promise = streamState.stream.sequence(sql);
-				streamState.stream.closeGracefully();
-				await promise;
-			} catch (e) {
-				throw mapHranaError(e);
-			} finally {
-				this._closeStream(streamState);
-			}
-		}
-		sync() {
-			return Promise.resolve();
-		}
-		async #openStream() {
-			if (this.closed) throw new LibsqlError("The client is closed", "CLIENT_CLOSED");
-			if ((/* @__PURE__ */ new Date()).valueOf() - this.#connState.openTime.valueOf() > maxConnAgeMillis && this.#futureConnState === void 0) {
-				const futureConnState = this.#openConn();
-				this.#futureConnState = futureConnState;
-				futureConnState.client.getVersion().then((_version) => {
-					if (this.#connState !== futureConnState) {
-						if (this.#connState.streamStates.size === 0) this.#connState.client.close();
-					}
-					this.#connState = futureConnState;
-					this.#futureConnState = void 0;
-				}, (_e) => {
-					this.#futureConnState = void 0;
-				});
-			}
-			if (this.#connState.client.closed) try {
-				if (this.#futureConnState !== void 0) this.#connState = this.#futureConnState;
-				else this.#connState = this.#openConn();
-			} catch (e) {
-				throw mapHranaError(e);
-			}
-			const connState = this.#connState;
-			try {
-				if (connState.useSqlCache === void 0) {
-					connState.useSqlCache = await connState.client.getVersion() >= 2;
-					if (connState.useSqlCache) connState.sqlCache.capacity = sqlCacheCapacity$1;
+	}
+	sync() {
+		return Promise.resolve();
+	}
+	async #openStream() {
+		if (this.closed) throw new LibsqlError("The client is closed", "CLIENT_CLOSED");
+		if ((/* @__PURE__ */ new Date()).valueOf() - this.#connState.openTime.valueOf() > maxConnAgeMillis && this.#futureConnState === void 0) {
+			const futureConnState = this.#openConn();
+			this.#futureConnState = futureConnState;
+			futureConnState.client.getVersion().then((_version) => {
+				if (this.#connState !== futureConnState) {
+					if (this.#connState.streamStates.size === 0) this.#connState.client.close();
 				}
-				const stream = connState.client.openStream();
-				stream.intMode = this.#intMode;
-				const streamState = {
-					conn: connState,
-					stream
-				};
-				connState.streamStates.add(streamState);
-				return streamState;
-			} catch (e) {
-				throw mapHranaError(e);
+				this.#connState = futureConnState;
+				this.#futureConnState = void 0;
+			}, (_e) => {
+				this.#futureConnState = void 0;
+			});
+		}
+		if (this.#connState.client.closed) try {
+			if (this.#futureConnState !== void 0) this.#connState = this.#futureConnState;
+			else this.#connState = this.#openConn();
+		} catch (e) {
+			throw mapHranaError(e);
+		}
+		const connState = this.#connState;
+		try {
+			if (connState.useSqlCache === void 0) {
+				connState.useSqlCache = await connState.client.getVersion() >= 2;
+				if (connState.useSqlCache) connState.sqlCache.capacity = sqlCacheCapacity$1;
 			}
+			const stream = connState.client.openStream();
+			stream.intMode = this.#intMode;
+			const streamState = {
+				conn: connState,
+				stream
+			};
+			connState.streamStates.add(streamState);
+			return streamState;
+		} catch (e) {
+			throw mapHranaError(e);
 		}
-		#openConn(client) {
-			try {
-				client ??= openWs(this.#url, this.#authToken);
-				return {
-					client,
-					useSqlCache: void 0,
-					sqlCache: new SqlCache(client, 0),
-					openTime: /* @__PURE__ */ new Date(),
-					streamStates: /* @__PURE__ */ new Set()
-				};
-			} catch (e) {
-				throw mapHranaError(e);
-			}
+	}
+	#openConn(client) {
+		try {
+			client ??= openWs(this.#url, this.#authToken);
+			return {
+				client,
+				useSqlCache: void 0,
+				sqlCache: new SqlCache(client, 0),
+				openTime: /* @__PURE__ */ new Date(),
+				streamStates: /* @__PURE__ */ new Set()
+			};
+		} catch (e) {
+			throw mapHranaError(e);
 		}
-		_closeStream(streamState) {
-			streamState.stream.close();
-			const connState = streamState.conn;
-			connState.streamStates.delete(streamState);
-			if (connState.streamStates.size === 0 && connState !== this.#connState) connState.client.close();
-		}
-		close() {
-			this.#connState.client.close();
-			this.closed = true;
-		}
-	};
-	WsTransaction = class extends HranaTransaction {
-		#client;
-		#streamState;
-		/** @private */
-		constructor(client, state, mode, version) {
-			super(mode, version);
-			this.#client = client;
-			this.#streamState = state;
-		}
-		/** @private */
-		_getStream() {
-			return this.#streamState.stream;
-		}
-		/** @private */
-		_getSqlCache() {
-			return this.#streamState.conn.sqlCache;
-		}
-		close() {
-			this.#client._closeStream(this.#streamState);
-		}
-		get closed() {
-			return this.#streamState.stream.closed;
-		}
-	};
-}));
+	}
+	_closeStream(streamState) {
+		streamState.stream.close();
+		const connState = streamState.conn;
+		connState.streamStates.delete(streamState);
+		if (connState.streamStates.size === 0 && connState !== this.#connState) connState.client.close();
+	}
+	close() {
+		this.#connState.client.close();
+		this.closed = true;
+	}
+};
+var WsTransaction = class extends HranaTransaction {
+	#client;
+	#streamState;
+	/** @private */
+	constructor(client, state, mode, version) {
+		super(mode, version);
+		this.#client = client;
+		this.#streamState = state;
+	}
+	/** @private */
+	_getStream() {
+		return this.#streamState.stream;
+	}
+	/** @private */
+	_getSqlCache() {
+		return this.#streamState.conn.sqlCache;
+	}
+	close() {
+		this.#client._closeStream(this.#streamState);
+	}
+	get closed() {
+		return this.#streamState.stream.closed;
+	}
+};
 //#endregion
 //#region node_modules/@libsql/client/lib-esm/http.js
 /** @private */
@@ -29795,115 +29781,104 @@ function _createClient$1(config) {
 	else if (config.scheme === "https" && !config.tls) throw new LibsqlError(`A "https:" URL cannot opt out of TLS by using ?tls=0`, "URL_INVALID");
 	return new HttpClient(encodeBaseUrl(config.scheme, config.authority, config.path), config.authToken, config.intMode, config.fetch);
 }
-var sqlCacheCapacity, HttpClient, HttpTransaction;
-var init_http = __esmMin((() => {
-	init_lib_esm();
-	init_api();
-	init_config();
-	init_hrana();
-	init_sql_cache();
-	init_uri();
-	init_util$2();
-	init_api();
-	sqlCacheCapacity = 30;
-	HttpClient = class {
-		#client;
-		protocol;
-		/** @private */
-		constructor(url, authToken, intMode, customFetch) {
-			this.#client = openHttp(url, authToken, customFetch);
-			this.#client.intMode = intMode;
-			this.protocol = "http";
-		}
-		async execute(stmt) {
+var sqlCacheCapacity = 30;
+var HttpClient = class {
+	#client;
+	protocol;
+	/** @private */
+	constructor(url, authToken, intMode, customFetch) {
+		this.#client = openHttp(url, authToken, customFetch);
+		this.#client.intMode = intMode;
+		this.protocol = "http";
+	}
+	async execute(stmt) {
+		try {
+			const hranaStmt = stmtToHrana(stmt);
+			let rowsPromise;
+			const stream = this.#client.openStream();
 			try {
-				const hranaStmt = stmtToHrana(stmt);
-				let rowsPromise;
-				const stream = this.#client.openStream();
-				try {
-					rowsPromise = stream.query(hranaStmt);
-				} finally {
-					stream.closeGracefully();
-				}
-				return resultSetFromHrana(await rowsPromise);
-			} catch (e) {
-				throw mapHranaError(e);
+				rowsPromise = stream.query(hranaStmt);
+			} finally {
+				stream.closeGracefully();
 			}
+			return resultSetFromHrana(await rowsPromise);
+		} catch (e) {
+			throw mapHranaError(e);
 		}
-		async batch(stmts, mode = "deferred") {
+	}
+	async batch(stmts, mode = "deferred") {
+		try {
+			const hranaStmts = stmts.map(stmtToHrana);
+			const version = await this.#client.getVersion();
+			let resultsPromise;
+			const stream = this.#client.openStream();
 			try {
-				const hranaStmts = stmts.map(stmtToHrana);
-				const version = await this.#client.getVersion();
-				let resultsPromise;
-				const stream = this.#client.openStream();
-				try {
-					new SqlCache(stream, sqlCacheCapacity).apply(hranaStmts);
-					resultsPromise = executeHranaBatch(mode, version, stream.batch(false), hranaStmts);
-				} finally {
-					stream.closeGracefully();
-				}
-				return await resultsPromise;
-			} catch (e) {
-				throw mapHranaError(e);
+				new SqlCache(stream, sqlCacheCapacity).apply(hranaStmts);
+				resultsPromise = executeHranaBatch(mode, version, stream.batch(false), hranaStmts);
+			} finally {
+				stream.closeGracefully();
 			}
+			return await resultsPromise;
+		} catch (e) {
+			throw mapHranaError(e);
 		}
-		async transaction(mode = "write") {
+	}
+	async transaction(mode = "write") {
+		try {
+			const version = await this.#client.getVersion();
+			return new HttpTransaction(this.#client.openStream(), mode, version);
+		} catch (e) {
+			throw mapHranaError(e);
+		}
+	}
+	async executeMultiple(sql) {
+		try {
+			let promise;
+			const stream = this.#client.openStream();
 			try {
-				const version = await this.#client.getVersion();
-				return new HttpTransaction(this.#client.openStream(), mode, version);
-			} catch (e) {
-				throw mapHranaError(e);
+				promise = stream.sequence(sql);
+			} finally {
+				stream.closeGracefully();
 			}
+			await promise;
+		} catch (e) {
+			throw mapHranaError(e);
 		}
-		async executeMultiple(sql) {
-			try {
-				let promise;
-				const stream = this.#client.openStream();
-				try {
-					promise = stream.sequence(sql);
-				} finally {
-					stream.closeGracefully();
-				}
-				await promise;
-			} catch (e) {
-				throw mapHranaError(e);
-			}
-		}
-		sync() {
-			throw new LibsqlError("sync not supported in http mode", "SYNC_NOT_SUPPORTED");
-		}
-		close() {
-			this.#client.close();
-		}
-		get closed() {
-			return this.#client.closed;
-		}
-	};
-	HttpTransaction = class extends HranaTransaction {
-		#stream;
-		#sqlCache;
-		/** @private */
-		constructor(stream, mode, version) {
-			super(mode, version);
-			this.#stream = stream;
-			this.#sqlCache = new SqlCache(stream, sqlCacheCapacity);
-		}
-		/** @private */
-		_getStream() {
-			return this.#stream;
-		}
-		/** @private */
-		_getSqlCache() {
-			return this.#sqlCache;
-		}
-		close() {
-			this.#stream.close();
-		}
-		get closed() {
-			return this.#stream.closed;
-		}
-	};
-}));
+	}
+	sync() {
+		throw new LibsqlError("sync not supported in http mode", "SYNC_NOT_SUPPORTED");
+	}
+	close() {
+		this.#client.close();
+	}
+	get closed() {
+		return this.#client.closed;
+	}
+};
+var HttpTransaction = class extends HranaTransaction {
+	#stream;
+	#sqlCache;
+	/** @private */
+	constructor(stream, mode, version) {
+		super(mode, version);
+		this.#stream = stream;
+		this.#sqlCache = new SqlCache(stream, sqlCacheCapacity);
+	}
+	/** @private */
+	_getStream() {
+		return this.#stream;
+	}
+	/** @private */
+	_getSqlCache() {
+		return this.#sqlCache;
+	}
+	close() {
+		this.#stream.close();
+	}
+	get closed() {
+		return this.#stream.closed;
+	}
+};
 //#endregion
 //#region node_modules/@libsql/client/lib-esm/web.js
 function createClient(config) {
@@ -29915,16 +29890,13 @@ function _createClient(config) {
 	else if (config.scheme === "http" || config.scheme === "https") return _createClient$1(config);
 	else throw new LibsqlError(`The client that uses Web standard APIs supports only "libsql:", "wss:", "ws:", "https:" and "http:" URLs, got ${JSON.stringify(config.scheme + ":")}. For more information, please read ${supportedUrlLink}`, "URL_SCHEME_NOT_SUPPORTED");
 }
-var init_web = __esmMin((() => {
-	init_api();
-	init_config();
-	init_util$2();
-	init_ws();
-	init_http();
-	init_api();
-}));
 //#endregion
 //#region src/db.js
+init_home();
+var _db = null;
+var _dbPromise = null;
+var DB_PATH = () => path.join(getFreddieHome(), "state", "sessions.db");
+var USE_MEMORY_DB = () => process.env.FREDDIE_TEST_DB === "memory";
 async function db() {
 	if (_db) return _db;
 	if (_dbPromise) return await _dbPromise;
@@ -29944,130 +29916,123 @@ async function db() {
 	})();
 	return await _dbPromise;
 }
-var _db, _dbPromise, DB_PATH, USE_MEMORY_DB, DbAdapter, PreparedStatement;
-var init_db = __esmMin((() => {
-	init_web();
-	init_home();
-	_db = null;
-	_dbPromise = null;
-	DB_PATH = () => path.join(getFreddieHome(), "state", "sessions.db");
-	USE_MEMORY_DB = () => process.env.FREDDIE_TEST_DB === "memory";
-	DbAdapter = class {
-		constructor(client, dbPath) {
-			this.client = client;
-			this.dbPath = dbPath;
-			this._fts5_unavailable = false;
+var DbAdapter = class {
+	constructor(client, dbPath) {
+		this.client = client;
+		this.dbPath = dbPath;
+		this._fts5_unavailable = false;
+	}
+	prepare(sql) {
+		return new PreparedStatement(this.client, sql);
+	}
+	async exec(sql) {
+		try {
+			const statements = sql.split(";").filter((s) => s.trim());
+			const results = [];
+			for (const stmt of statements) if (stmt.trim()) {
+				const result = await this.client.execute({ sql: stmt.trim() });
+				results.push(result);
+			}
+			return results;
+		} catch (e) {
+			throw e;
 		}
-		prepare(sql) {
-			return new PreparedStatement(this.client, sql);
-		}
-		async exec(sql) {
+	}
+	async run(...args) {
+		const [sql, ...params] = args;
+		const result = await this.client.execute({
+			sql,
+			args: params
+		});
+		return {
+			changes: result.rowsAffected,
+			lastInsertRowid: result.lastInsertRowid ? BigInt(result.lastInsertRowid) : 0n
+		};
+	}
+	transaction(fn) {
+		return async (...args) => {
 			try {
-				const statements = sql.split(";").filter((s) => s.trim());
-				const results = [];
-				for (const stmt of statements) if (stmt.trim()) {
-					const result = await this.client.execute({ sql: stmt.trim() });
-					results.push(result);
-				}
-				return results;
+				await this.client.execute("BEGIN TRANSACTION");
+				const result = await fn(...args);
+				await this.client.execute("COMMIT");
+				return result;
 			} catch (e) {
+				try {
+					await this.client.execute("ROLLBACK");
+				} catch (_) {}
 				throw e;
 			}
+		};
+	}
+	async close() {
+		if (this.client) {
+			await this.client.close();
+			this.client = null;
 		}
-		async run(...args) {
-			const [sql, ...params] = args;
-			const result = await this.client.execute({
-				sql,
-				args: params
-			});
-			return {
-				changes: result.rowsAffected,
-				lastInsertRowid: result.lastInsertRowid ? BigInt(result.lastInsertRowid) : 0n
-			};
-		}
-		transaction(fn) {
-			return async (...args) => {
-				try {
-					await this.client.execute("BEGIN TRANSACTION");
-					const result = await fn(...args);
-					await this.client.execute("COMMIT");
-					return result;
-				} catch (e) {
-					try {
-						await this.client.execute("ROLLBACK");
-					} catch (_) {}
-					throw e;
-				}
-			};
-		}
-		async close() {
-			if (this.client) {
-				await this.client.close();
-				this.client = null;
-			}
-		}
-		async clearAll() {
-			try {
-				const result = await this.client.execute("SELECT name FROM sqlite_master WHERE type='table'");
-				if (result.rows && result.rows.length > 0) for (const [tableName] of result.rows) try {
-					await this.client.execute(`DROP TABLE IF EXISTS ${tableName}`);
-				} catch (e) {}
+	}
+	async clearAll() {
+		try {
+			const result = await this.client.execute("SELECT name FROM sqlite_master WHERE type='table'");
+			if (result.rows && result.rows.length > 0) for (const [tableName] of result.rows) try {
+				await this.client.execute(`DROP TABLE IF EXISTS ${tableName}`);
 			} catch (e) {}
-		}
-	};
-	PreparedStatement = class {
-		constructor(client, sql) {
-			this.client = client;
-			this.sql = sql;
-		}
-		bind(params = []) {
-			this.params = params;
-			return this;
-		}
-		async run(...params) {
-			const p = Array.isArray(params[0]) ? params[0] : params;
-			const result = await this.client.execute({
-				sql: this.sql,
-				args: p
-			});
-			return {
-				changes: result.rowsAffected,
-				lastInsertRowid: result.lastInsertRowid ? BigInt(result.lastInsertRowid) : 0n
-			};
-		}
-		async get(...params) {
-			const p = Array.isArray(params[0]) ? params[0] : params;
-			const result = await this.client.execute({
-				sql: this.sql,
-				args: p
-			});
-			if (!result.rows || result.rows.length === 0) return null;
-			const row = result.rows[0];
+		} catch (e) {}
+	}
+};
+var PreparedStatement = class {
+	constructor(client, sql) {
+		this.client = client;
+		this.sql = sql;
+	}
+	bind(params = []) {
+		this.params = params;
+		return this;
+	}
+	async run(...params) {
+		const p = Array.isArray(params[0]) ? params[0] : params;
+		const result = await this.client.execute({
+			sql: this.sql,
+			args: p
+		});
+		return {
+			changes: result.rowsAffected,
+			lastInsertRowid: result.lastInsertRowid ? BigInt(result.lastInsertRowid) : 0n
+		};
+	}
+	async get(...params) {
+		const p = Array.isArray(params[0]) ? params[0] : params;
+		const result = await this.client.execute({
+			sql: this.sql,
+			args: p
+		});
+		if (!result.rows || result.rows.length === 0) return null;
+		const row = result.rows[0];
+		const obj = {};
+		result.columns.forEach((col, i) => {
+			obj[col] = row[i];
+		});
+		return obj;
+	}
+	async all(...params) {
+		const p = Array.isArray(params[0]) ? params[0] : params;
+		const result = await this.client.execute({
+			sql: this.sql,
+			args: p
+		});
+		if (!result.rows || result.rows.length === 0) return [];
+		return result.rows.map((row) => {
 			const obj = {};
 			result.columns.forEach((col, i) => {
 				obj[col] = row[i];
 			});
 			return obj;
-		}
-		async all(...params) {
-			const p = Array.isArray(params[0]) ? params[0] : params;
-			const result = await this.client.execute({
-				sql: this.sql,
-				args: p
-			});
-			if (!result.rows || result.rows.length === 0) return [];
-			return result.rows.map((row) => {
-				const obj = {};
-				result.columns.forEach((col, i) => {
-					obj[col] = row[i];
-				});
-				return obj;
-			});
-		}
-	};
-}));
+		});
+	}
+};
 //#endregion
 //#region src/machines/snapshot-store.js
+var log$3 = logger("snapshot-store");
+var _inited$1 = false;
 async function init$1() {
 	const d = await db();
 	if (!_inited$1) {
@@ -30142,16 +30107,8 @@ async function load(kind, key, { machineId = null } = {}) {
 async function clear(kind, key) {
 	await (await init$1()).prepare(`DELETE FROM machine_snapshots WHERE kind = ? AND key = ?`).run(kind, key);
 }
-var log$3, _inited$1;
 //#endregion
 //#region src/machines/persistent-actor.js
-__esmMin((() => {
-	init_db();
-	init_log();
-	log$3 = logger("snapshot-store");
-	_inited$1 = false;
-}))();
-init_log();
 var log$2 = logger("persistent-actor");
 async function createPersistentActor(machine, { kind, key, input, onTransition } = {}) {
 	if (!kind || !key) throw new Error("createPersistentActor requires kind and key");
@@ -30202,8 +30159,6 @@ async function createPersistentActor(machine, { kind, key, input, onTransition }
 }
 //#endregion
 //#region src/machines/step-journal.js
-init_db();
-init_log();
 var log$1 = logger("step-journal");
 var _inited = false;
 async function init() {
@@ -30270,9 +30225,170 @@ async function clearSteps(sessionKey) {
 	await (await init()).prepare(`DELETE FROM step_results WHERE session_key = ?`).run(sessionKey);
 }
 //#endregion
-//#region src/agent/machine.js
-init_log();
-function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ["core"], disabledToolsets = [], events, sessionKey } = {}) {
+//#region src/learn/gm-learn.js
+var gm_learn_exports = /* @__PURE__ */ __exportAll({
+	autoRecall: () => autoRecall,
+	learnAvailable: () => learnAvailable,
+	memorize: () => memorize,
+	projectNamespace: () => projectNamespace,
+	prune: () => prune,
+	recall: () => recall
+});
+function findBrowserBridge() {
+	const g = typeof globalThis !== "undefined" ? globalThis : null;
+	if (!g) return null;
+	if (typeof g.__GM_DISPATCH__ === "function") return { dispatch: g.__GM_DISPATCH__ };
+	const gm = g.__gm || g.__debug && g.__debug.gm;
+	if (gm && typeof gm.dispatch === "function") return { dispatch: (v, b) => gm.dispatch(v, b) };
+	return null;
+}
+async function ensureNodePlugkit() {
+	const { createRequire } = await import("node:module");
+	const path = (await import("node:path")).default;
+	const pkgJson = createRequire(import.meta.url).resolve("gm-plugkit/package.json");
+	const mod = await import("file://" + path.join(path.dirname(pkgJson), "plugkit-wasm-wrapper.js").replace(/\\/g, "/"));
+	if (typeof mod.createPlugkit !== "function") throw new Error("gm-plugkit createPlugkit export missing (update gm-plugkit)");
+	return mod.createPlugkit();
+}
+async function ensurePlugkit() {
+	if (_pk) return _pk;
+	if (_isBrowser) {
+		const bridge = findBrowserBridge();
+		if (!bridge) return null;
+		_pk = {
+			dispatch: bridge.dispatch,
+			version: () => "browser-bridge"
+		};
+		return _pk;
+	}
+	if (_failed) return null;
+	if (_initPromise) return _initPromise;
+	_initPromise = (async () => {
+		try {
+			_pk = await ensureNodePlugkit();
+			return _pk;
+		} catch (e) {
+			_failed = true;
+			try {
+				console.error("[gm-learn] disabled (gm rs-learn unavailable):", e && e.message);
+			} catch (_) {}
+			return null;
+		} finally {
+			_initPromise = null;
+		}
+	})();
+	return _initPromise;
+}
+function learnAvailable() {
+	return Boolean(_pk) || Boolean(_isBrowser && findBrowserBridge());
+}
+async function projectNamespace() {
+	if (_isBrowser) try {
+		const g = globalThis;
+		const ns = typeof g.__GM_NAMESPACE__ === "function" ? g.__GM_NAMESPACE__() : g.__GM_NAMESPACE__;
+		return (ns == null ? "" : String(ns)).trim() || "default";
+	} catch (_) {
+		return "default";
+	}
+	try {
+		const mod = await Promise.resolve().then(() => (init_projects(), projects_exports));
+		const p = mod.getActiveProject && mod.getActiveProject();
+		return p && p.name || "default";
+	} catch (_) {
+		return "default";
+	}
+}
+function normalizeHits(resp) {
+	return (resp && resp.data && Array.isArray(resp.data.hits) ? resp.data.hits : resp && Array.isArray(resp.hits) ? resp.hits : []).map((h) => ({
+		text: h.text != null ? String(h.text) : "",
+		score: typeof h.score === "number" ? h.score : typeof h.cos === "number" ? h.cos : 0,
+		key: h.key || null,
+		namespace: h.namespace || "default"
+	})).filter((h) => h.text);
+}
+async function memorize(text, { namespace = "default", key = null } = {}) {
+	const t = (text || "").toString().trim();
+	if (!t) return null;
+	const pk = await ensurePlugkit();
+	if (!pk) return null;
+	try {
+		const body = {
+			text: t,
+			namespace
+		};
+		if (key) body.key = key;
+		const r = await pk.dispatch("memorize-fire", body);
+		if (r && r.ok === false) return null;
+		return r && r.data && r.data.key || r && r.key || null;
+	} catch (e) {
+		try {
+			console.error("[gm-learn] memorize failed:", e && e.message);
+		} catch (_) {}
+		return null;
+	}
+}
+async function recall(query, { limit = 5, namespace = "default" } = {}) {
+	const q = (query || "").toString().trim();
+	if (!q) return [];
+	const pk = await ensurePlugkit();
+	if (!pk) return [];
+	try {
+		const r = await pk.dispatch("recall", {
+			query: q,
+			limit,
+			namespace
+		});
+		if (r && r.ok === false) return [];
+		return normalizeHits(r).slice(0, limit);
+	} catch (e) {
+		try {
+			console.error("[gm-learn] recall failed:", e && e.message);
+		} catch (_) {}
+		return [];
+	}
+}
+async function autoRecall(prompt, { limit = 5, namespace = "default" } = {}) {
+	const p = (prompt || "").toString().trim();
+	if (!p) return [];
+	const pk = await ensurePlugkit();
+	if (!pk) return [];
+	try {
+		let hits = normalizeHits(await pk.dispatch("auto-recall", p));
+		if (!hits.length) hits = await recall(p, {
+			limit,
+			namespace
+		});
+		return hits.slice(0, limit);
+	} catch (_) {
+		return recall(p, {
+			limit,
+			namespace
+		});
+	}
+}
+async function prune(keys) {
+	const list = Array.isArray(keys) ? keys.filter(Boolean) : keys ? [keys] : [];
+	if (!list.length) return { pruned: 0 };
+	const pk = await ensurePlugkit();
+	if (!pk) return { pruned: 0 };
+	try {
+		const r = await pk.dispatch("memorize-prune", { keys: list });
+		return r && r.data || r || { pruned: list.length };
+	} catch (e) {
+		try {
+			console.error("[gm-learn] prune failed:", e && e.message);
+		} catch (_) {}
+		return { pruned: 0 };
+	}
+}
+var _initPromise, _failed, _pk, _isBrowser;
+var init_gm_learn = __esmMin((() => {
+	_initPromise = null;
+	_failed = false;
+	_pk = null;
+	_isBrowser = typeof window !== "undefined" || typeof importScripts === "function";
+}));
+function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ["core"], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice } = {}) {
 	const baseLLM = callLLM || resolveCallLLM({
 		provider,
 		model
@@ -30326,7 +30442,9 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 			model,
 			enabledToolsets,
 			disabledToolsets,
-			sessionKey
+			sessionKey,
+			tool_choice,
+			toolCtx
 		}),
 		states: {
 			idle: { on: {
@@ -30347,11 +30465,13 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 			prompting: { invoke: {
 				src: fromPromise$1(async ({ input }) => {
 					const schemas = await getEnabledToolSchemas(input.enabledToolsets, input.disabledToolsets);
+					const tc = typeof input.tool_choice === "function" ? input.tool_choice(input.iterations) : input.iterations === 0 ? input.tool_choice : void 0;
 					return await runStep(input.sessionKey, "llm:" + input.iterations, () => llm({
 						messages: input.messages,
 						tools: schemas,
 						model: input.model,
-						provider: input.provider
+						provider: input.provider,
+						tool_choice: tc
 					}));
 				}),
 				input: ({ context }) => ({
@@ -30361,7 +30481,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					enabledToolsets: context.enabledToolsets,
 					disabledToolsets: context.disabledToolsets,
 					sessionKey: context.sessionKey,
-					iterations: context.iterations
+					iterations: context.iterations,
+					tool_choice: context.tool_choice
 				}),
 				onDone: [{
 					guard: ({ event }) => Array.isArray(event.output?.tool_calls) && event.output.tool_calls.length > 0,
@@ -30441,7 +30562,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 								}),
 								extras: callExtras
 							};
-							const res = await h.pi.dispatchTool(tname, pre && pre.args || targs);
+							const res = await h.pi.dispatchTool(tname, pre && pre.args || targs, input.toolCtx || {});
 							pushExtras(await h.hooks.invoke("postToolCall", {
 								name: tname,
 								args: targs,
@@ -30466,7 +30587,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 				input: ({ context }) => ({
 					messages: context.messages,
 					sessionKey: context.sessionKey,
-					iterations: context.iterations
+					iterations: context.iterations,
+					toolCtx: context.toolCtx
 				}),
 				onDone: {
 					target: "prompting",
@@ -30502,7 +30624,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 }
 async function writeTrajectory(out, { prompt, provider, model, skill, cwd, events = [], errorStack = null, witnessPath = null }) {
 	try {
-		const { getConfigValue } = await Promise.resolve().then(() => (init_config$1(), config_exports));
+		const { getConfigValue } = await Promise.resolve().then(() => (init_config(), config_exports));
 		if (!getConfigValue("agent.save_trajectories", false) && !witnessPath) return;
 		const { getFreddieHome } = await Promise.resolve().then(() => (init_home(), home_exports));
 		const fs = await import("node:fs");
@@ -30608,6 +30730,24 @@ function mergeHookExtras(messages, r, tag) {
 	});
 	return e.length ? [...messages, ...e] : messages;
 }
+var AUTOLEARN_MIN_LEN = 40;
+var AUTOLEARN_DEDUPE_COS = .92;
+async function autoLearnTurn({ prompt, out }) {
+	try {
+		if (!out || out.error) return;
+		const result = (out.result || "").toString().trim();
+		if (result.length < AUTOLEARN_MIN_LEN) return;
+		const { memorize, recall, projectNamespace } = await Promise.resolve().then(() => (init_gm_learn(), gm_learn_exports));
+		const namespace = await projectNamespace();
+		const fact = `Q: ${(prompt || "").toString().trim().slice(0, 200)}\nA: ${result.slice(0, 600)}`;
+		const existing = await recall(fact, {
+			limit: 1,
+			namespace
+		});
+		if (existing.length && existing[0].score >= AUTOLEARN_DEDUPE_COS) return;
+		await memorize(fact, { namespace });
+	} catch (_) {}
+}
 async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey }) {
 	const { actor } = pa;
 	return await new Promise((resolve, reject) => {
@@ -30653,6 +30793,10 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 					errorStack: out?.error ? events.find((e) => e.type === "llm_call" && !e.ok)?.stack || null : null,
 					witnessPath
 				});
+				await autoLearnTurn({
+					prompt,
+					out
+				});
 				await clearSteps(sessionKey);
 				cleanup();
 				resolve(out);
@@ -30663,7 +30807,7 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 		});
 	});
 }
-async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, sessionKey } = {}) {
+async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice } = {}) {
 	const events = [];
 	const h = await bootHost();
 	await h.hooks.invoke("onSessionStart", {
@@ -30680,6 +30824,14 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		const sd = h.pi.skills.get(skill);
 		if (sd?.content) sysParts.push("Skill context:\n" + sd.content);
 	}
+	try {
+		const { autoRecall, projectNamespace } = await Promise.resolve().then(() => (init_gm_learn(), gm_learn_exports));
+		const hits = await autoRecall(prompt, {
+			limit: 5,
+			namespace: await projectNamespace()
+		});
+		if (hits.length) sysParts.push("Relevant memories (gm rs-learn):\n" + hits.map((h) => "- " + h.text).join("\n"));
+	} catch (_) {}
 	if (sysParts.length) initMessages.unshift({
 		role: "user",
 		content: sysParts.join("\n\n")
@@ -30704,7 +30856,9 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		disabledToolsets,
 		maxIterations,
 		events,
-		sessionKey: key
+		sessionKey: key,
+		toolCtx,
+		tool_choice
 	}), {
 		kind: "agent",
 		key,
@@ -30812,12 +30966,16 @@ var ContextPlugins = {
 			body: s.description
 		}));
 	},
-	memory: async ({ provider } = {}) => {
-		if (!provider) return [];
+	memory: async ({ message = "", namespace = null } = {}) => {
 		try {
-			return ((await provider.prefetch("")).items || []).slice(0, 5).map((it, i) => ({
+			const { recall, projectNamespace } = await Promise.resolve().then(() => (init_gm_learn(), gm_learn_exports));
+			const ns = namespace || await projectNamespace();
+			return (await recall((message || "").toString().trim() || "project notes facts decisions", {
+				limit: 5,
+				namespace: ns
+			})).map((h, i) => ({
 				name: "memory:" + i,
-				body: typeof it === "string" ? it : JSON.stringify(it)
+				body: h.text
 			}));
 		} catch {
 			return [];
@@ -30847,10 +31005,9 @@ function blocksToSystemMessage(blocks) {
 }
 //#endregion
 //#region src/browser/index.js
-init_config$1();
-init_log();
+init_config();
 var FREDDIE_DEFAULT_CONFIG = DEFAULT_CONFIG;
 //#endregion
-export { ContextPlugins, DEFAULT_CONFIG, FREDDIE_DEFAULT_CONFIG, assign, blocksToSystemMessage, bootHost, buildContext, createActor, createAgentMachine, createMachine, findSkill, fromPromise, host, listSkills, log, logger, resetHostForTests, runTurn, skillAsUserMessage, waitFor };
+export { ContextPlugins, DEFAULT_CONFIG, FREDDIE_DEFAULT_CONFIG, assign, blocksToSystemMessage, bootHost, buildContext, createActor, createAgentMachine, createMachine, findSkill, fromPromise, host, listSkills, log, logger, parseTextToolCalls, resetHostForTests, runTurn, skillAsUserMessage, waitFor };
 
 //# sourceMappingURL=freddie.js.map
