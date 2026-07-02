@@ -36,9 +36,14 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
             provider, model,
             enabledToolsets, disabledToolsets,
             sessionKey,
-            // Optional forced tool_choice (e.g. 'required') threaded to the llm call so
-            // a caller can force a tool on a turn. Undefined = the model's own choice
-            // (existing behaviour unchanged).
+            // Optional tool_choice policy. A FUNCTION receives the iteration index and
+            // returns the tool_choice for that llm call (full caller control). A plain
+            // VALUE (e.g. 'required') applies on ITERATION 0 ONLY, then reverts to the
+            // model's own choice -- a constant 'required' would make the done
+            // transition (which fires only on zero tool_calls) unreachable and exhaust
+            // the iteration budget, so first-call-only is the safe value semantics: it
+            // nudges a weak model into its first tool call without breaking loop
+            // termination. Undefined = model's own choice every call.
             tool_choice,
             // Opaque per-turn context handed to every tool handler (author/role/
             // active-case/store etc.). The agent loop is identity-blind; tools that
@@ -62,7 +67,11 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                 invoke: {
                     src: fromPromise(async ({ input }) => {
                         const schemas = await getEnabledToolSchemas(input.enabledToolsets, input.disabledToolsets)
-                        return await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: input.messages, tools: schemas, model: input.model, provider: input.provider, tool_choice: input.tool_choice }))
+                        // Resolve the per-iteration tool_choice policy (see context note).
+                        const tc = typeof input.tool_choice === 'function'
+                            ? input.tool_choice(input.iterations)
+                            : (input.iterations === 0 ? input.tool_choice : undefined)
+                        return await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: input.messages, tools: schemas, model: input.model, provider: input.provider, tool_choice: tc }))
                     }),
                     input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, sessionKey: context.sessionKey, iterations: context.iterations, tool_choice: context.tool_choice }),
                     onDone: [
