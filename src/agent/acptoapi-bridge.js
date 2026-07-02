@@ -42,13 +42,18 @@ export function getAcptoapiModel() {
     return envVal('FREDDIE_LLM_MODEL') || 'claude/haiku'
 }
 
-export async function callLLM({ messages, tools = [], model, tool_choice } = {}) {
+export async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } = {}) {
     const base = getAcptoapiUrl()
     const useModel = model || getAcptoapiModel()
     const hasTools = Array.isArray(tools) && tools.length > 0
     const adaptedMessages = messages.map(adaptMessage)
-    if (hasTools) {
-        const cwd = typeof process !== 'undefined' ? process.cwd() : ''
+    // The coder-agent working-directory note is OPT-IN via an explicit `cwd` param.
+    // It used to be injected on every tool-bearing call, which polluted NON-coder
+    // agents' prompts with "use your built-in tools (Bash, Read, Write)" -- tool
+    // hallucination bait plus a filesystem-path leak for hosts (like a contact-facing
+    // chat agent) whose toolset has no such tools. runTurn already composes its own
+    // cwd note when a caller passes cwd; direct callLLM users opt in the same way.
+    if (hasTools && cwd) {
         const sysIdx = adaptedMessages.findIndex(m => m.role === 'system')
         const cwdNote = `\nWorking directory: ${cwd}\nUse your built-in tools (Bash, Read, Write) to explore files in this directory when needed.`
         if (sysIdx >= 0) adaptedMessages[sysIdx] = { ...adaptedMessages[sysIdx], content: (adaptedMessages[sysIdx].content || '') + cwdNote }
@@ -65,8 +70,7 @@ export async function callLLM({ messages, tools = [], model, tool_choice } = {})
     // call on a turn. Only when tools are present; absent -> the model chooses.
     if (hasTools && tool_choice) body.tool_choice = tool_choice
     const headers = { 'content-type': 'application/json', authorization: 'Bearer none' }
-    const cwd = typeof process !== 'undefined' ? process.cwd() : ''
-    if (Array.isArray(tools) && tools.length) headers['x-cwd'] = cwd
+    if (hasTools && cwd) headers['x-cwd'] = cwd
     // Rely on AbortController timeout. acptoapi v1+ ships CORS + Private
     // Network Access headers so cross-origin loopback (gh-pages → localhost)
     // succeeds when acptoapi is running. The earlier preemptive loopback
