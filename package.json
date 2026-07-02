@@ -27,7 +27,7 @@
     "@mariozechner/pi-ai": "^0.70.6",
     "@mariozechner/pi-coding-agent": "^0.70.6",
     "@mariozechner/pi-tui": "^0.70.6",
-    "acptoapi": "^1.0.115",
+    "acptoapi": "^1.0.140",
     "anentrypoint-design": "latest",
     "commander": "^14.0.0",
     "express": "^5.0.0",
