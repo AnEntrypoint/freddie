@@ -1501,7 +1501,7 @@ var init_projects = __esmMin((() => {
 init_home();
 init_projects();
 var _host = null;
-var _loaded = false;
+var _loadPromise = null;
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var REPO_PLUGINS = path.resolve(__dirname, "..", "..", "plugins");
 function host() {
@@ -1509,30 +1509,32 @@ function host() {
 	return _host;
 }
 async function bootHost(extraRoots = []) {
-	const h = host();
-	if (_loaded) return h;
-	_loaded = true;
-	if (!process.env.FREDDIE_HOME && !process.env.FREDDIE_PROFILE) applyActiveProjectFromRegistry();
-	const plugins = await discoverPlugins([
-		REPO_PLUGINS,
-		path.join(getFreddieHome(), "plugins"),
-		path.join(process.cwd(), ".freddie", "plugins"),
-		...extraRoots
-	]);
-	await h.load(plugins);
-	const ccRoots = [path.join(getFreddieHome(), "cc-plugins"), path.join(process.cwd(), ".freddie", "cc-plugins")];
-	await h.loadCcPlugins(ccRoots);
-	const extra = (process.env.FREDDIE_EXTRA_CC_ROOTS || "").split(path.delimiter).filter(Boolean);
-	for (const r of [
-		__dirname,
-		process.cwd(),
-		...extra
-	]) await h.loadCcFromNodeModules(r);
-	return h;
+	if (_loadPromise) return _loadPromise;
+	_loadPromise = (async () => {
+		const h = host();
+		if (!process.env.FREDDIE_HOME && !process.env.FREDDIE_PROFILE) applyActiveProjectFromRegistry();
+		const plugins = await discoverPlugins([
+			REPO_PLUGINS,
+			path.join(getFreddieHome(), "plugins"),
+			path.join(process.cwd(), ".freddie", "plugins"),
+			...extraRoots
+		]);
+		await h.load(plugins);
+		const ccRoots = [path.join(getFreddieHome(), "cc-plugins"), path.join(process.cwd(), ".freddie", "cc-plugins")];
+		await h.loadCcPlugins(ccRoots);
+		const extra = (process.env.FREDDIE_EXTRA_CC_ROOTS || "").split(path.delimiter).filter(Boolean);
+		for (const r of [
+			__dirname,
+			process.cwd(),
+			...extra
+		]) await h.loadCcFromNodeModules(r);
+		return h;
+	})();
+	return _loadPromise;
 }
 function resetHostForTests() {
 	_host = null;
-	_loaded = false;
+	_loadPromise = null;
 }
 //#endregion
 //#region src/toolsets.js
@@ -4053,6 +4055,21 @@ async function isReachable(timeoutMs = 1e4) {
 }
 //#endregion
 //#region src/agent/llm_resolver.js
+var _lastReachable = {
+	at: 0,
+	ok: false
+};
+var REACHABLE_TTL_MS = 5e3;
+async function cachedReachable() {
+	const now = Date.now();
+	if (now - _lastReachable.at < REACHABLE_TTL_MS) return _lastReachable.ok;
+	const ok = await isReachable();
+	_lastReachable = {
+		at: now,
+		ok
+	};
+	return ok;
+}
 var sdk = sdkNs && (sdkNs.default || sdkNs) || {};
 var PROVIDER_KEYS = sdk.PROVIDER_KEYS || {};
 var DEFAULTS = sdk.PROVIDER_DEFAULTS || {};
@@ -4163,7 +4180,7 @@ async function buildModel({ provider, model, inputModel }) {
 		return env && process.env[env];
 	}) : [];
 	if (keyed.length) return keyed.map((l) => l.model).join(", ");
-	if (await isReachable()) return process.env.FREDDIE_LLM_MODEL || "auto";
+	if (await cachedReachable()) return process.env.FREDDIE_LLM_MODEL || "auto";
 	return null;
 }
 function resolveCallLLM({ provider, model } = {}) {
@@ -4175,10 +4192,10 @@ function resolveCallLLM({ provider, model } = {}) {
 		});
 		if (!m) {
 			const status = typeof sdk.getStatus === "function" ? sdk.getStatus().map((s) => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(", ") : "";
-			throw new Error("no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1)" + (status ? " | sampler: " + status : ""));
+			throw new Error("no LLM backend reachable: set a provider API key or FREDDIE_LLM_MODEL" + (status ? " | sampler: " + status : ""));
 		}
 		try {
-			if (typeof m === "string" && !m.includes(",") && !/^queue\//.test(m) && await isReachable()) return await callLLM({
+			if (typeof m === "string" && !m.includes(",") && !/^queue\//.test(m) && await cachedReachable()) return await callLLM({
 				...input,
 				model: m
 			});
