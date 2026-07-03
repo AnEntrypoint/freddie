@@ -17,7 +17,9 @@ export function listKnownProviders() {
 }
 
 export async function discoverModels({ provider } = {}) {
-    const base = getAcptoapiUrl().replace(/\/v1\/?$/, '')
+    const url = getAcptoapiUrl()
+    if (!url) throw new Error('FREDDIE_LLM_URL must be set for this adapter (acptoapi is in-process only otherwise)')
+    const base = url.replace(/\/v1\/?$/, '')
     try {
         const r = await fetch(base + '/v1/models', {
             headers: { authorization: 'Bearer none' },
