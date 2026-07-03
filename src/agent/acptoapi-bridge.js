@@ -11,10 +11,15 @@ const envVal = (k) => { try { return (typeof process !== 'undefined' && process.
 const ACPTOAPI_TIMEOUT_MS = Number(envVal('FREDDIE_LLM_TIMEOUT_MS')) || 240000
 
 export function getAcptoapiUrl() {
-    // Retained for callers that still read a URL for display/logging purposes
-    // (the dashboard health row, CLI banner) -- there is no listening port to
-    // reach any more; this is informational only.
-    return envVal('FREDDIE_LLM_URL') || 'in-process (acptoapi)'
+    // Returns the configured dialable acptoapi URL, or null when unset. Most
+    // callers (the dashboard health row, CLI banner) treat this as display/logging
+    // only -- there is no listening port required for the in-process callLLM()
+    // path below. However codex_responses_adapter.js, gemini_native_adapter.js,
+    // image_gen_provider.js, and model-discovery.js still fetch() this value as a
+    // live HTTP base and DO require a real dialable URL (FREDDIE_LLM_URL set) --
+    // they must guard against a null return rather than building a request
+    // against a placeholder string.
+    return envVal('FREDDIE_LLM_URL') || null
 }
 
 export function getAcptoapiModel() {

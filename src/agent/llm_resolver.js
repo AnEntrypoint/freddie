@@ -5,6 +5,22 @@ import { parseTextToolCalls } from './tool_call_text.js'
 import * as sdkNs from 'acptoapi'
 export { matrixUsable } from './model-matrix.js'
 
+// Reachability memoization: bridgeReachable() now performs a REAL LLM call
+// (acptoapi-bridge.js's isReachable() sends a live 'ping' completion), so
+// calling it on every turn doubles LLM cost/latency. Cache the result for a
+// short TTL so a burst of turns within the window reuses one probe. Does NOT
+// touch acptoapi-bridge.js's exported isReachable -- health-check/dashboard
+// callers still need a live, uncached probe.
+let _lastReachable = { at: 0, ok: false }
+const REACHABLE_TTL_MS = 5000
+async function cachedReachable() {
+    const now = Date.now()
+    if (now - _lastReachable.at < REACHABLE_TTL_MS) return _lastReachable.ok
+    const ok = await bridgeReachable()
+    _lastReachable = { at: now, ok }
+    return ok
+}
+
 // `acptoapi` is externalized by vite (browser) so the host environment
 // supplies it (thebird ships docs/lib/acptoapi-browser.js via importmap).
 // Node CLI gets the real CJS package. Defensive `|| {}` keeps the bundle
@@ -78,7 +94,7 @@ async function buildModel({ provider, model, inputModel }) {
     const keyed = Array.isArray(auto) ? auto.filter(l => { const p = l.model.split('/')[0]; const env = PROVIDER_KEYS[p]; return env && process.env[env] }) : []
     if (keyed.length) return keyed.map(l => l.model).join(', ')
     // No local provider keys — delegate to acptoapi if reachable.
-    if (await bridgeReachable()) return process.env.FREDDIE_LLM_MODEL || 'auto'
+    if (await cachedReachable()) return process.env.FREDDIE_LLM_MODEL || 'auto'
     return null
 }
 
@@ -87,12 +103,12 @@ export function resolveCallLLM({ provider, model } = {}) {
         const m = await buildModel({ provider, model, inputModel: input.model })
         if (!m) {
             const status = typeof sdk.getStatus === 'function' ? sdk.getStatus().map(s => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(', ') : ''
-            throw new Error('no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1)' + (status ? ' | sampler: ' + status : ''))
+            throw new Error('no LLM backend reachable: set a provider API key or FREDDIE_LLM_MODEL' + (status ? ' | sampler: ' + status : ''))
         }
         try {
             const isSimple = typeof m === 'string' && !m.includes(',') && !/^queue\//.test(m)
 
-            if (isSimple && await bridgeReachable()) {
+            if (isSimple && await cachedReachable()) {
                 return await bridgeCall({ ...input, model: m })
             }
 
@@ -105,7 +121,9 @@ export function resolveCallLLM({ provider, model } = {}) {
             if (m.includes(',') || /^queue\//.test(m)) opts.matrixSource = process.env.FREDDIE_MATRIX_URL || MATRIX_FILE
 
             if (typeof sdk.chat !== 'function') {
-                // Browser context: no node-side sdk; route via HTTP bridge.
+                // Browser/no-sdk context: fall back to acptoapi-bridge's in-process
+                // call (may be a no-op/broken in true browser bundles since acptoapi
+                // is externalized for vite -- unverified post-rewrite, see build:browser).
                 return await bridgeCall({ ...input, model: m })
             }
             const r = await sdk.chat(opts)
