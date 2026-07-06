@@ -26,7 +26,7 @@
     "@mariozechner/pi-ai": "^0.70.6",
     "@mariozechner/pi-tui": "^0.70.6",
     "acptoapi": "^1.0.144",
-    "anentrypoint-design": "latest",
+    "anentrypoint-design": "^0.0.247",
     "commander": "^14.0.0",
     "express": "^5.0.0",
     "flatspace": "^1.0.18",
