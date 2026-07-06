@@ -4,14 +4,7 @@
 
 import { renderPageHtml } from 'anentrypoint-design/page-html'
 
-// Pin the design SDK CSS to the installed version instead of the SDK's
-// `@latest` default, so a future upstream publish can't silently reflow the
-// docs. Mirror the version freddie actually has in node_modules.
-// NOTE: page-html's JS importmap (the 247420.js bundle) is hardcoded to
-// `@latest` inside the SDK and exposes no override hook — only the CSS href is
-// reconcilable here. Fully pinning/self-hosting the JS is an SDK concern.
-const DESIGN_VERSION = '0.0.169'
-const CSS_HREF = `https://unpkg.com/anentrypoint-design@${DESIGN_VERSION}/dist/247420.css`
+const CSS_HREF = 'https://unpkg.com/anentrypoint-design@latest/dist/247420.css'
 
 const NAV = [
     ['Home', '/'],
