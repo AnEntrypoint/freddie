@@ -58,6 +58,7 @@ thebird-plugin.json
 .gm/audit-*.js
 .gm/inp*.txt
 .gm/browser-probe.cjs
+.gm/browser-state/
 _pw_test.js
 *.png
 emperor-penguin.md
