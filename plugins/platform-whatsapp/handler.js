@@ -28,6 +28,29 @@ export class WhatsappAdapter extends EventEmitter {
         try { return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)) } catch { return false }
     }
 
+    // WhatsApp Cloud API media download is a two-step handshake: the webhook
+    // payload only ever carries a media id, never a fetchable URL directly.
+    // Step 1 resolves that id to a short-lived signed URL (also bearer-authed);
+    // step 2 fetches the actual bytes from that URL, still with the same
+    // bearer token (Meta requires it on both hops). Each hop is bounded by an
+    // AbortController timeout so a slow/hung Meta response can never wedge the
+    // webhook handler indefinitely.
+    async _downloadMedia(mediaId, timeoutMs = 10000) {
+        const authHeader = { authorization: `Bearer ${this.token}` }
+        const withTimeout = async (url) => {
+            const ac = new AbortController()
+            const timer = setTimeout(() => ac.abort(), timeoutMs)
+            try { return await fetch(url, { headers: authHeader, signal: ac.signal }) }
+            finally { clearTimeout(timer) }
+        }
+        const meta = await withTimeout(`${this.api}/${mediaId}`).then(r => r.json())
+        if (!meta?.url) throw new Error('WhatsappAdapter: media lookup returned no url: ' + JSON.stringify(meta))
+        const res = await withTimeout(meta.url)
+        if (!res.ok) throw new Error(`WhatsappAdapter: media fetch failed with status ${res.status}`)
+        const buffer = Buffer.from(await res.arrayBuffer())
+        return { buffer, mimeType: meta.mime_type || res.headers.get('content-type') || '' }
+    }
+
     async start() {
         if (!this.token || !this.phoneId) throw new Error('WhatsappAdapter: WHATSAPP_API_TOKEN + WHATSAPP_PHONE_NUMBER_ID required')
         const app = express()
@@ -38,19 +61,34 @@ export class WhatsappAdapter extends EventEmitter {
             if (req.query['hub.verify_token'] === this.verifyToken) return res.send(req.query['hub.challenge'])
             res.sendStatus(403)
         })
-        app.post(this.path, (req, res) => {
+        app.post(this.path, async (req, res) => {
             if (!this._verifySignature(req)) return res.sendStatus(401)
             const entries = req.body?.entry || []
             for (const e of entries) for (const c of (e.changes || [])) {
                 const msgs = c.value?.messages || []
                 for (const m of msgs) {
-                    this.emit('message', {
+                    const event = {
                         from: m.from,
                         text: m.text?.body || '',
                         // surface the platform message id for dedup, and the message type
                         // so media-only messages are recognisable upstream.
                         raw: { ...m, id: m.id, type: m.type },
-                    })
+                    }
+                    const mediaObj = m.image || m.audio || m.document || m.video
+                    if (mediaObj?.id) {
+                        const type = m.image ? 'image' : m.audio ? 'audio' : m.document ? 'document' : 'video'
+                        try {
+                            const { buffer, mimeType } = await this._downloadMedia(mediaObj.id)
+                            event.media = { type, mimeType, buffer }
+                        } catch (err) {
+                            // Never let a failed/slow media fetch block the rest of the
+                            // webhook batch or the ack below -- note media as
+                            // present-but-unfetched so the pipeline still proceeds.
+                            console.error('WhatsappAdapter: media download failed', err)
+                            event.media = { type, mimeType: mediaObj.mime_type || '', buffer: null, error: String(err?.message || err) }
+                        }
+                    }
+                    this.emit('message', event)
                 }
             }
             res.json({ ok: true })

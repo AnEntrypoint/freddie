@@ -5,6 +5,17 @@ import WebSocket from 'ws'
 const OP = { DISPATCH: 0, HEARTBEAT: 1, IDENTIFY: 2, RESUME: 6, RECONNECT: 7, INVALID_SESSION: 9, HELLO: 10, HEARTBEAT_ACK: 11 }
 // GUILD_MESSAGES(1<<9) + DIRECT_MESSAGES(1<<12) + MESSAGE_CONTENT(1<<15)
 const DEFAULT_INTENTS = (1 << 9) | (1 << 12) | (1 << 15)
+// Discord CDN attachment URLs are directly fetchable with no auth, but with no
+// auth also comes no trust in the advertised size -- guard against buffering
+// something unreasonably large into memory.
+const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
+const ATTACHMENT_FETCH_TIMEOUT_MS = 10000
+
+function contentTypeCategory(contentType) {
+    const t = (contentType || '').split('/')[0]
+    if (t === 'image' || t === 'audio' || t === 'video') return t
+    return 'other'
+}
 
 export class DiscordAdapter extends EventEmitter {
     constructor(opts = {}) {
@@ -66,7 +77,42 @@ export class DiscordAdapter extends EventEmitter {
         if (p.t === 'MESSAGE_CREATE') {
             const m = p.d
             if (m.author?.bot) return   // ignore bots and our own messages
-            this.emit('message', { from: m.author?.id, text: m.content || '', raw: m, platform: 'discord' })
+            const base = { from: m.author?.id, text: m.content || '', raw: m, platform: 'discord' }
+            if (!m.attachments?.length) { this.emit('message', base); return }
+            // ws.on('message', ...) below is a sync callback and can't await this,
+            // so the fetch-and-emit path runs as a detached async task: the
+            // message still emits exactly once, after attachment fetches settle,
+            // and one attachment's failure (via allSettled) never blocks the
+            // others or drops the message itself.
+            this._resolveAttachments(m.attachments).then(media => {
+                this.emit('message', { ...base, media })
+            })
+            return
+        }
+    }
+
+    async _resolveAttachments(attachments) {
+        const results = await Promise.allSettled(attachments.map(a => this._fetchAttachment(a)))
+        return results.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value)
+    }
+
+    async _fetchAttachment(a) {
+        if (a.size > MAX_ATTACHMENT_BYTES) {
+            console.error(`DiscordAdapter: skipping attachment ${a.filename} (${a.size} bytes exceeds ${MAX_ATTACHMENT_BYTES} byte guard)`)
+            return null
+        }
+        const ac = new AbortController()
+        const timer = setTimeout(() => ac.abort(), ATTACHMENT_FETCH_TIMEOUT_MS)
+        try {
+            const res = await fetch(a.url, { signal: ac.signal })
+            if (!res.ok) throw new Error(`attachment fetch failed with status ${res.status}`)
+            const buffer = Buffer.from(await res.arrayBuffer())
+            return { type: contentTypeCategory(a.content_type), mimeType: a.content_type || '', buffer, filename: a.filename }
+        } catch (err) {
+            console.error(`DiscordAdapter: attachment fetch failed for ${a.filename}`, err)
+            return null
+        } finally {
+            clearTimeout(timer)
         }
     }
 
