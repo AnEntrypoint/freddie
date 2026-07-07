@@ -78,7 +78,12 @@ await T('agent-machine', async () => {
     const md = await import('./src/agent/model-discovery.js'); const kp = md.listKnownProviders(); assert.ok(Object.keys(PROVIDER_KEYS).length >= 15 && DEFAULTS.cerebras && DEFAULTS.google && DEFAULTS.mistral && kp.length >= 17 && kp.includes('claude-cli') && kp.includes('kilo') && kp.includes('opencode'), 'providers: '+kp.length)
     const cv = await import('./src/config.js'); cv.saveConfigValue('agent.model_queues', { test_q: [{ provider: 'no-such-provider', model: 'x' }] }); try { await resolveCallLLM({ model: 'queue/nonexistent' })({ messages: [{ role: 'user', content: 'x' }], tools: [] }) } catch (e) { assert.match(e.message, /queue not found/) }; try { await resolveCallLLM({ model: 'queue/test_q' })({ messages: [{ role: 'user', content: 'x' }], tools: [] }) } catch (e) { assert.match(e.message, /chain (exhausted|empty)/) }; cv.saveConfigValue('agent.model_queues', {})
     const savedKeys = {}; for (const k of Object.values(PROVIDER_KEYS)) { savedKeys[k] = process.env[k]; delete process.env[k] }; try { await resolveCallLLM({})({ messages: [{ role: 'user', content: 'x' }], tools: [] }) } catch (e) { assert.match(e.message, /no LLM backend/) }; for (const [k, v] of Object.entries(savedKeys)) { if (v !== undefined) process.env[k] = v }
-    if (await isReachable()) { const r = await resolveCallLLM({ model: 'claude/haiku' })({ messages: [{ role: 'user', content: 'reply with exactly: REAL_OK' }], tools: [] }); assert.match(r.content, /REAL_OK/) }
+    // Gate on ANTHROPIC_API_KEY specifically, not the generic isReachable() probe:
+    // isReachable() pings acptoapi's default chain, which can succeed via a
+    // different resolved backend than the literal model:'claude/haiku' requested
+    // below -- a divergence that turned a silent skip into a spurious failure
+    // once other providers became reachable (see dotenv wiring in src/host/index.js).
+    if (process.env.ANTHROPIC_API_KEY) { const r = await resolveCallLLM({ model: 'claude/haiku' })({ messages: [{ role: 'user', content: 'reply with exactly: REAL_OK' }], tools: [] }); assert.match(r.content, /REAL_OK/) }
 })
 await T('gateway+platforms+hooks', async () => {
     const { Gateway } = await import('./src/gateway/run.js')

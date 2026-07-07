@@ -1,5 +1,27 @@
 import { runTurn } from '../../src/agent/machine.js'
-import { createSession } from '../../src/sessions.js'
+import { createSession, getMessages, appendMessage } from '../../src/sessions.js'
+
+// A client-supplied sessionId continues that conversation: prior turns'
+// messages are reloaded and fed back into runTurn (which otherwise starts a
+// brand-new xstate machine with no memory of anything), and the new turn's
+// messages are persisted back so the NEXT call in this session sees them too.
+// Without this, sessionId was purely a display label -- runTurn never saw it
+// and every call was independently stateless regardless of continuity intent.
+async function loadPriorMessages(sessionId) {
+    if (!sessionId) return []
+    try {
+        const rows = await getMessages(sessionId)
+        return rows.map(r => ({ role: r.role, content: r.content, ...(r.tool_calls ? { tool_calls: r.tool_calls } : {}), ...(r.tool_call_id ? { tool_call_id: r.tool_call_id } : {}) }))
+    } catch (_) { return [] }
+}
+
+async function persistNewMessages(sessionId, allMessages, priorCount) {
+    if (!sessionId) return
+    for (const m of allMessages.slice(priorCount)) {
+        try { await appendMessage(sessionId, { role: m.role, content: m.content, toolCalls: m.tool_calls || null, toolCallId: m.tool_call_id || null }) } catch (_) {}
+    }
+}
+
 export default {
     name: 'gui-chat', surfaces: 'gui',
     register({ gui }) {
@@ -18,11 +40,13 @@ export default {
                     sessionId = await createSession({ platform: 'web', title: prompt.slice(0, 80), cwd: cwd || null, skill: skill || null, model: model || null })
                 } catch (_) { sessionId = null }
             }
+            const priorMessages = await loadPriorMessages(sessionId)
 
             if (!wantsSse) {
                 try {
-                    const out = await runTurn({ prompt, timeoutMs: 120000, cwd, skill, provider, model })
+                    const out = await runTurn({ prompt, messages: priorMessages, sessionKey: sessionId || undefined, timeoutMs: 120000, cwd, skill, provider, model })
                     if (out.error) return res.status(500).json({ error: out.error, sessionId })
+                    await persistNewMessages(sessionId, out.messages || [], priorMessages.length)
                     return res.json({ result: out.result || '', messages: out.messages || [], iterations: out.iterations, sessionId })
                 } catch (e) {
                     return res.status(500).json({ error: String(e.message || e), sessionId })
@@ -35,8 +59,9 @@ export default {
             const send = (event, data) => res.write('event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n')
             send('start', { ts: Date.now(), sessionId })
             try {
-                const out = await runTurn({ prompt, timeoutMs: 120000, cwd, skill, provider, model })
+                const out = await runTurn({ prompt, messages: priorMessages, sessionKey: sessionId || undefined, timeoutMs: 120000, cwd, skill, provider, model })
                 if (out.error) { send('error', { error: out.error }); res.end(); return }
+                await persistNewMessages(sessionId, out.messages || [], priorMessages.length)
                 for (const m of out.messages) send('message', m)
                 send('done', { result: out.result || '', iterations: out.iterations, sessionId })
             } catch (e) { send('error', { error: String(e.message || e) }) }
