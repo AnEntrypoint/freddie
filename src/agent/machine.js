@@ -263,7 +263,12 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     try {
         const { autoRecall, projectNamespace } = await import('../learn/gm-learn.js')
         const hits = await autoRecall(prompt, { limit: 5, namespace: await projectNamespace() })
-        if (hits.length) sysParts.push('Relevant memories (gm rs-learn):\n' + hits.map(h => '- ' + h.text).join('\n'))
+        // Weak models were witnessed answering FROM this block instead of the new
+        // user message below it (asked to remember a number, answered a prior
+        // turn's unrelated question instead) -- the plain "Relevant memories:"
+        // label gave no signal that this is background reference material, not
+        // the current instruction. Explicit priority framing fixes it.
+        if (hits.length) sysParts.push('Background context from past conversations (gm rs-learn) -- for reference only, does not describe the current task:\n' + hits.map(h => '- ' + h.text).join('\n') + '\n\nThe user\'s actual request for THIS turn follows below and takes priority over the above.')
     } catch (_) {}
     if (sysParts.length) initMessages.unshift({ role: 'user', content: sysParts.join('\n\n') })
     const inbound = await h.hooks.invoke('onMessageInbound', { content: prompt })
@@ -272,7 +277,14 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     // Persist the turn snapshot under kind=agent so an interrupted turn (process
     // refresh mid-tool-call) resumes exactly where it stopped via resumeTurn.
     const key = sessionKey || randomUUID()
-    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx, tool_choice })
+    // cwd must reach file-path tool handlers (write/read/edit) via toolCtx, not
+    // just the system-prompt text above -- those handlers resolve relative paths
+    // with bare fs calls against process.cwd(), so without this every relative
+    // path silently lands in the freddie server's own cwd instead of the
+    // caller's intended project directory (only `bash` was safe, since it takes
+    // cwd as an explicit tool argument the model was told to pass).
+    const mergedToolCtx = cwd ? { cwd, ...(toolCtx || {}) } : toolCtx
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx: mergedToolCtx, tool_choice })
     const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages } })
     pa.actor.send({ type: 'SUBMIT', prompt })
     return await driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey: key })

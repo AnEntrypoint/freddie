@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import dotenv from 'dotenv'
 import { createHost, discoverPlugins } from './host.js'
 import { getFreddieHome } from '../home.js'
 import { applyActiveProjectFromRegistry } from '../projects.js'
@@ -9,6 +10,13 @@ let _loadPromise = null
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const REPO_PLUGINS = path.resolve(__dirname, '..', '..', 'plugins')
+
+// Every process entrypoint (bin/freddie.js, src/web/server.js, src/acp/server.js,
+// src/gateway/run.js) calls bootHost() before touching a provider key, so this
+// is the one place a `.env` in the invoking cwd reaches process.env for every
+// downstream reader (acptoapi's own process.env.GROQ_API_KEY etc reads, pi-ai's
+// findEnvKeys/getEnvApiKey). Silent no-op when no .env file exists.
+dotenv.config()
 
 export function host() {
     if (!_host) _host = createHost({ surfaces: ['pi', 'gui'] })

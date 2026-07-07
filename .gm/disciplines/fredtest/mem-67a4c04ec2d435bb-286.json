@@ -1,0 +1,8 @@
+Q: Read project3/wordcount.js. It has a bug: it uses content.split(
+) and content.split(/\s+/) which are double-escaped and match literal backslash-n / backslash-s instead of real newlines/whitespace. Us
+A: The corrected counts are:
+
+2 lines
+2 words
+622 characters
+project3/wordcount.js

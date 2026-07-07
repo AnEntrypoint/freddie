@@ -1,0 +1,10 @@
+{
+  "default": {
+    "profileDir": "C:\\dev\\freddie\\.gm\\browser-profile-default",
+    "pid": 24332,
+    "port": 51073,
+    "wsEndpoint": "ws://127.0.0.1:51073/devtools/browser/3668ee23-ad3b-47c7-a109-85cde9cd005e",
+    "pwSessionId": "16",
+    "lastUse": 1783451500568
+  }
+}

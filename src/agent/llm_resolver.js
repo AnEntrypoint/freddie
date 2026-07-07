@@ -116,7 +116,12 @@ export function resolveCallLLM({ provider, model } = {}) {
             // Without this, comma-separated model lists default to ['error'] and
             // rate-limited / empty / timed-out responses don't trigger chain
             // fallback — the request just throws.
-            const opts = { model: m, messages: toMsgs(input.messages), tools: toTools(input.tools), onFallback: input.onFallback, output: 'openai', fallbackOn: ['error', 'rate_limit', 'timeout', 'empty'] }
+            // max_tokens: acptoapi passes an unset value through to some providers
+            // as a very high implicit default (witnessed: 65536), which a
+            // low-credit free-tier account (e.g. openrouter) rejects outright with
+            // a 402 before even trying the request at a smaller size. 4096 matches
+            // acptoapi-bridge.js's own in-process default (see callLLM above).
+            const opts = { model: m, messages: toMsgs(input.messages), tools: toTools(input.tools), max_tokens: input.max_tokens || 4096, onFallback: input.onFallback, output: 'openai', fallbackOn: ['error', 'rate_limit', 'timeout', 'empty'] }
             if (/^queue\//.test(m)) opts.queuesMap = getConfigValue('agent.model_queues', {}) || {}
             if (m.includes(',') || /^queue\//.test(m)) opts.matrixSource = process.env.FREDDIE_MATRIX_URL || MATRIX_FILE
 
