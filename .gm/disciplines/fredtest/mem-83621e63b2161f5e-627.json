@@ -1,0 +1,9 @@
+Q: tell me what you see
+A: I see that you have the following projects set up:
+- **project1/index.html**: a simple clock
+- **project2/index.html** and **project2/game.js**: a snake game
+- **project3/wordcount.js**: a Node.js CLI word counter
+
+The `project3/wordcount.js` script was tested by running it against itself, producing the output `2 2 622 project3/wordcount.js`. This indicates 2 lines, 2 words, and 622 characters, which was deemed plausible for the file content.
+
+The snake game files (`project2/index.html` and `project2/game.js`) have been created and verified. The HTML file has the basic structure and links to t

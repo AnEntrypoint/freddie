@@ -18,7 +18,8 @@ export const _tool = ({
             required: ['pattern'],
         },
     },
-    handler: async ({ pattern, path: root = '.', head_limit = 200, ignore_case = false, glob }) => {
+    handler: async ({ pattern, path: root = '.', head_limit = 200, ignore_case = false, glob }, ctx = {}) => {
+        if (ctx.cwd && !path.isAbsolute(root)) root = path.join(ctx.cwd, root)
         const re = new RegExp(pattern, ignore_case ? 'i' : '')
         const out = []
         const skipDirs = new Set(['node_modules', '.git', 'dist', 'build', '.cache'])

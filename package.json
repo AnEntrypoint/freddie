@@ -28,6 +28,7 @@
     "acptoapi": "^1.0.144",
     "anentrypoint-design": "latest",
     "commander": "^14.0.0",
+    "dotenv": "^16.6.1",
     "express": "^5.0.0",
     "flatspace": "^1.0.18",
     "floosie": "^0.6.14",
