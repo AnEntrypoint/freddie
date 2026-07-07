@@ -4516,6 +4516,22 @@ var NAMED_CHAIN_NAMES = new Set([
 	"local",
 	"auto"
 ]);
+function orderByScore(links) {
+	let pool;
+	try {
+		pool = typeof sdk.buildAutoChain === "function" ? sdk.buildAutoChain(void 0, { hasTools: true }) : [];
+	} catch {
+		pool = [];
+	}
+	if (!Array.isArray(pool) || !pool.length) return links;
+	const rank = new Map(pool.map((l, i) => [l.model, i]));
+	return [...links].sort((a, b) => {
+		const ra = rank.has(a) ? rank.get(a) : Infinity;
+		const rb = rank.has(b) ? rank.get(b) : Infinity;
+		if (ra !== rb) return ra - rb;
+		return links.indexOf(a) - links.indexOf(b);
+	});
+}
 async function buildModel({ provider, model, inputModel }) {
 	if (provider) return `${provider}/${model || DEFAULTS[provider] || ""}`.replace(/\/$/, "");
 	if (model) return model;
@@ -4526,7 +4542,7 @@ async function buildModel({ provider, model, inputModel }) {
 	const pref = getConfigValue("agent.model_preference", []);
 	if (Array.isArray(pref) && pref.length) {
 		const links = pref.map((p) => `${p.provider}/${p.model || DEFAULTS[p.provider] || ""}`.replace(/\/$/, "")).filter((s) => s.includes("/"));
-		if (links.length) return links.join(", ");
+		if (links.length) return orderByScore(links).join(", ");
 	}
 	const auto = typeof sdk.buildAutoChain === "function" ? sdk.buildAutoChain(void 0) : [];
 	const keyed = Array.isArray(auto) ? auto.filter((l) => {
