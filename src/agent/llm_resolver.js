@@ -74,6 +74,29 @@ function adapt(result) {
 // Mirror lib/named-chains.js BUILTIN — acptoapi resolves unknown names.
 const NAMED_CHAIN_NAMES = new Set(['fast', 'cheap', 'smart', 'reasoning', 'free', 'local', 'auto'])
 
+// A hand-typed agent.model_preference used to be joined in its literal config
+// order, permanently overriding acptoapi's own swe_bench-score-aware ranking
+// (buildAutoChain sorts by score + tool-capability tiering) with no
+// reconciliation at all — witnessed picking a 62-score model ahead of a
+// 79.6-score one purely because it was configured first. Re-rank the user's
+// chosen providers using acptoapi's OWN scored pool (buildAutoChain is a
+// sanctioned top-level export; this never reaches into unexported internals
+// like lib/swe-bench-scores) so provider CHOICE stays user-controlled while
+// ORDER reflects real capability. Unscored links keep their relative config
+// order at the tail, matching acptoapi's own null-score handling.
+function orderByScore(links) {
+    let pool
+    try { pool = typeof sdk.buildAutoChain === 'function' ? sdk.buildAutoChain(undefined, { hasTools: true }) : [] } catch { pool = [] }
+    if (!Array.isArray(pool) || !pool.length) return links
+    const rank = new Map(pool.map((l, i) => [l.model, i]))
+    return [...links].sort((a, b) => {
+        const ra = rank.has(a) ? rank.get(a) : Infinity
+        const rb = rank.has(b) ? rank.get(b) : Infinity
+        if (ra !== rb) return ra - rb
+        return links.indexOf(a) - links.indexOf(b)
+    })
+}
+
 async function buildModel({ provider, model, inputModel }) {
     if (provider) return `${provider}/${model || DEFAULTS[provider] || ''}`.replace(/\/$/, '')
     if (model) return model
@@ -88,7 +111,7 @@ async function buildModel({ provider, model, inputModel }) {
     const pref = getConfigValue('agent.model_preference', [])
     if (Array.isArray(pref) && pref.length) {
         const links = pref.map(p => `${p.provider}/${p.model || DEFAULTS[p.provider] || ''}`.replace(/\/$/, '')).filter(s => s.includes('/'))
-        if (links.length) return links.join(', ')
+        if (links.length) return orderByScore(links).join(', ')
     }
     const auto = typeof sdk.buildAutoChain === 'function' ? sdk.buildAutoChain(undefined) : []
     const keyed = Array.isArray(auto) ? auto.filter(l => { const p = l.model.split('/')[0]; const env = PROVIDER_KEYS[p]; return env && process.env[env] }) : []
