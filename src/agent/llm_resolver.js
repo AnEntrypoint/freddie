@@ -4,6 +4,28 @@ import { callLLM as bridgeCall, isReachable as bridgeReachable } from './acptoap
 import { parseTextToolCalls } from './tool_call_text.js'
 import * as sdkNs from 'acptoapi'
 export { matrixUsable } from './model-matrix.js'
+import { createRequire } from 'node:module'
+const _req = createRequire(import.meta.url)
+// Fire async probe of file-based extra providers on first call so subsequent
+// buildAutoChain calls find registered models from ~/.acptoapi/extra-providers.txt.
+// sync loadFromCache (called inside buildAutoChain) picks up on-disk probe cache
+// immediately; this async refresh updates the cache for future sessions.
+let _warmExtraPromise = null
+export async function warmExtraProviders() {
+    if (!_warmExtraPromise) {
+        try {
+            const extra = _req('acptoapi/lib/extra-providers')
+            if (extra && typeof extra.loadAndRegisterAsync === 'function') {
+                _warmExtraPromise = extra.loadAndRegisterAsync()
+            } else {
+                _warmExtraPromise = Promise.resolve()
+            }
+        } catch {
+            _warmExtraPromise = Promise.resolve()
+        }
+    }
+    await _warmExtraPromise
+}
 
 // Reachability memoization: bridgeReachable() now performs a REAL LLM call
 // (acptoapi-bridge.js's isReachable() sends a live 'ping' completion), so
@@ -74,22 +96,6 @@ function adapt(result) {
 // Mirror lib/named-chains.js BUILTIN — acptoapi resolves unknown names.
 const NAMED_CHAIN_NAMES = new Set(['fast', 'cheap', 'smart', 'reasoning', 'free', 'local', 'auto'])
 
-// User's explicit model_preference is preserved in config order — they chose
-// those providers in that order and the SWE-bench re-rank would defeat the
-// purpose. orderByScore is only used for the auto-chain path (no preference).
-function orderByScore(links) {
-    let pool
-    try { pool = typeof sdk.buildAutoChain === 'function' ? sdk.buildAutoChain(undefined, { hasTools: true }) : [] } catch { pool = [] }
-    if (!Array.isArray(pool) || !pool.length) return links
-    const rank = new Map(pool.map((l, i) => [l.model, i]))
-    return [...links].sort((a, b) => {
-        const ra = rank.has(a) ? rank.get(a) : Infinity
-        const rb = rank.has(b) ? rank.get(b) : Infinity
-        if (ra !== rb) return ra - rb
-        return links.indexOf(a) - links.indexOf(b)
-    })
-}
-
 async function buildModel({ provider, model, inputModel }) {
     if (provider) return `${provider}/${model || DEFAULTS[provider] || ''}`.replace(/\/$/, '')
     if (model) return model
@@ -101,28 +107,58 @@ async function buildModel({ provider, model, inputModel }) {
         }
         return inputModel
     }
+
+    // Build intelligence-ranked auto-chain from ALL available providers (env
+    // keys + extra-providers.txt + ACP daemons). buildAutoChain already handles
+    // hasProvider filtering (env keys + sampler) and SWE-bench score ordering.
+    let chain = []
+    try { chain = typeof sdk.buildAutoChain === 'function' ? sdk.buildAutoChain(undefined, { hasTools: true }) : [] } catch {}
+
     const pref = getConfigValue('agent.model_preference', [])
-    if (Array.isArray(pref) && pref.length) {
-        // Preserve user's explicit config order — they chose these providers in
-        // this sequence. Only filter out providers where the sampler reports them
-        // as actively in backoff (ok===false) to avoid inserting definitely-dead
-        // links. SWE-bench re-rank via orderByScore is NOT applied here since it
-        // would override the user's deliberate ordering.
-        const links = pref.map(p => `${p.provider}/${p.model || DEFAULTS[p.provider] || ''}`.replace(/\/$/, '')).filter(s => s.includes('/'))
-        if (!links.length) return ''
-        // Filter by sampler state if available
+    const prefModels = Array.isArray(pref) && pref.length
+        ? pref.map(p => `${p.provider}/${p.model || DEFAULTS[p.provider] || ''}`.replace(/\/$/, '')).filter(s => s.includes('/'))
+        : []
+
+    if (prefModels.length && chain.length) {
+        // Merge user's model_preference into the intelligence-ranked auto-chain.
+        // Preference models not already in the chain are inserted at their
+        // SWE-bench score position. The result is ordered by intelligence score
+        // (not config order), so extra providers like nvidia, cerebras, google
+        // with high-scoring models naturally lead the chain.
+        const seen = new Set(chain.map(l => l.model))
+        const extras = prefModels.filter(m => !seen.has(m))
+        if (extras.length) {
+            const scored = chain.map(l => ({ model: l.model, score: l.swe_bench_score || 0 }))
+            for (const m of extras) {
+                const s = typeof sdk.getModelScore === 'function' ? sdk.getModelScore(m) : 0
+                scored.push({ model: m, score: s || 0 })
+            }
+            scored.sort((a, b) => b.score - a.score)
+            const allModels = scored.map(m => m.model)
+            const status = typeof sdk.getStatus === 'function' ? sdk.getStatus() : []
+            if (status.length) {
+                const blocked = new Set(status.filter(s => s.ok === false).map(s => s.provider))
+                const filtered = allModels.filter(m => !blocked.has(m.split('/')[0]))
+                if (filtered.length) return filtered.join(', ')
+            }
+            return allModels.join(', ')
+        }
+    }
+
+    // All preference models already in auto-chain, or no extras added. Return
+    // the intelligence-ranked chain (not preference order).
+    if (prefModels.length && chain.length) {
         const status = typeof sdk.getStatus === 'function' ? sdk.getStatus() : []
         if (status.length) {
             const blocked = new Set(status.filter(s => s.ok === false).map(s => s.provider))
-            const filtered = links.filter(l => !blocked.has(l.split('/')[0]))
-            if (filtered.length) return filtered.join(', ')
+            const filtered = chain.filter(l => !blocked.has(l.model.split('/')[0]))
+            if (filtered.length) return filtered.map(l => l.model).join(', ')
         }
-        return links.join(', ')
+        return chain.map(l => l.model).join(', ')
     }
-    const auto = typeof sdk.buildAutoChain === 'function' ? sdk.buildAutoChain(undefined) : []
-    const keyed = Array.isArray(auto) ? auto.filter(l => { const p = l.model.split('/')[0]; const env = PROVIDER_KEYS[p]; return env && process.env[env] }) : []
-    // Filter out providers in sampler backoff so the chain doesn't waste slots
-    // on links that will be immediately skipped with sampler_backoff reason.
+
+    // No model_preference: filter by env-key presence and sampler state.
+    const keyed = Array.isArray(chain) ? chain.filter(l => { const p = l.model.split('/')[0]; const env = PROVIDER_KEYS[p]; return env && process.env[env] }) : []
     const status = typeof sdk.getStatus === 'function' ? sdk.getStatus() : []
     if (status.length && keyed.length) {
         const blocked = new Set(status.filter(s => s.ok === false).map(s => s.provider))
@@ -130,12 +166,15 @@ async function buildModel({ provider, model, inputModel }) {
         if (filtered.length) return filtered.map(l => l.model).join(', ')
     }
     if (keyed.length) return keyed.map(l => l.model).join(', ')
-    // No local provider keys — delegate to acptoapi if reachable.
     if (await cachedReachable()) return process.env.FREDDIE_LLM_MODEL || 'auto'
     return null
 }
 
 export function resolveCallLLM({ provider, model } = {}) {
+    // Fire async extra-provider probe on first call (non-blocking). The sync
+    // loadFromCache inside buildAutoChain picks up the previous run's probe
+    // cache immediately; this async refresh updates the cache for future turns.
+    warmExtraProviders()
     return async (input) => {
         const m = await buildModel({ provider, model, inputModel: input.model })
         if (!m) {
