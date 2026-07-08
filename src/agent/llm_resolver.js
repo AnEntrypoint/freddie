@@ -74,16 +74,9 @@ function adapt(result) {
 // Mirror lib/named-chains.js BUILTIN — acptoapi resolves unknown names.
 const NAMED_CHAIN_NAMES = new Set(['fast', 'cheap', 'smart', 'reasoning', 'free', 'local', 'auto'])
 
-// A hand-typed agent.model_preference used to be joined in its literal config
-// order, permanently overriding acptoapi's own swe_bench-score-aware ranking
-// (buildAutoChain sorts by score + tool-capability tiering) with no
-// reconciliation at all — witnessed picking a 62-score model ahead of a
-// 79.6-score one purely because it was configured first. Re-rank the user's
-// chosen providers using acptoapi's OWN scored pool (buildAutoChain is a
-// sanctioned top-level export; this never reaches into unexported internals
-// like lib/swe-bench-scores) so provider CHOICE stays user-controlled while
-// ORDER reflects real capability. Unscored links keep their relative config
-// order at the tail, matching acptoapi's own null-score handling.
+// User's explicit model_preference is preserved in config order — they chose
+// those providers in that order and the SWE-bench re-rank would defeat the
+// purpose. orderByScore is only used for the auto-chain path (no preference).
 function orderByScore(links) {
     let pool
     try { pool = typeof sdk.buildAutoChain === 'function' ? sdk.buildAutoChain(undefined, { hasTools: true }) : [] } catch { pool = [] }
@@ -110,11 +103,32 @@ async function buildModel({ provider, model, inputModel }) {
     }
     const pref = getConfigValue('agent.model_preference', [])
     if (Array.isArray(pref) && pref.length) {
+        // Preserve user's explicit config order — they chose these providers in
+        // this sequence. Only filter out providers where the sampler reports them
+        // as actively in backoff (ok===false) to avoid inserting definitely-dead
+        // links. SWE-bench re-rank via orderByScore is NOT applied here since it
+        // would override the user's deliberate ordering.
         const links = pref.map(p => `${p.provider}/${p.model || DEFAULTS[p.provider] || ''}`.replace(/\/$/, '')).filter(s => s.includes('/'))
-        if (links.length) return orderByScore(links).join(', ')
+        if (!links.length) return ''
+        // Filter by sampler state if available
+        const status = typeof sdk.getStatus === 'function' ? sdk.getStatus() : []
+        if (status.length) {
+            const blocked = new Set(status.filter(s => s.ok === false).map(s => s.provider))
+            const filtered = links.filter(l => !blocked.has(l.split('/')[0]))
+            if (filtered.length) return filtered.join(', ')
+        }
+        return links.join(', ')
     }
     const auto = typeof sdk.buildAutoChain === 'function' ? sdk.buildAutoChain(undefined) : []
     const keyed = Array.isArray(auto) ? auto.filter(l => { const p = l.model.split('/')[0]; const env = PROVIDER_KEYS[p]; return env && process.env[env] }) : []
+    // Filter out providers in sampler backoff so the chain doesn't waste slots
+    // on links that will be immediately skipped with sampler_backoff reason.
+    const status = typeof sdk.getStatus === 'function' ? sdk.getStatus() : []
+    if (status.length && keyed.length) {
+        const blocked = new Set(status.filter(s => s.ok === false).map(s => s.provider))
+        const filtered = keyed.filter(l => !blocked.has(l.model.split('/')[0]))
+        if (filtered.length) return filtered.map(l => l.model).join(', ')
+    }
     if (keyed.length) return keyed.map(l => l.model).join(', ')
     // No local provider keys — delegate to acptoapi if reachable.
     if (await cachedReachable()) return process.env.FREDDIE_LLM_MODEL || 'auto'
