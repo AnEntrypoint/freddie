@@ -4516,22 +4516,6 @@ var NAMED_CHAIN_NAMES = new Set([
 	"local",
 	"auto"
 ]);
-function orderByScore(links) {
-	let pool;
-	try {
-		pool = typeof sdk.buildAutoChain === "function" ? sdk.buildAutoChain(void 0, { hasTools: true }) : [];
-	} catch {
-		pool = [];
-	}
-	if (!Array.isArray(pool) || !pool.length) return links;
-	const rank = new Map(pool.map((l, i) => [l.model, i]));
-	return [...links].sort((a, b) => {
-		const ra = rank.has(a) ? rank.get(a) : Infinity;
-		const rb = rank.has(b) ? rank.get(b) : Infinity;
-		if (ra !== rb) return ra - rb;
-		return links.indexOf(a) - links.indexOf(b);
-	});
-}
 async function buildModel({ provider, model, inputModel }) {
 	if (provider) return `${provider}/${model || DEFAULTS[provider] || ""}`.replace(/\/$/, "");
 	if (model) return model;
@@ -4542,13 +4526,26 @@ async function buildModel({ provider, model, inputModel }) {
 	const pref = getConfigValue("agent.model_preference", []);
 	if (Array.isArray(pref) && pref.length) {
 		const links = pref.map((p) => `${p.provider}/${p.model || DEFAULTS[p.provider] || ""}`.replace(/\/$/, "")).filter((s) => s.includes("/"));
-		if (links.length) return orderByScore(links).join(", ");
+		if (!links.length) return "";
+		const status = typeof sdk.getStatus === "function" ? sdk.getStatus() : [];
+		if (status.length) {
+			const blocked = new Set(status.filter((s) => s.ok === false).map((s) => s.provider));
+			const filtered = links.filter((l) => !blocked.has(l.split("/")[0]));
+			if (filtered.length) return filtered.join(", ");
+		}
+		return links.join(", ");
 	}
 	const auto = typeof sdk.buildAutoChain === "function" ? sdk.buildAutoChain(void 0) : [];
 	const keyed = Array.isArray(auto) ? auto.filter((l) => {
 		const env = PROVIDER_KEYS[l.model.split("/")[0]];
 		return env && process.env[env];
 	}) : [];
+	const status = typeof sdk.getStatus === "function" ? sdk.getStatus() : [];
+	if (status.length && keyed.length) {
+		const blocked = new Set(status.filter((s) => s.ok === false).map((s) => s.provider));
+		const filtered = keyed.filter((l) => !blocked.has(l.model.split("/")[0]));
+		if (filtered.length) return filtered.map((l) => l.model).join(", ");
+	}
 	if (keyed.length) return keyed.map((l) => l.model).join(", ");
 	if (await cachedReachable()) return process.env.FREDDIE_LLM_MODEL || "auto";
 	return null;
