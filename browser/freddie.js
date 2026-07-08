@@ -5,6 +5,7 @@ import { spawn } from "node:child_process";
 import os, { homedir } from "node:os";
 import { assign, assign as assign$1, createActor, createActor as createActor$1, createMachine, createMachine as createMachine$1, fromPromise, fromPromise as fromPromise$1, waitFor } from "xstate";
 import * as sdkNs from "acptoapi";
+import { createRequire } from "node:module";
 import { randomUUID } from "node:crypto";
 //#region \0rolldown/runtime.js
 var __create = Object.create;
@@ -4409,6 +4410,18 @@ async function isReachable(timeoutMs = 1e4) {
 }
 //#endregion
 //#region src/agent/llm_resolver.js
+var _req = createRequire(import.meta.url);
+var _warmExtraPromise = null;
+async function warmExtraProviders() {
+	if (!_warmExtraPromise) try {
+		const extra = _req("acptoapi/lib/extra-providers");
+		if (extra && typeof extra.loadAndRegisterAsync === "function") _warmExtraPromise = extra.loadAndRegisterAsync();
+		else _warmExtraPromise = Promise.resolve();
+	} catch {
+		_warmExtraPromise = Promise.resolve();
+	}
+	await _warmExtraPromise;
+}
 var _lastReachable = {
 	at: 0,
 	ok: false
@@ -4523,20 +4536,48 @@ async function buildModel({ provider, model, inputModel }) {
 		if (typeof inputModel === "string" && !inputModel.includes("/") && !inputModel.includes(",") && NAMED_CHAIN_NAMES.has(inputModel)) return inputModel;
 		return inputModel;
 	}
+	let chain = [];
+	try {
+		chain = typeof sdk.buildAutoChain === "function" ? sdk.buildAutoChain(void 0, { hasTools: true }) : [];
+	} catch {}
 	const pref = getConfigValue("agent.model_preference", []);
-	if (Array.isArray(pref) && pref.length) {
-		const links = pref.map((p) => `${p.provider}/${p.model || DEFAULTS[p.provider] || ""}`.replace(/\/$/, "")).filter((s) => s.includes("/"));
-		if (!links.length) return "";
+	const prefModels = Array.isArray(pref) && pref.length ? pref.map((p) => `${p.provider}/${p.model || DEFAULTS[p.provider] || ""}`.replace(/\/$/, "")).filter((s) => s.includes("/")) : [];
+	if (prefModels.length && chain.length) {
+		const seen = new Set(chain.map((l) => l.model));
+		const extras = prefModels.filter((m) => !seen.has(m));
+		if (extras.length) {
+			const scored = chain.map((l) => ({
+				model: l.model,
+				score: l.swe_bench_score || 0
+			}));
+			for (const m of extras) {
+				const s = typeof sdk.getModelScore === "function" ? sdk.getModelScore(m) : 0;
+				scored.push({
+					model: m,
+					score: s || 0
+				});
+			}
+			scored.sort((a, b) => b.score - a.score);
+			const allModels = scored.map((m) => m.model);
+			const status = typeof sdk.getStatus === "function" ? sdk.getStatus() : [];
+			if (status.length) {
+				const blocked = new Set(status.filter((s) => s.ok === false).map((s) => s.provider));
+				const filtered = allModels.filter((m) => !blocked.has(m.split("/")[0]));
+				if (filtered.length) return filtered.join(", ");
+			}
+			return allModels.join(", ");
+		}
+	}
+	if (prefModels.length && chain.length) {
 		const status = typeof sdk.getStatus === "function" ? sdk.getStatus() : [];
 		if (status.length) {
 			const blocked = new Set(status.filter((s) => s.ok === false).map((s) => s.provider));
-			const filtered = links.filter((l) => !blocked.has(l.split("/")[0]));
-			if (filtered.length) return filtered.join(", ");
+			const filtered = chain.filter((l) => !blocked.has(l.model.split("/")[0]));
+			if (filtered.length) return filtered.map((l) => l.model).join(", ");
 		}
-		return links.join(", ");
+		return chain.map((l) => l.model).join(", ");
 	}
-	const auto = typeof sdk.buildAutoChain === "function" ? sdk.buildAutoChain(void 0) : [];
-	const keyed = Array.isArray(auto) ? auto.filter((l) => {
+	const keyed = Array.isArray(chain) ? chain.filter((l) => {
 		const env = PROVIDER_KEYS[l.model.split("/")[0]];
 		return env && process.env[env];
 	}) : [];
@@ -4551,6 +4592,7 @@ async function buildModel({ provider, model, inputModel }) {
 	return null;
 }
 function resolveCallLLM({ provider, model } = {}) {
+	warmExtraProviders();
 	return async (input) => {
 		const m = await buildModel({
 			provider,
