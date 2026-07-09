@@ -85,3 +85,6 @@ emperor-penguin.md
 .gm/pw-sock-*/
 .gm/last-dispatch-ts
 .gm/instructions/
+.gm/disciplines/codeinsight-manifest/*.json
+.gm/disciplines/codeinsight-vec/*.json
+.gm/memories/*.md
