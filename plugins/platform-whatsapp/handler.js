@@ -97,8 +97,34 @@ export class WhatsappAdapter extends EventEmitter {
         this.port = this._server.address().port
     }
     async stop() { if (this._server) await new Promise(r => this._server.close(() => r())) }
+
+    // Upload raw media bytes to the Cloud API and return the resulting media id.
+    // WhatsApp will not send an audio/image message from bytes inline -- it must
+    // first be POSTed to /{phoneId}/media as multipart, which yields a reusable
+    // id referenced by the outbound message. Bearer-authed like every other hop.
+    async _uploadMedia(buffer, mimeType) {
+        const fd = new FormData()
+        fd.append('messaging_product', 'whatsapp')
+        fd.append('type', mimeType)
+        fd.append('file', new Blob([buffer], { type: mimeType }), 'reply')
+        const r = await fetch(`${this.api}/${this.phoneId}/media`, { method: 'POST', headers: { authorization: `Bearer ${this.token}` }, body: fd }).then(x => x.json())
+        if (!r?.id) throw new Error('WhatsappAdapter: media upload returned no id: ' + JSON.stringify(r))
+        return r.id
+    }
+
     async send(reply) {
         if (!this.token) throw new Error('WhatsappAdapter: token required')
-        return fetch(`${this.api}/${this.phoneId}/messages`, { method: 'POST', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', to: reply.to, text: { body: reply.text } }) }).then(r => r.json())
+        const post = (payload) => fetch(`${this.api}/${this.phoneId}/messages`, { method: 'POST', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', to: reply.to, ...payload }) }).then(r => r.json())
+        // Optional audio: an already-hosted link sends directly; raw bytes upload
+        // first, then send by media id. The text (when present) is sent alongside
+        // so the reporter still gets the words. A text-only reply is byte-identical
+        // to the original single POST -- audio is purely additive.
+        const a = reply.audio
+        if (a && (a.link || a.data_base64)) {
+            const audioMsg = a.link ? { link: a.link } : { id: await this._uploadMedia(Buffer.from(a.data_base64, 'base64'), a.mime || 'audio/ogg') }
+            if (reply.text) await post({ text: { body: reply.text } })
+            return post({ type: 'audio', audio: audioMsg })
+        }
+        return post({ text: { body: reply.text } })
     }
 }
