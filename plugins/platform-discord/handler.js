@@ -147,6 +147,17 @@ export class DiscordAdapter extends EventEmitter {
     async send(reply) {
         if (!this.token) throw new Error('DiscordAdapter: token required')
         const url = `${this.api}/channels/${reply.to}/messages`
+        // Optional audio attachment: raw bytes go as a multipart file so the
+        // reporter hears a voice reply. A text-only reply keeps the original
+        // JSON POST byte-for-byte -- audio is purely additive.
+        const a = reply.audio
+        if (a && a.data_base64) {
+            const ext = /mpeg|mp3/.test(a.mime || '') ? 'mp3' : /wav/.test(a.mime || '') ? 'wav' : 'ogg'
+            const fd = new FormData()
+            fd.append('payload_json', JSON.stringify({ content: reply.text || '' }))
+            fd.append('files[0]', new Blob([Buffer.from(a.data_base64, 'base64')], { type: a.mime || 'audio/ogg' }), `reply.${ext}`)
+            return fetch(url, { method: 'POST', headers: { authorization: `Bot ${this.token}` }, body: fd }).then(r => r.json())
+        }
         return fetch(url, { method: 'POST', headers: { authorization: `Bot ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ content: reply.text }) }).then(r => r.json())
     }
 }
