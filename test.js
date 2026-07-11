@@ -34,12 +34,26 @@ await T('cli-verbs-smoke', async () => {
     }
     // auth list surfaces a known provider with its env var
     assert.match(run(['auth', 'list']).stdout, /anthropic\s+ANTHROPIC_API_KEY/, 'auth list shows provider+env')
-    // project list shows the protected default with an active marker
-    assert.match(run(['project', 'list']).stdout, /\[\*\]\s+default/, 'project list marks active default')
+    // project list marks exactly one project active with [*] -- the registry
+    // (~/.freddie/projects.json) is intentionally machine-global, not isolated
+    // by this test's FREDDIE_HOME override (it has to survive switching which
+    // project is active), so asserting the active one is literally 'default'
+    // is only true on a fresh machine; assert against whatever 'project
+    // current' independently reports instead, so this test passes regardless
+    // of which project a real developer happens to have active.
+    const listOut = run(['project', 'list']).stdout
+    const activeLine = listOut.split('\n').find(l => l.includes('[*]'))
+    assert.ok(activeLine, 'project list marks exactly one project active: ' + listOut)
+    const currentOut = run(['project', 'current']).stdout
+    assert.ok(activeLine.includes(currentOut.trim()) || currentOut.includes(activeLine.replace('[*]', '').trim().split(/\s+/)[0]), 'project list active marker agrees with project current: ' + JSON.stringify({ activeLine, currentOut }))
     // unknown provider is rejected with the valid list, not a silent no-op
     const bad = run(['auth', 'set', 'no-such-provider']); assert.notEqual(bad.status, 0); assert.match(bad.stderr, /unknown provider/, 'auth set rejects unknown provider')
-    // doctor reports the workspace + conversation sections
-    assert.match(run(['doctor']).stdout, /# workspace[\s\S]*active project: default/, 'doctor shows active project')
+    // doctor reports the workspace + conversation sections, naming whichever
+    // project is really active (the registry is machine-global, same
+    // reasoning as the project-list assertion above -- never assume 'default')
+    const doctorOut = run(['doctor']).stdout
+    assert.match(doctorOut, /# workspace/, 'doctor shows workspace section')
+    assert.match(doctorOut, /active project:\s+\S+/, 'doctor names an active project: ' + doctorOut.slice(0, 300))
 })
 await T('host+tools+toolsets', async () => {
     const ccDir = path.join(TEST_HOME, 'cc-plugins', 'demo'); fs.mkdirSync(path.join(ccDir, '.claude-plugin'), { recursive: true }); fs.mkdirSync(path.join(ccDir, 'skills', 'hello'), { recursive: true }); fs.mkdirSync(path.join(ccDir, 'agents'), { recursive: true }); fs.mkdirSync(path.join(ccDir, 'hooks'), { recursive: true }); fs.writeFileSync(path.join(ccDir, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'demo', version: '1.0.0' })); fs.writeFileSync(path.join(ccDir, 'skills', 'hello', 'SKILL.md'), '---\ndescription: hi\n---\nhi'); fs.writeFileSync(path.join(ccDir, 'agents', 'rev.md'), '---\nname: rev\ndescription: r\n---\nbody'); const denyScript = path.join(ccDir, 'deny.mjs'); fs.writeFileSync(denyScript, "process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:'no'}}))"); fs.writeFileSync(path.join(ccDir, 'hooks', 'hooks.json'), JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'bash', hooks: [{ type: 'command', command: `"${process.execPath}" "${denyScript.replace(/\\/g, '/')}"` }] }] } }))
