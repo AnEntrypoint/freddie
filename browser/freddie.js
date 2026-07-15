@@ -4325,6 +4325,7 @@ async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } 
 	const chatOpts = {
 		messages: adaptedMessages,
 		...hasTools ? { tools: tools.map(adaptTool) } : {},
+		...hasTools && tool_choice ? { tool_choice } : {},
 		max_tokens: 4096
 	};
 	let json;
@@ -4342,7 +4343,7 @@ async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } 
 		usage: json.usage
 	});
 	const adapted = adaptResponse(json);
-	if ((tool_choice === "required" || tool_choice?.type === "required") && hasTools && !adapted.tool_calls.length) log$4.warn("tool_choice required but no tool call returned (acptoapi does not enforce tool_choice)", { model: useModel });
+	if ((tool_choice === "required" || tool_choice?.type === "required") && hasTools && !adapted.tool_calls.length) log$4.warn("tool_choice required but no tool call returned (provider did not honor it)", { model: useModel });
 	return adapted;
 }
 function adaptMessage(m) {
