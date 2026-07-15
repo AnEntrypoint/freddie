@@ -147,6 +147,17 @@ export class DiscordAdapter extends EventEmitter {
     async send(reply) {
         if (!this.token) throw new Error('DiscordAdapter: token required')
         const url = `${this.api}/channels/${reply.to}/messages`
+        // Verify actual delivery: a non-2xx Discord response (bad token, missing
+        // permission, unknown channel/404) still returns a JSON body but with no
+        // message `id` -- a bare `.then(r => r.json())` treated that identically
+        // to a real send. Check both the HTTP status and the returned message id.
+        const checked = async (res) => {
+            const body = await res.json().catch(() => ({}))
+            if (!res.ok || !body?.id) {
+                throw new Error(`DiscordAdapter: send failed (status ${res.status}): ${JSON.stringify(body)}`)
+            }
+            return body
+        }
         // Optional audio attachment: raw bytes go as a multipart file so the
         // reporter hears a voice reply. A text-only reply keeps the original
         // JSON POST byte-for-byte -- audio is purely additive.
@@ -156,8 +167,8 @@ export class DiscordAdapter extends EventEmitter {
             const fd = new FormData()
             fd.append('payload_json', JSON.stringify({ content: reply.text || '' }))
             fd.append('files[0]', new Blob([Buffer.from(a.data_base64, 'base64')], { type: a.mime || 'audio/ogg' }), `reply.${ext}`)
-            return fetch(url, { method: 'POST', headers: { authorization: `Bot ${this.token}` }, body: fd }).then(r => r.json())
+            return checked(await fetch(url, { method: 'POST', headers: { authorization: `Bot ${this.token}` }, body: fd }))
         }
-        return fetch(url, { method: 'POST', headers: { authorization: `Bot ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ content: reply.text }) }).then(r => r.json())
+        return checked(await fetch(url, { method: 'POST', headers: { authorization: `Bot ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ content: reply.text }) }))
     }
 }
