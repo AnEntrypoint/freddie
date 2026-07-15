@@ -111,6 +111,13 @@ export async function callLLM({ messages, tools = [], model, tool_choice, cwd = 
     const chatOpts = {
         messages: adaptedMessages,
         ...(hasTools ? { tools: tools.map(adaptTool) } : {}),
+        // Forward tool_choice through to the underlying provider. acptoapi's
+        // buildParams() spreads unrecognized opts keys straight into the
+        // outbound request body (confirmed: lib/sdk.js buildParams's `...clean`
+        // reaches providers/openai.js's `body` unfiltered) -- the prior gap was
+        // never acptoapi itself dropping this, it was THIS call site never
+        // including the key at all. Only meaningful alongside tools.
+        ...(hasTools && tool_choice ? { tool_choice } : {}),
         max_tokens: 4096,
     }
     // An array chainModel (built by resolveChainLinks above) dispatches via
@@ -129,15 +136,16 @@ export async function callLLM({ messages, tools = [], model, tool_choice, cwd = 
     } finally { clearTimeout(_timeoutHandle) }
     log.info('completed', { model: useModel, servedModel: Array.isArray(chainModel) ? (json.model || null) : useModel, usage: json.usage })
     const adapted = adaptResponse(json)
-    // acptoapi's chat()/toParams() does not forward tool_choice to any provider
-    // (confirmed: a pre-existing gap, not introduced by going in-process -- the
-    // old HTTP path silently dropped it too). Enforce the documented contract
-    // client-side: when the caller forced a tool call and none came back, this
-    // was previously a SILENT no-op -- log loud so the gap is visible instead of
-    // masquerading as "the model chose not to call a tool".
+    // tool_choice is now genuinely forwarded to the provider (see chatOpts
+    // above) -- but a provider can still ignore it (not every backend actually
+    // enforces the OpenAI tool_choice contract, and the openai-compat request
+    // body shape varies by upstream). Keep this as a client-side backstop: log
+    // loud when a forced call still came back with none, so a non-compliant
+    // provider is visible rather than masquerading as "the model chose not to
+    // call a tool".
     const forcedToolChoice = tool_choice === 'required' || tool_choice?.type === 'required'
     if (forcedToolChoice && hasTools && !adapted.tool_calls.length) {
-        log.warn('tool_choice required but no tool call returned (acptoapi does not enforce tool_choice)', { model: useModel })
+        log.warn('tool_choice required but no tool call returned (provider did not honor it)', { model: useModel })
     }
     return adapted
 }
