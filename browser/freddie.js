@@ -4287,9 +4287,23 @@ async function getAcptoapi() {
 	}
 	return _acptoapi;
 }
+function isConfiguredChainSyntax(model) {
+	if (typeof model !== "string") return false;
+	return model.includes(",") || model.startsWith("queue/") || model.startsWith("chain/") || model === "auto";
+}
+async function resolveChainLinks(acptoapi, useModel) {
+	if (isConfiguredChainSyntax(useModel)) return useModel;
+	try {
+		const links = acptoapi.buildAutoChain(useModel);
+		return Array.isArray(links) && links.length ? links.map((l) => l.model || l) : useModel;
+	} catch {
+		return useModel;
+	}
+}
 async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } = {}) {
 	const acptoapi = await getAcptoapi();
 	const useModel = model || getAcptoapiModel();
+	const chainModel = await resolveChainLinks(acptoapi, useModel);
 	const hasTools = Array.isArray(tools) && tools.length > 0;
 	const adaptedMessages = messages.map(adaptMessage);
 	if (hasTools && cwd) {
@@ -4308,19 +4322,23 @@ async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } 
 	const _timeout = new Promise((_, reject) => {
 		_timeoutHandle = setTimeout(() => reject(/* @__PURE__ */ new Error("acptoapi call timeout")), ACPTOAPI_TIMEOUT_MS);
 	});
+	const chatOpts = {
+		messages: adaptedMessages,
+		...hasTools ? { tools: tools.map(adaptTool) } : {},
+		max_tokens: 4096
+	};
 	let json;
 	try {
-		json = await Promise.race([acptoapi.chat({
-			model: useModel,
-			messages: adaptedMessages,
-			...hasTools ? { tools: tools.map(adaptTool) } : {},
-			max_tokens: 4096
+		json = await Promise.race([Array.isArray(chainModel) ? acptoapi.chatChain(chainModel, chatOpts) : acptoapi.chat({
+			model: chainModel,
+			...chatOpts
 		}), _timeout]);
 	} finally {
 		clearTimeout(_timeoutHandle);
 	}
 	log$4.info("completed", {
 		model: useModel,
+		servedModel: Array.isArray(chainModel) ? json.model || null : useModel,
 		usage: json.usage
 	});
 	const adapted = adaptResponse(json);
@@ -4395,13 +4413,17 @@ function tryParseJson(s) {
 async function isReachable(timeoutMs = 1e4) {
 	try {
 		const acptoapi = await getAcptoapi();
-		const result = await Promise.race([acptoapi.chat({
-			model: getAcptoapiModel(),
+		const chainModel = await resolveChainLinks(acptoapi, getAcptoapiModel());
+		const probe = {
 			messages: [{
 				role: "user",
 				content: "ping"
 			}],
 			max_tokens: 4
+		};
+		const result = await Promise.race([Array.isArray(chainModel) ? acptoapi.chatChain(chainModel, probe) : acptoapi.chat({
+			model: chainModel,
+			...probe
 		}), new Promise((_, reject) => setTimeout(() => reject(/* @__PURE__ */ new Error("reachability probe timeout")), timeoutMs))]);
 		return !!(result && result.choices && result.choices.length);
 	} catch {
