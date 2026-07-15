@@ -41,14 +41,50 @@ async function getAcptoapi() {
     return _acptoapi
 }
 
-// In-process call: acptoapi's own chat() walks its provider/model resolution
-// (including a comma-list or named chain for multi-model fallback) with no
-// HTTP hop and no separate listening process -- eliminates the standalone
-// acptoapi.js daemon on :4800 entirely, along with its witnessed failure mode
-// (an uncaught ACP-timeout exception crashing the whole bridge process).
+// A single 'provider/model' string (the common shape of FREDDIE_LLM_MODEL / a
+// per-call `model` override) is resolved by acptoapi's plain chat() via
+// resolveModel() to exactly ONE provider -- no fallback chain applies unless
+// the caller already used comma-list / queue/ / chain/ syntax. A configured
+// model whose provider is unreachable (wrong/unrecognised proxy name, expired
+// key, provider outage) then hard-fails every call with no safety net, even
+// though acptoapi ships a real auto-chain fallback engine
+// (buildAutoChain/chatChain) for exactly this case. isConfiguredChainSyntax
+// recognizes the syntaxes that ALREADY encode their own explicit chain, so
+// resolveChainLinks only builds an auto-chain around a bare single-model
+// string -- an operator who deliberately wrote 'a,b,c' or 'queue/foo' keeps
+// exclusive control of that chain, unchanged.
+function isConfiguredChainSyntax(model) {
+    if (typeof model !== 'string') return false
+    return model.includes(',') || model.startsWith('queue/') || model.startsWith('chain/') || model === 'auto'
+}
+
+// Builds the real fallback chain for a bare single-model request: the
+// requested model first, then every other configured/available provider
+// behind it (acptoapi's own buildAutoChain -- see its AGENTS.md "Auto-Fallback
+// Chain" section). If chain construction itself throws (unexpected acptoapi
+// shape change), degrade to the single requested model rather than blocking
+// the call entirely -- this function must never be the reason a call that
+// could otherwise succeed never gets attempted.
+async function resolveChainLinks(acptoapi, useModel) {
+    if (isConfiguredChainSyntax(useModel)) return useModel
+    try {
+        const links = acptoapi.buildAutoChain(useModel)
+        return (Array.isArray(links) && links.length) ? links.map(l => l.model || l) : useModel
+    } catch { return useModel }
+}
+
+// In-process call: acptoapi's own chat()/chatChain() walks its provider/model
+// resolution (including a comma-list or named chain for multi-model fallback)
+// with no HTTP hop and no separate listening process -- eliminates the
+// standalone acptoapi.js daemon on :4800 entirely, along with its witnessed
+// failure mode (an uncaught ACP-timeout exception crashing the whole bridge
+// process). A bare single-model request is expanded into the real auto-chain
+// (see resolveChainLinks above) so an unreachable configured provider falls
+// through to another live one instead of failing every turn outright.
 export async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } = {}) {
     const acptoapi = await getAcptoapi()
     const useModel = model || getAcptoapiModel()
+    const chainModel = await resolveChainLinks(acptoapi, useModel)
     const hasTools = Array.isArray(tools) && tools.length > 0
     const adaptedMessages = messages.map(adaptMessage)
     // The coder-agent working-directory note is OPT-IN via an explicit `cwd` param.
@@ -72,19 +108,26 @@ export async function callLLM({ messages, tools = [], model, tool_choice, cwd = 
     const _timeout = new Promise((_, reject) => {
         _timeoutHandle = setTimeout(() => reject(new Error('acptoapi call timeout')), ACPTOAPI_TIMEOUT_MS)
     })
+    const chatOpts = {
+        messages: adaptedMessages,
+        ...(hasTools ? { tools: tools.map(adaptTool) } : {}),
+        max_tokens: 4096,
+    }
+    // An array chainModel (built by resolveChainLinks above) dispatches via
+    // chatChain -- the requested model tried first, falling through to the
+    // rest of the real provider chain on failure/timeout/rate-limit; a plain
+    // string (explicit chain syntax, or the auto-chain build itself failed)
+    // dispatches via the original single-model chat() unchanged.
     let json
     try {
         json = await Promise.race([
-            acptoapi.chat({
-                model: useModel,
-                messages: adaptedMessages,
-                ...(hasTools ? { tools: tools.map(adaptTool) } : {}),
-                max_tokens: 4096,
-            }),
+            Array.isArray(chainModel)
+                ? acptoapi.chatChain(chainModel, chatOpts)
+                : acptoapi.chat({ model: chainModel, ...chatOpts }),
             _timeout,
         ])
     } finally { clearTimeout(_timeoutHandle) }
-    log.info('completed', { model: useModel, usage: json.usage })
+    log.info('completed', { model: useModel, servedModel: Array.isArray(chainModel) ? (json.model || null) : useModel, usage: json.usage })
     const adapted = adaptResponse(json)
     // acptoapi's chat()/toParams() does not forward tool_choice to any provider
     // (confirmed: a pre-existing gap, not introduced by going in-process -- the
@@ -144,20 +187,28 @@ function adaptResponse(r) {
 function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : (s || {}) } catch { return {} } }
 
 // In-process reachability: acptoapi is a library import now, not a port to
-// dial, so there is no cheap side-channel that answers "is the CONFIGURED
-// model reachable" for an arbitrary provider (witnessed: listAllModelsAndQueues
-// only enumerates configured matrix/queue sources, empty by default; the
-// sampler cache starts empty until something actually probes/fails a
-// provider; chatjimmy -- casey's configured model -- is itself a remote
-// hosted proxy at https://chatjimmy.ai with its own internal model list, not
-// exported from acptoapi's top-level API at all). The only generically
-// correct answer is a real minimal call: send a trivial message with a short
-// timeout and treat success as reachable.
+// dial, so there is no cheap side-channel that answers "is SOME model
+// reachable" for an arbitrary provider (witnessed: listAllModelsAndQueues only
+// enumerates configured matrix/queue sources, empty by default; the sampler
+// cache starts empty until something actually probes/fails a provider). The
+// only generically correct answer is a real minimal call: send a trivial
+// message with a short timeout and treat success as reachable. Probing
+// THROUGH the same auto-chain callLLM now dispatches (see resolveChainLinks)
+// rather than the bare configured model alone -- a reachability probe that
+// only checked the configured model (e.g. an unreachable/misconfigured single
+// proxy like a stale 'chatjimmy/...' entry) previously reported the whole
+// backend down even when other configured/available providers were live and
+// callLLM's own chain would have succeeded; that mismatch is exactly what
+// left `resolveCallLLM`'s health check permanently red while a real reply
+// path existed.
 export async function isReachable(timeoutMs = 10000) {
     try {
         const acptoapi = await getAcptoapi()
+        const useModel = getAcptoapiModel()
+        const chainModel = await resolveChainLinks(acptoapi, useModel)
+        const probe = { messages: [{ role: 'user', content: 'ping' }], max_tokens: 4 }
         const result = await Promise.race([
-            acptoapi.chat({ model: getAcptoapiModel(), messages: [{ role: 'user', content: 'ping' }], max_tokens: 4 }),
+            Array.isArray(chainModel) ? acptoapi.chatChain(chainModel, probe) : acptoapi.chat({ model: chainModel, ...probe }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('reachability probe timeout')), timeoutMs)),
         ])
         return !!(result && result.choices && result.choices.length)
