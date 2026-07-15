@@ -61,9 +61,18 @@ export class WhatsappAdapter extends EventEmitter {
             if (req.query['hub.verify_token'] === this.verifyToken) return res.send(req.query['hub.challenge'])
             res.sendStatus(403)
         })
-        app.post(this.path, async (req, res) => {
+        app.post(this.path, (req, res) => {
             if (!this._verifySignature(req)) return res.sendStatus(401)
+            // Ack BEFORE any media fetch, not after: Meta retries a webhook that
+            // doesn't get a prompt 2xx, and a media download is a two-hop fetch
+            // that can legitimately take up to ~20s (two 10s per-hop timeouts).
+            // Building the plain-text events synchronously (cheap, no I/O) then
+            // acking immediately, with the media hydration running detached
+            // afterward, means a slow/hung Meta media response can never cause
+            // Meta to see an unacked webhook and redeliver it -- matching the
+            // Discord adapter's existing detached-attachment-fetch pattern.
             const entries = req.body?.entry || []
+            const events = []
             for (const e of entries) for (const c of (e.changes || [])) {
                 const msgs = c.value?.messages || []
                 for (const m of msgs) {
@@ -77,21 +86,29 @@ export class WhatsappAdapter extends EventEmitter {
                     const mediaObj = m.image || m.audio || m.document || m.video
                     if (mediaObj?.id) {
                         const type = m.image ? 'image' : m.audio ? 'audio' : m.document ? 'document' : 'video'
-                        try {
-                            const { buffer, mimeType } = await this._downloadMedia(mediaObj.id)
-                            event.media = { type, mimeType, buffer }
-                        } catch (err) {
-                            // Never let a failed/slow media fetch block the rest of the
-                            // webhook batch or the ack below -- note media as
-                            // present-but-unfetched so the pipeline still proceeds.
-                            console.error('WhatsappAdapter: media download failed', err)
-                            event.media = { type, mimeType: mediaObj.mime_type || '', buffer: null, error: String(err?.message || err) }
-                        }
+                        event._pendingMedia = { mediaObj, type }
                     }
-                    this.emit('message', event)
+                    events.push(event)
                 }
             }
             res.json({ ok: true })
+            // Hydrate media and emit, detached from the ack above. A message with
+            // no media emits immediately; one with media emits once the download
+            // (or its failure) resolves, same as before, just no longer gating res.json.
+            for (const event of events) {
+                const pending = event._pendingMedia
+                delete event._pendingMedia
+                if (!pending) { this.emit('message', event); continue }
+                this._downloadMedia(pending.mediaObj.id)
+                    .then(({ buffer, mimeType }) => { event.media = { type: pending.type, mimeType, buffer }; this.emit('message', event) })
+                    .catch((err) => {
+                        // Never let a failed/slow media fetch block the pipeline -- note
+                        // media as present-but-unfetched so it still proceeds.
+                        console.error('WhatsappAdapter: media download failed', err)
+                        event.media = { type: pending.type, mimeType: pending.mediaObj.mime_type || '', buffer: null, error: String(err?.message || err) }
+                        this.emit('message', event)
+                    })
+            }
         })
         await new Promise(r => { this._server = app.listen(this.port, () => r()) })
         this.port = this._server.address().port
@@ -114,7 +131,20 @@ export class WhatsappAdapter extends EventEmitter {
 
     async send(reply) {
         if (!this.token) throw new Error('WhatsappAdapter: token required')
-        const post = (payload) => fetch(`${this.api}/${this.phoneId}/messages`, { method: 'POST', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', to: reply.to, ...payload }) }).then(r => r.json())
+        // Verify actual delivery, not just that fetch() itself didn't throw: a
+        // non-2xx Graph API response (bad token, rate limit, invalid recipient)
+        // returns a normal JSON body with no messages[0].id, which a bare
+        // `.then(r => r.json())` swallowed as if the send succeeded. Check both
+        // the HTTP status and the expected message id shape.
+        const post = async (payload) => {
+            const res = await fetch(`${this.api}/${this.phoneId}/messages`, { method: 'POST', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', to: reply.to, ...payload }) })
+            const body = await res.json().catch(() => ({}))
+            const id = body?.messages?.[0]?.id
+            if (!res.ok || !id) {
+                throw new Error(`WhatsappAdapter: send failed (status ${res.status}): ${JSON.stringify(body)}`)
+            }
+            return body
+        }
         // Optional audio: an already-hosted link sends directly; raw bytes upload
         // first, then send by media id. The text (when present) is sent alongside
         // so the reporter still gets the words. A text-only reply is byte-identical
