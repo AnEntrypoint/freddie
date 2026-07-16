@@ -1406,7 +1406,7 @@ function makePi() {
 	};
 }
 function makeGui() {
-	const r = [], pages = /* @__PURE__ */ new Map(), nav = [], debugs = /* @__PURE__ */ new Map(), apis = /* @__PURE__ */ new Map(), assets = /* @__PURE__ */ new Map();
+	const r = [], pages = /* @__PURE__ */ new Map(), nav = [], debugs = /* @__PURE__ */ new Map(), apis = /* @__PURE__ */ new Map(), assets = /* @__PURE__ */ new Map(), wsRoutes = /* @__PURE__ */ new Map();
 	return {
 		_state: {
 			routes: r,
@@ -1414,7 +1414,8 @@ function makeGui() {
 			nav,
 			debugs,
 			apis,
-			assets
+			assets,
+			wsRoutes
 		},
 		route: (method, p, h) => r.push({
 			method: method.toUpperCase(),
@@ -1427,6 +1428,7 @@ function makeGui() {
 			r.splice(i, 1);
 			return true;
 		},
+		wsRoute: (p, onConnection) => wsRoutes.set(p, onConnection),
 		page: (s, d) => pages.set(s, d),
 		nav: (i) => nav.push(i),
 		debug: (n, fn) => debugs.set(n, fn),
@@ -9248,10 +9250,13 @@ function redactSensitive(context) {
 		return null;
 	}
 }
-async function createPersistentActor(machine, { kind, key, input, onTransition } = {}) {
+async function createPersistentActor(machine, { kind, key, input, onTransition, store } = {}) {
 	if (!kind || !key) throw new Error("createPersistentActor requires kind and key");
+	const persistFn = store?.persist || persist;
+	const loadFn = store?.load || load;
+	const clearFn = store?.clear || clear;
 	const machineId = machine?.id || machine?.config?.id || null;
-	const snapshot = await load(kind, key, { machineId });
+	const snapshot = await loadFn(kind, key, { machineId });
 	const resumed = !!snapshot;
 	let lastEventType = null;
 	const inspect = (ev) => {
@@ -9282,8 +9287,8 @@ async function createPersistentActor(machine, { kind, key, input, onTransition }
 		persisting = persisting.then(async () => {
 			try {
 				const ps = actor.getPersistedSnapshot();
-				if (snap.status === "active") await persist(kind, key, ps, { machineId });
-				else await clear(kind, key);
+				if (snap.status === "active") await persistFn(kind, key, ps, { machineId });
+				else await clearFn(kind, key);
 				onTransition?.(snap);
 			} catch (e) {
 				log$2.error("persist failed", {
@@ -9314,7 +9319,7 @@ async function createPersistentActor(machine, { kind, key, input, onTransition }
 			try {
 				sub.unsubscribe();
 			} catch {}
-			await clear(kind, key);
+			await clearFn(kind, key);
 		}
 	};
 }
@@ -9339,7 +9344,11 @@ async function init() {
 	return d;
 }
 var _inflight = /* @__PURE__ */ new Map();
-async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, deserialize = JSON.parse } = {}) {
+async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, deserialize = JSON.parse, store = null } = {}) {
+	if (store) return await store.runStep(sessionKey, stepId, fn, {
+		serialize,
+		deserialize
+	});
 	if (!sessionKey || !stepId) return await fn();
 	const d = await init();
 	const lockKey = sessionKey + "\0" + stepId;
@@ -9381,7 +9390,8 @@ async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, des
 		_inflight.delete(lockKey);
 	}
 }
-async function clearSteps(sessionKey) {
+async function clearSteps(sessionKey, { store = null } = {}) {
+	if (store) return await store.clearSteps(sessionKey);
 	if (!sessionKey) return;
 	await (await init()).prepare(`DELETE FROM step_results WHERE session_key = ?`).run(sessionKey);
 }
@@ -9549,7 +9559,7 @@ var init_gm_learn = __esmMin((() => {
 	_pk = null;
 	_isBrowser = typeof window !== "undefined" || typeof importScripts === "function";
 }));
-function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ["core"], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice } = {}) {
+function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ["core"], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice, store } = {}) {
 	const baseLLM = callLLM || resolveCallLLM({
 		provider,
 		model
@@ -9605,7 +9615,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 			disabledToolsets,
 			sessionKey,
 			tool_choice,
-			toolCtx
+			toolCtx,
+			store
 		}),
 		states: {
 			idle: { on: {
@@ -9633,7 +9644,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 						model: input.model,
 						provider: input.provider,
 						tool_choice: tc
-					}));
+					}), { store: input.store });
 				}),
 				input: ({ context }) => ({
 					messages: context.messages,
@@ -9643,7 +9654,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					disabledToolsets: context.disabledToolsets,
 					sessionKey: context.sessionKey,
 					iterations: context.iterations,
-					tool_choice: context.tool_choice
+					tool_choice: context.tool_choice,
+					store: context.store
 				}),
 				onDone: [{
 					guard: ({ event }) => Array.isArray(event.output?.tool_calls) && event.output.tool_calls.length > 0,
@@ -9733,7 +9745,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 								content: res,
 								extras: callExtras
 							};
-						});
+						}, { store: input.store });
 						results.push({
 							tool_call_id: tcid,
 							content: ret.content
@@ -9749,7 +9761,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					messages: context.messages,
 					sessionKey: context.sessionKey,
 					iterations: context.iterations,
-					toolCtx: context.toolCtx
+					toolCtx: context.toolCtx,
+					store: context.store
 				}),
 				onDone: {
 					target: "prompting",
@@ -9935,7 +9948,7 @@ function timeoutResult(actor, timeoutMs) {
 		iterations: ctx.iterations || 0
 	};
 }
-async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey }) {
+async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store }) {
 	const { actor } = pa;
 	return await new Promise((resolve, reject) => {
 		let sub;
@@ -9957,7 +9970,7 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 			cleanup();
 			(async () => {
 				try {
-					await clearSteps(sessionKey);
+					await clearSteps(sessionKey, { store });
 				} catch {}
 				try {
 					await h.hooks.invoke("onSessionEnd", {
@@ -10007,7 +10020,7 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 					prompt,
 					out
 				});
-				await clearSteps(sessionKey);
+				await clearSteps(sessionKey, { store });
 				cleanup();
 				resolve(out);
 			})().catch((e) => {
@@ -10017,7 +10030,7 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 		});
 	});
 }
-async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice } = {}) {
+async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store } = {}) {
 	const events = [];
 	const h = await bootHost();
 	await h.hooks.invoke("onSessionStart", {
@@ -10071,11 +10084,13 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 			cwd,
 			...toolCtx || {}
 		} : toolCtx,
-		tool_choice
+		tool_choice,
+		store
 	}), {
 		kind: "agent",
 		key,
-		input: { messages: initMessages }
+		input: { messages: initMessages },
+		store
 	});
 	pa.actor.send({
 		type: "SUBMIT",
@@ -10092,7 +10107,8 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		cwd,
 		witnessPath,
 		timeoutMs,
-		sessionKey: key
+		sessionKey: key,
+		store
 	});
 }
 //#endregion
