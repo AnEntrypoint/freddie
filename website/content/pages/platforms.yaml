@@ -10,7 +10,7 @@ hero:
     - { label: webhook, desc: catch-all }
     - { label: "REST + long-poll", desc: transports }
   ctas:
-    - { label: gateway source, href: "https://github.com/AnEntrypoint/freddie/tree/master/src/gateway/platforms" }
+    - { label: platform plugins, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins" }
     - { label: how to add, href: "#how-to-add" }
 sections:
   - id: when
@@ -47,22 +47,22 @@ sections:
         benefit: clear startup line shows you exactly what's live and what's missing.
   - id: how-to-add
     name: how do I add a platform?
-    lede: drop a js file in src/gateway/platforms/ extending EventEmitter, implement start/stop/send.
+    lede: "create `plugins/platform-<name>/{plugin,handler}.js` — a class ending in `Adapter` plus `pi.platforms.register`."
     features:
       - name: 1 — extend EventEmitter
-        desc: "`class MyAdapter extends EventEmitter`"
+        desc: "in `handler.js`, `export class MynameAdapter extends EventEmitter`. the class name MUST end in `Adapter` so the gateway resolves it."
       - name: 2 — declare credentials
         desc: "`getRequiredEnv() { return ['MY_TOKEN'] }`"
       - name: 3 — implement lifecycle
         desc: "`async start()`, `async stop()`, `async send(recipient, content)`"
       - name: 4 — emit messages
         desc: "`this.emit('message', { recipient, content, raw })` on inbound"
-      - name: 5 — register
-        desc: "`Gateway.register('my_platform', new MyAdapter())`"
+      - name: 5 — register the plugin
+        desc: "`plugin.js` default-exports `{ name: 'platform-myname', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'myname', module }) } }`."
 examples:
-  - { label: gateway source, href: "https://github.com/AnEntrypoint/freddie/tree/master/src/gateway/platforms", desc: 16 adapters }
-  - { label: telegram adapter, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/gateway/platforms/telegram.js", desc: long-poll example }
-  - { label: webhook adapter, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/gateway/platforms/webhook.js", desc: catch-all }
+  - { label: platform plugins, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins", desc: every platform-* adapter }
+  - { label: telegram adapter, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/platform-telegram", desc: long-poll example }
+  - { label: webhook adapter, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/platform-webhook", desc: catch-all }
 body: |
   ## starting the gateway
 
@@ -77,7 +77,7 @@ body: |
   ## inspecting required env per adapter
 
   ```
-  import { TelegramAdapter } from './src/gateway/platforms/telegram.js'
+  import { TelegramAdapter } from './plugins/platform-telegram/handler.js'
   new TelegramAdapter({}).getRequiredEnv()
   // ['TELEGRAM_BOT_TOKEN']
   ```

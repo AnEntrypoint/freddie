@@ -26,7 +26,21 @@ export const _tool = ({
             const t = setTimeout(() => { try { child.kill('SIGKILL') } catch {} resolve({ exitCode: -1, stdout, stderr: stderr + '\n[timeout]', timedOut: true }) }, timeout_ms)
             child.stdout?.on('data', d => stdout += d.toString())
             child.stderr?.on('data', d => stderr += d.toString())
-            child.on('close', code => { clearTimeout(t); resolve({ exitCode: code, stdout, stderr }) })
+            child.on('close', code => {
+                clearTimeout(t)
+                const result = { exitCode: code, stdout, stderr }
+                // Windows cmd.exe can silently swallow ALL output (exit 0, empty
+                // stdout+stderr) for certain nested-quote one-liners (witnessed:
+                // node -e with double-quoted body containing single-quoted JS
+                // strings plus an embedded literal \n) -- indistinguishable from
+                // "ran fine and printed nothing" without this signal, and models
+                // have been observed misdiagnosing it as "bash tool unavailable"
+                // and silently substituting an unverified reimplementation.
+                if (process.platform === 'win32' && code === 0 && !stdout && !stderr && command.length > 40) {
+                    result.note = 'exitCode 0 with no output at all on a non-trivial command is unusual on Windows -- cmd.exe can silently swallow output for commands with nested quotes (e.g. node -e one-liners mixing double/single quotes and \\n). If you expected output, try writing the script to a file and running it instead of an inline -e/-c one-liner.'
+                }
+                resolve(result)
+            })
             child.on('error', e => { clearTimeout(t); resolve({ exitCode: -1, stdout, stderr: stderr + '\n' + e.message }) })
         })
     },

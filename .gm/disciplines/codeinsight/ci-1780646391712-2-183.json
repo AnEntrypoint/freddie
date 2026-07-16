@@ -1,0 +1,2 @@
+./plugins/platform-homeassistant/plugin.js:2:2 register
+register({ pi }) { pi.platforms.register({ name: 'homeassistant', module: adapter }) }

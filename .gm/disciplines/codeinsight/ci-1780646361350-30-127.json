@@ -1,0 +1,18 @@
+./plugins/memory/handler.js:30:46 
+async ({ query, limit = 10 }) => {
+        const p = provider()
+        if (p) return await p.prefetch(query)
+        const d = await init()
+        const likePattern = `%${query}%`
+        if (d._fts5_unavailable) {
+            const rows = await d.prepare(`SELECT id, content, ts FROM memory_local WHERE content LIKE ? ORDER BY ts DESC LIMIT ?`).all(likePattern, limit)
+            return { items: rows }
+        }
+        try {
+            const rows = await d.prepare(`SELECT m.id, m.content, m.ts FROM memory_local_fts f JOIN memory_local m ON m.id = f.rowid WHERE memory_local_fts MATCH ? ORDER BY rank LIMIT ?`).all(query, limit)
+            return { items: rows }
+        } catch {
+            const rows = await d.prepare(`SELECT id, content, ts FROM memory_local WHERE content LIKE ? ORDER BY ts DESC LIMIT ?`).all(likePattern, limit)
+            return { items: rows }
+        }
+    }

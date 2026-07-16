@@ -1,0 +1,3 @@
+## Resolved mutable: acptoapi-keys-auth-fail
+
+acptoapi log: reason=auth from groq/cerebras/mistral/openrouter (all key providers); only free chatjimmy/llama3.1-8B answers and ignores tools. Mechanism proven sound via mock (browser-26.json write->file). Live coding needs valid keys = user authority (blockedBy external).

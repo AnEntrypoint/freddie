@@ -1,0 +1,2 @@
+./plugins/platform-yuanbao_sticker/handler.js:6:6 listStickers
+function listStickers() { return STICKER_PACK }

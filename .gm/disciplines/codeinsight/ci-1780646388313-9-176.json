@@ -1,0 +1,5 @@
+./plugins/platform-feishu_comment/handler.js:9:12 resolveComment
+async function resolveComment({ token, docToken, commentId }) {
+    const r = await fetch('https://open.feishu.cn/open-apis/comments/v1/files/' + docToken + '/comments/' + commentId + '/patch', { method: 'PATCH', headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' }, body: JSON.stringify({ is_solved: true }) })
+    return await r.json()
+}

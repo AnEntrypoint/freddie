@@ -1,0 +1,2 @@
+./plugins/process_registry/handler.js:4:4 killProcess
+function killProcess(id) { const p = _processes.get(id); if (p) try { process.kill(p.pid, 'SIGTERM') } catch {} return p ? { killed: id } : { error: 'unknown id' } }

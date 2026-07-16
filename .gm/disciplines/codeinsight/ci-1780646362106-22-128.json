@@ -1,0 +1,9 @@
+./plugins/memory/handler.js:22:29 
+async ({ content }) => {
+        if (!content) return { error: 'content required' }
+        const p = provider()
+        if (p) { await p.syncTurn([{ role: 'note', content }]); return { stored: 'remote' } }
+        const d = await init()
+        const info = await d.prepare(`INSERT INTO memory_local (content, ts) VALUES (?, ?)`).run(content, Date.now())
+        return { id: Number(info.lastInsertRowid), stored: 'local' }
+    }

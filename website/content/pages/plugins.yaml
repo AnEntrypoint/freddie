@@ -5,10 +5,10 @@ hero:
   subheading: every subsystem in freddie is a plugin against one universal contract
   accent: pi for headless, gui for the dashboard, both for full-stack.
   body: >-
-    Auto-generated reference of all 128 plugins discovered by bootHost(), registering 70 tools in total.
+    Auto-generated reference of all 129 plugins discovered by bootHost(), registering 70 tools in total.
     Regenerate with `node scripts/gen-plugins-doc.mjs`.
   badges:
-    - { label: "128", desc: in-tree plugins }
+    - { label: "129", desc: in-tree plugins }
     - { label: "70", desc: registered tools }
     - { label: "1 contract", desc: pi + gui }
     - { label: surface guard, desc: enforced at load }
@@ -87,7 +87,7 @@ sections:
       - name: "mcp_tool"
         desc: "Connect to an external MCP server (stdio) and call its tools."
       - name: "memory"
-        desc: "Add/search/list memory. Routes to configured provider or local SQLite fallback."
+        desc: "Add/search/list/forget long-term memory, backed by gm rs-learn (semantic vector recall). add embeds a fact; search returns score-ranked semantic hits; list surfaces relevant memories; forget prunes by key."
       - name: "mixture_of_agents"
         desc: "Run the same prompt through N sub-agents (different models or seeds), then synthesize the results. Reduces variance."
       - name: "neutts_synth"
@@ -248,13 +248,15 @@ sections:
       - name: "memory-supermemory"
         desc: "memory-supermemory"
   - id: gui
-    name: gui / dashboard (17)
+    name: gui / dashboard (18)
     lede: "dashboard routes and pages under plugins/gui-*."
     features:
       - name: "gui-acptoapi-chains"
         desc: "gui-acptoapi-chains"
       - name: "gui-agents"
         desc: "gui-agents"
+      - name: "gui-auth"
+        desc: "gui-auth"
       - name: "gui-batch"
         desc: "gui-batch"
       - name: "gui-chat"

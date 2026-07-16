@@ -1,0 +1,2 @@
+./plugins/process_registry/handler.js:2:2 registerProcess
+function registerProcess(id, child, meta = {}) { _processes.set(id, { id, pid: child.pid, started: Date.now(), ...meta }); child.on?.('exit', () => _processes.delete(id)) }

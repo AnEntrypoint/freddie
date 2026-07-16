@@ -1,0 +1,2 @@
+./plugins/memory-mem0/plugin.js:2:2 register
+register({ pi }) { pi.memory.register({ name: 'mem0', module: mod }) }

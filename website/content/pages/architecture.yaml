@@ -2,11 +2,11 @@ title: Architecture
 slug: architecture
 hero:
   heading: architecture
-  subheading: 11 small subsystems, every one ≤200 lines, every one observable
+  subheading: 10 small subsystems, every one ≤200 lines, every one observable
   accent: composition over framework. always.
   body: freddie's architecture is a thin layer over published packages. each subsystem owns one concern, registers a `/debug/<name>` endpoint, emits structured logs, and is replaced by changing one file. nothing is private. nothing is magic.
   badges:
-    - { label: "11", desc: subsystems }
+    - { label: "10", desc: subsystems }
     - { label: "≤200L", desc: per file }
     - { label: xstate v5, desc: every long-lived machine }
   ctas:
@@ -17,14 +17,14 @@ sections:
     lede: when you want to know where a behavior lives, or where to add one.
     features:
       - name: you're tracing a turn
-        desc: agent loop → tool dispatch → session append → memory sync. follow the path through `src/agent/machine.js`.
+        desc: agent loop -> tool dispatch -> session append -> memory sync. follow the path through `src/agent/machine.js`.
         benefit: every transition is a named state. xstate makes the graph explicit.
       - name: you're adding a feature
-        desc: this page tells you which subsystem owns it. add a tool? `src/tools/`. add a platform? `src/gateway/platforms/`. add a memory provider? `src/plugins/memory/`.
+        desc: "this page tells you which subsystem owns it. every tool, platform, and memory provider is a plugin under `plugins/<name>/`. add a tool? `plugins/<name>/{plugin,handler}.js`. add a platform? `plugins/platform-<name>/`. add a memory provider? `plugins/memory-<name>/`."
         benefit: no "where does this go" guessing.
       - name: you're debugging
         desc: every subsystem has `/debug/<name>` and a jsonl log. `tail` the log, hit the endpoint, read the state.
-        benefit: incident → root cause in minutes, not hours.
+        benefit: incident -> root cause in minutes, not hours.
   - id: agent-loop
     name: agent loop
     lede: xstate v5 turn machine wraps `@mariozechner/pi-agent-core`'s `runAgentLoop`.
@@ -34,7 +34,7 @@ sections:
       - name: llm bridge
         desc: "`src/agent/pi-bridge.js` — pi-ai provider adapter (anthropic/openai/groq/openrouter)."
       - name: resolver
-        desc: "`src/agent/llm_resolver.js` — picks pi-bridge → acptoapi → throw, in priority order."
+        desc: "`src/agent/llm_resolver.js` — picks pi-bridge -> acptoapi -> throw, in priority order."
   - id: context-engine
     name: context engine + compressor
     lede: builds the system message, prunes history when the budget is tight.
@@ -46,11 +46,13 @@ sections:
       - name: budget
         desc: token-aware. drops middle, preserves recent + handoff.
   - id: tools
-    name: tool registry + environments
-    lede: 70+ tools auto-discovered. environments select where they run.
+    name: tools + environments
+    lede: 70+ tools, each a plugin auto-discovered on bootHost. environments select where they run.
     features:
-      - name: registry
-        desc: "`src/tools/registry.js` — register, dispatch, list."
+      - name: plugins
+        desc: "`plugins/<name>/{plugin,handler}.js` — each tool is a plugin registered via `pi.tools.register`."
+      - name: host
+        desc: "`src/host/host.js` — `discoverPlugins()` walks `plugins/`, dispatches, lists."
       - name: environments
         desc: "`src/tools/environments/{local,docker,ssh}.js` — one shape, three executors."
       - name: toolsets
@@ -62,17 +64,17 @@ sections:
       - name: gateway
         desc: "`src/gateway/run.js` — adapter mounts + hooks chain + agent wiring."
       - name: adapters
-        desc: "`src/gateway/platforms/*.js` — telegram, discord, slack, whatsapp, sms, email, matrix, signal, mattermost, zulip, dingtalk, feishu, wechat, wecom, qq, bluebubbles, hass, webhook, api_server."
+        desc: "`plugins/platform-<name>/{plugin,handler}.js` — telegram, discord, slack, whatsapp, sms, email, matrix, signal, mattermost, dingtalk, feishu, weixin, wecom, qqbot, bluebubbles, homeassistant, webhook, api_server. each handler exports a class ending in `Adapter`."
   - id: storage
     name: storage + memory
-    lede: sqlite for sessions + 8 plugin backends for memory.
+    lede: sqlite for sessions + gm rs-learn for memory.
     features:
       - name: sessions
         desc: "`src/sessions.js` — libsql + fts5 full-text search."
-      - name: memory tool
-        desc: "`src/tools/memory.js` — routes to configured provider, falls back to local sqlite."
-      - name: providers
-        desc: "`src/plugins/memory/{honcho,mem0,supermemory,byterover,hindsight,openviking,retaindb,holographic}.js`."
+      - name: learning (gm rs-learn)
+        desc: "`src/learn/gm-learn.js` — freddie's primary learning store. In-process gm rs-learn (semantic vector recall) via gm-plugkit `createPlugkit()`. Every turn auto-recalls relevant memories and auto-learns salient outcomes."
+      - name: legacy providers
+        desc: "`plugins/memory-{honcho,mem0,supermemory,byterover,hindsight,openviking,retaindb,holographic}/` are legacy opt-in only; gm rs-learn is the default."
       - name: auth
         desc: "`src/auth.js` — FileAuthStore for credential persistence (pi-ai compatible)."
   - id: skills

@@ -1,0 +1,9 @@
+./plugins/session_search/handler.js:6:13 
+async ({ query, limit = 20, session_id = null }) => {
+        if (session_id) {
+            const msgs = await getMessages(session_id)
+            const q = String(query).toLowerCase()
+            return { items: msgs.filter(m => String(m.content || '').toLowerCase().includes(q)).slice(0, limit) }
+        }
+        return { items: await search(query, limit) }
+    }

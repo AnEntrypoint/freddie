@@ -1,0 +1,2 @@
+./plugins/memory-hindsight/plugin.js:2:2 register
+register({ pi }) { pi.memory.register({ name: 'hindsight', module: mod }) }

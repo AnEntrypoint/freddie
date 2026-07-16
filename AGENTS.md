@@ -18,7 +18,7 @@ Instructions for AI coding assistants working on Freddie. Present-tense rules on
 The stack is **thebird → freddie → acptoapi**. Each layer owns one concern:
 
 - **acptoapi** owns all upstream LLM/provider connectivity: HTTP/SSE to OpenAI, Anthropic, Gemini, brand providers, ACP daemons, Claude CLI. Plus chain/queue/sampler/matrix.
-- **freddie** owns agent-loop orchestration: tools, skills, sessions, memory. Calls *only* acptoapi for LLM access. No direct `fetch('https://api.openai.com/...')`. Migration debt still present in `plugins/vision`, `plugins/image_gen`, `plugins/tts`, `plugins/transcription`, `src/agent/codex_responses_adapter.js`, `src/agent/image_gen_provider.js`, `src/agent/model-discovery.js` — when you touch one, add the matching endpoint to acptoapi and call through acptoapi.
+- **freddie** owns agent-loop orchestration: tools, skills, sessions, memory. Calls *only* acptoapi for LLM access. No direct `fetch('https://api.openai.com/...')`. Migration debt still present in `plugins/vision`, `plugins/image_gen`, `plugins/tts`, `plugins/transcription`, `src/agent/adapters/codex_responses_adapter.js`, `src/agent/image_gen_provider.js`, `src/agent/model-discovery.js` — when you touch one, add the matching endpoint to acptoapi and call through acptoapi.
 - **thebird** owns browser presentation: webjsx UI, pyodide hermes shell. Talks to freddie for everything LLM-related when freddie is reachable; falls back to direct acptoapi only when there is no freddie.
 
 Versioning: freddie pins `acptoapi: "latest"` so `npm install` always picks up the newest published acptoapi. Thebird vendors freddie via `scripts/sync-upstream.mjs` against upstream main. No manual version-bump churn between sibling repos.
@@ -52,9 +52,7 @@ Matrix wired: shim passes `matrixSource: process.env.FREDDIE_MATRIX_URL || <repo
 
 `agent.model_preference: []` in `~/.freddie/config.yaml` is an array of `{ provider, model? }` objects; `resolveCallLLM` tries each in order, skipping unavailable (sampler-gated) and marking failures with backoff.
 
-`src/agent/acptoapi-bridge.js` `max_tokens` defaults to 4096 — never lower. 1024 silently truncates generation tasks.
-
-`src/agent/llm_resolver.js::acpChat()` speaks the kilo ACP protocol: POST `/session` → GET `/event` (SSE) → POST `/session/<id>/message`. Streams `message.part.updated` events to assemble content; terminates on `session.idle`. **`/event` must be opened BEFORE `/message` POST or messages drop.** `ACP_BACKENDS`: kilo on `http://localhost:4780`, opencode on `http://localhost:4790`. kilo + opencode ACP backends return content only, no tool_calls — for multi-iteration tool-using loops, use OpenAI-compatible providers (mistral, openrouter, sambanova, groq).
+ACP protocol detail (`acpChat`, kilo/opencode backends, `/event`-before-`/message`, max_tokens 4096 floor) — see rs-learn (recall "Freddie ACP protocol detail").
 
 ## Plugin architecture
 
@@ -68,7 +66,9 @@ Contract: `{ name, version?, surfaces: 'pi'|'gui'|'both', requires?: [...names],
 - Surface guard throws `plugin <name>: surface verb '<verb>' not allowed` at load.
 - `requires` cycles throw `plugin cycle: a -> b -> a` synchronously.
 
-Host: `src/host/host.js` — `createHost({surfaces, configStore, env})` + `discoverPlugins(roots)`. Singleton in `src/host/index.js`: `host()`, `bootHost(extraRoots)`, `resetHostForTests()`. Roots walked: `<repo>/plugins`, `~/.freddie/plugins/`, `<cwd>/.freddie/plugins/`.
+Host: `src/host/host.js` — `createHost({surfaces, configStore, env})` + `discoverPlugins(roots)`. Singleton in `src/host/index.js`: `host()`, `bootHost(extraRoots)`, `resetHostForTests()`. Roots walked: `<repo>/plugins`, `~/.freddie/plugins/`, `<cwd>/.freddie/plugins/`, **always**, plus any `extraRoots` a consumer passes — a downstream consumer's own plugin root is ADDITIVE to freddie's full library, never a replacement for it.
+
+**A consumer building a message-facing agent for an UNTRUSTED end user (a WhatsApp/Discord/SMS contact, never a developer at a terminal) must NOT enable the bare `'core'` toolset.** `core` is scoped for a CODING agent and bundles `bash`, `code_execution`, `edit`, `write`, `file_operations`, `credential_files`, `read`, `grep`, `terminal`, `cronjob`, `process_registry`, `mcp_tool`/`mcp_oauth*`, `send_message` (bypasses whatever outbound pipeline the consumer built), and more — every one of these becomes schema-visible and CALLABLE by the model on every turn using that `enabledToolsets`, reachable by whatever text the end user sent, since `bootHost` always discovers freddie's own `plugins/` regardless of the consumer's own roots. Use the `'contact-facing'`/`'field-worker'` distributions in `src/toolset_distributions.js` (`enabledToolsets: []`, no bare `core`) as the safe starting point for this class of consumer, then add the consumer's OWN registered toolset (e.g. a CRM's `case_*` tools) separately. (Found live in a downstream consumer: `enabledToolsets: ['cases','core']` exposed a real, callable `bash` handler to every inbound message from the public.)
 
 `register(ctx)` receives `{ pi, gui, hooks, log, config, host, env }`:
 - `log` — scoped JSONL with plugin name
@@ -80,6 +80,17 @@ Thin shims (resolved through host, do not bypass): `src/plugins/manager.js`, `sr
 ## gm-skill plugin
 
 `plugins/gm-skill/plugin.js` registers ONE canonical skill named `gm-skill`. Resolution order: (1) `~/.claude/skills/gm-skill/SKILL.md`, (2) `node_modules/gm-cc/skills/gm-skill/SKILL.md`. All other `gm-*` platform variants (gm-cc, gm-codex, gm-cursor, gm-jetbrains, gm-kilo, gm-oc, gm-vscode, gm-zed, gm-gc, gm-copilot-cli) are DEPRECATED — do not register them. `src/host/host_helpers.js::loadCcFromNodeModules` carries `CC_EXCLUDE = new Set(['gm-cc'])` so the gm-cc npm package is not auto-discovered as a cc-plugin. test.js asserts exactly one gm-prefixed skill is registered, named `gm-skill`.
+
+## Learning: gm rs-learn is THE memory mechanism
+
+freddie learns through **gm rs-learn**, in-process, via `src/learn/gm-learn.js`. This is the single canonical learning store; the local-SQLite store is gone and the third-party providers (`plugins/memory-*/`) are legacy opt-in only.
+
+- `src/learn/gm-learn.js` lazy-loads gm-plugkit's wasm via the ESM `createPlugkit()` export (`gm-plugkit/plugkit-wasm-wrapper.js`), caches one instance process-wide, and exposes `memorize`/`recall`/`autoRecall`/`prune`/`projectNamespace`. Every call degrades to a no-op (never throws into a turn) when gm/wasm is absent. First call cold-loads the wasm + BAAI/bge-small-en-v1.5 embed model, so it is lazy off the hot path. The wasm resolves `.gm/rs-learn.db` from process cwd; namespace is per active project (`projectNamespace()`).
+- **The learning loop (workflow):** every turn (`src/agent/machine.js`) auto-recalls salient memories for the prompt on entry (injected as a "Relevant memories (gm rs-learn)" system part) and auto-learns a deduped `Q:..A:..` salient fact on substantive, non-error completion (`autoLearnTurn`, dedupe cos>=0.92, min len 40). `src/context/engine.js` `ContextPlugins.memory` does query-aware recall over the same store.
+- **The `memory` tool** (`plugins/memory/handler.js`) is the explicit manual surface over the same store: `add`->memorize, `search`->recall (score-ranked), `list`->broad recall, `forget`->prune by explicit key.
+- **gm-plugkit in-process API:** `createPlugkit()` is consumed by importing the wrapper file directly (`index.js` is CJS; the export lives on the ESM wrapper). The wrapper's CLI IIFE is guarded by `_isCliEntry` so importing it does not start the daemon.
+- Legacy migration: `node scripts/migrate-memory-to-gm.mjs [namespace]` drains old `memory_local` rows into rs-learn. `src/cli/memory_setup.js` defaults `memory.provider='gm'` (no key/config); third-party providers stay behind explicit `configureProvider`.
+- **Browser / gh-pages path:** `src/learn/gm-learn.js` is environment-aware. Where `node:module` is unavailable (e.g. thebird on gh-pages) it skips the `createPlugkit()` import and instead routes memorize-fire/recall/auto-recall/prune through a host bridge: `globalThis.__GM_DISPATCH__(verb, body) -> json|Promise<json>` (the host's already-loaded in-page plugkit.wasm) and `globalThis.__GM_NAMESPACE__` (string or fn -> active-workspace namespace). gm-learn probes both lazily each call (so a cold-loading wasm is picked up once ready) and degrades to no-op when the bridge is absent. This makes freddie LEARN in-browser with no node deps.
 
 ## Multi-project workspace
 
@@ -102,7 +113,12 @@ All web UI for freddie + thebird lives in `anentrypoint-design`. Consumers must 
 - **thebird** consumes the same SDK. Bespoke windowing (`wm.js`, `launcher.js`, `shell.js`) and any context-menu / theme-toggle DOM should migrate into the SDK as reusable kits; do not extend them in thebird.
 - Theme toggle: SDK owns the controller. Consumers import it; they do NOT reimplement localStorage + `prefers-color-scheme` listeners.
 
-Build: `node scripts/build.mjs` in `C:/dev/anentrypoint-design` emits `dist/247420.js` + `dist/247420.css`. Rebuild after SDK edits or `component is not a function` kills mount silently. `server.js` serves SDK from `node_modules/anentrypoint-design/dist/`.
+Build: `node scripts/build.mjs` in `C:/dev/anentrypoint-design` emits `dist/247420.js` + `dist/247420.css`. Rebuild after SDK edits or `component is not a function` kills mount silently. `server.js` serves SDK from `node_modules/anentrypoint-design/dist/`. To witness a local SDK edit, rebuild then `cp dist/247420.{js,css}` into freddie's `node_modules/anentrypoint-design/dist/` (server aliases `sdk.js`/`sdk.css` → `247420.*`). SPA routes are `#fd-<page>` (e.g. `#fd-env`), not `#/<page>` — navigate by clicking the nav link when browser-witnessing.
+
+GUI key/path/conversation endpoints (freddie-owned `plugins/gui-*`, consumed by the SDK pages):
+- **Keys** (`plugins/gui-auth`): `GET /api/auth` (per-provider env|stored|none + masked `fingerprint`, never the raw value), `POST /api/auth {provider,key}` (stores via auth store), `DELETE /api/auth/:provider`. The SDK `env` page (labelled "keys") renders a masked-input + save/remove per provider. `GET /api/env` (`plugins/gui-env`) now reports auth-store keys too, not just `process.env`.
+- **Conversations** (`plugins/gui-sessions`): `GET /api/sessions/:id` (single), `DELETE /api/sessions/:id` (purges messages + FTS), alongside the existing list/messages/search.
+- **Paths** (`plugins/gui-projects`): full CRUD already (`GET/POST/DELETE /api/projects`, `POST /api/projects/active`).
 
 Theme attribute scoping: `class="ds-247420"` on `<html>`, `data-theme="dark|light"` on `<body>`. Putting both on the same node breaks the descendant selector and themes do not switch.
 
@@ -149,7 +165,8 @@ src/host/{contract,host,host_helpers,index}.js  # plugin contract + discovery + 
 plugins/<name>/{plugin,handler}.js               # ~150 plugins: tools, platforms, memory, gui, core
 skills/                          # bundled skill bundles (creative/, software-development/, ops/, data/, planning/)
 website/                         # flatspace docs site: flatspace.config.mjs + theme.mjs + content/pages/*.yaml
-bin/freddie.js                   # commander CLI: tools, skills, profile, skin, sessions, search, gateway, acp, run, cron, batch, dashboard, help-all
+bin/freddie.js                   # commander CLI: tools, skills, profile, skin, sessions, search, gateway, acp, run, cron, batch, dashboard, help-all + user-facing key/path/conversation verbs: auth, project, session, doctor, setup
+src/cli/stdin_secret.js          # readStdinSecret — masked/piped key entry (never argv) for `auth set`
 ```
 
 ## Adding a tool
@@ -210,6 +227,17 @@ export default {
 ```
 
 `makePlatform('myname', opts)` in `src/gateway/platforms.js` instantiates the adapter via `*Adapter$` name match.
+
+## User-facing CLI: keys, paths, conversations
+
+The first-run user surface lives in `plugins/core-cli/plugin.js` (registered via `pi.cli`). Keep these terse and friendly — they are the zero-to-first-conversation path, so errors print one line, never a stack:
+
+- **Keys** — `freddie auth list|set <provider>|rm <provider>|test [provider]|show`. `set` reads the key from stdin/masked-TTY via `src/cli/stdin_secret.js` (never argv — argv leaks to shell history/`ps`); stores through `src/auth.js` `getAuthStore()`. `list` shows env var + `[set]/[--]` + source `(env|stored|none)`. Unknown provider prints the valid list (`isKnownAuthProvider` guard), never a silent no-op. `test` reuses acptoapi `isAvailable` — does NOT reimplement provider HTTP.
+- **Paths/workspaces** — `freddie project list|create <name> <path>|use <name>|rm <name>|current` over `src/projects.js`. `list` marks the active project `[*]` and shows its home path. `rm default` surfaces the projects.js guard as a friendly error. Mirrors the `gui-projects` HTTP CRUD.
+- **Conversations** — `freddie session list|show <id>|rm <id>` over `src/sessions.js`. `session list` shows the auto-derived title (first user prompt). `freddie run --resume [id]` continues the most-recent (or matched) conversation: `src/cli/interactive.js` loads prior `getMessages` into `state.messages`. The REPL also has `/sessions`, `/resume <id>`, `/keys`, `/project` slash commands.
+- **Onboarding** — `freddie doctor` (one-glance health: env checks via `src/cli/doctor.js` `runDoctor()` + provider keys + active project/home + saved-conversation count) and `freddie setup` (guided first-run via `src/cli/setup.js` `setupWizard`). Reuse these modules — do not reimplement.
+
+`src/sessions.js` exposes `getSession(id)`, `deleteSession(id)` (purges messages + rebuilds the external-content `messages_fts` index), `setSessionTitle`, and auto-derives a title from the first user prompt in `appendMessage`. **All session calls are async (libsql) — every callsite must `await`** (a bare call silently rejects and the conversation is never persisted; this was the REPL history-loss bug).
 
 ## Profile-safe code
 
@@ -276,8 +304,7 @@ On Windows, test.js must call `closeDb()` and log-stream `closeAll()` before exi
 
 ## Cross-project Rust gotchas
 
-- **rs-plugkit exec utility verbs**: binary advertises `exec:status`, `exec:close`, `exec:sleep` in hook help. If the Cmd enum is missing variants, use `exec:wait <secs>` for waits and read task output files via `fs.readFileSync` instead of `exec:status`.
-- **rs-exec timeout alias**: both `--timeout` (long-form) and `--timeout-ms` (plugin convention) are accepted on `Cmd::Exec` and `Cmd::Bash`.
+rs-plugkit exec utility verbs + rs-exec timeout aliases — see rs-learn (recall "Freddie cross-project Rust gotchas").
 
 ## Plugsdk integration
 
@@ -287,9 +314,7 @@ On Windows, test.js must call `closeDb()` and log-stream `closeAll()` before exi
 
 ## opencode CLI shim
 
-On Windows, use the npm install: `npm install -g opencode-ai` → `C:\Users\user\AppData\Roaming\npm\opencode.cmd`. The bun-installed shim (`C:\Users\user\.bun\bin\opencode.exe`) is broken — its wrapper looks for `C:\Users\user\node_modules\opencode-ai\bin\opencode` and fails with `MODULE_NOT_FOUND`. Do NOT `bun install -g opencode-ai`.
-
-Start ACP daemon: `& 'C:\Users\user\AppData\Roaming\npm\opencode.cmd' serve --port 4790 --hostname 127.0.0.1`. Verify via `GET http://127.0.0.1:4790/` returning 200. `OPENCODE_SERVER_PASSWORD is not set` warning is harmless for localhost.
+Windows: use the npm install (`opencode.cmd`), not the broken bun shim; ACP daemon on 4790 — see rs-learn (recall "Freddie opencode CLI shim Windows").
 
 ## scripts/sync-upstream.mjs
 
@@ -358,3 +383,5 @@ Sampler integration: agent-loop failures feed acptoapi's per-provider backoff (5
 - `website/theme.mjs` renders structured YAML via 247420 design vocabulary, not raw markdown. Consumes `page.hero` (heading/subheading/accent/body/badges/ctas), `page.sections[]` (rotating rail color green→purple→mascot→sun→flame→sky by section index, optional `lede` + per-item `benefit` italic), `page.examples[]` (railed link list with mono numeric ranks + ↗ glyph). Falls back to `page.body` markdown for prose. Style block inlined so rail/dot/chip/btn classes work without ds-247420 SDK CSS loading first. Prefer enriching hero+sections+examples over expanding body markdown.
 - **YAML colon-space trap**: in `website/content/pages/*.yaml`, any value containing `: ` outside backticks (e.g. `[linux, macos, windows]`, `requiresEnv: ['MY_KEY']` snippets) MUST be double-quoted. The parser otherwise interprets the embedded colon as a mapping and the file fails to load.
 - SSR innerHTML injection beats client dispatch for site pages — emit HTML with rail/dot/chip/btn classes + inline styles so it paints before the SDK loads.
+
+@.gm/next-step.md

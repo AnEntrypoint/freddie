@@ -1,0 +1,2 @@
+./plugins/patch_parser/handler.js:39:39 
+async ({ diff, cwd }) => ({ results: applyUnifiedDiff(diff, { cwd }) })

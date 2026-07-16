@@ -1,0 +1,2 @@
+./plugins/path_security/handler.js:13:13 
+async ({ path: p, cwd }) => isPathSafe(p, { cwd })

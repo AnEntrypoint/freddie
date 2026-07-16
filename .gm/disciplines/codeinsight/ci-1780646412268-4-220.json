@@ -1,0 +1,7 @@
+./plugins/platform-yuanbao_proto/handler.js:4:9 parseChatResponse
+function parseChatResponse(json) {
+    const choice = json?.choices?.[0]
+    if (!choice) return { content: '', tool_calls: [] }
+    const tc = (choice.message?.tool_calls || []).map(c => ({ id: c.id, name: c.function?.name, arguments: c.function?.arguments ? JSON.parse(c.function.arguments) : {} }))
+    return { content: choice.message?.content || '', tool_calls: tc }
+}
