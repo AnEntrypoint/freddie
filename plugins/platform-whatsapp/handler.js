@@ -1,6 +1,7 @@
 import express from 'express'
 import crypto from 'node:crypto'
 import { EventEmitter } from 'node:events'
+import { fetchWithTimeout, timingSafeEqualStr, verifyWebhookOr401, verifiedSend, emitWithDetachedMedia } from '../_shared/webhook-platform-base.js'
 
 export class WhatsappAdapter extends EventEmitter {
     constructor(opts = {}) {
@@ -25,7 +26,7 @@ export class WhatsappAdapter extends EventEmitter {
         const sig = req.get('x-hub-signature-256') || ''
         if (!sig.startsWith('sha256=')) return false
         const expected = 'sha256=' + crypto.createHmac('sha256', this.appSecret).update(req.rawBody || Buffer.alloc(0)).digest('hex')
-        try { return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)) } catch { return false }
+        return timingSafeEqualStr(sig, expected)
     }
 
     // WhatsApp Cloud API media download is a two-step handshake: the webhook
@@ -37,12 +38,7 @@ export class WhatsappAdapter extends EventEmitter {
     // webhook handler indefinitely.
     async _downloadMedia(mediaId, timeoutMs = 10000) {
         const authHeader = { authorization: `Bearer ${this.token}` }
-        const withTimeout = async (url) => {
-            const ac = new AbortController()
-            const timer = setTimeout(() => ac.abort(), timeoutMs)
-            try { return await fetch(url, { headers: authHeader, signal: ac.signal }) }
-            finally { clearTimeout(timer) }
-        }
+        const withTimeout = (url) => fetchWithTimeout(url, { headers: authHeader }, timeoutMs)
         const meta = await withTimeout(`${this.api}/${mediaId}`).then(r => r.json())
         if (!meta?.url) throw new Error('WhatsappAdapter: media lookup returned no url: ' + JSON.stringify(meta))
         const res = await withTimeout(meta.url)
@@ -62,7 +58,7 @@ export class WhatsappAdapter extends EventEmitter {
             res.sendStatus(403)
         })
         app.post(this.path, (req, res) => {
-            if (!this._verifySignature(req)) return res.sendStatus(401)
+            if (!verifyWebhookOr401(req, res, (r) => this._verifySignature(r))) return
             // Ack BEFORE any media fetch, not after: Meta retries a webhook that
             // doesn't get a prompt 2xx, and a media download is a two-hop fetch
             // that can legitimately take up to ~20s (two 10s per-hop timeouts).
@@ -98,16 +94,21 @@ export class WhatsappAdapter extends EventEmitter {
             for (const event of events) {
                 const pending = event._pendingMedia
                 delete event._pendingMedia
-                if (!pending) { this.emit('message', event); continue }
-                this._downloadMedia(pending.mediaObj.id)
-                    .then(({ buffer, mimeType }) => { event.media = { type: pending.type, mimeType, buffer }; this.emit('message', event) })
-                    .catch((err) => {
+                emitWithDetachedMedia(
+                    (e) => this.emit('message', e),
+                    event,
+                    !!pending,
+                    async () => {
+                        const { buffer, mimeType } = await this._downloadMedia(pending.mediaObj.id)
+                        return { type: pending.type, mimeType, buffer }
+                    },
+                    (err) => {
                         // Never let a failed/slow media fetch block the pipeline -- note
                         // media as present-but-unfetched so it still proceeds.
                         console.error('WhatsappAdapter: media download failed', err)
-                        event.media = { type: pending.type, mimeType: pending.mediaObj.mime_type || '', buffer: null, error: String(err?.message || err) }
-                        this.emit('message', event)
-                    })
+                        return { type: pending.type, mimeType: pending.mediaObj.mime_type || '', buffer: null, error: String(err?.message || err) }
+                    },
+                )
             }
         })
         await new Promise(r => { this._server = app.listen(this.port, () => r()) })
@@ -136,15 +137,11 @@ export class WhatsappAdapter extends EventEmitter {
         // returns a normal JSON body with no messages[0].id, which a bare
         // `.then(r => r.json())` swallowed as if the send succeeded. Check both
         // the HTTP status and the expected message id shape.
-        const post = async (payload) => {
-            const res = await fetch(`${this.api}/${this.phoneId}/messages`, { method: 'POST', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', to: reply.to, ...payload }) })
-            const body = await res.json().catch(() => ({}))
-            const id = body?.messages?.[0]?.id
-            if (!res.ok || !id) {
-                throw new Error(`WhatsappAdapter: send failed (status ${res.status}): ${JSON.stringify(body)}`)
-            }
-            return body
-        }
+        const post = (payload) => verifiedSend(
+            () => fetch(`${this.api}/${this.phoneId}/messages`, { method: 'POST', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', to: reply.to, ...payload }) }),
+            (body) => body?.messages?.[0]?.id,
+            'WhatsappAdapter',
+        )
         // Optional audio: an already-hosted link sends directly; raw bytes upload
         // first, then send by media id. The text (when present) is sent alongside
         // so the reporter still gets the words. A text-only reply is byte-identical

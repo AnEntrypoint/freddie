@@ -1,25 +1,5 @@
-export class SupermemoryMemory {
-    constructor(opts = {}) {
-        this.name = 'supermemory'
-        this.apiKey = opts.apiKey || process.env.SUPERMEMORY_API_KEY
-        this.base = opts.base || "https://api.supermemory.ai/v3"
-        this.userId = opts.userId || 'default'
-    }
-    getRequiredEnv() { return ["SUPERMEMORY_API_KEY"] }
-    _headers() {
-        if (!this.apiKey) throw new Error('SupermemoryMemory: SUPERMEMORY_API_KEY required')
-        return { authorization: `Bearer ${this.apiKey}`, 'content-type': 'application/json' }
-    }
-    async syncTurn(messages) {
-        const res = await fetch(`${this.base}/memories`, { method: 'POST', headers: this._headers(), body: JSON.stringify({ user_id: this.userId, messages }) })
-        return { status: res.status, ok: res.ok }
-    }
-    async prefetch(query) {
-        const url = `${this.base}/memories/search?query=${encodeURIComponent(query || '')}&user_id=${encodeURIComponent(this.userId)}`
-        const res = await fetch(url, { headers: this._headers() })
-        if (!res.ok) return { items: [], status: res.status }
-        return { items: await res.json() }
-    }
-    async shutdown() {}
-    async postSetup() {}
-}
+import { createMemoryProvider } from '../_shared/generic-rest-memory.js'
+export const SupermemoryMemory = createMemoryProvider({
+    name: 'supermemory', className: 'SupermemoryMemory',
+    base: 'https://api.supermemory.ai/v3', envKey: 'SUPERMEMORY_API_KEY',
+})
