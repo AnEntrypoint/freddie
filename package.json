@@ -41,6 +41,7 @@
     "plugsdk": "^1.0.20",
     "vscode-languageserver": "^10.1.0",
     "vscode-languageserver-textdocument": "^1.0.12",
+    "ws": "^8.21.1",
     "xstate": "^5.31.0"
   },
   "optionalDependencies": {

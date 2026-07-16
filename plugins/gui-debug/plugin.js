@@ -16,8 +16,9 @@ export default {
             const file = path.join(getFreddieHome(), 'logs', req.params.subsystem + '.log')
             if (!fs.existsSync(file)) return res.json([])
             const max = Number(req.query.max) || 200
-            const lines = fs.readFileSync(file, 'utf8').trim().split('\n').filter(Boolean).slice(-max)
-            res.json(lines.map(l => { try { return JSON.parse(l) } catch { return { raw: l } } }))
+            let lines = fs.readFileSync(file, 'utf8').trim().split('\n').filter(Boolean).map(l => { try { return JSON.parse(l) } catch { return { raw: l } } })
+            if (req.query.severity) lines = lines.filter(l => l.severity === req.query.severity)
+            res.json(lines.slice(-max))
         })
         gui.api('debug', { attach: attachDebugRoutes })
     },

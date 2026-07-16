@@ -18,6 +18,37 @@ const log = logger('snapshot-store')
 // stale snapshot from older code never crashes resume.
 export const SNAPSHOT_SCHEMA_VERSION = 1
 
+// Snapshot store interface contract (implemented below against libsql; any
+// alternate implementation — e.g. an IndexedDB-backed store for a browser
+// embedder — must provide the same four methods with these exact guarantees
+// so createPersistentActor's behavior is identical regardless of backend):
+//
+//   persist(kind, key, snapshot, { machineId }) -> Promise<{ kind, key, status }>
+//     Upsert keyed by (kind, key), last-write-wins. `status` is read off
+//     snapshot?.status (defaulting to 'active') and stored alongside so list()/
+//     sweepDone() can filter without deserializing every row.
+//
+//   load(kind, key, { machineId }) -> Promise<snapshot | null>
+//     Must return null (never throw) on: missing row, schema-version mismatch
+//     against the version persist() wrote, machineId mismatch (guards against
+//     rehydrating into a structurally different machine after a code change),
+//     or unparseable stored data. Any of those cases must also clear the row
+//     so a stale/corrupt snapshot cannot resurface. This discard-on-mismatch
+//     behavior is the load-bearing guard every caller of createPersistentActor
+//     depends on to fall back to a fresh actor instead of crashing resume.
+//
+//   clear(kind, key) -> Promise<void>
+//     Delete the row for (kind, key). Idempotent — clearing an absent row is
+//     not an error.
+//
+//   list({ kind, status }) -> Promise<Array<{ kind, key, status, updated, ... }>>
+//     Optional in a minimal alternate implementation (createPersistentActor
+//     itself never calls it — only resume-on-boot scanners do), but any store
+//     handed to createPersistentActor must implement persist/load/clear.
+export function createLibsqlSnapshotStore() {
+    return { persist, load, clear, list, sweepDone }
+}
+
 let _inited = false
 async function init() {
     const d = await db()
