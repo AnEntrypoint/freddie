@@ -53,6 +53,36 @@ try {
   note(`package.json: ${String(e.message || e)}`)
 }
 
+// 3. 200-line cap: files over the cap get a concern-based split suggestion
+// (group top-level `export function`/`export const name = ` declarations by
+// their name's leading verb/noun token -- a coarse proxy for "these exports
+// look like they belong to different concerns"), printed as a warning (not a
+// hard fail -- some files are legitimately dense, e.g. plugins/core-cli).
+const LINE_CAP = 200
+const warnings = []
+for (const f of jsFiles) {
+  const src = readFileSync(f, 'utf8')
+  const lines = src.split('\n').length
+  if (lines <= LINE_CAP) continue
+  const exportNames = [...src.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)|^export\s+const\s+(\w+)\s*=/gm)]
+    .map((m) => m[1] || m[2])
+  const groups = new Map()
+  for (const name of exportNames) {
+    const token = (name.match(/^[a-z]+/) || [name])[0]
+    groups.set(token, (groups.get(token) || []).concat(name))
+  }
+  if (groups.size >= 2) {
+    const suggestion = [...groups.entries()].map(([tok, names]) => `${tok}*(${names.length}): ${names.join(', ')}`).join('  |  ')
+    warnings.push(`over-cap: ${f.replace(ROOT, '')} (${lines} lines) -- possible split by export prefix: ${suggestion}`)
+  } else {
+    warnings.push(`over-cap: ${f.replace(ROOT, '')} (${lines} lines) -- no clear split (single export-name cluster)`)
+  }
+}
+if (warnings.length) {
+  console.warn(`\n${warnings.length} file(s) over the ${LINE_CAP}-line cap:\n`)
+  for (const w of warnings) console.warn('  ' + w)
+}
+
 if (fails.length) {
   console.error(`lint FAILED: ${fails.length} issue(s)\n`)
   for (const f of fails) console.error(f + '\n')
