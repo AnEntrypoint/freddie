@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url'
 import { createHost as createPluginHost } from 'plugsdk'
 import { validatePlugin, topoSort, PI_VERBS, GUI_VERBS } from './contract.js'
 import { makePi, makeGui, guard, scopedCfg, nullStore, makeCcHooks, makeHooksRegistry, makeCcLoaders } from './host_helpers.js'
+import { isFlagEnabled } from '../flags.js'
 
 function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed }) {
     return async function load(plugins) {
@@ -84,6 +85,21 @@ export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(),
     return host
 }
 
+// A plugin.json's optional feature_flag field gates the plugin's own
+// registration behind src/flags.js -- disabled means the plugin is skipped
+// entirely at discovery time (kill switch), never even reaching register().
+// Requires no other manifest fields; a missing plugin.json is the common case
+// and simply means no flag gate applies.
+function isFlagDisabled(dir) {
+    const manifestPath = path.join(dir, 'plugin.json')
+    if (!fs.existsSync(manifestPath)) return false
+    try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+        if (!manifest.feature_flag) return false
+        return !isFlagEnabled(manifest.feature_flag)
+    } catch { return false }
+}
+
 export async function discoverPlugins(roots) {
     const found = []
     for (const root of roots) {
@@ -91,6 +107,7 @@ export async function discoverPlugins(roots) {
         for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
             if (!entry.isDirectory()) continue
             const dir = path.join(root, entry.name)
+            if (isFlagDisabled(dir)) continue
             const file = path.join(dir, 'plugin.js')
             if (fs.existsSync(file)) {
                 const mod = await import(pathToFileURL(file).href)
