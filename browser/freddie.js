@@ -2379,10 +2379,16 @@ init_projects();
 init_env();
 var _host = null;
 var _loadPromise = null;
+var _dotenvLoaded = false;
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var REPO_PLUGINS = path.resolve(__dirname, "..", "..", "plugins");
-import_main.default.config();
+function loadDotenvOnce() {
+	if (_dotenvLoaded) return;
+	_dotenvLoaded = true;
+	import_main.default.config();
+}
 function host() {
+	loadDotenvOnce();
 	if (!_host) _host = createHost({ surfaces: ["pi", "gui"] });
 	return _host;
 }
@@ -2413,6 +2419,7 @@ async function bootHost(extraRoots = []) {
 function resetHostForTests() {
 	_host = null;
 	_loadPromise = null;
+	_dotenvLoaded = false;
 }
 //#endregion
 //#region src/toolsets.js
