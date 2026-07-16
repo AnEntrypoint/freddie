@@ -65,9 +65,15 @@ export function getLaunchdPlistPath() {
 }
 
 export function renderLaunchdPlist({ execStart, workingDir = process.cwd(), envVars = {} } = {}) {
+    // XML text-content escaping (not HTML): only & and < are structurally
+    // significant inside a plist <string> element; > and quotes need no
+    // escaping in text content (only inside an attribute value, which none
+    // of these values are). A shared escapeXmlText keeps argXml and envXml
+    // -- envVars keys/values previously had NO escaping at all -- consistent.
+    const escapeXmlText = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
     const args = execStart.split(/\s+/)
-    const argXml = args.map(a => `<string>${a.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</string>`).join('\n            ')
-    const envXml = Object.entries(envVars).map(([k, v]) => `<key>${k}</key><string>${v}</string>`).join('\n            ')
+    const argXml = args.map(a => `<string>${escapeXmlText(a)}</string>`).join('\n            ')
+    const envXml = Object.entries(envVars).map(([k, v]) => `<key>${escapeXmlText(k)}</key><string>${escapeXmlText(v)}</string>`).join('\n            ')
     return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

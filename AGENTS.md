@@ -18,7 +18,7 @@ Instructions for AI coding assistants working on Freddie. Present-tense rules on
 The stack is **thebird → freddie → acptoapi**. Each layer owns one concern:
 
 - **acptoapi** owns all upstream LLM/provider connectivity: HTTP/SSE to OpenAI, Anthropic, Gemini, brand providers, ACP daemons, Claude CLI. Plus chain/queue/sampler/matrix.
-- **freddie** owns agent-loop orchestration: tools, skills, sessions, memory. Calls *only* acptoapi for LLM access. No direct `fetch('https://api.openai.com/...')`. Migration debt still present in `plugins/vision`, `plugins/image_gen`, `plugins/tts`, `plugins/transcription`, `src/agent/codex_responses_adapter.js`, `src/agent/image_gen_provider.js`, `src/agent/model-discovery.js` — when you touch one, add the matching endpoint to acptoapi and call through acptoapi.
+- **freddie** owns agent-loop orchestration: tools, skills, sessions, memory. Calls *only* acptoapi for LLM access. No direct `fetch('https://api.openai.com/...')`. Migration debt still present in `plugins/vision`, `plugins/image_gen`, `plugins/tts`, `plugins/transcription`, `src/agent/adapters/codex_responses_adapter.js`, `src/agent/image_gen_provider.js`, `src/agent/model-discovery.js` — when you touch one, add the matching endpoint to acptoapi and call through acptoapi.
 - **thebird** owns browser presentation: webjsx UI, pyodide hermes shell. Talks to freddie for everything LLM-related when freddie is reachable; falls back to direct acptoapi only when there is no freddie.
 
 Versioning: freddie pins `acptoapi: "latest"` so `npm install` always picks up the newest published acptoapi. Thebird vendors freddie via `scripts/sync-upstream.mjs` against upstream main. No manual version-bump churn between sibling repos.

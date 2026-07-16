@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events'
 import WebSocket from 'ws'
+import { fetchWithTimeout, verifiedSend, emitWithDetachedMedia } from '../_shared/webhook-platform-base.js'
 
 // Discord gateway opcodes
 const OP = { DISPATCH: 0, HEARTBEAT: 1, IDENTIFY: 2, RESUME: 6, RECONNECT: 7, INVALID_SESSION: 9, HELLO: 10, HEARTBEAT_ACK: 11 }
@@ -78,15 +79,17 @@ export class DiscordAdapter extends EventEmitter {
             const m = p.d
             if (m.author?.bot) return   // ignore bots and our own messages
             const base = { from: m.author?.id, text: m.content || '', raw: m, platform: 'discord' }
-            if (!m.attachments?.length) { this.emit('message', base); return }
-            // ws.on('message', ...) below is a sync callback and can't await this,
+            // ws.on('message', ...) above is a sync callback and can't await this,
             // so the fetch-and-emit path runs as a detached async task: the
             // message still emits exactly once, after attachment fetches settle,
             // and one attachment's failure (via allSettled) never blocks the
             // others or drops the message itself.
-            this._resolveAttachments(m.attachments).then(media => {
-                this.emit('message', { ...base, media })
-            })
+            emitWithDetachedMedia(
+                (e) => this.emit('message', e),
+                base,
+                !!m.attachments?.length,
+                () => this._resolveAttachments(m.attachments),
+            )
             return
         }
     }
@@ -101,18 +104,14 @@ export class DiscordAdapter extends EventEmitter {
             console.error(`DiscordAdapter: skipping attachment ${a.filename} (${a.size} bytes exceeds ${MAX_ATTACHMENT_BYTES} byte guard)`)
             return null
         }
-        const ac = new AbortController()
-        const timer = setTimeout(() => ac.abort(), ATTACHMENT_FETCH_TIMEOUT_MS)
         try {
-            const res = await fetch(a.url, { signal: ac.signal })
+            const res = await fetchWithTimeout(a.url, {}, ATTACHMENT_FETCH_TIMEOUT_MS)
             if (!res.ok) throw new Error(`attachment fetch failed with status ${res.status}`)
             const buffer = Buffer.from(await res.arrayBuffer())
             return { type: contentTypeCategory(a.content_type), mimeType: a.content_type || '', buffer, filename: a.filename }
         } catch (err) {
             console.error(`DiscordAdapter: attachment fetch failed for ${a.filename}`, err)
             return null
-        } finally {
-            clearTimeout(timer)
         }
     }
 
@@ -151,13 +150,7 @@ export class DiscordAdapter extends EventEmitter {
         // permission, unknown channel/404) still returns a JSON body but with no
         // message `id` -- a bare `.then(r => r.json())` treated that identically
         // to a real send. Check both the HTTP status and the returned message id.
-        const checked = async (res) => {
-            const body = await res.json().catch(() => ({}))
-            if (!res.ok || !body?.id) {
-                throw new Error(`DiscordAdapter: send failed (status ${res.status}): ${JSON.stringify(body)}`)
-            }
-            return body
-        }
+        const checked = (sendFn) => verifiedSend(sendFn, (body) => body?.id, 'DiscordAdapter')
         // Optional audio attachment: raw bytes go as a multipart file so the
         // reporter hears a voice reply. A text-only reply keeps the original
         // JSON POST byte-for-byte -- audio is purely additive.
@@ -167,8 +160,8 @@ export class DiscordAdapter extends EventEmitter {
             const fd = new FormData()
             fd.append('payload_json', JSON.stringify({ content: reply.text || '' }))
             fd.append('files[0]', new Blob([Buffer.from(a.data_base64, 'base64')], { type: a.mime || 'audio/ogg' }), `reply.${ext}`)
-            return checked(await fetch(url, { method: 'POST', headers: { authorization: `Bot ${this.token}` }, body: fd }))
+            return checked(() => fetch(url, { method: 'POST', headers: { authorization: `Bot ${this.token}` }, body: fd }))
         }
-        return checked(await fetch(url, { method: 'POST', headers: { authorization: `Bot ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ content: reply.text }) }))
+        return checked(() => fetch(url, { method: 'POST', headers: { authorization: `Bot ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ content: reply.text }) }))
     }
 }
