@@ -313,7 +313,8 @@ await T('utils+time+redact+model-meta+agent-helpers', async () => {
     assert.ok((await import('./src/agent/usage_pricing.js')).calculateCost({ model: 'claude-sonnet-4-6', prompt_tokens: 1_000_000, completion_tokens: 0 }) > 0)
     let m = 0; assert.equal(await (await import('./src/agent/retry_utils.js')).retryAsync(async () => { if (m++ < 1) throw new Error('rate limit 429'); return 'done' }, { attempts: 3, backoff: 1 }), 'done')
     const pc = await import('./src/agent/prompt_caching.js'); assert.ok(pc.countBreakpoints(pc.annotateBreakpoints([{ role: 'system', content: 's' }, { role: 'user', content: 'u' }])) >= 1)
-    for (const [f, k] of [['anthropic_adapter','chat'],['bedrock_adapter','chat'],['codex_responses_adapter','chat'],['auxiliary_client','call_llm'],['gemini_native_adapter','chat'],['gemini_cloudcode_adapter','chat'],['google_oauth','getToken'],['google_code_assist','complete'],['image_gen_provider','generate'],['image_gen_registry','generateAndRecord']]) assert.equal(typeof (await import('./src/agent/' + f + '.js'))[k], 'function', f)
+    for (const [f, k] of [['anthropic_adapter','chat'],['bedrock_adapter','chat'],['codex_responses_adapter','chat'],['gemini_native_adapter','chat'],['gemini_cloudcode_adapter','chat'],['google_oauth','getToken'],['google_code_assist','complete']]) assert.equal(typeof (await import('./src/agent/adapters/' + f + '.js'))[k], 'function', f)
+    for (const [f, k] of [['auxiliary_client','call_llm'],['image_gen_provider','generate'],['image_gen_registry','generateAndRecord']]) assert.equal(typeof (await import('./src/agent/' + f + '.js'))[k], 'function', f)
 })
 await T('mcp+swe+distributions+account+credpool', async () => {
     const { McpServer } = await import('./src/mcp/server.js'); const { Readable, Writable } = await import('node:stream')
@@ -349,7 +350,7 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     for (const n of ['local','docker','ssh','modal','managed_modal','daytona','singularity','vercel_sandbox']) assert.ok(envs.listEnvironments().includes(n) && typeof envs.syncTo === 'function', n)
     const su = await import('./src/cli/setup.js'); for (const fn of ['setupWizard','setupModelProvider','setupTerminalBackend','setupTts','setupGatewayPlatform','setupAgentSettings','setupSkin','getSetupStatus']) assert.equal(typeof su[fn], 'function', fn)
     for (const m of ['./src/agent/pi-bridge.js','./src/cli/interactive.js','./src/tui/index.js','./src/cli/main.js']) { const mm = await import(m); assert.ok(Object.values(mm).some(v => typeof v === 'function'), m) }
-    assert.match((await import('./src/cli/colors.js')).fg.red('hi'), /\x1b\[31m/); assert.equal((await import('./src/cli/model_normalize.js')).normalizeModel('sonnet'), 'claude-sonnet-4-6')
+    assert.match((await import('./src/cli/colors.js')).fg.red('hi'), /\x1b\[31m/); assert.equal((await import('./src/cli/model_normalize.js')).normalizeModel('sonnet'), 'claude-sonnet-4-6'); assert.equal(typeof (await import('./src/cli/models/codex.js')).isCodexModel, 'function')
     const wh = await import('./src/gateway/helpers.js'); assert.ok((await import('./src/cli/model_catalog.js')).listCatalog().length >= 5 && (await (await import('./src/cli/doctor.js')).runDoctor()).some(c => c.name === 'node-version') && wh.hmacVerify('s', 'b', wh.hmacSign('s', 'b')))
     assert.ok((await (await import('./src/acp/auth.js')).authenticateRequest({})).ok && (await (await import('./src/acp/tools.js')).listToolsForAcp()).length >= 50)
     const wh2 = fs.readFileSync(path.join('website', 'docs/index.html'), 'utf8'); for (const m of ['ds-hero-title', 'rail-green', 'when do I reach']) assert.ok(wh2.includes(m), m)

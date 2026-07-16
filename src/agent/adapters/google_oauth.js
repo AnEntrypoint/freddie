@@ -1,4 +1,4 @@
-import { getAuthStore } from '../auth.js'
+import { getAuthStore } from '../../auth.js'
 const KEY = 'GOOGLE_OAUTH_TOKEN'
 const REFRESH_KEY = 'GOOGLE_OAUTH_REFRESH'
 export async function getToken() {

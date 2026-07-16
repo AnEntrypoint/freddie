@@ -1,4 +1,5 @@
 import { getToken } from './google_oauth.js'
+
 const ENDPOINT = 'https://cloudcode-pa.googleapis.com/v1internal'
 export async function complete({ prompt, language = 'auto' } = {}) {
     const t = (await getToken()).value
