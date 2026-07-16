@@ -106,6 +106,18 @@ async function main() {
   console.log(`\nnaming debt: ${debt.total} comments across ${debt.files_with_comments}/${jsFiles.length} files`)
   for (const r of debt.rows.slice(0, 10)) console.log(`  ${r.count.toString().padStart(3)}  ${r.file}`)
 
+  // Conventional-commit format check on HEAD's own subject line only -- the
+  // full existing history has non-conforming commits (merges, pre-convention
+  // messages) that would false-fail every run if checked wholesale; this only
+  // gates the commit that triggered THIS lint run.
+  try {
+    const headSubject = execFileSync('git', ['log', '-1', '--format=%s'], { cwd: ROOT, encoding: 'utf8' }).trim()
+    const isMerge = /^merge\b/i.test(headSubject) || /^chore\(release\)/.test(headSubject)
+    if (!isMerge && !/^\w+(\([^)]+\))?!?:\s*.+/.test(headSubject)) {
+      note(`commit format: HEAD subject '${headSubject}' does not match conventional-commit format (type(scope): subject)`)
+    }
+  } catch { /* not in a git repo or no commits yet -- nothing to check */ }
+
   if (fails.length) {
     console.error(`\nlint FAILED: ${fails.length} issue(s)\n`)
     for (const f of fails) console.error(f + '\n')
