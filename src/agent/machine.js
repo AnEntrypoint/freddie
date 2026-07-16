@@ -217,6 +217,35 @@ async function autoLearnTurn({ prompt, out }) {
     } catch (_) {}
 }
 
+// On a turn timeout, discard-and-reject threw away the whole transcript --
+// every consumer (CLI exec, gateway, cron, batch) got a bare rejection with no
+// partial progress, no indication of which tool call was in-flight, nothing
+// recoverable. Build a forgiving degraded result instead: read whatever
+// context the actor's live snapshot holds, synthesize a paired tool-result for
+// any tool_call the last assistant message made that never got an answer (so
+// the transcript is well-formed if ever replayed through an LLM), and append a
+// notice message. Ported from thebird's docs/freddie-chat.js runAgentTurn
+// timeout handler (browser embedder, independently built the same recovery
+// since it cannot import this module directly) -- see that file's
+// setTimeout callback (~line 483) for the pattern this mirrors.
+function timeoutResult(actor, timeoutMs) {
+    const snap = actor.getSnapshot()
+    const ctx = snap?.context || {}
+    const messages = Array.isArray(ctx.messages) ? [...ctx.messages] : []
+    const pairedIds = new Set(messages.filter(m => m && m.role === 'tool' && m.tool_call_id).map(m => m.tool_call_id))
+    const lastAssistant = [...messages].reverse().find(m => m && m.role === 'assistant' && Array.isArray(m.tool_calls))
+    if (lastAssistant) {
+        for (const tc of lastAssistant.tool_calls) {
+            const tcid = tc?.id || tc?.tool_call_id
+            if (tcid && !pairedIds.has(tcid)) {
+                messages.push({ role: 'tool', tool_call_id: tcid, content: JSON.stringify({ error: 'timeout: tool_call interrupted' }), synthetic: true })
+            }
+        }
+    }
+    messages.push({ role: 'system', content: `Agent turn interrupted by ${timeoutMs / 1000}s timeout. Any tool calls above without paired results were cut short and did not complete.`, synthetic: true })
+    return { messages, result: null, error: 'agent turn timeout', iterations: ctx.iterations || 0 }
+}
+
 // session-end hooks + trajectory. Shared by runTurn (fresh) and resumeTurn
 // (rehydrated from a persisted snapshot after a refresh/restart).
 async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey }) {
@@ -225,7 +254,16 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
         let sub
         const cleanup = () => { try { sub?.unsubscribe() } catch {} ; pa.flush().catch(() => {}).finally(() => { try { actor.stop() } catch {} }) }
         let settled = false
-        const t = setTimeout(() => { if (settled) return; settled = true; cleanup(); reject(new Error('agent turn timeout')) }, timeoutMs)
+        const t = setTimeout(() => {
+            if (settled) return; settled = true
+            const out = timeoutResult(actor, timeoutMs)
+            cleanup()
+            ;(async () => {
+                try { await clearSteps(sessionKey) } catch {}
+                try { await h.hooks.invoke('onSessionEnd', { reason: 'timeout', iterations: out.iterations }) } catch {}
+                try { await writeTrajectory(out, { prompt, provider, model, skill, cwd, events, errorStack: null, witnessPath }) } catch {}
+            })().catch(() => {}).finally(() => resolve(out))
+        }, timeoutMs)
         // Do not let a pending turn-timeout timer keep the event loop alive or fire
         // during process teardown after the awaiting caller has already moved on.
         if (typeof t?.unref === 'function') t.unref()

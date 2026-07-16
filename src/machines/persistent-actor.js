@@ -7,8 +7,19 @@
 import { createActor } from 'xstate'
 import { persist, load, clear } from './snapshot-store.js'
 import { logger } from '../observability/log.js'
+import { redactSecret } from '../utils.js'
 
 const log = logger('persistent-actor')
+
+// redactSecret() is string-oriented (regex over provider keys/Bearer tokens/
+// AWS keys); apply it over the whole context via a stringify round-trip so
+// nested fields are covered without hand-walking the shape of every machine's
+// context. A context that fails to stringify (circular, etc) logs as null
+// rather than throwing out of the transition subscriber.
+function redactSensitive(context) {
+    try { return JSON.parse(redactSecret(JSON.stringify(context))) }
+    catch { return null }
+}
 
 // machine: an xstate machine. kind+key: snapshot identity. input: actor input
 // (used only on a fresh start — a rehydrated actor restores its own context).
@@ -18,12 +29,31 @@ export async function createPersistentActor(machine, { kind, key, input, onTrans
     const machineId = machine?.id || machine?.config?.id || null
     const snapshot = await load(kind, key, { machineId })
     const resumed = !!snapshot
-    const actor = snapshot
-        ? createActor(machine, { snapshot })
-        : createActor(machine, { input })
 
+    // xstate v5's snapshot object carries no reference to the event that
+    // triggered a given transition -- `inspect` is the real API surface for
+    // that (fires an '@xstate.event' entry, in order, immediately before the
+    // matching subscribe() callback for the same transition).
+    let lastEventType = null
+    const inspect = (ev) => { if (ev.type === '@xstate.event' && ev.event?.type) lastEventType = ev.event.type }
+
+    const actor = snapshot
+        ? createActor(machine, { snapshot, inspect })
+        : createActor(machine, { input, inspect })
+
+    let lastValue = null
     let persisting = Promise.resolve()
     const sub = actor.subscribe((snap) => {
+        const from = lastValue
+        const to = snap.value
+        // Redact anything that looks like a secret/credential/token before it
+        // ever reaches the structured log -- context can carry provider keys,
+        // auth tokens, etc depending on the machine.
+        const context = redactSensitive(snap.context)
+        if (JSON.stringify(from) !== JSON.stringify(to)) {
+            log.info('transition', { kind, key, from, to, trigger: lastEventType, context })
+        }
+        lastValue = to
         // Serialize persists so rapid consecutive transitions land last-write-wins
         // without interleaving; the store upsert is keyed by (kind,key).
         persisting = persisting.then(async () => {
