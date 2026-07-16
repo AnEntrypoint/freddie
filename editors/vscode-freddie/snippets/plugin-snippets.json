@@ -1,0 +1,51 @@
+{
+  "Freddie plugin.js boilerplate": {
+    "prefix": "fd-plugin",
+    "body": [
+      "export default {",
+      "    name: '${1:plugin-name}',",
+      "    surfaces: '${2|pi,gui,both|}',",
+      "    register({ ${3:pi} }) {",
+      "        ${0}",
+      "    },",
+      "}",
+      ""
+    ],
+    "description": "Real freddie plugin.js contract shape (src/host/contract.js validatePlugin)"
+  },
+  "Freddie handler.js tool boilerplate": {
+    "prefix": "fd-tool",
+    "body": [
+      "export const _tool = {",
+      "    name: '${1:tool_name}',",
+      "    toolset: '${2:core}',",
+      "    schema: {",
+      "        name: '${1:tool_name}',",
+      "        description: '${3:description}',",
+      "        parameters: { type: 'object', properties: {}, required: [] },",
+      "    },",
+      "    handler: async (${4:args}, ctx) => {",
+      "        ${0}",
+      "    },",
+      "}",
+      ""
+    ],
+    "description": "Real freddie handler.js tool shape ({name, schema, handler})"
+  },
+  "Freddie platform adapter boilerplate": {
+    "prefix": "fd-platform",
+    "body": [
+      "export class ${1:Myname}Adapter extends EventEmitter {",
+      "    async start() {",
+      "        ${0}",
+      "    }",
+      "    async stop() {",
+      "    }",
+      "    async send(msg) {",
+      "    }",
+      "}",
+      ""
+    ],
+    "description": "Real freddie gateway platform adapter shape (plugins/platform-<name>/handler.js)"
+  }
+}
