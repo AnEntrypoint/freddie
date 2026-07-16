@@ -10453,7 +10453,80 @@ function blocksToSystemMessage(blocks) {
 //#region src/browser/index.js
 init_config();
 var FREDDIE_DEFAULT_CONFIG = DEFAULT_CONFIG;
+var FreddieAdapterError = class extends Error {
+	constructor(message) {
+		super(message);
+		this.name = "FreddieAdapterError";
+	}
+};
+function required(name, why) {
+	throw new FreddieAdapterError(`bootHostBrowser: adapters.${name} is required (${why})`);
+}
+function guardStorage(storage) {
+	if (storage && typeof storage.getConfig === "function" && typeof storage.setConfig === "function") return storage;
+	return {
+		getConfig() {
+			required("storage.getConfig", "called to read persisted freddie config (model/agent/skills/etc) — pass adapters.storage.getConfig()");
+		},
+		setConfig() {
+			required("storage.setConfig", "called to persist freddie config — pass adapters.storage.setConfig(value)");
+		}
+	};
+}
+function guardFs(fsAdapter) {
+	const missing = (method, why) => () => required(`fs.${method}`, why);
+	return {
+		readFile: fsAdapter?.readFile || missing("readFile", "a plugin or embedder tool tried to read a file through the adapter fs"),
+		writeFile: fsAdapter?.writeFile || missing("writeFile", "a plugin or embedder tool tried to write a file through the adapter fs"),
+		exists: fsAdapter?.exists || missing("exists", "a plugin or embedder tool tried to check file existence through the adapter fs"),
+		mkdir: fsAdapter?.mkdir || missing("mkdir", "a plugin or embedder tool tried to create a directory through the adapter fs"),
+		readdir: fsAdapter?.readdir || missing("readdir", "a plugin or embedder tool tried to list a directory through the adapter fs"),
+		stat: fsAdapter?.stat || missing("stat", "a plugin or embedder tool tried to stat a path through the adapter fs")
+	};
+}
+async function resolvePlugins(list) {
+	const out = [];
+	for (const entry of list) {
+		const p = typeof entry === "function" ? await entry() : entry;
+		if (!p) continue;
+		out.push(validatePlugin(p));
+	}
+	return out;
+}
+/**
+* bootHostBrowser(adapters) — adapter-parameterized host boot for browser /
+* non-Node embedders. See the FreddieBrowserAdapters typedef above for the
+* full field-by-field contract and justification.
+*
+* Does NOT call dotenv.config(), process.cwd(), or any real node:fs — every
+* one of those Node CLI bootHost operations is routed through `adapters`
+* instead, or (for plugin discovery, which has no browser equivalent)
+* replaced outright by the embedder supplying a pre-resolved plugin list.
+*
+* Independent from the module-level `_host`/`_loadPromise` singleton in
+* ../host/index.js — every call creates its own host instance, so multiple
+* concurrent calls (thebird's per-tab/per-instance model: instance A's host
+* vs instance B's host) never collide or share state.
+*
+* @param {FreddieBrowserAdapters} adapters
+* @returns {Promise<object>} a host object (pi/hooks/plugins()/get()/...)
+*   plus `storage` and `callLLM` for direct embedder use.
+*/
+async function bootHostBrowser(adapters = {}) {
+	if (!adapters || typeof adapters !== "object") throw new FreddieAdapterError("bootHostBrowser: adapters object is required");
+	if (typeof adapters.callLLM !== "function") required("callLLM", "the agent loop has no way to call an LLM without it");
+	const host = createHost({
+		surfaces: ["pi", "gui"],
+		env: adapters.env && typeof adapters.env === "object" ? adapters.env : {}
+	});
+	const plugins = Array.isArray(adapters.plugins) ? await resolvePlugins(adapters.plugins) : [];
+	await host.load(plugins);
+	host.storage = guardStorage(adapters.storage);
+	host.fsAdapter = guardFs(adapters.fs);
+	host.callLLM = adapters.callLLM;
+	return host;
+}
 //#endregion
-export { ContextPlugins, DEFAULT_CONFIG, FREDDIE_DEFAULT_CONFIG, assign, blocksToSystemMessage, bootHost, buildContext, createActor, createAgentMachine, createMachine, findSkill, fromPromise, host, listSkills, log, logger, parseTextToolCalls, resetHostForTests, runTurn, skillAsUserMessage, waitFor };
+export { ContextPlugins, DEFAULT_CONFIG, FREDDIE_DEFAULT_CONFIG, FreddieAdapterError, assign, blocksToSystemMessage, bootHost, bootHostBrowser, buildContext, createActor, createAgentMachine, createMachine, findSkill, fromPromise, host, listSkills, log, logger, parseTextToolCalls, resetHostForTests, runTurn, skillAsUserMessage, waitFor };
 
 //# sourceMappingURL=freddie.js.map
