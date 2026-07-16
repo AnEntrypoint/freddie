@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Skills — Freddie</title>
+
+
 <link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
 <script type="importmap">
 { "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
@@ -46,7 +48,7 @@ a.row:hover .ds-row-arrow { opacity: 1 }
 .ds-feature-desc { font-size: var(--fs-sm, 15px); color: var(--fg-2); line-height: 1.5; overflow-wrap: anywhere }
 .ds-feature-benefit { font-style: italic; font-size: var(--fs-sm, 15px); color: var(--fg-3); margin-top: var(--space-1, 4px) }
 </style>
-<script id="__site__" type="application/json">{"title":"Skills","slug":"skills","siteName":"Freddie","navItems":[["Home","/freddie/"],["Plugins","/freddie/plugins/"],["Architecture","/freddie/architecture/"],["CLI","/freddie/cli/"],["Tools","/freddie/tools/"],["Platforms","/freddie/platforms/"],["Skills","/freddie/skills/"],["Development","/freddie/development/"]],"theme":"auto","hero":{"heading":"skills","subheading":"SKILL.md files that teach the agent how to do specific things","accent":"skills are how you encode your team's know-how.","body":"a skill is a markdown file with a name, a description, and a body. invoke `/skill \u003cname>` and the body becomes a user message. agents inherit your team's playbooks instead of reinventing them every turn.","badges":[{"label":"5","desc":"bundled categories"},{"label":"SKILL.md","desc":"portable format"},{"label":"~/.freddie/skills/","desc":"user-extensible"}],"ctas":[{"label":"bundled tree","href":"https://github.com/AnEntrypoint/freddie/tree/master/skills"},{"label":"write your own","href":"#how-to-write"}]},"sections":[{"id":"when","name":"when does a skill beat a tool?","lede":"tools act on the world. skills shape how the agent thinks before it acts.","features":[{"name":"you have a process, not a function","desc":"code review, incident response, weekly review, rfc writing — multi-step thinking with implicit constraints.","benefit":"capture the \"how we do this\" once, replay it forever."},{"name":"you want the prompt to be inspectable","desc":"SKILL.md is plain markdown. anyone on the team can read it, edit it, version it, ship it.","benefit":"prompts as code, reviewed in pull requests."},{"name":"you want skills to compose","desc":"invoke a skill mid-turn (`/skill code-review`); chain skills inside other skills via the `skill` tool.","benefit":"build playbooks out of playbooks."}]},{"id":"why","name":"why this format over a framework?","lede":"SKILL.md is just markdown with a yaml frontmatter. no parser, no schema, no abstraction.","features":[{"name":"portable","desc":"every editor renders it. every git host previews it. every llm can read it raw.","benefit":"skills move with you. no lock-in."},{"name":"discoverable","desc":"the loader scans `~/.freddie/skills/` and the bundled tree. `freddie skills` lists them all.","benefit":"drop a file in, skill appears. no registry mutations."},{"name":"gated by platform + env","desc":"optional `platforms: [linux, macos, windows]` and `requiresEnv` keep skills off systems where they can't run.","benefit":"a skill that needs `gh` won't show up on a box without `gh`."}]},{"id":"bundled","name":"bundled categories","lede":"5 categories ship with freddie out of the box. browse them, or copy them as templates.","features":[{"name":"creative","desc":"ascii video, architecture diagrams, concept sketching."},{"name":"software-development","desc":"systematic debugging, code review, rfc writing."},{"name":"ops","desc":"incident response, log triage."},{"name":"data","desc":"etl pipelines, sql explanation."},{"name":"planning","desc":"weekly review, okr drafting."}]},{"id":"how-to-write","name":"how do I write a skill?","lede":"a skill is just markdown.","features":[{"name":"1 — pick a path","desc":"`~/.freddie/skills/my-skill/SKILL.md` (always loaded) or `\u003ccwd>/skills/...` (per-project)."},{"name":"2 — write the frontmatter","desc":"`name`, `description`, optional `category`, `platforms`, `requiresEnv`."},{"name":"3 — write the body","desc":"free-form markdown. headings, lists, code blocks. injected verbatim as a user message."},{"name":"4 — invoke","desc":"`/skill \u003cname>` in the repl, or `freddie skill \u003cname>` from the cli, or call the `skill` tool from another turn."}]}],"examples":[{"label":"bundled tree","href":"https://github.com/AnEntrypoint/freddie/tree/master/skills","desc":"5 categories"},{"label":"skill loader","href":"https://github.com/AnEntrypoint/freddie/blob/master/src/skills/index.js","desc":"how discovery works"},{"label":"skill plugin","href":"https://github.com/AnEntrypoint/freddie/tree/master/plugins/gm-skill","desc":"invocation"}],"bodyHtml":"\u003ch2 id=\"skillmd-shape\">SKILL.md shape\u003c/h2>\n\u003cpre>\n---\nname: my-skill\ndescription: One-liner that shows up in /skill list\ncategory: software-development\nplatforms: [linux, macos, windows]\n---\n\n# body\n\nfree-form markdown. headings, lists, code blocks.\n\ninjected as a user message when invoked via /skill &lt;name&gt;.\n\u003c/pre>\n\u003ch2 id=\"sharing-skills\">sharing skills\u003c/h2>\n\u003cpre>\nfreddie skills_sync --repo https://github.com/your-org/skills\n\u003c/pre>\n\u003cp>pulls into \u003ccode>~/.freddie/skills/\u003c/code> so the next session has them.\u003c/p>"}</script>
+<script id="__site__" type="application/json">{"title":"Skills","slug":"skills","siteName":"Freddie","navItems":[["Home","/freddie/"],["Plugins","/freddie/plugins/"],["Architecture","/freddie/architecture/"],["CLI","/freddie/cli/"],["Tools","/freddie/tools/"],["Platforms","/freddie/platforms/"],["Skills","/freddie/skills/"],["Development","/freddie/development/"]],"theme":"auto","hero":{"heading":"skills","subheading":"SKILL.md files that teach the agent how to do specific things","accent":"skills are how you encode your team's know-how.","body":"a skill is a markdown file with a name, a description, and a body. invoke `/skill \u003cname>` and the body becomes a user message. agents inherit your team's playbooks instead of reinventing them every turn.","badges":[{"label":"5","desc":"bundled categories"},{"label":"SKILL.md","desc":"portable format"},{"label":"~/.freddie/skills/","desc":"user-extensible"}],"ctas":[{"label":"bundled tree","href":"https://github.com/AnEntrypoint/freddie/tree/main/skills"},{"label":"write your own","href":"#how-to-write"}]},"sections":[{"id":"when","name":"when does a skill beat a tool?","lede":"tools act on the world. skills shape how the agent thinks before it acts.","features":[{"name":"you have a process, not a function","desc":"code review, incident response, weekly review, rfc writing — multi-step thinking with implicit constraints.","benefit":"capture the \"how we do this\" once, replay it forever."},{"name":"you want the prompt to be inspectable","desc":"SKILL.md is plain markdown. anyone on the team can read it, edit it, version it, ship it.","benefit":"prompts as code, reviewed in pull requests."},{"name":"you want skills to compose","desc":"invoke a skill mid-turn (`/skill code-review`); chain skills inside other skills via the `skill` tool.","benefit":"build playbooks out of playbooks."}]},{"id":"why","name":"why this format over a framework?","lede":"SKILL.md is just markdown with a yaml frontmatter. no parser, no schema, no abstraction.","features":[{"name":"portable","desc":"every editor renders it. every git host previews it. every llm can read it raw.","benefit":"skills move with you. no lock-in."},{"name":"discoverable","desc":"the loader scans `~/.freddie/skills/` and the bundled tree. `freddie skills` lists them all.","benefit":"drop a file in, skill appears. no registry mutations."},{"name":"gated by platform + env","desc":"optional `platforms: [linux, macos, windows]` and `requiresEnv` keep skills off systems where they can't run.","benefit":"a skill that needs `gh` won't show up on a box without `gh`."}]},{"id":"bundled","name":"bundled categories","lede":"5 categories ship with freddie out of the box. browse them, or copy them as templates.","features":[{"name":"creative","desc":"ascii video, architecture diagrams, concept sketching."},{"name":"software-development","desc":"systematic debugging, code review, rfc writing."},{"name":"ops","desc":"incident response, log triage."},{"name":"data","desc":"etl pipelines, sql explanation."},{"name":"planning","desc":"weekly review, okr drafting."}]},{"id":"how-to-write","name":"how do I write a skill?","lede":"a skill is just markdown.","features":[{"name":"1 — pick a path","desc":"`~/.freddie/skills/my-skill/SKILL.md` (always loaded) or `\u003ccwd>/skills/...` (per-project)."},{"name":"2 — write the frontmatter","desc":"`name`, `description`, optional `category`, `platforms`, `requiresEnv`."},{"name":"3 — write the body","desc":"free-form markdown. headings, lists, code blocks. injected verbatim as a user message."},{"name":"4 — invoke","desc":"`/skill \u003cname>` in the repl, or `freddie skill \u003cname>` from the cli, or call the `skill` tool from another turn."}]}],"examples":[{"label":"bundled tree","href":"https://github.com/AnEntrypoint/freddie/tree/main/skills","desc":"5 categories"},{"label":"skill loader","href":"https://github.com/AnEntrypoint/freddie/blob/main/src/skills/index.js","desc":"how discovery works"},{"label":"skill plugin","href":"https://github.com/AnEntrypoint/freddie/tree/main/plugins/gm-skill","desc":"invocation"}],"bodyHtml":"\u003ch2 id=\"skillmd-shape\">SKILL.md shape\u003c/h2>\n\u003cpre>\n---\nname: my-skill\ndescription: One-liner that shows up in /skill list\ncategory: software-development\nplatforms: [linux, macos, windows]\n---\n\n# body\n\nfree-form markdown. headings, lists, code blocks.\n\ninjected as a user message when invoked via /skill &lt;name&gt;.\n\u003c/pre>\n\u003ch2 id=\"sharing-skills\">sharing skills\u003c/h2>\n\u003cpre>\nfreddie skills_sync --repo https://github.com/your-org/skills\n\u003c/pre>\n\u003cp>pulls into \u003ccode>~/.freddie/skills/\u003c/code> so the next session has them.\u003c/p>","sidebar":null,"marquee":null,"panels":[],"quickstart":null,"statusLeft":null,"statusRight":null}</script>
 
 </head>
 <body>
@@ -115,6 +117,40 @@ function examplesNode(examples) {
   });
 }
 
+function panelNode(panel, idx) {
+  const items = Array.isArray(panel.items) ? panel.items : [];
+  if (!items.length) return null;
+  const rows = items.map((it, i) => {
+    const kids = [
+      h('span', { key: 'c', class: 'code' }, String(it.code || String(i + 1).padStart(2, '0'))),
+      h('span', { key: 't', class: 'title' }, String(it.title || it.name || '')),
+    ];
+    if (it.sub || it.desc) kids.push(h('span', { key: 'm', class: 'meta dim' }, ' — ' + (it.sub || it.desc)));
+    kids.push(h('span', { key: 'a', class: 'ds-row-arrow' }, it.meta || '->'));
+    return h('a', { key: i, class: 'row', href: it.href || '#' }, ...kids);
+  });
+  return C.Panel({ id: panel.id || null, title: panel.title || panel.name || '', count: panel.count || items.length, children: rows });
+}
+
+function marqueeNode(marquee) {
+  if (!marquee || !Array.isArray(marquee.items) || !marquee.items.length) return null;
+  return C.Marquee ? C.Marquee({ items: marquee.items, sep: marquee.sep || '/' }) : null;
+}
+
+function quickstartNode(quickstart) {
+  if (!quickstart || !Array.isArray(quickstart.lines) || !quickstart.lines.length) return null;
+  const lineNodes = quickstart.lines.map((l, i) => h('div', { key: 'q' + i, class: 'cli' },
+    h('span', { class: 'prompt' }, l.kind === 'cmt' ? '#' : '$'),
+    h('span', { class: 'cmd' }, l.text)
+  ));
+  return C.Panel({ title: quickstart.heading || 'quick start', children: h('div', { class: 'ds-quickstart' }, ...lineNodes) });
+}
+
+function sideNode(sidebar) {
+  if (!sidebar || !Array.isArray(sidebar.sections) || !sidebar.sections.length || !C.Side) return null;
+  return C.Side({ sections: sidebar.sections });
+}
+
 // minimal client-side markdown renderer matching server-side renderer (idempotent for already-html bodies)
 function __slug(s) { return String(s || '').trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-'); }
 function __md(md) {
@@ -140,7 +176,10 @@ const bodyNode = data.bodyHtml ? C.Section({ children: h('div', { class: 'page-b
 
 const mainChildren = [
   heroNode(data.hero),
+  marqueeNode(data.marquee),
   ...data.sections.map(sectionNode),
+  ...(data.panels || []).map(panelNode),
+  quickstartNode(data.quickstart),
   examplesNode(data.examples),
   bodyNode,
 ].filter(Boolean);
@@ -148,9 +187,14 @@ const mainChildren = [
 mount(document.getElementById('app'), () => C.AppShell({
   topbar: C.Topbar({ brand: data.siteName, items: data.navItems, active: data.title }),
   crumb: C.Crumb({ leaf: data.title }),
+  side: sideNode(data.sidebar),
   main: h('div', { class: 'app-stage' }, ...mainChildren),
-  status: C.Status({ left: [data.siteName.toLowerCase(), data.slug], right: ['live'] }),
+  status: C.Status({
+    left: data.statusLeft || [data.siteName.toLowerCase(), data.slug],
+    right: data.statusRight || ['live'],
+  }),
 }));
+
 </script>
 </body>
 </html>

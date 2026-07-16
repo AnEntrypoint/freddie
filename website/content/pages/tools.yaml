@@ -11,7 +11,7 @@ hero:
     - { label: browse, desc: "web access" }
     - { label: creative, desc: "media + voice" }
   ctas:
-    - { label: bash plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/bash" }
+    - { label: bash plugin, href: "https://github.com/AnEntrypoint/freddie/tree/main/plugins/bash" }
     - { label: add a tool, href: "#how-to-add" }
 sections:
   - id: when
@@ -73,10 +73,10 @@ sections:
       - name: 5 — restart freddie
         desc: "`bootHost()` discovers the plugin automatically. `freddie tools` shows the new entry."
 examples:
-  - { label: bash plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/bash", desc: simple example }
-  - { label: browser plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/browser", desc: lazy-loaded example }
-  - { label: host + discovery, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/host.js", desc: how plugins load }
-  - { label: AGENTS.md, href: "https://github.com/AnEntrypoint/freddie/blob/master/AGENTS.md", desc: full plugin contract }
+  - { label: bash plugin, href: "https://github.com/AnEntrypoint/freddie/tree/main/plugins/bash", desc: simple example }
+  - { label: browser plugin, href: "https://github.com/AnEntrypoint/freddie/tree/main/plugins/browser", desc: lazy-loaded example }
+  - { label: host + discovery, href: "https://github.com/AnEntrypoint/freddie/blob/main/src/host/host.js", desc: how plugins load }
+  - { label: AGENTS.md, href: "https://github.com/AnEntrypoint/freddie/blob/main/AGENTS.md", desc: full plugin contract }
 body: |
   ## adding a tool — full example
 

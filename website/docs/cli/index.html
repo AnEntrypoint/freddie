@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CLI — Freddie</title>
+
+
 <link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
 <script type="importmap">
 { "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
@@ -46,7 +48,7 @@ a.row:hover .ds-row-arrow { opacity: 1 }
 .ds-feature-desc { font-size: var(--fs-sm, 15px); color: var(--fg-2); line-height: 1.5; overflow-wrap: anywhere }
 .ds-feature-benefit { font-style: italic; font-size: var(--fs-sm, 15px); color: var(--fg-3); margin-top: var(--space-1, 4px) }
 </style>
-<script id="__site__" type="application/json">{"title":"CLI","slug":"cli","siteName":"Freddie","navItems":[["Home","/freddie/"],["Plugins","/freddie/plugins/"],["Architecture","/freddie/architecture/"],["CLI","/freddie/cli/"],["Tools","/freddie/tools/"],["Platforms","/freddie/platforms/"],["Skills","/freddie/skills/"],["Development","/freddie/development/"]],"theme":"auto","hero":{"heading":"cli","subheading":"every freddie surface starts as one command in your terminal","accent":"install it once. ssh in. it just works.","body":"Auto-generated reference of all 22 slash commands in the command registry, grouped by category. Regenerate with `node scripts/gen-cli-docs.mjs`.","badges":[{"label":"22","desc":"registered commands"},{"label":"5","desc":"categories"},{"label":"registry-driven","desc":"single source of truth"}],"ctas":[{"label":"bin/freddie.js","href":"https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js"},{"label":"command registry","href":"https://github.com/AnEntrypoint/freddie/blob/master/src/commands/registry.js"}]},"sections":[{"id":"info","name":"Info","lede":"3 commands in the Info category.","features":[{"name":"/help","desc":"Show available commands (aliases: /h, /?)","benefit":"cli + gateway"},{"name":"/logs","desc":"Tail logs","benefit":"cli + gateway"},{"name":"/status","desc":"Agent + gateway status","benefit":"cli + gateway"}]},{"id":"exit","name":"Exit","lede":"1 command in the Exit category.","features":[{"name":"/quit","desc":"Exit freddie (aliases: /exit, /q)","benefit":"cli + gateway"}]},{"id":"session","name":"Session","lede":"8 commands in the Session category.","features":[{"name":"/clear","desc":"Clear conversation history (aliases: /cls)","benefit":"cli + gateway"},{"name":"/resume [session-id]","desc":"Resume a previous session","benefit":"cli + gateway"},{"name":"/sessions","desc":"List recent sessions","benefit":"cli + gateway"},{"name":"/search \u003cquery>","desc":"Search messages full-text","benefit":"cli + gateway"},{"name":"/background \u003cprompt>","desc":"Run command in background (aliases: /bg)","benefit":"cli + gateway"},{"name":"/copy","desc":"Copy last response","benefit":"cli only"},{"name":"/paste","desc":"Paste from clipboard","benefit":"cli only"},{"name":"/reset","desc":"Reset session state","benefit":"cli + gateway"}]},{"id":"configuration","name":"Configuration","lede":"6 commands in the Configuration category.","features":[{"name":"/model [model]","desc":"Set or show current model","benefit":"cli + gateway"},{"name":"/provider [provider]","desc":"Set or show current provider","benefit":"cli + gateway"},{"name":"/memory","desc":"Memory provider commands","benefit":"cli + gateway"},{"name":"/skin [name]","desc":"Switch CLI skin","benefit":"cli + gateway"},{"name":"/profile \u003clist|create|switch|delete>","desc":"Manage profiles","benefit":"cli + gateway"},{"name":"/config [key] [value]","desc":"Show/set config values","benefit":"cli + gateway"}]},{"id":"tools-skills","name":"Tools & Skills","lede":"4 commands in the Tools & Skills category.","features":[{"name":"/toolsets","desc":"List or toggle toolsets","benefit":"cli + gateway"},{"name":"/tools","desc":"List available tools","benefit":"cli + gateway"},{"name":"/skills","desc":"Skills hub: install, list, run","benefit":"cli + gateway"},{"name":"/skill \u003cname>","desc":"Run a skill by name","benefit":"cli + gateway"}]}],"examples":[{"label":"bin/freddie.js","href":"https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js","desc":"commander entry"},{"label":"interactive repl","href":"https://github.com/AnEntrypoint/freddie/blob/master/src/cli/interactive.js","desc":"readline + slash commands"},{"label":"command registry","href":"https://github.com/AnEntrypoint/freddie/blob/master/src/commands/registry.js","desc":"slash command defs"}],"bodyHtml":"\u003ch2 id=\"all-commands\">all commands\u003c/h2>\n\u003cpre>\n/help                        Show available commands\n/quit                        Exit freddie\n/clear                       Clear conversation history\n/resume [session-id]         Resume a previous session\n/sessions                    List recent sessions\n/search &lt;query&gt;              Search messages full-text\n/background &lt;prompt&gt;         Run command in background\n/model [model]               Set or show current model\n/provider [provider]         Set or show current provider\n/toolsets                    List or toggle toolsets\n/tools                       List available tools\n/skills                      Skills hub: install, list, run\n/skill &lt;name&gt;                Run a skill by name\n/memory                      Memory provider commands\n/skin [name]                 Switch CLI skin\n/profile &lt;list|create|switch|delete&gt; Manage profiles\n/logs                        Tail logs\n/config [key] [value]        Show/set config values\n/status                      Agent + gateway status\n/copy                        Copy last response\n/paste                       Paste from clipboard\n/reset                       Reset session state\n\u003c/pre>"}</script>
+<script id="__site__" type="application/json">{"title":"CLI","slug":"cli","siteName":"Freddie","navItems":[["Home","/freddie/"],["Plugins","/freddie/plugins/"],["Architecture","/freddie/architecture/"],["CLI","/freddie/cli/"],["Tools","/freddie/tools/"],["Platforms","/freddie/platforms/"],["Skills","/freddie/skills/"],["Development","/freddie/development/"]],"theme":"auto","hero":{"heading":"cli","subheading":"every freddie surface starts as one command in your terminal","accent":"install it once. ssh in. it just works.","body":"Auto-generated reference of all 22 slash commands in the command registry, grouped by category. Regenerate with `node scripts/gen-cli-docs.mjs`.","badges":[{"label":"22","desc":"registered commands"},{"label":"5","desc":"categories"},{"label":"registry-driven","desc":"single source of truth"}],"ctas":[{"label":"bin/freddie.js","href":"https://github.com/AnEntrypoint/freddie/blob/main/bin/freddie.js"},{"label":"command registry","href":"https://github.com/AnEntrypoint/freddie/blob/main/src/commands/registry.js"}]},"sections":[{"id":"info","name":"Info","lede":"3 commands in the Info category.","features":[{"name":"/help","desc":"Show available commands (aliases: /h, /?)","benefit":"cli + gateway"},{"name":"/logs","desc":"Tail logs","benefit":"cli + gateway"},{"name":"/status","desc":"Agent + gateway status","benefit":"cli + gateway"}]},{"id":"exit","name":"Exit","lede":"1 command in the Exit category.","features":[{"name":"/quit","desc":"Exit freddie (aliases: /exit, /q)","benefit":"cli + gateway"}]},{"id":"session","name":"Session","lede":"8 commands in the Session category.","features":[{"name":"/clear","desc":"Clear conversation history (aliases: /cls)","benefit":"cli + gateway"},{"name":"/resume [session-id]","desc":"Resume a previous session","benefit":"cli + gateway"},{"name":"/sessions","desc":"List recent sessions","benefit":"cli + gateway"},{"name":"/search \u003cquery>","desc":"Search messages full-text","benefit":"cli + gateway"},{"name":"/background \u003cprompt>","desc":"Run command in background (aliases: /bg)","benefit":"cli + gateway"},{"name":"/copy","desc":"Copy last response","benefit":"cli only"},{"name":"/paste","desc":"Paste from clipboard","benefit":"cli only"},{"name":"/reset","desc":"Reset session state","benefit":"cli + gateway"}]},{"id":"configuration","name":"Configuration","lede":"6 commands in the Configuration category.","features":[{"name":"/model [model]","desc":"Set or show current model","benefit":"cli + gateway"},{"name":"/provider [provider]","desc":"Set or show current provider","benefit":"cli + gateway"},{"name":"/memory","desc":"Memory provider commands","benefit":"cli + gateway"},{"name":"/skin [name]","desc":"Switch CLI skin","benefit":"cli + gateway"},{"name":"/profile \u003clist|create|switch|delete>","desc":"Manage profiles","benefit":"cli + gateway"},{"name":"/config [key] [value]","desc":"Show/set config values","benefit":"cli + gateway"}]},{"id":"tools-skills","name":"Tools & Skills","lede":"4 commands in the Tools & Skills category.","features":[{"name":"/toolsets","desc":"List or toggle toolsets","benefit":"cli + gateway"},{"name":"/tools","desc":"List available tools","benefit":"cli + gateway"},{"name":"/skills","desc":"Skills hub: install, list, run","benefit":"cli + gateway"},{"name":"/skill \u003cname>","desc":"Run a skill by name","benefit":"cli + gateway"}]}],"examples":[{"label":"bin/freddie.js","href":"https://github.com/AnEntrypoint/freddie/blob/main/bin/freddie.js","desc":"commander entry"},{"label":"interactive repl","href":"https://github.com/AnEntrypoint/freddie/blob/main/src/cli/interactive.js","desc":"readline + slash commands"},{"label":"command registry","href":"https://github.com/AnEntrypoint/freddie/blob/main/src/commands/registry.js","desc":"slash command defs"}],"bodyHtml":"\u003ch2 id=\"all-commands\">all commands\u003c/h2>\n\u003cpre>\n/help                        Show available commands\n/quit                        Exit freddie\n/clear                       Clear conversation history\n/resume [session-id]         Resume a previous session\n/sessions                    List recent sessions\n/search &lt;query&gt;              Search messages full-text\n/background &lt;prompt&gt;         Run command in background\n/model [model]               Set or show current model\n/provider [provider]         Set or show current provider\n/toolsets                    List or toggle toolsets\n/tools                       List available tools\n/skills                      Skills hub: install, list, run\n/skill &lt;name&gt;                Run a skill by name\n/memory                      Memory provider commands\n/skin [name]                 Switch CLI skin\n/profile &lt;list|create|switch|delete&gt; Manage profiles\n/logs                        Tail logs\n/config [key] [value]        Show/set config values\n/status                      Agent + gateway status\n/copy                        Copy last response\n/paste                       Paste from clipboard\n/reset                       Reset session state\n\u003c/pre>","sidebar":null,"marquee":null,"panels":[],"quickstart":null,"statusLeft":null,"statusRight":null}</script>
 
 </head>
 <body>
@@ -115,6 +117,40 @@ function examplesNode(examples) {
   });
 }
 
+function panelNode(panel, idx) {
+  const items = Array.isArray(panel.items) ? panel.items : [];
+  if (!items.length) return null;
+  const rows = items.map((it, i) => {
+    const kids = [
+      h('span', { key: 'c', class: 'code' }, String(it.code || String(i + 1).padStart(2, '0'))),
+      h('span', { key: 't', class: 'title' }, String(it.title || it.name || '')),
+    ];
+    if (it.sub || it.desc) kids.push(h('span', { key: 'm', class: 'meta dim' }, ' — ' + (it.sub || it.desc)));
+    kids.push(h('span', { key: 'a', class: 'ds-row-arrow' }, it.meta || '->'));
+    return h('a', { key: i, class: 'row', href: it.href || '#' }, ...kids);
+  });
+  return C.Panel({ id: panel.id || null, title: panel.title || panel.name || '', count: panel.count || items.length, children: rows });
+}
+
+function marqueeNode(marquee) {
+  if (!marquee || !Array.isArray(marquee.items) || !marquee.items.length) return null;
+  return C.Marquee ? C.Marquee({ items: marquee.items, sep: marquee.sep || '/' }) : null;
+}
+
+function quickstartNode(quickstart) {
+  if (!quickstart || !Array.isArray(quickstart.lines) || !quickstart.lines.length) return null;
+  const lineNodes = quickstart.lines.map((l, i) => h('div', { key: 'q' + i, class: 'cli' },
+    h('span', { class: 'prompt' }, l.kind === 'cmt' ? '#' : '$'),
+    h('span', { class: 'cmd' }, l.text)
+  ));
+  return C.Panel({ title: quickstart.heading || 'quick start', children: h('div', { class: 'ds-quickstart' }, ...lineNodes) });
+}
+
+function sideNode(sidebar) {
+  if (!sidebar || !Array.isArray(sidebar.sections) || !sidebar.sections.length || !C.Side) return null;
+  return C.Side({ sections: sidebar.sections });
+}
+
 // minimal client-side markdown renderer matching server-side renderer (idempotent for already-html bodies)
 function __slug(s) { return String(s || '').trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-'); }
 function __md(md) {
@@ -140,7 +176,10 @@ const bodyNode = data.bodyHtml ? C.Section({ children: h('div', { class: 'page-b
 
 const mainChildren = [
   heroNode(data.hero),
+  marqueeNode(data.marquee),
   ...data.sections.map(sectionNode),
+  ...(data.panels || []).map(panelNode),
+  quickstartNode(data.quickstart),
   examplesNode(data.examples),
   bodyNode,
 ].filter(Boolean);
@@ -148,9 +187,14 @@ const mainChildren = [
 mount(document.getElementById('app'), () => C.AppShell({
   topbar: C.Topbar({ brand: data.siteName, items: data.navItems, active: data.title }),
   crumb: C.Crumb({ leaf: data.title }),
+  side: sideNode(data.sidebar),
   main: h('div', { class: 'app-stage' }, ...mainChildren),
-  status: C.Status({ left: [data.siteName.toLowerCase(), data.slug], right: ['live'] }),
+  status: C.Status({
+    left: data.statusLeft || [data.siteName.toLowerCase(), data.slug],
+    right: data.statusRight || ['live'],
+  }),
 }));
+
 </script>
 </body>
 </html>
