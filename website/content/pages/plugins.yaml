@@ -13,8 +13,8 @@ hero:
     - { label: "1 contract", desc: pi + gui }
     - { label: surface guard, desc: enforced at load }
   ctas:
-    - { label: contract source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/contract.js" }
-    - { label: host source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/host.js" }
+    - { label: contract source, href: "https://github.com/AnEntrypoint/freddie/blob/main/src/host/contract.js" }
+    - { label: host source, href: "https://github.com/AnEntrypoint/freddie/blob/main/src/host/host.js" }
 sections:
   - id: tool
     name: tools (68)

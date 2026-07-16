@@ -10,7 +10,7 @@ hero:
     - { label: "200L", desc: per-file cap }
     - { label: real services, desc: no mocks ever }
   ctas:
-    - { label: AGENTS.md, href: "https://github.com/AnEntrypoint/freddie/blob/master/AGENTS.md" }
+    - { label: AGENTS.md, href: "https://github.com/AnEntrypoint/freddie/blob/main/AGENTS.md" }
     - { label: open issues, href: "https://github.com/AnEntrypoint/freddie/issues" }
 sections:
   - id: when
@@ -95,9 +95,9 @@ sections:
       - name: 5 — push
         desc: ci runs test.js, builds the website, deploys to gh-pages.
 examples:
-  - { label: AGENTS.md, href: "https://github.com/AnEntrypoint/freddie/blob/master/AGENTS.md", desc: full agent guide }
-  - { label: test.js, href: "https://github.com/AnEntrypoint/freddie/blob/master/test.js", desc: 12 integration groups }
-  - { label: CHANGELOG.md, href: "https://github.com/AnEntrypoint/freddie/blob/master/CHANGELOG.md", desc: release history }
+  - { label: AGENTS.md, href: "https://github.com/AnEntrypoint/freddie/blob/main/AGENTS.md", desc: full agent guide }
+  - { label: test.js, href: "https://github.com/AnEntrypoint/freddie/blob/main/test.js", desc: 12 integration groups }
+  - { label: CHANGELOG.md, href: "https://github.com/AnEntrypoint/freddie/blob/main/CHANGELOG.md", desc: release history }
   - { label: open issues, href: "https://github.com/AnEntrypoint/freddie/issues", desc: where to start }
 body: |
   ## quick contributor checklist

@@ -10,7 +10,7 @@ hero:
     - { label: webhook, desc: catch-all }
     - { label: "REST + long-poll", desc: transports }
   ctas:
-    - { label: platform plugins, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins" }
+    - { label: platform plugins, href: "https://github.com/AnEntrypoint/freddie/tree/main/plugins" }
     - { label: how to add, href: "#how-to-add" }
 sections:
   - id: when
@@ -60,9 +60,9 @@ sections:
       - name: 5 — register the plugin
         desc: "`plugin.js` default-exports `{ name: 'platform-myname', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'myname', module }) } }`."
 examples:
-  - { label: platform plugins, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins", desc: every platform-* adapter }
-  - { label: telegram adapter, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/platform-telegram", desc: long-poll example }
-  - { label: webhook adapter, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/platform-webhook", desc: catch-all }
+  - { label: platform plugins, href: "https://github.com/AnEntrypoint/freddie/tree/main/plugins", desc: every platform-* adapter }
+  - { label: telegram adapter, href: "https://github.com/AnEntrypoint/freddie/tree/main/plugins/platform-telegram", desc: long-poll example }
+  - { label: webhook adapter, href: "https://github.com/AnEntrypoint/freddie/tree/main/plugins/platform-webhook", desc: catch-all }
 body: |
   ## starting the gateway
 

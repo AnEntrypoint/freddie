@@ -10,7 +10,7 @@ hero:
     - { label: "≤200L", desc: per file }
     - { label: xstate v5, desc: every long-lived machine }
   ctas:
-    - { label: AGENTS.md, href: "https://github.com/AnEntrypoint/freddie/blob/master/AGENTS.md" }
+    - { label: AGENTS.md, href: "https://github.com/AnEntrypoint/freddie/blob/main/AGENTS.md" }
 sections:
   - id: when
     name: when do you read this page?
@@ -122,9 +122,9 @@ sections:
       - name: skins
         desc: "`src/skin/engine.js` — built-in + user skins, hot-swap via `/skin <name>`."
 examples:
-  - { label: AGENTS.md, href: "https://github.com/AnEntrypoint/freddie/blob/master/AGENTS.md", desc: full subsystem deep dives }
-  - { label: src tree, href: "https://github.com/AnEntrypoint/freddie/tree/master/src", desc: code itself }
-  - { label: test.js, href: "https://github.com/AnEntrypoint/freddie/blob/master/test.js", desc: 200-line integration test }
+  - { label: AGENTS.md, href: "https://github.com/AnEntrypoint/freddie/blob/main/AGENTS.md", desc: full subsystem deep dives }
+  - { label: src tree, href: "https://github.com/AnEntrypoint/freddie/tree/main/src", desc: code itself }
+  - { label: test.js, href: "https://github.com/AnEntrypoint/freddie/blob/main/test.js", desc: 200-line integration test }
 body: |
   ## conventions
 
@@ -144,5 +144,5 @@ body: |
 
   ## further reading
 
-  - [AGENTS.md](https://github.com/AnEntrypoint/freddie/blob/master/AGENTS.md) — subsystem deep dive.
-  - [CHANGELOG.md](https://github.com/AnEntrypoint/freddie/blob/master/CHANGELOG.md) — release history.
+  - [AGENTS.md](https://github.com/AnEntrypoint/freddie/blob/main/AGENTS.md) — subsystem deep dive.
+  - [CHANGELOG.md](https://github.com/AnEntrypoint/freddie/blob/main/CHANGELOG.md) — release history.
