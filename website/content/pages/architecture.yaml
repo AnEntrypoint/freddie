@@ -112,8 +112,8 @@ sections:
       - name: debug registry
         desc: "`src/observability/debug.js` — `register(name, snapshotFn)` + `/api/debug` aggregator."
   - id: home
-    name: home + profiles + config
-    lede: profile-aware home, durable config with migrations.
+    name: home + profiles + config + projects
+    lede: profile-aware home, durable config with migrations, isolated multi-project workspaces.
     features:
       - name: home
         desc: "`src/home.js` — `getFreddieHome()`, `applyProfileOverride()`, profile-safe paths."
@@ -121,6 +121,18 @@ sections:
         desc: "`src/config.js` — `loadConfig()`, `saveConfigValue()`, `_config_version` migrations."
       - name: skins
         desc: "`src/skin/engine.js` — built-in + user skins, hot-swap via `/skin <name>`."
+      - name: projects
+        desc: "`src/projects.js` — multi-project registry (`~/.freddie/projects.json`); each project gets an isolated `FREDDIE_HOME` (own sessions DB, config, plugins, cron.db, auth.json). `freddie project list|create|use|rm|current`."
+  - id: llm-resolver
+    name: llm resolver
+    lede: one call site, five-step priority chain, acptoapi does the actual routing.
+    features:
+      - name: resolver
+        desc: "`src/agent/llm_resolver.js` — thin shim over `acptoapi.chat`. Priority: explicit provider+key -> acptoapi /v1/models reachable -> `agent.model_preference` config array -> `acptoapi.buildAutoChain()` env-key scan -> throw."
+      - name: bridge
+        desc: "`src/agent/acptoapi-bridge.js` — HTTP passthrough to a `FREDDIE_LLM_URL` daemon when reachable, for OAuth-managed providers like `claude/*`."
+      - name: no reimplementation
+        desc: chain fallback, sampler backoff, and matrix-aware scoring all live in acptoapi — freddie never reimplements them locally.
 examples:
   - { label: AGENTS.md, href: "https://github.com/AnEntrypoint/freddie/blob/main/AGENTS.md", desc: full subsystem deep dives }
   - { label: src tree, href: "https://github.com/AnEntrypoint/freddie/tree/main/src", desc: code itself }
