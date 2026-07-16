@@ -65,11 +65,16 @@ export function makePi() {
 }
 
 export function makeGui() {
-    const r=[], pages=new Map(), nav=[], debugs=new Map(), apis=new Map(), assets=new Map()
+    const r=[], pages=new Map(), nav=[], debugs=new Map(), apis=new Map(), assets=new Map(), wsRoutes=new Map()
     return {
-        _state: { routes:r, pages, nav, debugs, apis, assets },
+        _state: { routes:r, pages, nav, debugs, apis, assets, wsRoutes },
         route:(method,p,h)=>r.push({method:method.toUpperCase(),path:p,handler:h}),
         unroute:(method,p)=>{ const i = r.findIndex(x=>x.method===method.toUpperCase()&&x.path===p); if (i===-1) return false; r.splice(i,1); return true },
+        // Raw WebSocket upgrade route -- separate from route()/unroute() since
+        // Express has no native upgrade handling; src/web/server.js wires
+        // these onto the real http.Server's 'upgrade' event via the ws
+        // package's noServer mode, matched by exact pathname.
+        wsRoute:(p,onConnection)=>wsRoutes.set(p,onConnection),
         page:(s,d)=>pages.set(s,d), nav:(i)=>nav.push(i),
         debug:(n,fn)=>debugs.set(n,fn), api:(g,d)=>apis.set(g,d), asset:(p,c)=>assets.set(p,c),
         routes:{ list:()=>r }, pages:{ get:(s)=>pages.get(s), list:()=>[...pages.values()], has:(s)=>pages.has(s) },
