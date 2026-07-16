@@ -5,7 +5,7 @@ import { createHost as createPluginHost } from 'plugsdk'
 import { validatePlugin, topoSort, PI_VERBS, GUI_VERBS } from './contract.js'
 import { makePi, makeGui, guard, scopedCfg, nullStore, makeCcHooks, makeHooksRegistry, makeCcLoaders } from './host_helpers.js'
 
-function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities }) {
+function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed }) {
     return async function load(plugins) {
         const sorted = topoSort(plugins.map(validatePlugin))
         for (const p of sorted) {
@@ -17,9 +17,24 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
             const log = (lv, m, f) => { const line = JSON.stringify({ ts: Date.now(), plugin: p.name, level: lv, msg: m, ...(f || {}) }); if (env.FREDDIE_LOG_STDOUT) console.log(line) }
             const logger = { info:(m,f)=>log('info',m,f), warn:(m,f)=>log('warn',m,f), error:(m,f)=>log('error',m,f) }
             const ctx = { pi: ctxPi, gui: ctxGui, hooks: ctxHooks, log: logger, config: scopedCfg(p.name, configStore), host, env }
-            await p.register(ctx)
-            loaded.push(p)
-            capabilities.set(p.name, cap)
+            try {
+                await p.register(ctx)
+                loaded.push(p)
+                capabilities.set(p.name, cap)
+            } catch (e) {
+                // One bad plugin must not crash boot for every plugin after it in
+                // topo order -- capture context for /debug inspection, log loud, and
+                // keep loading the rest.
+                const entry = {
+                    plugin: p.name,
+                    error: String(e?.message || e),
+                    stack: e?.stack || null,
+                    config: scopedCfg(p.name, configStore).all(),
+                    env_keys_present: Object.keys(process.env).filter(k => k.startsWith('FREDDIE_')),
+                }
+                failed.push(entry)
+                logger.error(`plugin register() threw: ${entry.error}`, { stack: entry.stack })
+            }
         }
         return loaded.length
     }
@@ -48,6 +63,7 @@ export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(),
     const hooks = makeHooksRegistry(ccHost)
     const loaded = []
     const capabilities = new Map()
+    const failed = []
     const host = {
         pi: surfaces.includes('pi') ? pi : null,
         gui: surfaces.includes('gui') ? gui : null,
@@ -58,9 +74,10 @@ export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(),
         plugins: () => loaded.map(p => ({ name: p.name, version: p.version || null, surfaces: p.surfaces, requires: p.requires || [] })),
         get: (n) => loaded.find(p => p.name === n) || null,
         capabilities: (n) => n ? (capabilities.get(n) || null) : Object.fromEntries(capabilities),
+        failedPlugins: () => failed.slice(),
         shutdown: () => ccHost.shutdown(),
     }
-    host.load = makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities })
+    host.load = makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed })
     const cc = makeCcLoaders(ccHost, env)
     host.loadCcPlugins = cc.loadCcPlugins
     host.loadCcFromNodeModules = cc.loadCcFromNodeModules
