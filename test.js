@@ -63,7 +63,12 @@ await T('host+tools+toolsets', async () => {
     const names = h.pi.tools.list().map(t => t.name); assert.ok(names.length >= 50, 'tool count: ' + names.length)
     for (const n of 'bash,read,write,edit,grep,todo,memory,delegate,browser,approval,checkpoint,clarify,code_execution,cronjob,send_message,session_search,terminal,skill_manager,vision,tts,mixture_of_agents,osv_check,schema_sanitizer,mcp_tool,file_operations,patch_parser,tool_output_limits,file_state,skill_usage'.split(',')) assert.ok(names.includes(n), n)
     const { createHost } = await import('./src/host/host.js'); const E = async (fn, re) => { try { await fn() } catch (e) { return re.test(e.message) } return false }
-    assert.ok(await E(() => createHost({ surfaces: ['pi','gui'] }).load([{ name:'p', surfaces:'pi', register({gui}){gui.route('GET','/x',()=>{})} }]), /not allowed/), 'surface guard')
+    // Surface-guard violations are caught by the error boundary (one bad
+    // plugin must not crash boot for every plugin after it) rather than
+    // thrown -- assert the violation is captured in failedPlugins() instead.
+    const guardHost = createHost({ surfaces: ['pi','gui'] })
+    await guardHost.load([{ name:'p', surfaces:'pi', register({gui}){gui.route('GET','/x',()=>{})} }])
+    assert.match(guardHost.failedPlugins()[0]?.error || '', /not allowed/, 'surface guard captured in failedPlugins')
     assert.ok(await E(() => createHost({ surfaces:['pi'] }).load([{name:'a',surfaces:'pi',requires:['b'],register(){}},{name:'b',surfaces:'pi',requires:['a'],register(){}}]), /cycle/), 'cycle')
     assert.ok(h.plugins().length >= 100 && h.pi.platforms.list().length >= 18 && h.pi.memory.list().length >= 8, 'plugin counts: ' + JSON.stringify({ p: h.plugins().length, pl: h.pi.platforms.list().length, mm: h.pi.memory.list().length }))
     const D = (n, a) => h.pi.dispatchTool(n, a).then(r => { try { return JSON.parse(r) } catch { return r } }); const tf = path.join(TEST_HOME, 'tf.txt'); const tf2 = path.join(TEST_HOME, 'tf2.txt')
