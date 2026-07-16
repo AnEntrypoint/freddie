@@ -5,6 +5,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { validatePlugin } from '../../src/host/contract.js'
+import { validatePluginManifest } from '../../src/host/host_helpers.js'
 
 async function loadCandidate(dir) {
     const pluginFile = path.join(dir, 'plugin.js')
@@ -42,6 +43,16 @@ export default {
                 } catch (e) {
                     console.log(`FAIL  ${dir}\n  ${e.message}`)
                     process.exitCode = 1
+                    return
+                }
+                const manifestPath = path.join(dir, 'plugin.json')
+                if (fs.existsSync(manifestPath)) {
+                    let manifest
+                    try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) }
+                    catch (e) { console.log(`FAIL  ${manifestPath}\n  invalid JSON: ${e.message}`); process.exitCode = 1; return }
+                    const { valid, errors } = validatePluginManifest(manifest)
+                    if (valid) console.log(`OK    ${manifestPath}  (manifest)`)
+                    else { console.log(`FAIL  ${manifestPath}\n  ${errors.join('\n  ')}`); process.exitCode = 1 }
                 }
             },
         })

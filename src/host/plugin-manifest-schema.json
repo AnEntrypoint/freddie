@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://freddie.dev/schemas/plugin-manifest.json",
+  "title": "Freddie plugin.json manifest",
+  "description": "Optional manifest sitting alongside a plugin's plugin.js/handler.js. Describes the plugin for discovery/marketplace tooling -- freddie itself only reads the feature_flag field (src/host/host.js isFlagDisabled) at load-gate time; every other field here is descriptive metadata consumed by validatePluginManifest()/plugin-install-cli/plugin-certification-badges.",
+  "type": "object",
+  "required": ["name", "version"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "description": "Plugin directory name / registration name, kebab-case."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+      "description": "Semver version string."
+    },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["tool", "env", "command", "cron", "platform", "memory", "skill", "context", "agentExt", "cli", "route", "page", "nav", "debug", "api", "asset"] },
+      "description": "Which PI_VERBS/GUI_VERBS (src/host/contract.js) this plugin registers against."
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Other freddie plugin names this plugin's register() calls host.get()/requires on. Distinct from the real plugin.js 'requires' array (that one is load-order-enforced by topoSort at boot); this is descriptive-only for marketplace/install tooling."
+    },
+    "safety_rating": {
+      "type": "string",
+      "enum": ["community", "certified", "experimental"],
+      "description": "Mechanically-derived badge tier (see plugin-certification-badges row) -- never a hand-asserted claim; install/validate tooling recomputes this from real checks."
+    },
+    "feature_flag": {
+      "type": "string",
+      "description": "Name checked against src/flags.js isFlagEnabled() at discovery time (src/host/host.js isFlagDisabled) -- the ONE field freddie's own loader reads. Absent means no gate."
+    },
+    "registry_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Optional self-hostable static JSON index URL this plugin's updates can be fetched from (see plugin-registry-backend-design row)."
+    }
+  },
+  "additionalProperties": true
+}
