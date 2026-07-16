@@ -12,7 +12,9 @@
     "./browser": {
       "browser": "./dist/browser/freddie.js",
       "default": "./src/browser/index.js"
-    }
+    },
+    "./plugins/*": "./plugins/*",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "start": "node bin/freddie.js",
