@@ -10,7 +10,7 @@ hero:
     - { label: SKILL.md, desc: portable format }
     - { label: "~/.freddie/skills/", desc: user-extensible }
   ctas:
-    - { label: bundled tree, href: "https://github.com/AnEntrypoint/freddie/tree/master/skills" }
+    - { label: bundled tree, href: "https://github.com/AnEntrypoint/freddie/tree/main/skills" }
     - { label: write your own, href: "#how-to-write" }
 sections:
   - id: when
@@ -66,9 +66,9 @@ sections:
       - name: 4 — invoke
         desc: "`/skill <name>` in the repl, or `freddie skill <name>` from the cli, or call the `skill` tool from another turn."
 examples:
-  - { label: bundled tree, href: "https://github.com/AnEntrypoint/freddie/tree/master/skills", desc: 5 categories }
-  - { label: skill loader, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/skills/index.js", desc: how discovery works }
-  - { label: skill plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/gm-skill", desc: invocation }
+  - { label: bundled tree, href: "https://github.com/AnEntrypoint/freddie/tree/main/skills", desc: 5 categories }
+  - { label: skill loader, href: "https://github.com/AnEntrypoint/freddie/blob/main/src/skills/index.js", desc: how discovery works }
+  - { label: skill plugin, href: "https://github.com/AnEntrypoint/freddie/tree/main/plugins/gm-skill", desc: invocation }
 body: |
   ## SKILL.md shape
 

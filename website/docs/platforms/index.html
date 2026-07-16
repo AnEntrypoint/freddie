@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Platforms — Freddie</title>
+
+
 <link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
 <script type="importmap">
 { "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
@@ -46,7 +48,7 @@ a.row:hover .ds-row-arrow { opacity: 1 }
 .ds-feature-desc { font-size: var(--fs-sm, 15px); color: var(--fg-2); line-height: 1.5; overflow-wrap: anywhere }
 .ds-feature-benefit { font-style: italic; font-size: var(--fs-sm, 15px); color: var(--fg-3); margin-top: var(--space-1, 4px) }
 </style>
-<script id="__site__" type="application/json">{"title":"Platforms","slug":"platforms","siteName":"Freddie","navItems":[["Home","/freddie/"],["Plugins","/freddie/plugins/"],["Architecture","/freddie/architecture/"],["CLI","/freddie/cli/"],["Tools","/freddie/tools/"],["Platforms","/freddie/platforms/"],["Skills","/freddie/skills/"],["Development","/freddie/development/"]],"theme":"auto","hero":{"heading":"platforms","subheading":"16 functional gateway adapters — meet your users where they are","accent":"same agent, sixteen surfaces.","body":"every adapter extends EventEmitter, exposes `getRequiredEnv()`, emits `'message'` events. drop credentials in env, start the gateway, the agent talks to your users on whichever channel they prefer. inbound webhooks fan in to one loop. outbound replies fan back out.","badges":[{"label":"16","desc":"production adapters"},{"label":"webhook","desc":"catch-all"},{"label":"REST + long-poll","desc":"transports"}],"ctas":[{"label":"platform plugins","href":"https://github.com/AnEntrypoint/freddie/tree/master/plugins"},{"label":"how to add","href":"#how-to-add"}]},"sections":[{"id":"when","name":"when do you turn on a platform?","lede":"platforms are opt-in by env. set the credentials, the gateway lights up. omit them, the adapter quietly stays dark.","features":[{"name":"chat","desc":"telegram, discord, slack, matrix, signal, mattermost, zulip — for community ops, support, devrel.","benefit":"one bot persona across every chat your team uses."},{"name":"messaging","desc":"whatsapp (meta graph), sms (twilio), email (raw smtp) — for transactional + 1:1 user reach.","benefit":"hit users on rails they already check."},{"name":"enterprise","desc":"dingtalk, feishu, wechat, wecom, qq — for asia-pacific deployments.","benefit":"regional reach without rebuilding the agent."},{"name":"other","desc":"bluebubbles (imessage relay), home assistant, generic webhook, api server — long-tail integrations.","benefit":"anything that speaks http can wire in via the webhook adapter."}]},{"id":"why","name":"why one gateway, not n bots?","lede":"every adapter is the same shape. the gateway is one express server with n adapter mounts.","features":[{"name":"one process, n surfaces","desc":"gateway boots once. each adapter mounts its routes (webhook) or starts its long-poll loop (telegram, matrix). all inbound messages route to one agent loop.","benefit":"one log, one config, one deploy. no fanout deployment headache."},{"name":"hooks for filtering and rate limits","desc":"per-platform hook chain runs before the agent sees a message. drop, transform, throttle, redact.","benefit":"spam control + abuse prevention without touching the agent code."},{"name":"outbound buffer","desc":"api_server adapter lets pull-based clients (mobile, embedded) poll for replies via `GET /messages`.","benefit":"works behind nat, no inbound port required."},{"name":"env-gated start","desc":"every adapter throws on `start()` if required credentials are absent. the gateway logs which adapters started, which were skipped.","benefit":"clear startup line shows you exactly what's live and what's missing."}]},{"id":"how-to-add","name":"how do I add a platform?","lede":"create `plugins/platform-\u003cname>/{plugin,handler}.js` — a class ending in `Adapter` plus `pi.platforms.register`.","features":[{"name":"1 — extend EventEmitter","desc":"in `handler.js`, `export class MynameAdapter extends EventEmitter`. the class name MUST end in `Adapter` so the gateway resolves it."},{"name":"2 — declare credentials","desc":"`getRequiredEnv() { return ['MY_TOKEN'] }`"},{"name":"3 — implement lifecycle","desc":"`async start()`, `async stop()`, `async send(recipient, content)`"},{"name":"4 — emit messages","desc":"`this.emit('message', { recipient, content, raw })` on inbound"},{"name":"5 — register the plugin","desc":"`plugin.js` default-exports `{ name: 'platform-myname', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'myname', module }) } }`."}]}],"examples":[{"label":"platform plugins","href":"https://github.com/AnEntrypoint/freddie/tree/master/plugins","desc":"every platform-* adapter"},{"label":"telegram adapter","href":"https://github.com/AnEntrypoint/freddie/tree/master/plugins/platform-telegram","desc":"long-poll example"},{"label":"webhook adapter","href":"https://github.com/AnEntrypoint/freddie/tree/master/plugins/platform-webhook","desc":"catch-all"}],"bodyHtml":"\u003ch2 id=\"starting-the-gateway\">starting the gateway\u003c/h2>\n\u003cpre>\nexport TELEGRAM_BOT_TOKEN=&lt;token&gt;\nexport DISCORD_BOT_TOKEN=&lt;token&gt;\nnode bin/freddie.js gateway --port 3001\n\u003c/pre>\n\u003cp>the gateway logs which adapters lit up and which stayed dark for missing credentials.\u003c/p>\n\u003ch2 id=\"inspecting-required-env-per-adapter\">inspecting required env per adapter\u003c/h2>\n\u003cpre>\nimport { TelegramAdapter } from &#39;./plugins/platform-telegram/handler.js&#39;\nnew TelegramAdapter({}).getRequiredEnv()\n// [&#39;TELEGRAM_BOT_TOKEN&#39;]\n\u003c/pre>\n\u003ch2 id=\"hooks\">hooks\u003c/h2>\n\u003cp>install hooks via \u003ccode>gateway.use(fn)\u003c/code>. each hook is \u003ccode>async (msg, next) =&gt; ...\u003c/code> and can drop, mutate, or throttle before the agent sees the message.\u003c/p>"}</script>
+<script id="__site__" type="application/json">{"title":"Platforms","slug":"platforms","siteName":"Freddie","navItems":[["Home","/freddie/"],["Plugins","/freddie/plugins/"],["Architecture","/freddie/architecture/"],["CLI","/freddie/cli/"],["Tools","/freddie/tools/"],["Platforms","/freddie/platforms/"],["Skills","/freddie/skills/"],["Development","/freddie/development/"]],"theme":"auto","hero":{"heading":"platforms","subheading":"16 functional gateway adapters — meet your users where they are","accent":"same agent, sixteen surfaces.","body":"every adapter extends EventEmitter, exposes `getRequiredEnv()`, emits `'message'` events. drop credentials in env, start the gateway, the agent talks to your users on whichever channel they prefer. inbound webhooks fan in to one loop. outbound replies fan back out.","badges":[{"label":"16","desc":"production adapters"},{"label":"webhook","desc":"catch-all"},{"label":"REST + long-poll","desc":"transports"}],"ctas":[{"label":"platform plugins","href":"https://github.com/AnEntrypoint/freddie/tree/main/plugins"},{"label":"how to add","href":"#how-to-add"}]},"sections":[{"id":"when","name":"when do you turn on a platform?","lede":"platforms are opt-in by env. set the credentials, the gateway lights up. omit them, the adapter quietly stays dark.","features":[{"name":"chat","desc":"telegram, discord, slack, matrix, signal, mattermost, zulip — for community ops, support, devrel.","benefit":"one bot persona across every chat your team uses."},{"name":"messaging","desc":"whatsapp (meta graph), sms (twilio), email (raw smtp) — for transactional + 1:1 user reach.","benefit":"hit users on rails they already check."},{"name":"enterprise","desc":"dingtalk, feishu, wechat, wecom, qq — for asia-pacific deployments.","benefit":"regional reach without rebuilding the agent."},{"name":"other","desc":"bluebubbles (imessage relay), home assistant, generic webhook, api server — long-tail integrations.","benefit":"anything that speaks http can wire in via the webhook adapter."}]},{"id":"why","name":"why one gateway, not n bots?","lede":"every adapter is the same shape. the gateway is one express server with n adapter mounts.","features":[{"name":"one process, n surfaces","desc":"gateway boots once. each adapter mounts its routes (webhook) or starts its long-poll loop (telegram, matrix). all inbound messages route to one agent loop.","benefit":"one log, one config, one deploy. no fanout deployment headache."},{"name":"hooks for filtering and rate limits","desc":"per-platform hook chain runs before the agent sees a message. drop, transform, throttle, redact.","benefit":"spam control + abuse prevention without touching the agent code."},{"name":"outbound buffer","desc":"api_server adapter lets pull-based clients (mobile, embedded) poll for replies via `GET /messages`.","benefit":"works behind nat, no inbound port required."},{"name":"env-gated start","desc":"every adapter throws on `start()` if required credentials are absent. the gateway logs which adapters started, which were skipped.","benefit":"clear startup line shows you exactly what's live and what's missing."}]},{"id":"how-to-add","name":"how do I add a platform?","lede":"create `plugins/platform-\u003cname>/{plugin,handler}.js` — a class ending in `Adapter` plus `pi.platforms.register`.","features":[{"name":"1 — extend EventEmitter","desc":"in `handler.js`, `export class MynameAdapter extends EventEmitter`. the class name MUST end in `Adapter` so the gateway resolves it."},{"name":"2 — declare credentials","desc":"`getRequiredEnv() { return ['MY_TOKEN'] }`"},{"name":"3 — implement lifecycle","desc":"`async start()`, `async stop()`, `async send(recipient, content)`"},{"name":"4 — emit messages","desc":"`this.emit('message', { recipient, content, raw })` on inbound"},{"name":"5 — register the plugin","desc":"`plugin.js` default-exports `{ name: 'platform-myname', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'myname', module }) } }`."}]}],"examples":[{"label":"platform plugins","href":"https://github.com/AnEntrypoint/freddie/tree/main/plugins","desc":"every platform-* adapter"},{"label":"telegram adapter","href":"https://github.com/AnEntrypoint/freddie/tree/main/plugins/platform-telegram","desc":"long-poll example"},{"label":"webhook adapter","href":"https://github.com/AnEntrypoint/freddie/tree/main/plugins/platform-webhook","desc":"catch-all"}],"bodyHtml":"\u003ch2 id=\"starting-the-gateway\">starting the gateway\u003c/h2>\n\u003cpre>\nexport TELEGRAM_BOT_TOKEN=&lt;token&gt;\nexport DISCORD_BOT_TOKEN=&lt;token&gt;\nnode bin/freddie.js gateway --port 3001\n\u003c/pre>\n\u003cp>the gateway logs which adapters lit up and which stayed dark for missing credentials.\u003c/p>\n\u003ch2 id=\"inspecting-required-env-per-adapter\">inspecting required env per adapter\u003c/h2>\n\u003cpre>\nimport { TelegramAdapter } from &#39;./plugins/platform-telegram/handler.js&#39;\nnew TelegramAdapter({}).getRequiredEnv()\n// [&#39;TELEGRAM_BOT_TOKEN&#39;]\n\u003c/pre>\n\u003ch2 id=\"hooks\">hooks\u003c/h2>\n\u003cp>install hooks via \u003ccode>gateway.use(fn)\u003c/code>. each hook is \u003ccode>async (msg, next) =&gt; ...\u003c/code> and can drop, mutate, or throttle before the agent sees the message.\u003c/p>","sidebar":null,"marquee":null,"panels":[],"quickstart":null,"statusLeft":null,"statusRight":null}</script>
 
 </head>
 <body>
@@ -115,6 +117,40 @@ function examplesNode(examples) {
   });
 }
 
+function panelNode(panel, idx) {
+  const items = Array.isArray(panel.items) ? panel.items : [];
+  if (!items.length) return null;
+  const rows = items.map((it, i) => {
+    const kids = [
+      h('span', { key: 'c', class: 'code' }, String(it.code || String(i + 1).padStart(2, '0'))),
+      h('span', { key: 't', class: 'title' }, String(it.title || it.name || '')),
+    ];
+    if (it.sub || it.desc) kids.push(h('span', { key: 'm', class: 'meta dim' }, ' — ' + (it.sub || it.desc)));
+    kids.push(h('span', { key: 'a', class: 'ds-row-arrow' }, it.meta || '->'));
+    return h('a', { key: i, class: 'row', href: it.href || '#' }, ...kids);
+  });
+  return C.Panel({ id: panel.id || null, title: panel.title || panel.name || '', count: panel.count || items.length, children: rows });
+}
+
+function marqueeNode(marquee) {
+  if (!marquee || !Array.isArray(marquee.items) || !marquee.items.length) return null;
+  return C.Marquee ? C.Marquee({ items: marquee.items, sep: marquee.sep || '/' }) : null;
+}
+
+function quickstartNode(quickstart) {
+  if (!quickstart || !Array.isArray(quickstart.lines) || !quickstart.lines.length) return null;
+  const lineNodes = quickstart.lines.map((l, i) => h('div', { key: 'q' + i, class: 'cli' },
+    h('span', { class: 'prompt' }, l.kind === 'cmt' ? '#' : '$'),
+    h('span', { class: 'cmd' }, l.text)
+  ));
+  return C.Panel({ title: quickstart.heading || 'quick start', children: h('div', { class: 'ds-quickstart' }, ...lineNodes) });
+}
+
+function sideNode(sidebar) {
+  if (!sidebar || !Array.isArray(sidebar.sections) || !sidebar.sections.length || !C.Side) return null;
+  return C.Side({ sections: sidebar.sections });
+}
+
 // minimal client-side markdown renderer matching server-side renderer (idempotent for already-html bodies)
 function __slug(s) { return String(s || '').trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-'); }
 function __md(md) {
@@ -140,7 +176,10 @@ const bodyNode = data.bodyHtml ? C.Section({ children: h('div', { class: 'page-b
 
 const mainChildren = [
   heroNode(data.hero),
+  marqueeNode(data.marquee),
   ...data.sections.map(sectionNode),
+  ...(data.panels || []).map(panelNode),
+  quickstartNode(data.quickstart),
   examplesNode(data.examples),
   bodyNode,
 ].filter(Boolean);
@@ -148,9 +187,14 @@ const mainChildren = [
 mount(document.getElementById('app'), () => C.AppShell({
   topbar: C.Topbar({ brand: data.siteName, items: data.navItems, active: data.title }),
   crumb: C.Crumb({ leaf: data.title }),
+  side: sideNode(data.sidebar),
   main: h('div', { class: 'app-stage' }, ...mainChildren),
-  status: C.Status({ left: [data.siteName.toLowerCase(), data.slug], right: ['live'] }),
+  status: C.Status({
+    left: data.statusLeft || [data.siteName.toLowerCase(), data.slug],
+    right: data.statusRight || ['live'],
+  }),
 }));
+
 </script>
 </body>
 </html>

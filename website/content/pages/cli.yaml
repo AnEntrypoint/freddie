@@ -12,8 +12,8 @@ hero:
     - { label: "5", desc: categories }
     - { label: registry-driven, desc: single source of truth }
   ctas:
-    - { label: bin/freddie.js, href: "https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js" }
-    - { label: command registry, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/commands/registry.js" }
+    - { label: bin/freddie.js, href: "https://github.com/AnEntrypoint/freddie/blob/main/bin/freddie.js" }
+    - { label: command registry, href: "https://github.com/AnEntrypoint/freddie/blob/main/src/commands/registry.js" }
 sections:
   - id: info
     name: "Info"
@@ -102,9 +102,9 @@ sections:
         desc: "Run a skill by name"
         benefit: "cli + gateway"
 examples:
-  - { label: bin/freddie.js, href: "https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js", desc: commander entry }
-  - { label: interactive repl, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/cli/interactive.js", desc: readline + slash commands }
-  - { label: command registry, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/commands/registry.js", desc: slash command defs }
+  - { label: bin/freddie.js, href: "https://github.com/AnEntrypoint/freddie/blob/main/bin/freddie.js", desc: commander entry }
+  - { label: interactive repl, href: "https://github.com/AnEntrypoint/freddie/blob/main/src/cli/interactive.js", desc: readline + slash commands }
+  - { label: command registry, href: "https://github.com/AnEntrypoint/freddie/blob/main/src/commands/registry.js", desc: slash command defs }
 body: |
   ## all commands
 
