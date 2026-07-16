@@ -23,11 +23,18 @@ function redactSensitive(context) {
 
 // machine: an xstate machine. kind+key: snapshot identity. input: actor input
 // (used only on a fresh start — a rehydrated actor restores its own context).
-// onTransition: optional callback per snapshot.
-export async function createPersistentActor(machine, { kind, key, input, onTransition } = {}) {
+// onTransition: optional callback per snapshot. store: optional alternate
+// snapshot store (see snapshot-store.js's createLibsqlSnapshotStore contract
+// comment for the persist/load/clear guarantees an alternate implementation
+// must provide) — when omitted, defaults to the libsql-backed persist/load/
+// clear functions imported above, so every existing caller is unaffected.
+export async function createPersistentActor(machine, { kind, key, input, onTransition, store } = {}) {
     if (!kind || !key) throw new Error('createPersistentActor requires kind and key')
+    const persistFn = store?.persist || persist
+    const loadFn = store?.load || load
+    const clearFn = store?.clear || clear
     const machineId = machine?.id || machine?.config?.id || null
-    const snapshot = await load(kind, key, { machineId })
+    const snapshot = await loadFn(kind, key, { machineId })
     const resumed = !!snapshot
 
     // xstate v5's snapshot object carries no reference to the event that
@@ -60,10 +67,10 @@ export async function createPersistentActor(machine, { kind, key, input, onTrans
             try {
                 const ps = actor.getPersistedSnapshot()
                 if (snap.status === 'active') {
-                    await persist(kind, key, ps, { machineId })
+                    await persistFn(kind, key, ps, { machineId })
                 } else {
                     // Final/stopped: clear so a completed actor never resurrects on boot.
-                    await clear(kind, key)
+                    await clearFn(kind, key)
                 }
                 onTransition?.(snap)
             } catch (e) {
@@ -82,6 +89,6 @@ export async function createPersistentActor(machine, { kind, key, input, onTrans
         // the final snapshot state is durable.
         async flush() { await persisting; try { sub.unsubscribe() } catch {} },
         // Clear this actor's snapshot explicitly (e.g. on external cancel).
-        async forget() { await persisting; try { sub.unsubscribe() } catch {}; await clear(kind, key) },
+        async forget() { await persisting; try { sub.unsubscribe() } catch {}; await clearFn(kind, key) },
     }
 }

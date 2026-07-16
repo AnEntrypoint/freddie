@@ -2,6 +2,7 @@ import express from 'express'
 import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { WebSocketServer } from 'ws'
 import { bootHost } from '../host/index.js'
 import { logger } from '../observability/log.js'
 
@@ -75,5 +76,18 @@ export async function createDashboard({ port = 0 } = {}) {
         res.set('Cache-Control', 'no-cache').sendFile(path.join(__dirname, 'index.html'))
     })
     const { server, actualPort } = await new Promise((res, rej) => { const s = app.listen(port, () => { const a = s.address(); res({ server: s, actualPort: a && typeof a === 'object' ? a.port : port }) }); s.once('error', rej) })
+
+    // Raw WebSocket upgrade routes (host.gui.wsRoute) -- ws in noServer mode,
+    // matched by exact pathname against the real http.Server's 'upgrade'
+    // event. Unmatched paths get their socket destroyed rather than hanging.
+    const wsRoutes = host.gui._state.wsRoutes
+    const wss = new WebSocketServer({ noServer: true })
+    server.on('upgrade', (req, socket, head) => {
+        const pathname = new URL(req.url, 'http://internal').pathname
+        const onConnection = wsRoutes.get(pathname)
+        if (!onConnection) { socket.destroy(); return }
+        wss.handleUpgrade(req, socket, head, (ws) => onConnection(ws, req))
+    })
+
     return { server, port: actualPort, url: `http://127.0.0.1:${actualPort}/`, stop: () => new Promise(r => server.close(() => r())) }
 }
