@@ -1,11 +1,12 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class HomeassistantAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'homeassistant'
-        this.token = opts.token || process.env.HASS_TOKEN
+        this.token = opts.token || env('HASS_TOKEN')
         this.port = opts.port || 0
         this.api = opts.api || "http://homeassistant.local:8123/api/services/notify/notify"
         this._server = null

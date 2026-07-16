@@ -1,7 +1,9 @@
+import { env } from '../../src/env.js'
+
 export class OpenvikingMemory {
     constructor(opts = {}) {
         this.name = 'openviking'
-        this.apiKey = opts.apiKey || process.env.OPENVIKING_API_KEY
+        this.apiKey = opts.apiKey || env('OPENVIKING_API_KEY')
         this.base = opts.base || "https://api.openviking.com"
         this.userId = opts.userId || 'default'
     }

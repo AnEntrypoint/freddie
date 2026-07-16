@@ -1,7 +1,8 @@
 import { getAuthStore } from '../auth.js'
+import { env } from '../env.js'
 const KEY = 'NOUS_API_KEY'
 export async function nousStatus() {
-    const k = process.env.NOUS_API_KEY || (await getAuthStore().getCredential(KEY))?.value
+    const k = env('NOUS_API_KEY') || (await getAuthStore().getCredential(KEY))?.value
     if (!k) return { active: false, hint: 'freddie nous-subscription set <key>' }
     try {
         const r = await fetch('https://api.nousresearch.com/v1/me', { headers: { authorization: 'Bearer ' + k } })

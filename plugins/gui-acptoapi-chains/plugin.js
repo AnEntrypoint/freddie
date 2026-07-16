@@ -2,6 +2,7 @@
 // through freddie's GUI API so the dashboard can manage named fallback chains
 // without thebird talking directly to acptoapi.
 import { getAcptoapiUrl } from '../../src/agent/acptoapi-bridge.js'
+import { env } from '../../src/env.js'
 
 function base() { return getAcptoapiUrl().replace(/\/v1\/?$/, '') }
 const HDR = () => ({ 'content-type': 'application/json', authorization: 'Bearer none' })
@@ -64,12 +65,12 @@ export default {
         gui.route('GET', '/api/acptoapi/config', (_, res) => {
             res.json({
                 url: base(),
-                model: process.env.FREDDIE_LLM_MODEL || 'claude/haiku',
+                model: env('FREDDIE_LLM_MODEL') || 'claude/haiku',
                 envHints: {
-                    FREDDIE_LLM_URL: process.env.FREDDIE_LLM_URL || null,
-                    FREDDIE_LLM_MODEL: process.env.FREDDIE_LLM_MODEL || null,
-                    ACPTOAPI_LIVE_PROBE: process.env.ACPTOAPI_LIVE_PROBE || null,
-                    ACPTOAPI_PROBE_CAP: process.env.ACPTOAPI_PROBE_CAP || null,
+                    FREDDIE_LLM_URL: env('FREDDIE_LLM_URL') || null,
+                    FREDDIE_LLM_MODEL: env('FREDDIE_LLM_MODEL') || null,
+                    ACPTOAPI_LIVE_PROBE: env('ACPTOAPI_LIVE_PROBE') || null,
+                    ACPTOAPI_PROBE_CAP: env('ACPTOAPI_PROBE_CAP') || null,
                 },
             })
         })

@@ -1,7 +1,9 @@
+import { env } from '../../src/env.js'
+
 export class HonchoMemory {
     constructor(opts = {}) {
         this.name = 'honcho'
-        this.apiKey = opts.apiKey || process.env.HONCHO_API_KEY
+        this.apiKey = opts.apiKey || env('HONCHO_API_KEY')
         this.base = opts.base || "https://api.honcho.dev"
         this.userId = opts.userId || 'default'
     }

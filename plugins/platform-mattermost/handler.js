@@ -1,12 +1,13 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class MattermostAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'mattermost'
-        this.url = opts.url || process.env.MATTERMOST_URL
-        this.token = opts.token || process.env.MATTERMOST_TOKEN
+        this.url = opts.url || env('MATTERMOST_URL')
+        this.token = opts.token || env('MATTERMOST_TOKEN')
         this.port = opts.port || 0
         this._server = null
     }

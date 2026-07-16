@@ -1,4 +1,5 @@
 import { logger } from '../observability/log.js'
+import { env } from '../env.js'
 
 const log = logger('acptoapi')
 
@@ -9,7 +10,7 @@ const log = logger('acptoapi')
 // our AbortController be the single source of truth for the overall deadline
 // (default 240s, override via FREDDIE_LLM_TIMEOUT_MS). Use setGlobalDispatcher
 // once rather than a per-request Agent so we don't leak a dispatcher per call.
-const ACPTOAPI_TIMEOUT_MS = Number(process.env.FREDDIE_LLM_TIMEOUT_MS) || 240000
+const ACPTOAPI_TIMEOUT_MS = Number(env('FREDDIE_LLM_TIMEOUT_MS')) || 240000
 let _dispatcherSet = false
 async function ensureLongTimeoutDispatcher() {
     if (_dispatcherSet) return
@@ -29,11 +30,11 @@ async function ensureLongTimeoutDispatcher() {
 }
 
 export function getAcptoapiUrl() {
-    return process.env.FREDDIE_LLM_URL || 'http://127.0.0.1:4800/v1'
+    return env('FREDDIE_LLM_URL') || 'http://127.0.0.1:4800/v1'
 }
 
 export function getAcptoapiModel() {
-    return process.env.FREDDIE_LLM_MODEL || 'claude/haiku'
+    return env('FREDDIE_LLM_MODEL') || 'claude/haiku'
 }
 
 export async function callLLM({ messages, tools = [], model } = {}) {

@@ -1,8 +1,9 @@
 import { getAuthStore } from '../auth.js'
 import crypto from 'node:crypto'
+import { env } from '../env.js'
 const KEY = 'ACP_SHARED_SECRET'
 export async function getSharedSecret() {
-    if (process.env.ACP_SHARED_SECRET) return process.env.ACP_SHARED_SECRET
+    if (env('ACP_SHARED_SECRET')) return env('ACP_SHARED_SECRET')
     const stored = await getAuthStore().getCredential(KEY)
     return stored?.value || null
 }

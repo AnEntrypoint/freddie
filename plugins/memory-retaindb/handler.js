@@ -1,7 +1,9 @@
+import { env } from '../../src/env.js'
+
 export class RetaindbMemory {
     constructor(opts = {}) {
         this.name = 'retaindb'
-        this.apiKey = opts.apiKey || process.env.RETAINDB_API_KEY
+        this.apiKey = opts.apiKey || env('RETAINDB_API_KEY')
         this.base = opts.base || "https://api.retaindb.com"
         this.userId = opts.userId || 'default'
     }

@@ -19,7 +19,7 @@ export function applyUnifiedDiff(diff, { cwd = process.cwd() } = {}) {
         curFile = null; curHunks = []
     }
     for (const l of lines) {
-        if (l.startsWith('--- ')) { flush(); curFile = l.slice(6).trim() }
+        if (l.startsWith('--- ')) { flush(); curFile = l.slice(4).trim() }
         else if (l.startsWith('+++ ')) {}
         else if (l.startsWith('@@ ')) {
             const m = l.match(/@@ -(\d+),(\d+) \+(\d+),(\d+) @@/)

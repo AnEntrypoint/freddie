@@ -1,7 +1,9 @@
+import { env } from '../../src/env.js'
+
 export class SupermemoryMemory {
     constructor(opts = {}) {
         this.name = 'supermemory'
-        this.apiKey = opts.apiKey || process.env.SUPERMEMORY_API_KEY
+        this.apiKey = opts.apiKey || env('SUPERMEMORY_API_KEY')
         this.base = opts.base || "https://api.supermemory.ai/v3"
         this.userId = opts.userId || 'default'
     }

@@ -53,11 +53,24 @@ export async function discoverPlugins(roots) {
         if (!root || !fs.existsSync(root)) continue
         for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
             if (!entry.isDirectory()) continue
-            const file = path.join(root, entry.name, 'plugin.js')
-            if (!fs.existsSync(file)) continue
-            const mod = await import(pathToFileURL(file).href)
-            const p = mod.default || mod.plugin
-            if (p) found.push(p)
+            const dir = path.join(root, entry.name)
+            const file = path.join(dir, 'plugin.js')
+            if (fs.existsSync(file)) {
+                const mod = await import(pathToFileURL(file).href)
+                const p = mod.default || mod.plugin
+                if (p) found.push(p)
+                continue
+            }
+            const handlerFile = path.join(dir, 'handler.js')
+            if (!fs.existsSync(handlerFile)) continue
+            const handlerMod = await import(pathToFileURL(handlerFile).href)
+            const _tool = handlerMod._tool
+            if (!_tool) continue
+            found.push({
+                name: `tool-${entry.name}`,
+                surfaces: 'pi',
+                register({ pi }) { pi.tools.register(_tool) },
+            })
         }
     }
     return found

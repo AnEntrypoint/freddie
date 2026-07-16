@@ -1,11 +1,12 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class BluebubblesAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'bluebubbles'
-        this.token = opts.token || process.env.BLUEBUBBLES_PASSWORD
+        this.token = opts.token || env('BLUEBUBBLES_PASSWORD')
         this.port = opts.port || 0
         this.api = opts.api || "http://localhost:1234/api/v1/message/text"
         this._server = null

@@ -1,10 +1,11 @@
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class TelegramAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'telegram'
-        this.token = opts.token || process.env.TELEGRAM_BOT_TOKEN
+        this.token = opts.token || env('TELEGRAM_BOT_TOKEN')
         this.api = opts.api || 'https://api.telegram.org'
         this.offset = 0
         this._running = false

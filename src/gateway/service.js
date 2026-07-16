@@ -2,10 +2,13 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
+import { env } from '../env.js'
 
 const PLAT = process.platform
 
-function profileSuffix() { return process.env.FREDDIE_PROFILE ? '-' + process.env.FREDDIE_PROFILE : '' }
+function escapeXml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;') }
+
+function profileSuffix() { return env('FREDDIE_PROFILE') ? '-' + env('FREDDIE_PROFILE') : '' }
 
 export function serviceName() { return 'freddie-gateway' + profileSuffix() }
 
@@ -66,7 +69,7 @@ export function getLaunchdPlistPath() {
 
 export function renderLaunchdPlist({ execStart, workingDir = process.cwd(), envVars = {} } = {}) {
     const args = execStart.split(/\s+/)
-    const argXml = args.map(a => `<string>${a.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</string>`).join('\n            ')
+    const argXml = args.map(a => `<string>${escapeXml(a)}</string>`).join('\n            ')
     const envXml = Object.entries(envVars).map(([k, v]) => `<key>${k}</key><string>${v}</string>`).join('\n            ')
     return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

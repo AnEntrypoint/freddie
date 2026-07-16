@@ -1,11 +1,12 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class QqbotAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'qqbot'
-        this.token = opts.token || process.env.QQBOT_TOKEN
+        this.token = opts.token || env('QQBOT_TOKEN')
         this.port = opts.port || 0
         this.api = opts.api || "https://api.sgroup.qq.com/channels/messages"
         this._server = null

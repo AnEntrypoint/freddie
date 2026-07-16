@@ -1,7 +1,9 @@
+import { env } from '../../src/env.js'
+
 export class Mem0Memory {
     constructor(opts = {}) {
         this.name = 'mem0'
-        this.apiKey = opts.apiKey || process.env.MEM0_API_KEY
+        this.apiKey = opts.apiKey || env('MEM0_API_KEY')
         this.base = opts.base || "https://api.mem0.ai/v1"
         this.userId = opts.userId || 'default'
     }

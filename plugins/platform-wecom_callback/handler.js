@@ -1,7 +1,8 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 export class WecomCallbackAdapter extends EventEmitter {
-    constructor(opts = {}) { super(); this.platform = 'wecom_callback'; this.token = opts.token || process.env.WECOM_CALLBACK_TOKEN; this.aesKey = opts.aesKey || process.env.WECOM_ENCODING_AES_KEY; this.port = opts.port || 0 }
+    constructor(opts = {}) { super(); this.platform = 'wecom_callback'; this.token = opts.token || env('WECOM_CALLBACK_TOKEN'); this.aesKey = opts.aesKey || env('WECOM_ENCODING_AES_KEY'); this.port = opts.port || 0 }
     getRequiredEnv() { return ['WECOM_CALLBACK_TOKEN'] }
     async start() {
         if (!this.token) throw new Error('WECOM_CALLBACK_TOKEN required')

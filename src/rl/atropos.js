@@ -1,7 +1,9 @@
+import { env } from '../env.js'
+
 export class AtroposClient {
     constructor(opts = {}) {
-        this.url = opts.url || process.env.ATROPOS_URL
-        this.token = opts.token || process.env.ATROPOS_TOKEN
+        this.url = opts.url || env('ATROPOS_URL')
+        this.token = opts.token || env('ATROPOS_TOKEN')
         this.platform = 'atropos'
     }
     getRequiredEnv() { return ['ATROPOS_URL', 'ATROPOS_TOKEN'] }

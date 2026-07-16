@@ -2,11 +2,12 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { createClient } from '@libsql/client'
 import { getFreddieHome } from './home.js'
+import { env } from './env.js'
 
 let _db = null
 let _dbPromise = null
 const DB_PATH = () => path.join(getFreddieHome(), 'state', 'sessions.db')
-const USE_MEMORY_DB = () => process.env.FREDDIE_TEST_DB === 'memory'
+const USE_MEMORY_DB = () => env('FREDDIE_TEST_DB') === 'memory'
 
 export async function db() {
     if (_db) return _db

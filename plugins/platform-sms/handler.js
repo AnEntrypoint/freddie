@@ -1,13 +1,14 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class SmsAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'sms'
-        this.sid = opts.sid || process.env.TWILIO_SID
-        this.token = opts.token || process.env.TWILIO_TOKEN
-        this.from = opts.from || process.env.TWILIO_FROM
+        this.sid = opts.sid || env('TWILIO_SID')
+        this.token = opts.token || env('TWILIO_TOKEN')
+        this.from = opts.from || env('TWILIO_FROM')
         this.port = opts.port || 0
         this._server = null
     }

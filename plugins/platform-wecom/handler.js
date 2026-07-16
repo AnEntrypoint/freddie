@@ -1,11 +1,12 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class WecomAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'wecom'
-        this.token = opts.token || process.env.WECOM_WEBHOOK_KEY
+        this.token = opts.token || env('WECOM_WEBHOOK_KEY')
         this.port = opts.port || 0
         this.api = opts.api || "https://qyapi.weixin.qq.com/cgi-bin/webhook/send"
         this._server = null

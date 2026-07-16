@@ -1,7 +1,9 @@
+import { env } from '../../src/env.js'
+
 export class HindsightMemory {
     constructor(opts = {}) {
         this.name = 'hindsight'
-        this.apiKey = opts.apiKey || process.env.HINDSIGHT_API_KEY
+        this.apiKey = opts.apiKey || env('HINDSIGHT_API_KEY')
         this.base = opts.base || "https://api.hindsightai.com"
         this.userId = opts.userId || 'default'
     }

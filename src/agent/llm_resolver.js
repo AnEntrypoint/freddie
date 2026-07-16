@@ -2,6 +2,7 @@ import { getConfigValue } from '../config.js'
 import { MATRIX_FILE } from './model-matrix.js'
 import { callLLM as bridgeCall, isReachable as bridgeReachable } from './acptoapi-bridge.js'
 import * as sdkNs from 'acptoapi'
+import { env } from '../env.js'
 export { matrixUsable } from './model-matrix.js'
 
 // `acptoapi` is externalized by vite (browser) so the host environment
@@ -69,7 +70,7 @@ async function buildModel({ provider, model, inputModel }) {
     const keyed = Array.isArray(auto) ? auto.filter(l => { const p = l.model.split('/')[0]; const env = PROVIDER_KEYS[p]; return env && process.env[env] }) : []
     if (keyed.length) return keyed.map(l => l.model).join(', ')
     // No local provider keys — delegate to acptoapi if reachable.
-    if (await bridgeReachable()) return process.env.FREDDIE_LLM_MODEL || 'auto'
+    if (await bridgeReachable()) return env('FREDDIE_LLM_MODEL') || 'auto'
     return null
 }
 
@@ -93,7 +94,7 @@ export function resolveCallLLM({ provider, model } = {}) {
             // fallback — the request just throws.
             const opts = { model: m, messages: toMsgs(input.messages), tools: toTools(input.tools), onFallback: input.onFallback, output: 'openai', fallbackOn: ['error', 'rate_limit', 'timeout', 'empty'] }
             if (/^queue\//.test(m)) opts.queuesMap = getConfigValue('agent.model_queues', {}) || {}
-            if (m.includes(',') || /^queue\//.test(m)) opts.matrixSource = process.env.FREDDIE_MATRIX_URL || MATRIX_FILE
+            if (m.includes(',') || /^queue\//.test(m)) opts.matrixSource = env('FREDDIE_MATRIX_URL') || MATRIX_FILE
 
             if (typeof sdk.chat !== 'function') {
                 // Browser context: no node-side sdk; route via HTTP bridge.

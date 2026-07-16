@@ -1,8 +1,9 @@
 import { getAuthStore } from '../auth.js'
+import { env } from '../env.js'
 const KEY = 'GOOGLE_OAUTH_TOKEN'
 const REFRESH_KEY = 'GOOGLE_OAUTH_REFRESH'
 export async function getToken() {
-    if (process.env.GOOGLE_OAUTH_TOKEN) return { source: 'env', value: process.env.GOOGLE_OAUTH_TOKEN }
+    if (env('GOOGLE_OAUTH_TOKEN')) return { source: 'env', value: env('GOOGLE_OAUTH_TOKEN') }
     const stored = await getAuthStore().getCredential(KEY)
     return stored?.value ? { source: 'auth-store', value: stored.value } : { source: 'none', value: null }
 }

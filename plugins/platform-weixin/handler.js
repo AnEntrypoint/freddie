@@ -1,11 +1,12 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class WeixinAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'weixin'
-        this.token = opts.token || process.env.WEIXIN_TOKEN
+        this.token = opts.token || env('WEIXIN_TOKEN')
         this.port = opts.port || 0
         this.api = opts.api || "https://api.weixin.qq.com/cgi-bin/message/send"
         this._server = null

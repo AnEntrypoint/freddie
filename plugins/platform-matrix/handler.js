@@ -1,11 +1,13 @@
 import { EventEmitter } from 'node:events'
+import { randomId } from '../../src/utils.js'
+import { env } from '../../src/env.js'
 
 export class MatrixAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'matrix'
-        this.homeserver = opts.homeserver || process.env.MATRIX_HOMESERVER
-        this.token = opts.token || process.env.MATRIX_ACCESS_TOKEN
+        this.homeserver = opts.homeserver || env('MATRIX_HOMESERVER')
+        this.token = opts.token || env('MATRIX_ACCESS_TOKEN')
         this.since = null
         this._running = false
     }
@@ -33,7 +35,7 @@ export class MatrixAdapter extends EventEmitter {
         }
     }
     async send(reply) {
-        const txnId = Date.now() + '-' + Math.random().toString(36).slice(2, 8)
+        const txnId = Date.now() + '-' + randomId(4)
         const url = `${this.homeserver}/_matrix/client/v3/rooms/${encodeURIComponent(reply.to)}/send/m.room.message/${txnId}`
         return fetch(url, { method: 'PUT', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ msgtype: 'm.text', body: reply.text }) }).then(r => r.json())
     }

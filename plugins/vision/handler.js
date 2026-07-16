@@ -1,13 +1,14 @@
 // All upstream connectivity lives in acptoapi. Vision is just a multimodal
 // chat-completions call — go through the existing bridge.
 import { callLLM, getAcptoapiUrl } from '../../src/agent/acptoapi-bridge.js'
+import { env } from '../../src/env.js'
 
 export const _tool = ({
     name: 'vision',
     toolset: 'creative',
     schema: { name: 'vision', description: 'Describe an image (URL or base64) via acptoapi chat-completions.', parameters: { type: 'object', properties: { image_url: { type: 'string' }, prompt: { type: 'string', default: 'Describe this image.' }, model: { type: 'string' } }, required: ['image_url'] } },
     requiresEnv: ['OPENAI_API_KEY or ANTHROPIC_API_KEY (provided to acptoapi)'],
-    checkFn: () => Boolean(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY),
+    checkFn: () => Boolean(env('OPENAI_API_KEY') || env('ANTHROPIC_API_KEY')),
     handler: async ({ image_url, prompt = 'Describe this image.', model }) => {
         const messages = [{
             role: 'user',
