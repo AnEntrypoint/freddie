@@ -8,6 +8,7 @@ import { env } from '../env.js'
 
 let _host = null
 let _loadPromise = null
+let _dotenvLoaded = false
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const REPO_PLUGINS = path.resolve(__dirname, '..', '..', 'plugins')
@@ -17,9 +18,27 @@ const REPO_PLUGINS = path.resolve(__dirname, '..', '..', 'plugins')
 // is the one place a `.env` in the invoking cwd reaches process.env for every
 // downstream reader (acptoapi's own process.env.GROQ_API_KEY etc reads, pi-ai's
 // findEnvKeys/getEnvApiKey). Silent no-op when no .env file exists.
-dotenv.config()
+//
+// Deliberately lazy (called from host()/bootHost() below, not at module top
+// level): this module is statically re-exported by src/browser/index.js for
+// its bootHost/host/resetHostForTests names (thebird's v1 freddie-host.js
+// only needs the constants alongside them), so eagerly running dotenv.config()
+// at module-eval time meant it evaluated the instant the browser bundle
+// loaded — before a browser tab has any `process` global, throwing
+// `ReferenceError: process is not defined` inside dotenv's `_dotenvKey()` and
+// breaking every consumer of the browser bundle. Every real caller (see the
+// 12 modules importing bootHost/host across src/) only reads process.env
+// lazily inside functions invoked after bootHost()/host() has run, so gating
+// this behind first invocation (idempotent via _dotenvLoaded) preserves exact
+// Node CLI ordering while making the browser path never touch it at all.
+function loadDotenvOnce() {
+    if (_dotenvLoaded) return
+    _dotenvLoaded = true
+    dotenv.config()
+}
 
 export function host() {
+    loadDotenvOnce()
     if (!_host) _host = createHost({ surfaces: ['pi', 'gui'] })
     return _host
 }
@@ -45,4 +64,4 @@ export async function bootHost(extraRoots = []) {
     return _loadPromise
 }
 
-export function resetHostForTests() { _host = null; _loadPromise = null }
+export function resetHostForTests() { _host = null; _loadPromise = null; _dotenvLoaded = false }

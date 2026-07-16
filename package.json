@@ -39,6 +39,8 @@
     "gm-skill": "latest",
     "js-yaml": "^4.1.0",
     "plugsdk": "^1.0.20",
+    "vscode-languageserver": "^10.1.0",
+    "vscode-languageserver-textdocument": "^1.0.12",
     "xstate": "^5.31.0"
   },
   "optionalDependencies": {
