@@ -9418,16 +9418,61 @@ async function clear(kind, key) {
 	await (await init$1()).prepare(`DELETE FROM machine_snapshots WHERE kind = ? AND key = ?`).run(kind, key);
 }
 //#endregion
+//#region src/utils.js
+var SECRET_PATTERNS = [
+	/sk-[A-Za-z0-9-_]{20,}/g,
+	/ghp_[A-Za-z0-9]{36}/g,
+	/xox[baprs]-[A-Za-z0-9-]{10,}/g,
+	/AKIA[0-9A-Z]{16}/g,
+	/[a-zA-Z0-9._%+-]+:[^@\s]+@[a-zA-Z0-9.-]+/g,
+	/Bearer\s+[A-Za-z0-9._-]+/gi
+];
+function redactSecret(s) {
+	let out = String(s);
+	for (const re of SECRET_PATTERNS) out = out.replace(re, "[REDACTED]");
+	return out;
+}
+//#endregion
 //#region src/machines/persistent-actor.js
 var log$2 = logger("persistent-actor");
+function redactSensitive(context) {
+	try {
+		return JSON.parse(redactSecret(JSON.stringify(context)));
+	} catch {
+		return null;
+	}
+}
 async function createPersistentActor(machine, { kind, key, input, onTransition } = {}) {
 	if (!kind || !key) throw new Error("createPersistentActor requires kind and key");
 	const machineId = machine?.id || machine?.config?.id || null;
 	const snapshot = await load(kind, key, { machineId });
 	const resumed = !!snapshot;
-	const actor = snapshot ? createActor$1(machine, { snapshot }) : createActor$1(machine, { input });
+	let lastEventType = null;
+	const inspect = (ev) => {
+		if (ev.type === "@xstate.event" && ev.event?.type) lastEventType = ev.event.type;
+	};
+	const actor = snapshot ? createActor$1(machine, {
+		snapshot,
+		inspect
+	}) : createActor$1(machine, {
+		input,
+		inspect
+	});
+	let lastValue = null;
 	let persisting = Promise.resolve();
 	const sub = actor.subscribe((snap) => {
+		const from = lastValue;
+		const to = snap.value;
+		const context = redactSensitive(snap.context);
+		if (JSON.stringify(from) !== JSON.stringify(to)) log$2.info("transition", {
+			kind,
+			key,
+			from,
+			to,
+			trigger: lastEventType,
+			context
+		});
+		lastValue = to;
 		persisting = persisting.then(async () => {
 			try {
 				const ps = actor.getPersistedSnapshot();
@@ -10058,6 +10103,32 @@ async function autoLearnTurn({ prompt, out }) {
 		await memorize(fact, { namespace });
 	} catch (_) {}
 }
+function timeoutResult(actor, timeoutMs) {
+	const ctx = actor.getSnapshot()?.context || {};
+	const messages = Array.isArray(ctx.messages) ? [...ctx.messages] : [];
+	const pairedIds = new Set(messages.filter((m) => m && m.role === "tool" && m.tool_call_id).map((m) => m.tool_call_id));
+	const lastAssistant = [...messages].reverse().find((m) => m && m.role === "assistant" && Array.isArray(m.tool_calls));
+	if (lastAssistant) for (const tc of lastAssistant.tool_calls) {
+		const tcid = tc?.id || tc?.tool_call_id;
+		if (tcid && !pairedIds.has(tcid)) messages.push({
+			role: "tool",
+			tool_call_id: tcid,
+			content: JSON.stringify({ error: "timeout: tool_call interrupted" }),
+			synthetic: true
+		});
+	}
+	messages.push({
+		role: "system",
+		content: `Agent turn interrupted by ${timeoutMs / 1e3}s timeout. Any tool calls above without paired results were cut short and did not complete.`,
+		synthetic: true
+	});
+	return {
+		messages,
+		result: null,
+		error: "agent turn timeout",
+		iterations: ctx.iterations || 0
+	};
+}
 async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey }) {
 	const { actor } = pa;
 	return await new Promise((resolve, reject) => {
@@ -10076,8 +10147,31 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 		const t = setTimeout(() => {
 			if (settled) return;
 			settled = true;
+			const out = timeoutResult(actor, timeoutMs);
 			cleanup();
-			reject(/* @__PURE__ */ new Error("agent turn timeout"));
+			(async () => {
+				try {
+					await clearSteps(sessionKey);
+				} catch {}
+				try {
+					await h.hooks.invoke("onSessionEnd", {
+						reason: "timeout",
+						iterations: out.iterations
+					});
+				} catch {}
+				try {
+					await writeTrajectory(out, {
+						prompt,
+						provider,
+						model,
+						skill,
+						cwd,
+						events,
+						errorStack: null,
+						witnessPath
+					});
+				} catch {}
+			})().catch(() => {}).finally(() => resolve(out));
 		}, timeoutMs);
 		if (typeof t?.unref === "function") t.unref();
 		sub = actor.subscribe((snap) => {
