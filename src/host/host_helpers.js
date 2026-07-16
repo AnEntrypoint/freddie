@@ -8,6 +8,7 @@ export function reg(map, kind) {
     return {
         register(spec) { if (!spec?.name) throw new Error(`${kind}.name required`); map.set(spec.name, spec) },
         get: (n) => map.get(n), list: () => [...map.values()], has: (n) => map.has(n), size: () => map.size,
+        unregister: (n) => map.delete(n),
     }
 }
 
@@ -36,6 +37,7 @@ export function makeGui() {
     return {
         _state: { routes:r, pages, nav, debugs, apis, assets },
         route:(method,p,h)=>r.push({method:method.toUpperCase(),path:p,handler:h}),
+        unroute:(method,p)=>{ const i = r.findIndex(x=>x.method===method.toUpperCase()&&x.path===p); if (i===-1) return false; r.splice(i,1); return true },
         page:(s,d)=>pages.set(s,d), nav:(i)=>nav.push(i),
         debug:(n,fn)=>debugs.set(n,fn), api:(g,d)=>apis.set(g,d), asset:(p,c)=>assets.set(p,c),
         routes:{ list:()=>r }, pages:{ get:(s)=>pages.get(s), list:()=>[...pages.values()], has:(s)=>pages.has(s) },
@@ -89,6 +91,7 @@ export function makeHooksRegistry(ccHost) {
     const reg2 = Object.fromEntries(HOOK_NAMES.map(n => [n, []]))
     return {
         on(name, fn) { if (!HOOK_NAMES.includes(name)) throw new Error(`unknown hook: ${name}`); reg2[name].push(fn) },
+        off(name, fn) { const l = reg2[name]; if (!l) return false; const i = l.indexOf(fn); if (i === -1) return false; l.splice(i, 1); return true },
         async invoke(name, payload) {
             let cur = payload
             for (const fn of reg2[name] || []) cur = (await fn(cur)) ?? cur
