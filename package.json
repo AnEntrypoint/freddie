@@ -29,7 +29,7 @@
     "@mariozechner/pi-ai": "^0.70.6",
     "@mariozechner/pi-tui": "^0.70.6",
     "acptoapi": "^1.0.156",
-    "anentrypoint-design": "^0.0.327",
+    "anentrypoint-design": "^0.0.328",
     "commander": "^14.0.0",
     "dotenv": "^16.6.1",
     "express": "^5.0.0",
