@@ -89,3 +89,4 @@ emperor-penguin.md
 .gm/disciplines/codeinsight-manifest/*.json
 .gm/disciplines/codeinsight-vec/*.json
 .gm/memories/*.md
+.tools-snapshot.json
