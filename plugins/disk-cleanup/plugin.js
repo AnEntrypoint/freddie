@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { getFreddieHome } from '../../home.js'
+import { getFreddieHome } from '../../src/home.js'
 
 const MAX_AGE_DAYS = { logs: 30, batches: 14, 'tool-results': 7, checkpoints: 90 }
 export function cleanup({ now = Date.now() } = {}) {
@@ -16,7 +16,9 @@ export function cleanup({ now = Date.now() } = {}) {
     }
     return { removed: removed.length }
 }
-export const plugin = {
-    name: 'disk-cleanup',
-    register: (ctx) => { ctx.registerHook('onSessionEnd', async (p) => { cleanup(); return p }) },
+export default {
+    name: 'disk-cleanup', surfaces: 'pi',
+    register({ hooks }) {
+        hooks.on('onSessionEnd', async (p) => { cleanup(); return p })
+    },
 }
