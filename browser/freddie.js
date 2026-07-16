@@ -1347,6 +1347,7 @@ var init_env = __esmMin((() => {
 //#endregion
 //#region src/host/host_helpers.js
 init_env();
+path.dirname(fileURLToPath(import.meta.url));
 function reg(map, kind) {
 	return {
 		register(spec) {
