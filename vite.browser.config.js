@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import { fileURLToPath } from 'node:url'
 
 // Browser bundle for freddie. Consumed by thebird (web OS) which provides
 // node:* shims and vendored copies of xstate / anentrypoint-design.
@@ -15,6 +16,22 @@ import { defineConfig } from 'vite'
 // build variant in the future, document why here rather than letting one
 // silently rot again.
 export default defineConfig({
+  resolve: {
+    alias: {
+      // dotenv is a Node-only `.env`-file reader; a browser tab has no `.env`
+      // file and no real filesystem to read one from. Left un-aliased, vite
+      // bundles dotenv's real CJS source, whose Node-builtin requires
+      // (path/fs/os/crypto — bare specifiers, not `node:*`, so the `external`
+      // function below never sees them) get replaced by vite's browser-external
+      // placeholder (an empty object), and dotenv's own code then throws
+      // `TypeError: path.resolve is not a function` the moment
+      // src/host/index.js's loadDotenvOnce() actually calls `dotenv.config()`.
+      // This alias is scoped to THIS config (the browser build only) — the
+      // Node CLI/server entry points build via a separate path and are
+      // untouched, so they keep using real dotenv with real .env parsing.
+      dotenv: fileURLToPath(new URL('./src/browser/dotenv-browser-stub.js', import.meta.url)),
+    },
+  },
   build: {
     target: 'esnext',
     minify: false,
