@@ -68,7 +68,7 @@ sections:
 examples:
   - { label: bundled tree, href: "https://github.com/AnEntrypoint/freddie/tree/master/skills", desc: 5 categories }
   - { label: skill loader, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/skills/index.js", desc: how discovery works }
-  - { label: skill tool, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/tools/skill.js", desc: invocation }
+  - { label: skill plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/gm-skill", desc: invocation }
 body: |
   ## SKILL.md shape
 

@@ -1,0 +1,44 @@
+name: model-matrix
+
+# Periodic live-provider health check: validates real LLM provider connectivity
+# (scripts/validate-llm-providers.js) and rebuilds the model-availability matrix
+# (scripts/build-model-availability.js). Both scripts make REAL calls to
+# configured providers using repo secrets, so this runs on a schedule/manual
+# dispatch only -- never on a push -- and never gates publish.yml. Requires
+# provider API key secrets to be configured in this repo's Actions secrets;
+# a provider with no key configured is skipped by the scripts themselves
+# (they degrade per-provider, never fail the whole run for a missing key).
+on:
+  schedule:
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+jobs:
+  model-matrix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Validate LLM providers
+        run: node scripts/validate-llm-providers.js
+        continue-on-error: true
+      - name: Build model availability matrix
+        run: node scripts/build-model-availability.js
+        continue-on-error: true
+      - name: Commit updated matrix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .gm/llm-validation.json .gm/model-availability.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "no changes"
+          else
+            git commit -m "chore(model-matrix): refresh live provider validation + availability matrix [skip-bump]"
+            git push origin HEAD:main || echo "push failed (non-fatal)"
+          fi

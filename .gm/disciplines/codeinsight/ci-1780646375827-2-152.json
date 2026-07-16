@@ -1,0 +1,2 @@
+./plugins/neutts_synth/plugin.js:2:2 register
+register({ pi }) { pi.tools.register(_tool) }

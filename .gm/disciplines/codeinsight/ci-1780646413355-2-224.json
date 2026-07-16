@@ -1,0 +1,5 @@
+./plugins/platform-yuanbao_sticker/handler.js:2:5 buildStickerMessage
+function buildStickerMessage({ to, sticker }) {
+    if (!STICKER_PACK.includes(sticker)) throw new Error('unknown sticker: ' + sticker)
+    return { to, type: 'sticker', sticker }
+}

@@ -1,0 +1,8 @@
+./plugins/skills_hub/handler.js:11:17 
+async ({ name, body }) => {
+        if (!name || !body) return { error: 'name + body required' }
+        const dir = path.join(getFreddieHome(), 'skills', name)
+        fs.mkdirSync(dir, { recursive: true })
+        fs.writeFileSync(path.join(dir, 'SKILL.md'), body, 'utf8')
+        return { installed: dir }
+    }

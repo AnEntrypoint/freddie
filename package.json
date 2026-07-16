@@ -1,6 +1,6 @@
 {
   "name": "freddie",
-  "version": "0.0.121",
+  "version": "0.0.145",
   "type": "module",
   "description": "Open JS agent harness built on pi-mono, floosie, xstate, and anentrypoint-design",
   "bin": {
@@ -12,33 +12,34 @@
     "./browser": {
       "browser": "./dist/browser/freddie.js",
       "default": "./src/browser/index.js"
-    }
+    },
+    "./plugins/*": "./plugins/*",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "start": "node bin/freddie.js",
     "test": "node test.js",
+    "lint": "node scripts/lint.mjs",
     "build:browser": "vite build --config vite.browser.config.js",
+    "build:browser-shim": "node scripts/browser-shim-build/build.mjs",
     "link-local-design": "node scripts/link-local-design.mjs"
   },
   "dependencies": {
-    "@anentrypoint/libsql-plugkit-client": "github:AnEntrypoint/libsql-plugkit-client",
     "@libsql/client": "^0.5.0",
-    "@mariozechner/pi-agent-core": "^0.70.6",
     "@mariozechner/pi-ai": "^0.70.6",
-    "@mariozechner/pi-coding-agent": "^0.70.6",
     "@mariozechner/pi-tui": "^0.70.6",
-    "acptoapi": "^1.0.115",
-    "anentrypoint-design": "^0.0.324",
+    "acptoapi": "^1.0.154",
+    "anentrypoint-design": "latest",
     "commander": "^14.0.0",
+    "dotenv": "^16.6.1",
     "express": "^5.0.0",
     "flatspace": "^1.0.18",
     "floosie": "^0.6.14",
+    "gm-plugkit": "^2.0.1535",
     "gm-skill": "latest",
     "js-yaml": "^4.1.0",
-    "libsql-plugkit-client": "^0.0.10",
     "plugsdk": "^1.0.20",
-    "xstate": "^5.31.0",
-    "zod": "^4.0.0"
+    "xstate": "^5.31.0"
   },
   "optionalDependencies": {
     "@libsql/darwin-arm64": "0.3.19",
@@ -84,6 +85,7 @@
     "xstate"
   ],
   "devDependencies": {
+    "esbuild": "^0.28.0",
     "vite": "^8.0.13"
   }
 }

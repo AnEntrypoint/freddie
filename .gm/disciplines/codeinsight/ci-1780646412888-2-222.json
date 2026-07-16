@@ -1,0 +1,2 @@
+./plugins/platform-yuanbao_proto/plugin.js:2:2 register
+register({ pi }) { pi.platforms.register({ name: 'yuanbao_proto', module: adapter }) }

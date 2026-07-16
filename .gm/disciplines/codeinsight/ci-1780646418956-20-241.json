@@ -1,0 +1,2 @@
+./plugins/session_search/handler.js:20:20 
+async ({ limit = 20 }) => ({ sessions: await listSessions(limit) })

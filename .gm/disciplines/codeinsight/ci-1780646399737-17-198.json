@@ -1,0 +1,2 @@
+./plugins/platform-telegram_network/handler.js:17:17 withProxy
+function withProxy(fetchOpts, proxy) { return proxy ? { ...fetchOpts, proxy } : fetchOpts }

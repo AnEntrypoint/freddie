@@ -10,7 +10,7 @@ hero:
     - { label: "70+", desc: built-in tools }
     - { label: "16", desc: gateway platforms }
     - { label: "8", desc: memory backends }
-    - { label: "JS", desc: no python, no docker required }
+    - { label: "JS", desc: "no python, no docker required" }
   ctas:
     - { label: get started, href: "#quick-start" }
     - { label: architecture, href: /architecture/ }
@@ -25,9 +25,9 @@ sections:
         benefit: stop building three half-finished bots. one config, one loop, n adapters.
       - name: you want to own the model layer
         desc: anthropic, openai, groq, openrouter, gemini, ollama, bedrock, kilo, opencode, claude-cli — pi-ai routes them all, freddie wraps them in xstate.
-        benefit: vendor down → switch model in config, not in code.
+        benefit: vendor down -> switch model in config, not in code.
       - name: you want memory that survives sessions
-        desc: 8 provider backends (honcho, mem0, supermemory, byterover, hindsight, openviking, retaindb, holographic) plus a sqlite fts5 fallback.
+        desc: gm rs-learn (in-process semantic vector recall) is the primary learning store — every turn auto-recalls relevant memories and auto-learns salient outcomes. Eight legacy provider backends remain opt-in.
         benefit: agent remembers a user across conversations without you wiring redis yourself.
       - name: you want to ship without a stack
         desc: pure node. no python, no docker, no kubernetes. `npm install` and you have a dashboard, a cron, a gateway, an acp server, and a cli.
@@ -59,7 +59,7 @@ sections:
       - name: 3 — run
         desc: "`node bin/freddie.js run` for the repl. or `node bin/freddie.js dashboard --port 3000` for the web ui. or `node bin/freddie.js gateway --port 3001` to start the messaging bridge."
       - name: 4 — extend
-        desc: "drop a tool in `src/tools/` (auto-discovered). drop a SKILL.md in `~/.freddie/skills/`. add a platform in `src/gateway/platforms/`. configure a cron with `freddie cron add '0 9 * * *' '<prompt>'`."
+        desc: "create `plugins/<name>/{plugin,handler}.js` (auto-discovered on bootHost). drop a SKILL.md in `~/.freddie/skills/`. add a platform as `plugins/platform-<name>/`. configure a cron with `freddie cron add '0 9 * * *' '<prompt>'`."
   - id: substrate
     name: substrate (the things we don't reimplement)
     lede: every named dependency below is a published package we treat as a black box. when you run freddie, you're running the union of these.
@@ -78,11 +78,11 @@ sections:
         desc: every long-lived machine — turns, gateways, approvals, compressor — is a real state machine, not a soup of booleans.
 examples:
   - { label: architecture, href: /architecture/, desc: subsystem deep dive }
-  - { label: cli, href: /cli/, desc: every command, every flag }
+  - { label: cli, href: /cli/, desc: "every command, every flag" }
   - { label: tools, href: /tools/, desc: what the agent can do }
   - { label: platforms, href: /platforms/, desc: every gateway adapter }
   - { label: skills, href: /skills/, desc: bundled + how to write your own }
-  - { label: development, href: /development/, desc: tests, layout, how to contribute }
+  - { label: development, href: /development/, desc: "tests, layout, how to contribute" }
 body: |
   ## quick-start
 
@@ -102,7 +102,7 @@ body: |
   - **a gateway** that bridges 16 messaging platforms to one agent loop.
   - **an acp server** (json-rpc stdio) for ide integration.
   - **a cron scheduler** + **batch runner** for unattended workflows.
-  - **a memory layer** with 8 provider backends + a local sqlite fts5 fallback.
+  - **a learning layer** backed by gm rs-learn (in-process semantic recall), with auto-recall + auto-learn on every turn; eight legacy memory providers remain opt-in.
   - **a skills loader** that picks up SKILL.md files from `~/.freddie/skills/` and the bundled tree.
 
   ## philosophy

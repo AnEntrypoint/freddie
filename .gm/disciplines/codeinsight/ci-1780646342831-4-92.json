@@ -1,0 +1,4 @@
+./plugins/gui-env/plugin.js:4:6 register
+register({ gui }) {
+        gui.route('GET', '/api/env', (_, res) => res.json(ENV_KEYS.map(k => ({ key: k, set: !!process.env[k] }))))
+    }

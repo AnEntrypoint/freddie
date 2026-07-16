@@ -1,0 +1,7 @@
+./plugins/interrupt/handler.js:10:15 
+async ({ action, session_id }) => {
+        if (action === 'set') { setInterrupt(session_id); return { interrupted: true } }
+        if (action === 'clear') { clearInterrupt(session_id); return { cleared: true } }
+        if (action === 'check') return { interrupted: isInterrupted(session_id) }
+        return { error: 'unknown action' }
+    }

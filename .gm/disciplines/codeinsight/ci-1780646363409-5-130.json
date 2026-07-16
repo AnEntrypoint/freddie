@@ -1,0 +1,10 @@
+./plugins/memory/handler.js:5:13 init
+async function init() {
+    const d = await db()
+    await d.exec(`CREATE TABLE IF NOT EXISTS memory_local (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT NOT NULL, ts INTEGER NOT NULL)`)
+    if (!d._fts5_unavailable) {
+        try { await d.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS memory_local_fts USING fts5(content, content='memory_local', content_rowid='id')`) } catch (e) { d._fts5_unavailable = true }
+        try { await d.exec(`CREATE TRIGGER IF NOT EXISTS memory_local_ai AFTER INSERT ON memory_local BEGIN INSERT INTO memory_local_fts(rowid, content) VALUES (new.id, new.content); END`) } catch (e) { d._fts5_unavailable = true }
+    }
+    return d
+}

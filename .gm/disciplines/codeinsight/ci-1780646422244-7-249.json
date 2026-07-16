@@ -1,0 +1,5 @@
+./plugins/skills_hub/handler.js:7:10 
+async () => {
+        try { const r = await fetch(HUB_INDEX_URL); if (!r.ok) return { items: [], error: 'fetch ' + r.status }; return { items: await r.json() } }
+        catch (e) { return { items: [], error: String(e.message || e) } }
+    }

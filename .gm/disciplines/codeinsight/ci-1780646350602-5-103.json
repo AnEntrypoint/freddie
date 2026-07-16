@@ -1,0 +1,4 @@
+./plugins/gui-skills/plugin.js:5:7 register
+register({ gui }) {
+        gui.route('GET', '/api/skills', (_, res) => res.json({ home: listSkills(), bundled: listSkills([path.resolve('skills')]) }))
+    }

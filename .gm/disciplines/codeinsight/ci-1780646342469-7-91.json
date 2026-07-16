@@ -1,0 +1,18 @@
+./plugins/gui-debug/plugin.js:7:23 register
+register({ gui }) {
+        gui.route('GET', '/api/debug', (_, res) => res.json(listDebug()))
+        gui.route('GET', '/api/debug-all', (_, res) => res.json(snapshotAll()))
+        gui.route('GET', '/api/logs', (_, res) => {
+            const dir = path.join(getFreddieHome(), 'logs')
+            if (!fs.existsSync(dir)) return res.json([])
+            res.json(fs.readdirSync(dir).filter(f => f.endsWith('.log')).map(f => f.replace(/\.log$/, '')))
+        })
+        gui.route('GET', '/api/logs/:subsystem', (req, res) => {
+            const file = path.join(getFreddieHome(), 'logs', req.params.subsystem + '.log')
+            if (!fs.existsSync(file)) return res.json([])
+            const max = Number(req.query.max) || 200
+            const lines = fs.readFileSync(file, 'utf8').trim().split('\n').filter(Boolean).slice(-max)
+            res.json(lines.map(l => { try { return JSON.parse(l) } catch { return { raw: l } } }))
+        })
+        gui.api('debug', { attach: attachDebugRoutes })
+    }

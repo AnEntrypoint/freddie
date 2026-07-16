@@ -1,0 +1,14 @@
+./plugins/image_gen/handler.js:23:35 
+async ({ prompt, provider, size = '1024x1024', model }) => {
+        const which = provider || (process.env.OPENAI_API_KEY ? 'openai' : 'replicate')
+        const base = getAcptoapiUrl().replace(/\/v1\/?$/, '')
+        const body = which === 'openai'
+            ? { model: model || 'gpt-image-1', prompt, size }
+            : { version: model || 'black-forest-labs/flux-schnell', input: { prompt } }
+        const r = await fetch(base + '/v1/images/generations', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-provider': which, authorization: 'Bearer none' },
+            body: JSON.stringify(body),
+        })
+        return await r.json()
+    }

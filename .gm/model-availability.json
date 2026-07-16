@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-05-12T22:33:30.866Z",
+  "timestamp": "2026-07-07T20:37:41.034Z",
   "config": {
-    "MAX_MODELS_PER_PROVIDER": 3,
-    "PER_CELL_TIMEOUT_MS": 20000,
+    "MAX_MODELS_PER_PROVIDER": 5,
+    "PER_CELL_TIMEOUT_MS": 15000,
     "modes": [
       "direct_api",
       "acptoapi_passthrough",
@@ -15,48 +15,42 @@
   },
   "daemons": {
     "acptoapi_passthrough": true,
-    "freddie_v1": true,
-    "kilo_acp": false,
+    "freddie_v1": false,
+    "kilo_acp": true,
     "opencode_acp": true,
     "claude_cli": true
   },
   "providers": [
     {
-      "id": "anthropic",
+      "id": "01-ai",
       "key_present": false,
-      "discovery_error": "no_key",
-      "models": []
-    },
-    {
-      "id": "cerebras",
-      "key_present": true,
       "discovery_error": null,
       "models": [
         {
-          "id": "zai-glm-4.7",
+          "id": "yi-large",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
               "ok": false,
-              "latency_ms": 452,
-              "error": "402 {\"message\":\"Payment required to access this resource. Visit your billing tab.\",\"type\":\"payment_required_error\",\"param\":\"quota\",\"code\":\"payment_required\"}"
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 0,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 60,
+              "error": "400:{\"error\":{\"message\":\"Unknown model '01-ai/yi-large'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\"hint\":\"'01-a"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 9,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -71,13 +65,20 @@
             "freddie_agent_loop": {
               "ok": false,
               "skipped": true,
-              "reason": "sampler_backoff_active"
+              "reason": "no_api_key_for_provider"
             }
           },
           "usable_in_any_mode": false
-        },
+        }
+      ]
+    },
+    {
+      "id": "abacusai",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
         {
-          "id": "gpt-oss-120b",
+          "id": "dracarys-llama-3.1-70b-instruct",
           "discovered_via": [
             "provider_models_endpoint"
           ],
@@ -85,22 +86,379 @@
             "direct_api": {
               "ok": false,
               "skipped": true,
-              "reason": "sampler_backoff_active"
+              "reason": "no_api_key_for_provider"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 63,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'abacusai/dracarys-llama-3.1-70b-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"un"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 10,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "adept",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "fuyu-8b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 102,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'adept/fuyu-8b'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\"hint\":\"'adept"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "ai21labs",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "jamba-1.5-large-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 102,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'ai21labs/jamba-1.5-large-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_m"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "aisingapore",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "sea-lion-7b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 103,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'aisingapore/sea-lion-7b-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_mo"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "baai",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "bge-m3",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 104,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'baai/bge-m3'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\"hint\":\"'baai' i"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "bigcode",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "starcoder2-15b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 104,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'bigcode/starcoder2-15b'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\"hint"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "bytedance",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "seed-oss-36b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 104,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'bytedance/seed-oss-36b-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_mod"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "cerebras",
+      "key_present": true,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "llama-3.3-70b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 8583,
+              "error": "{\"message\":\"Model llama-3.3-70b does not exist or you do not have access to it.\",\"type\":\"not_found_error\",\"param\":\"model\",\"code\":\"model_not_found\"}"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15010,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -133,18 +491,120 @@
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15009,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 12,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "latency_ms": 4630,
+              "error": "{\"message\":\"Model llama3.1-8b does not exist or you do not have access to it.\",\"type\":\"not_found_error\",\"param\":\"model\",\"code\":\"model_not_found\"}"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "chatjimmy",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "llama3.1-8B",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15006,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "cloudflare",
+      "key_present": true,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 8150,
+              "error": "cloudflare provider requires CLOUDFLARE_ACCOUNT_ID env (token at CLOUDFLARE_API_KEY set); list accounts: curl -H \"Authorization: Bearer $CLOUDFLARE_API_KEY\" https://api.cloudflare.com/client/v4/accoun"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15015,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -163,84 +623,32 @@
             }
           },
           "usable_in_any_mode": false
-        }
-      ]
-    },
-    {
-      "id": "claude-cli",
-      "key_present": true,
-      "discovery_error": null,
-      "models": [
-        {
-          "id": "claude-haiku-4-5",
-          "discovered_via": [
-            "provider_models_endpoint"
-          ],
-          "modes": {
-            "direct_api": {
-              "ok": true,
-              "latency_ms": 3362,
-              "excerpt": "REAL_OK"
-            },
-            "acptoapi_passthrough": {
-              "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
-            },
-            "freddie_v1": {
-              "ok": true,
-              "latency_ms": 12874,
-              "excerpt": "REAL_OK"
-            },
-            "kilo_acp": {
-              "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4780"
-            },
-            "opencode_acp": {
-              "ok": false,
-              "skipped": true,
-              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
-            },
-            "claude_cli": {
-              "ok": true,
-              "latency_ms": 4942,
-              "excerpt": "REAL_OK"
-            },
-            "freddie_agent_loop": {
-              "ok": true,
-              "latency_ms": 3484,
-              "iterations": 1,
-              "excerpt": "REAL_OK"
-            }
-          },
-          "usable_in_any_mode": true
         },
         {
-          "id": "claude-sonnet-4-6",
+          "id": "@cf/mistral/mistral-7b-instruct-v0.2-lora",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
-              "ok": true,
-              "latency_ms": 3666,
-              "excerpt": "REAL_OK"
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 2,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15017,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
-              "ok": true,
-              "latency_ms": 3422,
-              "excerpt": "REAL_OK"
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -248,97 +656,79 @@
               "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
             },
             "claude_cli": {
-              "ok": true,
-              "latency_ms": 3536,
-              "excerpt": "REAL_OK"
-            },
-            "freddie_agent_loop": {
-              "ok": true,
-              "latency_ms": 3007,
-              "iterations": 1,
-              "excerpt": "REAL_OK"
-            }
-          },
-          "usable_in_any_mode": true
-        },
-        {
-          "id": "claude-opus-4-7",
-          "discovered_via": [
-            "provider_models_endpoint"
-          ],
-          "modes": {
-            "direct_api": {
-              "ok": true,
-              "latency_ms": 4187,
-              "excerpt": "REAL_OK"
-            },
-            "acptoapi_passthrough": {
-              "ok": false,
-              "latency_ms": 22,
-              "error": "The socket connection was closed unexpectedly. For more information, pass `verbose: true` in the second argument to fetch()"
-            },
-            "freddie_v1": {
-              "ok": true,
-              "latency_ms": 3644,
-              "excerpt": "REAL_OK"
-            },
-            "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
-            },
-            "opencode_acp": {
-              "ok": false,
-              "skipped": true,
-              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
-            },
-            "claude_cli": {
-              "ok": true,
-              "latency_ms": 3933,
-              "excerpt": "REAL_OK"
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
             },
             "freddie_agent_loop": {
-              "ok": true,
-              "latency_ms": 3779,
-              "iterations": 1,
-              "excerpt": "REAL_OK"
+              "ok": false,
+              "latency_ms": 2932,
+              "error": "cloudflare provider requires CLOUDFLARE_ACCOUNT_ID env (token at CLOUDFLARE_API_KEY set); list accounts: curl -H \"Authorization: Bearer $CLOUDFLARE_API_KEY\" https://api.cloudflare.com/client/v4/accoun"
             }
           },
-          "usable_in_any_mode": true
+          "usable_in_any_mode": false
         }
       ]
-    },
-    {
-      "id": "cloudflare",
-      "key_present": true,
-      "discovery_error": "cloudflare provider requires CLOUDFLARE_ACCOUNT_ID env (token at CLOUDFLARE_API_KEY set); list accounts: curl -H \"Authorization: Bearer $CLOUDFLARE_API_KEY\" https://api.cloudflare.com/client/v4/accounts",
-      "models": []
     },
     {
       "id": "codestral",
       "key_present": true,
-      "discovery_error": "404",
-      "models": []
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "codestral-latest",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": true,
+              "latency_ms": 8799,
+              "excerpt": "REAL_OK"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15010,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": true,
+              "latency_ms": 2681,
+              "iterations": 1,
+              "excerpt": "REAL_OK"
+            }
+          },
+          "usable_in_any_mode": true
+        }
+      ]
     },
     {
-      "id": "deepseek",
-      "key_present": false,
-      "discovery_error": "no_key",
-      "models": []
-    },
-    {
-      "id": "fireworks",
-      "key_present": false,
-      "discovery_error": "no_key",
-      "models": []
-    },
-    {
-      "id": "gemini",
+      "id": "databricks",
       "key_present": false,
       "discovery_error": null,
       "models": [
         {
-          "id": "gemini-2.5-flash",
+          "id": "dbrx-instruct",
           "discovered_via": [
             "provider_models_endpoint"
           ],
@@ -350,18 +740,69 @@
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 23,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 177,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'databricks/dbrx-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\"hi"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 75,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "deepseek-ai",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "deepseek-v4-flash",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 178,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'deepseek-ai/deepseek-v4-flash'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -382,7 +823,7 @@
           "usable_in_any_mode": false
         },
         {
-          "id": "gemini-2.5-pro",
+          "id": "deepseek-v4-pro",
           "discovered_via": [
             "provider_models_endpoint"
           ],
@@ -394,18 +835,18 @@
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 3,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 351,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'deepseek-ai/deepseek-v4-pro'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\","
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 7,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -426,7 +867,7 @@
           "usable_in_any_mode": false
         },
         {
-          "id": "gemini-2.0-flash",
+          "id": "deepseek-coder-6.7b-instruct",
           "discovered_via": [
             "provider_models_endpoint"
           ],
@@ -438,18 +879,18 @@
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 3,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 9,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'deepseek-ai/deepseek-coder-6.7b-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"un"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 7,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -465,6 +906,563 @@
               "ok": false,
               "skipped": true,
               "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "extra-1",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "default",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15005,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "extra-3",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "kimi-k2.6",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15005,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "claude-haiku-4.5",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15006,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "gpt-5",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15003,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "gpt-5-3",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15004,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "gpt-5-5",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15008,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "extra-7",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "default",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15007,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "google",
+      "key_present": true,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "diffusiongemma-26b-a4b-it",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 11415,
+              "excerpt": ""
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15010,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "gemma-3-4b-it",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15001,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "latency_ms": 3504,
+              "iterations": 1,
+              "excerpt": ""
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "gemma-3n-e4b-it",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15007,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "gemma-4-31b-it",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15013,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "codegemma-1.1-7b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15006,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
             }
           },
           "usable_in_any_mode": false
@@ -477,75 +1475,74 @@
       "discovery_error": null,
       "models": [
         {
-          "id": "groq/compound",
-          "discovered_via": [
-            "provider_models_endpoint"
-          ],
-          "modes": {
-            "direct_api": {
-              "ok": true,
-              "latency_ms": 690,
-              "excerpt": "REAL_OK"
-            },
-            "acptoapi_passthrough": {
-              "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
-            },
-            "freddie_v1": {
-              "ok": false,
-              "latency_ms": 4,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
-            },
-            "kilo_acp": {
-              "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4780"
-            },
-            "opencode_acp": {
-              "ok": false,
-              "skipped": true,
-              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
-            },
-            "claude_cli": {
-              "ok": false,
-              "skipped": true,
-              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
-            },
-            "freddie_agent_loop": {
-              "ok": true,
-              "latency_ms": 1177,
-              "iterations": 1,
-              "excerpt": "REAL_OK"
-            }
-          },
-          "usable_in_any_mode": true
-        },
-        {
           "id": "llama-3.3-70b-versatile",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
-              "ok": true,
-              "latency_ms": 272,
-              "excerpt": "REAL_OK"
+              "ok": false,
+              "latency_ms": 11037,
+              "error": "{\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01jbhg0z0ef83b6xewqfnvm114` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 98234,"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15015,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 4,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "llama-3.1-8b-instant",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15009,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -559,7 +1556,7 @@
             },
             "freddie_agent_loop": {
               "ok": true,
-              "latency_ms": 271,
+              "latency_ms": 4598,
               "iterations": 1,
               "excerpt": "REAL_OK"
             }
@@ -567,30 +1564,30 @@
           "usable_in_any_mode": true
         },
         {
-          "id": "canopylabs/orpheus-v1-english",
+          "id": "mixtral-8x7b-32768",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
               "ok": false,
-              "latency_ms": 208,
-              "error": "400 {\"error\":{\"message\":\"The model `canopylabs/orpheus-v1-english` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.com/playground?model=canopylabs%2Forphe"
+              "latency_ms": 362,
+              "error": "{\"error\":{\"message\":\"The model `mixtral-8x7b-32768` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations for a recommendation on which model t"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15017,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 5,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -613,35 +1610,218 @@
       ]
     },
     {
-      "id": "kilo",
-      "key_present": true,
-      "discovery_error": "Unable to connect. Is the computer able to access the url?",
+      "id": "ibm",
+      "key_present": false,
+      "discovery_error": null,
       "models": [
         {
-          "id": "x-ai/grok-code-fast-1:optimized:free",
+          "id": "granite-34b-code-instruct",
           "discovered_via": [
-            "known_fallback"
+            "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
               "ok": false,
-              "latency_ms": 19,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 19,
-              "error": "The socket connection was closed unexpectedly. For more information, pass `verbose: true` in the second argument to fetch()"
+              "latency_ms": 298,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'ibm/granite-34b-code-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 76,
-              "error": "500:{\"error\":{\"message\":\"fetch failed\",\"type\":\"upstream_error\"}}"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "granite-3.0-3b-a800m-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 232,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'ibm/granite-3.0-3b-a800m-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_m"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "granite-3.0-8b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 10,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'ibm/granite-3.0-8b-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\","
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "granite-8b-code-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 5,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'ibm/granite-8b-code-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\""
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "kilo",
+      "key_present": true,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "cerebras/qwen-3-235b-a22b-instruct-2507",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 14892,
+              "excerpt": ""
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15005,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "latency_ms": 223,
+              "error": "acp_probe_not_implemented_for_arbitrary_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -657,6 +1837,644 @@
               "ok": false,
               "skipped": true,
               "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "cerebras/zai-glm-4.7",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15010,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "latency_ms": 617,
+              "error": "acp_probe_not_implemented_for_arbitrary_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "latency_ms": 3291,
+              "iterations": 1,
+              "excerpt": ""
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "cerebras/gpt-oss-120b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15012,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "latency_ms": 88,
+              "error": "acp_probe_not_implemented_for_arbitrary_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "meta",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "llama-3.3-70b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15007,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "llama2-70b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15005,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "llama-4-maverick-17b-128e-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15004,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "codellama-70b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15003,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "llama-3.1-70b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15007,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "microsoft",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "phi-3.5-moe-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15009,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "phi-4-multimodal-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15005,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "phi-4-mini-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15002,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "kosmos-2",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15004,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "phi-3-vision-128k-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15006,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "minimaxai",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "minimax-m2.7",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15009,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "minimax-m3",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15010,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
             }
           },
           "usable_in_any_mode": false
@@ -669,30 +2487,74 @@
       "discovery_error": null,
       "models": [
         {
-          "id": "mistral-medium-2505",
+          "id": "mistral-large-latest",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
-              "ok": true,
-              "latency_ms": 683,
-              "excerpt": "REAL_OK"
+              "ok": false,
+              "latency_ms": 15009,
+              "error": "timeout:direct:15000ms"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15010,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 5,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "mistral-small-latest",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15002,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -706,7 +2568,7 @@
             },
             "freddie_agent_loop": {
               "ok": true,
-              "latency_ms": 682,
+              "latency_ms": 4883,
               "iterations": 1,
               "excerpt": "REAL_OK"
             }
@@ -714,30 +2576,30 @@
           "usable_in_any_mode": true
         },
         {
-          "id": "mistral-medium-2508",
+          "id": "codestral-latest",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
               "ok": true,
-              "latency_ms": 604,
+              "latency_ms": 763,
               "excerpt": "REAL_OK"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15009,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 5,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -751,38 +2613,89 @@
             },
             "freddie_agent_loop": {
               "ok": true,
-              "latency_ms": 639,
+              "latency_ms": 3231,
               "iterations": 1,
               "excerpt": "REAL_OK"
             }
           },
           "usable_in_any_mode": true
+        }
+      ]
+    },
+    {
+      "id": "mistralai",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "ministral-14b-instruct-2512",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15015,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
         },
         {
-          "id": "mistral-medium-latest",
+          "id": "mistral-large-3-675b-instruct-2512",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
-              "ok": true,
-              "latency_ms": 547,
-              "excerpt": "REAL_OK"
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15006,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 5,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -795,13 +2708,246 @@
               "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
             },
             "freddie_agent_loop": {
-              "ok": true,
-              "latency_ms": 624,
-              "iterations": 1,
-              "excerpt": "REAL_OK"
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
             }
           },
-          "usable_in_any_mode": true
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "mistral-medium-3.5-128b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15001,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "codestral-22b-instruct-v0.1",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15005,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "mistral-7b-instruct-v0.3",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15000,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "moonshotai",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "kimi-k2.6",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 404,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'moonshotai/kimi-k2.6'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\"hint\":"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "nv-mistralai",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "mistral-nemo-12b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 442,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'nv-mistralai/mistral-nemo-12b-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"unkn"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
         }
       ]
     },
@@ -811,30 +2957,30 @@
       "discovery_error": null,
       "models": [
         {
-          "id": "01-ai/yi-large",
+          "id": "meta/llama-3.3-70b-instruct",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
               "ok": false,
-              "latency_ms": 451,
-              "error": "404 {\"status\":404,\"title\":\"Not Found\",\"detail\":\"Function '23bd454d-b225-49a3-8118-582a62fc51b8': Not found for account 'itvzHBy2eKJs9j1RtAgyW3A-v0yeN9YHQAibUwzdh-Y'\"}"
+              "latency_ms": 15010,
+              "error": "timeout:direct:15000ms"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15010,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 12,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -855,7 +3001,7 @@
           "usable_in_any_mode": false
         },
         {
-          "id": "abacusai/dracarys-llama-3.1-70b-instruct",
+          "id": "ising-calibration-1-35b-a3b",
           "discovered_via": [
             "provider_models_endpoint"
           ],
@@ -867,18 +3013,62 @@
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15005,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 10,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "latency_ms": 4775,
+              "error": "404 page not found\n"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "llama-3.1-nemotron-51b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15006,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -899,7 +3089,7 @@
           "usable_in_any_mode": false
         },
         {
-          "id": "adept/fuyu-8b",
+          "id": "llama-3.1-nemotron-ultra-253b-v1",
           "discovered_via": [
             "provider_models_endpoint"
           ],
@@ -911,18 +3101,62 @@
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15014,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 13,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "llama-3.3-nemotron-super-49b-v1.5",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15014,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -945,16 +3179,99 @@
       ]
     },
     {
-      "id": "ollama",
-      "key_present": true,
-      "discovery_error": "Unable to connect. Is the computer able to access the url?",
-      "models": []
-    },
-    {
       "id": "openai",
       "key_present": false,
-      "discovery_error": "no_key",
-      "models": []
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "gpt-oss-120b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15016,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "gpt-oss-20b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15006,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
     },
     {
       "id": "opencode",
@@ -969,28 +3286,28 @@
           "modes": {
             "direct_api": {
               "ok": false,
-              "latency_ms": 3182,
-              "excerpt": ""
+              "latency_ms": 15011,
+              "error": "timeout:direct:15000ms"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15011,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 4045,
-              "excerpt": ""
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
-              "latency_ms": 10,
-              "error": "acp_probe_not_implemented_for_arbitrary_models"
+              "latency_ms": 3013,
+              "error": "The operation was aborted due to timeout"
             },
             "claude_cli": {
               "ok": false,
@@ -1001,6 +3318,51 @@
               "ok": false,
               "skipped": true,
               "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "nemotron-3-super-free",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15010,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "latency_ms": 3012,
+              "error": "The operation was aborted due to timeout"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "latency_ms": 4183,
+              "iterations": 1,
+              "excerpt": ""
             }
           },
           "usable_in_any_mode": false
@@ -1010,8 +3372,98 @@
     {
       "id": "opencode-zen",
       "key_present": true,
-      "discovery_error": "Failed to parse JSON",
-      "models": []
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "claude-sonnet-4-5",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 10835,
+              "excerpt": ""
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15016,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "claude-haiku-4-5",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15011,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "latency_ms": 4586,
+              "iterations": 1,
+              "excerpt": ""
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
     },
     {
       "id": "openrouter",
@@ -1019,30 +3471,127 @@
       "discovery_error": null,
       "models": [
         {
-          "id": "anthropic/claude-opus-4.7-fast",
+          "id": "meta-llama/llama-3.3-70b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": true,
+              "latency_ms": 12995,
+              "excerpt": "REAL_OK"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15007,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": true,
+              "latency_ms": 1480,
+              "iterations": 1,
+              "excerpt": "REAL_OK"
+            }
+          },
+          "usable_in_any_mode": true
+        },
+        {
+          "id": "auto",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": true,
+              "latency_ms": 4915,
+              "excerpt": "REAL_OK"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15006,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": true,
+              "latency_ms": 2234,
+              "iterations": 1,
+              "excerpt": "REAL_OK"
+            }
+          },
+          "usable_in_any_mode": true
+        }
+      ]
+    },
+    {
+      "id": "qwen",
+      "key_present": true,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "qwen3.5-122b-a10b",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
               "ok": false,
-              "latency_ms": 583,
-              "error": "402 {\"error\":{\"message\":\"This request requires more credits, or fewer max_tokens. You requested up to 65536 tokens, but can only afford 145. To increase, visit https://openrouter.ai/settings/credits a"
+              "latency_ms": 12212,
+              "error": "{\"error\":{\"message\":\"Incorrect API key provided. For details, see: https://help.aliyun.com/zh/model-studio/error-code#apikey-error\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":\"invalid_api_key\""
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15005,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 6,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -1063,7 +3612,7 @@
           "usable_in_any_mode": false
         },
         {
-          "id": "perceptron/perceptron-mk1",
+          "id": "qwen3.5-397b-a17b",
           "discovered_via": [
             "provider_models_endpoint"
           ],
@@ -1075,18 +3624,62 @@
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 2,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15011,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 6,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "latency_ms": 4587,
+              "error": "{\"error\":{\"message\":\"Incorrect API key provided. For details, see: https://help.aliyun.com/zh/model-studio/error-code#apikey-error\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":\"invalid_api_key\""
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "qwen3-next-80b-a3b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15007,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -1107,7 +3700,7 @@
           "usable_in_any_mode": false
         },
         {
-          "id": "inclusionai/ring-2.6-1t:free",
+          "id": "qwen-plus",
           "discovered_via": [
             "provider_models_endpoint"
           ],
@@ -1119,18 +3712,62 @@
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 2,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15017,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 7,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "qwen-max",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15010,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -1151,18 +3788,6 @@
           "usable_in_any_mode": false
         }
       ]
-    },
-    {
-      "id": "perplexity",
-      "key_present": false,
-      "discovery_error": "no_key",
-      "models": []
-    },
-    {
-      "id": "qwen",
-      "key_present": true,
-      "discovery_error": "401",
-      "models": []
     },
     {
       "id": "sambanova",
@@ -1170,30 +3795,30 @@
       "discovery_error": null,
       "models": [
         {
-          "id": "DeepSeek-V3.1",
+          "id": "Meta-Llama-3.3-70B-Instruct",
           "discovered_via": [
             "provider_models_endpoint"
           ],
           "modes": {
             "direct_api": {
-              "ok": false,
-              "latency_ms": 613,
-              "excerpt": "REAL"
+              "ok": true,
+              "latency_ms": 11843,
+              "excerpt": "REAL_OK"
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15014,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 6,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -1207,14 +3832,14 @@
             },
             "freddie_agent_loop": {
               "ok": false,
-              "skipped": true,
-              "reason": "sampler_backoff_active"
+              "latency_ms": 15011,
+              "error": "timeout:agent:15000ms"
             }
           },
-          "usable_in_any_mode": false
+          "usable_in_any_mode": true
         },
         {
-          "id": "DeepSeek-V3.2",
+          "id": "Meta-Llama-3.1-405B-Instruct",
           "discovered_via": [
             "provider_models_endpoint"
           ],
@@ -1226,62 +3851,18 @@
             },
             "acptoapi_passthrough": {
               "ok": false,
-              "latency_ms": 1,
-              "error": "Unable to connect. Is the computer able to access the url?"
+              "latency_ms": 15002,
+              "error": "The operation was aborted due to timeout"
             },
             "freddie_v1": {
               "ok": false,
-              "latency_ms": 6,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
             },
             "kilo_acp": {
               "ok": false,
               "skipped": true,
-              "reason": "daemon_not_running:4780"
-            },
-            "opencode_acp": {
-              "ok": false,
-              "skipped": true,
-              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
-            },
-            "claude_cli": {
-              "ok": false,
-              "skipped": true,
-              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
-            },
-            "freddie_agent_loop": {
-              "ok": false,
-              "skipped": true,
-              "reason": "sampler_backoff_active"
-            }
-          },
-          "usable_in_any_mode": false
-        },
-        {
-          "id": "Llama-4-Maverick-17B-128E-Instruct",
-          "discovered_via": [
-            "provider_models_endpoint"
-          ],
-          "modes": {
-            "direct_api": {
-              "ok": false,
-              "skipped": true,
-              "reason": "sampler_backoff_active"
-            },
-            "acptoapi_passthrough": {
-              "ok": false,
-              "latency_ms": 2,
-              "error": "Unable to connect. Is the computer able to access the url?"
-            },
-            "freddie_v1": {
-              "ok": false,
-              "latency_ms": 5,
-              "error": "500:{\"error\":{\"message\":\"no LLM backend reachable: set a provider API key or start acptoapi (http://127.0.0.1:4800/v1) | sam"
-            },
-            "kilo_acp": {
-              "ok": false,
-              "skipped": true,
-              "reason": "daemon_not_running:4780"
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
             },
             "opencode_acp": {
               "ok": false,
@@ -1304,22 +3885,638 @@
       ]
     },
     {
-      "id": "together",
+      "id": "sarvamai",
       "key_present": false,
-      "discovery_error": "no_key",
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "sarvam-m",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 478,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'sarvamai/sarvam-m'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\"hint\":\"'s"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "snowflake",
+      "key_present": false,
+      "discovery_error": null,
       "models": []
     },
     {
-      "id": "xai",
+      "id": "stepfun-ai",
       "key_present": false,
-      "discovery_error": "no_key",
-      "models": []
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "step-3.5-flash",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 479,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'stepfun-ai/step-3.5-flash'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\"h"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "step-3.7-flash",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 51,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'stepfun-ai/step-3.7-flash'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\"h"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "stockmark",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "stockmark-2-100b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 482,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'stockmark/stockmark-2-100b-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"unknown"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "upstage",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "solar-10.7b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 482,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'upstage/solar-10.7b-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\""
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "writer",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "palmyra-creative-122b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 483,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'writer/palmyra-creative-122b'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\""
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "palmyra-fin-70b-32k",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 46,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'writer/palmyra-fin-70b-32k'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\""
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "palmyra-med-70b",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 7,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'writer/palmyra-med-70b'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\"hint"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "palmyra-med-70b-32k",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 4,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'writer/palmyra-med-70b-32k'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\""
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "z-ai",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "glm-5.2",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15014,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
     },
     {
       "id": "zai",
       "key_present": true,
-      "discovery_error": "404",
-      "models": []
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "glm-4-plus",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "latency_ms": 13063,
+              "error": "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15001,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            }
+          },
+          "usable_in_any_mode": false
+        },
+        {
+          "id": "glm-4-air",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "sampler_backoff_active"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 15007,
+              "error": "The operation was aborted due to timeout"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "latency_ms": 3330,
+              "error": "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
+    },
+    {
+      "id": "zyphra",
+      "key_present": false,
+      "discovery_error": null,
+      "models": [
+        {
+          "id": "zamba2-7b-instruct",
+          "discovered_via": [
+            "provider_models_endpoint"
+          ],
+          "modes": {
+            "direct_api": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            },
+            "acptoapi_passthrough": {
+              "ok": false,
+              "latency_ms": 516,
+              "error": "400:{\"error\":{\"message\":\"Unknown model 'zyphra/zamba2-7b-instruct'\",\"type\":\"invalid_request_error\",\"code\":\"unknown_model\",\"h"
+            },
+            "freddie_v1": {
+              "ok": false,
+              "skipped": true,
+              "reason": "daemon_not_running:4900"
+            },
+            "kilo_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:kilo_only_proxies_its_own_models"
+            },
+            "opencode_acp": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:opencode_only_proxies_its_own_models"
+            },
+            "claude_cli": {
+              "ok": false,
+              "skipped": true,
+              "reason": "mode_mismatch:claude_cli_only_routes_anthropic_models"
+            },
+            "freddie_agent_loop": {
+              "ok": false,
+              "skipped": true,
+              "reason": "no_api_key_for_provider"
+            }
+          },
+          "usable_in_any_mode": false
+        }
+      ]
     }
   ],
   "sampler": [
@@ -1327,25 +4524,37 @@
       "provider": "cerebras",
       "ok": false,
       "failCount": 2,
-      "nextCheckIn": 6589
+      "nextCheckIn": 8362
     },
     {
-      "provider": "claude-cli",
+      "provider": "cloudflare",
+      "ok": false,
+      "failCount": 2,
+      "nextCheckIn": 6244
+    },
+    {
+      "provider": "codestral",
       "ok": true,
       "failCount": 0,
       "nextCheckIn": 0
     },
     {
-      "provider": "groq",
+      "provider": "google",
       "ok": false,
       "failCount": 2,
-      "nextCheckIn": 8766
+      "nextCheckIn": 10061
+    },
+    {
+      "provider": "groq",
+      "ok": false,
+      "failCount": 1,
+      "nextCheckIn": 0
     },
     {
       "provider": "kilo",
       "ok": false,
       "failCount": 2,
-      "nextCheckIn": 6157
+      "nextCheckIn": 14169
     },
     {
       "provider": "mistral",
@@ -1357,66 +4566,84 @@
       "provider": "nvidia",
       "ok": false,
       "failCount": 2,
-      "nextCheckIn": 6589
+      "nextCheckIn": 14931
     },
     {
       "provider": "opencode",
       "ok": false,
-      "failCount": 1,
-      "nextCheckIn": 0
+      "failCount": 2,
+      "nextCheckIn": 20372
+    },
+    {
+      "provider": "opencode-zen",
+      "ok": false,
+      "failCount": 2,
+      "nextCheckIn": 10579
     },
     {
       "provider": "openrouter",
+      "ok": true,
+      "failCount": 0,
+      "nextCheckIn": 0
+    },
+    {
+      "provider": "qwen",
       "ok": false,
       "failCount": 2,
-      "nextCheckIn": 6722
+      "nextCheckIn": 11947
     },
     {
       "provider": "sambanova",
       "ok": false,
       "failCount": 1,
       "nextCheckIn": 0
+    },
+    {
+      "provider": "zai",
+      "ok": false,
+      "failCount": 2,
+      "nextCheckIn": 11532
     }
   ],
   "summary": {
-    "total_providers": 23,
-    "total_models": 26,
-    "usable_in_any_mode": 8,
+    "total_providers": 44,
+    "total_models": 95,
+    "usable_in_any_mode": 7,
     "per_mode_counts": {
       "direct_api": {
-        "ok": 8,
-        "fail": 7,
-        "skipped": 11
+        "ok": 5,
+        "fail": 12,
+        "skipped": 78
       },
       "acptoapi_passthrough": {
         "ok": 0,
-        "fail": 26,
+        "fail": 95,
         "skipped": 0
       },
       "freddie_v1": {
-        "ok": 3,
-        "fail": 23,
-        "skipped": 0
+        "ok": 0,
+        "fail": 0,
+        "skipped": 95
       },
       "kilo_acp": {
         "ok": 0,
-        "fail": 0,
-        "skipped": 26
+        "fail": 3,
+        "skipped": 92
       },
       "opencode_acp": {
         "ok": 0,
-        "fail": 1,
-        "skipped": 25
+        "fail": 2,
+        "skipped": 93
       },
       "claude_cli": {
-        "ok": 3,
+        "ok": 0,
         "fail": 0,
-        "skipped": 23
+        "skipped": 95
       },
       "freddie_agent_loop": {
-        "ok": 8,
-        "fail": 0,
-        "skipped": 18
+        "ok": 6,
+        "fail": 10,
+        "skipped": 79
       }
     }
   }

@@ -10,10 +10,50 @@ await T('home+config+skin', async () => {
     s.setActiveSkin('mono'); assert.equal(s.getActiveSkin().name, 'mono')
 })
 await T('sessions+FTS5', async () => {
-    const { createSession, appendMessage, getMessages, search } = await import('./src/sessions.js')
+    const { createSession, appendMessage, getMessages, getSession, deleteSession, listSessions, search } = await import('./src/sessions.js')
     const sid = await createSession({ platform: 'cli' })
     for (const t of ['banana smoothie', 'sounds delicious', 'recipe please']) await appendMessage(sid, { role: 'user', content: t })
     assert.equal((await getMessages(sid)).length, 3); assert.ok((await search('banana')).length >= 1)
+    // title auto-derives from the first user prompt (scannable session list)
+    assert.equal((await getSession(sid)).title, 'banana smoothie', 'title auto-derived from first prompt')
+    assert.ok((await listSessions()).some(s => s.id === sid))
+    // deleteSession removes the row, its messages, and purges the FTS index
+    const del = await deleteSession(sid); assert.ok(del.deleted)
+    assert.equal(await getSession(sid), null, 'session row gone after delete')
+    assert.equal((await getMessages(sid)).length, 0, 'messages gone after delete')
+    assert.ok(!(await search('banana')).some(r => r.session_id === sid), 'FTS purged after delete')
+})
+await T('cli-verbs-smoke', async () => {
+    // test.js can pass while the CLI is broken; smoke each new user-facing verb
+    // through the real commander entry so a registration/await regression fails here.
+    const { spawnSync } = await import('node:child_process')
+    const run = (args) => spawnSync(process.execPath, ['bin/freddie.js', ...args], { encoding: 'utf8', timeout: 60000, env: { ...process.env, FREDDIE_HOME: TEST_HOME } })
+    for (const args of [['auth', 'list'], ['project', 'list'], ['project', 'current'], ['session', 'list'], ['doctor'], ['help-all']]) {
+        const r = run(args)
+        assert.equal(r.status, 0, `freddie ${args.join(' ')} exit ${r.status}: ${(r.stderr || '').slice(0, 200)}`)
+    }
+    // auth list surfaces a known provider with its env var
+    assert.match(run(['auth', 'list']).stdout, /anthropic\s+ANTHROPIC_API_KEY/, 'auth list shows provider+env')
+    // project list marks exactly one project active with [*] -- the registry
+    // (~/.freddie/projects.json) is intentionally machine-global, not isolated
+    // by this test's FREDDIE_HOME override (it has to survive switching which
+    // project is active), so asserting the active one is literally 'default'
+    // is only true on a fresh machine; assert against whatever 'project
+    // current' independently reports instead, so this test passes regardless
+    // of which project a real developer happens to have active.
+    const listOut = run(['project', 'list']).stdout
+    const activeLine = listOut.split('\n').find(l => l.includes('[*]'))
+    assert.ok(activeLine, 'project list marks exactly one project active: ' + listOut)
+    const currentOut = run(['project', 'current']).stdout
+    assert.ok(activeLine.includes(currentOut.trim()) || currentOut.includes(activeLine.replace('[*]', '').trim().split(/\s+/)[0]), 'project list active marker agrees with project current: ' + JSON.stringify({ activeLine, currentOut }))
+    // unknown provider is rejected with the valid list, not a silent no-op
+    const bad = run(['auth', 'set', 'no-such-provider']); assert.notEqual(bad.status, 0); assert.match(bad.stderr, /unknown provider/, 'auth set rejects unknown provider')
+    // doctor reports the workspace + conversation sections, naming whichever
+    // project is really active (the registry is machine-global, same
+    // reasoning as the project-list assertion above -- never assume 'default')
+    const doctorOut = run(['doctor']).stdout
+    assert.match(doctorOut, /# workspace/, 'doctor shows workspace section')
+    assert.match(doctorOut, /active project:\s+\S+/, 'doctor names an active project: ' + doctorOut.slice(0, 300))
 })
 await T('host+tools+toolsets', async () => {
     const ccDir = path.join(TEST_HOME, 'cc-plugins', 'demo'); fs.mkdirSync(path.join(ccDir, '.claude-plugin'), { recursive: true }); fs.mkdirSync(path.join(ccDir, 'skills', 'hello'), { recursive: true }); fs.mkdirSync(path.join(ccDir, 'agents'), { recursive: true }); fs.mkdirSync(path.join(ccDir, 'hooks'), { recursive: true }); fs.writeFileSync(path.join(ccDir, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'demo', version: '1.0.0' })); fs.writeFileSync(path.join(ccDir, 'skills', 'hello', 'SKILL.md'), '---\ndescription: hi\n---\nhi'); fs.writeFileSync(path.join(ccDir, 'agents', 'rev.md'), '---\nname: rev\ndescription: r\n---\nbody'); const denyScript = path.join(ccDir, 'deny.mjs'); fs.writeFileSync(denyScript, "process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:'no'}}))"); fs.writeFileSync(path.join(ccDir, 'hooks', 'hooks.json'), JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'bash', hooks: [{ type: 'command', command: `"${process.execPath}" "${denyScript.replace(/\\/g, '/')}"` }] }] } }))
@@ -32,7 +72,7 @@ await T('host+tools+toolsets', async () => {
     await D('edit', { path: tf, old_string: 'beta', new_string: 'BETA' }); assert.match(JSON.stringify(await D('grep', { pattern: 'BETA', path: TEST_HOME })), /BETA/)
     await D('todo', { action: 'add', content: 'task-x' }); assert.match(JSON.stringify(await D('todo', { action: 'list' })), /task-x/)
     await D('checkpoint', { action: 'save', name: 'cp1', data: { v: 1 } }); assert.equal((await D('checkpoint', { action: 'load', name: 'cp1' })).data.v, 1)
-    await D('memory', { action: 'add', content: 'mem-x' }); assert.match(JSON.stringify(await D('memory', { action: 'list' })), /mem-x/)
+    { const mfact = 'freddie memory smoke fact: the quick brown fox sentinel ' + Date.now(); const ma = await D('memory', { action: 'add', content: mfact, namespace: 'freddie-test' }); assert.ok(ma.key || ma.stored === 'noop', 'memory add: ' + JSON.stringify(ma)); if (ma.key) { const ms = await D('memory', { action: 'search', query: 'quick brown fox sentinel', namespace: 'freddie-test', limit: 3 }); assert.match(JSON.stringify(ms), /quick brown fox sentinel/, 'memory search roundtrip') } }
     await D('file_state', { action: 'record', session_id: 's1', file_path: tf, op: 'write' }); assert.match(JSON.stringify(await D('file_state', { action: 'list', session_id: 's1' })), /tf\.txt/)
     await D('file_operations', { action: 'copy', src: tf, dest: tf2 }); assert.ok(fs.existsSync(tf2)); assert.ok((await D('skill_usage', { action: 'record', name: 'sk' })).recorded)
     const ts = await import('./src/toolsets.js'); assert.ok((await ts.getEnabledToolSchemas(['core'])).length >= ts._FREDDIE_CORE_TOOLS.length)
@@ -52,7 +92,12 @@ await T('agent-machine', async () => {
     const md = await import('./src/agent/model-discovery.js'); const kp = md.listKnownProviders(); assert.ok(Object.keys(PROVIDER_KEYS).length >= 15 && DEFAULTS.cerebras && DEFAULTS.google && DEFAULTS.mistral && kp.length >= 17 && kp.includes('claude-cli') && kp.includes('kilo') && kp.includes('opencode'), 'providers: '+kp.length)
     const cv = await import('./src/config.js'); cv.saveConfigValue('agent.model_queues', { test_q: [{ provider: 'no-such-provider', model: 'x' }] }); try { await resolveCallLLM({ model: 'queue/nonexistent' })({ messages: [{ role: 'user', content: 'x' }], tools: [] }) } catch (e) { assert.match(e.message, /queue not found/) }; try { await resolveCallLLM({ model: 'queue/test_q' })({ messages: [{ role: 'user', content: 'x' }], tools: [] }) } catch (e) { assert.match(e.message, /chain (exhausted|empty)/) }; cv.saveConfigValue('agent.model_queues', {})
     const savedKeys = {}; for (const k of Object.values(PROVIDER_KEYS)) { savedKeys[k] = process.env[k]; delete process.env[k] }; try { await resolveCallLLM({})({ messages: [{ role: 'user', content: 'x' }], tools: [] }) } catch (e) { assert.match(e.message, /no LLM backend/) }; for (const [k, v] of Object.entries(savedKeys)) { if (v !== undefined) process.env[k] = v }
-    if (await isReachable()) { const r = await resolveCallLLM({ model: 'claude/haiku' })({ messages: [{ role: 'user', content: 'reply with exactly: REAL_OK' }], tools: [] }); assert.match(r.content, /REAL_OK/) }
+    // Gate on ANTHROPIC_API_KEY specifically, not the generic isReachable() probe:
+    // isReachable() pings acptoapi's default chain, which can succeed via a
+    // different resolved backend than the literal model:'claude/haiku' requested
+    // below -- a divergence that turned a silent skip into a spurious failure
+    // once other providers became reachable (see dotenv wiring in src/host/index.js).
+    if (process.env.ANTHROPIC_API_KEY) { const r = await resolveCallLLM({ model: 'claude/haiku' })({ messages: [{ role: 'user', content: 'reply with exactly: REAL_OK' }], tools: [] }); assert.match(r.content, /REAL_OK/) }
 })
 await T('gateway+platforms+hooks', async () => {
     const { Gateway } = await import('./src/gateway/run.js')
@@ -152,6 +197,82 @@ await T('plugins+memory', async () => {
     const { award, listAchievements } = await import('./src/plugins/achievements/index.js')
     await award('test-award'); assert.ok((await listAchievements()).some(a => a.name === 'test-award'))
 })
+await T('gm-learn', async () => {
+    const gl = await import('./src/learn/gm-learn.js')
+    // Empty/whitespace inputs are no-ops without touching the wasm.
+    assert.equal(await gl.memorize('   '), null, 'empty memorize -> null')
+    assert.deepEqual(await gl.recall(''), [], 'empty recall -> []')
+    assert.deepEqual(await gl.prune([]), { pruned: 0 }, 'empty prune -> 0')
+    // Semantic roundtrip (best-effort: skips assertion if gm wasm unavailable, never fails).
+    const ns = 'freddie-gmlearn-test'
+    const fact = 'gm-learn group sentinel: the platypus eats the violet pancake ' + Date.now()
+    const key = await gl.memorize(fact, { namespace: ns })
+    if (key) {
+        assert.ok(typeof key === 'string', 'memorize returns a key')
+        const hits = await gl.recall('platypus violet pancake', { limit: 3, namespace: ns })
+        assert.ok(hits.length >= 1, 'recall returns the memorized fact')
+        assert.ok(hits[0].text.includes('platypus'), 'recall hit content')
+        assert.ok(typeof hits[0].score === 'number', 'recall hit has score')
+        // Empty-db corner: a never-used namespace recalls cleanly to [].
+        const none = await gl.recall('zzz nonexistent query', { limit: 3, namespace: 'freddie-empty-ns-' + Date.now() })
+        assert.ok(Array.isArray(none), 'recall on empty namespace returns array')
+        // Context engine uses query-aware recall over gm rs-learn.
+        const { buildContext } = await import('./src/context/engine.js')
+        const blocks = await buildContext({ plugins: ['memory'], message: 'platypus violet pancake', options: { namespace: ns } })
+        assert.ok(blocks.some(b => /platypus/.test(b.body)), 'context memory block recalls fact')
+        // prune requires an explicit key (never blind similarity-delete).
+        const forget = await (await import('./src/host/index.js')).bootHost().then(h => h.pi.dispatchTool('memory', { action: 'forget' }))
+        assert.match(JSON.stringify(forget), /key required/, 'forget without key errors')
+    } else {
+        assert.ok(gl.learnAvailable() === false, 'no key only acceptable when gm rs-learn unavailable')
+    }
+})
+await T('gm-learn-browser', async () => {
+    // Exercise the BROWSER learning path WITHOUT the real wasm. gm-learn detects the
+    // browser via `typeof window !== 'undefined'`, then routes verbs through a
+    // host-provided globalThis.__GM_DISPATCH__ bridge.
+    try {
+        // Trip _isBrowser + install a mock dispatch BEFORE the (cache-busted) import,
+        // so the fresh module instance picks them up on a clean _pk singleton.
+        globalThis.window = {}
+        globalThis.__GM_DISPATCH__ = (verb, body) => {
+            if (verb === 'memorize-fire') return { ok: true, data: { key: 'mem-test-1' } }
+            if (verb === 'recall') return { ok: true, data: { hits: [{ text: 'browser fact', score: 0.9, key: 'mem-test-1', namespace: 'ns1' }] } }
+            if (verb === 'auto-recall') return { hits: [] }
+            if (verb === 'memorize-prune') return { ok: true, data: { pruned: 1 } }
+            return { ok: false }
+        }
+        const gl = await import('./src/learn/gm-learn.js?browsertest=' + Date.now())
+        assert.equal(gl.learnAvailable(), true, 'browser bridge makes learn available')
+        // memorize routes 'memorize-fire' through the bridge and returns the host key.
+        assert.equal(await gl.memorize('x'), 'mem-test-1', 'browser memorize returns host key')
+        // recall normalizes the bridge response into a flat hit list.
+        const hits = await gl.recall('q')
+        assert.equal(hits.length, 1, 'browser recall returns one hit')
+        assert.equal(hits[0].text, 'browser fact', 'browser recall hit text')
+        assert.equal(hits[0].score, 0.9, 'browser recall hit score')
+        // projectNamespace falls back to 'default' when __GM_NAMESPACE__ unset.
+        assert.equal(await gl.projectNamespace(), 'default', 'namespace defaults to "default"')
+        // ...and resolves a function-valued __GM_NAMESPACE__ when the host sets one.
+        globalThis.__GM_NAMESPACE__ = () => 'ns-x'
+        assert.equal(await gl.projectNamespace(), 'ns-x', 'namespace resolves host fn')
+        delete globalThis.__GM_NAMESPACE__
+        // prune routes 'memorize-prune' and surfaces the host's pruned count.
+        assert.deepEqual(await gl.prune('mem-test-1'), { pruned: 1 }, 'browser prune returns host count')
+
+        // Graceful no-op: with no bridge wired, a FRESH module instance degrades to
+        // empty results and never throws into the agent loop.
+        delete globalThis.__GM_DISPATCH__
+        const gl2 = await import('./src/learn/gm-learn.js?browsertest=' + Date.now())
+        assert.equal(gl2.learnAvailable(), false, 'no bridge -> learn unavailable')
+        assert.deepEqual(await gl2.recall('q'), [], 'no-bridge recall -> []')
+        assert.equal(await gl2.memorize('x'), null, 'no-bridge memorize -> null')
+    } finally {
+        delete globalThis.window
+        delete globalThis.__GM_DISPATCH__
+        delete globalThis.__GM_NAMESPACE__
+    }
+})
 await T('profiles+observability+auth+env+context+cron+batch+slash+skills', async () => {
     const cr = await import('./src/commands/registry.js')
     assert.ok(cr.COMMAND_REGISTRY.length >= 10 && cr.resolveCommand('/bg') === 'background' && cr.gatewayHelpLines().length >= 5 && cr.slackAppManifest().features.slash_commands[0].command.startsWith('/') && cr.discordSkillCommands().length >= 1)
@@ -192,7 +313,8 @@ await T('utils+time+redact+model-meta+agent-helpers', async () => {
     assert.ok((await import('./src/agent/usage_pricing.js')).calculateCost({ model: 'claude-sonnet-4-6', prompt_tokens: 1_000_000, completion_tokens: 0 }) > 0)
     let m = 0; assert.equal(await (await import('./src/agent/retry_utils.js')).retryAsync(async () => { if (m++ < 1) throw new Error('rate limit 429'); return 'done' }, { attempts: 3, backoff: 1 }), 'done')
     const pc = await import('./src/agent/prompt_caching.js'); assert.ok(pc.countBreakpoints(pc.annotateBreakpoints([{ role: 'system', content: 's' }, { role: 'user', content: 'u' }])) >= 1)
-    for (const [f, k] of [['anthropic_adapter','chat'],['bedrock_adapter','chat'],['codex_responses_adapter','chat'],['auxiliary_client','call_llm'],['gemini_native_adapter','chat'],['gemini_cloudcode_adapter','chat'],['google_oauth','getToken'],['google_code_assist','complete'],['image_gen_provider','generate'],['image_gen_registry','generateAndRecord']]) assert.equal(typeof (await import('./src/agent/' + f + '.js'))[k], 'function', f)
+    for (const [f, k] of [['anthropic_adapter','chat'],['bedrock_adapter','chat'],['codex_responses_adapter','chat'],['gemini_native_adapter','chat'],['gemini_cloudcode_adapter','chat'],['google_oauth','getToken'],['google_code_assist','complete']]) assert.equal(typeof (await import('./src/agent/adapters/' + f + '.js'))[k], 'function', f)
+    for (const [f, k] of [['auxiliary_client','call_llm'],['image_gen_provider','generate'],['image_gen_registry','generateAndRecord']]) assert.equal(typeof (await import('./src/agent/' + f + '.js'))[k], 'function', f)
 })
 await T('mcp+swe+distributions+account+credpool', async () => {
     const { McpServer } = await import('./src/mcp/server.js'); const { Readable, Writable } = await import('node:stream')
@@ -228,13 +350,34 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     for (const n of ['local','docker','ssh','modal','managed_modal','daytona','singularity','vercel_sandbox']) assert.ok(envs.listEnvironments().includes(n) && typeof envs.syncTo === 'function', n)
     const su = await import('./src/cli/setup.js'); for (const fn of ['setupWizard','setupModelProvider','setupTerminalBackend','setupTts','setupGatewayPlatform','setupAgentSettings','setupSkin','getSetupStatus']) assert.equal(typeof su[fn], 'function', fn)
     for (const m of ['./src/agent/pi-bridge.js','./src/cli/interactive.js','./src/tui/index.js','./src/cli/main.js']) { const mm = await import(m); assert.ok(Object.values(mm).some(v => typeof v === 'function'), m) }
-    assert.match((await import('./src/cli/colors.js')).fg.red('hi'), /\x1b\[31m/); assert.equal((await import('./src/cli/model_normalize.js')).normalizeModel('sonnet'), 'claude-sonnet-4-6')
-    const wh = await import('./src/gateway/helpers.js'); assert.ok((await import('./src/cli/model_catalog.js')).listCatalog().length >= 5 && (await import('./src/cli/doctor.js')).runDoctor().some(c => c.name === 'node-version') && wh.hmacVerify('s', 'b', wh.hmacSign('s', 'b')))
+    assert.match((await import('./src/cli/colors.js')).fg.red('hi'), /\x1b\[31m/); assert.equal((await import('./src/cli/model_normalize.js')).normalizeModel('sonnet'), 'claude-sonnet-4-6'); assert.equal(typeof (await import('./src/cli/models/codex.js')).isCodexModel, 'function')
+    const wh = await import('./src/gateway/helpers.js'); assert.ok((await import('./src/cli/model_catalog.js')).listCatalog().length >= 5 && (await (await import('./src/cli/doctor.js')).runDoctor()).some(c => c.name === 'node-version') && wh.hmacVerify('s', 'b', wh.hmacSign('s', 'b')))
     assert.ok((await (await import('./src/acp/auth.js')).authenticateRequest({})).ok && (await (await import('./src/acp/tools.js')).listToolsForAcp()).length >= 50)
-    const wh2 = fs.readFileSync(path.join('website', 'docs/index.html'), 'utf8'); for (const m of ['ds-hero-title', 'rail-green', 'when do I reach']) assert.ok(wh2.includes(m), m)
+    const wh2 = fs.readFileSync(path.join('website', 'docs/index.html'), 'utf8'); for (const m of ['ds-hero-title', 'ds-feature', 'when do I reach']) assert.ok(wh2.includes(m), m)
     const dash = await (await import('./src/web/server.js')).createDashboard({ port: 0 })
     const G = (p) => fetch(dash.url + p); const gs = async (...ps) => { for (const p of ps) assert.equal((await G(p)).status, 200, p) }; const P = (p, b) => fetch(dash.url + p, { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify(b) })
-    await gs('api/sessions','api/tools','api/cron','api/skills','api/config','api/env','api/debug','api/debug-all','api/gateway','api/profiles','api/commands','api/health','api/logs','api/search?q=test','api/tools/detail','api/models/providers','api/models/cached','api/models/queues','api/models/sampler','v1/models')
+    await gs('api/sessions','api/auth','api/tools','api/cron','api/skills','api/config','api/env','api/debug','api/debug-all','api/gateway','api/profiles','api/commands','api/health','api/logs','api/search?q=test','api/tools/detail','api/models/providers','api/models/cached','api/models/queues','api/models/sampler','v1/models')
+    // Dashboard key management (gui-auth): set/inspect/remove a provider key.
+    const SECRET = 'sk-test-DASHBOARD-KEY-9999'
+    // Use a provider whose env var is NOT present in the test process so the
+    // stored-source path is exercised deterministically.
+    const KP = ['deepseek','zai','kimi','perplexity'].find(p => !process.env[({deepseek:'DEEPSEEK_API_KEY',zai:'ZAI_API_KEY',kimi:'KIMI_API_KEY',perplexity:'PERPLEXITY_API_KEY'})[p]]) || 'deepseek'
+    const aset = await P('api/auth', { provider: KP, key: SECRET }); assert.equal(aset.status, 200, 'POST /api/auth set')
+    const alist = await (await G('api/auth')).json()
+    const mrow = alist.find(r => r.provider === KP); assert.ok(mrow && mrow.set && mrow.source === 'stored', 'auth shows stored key for ' + KP)
+    assert.ok(!JSON.stringify(alist).includes(SECRET), 'GET /api/auth never leaks the raw key')
+    assert.equal(mrow.fingerprint, SECRET.slice(0,4) + '…' + SECRET.slice(-4), 'fingerprint masks the key')
+    const adel = await fetch(dash.url + 'api/auth/' + KP, { method: 'DELETE' }); assert.equal(adel.status, 200)
+    assert.ok(!(await (await G('api/auth')).json()).find(r => r.provider === KP).set, 'stored key removed')
+    assert.equal((await P('api/auth', { provider: 'bogus', key: 'x' })).status, 400, 'unknown provider -> 400')
+    assert.equal((await P('api/auth', { provider: 'mistral', key: '' })).status, 400, 'empty key -> 400')
+    // gui-sessions delete + single-get
+    const { createSession: _cs, appendMessage: _am } = await import('./src/sessions.js')
+    const delSid = await _cs({ platform: 'cli' }); await _am(delSid, { role: 'user', content: 'gui-delete-me' })
+    assert.equal((await G('api/sessions/' + delSid)).status, 200, 'GET single session')
+    assert.equal((await G('api/sessions/no-such-id')).status, 404, 'missing session -> 404')
+    assert.equal((await fetch(dash.url + 'api/sessions/' + delSid, { method: 'DELETE' })).status, 200, 'DELETE session')
+    assert.equal((await G('api/sessions/' + delSid)).status, 404, 'session gone after delete')
     const { listKnownProviders, flattenForOpenAI } = await import('./src/agent/model-discovery.js'); assert.ok(listKnownProviders().includes('anthropic') && listKnownProviders().includes('openai') && listKnownProviders().includes('claude-cli') && listKnownProviders().length >= 17)
     const qr = await P('api/models/queues', { name: 'q1', entries: [{ provider: 'groq', model: 'x' }] }); assert.equal(qr.status, 200); const qg = await (await G('api/models/queues')).json(); assert.ok(qg.q1); const qd = await fetch(dash.url + 'api/models/queues/q1', { method: 'DELETE' }); assert.equal(qd.status, 200); assert.ok(Array.isArray(flattenForOpenAI()))
     const v1bad = await P('v1/chat/completions', { messages: [] }); assert.equal(v1bad.status, 400)
@@ -283,7 +426,7 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     await dash.stop()
 })
 
-console.log('\n=== test.js results ==='); for (const [n, s] of results) console.log(`  ${s.startsWith('OK') ? '✓' : '✗'} ${n}\t${s}`)
+console.log('\n=== test.js results ==='); for (const [n, s] of results) console.log(`  ${s.startsWith('OK') ? '[ok]' : '[FAIL]'} ${n}\t${s}`)
 const failed = results.filter(r => !r[1].startsWith('OK'))
 try { (await import('./src/sessions.js')).closeDb() } catch {}; try { (await import('./src/observability/log.js')).closeAll() } catch {}
 if (failed.length) { console.error(`\n${failed.length} FAILED`); process.exit(1) }

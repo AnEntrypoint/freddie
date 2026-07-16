@@ -1,0 +1,2 @@
+./plugins/interrupt/handler.js:2:2 setInterrupt
+function setInterrupt(sessionId) { _flags.set(sessionId, true) }

@@ -15,9 +15,10 @@ export const _tool = ({
             required: ['path', 'content'],
         },
     },
-    handler: async ({ path: p, content }) => {
-        fs.mkdirSync(path.dirname(p), { recursive: true })
-        fs.writeFileSync(p, content, 'utf8')
-        return { path: p, bytes: Buffer.byteLength(content, 'utf8') }
+    handler: async ({ path: p, content }, ctx = {}) => {
+        const resolved = ctx.cwd && !path.isAbsolute(p) ? path.join(ctx.cwd, p) : p
+        fs.mkdirSync(path.dirname(resolved), { recursive: true })
+        fs.writeFileSync(resolved, content, 'utf8')
+        return { path: resolved, bytes: Buffer.byteLength(content, 'utf8') }
     },
 })

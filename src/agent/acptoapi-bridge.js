@@ -1,87 +1,153 @@
 import { logger } from '../observability/log.js'
-import { env } from '../env.js'
+import { parseTextToolCalls } from './tool_call_text.js'
 
 const log = logger('acptoapi')
 
-// acptoapi may take minutes to answer when it serially walks dead providers
-// (each ~90s timeout) before a live one responds. Node's default undici
-// headersTimeout/bodyTimeout (~300s) would throw UND_ERR_HEADERS_TIMEOUT
-// mid-walk, so we raise them to 0 (disabled) on the global dispatcher and let
-// our AbortController be the single source of truth for the overall deadline
-// (default 240s, override via FREDDIE_LLM_TIMEOUT_MS). Use setGlobalDispatcher
-// once rather than a per-request Agent so we don't leak a dispatcher per call.
-const ACPTOAPI_TIMEOUT_MS = Number(env('FREDDIE_LLM_TIMEOUT_MS')) || 240000
-let _dispatcherSet = false
-async function ensureLongTimeoutDispatcher() {
-    if (_dispatcherSet) return
-    _dispatcherSet = true
-    try {
-        const undici = await import('undici')
-        // headersTimeout/bodyTimeout 0: tolerate acptoapi's minutes-long walk.
-        // keepAlive*Timeout 1ms: close the socket right after the response so no
-        // keep-alive socket lingers between calls.
-        undici.setGlobalDispatcher(new undici.Agent({
-            headersTimeout: 0,
-            bodyTimeout: 0,
-            keepAliveTimeout: 1,
-            keepAliveMaxTimeout: 1,
-        }))
-    } catch { /* undici not available — rely on AbortController + defaults */ }
-}
+// Browser-safe env read: this module evaluates in a plain browser context where
+// `process` is undefined (no node shim yet), so a bare process.env throws
+// "process is not defined" and aborts the whole bundle import. envVal() reads
+// live (picks up a late-installed shim) and never throws.
+const envVal = (k) => { try { return (typeof process !== 'undefined' && process.env) ? process.env[k] : undefined } catch { return undefined } }
+const ACPTOAPI_TIMEOUT_MS = Number(envVal('FREDDIE_LLM_TIMEOUT_MS')) || 240000
 
 export function getAcptoapiUrl() {
-    return env('FREDDIE_LLM_URL') || 'http://127.0.0.1:4800/v1'
+    // Returns the configured dialable acptoapi URL, or null when unset. Most
+    // callers (the dashboard health row, CLI banner) treat this as display/logging
+    // only -- there is no listening port required for the in-process callLLM()
+    // path below. However codex_responses_adapter.js, gemini_native_adapter.js,
+    // image_gen_provider.js, and model-discovery.js still fetch() this value as a
+    // live HTTP base and DO require a real dialable URL (FREDDIE_LLM_URL set) --
+    // they must guard against a null return rather than building a request
+    // against a placeholder string.
+    return envVal('FREDDIE_LLM_URL') || null
 }
 
 export function getAcptoapiModel() {
-    return env('FREDDIE_LLM_MODEL') || 'claude/haiku'
+    return envVal('FREDDIE_LLM_MODEL') || 'claude/haiku'
 }
 
-export async function callLLM({ messages, tools = [], model } = {}) {
-    const base = getAcptoapiUrl()
+let _acptoapi = null
+async function getAcptoapi() {
+    if (!_acptoapi) {
+        const mod = await import('acptoapi')
+        // acptoapi is a CJS package; Node's CJS-to-ESM interop only statically
+        // detects a SUBSET of module.exports keys as named exports (witnessed:
+        // `chat` is a real named export, `listAllModelsAndQueues` is not, even
+        // though both are plain keys on the same module.exports object) -- read
+        // through `.default` (the full CJS exports object) so every export is
+        // reachable regardless of which subset the interop happened to pick up.
+        _acptoapi = mod.default && typeof mod.default === 'object' ? mod.default : mod
+    }
+    return _acptoapi
+}
+
+// A single 'provider/model' string (the common shape of FREDDIE_LLM_MODEL / a
+// per-call `model` override) is resolved by acptoapi's plain chat() via
+// resolveModel() to exactly ONE provider -- no fallback chain applies unless
+// the caller already used comma-list / queue/ / chain/ syntax. A configured
+// model whose provider is unreachable (wrong/unrecognised proxy name, expired
+// key, provider outage) then hard-fails every call with no safety net, even
+// though acptoapi ships a real auto-chain fallback engine
+// (buildAutoChain/chatChain) for exactly this case. isConfiguredChainSyntax
+// recognizes the syntaxes that ALREADY encode their own explicit chain, so
+// resolveChainLinks only builds an auto-chain around a bare single-model
+// string -- an operator who deliberately wrote 'a,b,c' or 'queue/foo' keeps
+// exclusive control of that chain, unchanged.
+function isConfiguredChainSyntax(model) {
+    if (typeof model !== 'string') return false
+    return model.includes(',') || model.startsWith('queue/') || model.startsWith('chain/') || model === 'auto'
+}
+
+// Builds the real fallback chain for a bare single-model request: the
+// requested model first, then every other configured/available provider
+// behind it (acptoapi's own buildAutoChain -- see its AGENTS.md "Auto-Fallback
+// Chain" section). If chain construction itself throws (unexpected acptoapi
+// shape change), degrade to the single requested model rather than blocking
+// the call entirely -- this function must never be the reason a call that
+// could otherwise succeed never gets attempted.
+async function resolveChainLinks(acptoapi, useModel) {
+    if (isConfiguredChainSyntax(useModel)) return useModel
+    try {
+        const links = acptoapi.buildAutoChain(useModel)
+        return (Array.isArray(links) && links.length) ? links.map(l => l.model || l) : useModel
+    } catch { return useModel }
+}
+
+// In-process call: acptoapi's own chat()/chatChain() walks its provider/model
+// resolution (including a comma-list or named chain for multi-model fallback)
+// with no HTTP hop and no separate listening process -- eliminates the
+// standalone acptoapi.js daemon on :4800 entirely, along with its witnessed
+// failure mode (an uncaught ACP-timeout exception crashing the whole bridge
+// process). A bare single-model request is expanded into the real auto-chain
+// (see resolveChainLinks above) so an unreachable configured provider falls
+// through to another live one instead of failing every turn outright.
+export async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } = {}) {
+    const acptoapi = await getAcptoapi()
     const useModel = model || getAcptoapiModel()
+    const chainModel = await resolveChainLinks(acptoapi, useModel)
     const hasTools = Array.isArray(tools) && tools.length > 0
     const adaptedMessages = messages.map(adaptMessage)
-    if (hasTools) {
-        const cwd = process.cwd()
+    // The coder-agent working-directory note is OPT-IN via an explicit `cwd` param.
+    // It used to be injected on every tool-bearing call, which polluted NON-coder
+    // agents' prompts with "use your built-in tools (Bash, Read, Write)" -- tool
+    // hallucination bait plus a filesystem-path leak for hosts (like a contact-facing
+    // chat agent) whose toolset has no such tools. runTurn already composes its own
+    // cwd note when a caller passes cwd; direct callLLM users opt in the same way.
+    if (hasTools && cwd) {
         const sysIdx = adaptedMessages.findIndex(m => m.role === 'system')
         const cwdNote = `\nWorking directory: ${cwd}\nUse your built-in tools (Bash, Read, Write) to explore files in this directory when needed.`
         if (sysIdx >= 0) adaptedMessages[sysIdx] = { ...adaptedMessages[sysIdx], content: (adaptedMessages[sysIdx].content || '') + cwdNote }
         else adaptedMessages.unshift({ role: 'system', content: cwdNote.trim() })
     }
-    const body = {
-        model: useModel,
+    // acptoapi's chat() is a plain Promise with no AbortSignal support (each
+    // underlying provider has its own internal per-call timeout, e.g. the
+    // openai-compat provider's OPENAI_COMPAT_TIMEOUT_MS, default 180s) -- so the
+    // overall deadline here is enforced by racing a timeout, not by aborting the
+    // in-flight call itself.
+    let _timeoutHandle
+    const _timeout = new Promise((_, reject) => {
+        _timeoutHandle = setTimeout(() => reject(new Error('acptoapi call timeout')), ACPTOAPI_TIMEOUT_MS)
+    })
+    const chatOpts = {
         messages: adaptedMessages,
-        stream: false,
+        ...(hasTools ? { tools: tools.map(adaptTool) } : {}),
+        // Forward tool_choice through to the underlying provider. acptoapi's
+        // buildParams() spreads unrecognized opts keys straight into the
+        // outbound request body (confirmed: lib/sdk.js buildParams's `...clean`
+        // reaches providers/openai.js's `body` unfiltered) -- the prior gap was
+        // never acptoapi itself dropping this, it was THIS call site never
+        // including the key at all. Only meaningful alongside tools.
+        ...(hasTools && tool_choice ? { tool_choice } : {}),
         max_tokens: 4096,
     }
-    if (hasTools) body.tools = tools.map(adaptTool)
-    const headers = { 'content-type': 'application/json', authorization: 'Bearer none' }
-    const cwd = process.cwd()
-    if (Array.isArray(tools) && tools.length) headers['x-cwd'] = cwd
-    // Rely on AbortController timeout. acptoapi v1+ ships CORS + Private
-    // Network Access headers so cross-origin loopback (gh-pages → localhost)
-    // succeeds when acptoapi is running. The earlier preemptive loopback
-    // refusal caused false negatives on reachable endpoints.
-    await ensureLongTimeoutDispatcher()
-    const _ac = new AbortController()
-    const _tid = setTimeout(() => _ac.abort(new Error('acptoapi fetch timeout')), ACPTOAPI_TIMEOUT_MS)
-    let res
+    // An array chainModel (built by resolveChainLinks above) dispatches via
+    // chatChain -- the requested model tried first, falling through to the
+    // rest of the real provider chain on failure/timeout/rate-limit; a plain
+    // string (explicit chain syntax, or the auto-chain build itself failed)
+    // dispatches via the original single-model chat() unchanged.
+    let json
     try {
-        res = await fetch(base.replace(/\/$/, '') + '/chat/completions', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(body),
-            signal: _ac.signal,
-        })
-    } finally { clearTimeout(_tid) }
-    if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`acptoapi ${res.status}: ${text.slice(0, 400)}`)
+        json = await Promise.race([
+            Array.isArray(chainModel)
+                ? acptoapi.chatChain(chainModel, chatOpts)
+                : acptoapi.chat({ model: chainModel, ...chatOpts }),
+            _timeout,
+        ])
+    } finally { clearTimeout(_timeoutHandle) }
+    log.info('completed', { model: useModel, servedModel: Array.isArray(chainModel) ? (json.model || null) : useModel, usage: json.usage })
+    const adapted = adaptResponse(json)
+    // tool_choice is now genuinely forwarded to the provider (see chatOpts
+    // above) -- but a provider can still ignore it (not every backend actually
+    // enforces the OpenAI tool_choice contract, and the openai-compat request
+    // body shape varies by upstream). Keep this as a client-side backstop: log
+    // loud when a forced call still came back with none, so a non-compliant
+    // provider is visible rather than masquerading as "the model chose not to
+    // call a tool".
+    const forcedToolChoice = tool_choice === 'required' || tool_choice?.type === 'required'
+    if (forcedToolChoice && hasTools && !adapted.tool_calls.length) {
+        log.warn('tool_choice required but no tool call returned (provider did not honor it)', { model: useModel })
     }
-    const json = await res.json()
-    log.info('completed', { model: useModel, usage: json.usage })
-    return adaptResponse(json)
+    return adapted
 }
 
 function adaptMessage(m) {
@@ -117,26 +183,42 @@ function adaptResponse(r) {
     const tool_calls = Array.isArray(choice.tool_calls)
         ? choice.tool_calls.map(tc => ({ id: tc.id, name: tc.function?.name, arguments: tryParseJson(tc.function?.arguments) }))
         : []
+    // Recover text-format tool calls (kimi <|tool_call_begin|> / llama
+    // <|python_tag|>) from weak models that don't emit structured tool_calls.
+    if (!tool_calls.length) {
+        const textTC = parseTextToolCalls(content)
+        if (textTC.length) return { content: '', tool_calls: textTC, raw: r }
+    }
     return { content, tool_calls, raw: r }
 }
 
 function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : (s || {}) } catch { return {} } }
 
+// In-process reachability: acptoapi is a library import now, not a port to
+// dial, so there is no cheap side-channel that answers "is SOME model
+// reachable" for an arbitrary provider (witnessed: listAllModelsAndQueues only
+// enumerates configured matrix/queue sources, empty by default; the sampler
+// cache starts empty until something actually probes/fails a provider). The
+// only generically correct answer is a real minimal call: send a trivial
+// message with a short timeout and treat success as reachable. Probing
+// THROUGH the same auto-chain callLLM now dispatches (see resolveChainLinks)
+// rather than the bare configured model alone -- a reachability probe that
+// only checked the configured model (e.g. an unreachable/misconfigured single
+// proxy like a stale 'chatjimmy/...' entry) previously reported the whole
+// backend down even when other configured/available providers were live and
+// callLLM's own chain would have succeeded; that mismatch is exactly what
+// left `resolveCallLLM`'s health check permanently red while a real reply
+// path existed.
 export async function isReachable(timeoutMs = 10000) {
     try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-        try {
-            const res = await fetch(getAcptoapiUrl().replace(/\/$/, '') + '/models', {
-                headers: { authorization: 'Bearer none' },
-                signal: controller.signal
-            })
-            clearTimeout(timeoutId)
-            if (!res.ok) return false
-            const json = await res.json()
-            return Array.isArray(json.data) && json.data.length > 0
-        } finally {
-            clearTimeout(timeoutId)
-        }
+        const acptoapi = await getAcptoapi()
+        const useModel = getAcptoapiModel()
+        const chainModel = await resolveChainLinks(acptoapi, useModel)
+        const probe = { messages: [{ role: 'user', content: 'ping' }], max_tokens: 4 }
+        const result = await Promise.race([
+            Array.isArray(chainModel) ? acptoapi.chatChain(chainModel, probe) : acptoapi.chat({ model: chainModel, ...probe }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('reachability probe timeout')), timeoutMs)),
+        ])
+        return !!(result && result.choices && result.choices.length)
     } catch { return false }
 }

@@ -1,0 +1,2 @@
+./plugins/platform-api_server/plugin.js:2:2 register
+register({ pi }) { pi.platforms.register({ name: 'api_server', module: adapter }) }

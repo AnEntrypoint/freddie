@@ -1,0 +1,2 @@
+./plugins/gui-machines/plugin.js:9:9 
+() => ({ note: 'GET /api/machines for live snapshots', kinds: ['agent', 'cron', 'batch', 'gateway', 'gateway-msg', 'acp', 'acp-prompt'] })

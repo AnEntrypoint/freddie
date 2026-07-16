@@ -1,0 +1,9 @@
+./plugins/gui-machines/plugin.js:11:18 snapshotRows
+async function snapshotRows(kind = null) {
+    const rows = await list({ kind, status: null })
+    return rows.map(r => {
+        let state = null
+        try { const ps = JSON.parse(r.snapshot_json || 'null'); state = ps?.value ?? null } catch {}
+        return { kind: r.kind, key: r.key, status: r.status, state, machine_id: r.machine_id, updated: r.updated }
+    })
+}

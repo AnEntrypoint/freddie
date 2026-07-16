@@ -15,11 +15,14 @@ export const ContextPlugins = {
     skills: async () => {
         return listSkills().map(s => ({ name: 'skill:' + s.name, body: s.description }))
     },
-    memory: async ({ provider } = {}) => {
-        if (!provider) return []
+    memory: async ({ message = '', namespace = null } = {}) => {
+        // Query-aware semantic recall from gm rs-learn — freddie's primary learning store.
         try {
-            const out = await provider.prefetch('')
-            return (out.items || []).slice(0, 5).map((it, i) => ({ name: 'memory:' + i, body: typeof it === 'string' ? it : JSON.stringify(it) }))
+            const { recall, projectNamespace } = await import('../learn/gm-learn.js')
+            const ns = namespace || await projectNamespace()
+            const q = (message || '').toString().trim() || 'project notes facts decisions'
+            const hits = await recall(q, { limit: 5, namespace: ns })
+            return hits.map((h, i) => ({ name: 'memory:' + i, body: h.text }))
         } catch { return [] }
     },
 }

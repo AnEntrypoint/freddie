@@ -36,13 +36,13 @@ export class Gateway {
         this.actor = createActor(this.machine, { input: { platformNames: [...this.platforms.keys()] } })
         // Persist lifecycle transitions so the gateway's state is observable +
         // resumable; an active snapshot on boot means the gateway was running.
-        this.actor.subscribe((snap) => { persist('gateway', 'lifecycle', this.actor.getPersistedSnapshot()).catch(() => {}) })
+        this.actor.subscribe((snap) => { persist('gateway', 'lifecycle', this.actor.getPersistedSnapshot()).catch(e => log.error('gateway lifecycle persist failed', { err: String(e) })) })
         this.actor.start()
     }
     get state() { return this.actor.getSnapshot().value }
     register(name, adapter) {
         this.platforms.set(name, adapter)
-        adapter.on?.('message', (m) => this.handleInbound(name, m))
+        adapter.on?.('message', (m) => { this.handleInbound(name, m).catch(e => log.error('message listener error', { platform: name, from: m.from, error: String(e) })) })
     }
     addHook(stage, fn) { this.hooks[stage].push(fn) }
     async start() {
@@ -63,16 +63,28 @@ export class Gateway {
         // sender + content so a refresh mid-processing re-drives it instead of
         // dropping it. The snapshot is cleared once the reply is sent.
         const msgKey = msg.id || `${platform}:${msg.from}:${randomUUID()}`
-        await persist('gateway-msg', msgKey, { status: 'active', value: 'processing', context: { platform, from: msg.from, text: msg.text } })
+        // A persist failure must not drop the message: degrade to non-resumable
+        // processing (the reply still goes out) rather than throwing it away.
+        try {
+            await persist('gateway-msg', msgKey, { status: 'active', value: 'processing', context: { platform, from: msg.from, text: msg.text } })
+        } catch (e) {
+            log.warn('cannot persist gateway-msg, continuing without resumability', { msgKey, err: String(e) })
+        }
         let cur = { ...msg, platform }
         for (const h of this.hooks.inbound) cur = (await h(cur)) || cur
         const result = await runStep(msgKey, 'run', () => runTurn({ prompt: cur.text || '', callLLM: this.callLLM }))
         let reply = { to: msg.from, text: result.result || result.error || '', platform, result }
         for (const h of this.hooks.outbound) reply = (await h(reply)) || reply
         const adapter = this.platforms.get(platform)
-        await adapter.send?.(reply)
-        await clear('gateway-msg', msgKey)
-        await clearSteps(msgKey)
+        // Clear the in-flight snapshot whether or not the send throws: a send
+        // failure must not leave the message to be re-driven (and re-replied) on
+        // the next boot. The contract is "cleared once processing completes".
+        try {
+            await adapter.send?.(reply)
+        } finally {
+            await clear('gateway-msg', msgKey)
+            await clearSteps(msgKey)
+        }
         return reply
     }
 }

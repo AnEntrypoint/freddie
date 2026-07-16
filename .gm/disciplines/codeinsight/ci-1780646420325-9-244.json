@@ -1,0 +1,8 @@
+./plugins/skills_guard/handler.js:9:15 
+async ({ body }) => {
+        const issues = []
+        for (const re of DANGEROUS) if (re.test(body)) issues.push({ kind: 'dangerous-cmd', pattern: re.source })
+        const secrets = detectSecrets(body)
+        if (secrets.length) issues.push({ kind: 'secret', count: secrets.length })
+        return { safe: issues.length === 0, issues }
+    }

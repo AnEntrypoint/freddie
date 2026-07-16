@@ -1,0 +1,2 @@
+./plugins/platform-wecom_crypto/handler.js:2:2 sha1
+function sha1(...parts) { return crypto.createHash('sha1').update(parts.sort().join('')).digest('hex') }

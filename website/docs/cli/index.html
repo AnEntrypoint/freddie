@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="ds-247420" data-theme="light">
+<html lang="en" class="ds-247420" data-theme="auto">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,18 +8,148 @@
 <script type="importmap">
 { "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
 </script>
-<link rel="stylesheet" href="../shared.css">
+<style>
+.app-stage { width: 100%; max-width: var(--stage-wide, min(96vw, 1440px)); margin-inline: auto; padding: var(--space-6, 48px) var(--space-4, 24px) var(--space-8, 96px); display: grid; gap: var(--space-6, 48px); box-sizing: border-box }
+@media (max-width: 768px) { .app-stage { padding: var(--space-4, 24px) var(--space-3, 16px) var(--space-6, 48px); gap: var(--space-5, 32px) } }
+.page-body > :first-child { margin-top: 0 }
+.page-body h1 { margin-top: 0 } .page-body h2 { margin-top: var(--space-5, 32px) } .page-body h3 { margin-top: var(--space-4, 24px) }
+.page-body > * + * { margin-top: var(--space-3, 16px) }
+.page-body pre { margin: var(--space-3, 16px) 0; background: var(--panel-2); padding: var(--space-3, 16px); border-radius: var(--r-1, 10px); overflow-x: auto }
+/* .app-stage owns inter-block rhythm via grid gap; sections/hero must not double it.
+   These selectors carry !important because this inline block loads before the
+   unpkg CSS bundle, which would otherwise win on load-order for equal specificity. */
+.ds-247420 .app-stage > .ds-hero { margin: 0 !important; padding: var(--space-4, 24px) 0 0 !important; max-width: none !important; gap: var(--space-4, 24px) !important }
+.ds-247420 .app-stage > .ds-section { margin: 0 !important }
+.app-stage .row + .row { margin-top: var(--space-1, 4px) }
+.app-stage .ds-section .row { margin-top: var(--space-2, 8px) }
+.app-stage .ds-section > p.ds-lede { margin: 0 0 var(--space-3, 16px); max-width: var(--measure, 68ch); color: var(--fg-2) }
+.row-benefit { font-style: italic; color: var(--fg-3); font-size: var(--fs-sm); margin-top: var(--space-1, 4px) }
+.ds-row-arrow { margin-left: auto; opacity: .5; transition: opacity var(--dur-snap, 80ms) var(--ease) }
+a.row:hover .ds-row-arrow { opacity: 1 }
+/* hero stat strip — all badges as a wrapping inline rhythm, not one empty panel */
+.ds-hero-stats { display: flex; flex-wrap: wrap; gap: var(--space-3, 16px) var(--space-5, 32px); margin-top: var(--space-2, 8px) }
+.ds-hero-stat { display: flex; align-items: baseline; gap: var(--space-2, 8px) }
+.ds-hero-stat-n { font-family: var(--ff-body); font-weight: 700; font-size: var(--fs-lg, 18px); color: var(--fg) }
+.ds-hero-stat-l { font-size: var(--fs-sm, 15px); color: var(--fg-3) }
+/* accent sits on its own line, muted, so it reads as a distinct aside instead
+   of running on from the hero body sentence. */
+.ds-hero-accent { display: block; margin-top: var(--space-2, 8px); color: var(--fg-3) }
+/* feature rows — single-column stack (the dashboard .row grid forces a 3-col
+   code/title/meta layout that mangles title+desc+benefit) */
+/* background uses a theme-neutral panel token (resolves per data-theme) so dark
+   mode doesn't flash a literal white card before/independent of the bundle.
+   Flat tonal fill only — no border-left rail accent (house style: no bespoke
+   tile chrome, no shadows, no borders; see ui_kits/gallery/app.js). */
+.ds-feature { padding: var(--space-3, 16px) var(--space-4, 24px); background: var(--panel-1, var(--bg)); border-radius: var(--r-2, 14px); display: grid; gap: var(--space-1, 4px) }
+.ds-feature + .ds-feature { margin-top: var(--space-2, 8px) }
+.ds-feature-title { font-weight: 600; font-size: var(--fs-lg, 18px); color: var(--fg) }
+.ds-feature-desc { font-size: var(--fs-sm, 15px); color: var(--fg-2); line-height: 1.5; overflow-wrap: anywhere }
+.ds-feature-benefit { font-style: italic; font-size: var(--fs-sm, 15px); color: var(--fg-3); margin-top: var(--space-1, 4px) }
+</style>
+<script id="__site__" type="application/json">{"title":"CLI","slug":"cli","siteName":"Freddie","navItems":[["Home","/freddie/"],["Plugins","/freddie/plugins/"],["Architecture","/freddie/architecture/"],["CLI","/freddie/cli/"],["Tools","/freddie/tools/"],["Platforms","/freddie/platforms/"],["Skills","/freddie/skills/"],["Development","/freddie/development/"]],"theme":"auto","hero":{"heading":"cli","subheading":"every freddie surface starts as one command in your terminal","accent":"install it once. ssh in. it just works.","body":"Auto-generated reference of all 22 slash commands in the command registry, grouped by category. Regenerate with `node scripts/gen-cli-docs.mjs`.","badges":[{"label":"22","desc":"registered commands"},{"label":"5","desc":"categories"},{"label":"registry-driven","desc":"single source of truth"}],"ctas":[{"label":"bin/freddie.js","href":"https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js"},{"label":"command registry","href":"https://github.com/AnEntrypoint/freddie/blob/master/src/commands/registry.js"}]},"sections":[{"id":"info","name":"Info","lede":"3 commands in the Info category.","features":[{"name":"/help","desc":"Show available commands (aliases: /h, /?)","benefit":"cli + gateway"},{"name":"/logs","desc":"Tail logs","benefit":"cli + gateway"},{"name":"/status","desc":"Agent + gateway status","benefit":"cli + gateway"}]},{"id":"exit","name":"Exit","lede":"1 command in the Exit category.","features":[{"name":"/quit","desc":"Exit freddie (aliases: /exit, /q)","benefit":"cli + gateway"}]},{"id":"session","name":"Session","lede":"8 commands in the Session category.","features":[{"name":"/clear","desc":"Clear conversation history (aliases: /cls)","benefit":"cli + gateway"},{"name":"/resume [session-id]","desc":"Resume a previous session","benefit":"cli + gateway"},{"name":"/sessions","desc":"List recent sessions","benefit":"cli + gateway"},{"name":"/search \u003cquery>","desc":"Search messages full-text","benefit":"cli + gateway"},{"name":"/background \u003cprompt>","desc":"Run command in background (aliases: /bg)","benefit":"cli + gateway"},{"name":"/copy","desc":"Copy last response","benefit":"cli only"},{"name":"/paste","desc":"Paste from clipboard","benefit":"cli only"},{"name":"/reset","desc":"Reset session state","benefit":"cli + gateway"}]},{"id":"configuration","name":"Configuration","lede":"6 commands in the Configuration category.","features":[{"name":"/model [model]","desc":"Set or show current model","benefit":"cli + gateway"},{"name":"/provider [provider]","desc":"Set or show current provider","benefit":"cli + gateway"},{"name":"/memory","desc":"Memory provider commands","benefit":"cli + gateway"},{"name":"/skin [name]","desc":"Switch CLI skin","benefit":"cli + gateway"},{"name":"/profile \u003clist|create|switch|delete>","desc":"Manage profiles","benefit":"cli + gateway"},{"name":"/config [key] [value]","desc":"Show/set config values","benefit":"cli + gateway"}]},{"id":"tools-skills","name":"Tools & Skills","lede":"4 commands in the Tools & Skills category.","features":[{"name":"/toolsets","desc":"List or toggle toolsets","benefit":"cli + gateway"},{"name":"/tools","desc":"List available tools","benefit":"cli + gateway"},{"name":"/skills","desc":"Skills hub: install, list, run","benefit":"cli + gateway"},{"name":"/skill \u003cname>","desc":"Run a skill by name","benefit":"cli + gateway"}]}],"examples":[{"label":"bin/freddie.js","href":"https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js","desc":"commander entry"},{"label":"interactive repl","href":"https://github.com/AnEntrypoint/freddie/blob/master/src/cli/interactive.js","desc":"readline + slash commands"},{"label":"command registry","href":"https://github.com/AnEntrypoint/freddie/blob/master/src/commands/registry.js","desc":"slash command defs"}],"bodyHtml":"\u003ch2 id=\"all-commands\">all commands\u003c/h2>\n\u003cpre>\n/help                        Show available commands\n/quit                        Exit freddie\n/clear                       Clear conversation history\n/resume [session-id]         Resume a previous session\n/sessions                    List recent sessions\n/search &lt;query&gt;              Search messages full-text\n/background &lt;prompt&gt;         Run command in background\n/model [model]               Set or show current model\n/provider [provider]         Set or show current provider\n/toolsets                    List or toggle toolsets\n/tools                       List available tools\n/skills                      Skills hub: install, list, run\n/skill &lt;name&gt;                Run a skill by name\n/memory                      Memory provider commands\n/skin [name]                 Switch CLI skin\n/profile &lt;list|create|switch|delete&gt; Manage profiles\n/logs                        Tail logs\n/config [key] [value]        Show/set config values\n/status                      Agent + gateway status\n/copy                        Copy last response\n/paste                       Paste from clipboard\n/reset                       Reset session state\n\u003c/pre>"}</script>
+
 </head>
 <body>
 <div id="app"></div>
 <script type="module">
-import { mount, components as C } from 'anentrypoint-design';
-const navItems = [["Home","/"],["Plugins","/plugins/"],["Architecture","/architecture/"],["CLI","/cli/"],["Tools","/tools/"],["Platforms","/platforms/"],["Skills","/skills/"],["Development","/development/"]];
+import { mount, components as C, h } from 'anentrypoint-design';
+const data = JSON.parse(document.getElementById('__site__').textContent);
+
+function heroNode(hero) {
+  if (!hero) return null;
+  const badges = Array.isArray(hero.badges) ? hero.badges.filter(Boolean) : [];
+  const badgeRow = badges.length
+    ? h('div', { class: 'ds-hero-stats' }, ...badges.map((b, i) =>
+        h('span', { key: i, class: 'ds-hero-stat' },
+          h('strong', { class: 'ds-hero-stat-n' }, String(b.label != null ? b.label : b)),
+          b.desc ? h('span', { class: 'ds-hero-stat-l' }, String(b.desc)) : null,
+        )))
+    : null;
+  return h('div', { class: 'ds-hero' },
+    hero.eyebrow ? h('span', { class: 'eyebrow' }, hero.eyebrow) : null,
+    h('h1', { class: 'ds-hero-title' }, hero.heading || hero.title || data.title),
+    (hero.body || hero.subheading) ? h('p', { class: 'ds-hero-body' },
+      hero.body || hero.subheading,
+      hero.accent ? h('span', { class: 'ds-hero-accent' }, ' ' + hero.accent) : null,
+    ) : null,
+    Array.isArray(hero.ctas) && hero.ctas.length
+      ? h('div', { class: 'ds-hero-actions' }, ...hero.ctas.map((c, i) =>
+          h('a', { key: i, class: i === 0 ? 'btn btn-accent' : 'btn btn-ghost', href: c.href || '#' }, c.label || c.cta || 'go')))
+      : null,
+    badgeRow,
+  );
+}
+
+function sectionNode(sec, idx) {
+  const features = sec.features || sec.items || [];
+  const rows = features.map((f, i) => {
+    const kids = [h('div', { key: 't', class: 'ds-feature-title' }, String(f.name || ''))];
+    if (f.desc) kids.push(h('div', { key: 'd', class: 'ds-feature-desc', innerHTML: String(f.desc).replace(/`([^`]+)`/g, '<code>$1</code>') }));
+    if (f.benefit) kids.push(h('div', { key: 'b', class: 'ds-feature-benefit' }, String(f.benefit)));
+    return h('div', { key: i, class: 'ds-feature' }, ...kids);
+  });
+  return C.Section({
+    id: sec.id || null,
+    title: sec.name || sec.title || sec.id,
+    children: [
+      sec.lede ? h('p', { class: 'ds-lede' }, sec.lede) : null,
+      ...rows,
+      sec.body && String(sec.body).trim() ? h('div', { class: 'page-body', innerHTML: __md(sec.body) }) : null,
+    ].filter(Boolean),
+  });
+}
+
+function examplesNode(examples) {
+  if (!examples || !examples.length) return null;
+  return C.Section({
+    title: 'explore',
+    children: examples.map((e, i) => {
+      const kids = [
+        h('span', { key: 'c', class: 'code' }, String(i + 1).padStart(2, '0')),
+        h('span', { key: 't', class: 'title' }, String(e.label || e.name || e.href || '')),
+      ];
+      if (e.desc) kids.push(h('span', { key: 'm', class: 'meta dim' }, ' — ' + e.desc));
+      kids.push(h('span', { key: 'a', class: 'ds-row-arrow' }, '->'));
+      return h('a', { key: i, class: 'row', href: e.href || '#' }, ...kids);
+    }),
+  });
+}
+
+// minimal client-side markdown renderer matching server-side renderer (idempotent for already-html bodies)
+function __slug(s) { return String(s || '').trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-'); }
+function __md(md) {
+  const lines = String(md || '').split('\n');
+  const out = []; let inCode = false, inList = false;
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inl = (s) => s.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  for (const line of lines) {
+    if (line.startsWith('```')) { if (inCode) { out.push('</pre>'); inCode = false; } else { out.push('<pre>'); inCode = true; } continue; }
+    if (inCode) { out.push(esc(line)); continue; }
+    if (line.startsWith('# ')) { const t = line.slice(2); out.push('<h1 id="' + __slug(t) + '">' + esc(t) + '</h1>'); }
+    else if (line.startsWith('## ')) { const t = line.slice(3); out.push('<h2 id="' + __slug(t) + '">' + esc(t) + '</h2>'); }
+    else if (line.startsWith('### ')) { const t = line.slice(4); out.push('<h3 id="' + __slug(t) + '">' + esc(t) + '</h3>'); }
+    else if (line.startsWith('- ')) { if (!inList) { out.push('<ul>'); inList = true; } out.push('<li>' + inl(esc(line.slice(2))) + '</li>'); }
+    else { if (inList) { out.push('</ul>'); inList = false; } if (line.trim()) out.push('<p>' + inl(esc(line)) + '</p>'); }
+  }
+  if (inList) out.push('</ul>');
+  if (inCode) out.push('</pre>');
+  return out.join('\n');
+}
+
+const bodyNode = data.bodyHtml ? C.Section({ children: h('div', { class: 'page-body', innerHTML: data.bodyHtml }) }) : null;
+
+const mainChildren = [
+  heroNode(data.hero),
+  ...data.sections.map(sectionNode),
+  examplesNode(data.examples),
+  bodyNode,
+].filter(Boolean);
+
 mount(document.getElementById('app'), () => C.AppShell({
-  topbar: C.Topbar({ brand: 'Freddie', items: navItems, active: "CLI" }),
-  crumb: C.Crumb({ leaf: "CLI" }),
-  main: C.h('div', { class: 'app-stage', innerHTML: "<div class=\"ds-hero\">\n  <h1 class=\"ds-hero-title\">cli</h1>\n  <p class=\"ds-hero-body\">every freddie surface starts as one command in your terminal <span class=\"ds-hero-accent\">install it once. ssh in. it just works.</span></p>\n  <p class=\"ds-hero-body\">the cli wraps the agent loop, the dashboard, the gateway, the acp server, the cron, the batch runner, and the session store. each subcommand is one verb. no daemons, no configs to author before you can poke.</p>\n  <div class=\"ds-hero-badges\"><span class=\"chip\"><strong>commander</strong><span style=\"opacity:.7\"> js cli framework</span></span> <span class=\"chip\"><strong>14 verbs</strong><span style=\"opacity:.7\"> top-level subcommands</span></span> <span class=\"chip\"><strong>/help-all</strong><span style=\"opacity:.7\"> in-repl reference</span></span></div>\n  <div class=\"ds-hero-ctas\" style=\"margin-top:16px;display:flex;gap:8px;flex-wrap:wrap\"><a class=\"btn-primary\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js\">bin/freddie.js</a></div>\n</div><section class=\"ds-section rail-green\" id=\"when\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">when do I use which command?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">pick the verb by what you're doing.</p>\n  <div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">chatting → `freddie run`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">interactive repl. tools dispatch live, slash commands work, sessions persist across runs.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">fastest path to \"is the model online\".</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">monitoring → `freddie dashboard`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">web ui at localhost. chat, sessions, analytics, cron, batch, tools, models, skills, logs, config, env, gateway.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">one page to see what the agent is doing right now.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">bridging → `freddie gateway`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">starts the messaging gateway. webhook receivers + outbound senders. agent loop on the other side.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">turns freddie into a multi-platform bot in one process.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">integrating → `freddie acp`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">json-rpc stdio server (agent-context-protocol). designed for ide plugins.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">drop freddie into vscode/jetbrains/zed without writing a transport.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">scheduling → `freddie cron`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">persistent cron jobs. add/list/cancel/delete. fires the agent on a schedule.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">unattended work — daily standup, hourly check-in, weekly digest.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">parallelizing → `freddie batch`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">read prompts from a file, run them in parallel with bounded concurrency.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">bulk eval, content gen, codebase analysis without a queue system.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">spelunking → `freddie sessions` + `freddie search`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">list past sessions. fts5 full-text search across every message ever.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">never lose a thread. every conversation is recallable.</div>\n</div>\n<div class=\"row rail-green\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-green\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">switching context → `freddie profile` + `freddie skin`</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">profiles isolate state per persona. skins switch the ui theme.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">client/personal/dev profiles with separate sessions and config.</div>\n</div>\n  \n</section>\n<section class=\"ds-section rail-purple\" id=\"why\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">why a single binary?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">a single js binary is portable, debuggable, and one-line installable.</p>\n  <div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">ssh-friendly</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">works on a $5 vps. no system services, no port openings beyond what you start.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">deploy by `git clone &amp;&amp; npm install`.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">zero global state</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">everything lives under <code>~/.freddie/</code> (or your <code>FREDDIE_PROFILE</code>). delete the dir, you're back to defaults.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">no registry, no `/etc/freddie/`, no services to uninstall.</div>\n</div>\n<div class=\"row rail-purple\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-purple\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">discoverable</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\"><code>freddie help-all</code> lists every subcommand and slash command in one screen.</div>\n  <div class=\"row-benefit\" style=\"opacity:.75;margin-top:4px;font-style:italic\">you don't have to memorize anything.</div>\n</div>\n  \n</section>\n<section class=\"ds-section rail-mascot\" id=\"how\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">how does the repl actually feel?</h2>\n  <p class=\"ds-lede\" style=\"opacity:.8;max-width:60ch\">a real terminal. real readline. real ansi. slash commands tab-complete.</p>\n  <div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">slash commands</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">/help, /quit, /clear, /profile, /sessions, /search, /resume, /model, /provider, /toolsets, /tools, /skills, /skill, /memory, /skin, /config, /logs, /status, /copy, /paste, /reset.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">tool dispatch</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">agent decides which tools to call. you see each call + result inline.</div>\n  \n</div>\n<div class=\"row rail-mascot\" style=\"border-radius:10px;margin:6px 0;padding:10px 14px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"dot dot-mascot\" style=\"display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:currentColor;opacity:.8\" aria-hidden=\"true\"></span>\n  <span class=\"title\" style=\"font-weight:600\">session resumption</span>\n  <div class=\"sub\" style=\"opacity:.85;margin-top:4px\">ctrl+c is safe. reload via <code>freddie run --resume &lt;id&gt;</code> or <code>/resume &lt;id&gt;</code>.</div>\n  \n</div>\n  \n</section><section class=\"ds-section\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\">\n  <h2 class=\"ds-section-title\" style=\"margin-top:0\">explore</h2>\n  <a class=\"row rail-purple\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/bin/freddie.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">01</span>\n  <span class=\"title\" style=\"font-weight:600\">bin/freddie.js</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— commander entry</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-mascot\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/cli/interactive.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">02</span>\n  <span class=\"title\" style=\"font-weight:600\">interactive repl</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— readline + slash commands</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n<a class=\"row rail-sun\" href=\"https://github.com/AnEntrypoint/freddie/blob/master/src/commands/registry.js\" style=\"display:block;text-decoration:none;color:inherit;padding:10px 14px;margin:6px 0;border-radius:10px;background:var(--panel-2,#F0E9DA)\">\n  <span class=\"code\" style=\"font-family:'JetBrains Mono',monospace;opacity:.6;margin-right:12px\">03</span>\n  <span class=\"title\" style=\"font-weight:600\">command registry</span>\n  <span class=\"meta\" style=\"opacity:.7;margin-left:8px\">— slash command defs</span>\n  <span style=\"float:right;opacity:.5\">↗</span>\n</a>\n</section><section class=\"ds-section page-body\" style=\"margin:32px 0;padding:18px 22px;background:var(--panel-1,#FBF6EB);border-radius:20px\"><h2>install</h2>\n<pre>\nnpm install -g freddie\n# or, in this repo:\nnpm install\n</pre>\n<h2>the verbs</h2>\n<pre>\nfreddie tools                 # list tools\nfreddie skills                # list skills\nfreddie sessions              # list past sessions\nfreddie search \"&lt;query&gt;\"      # fts5 across messages\nfreddie run                   # interactive repl\nfreddie dashboard --port 3000 # web ui\nfreddie gateway --port 3001   # messaging bridge\nfreddie acp                   # json-rpc stdio\nfreddie cron list             # scheduled jobs\nfreddie batch &lt;file&gt;          # parallel runner\nfreddie profile [list|create|switch|delete]\nfreddie skin [name]\nfreddie help-all              # all subcommands + slash commands\n</pre>\n<h2>environment</h2>\n<ul>\n<li><code>FREDDIE_HOME</code> — override <code>~/.freddie/</code>.</li>\n<li><code>FREDDIE_PROFILE</code> — switch to a profile-scoped home (<code>~/.freddie/profiles/&lt;name&gt;/</code>).</li>\n<li><code>ANTHROPIC_API_KEY</code> / <code>OPENAI_API_KEY</code> / <code>GROQ_API_KEY</code> / <code>OPENROUTER_API_KEY</code> — provider keys, picked up by pi-ai.</li>\n<li>platform tokens (<code>TELEGRAM_BOT_TOKEN</code> etc) — light up the gateway adapters.</li>\n</ul></section>" }),
-  status: C.Status({ left: ['freddie', "cli"], right: ['live'] })
+  topbar: C.Topbar({ brand: data.siteName, items: data.navItems, active: data.title }),
+  crumb: C.Crumb({ leaf: data.title }),
+  main: h('div', { class: 'app-stage' }, ...mainChildren),
+  status: C.Status({ left: [data.siteName.toLowerCase(), data.slug], right: ['live'] }),
 }));
 </script>
 </body>
