@@ -1,4 +1,4 @@
-import { getAuthStore } from '../auth.js'
+import { getAuthStore } from '../../auth.js'
 const KEY = 'COPILOT_TOKEN'
 export async function getCopilotToken() {
     if (process.env.COPILOT_TOKEN) return { source: 'env', value: process.env.COPILOT_TOKEN }

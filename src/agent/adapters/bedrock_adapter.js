@@ -1,4 +1,4 @@
-import { resolveKey } from './credential_sources.js'
+import { resolveKey } from '../credential_sources.js'
 const REGION = () => process.env.AWS_REGION || 'us-east-1'
 export async function chat({ messages, model = 'anthropic.claude-sonnet-4-v1:0', tools = [] } = {}) {
     const id = (await resolveKey('aws')).value || process.env.AWS_ACCESS_KEY_ID
