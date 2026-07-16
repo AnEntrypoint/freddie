@@ -43,5 +43,12 @@ body[data-ready] { visibility: visible; }
 <body>
 <div id="app"></div>
 <script type="module" src="./app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () { /* offline shell caching is progressive enhancement -- a failed registration must not block the dashboard */ });
+  });
+}
+</script>
 </body>
 </html>
