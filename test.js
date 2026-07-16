@@ -350,7 +350,7 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     const su = await import('./src/cli/setup.js'); for (const fn of ['setupWizard','setupModelProvider','setupTerminalBackend','setupTts','setupGatewayPlatform','setupAgentSettings','setupSkin','getSetupStatus']) assert.equal(typeof su[fn], 'function', fn)
     for (const m of ['./src/agent/pi-bridge.js','./src/cli/interactive.js','./src/tui/index.js','./src/cli/main.js']) { const mm = await import(m); assert.ok(Object.values(mm).some(v => typeof v === 'function'), m) }
     assert.match((await import('./src/cli/colors.js')).fg.red('hi'), /\x1b\[31m/); assert.equal((await import('./src/cli/model_normalize.js')).normalizeModel('sonnet'), 'claude-sonnet-4-6')
-    const wh = await import('./src/gateway/helpers.js'); assert.ok((await import('./src/cli/model_catalog.js')).listCatalog().length >= 5 && (await import('./src/cli/doctor.js')).runDoctor().some(c => c.name === 'node-version') && wh.hmacVerify('s', 'b', wh.hmacSign('s', 'b')))
+    const wh = await import('./src/gateway/helpers.js'); assert.ok((await import('./src/cli/model_catalog.js')).listCatalog().length >= 5 && (await (await import('./src/cli/doctor.js')).runDoctor()).some(c => c.name === 'node-version') && wh.hmacVerify('s', 'b', wh.hmacSign('s', 'b')))
     assert.ok((await (await import('./src/acp/auth.js')).authenticateRequest({})).ok && (await (await import('./src/acp/tools.js')).listToolsForAcp()).length >= 50)
     const wh2 = fs.readFileSync(path.join('website', 'docs/index.html'), 'utf8'); for (const m of ['ds-hero-title', 'rail-green', 'when do I reach']) assert.ok(wh2.includes(m), m)
     const dash = await (await import('./src/web/server.js')).createDashboard({ port: 0 })

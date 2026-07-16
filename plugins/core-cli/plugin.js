@@ -212,7 +212,7 @@ export default {
         C({ name: 'doctor', description: 'Health check: keys, active project, conversations, environment', action: async () => {
             const { runDoctor } = await import('../../src/cli/doctor.js')
             console.log('# environment')
-            for (const c of runDoctor()) console.log(`  ${c.ok ? '[ok]' : '[--]'} ${c.name.padEnd(16)} ${c.value || c.fix || ''}`)
+            for (const c of await runDoctor()) console.log(`  ${c.ok ? '[ok]' : '[--]'} ${c.name.padEnd(16)} ${c.value || c.fix || ''}`)
             console.log('\n# provider keys')
             let anyKey = false
             for (const p of listAuthProviders()) { const ok = await hasUsableSecret(p); if (ok) anyKey = true; if (ok) console.log(`  [ok] ${p}`) }
