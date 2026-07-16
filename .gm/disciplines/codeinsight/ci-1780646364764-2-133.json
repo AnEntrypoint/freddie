@@ -1,0 +1,2 @@
+./plugins/memory-byterover/plugin.js:2:2 register
+register({ pi }) { pi.memory.register({ name: 'byterover', module: mod }) }

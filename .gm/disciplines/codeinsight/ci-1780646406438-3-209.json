@@ -1,0 +1,4 @@
+./plugins/platform-wecom_crypto/handler.js:3:5 verifyMsgSignature
+function verifyMsgSignature({ token, timestamp, nonce, encrypt, signature }) {
+    return sha1(token, timestamp, nonce, encrypt) === signature
+}

@@ -1,0 +1,5 @@
+./plugins/memory/handler.js:47:50 
+async () => {
+        const d = await init()
+        return { items: await d.prepare(`SELECT id, content, ts FROM memory_local ORDER BY id DESC LIMIT 50`).all() }
+    }

@@ -1,0 +1,32 @@
+./plugins/gui-machines/plugin.js:22:52 register
+register({ gui }) {
+        gui.route('GET', '/api/machines', async (_req, res) => {
+            try {
+                // list() does not return snapshot_json (truncated for size); re-read full per row.
+                const { db } = await import('../../src/db.js')
+                const d = await db()
+                await d.exec(`CREATE TABLE IF NOT EXISTS machine_snapshots (kind TEXT, key TEXT, schema_version INTEGER, machine_id TEXT, snapshot_json TEXT, status TEXT, updated INTEGER, PRIMARY KEY(kind,key))`)
+                const all = await d.prepare(`SELECT kind, key, machine_id, snapshot_json, status, updated FROM machine_snapshots ORDER BY updated DESC`).all()
+                const kinds = {}
+                const machines = all.map(r => {
+                    kinds[r.kind] = (kinds[r.kind] || 0) + 1
+                    let state = null
+                    try { state = JSON.parse(r.snapshot_json || 'null')?.value ?? null } catch {}
+                    return { kind: r.kind, key: r.key, status: r.status, state, machine_id: r.machine_id, updated: r.updated }
+                })
+                res.json({ count: machines.length, kinds, machines })
+            } catch (e) { res.status(500).json({ error: String(e.message || e) }) }
+        })
+        gui.route('GET', '/api/machines/:kind', async (req, res) => {
+            try { res.json({ machines: await snapshotRows(req.params.kind) }) }
+            catch (e) { res.status(500).json({ error: String(e.message || e) }) }
+        })
+        gui.route('GET', '/api/machines/steps/:key', async (req, res) => {
+            try { const { listSteps } = await import('../../src/machines/step-journal.js'); res.json({ key: req.params.key, steps: await listSteps(req.params.key) }) }
+            catch (e) { res.status(500).json({ error: String(e.message || e) }) }
+        })
+        gui.route('POST', '/api/machines/resume', async (_req, res) => {
+            try { const { resumeAll } = await import('../../src/machines/resume.js'); res.json({ ok: true, summary: await resumeAll() }) }
+            catch (e) { res.status(500).json({ error: String(e.message || e) }) }
+        })
+    }

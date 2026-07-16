@@ -1,0 +1,13 @@
+./plugins/platform-telegram_network/handler.js:5:16 tgWithRetry
+async function tgWithRetry(fn, { attempts = 3 } = {}) {
+    let last
+    for (let i = 0; i < attempts; i++) {
+        try { return await fn() } catch (e) {
+            last = e
+            const wait = tgFloodWait(e)
+            if (wait != null) await new Promise(r => setTimeout(r, wait + 100))
+            else if (i < attempts - 1) await new Promise(r => setTimeout(r, 500 * (i + 1)))
+        }
+    }
+    throw last
+}

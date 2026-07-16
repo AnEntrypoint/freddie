@@ -1,0 +1,7 @@
+./plugins/gui-gateway/plugin.js:3:8 register
+register({ gui, host }) {
+        gui.route('GET', '/api/gateway', (_, res) => {
+            const platforms = host.pi.platforms.list().map(p => p.name)
+            res.json({ platforms: platforms.map(p => ({ name: p, enabled: false, note: 'start with freddie gateway --port <port>' })) })
+        })
+    }

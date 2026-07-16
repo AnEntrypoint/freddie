@@ -1,0 +1,2 @@
+./plugins/platform-weixin/plugin.js:2:2 register
+register({ pi }) { pi.platforms.register({ name: 'weixin', module: adapter }) }

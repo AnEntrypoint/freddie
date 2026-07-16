@@ -1,7 +1,7 @@
 name: publish
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 jobs:
   publish:
@@ -46,5 +46,5 @@ jobs:
           else
             VERSION=$(node -p "require('./package.json').version")
             git commit -m "chore(release): v$VERSION [skip-bump]"
-            git push origin HEAD:master || echo "push failed (non-fatal)"
+            git push origin HEAD:main || echo "push failed (non-fatal)"
           fi

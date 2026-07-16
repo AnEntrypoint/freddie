@@ -4,6 +4,8 @@
 
 import { renderPageHtml } from 'anentrypoint-design/page-html'
 
+const CSS_HREF = 'https://unpkg.com/anentrypoint-design@latest/dist/247420.css'
+
 const NAV = [
     ['Home', '/'],
     ['Plugins', '/plugins/'],
@@ -37,6 +39,7 @@ export default {
                     navItems: NAV,
                     siteName: 'Freddie',
                     basePath: '/freddie/',
+                    cssHref: CSS_HREF,
                 }),
             })
         }

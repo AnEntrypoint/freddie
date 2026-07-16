@@ -1,0 +1,2 @@
+./plugins/schema_sanitizer/handler.js:16:16 
+async ({ schema }) => ({ sanitized: sanitizeSchema(schema) })

@@ -1,0 +1,2 @@
+./plugins/mcp_oauth_manager/handler.js:4:4 tokFile
+function tokFile(server) { return path.join(getFreddieHome(), 'mcp-tokens', encodeURIComponent(server) + '.json') }

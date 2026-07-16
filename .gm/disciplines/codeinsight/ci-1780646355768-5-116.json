@@ -1,0 +1,5 @@
+./plugins/managed_tool_gateway/handler.js:5:8 
+async ({ name, arguments: args = {} }, ctx = {}) => {
+        if (typeof ctx.audit === 'function') ctx.audit({ name, args })
+        return { result: await registry.dispatch(name, args, ctx) }
+    }

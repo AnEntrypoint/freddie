@@ -1,0 +1,6 @@
+./plugins/skills_hub/handler.js:18:22 
+async ({ name }) => {
+        const dir = path.join(getFreddieHome(), 'skills', name)
+        if (fs.existsSync(dir)) { fs.rmSync(dir, { recursive: true, force: true }); return { uninstalled: name } }
+        return { error: 'not found' }
+    }

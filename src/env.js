@@ -111,6 +111,9 @@ const REGISTRY = {
     WHATSAPP_API_TOKEN: { purpose: 'WhatsApp Cloud API token', kind: 'secret' },
     WHATSAPP_PHONE_NUMBER_ID: { purpose: 'WhatsApp Cloud API phone number id', kind: 'string' },
     WHATSAPP_VERIFY_TOKEN: { purpose: 'WhatsApp webhook verify token', kind: 'secret' },
+    WHATSAPP_APP_SECRET: { purpose: 'WhatsApp Cloud API app secret (enables webhook signature verification)', kind: 'secret' },
+    WHATSAPP_WEBHOOK_PORT: { purpose: 'WhatsApp webhook listener port override', kind: 'number' },
+    WHATSAPP_WEBHOOK_PATH: { purpose: 'WhatsApp webhook listener path override', kind: 'string' },
 }
 
 /**

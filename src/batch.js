@@ -5,7 +5,6 @@ import { getFreddieHome } from './home.js'
 import { randomUUID } from 'node:crypto'
 import { createMachine, assign, fromPromise } from 'xstate'
 import { createPersistentActor } from './machines/persistent-actor.js'
-import { load } from './machines/snapshot-store.js'
 import { runStep, clearSteps } from './machines/step-journal.js'
 
 // Run one prompt and append its result to the batch jsonl file.
@@ -77,10 +76,12 @@ export async function runBatch({ prompts = [], concurrency = 4, model, callLLM, 
 // yet in context.done get re-run. Returns null if no live snapshot for the id.
 export async function resumeBatch({ batchId, model, callLLM } = {}) {
     if (!batchId) throw new Error('resumeBatch requires batchId')
-    if (!(await load('batch', batchId))) return null
     const machine = createBatchMachine({ model, callLLM })
+    // One read only: createPersistentActor.load() handles the missing-snapshot
+    // case (pa.resumed=false), so the prior pre-check load() was a redundant read
+    // that opened a TOCTOU window against a concurrent delete.
     const pa = await createPersistentActor(machine, { kind: 'batch', key: batchId, input: { id: batchId, file: '', model, concurrency: 4, prompts: [] } })
-    if (!pa.resumed) { await pa.forget(); return null }
+    if (!pa.resumed) return null
     return await driveBatch(pa)
 }
 

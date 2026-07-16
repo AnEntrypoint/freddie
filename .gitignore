@@ -8,6 +8,7 @@ src/web/vendor/
 .cache
 # >>> gm managed (do not edit between markers)
 .gm-stop-verified
+.gm/.gm-continue-count
 .gm/prd-state.json
 .gm/rslearn-counter.json
 .gm/git-block-counter.json
@@ -58,6 +59,7 @@ thebird-plugin.json
 .gm/audit-*.js
 .gm/inp*.txt
 .gm/browser-probe.cjs
+.gm/browser-state/
 _pw_test.js
 *.png
 emperor-penguin.md
@@ -81,3 +83,9 @@ emperor-penguin.md
 .gm/browser-profile/
 .gm/browser-profile-*/
 .gm/witness-pages.js
+.gm/pw-sock-*/
+.gm/last-dispatch-ts
+.gm/instructions/
+.gm/disciplines/codeinsight-manifest/*.json
+.gm/disciplines/codeinsight-vec/*.json
+.gm/memories/*.md

@@ -19,6 +19,10 @@ export const _tool = ({
             headers: { 'content-type': 'application/json', 'x-provider': xProv, authorization: 'Bearer none' },
             body: JSON.stringify(body),
         })
-        return { status: r.status, contentType: r.headers.get('content-type'), bytes: (await r.arrayBuffer()).byteLength }
+        // Return the synthesized audio itself, not just its size: a consumer
+        // (a voice-reply channel, a media forwarder) needs the bytes. Buffer the
+        // body once, hand back base64 + the reported content-type + the length.
+        const buf = Buffer.from(await r.arrayBuffer())
+        return { status: r.status, contentType: r.headers.get('content-type'), audio_base64: buf.toString('base64'), bytes: buf.byteLength }
     },
 })

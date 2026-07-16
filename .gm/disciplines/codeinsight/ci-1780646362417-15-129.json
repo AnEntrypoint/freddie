@@ -1,0 +1,6 @@
+./plugins/memory/handler.js:15:19 provider
+function provider() {
+    const name = getConfigValue('memory.provider')
+    if (!name) return null
+    try { return createMemoryProvider(name, {}) } catch { return null }
+}

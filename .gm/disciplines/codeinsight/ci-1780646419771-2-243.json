@@ -1,0 +1,2 @@
+./plugins/session_search/plugin.js:2:2 register
+register({ pi }) { for (const t of [_tool0, _tool1]) pi.tools.register(t) }
