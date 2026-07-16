@@ -1,6 +1,6 @@
+import fs, { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path, { basename, extname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import fs, { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { spawn } from "node:child_process";
 import os, { homedir } from "node:os";
 import crypto, { randomUUID } from "node:crypto";
@@ -1356,7 +1356,8 @@ function reg(map, kind) {
 		get: (n) => map.get(n),
 		list: () => [...map.values()],
 		has: (n) => map.has(n),
-		size: () => map.size
+		size: () => map.size,
+		unregister: (n) => map.delete(n)
 	};
 }
 function makePi() {
@@ -1419,6 +1420,12 @@ function makeGui() {
 			path: p,
 			handler: h
 		}),
+		unroute: (method, p) => {
+			const i = r.findIndex((x) => x.method === method.toUpperCase() && x.path === p);
+			if (i === -1) return false;
+			r.splice(i, 1);
+			return true;
+		},
 		page: (s, d) => pages.set(s, d),
 		nav: (i) => nav.push(i),
 		debug: (n, fn) => debugs.set(n, fn),
@@ -1552,6 +1559,14 @@ function makeHooksRegistry(ccHost) {
 		on(name, fn) {
 			if (!HOOK_NAMES.includes(name)) throw new Error(`unknown hook: ${name}`);
 			reg2[name].push(fn);
+		},
+		off(name, fn) {
+			const l = reg2[name];
+			if (!l) return false;
+			const i = l.indexOf(fn);
+			if (i === -1) return false;
+			l.splice(i, 1);
+			return true;
 		},
 		async invoke(name, payload) {
 			let cur = payload;
@@ -1743,7 +1758,7 @@ function isFlagEnabled(name) {
 }
 //#endregion
 //#region src/host/host.js
-function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed }) {
+function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed, sourcePaths }) {
 	return async function load(plugins) {
 		const sorted = topoSort(plugins.map(validatePlugin));
 		for (const p of sorted) {
@@ -1753,7 +1768,9 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
 				hooks: [],
 				commands: [],
 				crons: [],
-				routes: []
+				routes: [],
+				_hookFns: [],
+				_routeDefs: []
 			};
 			const ctxPi = (want === "pi" || want === "both") && surfaces.includes("pi") ? recordPi(pi, cap) : guard(pi, false, p.name, PI_VERBS);
 			const ctxGui = (want === "gui" || want === "both") && surfaces.includes("gui") ? recordGui(gui, cap) : guard(gui, false, p.name, GUI_VERBS);
@@ -1786,6 +1803,7 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
 				await p.register(ctx);
 				loaded.push(p);
 				capabilities.set(p.name, cap);
+				if (p.__sourceFile) sourcePaths.set(p.name, p.__sourceFile);
 			} catch (e) {
 				const entry = {
 					plugin: p.name,
@@ -1832,6 +1850,10 @@ function recordGui(gui, cap) {
 		...gui,
 		route: (method, path, h) => {
 			cap.routes.push(`${method.toUpperCase()} ${path}`);
+			cap._routeDefs.push({
+				method: method.toUpperCase(),
+				path
+			});
 			return gui.route(method, path, h);
 		}
 	};
@@ -1841,6 +1863,10 @@ function recordHooks(hooks, cap) {
 		...hooks,
 		on: (name, fn) => {
 			cap.hooks.push(name);
+			cap._hookFns.push({
+				name,
+				fn
+			});
 			return hooks.on(name, fn);
 		}
 	};
@@ -1862,6 +1888,7 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 	const loaded = [];
 	const capabilities = /* @__PURE__ */ new Map();
 	const failed = [];
+	const sourcePaths = /* @__PURE__ */ new Map();
 	const host = {
 		pi: surfaces.includes("pi") ? pi : null,
 		gui: surfaces.includes("gui") ? gui : null,
@@ -1878,7 +1905,17 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 		get: (n) => loaded.find((p) => p.name === n) || null,
 		capabilities: (n) => n ? capabilities.get(n) || null : Object.fromEntries(capabilities),
 		failedPlugins: () => failed.slice(),
-		shutdown: () => ccHost.shutdown()
+		shutdown: () => ccHost.shutdown(),
+		reloadPlugin: (filePath) => reloadPlugin({
+			filePath,
+			sourcePaths,
+			capabilities,
+			loaded,
+			pi,
+			gui,
+			hooks,
+			host
+		})
 	};
 	host.load = makePluginLoader({
 		surfaces,
@@ -1890,7 +1927,8 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 		host,
 		loaded,
 		capabilities,
-		failed
+		failed,
+		sourcePaths
 	});
 	const cc = makeCcLoaders(ccHost, env);
 	host.loadCcPlugins = cc.loadCcPlugins;
@@ -1908,6 +1946,62 @@ function isFlagDisabled(dir) {
 		return false;
 	}
 }
+async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, pi, gui, hooks, host }) {
+	const name = [...sourcePaths.entries()].find(([, f]) => f === filePath)?.[0];
+	if (!name) return null;
+	const cap = capabilities.get(name);
+	if (cap) {
+		for (const t of cap.tools) pi.tools.unregister(t);
+		for (const c of cap.commands) pi.commands.unregister(c);
+		for (const c of cap.crons) pi.crons.unregister(c);
+		for (const { method, path: p } of cap._routeDefs || []) gui.unroute(method, p);
+		for (const { name: hn, fn } of cap._hookFns || []) hooks.off(hn, fn);
+	}
+	const idx = loaded.findIndex((p) => p.name === name);
+	if (idx !== -1) loaded.splice(idx, 1);
+	capabilities.delete(name);
+	const reloadCopy = filePath.replace(/\.m?js$/, `.reload-${Date.now()}.mjs`);
+	fs.copyFileSync(filePath, reloadCopy);
+	let mod;
+	try {
+		mod = await import(pathToFileURL(reloadCopy).href);
+	} finally {
+		fs.unlink(reloadCopy, () => {});
+	}
+	const fresh = mod.default || mod.plugin;
+	if (!fresh) return null;
+	fresh.__sourceFile = filePath;
+	const newCap = {
+		tools: [],
+		hooks: [],
+		commands: [],
+		crons: [],
+		routes: [],
+		_hookFns: [],
+		_routeDefs: []
+	};
+	const want = fresh.surfaces;
+	const ctxPi = want === "pi" || want === "both" ? recordPi(pi, newCap) : pi;
+	const ctxGui = want === "gui" || want === "both" ? recordGui(gui, newCap) : gui;
+	const ctxHooks = recordHooks(hooks, newCap);
+	await validatePlugin(fresh).register({
+		pi: ctxPi,
+		gui: ctxGui,
+		hooks: ctxHooks,
+		log: {
+			info() {},
+			warn() {},
+			error() {}
+		},
+		config: nullStore(),
+		host,
+		env: process.env
+	});
+	loaded.push(fresh);
+	capabilities.set(name, newCap);
+	sourcePaths.set(name, filePath);
+	return name;
+}
 async function discoverPlugins(roots) {
 	const found = [];
 	for (const root of roots) {
@@ -1920,7 +2014,10 @@ async function discoverPlugins(roots) {
 			if (fs.existsSync(file)) {
 				const mod = await import(pathToFileURL(file).href);
 				const p = mod.default || mod.plugin;
-				if (p) found.push(p);
+				if (p) {
+					p.__sourceFile = file;
+					found.push(p);
+				}
 				continue;
 			}
 			const handlerFile = path.join(dir, "handler.js");
@@ -1930,6 +2027,7 @@ async function discoverPlugins(roots) {
 			found.push({
 				name: `tool-${entry.name}`,
 				surfaces: "pi",
+				__sourceFile: handlerFile,
 				register({ pi }) {
 					pi.tools.register(_tool);
 				}
@@ -2033,6 +2131,7 @@ init_env();
 var _host = null;
 var _loadPromise = null;
 var _dotenvLoaded = false;
+var _pluginWatcher = null;
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var REPO_PLUGINS = path.resolve(__dirname, "..", "..", "plugins");
 function loadDotenvOnce() {
@@ -2069,10 +2168,17 @@ async function bootHost(extraRoots = []) {
 	})();
 	return _loadPromise;
 }
+function stopWatchingPlugins() {
+	if (_pluginWatcher) {
+		_pluginWatcher.close();
+		_pluginWatcher = null;
+	}
+}
 function resetHostForTests() {
 	_host = null;
 	_loadPromise = null;
 	_dotenvLoaded = false;
+	stopWatchingPlugins();
 }
 //#endregion
 //#region src/toolsets.js
