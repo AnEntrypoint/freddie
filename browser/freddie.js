@@ -1991,7 +1991,7 @@ function makeCcLoaders(ccHost, env) {
 }
 //#endregion
 //#region src/host/host.js
-function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities }) {
+function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed }) {
 	return async function load(plugins) {
 		const sorted = topoSort(plugins.map(validatePlugin));
 		for (const p of sorted) {
@@ -2016,22 +2016,35 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
 				});
 				if (env.FREDDIE_LOG_STDOUT) console.log(line);
 			};
+			const logger = {
+				info: (m, f) => log("info", m, f),
+				warn: (m, f) => log("warn", m, f),
+				error: (m, f) => log("error", m, f)
+			};
 			const ctx = {
 				pi: ctxPi,
 				gui: ctxGui,
 				hooks: ctxHooks,
-				log: {
-					info: (m, f) => log("info", m, f),
-					warn: (m, f) => log("warn", m, f),
-					error: (m, f) => log("error", m, f)
-				},
+				log: logger,
 				config: scopedCfg(p.name, configStore),
 				host,
 				env
 			};
-			await p.register(ctx);
-			loaded.push(p);
-			capabilities.set(p.name, cap);
+			try {
+				await p.register(ctx);
+				loaded.push(p);
+				capabilities.set(p.name, cap);
+			} catch (e) {
+				const entry = {
+					plugin: p.name,
+					error: String(e?.message || e),
+					stack: e?.stack || null,
+					config: scopedCfg(p.name, configStore).all(),
+					env_keys_present: Object.keys(process.env).filter((k) => k.startsWith("FREDDIE_"))
+				};
+				failed.push(entry);
+				logger.error(`plugin register() threw: ${entry.error}`, { stack: entry.stack });
+			}
 		}
 		return loaded.length;
 	};
@@ -2096,6 +2109,7 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 	const hooks = makeHooksRegistry(ccHost);
 	const loaded = [];
 	const capabilities = /* @__PURE__ */ new Map();
+	const failed = [];
 	const host = {
 		pi: surfaces.includes("pi") ? pi : null,
 		gui: surfaces.includes("gui") ? gui : null,
@@ -2111,6 +2125,7 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 		})),
 		get: (n) => loaded.find((p) => p.name === n) || null,
 		capabilities: (n) => n ? capabilities.get(n) || null : Object.fromEntries(capabilities),
+		failedPlugins: () => failed.slice(),
 		shutdown: () => ccHost.shutdown()
 	};
 	host.load = makePluginLoader({
@@ -2122,7 +2137,8 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 		env,
 		host,
 		loaded,
-		capabilities
+		capabilities,
+		failed
 	});
 	const cc = makeCcLoaders(ccHost, env);
 	host.loadCcPlugins = cc.loadCcPlugins;
