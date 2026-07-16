@@ -3,10 +3,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import fs, { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { spawn } from "node:child_process";
 import os, { homedir } from "node:os";
+import crypto, { randomUUID } from "node:crypto";
 import { assign, assign as assign$1, createActor, createActor as createActor$1, createMachine, createMachine as createMachine$1, fromPromise, fromPromise as fromPromise$1, waitFor } from "xstate";
 import * as sdkNs from "acptoapi";
 import { createRequire } from "node:module";
-import { randomUUID } from "node:crypto";
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -1990,6 +1990,105 @@ function makeCcLoaders(ccHost, env) {
 	};
 }
 //#endregion
+//#region src/home.js
+var home_exports = /* @__PURE__ */ __exportAll({
+	applyHomeOverride: () => applyHomeOverride,
+	applyProfileOverride: () => applyProfileOverride,
+	displayFreddieHome: () => displayFreddieHome,
+	getFreddieHome: () => getFreddieHome,
+	getProfilesRoot: () => getProfilesRoot,
+	listProfiles: () => listProfiles,
+	resetCacheForTests: () => resetCacheForTests
+});
+function getFreddieHome() {
+	if (_cached) return _cached;
+	const home_env = env("FREDDIE_HOME");
+	if (home_env) {
+		_cached = home_env;
+		ensure(home_env);
+		return home_env;
+	}
+	const profile = env("FREDDIE_PROFILE");
+	const root = path.join(os.homedir(), ".freddie");
+	const home = profile ? path.join(root, "profiles", profile) : root;
+	_cached = home;
+	ensure(home);
+	return home;
+}
+function displayFreddieHome() {
+	const profile = env("FREDDIE_PROFILE");
+	return profile ? `~/.freddie/profiles/${profile}` : "~/.freddie";
+}
+function applyProfileOverride(name) {
+	if (!name || name === "default") {
+		delete process.env.FREDDIE_PROFILE;
+		_cached = null;
+		return;
+	}
+	process.env.FREDDIE_PROFILE = name;
+	_cached = null;
+}
+function applyHomeOverride(absPath) {
+	if (!absPath) {
+		delete process.env.FREDDIE_HOME;
+		_cached = null;
+		return;
+	}
+	process.env.FREDDIE_HOME = absPath;
+	_cached = null;
+	ensure(absPath);
+}
+function getProfilesRoot() {
+	if (env("FREDDIE_PROFILES_ROOT")) return env("FREDDIE_PROFILES_ROOT");
+	if (env("FREDDIE_HOME")) return path.join(env("FREDDIE_HOME"), "profiles");
+	return path.join(os.homedir(), ".freddie", "profiles");
+}
+function listProfiles() {
+	const root = getProfilesRoot();
+	if (!fs.existsSync(root)) return [];
+	return fs.readdirSync(root).filter((n) => fs.statSync(path.join(root, n)).isDirectory());
+}
+function resetCacheForTests() {
+	_cached = null;
+}
+function ensure(p) {
+	try {
+		fs.mkdirSync(p, { recursive: true });
+	} catch {}
+}
+var _cached;
+var init_home = __esmMin((() => {
+	init_env();
+	_cached = null;
+}));
+//#endregion
+//#region src/flags.js
+init_home();
+function flagsPath() {
+	return path.join(getFreddieHome(), "flags.json");
+}
+function loadFlags() {
+	try {
+		return JSON.parse(fs.readFileSync(flagsPath(), "utf8"));
+	} catch {
+		return {};
+	}
+}
+function installId() {
+	return crypto.createHash("sha256").update(getFreddieHome()).digest("hex");
+}
+function bucketFor(name) {
+	const h = crypto.createHash("sha256").update(name + ":" + installId()).digest("hex");
+	return parseInt(h.slice(0, 8), 16) / 4294967295 * 100;
+}
+function isFlagEnabled(name) {
+	const entry = loadFlags()[name];
+	if (entry === void 0) return true;
+	if (typeof entry === "boolean") return entry;
+	if (typeof entry === "object" && entry !== null && typeof entry.rollout_pct === "number") return bucketFor(name) < entry.rollout_pct;
+	return true;
+}
+//#endregion
 //#region src/host/host.js
 function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed }) {
 	return async function load(plugins) {
@@ -2145,6 +2244,17 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 	host.loadCcFromNodeModules = cc.loadCcFromNodeModules;
 	return host;
 }
+function isFlagDisabled(dir) {
+	const manifestPath = path.join(dir, "plugin.json");
+	if (!fs.existsSync(manifestPath)) return false;
+	try {
+		const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+		if (!manifest.feature_flag) return false;
+		return !isFlagEnabled(manifest.feature_flag);
+	} catch {
+		return false;
+	}
+}
 async function discoverPlugins(roots) {
 	const found = [];
 	for (const root of roots) {
@@ -2152,6 +2262,7 @@ async function discoverPlugins(roots) {
 		for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
 			if (!entry.isDirectory()) continue;
 			const dir = path.join(root, entry.name);
+			if (isFlagDisabled(dir)) continue;
 			const file = path.join(dir, "plugin.js");
 			if (fs.existsSync(file)) {
 				const mod = await import(pathToFileURL(file).href);
@@ -2174,78 +2285,6 @@ async function discoverPlugins(roots) {
 	}
 	return found;
 }
-//#endregion
-//#region src/home.js
-var home_exports = /* @__PURE__ */ __exportAll({
-	applyHomeOverride: () => applyHomeOverride,
-	applyProfileOverride: () => applyProfileOverride,
-	displayFreddieHome: () => displayFreddieHome,
-	getFreddieHome: () => getFreddieHome,
-	getProfilesRoot: () => getProfilesRoot,
-	listProfiles: () => listProfiles,
-	resetCacheForTests: () => resetCacheForTests
-});
-function getFreddieHome() {
-	if (_cached) return _cached;
-	const home_env = env("FREDDIE_HOME");
-	if (home_env) {
-		_cached = home_env;
-		ensure(home_env);
-		return home_env;
-	}
-	const profile = env("FREDDIE_PROFILE");
-	const root = path.join(os.homedir(), ".freddie");
-	const home = profile ? path.join(root, "profiles", profile) : root;
-	_cached = home;
-	ensure(home);
-	return home;
-}
-function displayFreddieHome() {
-	const profile = env("FREDDIE_PROFILE");
-	return profile ? `~/.freddie/profiles/${profile}` : "~/.freddie";
-}
-function applyProfileOverride(name) {
-	if (!name || name === "default") {
-		delete process.env.FREDDIE_PROFILE;
-		_cached = null;
-		return;
-	}
-	process.env.FREDDIE_PROFILE = name;
-	_cached = null;
-}
-function applyHomeOverride(absPath) {
-	if (!absPath) {
-		delete process.env.FREDDIE_HOME;
-		_cached = null;
-		return;
-	}
-	process.env.FREDDIE_HOME = absPath;
-	_cached = null;
-	ensure(absPath);
-}
-function getProfilesRoot() {
-	if (env("FREDDIE_PROFILES_ROOT")) return env("FREDDIE_PROFILES_ROOT");
-	if (env("FREDDIE_HOME")) return path.join(env("FREDDIE_HOME"), "profiles");
-	return path.join(os.homedir(), ".freddie", "profiles");
-}
-function listProfiles() {
-	const root = getProfilesRoot();
-	if (!fs.existsSync(root)) return [];
-	return fs.readdirSync(root).filter((n) => fs.statSync(path.join(root, n)).isDirectory());
-}
-function resetCacheForTests() {
-	_cached = null;
-}
-function ensure(p) {
-	try {
-		fs.mkdirSync(p, { recursive: true });
-	} catch {}
-}
-var _cached;
-var init_home = __esmMin((() => {
-	init_env();
-	_cached = null;
-}));
 //#endregion
 //#region src/projects.js
 var projects_exports = /* @__PURE__ */ __exportAll({
