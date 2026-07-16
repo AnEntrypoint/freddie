@@ -1991,13 +1991,21 @@ function makeCcLoaders(ccHost, env) {
 }
 //#endregion
 //#region src/host/host.js
-function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded }) {
+function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities }) {
 	return async function load(plugins) {
 		const sorted = topoSort(plugins.map(validatePlugin));
 		for (const p of sorted) {
 			const want = p.surfaces;
-			const ctxPi = (want === "pi" || want === "both") && surfaces.includes("pi") ? pi : guard(pi, false, p.name, PI_VERBS);
-			const ctxGui = (want === "gui" || want === "both") && surfaces.includes("gui") ? gui : guard(gui, false, p.name, GUI_VERBS);
+			const cap = {
+				tools: [],
+				hooks: [],
+				commands: [],
+				crons: [],
+				routes: []
+			};
+			const ctxPi = (want === "pi" || want === "both") && surfaces.includes("pi") ? recordPi(pi, cap) : guard(pi, false, p.name, PI_VERBS);
+			const ctxGui = (want === "gui" || want === "both") && surfaces.includes("gui") ? recordGui(gui, cap) : guard(gui, false, p.name, GUI_VERBS);
+			const ctxHooks = recordHooks(hooks, cap);
 			const log = (lv, m, f) => {
 				const line = JSON.stringify({
 					ts: Date.now(),
@@ -2011,7 +2019,7 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
 			const ctx = {
 				pi: ctxPi,
 				gui: ctxGui,
-				hooks,
+				hooks: ctxHooks,
 				log: {
 					info: (m, f) => log("info", m, f),
 					warn: (m, f) => log("warn", m, f),
@@ -2023,8 +2031,53 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
 			};
 			await p.register(ctx);
 			loaded.push(p);
+			capabilities.set(p.name, cap);
 		}
 		return loaded.length;
+	};
+}
+function recordPi(pi, cap) {
+	return {
+		...pi,
+		tools: {
+			...pi.tools,
+			register: (s) => {
+				cap.tools.push(s.name);
+				return pi.tools.register(s);
+			}
+		},
+		commands: {
+			...pi.commands,
+			register: (s) => {
+				cap.commands.push(s.name);
+				return pi.commands.register(s);
+			}
+		},
+		crons: {
+			...pi.crons,
+			register: (s) => {
+				cap.crons.push(s.name);
+				return pi.crons.register(s);
+			}
+		}
+	};
+}
+function recordGui(gui, cap) {
+	return {
+		...gui,
+		route: (method, path, h) => {
+			cap.routes.push(`${method.toUpperCase()} ${path}`);
+			return gui.route(method, path, h);
+		}
+	};
+}
+function recordHooks(hooks, cap) {
+	return {
+		...hooks,
+		on: (name, fn) => {
+			cap.hooks.push(name);
+			return hooks.on(name, fn);
+		}
 	};
 }
 function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env = process.env } = {}) {
@@ -2042,6 +2095,7 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 	});
 	const hooks = makeHooksRegistry(ccHost);
 	const loaded = [];
+	const capabilities = /* @__PURE__ */ new Map();
 	const host = {
 		pi: surfaces.includes("pi") ? pi : null,
 		gui: surfaces.includes("gui") ? gui : null,
@@ -2056,6 +2110,7 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 			requires: p.requires || []
 		})),
 		get: (n) => loaded.find((p) => p.name === n) || null,
+		capabilities: (n) => n ? capabilities.get(n) || null : Object.fromEntries(capabilities),
 		shutdown: () => ccHost.shutdown()
 	};
 	host.load = makePluginLoader({
@@ -2066,7 +2121,8 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 		configStore,
 		env,
 		host,
-		loaded
+		loaded,
+		capabilities
 	});
 	const cc = makeCcLoaders(ccHost, env);
 	host.loadCcPlugins = cc.loadCcPlugins;
