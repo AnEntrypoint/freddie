@@ -1,0 +1,42 @@
+{
+  "name": "vscode-freddie",
+  "displayName": "Freddie",
+  "description": "Syntax highlighting, snippets, task runner, and Language Server integration for freddie plugin development.",
+  "version": "0.1.0",
+  "publisher": "AnEntrypoint",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Programming Languages", "Snippets"],
+  "main": "./src/extension.js",
+  "activationEvents": ["onLanguage:javascript", "onLanguage:yaml"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "freddie-prd-yaml",
+        "aliases": ["Freddie PRD"],
+        "filenamePatterns": ["**/.gm/prd.yml"]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "freddie-prd-yaml",
+        "scopeName": "source.freddie-prd-yaml",
+        "path": "./syntaxes/freddie-prd.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "javascript",
+        "path": "./snippets/plugin-snippets.json"
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "freddie-test"
+      }
+    ]
+  },
+  "scripts": {},
+  "dependencies": {
+    "vscode-languageclient": "^10.1.0"
+  }
+}
