@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
@@ -9,6 +10,7 @@ import { env } from '../env.js'
 let _host = null
 let _loadPromise = null
 let _dotenvLoaded = false
+let _pluginWatcher = null
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const REPO_PLUGINS = path.resolve(__dirname, '..', '..', 'plugins')
@@ -64,4 +66,44 @@ export async function bootHost(extraRoots = []) {
     return _loadPromise
 }
 
-export function resetHostForTests() { _host = null; _loadPromise = null; _dotenvLoaded = false }
+// Chokidar-free (fs.watch, no new dep) hot-reload watcher on
+// ~/.freddie/plugins/<name>/plugin.js. Debounced per-file (editors write in
+// bursts) and guarded against overlapping reloads of the same file. Never
+// throws into the caller -- a reload failure is logged and the previously
+// loaded plugin instance is left in place (better a stale plugin than a
+// crashed watcher).
+export function watchPlugins() {
+    if (_pluginWatcher) return _pluginWatcher
+    const root = path.join(getFreddieHome(), 'plugins')
+    if (!fs.existsSync(root)) return null
+    const timers = new Map()
+    const inFlight = new Set()
+    const debounceMs = 200
+    const watcher = fs.watch(root, { recursive: true }, (_event, relPath) => {
+        if (!relPath || !relPath.endsWith('plugin.js')) return
+        const filePath = path.join(root, relPath)
+        if (timers.has(filePath)) clearTimeout(timers.get(filePath))
+        timers.set(filePath, setTimeout(async () => {
+            timers.delete(filePath)
+            if (inFlight.has(filePath)) return
+            inFlight.add(filePath)
+            try {
+                const h = host()
+                const reloaded = await h.reloadPlugin(filePath)
+                if (env('FREDDIE_LOG_STDOUT')) console.log(JSON.stringify({ ts: Date.now(), event: 'plugin_hot_reload', file: filePath, reloaded: !!reloaded, name: reloaded || null }))
+            } catch (e) {
+                if (env('FREDDIE_LOG_STDOUT')) console.error(JSON.stringify({ ts: Date.now(), event: 'plugin_hot_reload_failed', file: filePath, error: String(e?.message || e) }))
+            } finally {
+                inFlight.delete(filePath)
+            }
+        }, debounceMs))
+    })
+    _pluginWatcher = watcher
+    return watcher
+}
+
+export function stopWatchingPlugins() {
+    if (_pluginWatcher) { _pluginWatcher.close(); _pluginWatcher = null }
+}
+
+export function resetHostForTests() { _host = null; _loadPromise = null; _dotenvLoaded = false; stopWatchingPlugins() }
