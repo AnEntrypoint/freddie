@@ -4434,27 +4434,38 @@ async function isReachable(timeoutMs = 1e4) {
 //#endregion
 //#region src/agent/llm_resolver.js
 var _req = createRequire(import.meta.url);
-var _warmExtraPromise = null;
-async function warmExtraProviders() {
-	if (!_warmExtraPromise) try {
-		const extra = _req("acptoapi/lib/extra-providers");
-		if (extra && typeof extra.loadAndRegisterAsync === "function") _warmExtraPromise = extra.loadAndRegisterAsync();
-		else _warmExtraPromise = Promise.resolve();
-	} catch {
-		_warmExtraPromise = Promise.resolve();
-	}
-	await _warmExtraPromise;
-}
-var _lastReachable = {
-	at: 0,
-	ok: false
-};
 var REACHABLE_TTL_MS = 5e3;
+function createResolverState() {
+	return {
+		warmExtraPromise: null,
+		lastReachable: {
+			at: 0,
+			ok: false
+		}
+	};
+}
+var _state = null;
+function state() {
+	if (!_state) _state = createResolverState();
+	return _state;
+}
+async function warmExtraProviders() {
+	const s = state();
+	if (!s.warmExtraPromise) try {
+		const extra = _req("acptoapi/lib/extra-providers");
+		if (extra && typeof extra.loadAndRegisterAsync === "function") s.warmExtraPromise = extra.loadAndRegisterAsync();
+		else s.warmExtraPromise = Promise.resolve();
+	} catch {
+		s.warmExtraPromise = Promise.resolve();
+	}
+	await s.warmExtraPromise;
+}
 async function cachedReachable() {
+	const s = state();
 	const now = Date.now();
-	if (now - _lastReachable.at < REACHABLE_TTL_MS) return _lastReachable.ok;
+	if (now - s.lastReachable.at < REACHABLE_TTL_MS) return s.lastReachable.ok;
 	const ok = await isReachable();
-	_lastReachable = {
+	s.lastReachable = {
 		at: now,
 		ok
 	};
