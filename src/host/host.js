@@ -5,21 +5,39 @@ import { createHost as createPluginHost } from 'plugsdk'
 import { validatePlugin, topoSort, PI_VERBS, GUI_VERBS } from './contract.js'
 import { makePi, makeGui, guard, scopedCfg, nullStore, makeCcHooks, makeHooksRegistry, makeCcLoaders } from './host_helpers.js'
 
-function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded }) {
+function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities }) {
     return async function load(plugins) {
         const sorted = topoSort(plugins.map(validatePlugin))
         for (const p of sorted) {
             const want = p.surfaces
-            const ctxPi  = (want === 'pi'  || want === 'both') && surfaces.includes('pi')  ? pi  : guard(pi, false, p.name, PI_VERBS)
-            const ctxGui = (want === 'gui' || want === 'both') && surfaces.includes('gui') ? gui : guard(gui, false, p.name, GUI_VERBS)
+            const cap = { tools: [], hooks: [], commands: [], crons: [], routes: [] }
+            const ctxPi  = (want === 'pi'  || want === 'both') && surfaces.includes('pi')  ? recordPi(pi, cap)   : guard(pi, false, p.name, PI_VERBS)
+            const ctxGui = (want === 'gui' || want === 'both') && surfaces.includes('gui') ? recordGui(gui, cap) : guard(gui, false, p.name, GUI_VERBS)
+            const ctxHooks = recordHooks(hooks, cap)
             const log = (lv, m, f) => { const line = JSON.stringify({ ts: Date.now(), plugin: p.name, level: lv, msg: m, ...(f || {}) }); if (env.FREDDIE_LOG_STDOUT) console.log(line) }
             const logger = { info:(m,f)=>log('info',m,f), warn:(m,f)=>log('warn',m,f), error:(m,f)=>log('error',m,f) }
-            const ctx = { pi: ctxPi, gui: ctxGui, hooks, log: logger, config: scopedCfg(p.name, configStore), host, env }
+            const ctx = { pi: ctxPi, gui: ctxGui, hooks: ctxHooks, log: logger, config: scopedCfg(p.name, configStore), host, env }
             await p.register(ctx)
             loaded.push(p)
+            capabilities.set(p.name, cap)
         }
         return loaded.length
     }
+}
+
+function recordPi(pi, cap) {
+    return {
+        ...pi,
+        tools:      { ...pi.tools,      register: (s) => { cap.tools.push(s.name); return pi.tools.register(s) } },
+        commands:   { ...pi.commands,   register: (s) => { cap.commands.push(s.name); return pi.commands.register(s) } },
+        crons:      { ...pi.crons,      register: (s) => { cap.crons.push(s.name); return pi.crons.register(s) } },
+    }
+}
+function recordGui(gui, cap) {
+    return { ...gui, route: (method, path, h) => { cap.routes.push(`${method.toUpperCase()} ${path}`); return gui.route(method, path, h) } }
+}
+function recordHooks(hooks, cap) {
+    return { ...hooks, on: (name, fn) => { cap.hooks.push(name); return hooks.on(name, fn) } }
 }
 
 export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(), env = process.env } = {}) {
@@ -29,6 +47,7 @@ export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(),
     const ccHost = createPluginHost({ env, on: makeCcHooks({ surfaces, pi, binPaths, inboundListeners }) })
     const hooks = makeHooksRegistry(ccHost)
     const loaded = []
+    const capabilities = new Map()
     const host = {
         pi: surfaces.includes('pi') ? pi : null,
         gui: surfaces.includes('gui') ? gui : null,
@@ -38,9 +57,10 @@ export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(),
         onInbound: (fn) => inboundListeners.push(fn),
         plugins: () => loaded.map(p => ({ name: p.name, version: p.version || null, surfaces: p.surfaces, requires: p.requires || [] })),
         get: (n) => loaded.find(p => p.name === n) || null,
+        capabilities: (n) => n ? (capabilities.get(n) || null) : Object.fromEntries(capabilities),
         shutdown: () => ccHost.shutdown(),
     }
-    host.load = makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded })
+    host.load = makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities })
     const cc = makeCcLoaders(ccHost, env)
     host.loadCcPlugins = cc.loadCcPlugins
     host.loadCcFromNodeModules = cc.loadCcFromNodeModules
