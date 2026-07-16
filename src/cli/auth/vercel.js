@@ -1,4 +1,4 @@
-import { getAuthStore } from '../auth.js'
+import { getAuthStore } from '../../auth.js'
 const KEY = 'VERCEL_TOKEN'
 export async function getVercelToken() {
     if (process.env.VERCEL_TOKEN) return { source: 'env', value: process.env.VERCEL_TOKEN }

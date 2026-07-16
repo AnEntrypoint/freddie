@@ -1,5 +1,5 @@
 // Gemini upstream connectivity lives in acptoapi /v1beta/models/<model>:generateContent.
-import { getAcptoapiUrl } from './acptoapi-bridge.js'
+import { getAcptoapiUrl } from '../acptoapi-bridge.js'
 import { adaptToolForGemini, adaptMessagesForGemini } from './gemini_schema.js'
 
 export async function chat({ messages, model = 'gemini-2.5-flash', tools = [] } = {}) {

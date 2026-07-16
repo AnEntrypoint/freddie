@@ -1,4 +1,4 @@
-import { getAuthStore } from '../auth.js'
+import { getAuthStore } from '../../auth.js'
 const KEY = 'NOUS_API_KEY'
 export async function nousStatus() {
     const k = process.env.NOUS_API_KEY || (await getAuthStore().getCredential(KEY))?.value
