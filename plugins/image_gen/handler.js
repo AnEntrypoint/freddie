@@ -1,5 +1,6 @@
 // All upstream connectivity lives in acptoapi. This handler is a thin wrapper.
 import { getAcptoapiUrl } from '../../src/agent/acptoapi-bridge.js'
+import { env } from '../../src/env.js'
 
 export const _tool = ({
     name: 'image_gen',
@@ -18,10 +19,10 @@ export const _tool = ({
             required: ['prompt'],
         },
     },
-    checkFn: () => Boolean(process.env.OPENAI_API_KEY || process.env.REPLICATE_API_TOKEN),
+    checkFn: () => Boolean(env('OPENAI_API_KEY') || env('REPLICATE_API_TOKEN')),
     requiresEnv: ['OPENAI_API_KEY or REPLICATE_API_TOKEN'],
     handler: async ({ prompt, provider, size = '1024x1024', model }) => {
-        const which = provider || (process.env.OPENAI_API_KEY ? 'openai' : 'replicate')
+        const which = provider || (env('OPENAI_API_KEY') ? 'openai' : 'replicate')
         const base = getAcptoapiUrl().replace(/\/v1\/?$/, '')
         const body = which === 'openai'
             ? { model: model || 'gpt-image-1', prompt, size }

@@ -1,12 +1,13 @@
 import { spawn } from 'node:child_process'
 import { BaseEnvironment } from './base.js'
+import { env } from '../../env.js'
 
 export class SingularityEnvironment extends BaseEnvironment {
     constructor(opts = {}) {
         super(opts)
         this.name = 'singularity'
         this.image = opts.image || 'docker://ubuntu:22.04'
-        this.binary = opts.binary || process.env.SINGULARITY_BIN || 'singularity'
+        this.binary = opts.binary || env('SINGULARITY_BIN') || 'singularity'
         this.binds = opts.binds || []
         this.cwd = opts.cwd || '/workspace'
     }

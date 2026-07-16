@@ -1,12 +1,13 @@
 import { BaseEnvironment, fetchJson, requireEnv } from './base.js'
+import { env } from '../../env.js'
 
 export class DaytonaEnvironment extends BaseEnvironment {
     constructor(opts = {}) {
         super(opts)
         this.name = 'daytona'
-        this.apiUrl = opts.apiUrl || process.env.DAYTONA_API_URL || 'https://app.daytona.io/api'
-        this.apiKey = opts.apiKey || process.env.DAYTONA_API_KEY
-        this.target = opts.target || process.env.DAYTONA_TARGET || 'us'
+        this.apiUrl = opts.apiUrl || env('DAYTONA_API_URL') || 'https://app.daytona.io/api'
+        this.apiKey = opts.apiKey || env('DAYTONA_API_KEY')
+        this.target = opts.target || env('DAYTONA_TARGET') || 'us'
         this.workspaceId = opts.workspaceId || null
         this.cwd = opts.cwd || '/workspace'
     }

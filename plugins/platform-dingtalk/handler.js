@@ -1,11 +1,12 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class DingtalkAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'dingtalk'
-        this.token = opts.token || process.env.DINGTALK_ACCESS_TOKEN
+        this.token = opts.token || env('DINGTALK_ACCESS_TOKEN')
         this.port = opts.port || 0
         this.api = opts.api || "https://oapi.dingtalk.com/robot/send"
         this._server = null

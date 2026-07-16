@@ -1,7 +1,9 @@
 import { spawn } from 'node:child_process'
+import { randomId } from '../utils.js'
+import { env as getEnv } from '../env.js'
 const _ptys = new Map()
-export function openPty({ shell = process.platform === 'win32' ? 'cmd' : process.env.SHELL || 'sh', cwd = process.cwd(), env = process.env } = {}) {
-    const id = 'pty-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)
+export function openPty({ shell = process.platform === 'win32' ? 'cmd' : getEnv('SHELL') || 'sh', cwd = process.cwd(), env = process.env } = {}) {
+    const id = 'pty-' + Date.now() + '-' + randomId(3)
     const child = spawn(shell, [], { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] })
     const buf = { stdout: '', stderr: '' }
     child.stdout?.on('data', d => buf.stdout += d.toString())

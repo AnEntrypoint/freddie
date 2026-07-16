@@ -3,12 +3,14 @@ import { getConfigValue } from '../../src/config.js'
 import { MATRIX_FILE } from '../../src/agent/model-matrix.js'
 import { flattenForOpenAI } from '../../src/agent/model-discovery.js'
 import { logger } from '../../src/observability/log.js'
+import { randomId } from '../../src/utils.js'
+import { env } from '../../src/env.js'
 
 const _require = createRequire(import.meta.url)
 const sdk = _require('acptoapi')
 const log = logger('gui-llm-passthrough')
 
-function matrixSource() { return process.env.FREDDIE_MATRIX_URL || MATRIX_FILE }
+function matrixSource() { return env('FREDDIE_MATRIX_URL') || MATRIX_FILE }
 
 export default {
     name: 'gui-llm-passthrough', surfaces: 'gui',
@@ -29,7 +31,7 @@ export default {
             try {
                 const out = await sdk.chat({ model: model || 'freddie/auto', messages, tools, queuesMap: getConfigValue('agent.model_queues', {}) || {}, matrixSource: matrixSource(), output: 'openai' })
                 if (stream) {
-                    const id = 'chatcmpl-' + Math.random().toString(36).slice(2, 12)
+                    const id = 'chatcmpl-' + randomId(6)
                     const created = Math.floor(Date.now() / 1000)
                     const content = out?.choices?.[0]?.message?.content || ''
                     res.setHeader('content-type', 'text/event-stream'); res.setHeader('cache-control', 'no-cache')

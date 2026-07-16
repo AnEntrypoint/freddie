@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { BaseEnvironment } from './base.js'
+import { env } from '../../env.js'
 
 export class ModalEnvironment extends BaseEnvironment {
     constructor(opts = {}) {
@@ -8,8 +9,8 @@ export class ModalEnvironment extends BaseEnvironment {
         this.app = opts.app || 'freddie-sandbox'
         this.image = opts.image || 'python:3.11'
         this.cwd = opts.cwd || '/sandbox'
-        this.token = process.env.MODAL_TOKEN_ID
-        this.secret = process.env.MODAL_TOKEN_SECRET
+        this.token = env('MODAL_TOKEN_ID')
+        this.secret = env('MODAL_TOKEN_SECRET')
     }
     async run(cmd, { timeoutMs = 120000 } = {}) {
         if (!this.token) return { exitCode: -1, stdout: '', stderr: 'MODAL_TOKEN_ID required' }

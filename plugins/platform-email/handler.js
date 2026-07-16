@@ -1,15 +1,16 @@
 import { EventEmitter } from 'node:events'
 import net from 'node:net'
+import { env } from '../../src/env.js'
 
 export class EmailAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'email'
-        this.smtpHost = opts.smtpHost || process.env.SMTP_HOST
-        this.smtpPort = opts.smtpPort || Number(process.env.SMTP_PORT || 587)
-        this.smtpUser = opts.smtpUser || process.env.SMTP_USER
-        this.smtpPass = opts.smtpPass || process.env.SMTP_PASS
-        this.imapHost = opts.imapHost || process.env.IMAP_HOST
+        this.smtpHost = opts.smtpHost || env('SMTP_HOST')
+        this.smtpPort = opts.smtpPort || Number(env('SMTP_PORT') || 587)
+        this.smtpUser = opts.smtpUser || env('SMTP_USER')
+        this.smtpPass = opts.smtpPass || env('SMTP_PASS')
+        this.imapHost = opts.imapHost || env('IMAP_HOST')
         this._running = false
     }
     getRequiredEnv() { return ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'] }

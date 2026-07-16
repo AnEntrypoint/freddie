@@ -1,0 +1,35 @@
+name: test
+
+# Unit tests + a plugin-discovery smoke boot on every push/PR. Distinct from
+# publish.yml (which also runs `node test.js` but only as a gate on the real
+# npm publish push to master) — this runs on PRs too, without publishing.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      - name: Unit tests
+        run: node test.js
+
+      - name: Plugin-discovery smoke boot
+        run: |
+          node -e "
+            import('./src/index.js').then(async ({ discoverPlugins }) => {
+              const plugins = await discoverPlugins(['plugins']);
+              console.log('discovered', plugins.length, 'plugins');
+              if (!Array.isArray(plugins)) throw new Error('discoverPlugins did not return an array');
+            }).catch((err) => { console.error(err); process.exit(1); });
+          "

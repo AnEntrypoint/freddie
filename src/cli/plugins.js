@@ -1,4 +1,4 @@
-import { pluginManager } from '../plugins/manager.js'
-export async function listPluginsInstalled() { await pluginManager.discoverPlugins(); return pluginManager.plugins.map(p => ({ name: p.name, dir: p.dir || null })) }
-export function listHooks() { return Object.fromEntries(Object.entries(pluginManager.hooks).map(([k, v]) => [k, v.length])) }
-export function listCliCommands() { return pluginManager.cliCommands || [] }
+import { bootHost, host } from '../host/index.js'
+export async function listPluginsInstalled() { await bootHost(); return host().plugins().map(p => ({ name: p.name, dir: p.dir || null })) }
+export function listHooks() { const h = host().hooks; return Object.fromEntries(h.names().map(n => [n, h.listeners(n).length])) }
+export function listCliCommands() { return host().pi?.commands.list() || [] }

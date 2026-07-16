@@ -1,7 +1,8 @@
 import { getAuthStore } from '../auth.js'
+import { env } from '../env.js'
 const KEY = 'DINGTALK_ACCESS_TOKEN'
 export async function getDingtalkToken() {
-    if (process.env.DINGTALK_ACCESS_TOKEN) return { source: 'env', value: process.env.DINGTALK_ACCESS_TOKEN }
+    if (env('DINGTALK_ACCESS_TOKEN')) return { source: 'env', value: env('DINGTALK_ACCESS_TOKEN') }
     const stored = await getAuthStore().getCredential(KEY)
     return stored?.value ? { source: 'auth-store', value: stored.value } : { source: 'none', value: null }
 }

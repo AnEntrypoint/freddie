@@ -4,134 +4,308 @@ hero:
   heading: plugins
   subheading: every subsystem in freddie is a plugin against one universal contract
   accent: pi for headless, gui for the dashboard, both for full-stack.
-  body: tools, gateway adapters, memory backends, skills, cron handlers, dashboard pages, agent extensions, slash commands, CLI subcommands — they all live as plugin directories under `plugins/`. each one declares which surfaces it touches, what it depends on, and registers itself through one register(ctx) call.
+  body: >-
+    Auto-generated reference of all 128 plugins discovered by bootHost(), registering 70 tools in total.
+    Regenerate with `node scripts/gen-plugins-doc.mjs`.
   badges:
-    - { label: "120+", desc: in-tree plugins }
+    - { label: "128", desc: in-tree plugins }
+    - { label: "70", desc: registered tools }
     - { label: "1 contract", desc: pi + gui }
-    - { label: topo-sort, desc: dependency-aware }
     - { label: surface guard, desc: enforced at load }
   ctas:
     - { label: contract source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/contract.js" }
     - { label: host source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/host.js" }
-    - { label: write your own, href: "#how-to-write" }
 sections:
-  - id: when
-    name: when do you reach for a plugin?
-    lede: "every time you want to add behavior. there is no other extension surface."
+  - id: tool
+    name: tools (68)
+    lede: "agent-callable tools registered via pi.tools.register."
     features:
-      - name: a tool the agent can call
-        desc: "drop `plugins/<name>/{plugin,handler}.js`. plugin.js calls `pi.tools.register(spec)`."
-        benefit: "tool is live next boot. no glue, no decorators, no manifest."
-      - name: a gateway adapter for a new platform
-        desc: "drop `plugins/platform-<name>/`. plugin.js calls `pi.platforms.register({name, module})` exposing an EventEmitter adapter class."
-        benefit: "gateway picks it up via `makePlatform(name)`."
-      - name: a memory provider
-        desc: "drop `plugins/memory-<name>/`. plugin.js calls `pi.memory.register({name, module})` exposing a class with syncTurn + prefetch."
-        benefit: "`createMemoryProvider(name)` resolves it without touching freddie core."
-      - name: a dashboard route or page
-        desc: "drop `plugins/gui-<name>/`. plugin.js calls `gui.route('GET', '/api/x', handler)` or `gui.page(slug, def)`."
-        benefit: "express picks up routes, AppShell picks up pages, no server.js edit."
-      - name: a CLI subcommand
-        desc: "any plugin can call `pi.cli.register({name, description, args, options, action})`."
-        benefit: "`node bin/freddie.js <name>` works on next boot. the CLI is itself plugin-driven."
-      - name: a hook on the agent loop
-        desc: "any plugin can call `hooks.on('preToolCall' | 'preLlmCall' | 'onTurnStart' | …, async fn)`."
-        benefit: "middleware-style intercept without forking the agent machine."
-  - id: why
-    name: why this design over a framework?
-    lede: "one contract is the only abstraction. everything else is a function call against a registry."
+      - name: "ansi_strip"
+        desc: "Strip ANSI escape sequences."
+      - name: "approval"
+        desc: "Request approval for a destructive action. Returns the user decision (allow|deny). In non-interactive contexts, defaults to deny unless config.acp.always_allow includes this action."
+      - name: "bash"
+        desc: "Run a shell command. Returns stdout/stderr/exitCode."
+      - name: "binary_extensions"
+        desc: "Check whether a filename has a known binary extension."
+      - name: "browser"
+        desc: "Browser automation: navigate, click, type, evaluate, screenshot. Requires puppeteer-core."
+        benefit: "requires: puppeteer-core"
+      - name: "budget_config"
+        desc: "Read/write per-session token budget limits."
+      - name: "checkpoint"
+        desc: "Save/load/list/delete named JSON checkpoints under ~/.freddie/checkpoints."
+      - name: "clarify"
+        desc: "Pose a clarifying question to the user before proceeding. Returns the user response. In non-interactive contexts, returns { error } so the agent must proceed with stated assumption."
+      - name: "code_execution"
+        desc: "Execute a code snippet in a chosen runner (python, node, deno, ruby, bash). Returns stdout/stderr/exitCode."
+      - name: "credential_files"
+        desc: "Get/set credentials in ~/.freddie/auth/."
+      - name: "cronjob"
+        desc: "Manage agent cron jobs (add, list, cancel, delete)."
+      - name: "debug_helpers"
+        desc: "Inspect any registered /debug subsystem."
+      - name: "delegate"
+        desc: "Spawn a sub-agent to handle a focused task. Returns the sub-agent final result."
+      - name: "discord_tool"
+        desc: "Send a message to a Discord channel via REST."
+        benefit: "requires: DISCORD_BOT_TOKEN"
+      - name: "edit"
+        desc: "Replace exact string in file. Fails if old_string occurs zero or multiple times unless replace_all."
+      - name: "env_passthrough"
+        desc: "Compute the env-var subset that should be passed through to spawned shells."
+      - name: "feishu_doc"
+        desc: "Read or update a Feishu doc by token."
+        benefit: "requires: FEISHU_APP_TOKEN"
+      - name: "feishu_drive"
+        desc: "List or download Feishu Drive files."
+        benefit: "requires: FEISHU_APP_TOKEN"
+      - name: "file_operations"
+        desc: "move/copy/delete/mkdir/stat — atomic file ops."
+      - name: "file_state"
+        desc: "Track files modified in this session (read|write|edit|delete) for diff-summary purposes."
+      - name: "file_tools"
+        desc: "list/glob files (recursive walk skipping node_modules, .git, dist)."
+      - name: "fuzzy_match"
+        desc: "Score a candidate string against a needle. Returns 0 for no match, higher for better match."
+      - name: "grep"
+        desc: "Recursive regex search across files. Returns file:line:content matches."
+      - name: "homeassistant_tool"
+        desc: "Read state or call a service on Home Assistant."
+        benefit: "requires: HASS_TOKEN, HASS_URL"
+      - name: "image_gen"
+        desc: "Generate an image from a prompt. Routes through acptoapi /v1/images/generations."
+        benefit: "requires: OPENAI_API_KEY or REPLICATE_API_TOKEN"
+      - name: "interrupt"
+        desc: "Set/clear/check interrupt flag for a session — agent loop polls and exits early."
+      - name: "managed_tool_gateway"
+        desc: "Proxy: dispatch any registered tool by name with arguments. Used for tool-level audit and policy interception."
+      - name: "mcp_oauth"
+        desc: "OAuth flow for an MCP server: build authorize URL, exchange code for token."
+      - name: "mcp_oauth_manager"
+        desc: "Persist & retrieve MCP OAuth tokens. Actions: store, get, list, delete, refresh."
+      - name: "mcp_tool"
+        desc: "Connect to an external MCP server (stdio) and call its tools."
+      - name: "memory"
+        desc: "Add/search/list memory. Routes to configured provider or local SQLite fallback."
+      - name: "mixture_of_agents"
+        desc: "Run the same prompt through N sub-agents (different models or seeds), then synthesize the results. Reduces variance."
+      - name: "neutts_synth"
+        desc: "Local NeuTTS synth (alternate TTS backend)."
+        benefit: "requires: NEUTTS_URL"
+      - name: "openrouter_client"
+        desc: "tool-openrouter_client"
+      - name: "osv_check"
+        desc: "Query osv.dev for known vulnerabilities. Pass either {package, version, ecosystem} or {commit_sha, repo}."
+      - name: "patch_parser"
+        desc: "Apply a unified diff to files in cwd. Returns per-file results."
+      - name: "path_security"
+        desc: "Check whether a path is allowed (no /etc/passwd, no .ssh/, etc)."
+      - name: "process_registry"
+        desc: "List/kill spawned background processes tracked by freddie."
+      - name: "read"
+        desc: "Read a file from disk. Returns lines with line numbers."
+      - name: "rl_training"
+        desc: "Kick off an RL rollout (Atropos integration)."
+        benefit: "requires: ATROPOS_URL"
+      - name: "schema_sanitizer"
+        desc: "Strip dangerous fields (eval, exec, __proto__) from a tool schema."
+      - name: "send_message"
+        desc: "Send a message to a recipient on the named platform. Uses the gateway adapter; requires the platform credentials."
+      - name: "session_search"
+        desc: "Full-text search across past session messages. Returns hits with session_id and content snippet."
+      - name: "skill_manager"
+        desc: "List, fetch, or invoke a skill from ~/.freddie/skills/ or bundled skills/."
+      - name: "skill_usage"
+        desc: "Track / query skill invocation stats."
+      - name: "skills_guard"
+        desc: "Inspect skill body for dangerous patterns (rm -rf /, fork bombs, secrets) before injection."
+      - name: "skills_hub"
+        desc: "Browse and install community skills."
+      - name: "skills_index"
+        desc: "Build a search index of available skills (name + description + first-line of body) for the agent to query."
+      - name: "skills_sync"
+        desc: "Sync ~/.freddie/skills/ with a remote git repo (clone or pull)."
+      - name: "skills_tool"
+        desc: "tool-skills_tool"
+      - name: "slash_confirm"
+        desc: "Resolve a slash command and indicate whether it requires confirmation before running."
+      - name: "terminal"
+        desc: "Open a long-lived shell session, send input lines, capture output. Actions: open, send, read, close."
+      - name: "tirith_security"
+        desc: "Evaluate a candidate action against ~/.freddie/policy.json. Returns allow|deny|ask."
+      - name: "todo"
+        desc: "Manage per-session todos. Actions: add, list, update, complete, delete."
+      - name: "tool_backend_helpers"
+        desc: "Helper meta-tool: describeTools(filter), shapeArgs(schema, args)."
+      - name: "tool_output_limits"
+        desc: "Apply the configured output truncation cap to a string."
+      - name: "tool_result_storage"
+        desc: "Persist a large tool result to disk; return reference token. Actions: store, fetch, list, delete."
+      - name: "transcription"
+        desc: "Transcribe audio via acptoapi /v1/audio/transcriptions (OpenAI Whisper)."
+        benefit: "requires: OPENAI_API_KEY"
+      - name: "tts"
+        desc: "Synthesize speech (OpenAI tts-1 or ElevenLabs) via acptoapi."
+        benefit: "requires: OPENAI_API_KEY or ELEVENLABS_API_KEY"
+      - name: "url_safety"
+        desc: "Heuristic URL safety check (private IPs, known-bad TLDs, scheme)."
+      - name: "vision"
+        desc: "Describe an image (URL or base64) via acptoapi chat-completions."
+        benefit: "requires: OPENAI_API_KEY or ANTHROPIC_API_KEY (provided to acptoapi)"
+      - name: "voice_mode"
+        desc: "Toggle full-duplex voice (transcription in + tts out) for the active session. Returns the new state."
+      - name: "web_search"
+        desc: "Search the web (DuckDuckGo HTML or SerpAPI). Returns title/url/snippet list."
+        benefit: "requires: SERPAPI_KEY (optional, falls back to DDG)"
+      - name: "web_tools"
+        desc: "tool-web_tools"
+      - name: "website_policy"
+        desc: "Per-host fetch policy (rate limit, allow/deny). Reads config.website_policy."
+      - name: "write"
+        desc: "Write content to a file (overwrites)."
+      - name: "xai_http"
+        desc: "tool-xai_http"
+      - name: "yuanbao_tools"
+        desc: "Tencent Yuanbao chat completion (Hunyuan)."
+        benefit: "requires: YUANBAO_API_KEY"
+  - id: platform
+    name: platform adapters (27)
+    lede: "gateway adapters exposing an EventEmitter-based platform class."
     features:
-      - name: one shape covers every concern
-        desc: "`{ name, surfaces: 'pi'|'gui'|'both', requires?: [...], register(ctx) }`. ctx exposes pi (headless verbs), gui (dashboard verbs), hooks, log, config, host, env."
-        benefit: "nothing to learn beyond the four ctx slots and the verbs you actually call."
-      - name: surfaces are guarded at load time
-        desc: "a `surfaces:'pi'` plugin that calls `gui.route(...)` throws with the plugin name and the verb name. impossible to ship a leaky surface boundary."
-        benefit: "load-time guarantee replaces runtime drift."
-      - name: requires is topo-sorted, cycles throw
-        desc: "`requires: ['core-agent-machine']` means the host calls register() in dependency order. cycle = synchronous error with the path."
-        benefit: "load order is data, not convention."
-      - name: zero compat shims
-        desc: "pre-v1. the old src/tools/registry.js is gone, src/gateway/platforms/ is gone, src/plugins/memory/ is gone. one path to extend, no legacy way."
-        benefit: "the codebase has one extension story, told once, no archaeology."
-      - name: same surfaces, two lenses
-        desc: "a `surfaces:'both'` plugin sees both `ctx.pi` and `ctx.gui`. e.g. an observability plugin can register a `pi` debug snapshot AND a `gui` route in the same file."
-        benefit: "cross-cutting concerns stop fragmenting across two layers."
-      - name: every subsystem becomes liftable
-        desc: "each `plugins/<name>/` directory has its own deps and entry. lifting it to a separate npm package is moving the directory. the contract does not change."
-        benefit: "npm-publishable plugins on day one, no rewrite."
-  - id: how-to-write
-    name: how do I write a plugin?
-    lede: "one directory, one file, one default export."
+      - name: "platform-api_server"
+        desc: "platform-api_server"
+      - name: "platform-bluebubbles"
+        desc: "platform-bluebubbles"
+      - name: "platform-dingtalk"
+        desc: "platform-dingtalk"
+      - name: "platform-discord"
+        desc: "platform-discord"
+      - name: "platform-email"
+        desc: "platform-email"
+      - name: "platform-feishu"
+        desc: "platform-feishu"
+      - name: "platform-feishu_comment"
+        desc: "platform-feishu_comment"
+      - name: "platform-feishu_comment_rules"
+        desc: "platform-feishu_comment_rules"
+      - name: "platform-homeassistant"
+        desc: "platform-homeassistant"
+      - name: "platform-matrix"
+        desc: "platform-matrix"
+      - name: "platform-mattermost"
+        desc: "platform-mattermost"
+      - name: "platform-qqbot"
+        desc: "platform-qqbot"
+      - name: "platform-signal"
+        desc: "platform-signal"
+      - name: "platform-slack"
+        desc: "platform-slack"
+      - name: "platform-sms"
+        desc: "platform-sms"
+      - name: "platform-telegram"
+        desc: "platform-telegram"
+      - name: "platform-telegram_network"
+        desc: "platform-telegram_network"
+      - name: "platform-webhook"
+        desc: "platform-webhook"
+      - name: "platform-wecom"
+        desc: "platform-wecom"
+      - name: "platform-wecom_callback"
+        desc: "platform-wecom_callback"
+      - name: "platform-wecom_crypto"
+        desc: "platform-wecom_crypto"
+      - name: "platform-weixin"
+        desc: "platform-weixin"
+      - name: "platform-whatsapp"
+        desc: "platform-whatsapp"
+      - name: "platform-yuanbao"
+        desc: "platform-yuanbao"
+      - name: "platform-yuanbao_media"
+        desc: "platform-yuanbao_media"
+      - name: "platform-yuanbao_proto"
+        desc: "platform-yuanbao_proto"
+      - name: "platform-yuanbao_sticker"
+        desc: "platform-yuanbao_sticker"
+  - id: memory
+    name: memory providers (8)
+    lede: "memory providers exposing syncTurn + prefetch."
     features:
-      - name: 1 — pick a category
-        desc: "tools/<name>/, platform-<name>/, memory-<name>/, gui-<name>/, core-<name>/, or any prefix you like. naming is convention, not contract."
-      - name: 2 — declare surfaces
-        desc: "`surfaces: 'pi'` (headless), `'gui'` (dashboard), or `'both'`. anything else throws on load."
-      - name: 3 — declare requires (optional)
-        desc: "`requires: ['core-agent-machine', 'tool-bash']` — names of plugins that must register before yours."
-      - name: 4 — implement register(ctx)
-        desc: "ctx = { pi, gui, hooks, log, config, host, env }. call the verbs you need. throw on hard errors."
-      - name: 5 — drop the directory
-        desc: "`plugins/<name>/plugin.js` (default export). next boot the host discovers and loads it."
-  - id: ctx
-    name: what's inside ctx?
-    lede: "a small set of registries and one logger. that's the whole api."
+      - name: "memory-byterover"
+        desc: "memory-byterover"
+      - name: "memory-hindsight"
+        desc: "memory-hindsight"
+      - name: "memory-holographic"
+        desc: "memory-holographic"
+      - name: "memory-honcho"
+        desc: "memory-honcho"
+      - name: "memory-mem0"
+        desc: "memory-mem0"
+      - name: "memory-openviking"
+        desc: "memory-openviking"
+      - name: "memory-retaindb"
+        desc: "memory-retaindb"
+      - name: "memory-supermemory"
+        desc: "memory-supermemory"
+  - id: gui
+    name: gui / dashboard (17)
+    lede: "dashboard routes and pages under plugins/gui-*."
     features:
-      - name: ctx.pi — headless verbs
-        desc: "tools, envs, commands, crons, platforms, memory, skills, contexts, agentExts, cli — each is a `{register, get, list, has, size}` registry."
-      - name: ctx.gui — dashboard verbs
-        desc: "route(method, path, handler), page(slug, def), nav(item), debug(name, snapshotFn), api(group, def), asset(path, content)."
-      - name: ctx.hooks — middleware
-        desc: "on(name, fn) and invoke(name, payload). names: preToolCall, postToolCall, preLlmCall, postLlmCall, onSessionStart, onSessionEnd, onTurnStart, onTurnEnd, onMessageInbound, onMessageOutbound."
-      - name: ctx.log — scoped logger
-        desc: "info/warn/error each emit a structured JSON line tagged with the plugin name."
-      - name: ctx.config — scoped config
-        desc: "get(k, default), set(k, v), all() — namespaced under `plugins.<plugin-name>` so plugins can't stomp each other."
-      - name: ctx.host — read access to the wider host
-        desc: "host.plugins() and host.get(name) for cross-plugin introspection."
-      - name: ctx.env — process.env passthrough
-        desc: "read-only proxy. respects the parent env, no surprise mutations."
-examples:
-  - { label: contract source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/contract.js", desc: 39 lines, the whole shape }
-  - { label: host source, href: "https://github.com/AnEntrypoint/freddie/blob/master/src/host/host.js", desc: load + dispatch }
-  - { label: bash plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/bash", desc: simplest tool }
-  - { label: memory provider plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/memory-honcho", desc: provider shape }
-  - { label: gui route plugin, href: "https://github.com/AnEntrypoint/freddie/tree/master/plugins/gui-sessions", desc: dashboard route }
-  - { label: core-cli plugin, href: "https://github.com/AnEntrypoint/freddie/blob/master/plugins/core-cli/plugin.js", desc: CLI is itself plugin-sourced }
-body: |
-  ## one-shot writing template
-
-  ```
-  // plugins/my-thing/plugin.js
-  export default {
-      name: 'my-thing',
-      surfaces: 'pi',
-      requires: ['core-agent-machine'],
-      register({ pi, hooks, log, config }) {
-          pi.tools.register({
-              name: 'my_tool',
-              schema: { name: 'my_tool', description: '…', parameters: { type: 'object', properties: { x: { type: 'string' } }, required: ['x'] } },
-              handler: async ({ x }) => ({ ok: true, x }),
-          })
-          hooks.on('preToolCall', async (p) => { log.info('tool fired', { name: p.name }); return p })
-      },
-  }
-  ```
-
-  ## boot the host yourself
-
-  ```
-  import { bootHost } from 'freddie/src/host/index.js'
-  const host = await bootHost()
-  console.log(host.plugins().length)         // 120+
-  console.log(host.pi.tools.list().length)   // 70+
-  console.log(host.gui.routes.list().length) // 30+
-  await host.pi.dispatchTool('bash', { command: 'echo hi', timeout_ms: 5000 })
-  ```
-
-  ## philosophy
-
-  - one contract, one host, no compat shims.
-  - extension is a directory and a default export.
-  - surfaces guarded at load. cycles thrown synchronously. no silent fallbacks.
-  - every subsystem is liftable to its own npm package without changing the contract.
+      - name: "gui-acptoapi-chains"
+        desc: "gui-acptoapi-chains"
+      - name: "gui-agents"
+        desc: "gui-agents"
+      - name: "gui-batch"
+        desc: "gui-batch"
+      - name: "gui-chat"
+        desc: "gui-chat"
+      - name: "gui-config"
+        desc: "gui-config"
+      - name: "gui-cron"
+        desc: "gui-cron"
+      - name: "gui-debug"
+        desc: "gui-debug"
+      - name: "gui-env"
+        desc: "gui-env"
+      - name: "gui-gateway"
+        desc: "gui-gateway"
+      - name: "gui-llm-passthrough"
+        desc: "gui-llm-passthrough"
+      - name: "gui-machines"
+        desc: "gui-machines"
+      - name: "gui-models-discover"
+        desc: "gui-models-discover"
+      - name: "gui-profiles-commands-health"
+        desc: "gui-profiles-commands-health"
+      - name: "gui-projects"
+        desc: "gui-projects"
+      - name: "gui-sessions"
+        desc: "gui-sessions"
+      - name: "gui-skills"
+        desc: "gui-skills"
+      - name: "gui-tools"
+        desc: "gui-tools"
+  - id: core
+    name: core (7)
+    lede: "core subsystem plugins (cli, cron, commands, skills, ...)."
+    features:
+      - name: "core-agent-machine"
+        desc: "core-agent-machine"
+      - name: "core-cli"
+        desc: "core-cli"
+      - name: "core-commands"
+        desc: "core-commands"
+      - name: "core-compressor"
+        desc: "core-compressor"
+      - name: "core-context-engine"
+        desc: "core-context-engine"
+      - name: "core-cron"
+        desc: "core-cron"
+      - name: "core-skills"
+        desc: "core-skills"
+  - id: other
+    name: other (1)
+    lede: "uncategorized plugins."
+    features:
+      - name: "gm-skill"
+        desc: "gm-skill"

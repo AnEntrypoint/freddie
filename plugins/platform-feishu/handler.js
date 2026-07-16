@@ -1,11 +1,12 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class FeishuAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'feishu'
-        this.token = opts.token || process.env.FEISHU_APP_TOKEN
+        this.token = opts.token || env('FEISHU_APP_TOKEN')
         this.port = opts.port || 0
         this.api = opts.api || "https://open.feishu.cn/open-apis/im/v1/messages"
         this._server = null

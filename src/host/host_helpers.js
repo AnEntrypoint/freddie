@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { loadClaudePlugin } from 'plugsdk'
 import { HOOK_NAMES, FREDDIE_TO_NATIVE_HOOK } from './contract.js'
+import { env } from '../env.js'
 
 export function reg(map, kind) {
     return {
@@ -92,7 +93,7 @@ export function makeHooksRegistry(ccHost) {
             let cur = payload
             for (const fn of reg2[name] || []) cur = (await fn(cur)) ?? cur
             const native = FREDDIE_TO_NATIVE_HOOK[name]
-            if (native && ccHost.plugins().length && !process.env.FREDDIE_DISABLE_CC_HOOKS) {
+            if (native && ccHost.plugins().length && !env('FREDDIE_DISABLE_CC_HOOKS')) {
                 const r = await ccHost.dispatch(native, ccPayloadFor(name, cur))
                 const extras = {}
                 if (typeof r.systemMessage === 'string' && r.systemMessage.length) extras.systemMessage = r.systemMessage

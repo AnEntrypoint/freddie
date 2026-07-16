@@ -1,7 +1,9 @@
+import { env } from '../../src/env.js'
+
 export class ByteroverMemory {
     constructor(opts = {}) {
         this.name = 'byterover'
-        this.apiKey = opts.apiKey || process.env.BYTEROVER_API_KEY
+        this.apiKey = opts.apiKey || env('BYTEROVER_API_KEY')
         this.base = opts.base || "https://api.byterover.com"
         this.userId = opts.userId || 'default'
     }

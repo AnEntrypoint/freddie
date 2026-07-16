@@ -1,0 +1,24 @@
+.page-body h1 { margin-top: 0 }
+.page-body h2 { margin-top: 32px }
+.page-body h3 { margin-top: 24px }
+.page-body pre { margin: 12px 0; background: var(--panel-2, #F0E9DA); padding: 12px; border-radius: 8px; overflow-x: auto }
+.ds-hero { padding: 48px 28px 36px; background: var(--panel-1, #FBF6EB); border-radius: 20px; margin: 24px 0 }
+.ds-hero-title { font-family: 'Archivo Black', sans-serif; font-size: clamp(40px, 6vw, 72px); margin: 0 0 16px; letter-spacing: -0.02em }
+.ds-hero-body { font-size: 17px; line-height: 1.55; max-width: 64ch; opacity: 0.85 }
+.ds-hero-accent { color: var(--mascot, #F07AA8); font-weight: 600 }
+.ds-hero-badges { margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap }
+.chip { padding: 6px 12px; border-radius: 6px; background: var(--panel-2, #F0E9DA); font-size: 13px }
+.btn, .btn-primary { display: inline-block; padding: 10px 18px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 14px }
+.btn { background: var(--panel-2, #F0E9DA); color: inherit }
+.btn-primary { background: var(--ink, #1F1B16); color: var(--paper, #F5F0E4) }
+.rail-green { box-shadow: inset 4px 0 0 var(--green, #3F8A4A) }
+.rail-purple { box-shadow: inset 4px 0 0 var(--purple, #6B3A78) }
+.rail-mascot { box-shadow: inset 4px 0 0 var(--mascot, #F07AA8) }
+.rail-sun { box-shadow: inset 4px 0 0 var(--sun, #FFD86B) }
+.rail-flame { box-shadow: inset 4px 0 0 var(--flame, #FF8454) }
+.rail-sky { box-shadow: inset 4px 0 0 var(--sky, #6FA9FF) }
+.dot-green { color: var(--green, #3F8A4A) } .dot-purple { color: var(--purple, #6B3A78) }
+.dot-mascot { color: var(--mascot, #F07AA8) } .dot-sun { color: var(--sun, #FFD86B) }
+.dot-flame { color: var(--flame, #FF8454) } .dot-sky { color: var(--sky, #6FA9FF) }
+body { margin: 0 }
+.app-stage { max-width: 1100px; margin: 0 auto; padding: 24px }

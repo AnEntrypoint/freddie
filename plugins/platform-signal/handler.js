@@ -1,11 +1,12 @@
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class SignalAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'signal'
-        this.api = opts.api || process.env.SIGNAL_CLI_URL || 'http://127.0.0.1:8080'
-        this.number = opts.number || process.env.SIGNAL_NUMBER
+        this.api = opts.api || env('SIGNAL_CLI_URL') || 'http://127.0.0.1:8080'
+        this.number = opts.number || env('SIGNAL_NUMBER')
         this._running = false
     }
     getRequiredEnv() { return ['SIGNAL_CLI_URL', 'SIGNAL_NUMBER'] }

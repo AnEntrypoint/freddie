@@ -1,13 +1,14 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class WhatsappAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'whatsapp'
-        this.token = opts.token || process.env.WHATSAPP_API_TOKEN
-        this.phoneId = opts.phoneId || process.env.WHATSAPP_PHONE_NUMBER_ID
-        this.verifyToken = opts.verifyToken || process.env.WHATSAPP_VERIFY_TOKEN || 'freddie'
+        this.token = opts.token || env('WHATSAPP_API_TOKEN')
+        this.phoneId = opts.phoneId || env('WHATSAPP_PHONE_NUMBER_ID')
+        this.verifyToken = opts.verifyToken || env('WHATSAPP_VERIFY_TOKEN') || 'freddie'
         this.port = opts.port || 0
         this.api = opts.api || 'https://graph.facebook.com/v20.0'
         this._server = null

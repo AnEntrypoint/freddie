@@ -1,11 +1,12 @@
 import { createRequire } from 'module'
 import path from 'path'
 import fs from 'fs'
+import { env } from '../../src/env.js'
 
 const _require = createRequire(import.meta.url)
 
 function resolveSkillMd() {
-    const home = process.env.USERPROFILE || process.env.HOME
+    const home = env('USERPROFILE') || env('HOME')
     if (home) {
         const candidates = [
             path.join(home, '.agents', 'skills', 'gm-skill', 'SKILL.md'),

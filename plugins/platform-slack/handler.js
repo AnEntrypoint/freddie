@@ -1,12 +1,13 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class SlackAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'slack'
-        this.token = opts.token || process.env.SLACK_BOT_TOKEN
-        this.signingSecret = opts.signingSecret || process.env.SLACK_SIGNING_SECRET
+        this.token = opts.token || env('SLACK_BOT_TOKEN')
+        this.signingSecret = opts.signingSecret || env('SLACK_SIGNING_SECRET')
         this.port = opts.port || 0
         this.path = opts.path || '/slack/events'
         this.api = opts.api || 'https://slack.com/api'

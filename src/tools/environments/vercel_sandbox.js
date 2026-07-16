@@ -1,11 +1,12 @@
 import { BaseEnvironment, fetchJson, requireEnv } from './base.js'
+import { env } from '../../env.js'
 
 export class VercelSandboxEnvironment extends BaseEnvironment {
     constructor(opts = {}) {
         super(opts)
         this.name = 'vercel_sandbox'
-        this.apiUrl = opts.apiUrl || process.env.VERCEL_SANDBOX_URL || 'https://api.vercel.com/v1/sandbox'
-        this.token = opts.token || process.env.VERCEL_TOKEN
+        this.apiUrl = opts.apiUrl || env('VERCEL_SANDBOX_URL') || 'https://api.vercel.com/v1/sandbox'
+        this.token = opts.token || env('VERCEL_TOKEN')
         this.runtime = opts.runtime || 'node22'
         this.sandboxId = null
         this.cwd = opts.cwd || '/vercel/sandbox'

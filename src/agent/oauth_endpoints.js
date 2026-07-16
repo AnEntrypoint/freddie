@@ -1,4 +1,5 @@
 import { decodeJwtClaims } from '../auth.js'
+import { env } from '../env.js'
 
 const KIMI_BASE_URLS = {
     intl: 'https://api.moonshot.ai/v1',
@@ -11,14 +12,14 @@ const ZAI_BASE_URLS = {
 }
 
 export function resolveKimiBaseUrl({ region } = {}) {
-    if (process.env.KIMI_BASE_URL) return process.env.KIMI_BASE_URL
-    const r = (region || process.env.KIMI_REGION || 'intl').toLowerCase()
+    if (env('KIMI_BASE_URL')) return env('KIMI_BASE_URL')
+    const r = (region || env('KIMI_REGION') || 'intl').toLowerCase()
     return KIMI_BASE_URLS[r] || KIMI_BASE_URLS.intl
 }
 
 export function resolveZaiBaseUrl({ endpoint } = {}) {
-    if (process.env.ZAI_BASE_URL) return process.env.ZAI_BASE_URL
-    const e = (endpoint || process.env.ZAI_ENDPOINT || '').toLowerCase()
+    if (env('ZAI_BASE_URL')) return env('ZAI_BASE_URL')
+    const e = (endpoint || env('ZAI_ENDPOINT') || '').toLowerCase()
     if (e.includes('z.ai')) return ZAI_BASE_URLS.z
     if (e.includes('bigmodel')) return ZAI_BASE_URLS.bigmodel
     return ZAI_BASE_URLS.bigmodel

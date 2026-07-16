@@ -1,10 +1,11 @@
 import { EventEmitter } from 'node:events'
+import { env } from '../../src/env.js'
 
 export class DiscordAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
         this.platform = 'discord'
-        this.token = opts.token || process.env.DISCORD_BOT_TOKEN
+        this.token = opts.token || env('DISCORD_BOT_TOKEN')
         this.api = opts.api || 'https://discord.com/api/v10'
         this._ws = null
     }

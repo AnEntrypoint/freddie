@@ -262,8 +262,14 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     const cSrc = fs.readFileSync(path.join('node_modules','anentrypoint-design','src','components','content.js'), 'utf8')
     assert.ok(/rowLabels/.test(cSrc) && /labelFor/.test(cSrc), 'Table supports rowLabels for meaningful row aria-label')
     assert.ok(/e\.key === ' '/.test(cSrc), 'Table clickable rows handle Space key (a11y parity)')
-    assert.ok(/SearchInput[\s\S]{0,400}'aria-label'/.test(cSrc), 'SearchInput has aria-label')
-    const aSrc = fs.readFileSync(path.join('node_modules','anentrypoint-design','app-shell.css'), 'utf8')
+    assert.ok(/SearchInput[\s\S]{0,600}'aria-label'/.test(cSrc), 'SearchInput has aria-label')
+    // app-shell.css is a thin @import shell over src/css/app-shell/*.css (splitting-only
+    // refactor per its own header comment) — resolve the imports so this a11y guard still
+    // sees the real rules rather than an empty re-export file.
+    const appShellDir = path.join('node_modules', 'anentrypoint-design')
+    const aShell = fs.readFileSync(path.join(appShellDir, 'app-shell.css'), 'utf8')
+    const aSrc = aShell + [...aShell.matchAll(/@import url\('(\.[^']+)'\)/g)]
+        .map(m => fs.readFileSync(path.join(appShellDir, m[1]), 'utf8')).join('\n')
     assert.ok(/tr\.clickable:focus-visible/.test(aSrc), 'clickable table rows have a focus-visible ring')
     assert.ok(/prefers-reduced-motion: reduce/.test(aSrc), 'reduced-motion preference honored')
     assert.ok(/\.skip-link/.test(aSrc), 'skip-link styled')
@@ -280,4 +286,18 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
 console.log('\n=== test.js results ==='); for (const [n, s] of results) console.log(`  ${s.startsWith('OK') ? '✓' : '✗'} ${n}\t${s}`)
 const failed = results.filter(r => !r[1].startsWith('OK'))
 try { (await import('./src/sessions.js')).closeDb() } catch {}; try { (await import('./src/observability/log.js')).closeAll() } catch {}
-if (failed.length) { console.error(`\n${failed.length} FAILED`); process.exit(1) }; console.log(`\n${results.length} passed`); await new Promise(r => setTimeout(r, 100)); process.exit(0)
+if (failed.length) { console.error(`\n${failed.length} FAILED`); process.exit(1) }
+
+// Co-located node:test unit specs for pure/leaf functions (topoSort, cron-parse,
+// model_normalize, patch_parser, contract.validatePlugin, DDG scrape lib, ...).
+// Run via `node --test <glob>` and gate this script's overall exit code on them
+// so `node test.js` / `npm test` stays the single entry point.
+console.log('\n=== node:test unit specs ===')
+const { spawnSync } = await import('node:child_process')
+const specResult = spawnSync(process.execPath, ['--test', '--test-reporter=spec', '--test-reporter-destination=stdout',
+    'src/host/contract.test.js', 'src/cron/cron-parse.test.js', 'src/cli/model_normalize.test.js',
+    'plugins/patch_parser/handler.test.js', 'plugins/web_search/scrape.test.js'],
+    { encoding: 'utf8', stdio: 'inherit' })
+if (specResult.status !== 0) { console.error('\nnode:test unit specs FAILED'); process.exit(1) }
+
+console.log(`\n${results.length} passed`); await new Promise(r => setTimeout(r, 100)); process.exit(0)

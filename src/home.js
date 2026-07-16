@@ -1,14 +1,15 @@
 import os from 'node:os'
 import path from 'node:path'
 import fs from 'node:fs'
+import { env as getEnv } from './env.js'
 
 let _cached = null
 
 export function getFreddieHome() {
     if (_cached) return _cached
-    const env = process.env.FREDDIE_HOME
-    if (env) { _cached = env; ensure(env); return env }
-    const profile = process.env.FREDDIE_PROFILE
+    const home_env = getEnv('FREDDIE_HOME')
+    if (home_env) { _cached = home_env; ensure(home_env); return home_env }
+    const profile = getEnv('FREDDIE_PROFILE')
     const root = path.join(os.homedir(), '.freddie')
     const home = profile ? path.join(root, 'profiles', profile) : root
     _cached = home
@@ -17,7 +18,7 @@ export function getFreddieHome() {
 }
 
 export function displayFreddieHome() {
-    const profile = process.env.FREDDIE_PROFILE
+    const profile = getEnv('FREDDIE_PROFILE')
     return profile ? `~/.freddie/profiles/${profile}` : '~/.freddie'
 }
 
@@ -35,8 +36,8 @@ export function applyHomeOverride(absPath) {
 }
 
 export function getProfilesRoot() {
-    if (process.env.FREDDIE_PROFILES_ROOT) return process.env.FREDDIE_PROFILES_ROOT
-    if (process.env.FREDDIE_HOME) return path.join(process.env.FREDDIE_HOME, 'profiles')
+    if (getEnv('FREDDIE_PROFILES_ROOT')) return getEnv('FREDDIE_PROFILES_ROOT')
+    if (getEnv('FREDDIE_HOME')) return path.join(getEnv('FREDDIE_HOME'), 'profiles')
     return path.join(os.homedir(), '.freddie', 'profiles')
 }
 

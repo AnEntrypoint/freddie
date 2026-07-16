@@ -2,14 +2,16 @@ import express from 'express'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { bootHost } from '../host/index.js'
+import { logger } from '../observability/log.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const log = logger('web_server')
 
 export async function createDashboard({ port = 0 } = {}) {
     const host = await bootHost()
     // Rehydrate any interrupted machines (agent turns, batches) from their
     // persisted snapshots; surface lifecycle markers. Non-blocking on failure.
-    try { const { resumeAll } = await import('../machines/resume.js'); await resumeAll() } catch (_) {}
+    try { const { resumeAll } = await import('../machines/resume.js'); await resumeAll() } catch (e) { log.warn('resumeAll failed during gateway boot', { err: String(e) }) }
     const app = express()
     app.use(express.json())
     app.use(express.static(__dirname))
