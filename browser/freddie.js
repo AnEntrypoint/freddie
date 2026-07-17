@@ -1010,6 +1010,10 @@ var init_env = __esmMin((() => {
 			purpose: "override sqlite db path used in tests",
 			kind: "path"
 		},
+		FREDDIE_CHAOS_INJECT: {
+			purpose: "dev-only: percent chance (0-100) of a synthetic tool-dispatch error, to verify the agent loop degrades gracefully instead of crashing",
+			kind: "number"
+		},
 		HOME: {
 			purpose: "OS home directory (posix)",
 			kind: "path"
@@ -1362,6 +1366,11 @@ function reg(map, kind) {
 		unregister: (n) => map.delete(n)
 	};
 }
+function maybeChaosInject(toolName) {
+	const pct = Number(env("FREDDIE_CHAOS_INJECT"));
+	if (!pct || pct <= 0) return;
+	if (Math.random() * 100 < pct) throw new Error(`[FREDDIE_CHAOS_INJECT] synthetic failure injected for tool '${toolName}' (chaos_pct=${pct})`);
+}
 function makePi() {
 	const m = {
 		tools: /* @__PURE__ */ new Map(),
@@ -1404,6 +1413,7 @@ function makePi() {
 				})
 			} : ctx;
 			try {
+				maybeChaosInject(name);
 				const r = await t.handler(args, ctxWithProgress);
 				return typeof r === "string" ? r : JSON.stringify(r);
 			} catch (e) {
