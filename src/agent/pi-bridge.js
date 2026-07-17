@@ -5,7 +5,7 @@ const log = logger('pi-bridge')
 let _piAi = null
 async function pi() {
     if (_piAi) return _piAi
-    _piAi = await import('@mariozechner/pi-ai')
+    _piAi = await import('@earendil-works/pi-ai/compat')
     _piAi.registerBuiltInApiProviders()
     return _piAi
 }
