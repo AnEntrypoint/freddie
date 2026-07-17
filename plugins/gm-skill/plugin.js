@@ -5,12 +5,19 @@ import { env } from '../../src/env.js'
 
 const _require = createRequire(import.meta.url)
 
+// The installed skill DIRECTORY is always named 'gm' (its SKILL.md frontmatter's own `name:`
+// field), never 'gm-skill' -- confirmed live against every real install location this repo's
+// own tooling produces (~/.agents/skills/gm/, ~/.claude/skills/gm/, and the gm-skill/gm-cc npm
+// packages' own skills/gm/ subdirectory). This function's own EXPORTED name stays 'gm-skill'
+// (the plugin's canonical registered skill name, deliberately distinct from the raw 'gm'
+// directory to disambiguate from a bare gm-cc-shipped variant) -- only the on-disk lookup path
+// was wrong.
 function resolveSkillMd() {
     const home = env('USERPROFILE') || env('HOME')
     if (home) {
         const candidates = [
-            path.join(home, '.agents', 'skills', 'gm-skill', 'SKILL.md'),
-            path.join(home, '.claude', 'skills', 'gm-skill', 'SKILL.md'),
+            path.join(home, '.agents', 'skills', 'gm', 'SKILL.md'),
+            path.join(home, '.claude', 'skills', 'gm', 'SKILL.md'),
         ]
         for (const p of candidates) {
             if (fs.existsSync(p)) return p
@@ -19,7 +26,7 @@ function resolveSkillMd() {
     for (const pkg of ['gm-skill', 'gm-cc']) {
         try {
             const pkgPath = _require.resolve(`${pkg}/package.json`)
-            const candidate = path.join(path.dirname(pkgPath), 'skills', 'gm-skill', 'SKILL.md')
+            const candidate = path.join(path.dirname(pkgPath), 'skills', 'gm', 'SKILL.md')
             if (fs.existsSync(candidate)) return candidate
         } catch {}
     }
@@ -45,7 +52,7 @@ export default {
         const skillPath = resolveSkillMd()
         if (!skillPath) {
             warn('SKILL.md unresolvable; gm-skill not registered. Run `bun x gm-plugkit@latest spool` to provision it, or install the gm-skill package.', {
-                searched: ['~/.agents/skills/gm-skill/SKILL.md', '~/.claude/skills/gm-skill/SKILL.md', 'node_modules: gm-skill, gm-cc'],
+                searched: ['~/.agents/skills/gm/SKILL.md', '~/.claude/skills/gm/SKILL.md', 'node_modules: gm-skill, gm-cc (skills/gm/SKILL.md)'],
             })
             return
         }
