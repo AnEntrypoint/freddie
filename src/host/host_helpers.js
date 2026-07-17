@@ -5,6 +5,7 @@ import { loadClaudePlugin } from 'plugsdk'
 import { HOOK_NAMES, FREDDIE_TO_NATIVE_HOOK } from './contract.js'
 import { env } from '../env.js'
 import { applyToolMiddleware } from './tool-middleware.js'
+import { withResourceEnforcement, makeScopedEnvReader } from './tool-resources.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CAPABILITY_ENUM = new Set(['tool', 'env', 'command', 'cron', 'platform', 'memory', 'skill', 'context', 'agentExt', 'cli', 'route', 'page', 'nav', 'debug', 'api', 'asset'])
@@ -30,6 +31,16 @@ export function validatePluginManifest(manifest) {
     if (manifest.safety_rating !== undefined && !SAFETY_RATING_ENUM.has(manifest.safety_rating)) errors.push(`safety_rating: must be one of ${[...SAFETY_RATING_ENUM].join(',')}`)
     if (manifest.feature_flag !== undefined && typeof manifest.feature_flag !== 'string') errors.push('feature_flag: must be a string')
     if (manifest.registry_url !== undefined && typeof manifest.registry_url !== 'string') errors.push('registry_url: must be a string')
+    if (manifest.resources !== undefined) {
+        if (!manifest.resources || typeof manifest.resources !== 'object' || Array.isArray(manifest.resources)) errors.push('resources: must be an object')
+        else {
+            const { fs_paths, network_hosts, env_vars, ...rest } = manifest.resources
+            if (fs_paths !== undefined && !(Array.isArray(fs_paths) && fs_paths.every(x => typeof x === 'string'))) errors.push('resources.fs_paths: must be an array of strings')
+            if (network_hosts !== undefined && !(Array.isArray(network_hosts) && network_hosts.every(x => typeof x === 'string'))) errors.push('resources.network_hosts: must be an array of strings')
+            if (env_vars !== undefined && !(Array.isArray(env_vars) && env_vars.every(x => typeof x === 'string'))) errors.push('resources.env_vars: must be an array of strings')
+            if (Object.keys(rest).length) errors.push(`resources: unknown field(s) ${Object.keys(rest).join(',')}`)
+        }
+    }
     return { valid: errors.length === 0, errors }
 }
 
@@ -75,17 +86,32 @@ export function makePi() {
         // onToolProgress hook, ahead of postToolCall's single after-the-fact
         // firing. Handlers that don't call it behave exactly as before (no
         // hook fires, zero added cost) -- purely additive, opt-in per handler.
+        //
+        // opts.resourcesFor(pluginName) -> resources|null and opts.logger are
+        // wired by src/host/host.js's makePluginLoader so every tool call is
+        // checked against its OWNING plugin's declared plugin.json resources
+        // block (fs_paths/network_hosts/env_vars) -- see
+        // src/host/tool-resources.js for the real enforcement (scoped fs/fetch
+        // patch for the duration of this one handler call, restored in
+        // `finally` so concurrent calls for other plugins are unaffected).
+        // t.__plugin is set at registration time by recordPi() in host.js;
+        // tools with no owning plugin (or a plugin with no resources block)
+        // run exactly as before -- fully unrestricted, zero behavior change.
         async dispatchTool(name, args = {}, ctx = {}, opts = {}) {
             const t = m.tools.get(name)
             if (!t) return JSON.stringify({ error: `unknown tool: ${name}` })
             if (t.checkFn && t.checkFn(t) === false) return JSON.stringify({ error: `tool unavailable: ${name}`, requires: t.requiresEnv || [] })
             const hooks = opts.hooks
-            const ctxWithProgress = hooks
-                ? { ...ctx, onProgress: (partial) => hooks.invoke('onToolProgress', { name, args, partial }) }
-                : ctx
+            const resources = opts.resourcesFor && t.__plugin ? opts.resourcesFor(t.__plugin) : null
+            const scopedEnv = makeScopedEnvReader(resources, t.__plugin, name, opts.logger, process.env)
+            const ctxWithProgress = {
+                ...ctx,
+                ...(hooks ? { onProgress: (partial) => hooks.invoke('onToolProgress', { name, args, partial }) } : {}),
+                env: scopedEnv,
+            }
             try {
                 maybeChaosInject(name)
-                const r = await t.handler(args, ctxWithProgress)
+                const r = await withResourceEnforcement(resources, t.__plugin, name, opts.logger, () => t.handler(args, ctxWithProgress))
                 const raw = typeof r === 'string' ? r : JSON.stringify(r)
                 return applyToolMiddleware({ name, tool: t, args }, raw)
             }

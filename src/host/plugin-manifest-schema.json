@@ -39,6 +39,28 @@
       "type": "string",
       "format": "uri",
       "description": "Optional self-hostable static JSON index URL this plugin's updates can be fetched from (see plugin-registry-backend-design row)."
+    },
+    "resources": {
+      "type": "object",
+      "description": "Optional declared resource-capability allowlist, validated by validatePluginManifest() and ENFORCED live at dispatchTool time (src/host/host_helpers.js + src/host/tool-resources.js) -- distinct from the 'capabilities' field above (which only names PI_VERBS/GUI_VERBS registration categories and is descriptive-only). Omitting this object, or omitting an individual sub-field, means unrestricted for that resource kind (back-compat default for the many existing plugins that ship no manifest at all). Present sub-fields are treated as an allowlist: any access outside it is denied and logged.",
+      "properties": {
+        "fs_paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Filesystem path prefixes (absolute or cwd-relative) this plugin's tool handlers may read/write. Checked via real path containment (path.relative), not substring matching. A trailing '/**' or '/*' is stripped and treated as 'this directory and its descendants'."
+        },
+        "network_hosts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Hostnames (exact, or '*.example.com' wildcard-subdomain) this plugin's tool handlers may fetch() from. Checked against the real parsed URL hostname of every outbound fetch during the handler's call window."
+        },
+        "env_vars": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Environment variable names this plugin's tool handlers may read via ctx.env(name). Exact-name allowlist only."
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": true
