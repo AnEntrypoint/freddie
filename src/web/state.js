@@ -118,6 +118,7 @@ export const ROUTES = [
     { path: 'machines',  label: 'machines',  icon: 'settings' },
     { path: 'health',    label: 'health',    icon: 'activity' },
     { path: 'debug',     label: 'debug',     icon: 'circle' },
+    { path: 'logs',      label: 'logs',      icon: 'more-horizontal' },
 ];
 
 export function pre(obj) {
