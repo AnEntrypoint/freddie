@@ -1,10 +1,10 @@
 import { getConfigValue } from '../config.js'
-import { MATRIX_FILE } from './model-matrix.js'
+import { MATRIX_FILE } from '../models/discovery.js'
 import { callLLM as bridgeCall, isReachable as bridgeReachable } from './acptoapi-bridge.js'
 import { parseTextToolCalls } from './tool_call_text.js'
 import * as sdkNs from 'acptoapi'
 import { env } from '../env.js'
-export { matrixUsable } from './model-matrix.js'
+export { matrixUsable } from '../models/discovery.js'
 import { createRequire } from 'node:module'
 const _req = createRequire(import.meta.url)
 

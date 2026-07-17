@@ -1,0 +1,29 @@
+import { listProjects, getActiveProject, createProject, deleteProject, setActiveProject } from '../../../src/projects.js'
+import { resetHostForTests } from '../../../src/host/index.js'
+
+export default {
+    name: 'gui-projects',
+    surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/projects', (_, res) => res.json({ active: getActiveProject(), projects: listProjects() }))
+        gui.route('POST', '/api/projects', (req, res) => {
+            try {
+                const { name, path: projectPath } = req.body || {}
+                const created = createProject({ name, projectPath })
+                res.json(created)
+            } catch (e) { res.status(400).json({ error: e.message }) }
+        })
+        gui.route('DELETE', '/api/projects/:name', (req, res) => {
+            try { deleteProject(req.params.name); res.json({ ok: true }) }
+            catch (e) { res.status(400).json({ error: e.message }) }
+        })
+        gui.route('POST', '/api/projects/active', (req, res) => {
+            try {
+                const { name } = req.body || {}
+                const proj = setActiveProject(name)
+                resetHostForTests()
+                res.json({ ok: true, active: proj, note: 'restart dashboard to load new project plugins' })
+            } catch (e) { res.status(400).json({ error: e.message }) }
+        })
+    },
+}

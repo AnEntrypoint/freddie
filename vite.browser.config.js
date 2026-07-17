@@ -12,9 +12,14 @@ import { fileURLToPath } from 'node:url'
 // second, older esbuild-based path (src/agent/__browser_shims/build.mjs +
 // alias-plugin.mjs, hardcoded to C:/dev/freddie -> C:/dev/thebird/docs/
 // freddie-runtime.js) — it was dead (unreferenced by package.json/CI, wrote
-// to a path thebird never reads) and was removed. If you need a second
-// build variant in the future, document why here rather than letting one
-// silently rot again.
+// to a path thebird never reads) and was removed. A THIRD path,
+// scripts/browser-shim-build/{build.mjs,alias-plugin.mjs} (`npm run
+// build:browser-shim`), was found rotten on a later pass too — esbuild
+// wasn't even a dependency anymore and its entry point
+// (src/agent/__browser_shims/entry.js) didn't exist, so the script couldn't
+// run — and was deleted along with its package.json script entry. If you
+// need a second build variant in the future, document why here rather than
+// letting one silently rot again.
 export default defineConfig({
   resolve: {
     alias: {

@@ -1,7 +1,7 @@
 // Shared implementation for the simple REST-backed memory providers.
 // Each memory-<provider> plugin's handler.js is a thin wrapper that calls
 // createMemoryProvider() with its own name/env/base config and re-exports
-// the resulting class. The class name matters: src/plugins/memory/provider.js
+// the resulting class. The class name matters: src/agent/memory_provider.js
 // finds the provider class in a handler module by matching /Memory$/ on the
 // exported function's .name, so the factory stamps the class name to
 // `${ClassName}Memory` (e.g. ByteroverMemory) to keep that contract intact.

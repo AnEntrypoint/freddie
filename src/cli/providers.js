@@ -1,4 +1,4 @@
-import { resolveKey, listProviders as srcList } from '../agent/credential_sources.js'
+import { resolveKey, listProviders as srcList } from '../credentials/index.js'
 import { saveConfigValue, getConfigValue } from '../config.js'
 import { getAuthStore } from '../auth.js'
 export function listProviders() { return srcList() }

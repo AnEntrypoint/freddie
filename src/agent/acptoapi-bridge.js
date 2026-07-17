@@ -15,7 +15,7 @@ export function getAcptoapiUrl() {
     // callers (the dashboard health row, CLI banner) treat this as display/logging
     // only -- there is no listening port required for the in-process callLLM()
     // path below. However codex_responses_adapter.js, gemini_native_adapter.js,
-    // image_gen_provider.js, and model-discovery.js still fetch() this value as a
+    // src/imagegen/provider.js, and models/discovery.js still fetch() this value as a
     // live HTTP base and DO require a real dialable URL (FREDDIE_LLM_URL set) --
     // they must guard against a null return rather than building a request
     // against a placeholder string.
