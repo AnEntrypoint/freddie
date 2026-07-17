@@ -4,9 +4,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
 import os, { homedir } from "node:os";
 import crypto, { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
 import { assign, assign as assign$1, createActor, createActor as createActor$1, createMachine, createMachine as createMachine$1, fromPromise, fromPromise as fromPromise$1, waitFor } from "xstate";
 import * as _sdkNs from "acptoapi";
-import { createRequire } from "node:module";
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -4570,6 +4570,133 @@ function applyToolMiddleware(toolCall, result) {
 	return applyPostCall(result);
 }
 //#endregion
+//#region src/host/tool-resources.js
+var fsCjs = createRequire(import.meta.url)("fs");
+var FORBIDDEN_PATH_SUBSTRINGS = [
+	"/etc/passwd",
+	"/etc/shadow",
+	"/.ssh/",
+	"/.aws/",
+	"C:\\Windows\\System32"
+];
+function pathAllowed(candidate, allowPatterns, { cwd = process.cwd() } = {}) {
+	const rawStr = String(candidate ?? "");
+	if (rawStr.includes("\0")) return {
+		ok: false,
+		reason: "null byte in path"
+	};
+	const abs = path.resolve(cwd, rawStr);
+	for (const bad of FORBIDDEN_PATH_SUBSTRINGS) if (abs.includes(bad)) return {
+		ok: false,
+		reason: `forbidden: ${bad}`
+	};
+	if (!allowPatterns || !allowPatterns.length) return {
+		ok: true,
+		abs
+	};
+	for (const pattern of allowPatterns) {
+		const root = path.resolve(cwd, pattern.replace(/\/\*\*?$/, ""));
+		const rel = path.relative(root, abs);
+		if (rel === "" || !rel.startsWith("..") && !path.isAbsolute(rel)) return {
+			ok: true,
+			abs
+		};
+	}
+	return {
+		ok: false,
+		reason: `path '${abs}' not in declared fs_paths allowlist [${allowPatterns.join(", ")}]`
+	};
+}
+function hostAllowed(hostname, allowPatterns) {
+	if (!allowPatterns || !allowPatterns.length) return true;
+	for (const pattern of allowPatterns) {
+		if (pattern === hostname) return true;
+		if (pattern.startsWith("*.") && hostname.endsWith(pattern.slice(1))) return true;
+	}
+	return false;
+}
+function envVarAllowed(name, allowPatterns) {
+	if (!allowPatterns || !allowPatterns.length) return true;
+	return allowPatterns.includes(name);
+}
+async function withResourceEnforcement(resources, pluginName, toolName, logger, fn) {
+	if (!resources) return fn();
+	const denials = [];
+	const deny = (kind, detail) => {
+		const entry = {
+			kind,
+			detail,
+			plugin: pluginName,
+			tool: toolName
+		};
+		denials.push(entry);
+		logger?.warn?.(`capability manifest denied ${kind} for tool '${toolName}'`, entry);
+		throw new Error(`plugin '${pluginName}' tool '${toolName}': ${kind} access denied by capability manifest -- ${detail}`);
+	};
+	const realFetch = globalThis.fetch;
+	const patchedFetch = resources.network_hosts !== void 0 ? async (input, init) => {
+		const url = typeof input === "string" ? input : input?.url;
+		let hostname;
+		try {
+			hostname = new URL(url, "http://localhost").hostname;
+		} catch {
+			hostname = null;
+		}
+		if (hostname && !hostAllowed(hostname, resources.network_hosts)) deny("network", `host '${hostname}' not in declared network_hosts allowlist [${resources.network_hosts.join(", ")}]`);
+		return realFetch(input, init);
+	} : null;
+	const realWriteFileSync = fsCjs.writeFileSync;
+	const realReadFileSync = fsCjs.readFileSync;
+	const patchFs = resources.fs_paths !== void 0;
+	const checkPath = (p) => {
+		const r = pathAllowed(p, resources.fs_paths);
+		if (!r.ok) deny("fs", r.reason);
+		return r;
+	};
+	if (patchedFetch) globalThis.fetch = patchedFetch;
+	if (patchFs) {
+		fsCjs.writeFileSync = (p, ...rest) => {
+			checkPath(p);
+			return realWriteFileSync.call(fsCjs, p, ...rest);
+		};
+		fsCjs.readFileSync = (p, ...rest) => {
+			if (typeof p === "string" || p instanceof URL || Buffer.isBuffer(p)) checkPath(p);
+			return realReadFileSync.call(fsCjs, p, ...rest);
+		};
+	}
+	try {
+		return await fn();
+	} finally {
+		if (patchedFetch) globalThis.fetch = realFetch;
+		if (patchFs) {
+			fsCjs.writeFileSync = realWriteFileSync;
+			fsCjs.readFileSync = realReadFileSync;
+		}
+	}
+}
+function makeScopedEnvReader(resources, pluginName, toolName, logger, realEnv) {
+	return (name) => {
+		if (resources?.env_vars !== void 0 && !envVarAllowed(name, resources.env_vars)) {
+			logger?.warn?.(`capability manifest denied env read for tool '${toolName}'`, {
+				plugin: pluginName,
+				tool: toolName,
+				name
+			});
+			throw new Error(`plugin '${pluginName}' tool '${toolName}': env var '${name}' not in declared env_vars allowlist [${(resources.env_vars || []).join(", ")}]`);
+		}
+		return realEnv[name];
+	};
+}
+function readManifestResources(dir) {
+	const manifestPath = path.join(dir, "plugin.json");
+	if (!fs.existsSync(manifestPath)) return null;
+	try {
+		return JSON.parse(fs.readFileSync(manifestPath, "utf8")).resources || null;
+	} catch {
+		return null;
+	}
+}
+//#endregion
 //#region src/host/host_helpers.js
 init_env();
 path.dirname(fileURLToPath(import.meta.url));
@@ -4624,17 +4751,20 @@ function makePi() {
 				requires: t.requiresEnv || []
 			});
 			const hooks = opts.hooks;
-			const ctxWithProgress = hooks ? {
+			const resources = opts.resourcesFor && t.__plugin ? opts.resourcesFor(t.__plugin) : null;
+			const scopedEnv = makeScopedEnvReader(resources, t.__plugin, name, opts.logger, process.env);
+			const ctxWithProgress = {
 				...ctx,
-				onProgress: (partial) => hooks.invoke("onToolProgress", {
+				...hooks ? { onProgress: (partial) => hooks.invoke("onToolProgress", {
 					name,
 					args,
 					partial
-				})
-			} : ctx;
+				}) } : {},
+				env: scopedEnv
+			};
 			try {
 				maybeChaosInject(name);
-				const r = await t.handler(args, ctxWithProgress);
+				const r = await withResourceEnforcement(resources, t.__plugin, name, opts.logger, () => t.handler(args, ctxWithProgress));
 				const raw = typeof r === "string" ? r : JSON.stringify(r);
 				return applyToolMiddleware({
 					name,
@@ -4934,7 +5064,7 @@ function isFlagEnabled(name) {
 }
 //#endregion
 //#region src/host/host.js
-function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed, sourcePaths }) {
+function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed, sourcePaths, resources }) {
 	return async function load(plugins) {
 		const sorted = topoSort(plugins.map(validatePlugin));
 		for (const p of sorted) {
@@ -4948,7 +5078,7 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
 				_hookFns: [],
 				_routeDefs: []
 			};
-			const ctxPi = (want === "pi" || want === "both") && surfaces.includes("pi") ? recordPi(pi, cap) : guard(pi, false, p.name, PI_VERBS);
+			const ctxPi = (want === "pi" || want === "both") && surfaces.includes("pi") ? recordPi(pi, cap, p.name) : guard(pi, false, p.name, PI_VERBS);
 			const ctxGui = (want === "gui" || want === "both") && surfaces.includes("gui") ? recordGui(gui, cap) : guard(gui, false, p.name, GUI_VERBS);
 			const ctxHooks = recordHooks(hooks, cap);
 			const log = (lv, m, f) => {
@@ -4980,6 +5110,7 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
 				loaded.push(p);
 				capabilities.set(p.name, cap);
 				if (p.__sourceFile) sourcePaths.set(p.name, p.__sourceFile);
+				if (p.__resources !== void 0) resources.set(p.name, p.__resources);
 			} catch (e) {
 				const entry = {
 					plugin: p.name,
@@ -4997,14 +5128,17 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
 		return loaded.length;
 	};
 }
-function recordPi(pi, cap) {
+function recordPi(pi, cap, pluginName) {
 	return {
 		...pi,
 		tools: {
 			...pi.tools,
 			register: (s) => {
 				cap.tools.push(s.name);
-				return pi.tools.register(s);
+				return pi.tools.register({
+					...s,
+					__plugin: pluginName
+				});
 			}
 		},
 		commands: {
@@ -5067,6 +5201,17 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 	const capabilities = /* @__PURE__ */ new Map();
 	const failed = [];
 	const sourcePaths = /* @__PURE__ */ new Map();
+	const resources = /* @__PURE__ */ new Map();
+	const dispatchLogger = (pluginName) => ({ warn: (msg, fields) => {
+		const line = JSON.stringify({
+			ts: Date.now(),
+			plugin: pluginName,
+			level: "warn",
+			msg,
+			...fields || {}
+		});
+		if (env.FREDDIE_LOG_STDOUT) console.log(line);
+	} });
 	const host = {
 		pi: surfaces.includes("pi") ? pi : null,
 		gui: surfaces.includes("gui") ? gui : null,
@@ -5083,6 +5228,7 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 		failed: () => failed.slice(),
 		get: (n) => loaded.find((p) => p.name === n) || null,
 		capabilities: (n) => n ? capabilities.get(n) || null : Object.fromEntries(capabilities),
+		resources: (n) => n ? resources.has(n) ? resources.get(n) : null : Object.fromEntries(resources),
 		failedPlugins: () => failed.slice(),
 		shutdown: () => ccHost.shutdown(),
 		reloadPlugin: (filePath) => reloadPlugin({
@@ -5096,6 +5242,14 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 			host
 		})
 	};
+	if (pi.dispatchTool) {
+		const rawDispatch = pi.dispatchTool.bind(pi);
+		pi.dispatchTool = (name, args, ctx, opts = {}) => rawDispatch(name, args, ctx, {
+			...opts,
+			resourcesFor: (pluginName) => resources.has(pluginName) ? resources.get(pluginName) : null,
+			logger: dispatchLogger(name)
+		});
+	}
 	host.load = makePluginLoader({
 		surfaces,
 		pi,
@@ -5107,7 +5261,8 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 		loaded,
 		capabilities,
 		failed,
-		sourcePaths
+		sourcePaths,
+		resources
 	});
 	const cc = makeCcLoaders(ccHost, env);
 	host.loadCcPlugins = cc.loadCcPlugins;
@@ -5160,7 +5315,7 @@ async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, pi, g
 		_routeDefs: []
 	};
 	const want = fresh.surfaces;
-	const ctxPi = want === "pi" || want === "both" ? recordPi(pi, newCap) : pi;
+	const ctxPi = want === "pi" || want === "both" ? recordPi(pi, newCap, name) : pi;
 	const ctxGui = want === "gui" || want === "both" ? recordGui(gui, newCap) : gui;
 	const ctxHooks = recordHooks(hooks, newCap);
 	await validatePlugin(fresh).register({
@@ -5194,10 +5349,12 @@ async function scanPluginDir(root, found, depth) {
 		const file = path.join(dir, "plugin.js");
 		if (fs.existsSync(file)) {
 			if (isFlagDisabled(dir)) continue;
+			const declaredResources = readManifestResources(dir);
 			const mod = await import(pathToFileURL(file).href);
 			const p = mod.default || mod.plugin;
 			if (p) {
 				p.__sourceFile = file;
+				p.__resources = declaredResources;
 				found.push(p);
 			}
 			continue;
@@ -5205,12 +5362,14 @@ async function scanPluginDir(root, found, depth) {
 		const handlerFile = path.join(dir, "handler.js");
 		if (fs.existsSync(handlerFile)) {
 			if (isFlagDisabled(dir)) continue;
+			const declaredResources = readManifestResources(dir);
 			const _tool = (await import(pathToFileURL(handlerFile).href))._tool;
 			if (!_tool) continue;
 			found.push({
 				name: `tool-${entry.name}`,
 				surfaces: "pi",
 				__sourceFile: handlerFile,
+				__resources: declaredResources,
 				register({ pi }) {
 					pi.tools.register(_tool);
 				}
