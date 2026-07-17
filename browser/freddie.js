@@ -9150,6 +9150,16 @@ var PreparedStatement = class {
 //#endregion
 //#region src/machines/snapshot-store.js
 var log$3 = logger("snapshot-store");
+var SNAPSHOT_SCHEMA_VERSION = 1;
+function createLibsqlSnapshotStore() {
+	return {
+		persist,
+		load,
+		clear,
+		list,
+		sweepDone
+	};
+}
 var _inited$1 = false;
 async function init$1() {
 	const d = await db();
@@ -9224,6 +9234,26 @@ async function load(kind, key, { machineId = null } = {}) {
 }
 async function clear(kind, key) {
 	await (await init$1()).prepare(`DELETE FROM machine_snapshots WHERE kind = ? AND key = ?`).run(kind, key);
+}
+async function list({ kind = null, status = "active" } = {}) {
+	const d = await init$1();
+	let sql = `SELECT kind, key, schema_version, machine_id, status, updated FROM machine_snapshots`;
+	const where = [];
+	const args = [];
+	if (kind) {
+		where.push("kind = ?");
+		args.push(kind);
+	}
+	if (status) {
+		where.push("status = ?");
+		args.push(status);
+	}
+	if (where.length) sql += " WHERE " + where.join(" AND ");
+	sql += " ORDER BY updated DESC";
+	return await d.prepare(sql).all(...args);
+}
+async function sweepDone() {
+	return { removed: (await (await init$1()).prepare(`DELETE FROM machine_snapshots WHERE status != 'active'`).run()).changes };
 }
 //#endregion
 //#region src/utils.js
@@ -9390,10 +9420,26 @@ async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, des
 		_inflight.delete(lockKey);
 	}
 }
+async function isStepDone(sessionKey, stepId, { store = null } = {}) {
+	if (store) return await store.isStepDone(sessionKey, stepId);
+	if (!sessionKey || !stepId) return false;
+	return (await (await init()).prepare(`SELECT status FROM step_results WHERE session_key = ? AND step_id = ?`).get(sessionKey, stepId))?.status === "done";
+}
+async function listSteps(sessionKey) {
+	return await (await init()).prepare(`SELECT step_id, status, started, done FROM step_results WHERE session_key = ? ORDER BY started`).all(sessionKey);
+}
 async function clearSteps(sessionKey, { store = null } = {}) {
 	if (store) return await store.clearSteps(sessionKey);
 	if (!sessionKey) return;
 	await (await init()).prepare(`DELETE FROM step_results WHERE session_key = ?`).run(sessionKey);
+}
+function createLibsqlStepStore() {
+	return {
+		runStep,
+		isStepDone,
+		clearSteps,
+		listSteps
+	};
 }
 //#endregion
 //#region src/learn/gm-learn.js
@@ -10111,6 +10157,43 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		store
 	});
 }
+async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, toolCtx = null, store } = {}) {
+	if (!sessionKey) throw new Error("resumeTurn requires sessionKey");
+	const events = [];
+	const h = await bootHost();
+	const pa = await createPersistentActor(createAgentMachine({
+		model,
+		provider,
+		callLLM,
+		enabledToolsets,
+		disabledToolsets,
+		maxIterations,
+		events,
+		sessionKey,
+		toolCtx,
+		store
+	}), {
+		kind: "agent",
+		key: sessionKey,
+		input: { messages: [] },
+		store
+	});
+	if (!pa.resumed) return null;
+	return await driveAgentActor({
+		pa,
+		h,
+		events,
+		prompt: "",
+		provider,
+		model,
+		skill,
+		cwd,
+		witnessPath,
+		timeoutMs,
+		sessionKey,
+		store
+	});
+}
 //#endregion
 //#region src/skills/index.js
 init_js_yaml();
@@ -10310,6 +10393,6 @@ async function bootHostBrowser(adapters = {}) {
 	return host;
 }
 //#endregion
-export { ContextPlugins, DEFAULT_CONFIG, FREDDIE_DEFAULT_CONFIG, FreddieAdapterError, assign, blocksToSystemMessage, bootHost, bootHostBrowser, buildContext, createActor, createAgentMachine, createMachine, findSkill, fromPromise, host, listSkills, log, logger, parseTextToolCalls, resetHostForTests, runTurn, skillAsUserMessage, waitFor };
+export { ContextPlugins, DEFAULT_CONFIG, FREDDIE_DEFAULT_CONFIG, FreddieAdapterError, SNAPSHOT_SCHEMA_VERSION, assign, blocksToSystemMessage, bootHost, bootHostBrowser, buildContext, createActor, createAgentMachine, createLibsqlSnapshotStore, createLibsqlStepStore, createMachine, createPersistentActor, findSkill, fromPromise, host, listSkills, log, logger, parseTextToolCalls, resetHostForTests, resumeTurn, runTurn, skillAsUserMessage, waitFor };
 
 //# sourceMappingURL=freddie.js.map
