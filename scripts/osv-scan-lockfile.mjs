@@ -7,7 +7,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-const LOCKFILE = process.argv[2] || path.join(process.cwd(), 'package-lock.json')
+const args = process.argv.slice(2).filter(a => a !== '--json')
+const jsonOutIdx = process.argv.indexOf('--json')
+const JSON_OUT = jsonOutIdx !== -1 ? process.argv[jsonOutIdx + 1] : null
+const LOCKFILE = args[0] || path.join(process.cwd(), 'package-lock.json')
 const BATCH_ENDPOINT = 'https://api.osv.dev/v1/querybatch'
 const BATCH_SIZE = 1000 // osv.dev's documented batch query cap
 
@@ -65,6 +68,34 @@ function severityOf(vuln) {
     return 'UNKNOWN'
 }
 
+// Extracts the lowest 'fixed' semver for the given package name from an OSV
+// record's affected[].ranges[].events[] — used to tell an automated
+// dep-bump PR what version to upgrade to.
+function fixedVersionOf(vuln, pkgName) {
+    const fixed = []
+    for (const aff of vuln.affected || []) {
+        if (aff.package?.name !== pkgName) continue
+        for (const range of aff.ranges || []) {
+            for (const ev of range.events || []) {
+                if (ev.fixed) fixed.push(ev.fixed)
+            }
+        }
+    }
+    if (!fixed.length) return null
+    // Lexicographic isn't semver-correct for multi-digit segments, but a
+    // real semver compare needs a dep this repo doesn't already carry —
+    // sort numerically by dotted segments instead (dependency-free).
+    fixed.sort((a, b) => {
+        const pa = a.split('.').map(Number), pb = b.split('.').map(Number)
+        for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+            const d = (pa[i] || 0) - (pb[i] || 0)
+            if (d) return d
+        }
+        return 0
+    })
+    return fixed[0]
+}
+
 async function main() {
     if (!fs.existsSync(LOCKFILE)) {
         console.error(`lockfile not found: ${LOCKFILE}`)
@@ -96,7 +127,10 @@ async function main() {
     for (const [id, affectedPkgs] of idToPkgs) {
         const detail = await fetchVulnDetail(id)
         const severity = detail ? severityOf(detail) : 'UNKNOWN'
-        for (const pkg of affectedPkgs) findings.push({ pkg: pkg.name, version: pkg.version, id, severity })
+        for (const pkg of affectedPkgs) {
+            const fixedVersion = detail ? fixedVersionOf(detail, pkg.name) : null
+            findings.push({ pkg: pkg.name, version: pkg.version, id, severity, fixedVersion })
+        }
     }
 
     console.log(`\nfound ${findings.length} known-vulnerability record(s) across ${pkgs.length} packages`)
@@ -107,6 +141,11 @@ async function main() {
         if (!list.length) continue
         console.log(`\n${sev} (${list.length}):`)
         for (const f of list) console.log(`  ${f.pkg}@${f.version}  ${f.id}`)
+    }
+
+    if (JSON_OUT) {
+        fs.writeFileSync(JSON_OUT, JSON.stringify({ findings: bySeverity.CRITICAL }, null, 2))
+        console.log(`\nwrote ${bySeverity.CRITICAL.length} CRITICAL finding(s) to ${JSON_OUT}`)
     }
 
     if (bySeverity.CRITICAL.length) {
