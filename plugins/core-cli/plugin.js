@@ -231,5 +231,102 @@ export default {
             console.log(`\nsetup complete — provider: ${st.provider}, skin: ${st.skin}`)
             console.log('next: `freddie run` to start a conversation, or `freddie doctor` to verify')
         } })
+
+        // --- Contributor onboarding: `freddie contribute` ----------------------
+        C({ name: 'contribute', description: 'Find a good-first-issue, print a PRD-row template, run test.js, link the relevant AGENTS.md subsystem row', action: async () => {
+            const { execFileSync } = await import('node:child_process')
+            const fs = await import('node:fs')
+            const path = await import('node:path')
+
+            let owner = null, repo = null
+            try {
+                const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'))
+                const m = /github\.com[:/]([^/]+)\/([^/.]+?)(\.git)?$/.exec(pkg.repository?.url || pkg.repository || '')
+                if (m) { owner = m[1]; repo = m[2] }
+            } catch {}
+            if (!owner || !repo) {
+                try {
+                    const remote = execFileSync('git', ['remote', 'get-url', 'origin'], { encoding: 'utf8' }).trim()
+                    const m = /github\.com[:/]([^/]+)\/([^/.]+?)(\.git)?$/.exec(remote)
+                    if (m) { owner = m[1]; repo = m[2] }
+                } catch {}
+            }
+            if (!owner || !repo) { console.error('could not determine repo owner/name from package.json or git remote'); process.exitCode = 1; return }
+
+            console.log(`# good first issues — ${owner}/${repo}\n`)
+            let issues = []
+            try {
+                const raw = execFileSync('gh', ['issue', 'list', '--repo', `${owner}/${repo}`, '--label', 'good first issue', '--state', 'open', '--json', 'number,title,url,body', '--limit', '10'], { encoding: 'utf8' })
+                issues = JSON.parse(raw)
+            } catch (e) {
+                console.log('(gh CLI unavailable or no access — falling back to the issues URL)')
+                console.log(`  https://github.com/${owner}/${repo}/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22\n`)
+            }
+
+            // Subsystem Guide keyword table from AGENTS.md, kept inline since AGENTS.md
+            // is prose (not machine-parseable) and this is a best-effort match only.
+            const SUBSYSTEM_GUIDE = [
+                ['agent loop', 'src/agent/machine.js + @mariozechner/pi-agent-core'],
+                ['cli', 'bin/freddie.js (commander) + pi-coding-agent InteractiveMode'],
+                ['tool', 'plugins/<name>/{plugin,handler}.js (no src/tools/)'],
+                ['toolset', 'src/toolsets.js'],
+                ['session', 'src/sessions.js (libsql + FTS5, async API)'],
+                ['home', 'src/home.js'], ['profile', 'src/home.js'],
+                ['project', 'src/projects.js (isolated FREDDIE_HOME per project)'],
+                ['logging', 'src/observability/log.js'], ['observability', 'src/observability/log.js'],
+                ['config', 'src/config.js'],
+                ['command', 'src/commands/registry.js'],
+                ['skin', 'src/skin/engine.js'],
+                ['gateway', 'src/gateway/run.js + plugins/platform-*/'], ['platform', 'src/gateway/run.js + plugins/platform-*/'],
+                ['acp', 'src/acp/server.js (JSON-RPC stdio)'],
+                ['tui', 'substrate (pi-tui + pi-coding-agent)'],
+                ['plugin', 'src/plugins/manager.js + src/plugins/memory/provider.js + plugins/memory-*/'],
+                ['memory', 'src/plugins/manager.js + src/plugins/memory/provider.js + plugins/memory-*/'],
+                ['skill', 'src/skills/index.js — content drops into ~/.freddie/skills/'],
+                ['compress', 'src/agent/compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js'],
+                ['documentation', 'website/ (flatspace + content/pages/*.yaml + theme.mjs)'], ['website', 'website/ (flatspace + content/pages/*.yaml + theme.mjs)'],
+                ['cron', 'src/cron/{scheduler,cron-parse}.js (async API)'],
+                ['batch', 'src/batch.js'],
+                ['sandbox', 'src/tools/environments/{local,docker,ssh}.js'], ['execution environment', 'src/tools/environments/{local,docker,ssh}.js'],
+                ['dashboard', 'src/web/{server,app,state,routes,index.html} — thin mount over anentrypoint-design SDK'], ['gui', 'src/web/{server,app,state,routes,index.html}'],
+                ['auth', 'src/auth.js (FileAuthStore) + pi-ai key resolution'], ['key', 'src/auth.js (FileAuthStore) + pi-ai key resolution'],
+                ['context', 'src/context/engine.js'],
+                ['browser', 'plugins/browser/ (puppeteer-core, lazy)'],
+                ['llm', 'src/agent/llm_resolver.js (thin shim over acptoapi.chat)'], ['model', 'src/agent/llm_resolver.js (thin shim over acptoapi.chat)'],
+                ['i18n', 'no infra yet — see manifesto items 37-39'], ['locale', 'no infra yet — see manifesto items 37-39'],
+                ['test', 'one test.js at root'],
+            ]
+            const linkSubsystem = (text) => {
+                const lower = String(text || '').toLowerCase()
+                for (const [kw, loc] of SUBSYSTEM_GUIDE) if (lower.includes(kw)) return loc
+                return null
+            }
+
+            if (issues.length) {
+                for (const it of issues) {
+                    console.log(`#${it.number}  ${it.title}`)
+                    console.log(`  ${it.url}`)
+                    const loc = linkSubsystem(`${it.title} ${it.body || ''}`)
+                    if (loc) console.log(`  AGENTS.md subsystem: ${loc}`)
+                    console.log(`\n  --- PRD-row template (paste into .gm/prd.yml via the gm skill's prd-add verb) ---`)
+                    console.log(`  id: issue-${it.number}-${it.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40).replace(/-+$/, '')}`)
+                    console.log(`  subject: ${it.title}`)
+                    console.log(`  status: pending`)
+                    console.log(`  description: 'Fixes ${owner}/${repo}#${it.number} — ${it.url}'\n`)
+                }
+            }
+
+            console.log('# running test.js...')
+            try {
+                const out = execFileSync(process.execPath, [path.join(process.cwd(), 'test.js')], { encoding: 'utf8', timeout: 120000 })
+                console.log(out)
+                console.log('[ok] test.js passed — ready to contribute')
+            } catch (e) {
+                console.log(e.stdout || '')
+                console.log(e.stderr || '')
+                console.log(`\n[--] test.js failed (exit ${e.status ?? 1}) — fix before opening a PR`)
+                process.exitCode = 1
+            }
+        } })
     },
 }
