@@ -20,10 +20,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const ALLOW_FILE = join(__dirname, 'lint-swallow-comments.allow.json');
 
-// Directories to scan for source files. This list is per-repo (edited in
-// each repo's copy of this script) — kept as a flat const so it's trivial
-// to see/adjust at the top of the file.
-const SCAN_DIRS = ['src', 'bin', 'plugins'];
+// Directories to scan for source files. This file is shared byte-for-byte
+// across design/thebird/freddie (see AGENTS.md cross-repo tooling-dedup
+// note) — per-repo scan scope is NOT baked into the file anymore; it is
+// supplied via LINT_SWALLOW_SCAN_DIRS (comma-separated, relative to repo
+// root). Defaults to design's historical ['src'] when unset so a bare
+// `node scripts/lint-swallow-comments.mjs` in design is unchanged.
+const SCAN_DIRS = (process.env.LINT_SWALLOW_SCAN_DIRS || 'src').split(',').map((d) => d.trim()).filter(Boolean);
 const SCAN_EXT = /\.(js|mjs|cjs|ts|tsx)$/;
 const SKIP_PATH_PARTS = ['node_modules', '/vendor/', '/dist/', '/.git/'];
 
@@ -138,6 +141,27 @@ function findViolations(file) {
   return violations;
 }
 
+// lint-all.mjs entry point: same ratchet check as `main()`, but as a
+// throwing function so it composes with the other OrThrow gates.
+export function lintSwallowCommentsOrThrow() {
+  const files = [];
+  for (const d of SCAN_DIRS) walk(join(ROOT, d), files);
+  const allViolations = [];
+  for (const f of files) allViolations.push(...findViolations(f));
+  const count = allViolations.length;
+
+  let baseline = { count: 0 };
+  if (existsSync(ALLOW_FILE)) {
+    baseline = JSON.parse(readFileSync(ALLOW_FILE, 'utf8'));
+  } else {
+    writeFileSync(ALLOW_FILE, JSON.stringify({ count, updated: new Date().toISOString() }, null, 2) + '\n');
+    return;
+  }
+  if (count > baseline.count) {
+    throw new Error(`[lint-swallow-comments] ${count} undocumented empty catch block(s) exceeds baseline ${baseline.count}. Add // swallow: <why>.`);
+  }
+}
+
 function main() {
   const files = [];
   for (const d of SCAN_DIRS) {
@@ -182,4 +206,4 @@ function main() {
   console.log(`[lint-swallow-comments] PASS: ${count} <= baseline ${baseline.count}`);
 }
 
-main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) main();

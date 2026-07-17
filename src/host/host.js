@@ -26,13 +26,16 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
             } catch (e) {
                 // One bad plugin must not crash boot for every plugin after it in
                 // topo order -- capture context for /debug inspection, log loud, and
-                // keep loading the rest.
+                // keep loading the rest. Also surfaced via host.failed()/`freddie
+                // diagnostics plugins` so a degraded boot stays visible.
                 const entry = {
                     plugin: p.name,
+                    name: p.name,
                     error: String(e?.message || e),
                     stack: e?.stack || null,
                     config: scopedCfg(p.name, configStore).all(),
                     env_keys_present: Object.keys(process.env).filter(k => k.startsWith('FREDDIE_')),
+                    ts: Date.now(),
                 }
                 failed.push(entry)
                 logger.error(`plugin register() threw: ${entry.error}`, { stack: entry.stack })
@@ -75,6 +78,7 @@ export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(),
         ccPlugins: () => ccHost.plugins(),
         onInbound: (fn) => inboundListeners.push(fn),
         plugins: () => loaded.map(p => ({ name: p.name, version: p.version || null, surfaces: p.surfaces, requires: p.requires || [] })),
+        failed: () => failed.slice(),
         get: (n) => loaded.find(p => p.name === n) || null,
         capabilities: (n) => n ? (capabilities.get(n) || null) : Object.fromEntries(capabilities),
         failedPlugins: () => failed.slice(),
@@ -157,20 +161,35 @@ async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, pi, g
 export async function discoverPlugins(roots) {
     const found = []
     for (const root of roots) {
-        if (!root || !fs.existsSync(root)) continue
-        for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-            if (!entry.isDirectory()) continue
-            const dir = path.join(root, entry.name)
+        await scanPluginDir(root, found, 1)
+    }
+    return found
+}
+
+// A directory under a root is either a plugin dir (has plugin.js or the
+// legacy handler.js) or, if it has neither, a pure category folder (e.g.
+// plugins/gui/, plugins/platform/ per the f22 reorg) whose own children are
+// the plugin dirs. `depth` caps the recursion at one category level deep so
+// a root never turns into an unbounded filesystem walk. A plugin.json's
+// feature_flag gate (isFlagDisabled) applies at every level -- a category
+// folder itself is never flag-gated (it isn't a plugin), only its leaf
+// plugin dirs are.
+async function scanPluginDir(root, found, depth) {
+    if (!root || !fs.existsSync(root)) return
+    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue
+        const dir = path.join(root, entry.name)
+        const file = path.join(dir, 'plugin.js')
+        if (fs.existsSync(file)) {
             if (isFlagDisabled(dir)) continue
-            const file = path.join(dir, 'plugin.js')
-            if (fs.existsSync(file)) {
-                const mod = await import(pathToFileURL(file).href)
-                const p = mod.default || mod.plugin
-                if (p) { p.__sourceFile = file; found.push(p) }
-                continue
-            }
-            const handlerFile = path.join(dir, 'handler.js')
-            if (!fs.existsSync(handlerFile)) continue
+            const mod = await import(pathToFileURL(file).href)
+            const p = mod.default || mod.plugin
+            if (p) { p.__sourceFile = file; found.push(p) }
+            continue
+        }
+        const handlerFile = path.join(dir, 'handler.js')
+        if (fs.existsSync(handlerFile)) {
+            if (isFlagDisabled(dir)) continue
             const handlerMod = await import(pathToFileURL(handlerFile).href)
             const _tool = handlerMod._tool
             if (!_tool) continue
@@ -180,7 +199,8 @@ export async function discoverPlugins(roots) {
                 __sourceFile: handlerFile,
                 register({ pi }) { pi.tools.register(_tool) },
             })
+            continue
         }
+        if (depth > 0) await scanPluginDir(dir, found, depth - 1)
     }
-    return found
 }

@@ -1,4 +1,4 @@
-import { resolveKey } from '../credential_sources.js'
+import { resolveKey } from '../../credentials/index.js'
 const ENDPOINT = 'https://cloudcode-pa.googleapis.com/v1internal:generateContent'
 export async function chat({ messages, model = 'gemini-2.5-pro' } = {}) {
     const k = await resolveKey('google_oauth')

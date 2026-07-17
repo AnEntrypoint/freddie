@@ -1,4 +1,4 @@
-import { resolveKey } from '../credential_sources.js'
+import { resolveKey } from '../../credentials/index.js'
 import { env } from '../../env.js'
 const REGION = () => env('AWS_REGION') || 'us-east-1'
 export async function chat({ messages, model = 'anthropic.claude-sonnet-4-v1:0', tools = [] } = {}) {

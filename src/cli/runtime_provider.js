@@ -1,5 +1,5 @@
 import { getConfigValue } from '../config.js'
-import { resolveKey } from '../agent/credential_sources.js'
+import { resolveKey } from '../credentials/index.js'
 export async function activeRuntime() {
     const provider = getConfigValue('agent.provider', 'anthropic')
     const model = getConfigValue('agent.model', '')

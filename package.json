@@ -21,7 +21,6 @@
     "test": "node test.js",
     "lint": "node scripts/lint.mjs",
     "build:browser": "vite build --config vite.browser.config.js",
-    "build:browser-shim": "node scripts/browser-shim-build/build.mjs",
     "link-local-design": "node scripts/link-local-design.mjs"
   },
   "dependencies": {

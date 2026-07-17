@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { loadClaudePlugin } from 'plugsdk'
 import { HOOK_NAMES, FREDDIE_TO_NATIVE_HOOK } from './contract.js'
 import { env } from '../env.js'
+import { applyToolMiddleware } from './tool-middleware.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CAPABILITY_ENUM = new Set(['tool', 'env', 'command', 'cron', 'platform', 'memory', 'skill', 'context', 'agentExt', 'cli', 'route', 'page', 'nav', 'debug', 'api', 'asset'])
@@ -85,7 +86,8 @@ export function makePi() {
             try {
                 maybeChaosInject(name)
                 const r = await t.handler(args, ctxWithProgress)
-                return typeof r === 'string' ? r : JSON.stringify(r)
+                const raw = typeof r === 'string' ? r : JSON.stringify(r)
+                return applyToolMiddleware({ name, tool: t, args }, raw)
             }
             catch (e) { return JSON.stringify({ error: String(e?.message || e), tool: name }) }
         },
