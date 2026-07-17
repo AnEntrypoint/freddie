@@ -1,0 +1,41 @@
+name: osv-auto-bump
+
+# On a CRITICAL finding from scripts/osv-scan-lockfile.mjs, opens a PR
+# bumping the flagged package(s) to their patched version. Reuses the same
+# PR-creation pattern sync-upstream.yml already uses (AGENTS.md documents
+# this: peter-evans/create-pull-request@v6).
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+jobs:
+  osv-bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install --no-audit --no-fund
+
+      - name: Scan for CRITICAL vulnerabilities
+        id: scan
+        run: node scripts/osv-scan-lockfile.mjs package-lock.json --json osv-critical.json
+        continue-on-error: true
+
+      - name: Bump packages with a published fix
+        run: node scripts/osv-bump-critical.mjs osv-critical.json
+
+      - name: Open PR if changes
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: 'fix(deps): bump packages with CRITICAL OSV advisories'
+          title: 'fix(deps): bump packages with CRITICAL OSV advisories'
+          body: 'Automated CRITICAL-severity dependency bump produced by scripts/osv-scan-lockfile.mjs + scripts/osv-bump-critical.mjs. Review the linked advisories before merging.'
+          branch: fix/osv-critical-bump
+          delete-branch: true
