@@ -66,7 +66,7 @@ sections:
     features:
       - name: "@mariozechner/pi-coding-agent"
         desc: agent loop, tool dispatch, interactive tui, file auth store, extension runner.
-      - name: "@mariozechner/pi-ai"
+      - name: "@earendil-works/pi-ai"
         desc: "provider layer. `complete`, streaming, cost calc, registerApiProvider, getModel."
       - name: "@mariozechner/pi-agent-core"
         desc: "`agentLoop`, `runAgentLoop`, `streamProxy`. wrapped by xstate, never rewritten."

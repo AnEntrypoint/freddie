@@ -4,8 +4,8 @@ An open JS agent harness built on pi-mono, xstate, floosie, and anentrypoint-des
 
 - [`@mariozechner/pi-coding-agent`](https://www.npmjs.com/package/@mariozechner/pi-coding-agent) — agent + tools + interactive TUI substrate
 - [`@mariozechner/pi-agent-core`](https://www.npmjs.com/package/@mariozechner/pi-agent-core) — agent loop primitives
-- [`@mariozechner/pi-ai`](https://www.npmjs.com/package/@mariozechner/pi-ai) — provider abstraction (Anthropic / OpenAI / Groq / …)
-- [`@mariozechner/pi-tui`](https://www.npmjs.com/package/@mariozechner/pi-tui) — TUI primitives
+- [`@earendil-works/pi-ai`](https://www.npmjs.com/package/@earendil-works/pi-ai) — provider abstraction (Anthropic / OpenAI / Groq / …)
+- [`@earendil-works/pi-tui`](https://www.npmjs.com/package/@earendil-works/pi-tui) — TUI primitives
 - [`floosie`](https://www.npmjs.com/package/floosie) — gateway stream pipeline (xstate-backed)
 - [`xstate`](https://www.npmjs.com/package/xstate) — agent turn machine + lifecycle state machines
 - [`anentrypoint-design`](https://www.npmjs.com/package/anentrypoint-design) — webjsx + ripple-ui design system (replaces React for the dashboard)

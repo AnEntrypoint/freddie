@@ -6,8 +6,8 @@ Instructions for AI coding assistants working on Freddie. Present-tense rules on
 
 - `@mariozechner/pi-coding-agent` — agent + tools + interactive TUI. Use `AgentSession`, `BashExecutionComponent`, `ModelRegistry`, `InteractiveMode`, `FileAuthStorageBackend`, `ExtensionRunner`.
 - `@mariozechner/pi-agent-core` — `Agent`, `agentLoop`, `runAgentLoop`, `streamProxy`. Wrap in xstate, do not rewrite.
-- `@mariozechner/pi-ai` — `complete`, `completeSimple`, `AssistantMessageEventStream`, `registerApiProvider`, `getModel`, `calculateCost`, `parseStreamingJson`, `isContextOverflow`. THE provider layer.
-- `@mariozechner/pi-tui` — TUI primitives (Ink-equivalent).
+- `@earendil-works/pi-ai` — `complete`, `completeSimple`, `AssistantMessageEventStream`, `registerApiProvider`, `getModel`, `calculateCost`, `parseStreamingJson`, `isContextOverflow`. THE provider layer. `complete`/`completeSimple`/`registerApiProvider`/`getModel`/`getEnvApiKey`/`registerBuiltInApiProviders` live under the `/compat` subpath export (`@earendil-works/pi-ai/compat`), not the package root — the root export is a redesigned lower-level API (`createModels`/`createProvider`/`envApiKeyAuth`/etc). `calculateCost`/`parseStreamingJson`/`isContextOverflow`/`AssistantMessageEventStream` are at the root.
+- `@earendil-works/pi-tui` — TUI primitives (Ink-equivalent).
 - `floosie` — `ProcessorMachine` (xstate). Use for gateway pipelines. Compose, don't fork.
 - `anentrypoint-design` — webjsx + ripple-ui. **All GUI for freddie and thebird lives here.** Source in `C:/dev/anentrypoint-design`; freddie pins from npm registry. For local SDK iteration, swap to `file:../anentrypoint-design` and rebuild via `node scripts/build.mjs`. Do NOT add React.
 - `acptoapi` — THE LLM SDK (see "acptoapi is THE SDK" below).
@@ -144,7 +144,7 @@ src/agent/llm_resolver.js        # thin shim over acptoapi.chat
 src/agent/acptoapi-bridge.js     # HTTP passthrough to FREDDIE_LLM_URL daemon
 src/agent/model-discovery.js     # claude-cli/ACP/ollama discovery beyond acptoapi
 src/agent/model-matrix.js        # MATRIX_FILE path + matrixUsable predicate
-src/agent/pi-bridge.js           # @mariozechner/pi-ai callLLM adapter
+src/agent/pi-bridge.js           # @earendil-works/pi-ai callLLM adapter
 src/agent/compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js
 src/commands/registry.js         # CommandDef + resolveCommand + gateway/telegram/slack views
 src/commands/profile.js          # profile CRUD
