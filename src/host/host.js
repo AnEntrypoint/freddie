@@ -4,15 +4,16 @@ import { pathToFileURL } from 'node:url'
 import { createHost as createPluginHost } from 'plugsdk'
 import { validatePlugin, topoSort, PI_VERBS, GUI_VERBS } from './contract.js'
 import { makePi, makeGui, guard, scopedCfg, nullStore, makeCcHooks, makeHooksRegistry, makeCcLoaders } from './host_helpers.js'
+import { readManifestResources } from './tool-resources.js'
 import { isFlagEnabled } from '../flags.js'
 
-function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed, sourcePaths }) {
+function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed, sourcePaths, resources }) {
     return async function load(plugins) {
         const sorted = topoSort(plugins.map(validatePlugin))
         for (const p of sorted) {
             const want = p.surfaces
             const cap = { tools: [], hooks: [], commands: [], crons: [], routes: [], _hookFns: [], _routeDefs: [] }
-            const ctxPi  = (want === 'pi'  || want === 'both') && surfaces.includes('pi')  ? recordPi(pi, cap)   : guard(pi, false, p.name, PI_VERBS)
+            const ctxPi  = (want === 'pi'  || want === 'both') && surfaces.includes('pi')  ? recordPi(pi, cap, p.name)   : guard(pi, false, p.name, PI_VERBS)
             const ctxGui = (want === 'gui' || want === 'both') && surfaces.includes('gui') ? recordGui(gui, cap) : guard(gui, false, p.name, GUI_VERBS)
             const ctxHooks = recordHooks(hooks, cap)
             const log = (lv, m, f) => { const line = JSON.stringify({ ts: Date.now(), plugin: p.name, level: lv, msg: m, ...(f || {}) }); if (env.FREDDIE_LOG_STDOUT) console.log(line) }
@@ -23,6 +24,7 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
                 loaded.push(p)
                 capabilities.set(p.name, cap)
                 if (p.__sourceFile) sourcePaths.set(p.name, p.__sourceFile)
+                if (p.__resources !== undefined) resources.set(p.name, p.__resources)
             } catch (e) {
                 // One bad plugin must not crash boot for every plugin after it in
                 // topo order -- capture context for /debug inspection, log loud, and
@@ -45,10 +47,17 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
     }
 }
 
-function recordPi(pi, cap) {
+// pluginName threaded through so every registered tool spec carries __plugin
+// provenance -- host_helpers.js's dispatchTool reads t.__plugin to look up the
+// owning plugin's declared resources.* allowlist (src/host/tool-resources.js)
+// before running the handler. Purely additive property on the spec object;
+// nothing downstream reads/rejects on its presence except the new enforcement
+// path, so this is safe for every existing plugin regardless of whether it
+// ships a plugin.json resources block.
+function recordPi(pi, cap, pluginName) {
     return {
         ...pi,
-        tools:      { ...pi.tools,      register: (s) => { cap.tools.push(s.name); return pi.tools.register(s) } },
+        tools:      { ...pi.tools,      register: (s) => { cap.tools.push(s.name); return pi.tools.register({ ...s, __plugin: pluginName }) } },
         commands:   { ...pi.commands,   register: (s) => { cap.commands.push(s.name); return pi.commands.register(s) } },
         crons:      { ...pi.crons,      register: (s) => { cap.crons.push(s.name); return pi.crons.register(s) } },
     }
@@ -70,6 +79,17 @@ export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(),
     const capabilities = new Map()
     const failed = []
     const sourcePaths = new Map()
+    // Per-plugin declared plugin.json `resources` block (fs_paths/network_hosts/
+    // env_vars), populated at load time by makePluginLoader below from
+    // p.__resources (set by discoverPlugins via readManifestResources). A
+    // plugin absent from this map, or present with an undefined value, means
+    // "no manifest / no resources block" -- dispatchTool's enforcement treats
+    // that as fully unrestricted, matching every plugin shipped before this
+    // feature existed.
+    const resources = new Map()
+    const dispatchLogger = (pluginName) => ({
+        warn: (msg, fields) => { const line = JSON.stringify({ ts: Date.now(), plugin: pluginName, level: 'warn', msg, ...(fields || {}) }); if (env.FREDDIE_LOG_STDOUT) console.log(line) },
+    })
     const host = {
         pi: surfaces.includes('pi') ? pi : null,
         gui: surfaces.includes('gui') ? gui : null,
@@ -81,11 +101,25 @@ export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(),
         failed: () => failed.slice(),
         get: (n) => loaded.find(p => p.name === n) || null,
         capabilities: (n) => n ? (capabilities.get(n) || null) : Object.fromEntries(capabilities),
+        resources: (n) => n ? (resources.has(n) ? resources.get(n) : null) : Object.fromEntries(resources),
         failedPlugins: () => failed.slice(),
         shutdown: () => ccHost.shutdown(),
         reloadPlugin: (filePath) => reloadPlugin({ filePath, sourcePaths, capabilities, loaded, pi, gui, hooks, host }),
     }
-    host.load = makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed, sourcePaths })
+    // Wrap dispatchTool ONCE here (rather than requiring every call site --
+    // src/mcp/server.js, src/acp/tools.js, doctor-deep, managed_tool_gateway --
+    // to remember to pass opts.resourcesFor/opts.logger) so capability
+    // enforcement is structurally on-by-default for every caller of
+    // host.pi.dispatchTool, not opt-in per call site.
+    if (pi.dispatchTool) {
+        const rawDispatch = pi.dispatchTool.bind(pi)
+        pi.dispatchTool = (name, args, ctx, opts = {}) => rawDispatch(name, args, ctx, {
+            ...opts,
+            resourcesFor: (pluginName) => resources.has(pluginName) ? resources.get(pluginName) : null,
+            logger: dispatchLogger(name),
+        })
+    }
+    host.load = makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed, sourcePaths, resources })
     const cc = makeCcLoaders(ccHost, env)
     host.loadCcPlugins = cc.loadCcPlugins
     host.loadCcFromNodeModules = cc.loadCcFromNodeModules
@@ -148,7 +182,7 @@ async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, pi, g
     fresh.__sourceFile = filePath
     const newCap = { tools: [], hooks: [], commands: [], crons: [], routes: [], _hookFns: [], _routeDefs: [] }
     const want = fresh.surfaces
-    const ctxPi = (want === 'pi' || want === 'both') ? recordPi(pi, newCap) : pi
+    const ctxPi = (want === 'pi' || want === 'both') ? recordPi(pi, newCap, name) : pi
     const ctxGui = (want === 'gui' || want === 'both') ? recordGui(gui, newCap) : gui
     const ctxHooks = recordHooks(hooks, newCap)
     await validatePlugin(fresh).register({ pi: ctxPi, gui: ctxGui, hooks: ctxHooks, log: { info(){}, warn(){}, error(){} }, config: nullStore(), host, env: process.env })
@@ -182,14 +216,16 @@ async function scanPluginDir(root, found, depth) {
         const file = path.join(dir, 'plugin.js')
         if (fs.existsSync(file)) {
             if (isFlagDisabled(dir)) continue
+            const declaredResources = readManifestResources(dir)
             const mod = await import(pathToFileURL(file).href)
             const p = mod.default || mod.plugin
-            if (p) { p.__sourceFile = file; found.push(p) }
+            if (p) { p.__sourceFile = file; p.__resources = declaredResources; found.push(p) }
             continue
         }
         const handlerFile = path.join(dir, 'handler.js')
         if (fs.existsSync(handlerFile)) {
             if (isFlagDisabled(dir)) continue
+            const declaredResources = readManifestResources(dir)
             const handlerMod = await import(pathToFileURL(handlerFile).href)
             const _tool = handlerMod._tool
             if (!_tool) continue
@@ -197,6 +233,7 @@ async function scanPluginDir(root, found, depth) {
                 name: `tool-${entry.name}`,
                 surfaces: 'pi',
                 __sourceFile: handlerFile,
+                __resources: declaredResources,
                 register({ pi }) { pi.tools.register(_tool) },
             })
             continue
