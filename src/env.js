@@ -19,6 +19,7 @@ const REGISTRY = {
     FREDDIE_LLM_URL: { purpose: 'base URL for freddie-internal LLM endpoint', kind: 'url' },
     FREDDIE_MATRIX_URL: { purpose: 'base URL override for matrix platform integration', kind: 'url' },
     FREDDIE_TEST_DB: { purpose: 'override sqlite db path used in tests', kind: 'path' },
+    FREDDIE_CHAOS_INJECT: { purpose: 'dev-only: percent chance (0-100) of a synthetic tool-dispatch error, to verify the agent loop degrades gracefully instead of crashing', kind: 'number' },
 
     // --- process / OS ---
     HOME: { purpose: 'OS home directory (posix)', kind: 'path' },
