@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 import os, { homedir } from "node:os";
 import crypto, { randomUUID } from "node:crypto";
 import { assign, assign as assign$1, createActor, createActor as createActor$1, createMachine, createMachine as createMachine$1, fromPromise, fromPromise as fromPromise$1, waitFor } from "xstate";
-import * as sdkNs from "acptoapi";
+import * as _sdkNs from "acptoapi";
 import { createRequire } from "node:module";
 //#region \0rolldown/runtime.js
 var __create = Object.create;
@@ -1376,940 +1376,6 @@ var init_env = __esmMin((() => {
 		}
 	};
 }));
-//#endregion
-//#region src/host/host_helpers.js
-init_env();
-path.dirname(fileURLToPath(import.meta.url));
-function reg(map, kind) {
-	return {
-		register(spec) {
-			if (!spec?.name) throw new Error(`${kind}.name required`);
-			map.set(spec.name, spec);
-		},
-		get: (n) => map.get(n),
-		list: () => [...map.values()],
-		has: (n) => map.has(n),
-		size: () => map.size,
-		unregister: (n) => map.delete(n)
-	};
-}
-function maybeChaosInject(toolName) {
-	const pct = Number(env("FREDDIE_CHAOS_INJECT"));
-	if (!pct || pct <= 0) return;
-	if (Math.random() * 100 < pct) throw new Error(`[FREDDIE_CHAOS_INJECT] synthetic failure injected for tool '${toolName}' (chaos_pct=${pct})`);
-}
-function makePi() {
-	const m = {
-		tools: /* @__PURE__ */ new Map(),
-		envs: /* @__PURE__ */ new Map(),
-		commands: /* @__PURE__ */ new Map(),
-		crons: /* @__PURE__ */ new Map(),
-		platforms: /* @__PURE__ */ new Map(),
-		memory: /* @__PURE__ */ new Map(),
-		skills: /* @__PURE__ */ new Map(),
-		contexts: /* @__PURE__ */ new Map(),
-		agentExts: /* @__PURE__ */ new Map(),
-		cli: /* @__PURE__ */ new Map()
-	};
-	return {
-		_state: m,
-		tools: reg(m.tools, "tool"),
-		envs: reg(m.envs, "env"),
-		commands: reg(m.commands, "command"),
-		crons: reg(m.crons, "cron"),
-		platforms: reg(m.platforms, "platform"),
-		memory: reg(m.memory, "memory"),
-		skills: reg(m.skills, "skill"),
-		contexts: reg(m.contexts, "context"),
-		agentExts: reg(m.agentExts, "agentExt"),
-		cli: reg(m.cli, "cli"),
-		async dispatchTool(name, args = {}, ctx = {}, opts = {}) {
-			const t = m.tools.get(name);
-			if (!t) return JSON.stringify({ error: `unknown tool: ${name}` });
-			if (t.checkFn && t.checkFn(t) === false) return JSON.stringify({
-				error: `tool unavailable: ${name}`,
-				requires: t.requiresEnv || []
-			});
-			const hooks = opts.hooks;
-			const ctxWithProgress = hooks ? {
-				...ctx,
-				onProgress: (partial) => hooks.invoke("onToolProgress", {
-					name,
-					args,
-					partial
-				})
-			} : ctx;
-			try {
-				maybeChaosInject(name);
-				const r = await t.handler(args, ctxWithProgress);
-				return typeof r === "string" ? r : JSON.stringify(r);
-			} catch (e) {
-				return JSON.stringify({
-					error: String(e?.message || e),
-					tool: name
-				});
-			}
-		}
-	};
-}
-function makeGui() {
-	const r = [], pages = /* @__PURE__ */ new Map(), nav = [], debugs = /* @__PURE__ */ new Map(), apis = /* @__PURE__ */ new Map(), assets = /* @__PURE__ */ new Map(), wsRoutes = /* @__PURE__ */ new Map();
-	return {
-		_state: {
-			routes: r,
-			pages,
-			nav,
-			debugs,
-			apis,
-			assets,
-			wsRoutes
-		},
-		route: (method, p, h) => r.push({
-			method: method.toUpperCase(),
-			path: p,
-			handler: h
-		}),
-		unroute: (method, p) => {
-			const i = r.findIndex((x) => x.method === method.toUpperCase() && x.path === p);
-			if (i === -1) return false;
-			r.splice(i, 1);
-			return true;
-		},
-		wsRoute: (p, onConnection) => wsRoutes.set(p, onConnection),
-		page: (s, d) => pages.set(s, d),
-		nav: (i) => nav.push(i),
-		debug: (n, fn) => debugs.set(n, fn),
-		api: (g, d) => apis.set(g, d),
-		asset: (p, c) => assets.set(p, c),
-		routes: { list: () => r },
-		pages: {
-			get: (s) => pages.get(s),
-			list: () => [...pages.values()],
-			has: (s) => pages.has(s)
-		},
-		navItems: { list: () => nav },
-		debugs: {
-			list: () => [...debugs.entries()].map(([n, f]) => ({
-				name: n,
-				snapshot: f
-			})),
-			get: (n) => debugs.get(n)
-		}
-	};
-}
-function ccPayloadFor(name, payload) {
-	if (name === "preToolCall" || name === "postToolCall") return {
-		tool_name: payload?.name,
-		tool_input: payload?.args || payload?.input,
-		tool_response: payload?.result
-	};
-	if (name === "onMessageInbound" || name === "onMessageOutbound") return { prompt: payload?.content || payload?.text || "" };
-	if (name === "onPreCompact" || name === "onPostCompact") return {
-		trigger: payload?.trigger || "auto",
-		messages_count: payload?.messages?.length ?? 0,
-		summary: payload?.summary ?? null
-	};
-	return payload || {};
-}
-function guard(surface, allowed, name, verbs) {
-	if (allowed) return surface;
-	return new Proxy({}, { get(_, key) {
-		if (verbs.includes(String(key))) return () => {
-			throw new Error(`plugin ${name}: surface verb '${String(key)}' not allowed (declared surfaces=${name})`);
-		};
-		return surface[key];
-	} });
-}
-function scopedCfg(name, store) {
-	const k = `plugins.${name}`;
-	return {
-		get: (kk, d) => store.get(`${k}.${kk}`, d),
-		set: (kk, v) => store.set(`${k}.${kk}`, v),
-		all: () => store.all(k) || {}
-	};
-}
-var nullStore = () => {
-	const m = /* @__PURE__ */ new Map();
-	return {
-		get: (k, d) => m.has(k) ? m.get(k) : d,
-		set: (k, v) => m.set(k, v),
-		all: (p) => Object.fromEntries([...m.entries()].filter(([k]) => k.startsWith(p)))
-	};
-};
-function makeCcHooks({ surfaces, pi, binPaths, inboundListeners }) {
-	const pi_ok = surfaces.includes("pi");
-	return {
-		onSkill: (p, s) => pi_ok && pi.skills.register({
-			name: p.manifest.name + ":" + s.name,
-			description: s.description,
-			content: s.body,
-			source: "cc:" + p.manifest.name,
-			frontmatter: s.fields,
-			file: s.file
-		}),
-		onAgent: (p, a) => pi_ok && pi.agentExts.register({
-			name: p.manifest.name + ":" + a.name,
-			description: a.description,
-			frontmatter: a.fields,
-			body: a.body,
-			source: "cc:" + p.manifest.name,
-			file: a.file
-		}),
-		onCommand: (p, c) => pi_ok && pi.commands.register({
-			name: p.manifest.name + ":" + c.name,
-			description: c.description,
-			body: c.body,
-			frontmatter: c.fields,
-			source: "cc:" + p.manifest.name
-		}),
-		onTheme: (p, t) => pi_ok && pi.contexts.register({
-			name: "theme:" + p.manifest.name + ":" + t.slug,
-			description: t.name,
-			theme: t
-		}),
-		onOutputStyle: (p, o) => pi_ok && pi.contexts.register({
-			name: "style:" + p.manifest.name + ":" + o.name,
-			description: o.description,
-			body: o.body,
-			frontmatter: o.fields
-		}),
-		onChannel: (p, c) => pi_ok && pi.platforms.register({
-			name: "cc:" + p.manifest.name + ":" + c.server,
-			server: c.server,
-			userConfig: c.userConfig || {},
-			source: "cc:" + p.manifest.name
-		}),
-		onSetting: (p, s) => {
-			if (s.agent && pi_ok && !pi.agentExts.has("default")) pi.agentExts.register({
-				name: "default",
-				target: p.manifest.name + ":" + s.agent
-			});
-		},
-		onBin: (_, dir) => binPaths.push(dir),
-		onMcpTool: (p, server, tool, call) => pi_ok && pi.tools.register({
-			name: "cc:" + p.manifest.name + ":" + server + ":" + tool.name,
-			schema: {
-				name: tool.name,
-				description: tool.description || "",
-				parameters: tool.inputSchema || {}
-			},
-			handler: (args) => call(args)
-		}),
-		onMonitorLine: (p, mon, line) => {
-			for (const fn of inboundListeners) fn({
-				source: "monitor:" + p.manifest.name + ":" + mon.name,
-				text: line
-			});
-		}
-	};
-}
-function makeHooksRegistry(ccHost) {
-	const reg2 = Object.fromEntries(HOOK_NAMES.map((n) => [n, []]));
-	return {
-		on(name, fn) {
-			if (!HOOK_NAMES.includes(name)) throw new Error(`unknown hook: ${name}`);
-			reg2[name].push(fn);
-		},
-		off(name, fn) {
-			const l = reg2[name];
-			if (!l) return false;
-			const i = l.indexOf(fn);
-			if (i === -1) return false;
-			l.splice(i, 1);
-			return true;
-		},
-		async invoke(name, payload) {
-			let cur = payload;
-			for (const fn of reg2[name] || []) cur = await fn(cur) ?? cur;
-			const native = FREDDIE_TO_NATIVE_HOOK[name];
-			if (native && ccHost.plugins().length && !env("FREDDIE_DISABLE_CC_HOOKS")) {
-				const r = await ccHost.dispatch(native, ccPayloadFor(name, cur));
-				const extras = {};
-				if (typeof r.systemMessage === "string" && r.systemMessage.length) extras.systemMessage = r.systemMessage;
-				const addCtx = r.hookSpecificOutput?.additionalContext;
-				if (typeof addCtx === "string" && addCtx.length) extras.additionalContext = addCtx;
-				if (r.decision === "block") return {
-					...cur,
-					...extras,
-					behavior: "block",
-					reason: r.reason
-				};
-				if (r.hookSpecificOutput?.permissionDecision === "deny") return {
-					...cur,
-					...extras,
-					behavior: "block",
-					reason: r.hookSpecificOutput?.permissionDecisionReason || "denied"
-				};
-				if (r.hookSpecificOutput?.updatedInput) return {
-					...cur,
-					...extras,
-					...r.hookSpecificOutput.updatedInput
-				};
-				if (Object.keys(extras).length) return {
-					...cur,
-					...extras
-				};
-			}
-			return cur;
-		},
-		names: () => HOOK_NAMES,
-		listeners: (n) => [...reg2[n] || []]
-	};
-}
-function isCcPluginDir(dir) {
-	if (fs.existsSync(path.join(dir, ".claude-plugin", "plugin.json"))) return true;
-	if (!fs.existsSync(path.join(dir, "plugin.json"))) return false;
-	return fs.existsSync(path.join(dir, "hooks", "hooks.json")) || fs.existsSync(path.join(dir, "skills")) || fs.existsSync(path.join(dir, "agents"));
-}
-function makeCcLoaders(ccHost, env) {
-	async function useCcDir(dir) {
-		try {
-			await ccHost.use(loadClaudePlugin(dir));
-		} catch (e) {
-			if (env.FREDDIE_LOG_STDOUT) console.error(`cc-plugin ${dir} failed: ${e.message}`);
-		}
-	}
-	async function loadCcPlugins(roots) {
-		for (const root of roots) {
-			if (!root || !fs.existsSync(root)) continue;
-			for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-				if (!entry.isDirectory()) continue;
-				const dir = path.join(root, entry.name);
-				if (isCcPluginDir(dir)) await useCcDir(dir);
-			}
-		}
-		return ccHost.plugins().length;
-	}
-	const CC_EXCLUDE = /* @__PURE__ */ new Set(["gm-cc"]);
-	const isExcludedCc = (base) => CC_EXCLUDE.has(base) || /^\.?gm-cc(-|$)/.test(base);
-	async function loadCcFromNodeModules(startDir) {
-		const seen = new Set(ccHost.plugins().map((p) => p.root));
-		let cur = path.resolve(startDir);
-		while (true) {
-			const nm = path.join(cur, "node_modules");
-			if (fs.existsSync(nm)) for (const entry of fs.readdirSync(nm, { withFileTypes: true })) {
-				if (!entry.isDirectory()) continue;
-				const dirs = entry.name.startsWith("@") ? fs.readdirSync(path.join(nm, entry.name), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => path.join(nm, entry.name, e.name)) : [path.join(nm, entry.name)];
-				for (const d of dirs) {
-					if (seen.has(d) || !isCcPluginDir(d) || isExcludedCc(path.basename(d))) continue;
-					seen.add(d);
-					await useCcDir(d);
-				}
-			}
-			const parent = path.dirname(cur);
-			if (parent === cur) break;
-			cur = parent;
-		}
-		return ccHost.plugins().length;
-	}
-	return {
-		loadCcPlugins,
-		loadCcFromNodeModules
-	};
-}
-//#endregion
-//#region src/home.js
-var home_exports = /* @__PURE__ */ __exportAll({
-	applyHomeOverride: () => applyHomeOverride,
-	applyProfileOverride: () => applyProfileOverride,
-	displayFreddieHome: () => displayFreddieHome,
-	getFreddieHome: () => getFreddieHome,
-	getProfilesRoot: () => getProfilesRoot,
-	listProfiles: () => listProfiles,
-	resetCacheForTests: () => resetCacheForTests
-});
-function getFreddieHome() {
-	if (_cached) return _cached;
-	const home_env = env("FREDDIE_HOME");
-	if (home_env) {
-		_cached = home_env;
-		ensure(home_env);
-		return home_env;
-	}
-	const profile = env("FREDDIE_PROFILE");
-	const root = path.join(os.homedir(), ".freddie");
-	const home = profile ? path.join(root, "profiles", profile) : root;
-	_cached = home;
-	ensure(home);
-	return home;
-}
-function displayFreddieHome() {
-	const profile = env("FREDDIE_PROFILE");
-	return profile ? `~/.freddie/profiles/${profile}` : "~/.freddie";
-}
-function applyProfileOverride(name) {
-	if (!name || name === "default") {
-		delete process.env.FREDDIE_PROFILE;
-		_cached = null;
-		return;
-	}
-	process.env.FREDDIE_PROFILE = name;
-	_cached = null;
-}
-function applyHomeOverride(absPath) {
-	if (!absPath) {
-		delete process.env.FREDDIE_HOME;
-		_cached = null;
-		return;
-	}
-	process.env.FREDDIE_HOME = absPath;
-	_cached = null;
-	ensure(absPath);
-}
-function getProfilesRoot() {
-	if (env("FREDDIE_PROFILES_ROOT")) return env("FREDDIE_PROFILES_ROOT");
-	if (env("FREDDIE_HOME")) return path.join(env("FREDDIE_HOME"), "profiles");
-	return path.join(os.homedir(), ".freddie", "profiles");
-}
-function listProfiles() {
-	const root = getProfilesRoot();
-	if (!fs.existsSync(root)) return [];
-	return fs.readdirSync(root).filter((n) => fs.statSync(path.join(root, n)).isDirectory());
-}
-function resetCacheForTests() {
-	_cached = null;
-}
-function ensure(p) {
-	try {
-		fs.mkdirSync(p, { recursive: true });
-	} catch {}
-}
-var _cached;
-var init_home = __esmMin((() => {
-	init_env();
-	_cached = null;
-}));
-//#endregion
-//#region src/flags.js
-init_home();
-function flagsPath() {
-	return path.join(getFreddieHome(), "flags.json");
-}
-function loadFlags() {
-	try {
-		return JSON.parse(fs.readFileSync(flagsPath(), "utf8"));
-	} catch {
-		return {};
-	}
-}
-function installId() {
-	return crypto.createHash("sha256").update(getFreddieHome()).digest("hex");
-}
-function bucketFor(name) {
-	const h = crypto.createHash("sha256").update(name + ":" + installId()).digest("hex");
-	return parseInt(h.slice(0, 8), 16) / 4294967295 * 100;
-}
-function isFlagEnabled(name) {
-	const entry = loadFlags()[name];
-	if (entry === void 0) return true;
-	if (typeof entry === "boolean") return entry;
-	if (typeof entry === "object" && entry !== null && typeof entry.rollout_pct === "number") return bucketFor(name) < entry.rollout_pct;
-	return true;
-}
-//#endregion
-//#region src/host/host.js
-function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed, sourcePaths }) {
-	return async function load(plugins) {
-		const sorted = topoSort(plugins.map(validatePlugin));
-		for (const p of sorted) {
-			const want = p.surfaces;
-			const cap = {
-				tools: [],
-				hooks: [],
-				commands: [],
-				crons: [],
-				routes: [],
-				_hookFns: [],
-				_routeDefs: []
-			};
-			const ctxPi = (want === "pi" || want === "both") && surfaces.includes("pi") ? recordPi(pi, cap) : guard(pi, false, p.name, PI_VERBS);
-			const ctxGui = (want === "gui" || want === "both") && surfaces.includes("gui") ? recordGui(gui, cap) : guard(gui, false, p.name, GUI_VERBS);
-			const ctxHooks = recordHooks(hooks, cap);
-			const log = (lv, m, f) => {
-				const line = JSON.stringify({
-					ts: Date.now(),
-					plugin: p.name,
-					level: lv,
-					msg: m,
-					...f || {}
-				});
-				if (env.FREDDIE_LOG_STDOUT) console.log(line);
-			};
-			const logger = {
-				info: (m, f) => log("info", m, f),
-				warn: (m, f) => log("warn", m, f),
-				error: (m, f) => log("error", m, f)
-			};
-			const ctx = {
-				pi: ctxPi,
-				gui: ctxGui,
-				hooks: ctxHooks,
-				log: logger,
-				config: scopedCfg(p.name, configStore),
-				host,
-				env
-			};
-			try {
-				await p.register(ctx);
-				loaded.push(p);
-				capabilities.set(p.name, cap);
-				if (p.__sourceFile) sourcePaths.set(p.name, p.__sourceFile);
-			} catch (e) {
-				const entry = {
-					plugin: p.name,
-					error: String(e?.message || e),
-					stack: e?.stack || null,
-					config: scopedCfg(p.name, configStore).all(),
-					env_keys_present: Object.keys(process.env).filter((k) => k.startsWith("FREDDIE_"))
-				};
-				failed.push(entry);
-				logger.error(`plugin register() threw: ${entry.error}`, { stack: entry.stack });
-			}
-		}
-		return loaded.length;
-	};
-}
-function recordPi(pi, cap) {
-	return {
-		...pi,
-		tools: {
-			...pi.tools,
-			register: (s) => {
-				cap.tools.push(s.name);
-				return pi.tools.register(s);
-			}
-		},
-		commands: {
-			...pi.commands,
-			register: (s) => {
-				cap.commands.push(s.name);
-				return pi.commands.register(s);
-			}
-		},
-		crons: {
-			...pi.crons,
-			register: (s) => {
-				cap.crons.push(s.name);
-				return pi.crons.register(s);
-			}
-		}
-	};
-}
-function recordGui(gui, cap) {
-	return {
-		...gui,
-		route: (method, path, h) => {
-			cap.routes.push(`${method.toUpperCase()} ${path}`);
-			cap._routeDefs.push({
-				method: method.toUpperCase(),
-				path
-			});
-			return gui.route(method, path, h);
-		}
-	};
-}
-function recordHooks(hooks, cap) {
-	return {
-		...hooks,
-		on: (name, fn) => {
-			cap.hooks.push(name);
-			cap._hookFns.push({
-				name,
-				fn
-			});
-			return hooks.on(name, fn);
-		}
-	};
-}
-function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env = process.env } = {}) {
-	const pi = makePi(), gui = makeGui();
-	const binPaths = [];
-	const inboundListeners = [];
-	const ccHost = createHost$1({
-		env,
-		on: makeCcHooks({
-			surfaces,
-			pi,
-			binPaths,
-			inboundListeners
-		})
-	});
-	const hooks = makeHooksRegistry(ccHost);
-	const loaded = [];
-	const capabilities = /* @__PURE__ */ new Map();
-	const failed = [];
-	const sourcePaths = /* @__PURE__ */ new Map();
-	const host = {
-		pi: surfaces.includes("pi") ? pi : null,
-		gui: surfaces.includes("gui") ? gui : null,
-		hooks,
-		binPaths: () => binPaths.slice(),
-		ccPlugins: () => ccHost.plugins(),
-		onInbound: (fn) => inboundListeners.push(fn),
-		plugins: () => loaded.map((p) => ({
-			name: p.name,
-			version: p.version || null,
-			surfaces: p.surfaces,
-			requires: p.requires || []
-		})),
-		get: (n) => loaded.find((p) => p.name === n) || null,
-		capabilities: (n) => n ? capabilities.get(n) || null : Object.fromEntries(capabilities),
-		failedPlugins: () => failed.slice(),
-		shutdown: () => ccHost.shutdown(),
-		reloadPlugin: (filePath) => reloadPlugin({
-			filePath,
-			sourcePaths,
-			capabilities,
-			loaded,
-			pi,
-			gui,
-			hooks,
-			host
-		})
-	};
-	host.load = makePluginLoader({
-		surfaces,
-		pi,
-		gui,
-		hooks,
-		configStore,
-		env,
-		host,
-		loaded,
-		capabilities,
-		failed,
-		sourcePaths
-	});
-	const cc = makeCcLoaders(ccHost, env);
-	host.loadCcPlugins = cc.loadCcPlugins;
-	host.loadCcFromNodeModules = cc.loadCcFromNodeModules;
-	return host;
-}
-function isFlagDisabled(dir) {
-	const manifestPath = path.join(dir, "plugin.json");
-	if (!fs.existsSync(manifestPath)) return false;
-	try {
-		const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-		if (!manifest.feature_flag) return false;
-		return !isFlagEnabled(manifest.feature_flag);
-	} catch {
-		return false;
-	}
-}
-async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, pi, gui, hooks, host }) {
-	const name = [...sourcePaths.entries()].find(([, f]) => f === filePath)?.[0];
-	if (!name) return null;
-	const cap = capabilities.get(name);
-	if (cap) {
-		for (const t of cap.tools) pi.tools.unregister(t);
-		for (const c of cap.commands) pi.commands.unregister(c);
-		for (const c of cap.crons) pi.crons.unregister(c);
-		for (const { method, path: p } of cap._routeDefs || []) gui.unroute(method, p);
-		for (const { name: hn, fn } of cap._hookFns || []) hooks.off(hn, fn);
-	}
-	const idx = loaded.findIndex((p) => p.name === name);
-	if (idx !== -1) loaded.splice(idx, 1);
-	capabilities.delete(name);
-	const reloadCopy = filePath.replace(/\.m?js$/, `.reload-${Date.now()}.mjs`);
-	fs.copyFileSync(filePath, reloadCopy);
-	let mod;
-	try {
-		mod = await import(pathToFileURL(reloadCopy).href);
-	} finally {
-		fs.unlink(reloadCopy, () => {});
-	}
-	const fresh = mod.default || mod.plugin;
-	if (!fresh) return null;
-	fresh.__sourceFile = filePath;
-	const newCap = {
-		tools: [],
-		hooks: [],
-		commands: [],
-		crons: [],
-		routes: [],
-		_hookFns: [],
-		_routeDefs: []
-	};
-	const want = fresh.surfaces;
-	const ctxPi = want === "pi" || want === "both" ? recordPi(pi, newCap) : pi;
-	const ctxGui = want === "gui" || want === "both" ? recordGui(gui, newCap) : gui;
-	const ctxHooks = recordHooks(hooks, newCap);
-	await validatePlugin(fresh).register({
-		pi: ctxPi,
-		gui: ctxGui,
-		hooks: ctxHooks,
-		log: {
-			info() {},
-			warn() {},
-			error() {}
-		},
-		config: nullStore(),
-		host,
-		env: process.env
-	});
-	loaded.push(fresh);
-	capabilities.set(name, newCap);
-	sourcePaths.set(name, filePath);
-	return name;
-}
-async function discoverPlugins(roots) {
-	const found = [];
-	for (const root of roots) {
-		if (!root || !fs.existsSync(root)) continue;
-		for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-			if (!entry.isDirectory()) continue;
-			const dir = path.join(root, entry.name);
-			if (isFlagDisabled(dir)) continue;
-			const file = path.join(dir, "plugin.js");
-			if (fs.existsSync(file)) {
-				const mod = await import(pathToFileURL(file).href);
-				const p = mod.default || mod.plugin;
-				if (p) {
-					p.__sourceFile = file;
-					found.push(p);
-				}
-				continue;
-			}
-			const handlerFile = path.join(dir, "handler.js");
-			if (!fs.existsSync(handlerFile)) continue;
-			const _tool = (await import(pathToFileURL(handlerFile).href))._tool;
-			if (!_tool) continue;
-			found.push({
-				name: `tool-${entry.name}`,
-				surfaces: "pi",
-				__sourceFile: handlerFile,
-				register({ pi }) {
-					pi.tools.register(_tool);
-				}
-			});
-		}
-	}
-	return found;
-}
-//#endregion
-//#region src/projects.js
-var projects_exports = /* @__PURE__ */ __exportAll({
-	applyActiveProjectFromRegistry: () => applyActiveProjectFromRegistry,
-	createProject: () => createProject,
-	deleteProject: () => deleteProject,
-	getActiveProject: () => getActiveProject,
-	listProjects: () => listProjects,
-	loadRegistry: () => loadRegistry,
-	setActiveProject: () => setActiveProject
-});
-function ensureRegistry() {
-	const dir = path.dirname(REGISTRY_PATH);
-	if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-	if (!fs.existsSync(REGISTRY_PATH)) fs.writeFileSync(REGISTRY_PATH, JSON.stringify(DEFAULT_REGISTRY, null, 2));
-}
-function loadRegistry() {
-	ensureRegistry();
-	try {
-		const raw = JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf8"));
-		if (!raw.projects || !Array.isArray(raw.projects)) return DEFAULT_REGISTRY;
-		if (!raw.projects.find((p) => p.name === "default")) raw.projects.unshift(DEFAULT_REGISTRY.projects[0]);
-		if (!raw.active) raw.active = "default";
-		return raw;
-	} catch {
-		return DEFAULT_REGISTRY;
-	}
-}
-function saveRegistry(reg) {
-	ensureRegistry();
-	fs.writeFileSync(REGISTRY_PATH, JSON.stringify(reg, null, 2));
-}
-function listProjects() {
-	return loadRegistry().projects;
-}
-function getActiveProject() {
-	const reg = loadRegistry();
-	return reg.projects.find((p) => p.name === reg.active) || reg.projects[0];
-}
-function createProject({ name, projectPath }) {
-	if (!name || !projectPath) throw new Error("name and path are required");
-	if (!path.isAbsolute(projectPath)) throw new Error("path must be absolute");
-	const reg = loadRegistry();
-	if (reg.projects.find((p) => p.name === name)) throw new Error("project name already exists");
-	if (!fs.existsSync(projectPath)) fs.mkdirSync(projectPath, { recursive: true });
-	reg.projects.push({
-		name,
-		path: projectPath,
-		created_at: (/* @__PURE__ */ new Date()).toISOString()
-	});
-	saveRegistry(reg);
-	return reg.projects[reg.projects.length - 1];
-}
-function deleteProject(name) {
-	if (name === "default") throw new Error("cannot delete default project");
-	const reg = loadRegistry();
-	reg.projects = reg.projects.filter((p) => p.name !== name);
-	if (reg.active === name) reg.active = "default";
-	saveRegistry(reg);
-}
-function setActiveProject(name) {
-	const reg = loadRegistry();
-	const proj = reg.projects.find((p) => p.name === name);
-	if (!proj) throw new Error("unknown project: " + name);
-	reg.active = name;
-	saveRegistry(reg);
-	applyHomeOverride(proj.path);
-	return proj;
-}
-function applyActiveProjectFromRegistry() {
-	const proj = getActiveProject();
-	if (proj) applyHomeOverride(proj.path);
-	return proj;
-}
-var REGISTRY_PATH, DEFAULT_REGISTRY;
-var init_projects = __esmMin((() => {
-	init_home();
-	REGISTRY_PATH = path.join(os.homedir(), ".freddie", "projects.json");
-	DEFAULT_REGISTRY = {
-		active: "default",
-		projects: [{
-			name: "default",
-			path: path.join(os.homedir(), ".freddie"),
-			created_at: (/* @__PURE__ */ new Date()).toISOString()
-		}]
-	};
-}));
-//#endregion
-//#region src/host/index.js
-init_home();
-init_projects();
-init_env();
-var _host = null;
-var _loadPromise = null;
-var _dotenvLoaded = false;
-var _pluginWatcher = null;
-var __dirname = path.dirname(fileURLToPath(import.meta.url));
-var REPO_PLUGINS = path.resolve(__dirname, "..", "..", "plugins");
-function loadDotenvOnce() {
-	if (_dotenvLoaded) return;
-	_dotenvLoaded = true;
-	dotenv_browser_stub_default.config();
-}
-function host() {
-	loadDotenvOnce();
-	if (!_host) _host = createHost({ surfaces: ["pi", "gui"] });
-	return _host;
-}
-async function bootHost(extraRoots = []) {
-	if (_loadPromise) return _loadPromise;
-	_loadPromise = (async () => {
-		const h = host();
-		if (!env("FREDDIE_HOME") && !env("FREDDIE_PROFILE")) applyActiveProjectFromRegistry();
-		const plugins = await discoverPlugins([
-			REPO_PLUGINS,
-			path.join(getFreddieHome(), "plugins"),
-			path.join(process.cwd(), ".freddie", "plugins"),
-			...extraRoots
-		]);
-		await h.load(plugins);
-		const ccRoots = [path.join(getFreddieHome(), "cc-plugins"), path.join(process.cwd(), ".freddie", "cc-plugins")];
-		await h.loadCcPlugins(ccRoots);
-		const extra = (env("FREDDIE_EXTRA_CC_ROOTS") || "").split(path.delimiter).filter(Boolean);
-		for (const r of [
-			__dirname,
-			process.cwd(),
-			...extra
-		]) await h.loadCcFromNodeModules(r);
-		return h;
-	})();
-	return _loadPromise;
-}
-function stopWatchingPlugins() {
-	if (_pluginWatcher) {
-		_pluginWatcher.close();
-		_pluginWatcher = null;
-	}
-}
-function resetHostForTests() {
-	_host = null;
-	_loadPromise = null;
-	_dotenvLoaded = false;
-	stopWatchingPlugins();
-}
-//#endregion
-//#region src/toolsets.js
-function available(host) {
-	return host.pi.tools.list().filter((t) => !t.checkFn || t.checkFn(t) !== false);
-}
-async function getEnabledToolSchemas(enabled = ["core"], disabled = []) {
-	const h = await bootHost();
-	const enabledSet = new Set(enabled);
-	const disabledSet = new Set(disabled);
-	return available(h).filter((t) => enabledSet.has(t.toolset || "core") && !disabledSet.has(t.name)).map((t) => t.schema);
-}
-//#endregion
-//#region src/observability/log.js
-init_home();
-var SEVERITIES = {
-	debug: 10,
-	info: 20,
-	warning: 30,
-	error: 40
-};
-var _streams = /* @__PURE__ */ new Map();
-function streamFor(name) {
-	if (_streams.has(name)) return _streams.get(name);
-	const dir = path.join(getFreddieHome(), "logs");
-	try {
-		fs.mkdirSync(dir, { recursive: true });
-	} catch {}
-	let s;
-	if (typeof fs.createWriteStream === "function") s = fs.createWriteStream(path.join(dir, `${name}.log`), { flags: "a" });
-	else s = {
-		write(line) {
-			try {
-				console.log("[" + name + "]", line.trim());
-			} catch {}
-		},
-		end() {}
-	};
-	_streams.set(name, s);
-	return s;
-}
-function log({ subsystem = "app", severity = "info", msg = "", ...rest }) {
-	const rec = {
-		ts: (/* @__PURE__ */ new Date()).toISOString(),
-		subsystem,
-		severity,
-		msg,
-		...rest
-	};
-	const line = JSON.stringify(rec) + "\n";
-	streamFor(subsystem).write(line);
-	if (SEVERITIES[severity] >= 30) streamFor("errors").write(line);
-}
-function logger(subsystem) {
-	return {
-		debug: (msg, e = {}) => log({
-			subsystem,
-			severity: "debug",
-			msg,
-			...e
-		}),
-		info: (msg, e = {}) => log({
-			subsystem,
-			severity: "info",
-			msg,
-			...e
-		}),
-		warn: (msg, e = {}) => log({
-			subsystem,
-			severity: "warning",
-			msg,
-			...e
-		}),
-		error: (msg, e = {}) => log({
-			subsystem,
-			severity: "error",
-			msg,
-			...e
-		})
-	};
-}
 //#endregion
 //#region node_modules/js-yaml/dist/js-yaml.mjs
 /*! js-yaml 5.2.1 https://github.com/nodeca/js-yaml @license MIT */
@@ -5185,6 +4251,78 @@ var init_js_yaml = __esmMin((() => {
 	};
 }));
 //#endregion
+//#region src/home.js
+var home_exports = /* @__PURE__ */ __exportAll({
+	applyHomeOverride: () => applyHomeOverride,
+	applyProfileOverride: () => applyProfileOverride,
+	displayFreddieHome: () => displayFreddieHome,
+	getFreddieHome: () => getFreddieHome,
+	getProfilesRoot: () => getProfilesRoot,
+	listProfiles: () => listProfiles,
+	resetCacheForTests: () => resetCacheForTests
+});
+function getFreddieHome() {
+	if (_cached) return _cached;
+	const home_env = env("FREDDIE_HOME");
+	if (home_env) {
+		_cached = home_env;
+		ensure(home_env);
+		return home_env;
+	}
+	const profile = env("FREDDIE_PROFILE");
+	const root = path.join(os.homedir(), ".freddie");
+	const home = profile ? path.join(root, "profiles", profile) : root;
+	_cached = home;
+	ensure(home);
+	return home;
+}
+function displayFreddieHome() {
+	const profile = env("FREDDIE_PROFILE");
+	return profile ? `~/.freddie/profiles/${profile}` : "~/.freddie";
+}
+function applyProfileOverride(name) {
+	if (!name || name === "default") {
+		delete process.env.FREDDIE_PROFILE;
+		_cached = null;
+		return;
+	}
+	process.env.FREDDIE_PROFILE = name;
+	_cached = null;
+}
+function applyHomeOverride(absPath) {
+	if (!absPath) {
+		delete process.env.FREDDIE_HOME;
+		_cached = null;
+		return;
+	}
+	process.env.FREDDIE_HOME = absPath;
+	_cached = null;
+	ensure(absPath);
+}
+function getProfilesRoot() {
+	if (env("FREDDIE_PROFILES_ROOT")) return env("FREDDIE_PROFILES_ROOT");
+	if (env("FREDDIE_HOME")) return path.join(env("FREDDIE_HOME"), "profiles");
+	return path.join(os.homedir(), ".freddie", "profiles");
+}
+function listProfiles() {
+	const root = getProfilesRoot();
+	if (!fs.existsSync(root)) return [];
+	return fs.readdirSync(root).filter((n) => fs.statSync(path.join(root, n)).isDirectory());
+}
+function resetCacheForTests() {
+	_cached = null;
+}
+function ensure(p) {
+	try {
+		fs.mkdirSync(p, { recursive: true });
+	} catch {}
+}
+var _cached;
+var init_home = __esmMin((() => {
+	init_env();
+	_cached = null;
+}));
+//#endregion
 //#region src/config.js
 var config_exports = /* @__PURE__ */ __exportAll({
 	DEFAULT_CONFIG: () => DEFAULT_CONFIG,
@@ -5355,9 +4493,957 @@ var init_config = __esmMin((() => {
 	};
 }));
 //#endregion
-//#region src/agent/model-matrix.js
+//#region src/utils.js
 init_config();
-var MATRIX_FILE = path.resolve(new URL(".", "" + import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), "..", "..", ".gm", "model-availability.json");
+var SECRET_PATTERNS = [
+	/sk-[A-Za-z0-9-_]{20,}/g,
+	/ghp_[A-Za-z0-9]{36}/g,
+	/xox[baprs]-[A-Za-z0-9-]{10,}/g,
+	/AKIA[0-9A-Z]{16}/g,
+	/[a-zA-Z0-9._%+-]+:[^@\s]+@[a-zA-Z0-9.-]+/g,
+	/Bearer\s+[A-Za-z0-9._-]+/gi
+];
+function redactSecret(s) {
+	let out = String(s);
+	for (const re of SECRET_PATTERNS) out = out.replace(re, "[REDACTED]");
+	return out;
+}
+function ansiStrip(s) {
+	return String(s).replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "").replace(/\x1b\][^\x07]*\x07/g, "");
+}
+//#endregion
+//#region src/host/tool-middleware.js
+init_home();
+var DANGEROUS_PARAM_NAMES = /* @__PURE__ */ new Set([
+	"eval",
+	"exec",
+	"__proto__",
+	"constructor"
+]);
+function sanitizeSchema(schema) {
+	if (!schema || typeof schema !== "object") return schema;
+	const out = JSON.parse(JSON.stringify(schema));
+	if (out.parameters?.properties) {
+		for (const k of Object.keys(out.parameters.properties)) if (DANGEROUS_PARAM_NAMES.has(k)) delete out.parameters.properties[k];
+	}
+	return out;
+}
+function stripAnsi(text) {
+	return ansiStrip(text);
+}
+var HEAP_SHRINK_THRESHOLD_PCT = 80;
+var HEAP_SHRINK_FACTOR = .5;
+function dynamicLimit(base) {
+	const mem = process.memoryUsage();
+	if (mem.heapUsed / mem.heapTotal * 100 < HEAP_SHRINK_THRESHOLD_PCT) return base;
+	return Math.floor(base * HEAP_SHRINK_FACTOR);
+}
+function truncate(s, max = null) {
+	const limit = dynamicLimit(max ?? getConfigValue("tool.output_limit", 1e5));
+	const t = String(s);
+	if (t.length <= limit) return t;
+	return t.slice(0, limit) + `\n…[truncated ${t.length - limit} chars]`;
+}
+function resultsDir() {
+	const d = path.join(getFreddieHome(), "tool-results");
+	fs.mkdirSync(d, { recursive: true });
+	return d;
+}
+function storeToolResult(content) {
+	const token = crypto.randomBytes(8).toString("hex");
+	fs.writeFileSync(path.join(resultsDir(), token + ".txt"), content || "", "utf8");
+	return {
+		token,
+		bytes: (content || "").length
+	};
+}
+function applyPostCall(text) {
+	let out = stripAnsi(text);
+	const limit = getConfigValue("tool.output_limit", 1e5);
+	if (out.length > limit) {
+		const { token } = storeToolResult(out);
+		out = truncate(out, limit) + `\n…[full output stored: tool_result token=${token}]`;
+	}
+	return out;
+}
+function applyToolMiddleware(toolCall, result) {
+	return applyPostCall(result);
+}
+//#endregion
+//#region src/host/host_helpers.js
+init_env();
+path.dirname(fileURLToPath(import.meta.url));
+function reg(map, kind) {
+	return {
+		register(spec) {
+			if (!spec?.name) throw new Error(`${kind}.name required`);
+			map.set(spec.name, spec);
+		},
+		get: (n) => map.get(n),
+		list: () => [...map.values()],
+		has: (n) => map.has(n),
+		size: () => map.size,
+		unregister: (n) => map.delete(n)
+	};
+}
+function maybeChaosInject(toolName) {
+	const pct = Number(env("FREDDIE_CHAOS_INJECT"));
+	if (!pct || pct <= 0) return;
+	if (Math.random() * 100 < pct) throw new Error(`[FREDDIE_CHAOS_INJECT] synthetic failure injected for tool '${toolName}' (chaos_pct=${pct})`);
+}
+function makePi() {
+	const m = {
+		tools: /* @__PURE__ */ new Map(),
+		envs: /* @__PURE__ */ new Map(),
+		commands: /* @__PURE__ */ new Map(),
+		crons: /* @__PURE__ */ new Map(),
+		platforms: /* @__PURE__ */ new Map(),
+		memory: /* @__PURE__ */ new Map(),
+		skills: /* @__PURE__ */ new Map(),
+		contexts: /* @__PURE__ */ new Map(),
+		agentExts: /* @__PURE__ */ new Map(),
+		cli: /* @__PURE__ */ new Map()
+	};
+	return {
+		_state: m,
+		tools: reg(m.tools, "tool"),
+		envs: reg(m.envs, "env"),
+		commands: reg(m.commands, "command"),
+		crons: reg(m.crons, "cron"),
+		platforms: reg(m.platforms, "platform"),
+		memory: reg(m.memory, "memory"),
+		skills: reg(m.skills, "skill"),
+		contexts: reg(m.contexts, "context"),
+		agentExts: reg(m.agentExts, "agentExt"),
+		cli: reg(m.cli, "cli"),
+		async dispatchTool(name, args = {}, ctx = {}, opts = {}) {
+			const t = m.tools.get(name);
+			if (!t) return JSON.stringify({ error: `unknown tool: ${name}` });
+			if (t.checkFn && t.checkFn(t) === false) return JSON.stringify({
+				error: `tool unavailable: ${name}`,
+				requires: t.requiresEnv || []
+			});
+			const hooks = opts.hooks;
+			const ctxWithProgress = hooks ? {
+				...ctx,
+				onProgress: (partial) => hooks.invoke("onToolProgress", {
+					name,
+					args,
+					partial
+				})
+			} : ctx;
+			try {
+				maybeChaosInject(name);
+				const r = await t.handler(args, ctxWithProgress);
+				const raw = typeof r === "string" ? r : JSON.stringify(r);
+				return applyToolMiddleware({
+					name,
+					tool: t,
+					args
+				}, raw);
+			} catch (e) {
+				return JSON.stringify({
+					error: String(e?.message || e),
+					tool: name
+				});
+			}
+		}
+	};
+}
+function makeGui() {
+	const r = [], pages = /* @__PURE__ */ new Map(), nav = [], debugs = /* @__PURE__ */ new Map(), apis = /* @__PURE__ */ new Map(), assets = /* @__PURE__ */ new Map(), wsRoutes = /* @__PURE__ */ new Map();
+	return {
+		_state: {
+			routes: r,
+			pages,
+			nav,
+			debugs,
+			apis,
+			assets,
+			wsRoutes
+		},
+		route: (method, p, h) => r.push({
+			method: method.toUpperCase(),
+			path: p,
+			handler: h
+		}),
+		unroute: (method, p) => {
+			const i = r.findIndex((x) => x.method === method.toUpperCase() && x.path === p);
+			if (i === -1) return false;
+			r.splice(i, 1);
+			return true;
+		},
+		wsRoute: (p, onConnection) => wsRoutes.set(p, onConnection),
+		page: (s, d) => pages.set(s, d),
+		nav: (i) => nav.push(i),
+		debug: (n, fn) => debugs.set(n, fn),
+		api: (g, d) => apis.set(g, d),
+		asset: (p, c) => assets.set(p, c),
+		routes: { list: () => r },
+		pages: {
+			get: (s) => pages.get(s),
+			list: () => [...pages.values()],
+			has: (s) => pages.has(s)
+		},
+		navItems: { list: () => nav },
+		debugs: {
+			list: () => [...debugs.entries()].map(([n, f]) => ({
+				name: n,
+				snapshot: f
+			})),
+			get: (n) => debugs.get(n)
+		}
+	};
+}
+function ccPayloadFor(name, payload) {
+	if (name === "preToolCall" || name === "postToolCall") return {
+		tool_name: payload?.name,
+		tool_input: payload?.args || payload?.input,
+		tool_response: payload?.result
+	};
+	if (name === "onMessageInbound" || name === "onMessageOutbound") return { prompt: payload?.content || payload?.text || "" };
+	if (name === "onPreCompact" || name === "onPostCompact") return {
+		trigger: payload?.trigger || "auto",
+		messages_count: payload?.messages?.length ?? 0,
+		summary: payload?.summary ?? null
+	};
+	return payload || {};
+}
+function guard(surface, allowed, name, verbs) {
+	if (allowed) return surface;
+	return new Proxy({}, { get(_, key) {
+		if (verbs.includes(String(key))) return () => {
+			throw new Error(`plugin ${name}: surface verb '${String(key)}' not allowed (declared surfaces=${name})`);
+		};
+		return surface[key];
+	} });
+}
+function scopedCfg(name, store) {
+	const k = `plugins.${name}`;
+	return {
+		get: (kk, d) => store.get(`${k}.${kk}`, d),
+		set: (kk, v) => store.set(`${k}.${kk}`, v),
+		all: () => store.all(k) || {}
+	};
+}
+var nullStore = () => {
+	const m = /* @__PURE__ */ new Map();
+	return {
+		get: (k, d) => m.has(k) ? m.get(k) : d,
+		set: (k, v) => m.set(k, v),
+		all: (p) => Object.fromEntries([...m.entries()].filter(([k]) => k.startsWith(p)))
+	};
+};
+function makeCcHooks({ surfaces, pi, binPaths, inboundListeners }) {
+	const pi_ok = surfaces.includes("pi");
+	return {
+		onSkill: (p, s) => pi_ok && pi.skills.register({
+			name: p.manifest.name + ":" + s.name,
+			description: s.description,
+			content: s.body,
+			source: "cc:" + p.manifest.name,
+			frontmatter: s.fields,
+			file: s.file
+		}),
+		onAgent: (p, a) => pi_ok && pi.agentExts.register({
+			name: p.manifest.name + ":" + a.name,
+			description: a.description,
+			frontmatter: a.fields,
+			body: a.body,
+			source: "cc:" + p.manifest.name,
+			file: a.file
+		}),
+		onCommand: (p, c) => pi_ok && pi.commands.register({
+			name: p.manifest.name + ":" + c.name,
+			description: c.description,
+			body: c.body,
+			frontmatter: c.fields,
+			source: "cc:" + p.manifest.name
+		}),
+		onTheme: (p, t) => pi_ok && pi.contexts.register({
+			name: "theme:" + p.manifest.name + ":" + t.slug,
+			description: t.name,
+			theme: t
+		}),
+		onOutputStyle: (p, o) => pi_ok && pi.contexts.register({
+			name: "style:" + p.manifest.name + ":" + o.name,
+			description: o.description,
+			body: o.body,
+			frontmatter: o.fields
+		}),
+		onChannel: (p, c) => pi_ok && pi.platforms.register({
+			name: "cc:" + p.manifest.name + ":" + c.server,
+			server: c.server,
+			userConfig: c.userConfig || {},
+			source: "cc:" + p.manifest.name
+		}),
+		onSetting: (p, s) => {
+			if (s.agent && pi_ok && !pi.agentExts.has("default")) pi.agentExts.register({
+				name: "default",
+				target: p.manifest.name + ":" + s.agent
+			});
+		},
+		onBin: (_, dir) => binPaths.push(dir),
+		onMcpTool: (p, server, tool, call) => pi_ok && pi.tools.register({
+			name: "cc:" + p.manifest.name + ":" + server + ":" + tool.name,
+			schema: {
+				name: tool.name,
+				description: tool.description || "",
+				parameters: tool.inputSchema || {}
+			},
+			handler: (args) => call(args)
+		}),
+		onMonitorLine: (p, mon, line) => {
+			for (const fn of inboundListeners) fn({
+				source: "monitor:" + p.manifest.name + ":" + mon.name,
+				text: line
+			});
+		}
+	};
+}
+function makeHooksRegistry(ccHost) {
+	const reg2 = Object.fromEntries(HOOK_NAMES.map((n) => [n, []]));
+	return {
+		on(name, fn) {
+			if (!HOOK_NAMES.includes(name)) throw new Error(`unknown hook: ${name}`);
+			reg2[name].push(fn);
+		},
+		off(name, fn) {
+			const l = reg2[name];
+			if (!l) return false;
+			const i = l.indexOf(fn);
+			if (i === -1) return false;
+			l.splice(i, 1);
+			return true;
+		},
+		async invoke(name, payload) {
+			let cur = payload;
+			for (const fn of reg2[name] || []) cur = await fn(cur) ?? cur;
+			const native = FREDDIE_TO_NATIVE_HOOK[name];
+			if (native && ccHost.plugins().length && !env("FREDDIE_DISABLE_CC_HOOKS")) {
+				const r = await ccHost.dispatch(native, ccPayloadFor(name, cur));
+				const extras = {};
+				if (typeof r.systemMessage === "string" && r.systemMessage.length) extras.systemMessage = r.systemMessage;
+				const addCtx = r.hookSpecificOutput?.additionalContext;
+				if (typeof addCtx === "string" && addCtx.length) extras.additionalContext = addCtx;
+				if (r.decision === "block") return {
+					...cur,
+					...extras,
+					behavior: "block",
+					reason: r.reason
+				};
+				if (r.hookSpecificOutput?.permissionDecision === "deny") return {
+					...cur,
+					...extras,
+					behavior: "block",
+					reason: r.hookSpecificOutput?.permissionDecisionReason || "denied"
+				};
+				if (r.hookSpecificOutput?.updatedInput) return {
+					...cur,
+					...extras,
+					...r.hookSpecificOutput.updatedInput
+				};
+				if (Object.keys(extras).length) return {
+					...cur,
+					...extras
+				};
+			}
+			return cur;
+		},
+		names: () => HOOK_NAMES,
+		listeners: (n) => [...reg2[n] || []]
+	};
+}
+function isCcPluginDir(dir) {
+	if (fs.existsSync(path.join(dir, ".claude-plugin", "plugin.json"))) return true;
+	if (!fs.existsSync(path.join(dir, "plugin.json"))) return false;
+	return fs.existsSync(path.join(dir, "hooks", "hooks.json")) || fs.existsSync(path.join(dir, "skills")) || fs.existsSync(path.join(dir, "agents"));
+}
+function makeCcLoaders(ccHost, env) {
+	async function useCcDir(dir) {
+		try {
+			await ccHost.use(loadClaudePlugin(dir));
+		} catch (e) {
+			if (env.FREDDIE_LOG_STDOUT) console.error(`cc-plugin ${dir} failed: ${e.message}`);
+		}
+	}
+	async function loadCcPlugins(roots) {
+		for (const root of roots) {
+			if (!root || !fs.existsSync(root)) continue;
+			for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+				if (!entry.isDirectory()) continue;
+				const dir = path.join(root, entry.name);
+				if (isCcPluginDir(dir)) await useCcDir(dir);
+			}
+		}
+		return ccHost.plugins().length;
+	}
+	const CC_EXCLUDE = /* @__PURE__ */ new Set(["gm-cc"]);
+	const isExcludedCc = (base) => CC_EXCLUDE.has(base) || /^\.?gm-cc(-|$)/.test(base);
+	async function loadCcFromNodeModules(startDir) {
+		const seen = new Set(ccHost.plugins().map((p) => p.root));
+		let cur = path.resolve(startDir);
+		while (true) {
+			const nm = path.join(cur, "node_modules");
+			if (fs.existsSync(nm)) for (const entry of fs.readdirSync(nm, { withFileTypes: true })) {
+				if (!entry.isDirectory()) continue;
+				const dirs = entry.name.startsWith("@") ? fs.readdirSync(path.join(nm, entry.name), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => path.join(nm, entry.name, e.name)) : [path.join(nm, entry.name)];
+				for (const d of dirs) {
+					if (seen.has(d) || !isCcPluginDir(d) || isExcludedCc(path.basename(d))) continue;
+					seen.add(d);
+					await useCcDir(d);
+				}
+			}
+			const parent = path.dirname(cur);
+			if (parent === cur) break;
+			cur = parent;
+		}
+		return ccHost.plugins().length;
+	}
+	return {
+		loadCcPlugins,
+		loadCcFromNodeModules
+	};
+}
+//#endregion
+//#region src/flags.js
+init_home();
+function flagsPath() {
+	return path.join(getFreddieHome(), "flags.json");
+}
+function loadFlags() {
+	try {
+		return JSON.parse(fs.readFileSync(flagsPath(), "utf8"));
+	} catch {
+		return {};
+	}
+}
+function installId() {
+	return crypto.createHash("sha256").update(getFreddieHome()).digest("hex");
+}
+function bucketFor(name) {
+	const h = crypto.createHash("sha256").update(name + ":" + installId()).digest("hex");
+	return parseInt(h.slice(0, 8), 16) / 4294967295 * 100;
+}
+function isFlagEnabled(name) {
+	const entry = loadFlags()[name];
+	if (entry === void 0) return true;
+	if (typeof entry === "boolean") return entry;
+	if (typeof entry === "object" && entry !== null && typeof entry.rollout_pct === "number") return bucketFor(name) < entry.rollout_pct;
+	return true;
+}
+//#endregion
+//#region src/host/host.js
+function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed, sourcePaths }) {
+	return async function load(plugins) {
+		const sorted = topoSort(plugins.map(validatePlugin));
+		for (const p of sorted) {
+			const want = p.surfaces;
+			const cap = {
+				tools: [],
+				hooks: [],
+				commands: [],
+				crons: [],
+				routes: [],
+				_hookFns: [],
+				_routeDefs: []
+			};
+			const ctxPi = (want === "pi" || want === "both") && surfaces.includes("pi") ? recordPi(pi, cap) : guard(pi, false, p.name, PI_VERBS);
+			const ctxGui = (want === "gui" || want === "both") && surfaces.includes("gui") ? recordGui(gui, cap) : guard(gui, false, p.name, GUI_VERBS);
+			const ctxHooks = recordHooks(hooks, cap);
+			const log = (lv, m, f) => {
+				const line = JSON.stringify({
+					ts: Date.now(),
+					plugin: p.name,
+					level: lv,
+					msg: m,
+					...f || {}
+				});
+				if (env.FREDDIE_LOG_STDOUT) console.log(line);
+			};
+			const logger = {
+				info: (m, f) => log("info", m, f),
+				warn: (m, f) => log("warn", m, f),
+				error: (m, f) => log("error", m, f)
+			};
+			const ctx = {
+				pi: ctxPi,
+				gui: ctxGui,
+				hooks: ctxHooks,
+				log: logger,
+				config: scopedCfg(p.name, configStore),
+				host,
+				env
+			};
+			try {
+				await p.register(ctx);
+				loaded.push(p);
+				capabilities.set(p.name, cap);
+				if (p.__sourceFile) sourcePaths.set(p.name, p.__sourceFile);
+			} catch (e) {
+				const entry = {
+					plugin: p.name,
+					name: p.name,
+					error: String(e?.message || e),
+					stack: e?.stack || null,
+					config: scopedCfg(p.name, configStore).all(),
+					env_keys_present: Object.keys(process.env).filter((k) => k.startsWith("FREDDIE_")),
+					ts: Date.now()
+				};
+				failed.push(entry);
+				logger.error(`plugin register() threw: ${entry.error}`, { stack: entry.stack });
+			}
+		}
+		return loaded.length;
+	};
+}
+function recordPi(pi, cap) {
+	return {
+		...pi,
+		tools: {
+			...pi.tools,
+			register: (s) => {
+				cap.tools.push(s.name);
+				return pi.tools.register(s);
+			}
+		},
+		commands: {
+			...pi.commands,
+			register: (s) => {
+				cap.commands.push(s.name);
+				return pi.commands.register(s);
+			}
+		},
+		crons: {
+			...pi.crons,
+			register: (s) => {
+				cap.crons.push(s.name);
+				return pi.crons.register(s);
+			}
+		}
+	};
+}
+function recordGui(gui, cap) {
+	return {
+		...gui,
+		route: (method, path, h) => {
+			cap.routes.push(`${method.toUpperCase()} ${path}`);
+			cap._routeDefs.push({
+				method: method.toUpperCase(),
+				path
+			});
+			return gui.route(method, path, h);
+		}
+	};
+}
+function recordHooks(hooks, cap) {
+	return {
+		...hooks,
+		on: (name, fn) => {
+			cap.hooks.push(name);
+			cap._hookFns.push({
+				name,
+				fn
+			});
+			return hooks.on(name, fn);
+		}
+	};
+}
+function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env = process.env } = {}) {
+	const pi = makePi(), gui = makeGui();
+	const binPaths = [];
+	const inboundListeners = [];
+	const ccHost = createHost$1({
+		env,
+		on: makeCcHooks({
+			surfaces,
+			pi,
+			binPaths,
+			inboundListeners
+		})
+	});
+	const hooks = makeHooksRegistry(ccHost);
+	const loaded = [];
+	const capabilities = /* @__PURE__ */ new Map();
+	const failed = [];
+	const sourcePaths = /* @__PURE__ */ new Map();
+	const host = {
+		pi: surfaces.includes("pi") ? pi : null,
+		gui: surfaces.includes("gui") ? gui : null,
+		hooks,
+		binPaths: () => binPaths.slice(),
+		ccPlugins: () => ccHost.plugins(),
+		onInbound: (fn) => inboundListeners.push(fn),
+		plugins: () => loaded.map((p) => ({
+			name: p.name,
+			version: p.version || null,
+			surfaces: p.surfaces,
+			requires: p.requires || []
+		})),
+		failed: () => failed.slice(),
+		get: (n) => loaded.find((p) => p.name === n) || null,
+		capabilities: (n) => n ? capabilities.get(n) || null : Object.fromEntries(capabilities),
+		failedPlugins: () => failed.slice(),
+		shutdown: () => ccHost.shutdown(),
+		reloadPlugin: (filePath) => reloadPlugin({
+			filePath,
+			sourcePaths,
+			capabilities,
+			loaded,
+			pi,
+			gui,
+			hooks,
+			host
+		})
+	};
+	host.load = makePluginLoader({
+		surfaces,
+		pi,
+		gui,
+		hooks,
+		configStore,
+		env,
+		host,
+		loaded,
+		capabilities,
+		failed,
+		sourcePaths
+	});
+	const cc = makeCcLoaders(ccHost, env);
+	host.loadCcPlugins = cc.loadCcPlugins;
+	host.loadCcFromNodeModules = cc.loadCcFromNodeModules;
+	return host;
+}
+function isFlagDisabled(dir) {
+	const manifestPath = path.join(dir, "plugin.json");
+	if (!fs.existsSync(manifestPath)) return false;
+	try {
+		const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+		if (!manifest.feature_flag) return false;
+		return !isFlagEnabled(manifest.feature_flag);
+	} catch {
+		return false;
+	}
+}
+async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, pi, gui, hooks, host }) {
+	const name = [...sourcePaths.entries()].find(([, f]) => f === filePath)?.[0];
+	if (!name) return null;
+	const cap = capabilities.get(name);
+	if (cap) {
+		for (const t of cap.tools) pi.tools.unregister(t);
+		for (const c of cap.commands) pi.commands.unregister(c);
+		for (const c of cap.crons) pi.crons.unregister(c);
+		for (const { method, path: p } of cap._routeDefs || []) gui.unroute(method, p);
+		for (const { name: hn, fn } of cap._hookFns || []) hooks.off(hn, fn);
+	}
+	const idx = loaded.findIndex((p) => p.name === name);
+	if (idx !== -1) loaded.splice(idx, 1);
+	capabilities.delete(name);
+	const reloadCopy = filePath.replace(/\.m?js$/, `.reload-${Date.now()}.mjs`);
+	fs.copyFileSync(filePath, reloadCopy);
+	let mod;
+	try {
+		mod = await import(pathToFileURL(reloadCopy).href);
+	} finally {
+		fs.unlink(reloadCopy, () => {});
+	}
+	const fresh = mod.default || mod.plugin;
+	if (!fresh) return null;
+	fresh.__sourceFile = filePath;
+	const newCap = {
+		tools: [],
+		hooks: [],
+		commands: [],
+		crons: [],
+		routes: [],
+		_hookFns: [],
+		_routeDefs: []
+	};
+	const want = fresh.surfaces;
+	const ctxPi = want === "pi" || want === "both" ? recordPi(pi, newCap) : pi;
+	const ctxGui = want === "gui" || want === "both" ? recordGui(gui, newCap) : gui;
+	const ctxHooks = recordHooks(hooks, newCap);
+	await validatePlugin(fresh).register({
+		pi: ctxPi,
+		gui: ctxGui,
+		hooks: ctxHooks,
+		log: {
+			info() {},
+			warn() {},
+			error() {}
+		},
+		config: nullStore(),
+		host,
+		env: process.env
+	});
+	loaded.push(fresh);
+	capabilities.set(name, newCap);
+	sourcePaths.set(name, filePath);
+	return name;
+}
+async function discoverPlugins(roots) {
+	const found = [];
+	for (const root of roots) await scanPluginDir(root, found, 1);
+	return found;
+}
+async function scanPluginDir(root, found, depth) {
+	if (!root || !fs.existsSync(root)) return;
+	for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+		if (!entry.isDirectory()) continue;
+		const dir = path.join(root, entry.name);
+		const file = path.join(dir, "plugin.js");
+		if (fs.existsSync(file)) {
+			if (isFlagDisabled(dir)) continue;
+			const mod = await import(pathToFileURL(file).href);
+			const p = mod.default || mod.plugin;
+			if (p) {
+				p.__sourceFile = file;
+				found.push(p);
+			}
+			continue;
+		}
+		const handlerFile = path.join(dir, "handler.js");
+		if (fs.existsSync(handlerFile)) {
+			if (isFlagDisabled(dir)) continue;
+			const _tool = (await import(pathToFileURL(handlerFile).href))._tool;
+			if (!_tool) continue;
+			found.push({
+				name: `tool-${entry.name}`,
+				surfaces: "pi",
+				__sourceFile: handlerFile,
+				register({ pi }) {
+					pi.tools.register(_tool);
+				}
+			});
+			continue;
+		}
+		if (depth > 0) await scanPluginDir(dir, found, depth - 1);
+	}
+}
+//#endregion
+//#region src/projects.js
+var projects_exports = /* @__PURE__ */ __exportAll({
+	applyActiveProjectFromRegistry: () => applyActiveProjectFromRegistry,
+	createProject: () => createProject,
+	deleteProject: () => deleteProject,
+	getActiveProject: () => getActiveProject,
+	listProjects: () => listProjects,
+	loadRegistry: () => loadRegistry,
+	setActiveProject: () => setActiveProject
+});
+function ensureRegistry() {
+	const dir = path.dirname(REGISTRY_PATH);
+	if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+	if (!fs.existsSync(REGISTRY_PATH)) fs.writeFileSync(REGISTRY_PATH, JSON.stringify(DEFAULT_REGISTRY, null, 2));
+}
+function loadRegistry() {
+	ensureRegistry();
+	try {
+		const raw = JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf8"));
+		if (!raw.projects || !Array.isArray(raw.projects)) return DEFAULT_REGISTRY;
+		if (!raw.projects.find((p) => p.name === "default")) raw.projects.unshift(DEFAULT_REGISTRY.projects[0]);
+		if (!raw.active) raw.active = "default";
+		return raw;
+	} catch {
+		return DEFAULT_REGISTRY;
+	}
+}
+function saveRegistry(reg) {
+	ensureRegistry();
+	fs.writeFileSync(REGISTRY_PATH, JSON.stringify(reg, null, 2));
+}
+function listProjects() {
+	return loadRegistry().projects;
+}
+function getActiveProject() {
+	const reg = loadRegistry();
+	return reg.projects.find((p) => p.name === reg.active) || reg.projects[0];
+}
+function createProject({ name, projectPath }) {
+	if (!name || !projectPath) throw new Error("name and path are required");
+	if (!path.isAbsolute(projectPath)) throw new Error("path must be absolute");
+	const reg = loadRegistry();
+	if (reg.projects.find((p) => p.name === name)) throw new Error("project name already exists");
+	if (!fs.existsSync(projectPath)) fs.mkdirSync(projectPath, { recursive: true });
+	reg.projects.push({
+		name,
+		path: projectPath,
+		created_at: (/* @__PURE__ */ new Date()).toISOString()
+	});
+	saveRegistry(reg);
+	return reg.projects[reg.projects.length - 1];
+}
+function deleteProject(name) {
+	if (name === "default") throw new Error("cannot delete default project");
+	const reg = loadRegistry();
+	reg.projects = reg.projects.filter((p) => p.name !== name);
+	if (reg.active === name) reg.active = "default";
+	saveRegistry(reg);
+}
+function setActiveProject(name) {
+	const reg = loadRegistry();
+	const proj = reg.projects.find((p) => p.name === name);
+	if (!proj) throw new Error("unknown project: " + name);
+	reg.active = name;
+	saveRegistry(reg);
+	applyHomeOverride(proj.path);
+	return proj;
+}
+function applyActiveProjectFromRegistry() {
+	const proj = getActiveProject();
+	if (proj) applyHomeOverride(proj.path);
+	return proj;
+}
+var REGISTRY_PATH, DEFAULT_REGISTRY;
+var init_projects = __esmMin((() => {
+	init_home();
+	REGISTRY_PATH = path.join(os.homedir(), ".freddie", "projects.json");
+	DEFAULT_REGISTRY = {
+		active: "default",
+		projects: [{
+			name: "default",
+			path: path.join(os.homedir(), ".freddie"),
+			created_at: (/* @__PURE__ */ new Date()).toISOString()
+		}]
+	};
+}));
+//#endregion
+//#region src/host/index.js
+init_home();
+init_projects();
+init_env();
+var _host = null;
+var _loadPromise = null;
+var _dotenvLoaded = false;
+var _pluginWatcher = null;
+var __dirname = path.dirname(fileURLToPath(import.meta.url));
+var REPO_PLUGINS = path.resolve(__dirname, "..", "..", "plugins");
+function loadDotenvOnce() {
+	if (_dotenvLoaded) return;
+	_dotenvLoaded = true;
+	dotenv_browser_stub_default.config();
+}
+function host() {
+	loadDotenvOnce();
+	if (!_host) _host = createHost({ surfaces: ["pi", "gui"] });
+	return _host;
+}
+async function bootHost(extraRoots = []) {
+	if (_loadPromise) return _loadPromise;
+	_loadPromise = (async () => {
+		const h = host();
+		if (!env("FREDDIE_HOME") && !env("FREDDIE_PROFILE")) applyActiveProjectFromRegistry();
+		const plugins = await discoverPlugins([
+			REPO_PLUGINS,
+			path.join(getFreddieHome(), "plugins"),
+			path.join(process.cwd(), ".freddie", "plugins"),
+			...extraRoots
+		]);
+		await h.load(plugins);
+		const ccRoots = [path.join(getFreddieHome(), "cc-plugins"), path.join(process.cwd(), ".freddie", "cc-plugins")];
+		await h.loadCcPlugins(ccRoots);
+		const extra = (env("FREDDIE_EXTRA_CC_ROOTS") || "").split(path.delimiter).filter(Boolean);
+		for (const r of [
+			__dirname,
+			process.cwd(),
+			...extra
+		]) await h.loadCcFromNodeModules(r);
+		return h;
+	})();
+	return _loadPromise;
+}
+function stopWatchingPlugins() {
+	if (_pluginWatcher) {
+		_pluginWatcher.close();
+		_pluginWatcher = null;
+	}
+}
+function resetHostForTests() {
+	_host = null;
+	_loadPromise = null;
+	_dotenvLoaded = false;
+	stopWatchingPlugins();
+}
+//#endregion
+//#region src/toolsets.js
+function available(host) {
+	return host.pi.tools.list().filter((t) => !t.checkFn || t.checkFn(t) !== false);
+}
+async function getEnabledToolSchemas(enabled = ["core"], disabled = []) {
+	const h = await bootHost();
+	const enabledSet = new Set(enabled);
+	const disabledSet = new Set(disabled);
+	return available(h).filter((t) => enabledSet.has(t.toolset || "core") && !disabledSet.has(t.name)).map((t) => sanitizeSchema(t.schema));
+}
+//#endregion
+//#region src/observability/log.js
+init_home();
+var SEVERITIES = {
+	debug: 10,
+	info: 20,
+	warning: 30,
+	error: 40
+};
+var _streams = /* @__PURE__ */ new Map();
+function streamFor(name) {
+	if (_streams.has(name)) return _streams.get(name);
+	const dir = path.join(getFreddieHome(), "logs");
+	try {
+		fs.mkdirSync(dir, { recursive: true });
+	} catch {}
+	let s;
+	if (typeof fs.createWriteStream === "function") s = fs.createWriteStream(path.join(dir, `${name}.log`), { flags: "a" });
+	else s = {
+		write(line) {
+			try {
+				console.log("[" + name + "]", line.trim());
+			} catch {}
+		},
+		end() {}
+	};
+	_streams.set(name, s);
+	return s;
+}
+function log({ subsystem = "app", severity = "info", msg = "", ...rest }) {
+	const rec = {
+		ts: (/* @__PURE__ */ new Date()).toISOString(),
+		subsystem,
+		severity,
+		msg,
+		...rest
+	};
+	const line = JSON.stringify(rec) + "\n";
+	streamFor(subsystem).write(line);
+	if (SEVERITIES[severity] >= 30) streamFor("errors").write(line);
+}
+function logger(subsystem) {
+	return {
+		debug: (msg, e = {}) => log({
+			subsystem,
+			severity: "debug",
+			msg,
+			...e
+		}),
+		info: (msg, e = {}) => log({
+			subsystem,
+			severity: "info",
+			msg,
+			...e
+		}),
+		warn: (msg, e = {}) => log({
+			subsystem,
+			severity: "warning",
+			msg,
+			...e
+		}),
+		error: (msg, e = {}) => log({
+			subsystem,
+			severity: "error",
+			msg,
+			...e
+		})
+	};
+}
 //#endregion
 //#region src/agent/tool_call_text.js
 function randId() {
@@ -5433,7 +5519,7 @@ function parseTextToolCalls(content) {
 }
 //#endregion
 //#region src/agent/acptoapi-bridge.js
-var log$4 = logger("acptoapi");
+var log$5 = logger("acptoapi");
 var envVal = (k) => {
 	try {
 		return typeof process !== "undefined" && process.env ? process.env[k] : void 0;
@@ -5503,13 +5589,13 @@ async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } 
 	} finally {
 		clearTimeout(_timeoutHandle);
 	}
-	log$4.info("completed", {
+	log$5.info("completed", {
 		model: useModel,
 		servedModel: Array.isArray(chainModel) ? json.model || null : useModel,
 		usage: json.usage
 	});
 	const adapted = adaptResponse(json);
-	if ((tool_choice === "required" || tool_choice?.type === "required") && hasTools && !adapted.tool_calls.length) log$4.warn("tool_choice required but no tool call returned (provider did not honor it)", { model: useModel });
+	if ((tool_choice === "required" || tool_choice?.type === "required") && hasTools && !adapted.tool_calls.length) log$5.warn("tool_choice required but no tool call returned (provider did not honor it)", { model: useModel });
 	return adapted;
 }
 function adaptMessage(m) {
@@ -5598,7 +5684,13 @@ async function isReachable(timeoutMs = 1e4) {
 	}
 }
 //#endregion
+//#region src/models/discovery.js
+init_config();
+_sdkNs && _sdkNs.default;
+var MATRIX_FILE = path.resolve(new URL(".", "" + import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), "..", "..", ".gm", "model-availability.json");
+//#endregion
 //#region src/agent/llm_resolver.js
+init_config();
 init_env();
 var _req = createRequire(import.meta.url);
 var REACHABLE_TTL_MS = 5e3;
@@ -5638,7 +5730,7 @@ async function cachedReachable() {
 	};
 	return ok;
 }
-var sdk = sdkNs && (sdkNs.default || sdkNs) || {};
+var sdk = _sdkNs && (_sdkNs.default || _sdkNs) || {};
 var PROVIDER_KEYS = sdk.PROVIDER_KEYS || {};
 var DEFAULTS = sdk.PROVIDER_DEFAULTS || {};
 var toTools = (s) => s?.length ? s.map((t) => ({
@@ -10392,21 +10484,6 @@ async function list({ kind = null, status = "active" } = {}) {
 }
 async function sweepDone() {
 	return { removed: (await (await init$1()).prepare(`DELETE FROM machine_snapshots WHERE status != 'active'`).run()).changes };
-}
-//#endregion
-//#region src/utils.js
-var SECRET_PATTERNS = [
-	/sk-[A-Za-z0-9-_]{20,}/g,
-	/ghp_[A-Za-z0-9]{36}/g,
-	/xox[baprs]-[A-Za-z0-9-]{10,}/g,
-	/AKIA[0-9A-Z]{16}/g,
-	/[a-zA-Z0-9._%+-]+:[^@\s]+@[a-zA-Z0-9.-]+/g,
-	/Bearer\s+[A-Za-z0-9._-]+/gi
-];
-function redactSecret(s) {
-	let out = String(s);
-	for (const re of SECRET_PATTERNS) out = out.replace(re, "[REDACTED]");
-	return out;
 }
 //#endregion
 //#region src/machines/persistent-actor.js
