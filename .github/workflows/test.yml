@@ -33,3 +33,6 @@ jobs:
               if (!Array.isArray(plugins)) throw new Error('discoverPlugins did not return an array');
             }).catch((err) => { console.error(err); process.exit(1); });
           "
+
+      - name: OSV vulnerability scan (blocks on CRITICAL)
+        run: node scripts/osv-scan-lockfile.mjs
