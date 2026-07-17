@@ -1,6 +1,6 @@
+import fs, { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path, { basename, extname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import fs, { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { spawn } from "node:child_process";
 import os, { homedir } from "node:os";
 import crypto, { randomUUID } from "node:crypto";
@@ -1347,6 +1347,7 @@ var init_env = __esmMin((() => {
 //#endregion
 //#region src/host/host_helpers.js
 init_env();
+path.dirname(fileURLToPath(import.meta.url));
 function reg(map, kind) {
 	return {
 		register(spec) {
@@ -1356,7 +1357,8 @@ function reg(map, kind) {
 		get: (n) => map.get(n),
 		list: () => [...map.values()],
 		has: (n) => map.has(n),
-		size: () => map.size
+		size: () => map.size,
+		unregister: (n) => map.delete(n)
 	};
 }
 function makePi() {
@@ -1404,7 +1406,7 @@ function makePi() {
 	};
 }
 function makeGui() {
-	const r = [], pages = /* @__PURE__ */ new Map(), nav = [], debugs = /* @__PURE__ */ new Map(), apis = /* @__PURE__ */ new Map(), assets = /* @__PURE__ */ new Map();
+	const r = [], pages = /* @__PURE__ */ new Map(), nav = [], debugs = /* @__PURE__ */ new Map(), apis = /* @__PURE__ */ new Map(), assets = /* @__PURE__ */ new Map(), wsRoutes = /* @__PURE__ */ new Map();
 	return {
 		_state: {
 			routes: r,
@@ -1412,13 +1414,21 @@ function makeGui() {
 			nav,
 			debugs,
 			apis,
-			assets
+			assets,
+			wsRoutes
 		},
 		route: (method, p, h) => r.push({
 			method: method.toUpperCase(),
 			path: p,
 			handler: h
 		}),
+		unroute: (method, p) => {
+			const i = r.findIndex((x) => x.method === method.toUpperCase() && x.path === p);
+			if (i === -1) return false;
+			r.splice(i, 1);
+			return true;
+		},
+		wsRoute: (p, onConnection) => wsRoutes.set(p, onConnection),
 		page: (s, d) => pages.set(s, d),
 		nav: (i) => nav.push(i),
 		debug: (n, fn) => debugs.set(n, fn),
@@ -1552,6 +1562,14 @@ function makeHooksRegistry(ccHost) {
 		on(name, fn) {
 			if (!HOOK_NAMES.includes(name)) throw new Error(`unknown hook: ${name}`);
 			reg2[name].push(fn);
+		},
+		off(name, fn) {
+			const l = reg2[name];
+			if (!l) return false;
+			const i = l.indexOf(fn);
+			if (i === -1) return false;
+			l.splice(i, 1);
+			return true;
 		},
 		async invoke(name, payload) {
 			let cur = payload;
@@ -1743,7 +1761,7 @@ function isFlagEnabled(name) {
 }
 //#endregion
 //#region src/host/host.js
-function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed }) {
+function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed, sourcePaths }) {
 	return async function load(plugins) {
 		const sorted = topoSort(plugins.map(validatePlugin));
 		for (const p of sorted) {
@@ -1753,7 +1771,9 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
 				hooks: [],
 				commands: [],
 				crons: [],
-				routes: []
+				routes: [],
+				_hookFns: [],
+				_routeDefs: []
 			};
 			const ctxPi = (want === "pi" || want === "both") && surfaces.includes("pi") ? recordPi(pi, cap) : guard(pi, false, p.name, PI_VERBS);
 			const ctxGui = (want === "gui" || want === "both") && surfaces.includes("gui") ? recordGui(gui, cap) : guard(gui, false, p.name, GUI_VERBS);
@@ -1786,6 +1806,7 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
 				await p.register(ctx);
 				loaded.push(p);
 				capabilities.set(p.name, cap);
+				if (p.__sourceFile) sourcePaths.set(p.name, p.__sourceFile);
 			} catch (e) {
 				const entry = {
 					plugin: p.name,
@@ -1832,6 +1853,10 @@ function recordGui(gui, cap) {
 		...gui,
 		route: (method, path, h) => {
 			cap.routes.push(`${method.toUpperCase()} ${path}`);
+			cap._routeDefs.push({
+				method: method.toUpperCase(),
+				path
+			});
 			return gui.route(method, path, h);
 		}
 	};
@@ -1841,6 +1866,10 @@ function recordHooks(hooks, cap) {
 		...hooks,
 		on: (name, fn) => {
 			cap.hooks.push(name);
+			cap._hookFns.push({
+				name,
+				fn
+			});
 			return hooks.on(name, fn);
 		}
 	};
@@ -1862,6 +1891,7 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 	const loaded = [];
 	const capabilities = /* @__PURE__ */ new Map();
 	const failed = [];
+	const sourcePaths = /* @__PURE__ */ new Map();
 	const host = {
 		pi: surfaces.includes("pi") ? pi : null,
 		gui: surfaces.includes("gui") ? gui : null,
@@ -1878,7 +1908,17 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 		get: (n) => loaded.find((p) => p.name === n) || null,
 		capabilities: (n) => n ? capabilities.get(n) || null : Object.fromEntries(capabilities),
 		failedPlugins: () => failed.slice(),
-		shutdown: () => ccHost.shutdown()
+		shutdown: () => ccHost.shutdown(),
+		reloadPlugin: (filePath) => reloadPlugin({
+			filePath,
+			sourcePaths,
+			capabilities,
+			loaded,
+			pi,
+			gui,
+			hooks,
+			host
+		})
 	};
 	host.load = makePluginLoader({
 		surfaces,
@@ -1890,7 +1930,8 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 		host,
 		loaded,
 		capabilities,
-		failed
+		failed,
+		sourcePaths
 	});
 	const cc = makeCcLoaders(ccHost, env);
 	host.loadCcPlugins = cc.loadCcPlugins;
@@ -1908,6 +1949,62 @@ function isFlagDisabled(dir) {
 		return false;
 	}
 }
+async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, pi, gui, hooks, host }) {
+	const name = [...sourcePaths.entries()].find(([, f]) => f === filePath)?.[0];
+	if (!name) return null;
+	const cap = capabilities.get(name);
+	if (cap) {
+		for (const t of cap.tools) pi.tools.unregister(t);
+		for (const c of cap.commands) pi.commands.unregister(c);
+		for (const c of cap.crons) pi.crons.unregister(c);
+		for (const { method, path: p } of cap._routeDefs || []) gui.unroute(method, p);
+		for (const { name: hn, fn } of cap._hookFns || []) hooks.off(hn, fn);
+	}
+	const idx = loaded.findIndex((p) => p.name === name);
+	if (idx !== -1) loaded.splice(idx, 1);
+	capabilities.delete(name);
+	const reloadCopy = filePath.replace(/\.m?js$/, `.reload-${Date.now()}.mjs`);
+	fs.copyFileSync(filePath, reloadCopy);
+	let mod;
+	try {
+		mod = await import(pathToFileURL(reloadCopy).href);
+	} finally {
+		fs.unlink(reloadCopy, () => {});
+	}
+	const fresh = mod.default || mod.plugin;
+	if (!fresh) return null;
+	fresh.__sourceFile = filePath;
+	const newCap = {
+		tools: [],
+		hooks: [],
+		commands: [],
+		crons: [],
+		routes: [],
+		_hookFns: [],
+		_routeDefs: []
+	};
+	const want = fresh.surfaces;
+	const ctxPi = want === "pi" || want === "both" ? recordPi(pi, newCap) : pi;
+	const ctxGui = want === "gui" || want === "both" ? recordGui(gui, newCap) : gui;
+	const ctxHooks = recordHooks(hooks, newCap);
+	await validatePlugin(fresh).register({
+		pi: ctxPi,
+		gui: ctxGui,
+		hooks: ctxHooks,
+		log: {
+			info() {},
+			warn() {},
+			error() {}
+		},
+		config: nullStore(),
+		host,
+		env: process.env
+	});
+	loaded.push(fresh);
+	capabilities.set(name, newCap);
+	sourcePaths.set(name, filePath);
+	return name;
+}
 async function discoverPlugins(roots) {
 	const found = [];
 	for (const root of roots) {
@@ -1920,7 +2017,10 @@ async function discoverPlugins(roots) {
 			if (fs.existsSync(file)) {
 				const mod = await import(pathToFileURL(file).href);
 				const p = mod.default || mod.plugin;
-				if (p) found.push(p);
+				if (p) {
+					p.__sourceFile = file;
+					found.push(p);
+				}
 				continue;
 			}
 			const handlerFile = path.join(dir, "handler.js");
@@ -1930,6 +2030,7 @@ async function discoverPlugins(roots) {
 			found.push({
 				name: `tool-${entry.name}`,
 				surfaces: "pi",
+				__sourceFile: handlerFile,
 				register({ pi }) {
 					pi.tools.register(_tool);
 				}
@@ -2033,6 +2134,7 @@ init_env();
 var _host = null;
 var _loadPromise = null;
 var _dotenvLoaded = false;
+var _pluginWatcher = null;
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var REPO_PLUGINS = path.resolve(__dirname, "..", "..", "plugins");
 function loadDotenvOnce() {
@@ -2069,10 +2171,17 @@ async function bootHost(extraRoots = []) {
 	})();
 	return _loadPromise;
 }
+function stopWatchingPlugins() {
+	if (_pluginWatcher) {
+		_pluginWatcher.close();
+		_pluginWatcher = null;
+	}
+}
 function resetHostForTests() {
 	_host = null;
 	_loadPromise = null;
 	_dotenvLoaded = false;
+	stopWatchingPlugins();
 }
 //#endregion
 //#region src/toolsets.js
@@ -9041,6 +9150,16 @@ var PreparedStatement = class {
 //#endregion
 //#region src/machines/snapshot-store.js
 var log$3 = logger("snapshot-store");
+var SNAPSHOT_SCHEMA_VERSION = 1;
+function createLibsqlSnapshotStore() {
+	return {
+		persist,
+		load,
+		clear,
+		list,
+		sweepDone
+	};
+}
 var _inited$1 = false;
 async function init$1() {
 	const d = await db();
@@ -9116,6 +9235,26 @@ async function load(kind, key, { machineId = null } = {}) {
 async function clear(kind, key) {
 	await (await init$1()).prepare(`DELETE FROM machine_snapshots WHERE kind = ? AND key = ?`).run(kind, key);
 }
+async function list({ kind = null, status = "active" } = {}) {
+	const d = await init$1();
+	let sql = `SELECT kind, key, schema_version, machine_id, status, updated FROM machine_snapshots`;
+	const where = [];
+	const args = [];
+	if (kind) {
+		where.push("kind = ?");
+		args.push(kind);
+	}
+	if (status) {
+		where.push("status = ?");
+		args.push(status);
+	}
+	if (where.length) sql += " WHERE " + where.join(" AND ");
+	sql += " ORDER BY updated DESC";
+	return await d.prepare(sql).all(...args);
+}
+async function sweepDone() {
+	return { removed: (await (await init$1()).prepare(`DELETE FROM machine_snapshots WHERE status != 'active'`).run()).changes };
+}
 //#endregion
 //#region src/utils.js
 var SECRET_PATTERNS = [
@@ -9141,10 +9280,13 @@ function redactSensitive(context) {
 		return null;
 	}
 }
-async function createPersistentActor(machine, { kind, key, input, onTransition } = {}) {
+async function createPersistentActor(machine, { kind, key, input, onTransition, store } = {}) {
 	if (!kind || !key) throw new Error("createPersistentActor requires kind and key");
+	const persistFn = store?.persist || persist;
+	const loadFn = store?.load || load;
+	const clearFn = store?.clear || clear;
 	const machineId = machine?.id || machine?.config?.id || null;
-	const snapshot = await load(kind, key, { machineId });
+	const snapshot = await loadFn(kind, key, { machineId });
 	const resumed = !!snapshot;
 	let lastEventType = null;
 	const inspect = (ev) => {
@@ -9175,8 +9317,8 @@ async function createPersistentActor(machine, { kind, key, input, onTransition }
 		persisting = persisting.then(async () => {
 			try {
 				const ps = actor.getPersistedSnapshot();
-				if (snap.status === "active") await persist(kind, key, ps, { machineId });
-				else await clear(kind, key);
+				if (snap.status === "active") await persistFn(kind, key, ps, { machineId });
+				else await clearFn(kind, key);
 				onTransition?.(snap);
 			} catch (e) {
 				log$2.error("persist failed", {
@@ -9207,7 +9349,7 @@ async function createPersistentActor(machine, { kind, key, input, onTransition }
 			try {
 				sub.unsubscribe();
 			} catch {}
-			await clear(kind, key);
+			await clearFn(kind, key);
 		}
 	};
 }
@@ -9232,7 +9374,11 @@ async function init() {
 	return d;
 }
 var _inflight = /* @__PURE__ */ new Map();
-async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, deserialize = JSON.parse } = {}) {
+async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, deserialize = JSON.parse, store = null } = {}) {
+	if (store) return await store.runStep(sessionKey, stepId, fn, {
+		serialize,
+		deserialize
+	});
 	if (!sessionKey || !stepId) return await fn();
 	const d = await init();
 	const lockKey = sessionKey + "\0" + stepId;
@@ -9274,9 +9420,26 @@ async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, des
 		_inflight.delete(lockKey);
 	}
 }
-async function clearSteps(sessionKey) {
+async function isStepDone(sessionKey, stepId, { store = null } = {}) {
+	if (store) return await store.isStepDone(sessionKey, stepId);
+	if (!sessionKey || !stepId) return false;
+	return (await (await init()).prepare(`SELECT status FROM step_results WHERE session_key = ? AND step_id = ?`).get(sessionKey, stepId))?.status === "done";
+}
+async function listSteps(sessionKey) {
+	return await (await init()).prepare(`SELECT step_id, status, started, done FROM step_results WHERE session_key = ? ORDER BY started`).all(sessionKey);
+}
+async function clearSteps(sessionKey, { store = null } = {}) {
+	if (store) return await store.clearSteps(sessionKey);
 	if (!sessionKey) return;
 	await (await init()).prepare(`DELETE FROM step_results WHERE session_key = ?`).run(sessionKey);
+}
+function createLibsqlStepStore() {
+	return {
+		runStep,
+		isStepDone,
+		clearSteps,
+		listSteps
+	};
 }
 //#endregion
 //#region src/learn/gm-learn.js
@@ -9442,7 +9605,7 @@ var init_gm_learn = __esmMin((() => {
 	_pk = null;
 	_isBrowser = typeof window !== "undefined" || typeof importScripts === "function";
 }));
-function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ["core"], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice } = {}) {
+function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ["core"], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice, store } = {}) {
 	const baseLLM = callLLM || resolveCallLLM({
 		provider,
 		model
@@ -9498,7 +9661,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 			disabledToolsets,
 			sessionKey,
 			tool_choice,
-			toolCtx
+			toolCtx,
+			store
 		}),
 		states: {
 			idle: { on: {
@@ -9526,7 +9690,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 						model: input.model,
 						provider: input.provider,
 						tool_choice: tc
-					}));
+					}), { store: input.store });
 				}),
 				input: ({ context }) => ({
 					messages: context.messages,
@@ -9536,7 +9700,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					disabledToolsets: context.disabledToolsets,
 					sessionKey: context.sessionKey,
 					iterations: context.iterations,
-					tool_choice: context.tool_choice
+					tool_choice: context.tool_choice,
+					store: context.store
 				}),
 				onDone: [{
 					guard: ({ event }) => Array.isArray(event.output?.tool_calls) && event.output.tool_calls.length > 0,
@@ -9626,7 +9791,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 								content: res,
 								extras: callExtras
 							};
-						});
+						}, { store: input.store });
 						results.push({
 							tool_call_id: tcid,
 							content: ret.content
@@ -9642,7 +9807,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					messages: context.messages,
 					sessionKey: context.sessionKey,
 					iterations: context.iterations,
-					toolCtx: context.toolCtx
+					toolCtx: context.toolCtx,
+					store: context.store
 				}),
 				onDone: {
 					target: "prompting",
@@ -9828,7 +9994,7 @@ function timeoutResult(actor, timeoutMs) {
 		iterations: ctx.iterations || 0
 	};
 }
-async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey }) {
+async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store }) {
 	const { actor } = pa;
 	return await new Promise((resolve, reject) => {
 		let sub;
@@ -9850,7 +10016,7 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 			cleanup();
 			(async () => {
 				try {
-					await clearSteps(sessionKey);
+					await clearSteps(sessionKey, { store });
 				} catch {}
 				try {
 					await h.hooks.invoke("onSessionEnd", {
@@ -9900,7 +10066,7 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 					prompt,
 					out
 				});
-				await clearSteps(sessionKey);
+				await clearSteps(sessionKey, { store });
 				cleanup();
 				resolve(out);
 			})().catch((e) => {
@@ -9910,7 +10076,7 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 		});
 	});
 }
-async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice } = {}) {
+async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store } = {}) {
 	const events = [];
 	const h = await bootHost();
 	await h.hooks.invoke("onSessionStart", {
@@ -9964,11 +10130,13 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 			cwd,
 			...toolCtx || {}
 		} : toolCtx,
-		tool_choice
+		tool_choice,
+		store
 	}), {
 		kind: "agent",
 		key,
-		input: { messages: initMessages }
+		input: { messages: initMessages },
+		store
 	});
 	pa.actor.send({
 		type: "SUBMIT",
@@ -9985,7 +10153,45 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		cwd,
 		witnessPath,
 		timeoutMs,
-		sessionKey: key
+		sessionKey: key,
+		store
+	});
+}
+async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, toolCtx = null, store } = {}) {
+	if (!sessionKey) throw new Error("resumeTurn requires sessionKey");
+	const events = [];
+	const h = await bootHost();
+	const pa = await createPersistentActor(createAgentMachine({
+		model,
+		provider,
+		callLLM,
+		enabledToolsets,
+		disabledToolsets,
+		maxIterations,
+		events,
+		sessionKey,
+		toolCtx,
+		store
+	}), {
+		kind: "agent",
+		key: sessionKey,
+		input: { messages: [] },
+		store
+	});
+	if (!pa.resumed) return null;
+	return await driveAgentActor({
+		pa,
+		h,
+		events,
+		prompt: "",
+		provider,
+		model,
+		skill,
+		cwd,
+		witnessPath,
+		timeoutMs,
+		sessionKey,
+		store
 	});
 }
 //#endregion
@@ -10187,6 +10393,6 @@ async function bootHostBrowser(adapters = {}) {
 	return host;
 }
 //#endregion
-export { ContextPlugins, DEFAULT_CONFIG, FREDDIE_DEFAULT_CONFIG, FreddieAdapterError, assign, blocksToSystemMessage, bootHost, bootHostBrowser, buildContext, createActor, createAgentMachine, createMachine, findSkill, fromPromise, host, listSkills, log, logger, parseTextToolCalls, resetHostForTests, runTurn, skillAsUserMessage, waitFor };
+export { ContextPlugins, DEFAULT_CONFIG, FREDDIE_DEFAULT_CONFIG, FreddieAdapterError, SNAPSHOT_SCHEMA_VERSION, assign, blocksToSystemMessage, bootHost, bootHostBrowser, buildContext, createActor, createAgentMachine, createLibsqlSnapshotStore, createLibsqlStepStore, createMachine, createPersistentActor, findSkill, fromPromise, host, listSkills, log, logger, parseTextToolCalls, resetHostForTests, resumeTurn, runTurn, skillAsUserMessage, waitFor };
 
 //# sourceMappingURL=freddie.js.map
