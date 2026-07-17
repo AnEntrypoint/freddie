@@ -1,5 +1,6 @@
 import { runTurn } from '../../src/agent/machine.js'
 import { createSession, getMessages, appendMessage } from '../../src/sessions.js'
+import { host } from '../../src/host/index.js'
 
 // A client-supplied sessionId continues that conversation: prior turns'
 // messages are reloaded and fed back into runTurn (which otherwise starts a
@@ -58,6 +59,14 @@ export default {
             res.setHeader('Connection', 'keep-alive')
             const send = (event, data) => res.write('event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n')
             send('start', { ts: Date.now(), sessionId })
+            // runTurn() internally dispatches tools through the same process-wide
+            // host().hooks singleton (see src/agent/machine.js) -- subscribing to
+            // onToolProgress here, before the await, means a long-running tool
+            // handler's partial-result emissions (grep's periodic ctx.onProgress
+            // calls, e.g.) reach this SSE stream live, not just at turn-end.
+            // Scoped to THIS request only; always unsubscribed in finally.
+            const onProgress = (payload) => { send('tool_progress', payload); return payload }
+            host().hooks.on('onToolProgress', onProgress)
             try {
                 const out = await runTurn({ prompt, messages: priorMessages, sessionKey: sessionId || undefined, timeoutMs: 120000, cwd, skill, provider, model })
                 if (out.error) { send('error', { error: out.error }); res.end(); return }
@@ -65,6 +74,7 @@ export default {
                 for (const m of out.messages) send('message', m)
                 send('done', { result: out.result || '', iterations: out.iterations, sessionId })
             } catch (e) { send('error', { error: String(e.message || e) }) }
+            finally { host().hooks.off('onToolProgress', onProgress) }
             res.end()
         })
     },

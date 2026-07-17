@@ -120,7 +120,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                 const pushExtras = r => { if (r?.systemMessage) callExtras.push({ role: 'system', content: '[hook] ' + r.systemMessage }); if (r?.additionalContext) callExtras.push({ role: 'system', content: r.additionalContext }) }
                                 const pre = await h.hooks.invoke('preToolCall', { name: tname, args: targs }); pushExtras(pre)
                                 if (pre?.behavior === 'block') { return { content: JSON.stringify({ error: 'tool call denied by plugsdk hook', tool: tname, reason: pre.reason || 'denied' }), extras: callExtras } }
-                                const res = await h.pi.dispatchTool(tname, (pre && pre.args) || targs, input.toolCtx || {})
+                                const res = await h.pi.dispatchTool(tname, (pre && pre.args) || targs, input.toolCtx || {}, { hooks: h.hooks })
                                 pushExtras(await h.hooks.invoke('postToolCall', { name: tname, args: targs, result: res }))
                                 return { content: res, extras: callExtras }
                             }, { store: input.store })
