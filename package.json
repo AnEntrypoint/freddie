@@ -25,9 +25,9 @@
     "link-local-design": "node scripts/link-local-design.mjs"
   },
   "dependencies": {
+    "@earendil-works/pi-ai": "^0.80.10",
+    "@earendil-works/pi-tui": "^0.80.10",
     "@libsql/client": "^0.17.4",
-    "@mariozechner/pi-ai": "^0.73.1",
-    "@mariozechner/pi-tui": "^0.73.1",
     "acptoapi": "^1.0.156",
     "anentrypoint-design": "^0.0.340",
     "commander": "^15.0.0",

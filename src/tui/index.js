@@ -6,7 +6,7 @@ const log = logger('tui')
 let _piTui = null
 async function probePiTui() {
     if (_piTui !== null) return _piTui
-    try { _piTui = await import('@mariozechner/pi-tui') } catch { _piTui = false }
+    try { _piTui = await import('@earendil-works/pi-tui') } catch { _piTui = false }
     return _piTui
 }
 
