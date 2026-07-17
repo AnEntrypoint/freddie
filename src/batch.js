@@ -7,7 +7,14 @@ import { createMachine, assign, fromPromise } from 'xstate'
 import { createPersistentActor } from './machines/persistent-actor.js'
 import { runStep, clearSteps } from './machines/step-journal.js'
 
-// Run one prompt and append its result to the batch jsonl file.
+// Run one prompt and append its result to the batch jsonl file. `file` is
+// always a real path through both real callers (runBatch derives one;
+// resumeBatch restores the original from the persisted snapshot) -- this
+// guard exists because the underlying createBatchMachine constructor takes
+// `file` with no validation, so a caller several layers removed from
+// runBatch/resumeBatch (found live via scripts/xstate-fuzz-check.mjs fuzzing
+// the machine constructor directly) could otherwise crash fs.appendFileSync
+// with an opaque ENOENT instead of a clear error naming the real cause.
 async function runOne({ job, model, callLLM, file }) {
     let rec
     try {
@@ -16,7 +23,7 @@ async function runOne({ job, model, callLLM, file }) {
     } catch (e) {
         rec = { i: job.i, prompt: job.p, error: String(e?.message || e) }
     }
-    fs.appendFileSync(file, JSON.stringify(rec) + '\n')
+    if (file) fs.appendFileSync(file, JSON.stringify(rec) + '\n')
     return rec
 }
 
