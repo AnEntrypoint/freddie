@@ -54,11 +54,20 @@ export function makePi() {
         platforms: reg(m.platforms, 'platform'), memory: reg(m.memory, 'memory'),
         skills: reg(m.skills, 'skill'), contexts: reg(m.contexts, 'context'),
         agentExts: reg(m.agentExts, 'agentExt'), cli: reg(m.cli, 'cli'),
-        async dispatchTool(name, args = {}, ctx = {}) {
+        // `onProgress(partial)` in ctx (opts.hooks required -- see below) lets a
+        // long-running handler emit partial-result events mid-execution via the
+        // onToolProgress hook, ahead of postToolCall's single after-the-fact
+        // firing. Handlers that don't call it behave exactly as before (no
+        // hook fires, zero added cost) -- purely additive, opt-in per handler.
+        async dispatchTool(name, args = {}, ctx = {}, opts = {}) {
             const t = m.tools.get(name)
             if (!t) return JSON.stringify({ error: `unknown tool: ${name}` })
             if (t.checkFn && t.checkFn(t) === false) return JSON.stringify({ error: `tool unavailable: ${name}`, requires: t.requiresEnv || [] })
-            try { const r = await t.handler(args, ctx); return typeof r === 'string' ? r : JSON.stringify(r) }
+            const hooks = opts.hooks
+            const ctxWithProgress = hooks
+                ? { ...ctx, onProgress: (partial) => hooks.invoke('onToolProgress', { name, args, partial }) }
+                : ctx
+            try { const r = await t.handler(args, ctxWithProgress); return typeof r === 'string' ? r : JSON.stringify(r) }
             catch (e) { return JSON.stringify({ error: String(e?.message || e), tool: name }) }
         },
     }

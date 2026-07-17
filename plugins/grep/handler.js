@@ -23,6 +23,10 @@ export const _tool = ({
         const re = new RegExp(pattern, ignore_case ? 'i' : '')
         const out = []
         const skipDirs = new Set(['node_modules', '.git', 'dist', 'build', '.cache'])
+        // Emit onToolProgress every 25 new matches (opt-in via ctx.onProgress --
+        // absent on any dispatch path that didn't wire a hooks registry through,
+        // so this is a no-op there, not a behavior change).
+        let lastEmitAt = 0
         const walk = (d) => {
             if (out.length >= head_limit) return
             let entries
@@ -37,6 +41,10 @@ export const _tool = ({
                 content.split('\n').forEach((line, i) => {
                     if (out.length < head_limit && re.test(line)) out.push(`${full}:${i + 1}:${line.slice(0, 200)}`)
                 })
+                if (ctx.onProgress && out.length - lastEmitAt >= 25) {
+                    lastEmitAt = out.length
+                    ctx.onProgress({ matches_so_far: out.length, scanning: full })
+                }
             }
         }
         walk(root)

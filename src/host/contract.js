@@ -11,7 +11,7 @@ export const PI_VERBS = ['tool', 'env', 'command', 'cron', 'platform', 'memory',
 export const GUI_VERBS = ['route', 'page', 'nav', 'debug', 'api', 'asset']
 
 export const HOOK_NAMES = [
-    'preToolCall', 'postToolCall',
+    'preToolCall', 'postToolCall', 'onToolProgress',
     'preLlmCall', 'postLlmCall',
     'onSessionStart', 'onSessionEnd',
     'onTurnStart', 'onTurnEnd',
