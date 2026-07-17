@@ -902,6 +902,7 @@ var GUI_VERBS = [
 var HOOK_NAMES = [
 	"preToolCall",
 	"postToolCall",
+	"onToolProgress",
 	"preLlmCall",
 	"postLlmCall",
 	"onSessionStart",
@@ -1386,15 +1387,24 @@ function makePi() {
 		contexts: reg(m.contexts, "context"),
 		agentExts: reg(m.agentExts, "agentExt"),
 		cli: reg(m.cli, "cli"),
-		async dispatchTool(name, args = {}, ctx = {}) {
+		async dispatchTool(name, args = {}, ctx = {}, opts = {}) {
 			const t = m.tools.get(name);
 			if (!t) return JSON.stringify({ error: `unknown tool: ${name}` });
 			if (t.checkFn && t.checkFn(t) === false) return JSON.stringify({
 				error: `tool unavailable: ${name}`,
 				requires: t.requiresEnv || []
 			});
+			const hooks = opts.hooks;
+			const ctxWithProgress = hooks ? {
+				...ctx,
+				onProgress: (partial) => hooks.invoke("onToolProgress", {
+					name,
+					args,
+					partial
+				})
+			} : ctx;
 			try {
-				const r = await t.handler(args, ctx);
+				const r = await t.handler(args, ctxWithProgress);
 				return typeof r === "string" ? r : JSON.stringify(r);
 			} catch (e) {
 				return JSON.stringify({
@@ -9781,7 +9791,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 								}),
 								extras: callExtras
 							};
-							const res = await h.pi.dispatchTool(tname, pre && pre.args || targs, input.toolCtx || {});
+							const res = await h.pi.dispatchTool(tname, pre && pre.args || targs, input.toolCtx || {}, { hooks: h.hooks });
 							pushExtras(await h.hooks.invoke("postToolCall", {
 								name: tname,
 								args: targs,
