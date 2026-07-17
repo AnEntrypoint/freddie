@@ -1,0 +1,46 @@
+title: Live Demo
+slug: demo
+hero:
+  heading: live demo
+  subheading: thebird — a browser-only freddie desktop, running right here
+  accent: no backend. no install. just a tab.
+  body: "thebird is a static, no-build web-OS that runs freddie's agent loop entirely client-side via pyodide + a hermes shell. what's embedded below is the real, currently-deployed build — not a screenshot, not a recording."
+  badges:
+    - { label: "0", desc: server-side deps }
+    - { label: pyodide, desc: python-in-wasm runtime }
+    - { label: gh-pages, desc: static hosting }
+  ctas:
+    - { label: open in a new tab, href: "https://anentrypoint.github.io/thebird/" }
+    - { label: thebird source, href: "https://github.com/AnEntrypoint/thebird" }
+sections:
+  - id: what-you-are-seeing
+    name: what you're seeing
+    lede: the frame below loads thebird's real gh-pages deployment — same JS, same wasm, same window manager as the standalone site.
+    features:
+      - name: window manager
+        desc: thebird's desktop shell (wm.js, launcher.js) boots inside the frame exactly as it does standalone.
+        benefit: click around — open an app, drag a window, it's live.
+      - name: service worker caveat
+        desc: thebird registers a service worker for asset caching. some browsers restrict or delay SW registration inside a nested (iframed) browsing context — this is a browser sandboxing behavior, not a thebird bug.
+        benefit: "thebird already tolerates this: the top-level SW registration in index.html is wrapped in a silent `.catch(() => {})`, and the per-instance sw-client.js registration path is try/catch-guarded with a fallback. nothing in the boot path hard-depends on the service worker succeeding."
+      - name: same-origin isolation
+        desc: this page cannot read the iframe's DOM or JS state — that's the browser's same-origin policy protecting both sites, not a loading failure.
+        benefit: the embed is genuinely thebird's own site running under its own origin, sandboxed from this one.
+examples:
+  - { label: thebird standalone, href: "https://anentrypoint.github.io/thebird/", desc: full-tab, no iframe chrome }
+  - { label: thebird source, href: "https://github.com/AnEntrypoint/thebird", desc: static docs/ web-OS, no build step }
+  - { label: freddie architecture, href: "/freddie/architecture/", desc: how the agent loop this demo runs is built }
+body: |
+  ```html
+  <div style="border:1px solid var(--line, #333); border-radius:8px; overflow:hidden; margin:2rem 0;">
+    <iframe
+      src="https://anentrypoint.github.io/thebird/"
+      title="thebird live demo"
+      style="width:100%; height:70vh; min-height:480px; border:0; display:block;"
+      loading="lazy"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
+    ></iframe>
+  </div>
+  ```
+
+  if the frame above stays blank, your browser or an extension may be blocking third-party iframes — [open thebird directly](https://anentrypoint.github.io/thebird/) instead.
