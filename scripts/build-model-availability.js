@@ -4,7 +4,7 @@ import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'module'
 import { resolveCallLLM } from '../src/agent/llm_resolver.js'
-import { discoverModels, listKnownProviders } from '../src/agent/model-discovery.js'
+import { discoverModels, listKnownProviders } from '../src/models/discovery.js'
 const _require = createRequire(import.meta.url)
 const { PROVIDER_KEYS, isAvailable, markFailed, markOk, getStatus } = _require('acptoapi')
 

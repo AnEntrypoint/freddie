@@ -1,6 +1,6 @@
 import { saveConfigValue } from '../config.js'
 import { getAuthStore } from '../auth.js'
-import { listMemoryProviders } from '../plugins/memory/provider.js'
+import { listMemoryProviders } from '../agent/memory_provider.js'
 
 // gm rs-learn is freddie's canonical, default learning store — no configuration required.
 // The third-party providers below are LEGACY: opt-in only, kept behind explicit configure.

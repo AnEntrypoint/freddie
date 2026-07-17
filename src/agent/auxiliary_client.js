@@ -1,4 +1,4 @@
-import { resolveKey } from './credential_sources.js'
+import { resolveKey } from '../credentials/index.js'
 import { calculateCost } from './usage_pricing.js'
 import { record as recordUsage } from './account_usage.js'
 import { retryAsync } from './retry_utils.js'

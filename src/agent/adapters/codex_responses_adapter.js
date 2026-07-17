@@ -1,6 +1,6 @@
 // Upstream connectivity lives in acptoapi via /v1/responses passthrough.
 import { getAcptoapiUrl } from '../acptoapi-bridge.js'
-import { isCodexModel } from '../../cli/models/codex.js'
+import { isCodexModel } from '../../models/catalog.js'
 
 export async function chat({ input, model = 'o3-mini', tools = [], reasoning_effort = 'medium' } = {}) {
     if (!isCodexModel(model)) console.warn('[codex_responses] non-codex model: ' + model)

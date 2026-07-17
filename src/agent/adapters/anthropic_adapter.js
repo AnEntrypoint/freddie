@@ -1,5 +1,5 @@
 import { callLLM as piCallLLM } from '../pi-bridge.js'
-import { resolveKey } from '../credential_sources.js'
+import { resolveKey } from '../../credentials/index.js'
 import { annotateBreakpoints } from '../prompt_caching.js'
 import { env } from '../../env.js'
 export async function chat({ messages, tools = [], model = 'claude-sonnet-4-6', cache = true } = {}) {

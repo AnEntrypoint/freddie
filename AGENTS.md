@@ -18,7 +18,7 @@ Instructions for AI coding assistants working on Freddie. Present-tense rules on
 The stack is **thebird → freddie → acptoapi**. Each layer owns one concern:
 
 - **acptoapi** owns all upstream LLM/provider connectivity: HTTP/SSE to OpenAI, Anthropic, Gemini, brand providers, ACP daemons, Claude CLI. Plus chain/queue/sampler/matrix.
-- **freddie** owns agent-loop orchestration: tools, skills, sessions, memory. Calls *only* acptoapi for LLM access. No direct `fetch('https://api.openai.com/...')`. Migration debt still present in `plugins/vision`, `plugins/image_gen`, `plugins/tts`, `plugins/transcription`, `src/agent/adapters/codex_responses_adapter.js`, `src/agent/image_gen_provider.js`, `src/agent/model-discovery.js` — when you touch one, add the matching endpoint to acptoapi and call through acptoapi.
+- **freddie** owns agent-loop orchestration: tools, skills, sessions, memory. Calls *only* acptoapi for LLM access. No direct `fetch('https://api.openai.com/...')`. Migration debt still present in `plugins/media/lib/vision.js`, `plugins/image_gen`, `plugins/media/lib/tts.js`, `plugins/media/lib/transcription.js`, `src/agent/adapters/codex_responses_adapter.js`, `src/imagegen/provider.js`, `src/agent/model-discovery.js` — when you touch one, add the matching endpoint to acptoapi and call through acptoapi.
 - **thebird** owns browser presentation: webjsx UI, pyodide hermes shell. Talks to freddie for everything LLM-related when freddie is reachable; falls back to direct acptoapi only when there is no freddie.
 
 Versioning: freddie pins `acptoapi: "latest"` so `npm install` always picks up the newest published acptoapi. Thebird vendors freddie via `scripts/sync-upstream.mjs` against upstream main. No manual version-bump churn between sibling repos.
@@ -75,7 +75,7 @@ Host: `src/host/host.js` — `createHost({surfaces, configStore, env})` + `disco
 - `config` — scoped under `plugins.<name>` (`get/set/all`)
 - `host` — `{plugins(), get(name)}`
 
-Thin shims (resolved through host, do not bypass): `src/plugins/manager.js`, `src/web/server.js` (iterates `host.gui.routes.list()`), `bin/freddie.js` (iterates `host.pi.cli.list()`), `src/gateway/platforms.js` (`*Adapter$` name match), `src/plugins/memory/provider.js` (host-router).
+Thin shims (resolved through host, do not bypass): `src/plugins/manager.js`, `src/web/server.js` (iterates `host.gui.routes.list()`), `bin/freddie.js` (iterates `host.pi.cli.list()`), `src/gateway/platforms.js` (`*Adapter$` name match), `src/agent/memory_provider.js` (host-router).
 
 ## gm-skill plugin
 
@@ -156,7 +156,7 @@ src/web/{server,app,state,routes,index.html}  # thin dashboard mount over SDK
 src/gateway/run.js               # Gateway + hooks
 src/acp/server.js                # JSON-RPC stdio
 src/plugins/manager.js           # thin shim over host
-src/plugins/memory/provider.js   # host-router
+src/agent/memory_provider.js     # host-router
 src/skills/index.js              # SKILL.md loader
 src/skin/engine.js               # _BUILTIN_SKINS + load/get/set
 src/observability/log.js         # structured logs
@@ -287,7 +287,7 @@ On Windows, test.js must call `closeDb()` and log-stream `closeAll()` before exi
 | Gateway + platforms | `src/gateway/run.js` + `plugins/platform-*/` |
 | ACP (JSON-RPC stdio) | `src/acp/server.js` |
 | TUI | substrate (`pi-tui` + pi-coding-agent) |
-| Plugins + memory | `src/plugins/manager.js` + `src/plugins/memory/provider.js` + `plugins/memory-*/` |
+| Plugins + memory | `src/plugins/manager.js` + `src/agent/memory_provider.js` + `plugins/memory-*/` |
 | Skills loader | `src/skills/index.js` — content drops into `~/.freddie/skills/` |
 | Context compressor | `src/agent/compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js` |
 | Documentation site | `website/` (flatspace + content/pages/*.yaml + theme.mjs) |
@@ -297,7 +297,7 @@ On Windows, test.js must call `closeDb()` and log-stream `closeAll()` before exi
 | Dashboard | `src/web/{server,app,state,routes,index.html}` — thin mount over `anentrypoint-design` SDK |
 | Auth store | `src/auth.js` (FileAuthStore) + pi-ai key resolution |
 | Context engine | `src/context/engine.js` |
-| Browser tool | `plugins/browser/` (puppeteer-core, lazy) |
+| Browser tool | `plugins/web/lib/browse.js` (puppeteer-core, lazy; merged web plugin also has search/fetch) |
 | LLM resolver | `src/agent/llm_resolver.js` (thin shim over `acptoapi.chat`) |
 | Bundled skills | `skills/` (5 categories) |
 | Integration tests | one `test.js` at root |
