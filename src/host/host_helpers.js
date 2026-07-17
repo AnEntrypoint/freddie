@@ -44,6 +44,21 @@ export function reg(map, kind) {
     }
 }
 
+// Dev-only chaos injection: FREDDIE_CHAOS_INJECT=<0-100> throws a synthetic
+// error before a real tool handler runs, at that percent chance, so the
+// agent loop's real error-path handling (turn continues, error surfaced to
+// the user via dispatchTool's own catch->JSON.stringify({error}) path, no
+// crash) can be verified against genuine failures rather than assumed.
+// Unset/0/non-numeric = fully inert, zero cost on the hot path beyond one
+// env() read + a comparison.
+function maybeChaosInject(toolName) {
+    const pct = Number(env('FREDDIE_CHAOS_INJECT'))
+    if (!pct || pct <= 0) return
+    if (Math.random() * 100 < pct) {
+        throw new Error(`[FREDDIE_CHAOS_INJECT] synthetic failure injected for tool '${toolName}' (chaos_pct=${pct})`)
+    }
+}
+
 export function makePi() {
     const m = { tools:new Map(), envs:new Map(), commands:new Map(), crons:new Map(), platforms:new Map(),
                 memory:new Map(), skills:new Map(), contexts:new Map(), agentExts:new Map(), cli:new Map() }
@@ -67,7 +82,11 @@ export function makePi() {
             const ctxWithProgress = hooks
                 ? { ...ctx, onProgress: (partial) => hooks.invoke('onToolProgress', { name, args, partial }) }
                 : ctx
-            try { const r = await t.handler(args, ctxWithProgress); return typeof r === 'string' ? r : JSON.stringify(r) }
+            try {
+                maybeChaosInject(name)
+                const r = await t.handler(args, ctxWithProgress)
+                return typeof r === 'string' ? r : JSON.stringify(r)
+            }
             catch (e) { return JSON.stringify({ error: String(e?.message || e), tool: name }) }
         },
     }
