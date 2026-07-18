@@ -58,6 +58,11 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Environment variable names this plugin's tool handlers may read via ctx.env(name). Exact-name allowlist only."
+        },
+        "pii": {
+          "type": "string",
+          "enum": ["log", "block"],
+          "description": "Opt-in PII-pattern guard (src/host/tool-resources.js scanForPII/enforcePII) run over this tool's args and stringified result at every dispatchTool call. Absent (default): no scanning at all, zero behavior/perf change. 'log': scan and logger.warn on any SSN/email/Luhn-valid-credit-card-shaped hit, call proceeds unchanged (recommended default once opted in -- heuristic regex/Luhn detection has real false-positive risk on legitimate business data, e.g. long numeric ids). 'block': same detection, but throws instead of proceeding on any hit."
         }
       },
       "additionalProperties": false
