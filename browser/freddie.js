@@ -4579,6 +4579,21 @@ var FORBIDDEN_PATH_SUBSTRINGS = [
 	"/.aws/",
 	"C:\\Windows\\System32"
 ];
+function resolveAsFarAsPossible(abs) {
+	let cur = abs;
+	for (let i = 0; i < 64; i++) try {
+		return fs.realpathSync.native ? fs.realpathSync.native(cur) : fs.realpathSync(cur);
+	} catch {
+		const parent = path.dirname(cur);
+		if (parent === cur) return abs;
+		cur = parent;
+	}
+	return abs;
+}
+function containedIn(abs, root) {
+	const rel = path.relative(root, abs);
+	return rel === "" || !rel.startsWith("..") && !path.isAbsolute(rel);
+}
 function pathAllowed(candidate, allowPatterns, { cwd = process.cwd() } = {}) {
 	const rawStr = String(candidate ?? "");
 	if (rawStr.includes("\0")) return {
@@ -4594,17 +4609,17 @@ function pathAllowed(candidate, allowPatterns, { cwd = process.cwd() } = {}) {
 		ok: true,
 		abs
 	};
+	const resolved = resolveAsFarAsPossible(abs);
 	for (const pattern of allowPatterns) {
 		const root = path.resolve(cwd, pattern.replace(/\/\*\*?$/, ""));
-		const rel = path.relative(root, abs);
-		if (rel === "" || !rel.startsWith("..") && !path.isAbsolute(rel)) return {
+		if (containedIn(abs, root) && containedIn(resolved, root)) return {
 			ok: true,
 			abs
 		};
 	}
 	return {
 		ok: false,
-		reason: `path '${abs}' not in declared fs_paths allowlist [${allowPatterns.join(", ")}]`
+		reason: `path '${abs}' (resolved '${resolved}') not in declared fs_paths allowlist [${allowPatterns.join(", ")}]`
 	};
 }
 function hostAllowed(hostname, allowPatterns) {
@@ -4687,6 +4702,74 @@ function makeScopedEnvReader(resources, pluginName, toolName, logger, realEnv) {
 		return realEnv[name];
 	};
 }
+var PII_PATTERNS = [
+	{
+		kind: "ssn",
+		re: /\b\d{3}-\d{2}-\d{4}\b/g
+	},
+	{
+		kind: "email",
+		re: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g
+	},
+	{
+		kind: "credit_card",
+		re: /\b(?:\d[ -]?){13,19}\b/g
+	}
+];
+function luhnValid(digits) {
+	let sum = 0, alt = false;
+	for (let i = digits.length - 1; i >= 0; i--) {
+		let d = digits.charCodeAt(i) - 48;
+		if (alt) {
+			d *= 2;
+			if (d > 9) d -= 9;
+		}
+		sum += d;
+		alt = !alt;
+	}
+	return digits.length >= 13 && sum % 10 === 0;
+}
+function scanForPII(text) {
+	if (typeof text !== "string" || !text) return [];
+	const hits = [];
+	for (const { kind, re } of PII_PATTERNS) {
+		re.lastIndex = 0;
+		let m;
+		while (m = re.exec(text)) if (kind === "credit_card") {
+			const digits = m[0].replace(/[ -]/g, "");
+			if (!luhnValid(digits)) continue;
+			hits.push({
+				kind,
+				sample: `${digits.slice(0, 4)}...${digits.slice(-4)}`
+			});
+		} else {
+			const raw = m[0];
+			hits.push({
+				kind,
+				sample: kind === "email" ? `${raw[0]}***@***` : `***-**-${raw.slice(-4)}`
+			});
+		}
+	}
+	return hits;
+}
+function enforcePII(resources, pluginName, toolName, logger, { argsText, resultText }) {
+	const mode = resources?.pii;
+	if (mode !== "log" && mode !== "block") return;
+	const hits = [...scanForPII(argsText).map((h) => ({
+		...h,
+		where: "args"
+	})), ...scanForPII(resultText).map((h) => ({
+		...h,
+		where: "result"
+	}))];
+	if (!hits.length) return;
+	logger?.warn?.(`PII-shaped data detected in tool '${toolName}'`, {
+		plugin: pluginName,
+		tool: toolName,
+		hits
+	});
+	if (mode === "block") throw new Error(`plugin '${pluginName}' tool '${toolName}': PII-shaped data (${hits.map((h) => h.kind).join(", ")}) blocked by capability manifest (resources.pii: 'block')`);
+}
 function readManifestResources(dir) {
 	const manifestPath = path.join(dir, "plugin.json");
 	if (!fs.existsSync(manifestPath)) return null;
@@ -4764,8 +4847,16 @@ function makePi() {
 			};
 			try {
 				maybeChaosInject(name);
+				enforcePII(resources, t.__plugin, name, opts.logger, {
+					argsText: JSON.stringify(args),
+					resultText: ""
+				});
 				const r = await withResourceEnforcement(resources, t.__plugin, name, opts.logger, () => t.handler(args, ctxWithProgress));
 				const raw = typeof r === "string" ? r : JSON.stringify(r);
+				enforcePII(resources, t.__plugin, name, opts.logger, {
+					argsText: "",
+					resultText: raw
+				});
 				return applyToolMiddleware({
 					name,
 					tool: t,
