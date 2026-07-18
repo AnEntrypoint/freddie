@@ -5,7 +5,7 @@ import { loadClaudePlugin } from 'plugsdk'
 import { HOOK_NAMES, FREDDIE_TO_NATIVE_HOOK } from './contract.js'
 import { env } from '../env.js'
 import { applyToolMiddleware } from './tool-middleware.js'
-import { withResourceEnforcement, makeScopedEnvReader } from './tool-resources.js'
+import { withResourceEnforcement, makeScopedEnvReader, enforcePII } from './tool-resources.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CAPABILITY_ENUM = new Set(['tool', 'env', 'command', 'cron', 'platform', 'memory', 'skill', 'context', 'agentExt', 'cli', 'route', 'page', 'nav', 'debug', 'api', 'asset'])
@@ -111,8 +111,14 @@ export function makePi() {
             }
             try {
                 maybeChaosInject(name)
+                // PII scan on args runs BEFORE the handler (opt-in via
+                // resources.pii, see tool-resources.js) so a 'block' mode
+                // manifest stops PII-shaped input from ever reaching the
+                // handler, not just after the fact.
+                enforcePII(resources, t.__plugin, name, opts.logger, { argsText: JSON.stringify(args), resultText: '' })
                 const r = await withResourceEnforcement(resources, t.__plugin, name, opts.logger, () => t.handler(args, ctxWithProgress))
                 const raw = typeof r === 'string' ? r : JSON.stringify(r)
+                enforcePII(resources, t.__plugin, name, opts.logger, { argsText: '', resultText: raw })
                 return applyToolMiddleware({ name, tool: t, args }, raw)
             }
             catch (e) { return JSON.stringify({ error: String(e?.message || e), tool: name }) }
