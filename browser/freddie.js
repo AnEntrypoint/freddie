@@ -4660,6 +4660,19 @@ async function withResourceEnforcement(resources, pluginName, toolName, logger, 
 		if (hostname && !hostAllowed(hostname, resources.network_hosts)) deny("network", `host '${hostname}' not in declared network_hosts allowlist [${resources.network_hosts.join(", ")}]`);
 		return realFetch(input, init);
 	} : null;
+	const realWebSocket = globalThis.WebSocket;
+	const patchedWebSocket = resources.network_hosts !== void 0 && realWebSocket ? new Proxy(realWebSocket, { construct(target, args) {
+		const address = args[0];
+		const url = typeof address === "string" ? address : address?.url ?? address?.toString?.();
+		let hostname;
+		try {
+			hostname = new URL(url).hostname;
+		} catch {
+			hostname = null;
+		}
+		if (hostname && !hostAllowed(hostname, resources.network_hosts)) deny("network", `WebSocket host '${hostname}' not in declared network_hosts allowlist [${resources.network_hosts.join(", ")}]`);
+		return Reflect.construct(target, args);
+	} }) : null;
 	const realWriteFileSync = fsCjs.writeFileSync;
 	const realReadFileSync = fsCjs.readFileSync;
 	const patchFs = resources.fs_paths !== void 0;
@@ -4669,6 +4682,7 @@ async function withResourceEnforcement(resources, pluginName, toolName, logger, 
 		return r;
 	};
 	if (patchedFetch) globalThis.fetch = patchedFetch;
+	if (patchedWebSocket) globalThis.WebSocket = patchedWebSocket;
 	if (patchFs) {
 		fsCjs.writeFileSync = (p, ...rest) => {
 			checkPath(p);
@@ -4683,6 +4697,7 @@ async function withResourceEnforcement(resources, pluginName, toolName, logger, 
 		return await fn();
 	} finally {
 		if (patchedFetch) globalThis.fetch = realFetch;
+		if (patchedWebSocket) globalThis.WebSocket = realWebSocket;
 		if (patchFs) {
 			fsCjs.writeFileSync = realWriteFileSync;
 			fsCjs.readFileSync = realReadFileSync;
