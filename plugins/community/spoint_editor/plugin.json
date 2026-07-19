@@ -1,0 +1,11 @@
+{
+  "name": "spoint_editor",
+  "version": "1.0.0",
+  "capabilities": ["tool"],
+  "dependencies": [],
+  "safety_rating": "community",
+  "resources": {
+    "network_hosts": ["localhost", "127.0.0.1"],
+    "env_vars": ["EDITOR_TOKEN", "SPOINT_HOST", "SPOINT_PORT"]
+  }
+}
