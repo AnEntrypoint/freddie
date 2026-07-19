@@ -70,6 +70,52 @@ await T('host+tools+toolsets', async () => {
     await guardHost.load([{ name:'p', surfaces:'pi', register({gui}){gui.route('GET','/x',()=>{})} }])
     assert.match(guardHost.failedPlugins()[0]?.error || '', /not allowed/, 'surface guard captured in failedPlugins')
     assert.ok(await E(() => createHost({ surfaces:['pi'] }).load([{name:'a',surfaces:'pi',requires:['b'],register(){}},{name:'b',surfaces:'pi',requires:['a'],register(){}}]), /cycle/), 'cycle')
+    // WebSocket capability-manifest gate (src/host/tool-resources.js withResourceEnforcement),
+    // driven through the real createHost/load/dispatchTool pipeline like every case above --
+    // a plugin declaring resources.network_hosts gets globalThis.WebSocket patched for the
+    // duration of its handler call, same mechanism as the existing fetch gate.
+    {
+        const wsHost = createHost({ surfaces: ['pi'] })
+        const connectAttempts = []
+        await wsHost.load([{
+            name: 'ws-gate-test', surfaces: 'pi', __resources: { network_hosts: ['127.0.0.1'] },
+            register({ pi }) {
+                pi.tools.register({
+                    name: 'ws_probe', schema: { name: 'ws_probe', description: 'd', parameters: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'] } },
+                    async handler(args) {
+                        try { new WebSocket(args.url); connectAttempts.push('constructed:' + args.url); return 'ok' }
+                        catch (e) { connectAttempts.push('blocked:' + args.url); throw e }
+                    },
+                })
+            },
+        }])
+        const wsD = (n, a) => wsHost.pi.dispatchTool(n, a).then(r => { try { return JSON.parse(r) } catch { return r } })
+        // Disallowed host: real construction must never fire (no real connection attempt).
+        const wsDenied = await wsD('ws_probe', { url: 'ws://evil.example.invalid:9/x' })
+        assert.match(wsDenied.error || '', /WebSocket host 'evil\.example\.invalid' not in declared network_hosts allowlist/, 'WS gate denies non-allowlisted host: ' + JSON.stringify(wsDenied))
+        assert.ok(!connectAttempts.includes('constructed:ws://evil.example.invalid:9/x'), 'disallowed WebSocket never constructed')
+        // Allowlisted host: real construction proceeds (closed local port -> real async
+        // connection-refused error surfaces later via the 'error' event, not a manifest denial;
+        // what's asserted here is that the SYNCHRONOUS constructor call itself was not blocked).
+        const wsAllowed = await wsD('ws_probe', { url: 'ws://127.0.0.1:1/nope' })
+        assert.equal(wsAllowed, 'ok', 'WS gate allows allowlisted host construction: ' + JSON.stringify(wsAllowed))
+        assert.ok(connectAttempts.includes('constructed:ws://127.0.0.1:1/nope'), 'allowlisted WebSocket construction proceeded')
+        // globalThis.WebSocket restored to the real constructor after the call (scoped patch).
+        assert.equal(globalThis.WebSocket.name, 'WebSocket', 'globalThis.WebSocket restored after scoped patch')
+        // No resources block at all -> fully unrestricted, zero behavior change.
+        const unrestrictedHost = createHost({ surfaces: ['pi'] })
+        await unrestrictedHost.load([{
+            name: 'ws-unrestricted-test', surfaces: 'pi',
+            register({ pi }) {
+                pi.tools.register({
+                    name: 'ws_probe_open', schema: { name: 'ws_probe_open', description: 'd', parameters: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'] } },
+                    async handler(args) { new WebSocket(args.url); return 'constructed-unrestricted' },
+                })
+            },
+        }])
+        const openResult = await unrestrictedHost.pi.dispatchTool('ws_probe_open', { url: 'ws://evil.example.invalid:9/x' }).then(r => { try { return JSON.parse(r) } catch { return r } })
+        assert.equal(openResult, 'constructed-unrestricted', 'plugin with no resources block is unaffected by the WS gate: ' + JSON.stringify(openResult))
+    }
     assert.ok(h.plugins().length >= 85 && h.pi.platforms.list().length >= 18 && h.pi.memory.list().length >= 8, 'plugin counts: ' + JSON.stringify({ p: h.plugins().length, pl: h.pi.platforms.list().length, mm: h.pi.memory.list().length }))
     const D = (n, a) => h.pi.dispatchTool(n, a).then(r => { try { return JSON.parse(r) } catch { return r } }); const tf = path.join(TEST_HOME, 'tf.txt'); const tf2 = path.join(TEST_HOME, 'tf2.txt')
     assert.match((await D('bash', { command: 'echo hi-freddie', timeout_ms: 5000 })).stdout, /hi-freddie/)
@@ -102,9 +148,13 @@ await T('spoint-editor-plugin', async () => {
     const D = (n, a) => h.pi.dispatchTool(n, a).then(r => { try { return JSON.parse(r) } catch { return r } })
     assert.match((await D('spoint_place', { kind: 'nonsense', urlOrAppName: 'x' })).error, /kind must be/, 'spoint_place validates kind before connecting')
     assert.match((await D('spoint_terrain_reseed', { seed: 'not-a-number' })).error, /seed must be/, 'spoint_terrain_reseed validates seed before connecting')
-    // Host allowlist self-check (mirrors plugin.json resources.network_hosts, since
-    // src/host/tool-resources.js has no live WebSocket-construction gate yet -- see
-    // host-websocket-resource-enforcement)
+    // Plugin's own defense-in-depth self-check (mirrors plugin.json resources.network_hosts).
+    // src/host/tool-resources.js's withResourceEnforcement DOES gate WebSocket construction now
+    // (patches globalThis.WebSocket the same way as globalThis.fetch), but that only covers
+    // callers using the ambient global -- spoint_editor's wire.js imports WebSocket by name from
+    // the `ws` package (`import { WebSocket } from 'ws'`), a separate binding the host-level
+    // patch structurally cannot reach (same ESM-named-import gap already documented for fs), so
+    // this plugin keeps its own self-check as real, live coverage rather than relying on the host.
     const disallowed = await D('spoint_place', { kind: 'app', urlOrAppName: 'box-static', host: 'evil.example.com' })
     assert.match(disallowed.error, /not in this plugin's declared network_hosts allowlist/, 'spoint_editor self-enforces its declared host allowlist')
 })

@@ -25,12 +25,16 @@
 import { connectEditor, MSG } from './wire.js'
 import { lintWorld } from './lint.js'
 
-// Defense-in-depth: plugin.json declares resources.network_hosts, but src/host/tool-
-// resources.js's withResourceEnforcement only patches globalThis.fetch (and fs read/write) --
-// it has no WebSocket-construction gate (see spoint-editor-selfcheck-host-allowlist PRD row /
-// host-websocket-resource-enforcement follow-up). Self-check against the SAME declared list
-// here so this plugin's own behavior matches its manifest even before the host gains real
-// enforcement for WS.
+// Defense-in-depth: plugin.json declares resources.network_hosts, and src/host/tool-
+// resources.js's withResourceEnforcement DOES now gate WebSocket construction too (patches
+// globalThis.WebSocket the same way it patches globalThis.fetch) -- but that gate only covers
+// callers that reference the ambient global `WebSocket`. This plugin's wire.js instead does
+// `import { WebSocket } from 'ws'` (a named import of the third-party `ws` package's own
+// class), which is a structurally different binding the host-level gate cannot reach --
+// Node's ESM-CJS interop snapshots a named import at load time and never re-derives it from a
+// later mutation of the `ws` package's exports object (same class of gap already documented
+// for fs in tool-resources.js). Self-check against the SAME declared list here so this
+// plugin's own behavior matches its manifest regardless of that import-style gap.
 const ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1'])
 function assertHostAllowed(host) {
   if (!ALLOWED_HOSTS.has(host)) {
