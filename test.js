@@ -83,6 +83,31 @@ await T('host+tools+toolsets', async () => {
     const ts = await import('./src/toolsets.js'); assert.ok((await ts.getEnabledToolSchemas(['core'])).length >= ts._FREDDIE_CORE_TOOLS.length)
     const { definePlugin: dp, HookType: HT } = await import('./src/host/contract.js'); const pp = dp({ name: 'sdk-smoke' }); assert.equal(pp.name, 'sdk-smoke'); assert.equal(HT.PRE_TOOL_USE, 'pre_tool_use')
 })
+await T('spoint-editor-plugin', async () => {
+    // Offline-safe registration/schema-shape smoke only, no live spoint server dependency
+    // (per the no-mock-standing-in-for-live-verification discipline -- the real wire-protocol
+    // behavior against a running spoint server was live-witnessed separately via exec_js
+    // dispatchTool calls against a real `node server.js` instance, not re-simulated here).
+    const { bootHost, resetHostForTests } = await import('./src/host/index.js'); resetHostForTests(); const h = await bootHost()
+    const names = h.pi.tools.list().map(t => t.name)
+    for (const n of ['spoint_place', 'spoint_terrain_reseed', 'spoint_lint_world']) assert.ok(names.includes(n), `${n} registered via discoverPlugins`)
+    const place = h.pi.tools.list().find(t => t.name === 'spoint_place')
+    assert.equal(place.schema.parameters.required.join(','), 'kind,urlOrAppName', 'spoint_place required params')
+    assert.deepEqual(place.schema.parameters.properties.kind.enum, ['model', 'app'], 'spoint_place kind enum')
+    const reseed = h.pi.tools.list().find(t => t.name === 'spoint_terrain_reseed')
+    assert.equal(reseed.schema.parameters.required.join(','), 'seed', 'spoint_terrain_reseed required params')
+    const lint = h.pi.tools.list().find(t => t.name === 'spoint_lint_world')
+    assert.ok(lint.schema.description.includes('WorldValidator'), 'spoint_lint_world schema cites its real source')
+    // Bad-shape args are rejected by the handler itself before any network attempt (no hang, no live dependency)
+    const D = (n, a) => h.pi.dispatchTool(n, a).then(r => { try { return JSON.parse(r) } catch { return r } })
+    assert.match((await D('spoint_place', { kind: 'nonsense', urlOrAppName: 'x' })).error, /kind must be/, 'spoint_place validates kind before connecting')
+    assert.match((await D('spoint_terrain_reseed', { seed: 'not-a-number' })).error, /seed must be/, 'spoint_terrain_reseed validates seed before connecting')
+    // Host allowlist self-check (mirrors plugin.json resources.network_hosts, since
+    // src/host/tool-resources.js has no live WebSocket-construction gate yet -- see
+    // host-websocket-resource-enforcement)
+    const disallowed = await D('spoint_place', { kind: 'app', urlOrAppName: 'box-static', host: 'evil.example.com' })
+    assert.match(disallowed.error, /not in this plugin's declared network_hosts allowlist/, 'spoint_editor self-enforces its declared host allowlist')
+})
 await T('agent-machine', async () => {
     const { runTurn } = await import('./src/agent/machine.js')
     const echo = async ({ messages }) => ({ content: 'echo: ' + (messages[messages.length - 1]?.content || ''), tool_calls: [] })
@@ -455,7 +480,7 @@ console.log('\n=== node:test unit specs ===')
 const { spawnSync } = await import('node:child_process')
 const specResult = spawnSync(process.execPath, ['--test', '--test-reporter=spec', '--test-reporter-destination=stdout',
     'src/host/contract.test.js', 'src/cron/cron-parse.test.js', 'src/models/normalize.test.js',
-    'plugins/files/lib/patch_parser.test.js'],
+    'plugins/files/lib/patch_parser.test.js', 'plugins/community/spoint_editor/lint.test.js'],
     { encoding: 'utf8', stdio: 'inherit' })
 if (specResult.status !== 0) { console.error('\nnode:test unit specs FAILED'); process.exit(1) }
 
