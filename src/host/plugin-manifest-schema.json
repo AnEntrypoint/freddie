@@ -52,7 +52,7 @@
         "network_hosts": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Hostnames (exact, or '*.example.com' wildcard-subdomain) this plugin's tool handlers may fetch() from. Checked against the real parsed URL hostname of every outbound fetch during the handler's call window."
+          "description": "Hostnames (exact, or '*.example.com' wildcard-subdomain) this plugin's tool handlers may fetch() from or open a WebSocket connection to. Checked against the real parsed URL hostname of every outbound fetch, and every `new WebSocket(...)` construction against the ambient global, during the handler's call window. The WebSocket gate covers only callers referencing the global `WebSocket` -- a plugin using a named import of a third-party WebSocket implementation (e.g. `import { WebSocket } from 'ws'`) is a structurally separate binding this gate cannot reach (see src/host/tool-resources.js); such a plugin should self-enforce its own declared allowlist (see plugins/community/spoint_editor/plugin.js for the pattern)."
         },
         "env_vars": {
           "type": "array",

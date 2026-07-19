@@ -101,16 +101,17 @@ export function envVarAllowed(name, allowPatterns) {
 }
 
 // Wraps a single tool handler call with scoped, synchronously-installed and
-// -removed global patches (fs write/read fns + global fetch) that check the
-// owning plugin's declared resources.* allowlist before letting the real call
-// through. Scoped to the exact duration of `fn()` (finally-restored) so
-// concurrent dispatchTool calls for OTHER plugins are unaffected by one
-// plugin's patch window -- the patch itself reads a per-call `resources`
-// closure, not global mutable state, so even a re-entrant call from inside the
-// same handler (e.g. a tool that itself dispatches another tool) resolves
-// against the correct plugin's allowlist via call-stack nesting of the
-// installed wrappers (each wrap chains to the previously-installed fn, never
-// clobbers node's real fs/fetch permanently).
+// -removed global patches (fs write/read fns + global fetch + global
+// WebSocket) that check the owning plugin's declared resources.* allowlist
+// before letting the real call through. Scoped to the exact duration of
+// `fn()` (finally-restored) so concurrent dispatchTool calls for OTHER
+// plugins are unaffected by one plugin's patch window -- the patch itself
+// reads a per-call `resources` closure, not global mutable state, so even a
+// re-entrant call from inside the same handler (e.g. a tool that itself
+// dispatches another tool) resolves against the correct plugin's allowlist
+// via call-stack nesting of the installed wrappers (each wrap chains to the
+// previously-installed fn, never clobbers node's real fs/fetch/WebSocket
+// permanently).
 export async function withResourceEnforcement(resources, pluginName, toolName, logger, fn) {
     if (!resources) return fn()
     const denials = []
@@ -132,6 +133,51 @@ export async function withResourceEnforcement(resources, pluginName, toolName, l
         }
         : null
 
+    // WebSocket gate, same allowlist + same deny() path as fetch above. Patches
+    // globalThis.WebSocket (Node's own built-in, undici-backed client, present
+    // since Node 22) -- a plain mutable globalThis property, unlike a named ESM
+    // import, so every caller that references the ambient `WebSocket` global
+    // (no import statement at all, which is how the global is meant to be used)
+    // is covered with zero snapshot gap. The check runs and can throw BEFORE
+    // the real constructor -- and therefore before any real connection attempt
+    // -- ever executes, by wrapping construction in a function that validates
+    // the target host first and only then delegates to the real class via
+    // Reflect.construct (needed because WebSocket, like most built-in classes,
+    // throws "Illegal constructor"/TypeError if invoked without `new` via a
+    // plain call or .apply()).
+    //
+    // Scope, same structural limitation already documented above for fs: a
+    // plugin that imports a WebSocket implementation via a named/namespace ESM
+    // import from a THIRD-PARTY PACKAGE (e.g. `import { WebSocket } from
+    // 'ws'`, as plugins/community/spoint_editor/wire.js does) is NOT covered --
+    // that binding is a separate class object from globalThis.WebSocket
+    // entirely (confirmed live: `require('ws').WebSocket !==
+    // globalThis.WebSocket`), and even patching the `ws` package's own CJS
+    // exports object would not help, because Node's ESM-CJS interop snapshots
+    // a named import's binding at load time and never re-derives it from a
+    // later mutation of the exports object (the same reason the fs patch above
+    // only covers default-import callers, not named-import ones). There is no
+    // supported way to intercept a named-import third-party WebSocket class
+    // from userland. spoint_editor carries its own defense-in-depth self-check
+    // against the identical declared allowlist for exactly this reason (see
+    // plugins/community/spoint_editor/plugin.js assertHostAllowed) -- this gate
+    // is real, additive coverage for any plugin using the ambient global
+    // (`new WebSocket(url)` with no import), not a replacement for that
+    // self-check.
+    const realWebSocket = globalThis.WebSocket
+    const patchedWebSocket = resources.network_hosts !== undefined && realWebSocket
+        ? new Proxy(realWebSocket, {
+            construct(target, args) {
+                const address = args[0]
+                const url = typeof address === 'string' ? address : address?.url ?? address?.toString?.()
+                let hostname
+                try { hostname = new URL(url).hostname } catch { hostname = null }
+                if (hostname && !hostAllowed(hostname, resources.network_hosts)) deny('network', `WebSocket host '${hostname}' not in declared network_hosts allowlist [${resources.network_hosts.join(', ')}]`)
+                return Reflect.construct(target, args)
+            },
+        })
+        : null
+
     // Patch the CJS module.exports object (fsCjs), not the ESM default-import
     // binding directly -- fs.default (from `import fs from 'node:fs'` above)
     // and fsCjs are the SAME object reference (Node's ESM-CJS interop makes
@@ -145,6 +191,7 @@ export async function withResourceEnforcement(resources, pluginName, toolName, l
     const checkPath = (p) => { const r = pathAllowed(p, resources.fs_paths); if (!r.ok) deny('fs', r.reason); return r }
 
     if (patchedFetch) globalThis.fetch = patchedFetch
+    if (patchedWebSocket) globalThis.WebSocket = patchedWebSocket
     if (patchFs) {
         fsCjs.writeFileSync = (p, ...rest) => { checkPath(p); return realWriteFileSync.call(fsCjs, p, ...rest) }
         fsCjs.readFileSync = (p, ...rest) => { if (typeof p === 'string' || p instanceof URL || Buffer.isBuffer(p)) checkPath(p); return realReadFileSync.call(fsCjs, p, ...rest) }
@@ -162,6 +209,7 @@ export async function withResourceEnforcement(resources, pluginName, toolName, l
         return await fn()
     } finally {
         if (patchedFetch) globalThis.fetch = realFetch
+        if (patchedWebSocket) globalThis.WebSocket = realWebSocket
         if (patchFs) { fsCjs.writeFileSync = realWriteFileSync; fsCjs.readFileSync = realReadFileSync }
     }
 }
