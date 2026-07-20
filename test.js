@@ -540,7 +540,7 @@ console.log('\n=== node:test unit specs ===')
 const { spawnSync } = await import('node:child_process')
 const specResult = spawnSync(process.execPath, ['--test', '--test-reporter=spec', '--test-reporter-destination=stdout',
     'src/host/contract.test.js', 'src/cron/cron-parse.test.js', 'src/models/normalize.test.js',
-    'plugins/files/lib/patch_parser.test.js', 'plugins/community/spoint_editor/lint.test.js'],
+    'plugins/tools/files/lib/patch_parser.test.js', 'plugins/community/spoint_editor/lint.test.js'],
     { encoding: 'utf8', stdio: 'inherit' })
 if (specResult.status !== 0) { console.error('\nnode:test unit specs FAILED'); process.exit(1) }
 
