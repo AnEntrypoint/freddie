@@ -74,7 +74,17 @@ await T('host+tools+toolsets', async () => {
     // driven through the real createHost/load/dispatchTool pipeline like every case above --
     // a plugin declaring resources.network_hosts gets globalThis.WebSocket patched for the
     // duration of its handler call, same mechanism as the existing fetch gate.
-    {
+    // globalThis.WebSocket only exists natively from Node 22+ (stable); this package's own
+    // engines floor is >=20.6.0 (package.json), and CI runs Node 20 -- tool-resources.js's own
+    // gate correctly no-ops when realWebSocket is undefined (never clobbers a non-existent
+    // global), so a plugin calling bare `new WebSocket(...)` on Node 20 genuinely throws
+    // ReferenceError, same as it would with no gate involved at all. This sub-test exercises
+    // the GATE's behavior, which requires a real WebSocket to gate in the first place --
+    // skip it on a Node version that doesn't have one, rather than asserting gate behavior
+    // the runtime cannot support. Witnessed: passed locally on Node 24, failed in CI on Node
+    // 20 with exactly this ReferenceError, confirming the skip condition is real, not
+    // speculative.
+    if (typeof globalThis.WebSocket === 'function') {
         const wsHost = createHost({ surfaces: ['pi'] })
         const connectAttempts = []
         await wsHost.load([{
