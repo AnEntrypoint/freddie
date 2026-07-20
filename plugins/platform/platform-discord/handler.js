@@ -12,6 +12,20 @@ const DEFAULT_INTENTS = (1 << 9) | (1 << 12) | (1 << 15)
 // something unreasonably large into memory.
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 const ATTACHMENT_FETCH_TIMEOUT_MS = 10000
+// send()'s outbound POST previously used a bare fetch() with no timeout at
+// all -- unlike the attachment-fetch path a few lines below, which already
+// used fetchWithTimeout. A stalled/hung TCP connection to Discord's API (a
+// network blip, a stuck TLS handshake, anything short of an explicit error)
+// left the returned promise unresolved forever, with nothing upstream
+// bounding it: live-witnessed as a real inbound Discord turn whose
+// guaranteed-fallback text was composed and recorded (store.appendEvent
+// succeeded) but then silently never delivered -- the calling
+// adapter.send(fallbackReply) await just never returned, no crash, no log
+// line, no further activity for that turn ever again. This defeats the
+// entire guaranteed-turnaround design one layer up (casey's hooks/handler.js
+// FSM), which assumes adapter.send() itself eventually settles one way or
+// the other.
+const SEND_TIMEOUT_MS = 15000
 // Reconnect backoff: a dead gateway (auth failure, partition, outage) would
 // otherwise spin a tight fixed-delay reconnect loop hammering the API. Back
 // off exponentially up to a ceiling and give up (long-interval last-resort
@@ -252,9 +266,9 @@ export class DiscordAdapter extends EventEmitter {
             const fd = new FormData()
             fd.append('payload_json', JSON.stringify({ content: reply.text || '' }))
             fd.append('files[0]', new Blob([Buffer.from(a.data_base64, 'base64')], { type: a.mime || 'audio/ogg' }), `reply.${ext}`)
-            return checked(() => fetch(url, { method: 'POST', headers: { authorization: `Bot ${this.token}` }, body: fd }))
+            return checked(() => fetchWithTimeout(url, { method: 'POST', headers: { authorization: `Bot ${this.token}` }, body: fd }, SEND_TIMEOUT_MS))
         }
-        return checked(() => fetch(url, { method: 'POST', headers: { authorization: `Bot ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ content: reply.text }) }))
+        return checked(() => fetchWithTimeout(url, { method: 'POST', headers: { authorization: `Bot ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ content: reply.text }) }, SEND_TIMEOUT_MS))
     }
 
     // Trigger Discord's "X is typing..." indicator for a channel. Discord's own
@@ -266,7 +280,7 @@ export class DiscordAdapter extends EventEmitter {
     async triggerTyping(channelId) {
         if (!this.token) throw new Error('DiscordAdapter: token required')
         try {
-            const res = await fetch(`${this.api}/channels/${channelId}/typing`, { method: 'POST', headers: { authorization: `Bot ${this.token}` } })
+            const res = await fetchWithTimeout(`${this.api}/channels/${channelId}/typing`, { method: 'POST', headers: { authorization: `Bot ${this.token}` } }, SEND_TIMEOUT_MS)
             if (!res.ok && res.status !== 204) this.log?.warn?.('[discord] triggerTyping non-ok response', { channelId, status: res.status })
         } catch (e) {
             // Typing is a best-effort UX affordance, never load-bearing: a failed
