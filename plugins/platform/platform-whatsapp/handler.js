@@ -4,6 +4,13 @@ import { EventEmitter } from 'node:events'
 import { env } from '../../../src/env.js'
 import { fetchWithTimeout, timingSafeEqualStr, verifyWebhookOr401, verifiedSend, emitWithDetachedMedia } from '../../_shared/webhook-platform-base.js'
 
+// Outbound send/media-upload bound: see DiscordAdapter.send's identical
+// constant (platform-discord/handler.js) for the live-witnessed failure this
+// closes -- a bare, unbounded fetch() left a guaranteed-fallback reply
+// composed and recorded but never actually delivered because the network
+// call itself just hung with no timeout anywhere above it.
+const SEND_TIMEOUT_MS = 15000
+
 export class WhatsappAdapter extends EventEmitter {
     constructor(opts = {}) {
         super()
@@ -126,7 +133,7 @@ export class WhatsappAdapter extends EventEmitter {
         fd.append('messaging_product', 'whatsapp')
         fd.append('type', mimeType)
         fd.append('file', new Blob([buffer], { type: mimeType }), 'reply')
-        const r = await fetch(`${this.api}/${this.phoneId}/media`, { method: 'POST', headers: { authorization: `Bearer ${this.token}` }, body: fd }).then(x => x.json())
+        const r = await fetchWithTimeout(`${this.api}/${this.phoneId}/media`, { method: 'POST', headers: { authorization: `Bearer ${this.token}` }, body: fd }, SEND_TIMEOUT_MS).then(x => x.json())
         if (!r?.id) throw new Error('WhatsappAdapter: media upload returned no id: ' + JSON.stringify(r))
         return r.id
     }
@@ -137,9 +144,14 @@ export class WhatsappAdapter extends EventEmitter {
         // non-2xx Graph API response (bad token, rate limit, invalid recipient)
         // returns a normal JSON body with no messages[0].id, which a bare
         // `.then(r => r.json())` swallowed as if the send succeeded. Check both
-        // the HTTP status and the expected message id shape.
+        // the HTTP status and the expected message id shape. fetchWithTimeout
+        // (not a bare fetch) so a stalled/hung connection to the Graph API can
+        // never leave this promise pending forever -- see DiscordAdapter.send's
+        // identical fix this same session for the live-witnessed failure mode
+        // this closes: a guaranteed-fallback reply composed and recorded but
+        // never actually delivered because the outbound POST itself just hung.
         const post = (payload) => verifiedSend(
-            () => fetch(`${this.api}/${this.phoneId}/messages`, { method: 'POST', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', to: reply.to, ...payload }) }),
+            () => fetchWithTimeout(`${this.api}/${this.phoneId}/messages`, { method: 'POST', headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', to: reply.to, ...payload }) }, SEND_TIMEOUT_MS),
             (body) => body?.messages?.[0]?.id,
             'WhatsappAdapter',
         )
