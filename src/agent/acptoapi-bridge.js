@@ -134,20 +134,80 @@ export async function callLLM({ messages, tools = [], model, tool_choice, cwd = 
             _timeout,
         ])
     } finally { clearTimeout(_timeoutHandle) }
-    log.info('completed', { model: useModel, servedModel: Array.isArray(chainModel) ? (json.model || null) : useModel, usage: json.usage })
+    // The model that actually SERVED this turn -- chatChain's own attempt
+    // history (chain-machine.js's `attempted` array) is the only reliable
+    // source: not every underlying provider echoes the requested model id
+    // back in its response body, so json.model alone is not trustworthy.
+    // The last successful attempt is the served one.
+    const servedModel = Array.isArray(chainModel)
+        ? (Array.isArray(json.__chainAttempted) ? json.__chainAttempted.filter(a => a.ok).slice(-1)[0]?.model : null) || json.model || null
+        : useModel
+    log.info('completed', { model: useModel, servedModel, usage: json.usage })
     const adapted = adaptResponse(json)
+    adapted.model = servedModel
     // tool_choice is now genuinely forwarded to the provider (see chatOpts
     // above) -- but a provider can still ignore it (not every backend actually
     // enforces the OpenAI tool_choice contract, and the openai-compat request
-    // body shape varies by upstream). Keep this as a client-side backstop: log
-    // loud when a forced call still came back with none, so a non-compliant
-    // provider is visible rather than masquerading as "the model chose not to
-    // call a tool".
-    const forcedToolChoice = tool_choice === 'required' || tool_choice?.type === 'required'
-    if (forcedToolChoice && hasTools && !adapted.tool_calls.length) {
-        log.warn('tool_choice required but no tool call returned (provider did not honor it)', { model: useModel })
+    // body shape varies by upstream). A missed tool call is NOT automatically
+    // bad: the model can still answer in real, useful prose without touching a
+    // tool (the caller decides whether that content is good enough to send --
+    // see casey's hooks/handler.js isToolRefusal for its own content-based
+    // judgment). What IS unambiguously bad, and what this penalizes, is a
+    // missed tool call that ALSO returned nothing usable: empty content, or a
+    // self-referential refusal about the model's own tool access. That
+    // combination structurally cannot be a real answer.
+    //
+    // Why penalize at all: a model that reliably returns FAST, ERROR-FREE
+    // responses while simply ignoring tool_choice looks perfectly healthy to
+    // acptoapi's own availability ranker (lib/availability.js), which only
+    // tracks network/latency success -- it has no concept of tool-call
+    // compliance. Live-witnessed: sambanova/gemma-4-31B-it won the "best
+    // available model" slot on EVERY retry of a forced-tool-call turn (3/3
+    // attempts, each a fresh chain build) purely because it kept succeeding
+    // fast (1.8-3.9s, zero errors) -- casey's own retry-on-miss logic assumed
+    // a fresh chain build would naturally diversify the model choice, but it
+    // never could: the broken model kept re-winning the ranking every single
+    // time. Penalizing the served model directly in the SAME shared
+    // availability tracker the ranker reads means the NEXT chain build
+    // (including this turn's own next retry) actually routes around it.
+    if (forcedToolChoiceMissed(tool_choice, hasTools, adapted) && servedModel) {
+        const uselessMiss = !adapted.content || isLikelyToolRefusal(adapted.content)
+        log.warn('tool_choice required but no tool call returned', { model: servedModel, uselessMiss, hadContent: !!adapted.content })
+        if (uselessMiss) {
+            try {
+                const mod = await getAcptoapi()
+                if (mod && typeof mod.recordModelFailure === 'function') mod.recordModelFailure(servedModel)
+            } catch { /* best-effort -- never break the real response over a scoring side-effect */ }
+        }
     }
     return adapted
+}
+
+function forcedToolChoiceMissed(tool_choice, hasTools, adapted) {
+    const forced = tool_choice === 'required' || tool_choice?.type === 'required'
+    return forced && hasTools && !adapted.tool_calls.length
+}
+
+// Mirrors casey's own hooks/heuristics.js isToolRefusal so the SAME class of
+// content ("I don't have the tools/access to assist") is recognized at this
+// layer too, for the availability-penalty decision -- kept independent
+// (freddie must not import casey's app-specific heuristics module) but
+// intentionally the same marker shape.
+const TOOL_REFUSAL_MARKERS = [
+    "don't have the tools",
+    'do not have the tools',
+    "don't have access to",
+    'do not have access to',
+    'unable to access the',
+    'i cannot call',
+    "i can't call",
+    'no tool available',
+    'lack the necessary tools',
+]
+function isLikelyToolRefusal(text) {
+    if (!text) return false
+    const norm = String(text).toLowerCase().replace(/\s+/g, ' ').trim()
+    return TOOL_REFUSAL_MARKERS.some(m => norm.includes(m))
 }
 
 function adaptMessage(m) {
