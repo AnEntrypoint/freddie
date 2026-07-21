@@ -5776,11 +5776,38 @@ function parsePythonTag(content) {
 		arguments: args
 	}] : [];
 }
+function parseBareJsonArray(content) {
+	const trimmed = content.trim();
+	if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return [];
+	let parsed;
+	try {
+		parsed = JSON.parse(trimmed);
+	} catch {
+		return [];
+	}
+	if (!Array.isArray(parsed) || !parsed.length) return [];
+	const out = [];
+	for (const item of parsed) {
+		if (!item || typeof item !== "object") return [];
+		const name = item.name;
+		if (typeof name !== "string" || !name) return [];
+		const args = item.parameters ?? item.arguments ?? {};
+		if (typeof args !== "object" || args === null) return [];
+		out.push({
+			id: randId(),
+			name,
+			arguments: args
+		});
+	}
+	return out;
+}
 function parseTextToolCalls(content) {
 	if (typeof content !== "string" || !content) return [];
 	const kimi = parseKimiSection(content);
 	if (kimi.length) return kimi;
-	return parsePythonTag(content);
+	const pythonTag = parsePythonTag(content);
+	if (pythonTag.length) return pythonTag;
+	return parseBareJsonArray(content);
 }
 //#endregion
 //#region src/agent/acptoapi-bridge.js
