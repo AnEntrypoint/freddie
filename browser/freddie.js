@@ -5854,14 +5854,46 @@ async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } 
 	} finally {
 		clearTimeout(_timeoutHandle);
 	}
+	const servedModel = Array.isArray(chainModel) ? (Array.isArray(json.__chainAttempted) ? json.__chainAttempted.filter((a) => a.ok).slice(-1)[0]?.model : null) || json.model || null : useModel;
 	log$5.info("completed", {
 		model: useModel,
-		servedModel: Array.isArray(chainModel) ? json.model || null : useModel,
+		servedModel,
 		usage: json.usage
 	});
 	const adapted = adaptResponse(json);
-	if ((tool_choice === "required" || tool_choice?.type === "required") && hasTools && !adapted.tool_calls.length) log$5.warn("tool_choice required but no tool call returned (provider did not honor it)", { model: useModel });
+	adapted.model = servedModel;
+	if (forcedToolChoiceMissed(tool_choice, hasTools, adapted) && servedModel) {
+		const uselessMiss = !adapted.content || isLikelyToolRefusal(adapted.content);
+		log$5.warn("tool_choice required but no tool call returned", {
+			model: servedModel,
+			uselessMiss,
+			hadContent: !!adapted.content
+		});
+		if (uselessMiss) try {
+			const mod = await getAcptoapi();
+			if (mod && typeof mod.recordModelFailure === "function") mod.recordModelFailure(servedModel);
+		} catch {}
+	}
 	return adapted;
+}
+function forcedToolChoiceMissed(tool_choice, hasTools, adapted) {
+	return (tool_choice === "required" || tool_choice?.type === "required") && hasTools && !adapted.tool_calls.length;
+}
+var TOOL_REFUSAL_MARKERS = [
+	"don't have the tools",
+	"do not have the tools",
+	"don't have access to",
+	"do not have access to",
+	"unable to access the",
+	"i cannot call",
+	"i can't call",
+	"no tool available",
+	"lack the necessary tools"
+];
+function isLikelyToolRefusal(text) {
+	if (!text) return false;
+	const norm = String(text).toLowerCase().replace(/\s+/g, " ").trim();
+	return TOOL_REFUSAL_MARKERS.some((m) => norm.includes(m));
 }
 function adaptMessage(m) {
 	if (m.role === "tool") return {
