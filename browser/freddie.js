@@ -5987,7 +5987,7 @@ function tryParseJson(s) {
 		return {};
 	}
 }
-async function isReachable(timeoutMs = 1e4) {
+async function isReachable(timeoutMs = 45e3) {
 	try {
 		const acptoapi = await getAcptoapi();
 		const chainModel = await resolveChainLinks(acptoapi, getAcptoapiModel());
