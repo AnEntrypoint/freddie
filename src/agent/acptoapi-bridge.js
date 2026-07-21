@@ -286,14 +286,37 @@ function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : 
 // provider chain was fully reachable underneath. 45s still bounds a genuine
 // full outage from hanging forever, but comfortably covers the walk time a
 // real, working (not down) chain needs under real contention.
+// PROBE_CHAIN_LINK_CAP bounds how many candidates a reachability probe itself
+// walks. isReachable races its chatChain call against timeoutMs, but no
+// provider adapter honors an external AbortSignal (each hardcodes its own
+// internal AbortSignal.timeout for its own fetch) -- live-witnessed: when the
+// timeout side of the race wins (or the caller simply stops awaiting because a
+// separate real callLLM invocation completes first), the losing chatChain
+// promise is NOT cancelled and keeps walking the REST of the full ~13-link
+// auto-chain in the background, each hop still a real network call against a
+// real provider, its result silently discarded. Every resolveCallLLM/ensure()
+// cycle (casey's makeResilientCallLLM debounces this to as little as a few
+// seconds while degraded) could therefore leave an orphaned probe walk
+// consuming real rate-limit budget indefinitely, compounding the exact
+// capacity exhaustion this reachability check exists to detect. True
+// cancellation would require threading a caller AbortSignal through every
+// provider adapter's fetch call (merged with each one's own internal timeout
+// signal) -- a larger cross-cutting change. Capping the probe to the first
+// few links instead bounds the abandoned-walk blast radius to a handful of
+// hops (which finish or fail fast) rather than the full chain, while still
+// answering the real question ("is something near the top of the chain
+// reachable") the probe needs.
+const PROBE_CHAIN_LINK_CAP = 3
+
 export async function isReachable(timeoutMs = 45000) {
     try {
         const acptoapi = await getAcptoapi()
         const useModel = getAcptoapiModel()
         const chainModel = await resolveChainLinks(acptoapi, useModel)
+        const probeChain = Array.isArray(chainModel) ? chainModel.slice(0, PROBE_CHAIN_LINK_CAP) : chainModel
         const probe = { messages: [{ role: 'user', content: 'ping' }], max_tokens: 4 }
         const result = await Promise.race([
-            Array.isArray(chainModel) ? acptoapi.chatChain(chainModel, probe) : acptoapi.chat({ model: chainModel, ...probe }),
+            Array.isArray(probeChain) ? acptoapi.chatChain(probeChain, probe) : acptoapi.chat({ model: probeChain, ...probe }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('reachability probe timeout')), timeoutMs)),
         ])
         return !!(result && result.choices && result.choices.length)
