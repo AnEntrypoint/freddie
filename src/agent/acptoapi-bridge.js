@@ -244,7 +244,10 @@ function adaptResponse(r) {
         ? choice.tool_calls.map(tc => ({ id: tc.id, name: tc.function?.name, arguments: tryParseJson(tc.function?.arguments) }))
         : []
     // Recover text-format tool calls (kimi <|tool_call_begin|> / llama
-    // <|python_tag|>) from weak models that don't emit structured tool_calls.
+    // <|python_tag|> / a bare JSON array of {name,parameters}) from weak
+    // models that don't emit structured tool_calls -- see tool_call_text.js
+    // for the full format list and why a bare-array match is deliberately
+    // narrow (whole-content only, never JSON quoted inside real prose).
     if (!tool_calls.length) {
         const textTC = parseTextToolCalls(content)
         if (textTC.length) return { content: '', tool_calls: textTC, raw: r }

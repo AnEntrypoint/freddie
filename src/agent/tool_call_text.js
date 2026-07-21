@@ -13,6 +13,18 @@
 //       <|tool_calls_section_end|>
 //   - llama python_tag format:
 //       <|python_tag|>name({...})  or  name("query")  or  name(key="value")
+//   - bare JSON array format (a third real weak-model shape, distinct from
+//     both above): `[{"name": "<tool>", "parameters": {...}}]`, the WHOLE
+//     content is nothing but this array (no tokens/tags at all, no prose
+//     wrapping it). Live-witnessed: nvidia/abacusai/dracarys-llama-3.1-70b-
+//     instruct returned this shape verbatim as its message content with
+//     tool_choice:'required' -- with no recovery, that raw JSON string was
+//     sent to the contact as if it were a real reply (a serious content
+//     bug, not just a stalled turn). Deliberately narrow: matched only when
+//     the ENTIRE trimmed content parses as this exact array-of-objects
+//     shape, so a genuine chat reply that happens to mention or quote JSON
+//     inline (e.g. explaining an error message) is never misread as a tool
+//     call -- a real reply is prose WITH the JSON inside it, not JSON alone.
 //
 // Returns [] when the content holds no recognizable text tool call.
 
@@ -60,9 +72,31 @@ function parsePythonTag(content) {
     return name ? [{ id: randId(), name, arguments: args }] : []
 }
 
+function parseBareJsonArray(content) {
+    const trimmed = content.trim()
+    // Must be the WHOLE content, not JSON embedded in prose -- a real chat
+    // reply that quotes/explains JSON is never mistaken for a tool call.
+    if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) return []
+    let parsed
+    try { parsed = JSON.parse(trimmed) } catch { return [] }
+    if (!Array.isArray(parsed) || !parsed.length) return []
+    const out = []
+    for (const item of parsed) {
+        if (!item || typeof item !== 'object') return []
+        const name = item.name
+        if (typeof name !== 'string' || !name) return []
+        const args = item.parameters ?? item.arguments ?? {}
+        if (typeof args !== 'object' || args === null) return []
+        out.push({ id: randId(), name, arguments: args })
+    }
+    return out
+}
+
 export function parseTextToolCalls(content) {
     if (typeof content !== 'string' || !content) return []
     const kimi = parseKimiSection(content)
     if (kimi.length) return kimi
-    return parsePythonTag(content)
+    const pythonTag = parsePythonTag(content)
+    if (pythonTag.length) return pythonTag
+    return parseBareJsonArray(content)
 }
