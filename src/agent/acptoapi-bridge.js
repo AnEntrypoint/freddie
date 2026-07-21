@@ -272,7 +272,21 @@ function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : 
 // callLLM's own chain would have succeeded; that mismatch is exactly what
 // left `resolveCallLLM`'s health check permanently red while a real reply
 // path existed.
-export async function isReachable(timeoutMs = 10000) {
+// SEVERE, live-witnessed bug in the old 10000ms default: a real chain walk
+// (chatChain falling through multiple candidates on rate_limit/timeout/auth)
+// routinely takes 15-30+ seconds under real-world provider contention --
+// live-witnessed casey turns completing successfully in that range all
+// session. A 10s race against that reality meant isReachable() frequently
+// timed out and returned false EVEN THOUGH the same chain, given a few more
+// seconds, would have (and immediately after DID, via a completely separate
+// call moments later) succeeded. The caller (casey's llm.js
+// makeResilientCallLLM) then DEBOUNCES re-resolution for a further 30s on
+// this single false negative, locking the whole process into "LLM backend
+// down; queued inbound, no reply sent" for real users while the actual
+// provider chain was fully reachable underneath. 45s still bounds a genuine
+// full outage from hanging forever, but comfortably covers the walk time a
+// real, working (not down) chain needs under real contention.
+export async function isReachable(timeoutMs = 45000) {
     try {
         const acptoapi = await getAcptoapi()
         const useModel = getAcptoapiModel()
