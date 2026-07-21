@@ -5987,10 +5987,12 @@ function tryParseJson(s) {
 		return {};
 	}
 }
+var PROBE_CHAIN_LINK_CAP = 3;
 async function isReachable(timeoutMs = 45e3) {
 	try {
 		const acptoapi = await getAcptoapi();
 		const chainModel = await resolveChainLinks(acptoapi, getAcptoapiModel());
+		const probeChain = Array.isArray(chainModel) ? chainModel.slice(0, PROBE_CHAIN_LINK_CAP) : chainModel;
 		const probe = {
 			messages: [{
 				role: "user",
@@ -5998,8 +6000,8 @@ async function isReachable(timeoutMs = 45e3) {
 			}],
 			max_tokens: 4
 		};
-		const result = await Promise.race([Array.isArray(chainModel) ? acptoapi.chatChain(chainModel, probe) : acptoapi.chat({
-			model: chainModel,
+		const result = await Promise.race([Array.isArray(probeChain) ? acptoapi.chatChain(probeChain, probe) : acptoapi.chat({
+			model: probeChain,
 			...probe
 		}), new Promise((_, reject) => setTimeout(() => reject(/* @__PURE__ */ new Error("reachability probe timeout")), timeoutMs))]);
 		return !!(result && result.choices && result.choices.length);
