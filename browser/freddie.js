@@ -5801,13 +5801,57 @@ function parseBareJsonArray(content) {
 	}
 	return out;
 }
+function parseBareNameBraceCall(content) {
+	const trimmed = content.trim();
+	const m = /^([A-Za-z_][A-Za-z0-9_]*)\{/.exec(trimmed);
+	if (!m) return [];
+	const name = m[1];
+	const start = m[1].length;
+	let depth = 0, inStr = false, esc = false, end = -1;
+	for (let i = start; i < trimmed.length; i++) {
+		const ch = trimmed[i];
+		if (inStr) {
+			if (esc) esc = false;
+			else if (ch === "\\") esc = true;
+			else if (ch === "\"") inStr = false;
+			continue;
+		}
+		if (ch === "\"") {
+			inStr = true;
+			continue;
+		}
+		if (ch === "{") depth++;
+		else if (ch === "}") {
+			depth--;
+			if (depth === 0) {
+				end = i;
+				break;
+			}
+		}
+	}
+	if (end === -1) return [];
+	let args;
+	try {
+		args = JSON.parse(trimmed.slice(start, end + 1));
+	} catch {
+		return [];
+	}
+	if (typeof args !== "object" || args === null) return [];
+	return [{
+		id: randId(),
+		name,
+		arguments: args
+	}];
+}
 function parseTextToolCalls(content) {
 	if (typeof content !== "string" || !content) return [];
 	const kimi = parseKimiSection(content);
 	if (kimi.length) return kimi;
 	const pythonTag = parsePythonTag(content);
 	if (pythonTag.length) return pythonTag;
-	return parseBareJsonArray(content);
+	const bareArray = parseBareJsonArray(content);
+	if (bareArray.length) return bareArray;
+	return parseBareNameBraceCall(content);
 }
 //#endregion
 //#region src/agent/acptoapi-bridge.js
