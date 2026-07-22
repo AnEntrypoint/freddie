@@ -5801,38 +5801,39 @@ function parseBareJsonArray(content) {
 	}
 	return out;
 }
-function parseBareNameBraceCall(content) {
-	const trimmed = content.trim();
-	const m = /^([A-Za-z_][A-Za-z0-9_]*)\{/.exec(trimmed);
-	if (!m) return [];
-	const name = m[1];
-	const start = m[1].length;
-	let depth = 0, inStr = false, esc = false, end = -1;
-	for (let i = start; i < trimmed.length; i++) {
-		const ch = trimmed[i];
-		if (inStr) {
-			if (esc) esc = false;
-			else if (ch === "\\") esc = true;
-			else if (ch === "\"") inStr = false;
+function findBalancedJsonObjectEnd(text, startIndex) {
+	let depth = 0, inString = false, escaped = false;
+	for (let i = startIndex; i < text.length; i++) {
+		const ch = text[i];
+		if (inString) {
+			if (escaped) escaped = false;
+			else if (ch === "\\") escaped = true;
+			else if (ch === "\"") inString = false;
 			continue;
 		}
 		if (ch === "\"") {
-			inStr = true;
+			inString = true;
 			continue;
 		}
 		if (ch === "{") depth++;
 		else if (ch === "}") {
 			depth--;
-			if (depth === 0) {
-				end = i;
-				break;
-			}
+			if (depth === 0) return i;
 		}
 	}
-	if (end === -1) return [];
+	return -1;
+}
+function parseNameFollowedByJsonObject(content) {
+	const trimmed = content.trim();
+	const match = /^([A-Za-z_][A-Za-z0-9_]*)\{/.exec(trimmed);
+	if (!match) return [];
+	const name = match[1];
+	const jsonStart = name.length;
+	const jsonEnd = findBalancedJsonObjectEnd(trimmed, jsonStart);
+	if (jsonEnd === -1) return [];
 	let args;
 	try {
-		args = JSON.parse(trimmed.slice(start, end + 1));
+		args = JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1));
 	} catch {
 		return [];
 	}
@@ -5851,7 +5852,7 @@ function parseTextToolCalls(content) {
 	if (pythonTag.length) return pythonTag;
 	const bareArray = parseBareJsonArray(content);
 	if (bareArray.length) return bareArray;
-	return parseBareNameBraceCall(content);
+	return parseNameFollowedByJsonObject(content);
 }
 //#endregion
 //#region src/agent/acptoapi-bridge.js
@@ -6031,12 +6032,13 @@ function tryParseJson(s) {
 		return {};
 	}
 }
-var PROBE_CHAIN_LINK_CAP = 3;
-async function isReachable(timeoutMs = 45e3) {
+var REACHABILITY_PROBE_TIMEOUT_MS = 45e3;
+var REACHABILITY_PROBE_CHAIN_LINK_CAP = 3;
+async function isReachable(timeoutMs = REACHABILITY_PROBE_TIMEOUT_MS) {
 	try {
 		const acptoapi = await getAcptoapi();
 		const chainModel = await resolveChainLinks(acptoapi, getAcptoapiModel());
-		const probeChain = Array.isArray(chainModel) ? chainModel.slice(0, PROBE_CHAIN_LINK_CAP) : chainModel;
+		const probeChain = Array.isArray(chainModel) ? chainModel.slice(0, REACHABILITY_PROBE_CHAIN_LINK_CAP) : chainModel;
 		const probe = {
 			messages: [{
 				role: "user",
