@@ -11192,6 +11192,16 @@ var init_gm_learn = __esmMin((() => {
 	_pk = null;
 	_isBrowser = typeof window !== "undefined" || typeof importScripts === "function";
 }));
+function looksLikeStructuredDataNotProse(text) {
+	const trimmed = text.trim();
+	if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return false;
+	try {
+		JSON.parse(trimmed);
+		return true;
+	} catch {
+		return false;
+	}
+}
 function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ["core"], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice, store } = {}) {
 	const baseLLM = callLLM || resolveCallLLM({
 		provider,
@@ -11309,7 +11319,10 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 							if (event.output.content && event.output.content.trim()) return event.output.content;
 							for (let i = context.messages.length - 1; i >= 0; i--) {
 								const m = context.messages[i];
-								if (m.role === "assistant" && typeof m.content === "string" && m.content.trim()) return m.content;
+								if (m.role !== "assistant" || typeof m.content !== "string" || !m.content.trim()) continue;
+								if (Array.isArray(m.tool_calls) && m.tool_calls.length > 0) continue;
+								if (looksLikeStructuredDataNotProse(m.content)) continue;
+								return m.content;
 							}
 							return event.output.content || "";
 						}
