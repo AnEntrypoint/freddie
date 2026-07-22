@@ -92,11 +92,57 @@ function parseBareJsonArray(content) {
     return out
 }
 
+// A FOURTH real weak-model shape, distinct from all three above:
+// `functionName{...json args...}` at the very start of content -- no parens
+// (unlike python_tag), no enclosing array (unlike the bare-array format), and
+// often followed by trailing garbage (a degenerate repetition loop, stray
+// prose) rather than being the whole content. Live-witnessed:
+// mistral/devstral-latest returned `case_report{"id": "...", "location":
+// "..."}  # <hundreds of repeated words>` as raw message content -- a real
+// tool name immediately followed by an unparenthesized JSON object, with a
+// severe content-safety consequence identical to the bare-array case: sent
+// verbatim, this would have reached a real contact as memobot's reply.
+// Matched only when NAME{ appears at the very start of the trimmed content
+// (name must look like a real identifier, not any word ever followed by a
+// brace) -- deliberately narrow so a genuine reply that happens to start
+// with a word then a brace in unrelated prose is never misread. The JSON
+// object's extent is found by counting balanced braces (respecting string
+// literals) rather than a greedy regex, so trailing garbage after the
+// legitimate tool-call payload is correctly excluded from the parsed args
+// rather than breaking JSON.parse or being silently swallowed into them.
+function parseBareNameBraceCall(content) {
+    const trimmed = content.trim()
+    const m = /^([A-Za-z_][A-Za-z0-9_]*)\{/.exec(trimmed)
+    if (!m) return []
+    const name = m[1]
+    const start = m[1].length
+    let depth = 0, inStr = false, esc = false, end = -1
+    for (let i = start; i < trimmed.length; i++) {
+        const ch = trimmed[i]
+        if (inStr) {
+            if (esc) esc = false
+            else if (ch === '\\') esc = true
+            else if (ch === '"') inStr = false
+            continue
+        }
+        if (ch === '"') { inStr = true; continue }
+        if (ch === '{') depth++
+        else if (ch === '}') { depth--; if (depth === 0) { end = i; break } }
+    }
+    if (end === -1) return []
+    let args
+    try { args = JSON.parse(trimmed.slice(start, end + 1)) } catch { return [] }
+    if (typeof args !== 'object' || args === null) return []
+    return [{ id: randId(), name, arguments: args }]
+}
+
 export function parseTextToolCalls(content) {
     if (typeof content !== 'string' || !content) return []
     const kimi = parseKimiSection(content)
     if (kimi.length) return kimi
     const pythonTag = parsePythonTag(content)
     if (pythonTag.length) return pythonTag
-    return parseBareJsonArray(content)
+    const bareArray = parseBareJsonArray(content)
+    if (bareArray.length) return bareArray
+    return parseBareNameBraceCall(content)
 }
