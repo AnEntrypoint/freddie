@@ -60,6 +60,19 @@ function parseBareJsonArray(content) {
     return out
 }
 
+function parseBareFunctionCallObject(content) {
+    const trimmed = content.trim()
+    if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return []
+    let parsed
+    try { parsed = JSON.parse(trimmed) } catch { return [] }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return []
+    const name = parsed.name ?? parsed.function?.name
+    if (typeof name !== 'string' || !name) return []
+    const args = parsed.parameters ?? parsed.arguments ?? parsed.function?.arguments ?? {}
+    if (typeof args !== 'object' || args === null) return []
+    return [{ id: randId(), name, arguments: args }]
+}
+
 function findBalancedJsonObjectEnd(text, startIndex) {
     let depth = 0, inString = false, escaped = false
     for (let i = startIndex; i < text.length; i++) {
@@ -99,5 +112,7 @@ export function parseTextToolCalls(content) {
     if (pythonTag.length) return pythonTag
     const bareArray = parseBareJsonArray(content)
     if (bareArray.length) return bareArray
+    const bareObject = parseBareFunctionCallObject(content)
+    if (bareObject.length) return bareObject
     return parseNameFollowedByJsonObject(content)
 }
