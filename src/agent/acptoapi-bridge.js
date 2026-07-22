@@ -257,63 +257,15 @@ function adaptResponse(r) {
 
 function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : (s || {}) } catch { return {} } }
 
-// In-process reachability: acptoapi is a library import now, not a port to
-// dial, so there is no cheap side-channel that answers "is SOME model
-// reachable" for an arbitrary provider (witnessed: listAllModelsAndQueues only
-// enumerates configured matrix/queue sources, empty by default; the sampler
-// cache starts empty until something actually probes/fails a provider). The
-// only generically correct answer is a real minimal call: send a trivial
-// message with a short timeout and treat success as reachable. Probing
-// THROUGH the same auto-chain callLLM now dispatches (see resolveChainLinks)
-// rather than the bare configured model alone -- a reachability probe that
-// only checked the configured model (e.g. an unreachable/misconfigured single
-// proxy like a stale 'chatjimmy/...' entry) previously reported the whole
-// backend down even when other configured/available providers were live and
-// callLLM's own chain would have succeeded; that mismatch is exactly what
-// left `resolveCallLLM`'s health check permanently red while a real reply
-// path existed.
-// SEVERE, live-witnessed bug in the old 10000ms default: a real chain walk
-// (chatChain falling through multiple candidates on rate_limit/timeout/auth)
-// routinely takes 15-30+ seconds under real-world provider contention --
-// live-witnessed casey turns completing successfully in that range all
-// session. A 10s race against that reality meant isReachable() frequently
-// timed out and returned false EVEN THOUGH the same chain, given a few more
-// seconds, would have (and immediately after DID, via a completely separate
-// call moments later) succeeded. The caller (casey's llm.js
-// makeResilientCallLLM) then DEBOUNCES re-resolution for a further 30s on
-// this single false negative, locking the whole process into "LLM backend
-// down; queued inbound, no reply sent" for real users while the actual
-// provider chain was fully reachable underneath. 45s still bounds a genuine
-// full outage from hanging forever, but comfortably covers the walk time a
-// real, working (not down) chain needs under real contention.
-// PROBE_CHAIN_LINK_CAP bounds how many candidates a reachability probe itself
-// walks. isReachable races its chatChain call against timeoutMs, but no
-// provider adapter honors an external AbortSignal (each hardcodes its own
-// internal AbortSignal.timeout for its own fetch) -- live-witnessed: when the
-// timeout side of the race wins (or the caller simply stops awaiting because a
-// separate real callLLM invocation completes first), the losing chatChain
-// promise is NOT cancelled and keeps walking the REST of the full ~13-link
-// auto-chain in the background, each hop still a real network call against a
-// real provider, its result silently discarded. Every resolveCallLLM/ensure()
-// cycle (casey's makeResilientCallLLM debounces this to as little as a few
-// seconds while degraded) could therefore leave an orphaned probe walk
-// consuming real rate-limit budget indefinitely, compounding the exact
-// capacity exhaustion this reachability check exists to detect. True
-// cancellation would require threading a caller AbortSignal through every
-// provider adapter's fetch call (merged with each one's own internal timeout
-// signal) -- a larger cross-cutting change. Capping the probe to the first
-// few links instead bounds the abandoned-walk blast radius to a handful of
-// hops (which finish or fail fast) rather than the full chain, while still
-// answering the real question ("is something near the top of the chain
-// reachable") the probe needs.
-const PROBE_CHAIN_LINK_CAP = 3
+const REACHABILITY_PROBE_TIMEOUT_MS = 45000
+const REACHABILITY_PROBE_CHAIN_LINK_CAP = 3
 
-export async function isReachable(timeoutMs = 45000) {
+export async function isReachable(timeoutMs = REACHABILITY_PROBE_TIMEOUT_MS) {
     try {
         const acptoapi = await getAcptoapi()
         const useModel = getAcptoapiModel()
         const chainModel = await resolveChainLinks(acptoapi, useModel)
-        const probeChain = Array.isArray(chainModel) ? chainModel.slice(0, PROBE_CHAIN_LINK_CAP) : chainModel
+        const probeChain = Array.isArray(chainModel) ? chainModel.slice(0, REACHABILITY_PROBE_CHAIN_LINK_CAP) : chainModel
         const probe = { messages: [{ role: 'user', content: 'ping' }], max_tokens: 4 }
         const result = await Promise.race([
             Array.isArray(probeChain) ? acptoapi.chatChain(probeChain, probe) : acptoapi.chat({ model: probeChain, ...probe }),

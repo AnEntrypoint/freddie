@@ -1,33 +1,3 @@
-// Some fast/weak models emit tool calls as plain TEXT in their own native token
-// format instead of structured OpenAI `tool_calls` (especially when the system
-// prompt is rich). The agent loop only acts on structured tool_calls, so without
-// recovery it stalls after one turn. parseTextToolCalls() extracts both observed
-// formats from a content string and returns OpenAI-shaped {id,name,arguments}[].
-//
-// Formats handled:
-//   - kimi / moonshot section format:
-//       <|tool_calls_section_begin|>
-//         <|tool_call_begin|> functions.<name>:<idx>
-//         <|tool_call_argument_begin|> {json-args}
-//         <|tool_call_end|>
-//       <|tool_calls_section_end|>
-//   - llama python_tag format:
-//       <|python_tag|>name({...})  or  name("query")  or  name(key="value")
-//   - bare JSON array format (a third real weak-model shape, distinct from
-//     both above): `[{"name": "<tool>", "parameters": {...}}]`, the WHOLE
-//     content is nothing but this array (no tokens/tags at all, no prose
-//     wrapping it). Live-witnessed: nvidia/abacusai/dracarys-llama-3.1-70b-
-//     instruct returned this shape verbatim as its message content with
-//     tool_choice:'required' -- with no recovery, that raw JSON string was
-//     sent to the contact as if it were a real reply (a serious content
-//     bug, not just a stalled turn). Deliberately narrow: matched only when
-//     the ENTIRE trimmed content parses as this exact array-of-objects
-//     shape, so a genuine chat reply that happens to mention or quote JSON
-//     inline (e.g. explaining an error message) is never misread as a tool
-//     call -- a real reply is prose WITH the JSON inside it, not JSON alone.
-//
-// Returns [] when the content holds no recognizable text tool call.
-
 function randId() {
     return 'call_' + Math.random().toString(36).slice(2, 10)
 }
@@ -74,8 +44,6 @@ function parsePythonTag(content) {
 
 function parseBareJsonArray(content) {
     const trimmed = content.trim()
-    // Must be the WHOLE content, not JSON embedded in prose -- a real chat
-    // reply that quotes/explains JSON is never mistaken for a tool call.
     if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) return []
     let parsed
     try { parsed = JSON.parse(trimmed) } catch { return [] }
@@ -92,46 +60,33 @@ function parseBareJsonArray(content) {
     return out
 }
 
-// A FOURTH real weak-model shape, distinct from all three above:
-// `functionName{...json args...}` at the very start of content -- no parens
-// (unlike python_tag), no enclosing array (unlike the bare-array format), and
-// often followed by trailing garbage (a degenerate repetition loop, stray
-// prose) rather than being the whole content. Live-witnessed:
-// mistral/devstral-latest returned `case_report{"id": "...", "location":
-// "..."}  # <hundreds of repeated words>` as raw message content -- a real
-// tool name immediately followed by an unparenthesized JSON object, with a
-// severe content-safety consequence identical to the bare-array case: sent
-// verbatim, this would have reached a real contact as memobot's reply.
-// Matched only when NAME{ appears at the very start of the trimmed content
-// (name must look like a real identifier, not any word ever followed by a
-// brace) -- deliberately narrow so a genuine reply that happens to start
-// with a word then a brace in unrelated prose is never misread. The JSON
-// object's extent is found by counting balanced braces (respecting string
-// literals) rather than a greedy regex, so trailing garbage after the
-// legitimate tool-call payload is correctly excluded from the parsed args
-// rather than breaking JSON.parse or being silently swallowed into them.
-function parseBareNameBraceCall(content) {
-    const trimmed = content.trim()
-    const m = /^([A-Za-z_][A-Za-z0-9_]*)\{/.exec(trimmed)
-    if (!m) return []
-    const name = m[1]
-    const start = m[1].length
-    let depth = 0, inStr = false, esc = false, end = -1
-    for (let i = start; i < trimmed.length; i++) {
-        const ch = trimmed[i]
-        if (inStr) {
-            if (esc) esc = false
-            else if (ch === '\\') esc = true
-            else if (ch === '"') inStr = false
+function findBalancedJsonObjectEnd(text, startIndex) {
+    let depth = 0, inString = false, escaped = false
+    for (let i = startIndex; i < text.length; i++) {
+        const ch = text[i]
+        if (inString) {
+            if (escaped) escaped = false
+            else if (ch === '\\') escaped = true
+            else if (ch === '"') inString = false
             continue
         }
-        if (ch === '"') { inStr = true; continue }
+        if (ch === '"') { inString = true; continue }
         if (ch === '{') depth++
-        else if (ch === '}') { depth--; if (depth === 0) { end = i; break } }
+        else if (ch === '}') { depth--; if (depth === 0) return i }
     }
-    if (end === -1) return []
+    return -1
+}
+
+function parseNameFollowedByJsonObject(content) {
+    const trimmed = content.trim()
+    const match = /^([A-Za-z_][A-Za-z0-9_]*)\{/.exec(trimmed)
+    if (!match) return []
+    const name = match[1]
+    const jsonStart = name.length
+    const jsonEnd = findBalancedJsonObjectEnd(trimmed, jsonStart)
+    if (jsonEnd === -1) return []
     let args
-    try { args = JSON.parse(trimmed.slice(start, end + 1)) } catch { return [] }
+    try { args = JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1)) } catch { return [] }
     if (typeof args !== 'object' || args === null) return []
     return [{ id: randId(), name, arguments: args }]
 }
@@ -144,5 +99,5 @@ export function parseTextToolCalls(content) {
     if (pythonTag.length) return pythonTag
     const bareArray = parseBareJsonArray(content)
     if (bareArray.length) return bareArray
-    return parseBareNameBraceCall(content)
+    return parseNameFollowedByJsonObject(content)
 }
