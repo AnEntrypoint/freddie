@@ -83,6 +83,8 @@ emperor-penguin.md
 .codeinsight.digest
 .gm/browser-profile/
 .gm/browser-profile-*/
+.gm/browser-chrome-profile-*/
+.agentplug-kv/
 .gm/witness-pages.js
 .gm/pw-sock-*/
 .gm/last-dispatch-ts
