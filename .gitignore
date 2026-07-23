@@ -92,5 +92,7 @@ emperor-penguin.md
 .gm/disciplines/codeinsight-manifest/*.json
 .gm/disciplines/codeinsight-vec/*.json
 .gm/memories/*.md
+.gm/disciplines/freddie-test/memories/
+.gm/disciplines/freddie-gmlearn-test/memories/
 .tools-snapshot.json
 website/docs/
