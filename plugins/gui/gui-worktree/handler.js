@@ -44,13 +44,28 @@ function sanitizeTargetPath(cwd, targetPath) {
     return resolved
 }
 
+async function branchExists(cwd, branch) {
+    try {
+        await git(['show-ref', '--verify', '--quiet', 'refs/heads/' + branch], cwd)
+        return true
+    } catch { return false }
+}
+
 export async function createWorktree(req, res) {
     try {
         const { cwd: cwdParam, branch, path: targetPath } = req.body || {}
         const cwd = resolveAllowedCwd(cwdParam)
         const resolvedTarget = sanitizeTargetPath(cwd, targetPath)
         const args = ['worktree', 'add', resolvedTarget]
-        if (branch) args.push(branch)
+        if (branch) {
+            // A single `branch` field from the UI is ambiguous: an existing
+            // branch to check out, or a new one to create. Disambiguate by
+            // checking refs/heads/<branch> -- create with -b only when it
+            // doesn't already exist, so checking out an existing branch
+            // still works unchanged.
+            if (await branchExists(cwd, branch)) args.push(branch)
+            else args.push('-b', branch)
+        }
         const raw = await git(args, cwd)
         res.json({ ok: true, cwd, path: resolvedTarget, output: raw })
     } catch (e) { res.status(400).json({ error: e.message }) }
