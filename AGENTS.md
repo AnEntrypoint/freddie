@@ -42,6 +42,8 @@ Sampler funcs (`isAvailable`, `markFailed`, `markOk`, `resetAvailability`, `getS
 
 Matrix wired: shim passes `matrixSource: process.env.FREDDIE_MATRIX_URL || <repo>/.gm/model-availability.json` only for comma-list or `queue/<name>` model strings; single-shot omits to avoid leaking chain opts into upstream HTTP body.
 
+**No runtime provider-registration API exists in acptoapi or freddie (verified against acptoapi's own `AGENTS.md`).** `PROVIDER_KEYS`/`PROVIDER_DEFAULTS` are exported from acptoapi's `lib/provider-maps.js` as a static, hand-edited list of 17 providers — adding a new one means editing that file directly in the acptoapi repo, propagated to freddie on `npm install`, not calling a `registerProvider()`-style function at runtime. Freddie's own plugin contract (`src/host/contract.js` `PI_VERBS`) has no `provider` verb either, so a freddie plugin author has no in-tree path to add a bespoke provider — they'd have to open a PR against acptoapi directly. This is consistent with the "acptoapi is THE SDK" architecture above (provider breadth is acptoapi's job, not freddie's), but it does mean provider extensibility is edit-and-release, not runtime-pluggable, on either side. Not a defect to fix unilaterally — if a plugin-runtime provider-registration API is ever wanted, it's an acptoapi-repo design decision (a new export + a `provider` `PI_VERB` delegating to it), not something to bolt onto freddie alone.
+
 ## LLM resolver priority
 
 1. explicit provider+key
