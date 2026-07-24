@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { getConfigValue } from '../../../src/config.js'
 export const _tool = ({
     name: 'bash',
     toolset: 'core',
@@ -21,7 +22,12 @@ export const _tool = ({
         return await new Promise((resolve) => {
             const sh = process.platform === 'win32' ? 'cmd' : 'sh'
             const flag = process.platform === 'win32' ? '/c' : '-c'
-            const child = spawn(sh, [flag, command], { cwd, env: process.env })
+            // Non-interactive shells don't source ~/.bashrc, so user aliases
+            // silently don't expand. terminal.command_prefix lets a user inject
+            // an alias-sourcing (or any other setup) line ahead of every command.
+            const prefix = getConfigValue('terminal.command_prefix', '')
+            const fullCommand = prefix ? `${prefix}\n${command}` : command
+            const child = spawn(sh, [flag, fullCommand], { cwd, env: process.env })
             let stdout = '', stderr = ''
             const t = setTimeout(() => { try { child.kill('SIGKILL') } catch {} resolve({ exitCode: -1, stdout, stderr: stderr + '\n[timeout]', timedOut: true }) }, timeout_ms)
             child.stdout?.on('data', d => stdout += d.toString())
