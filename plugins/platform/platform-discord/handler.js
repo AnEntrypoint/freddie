@@ -176,7 +176,26 @@ export class DiscordAdapter extends EventEmitter {
         }
         if (p.t === 'MESSAGE_CREATE') {
             const m = p.d
-            if (m.author?.bot) return   // ignore bots and our own messages
+            // Blanket bot-ignore is a real, deliberate anti-loop safeguard --
+            // two bots replying to each other's messages is an unbounded reply
+            // storm with no natural end. Kept as the default for every bot
+            // author. The ONE narrow exception: DISCORD_ALLOWED_BOT_AUTHOR_IDS
+            // (comma-separated user ids, unset by default) lets an operator
+            // explicitly allowlist specific bot accounts -- e.g. a second bot
+            // used purely to script real round-trip test messages into a real
+            // channel, with no reply logic of its own to loop back against.
+            // This is opt-in only: with the env var unset, behavior is
+            // byte-identical to the unconditional `if (m.author?.bot) return`
+            // this replaces. An allowlisted id still never bypasses this
+            // bot's own self-message guard below (m.author?.id === this
+            // bot's own id), so a bot can never be allowlisted into replying
+            // to itself.
+            if (m.author?.bot) {
+                const allowedIds = (typeof process !== 'undefined' && process.env && process.env.DISCORD_ALLOWED_BOT_AUTHOR_IDS || '')
+                    .split(',').map(s => s.trim()).filter(Boolean)
+                if (!allowedIds.includes(m.author?.id)) return
+            }
+            if (m.author?.id && this._botUserId && m.author.id === this._botUserId) return   // never reply to our own messages
             const base = { from: m.author?.id, text: m.content || '', raw: m, platform: 'discord' }
             // ws.on('message', ...) above is a sync callback and can't await this,
             // so the fetch-and-emit path runs as a detached async task: the
