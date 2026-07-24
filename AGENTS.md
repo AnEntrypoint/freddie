@@ -4,10 +4,12 @@ Instructions for AI coding assistants working on Freddie. Present-tense rules on
 
 ## Substrate (do not reimplement)
 
-- `@mariozechner/pi-coding-agent` — agent + tools + interactive TUI. Use `AgentSession`, `BashExecutionComponent`, `ModelRegistry`, `InteractiveMode`, `FileAuthStorageBackend`, `ExtensionRunner`.
-- `@mariozechner/pi-agent-core` — `Agent`, `agentLoop`, `runAgentLoop`, `streamProxy`. Wrap in xstate, do not rewrite.
-- `@earendil-works/pi-ai` — `complete`, `completeSimple`, `AssistantMessageEventStream`, `registerApiProvider`, `getModel`, `calculateCost`, `parseStreamingJson`, `isContextOverflow`. THE provider layer. `complete`/`completeSimple`/`registerApiProvider`/`getModel`/`getEnvApiKey`/`registerBuiltInApiProviders` live under the `/compat` subpath export (`@earendil-works/pi-ai/compat`), not the package root — the root export is a redesigned lower-level API (`createModels`/`createProvider`/`envApiKeyAuth`/etc). `calculateCost`/`parseStreamingJson`/`isContextOverflow`/`AssistantMessageEventStream` are at the root.
-- `@earendil-works/pi-tui` — TUI primitives (Ink-equivalent).
+**Status check (verified against package.json + node_modules, not aspirational):** freddie currently depends on `@earendil-works/pi-ai` and `@earendil-works/pi-tui` only, both pinned `^0.80.10` (current upstream is `0.82.0` — a version bump is tracked separately). `@earendil-works/pi-coding-agent` and `@earendil-works/pi-agent-core` are **not installed** — `AgentSession`, `SessionManager`, `SettingsManager`, `DefaultResourceLoader`, `ModelRuntime`, and `runPrintMode`/`runRpcMode` are NOT in use anywhere in this codebase today, despite earlier versions of this doc claiming otherwise. The agent turn loop (`src/agent/machine.js`), session store (`src/sessions.js`), settings (`src/config.js`), skills loader (`src/skills/index.js`), and plugin/extension system (`src/host/*`) are all freddie-original code, not thin wrappers over that package. The correct current npm scope for that package is `@earendil-works/pi-coding-agent` (not `@mariozechner/pi-coding-agent`, which is a stale/older-scope reference — `@mariozechner/*` is pinned behind at `0.73.1` on the registry while `@earendil-works/*` tracks current `0.82.0`). If/when this substrate is actually adopted, install `@earendil-works/pi-coding-agent` (it pulls in `pi-agent-core` and pins `pi-ai`/`pi-tui` to matching versions as its own dependencies) rather than the `@mariozechner` scope.
+
+- `@earendil-works/pi-coding-agent` (not yet a dependency — see status check above) — agent + tools + interactive TUI, if adopted. Exports `AgentSession`/`createAgentSession`, `SessionManager`, `SettingsManager`, `DefaultResourceLoader`, `ModelRuntime`, `defineTool`, `InteractiveMode`, `runPrintMode`, `runRpcMode`, `createEventBus`, plus a `dist/core/compaction` module (`shouldCompact`/`findCutPoint`/`generateSummary`/`compact`) that operates on plain message arrays, not locked to `SessionManager` storage.
+- `@earendil-works/pi-agent-core` (not yet a dependency) — lower-level `Agent`/`agentLoop`/`runAgentLoop`/`streamProxy`, a dependency of `pi-coding-agent` itself.
+- `@earendil-works/pi-ai` — `complete`, `completeSimple`, `AssistantMessageEventStream`, `registerApiProvider`, `getModel`, `calculateCost`, `parseStreamingJson`, `isContextOverflow`. THE provider layer, actually installed and in use. `complete`/`completeSimple`/`registerApiProvider`/`getModel`/`getEnvApiKey`/`registerBuiltInApiProviders` live under the `/compat` subpath export (`@earendil-works/pi-ai/compat`), not the package root — the root export is a redesigned lower-level API (`createModels`/`createProvider`/`envApiKeyAuth`/etc). `calculateCost`/`parseStreamingJson`/`isContextOverflow`/`AssistantMessageEventStream` are at the root.
+- `@earendil-works/pi-tui` — TUI primitives (Ink-equivalent), actually installed. `src/tui/index.js::launchTui()` dynamically imports it and constructs the real `InteractiveMode` export when present + TTY + shape-matches, falling back to `src/cli/interactive.js`'s plain `readline` REPL otherwise (this fallback is what runs today in most environments, since `InteractiveMode`'s own dependency, `pi-coding-agent`, still isn't installed to fully exercise the rich path — but the integration attempt itself is real, not dead code).
 - `floosie` — `ProcessorMachine` (xstate). Use for gateway pipelines. Compose, don't fork.
 - `anentrypoint-design` — webjsx + ripple-ui. **All GUI for freddie and thebird lives here.** Source in `C:/dev/anentrypoint-design`; freddie pins from npm registry. For local SDK iteration, swap to `file:../anentrypoint-design` and rebuild via `node scripts/build.mjs`. Do NOT add React.
 - `acptoapi` — THE LLM SDK (see "acptoapi is THE SDK" below).
@@ -275,8 +277,8 @@ On Windows, test.js must call `closeDb()` and log-stream `closeAll()` before exi
 
 | Concern | Freddie location |
 |---|---|
-| Agent loop | `src/agent/machine.js` (xstate) + `@mariozechner/pi-agent-core` |
-| CLI entry | `bin/freddie.js` (commander) + pi-coding-agent InteractiveMode |
+| Agent loop | `src/agent/machine.js` (xstate, freddie-original — `pi-agent-core` not installed, see Substrate) |
+| CLI entry | `bin/freddie.js` (commander) + `src/tui/index.js` (pi-tui `InteractiveMode` if available/TTY, else `src/cli/interactive.js` readline REPL) |
 | Tools | `plugins/<name>/{plugin,handler}.js` (no `src/tools/`) |
 | Toolsets | `src/toolsets.js` |
 | Session store | `src/sessions.js` (libsql + FTS5, async API) |
