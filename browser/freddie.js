@@ -5,6 +5,7 @@ import { spawn } from "node:child_process";
 import os, { homedir } from "node:os";
 import crypto, { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
+import readline from "node:readline";
 import { assign, assign as assign$1, createActor, createActor as createActor$1, createMachine, createMachine as createMachine$1, fromPromise, fromPromise as fromPromise$1, waitFor } from "xstate";
 import * as _sdkNs from "acptoapi";
 //#region \0rolldown/runtime.js
@@ -5576,9 +5577,72 @@ var init_projects = __esmMin((() => {
 	};
 }));
 //#endregion
+//#region src/host/plugin-trust.js
+init_projects();
+init_home();
+function trustFilePath() {
+	return path.join(getFreddieHome(), "trust.json");
+}
+function readTrustFile() {
+	try {
+		return JSON.parse(fs.readFileSync(trustFilePath(), "utf8"));
+	} catch {
+		return {};
+	}
+}
+function writeTrustFile(data) {
+	fs.writeFileSync(trustFilePath(), JSON.stringify(data, null, 2) + "\n");
+}
+function getTrustDecision(resolvedRoot) {
+	return readTrustFile()[resolvedRoot]?.decision ?? null;
+}
+function setTrustDecision(resolvedRoot, decision) {
+	const trust = readTrustFile();
+	trust[resolvedRoot] = {
+		decision,
+		decided_at: Date.now()
+	};
+	writeTrustFile(trust);
+}
+async function promptYesNo(question) {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout
+	});
+	return await new Promise((resolve) => {
+		rl.question(question, (answer) => {
+			rl.close();
+			resolve(/^y(es)?$/i.test(answer.trim()));
+		});
+	});
+}
+async function checkPluginTrust(resolvedRoot, { approve = null } = {}) {
+	if (!fs.existsSync(resolvedRoot)) return false;
+	if (approve === true) {
+		setTrustDecision(resolvedRoot, "trusted");
+		return true;
+	}
+	if (approve === false) {
+		setTrustDecision(resolvedRoot, "untrusted");
+		return false;
+	}
+	const existing = getTrustDecision(resolvedRoot);
+	if (existing === "trusted") return true;
+	if (existing === "untrusted") return false;
+	if (!process.stdin.isTTY || !process.stdout.isTTY) {
+		if (process.env.FREDDIE_TRUST_CWD_PLUGINS === "1") {
+			setTrustDecision(resolvedRoot, "trusted");
+			return true;
+		}
+		return false;
+	}
+	const trusted = await promptYesNo(`\nThis project has local plugins at ${resolvedRoot}\nLoading them runs their code with full process permissions (same as any freddie plugin).\nTrust this project's plugins? [y/N] `);
+	setTrustDecision(resolvedRoot, trusted ? "trusted" : "untrusted");
+	return trusted;
+}
+//#endregion
 //#region src/host/index.js
 init_home();
-init_projects();
 init_env();
 var _host = null;
 var _loadPromise = null;
@@ -5596,15 +5660,17 @@ function host() {
 	if (!_host) _host = createHost({ surfaces: ["pi", "gui"] });
 	return _host;
 }
-async function bootHost(extraRoots = []) {
+async function bootHost(extraRoots = [], { approveCwdPlugins = null } = {}) {
 	if (_loadPromise) return _loadPromise;
 	_loadPromise = (async () => {
 		const h = host();
 		if (!env("FREDDIE_HOME") && !env("FREDDIE_PROFILE")) applyActiveProjectFromRegistry();
+		const cwdPluginRoot = path.join(process.cwd(), ".freddie", "plugins");
+		const cwdTrusted = await checkPluginTrust(cwdPluginRoot, { approve: approveCwdPlugins });
 		const plugins = await discoverPlugins([
 			REPO_PLUGINS,
 			path.join(getFreddieHome(), "plugins"),
-			path.join(process.cwd(), ".freddie", "plugins"),
+			...cwdTrusted ? [cwdPluginRoot] : [],
 			...extraRoots
 		]);
 		await h.load(plugins);
