@@ -9,7 +9,7 @@ export const DEFAULT_CONFIG = {
     agent: { provider: 'anthropic', model: '', max_iterations: 90, fallback_model: null, save_trajectories: false, model_preference: [], model_queues: {}, discovered_models: {} },
     memory: { provider: null },
     skills: { config: {} },
-    terminal: { cwd: null, command_prefix: '' },
+    terminal: { cwd: null, command_prefix: '', scrub_provider_env: false },
     gateway: { timeout: 60, platforms: {} },
     plugins: { enabled: [] },
     toolsets: { enabled: ['core'], disabled: [] },

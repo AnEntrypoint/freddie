@@ -100,6 +100,26 @@ export function envVarAllowed(name, allowPatterns) {
     return allowPatterns.includes(name)
 }
 
+// Opt-in credential scrubbing for subprocess environments (bash tool,
+// environments/*.js). Unlike envVarAllowed (which gates a plugin's own
+// ctx.env(name) reads), this filters the FULL env object handed to a spawned
+// child process -- a bash tool call otherwise inherits every provider API
+// key in process.env verbatim, with no scoping at all. Reuses the same
+// allowlist-pattern shape as envVarAllowed/hostAllowed for consistency, but
+// here `denyNames` is a concrete list of var names to strip (typically
+// auth.js's ENV_OF values) rather than an allow-pattern -- scrubbing is
+// name-based, not glob-based, since credential env var names are exact and
+// well-known ahead of time.
+export function scrubEnv(env, denyNames) {
+    if (!denyNames || !denyNames.length) return env
+    const denySet = new Set(denyNames)
+    const out = {}
+    for (const [k, v] of Object.entries(env)) {
+        if (!denySet.has(k)) out[k] = v
+    }
+    return out
+}
+
 // Wraps a single tool handler call with scoped, synchronously-installed and
 // -removed global patches (fs write/read fns + global fetch + global
 // WebSocket) that check the owning plugin's declared resources.* allowlist
