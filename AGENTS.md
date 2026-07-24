@@ -56,6 +56,12 @@ Matrix wired: shim passes `matrixSource: process.env.FREDDIE_MATRIX_URL || <repo
 
 ACP protocol detail (`acpChat`, kilo/opencode backends, `/event`-before-`/message`, max_tokens 4096 floor) — see rs-learn (recall "Freddie ACP protocol detail").
 
+### Custom OpenAI-compatible endpoints (no `models.json` equivalent — use acptoapi's extra-providers file)
+
+Freddie has no `~/.freddie/models.json`-style user-declared model config. To point at a custom OpenAI-compatible endpoint (local Ollama/LM Studio/vLLM, a private gateway, etc.), declare it in acptoapi's own `~/.acptoapi/extra-providers.txt` — `src/agent/llm_resolver.js::warmExtraProviders()` (line 37) calls into `acptoapi/lib/extra-providers` on startup so freddie's `buildAutoChain()` env-key scan (resolver priority step 4 above) picks these up automatically, same as any other provider.
+
+File format, one entry per record (`acptoapi/lib/extra-providers.js::parseProviderFile`): either a single tab-separated line `<baseURL>\t<apiKey>\t<model1> <model2> ...`, or two consecutive lines (`<baseURL>` then `<apiKey>`) when models aren't pre-declared (they get probed instead). Blank lines and `#`-prefixed comments are skipped. This is a flat 3-field record — no `!command`/`$ENV_VAR` interpolation, no per-model `reasoning`/`contextWindow`/`cost`/`thinkingLevelMap` metadata, and entries are probed/cached with a TTL rather than hot-reloaded on demand. If a richer schema is ever needed, it belongs in acptoapi (the single source of truth for provider config per "acptoapi is THE SDK" above), not a new freddie-local file.
+
 ## Plugin architecture
 
 Every tool, platform, memory provider, GUI route, and core subsystem is a plugin under `plugins/<name>/`. There is no `src/tools/registry.js`, `src/tools/<tool>.js`, `src/gateway/platforms/*.js`, or `src/plugins/memory/*.js` — do not reach for those paths.
