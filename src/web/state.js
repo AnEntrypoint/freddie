@@ -103,6 +103,7 @@ export const ROUTES = [
     { path: 'chat',      label: 'chat',      icon: 'forum' },
     { path: 'voice',     label: 'voice',     icon: 'mic' },
     { path: 'sessions',  label: 'sessions',  icon: 'thread' },
+    { path: 'git',       label: 'git',       icon: 'branch' },
     { path: 'projects',  label: 'projects',  icon: 'square' },
     { path: 'agents',    label: 'agents',    icon: 'members' },
     { path: 'analytics', label: 'analytics', icon: 'activity' },

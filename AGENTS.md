@@ -119,6 +119,8 @@ GUI key/path/conversation endpoints (freddie-owned `plugins/gui-*`, consumed by 
 - **Keys** (`plugins/gui-auth`): `GET /api/auth` (per-provider env|stored|none + masked `fingerprint`, never the raw value), `POST /api/auth {provider,key}` (stores via auth store), `DELETE /api/auth/:provider`. The SDK `env` page (labelled "keys") renders a masked-input + save/remove per provider. `GET /api/env` (`plugins/gui-env`) now reports auth-store keys too, not just `process.env`.
 - **Conversations** (`plugins/gui-sessions`): `GET /api/sessions/:id` (single), `DELETE /api/sessions/:id` (purges messages + FTS), alongside the existing list/messages/search.
 - **Paths** (`plugins/gui-projects`): full CRUD already (`GET/POST/DELETE /api/projects`, `POST /api/projects/active`).
+- **Git** (`plugins/gui/gui-git`): `GET /api/git/{status,diff,log}`, cwd allowlisted against `listProjects()`/active project via `resolveAllowedCwd`, `execFile` never a shell string. Consumed by the SDK's `git` page (`GitStatusPanel`/`GitDiffView`).
+- **Worktrees** (`plugins/gui/gui-worktree`): `GET/POST/DELETE /api/worktree`, target path confined within or alongside the project dir; `createWorktree`'s `branch` field checks out an existing branch or creates one with `-b` if it doesn't already exist. Consumed by the SDK's `WorktreeSwitcher`.
 
 Theme attribute scoping: `class="ds-247420"` on `<html>`, `data-theme="dark|light"` on `<body>`. Putting both on the same node breaks the descendant selector and themes do not switch.
 
