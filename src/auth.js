@@ -37,6 +37,10 @@ const ENV_OF = { anthropic: 'ANTHROPIC_API_KEY', openai: 'OPENAI_API_KEY', groq:
 export function isKnownAuthProvider(name) { return PROVIDERS.includes(name) }
 export function listAuthProviders() { return [...PROVIDERS] }
 export function envForProvider(name) { return ENV_OF[name] || null }
+// Dedup'd env var names across all known providers (some providers share one,
+// e.g. codex reuses OPENAI_API_KEY) -- used by src/host/tool-resources.js's
+// scrubEnv() to strip provider credentials from a spawned subprocess env.
+export function listKnownEnvVars() { return [...new Set(Object.values(ENV_OF))] }
 
 export async function hasUsableSecret(provider) {
     const env = envForProvider(provider)
