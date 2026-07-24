@@ -6,6 +6,7 @@ import { createHost, discoverPlugins } from './host.js'
 import { getFreddieHome } from '../home.js'
 import { applyActiveProjectFromRegistry } from '../projects.js'
 import { env } from '../env.js'
+import { checkPluginTrust } from './plugin-trust.js'
 
 let _host = null
 let _loadPromise = null
@@ -45,7 +46,7 @@ export function host() {
     return _host
 }
 
-export async function bootHost(extraRoots = []) {
+export async function bootHost(extraRoots = [], { approveCwdPlugins = null } = {}) {
     // Memoize the IN-FLIGHT promise, not a boolean flag: a boolean set true
     // before the awaits below complete let concurrent callers observe a
     // partially-loaded host. Returning the same promise means every caller
@@ -54,7 +55,15 @@ export async function bootHost(extraRoots = []) {
     _loadPromise = (async () => {
         const h = host()
         if (!env('FREDDIE_HOME') && !env('FREDDIE_PROFILE')) applyActiveProjectFromRegistry()
-        const roots = [REPO_PLUGINS, path.join(getFreddieHome(), 'plugins'), path.join(process.cwd(), '.freddie', 'plugins'), ...extraRoots]
+        // The repo-shipped plugins/ and the user's own ~/.freddie/plugins/ are
+        // always trusted (the user installed them deliberately). Only the
+        // project-local <cwd>/.freddie/plugins/ root is attacker-controlled
+        // (ships with whatever repo the user happens to be running freddie
+        // inside), so it alone is gated behind an approval prompt/allow-list --
+        // see plugin-trust.js.
+        const cwdPluginRoot = path.join(process.cwd(), '.freddie', 'plugins')
+        const cwdTrusted = await checkPluginTrust(cwdPluginRoot, { approve: approveCwdPlugins })
+        const roots = [REPO_PLUGINS, path.join(getFreddieHome(), 'plugins'), ...(cwdTrusted ? [cwdPluginRoot] : []), ...extraRoots]
         const plugins = await discoverPlugins(roots)
         await h.load(plugins)
         const ccRoots = [path.join(getFreddieHome(), 'cc-plugins'), path.join(process.cwd(), '.freddie', 'cc-plugins')]
