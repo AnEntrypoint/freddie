@@ -55,6 +55,7 @@ thebird-plugin.json
 .gm/*.png
 .gm/exec-spool/
 .gm/residual-check-fired
+.gm/claim-audit-fired
 .gm/audit-*.txt
 .gm/audit-*.js
 .gm/inp*.txt
@@ -82,6 +83,8 @@ emperor-penguin.md
 .codeinsight.digest
 .gm/browser-profile/
 .gm/browser-profile-*/
+.gm/browser-chrome-profile-*/
+.agentplug-kv/
 .gm/witness-pages.js
 .gm/pw-sock-*/
 .gm/last-dispatch-ts
@@ -89,4 +92,7 @@ emperor-penguin.md
 .gm/disciplines/codeinsight-manifest/*.json
 .gm/disciplines/codeinsight-vec/*.json
 .gm/memories/*.md
+.gm/disciplines/freddie-test/memories/
+.gm/disciplines/freddie-gmlearn-test/memories/
 .tools-snapshot.json
+website/docs/

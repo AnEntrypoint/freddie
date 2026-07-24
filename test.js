@@ -472,6 +472,10 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     assert.ok(!(await (await G('api/auth')).json()).find(r => r.provider === KP).set, 'stored key removed')
     assert.equal((await P('api/auth', { provider: 'bogus', key: 'x' })).status, 400, 'unknown provider -> 400')
     assert.equal((await P('api/auth', { provider: 'mistral', key: '' })).status, 400, 'empty key -> 400')
+    // gui-skills write endpoint: enable/disable a skill, persisted under plugins.gui-skills.skillState.
+    const sset = await P('api/skills/test-skill', { enabled: false }); assert.equal(sset.status, 200, 'POST /api/skills/:name')
+    assert.equal((await (await G('api/skills')).json()).skillState['test-skill'].enabled, false, 'skillState persisted')
+    assert.equal((await P('api/skills/test-skill', { enabled: 'nope' })).status, 400, 'non-boolean enabled -> 400')
     // gui-sessions delete + single-get
     const { createSession: _cs, appendMessage: _am } = await import('./src/sessions.js')
     const delSid = await _cs({ platform: 'cli' }); await _am(delSid, { role: 'user', content: 'gui-delete-me' })
@@ -525,6 +529,27 @@ await T('env+pi+cli+tui+setup+website+helpers', async () => {
     assert.ok(/document\.title = 'freddie · '/.test(appSrc), 'dashboard sets document.title per route')
     assert.ok(/focusMain\(\)/.test(appSrc), 'dashboard moves focus to main on route change')
     await dash.stop()
+})
+
+await T('gui-git: status/log/diff against freddie repo itself', async () => {
+    const { createProject, deleteProject, listProjects } = await import('./src/projects.js')
+    const repoRoot = process.cwd()
+    const already = listProjects().find(p => path.resolve(p.path) === repoRoot)
+    const created = already ? null : createProject({ name: 'test-git-repo-' + Date.now(), projectPath: repoRoot })
+    try {
+        const { gitStatus, gitLog, gitDiff } = await import('./plugins/gui/gui-git/handler.js')
+        const mkRes = () => { const r = { status: () => r }; r.json = v => { r.body = v }; return r }
+        const rs = mkRes(); await gitStatus({ query: { cwd: repoRoot } }, rs)
+        assert.ok(Array.isArray(rs.body?.staged) && Array.isArray(rs.body?.unstaged) && Array.isArray(rs.body?.untracked), 'git status shape')
+        const rl = mkRes(); await gitLog({ query: { cwd: repoRoot, limit: '3' } }, rl)
+        assert.ok(Array.isArray(rl.body?.commits) && rl.body.commits.length > 0, 'git log returns commits')
+        assert.ok(rl.body.commits[0].hash && rl.body.commits[0].subject, 'commit has hash+subject: ' + JSON.stringify(rl.body.commits[0]))
+        const rd = mkRes(); await gitDiff({ query: { cwd: repoRoot } }, rd)
+        assert.equal(typeof rd.body?.diff, 'string', 'git diff returns a string body')
+        // cwd outside the project allowlist is rejected, not silently served
+        const rbad = mkRes(); await gitStatus({ query: { cwd: os.tmpdir() } }, rbad)
+        assert.match(rbad.body?.error || '', /allowlisted/, 'unregistered cwd rejected: ' + JSON.stringify(rbad.body))
+    } finally { if (created) deleteProject(created.name) }
 })
 
 console.log('\n=== test.js results ==='); for (const [n, s] of results) console.log(`  ${s.startsWith('OK') ? '[ok]' : '[FAIL]'} ${n}\t${s}`)
