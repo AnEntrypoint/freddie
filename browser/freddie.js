@@ -4469,7 +4469,8 @@ var init_config = __esmMin((() => {
 		skills: { config: {} },
 		terminal: {
 			cwd: null,
-			command_prefix: ""
+			command_prefix: "",
+			scrub_provider_env: false
 		},
 		gateway: {
 			timeout: 60,
