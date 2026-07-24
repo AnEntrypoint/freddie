@@ -1,5 +1,7 @@
 import { spawn } from 'node:child_process'
 import { getConfigValue } from '../../../src/config.js'
+import { scrubEnv } from '../../../src/host/tool-resources.js'
+import { listKnownEnvVars } from '../../../src/auth.js'
 export const _tool = ({
     name: 'bash',
     toolset: 'core',
@@ -27,7 +29,15 @@ export const _tool = ({
             // an alias-sourcing (or any other setup) line ahead of every command.
             const prefix = getConfigValue('terminal.command_prefix', '')
             const fullCommand = prefix ? `${prefix}\n${command}` : command
-            const child = spawn(sh, [flag, fullCommand], { cwd, env: process.env })
+            // Opt-in: strip provider API keys from the subprocess env so a bash
+            // tool call doesn't inherit credentials it has no need to see.
+            // Off by default (many legitimate commands DO need provider keys,
+            // e.g. curl-ing an API directly) -- terminal.scrub_provider_env=true
+            // opts in for less-trusted command execution.
+            const childEnv = getConfigValue('terminal.scrub_provider_env', false)
+                ? scrubEnv(process.env, listKnownEnvVars())
+                : process.env
+            const child = spawn(sh, [flag, fullCommand], { cwd, env: childEnv })
             let stdout = '', stderr = ''
             const t = setTimeout(() => { try { child.kill('SIGKILL') } catch {} resolve({ exitCode: -1, stdout, stderr: stderr + '\n[timeout]', timedOut: true }) }, timeout_ms)
             child.stdout?.on('data', d => stdout += d.toString())
