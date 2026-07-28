@@ -12,14 +12,14 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
       - run: node scripts/sync-upstream.mjs --dry-run
       - run: node scripts/sync-upstream.mjs
       - name: Open PR if changes
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: 'chore(deps): sync sibling upstream versions'
           title: 'chore(deps): sync sibling upstream versions'

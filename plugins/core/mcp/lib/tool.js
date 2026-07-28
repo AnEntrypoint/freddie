@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { telemetry } from '../../../../src/observability/telemetry.js'
 
 const _clients = new Map()
 
@@ -10,8 +11,17 @@ export const mcpTool = ({
         if (action === 'connect') {
             const cid = id || 'mcp-' + Date.now()
             const child = spawn(command, args, { stdio: ['pipe', 'pipe', 'pipe'] })
+            child.on('error', (err) => {
+                telemetry.mcpFailed({ id: cid, command, error: err?.message || String(err) })
+            })
+            child.on('exit', (code) => {
+                if (code !== 0 && code !== null) {
+                    telemetry.mcpFailed({ id: cid, command, exit_code: code })
+                }
+            })
             _clients.set(cid, { child, nextId: 1, pending: new Map(), buf: '' })
             const c = _clients.get(cid)
+            telemetry.mcpConnected({ id: cid, command, args })
             child.stdout.on('data', d => {
                 c.buf += d.toString()
                 const lines = c.buf.split('\n'); c.buf = lines.pop()
@@ -33,3 +43,35 @@ export const mcpTool = ({
         return { error: 'unknown action' }
     },
 })
+
+export function getClients() {
+    return [..._clients.values()].map(c => ({
+        id: c.id,
+        command: c.command,
+        args: c.args || [],
+        connectedAt: c.connectedAt,
+        status: c.status || 'connected',
+        tools: c.tools || null,
+        error: c.error || null,
+    }))
+}
+
+/**
+ * Resolve OAuth bearer token headers for an MCP server connection.
+ * For HTTP-based MCP transports (Streamable HTTP), call this before connecting
+ * to include the Authorization header. Returns null if no token is stored.
+ * @param {string} serverName
+ * @param {{ tokenUrl?: string, clientId?: string, clientSecret?: string }} [opts]
+ * @returns {Promise<{Authorization: string}|null>}
+ */
+export async function resolveOAuthHeaders(serverName, { tokenUrl, clientId, clientSecret } = {}) {
+    try {
+        const { getMcpOAuthManager } = await import('./oauth-manager.js')
+        const mgr = getMcpOAuthManager()
+        const accessToken = await mgr.ensureFresh(serverName, { tokenUrl, clientId, clientSecret })
+        if (accessToken) {
+            return { Authorization: `Bearer ${accessToken}` }
+        }
+    } catch { /* OAuth manager not available (browser env, etc.) */ }
+    return null
+}

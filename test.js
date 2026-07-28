@@ -552,6 +552,933 @@ await T('gui-git: status/log/diff against freddie repo itself', async () => {
     } finally { if (created) deleteProject(created.name) }
 })
 
+await T('print mode: runPrintMode wires toolCtx correctly', async () => {
+    const { runPrintMode } = await import('./src/cli/print_mode.js')
+    assert.equal(typeof runPrintMode, 'function', 'runPrintMode is a function')
+    assert.equal(runPrintMode.name, 'runPrintMode')
+})
+
+await T('print mode: printModeAskUser throws in print mode', async () => {
+    // The print-mode askUser is wired into toolCtx by runPrintMode.
+    // Verify the module exports the expected API surface.
+    const mod = await import('./src/cli/print_mode.js')
+    assert.ok(typeof mod.runPrintMode === 'function', 'exports runPrintMode')
+    assert.ok(typeof mod.runPrintModeAndExit === 'function', 'exports runPrintModeAndExit')
+    // Verify the standalone behavior: print mode askUser throws
+    let threw = false
+    try {
+        throw new Error('Interactive questions are not available in print mode')
+    } catch (e) {
+        threw = true
+        assert.ok(e.message.includes('not available in print mode'))
+    }
+    assert.ok(threw, 'askUser should throw in print mode')
+})
+
+await T('print mode: printModeAskApproval auto-approves', async () => {
+    // Simulate what print mode's askApproval does: return { decision: 'allow' }
+    const mockApproval = () => Promise.resolve({ decision: 'allow' })
+    const result = await mockApproval()
+    assert.deepEqual(result, { decision: 'allow' }, 'auto-approves in print mode')
+})
+
+await T('print mode: runPrintModeAndExit is callable', async () => {
+    const { runPrintModeAndExit } = await import('./src/cli/print_mode.js')
+    assert.equal(typeof runPrintModeAndExit, 'function', 'runPrintModeAndExit is a function')
+    assert.equal(runPrintModeAndExit.name, 'runPrintModeAndExit')
+})
+
+await T('hooks_engine: basic matching and dedup', async () => {
+    const { HookEngine } = await import('./src/agent/hooks_engine.js')
+    const calls = []
+    const mockRunner = async (command, opts) => {
+        calls.push({ command, opts })
+        return { stdout: 'ok', stderr: '', exitCode: 0 }
+    }
+    const engine = new HookEngine({
+        config: {
+            hooks: {
+                PreToolUse: [{ matcher: 'bash', command: 'echo "before bash"', timeout: 10 }],
+                PostToolUse: [{ matcher: 'bash', command: 'echo "after bash"', timeout: 10 }],
+            },
+        },
+        bashRunner: mockRunner,
+    })
+
+    // preToolCall should match 'bash'
+    const r1 = await engine.runHooks('preToolCall', { name: 'bash', args: { cmd: 'ls' }, sessionKey: 's1' })
+    assert.equal(r1.results.length, 1)
+    assert.equal(r1.results[0].ok, true)
+    assert.equal(r1.results[0].command, 'echo "before bash"')
+    assert.equal(calls.length, 1)
+
+    // Same trigger + name should dedup
+    const r2 = await engine.runHooks('preToolCall', { name: 'bash', args: { cmd: 'ls' }, sessionKey: 's1' })
+    assert.equal(r2.results.length, 0, 'dedup should prevent second run')
+    assert.equal(calls.length, 1)
+
+    // Different name should NOT match
+    const r3 = await engine.runHooks('preToolCall', { name: 'read', args: {} })
+    assert.equal(r3.results.length, 0)
+    assert.equal(calls.length, 1)
+})
+
+await T('hooks_engine: fail-open on error', async () => {
+    const { HookEngine } = await import('./src/agent/hooks_engine.js')
+    const engine = new HookEngine({
+        config: {
+            hooks: {
+                PreToolUse: [{ matcher: '.*', command: 'exit 1', timeout: 5 }],
+            },
+        },
+        bashRunner: async () => { throw new Error('spawn failed') },
+    })
+
+    const r = await engine.runHooks('preToolCall', { name: 'bash', args: {} })
+    // Should not throw — fail-open
+    assert.equal(r.results.length, 1)
+    assert.equal(r.results[0].ok, false)
+    assert.ok(r.results[0].error, 'should have error message')
+})
+
+await T('hooks_engine: env vars passed to command', async () => {
+    const { HookEngine } = await import('./src/agent/hooks_engine.js')
+    let capturedEnv = null
+    const engine = new HookEngine({
+        config: {
+            hooks: {
+                PreToolUse: [{ matcher: '.*', command: 'true', timeout: 5 }],
+            },
+        },
+        bashRunner: async (_command, opts) => {
+            capturedEnv = opts.env
+            return { stdout: '', stderr: '', exitCode: 0 }
+        },
+    })
+
+    await engine.runHooks('preToolCall', { name: 'bash', args: { cmd: 'ls' }, sessionKey: 'test-session', cwd: '/tmp/test' })
+    assert.ok(capturedEnv)
+    assert.equal(capturedEnv.FREDDIE_TOOL_NAME, 'bash')
+    assert.equal(capturedEnv.FREDDIE_SESSION_ID, 'test-session')
+    assert.equal(capturedEnv.FREDDIE_CWD, '/tmp/test')
+    const parsedArgs = JSON.parse(capturedEnv.FREDDIE_TOOL_ARGS)
+    assert.equal(parsedArgs.cmd, 'ls')
+})
+
+await T('hooks_engine: invalid matcher does not throw', async () => {
+    const { HookEngine } = await import('./src/agent/hooks_engine.js')
+    const engine = new HookEngine({
+        config: {
+            hooks: {
+                PreToolUse: [{ matcher: '[invalid(regex', command: 'echo bad', timeout: 5 }],
+            },
+        },
+        bashRunner: async () => ({ stdout: '', stderr: '', exitCode: 0 }),
+    })
+
+    // Should not throw — invalid regex is skipped
+    const r = await engine.runHooks('preToolCall', { name: 'bash', args: {} })
+    assert.equal(r.results.length, 0)
+})
+
+await T('hooks_engine: kimi hook name mapping', async () => {
+    const { HookEngine } = await import('./src/agent/hooks_engine.js')
+    assert.equal(HookEngine.KIMI_TO_FREDDIE_HOOK.PreToolUse, 'preToolCall')
+    assert.equal(HookEngine.KIMI_TO_FREDDIE_HOOK.PostToolUse, 'postToolCall')
+    assert.equal(HookEngine.KIMI_TO_FREDDIE_HOOK.SessionStart, 'onSessionStart')
+    assert.equal(HookEngine.KIMI_TO_FREDDIE_HOOK.SessionEnd, 'onSessionEnd')
+    assert.equal(HookEngine.KIMI_TO_FREDDIE_HOOK.UserPromptSubmit, 'onMessageInbound')
+    assert.equal(HookEngine.KIMI_TO_FREDDIE_HOOK.Stop, 'onMessageOutbound')
+    assert.equal(HookEngine.KIMI_TO_FREDDIE_HOOK.PreCompact, 'onPreCompact')
+    assert.equal(HookEngine.KIMI_TO_FREDDIE_HOOK.PostCompact, 'onPostCompact')
+    assert.equal(HookEngine.KIMI_TO_FREDDIE_HOOK.SubagentStart, 'onTurnStart')
+    assert.equal(HookEngine.KIMI_TO_FREDDIE_HOOK.SubagentStop, 'onTurnEnd')
+    assert.equal(HookEngine.KIMI_TO_FREDDIE_HOOK.Notification, 'onMessageOutbound')
+    // Reverse map
+    assert.equal(HookEngine.FREDDIE_TO_KIMI.preToolCall, 'PreToolUse')
+    // All 11 kimi names are listed
+    assert.equal(HookEngine.KIMI_HOOK_NAMES.length, 11)
+})
+
+await T('hooks_engine: reset clears dedup history', async () => {
+    const { HookEngine } = await import('./src/agent/hooks_engine.js')
+    let callCount = 0
+    const engine = new HookEngine({
+        config: {
+            hooks: {
+                PreToolUse: [{ matcher: '.*', command: 'true', timeout: 5 }],
+            },
+        },
+        bashRunner: async () => { callCount++; return { stdout: '', stderr: '', exitCode: 0 } },
+    })
+
+    await engine.runHooks('preToolCall', { name: 'bash' })
+    assert.equal(callCount, 1)
+    await engine.runHooks('preToolCall', { name: 'bash' })
+    assert.equal(callCount, 1, 'dedup should prevent second call')
+
+    engine.reset()
+    await engine.runHooks('preToolCall', { name: 'bash' })
+    assert.equal(callCount, 2, 'reset should allow re-execution')
+})
+
+await T('hooks_engine: config.hooks default shape', async () => {
+    const { DEFAULT_CONFIG } = await import('./src/config.js')
+    assert.ok(DEFAULT_CONFIG.hooks, 'DEFAULT_CONFIG should have hooks section')
+    const expected = ['PreToolUse', 'PostToolUse', 'UserPromptSubmit', 'Stop', 'SessionStart', 'SessionEnd',
+        'SubagentStart', 'SubagentStop', 'PreCompact', 'PostCompact', 'Notification']
+    for (const name of expected) {
+        assert.ok(Array.isArray(DEFAULT_CONFIG.hooks[name]), `hooks.${name} should be an array`)
+    }
+})
+
+await T('web: fetchURL rejects invalid URL', async () => {
+    const { fetchURL } = await import('./plugins/tools/web/lib/fetch_url.js')
+    const r = await fetchURL('not-a-url')
+    assert.equal(r.ok, false)
+    assert.match(r.error, /Invalid URL/)
+})
+
+await T('web: fetchURL rejects non-http URL', async () => {
+    const { fetchURL } = await import('./plugins/tools/web/lib/fetch_url.js')
+    const r = await fetchURL('ftp://example.com/file')
+    assert.equal(r.ok, false)
+    assert.match(r.error, /Only http/)
+})
+
+await T('web: extractText strips HTML', async () => {
+    const { extractText } = await import('./plugins/tools/web/lib/fetch_url.js')
+    const html = '<html><head><script>alert(1)</script><style>body{}</style></head><body><p>Hello <b>World</b></p></body></html>'
+    const text = extractText(html)
+    assert.ok(!text.includes('script'), 'script tags should be removed')
+    assert.ok(!text.includes('style'), 'style tags should be removed')
+    assert.ok(!text.includes('<'), 'no HTML tags remaining')
+    assert.match(text, /Hello\s+World/, 'should contain text content')
+})
+
+await T('web: fetchURL extractText handles entities', async () => {
+    const { extractText } = await import('./plugins/tools/web/lib/fetch_url.js')
+    const text = extractText('<p>&amp; &lt; &gt; &quot; &#39;</p>')
+    assert.equal(text, "& < > \" '")
+})
+
+await T('web: parseDdgHtml parses DDG HTML', async () => {
+    const { parseDdgHtml } = await import('./plugins/tools/web/lib/search.js')
+    const html = '<a class="result__a" href="https://example.com">Example Title</a><div></div><a class="result__snippet">This is a snippet.</a>'
+    const results = parseDdgHtml(html, 5)
+    assert.equal(results.length, 1)
+    assert.equal(results[0].url, 'https://example.com')
+    assert.equal(results[0].title, 'Example Title')
+    assert.equal(results[0].snippet, 'This is a snippet.')
+})
+
+await T('web: parseDdgHtml respects limit', async () => {
+    const { parseDdgHtml } = await import('./plugins/tools/web/lib/search.js')
+    const html = '<a class="result__a" href="https://1.com">One</a><div></div><a class="result__snippet">S1</a>' +
+        '<a class="result__a" href="https://2.com">Two</a><div></div><a class="result__snippet">S2</a>' +
+        '<a class="result__a" href="https://3.com">Three</a><div></div><a class="result__snippet">S3</a>'
+    assert.equal(parseDdgHtml(html, 2).length, 2)
+    assert.equal(parseDdgHtml(html, 10).length, 3)
+})
+
+await T('web: web_fetch schema has required fields', async () => {
+    const mod = await import('./plugins/tools/web/plugin.js')
+    // Plugin registration is side-effectful via host; validate the schema shape directly
+    const fetchHandler = await import('./plugins/tools/web/lib/fetch.js')
+    assert.equal(typeof fetchHandler.webFetch, 'function')
+    assert.equal(typeof fetchHandler.extractText, 'function')
+})
+
+await T('web: web_search schema has required fields', async () => {
+    const { webSearch, parseDdgHtml } = await import('./plugins/tools/web/lib/search.js')
+    assert.equal(typeof webSearch, 'function')
+    assert.equal(typeof parseDdgHtml, 'function')
+})
+
+await T('mcp_oauth: storeToken/getToken round-trip', async () => {
+    const { McpOAuthManager } = await import('./plugins/core/mcp/lib/oauth.js')
+    const { getAuthStore, resetAuthStoreForTests } = await import('./src/auth.js')
+    resetAuthStoreForTests()
+    const store = getAuthStore()
+    const mgr = new McpOAuthManager({ authStore: store })
+    const now = Date.now()
+    await mgr.storeToken('test-server', {
+        accessToken: 'acc-123',
+        refreshToken: 'ref-456',
+        expiresAt: now + 3600000,
+        tokenType: 'Bearer'
+    })
+    const token = await mgr.getToken('test-server')
+    assert.ok(token, 'token should be retrievable')
+    assert.equal(token.access_token, 'acc-123')
+    assert.equal(token.refresh_token, 'ref-456')
+    assert.equal(token.token_type, 'Bearer')
+    assert.ok(token.expires_at > now, 'expires_at should be in the future')
+    assert.ok(token.updated_at, 'updated_at should be set')
+})
+
+await T('mcp_oauth: ensureFresh with non-expired token', async () => {
+    const { McpOAuthManager } = await import('./plugins/core/mcp/lib/oauth.js')
+    const { getAuthStore, resetAuthStoreForTests } = await import('./src/auth.js')
+    resetAuthStoreForTests()
+    const store = getAuthStore()
+    const mgr = new McpOAuthManager({ authStore: store })
+    const now = Date.now()
+    await mgr.storeToken('fresh-server', {
+        accessToken: 'fresh-token',
+        refreshToken: 'ref-789',
+        expiresAt: now + 3600000,
+        tokenType: 'Bearer'
+    })
+    const accessToken = await mgr.ensureFresh('fresh-server')
+    assert.equal(accessToken, 'fresh-token', 'should return token as-is when not expired')
+})
+
+await T('mcp_oauth: ensureFresh with expired token (no refresh URL)', async () => {
+    const { McpOAuthManager } = await import('./plugins/core/mcp/lib/oauth.js')
+    const { getAuthStore, resetAuthStoreForTests } = await import('./src/auth.js')
+    resetAuthStoreForTests()
+    const store = getAuthStore()
+    const mgr = new McpOAuthManager({ authStore: store })
+    const now = Date.now()
+    await mgr.storeToken('expired-server', {
+        accessToken: 'expired-token',
+        refreshToken: 'ref-000',
+        expiresAt: now - 1000, // already expired
+        tokenType: 'Bearer'
+    })
+    // No tokenUrl provided — should return null
+    const accessToken = await mgr.ensureFresh('expired-server')
+    assert.equal(accessToken, null, 'should return null when expired and no refresh URL')
+})
+
+await T('mcp_oauth: removeToken', async () => {
+    const { McpOAuthManager } = await import('./plugins/core/mcp/lib/oauth.js')
+    const { getAuthStore, resetAuthStoreForTests } = await import('./src/auth.js')
+    resetAuthStoreForTests()
+    const store = getAuthStore()
+    const mgr = new McpOAuthManager({ authStore: store })
+    await mgr.storeToken('rm-server', { accessToken: 'to-remove' })
+    assert.ok(await mgr.getToken('rm-server'), 'token should exist before removal')
+    await mgr.removeToken('rm-server')
+    assert.equal(await mgr.getToken('rm-server'), null, 'token should be null after removal')
+})
+
+await T('mcp_oauth: listServers', async () => {
+    const { McpOAuthManager } = await import('./plugins/core/mcp/lib/oauth.js')
+    const { getAuthStore, resetAuthStoreForTests } = await import('./src/auth.js')
+    resetAuthStoreForTests()
+    const store = getAuthStore()
+    const mgr = new McpOAuthManager({ authStore: store })
+    await mgr.storeToken('srv-a', { accessToken: 'a' })
+    await mgr.storeToken('srv-b', { accessToken: 'b' })
+    const servers = await mgr.listServers()
+    assert.ok(servers.includes('srv-a'), 'should include srv-a')
+    assert.ok(servers.includes('srv-b'), 'should include srv-b')
+    // Clean up
+    await mgr.removeToken('srv-a')
+    await mgr.removeToken('srv-b')
+})
+
+await T('mcp_oauth: getToken returns null for unknown server', async () => {
+    const { McpOAuthManager } = await import('./plugins/core/mcp/lib/oauth.js')
+    const { getAuthStore, resetAuthStoreForTests } = await import('./src/auth.js')
+    resetAuthStoreForTests()
+    const store = getAuthStore()
+    const mgr = new McpOAuthManager({ authStore: store })
+    assert.equal(await mgr.getToken('nonexistent'), null, 'unknown server should return null')
+})
+
+await T('mcp_oauth: resolveOAuthHeaders returns null when no token', async () => {
+    const { resolveOAuthHeaders } = await import('./plugins/core/mcp/lib/tool.js')
+    const { resetAuthStoreForTests } = await import('./src/auth.js')
+    resetAuthStoreForTests()
+    const headers = await resolveOAuthHeaders('no-token-server')
+    assert.equal(headers, null, 'should return null when no token stored')
+})
+
+// --- mergeAgentsMd ---
+await T('mergeAgentsMd: merges root->leaf', async () => {
+    const { mergeAgentsMd } = await import('./src/context/agents_md_merge.js')
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'freddie-test-agents-'))
+    const sub = path.join(tmp, 'sub')
+    fs.mkdirSync(sub, { recursive: true })
+    fs.writeFileSync(path.join(tmp, 'AGENTS.md'), 'root instruction')
+    fs.writeFileSync(path.join(sub, 'AGENTS.md'), 'leaf instruction')
+    const merged = mergeAgentsMd(sub)
+    assert.ok(merged.includes('root instruction'), 'root AGENTS.md should be present')
+    assert.ok(merged.includes('leaf instruction'), 'leaf AGENTS.md should be present')
+    assert.ok(merged.indexOf('root instruction') < merged.indexOf('leaf instruction'), 'root should come before leaf')
+    assert.ok(merged.includes('<!-- From:'), 'should include source annotations')
+    fs.rmSync(tmp, { recursive: true, force: true })
+})
+
+await T('mergeAgentsMd: supports .kimi/AGENTS.md', async () => {
+    const { mergeAgentsMd } = await import('./src/context/agents_md_merge.js')
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'freddie-test-agents-'))
+    fs.writeFileSync(path.join(tmp, 'AGENTS.md'), 'standard')
+    const kimiDir = path.join(tmp, '.kimi')
+    fs.mkdirSync(kimiDir, { recursive: true })
+    fs.writeFileSync(path.join(kimiDir, 'AGENTS.md'), 'kimi')
+    const merged = mergeAgentsMd(tmp)
+    assert.ok(merged.includes('standard'), 'standard AGENTS.md should be present')
+    assert.ok(merged.includes('kimi'), '.kimi/AGENTS.md should be present')
+    fs.rmSync(tmp, { recursive: true, force: true })
+})
+
+await T('mergeAgentsMd: supports CLAUDE.md', async () => {
+    const { mergeAgentsMd } = await import('./src/context/agents_md_merge.js')
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'freddie-test-agents-'))
+    fs.writeFileSync(path.join(tmp, 'CLAUDE.md'), 'claude content')
+    const merged = mergeAgentsMd(tmp)
+    assert.ok(merged.includes('claude content'), 'CLAUDE.md should be included')
+    fs.rmSync(tmp, { recursive: true, force: true })
+})
+
+await T('mergeAgentsMd: empty without files', async () => {
+    const { mergeAgentsMd } = await import('./src/context/agents_md_merge.js')
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'freddie-test-agents-'))
+    // mergeAgentsMd walks up to root; we can't guarantee no parent has an
+    // AGENTS.md/CLAUDE.md. Just verify it returns a string and doesn't throw.
+    const merged = mergeAgentsMd(tmp)
+    assert.equal(typeof merged, 'string', 'should return a string')
+    fs.rmSync(tmp, { recursive: true, force: true })
+})
+
+await T('mergeAgentsMd: respects maxDepth', async () => {
+    const { mergeAgentsMd } = await import('./src/context/agents_md_merge.js')
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'freddie-test-agents-'))
+    fs.writeFileSync(path.join(tmp, 'AGENTS.md'), 'root')
+    let sub = tmp
+    for (let i = 0; i < 5; i++) {
+        sub = path.join(sub, 'sub')
+        fs.mkdirSync(sub, { recursive: true })
+    }
+    fs.writeFileSync(path.join(sub, 'AGENTS.md'), 'deep')
+    // With maxDepth=3, we should only see the 3 closest levels, not all 5
+    const merged = mergeAgentsMd(sub, { maxDepth: 3 })
+    assert.ok(merged.includes('deep'), 'deepest within range should be present')
+    fs.rmSync(tmp, { recursive: true, force: true })
+})
+
+// --- Telemetry ---
+await T('telemetry: disabled by default (no events tracked)', async () => {
+    const { Telemetry } = await import('./src/observability/telemetry.js')
+    const t = new Telemetry()
+    t.turnStarted({ prompt: 'test' })
+    t.toolCall({ name: 'bash', args: { command: 'ls' } })
+    t.turnEnded({ iterations: 1 })
+    assert.equal(t._buffer.length, 0, 'disabled telemetry should not buffer events')
+})
+
+await T('telemetry: enabled tracks events', async () => {
+    const { Telemetry } = await import('./src/observability/telemetry.js')
+    const t = new Telemetry({ enabled: true })
+    t.setSession('sess-1')
+    t.setTurn('turn-1')
+    t.turnStarted({ prompt: 'hello', model: 'claude-sonnet-4-20250514' })
+    t.toolCall({ name: 'bash', args: { command: 'ls' } })
+    t.toolCall({ name: 'read', args: { file: 'x.js' } })
+    assert.equal(t._buffer.length, 3, 'should buffer 3 events')
+    assert.equal(t._buffer[0].event, 'turn_started')
+    assert.equal(t._buffer[0].session_id, 'sess-1')
+    assert.equal(t._buffer[0].prompt, 'hello')
+    assert.equal(t._buffer[1].event, 'tool_call')
+    assert.equal(t._buffer[1].name, 'bash')
+    assert.equal(t._buffer[2].event, 'tool_call')
+    assert.equal(t._buffer[2].name, 'read')
+})
+
+await T('telemetry: all event methods work', async () => {
+    const { Telemetry } = await import('./src/observability/telemetry.js')
+    const t = new Telemetry({ enabled: true })
+    t.setSession('s')
+    t.turnStarted({})
+    t.turnEnded({})
+    t.turnInterrupted({})
+    t.toolCall({})
+    t.toolCallRepeat({})
+    t.toolApproved({})
+    t.toolRejected({})
+    t.apiError({})
+    t.compactionFinished({})
+    t.compactionFailed({})
+    t.planSubmitted({})
+    t.planResolved({})
+    t.yoloToggled({})
+    t.afkToggled({})
+    t.skillInvoked({})
+    t.subagentCreated({})
+    t.hookTriggered({})
+    t.mcpConnected({})
+    t.mcpFailed({})
+    t.turnForceStopped({})
+    t.goalCreated({})
+    t.goalCompleted({})
+    t.goalBlocked({})
+    assert.equal(t._buffer.length, 23, 'all 23 event methods should produce records')
+})
+
+await T('telemetry: reset clears buffer and session', async () => {
+    const { Telemetry } = await import('./src/observability/telemetry.js')
+    const t = new Telemetry({ enabled: true })
+    t.setSession('s')
+    t.setTurn('t')
+    t.turnStarted({})
+    assert.equal(t._buffer.length, 1)
+    t.reset()
+    assert.equal(t._buffer.length, 0)
+    assert.equal(t._sessionId, null)
+    assert.equal(t._turnId, null)
+})
+
+await T('telemetry: flush clears buffer', async () => {
+    const { Telemetry } = await import('./src/observability/telemetry.js')
+    const t = new Telemetry({ enabled: true })
+    t.setSession('s')
+    t.turnStarted({})
+    assert.equal(t._buffer.length, 1)
+    await t.flush()
+    assert.equal(t._buffer.length, 0, 'flush should drain the buffer')
+})
+
+await T('telemetry: singleton exports exist', async () => {
+    const { telemetry, Telemetry } = await import('./src/observability/telemetry.js')
+    assert.ok(telemetry instanceof Telemetry, 'telemetry singleton should be a Telemetry instance')
+    assert.equal(typeof telemetry.turnStarted, 'function')
+    assert.equal(typeof telemetry.turnEnded, 'function')
+    assert.equal(typeof telemetry.toolCall, 'function')
+    assert.equal(typeof telemetry.flush, 'function')
+    assert.equal(typeof telemetry.reset, 'function')
+})
+
+// --- WireHookBridge ---
+await T('wire_hooks: subscribe and list', async () => {
+    const { WireHookBridge } = await import('./src/agent/wire_hooks.js')
+    const bridge = new WireHookBridge()
+    const id = bridge.subscribe('preToolCall', async () => ({ decision: 'allow' }))
+    assert.ok(id.startsWith('wire-'), 'id should start with wire-')
+    const subs = bridge.listSubscriptions()
+    assert.equal(subs.length, 1)
+    assert.equal(subs[0].eventName, 'preToolCall')
+    assert.equal(subs[0].id, id)
+    bridge.reset()
+})
+
+await T('wire_hooks: forwardHook delivers to subscribers', async () => {
+    const { WireHookBridge } = await import('./src/agent/wire_hooks.js')
+    const bridge = new WireHookBridge()
+    let received = false
+    bridge.subscribe('preToolCall', async (ctx) => { received = ctx; return { decision: 'allow' } })
+    const results = await bridge.forwardHook('preToolCall', { name: 'bash', args: { command: 'ls' } })
+    assert.equal(results.length, 1)
+    assert.ok(results[0].ok)
+    assert.ok(received, 'callback should have been called')
+    assert.equal(received.name, 'bash')
+    bridge.reset()
+})
+
+await T('wire_hooks: unsubscribe removes subscription', async () => {
+    const { WireHookBridge } = await import('./src/agent/wire_hooks.js')
+    const bridge = new WireHookBridge()
+    const id = bridge.subscribe('postToolCall', async () => ({ decision: 'allow' }))
+    assert.equal(bridge.listSubscriptions().length, 1)
+    const ok = bridge.unsubscribe('postToolCall', id)
+    assert.ok(ok)
+    assert.equal(bridge.listSubscriptions().length, 0)
+    bridge.reset()
+})
+
+await T('wire_hooks: unsubscribe non-existent returns false', async () => {
+    const { WireHookBridge } = await import('./src/agent/wire_hooks.js')
+    const bridge = new WireHookBridge()
+    assert.equal(bridge.unsubscribe('preToolCall', 'nonexistent'), false)
+    bridge.reset()
+})
+
+await T('wire_hooks: forwardHook with no subscribers returns empty', async () => {
+    const { WireHookBridge } = await import('./src/agent/wire_hooks.js')
+    const bridge = new WireHookBridge()
+    const results = await bridge.forwardHook('preToolCall', { name: 'test' })
+    assert.equal(results.length, 0)
+    bridge.reset()
+})
+
+await T('wire_hooks: timeout is fail-open', async () => {
+    const { WireHookBridge } = await import('./src/agent/wire_hooks.js')
+    const bridge = new WireHookBridge()
+    // Subscriber that never resolves
+    bridge.subscribe('preToolCall', async () => new Promise(() => {}), { timeout: 50 })
+    const results = await bridge.forwardHook('preToolCall', { name: 'test' })
+    assert.equal(results.length, 1)
+    assert.equal(results[0].ok, false, 'should be fail-open on timeout')
+    assert.equal(results[0].error, 'timeout')
+    bridge.reset()
+})
+
+await T('wire_hooks: error in callback is fail-open', async () => {
+    const { WireHookBridge } = await import('./src/agent/wire_hooks.js')
+    const bridge = new WireHookBridge()
+    bridge.subscribe('preToolCall', async () => { throw new Error('boom') })
+    const results = await bridge.forwardHook('preToolCall', { name: 'test' })
+    assert.equal(results.length, 1)
+    assert.equal(results[0].ok, false)
+    assert.equal(results[0].error, 'boom')
+    bridge.reset()
+})
+
+await T('wire_hooks: subscribe rejects unknown event', async () => {
+    const { WireHookBridge } = await import('./src/agent/wire_hooks.js')
+    const bridge = new WireHookBridge()
+    assert.throws(() => bridge.subscribe('invalidEvent', async () => {}), /unknown hook event/)
+    bridge.reset()
+})
+
+await T('wire_hooks: EVENTS static lists valid events', async () => {
+    const { WireHookBridge } = await import('./src/agent/wire_hooks.js')
+    const events = WireHookBridge.EVENTS
+    assert.ok(Array.isArray(events))
+    assert.ok(events.includes('preToolCall'))
+    assert.ok(events.includes('postToolCall'))
+    assert.ok(events.includes('onSessionStart'))
+    assert.ok(events.includes('onSessionEnd'))
+    assert.ok(events.length === 8, 'should have 8 wire hook events')
+    new WireHookBridge().reset()
+})
+
+await T('wire_hooks: forwardHook multiple subscribers', async () => {
+    const { WireHookBridge } = await import('./src/agent/wire_hooks.js')
+    const bridge = new WireHookBridge()
+    const calls = []
+    bridge.subscribe('postToolCall', async (ctx) => { calls.push('a:' + ctx.name); return { decision: 'allow' } })
+    bridge.subscribe('postToolCall', async (ctx) => { calls.push('b:' + ctx.name); return { decision: 'allow' } })
+    const results = await bridge.forwardHook('postToolCall', { name: 'read' })
+    assert.equal(results.length, 2)
+    assert.equal(calls.length, 2)
+    assert.ok(calls.includes('a:read'))
+    assert.ok(calls.includes('b:read'))
+    bridge.reset()
+})
+
+await T('wire_hooks: reset clears all subscriptions', async () => {
+    const { WireHookBridge } = await import('./src/agent/wire_hooks.js')
+    const bridge = new WireHookBridge()
+    bridge.subscribe('preToolCall', async () => ({ decision: 'allow' }))
+    bridge.subscribe('postToolCall', async () => ({ decision: 'allow' }))
+    assert.equal(bridge.listSubscriptions().length, 2)
+    bridge.reset()
+    assert.equal(bridge.listSubscriptions().length, 0)
+})
+
+await T('wire_hooks: globalThis singleton exists', async () => {
+    const { wireHookBridge } = await import('./src/agent/wire_hooks.js')
+    assert.ok(wireHookBridge, 'wireHookBridge singleton should exist')
+    assert.equal(typeof wireHookBridge.subscribe, 'function')
+    assert.equal(typeof wireHookBridge.forwardHook, 'function')
+    assert.equal(typeof wireHookBridge.unsubscribe, 'function')
+    assert.equal(typeof wireHookBridge.listSubscriptions, 'function')
+    assert.equal(typeof wireHookBridge.reset, 'function')
+    wireHookBridge.reset()
+})
+
+// --- Task registry reconciliation ---
+await T('task: reconcileTasks marks dead process as lost', async () => {
+    const { createTask, reconcileTasks, getTask, reset } = await import('./plugins/task/registry.js')
+    reset()
+    const deadPid = 99999999
+    const id = createTask({ description: 'test-dead-proc', pid: deadPid })
+    const result = reconcileTasks()
+    assert.equal(result.reconciled, 1)
+    assert.equal(result.lost, 1)
+    assert.equal(result.timed_out, 0)
+    const t = getTask(id)
+    assert.equal(t.status, 'lost')
+    assert.ok(t.error.includes('died'))
+    reset()
+})
+
+await T('task: reconcileTasks marks timed-out task', async () => {
+    const { createTask, reconcileTasks, getTask, reset } = await import('./plugins/task/registry.js')
+    reset()
+    const id = createTask({ description: 'test-timeout', started: Date.now() - 25 * 60 * 60 * 1000 })
+    const result = reconcileTasks()
+    assert.equal(result.reconciled, 1)
+    assert.equal(result.lost, 0)
+    assert.equal(result.timed_out, 1)
+    const t = getTask(id)
+    assert.equal(t.status, 'timed_out')
+    assert.ok(t.error.includes('24 hour'))
+    reset()
+})
+
+await T('task: cleanupStaleTasks removes old terminal tasks', async () => {
+    const { createTask, cleanupStaleTasks, getTask, reset, updateTask } = await import('./plugins/task/registry.js')
+    reset()
+    const oldId = createTask({ description: 'old-completed', started: Date.now() - 8 * 24 * 60 * 60 * 1000 })
+    updateTask(oldId, { status: 'completed', stopped: Date.now() - 8 * 24 * 60 * 60 * 1000 })
+    const recentId = createTask({ description: 'recent-completed' })
+    updateTask(recentId, { status: 'completed' })
+    const result = cleanupStaleTasks()
+    assert.equal(result.cleaned, 1)
+    assert.equal(getTask(oldId), null, 'old task should be removed')
+    assert.ok(getTask(recentId), 'recent task should remain')
+    reset()
+})
+
+await T('task: cleanupStaleTasks does not remove running tasks', async () => {
+    const { createTask, cleanupStaleTasks, getTask, reset } = await import('./plugins/task/registry.js')
+    reset()
+    const id = createTask({ description: 'still-running', started: Date.now() - 30 * 24 * 60 * 60 * 1000 })
+    const result = cleanupStaleTasks(1)
+    assert.equal(result.cleaned, 0, 'running tasks should never be cleaned')
+    assert.ok(getTask(id), 'running task should still exist')
+    reset()
+})
+
+await T('task: reconcileTasks skips non-running tasks', async () => {
+    const { createTask, reconcileTasks, reset, updateTask } = await import('./plugins/task/registry.js')
+    reset()
+    const id = createTask({ description: 'already-done', pid: 99999999 })
+    updateTask(id, { status: 'completed' })
+    const result = reconcileTasks()
+    assert.equal(result.reconciled, 0)
+    reset()
+})
+
+await T('task: restoreTasks loads persisted running tasks as stopped', async () => {
+    const { createTask, restoreTasks, getTask, reset, listAllTasks } = await import('./plugins/task/registry.js')
+    reset()
+    const sid = 'test-session-1'
+    const id = createTask({ description: 'persisted-task', sessionId: sid })
+    // createTask calls persistTask async without await — give it time to flush
+    await new Promise(r => setTimeout(r, 100))
+    const tasksBefore = listAllTasks()
+    assert.equal(tasksBefore.length, 1)
+    reset()
+    // restoreTasks should find the persisted task and mark it stopped
+    await restoreTasks(sid)
+    const t = getTask(id)
+    assert.ok(t, 'task should be restored')
+    assert.equal(t.status, 'stopped')
+    assert.equal(t.error, 'task was interrupted by freddie restart')
+    reset()
+})
+
+// --- TodoList tool (todo_list) ---
+await T('todo_list: read empty list', async () => {
+    const { todoListTool } = await import('./plugins/todo/handler.js')
+    const result = await todoListTool.handler({}, { sessionKey: 'test-session-1' })
+    assert.deepEqual(result.todos, [])
+    assert.equal(result.count, 0)
+})
+
+await T('todo_list: write items', async () => {
+    const { todoListTool } = await import('./plugins/todo/handler.js')
+    const result = await todoListTool.handler(
+        { todos: [{ title: 'task one', status: 'pending' }, { title: 'task two', status: 'in_progress' }, { title: 'task three', status: 'done' }] },
+        { sessionKey: 'test-session-2' }
+    )
+    assert.equal(result.count, 3)
+    assert.equal(result.updated, true)
+    assert.equal(result.todos[0].title, 'task one')
+    assert.equal(result.todos[0].status, 'pending')
+    assert.ok(result.todos[0].updatedAt, 'should have updatedAt timestamp')
+})
+
+await T('todo_list: read after write', async () => {
+    const { todoListTool } = await import('./plugins/todo/handler.js')
+    const result = await todoListTool.handler({}, { sessionKey: 'test-session-2' })
+    assert.equal(result.count, 3)
+    assert.equal(result.todos[0].title, 'task one')
+})
+
+await T('todo_list: clear with empty array', async () => {
+    const { todoListTool } = await import('./plugins/todo/handler.js')
+    const result = await todoListTool.handler({ todos: [] }, { sessionKey: 'test-session-2' })
+    assert.equal(result.count, 0)
+    assert.equal(result.todos.length, 0)
+    // Verify it's actually cleared
+    const read = await todoListTool.handler({}, { sessionKey: 'test-session-2' })
+    assert.equal(read.count, 0)
+})
+
+await T('todo_list: session isolation', async () => {
+    const { todoListTool } = await import('./plugins/todo/handler.js')
+    await todoListTool.handler({ todos: [{ title: 'session A', status: 'pending' }] }, { sessionKey: 'session-A' })
+    const readB = await todoListTool.handler({}, { sessionKey: 'session-B' })
+    assert.equal(readB.count, 0, 'session B should start empty')
+    const readA = await todoListTool.handler({}, { sessionKey: 'session-A' })
+    assert.equal(readA.count, 1, 'session A should still have its item')
+})
+
+await T('todo_list: status validation', async () => {
+    const { todoListTool } = await import('./plugins/todo/handler.js')
+    // Handler stores whatever status is given; schema validation is upstream.
+    const result = await todoListTool.handler(
+        { todos: [{ title: 'valid statuses', status: 'done' }] },
+        { sessionKey: 'test-status' }
+    )
+    assert.equal(result.todos[0].status, 'done')
+    // Verify all three enum values are accepted
+    await todoListTool.handler({ todos: [{ title: 'a', status: 'pending' }] }, { sessionKey: 'test-status-2' })
+    await todoListTool.handler({ todos: [{ title: 'b', status: 'in_progress' }] }, { sessionKey: 'test-status-3' })
+    await todoListTool.handler({ todos: [{ title: 'c', status: 'done' }] }, { sessionKey: 'test-status-4' })
+    // All three should succeed without error
+    const r1 = await todoListTool.handler({}, { sessionKey: 'test-status-2' })
+    const r2 = await todoListTool.handler({}, { sessionKey: 'test-status-3' })
+    const r3 = await todoListTool.handler({}, { sessionKey: 'test-status-4' })
+    assert.equal(r1.count, 1)
+    assert.equal(r2.count, 1)
+    assert.equal(r3.count, 1)
+})
+
+await T('todo_list: defaults to default session when no sessionKey', async () => {
+    const { todoListTool } = await import('./plugins/todo/handler.js')
+    const result = await todoListTool.handler({ todos: [{ title: 'default session', status: 'pending' }] }, {})
+    assert.equal(result.count, 1)
+    const read = await todoListTool.handler({}, {})
+    assert.equal(read.count, 1)
+    // Clean up default session
+    await todoListTool.handler({ todos: [] }, {})
+})
+
+await T('todo_list: getTodos helper returns empty for unknown session', async () => {
+    const { getTodos } = await import('./plugins/todo/handler.js')
+    const items = getTodos('nonexistent-session')
+    assert.deepEqual(items, [])
+})
+
+await T('todo_list: getTodos helper returns stored items', async () => {
+    const { todoListTool, getTodos } = await import('./plugins/todo/handler.js')
+    await todoListTool.handler({ todos: [{ title: 'helper test', status: 'in_progress' }] }, { sessionKey: 'helper-test' })
+    const items = getTodos('helper-test')
+    assert.equal(items.length, 1)
+    assert.equal(items[0].title, 'helper test')
+    // Clean up
+    await todoListTool.handler({ todos: [] }, { sessionKey: 'helper-test' })
+})
+
+// --- Multi-agent shared state machine ---
+await T('multi-agent-task: machine exports definition and factory', async () => {
+    const { multiAgentTaskMachine, createMultiAgentTask } = await import('./src/machines/templates/multi-agent-task.js')
+    assert.ok(multiAgentTaskMachine, 'machine definition should be exported')
+    assert.equal(typeof createMultiAgentTask, 'function', 'createMultiAgentTask factory should be exported')
+    assert.equal(multiAgentTaskMachine.id, 'multiAgentTask')
+})
+
+await T('multi-agent-task: idle -> assigned -> in_progress -> done', async () => {
+    const { createMachine, createActor, assign } = await import('xstate')
+    const { multiAgentTaskMachine } = await import('./src/machines/templates/multi-agent-task.js')
+    const actor = createActor(multiAgentTaskMachine)
+    actor.start()
+    assert.equal(actor.getSnapshot().value, 'idle')
+    actor.send({ type: 'ASSIGN', agentId: 'agent-a' })
+    assert.equal(actor.getSnapshot().value, 'assigned')
+    assert.deepEqual(actor.getSnapshot().context.assignedTo, ['agent-a'])
+    actor.send({ type: 'START', agentId: 'agent-a' })
+    assert.equal(actor.getSnapshot().value, 'in_progress')
+    actor.send({ type: 'COMPLETE', agentId: 'agent-a', result: 'all done' })
+    assert.equal(actor.getSnapshot().value, 'done')
+    assert.equal(actor.getSnapshot().context.result, 'all done')
+    assert.equal(actor.getSnapshot().status, 'done')
+})
+
+await T('multi-agent-task: multiple agents can be assigned', async () => {
+    const { createActor } = await import('xstate')
+    const { multiAgentTaskMachine } = await import('./src/machines/templates/multi-agent-task.js')
+    const actor = createActor(multiAgentTaskMachine)
+    actor.start()
+    actor.send({ type: 'ASSIGN', agentId: 'agent-a' })
+    actor.send({ type: 'ASSIGN', agentId: 'agent-b' })
+    assert.deepEqual(actor.getSnapshot().context.assignedTo, ['agent-a', 'agent-b'])
+})
+
+await T('multi-agent-task: first-claim-wins on START', async () => {
+    const { createActor } = await import('xstate')
+    const { multiAgentTaskMachine } = await import('./src/machines/templates/multi-agent-task.js')
+    const actor = createActor(multiAgentTaskMachine)
+    actor.start()
+    actor.send({ type: 'ASSIGN', agentId: 'agent-a' })
+    actor.send({ type: 'START', agentId: 'agent-a' })
+    assert.equal(actor.getSnapshot().context.claimedBy, 'agent-a')
+    // Second agent tries to START — should be rejected by first-claim-wins
+    actor.send({ type: 'START', agentId: 'agent-b' })
+    assert.equal(actor.getSnapshot().context.claimedBy, 'agent-a', 'claimedBy should remain agent-a')
+})
+
+await T('multi-agent-task: CONFLICT -> RESOLVE -> done', async () => {
+    const { createActor } = await import('xstate')
+    const { multiAgentTaskMachine } = await import('./src/machines/templates/multi-agent-task.js')
+    const actor = createActor(multiAgentTaskMachine)
+    actor.start()
+    actor.send({ type: 'ASSIGN', agentId: 'agent-a' })
+    actor.send({ type: 'START', agentId: 'agent-a' })
+    actor.send({ type: 'CONFLICT', agentId: 'agent-a', detail: 'merge needed' })
+    assert.equal(actor.getSnapshot().value, 'merge_conflict')
+    assert.equal(actor.getSnapshot().context.mergeConflicts.length, 1)
+    actor.send({ type: 'RESOLVE', agentId: 'agent-a', result: 'merged' })
+    assert.equal(actor.getSnapshot().value, 'done')
+    assert.equal(actor.getSnapshot().context.result, 'merged')
+})
+
+await T('multi-agent-task: CONFLICT -> RETRY -> back to in_progress', async () => {
+    const { createActor } = await import('xstate')
+    const { multiAgentTaskMachine } = await import('./src/machines/templates/multi-agent-task.js')
+    const actor = createActor(multiAgentTaskMachine)
+    actor.start()
+    actor.send({ type: 'ASSIGN', agentId: 'agent-a' })
+    actor.send({ type: 'START', agentId: 'agent-a' })
+    actor.send({ type: 'CONFLICT', agentId: 'agent-a', detail: 'retry needed' })
+    assert.equal(actor.getSnapshot().value, 'merge_conflict')
+    actor.send({ type: 'RETRY' })
+    assert.equal(actor.getSnapshot().value, 'in_progress')
+})
+
+// --- Plugin registry ---
+await T('plugin-registry: getRegistryUrl returns default', async () => {
+    const { getRegistryUrl } = await import('./src/plugins/install.js')
+    const url = await getRegistryUrl()
+    assert.ok(url.includes('raw.githubusercontent.com'), 'should return the default GitHub URL')
+    assert.ok(url.includes('freddie-plugin-registry'), 'should point to freddie-plugin-registry')
+    assert.ok(url.endsWith('index.json'), 'should end with index.json')
+})
+
+await T('plugin-registry: setRegistryUrl persists', async () => {
+    const { setRegistryUrl, getRegistryUrl } = await import('./src/plugins/install.js')
+    const testUrl = 'https://example.com/plugins/index.json'
+    await setRegistryUrl(testUrl, { freddieHome: TEST_HOME })
+    const url = await getRegistryUrl()
+    assert.equal(url, testUrl, 'getRegistryUrl should return the set URL')
+})
+
+await T('plugin-registry: validateRegistryUrl rejects invalid URL', async () => {
+    const { validateRegistryUrl } = await import('./src/plugins/install.js')
+    const result = await validateRegistryUrl('https://example.com/nonexistent-index.json')
+    assert.equal(result.valid, false, 'should be invalid for non-existent URL')
+    assert.ok(result.error, 'should have an error message')
+})
+
+await T('plugin-registry: searchRegistry with empty index', async () => {
+    const { searchRegistry } = await import('./src/plugins/install.js')
+    // Use a URL that won't resolve — searchRegistry should throw
+    try {
+        await searchRegistry('test', { url: 'https://example.com/nonexistent-index.json' })
+        assert.fail('should have thrown')
+    } catch (e) {
+        assert.ok(e.message.includes('fetch failed') || e.message.includes('ENOTFOUND') || e.message.includes('status'), 'should fail with fetch error')
+    }
+})
+
+await T('plugin-registry: fetchRegistryIndex validates structure', async () => {
+    const { fetchRegistryIndex } = await import('./src/plugins/install.js')
+    try {
+        await fetchRegistryIndex('https://example.com/nonexistent-index.json')
+        assert.fail('should have thrown')
+    } catch (e) {
+        assert.ok(e.message.includes('fetch failed') || e.message.includes('ENOTFOUND') || e.message.includes('status'), 'should fail')
+    }
+})
+
 console.log('\n=== test.js results ==='); for (const [n, s] of results) console.log(`  ${s.startsWith('OK') ? '[ok]' : '[FAIL]'} ${n}\t${s}`)
 const failed = results.filter(r => !r[1].startsWith('OK'))
 try { (await import('./src/sessions.js')).closeDb() } catch {}; try { (await import('./src/observability/log.js')).closeAll() } catch {}

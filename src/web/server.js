@@ -57,6 +57,9 @@ export async function createDashboard({ port = 0 } = {}) {
         }
         next()
     })
+    // Express 5 matches routes in registration order. Specific routes (sdk.js,
+    // sdk.css, app.js, /vendor/*, /api/*) must be registered BEFORE the catch-all
+    // SPA fallback below, otherwise the fallback would swallow them.
     app.use(express.static(__dirname))
     app.use('/vendor/anentrypoint-design', express.static(fromNodeModules))
     const nmKitsOs = path.join(__dirname, '..', '..', 'node_modules', 'anentrypoint-design', 'src', 'kits', 'os')

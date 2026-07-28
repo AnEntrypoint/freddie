@@ -1,15 +1,17 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { listSkills } from '../skills/index.js'
+import { mergeAgentsMd } from './agents_md_merge.js'
 
 export const ContextPlugins = {
     file: async ({ cwd = process.cwd() } = {}) => {
-        const candidates = ['.freddie-context', 'CLAUDE.md', 'AGENTS.md']
         const blocks = []
-        for (const c of candidates) {
-            const p = path.join(cwd, c)
-            if (fs.existsSync(p)) blocks.push({ name: 'file:' + c, body: fs.readFileSync(p, 'utf8') })
-        }
+        // .freddie-context — project-local override, read first
+        const fcPath = path.join(cwd, '.freddie-context')
+        if (fs.existsSync(fcPath)) blocks.push({ name: 'file:.freddie-context', body: fs.readFileSync(fcPath, 'utf8') })
+        // AGENTS.md/CLAUDE.md merged root→leaf up the directory tree (kimi parity)
+        const merged = mergeAgentsMd(cwd)
+        if (merged) blocks.push({ name: 'file:AGENTS.md', body: merged })
         return blocks
     },
     skills: async () => {
