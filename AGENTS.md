@@ -269,11 +269,9 @@ Slash commands that mutate system-prompt state default to deferred invalidation;
 
 ## Testing
 
-One `test.js` at project root. ≤200 lines. Plain assertions, real data, real services. No mocks. No fixtures. No `tests/` dir. New behavior extends `test.js`, not a new test file.
+No automated tests. All testing is manual. Verify behavior by running the CLI directly: `node bin/freddie.js <verb>` or `freddie exec --prompt "..."`.
 
-test.js can pass while the CLI is broken — exercise every cli verb that wraps async-API modules (sessions, cron) explicitly, or smoke `node bin/freddie.js <verb>` after changes.
-
-On Windows, test.js must call `closeDb()` and log-stream `closeAll()` before exit, otherwise libuv handle teardown crashes the process.
+On Windows, ensure `closeDb()` and log-stream `closeAll()` are called before exit to avoid libuv handle teardown crashes.
 
 ## Substrate gotchas
 
@@ -282,7 +280,7 @@ On Windows, test.js must call `closeDb()` and log-stream `closeAll()` before exi
 - **libsql async debt**: every call into `src/sessions.js` (listSessions/search/getMessages/createSession/appendMessage) and `src/cron/scheduler.js` (listJobs/createJob/cancelJob/deleteJob) must be `await`ed. Sync callsites silently wrap each call in a Promise that rejects on iteration, surfacing as `TypeError: ... is not iterable`. Tool ACTIONS inner functions are async; handlers await dispatched fn.
 - **Bulk-rename: git grep is case-sensitive on literal patterns**: `git grep -lI <name>` only matches lowercase. For case-variant sweep, use `git grep -liI -e <lower> -e <Title> -e <UPPER>`. Single-form check is a false-clean trap.
 - **codeinsight `🔐 hardcoded secrets` / `🔐 SQL injection` are regex-only**, not value/AST. False positives: env-var names like `DAYTONA_API_KEY` in `process.env.X` references; function param names like `secret` in HMAC helpers; URL query keys like `?appkey=&appsecret=`; HTTP `DELETE` URL paths flagged as SQL `DELETE FROM`. Always read the actual line before treating as a finding.
-- **codeinsight orphan detector misses three reachability paths**: (1) `await import('./path/' + variable + '.js')` dynamic strings (test.js enumerates 10 agent adapters this way); (2) plugin auto-discovery walking `plugins/<dir>/plugin.js` from `discoverPlugins()` in `src/host/host.js`; (3) HTTP-served static files like `src/web/app.js` referenced only from `src/web/index.html`. Exempt these before deleting "dead" files.
+- **codeinsight orphan detector misses three reachability paths**: (1) `await import('./path/' + variable + '.js')` dynamic strings; (2) plugin auto-discovery walking `plugins/<dir>/plugin.js` from `discoverPlugins()` in `src/host/host.js`; (3) HTTP-served static files like `src/web/app.js` referenced only from `src/web/index.html`. Exempt these before deleting "dead" files.
 - **freddie exec Windows invocation**: `bun run bin/freddie.js exec --prompt "..."`. Do NOT use `bun x freddie` — hangs on Windows from npm registry fetch timeouts. Args: `--prompt` (required), `--model` (default ''), `--timeout` (default 60000ms). Validated CI entry point.
 - **GitHub Actions `deploy-pages@v5`**: rejects if 2+ artifacts named "github-pages" exist. `gh run rerun --failed` can silently re-upload transients; trigger a fresh run via empty commit instead.
 - **Rebase regression trap**: after `git pull --rebase` following a rejected push, a CI auto-bump commit on remote can revert local fixes. `.github/workflows/restore-package.cjs` pins anentrypoint-design via `npm view` + `^<latest>`; `publish.yml` runs `npm install --package-lock-only` to keep lockfile valid. Recurrence tell: if pages CI fails with `lock file's anentrypoint-design@X.Y.Z does not satisfy anentrypoint-design@` (empty version = file: dep), audit `restore-package.cjs` and `publish.yml` for reversion — do not manually re-pin in `package.json` forever.
@@ -318,7 +316,7 @@ On Windows, test.js must call `closeDb()` and log-stream `closeAll()` before exi
 | Browser tool | `plugins/web/lib/browse.js` (puppeteer-core, lazy; merged web plugin also has search/fetch) |
 | LLM resolver | `src/agent/llm_resolver.js` (thin shim over `acptoapi.chat`) |
 | Bundled skills | `skills/` (5 categories) |
-| Integration tests | one `test.js` at root |
+| Verification | Manual testing via CLI (`freddie exec`, `freddie dashboard`) |
 
 ## Cross-project Rust gotchas
 

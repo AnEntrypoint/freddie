@@ -96,8 +96,8 @@ export { log, logger } from '../observability/log.js'
 //   Verified by reading src/host/index.js and src/host/host.js fully: neither
 //   shells out (no child_process import in either file, or in
 //   host_helpers.js/contract.js). The Node CLI's OWN shell-out (the `bash`
-//   tool plugin, and test.js's spawnSync of bin/freddie.js) happens entirely
-//   inside plugin handler.js files and CLI test harnesses, never inside
+//   tool plugin, and CLI invocations of bin/freddie.js) happens entirely
+//   inside plugin handler.js files and CLI harnesses, never inside
 //   bootHost itself. So `exec` is deliberately NOT part of this contract —
 //   an embedder that wants a shell-executing tool supplies it as one of
 //   `adapters.plugins` (see below), exactly like thebird's own
