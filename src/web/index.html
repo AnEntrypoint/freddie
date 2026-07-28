@@ -36,13 +36,13 @@ body[data-ready] { visibility: visible; }
 /* Transient mutation-error toast (see app.js notify()). Uses design-system
    tokens so it respects the active theme. */
 .fd-toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-  z-index: 1000; max-width: 90vw; padding: 8px 14px; border-radius: var(--ds-radius, 8px);
-  background: var(--ds-danger, #b3261e); color: var(--ds-danger-fg, #fff);
-  font: 13px/1.4 var(--ds-ff, system-ui, sans-serif);
-  box-shadow: 0 4px 16px var(--ds-shadow, rgba(0,0,0,.3)); }
+  z-index: 1000; max-width: 90vw; padding: 8px 14px; border-radius: var(--r-1);
+  background: var(--warn, #b3261e); color: var(--fg);
+  font: 13px/1.4 var(--ff-body, system-ui, sans-serif);
+  box-shadow: var(--shadow-2, 0 4px 16px rgba(0,0,0,.3)); }
 /* Ctrl+K search hint in the topbar. */
 .fd-search-hint { font-size: 11px; opacity: 0.5; padding: 4px 8px;
-  border: 1px solid var(--ds-border, currentColor); border-radius: 4px;
+  border: 1px solid var(--rule, currentColor); border-radius: 4px;
   pointer-events: none; }
 /* Status bar items — inline flex with gap. */
 .fd-status-item { display: inline-flex; align-items: center; gap: 4px; }
