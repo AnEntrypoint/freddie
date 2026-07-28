@@ -42,6 +42,9 @@ export async function fetchHost() {
     // Track boot fetch failures so app.js can surface a degraded-backend warning.
     let _fails = 0;
     const settled = (p, fb) => p.catch(() => { _fails++; return fb; });
+    // Derive WebSocket URL from the current page origin
+    const wsProto = (typeof window !== 'undefined' && window.location.protocol === 'https:') ? 'wss:' : 'ws:';
+    const wsUrl = typeof window !== 'undefined' ? `${wsProto}//${window.location.host}/api/events` : '';
     const [tools, skillsR, cron, projR, env, gateway, health, commands] = await Promise.all([
         settled(j('/api/tools/detail'), []),
         settled(j('/api/skills'), { home: [], bundled: [] }),
@@ -59,6 +62,7 @@ export async function fetchHost() {
     return {
         kind: 'freddie-web', version: 'web',
         degraded,
+        wsUrl,
         pi: {
             tools: reg(tools),
             skills: reg(skillList, s => s.name || s.id),
@@ -110,7 +114,10 @@ export const ROUTES = [
     { path: 'models',    label: 'models',    icon: 'circle-dot' },
     { path: 'cron',      label: 'cron',      icon: 'play' },
     { path: 'skills',    label: 'skills',    icon: 'check' },
+    { path: 'settings',  label: 'settings',  icon: 'settings' },
     { path: 'config',    label: 'config',    icon: 'settings' },
+    { path: 'auth',      label: 'auth',      icon: 'lock' },
+    { path: 'theme',     label: 'theme',     icon: 'circle-dot' },
     { path: 'env',       label: 'keys',      icon: 'hash' },
     { path: 'tools',     label: 'tools',     icon: 'more-horizontal' },
     { path: 'batch',     label: 'batch',     icon: 'square' },
@@ -120,6 +127,8 @@ export const ROUTES = [
     { path: 'health',    label: 'health',    icon: 'activity' },
     { path: 'debug',     label: 'debug',     icon: 'circle' },
     { path: 'logs',      label: 'logs',      icon: 'more-horizontal' },
+    { path: 'files',     label: 'files',     icon: 'folder' },
+    { path: 'worktree',  label: 'worktrees', icon: 'arrow-right' },
 ];
 
 export function pre(obj) {

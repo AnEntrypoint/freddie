@@ -1,17 +1,18 @@
-// Freddie dashboard Service Worker: caches the shell (index.html, app.js,
-// the SDK js/css) for offline VIEWING. Never intercepts POST /api/chat or any
-// other /api/* request -- true offline LLM response generation is impossible
-// by definition (the model call needs real connectivity), so those requests
-// pass straight through to the network and fail naturally if offline; the
-// dashboard's own outbox (idb-outbox.js) handles queuing them for reconnect,
-// this SW's job is purely "the shell loads with no network."
-const CACHE_NAME = 'freddie-dashboard-shell-v1'
+// Freddie dashboard Service Worker: caches the shell (index.html, app.js)
+// for offline VIEWING. The SDK js/css load from unpkg @latest (cross-origin)
+// and are not precached here, so first paint after an offline reload needs
+// network for the SDK even though the shell itself is available. Never
+// intercepts POST /api/chat or any other /api/* request -- true offline LLM
+// response generation is impossible by definition (the model call needs real
+// connectivity), so those requests pass straight through to the network and
+// fail naturally if offline; the dashboard's own outbox (idb-outbox.js)
+// handles queuing them for reconnect, this SW's job is purely "the shell
+// loads with no network."
+const CACHE_NAME = 'freddie-dashboard-shell-v2'
 const SHELL_URLS = [
     '/',
     '/index.html',
     '/app.js',
-    '/vendor/anentrypoint-design/sdk.js',
-    '/vendor/anentrypoint-design/sdk.css',
 ]
 
 self.addEventListener('install', (event) => {
