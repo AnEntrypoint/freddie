@@ -101,3 +101,4 @@ website/docs/
 .gm/disciplines/codeinsight/ci-*.json
 .gm/.instructions-shipped-manifest.json
 state/sessions.db
+.impeccable/
