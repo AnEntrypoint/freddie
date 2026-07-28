@@ -44,6 +44,7 @@ export function buildSection(subjects, dateStr = new Date().toISOString().slice(
     if (groups.features.length) { lines.push('### Added'); for (const t of groups.features) lines.push(`- ${t}`); lines.push('') }
     if (groups.fixes.length) { lines.push('### Fixed'); for (const t of groups.fixes) lines.push(`- ${t}`); lines.push('') }
     if (groups.other.length) { lines.push('### Other'); for (const t of groups.other) lines.push(`- ${t}`); lines.push('') }
+    lines.push('### Plugin Spotlight', '', '<!-- Maintainer: add plugin highlights here -->', '')
     return lines.join('\n')
 }
 

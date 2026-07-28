@@ -1,6 +1,9 @@
 // Web search: SerpAPI when SERPAPI_KEY is configured, otherwise scrapes the
 // DuckDuckGo no-JS "html" endpoint (https://html.duckduckgo.com/html/?q=...).
+// Supports include_content (page crawling via fetchURL) and num_results.
+// In-memory cache with 5-minute TTL to avoid duplicate API calls.
 import { env } from '../../../../src/env.js'
+import { fetchURL } from './fetch_url.js'
 
 // DuckDuckGo's html endpoint renders each result roughly as:
 //
@@ -56,14 +59,76 @@ export function parseDdgHtml(html, limit = 5) {
     return results
 }
 
-export async function webSearch({ query, limit = 5 }) {
-    if (env('SERPAPI_KEY')) {
-        const url = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&api_key=${env('SERPAPI_KEY')}`
-        const data = await fetch(url).then(r => r.json())
-        const results = (data.organic_results || []).slice(0, limit).map(r => ({ title: r.title, url: r.link, snippet: r.snippet }))
-        return { results }
+// In-memory cache: Map<queryKey, {results, timestamp}>. TTL = 5 minutes.
+const _searchCache = new Map()
+const CACHE_TTL_MS = 5 * 60 * 1000
+
+function cacheKey(query, numResults) {
+    return `${query}::${numResults}`
+}
+
+function cacheGet(query, numResults) {
+    const entry = _searchCache.get(cacheKey(query, numResults))
+    if (!entry) return null
+    if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+        _searchCache.delete(cacheKey(query, numResults))
+        return null
     }
-    const fetchFn = globalThis.__freddieFetch || fetch
-    const html = await fetchFn(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`).then(r => r.text())
-    return { results: parseDdgHtml(html, limit) }
+    return entry.results
+}
+
+function cacheSet(query, numResults, results) {
+    _searchCache.set(cacheKey(query, numResults), { results, timestamp: Date.now() })
+}
+
+export async function webSearch({ query, limit, num_results, include_content }) {
+    // num_results takes precedence over limit; default 10, max 20
+    const count = Math.min(num_results || limit || 10, 20)
+
+    // Check cache first
+    const cached = cacheGet(query, count)
+    if (cached) return { results: cached }
+
+    let results
+
+    if (env('SERPAPI_KEY')) {
+        const url = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&api_key=${env('SERPAPI_KEY')}&num=${count}`
+        const data = await fetch(url).then(r => r.json())
+        results = (data.organic_results || []).slice(0, count).map(r => ({
+            title: r.title,
+            url: r.link,
+            snippet: r.snippet,
+            date: r.date || null,
+        }))
+    } else {
+        const fetchFn = globalThis.__freddieFetch || fetch
+        const html = await fetchFn(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`).then(r => r.text())
+        results = parseDdgHtml(html, count).map(r => ({
+            ...r,
+            date: null,
+        }))
+    }
+
+    // Cache results
+    cacheSet(query, count, results)
+
+    // If include_content is true, fetch each result's page content
+    if (include_content) {
+        const enriched = await Promise.all(results.map(async (r) => {
+            try {
+                const fetchResult = await fetchURL(r.url)
+                return {
+                    ...r,
+                    content: fetchResult.ok ? fetchResult.content : null,
+                    content_type: fetchResult.ok ? fetchResult.content_type : null,
+                    content_error: fetchResult.ok ? null : fetchResult.error,
+                }
+            } catch {
+                return { ...r, content: null, content_type: null, content_error: 'fetch failed' }
+            }
+        }))
+        return { results: enriched }
+    }
+
+    return { results }
 }

@@ -15,12 +15,13 @@ export default {
             toolset: 'browse',
             schema: {
                 name: 'web_search',
-                description: 'Search the web (DuckDuckGo HTML or SerpAPI). Returns title/url/snippet list.',
+                description: 'Search the web (DuckDuckGo HTML or SerpAPI). Returns title, URL, snippet, and date. Results cached for 5 minutes.',
                 parameters: {
                     type: 'object',
                     properties: {
-                        query: { type: 'string' },
-                        limit: { type: 'number', default: 5 },
+                        query: { type: 'string', description: 'Search query' },
+                        num_results: { type: 'number', default: 10, description: 'Number of results (max 20)' },
+                        include_content: { type: 'boolean', default: false, description: 'Also fetch each result\'s page content' },
                     },
                     required: ['query'],
                 },
@@ -35,15 +36,15 @@ export default {
             toolset: 'browse',
             schema: {
                 name: 'web_fetch',
-                description: 'Fetch a URL and return text/json/headers. Gated by url_safety and website_policy.',
+                description: 'Fetch a URL and return extracted text or raw body. HTML pages are auto-extracted to plain text with a note at the top indicating the content type. Only http/https URLs. Gated by url_safety and website_policy.',
                 parameters: {
                     type: 'object',
                     properties: {
-                        url: { type: 'string' },
-                        method: { type: 'string', default: 'GET' },
-                        headers: {},
-                        body: { type: 'string' },
-                        parse: { type: 'string', enum: ['text', 'json'] },
+                        url: { type: 'string', description: 'URL to fetch (http/https only)' },
+                        method: { type: 'string', default: 'GET', description: 'HTTP method' },
+                        headers: { type: 'object', description: 'Custom request headers' },
+                        body: { type: 'string', description: 'Request body (for POST/PUT)' },
+                        parse: { type: 'string', enum: ['text', 'json'], description: 'Parse mode: text (default, auto-extracts HTML) or json' },
                     },
                     required: ['url'],
                 },
