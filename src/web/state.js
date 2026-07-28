@@ -129,6 +129,9 @@ export const ROUTES = [
     { path: 'logs',      label: 'logs',      icon: 'more-horizontal' },
     { path: 'files',     label: 'files',     icon: 'folder' },
     { path: 'worktree',  label: 'worktrees', icon: 'arrow-right' },
+    { path: 'session-tree', label: 'session tree', icon: 'thread' },
+    { path: 'notifications', label: 'notifications', icon: 'bell' },
+    { path: 'terminal',  label: 'terminal',  icon: 'more-horizontal' },
 ];
 
 export function pre(obj) {
