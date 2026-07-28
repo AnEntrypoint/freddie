@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { WebSocketServer } from 'ws'
 import { bootHost } from '../host/index.js'
 import { logger } from '../observability/log.js'
+import fs from 'node:fs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const log = logger('web_server')
@@ -32,8 +33,8 @@ export async function createDashboard({ port = 0 } = {}) {
     })
     // Express 5 matches routes in registration order. Specific routes (app.js,
     // /api/*) must be registered BEFORE the catch-all SPA fallback below,
-    // otherwise the fallback would swallow them. The SDK itself loads from
-    // unpkg @latest directly in index.html -- no local vendor route needed.
+    // otherwise the fallback would swallow them.
+    app.use(express.static(__dirname))
     app.use(express.static(__dirname))
     for (const r of host.gui.routes.list()) {
         const verb = r.method.toLowerCase()
@@ -42,11 +43,35 @@ export async function createDashboard({ port = 0 } = {}) {
     const debugApi = host.gui._state.apis.get('debug')
     if (debugApi?.attach) debugApi.attach(app)
 
-    // SPA fallback: unknown non-API GET routes serve index.html so deep links
-    // (and client-side hash routes) don't return Express's default 404 HTML.
-    // /api/* is excluded — those 404 legitimately as data.
-    app.get(/.*/, (req, res, next) => {
-        if (req.path.startsWith('/api/')) return next()
+    // Serve the anentrypoint-design SDK from the local node_modules copy.
+    const sdkDist = path.join(__dirname, '..', '..', 'node_modules', 'anentrypoint-design', 'dist')
+    app.get('/vendor/anentrypoint-design/247420.js', (req, res) => {
+        try {
+            const content = fs.readFileSync(path.join(sdkDist, '247420.js'), 'utf8')
+            res.type('application/javascript').send(content)
+        } catch (e) {
+            log.warn('sdk.js serve failed', { err: String(e) })
+            res.status(404).end()
+        }
+    })
+    app.get('/vendor/anentrypoint-design/247420.css', (req, res) => {
+        try {
+            const content = fs.readFileSync(path.join(sdkDist, '247420.css'), 'utf8')
+            res.type('text/css').send(content)
+        } catch (e) {
+            log.warn('sdk.css serve failed', { err: String(e) })
+            res.status(404).end()
+        }
+    })
+
+    // SPA fallback: unknown non-API, non-vendor GET routes serve index.html
+    // so deep links (and client-side hash routes) don't return Express's
+    // default 404 HTML. /api/* and /vendor/* are excluded — those 404
+    // legitimately as data.
+    app.use((req, res, next) => {
+        if (req.method !== 'GET') return next()
+        if (req.path.startsWith('/api/') || req.path.startsWith('/vendor/')) return next()
+        // Only serve index.html for paths that don't match any registered route
         res.set('Cache-Control', 'no-cache').sendFile(path.join(__dirname, 'index.html'))
     })
     const { server, actualPort } = await new Promise((res, rej) => { const s = app.listen(port, () => { const a = s.address(); res({ server: s, actualPort: a && typeof a === 'object' ? a.port : port }) }); s.once('error', rej) })
