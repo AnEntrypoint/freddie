@@ -102,37 +102,62 @@ export async function fetchHost() {
 
 // `icon` is an anentrypoint-design SDK Icon() name (monochrome inline SVG),
 // not a decorative unicode glyph — the nav chrome reads as one icon set.
-export const ROUTES = [
-    { path: 'home',      label: 'home',      icon: 'page' },
-    { path: 'chat',      label: 'chat',      icon: 'forum' },
-    { path: 'voice',     label: 'voice',     icon: 'mic' },
-    { path: 'sessions',  label: 'sessions',  icon: 'thread' },
-    { path: 'git',       label: 'git',       icon: 'branch' },
-    { path: 'projects',  label: 'projects',  icon: 'square' },
-    { path: 'agents',    label: 'agents',    icon: 'members' },
-    { path: 'analytics', label: 'analytics', icon: 'activity' },
-    { path: 'models',    label: 'models',    icon: 'circle-dot' },
-    { path: 'cron',      label: 'cron',      icon: 'play' },
-    { path: 'skills',    label: 'skills',    icon: 'check' },
-    { path: 'settings',  label: 'settings',  icon: 'settings' },
-    { path: 'config',    label: 'config',    icon: 'settings' },
-    { path: 'auth',      label: 'auth',      icon: 'lock' },
-    { path: 'theme',     label: 'theme',     icon: 'circle-dot' },
-    { path: 'env',       label: 'keys',      icon: 'hash' },
-    { path: 'tools',     label: 'tools',     icon: 'more-horizontal' },
-    { path: 'batch',     label: 'batch',     icon: 'square' },
-    { path: 'gateway',   label: 'gateway',   icon: 'arrow-right' },
-    { path: 'chains',    label: 'chains',    icon: 'chevron-right' },
-    { path: 'machines',  label: 'machines',  icon: 'settings' },
-    { path: 'health',    label: 'health',    icon: 'activity' },
-    { path: 'debug',     label: 'debug',     icon: 'circle' },
-    { path: 'logs',      label: 'logs',      icon: 'more-horizontal' },
-    { path: 'files',     label: 'files',     icon: 'folder' },
-    { path: 'worktree',  label: 'worktrees', icon: 'arrow-right' },
-    { path: 'session-tree', label: 'session tree', icon: 'thread' },
-    { path: 'notifications', label: 'notifications', icon: 'bell' },
-    { path: 'terminal',  label: 'terminal',  icon: 'more-horizontal' },
+// Route groups for the sidebar. Order within each group is roughly by
+// importance; the whole list is still flat for the command palette.
+export const ROUTE_GROUPS = [
+    {
+        group: 'Core',
+        items: [
+            { path: 'home',      label: 'home',      icon: 'page' },
+            { path: 'chat',      label: 'chat',      icon: 'forum' },
+            { path: 'sessions',  label: 'sessions',  icon: 'thread' },
+            { path: 'terminal',  label: 'terminal',  icon: 'screen' },
+            { path: 'files',     label: 'files',     icon: 'folder' },
+            { path: 'git',       label: 'git',       icon: 'branch' },
+            { path: 'voice',     label: 'voice',     icon: 'mic' },
+        ],
+    },
+    {
+        group: 'Infrastructure',
+        items: [
+            { path: 'models',    label: 'models',    icon: 'circle-dot' },
+            { path: 'tools',     label: 'tools',     icon: 'file-code' },
+            { path: 'skills',    label: 'skills',    icon: 'check' },
+            { path: 'cron',      label: 'cron',      icon: 'play' },
+            { path: 'batch',     label: 'batch',     icon: 'square' },
+            { path: 'gateway',   label: 'gateway',   icon: 'arrow-right' },
+            { path: 'agents',    label: 'agents',    icon: 'members' },
+            { path: 'chains',    label: 'chains',    icon: 'chevron-right' },
+            { path: 'machines',  label: 'machines',  icon: 'grid' },
+        ],
+    },
+    {
+        group: 'Configuration',
+        items: [
+            { path: 'auth',      label: 'auth',      icon: 'lock' },
+            { path: 'env',       label: 'keys',      icon: 'hash' },
+            { path: 'config',    label: 'config',    icon: 'pencil' },
+            { path: 'settings',  label: 'settings',  icon: 'settings' },
+            { path: 'theme',     label: 'theme',     icon: 'contrast' },
+            { path: 'projects',  label: 'projects',  icon: 'square' },
+            { path: 'worktree',  label: 'worktrees', icon: 'arrow-right' },
+        ],
+    },
+    {
+        group: 'Observability',
+        items: [
+            { path: 'logs',      label: 'logs',      icon: 'file-text' },
+            { path: 'analytics', label: 'analytics', icon: 'activity' },
+            { path: 'health',    label: 'health',    icon: 'activity' },
+            { path: 'debug',     label: 'debug',     icon: 'info' },
+            { path: 'session-tree', label: 'session tree', icon: 'thread' },
+            { path: 'notifications', label: 'notifications', icon: 'bell' },
+        ],
+    },
 ];
+
+// Flat list for the command palette, route lookup, and ROUTES.length.
+export const ROUTES = ROUTE_GROUPS.flatMap(g => g.items);
 
 export function pre(obj) {
     return h('pre', { class: 'fd-pre' }, typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));

@@ -35,7 +35,6 @@ export async function createDashboard({ port = 0 } = {}) {
     // /api/*) must be registered BEFORE the catch-all SPA fallback below,
     // otherwise the fallback would swallow them.
     app.use(express.static(__dirname))
-    app.use(express.static(__dirname))
     for (const r of host.gui.routes.list()) {
         const verb = r.method.toLowerCase()
         if (typeof app[verb] === 'function') app[verb](r.path, r.handler)

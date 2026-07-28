@@ -4,7 +4,7 @@ export default {
     theme: './theme.mjs',
     site: {
         title: 'Freddie',
-        tagline: 'JS rebuild of hermes-agent — pi-mono + flatspace + xstate + anentrypoint-design',
+        tagline: 'an open js agent harness — multi-platform, multi-tool, multi-memory',
         baseUrl: '/freddie/',
     },
 }

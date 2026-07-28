@@ -27,14 +27,14 @@ sections:
         benefit: incident -> root cause in minutes, not hours.
   - id: agent-loop
     name: agent loop
-    lede: xstate v5 turn machine wraps `@mariozechner/pi-agent-core`'s `runAgentLoop`.
+    lede: xstate v5 turn machine orchestrates every agent turn from prompt to result.
     features:
       - name: machine
-        desc: "`src/agent/machine.js` — turn choreography, tool dispatch, error recovery."
+        desc: "`src/agent/machine.js` — turn choreography, tool dispatch, error recovery, trajectory recording."
       - name: llm bridge
-        desc: "`src/agent/pi-bridge.js` — pi-ai provider adapter (anthropic/openai/groq/openrouter)."
+        desc: "`src/agent/llm_resolver.js` — thin shim over acptoapi.chat, models-as-comma-list, sampler-gated failover."
       - name: resolver
-        desc: "`src/agent/llm_resolver.js` — picks pi-bridge -> acptoapi -> throw, in priority order."
+        desc: "`src/agent/llm_resolver.js` — picks explicit model -> acptoapi -> model_preference array -> buildAutoChain, in priority order."
   - id: context-engine
     name: context engine + compressor
     lede: builds the system message, prunes history when the budget is tight.
