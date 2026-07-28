@@ -1,8 +1,8 @@
 import { h, applyDiff, installStyles, components } from 'anentrypoint-design';
-import { fetchHost, ROUTES } from './state.js';
+import { fetchHost, ROUTES, ROUTE_GROUPS } from './state.js';
 import { PAGES } from './routes.js';
 
-const { AppShell, Topbar, Side, Crumb, Status, EmptyState, Chip, ThemeToggle, Icon } = components;
+const { AppShell, Topbar, Side, Status, EmptyState, Chip, ThemeToggle, Icon } = components;
 
 // Lazy-load the command palette from the SDK (dynamic import to avoid circular deps).
 let _paletteActionCache = null;
@@ -22,10 +22,13 @@ function buildPaletteActions() {
         { id: 'cmd-terminal', label: 'Open Terminal', icon: 'more-horizontal', group: 'Actions', hint: null, action: () => setActive('terminal') },
         { id: 'cmd-toggle-theme', label: 'Toggle Theme', icon: 'contrast', group: 'Actions', hint: null, action: () => {
             try {
-                const current = document.documentElement.getAttribute('data-theme');
-                const next = current === 'dark' ? 'light' : 'dark';
-                document.documentElement.setAttribute('data-theme', next);
-                localStorage.setItem('247420:theme', next);
+                // Route through the SDK's ThemeToggle controller instead of
+                // directly manipulating the DOM and localStorage.
+                const btn = document.querySelector('.theme-toggle button, .theme-toggle [role="button"]');
+                if (btn) { btn.click(); return; }
+                // Fallback: cycle through the known states via the rendered component.
+                const el = document.querySelector('.theme-toggle');
+                if (el) { el.click(); }
             } catch { /* ignore */ }
         }},
         { id: 'cmd-refresh', label: 'Refresh Data', icon: 'refresh', group: 'Actions', hint: null, action: () => location.reload() },
@@ -38,9 +41,16 @@ await installStyles();
 document.body.setAttribute('data-ready', '');
 
 const root = document.getElementById('app');
-root.textContent = 'loading…';
+root.textContent = 'loading...';
 const host0 = await fetchHost();
 root.innerHTML = '';
+
+// Stash project name and health at boot for the status bar.
+try {
+    const proj = host0.pi.projects.active && host0.pi.projects.active();
+    if (proj && proj.name) state.project = proj.name;
+} catch { /* ignore */ }
+if (host0.degraded) state.health = { ok: false, degraded: true };
 
 // Lightweight transient error surface for mutation failures (config.saveValue,
 // chat.send, cron.create, …). state.js's mutators reject; the catch handler in
@@ -63,29 +73,38 @@ function routeFromHash() {
     const p = m && m[1];
     return ROUTES.find(r => r.path === p) ? p : 'home';
 }
-const state = { active: routeFromHash(), ts: new Date().toLocaleTimeString(), body: null, error: null, sampler: { ok: 0, bad: 0, total: 0, error: false } };
+const state = { active: routeFromHash(), ts: new Date().toLocaleTimeString(), body: null, error: null, sampler: { ok: 0, bad: 0, total: 0, error: false }, health: { ok: true, degraded: false }, project: null, model: null };
 
 async function refreshSampler() {
     try {
         const j = await fetch('/api/models/sampler').then(r => r.json());
         const ents = Object.values(j.status || {});
-        state.sampler = { total: ents.length, ok: ents.filter(s => s && s.available !== false).length, bad: ents.filter(s => s && s.available === false).length, error: false };
+        const next = { total: ents.length, ok: ents.filter(s => s && s.available !== false).length, bad: ents.filter(s => s && s.available === false).length, error: false };
+        // Only rerender if the sampler data actually changed.
+        if (next.total !== state.sampler.total || next.ok !== state.sampler.ok || next.bad !== state.sampler.bad) {
+            state.sampler = next;
+            rerender();
+        }
     } catch { state.sampler = { ok: 0, bad: 0, total: 0, error: true }; }
 }
 await refreshSampler();
-setInterval(() => { refreshSampler().then(rerender); }, 15000);
+setInterval(refreshSampler, 15000);
 
 function buildSide() {
-    return Side({ sections: [{ group: 'freddie', items: ROUTES.map(r => ({
-        glyph: Icon ? Icon(r.icon) : null, label: r.label, href: '#fd-' + r.path,
-        active: state.active === r.path,
-        onClick: ev => { ev.preventDefault(); setActive(r.path); },
-    })) }] });
+    return Side({ sections: ROUTE_GROUPS.map(g => ({
+        group: g.group,
+        items: g.items.map(r => ({
+            glyph: Icon ? Icon(r.icon) : null,
+            label: r.label,
+            href: '#fd-' + r.path,
+            active: state.active === r.path,
+            onClick: ev => { ev.preventDefault(); setActive(r.path); },
+        })),
+    })) });
 }
 
 function view() {
-    const route = ROUTES.find(r => r.path === state.active) || ROUTES[0];
-    const body = state.body || EmptyState({ text: 'loading…' });
+    const body = state.body || EmptyState({ text: 'loading...' });
     const main = h('div', { key: state.active, class: 'fd-page' }, ...(Array.isArray(body) ? body : [body]));
     const samplerPill = state.sampler.error
         ? Chip({ tone: 'miss', children: 'sampler err' })
@@ -94,22 +113,35 @@ function view() {
             : Chip({ tone: 'neutral', children: 'sampler —' });
     // Layout lives in .fd-topbar-leaf (index.html reset block) — zero inline CSS.
     const leaf = h('span', { class: 'fd-topbar-leaf' },
-        samplerPill, ThemeToggle ? ThemeToggle({ compact: true }) : null);
+        samplerPill, ThemeToggle ? ThemeToggle({}) : null);
+    // Topbar items: New Chat as a primary action.
+    const topbarItems = [
+        ['New Chat', '#fd-chat'],
+    ];
+    // Ctrl+K hint in the topbar search slot.
+    const searchHint = h('span', { class: 'fd-search-hint', 'aria-hidden': 'true' }, 'Ctrl+K');
+    // Status bar: agent health, project name, and tool/session counts.
+    const healthChip = host0.degraded
+        ? Chip({ tone: 'miss', children: 'backend unreachable' })
+        : state.error
+            ? Chip({ tone: 'miss', children: 'page error' })
+            : Chip({ tone: 'ok', children: 'agent running' });
+    const projectName = state.project || (host0.pi.projects.active && host0.pi.projects.active().name) || 'default';
+    const statusLeft = [
+        h('span', { class: 'fd-status-item' }, healthChip),
+        h('span', { class: 'fd-status-item' }, 'project: ' + projectName),
+        h('span', { class: 'fd-status-item' }, host0.pi.tools.size + ' tools'),
+        h('span', { class: 'fd-status-item' }, host0.pi.skills.size + ' skills'),
+    ];
     return AppShell({
-        topbar: Topbar({ brand: 'freddie', leaf, items: [], active: '' }),
-        crumb: Crumb({ trail: ['freddie'], leaf: route.label || route.path, right: state.error ? Chip({ tone: 'miss', children: 'error' }) : Chip({ tone: 'ok', children: 'live' }) }),
+        topbar: Topbar({ brand: 'freddie', leaf, items: topbarItems, active: '', search: searchHint }),
         side: buildSide(),
         main,
-        status: Status({ left: ['ds-247420 · webjsx · ' + ROUTES.length + ' routes'], right: [state.ts] }),
+        status: Status({ left: statusLeft, right: [state.ts] }),
     });
 }
 
 function rerender() {
-    // LIVE-ROUTE RECOMPUTE HOOK: rerender() reuses the cached state.body. No
-    // freddie route currently streams (SSE/live updates) — pages are computed
-    // once per nav in loadActive(). If a live route is added (e.g. 'chat' with
-    // SSE), recompute its body here before applyDiff, per AGENTS.md:
-    //   if (state.active === 'chat') { Promise.resolve(PAGES.chat(host0)).then(b => { state.body = b; applyDiff(root, view()); }); return; }
     applyDiff(root, view());
 }
 

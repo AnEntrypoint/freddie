@@ -37,7 +37,7 @@ sections:
     lede: most agent harnesses give you a chat box. freddie gives you a substrate.
     features:
       - name: substrate-first, not framework-first
-        desc: pi-coding-agent (loop), pi-ai (providers), pi-tui (terminal), floosie (gateway xstate), anentrypoint-design (dashboard), xstate v5. we compose published packages, we don't fork them.
+        desc: pi-ai (providers), pi-tui (terminal), floosie (gateway xstate), anentrypoint-design (dashboard), xstate v5, acptoapi (LLM SDK). we compose published packages, we don't fork them.
         benefit: when upstream ships a fix, you get it. no fork to maintain.
       - name: real services, real tests
         desc: one `test.js` at the root, ≤200 lines, no mocks, no fixtures. exercises real sqlite, real express, real cron, real adapters. 12 named groups cover the whole surface.
@@ -62,20 +62,20 @@ sections:
         desc: "create `plugins/<name>/{plugin,handler}.js` (auto-discovered on bootHost). drop a SKILL.md in `~/.freddie/skills/`. add a platform as `plugins/platform-<name>/`. configure a cron with `freddie cron add '0 9 * * *' '<prompt>'`."
   - id: substrate
     name: substrate (the things we don't reimplement)
-    lede: every named dependency below is a published package we treat as a black box. when you run freddie, you're running the union of these.
+    lede: every named dependency below is a published package. freddie composes them; it does not fork them.
     features:
-      - name: "@mariozechner/pi-coding-agent"
-        desc: agent loop, tool dispatch, interactive tui, file auth store, extension runner.
       - name: "@earendil-works/pi-ai"
         desc: "provider layer. `complete`, streaming, cost calc, registerApiProvider, getModel."
-      - name: "@mariozechner/pi-agent-core"
-        desc: "`agentLoop`, `runAgentLoop`, `streamProxy`. wrapped by xstate, never rewritten."
+      - name: "@earendil-works/pi-tui"
+        desc: "terminal UI primitives. `launchTui()` dynamically imports it when available."
       - name: floosie
         desc: gateway pipeline as an xstate ProcessorMachine. compose, don't fork.
       - name: anentrypoint-design
-        desc: webjsx + ripple-ui design system. dashboard ships with hero, panel, row, chat, file viewer, cron monitor primitives baked in.
+        desc: webjsx + ripple-ui design system. all dashboard and website UI lives here.
       - name: xstate v5
         desc: every long-lived machine — turns, gateways, approvals, compressor — is a real state machine, not a soup of booleans.
+      - name: acptoapi
+        desc: "THE LLM SDK. `chat`, `stream`, `chain`, `fallback`, `buildAutoChain`, sampler, matrix scoring. freddie's single source of truth for all provider connectivity."
 examples:
   - { label: architecture, href: /architecture/, desc: subsystem deep dive }
   - { label: cli, href: /cli/, desc: "every command, every flag" }
