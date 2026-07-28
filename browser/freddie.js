@@ -11584,6 +11584,26 @@ var Telemetry = class {
 };
 var telemetry = new Telemetry();
 //#endregion
+//#region plugins/gui-events/event-bus.js
+/**
+* Shared event bus for real-time session events.
+*
+* Emits typed events (session.created, session.start, message.append,
+* assistant.delta, tool.start, tool.end, session.end, session.error,
+* status.update) that the WebSocket plugin broadcasts to connected clients.
+*
+* Imported by both the agent machine (producer) and the gui-events plugin
+* (consumer). Uses a simple EventEmitter pattern — no external deps.
+*/
+var listeners = /* @__PURE__ */ new Map();
+function emit(event, data) {
+	const arr = listeners.get(event);
+	if (!arr) return;
+	for (const fn of arr) try {
+		fn(data);
+	} catch (e) {}
+}
+//#endregion
 //#region src/learn/gm-learn.js
 var gm_learn_exports = /* @__PURE__ */ __exportAll({
 	autoRecall: () => autoRecall,
@@ -11861,14 +11881,16 @@ var init_notifications = __esmMin((() => {
 		* Push a notification to the queue.
 		* @param {string} type - notification type (e.g. 'task_complete', 'subagent_complete')
 		* @param {string} message - human-readable message
+		* @param {'info'|'warning'|'error'} [severity='info'] - severity level
 		* @returns {string} notification id
 		*/
-		notify(type, message) {
+		notify(type, message, severity = "info") {
 			const id = `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 			this._queue.push({
 				id,
 				type,
 				message,
+				severity,
 				timestamp: Date.now(),
 				delivered: false
 			});
@@ -11908,6 +11930,30 @@ var init_notifications = __esmMin((() => {
 		reset() {
 			this._queue = [];
 			this._delivered = /* @__PURE__ */ new Set();
+		}
+		/**
+		* Return all notifications (most recent first).
+		* @returns {{ id: string, type: string, message: string, severity: string, timestamp: number }[]}
+		*/
+		getAll() {
+			return [...this._queue].reverse();
+		}
+		/**
+		* Dismiss a single notification by id.
+		* @param {string} id
+		* @returns {boolean} true if a notification was removed
+		*/
+		dismiss(id) {
+			const idx = this._queue.findIndex((n) => n.id === id);
+			if (idx < 0) return false;
+			this._queue.splice(idx, 1);
+			return true;
+		}
+		/**
+		* Dismiss all delivered notifications.
+		*/
+		dismissAll() {
+			this._queue = this._queue.filter((n) => !n.delivered);
 		}
 	};
 	notificationManager = new NotificationManager();
@@ -12170,6 +12216,13 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 				tool_calls_count: (out?.tool_calls || []).length,
 				ts: (/* @__PURE__ */ new Date()).toISOString()
 			});
+			emit("message.append", {
+				sessionId: sessionKey,
+				role: "assistant",
+				content: out?.content || "",
+				tool_calls: out?.tool_calls || [],
+				ts: (/* @__PURE__ */ new Date()).toISOString()
+			});
 			return out;
 		} catch (e) {
 			events.push({
@@ -12310,6 +12363,13 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 							name: tname,
 							args: targs
 						});
+						emit("tool.start", {
+							sessionId: input.sessionKey,
+							name: tname,
+							args: targs,
+							toolCallId: tcid,
+							ts: (/* @__PURE__ */ new Date()).toISOString()
+						});
 						const ret = await runStep(input.sessionKey, "tool:" + input.iterations + ":" + tcid, async () => {
 							const callExtras = [];
 							const pushExtras = (r) => {
@@ -12373,6 +12433,13 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 						results.push({
 							tool_call_id: tcid,
 							content: ret.content
+						});
+						emit("tool.end", {
+							sessionId: input.sessionKey,
+							name: tname,
+							toolCallId: tcid,
+							result: ret.content,
+							ts: (/* @__PURE__ */ new Date()).toISOString()
 						});
 						extras.push(...ret.extras);
 					}
@@ -12594,6 +12661,12 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
 				reason: "timeout",
 				timeoutMs
 			});
+			emit("session.error", {
+				sessionId: sessionKey,
+				reason: "timeout",
+				timeoutMs,
+				ts: (/* @__PURE__ */ new Date()).toISOString()
+			});
 			const out = timeoutResult(actor, timeoutMs);
 			cleanup();
 			(async () => {
@@ -12648,6 +12721,19 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
 					iterations: out.iterations,
 					result: out.result ? "ok" : out.error ? "error" : "empty",
 					error: out.error || null
+				});
+				if (out.error) emit("session.error", {
+					sessionId: sessionKey,
+					error: out.error,
+					iterations: out.iterations,
+					ts: (/* @__PURE__ */ new Date()).toISOString()
+				});
+				emit("session.end", {
+					sessionId: sessionKey,
+					result: out.result ? "ok" : out.error ? "error" : "empty",
+					error: out.error || null,
+					iterations: out.iterations,
+					ts: (/* @__PURE__ */ new Date()).toISOString()
 				});
 				const outbound = await h.hooks.invoke("onMessageOutbound", { content: out?.result || "" });
 				hookEngine.runHooks("onMessageOutbound", {
@@ -12713,6 +12799,13 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 			prompt,
 			model,
 			provider
+		});
+		emit("session.start", {
+			sessionId: sessionKey,
+			prompt,
+			model,
+			provider,
+			ts: (/* @__PURE__ */ new Date()).toISOString()
 		});
 	}
 	const h = await bootHost();
@@ -12804,6 +12897,19 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 	pa.actor.send({
 		type: "SUBMIT",
 		prompt
+	});
+	if (!sessionKey) emit("session.created", {
+		sessionId: key,
+		prompt,
+		model,
+		provider,
+		ts: (/* @__PURE__ */ new Date()).toISOString()
+	});
+	emit("message.append", {
+		sessionId: key,
+		role: "user",
+		content: prompt,
+		ts: (/* @__PURE__ */ new Date()).toISOString()
 	});
 	return await driveAgentActor({
 		pa,
