@@ -4,12 +4,38 @@ import * as yaml from 'js-yaml'
 import { getFreddieHome } from './home.js'
 
 export const DEFAULT_CONFIG = {
-    _config_version: 3,
+    _config_version: 5,
     display: { skin: 'default', tool_progress_command: false, background_process_notifications: 'all' },
-    agent: { provider: 'anthropic', model: '', max_iterations: 90, fallback_model: null, save_trajectories: false, model_preference: [], model_queues: {}, discovered_models: {} },
+    agent: {
+        provider: 'anthropic', model: '', max_iterations: 90, fallback_model: null, save_trajectories: false,
+        model_preference: [], model_queues: {}, discovered_models: {},
+        plan_mode: { enabled: true, auto_approve: false },
+        approval_policy: { yolo: false, afk: false, auto_approve: [] },
+        thinking: { enabled: false, budget: null },
+        max_context_size: null,
+        compaction_trigger_ratio: 0.85,
+        reserved_context_size: 50000,
+        max_steps_per_turn: 1000,
+        max_retries_per_step: 3,
+        subagent: { default_model: null, max_depth: 3 },
+    },
     memory: { provider: null },
     skills: { config: {} },
+    hooks: {
+        PreToolUse:       [],
+        PostToolUse:      [],
+        UserPromptSubmit: [],
+        Stop:             [],
+        SessionStart:     [],
+        SessionEnd:       [],
+        SubagentStart:    [],
+        SubagentStop:     [],
+        PreCompact:       [],
+        PostCompact:      [],
+        Notification:     [],
+    },
     terminal: { cwd: null, command_prefix: '', scrub_provider_env: false },
+    telemetry: { enabled: false, endpoint: null },
     gateway: { timeout: 60, platforms: {} },
     plugins: { enabled: [] },
     toolsets: { enabled: ['core'], disabled: [] },
@@ -19,6 +45,7 @@ const MIGRATIONS = {
     1: cfg => cfg,
     2: cfg => { if (!cfg.agent) cfg.agent = {}; if (!Array.isArray(cfg.agent.model_preference)) cfg.agent.model_preference = []; return cfg },
     3: cfg => { if (!cfg.agent) cfg.agent = {}; if (!cfg.agent.model_queues || typeof cfg.agent.model_queues !== 'object') cfg.agent.model_queues = {}; if (!cfg.agent.discovered_models || typeof cfg.agent.discovered_models !== 'object') cfg.agent.discovered_models = {}; return cfg },
+    4: cfg => { if (!cfg.hooks) cfg.hooks = DEFAULT_CONFIG.hooks; return cfg },
 }
 
 export function configPath() { return path.join(getFreddieHome(), 'config.yaml') }

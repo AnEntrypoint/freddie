@@ -57,11 +57,100 @@ for (const f of files) {
 }
 
 const flagged = rows.filter((r) => r.multi_concern)
-const outDir = join(process.env.FREDDIE_HOME || join(process.env.HOME || process.env.USERPROFILE, '.freddie'), 'audit')
-mkdirSync(outDir, { recursive: true })
-const outFile = join(outDir, 'concerns.json')
-writeFileSync(outFile, JSON.stringify({ generated: new Date().toISOString(), threshold: MULTI_CONCERN_THRESHOLD, total_files: rows.length, flagged_count: flagged.length, rows }, null, 2))
 
-console.log(`audit-concerns: ${rows.length} files scanned, ${flagged.length} flagged (>=${MULTI_CONCERN_THRESHOLD} distinct subsystem domains)`)
-for (const r of flagged) console.log(`  ${r.file}  [${r.domains.join(', ')}]`)
-console.log(`\nwritten: ${outFile}`)
+// --- --suggest-refactor: detect files with multiple concerns and suggest split
+// points based on co-usage patterns (which functions use which imported domains).
+const suggestRefactor = process.argv.includes('--suggest-refactor')
+
+function suggestSplits(fileAbs, relPath, domains) {
+    const src = readFileSync(fileAbs, 'utf8')
+    // Find function/class declarations and the imports they reference
+    const importMap = new Map() // importName -> domain
+    const importRe = /import\s+(?:\{([^}]+)\}|(\*\s+as\s+\w+)|\b(\w+))\s+from\s+['"]([^'"]+)['"]/g
+    let im
+    while ((im = importRe.exec(src))) {
+        const names = (im[1] || im[2] || im[3] || '').replace(/\*\s+as\s+/, '').split(',').map(s => s.trim()).filter(Boolean)
+        const importPath = im[4]
+        const d = domainOf(fileAbs, importPath)
+        if (d) for (const n of names) importMap.set(n, d)
+    }
+    // Default import: `import foo from './bar'`
+    const defaultRe = /import\s+(\w+)\s+from\s+['"]([^'"]+)['"]/g
+    while ((im = defaultRe.exec(src))) {
+        const d = domainOf(fileAbs, im[2])
+        if (d) importMap.set(im[1], d)
+    }
+
+    // Find top-level function/class declarations and map them to domains
+    const declRe = /(?:export\s+)?(?:async\s+)?(?:function|class)\s+(\w+)/g
+    const fnBlocks = []
+    let dm
+    while ((dm = declRe.exec(src))) {
+        const name = dm[1]
+        // Find the function body by matching braces
+        const startIdx = dm.index
+        const bodyStart = src.indexOf('{', startIdx)
+        if (bodyStart === -1) continue
+        let depth = 0, endIdx = bodyStart
+        for (let i = bodyStart; i < src.length; i++) {
+            if (src[i] === '{') depth++
+            else if (src[i] === '}') { depth--; if (depth === 0) { endIdx = i + 1; break } }
+        }
+        const body = src.slice(bodyStart, endIdx)
+        // Find which imported names are referenced in this function body
+        const usedDomains = new Set()
+        for (const [impName, d] of importMap) {
+            if (body.includes(impName)) usedDomains.add(d)
+        }
+        fnBlocks.push({ name, domains: [...usedDomains].sort() })
+    }
+
+    // Group functions by their primary domain set
+    const groups = new Map()
+    for (const fb of fnBlocks) {
+        const key = fb.domains.join('|') || '(no-external-imports)'
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key).push(fb.name)
+    }
+
+    if (groups.size <= 1) return null // no meaningful split
+    const suggestions = []
+    for (const [key, fns] of groups) {
+        const domainList = key === '(no-external-imports)' ? [] : key.split('|')
+        suggestions.push({
+            functions: fns,
+            touches_domains: domainList,
+            suggestion: domainList.length
+                ? `extract {${fns.join(', ')}} into a new file that owns the ${domainList.join('/')} concern`
+                : `{${fns.join(', ')}} are self-contained (no external imports) — candidate for a separate utility module`,
+        })
+    }
+    return { file: relPath, domains, suggestions }
+}
+
+if (suggestRefactor) {
+    const suggestions = []
+    for (const r of flagged) {
+        const abs = join(ROOT, r.file)
+        const s = suggestSplits(abs, r.file, r.domains)
+        if (s) suggestions.push(s)
+    }
+    console.log(`audit-concerns --suggest-refactor: ${flagged.length} multi-concern files, ${suggestions.length} with split suggestions\n`)
+    for (const s of suggestions) {
+        console.log(`## ${s.file}  [${s.domains.join(', ')}]`)
+        for (const sug of s.suggestions) {
+            console.log(`  - ${sug.suggestion}`)
+        }
+        console.log()
+    }
+    if (!suggestions.length) console.log('(no split suggestions — multi-concern files have interleaved domain usage that cannot be cleanly separated)')
+} else {
+    const outDir = join(process.env.FREDDIE_HOME || join(process.env.HOME || process.env.USERPROFILE, '.freddie'), 'audit')
+    mkdirSync(outDir, { recursive: true })
+    const outFile = join(outDir, 'concerns.json')
+    writeFileSync(outFile, JSON.stringify({ generated: new Date().toISOString(), threshold: MULTI_CONCERN_THRESHOLD, total_files: rows.length, flagged_count: flagged.length, rows }, null, 2))
+
+    console.log(`audit-concerns: ${rows.length} files scanned, ${flagged.length} flagged (>=${MULTI_CONCERN_THRESHOLD} distinct subsystem domains)`)
+    for (const r of flagged) console.log(`  ${r.file}  [${r.domains.join(', ')}]`)
+    console.log(`\nwritten: ${outFile}`)
+}

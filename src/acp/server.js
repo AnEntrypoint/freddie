@@ -2,6 +2,7 @@ import readline from 'node:readline'
 import { EventEmitter } from 'node:events'
 import { bootHost } from '../host/index.js'
 import { runTurn } from '../agent/machine.js'
+import { wireHookBridge } from '../agent/wire_hooks.js'
 import { logger } from '../observability/log.js'
 import { Events } from './events.js'
 import { checkPermission, rememberAllow, rememberDeny } from './permissions.js'
@@ -29,7 +30,7 @@ export function createAcpMachine() {
 
 const CAPABILITIES = {
     name: 'freddie', version: '0.4.0',
-    methods: ['initialize', 'session.new', 'session.resume', 'session.list', 'session.end', 'prompt.submit', 'tool.list', 'permission.respond', 'shutdown'],
+    methods: ['initialize', 'session.new', 'session.resume', 'session.list', 'session.end', 'prompt.submit', 'tool.list', 'permission.respond', 'hooks/subscribe', 'hooks/unsubscribe', 'hooks/list', 'shutdown'],
     events: ['tool.start', 'tool.progress', 'tool.complete', 'message.delta', 'message.complete', 'permission.request', 'session.ended'],
 }
 
@@ -114,6 +115,21 @@ const METHODS = {
         await clearSteps(sk)
         Events.messageComplete((o) => srv.send(o), { sessionId, role: 'assistant', content: out.result || '' })
         return { result: out.result, error: out.error, iterations: out.iterations }
+    },
+    'hooks/subscribe': (_srv, { eventName }) => {
+        const id = wireHookBridge.subscribe(eventName, async () => {
+            // Client-side hooks are fire-and-forget from the server perspective;
+            // the client processes the event and the bridge records the result.
+            return { decision: 'allow' }
+        })
+        return { ok: true, id, eventName }
+    },
+    'hooks/unsubscribe': (_srv, { eventName, id }) => {
+        const ok = wireHookBridge.unsubscribe(eventName, id)
+        return { ok }
+    },
+    'hooks/list': () => {
+        return { subscriptions: wireHookBridge.listSubscriptions() }
     },
     shutdown: (srv) => { srv.stop(); return { ok: true } },
 }

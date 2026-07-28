@@ -6,6 +6,10 @@ import { resolveCallLLM } from './llm_resolver.js'
 import { createPersistentActor } from '../machines/persistent-actor.js'
 import { runStep, clearSteps } from '../machines/step-journal.js'
 import { randomUUID } from 'node:crypto'
+import { HookEngine } from './hooks_engine.js'
+import { wireHookBridge } from './wire_hooks.js'
+import { loadConfig } from '../config.js'
+import { telemetry } from '../observability/telemetry.js'
 
 const log = logger('agent')
 
@@ -112,6 +116,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                 invoke: {
                     src: fromPromise(async ({ input }) => {
                         const h = await bootHost()
+                        const hookEngine = new HookEngine({ config: loadConfig() })
                         const last = input.messages[input.messages.length - 1]
                         const calls = last.tool_calls || []
                         const results = []
@@ -120,13 +125,18 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                             const tname = call.name || call.function?.name
                             const targs = call.arguments || call.function?.arguments || {}
                             const tcid = call.id || call.tool_call_id
+                            telemetry.toolCall({ name: tname, args: targs })
                             const ret = await runStep(input.sessionKey, 'tool:' + input.iterations + ':' + tcid, async () => {
                                 const callExtras = []
                                 const pushExtras = r => { if (r?.systemMessage) callExtras.push({ role: 'system', content: '[hook] ' + r.systemMessage }); if (r?.additionalContext) callExtras.push({ role: 'system', content: r.additionalContext }) }
+                                hookEngine.runHooks('preToolCall', { name: tname, args: targs, sessionKey: input.sessionKey, cwd: input.toolCtx?.cwd }).catch(() => {})
+                                wireHookBridge.forwardHook('preToolCall', { name: tname, args: targs, sessionKey: input.sessionKey }).catch(() => {})
                                 const pre = await h.hooks.invoke('preToolCall', { name: tname, args: targs }); pushExtras(pre)
                                 if (pre?.behavior === 'block') { return { content: JSON.stringify({ error: 'tool call denied by plugsdk hook', tool: tname, reason: pre.reason || 'denied' }), extras: callExtras } }
                                 const res = await h.pi.dispatchTool(tname, (pre && pre.args) || targs, input.toolCtx || {}, { hooks: h.hooks })
                                 pushExtras(await h.hooks.invoke('postToolCall', { name: tname, args: targs, result: res }))
+                                hookEngine.runHooks('postToolCall', { name: tname, args: targs, result: res, sessionKey: input.sessionKey, cwd: input.toolCtx?.cwd }).catch(() => {})
+                                wireHookBridge.forwardHook('postToolCall', { name: tname, args: targs, result: res, sessionKey: input.sessionKey }).catch(() => {})
                                 return { content: res, extras: callExtras }
                             }, { store: input.store })
                             results.push({ tool_call_id: tcid, content: ret.content })
@@ -257,7 +267,7 @@ function timeoutResult(actor, timeoutMs) {
 
 // session-end hooks + trajectory. Shared by runTurn (fresh) and resumeTurn
 // (rehydrated from a persisted snapshot after a refresh/restart).
-async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store }) {
+async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store }) {
     const { actor } = pa
     return await new Promise((resolve, reject) => {
         let sub
@@ -265,11 +275,14 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
         let settled = false
         const t = setTimeout(() => {
             if (settled) return; settled = true
+            telemetry.turnForceStopped({ reason: 'timeout', timeoutMs })
             const out = timeoutResult(actor, timeoutMs)
             cleanup()
             ;(async () => {
                 try { await clearSteps(sessionKey, { store }) } catch {}
                 try { await h.hooks.invoke('onSessionEnd', { reason: 'timeout', iterations: out.iterations }) } catch {}
+                try { hookEngine.runHooks('onSessionEnd', { sessionKey, cwd, reason: 'timeout', iterations: out.iterations }).catch(() => {}) } catch {}
+                try { wireHookBridge.forwardHook('onSessionEnd', { sessionKey, cwd, reason: 'timeout', iterations: out.iterations }).catch(() => {}) } catch {}
                 try { await writeTrajectory(out, { prompt, provider, model, skill, cwd, events, errorStack: null, witnessPath }) } catch {}
             })().catch(() => {}).finally(() => resolve(out))
         }, timeoutMs)
@@ -279,9 +292,14 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
         sub = actor.subscribe(snap => { if (snap.status !== 'done') return; if (settled) return; settled = true; clearTimeout(t)
             ;(async () => {
                 const out = snap.output
+                telemetry.turnEnded({ iterations: out.iterations, result: out.result ? 'ok' : (out.error ? 'error' : 'empty'), error: out.error || null })
                 const outbound = await h.hooks.invoke('onMessageOutbound', { content: out?.result || '' })
+                hookEngine.runHooks('onMessageOutbound', { sessionKey, cwd }).catch(() => {})
+                wireHookBridge.forwardHook('onMessageOutbound', { sessionKey, cwd, content: out?.result || '' }).catch(() => {})
                 if (outbound?.systemMessage || outbound?.additionalContext) out.messages = mergeHookExtras(out.messages || [], outbound, 'onMessageOutbound')
                 await h.hooks.invoke('onSessionEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
+                hookEngine.runHooks('onSessionEnd', { sessionKey, cwd, reason: out?.error ? 'error' : 'ok', iterations: out?.iterations }).catch(() => {})
+                wireHookBridge.forwardHook('onSessionEnd', { sessionKey, cwd, reason: out?.error ? 'error' : 'ok', iterations: out?.iterations }).catch(() => {})
                 const errorStack = out?.error ? (events.find(e => e.type === 'llm_call' && !e.ok)?.stack || null) : null
                 await writeTrajectory(out, { prompt, provider, model, skill, cwd, events, errorStack, witnessPath })
                 // Auto-learn: memorize a salient summary of this turn into gm rs-learn so
@@ -300,8 +318,28 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 }
 
 export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store } = {}) {
-    const events = []; const h = await bootHost()
+    const events = [];
+    // Wire telemetry: load config to check enabled state and configure
+    const cfg = loadConfig()
+    if (cfg.telemetry?.enabled) {
+        telemetry._enabled = true
+        telemetry._endpoint = cfg.telemetry.endpoint || null
+        telemetry._freddieHome = (await import('../home.js')).getFreddieHome()
+        telemetry.setSession(sessionKey || '')
+        telemetry.setTurn(sessionKey || '')
+        telemetry.turnStarted({ prompt, model, provider })
+    }
+    const h = await bootHost()
+    const hookEngine = new HookEngine({ config: loadConfig() })
     await h.hooks.invoke('onSessionStart', { prompt, model, provider, skill, cwd })
+    hookEngine.runHooks('onSessionStart', { sessionKey, cwd }).catch(() => {})
+    wireHookBridge.forwardHook('onSessionStart', { sessionKey, cwd, prompt }).catch(() => {})
+    // Restore and reconcile tasks from prior sessions so background tasks
+    // from a resumed session are properly tracked and stale ones detected.
+    try {
+        const { restoreTasks } = await import('../../plugins/task/registry.js')
+        await restoreTasks(key)
+    } catch (_) {}
     let initMessages = [...messages]; const sysParts = []
     if (cwd) sysParts.push(`Working directory: ${cwd}. Always pass cwd="${cwd}" to bash tool calls. When reading or writing files use paths relative to this directory or absolute paths under it.`)
     if (skill) { const sd = h.pi.skills.get(skill); if (sd?.content) sysParts.push('Skill context:\n' + sd.content) }
@@ -319,6 +357,8 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     } catch (_) {}
     if (sysParts.length) initMessages.unshift({ role: 'user', content: sysParts.join('\n\n') })
     const inbound = await h.hooks.invoke('onMessageInbound', { content: prompt })
+    hookEngine.runHooks('onMessageInbound', { sessionKey, cwd }).catch(() => {})
+    wireHookBridge.forwardHook('onMessageInbound', { sessionKey, cwd, content: prompt }).catch(() => {})
     if (inbound?.behavior === 'block') { await h.hooks.invoke('onSessionEnd', { reason: 'prompt_blocked' }); return { messages: initMessages, result: null, error: 'prompt blocked by plugsdk hook: ' + (inbound.reason || 'denied'), iterations: 0 } }
     initMessages = mergeHookExtras(initMessages, inbound, 'onMessageInbound')
     // Persist the turn snapshot under kind=agent so an interrupted turn (process
@@ -330,11 +370,11 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     // path silently lands in the freddie server's own cwd instead of the
     // caller's intended project directory (only `bash` was safe, since it takes
     // cwd as an explicit tool argument the model was told to pass).
-    const mergedToolCtx = cwd ? { cwd, ...(toolCtx || {}) } : toolCtx
+    const mergedToolCtx = { sessionKey: key, ...(cwd ? { cwd, ...(toolCtx || {}) } : (toolCtx || {})) }
     const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx: mergedToolCtx, tool_choice, store })
     const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages }, store })
     pa.actor.send({ type: 'SUBMIT', prompt })
-    return await driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey: key, store })
+    return await driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey: key, store })
 }
 
 // Rehydrate an interrupted turn from its persisted snapshot and drive it to
@@ -343,6 +383,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
 export async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, toolCtx = null, store } = {}) {
     if (!sessionKey) throw new Error('resumeTurn requires sessionKey')
     const events = []; const h = await bootHost()
+    const hookEngine = new HookEngine({ config: loadConfig() })
     const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey, toolCtx, store })
     // createPersistentActor.load() already handles a missing/stale snapshot and
     // leaves pa.resumed=false, so the prior pre-check load() was a redundant
@@ -350,13 +391,20 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
     // reads made forget() delete a snapshot we had just confirmed). One read only.
     const pa = await createPersistentActor(machine, { kind: 'agent', key: sessionKey, input: { messages: [] }, store })
     if (!pa.resumed) return null
-    return await driveAgentActor({ pa, h, events, prompt: '', provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store })
+    return await driveAgentActor({ pa, h, hookEngine, events, prompt: '', provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store })
 }
 
 export async function invokeCompactHooks({ trigger = 'auto', messages = [] } = {}) {
     const h = await bootHost()
+    const hookEngine = new HookEngine({ config: loadConfig() })
     const pre = await h.hooks.invoke('onPreCompact', { trigger, messages })
+    hookEngine.runHooks('onPreCompact', { trigger }).catch(() => {})
+    wireHookBridge.forwardHook('onPreCompact', { trigger }).catch(() => {})
     if (pre?.behavior === 'block') return { skipped: true, reason: pre.reason || 'blocked' }
-    return { pre, post: async (summary) => h.hooks.invoke('onPostCompact', { trigger, messages, summary }) }
+    return { pre, post: async (summary) => {
+        await h.hooks.invoke('onPostCompact', { trigger, messages, summary })
+        hookEngine.runHooks('onPostCompact', { trigger }).catch(() => {})
+        wireHookBridge.forwardHook('onPostCompact', { trigger }).catch(() => {})
+    } }
 }
 

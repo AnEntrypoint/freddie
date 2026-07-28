@@ -23,7 +23,7 @@ The stack is **thebird → freddie → acptoapi**. Each layer owns one concern:
 - **freddie** owns agent-loop orchestration: tools, skills, sessions, memory. Calls *only* acptoapi for LLM access. No direct `fetch('https://api.openai.com/...')`. Migration debt still present in `plugins/media/lib/vision.js`, `plugins/image_gen`, `plugins/media/lib/tts.js`, `plugins/media/lib/transcription.js`, `src/agent/adapters/codex_responses_adapter.js`, `src/imagegen/provider.js`, `src/agent/model-discovery.js` — when you touch one, add the matching endpoint to acptoapi and call through acptoapi.
 - **thebird** owns browser presentation: webjsx UI, pyodide hermes shell. Talks to freddie for everything LLM-related when freddie is reachable; falls back to direct acptoapi only when there is no freddie.
 
-Versioning: freddie pins `acptoapi: "latest"` so `npm install` always picks up the newest published acptoapi. Thebird vendors freddie via `scripts/sync-upstream.mjs` against upstream main. No manual version-bump churn between sibling repos.
+Versioning: freddie pins `acptoapi` with a caret range (`^X.Y.Z`), bumped by `scripts/sync-upstream.mjs` on a weekly cron + manual dispatch. Thebird vendors freddie via `scripts/sync-upstream.mjs` against upstream main.
 
 ## acptoapi is THE SDK
 
@@ -336,7 +336,9 @@ Windows: use the npm install (`opencode.cmd`), not the broken bun shim; ACP daem
 
 ## scripts/sync-upstream.mjs
 
-`node scripts/sync-upstream.mjs [--dry-run] [pkg ...]` bumps sibling dep entries (plugsdk, acptoapi, anentrypoint-design, gm-cc) in `package.json` to `^<latest>` from npm registry, then runs `npm install --package-lock-only`. Skips `file:` deps. Wired into `.github/workflows/sync-upstream.yml` (weekly cron + workflow_dispatch); opens a PR via `peter-evans/create-pull-request@v6` on changes.
+`node scripts/sync-upstream.mjs [--dry-run] [pkg ...]` bumps sibling dep entries (plugsdk, acptoapi, anentrypoint-design, gm-cc) in `package.json` to `^<latest>` from npm registry, then runs `npm install --package-lock-only`. Skips `file:` deps. Wired into `.github/workflows/sync-upstream.yml` (weekly cron + workflow_dispatch); opens a PR via `peter-evans/create-pull-request@v8` on changes.
+
+- **npm version**: the dev environment runs npm 10.7.0 — below the 11.x line. CI workflows target Node 24, which ships npm 11.x. Do NOT run `npm install -g npm@latest` (a global system change); the gap is noted here for awareness. When the global npm is eventually updated, remove this note.
 
 ## Trajectory recorder
 

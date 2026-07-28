@@ -11,6 +11,9 @@ import { listProjects, getActiveProject, createProject, deleteProject, setActive
 import { displayFreddieHome, getFreddieHome } from '../../../src/home.js'
 import { readStdinSecret } from '../../../src/cli/stdin_secret.js'
 import { registerDiagnosticsCommand } from '../../../src/cli/diagnostics.js'
+import { loadConfig, saveConfig } from '../../../src/config.js'
+import { HookEngine } from '../../../src/agent/hooks_engine.js'
+import { telemetry } from '../../../src/observability/telemetry.js'
 
 export default {
     name: 'core-cli', surfaces: 'pi',
@@ -55,7 +58,13 @@ export default {
                 for (const c of cmds) console.log(`  /${c.name}${c.args_hint ? ' ' + c.args_hint : ''}\t${c.description}`)
             }
         } })
-        C({ name: 'run', description: 'Interactive REPL (--resume [id] continues a past conversation)', options: [{ flag: '--resume [id]', default: '' }], action: async (opts) => {
+        C({ name: 'run', description: 'Interactive REPL (--print for non-interactive stdout output)', options: [{ flag: '--resume [id]', default: '' }, { flag: '--print', default: false }, { flag: '--prompt <prompt>', default: '' }, { flag: '--model <model>', default: '' }, { flag: '--provider <provider>', default: '' }, { flag: '--cwd <cwd>', default: '' }, { flag: '--timeout <ms>', default: '60000' }], action: async (opts) => {
+            if (opts.print) {
+                if (!opts.prompt) { console.error('--prompt is required with --print'); process.exit(1) }
+                const { runPrintModeAndExit } = await import('../../../src/cli/print_mode.js')
+                await runPrintModeAndExit({ prompt: opts.prompt, model: opts.model || undefined, provider: opts.provider || undefined, cwd: opts.cwd || undefined, timeout: Number(opts.timeout) })
+                return
+            }
             const { interactive } = await import('../../../src/cli/interactive.js')
             let callLLM = null
             try { ({ callLLM } = await import('../../../src/agent/pi-bridge.js')) } catch {}
@@ -63,7 +72,15 @@ export default {
             const resume = opts.resume === true ? true : (opts.resume || null)
             await interactive({ callLLM, resume })
         } })
-        C({ name: 'exec', description: 'Run a single prompt through the agent and exit', options: [{ flag: '--prompt <prompt>', required: true }, { flag: '--model <model>', default: '' }, { flag: '--provider <provider>', default: '' }, { flag: '--skill <skill>', default: '' }, { flag: '--cwd <cwd>', default: '' }, { flag: '--timeout <ms>', default: '60000' }, { flag: '--witness <path>', default: '' }], action: async (opts) => {
+        C({ name: 'exec', description: 'Run a single prompt through the agent and exit (--print for non-interactive stdout output)', options: [{ flag: '--prompt <prompt>', required: true }, { flag: '--model <model>', default: '' }, { flag: '--provider <provider>', default: '' }, { flag: '--skill <skill>', default: '' }, { flag: '--cwd <cwd>', default: '' }, { flag: '--timeout <ms>', default: '60000' }, { flag: '--witness <path>', default: '' }, { flag: '--print', default: false }], action: async (opts) => {
+            if (opts.print) {
+                const { runPrintModeAndExit } = await import('../../../src/cli/print_mode.js')
+                let provider = opts.provider || undefined
+                let model = opts.model || undefined
+                if (!provider && model && /^[a-z][a-z0-9-]*\//.test(model)) { provider = model.split('/')[0]; model = model.slice(provider.length + 1) }
+                await runPrintModeAndExit({ prompt: opts.prompt, model, provider, cwd: opts.cwd || undefined, timeout: Number(opts.timeout) })
+                return
+            }
             const { runTurn } = await import('../../../src/agent/machine.js')
             let provider = opts.provider || undefined
             let model = opts.model || undefined
@@ -151,6 +168,35 @@ export default {
             console.error('usage: freddie auth [list|set <provider>|rm <provider>|test [provider]|show]'); process.exit(1)
         } })
 
+        // --- MCP management: `freddie mcp auth <server>|--token <server> <tk>|--list|--remove <server>` ---
+        C({ name: 'mcp', description: 'Manage MCP servers (auth <server>|auth --token <server> <tk>|auth --list|auth --remove <server>)', args: [{ name: 'action', default: 'auth' }, { name: 'server' }, { name: 'token' }], options: [{ flag: '--token', default: false }, { flag: '--list', default: false }, { flag: '--remove', default: false }], action: async (action, server, token, opts) => {
+            if (action !== 'auth') { console.error('usage: freddie mcp auth [<server>|--token <server> <tk>|--list|--remove <server>]'); process.exit(1); return }
+            const { getMcpOAuthManager } = await import('../../core/mcp/lib/oauth-manager.js')
+            const mgr = getMcpOAuthManager()
+
+            if (opts.list) {
+                const servers = await mgr.listServers()
+                if (!servers.length) { console.log('(no MCP servers with stored OAuth tokens)'); return }
+                for (const s of servers) console.log(s)
+                return
+            }
+            if (opts.remove) {
+                if (!server) { console.error('usage: freddie mcp auth --remove <server>'); process.exit(1); return }
+                await mgr.removeToken(server)
+                console.log(`removed OAuth token for ${server}`)
+                return
+            }
+            if (opts.token) {
+                if (!server || !token) { console.error('usage: freddie mcp auth --token <server> <token>'); process.exit(1); return }
+                await mgr.storeToken(server, { accessToken: token })
+                console.log(`stored OAuth token for ${server}`)
+                return
+            }
+            // Default: start OAuth flow for <server>
+            if (!server) { console.error('usage: freddie mcp auth <server>\n       freddie mcp auth --token <server> <tk>\n       freddie mcp auth --list\n       freddie mcp auth --remove <server>'); process.exit(1); return }
+            console.log(`OAuth flow for ${server}: not yet implemented (use --token to store a token directly)`)
+        } })
+
         // --- Path/workspace management: `freddie project list|create|use|rm|current` ---
         C({ name: 'project', description: 'Manage workspace projects (list|create <name> <path>|use <name>|rm <name>|current)', args: [{ name: 'action', default: 'list' }, { name: 'name' }, { name: 'projectPath' }], action: async (action, name, projectPath) => {
             if (action === 'list') {
@@ -224,6 +270,54 @@ export default {
             console.log(`\n# conversations\n  ${sessions.length} saved (latest: ${sessions[0] ? (sessions[0].title || sessions[0].id.slice(0, 8)) : 'none'})`)
         } })
 
+        // --- Hook configuration: `freddie config hooks [list|add|rm]` --------------
+        C({ name: 'config', description: 'Manage configuration (hooks list|add <hook> <matcher> <command>|rm <hook> <index>)', args: [{ name: 'section', default: 'hooks' }, { name: 'action', default: 'list' }, { name: 'a1' }, { name: 'a2' }, { name: 'a3' }], action: (section, action, a1, a2, a3) => {
+            if (section !== 'hooks') { console.error('usage: freddie config hooks [list|add <hook> <matcher> <command>|rm <hook> <index>]'); process.exit(1) }
+            const cfg = loadConfig()
+            const valid = HookEngine.KIMI_HOOK_NAMES
+            if (action === 'list') {
+                let any = false
+                for (const name of valid) {
+                    const entries = cfg.hooks?.[name] || []
+                    if (!entries.length) continue
+                    any = true
+                    console.log(`\n[${name}]`)
+                    for (let i = 0; i < entries.length; i++) {
+                        const h = entries[i]
+                        console.log(`  ${i}. matcher: ${h.matcher || '(none)'}`)
+                        console.log(`     command: ${h.command}`)
+                        console.log(`     timeout: ${h.timeout || 30}s`)
+                    }
+                }
+                if (!any) console.log('(no hooks configured — add one with `freddie config hooks add <hook> <matcher> <command>`)')
+                console.log(`\nvalid hook names: ${valid.join(', ')}`)
+                return
+            }
+            if (action === 'add') {
+                if (!a1 || !a2 || !a3) { console.error('usage: freddie config hooks add <hook> <matcher> <command>'); process.exit(1) }
+                if (!valid.includes(a1)) { console.error(`unknown hook: ${a1}\nvalid: ${valid.join(', ')}`); process.exit(1) }
+                const timeout = 30
+                if (!cfg.hooks) cfg.hooks = {}
+                if (!cfg.hooks[a1]) cfg.hooks[a1] = []
+                cfg.hooks[a1].push({ matcher: a2, command: a3, timeout })
+                saveConfig(cfg)
+                console.log(`added hook to ${a1}: matcher=${a2} command=${a3}`)
+                return
+            }
+            if (action === 'rm') {
+                if (!a1 || a2 === undefined) { console.error('usage: freddie config hooks rm <hook> <index>'); process.exit(1) }
+                const idx = Number(a2)
+                if (!valid.includes(a1)) { console.error(`unknown hook: ${a1}\nvalid: ${valid.join(', ')}`); process.exit(1) }
+                const entries = cfg.hooks?.[a1]
+                if (!entries || !entries[idx]) { console.error(`no hook at index ${idx} for ${a1}`); process.exit(1) }
+                const removed = entries.splice(idx, 1)[0]
+                saveConfig(cfg)
+                console.log(`removed hook from ${a1}: ${removed.command}`)
+                return
+            }
+            console.error('usage: freddie config hooks [list|add <hook> <matcher> <command>|rm <hook> <index>]'); process.exit(1)
+        } })
+
         // --- Diagnostics: `freddie diagnostics debug|dump|logs|plugins` --------
         registerDiagnosticsCommand(C, host)
 
@@ -234,6 +328,41 @@ export default {
             const st = getSetupStatus()
             console.log(`\nsetup complete — provider: ${st.provider}, skin: ${st.skin}`)
             console.log('next: `freddie run` to start a conversation, or `freddie doctor` to verify')
+        } })
+
+        // --- Telemetry: `freddie telemetry status|enable|disable|flush` ----------
+        C({ name: 'telemetry', description: 'Manage telemetry / event tracking (status|enable|disable|flush)', args: [{ name: 'action', default: 'status' }], action: async (action) => {
+            if (action === 'status') {
+                const cfg = loadConfig()
+                const enabled = cfg.telemetry?.enabled || false
+                const endpoint = cfg.telemetry?.endpoint || null
+                console.log(`telemetry: ${enabled ? 'enabled' : 'disabled'}`)
+                if (endpoint) console.log(`endpoint: ${endpoint}`)
+                console.log(`buffer: ${telemetry._buffer?.length || 0} pending events`)
+                return
+            }
+            if (action === 'enable') {
+                const cfg = loadConfig()
+                if (!cfg.telemetry) cfg.telemetry = {}
+                cfg.telemetry.enabled = true
+                saveConfig(cfg)
+                console.log('telemetry enabled (set `telemetry.endpoint` in config to send to a remote endpoint)')
+                return
+            }
+            if (action === 'disable') {
+                const cfg = loadConfig()
+                if (!cfg.telemetry) cfg.telemetry = {}
+                cfg.telemetry.enabled = false
+                saveConfig(cfg)
+                console.log('telemetry disabled')
+                return
+            }
+            if (action === 'flush') {
+                await telemetry.flush()
+                console.log('telemetry flushed')
+                return
+            }
+            console.error('usage: freddie telemetry [status|enable|disable|flush]'); process.exit(1)
         } })
 
         // --- Contributor onboarding: `freddie contribute` ----------------------
@@ -331,6 +460,104 @@ export default {
                 console.log(`\n[--] test.js failed (exit ${e.status ?? 1}) — fix before opening a PR`)
                 process.exitCode = 1
             }
+        } })
+
+        // --- Kai-zen metrics: `freddie kai-zen report [--feedback]` --------------
+        C({ name: 'kai-zen', description: 'Metrics and improvement velocity report', args: [{ name: 'action', default: 'report' }], options: [{ flag: '--feedback', description: 'Include feedback vote data' }], action: async (action, opts) => {
+            if (action !== 'report') { console.error('usage: freddie kai-zen report [--feedback]'); process.exit(1); return }
+            const fs = await import('node:fs')
+            const path = await import('node:path')
+            const home = getFreddieHome()
+
+            // Read telemetry.jsonl and aggregate
+            const telemetryFile = path.join(home, 'telemetry.jsonl')
+            let events = []
+            if (fs.existsSync(telemetryFile)) {
+                try {
+                    const raw = fs.readFileSync(telemetryFile, 'utf8')
+                    events = raw.trim().split('\n').filter(Boolean).map(l => { try { return JSON.parse(l) } catch { return null } }).filter(Boolean)
+                } catch { events = [] }
+            }
+
+            const byType = {}
+            const bySession = {}
+            let totalTurns = 0, totalToolCalls = 0, totalCompactions = 0, totalErrors = 0
+            for (const e of events) {
+                byType[e.event] = (byType[e.event] || 0) + 1
+                if (e.session_id) {
+                    if (!bySession[e.session_id]) bySession[e.session_id] = { turns: 0, tool_calls: 0, compactions: 0, errors: 0 }
+                    const s = bySession[e.session_id]
+                    if (e.event === 'turn_started') s.turns++
+                    if (e.event === 'tool_call') s.tool_calls++
+                    if (e.event === 'compaction_finished') s.compactions++
+                    if (e.event === 'api_error' || e.event === 'compaction_failed') s.errors++
+                }
+                if (e.event === 'turn_started') totalTurns++
+                if (e.event === 'tool_call') totalToolCalls++
+                if (e.event === 'compaction_finished') totalCompactions++
+                if (e.event === 'api_error' || e.event === 'compaction_failed') totalErrors++
+            }
+
+            // Feedback (--feedback flag): read from feedback/ directory
+            let topFeedback = []
+            if (opts.feedback) {
+                try {
+                    const feedbackDir = path.join(home, 'feedback')
+                    if (fs.existsSync(feedbackDir)) {
+                        const files = fs.readdirSync(feedbackDir).filter(f => f.endsWith('.jsonl') || f.endsWith('.json'))
+                        const items = []
+                        for (const f of files) {
+                            try {
+                                const raw = fs.readFileSync(path.join(feedbackDir, f), 'utf8')
+                                const parsed = raw.trim().split('\n').filter(Boolean).map(l => { try { return JSON.parse(l) } catch { return null } }).filter(Boolean)
+                                items.push(...parsed)
+                            } catch { /* skip unreadable files */ }
+                        }
+                        items.sort((a, b) => (b.votes || 0) - (a.votes || 0))
+                        topFeedback = items.slice(0, 10).map(i => ({ id: i.id, text: i.text?.slice(0, 100), votes: i.votes || 0, ts: i.ts }))
+                    }
+                } catch { topFeedback = [] }
+            }
+
+            const report = {
+                ts: new Date().toISOString(),
+                kind: 'kai-zen-report',
+                total_events: events.length,
+                total_turns: totalTurns,
+                total_tool_calls: totalToolCalls,
+                total_compactions: totalCompactions,
+                total_errors: totalErrors,
+                events_by_type: byType,
+                sessions: Object.keys(bySession).length,
+                per_session: Object.fromEntries(Object.entries(bySession).map(([id, s]) => [id.slice(0, 8), s])),
+                top_feedback: topFeedback,
+            }
+
+            // Write to kai-zen-history.jsonl
+            const historyFile = path.join(home, 'kai-zen-history.jsonl')
+            fs.mkdirSync(path.dirname(historyFile), { recursive: true })
+            fs.appendFileSync(historyFile, JSON.stringify(report) + '\n')
+
+            console.log('kai-zen report:')
+            console.log(`  total events:     ${report.total_events}`)
+            console.log(`  total turns:      ${report.total_turns}`)
+            console.log(`  total tool calls: ${report.total_tool_calls}`)
+            console.log(`  total compactions:${report.total_compactions}`)
+            console.log(`  total errors:     ${report.total_errors}`)
+            console.log(`  sessions:         ${report.sessions}`)
+            if (Object.keys(report.events_by_type).length) {
+                console.log('  events by type:')
+                for (const [type, count] of Object.entries(report.events_by_type)) {
+                    console.log(`    ${type.padEnd(22)} ${count}`)
+                }
+            }
+            if (opts.feedback) {
+                console.log(`  top feedback: ${report.top_feedback.length} items`)
+                for (const item of report.top_feedback) {
+                    console.log(`    [${item.votes}] ${item.text || item.id}`)
+                }
+            }
+            console.log(`\nwritten: ${historyFile}`)
         } })
     },
 }
