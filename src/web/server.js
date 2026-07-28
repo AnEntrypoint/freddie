@@ -1,6 +1,5 @@
 import express from 'express'
 import path from 'node:path'
-import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { WebSocketServer } from 'ws'
 import { bootHost } from '../host/index.js'
@@ -8,24 +7,6 @@ import { logger } from '../observability/log.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const log = logger('web_server')
-
-// Resolve the real hashed SDK bundle filenames (247420.js / 247420.css today).
-// index.html pins stable aliases (sdk.js / sdk.css); we map them to whatever
-// hashed file is actually present so a version bump can't 404 silently.
-function resolveSdkBundle(distDir) {
-    let js = '247420.js', css = '247420.css'
-    try {
-        const files = fs.readdirSync(distDir)
-        const jsHit = files.find(f => /^247420.*\.js$/.test(f))
-        const cssHit = files.find(f => /^247420.*\.css$/.test(f))
-        if (jsHit) js = jsHit
-        if (cssHit) css = cssHit
-        if (!jsHit || !cssHit) console.error(`[dashboard] SDK bundle missing in ${distDir} (js=${jsHit || 'NONE'}, css=${cssHit || 'NONE'}) — dashboard will fail to mount. Run: node scripts/build.mjs in anentrypoint-design`)
-    } catch (e) {
-        console.error(`[dashboard] cannot read SDK dist dir ${distDir}: ${e.message}`)
-    }
-    return { js, css }
-}
 
 export async function createDashboard({ port = 0 } = {}) {
     const host = await bootHost()
@@ -42,14 +23,6 @@ export async function createDashboard({ port = 0 } = {}) {
         res.set('Referrer-Policy', 'same-origin')
         next()
     })
-    const fromNodeModules = path.join(__dirname, '..', '..', 'node_modules', 'anentrypoint-design', 'dist')
-    const sdk = resolveSdkBundle(fromNodeModules)
-
-    // Stable aliases -> real hashed bundle. Immutable cache (hashed content).
-    const sendImmutable = file => (req, res) => res.set('Cache-Control', 'public, max-age=31536000, immutable').sendFile(path.join(fromNodeModules, file))
-    app.get('/vendor/anentrypoint-design/sdk.js', sendImmutable(sdk.js))
-    app.get('/vendor/anentrypoint-design/sdk.css', sendImmutable(sdk.css))
-
     // index.html / app.js are mutable entry points — never cache.
     app.use((req, res, next) => {
         if (req.method === 'GET' && (req.path === '/' || req.path === '/index.html' || req.path === '/app.js')) {
@@ -57,13 +30,11 @@ export async function createDashboard({ port = 0 } = {}) {
         }
         next()
     })
-    // Express 5 matches routes in registration order. Specific routes (sdk.js,
-    // sdk.css, app.js, /vendor/*, /api/*) must be registered BEFORE the catch-all
-    // SPA fallback below, otherwise the fallback would swallow them.
+    // Express 5 matches routes in registration order. Specific routes (app.js,
+    // /api/*) must be registered BEFORE the catch-all SPA fallback below,
+    // otherwise the fallback would swallow them. The SDK itself loads from
+    // unpkg @latest directly in index.html -- no local vendor route needed.
     app.use(express.static(__dirname))
-    app.use('/vendor/anentrypoint-design', express.static(fromNodeModules))
-    const nmKitsOs = path.join(__dirname, '..', '..', 'node_modules', 'anentrypoint-design', 'src', 'kits', 'os')
-    app.use('/vendor/anentrypoint-design/kits/os', express.static(nmKitsOs))
     for (const r of host.gui.routes.list()) {
         const verb = r.method.toLowerCase()
         if (typeof app[verb] === 'function') app[verb](r.path, r.handler)
@@ -73,9 +44,9 @@ export async function createDashboard({ port = 0 } = {}) {
 
     // SPA fallback: unknown non-API GET routes serve index.html so deep links
     // (and client-side hash routes) don't return Express's default 404 HTML.
-    // /api/* and /vendor/* are excluded — those 404 legitimately as data/assets.
+    // /api/* is excluded — those 404 legitimately as data.
     app.get(/.*/, (req, res, next) => {
-        if (req.path.startsWith('/api/') || req.path.startsWith('/vendor/')) return next()
+        if (req.path.startsWith('/api/')) return next()
         res.set('Cache-Control', 'no-cache').sendFile(path.join(__dirname, 'index.html'))
     })
     const { server, actualPort } = await new Promise((res, rej) => { const s = app.listen(port, () => { const a = s.address(); res({ server: s, actualPort: a && typeof a === 'object' ? a.port : port }) }); s.once('error', rej) })
