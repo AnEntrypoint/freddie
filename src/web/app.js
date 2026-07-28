@@ -4,6 +4,35 @@ import { PAGES } from './routes.js';
 
 const { AppShell, Topbar, Side, Crumb, Status, EmptyState, Chip, ThemeToggle, Icon } = components;
 
+// Lazy-load the command palette from the SDK (dynamic import to avoid circular deps).
+let _paletteActionCache = null;
+function buildPaletteActions() {
+    if (_paletteActionCache) return _paletteActionCache;
+    _paletteActionCache = ROUTES.map(r => ({
+        id: 'nav-' + r.path,
+        label: r.label || r.path,
+        icon: r.icon || 'circle',
+        group: 'Navigate',
+        hint: null,
+        action: () => { setActive(r.path); },
+    }));
+    // Add built-in actions
+    _paletteActionCache.push(
+        { id: 'cmd-new-chat', label: 'New Chat Session', icon: 'forum', group: 'Actions', hint: null, action: () => setActive('chat') },
+        { id: 'cmd-terminal', label: 'Open Terminal', icon: 'more-horizontal', group: 'Actions', hint: null, action: () => setActive('terminal') },
+        { id: 'cmd-toggle-theme', label: 'Toggle Theme', icon: 'contrast', group: 'Actions', hint: null, action: () => {
+            try {
+                const current = document.documentElement.getAttribute('data-theme');
+                const next = current === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('247420:theme', next);
+            } catch { /* ignore */ }
+        }},
+        { id: 'cmd-refresh', label: 'Refresh Data', icon: 'refresh', group: 'Actions', hint: null, action: () => location.reload() },
+    );
+    return _paletteActionCache;
+}
+
 await installStyles();
 // Styles installed — lift the FOUC visibility guard (see index.html reset).
 document.body.setAttribute('data-ready', '');
@@ -136,7 +165,15 @@ window.__debug.dashboard = () => ({ booted: true, tools: host0.pi.tools.size, sk
 window.addEventListener('keydown', ev => {
     if ((ev.metaKey || ev.ctrlKey) && (ev.key === 'k' || ev.key === 'K')) {
         ev.preventDefault();
-        if (state.active !== 'chat') setActive('chat');
-        setTimeout(() => { const ta = root.querySelector('textarea[name="prompt"]'); if (ta) ta.focus(); }, 100);
+        // Dynamic import of the command palette from the SDK
+        import('anentrypoint-design').then(mod => {
+            if (mod.openCommandPalette) {
+                mod.openCommandPalette({ actions: buildPaletteActions() });
+            }
+        }).catch(() => {
+            // Fallback: navigate to chat
+            if (state.active !== 'chat') setActive('chat');
+            setTimeout(() => { const ta = root.querySelector('textarea[name="prompt"]'); if (ta) ta.focus(); }, 100);
+        });
     }
 });
