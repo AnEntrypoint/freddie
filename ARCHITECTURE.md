@@ -11,7 +11,10 @@ entry point** into freddie's runtime for other layers of the stack. It also ship
 GUI (`src/web/app.js`) and a CLI/TUI (`src/cli`, `src/pi`).
 
 Freddie does **not** own visual/GUI component code — that lives entirely upstream in
-`anentrypoint-design` and is consumed here as a normal npm dependency.
+`anentrypoint-design`. It is consumed two ways, both tracking the newest published build:
+the npm dependency at the `latest` dist-tag for Node-side imports, and
+`https://unpkg.com/anentrypoint-design@latest/dist/247420.{js,css}` for the browser.
+See AGENTS.md "Kit consumption strategy (fleet-wide)" for the rule and its two exclusions.
 
 ## How it fits with design and thebird
 
