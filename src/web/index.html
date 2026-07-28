@@ -24,7 +24,7 @@
 html, body { margin: 0; padding: 0; height: 100%; }
 #app { height: 100%; }
 /* FOUC guard: hide the document until app.js signals ready (after installStyles)
-   so #app never paints raw unstyled 'loading…' text. */
+   so #app never paints raw unstyled 'loading...' text. */
 body { visibility: hidden; }
 body[data-ready] { visibility: visible; }
 /* Cap raw-JSON/code dumps so unbounded payloads scroll instead of blowing
@@ -33,11 +33,19 @@ body[data-ready] { visibility: visible; }
 /* Topbar leaf layout (sampler pill + theme toggle). One utility class so app.js
    carries no inline style string. Ideally belongs in the SDK CSS. */
 .fd-topbar-leaf { display: inline-flex; gap: 8px; align-items: center; }
-/* Transient mutation-error toast (see app.js notify()). */
+/* Transient mutation-error toast (see app.js notify()). Uses design-system
+   tokens so it respects the active theme. */
 .fd-toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-  z-index: 1000; max-width: 90vw; padding: 8px 14px; border-radius: 8px;
-  background: #b3261e; color: #fff; font: 13px/1.4 system-ui, sans-serif;
-  box-shadow: 0 4px 16px rgba(0,0,0,.3); }
+  z-index: 1000; max-width: 90vw; padding: 8px 14px; border-radius: var(--ds-radius, 8px);
+  background: var(--ds-danger, #b3261e); color: var(--ds-danger-fg, #fff);
+  font: 13px/1.4 var(--ds-ff, system-ui, sans-serif);
+  box-shadow: 0 4px 16px var(--ds-shadow, rgba(0,0,0,.3)); }
+/* Ctrl+K search hint in the topbar. */
+.fd-search-hint { font-size: 11px; opacity: 0.5; padding: 4px 8px;
+  border: 1px solid var(--ds-border, currentColor); border-radius: 4px;
+  pointer-events: none; }
+/* Status bar items — inline flex with gap. */
+.fd-status-item { display: inline-flex; align-items: center; gap: 4px; }
 </style>
 </head>
 <body>
