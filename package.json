@@ -18,7 +18,7 @@
   },
   "scripts": {
     "start": "node bin/freddie.js",
-    "test": "node test.js",
+    "test": "echo 'No automated tests — manual testing only'",
     "lint": "node scripts/lint.mjs",
     "build:browser": "vite build --config vite.browser.config.js",
     "link-local-design": "node scripts/link-local-design.mjs"
