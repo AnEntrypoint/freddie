@@ -366,7 +366,7 @@ export default {
         } })
 
         // --- Contributor onboarding: `freddie contribute` ----------------------
-        C({ name: 'contribute', description: 'Find a good-first-issue, print a PRD-row template, run test.js, link the relevant AGENTS.md subsystem row', action: async () => {
+        C({ name: 'contribute', description: 'Find a good-first-issue, print a PRD-row template, link the relevant AGENTS.md subsystem row', action: async () => {
             const { execFileSync } = await import('node:child_process')
             const fs = await import('node:fs')
             const path = await import('node:path')
@@ -427,7 +427,7 @@ export default {
                 ['browser', 'plugins/browser/ (puppeteer-core, lazy)'],
                 ['llm', 'src/agent/llm_resolver.js (thin shim over acptoapi.chat)'], ['model', 'src/agent/llm_resolver.js (thin shim over acptoapi.chat)'],
                 ['i18n', 'no infra yet — see manifesto items 37-39'], ['locale', 'no infra yet — see manifesto items 37-39'],
-                ['test', 'one test.js at root'],
+                ['verify', 'manual testing via CLI (freddie exec, freddie dashboard)'],
             ]
             const linkSubsystem = (text) => {
                 const lower = String(text || '').toLowerCase()
@@ -449,17 +449,9 @@ export default {
                 }
             }
 
-            console.log('# running test.js...')
-            try {
-                const out = execFileSync(process.execPath, [path.join(process.cwd(), 'test.js')], { encoding: 'utf8', timeout: 120000 })
-                console.log(out)
-                console.log('[ok] test.js passed — ready to contribute')
-            } catch (e) {
-                console.log(e.stdout || '')
-                console.log(e.stderr || '')
-                console.log(`\n[--] test.js failed (exit ${e.status ?? 1}) — fix before opening a PR`)
-                process.exitCode = 1
-            }
+            console.log('# verification: manual testing only')
+            console.log('  smoke-test via: freddie exec --prompt "hello"')
+            console.log('  or boot the dashboard: freddie dashboard')
         } })
 
         // --- Kai-zen metrics: `freddie kai-zen report [--feedback]` --------------

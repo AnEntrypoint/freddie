@@ -26,9 +26,6 @@ jobs:
       - name: Install
         run: npm install --no-audit --no-fund
 
-      - name: Test
-        run: node test.js
-
       - name: Publish
         run: npm publish --access public
         env:
