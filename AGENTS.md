@@ -11,7 +11,7 @@ Instructions for AI coding assistants working on Freddie. Present-tense rules on
 - `@earendil-works/pi-ai` — `complete`, `completeSimple`, `AssistantMessageEventStream`, `registerApiProvider`, `getModel`, `calculateCost`, `parseStreamingJson`, `isContextOverflow`. THE provider layer, actually installed and in use. `complete`/`completeSimple`/`registerApiProvider`/`getModel`/`getEnvApiKey`/`registerBuiltInApiProviders` live under the `/compat` subpath export (`@earendil-works/pi-ai/compat`), not the package root — the root export is a redesigned lower-level API (`createModels`/`createProvider`/`envApiKeyAuth`/etc). `calculateCost`/`parseStreamingJson`/`isContextOverflow`/`AssistantMessageEventStream` are at the root.
 - `@earendil-works/pi-tui` — TUI primitives (Ink-equivalent), actually installed. `src/tui/index.js::launchTui()` dynamically imports it and constructs the real `InteractiveMode` export when present + TTY + shape-matches, falling back to `src/cli/interactive.js`'s plain `readline` REPL otherwise (this fallback is what runs today in most environments, since `InteractiveMode`'s own dependency, `pi-coding-agent`, still isn't installed to fully exercise the rich path — but the integration attempt itself is real, not dead code).
 - `floosie` — `ProcessorMachine` (xstate). Use for gateway pipelines. Compose, don't fork.
-- `anentrypoint-design` — webjsx + ripple-ui. **All GUI for freddie and thebird lives here.** Source in `C:/dev/anentrypoint-design`; freddie pins from npm registry. For local SDK iteration, swap to `file:../anentrypoint-design` and rebuild via `node scripts/build.mjs`. Do NOT add React.
+- `anentrypoint-design` — webjsx + ripple-ui. **All GUI for freddie and thebird lives here.** Source lives in its own repo (`anentrypoint-design`, checked out as a sibling directory); freddie consumes it from the npm registry at the `latest` dist-tag, never a pinned range. For local SDK iteration, swap to `file:../anentrypoint-design` and rebuild via `node scripts/build.mjs`. Do NOT add React.
 - `acptoapi` — THE LLM SDK (see "acptoapi is THE SDK" below).
 - `xstate` v5 — every long-lived state machine (agent turns, gateway lifecycle, approvals).
 
@@ -129,7 +129,22 @@ All web UI for freddie + thebird lives in `anentrypoint-design`. Consumers must 
 - **thebird** consumes the same SDK. Bespoke windowing (`wm.js`, `launcher.js`, `shell.js`) and any context-menu / theme-toggle DOM should migrate into the SDK as reusable kits; do not extend them in thebird.
 - Theme toggle: SDK owns the controller. Consumers import it; they do NOT reimplement localStorage + `prefers-color-scheme` listeners.
 
-Build: `node scripts/build.mjs` in `C:/dev/anentrypoint-design` emits `dist/247420.js` + `dist/247420.css`, published via `npm publish`. `src/web/index.html` loads the SDK live from `https://unpkg.com/anentrypoint-design@latest/dist/247420.{js,css}` (no local `/vendor/` static-serve route, no offline SW precache of the SDK — `sw.js` only precaches shell HTML/app.js). To witness a local SDK edit before publishing, rebuild then temporarily point index.html's importmap/link at a local dev server serving your `dist/` output. Node-side imports (`state.js`, `routes.js`, `app.js`'s SSR/page-html helpers) still resolve `anentrypoint-design` via the npm dependency (`^0.0.376` in package.json) through `node_modules`. SPA routes are `#fd-<page>` (e.g. `#fd-env`), not `#/<page>` — navigate by clicking the nav link when browser-witnessing.
+Build: `node scripts/build.mjs` in the `anentrypoint-design` repo emits `dist/247420.js` + `dist/247420.css`, published via `npm publish`. `src/web/index.html` loads the SDK live from `https://unpkg.com/anentrypoint-design@latest/dist/247420.{js,css}` (no local `/vendor/` static-serve route, no offline SW precache of the SDK — `sw.js` only precaches shell HTML/app.js). To witness a local SDK edit before publishing, rebuild then temporarily point index.html's importmap/link at a local dev server serving your `dist/` output. Node-side imports (`state.js`, `routes.js`, `app.js`'s SSR/page-html helpers) resolve `anentrypoint-design` through `node_modules` from the npm dependency, which is declared as `latest` in package.json.
+
+### Kit consumption strategy (fleet-wide)
+
+One strategy across every consumer of `anentrypoint-design`:
+
+- **Node-resolved consumers** (freddie, casey) declare the npm dependency as `latest` -- never a caret or tilde range. On the kit's `0.0.x` version line a caret range is a hard pin: `^0.0.391` resolves to exactly `0.0.391` and floats nothing. That is how freddie silently fell behind, so a range here is a defect, not a preference.
+- **Browser-delivered consumers** (zellous, spoint, thebird) load `https://unpkg.com/anentrypoint-design@latest/dist/247420.{js,css}`, pinned at `@latest` in every importmap and stylesheet link, with no stale vendored copy served alongside.
+- `scripts/sync-upstream.mjs` skips any dependency already set to `latest` so its weekly cron cannot rewrite that back into a pinning caret range.
+
+Two consumers are deliberately excluded and must stay excluded:
+
+- **gmsniff** vendors a kit subset and makes zero external-origin runtime fetches, because it must run air-gapped and must never become a supply-chain surface for the agent host it observes. Do not give it a runtime dependency or a CDN load.
+- **agentgui** vendors the built kit locally for offline operation and a UI that does not shift when upstream publishes. Do not convert it to a live CDN load.
+
+The tradeoff of `latest` is accepted deliberately: a kit publish can change a consumer's UI with no commit in that consumer. The two repos for which that tradeoff is unacceptable are the two exclusions above. SPA routes are `#fd-<page>` (e.g. `#fd-env`), not `#/<page>` — navigate by clicking the nav link when browser-witnessing.
 
 GUI key/path/conversation endpoints (freddie-owned `plugins/gui-*`, consumed by the SDK pages):
 - **Keys** (`plugins/gui-auth`): `GET /api/auth` (per-provider env|stored|none + masked `fingerprint`, never the raw value), `POST /api/auth {provider,key}` (stores via auth store), `DELETE /api/auth/:provider`. The SDK `env` page (labelled "keys") renders a masked-input + save/remove per provider. `GET /api/env` (`plugins/gui-env`) now reports auth-store keys too, not just `process.env`.

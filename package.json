@@ -27,7 +27,7 @@
     "@earendil-works/pi-tui": "^0.82.1",
     "@libsql/client": "^0.17.4",
     "acptoapi": "^1.0.197",
-    "anentrypoint-design": "^0.0.395",
+    "anentrypoint-design": "latest",
     "commander": "^15.0.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

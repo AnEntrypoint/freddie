@@ -67,6 +67,7 @@ for (const name of targets) {
     const cur = (pkg.dependencies || {})[name] || (pkg.devDependencies || {})[name]
     if (!cur) continue
     if (cur.startsWith('file:')) { console.log(`skip ${name}: file: dep (local-dev pattern)`); continue }
+    if (cur === 'latest') { console.log(`skip ${name}: already tracks the latest dist-tag`); continue }
 
     let latest
     try { latest = execFileSync('npm', ['view', name, 'version'], { encoding: 'utf8', shell: true }).trim() }
