@@ -13,7 +13,7 @@ async function initDb() {
             id TEXT PRIMARY KEY,
             platform TEXT, user_id TEXT, chat_id TEXT, thread_id TEXT,
             title TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, model TEXT,
-            cwd TEXT, skill TEXT
+            cwd TEXT, skill TEXT, parent_id TEXT
         );
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,8 +24,8 @@ async function initDb() {
         CREATE INDEX IF NOT EXISTS idx_msg_session ON messages(session_id, ts);
     `)
 
-    // migrate: add cwd and skill columns if absent
-    for (const col of ['cwd', 'skill']) {
+    // migrate: add cwd, skill, and parent_id columns if absent
+    for (const col of ['cwd', 'skill', 'parent_id']) {
         try { await d.exec(`ALTER TABLE sessions ADD COLUMN ${col} TEXT`) } catch {}
     }
 
@@ -44,12 +44,12 @@ async function db() {
     return await initDb()
 }
 
-export async function createSession({ platform = 'cli', userId = null, chatId = null, threadId = null, title = null, model = null, cwd = null, skill = null } = {}) {
+export async function createSession({ platform = 'cli', userId = null, chatId = null, threadId = null, title = null, model = null, cwd = null, skill = null, parentId = null } = {}) {
     const d = await db()
     const id = randomUUID()
     const now = Date.now()
-    await d.prepare(`INSERT INTO sessions (id, platform, user_id, chat_id, thread_id, title, created_at, updated_at, model, cwd, skill) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-        .run(id, platform, userId, chatId, threadId, title, now, now, model, cwd, skill)
+    await d.prepare(`INSERT INTO sessions (id, platform, user_id, chat_id, thread_id, title, created_at, updated_at, model, cwd, skill, parent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .run(id, platform, userId, chatId, threadId, title, now, now, model, cwd, skill, parentId)
     return id
 }
 
@@ -85,12 +85,12 @@ export async function getMessages(sessionId) {
 
 export async function listSessions(limit = 50) {
     const d = await db()
-    return await d.prepare(`SELECT id, platform, title, created_at, updated_at, model, cwd, skill FROM sessions ORDER BY updated_at DESC LIMIT ?`).all(limit)
+    return await d.prepare(`SELECT id, platform, title, created_at, updated_at, model, cwd, skill, parent_id FROM sessions ORDER BY updated_at DESC LIMIT ?`).all(limit)
 }
 
 export async function getSession(id) {
     const d = await db()
-    return await d.prepare(`SELECT id, platform, title, created_at, updated_at, model, cwd, skill FROM sessions WHERE id = ?`).get(id) || null
+    return await d.prepare(`SELECT id, platform, title, created_at, updated_at, model, cwd, skill, parent_id FROM sessions WHERE id = ?`).get(id) || null
 }
 
 export async function deleteSession(id) {

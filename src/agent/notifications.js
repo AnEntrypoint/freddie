@@ -16,11 +16,12 @@ class NotificationManager {
    * Push a notification to the queue.
    * @param {string} type - notification type (e.g. 'task_complete', 'subagent_complete')
    * @param {string} message - human-readable message
+   * @param {'info'|'warning'|'error'} [severity='info'] - severity level
    * @returns {string} notification id
    */
-  notify(type, message) {
+  notify(type, message, severity = 'info') {
     const id = `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    this._queue.push({ id, type, message, timestamp: Date.now(), delivered: false });
+    this._queue.push({ id, type, message, severity, timestamp: Date.now(), delivered: false });
     return id;
   }
 
@@ -57,6 +58,33 @@ class NotificationManager {
   reset() {
     this._queue = [];
     this._delivered = new Set();
+  }
+
+  /**
+   * Return all notifications (most recent first).
+   * @returns {{ id: string, type: string, message: string, severity: string, timestamp: number }[]}
+   */
+  getAll() {
+    return [...this._queue].reverse();
+  }
+
+  /**
+   * Dismiss a single notification by id.
+   * @param {string} id
+   * @returns {boolean} true if a notification was removed
+   */
+  dismiss(id) {
+    const idx = this._queue.findIndex(n => n.id === id);
+    if (idx < 0) return false;
+    this._queue.splice(idx, 1);
+    return true;
+  }
+
+  /**
+   * Dismiss all delivered notifications.
+   */
+  dismissAll() {
+    this._queue = this._queue.filter(n => !n.delivered);
   }
 }
 

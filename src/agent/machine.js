@@ -10,6 +10,7 @@ import { HookEngine } from './hooks_engine.js'
 import { wireHookBridge } from './wire_hooks.js'
 import { loadConfig } from '../config.js'
 import { telemetry } from '../observability/telemetry.js'
+import { emit as emitEvent } from '../../plugins/gui-events/event-bus.js'
 
 const log = logger('agent')
 
@@ -26,6 +27,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
         try {
             const out = await baseLLM(input)
             events.push({ type: 'llm_call', ok: true, durationMs: Date.now() - t0, provider: out?.raw?.provider || provider, model: out?.raw?.model || model, content_length: (out?.content || '').length, tool_calls_count: (out?.tool_calls || []).length, ts: new Date().toISOString() })
+            emitEvent('message.append', { sessionId: sessionKey, role: 'assistant', content: out?.content || '', tool_calls: out?.tool_calls || [], ts: new Date().toISOString() })
             return out
         } catch (e) {
             events.push({ type: 'llm_call', ok: false, durationMs: Date.now() - t0, provider, model, error: String(e?.message || e), stack: e?.stack || null, ts: new Date().toISOString() })
@@ -126,6 +128,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                             const targs = call.arguments || call.function?.arguments || {}
                             const tcid = call.id || call.tool_call_id
                             telemetry.toolCall({ name: tname, args: targs })
+                            emitEvent('tool.start', { sessionId: input.sessionKey, name: tname, args: targs, toolCallId: tcid, ts: new Date().toISOString() })
                             const ret = await runStep(input.sessionKey, 'tool:' + input.iterations + ':' + tcid, async () => {
                                 const callExtras = []
                                 const pushExtras = r => { if (r?.systemMessage) callExtras.push({ role: 'system', content: '[hook] ' + r.systemMessage }); if (r?.additionalContext) callExtras.push({ role: 'system', content: r.additionalContext }) }
@@ -140,6 +143,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                 return { content: res, extras: callExtras }
                             }, { store: input.store })
                             results.push({ tool_call_id: tcid, content: ret.content })
+                            emitEvent('tool.end', { sessionId: input.sessionKey, name: tname, toolCallId: tcid, result: ret.content, ts: new Date().toISOString() })
                             extras.push(...ret.extras)
                         }
                         return { results, extras }
@@ -276,6 +280,7 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
         const t = setTimeout(() => {
             if (settled) return; settled = true
             telemetry.turnForceStopped({ reason: 'timeout', timeoutMs })
+            emitEvent('session.error', { sessionId: sessionKey, reason: 'timeout', timeoutMs, ts: new Date().toISOString() })
             const out = timeoutResult(actor, timeoutMs)
             cleanup()
             ;(async () => {
@@ -293,6 +298,10 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
             ;(async () => {
                 const out = snap.output
                 telemetry.turnEnded({ iterations: out.iterations, result: out.result ? 'ok' : (out.error ? 'error' : 'empty'), error: out.error || null })
+                if (out.error) {
+                    emitEvent('session.error', { sessionId: sessionKey, error: out.error, iterations: out.iterations, ts: new Date().toISOString() })
+                }
+                emitEvent('session.end', { sessionId: sessionKey, result: out.result ? 'ok' : (out.error ? 'error' : 'empty'), error: out.error || null, iterations: out.iterations, ts: new Date().toISOString() })
                 const outbound = await h.hooks.invoke('onMessageOutbound', { content: out?.result || '' })
                 hookEngine.runHooks('onMessageOutbound', { sessionKey, cwd }).catch(() => {})
                 wireHookBridge.forwardHook('onMessageOutbound', { sessionKey, cwd, content: out?.result || '' }).catch(() => {})
@@ -328,6 +337,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
         telemetry.setSession(sessionKey || '')
         telemetry.setTurn(sessionKey || '')
         telemetry.turnStarted({ prompt, model, provider })
+        emitEvent('session.start', { sessionId: sessionKey, prompt, model, provider, ts: new Date().toISOString() })
     }
     const h = await bootHost()
     const hookEngine = new HookEngine({ config: loadConfig() })
@@ -374,6 +384,9 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx: mergedToolCtx, tool_choice, store })
     const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages }, store })
     pa.actor.send({ type: 'SUBMIT', prompt })
+    // Emit session.created only for new sessions (not resumes)
+    if (!sessionKey) emitEvent('session.created', { sessionId: key, prompt, model, provider, ts: new Date().toISOString() })
+    emitEvent('message.append', { sessionId: key, role: 'user', content: prompt, ts: new Date().toISOString() })
     return await driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey: key, store })
 }
 
