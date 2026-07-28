@@ -1,9 +1,9 @@
 import fs, { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
-import path, { basename, extname, join, resolve } from "node:path";
+import path, { basename, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
 import os, { homedir } from "node:os";
-import crypto, { randomUUID } from "node:crypto";
+import crypto$1, { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import readline from "node:readline";
 import { assign, assign as assign$1, createActor, createActor as createActor$1, createMachine, createMachine as createMachine$1, fromPromise, fromPromise as fromPromise$1, waitFor } from "xstate";
@@ -1379,7 +1379,7 @@ var init_env = __esmMin((() => {
 }));
 //#endregion
 //#region node_modules/js-yaml/dist/js-yaml.mjs
-/*! js-yaml 5.2.1 https://github.com/nodeca/js-yaml @license MIT */
+/*! js-yaml 5.2.2 https://github.com/nodeca/js-yaml @license MIT */
 function defineScalarTag(tagName, options) {
 	return {
 		tagName,
@@ -2216,6 +2216,17 @@ function addMappingEvent(state, start, anchorStart, anchorEnd, tagStart, tagEnd,
 		style
 	});
 }
+function insertFlowPairMappingEvent(state, snapshot) {
+	state.events.splice(snapshot.eventsLength, 0, {
+		type: 3,
+		start: snapshot.position,
+		anchorStart: NO_RANGE$1,
+		anchorEnd: NO_RANGE$1,
+		tagStart: NO_RANGE$1,
+		tagEnd: NO_RANGE$1,
+		style: 2
+	});
+}
 function addScalarEvent(state, valueStart, valueEnd, anchorStart, anchorEnd, tagStart, tagEnd, style, chomping = 1, indent = -1, fast = false) {
 	state.events.push({
 		type: 4,
@@ -2659,12 +2670,8 @@ function readFlowCollection(state, nodeIndent, props) {
 			state.position++;
 			skipFlowSeparationSpace(state, nodeIndent);
 			if (!isMapping) {
-				restoreState(state, entryStart);
-				addMappingEvent(state, entryStart.position, NO_RANGE$1, NO_RANGE$1, NO_RANGE$1, NO_RANGE$1, 2);
-				if (!parseNode(state, nodeIndent, CONTEXT_FLOW_IN, false, true)) addEmptyScalarEvent(state);
-				skipFlowSeparationSpace(state, nodeIndent);
-				state.position++;
-				skipFlowSeparationSpace(state, nodeIndent);
+				insertFlowPairMappingEvent(state, entryStart);
+				if (!keyWasRead) addEmptyScalarEvent(state);
 			} else if (!keyWasRead) addEmptyScalarEvent(state);
 			if (!parseNode(state, nodeIndent, CONTEXT_FLOW_IN, false, true)) addEmptyScalarEvent(state);
 			skipFlowSeparationSpace(state, nodeIndent);
@@ -2674,9 +2681,8 @@ function readFlowCollection(state, nodeIndent, props) {
 			addEmptyScalarEvent(state);
 		} else if (isMapping) addEmptyScalarEvent(state);
 		else if (isPair) {
-			restoreState(state, entryStart);
-			addMappingEvent(state, entryStart.position, NO_RANGE$1, NO_RANGE$1, NO_RANGE$1, NO_RANGE$1, 2);
-			parseNode(state, nodeIndent, CONTEXT_FLOW_IN, false, true);
+			insertFlowPairMappingEvent(state, entryStart);
+			if (!keyWasRead) addEmptyScalarEvent(state);
 			addEmptyScalarEvent(state);
 			addPopEvent(state);
 		}
@@ -3243,7 +3249,7 @@ function isNsCharOrWhitespace(c) {
 function isPlainSafe(c, prev, inblock) {
 	const cIsNsCharOrWhitespace = isNsCharOrWhitespace(c);
 	const cIsNsChar = cIsNsCharOrWhitespace && !isWhitespace(c);
-	return (inblock ? cIsNsCharOrWhitespace : cIsNsCharOrWhitespace && c !== CHAR_COMMA && c !== CHAR_LEFT_SQUARE_BRACKET && c !== CHAR_RIGHT_SQUARE_BRACKET && c !== CHAR_LEFT_CURLY_BRACKET && c !== CHAR_RIGHT_CURLY_BRACKET) && c !== CHAR_SHARP && !(prev === CHAR_COLON && !cIsNsChar) || isNsCharOrWhitespace(prev) && !isWhitespace(prev) && c === CHAR_SHARP || prev === CHAR_COLON && cIsNsChar;
+	return (inblock ? cIsNsCharOrWhitespace : cIsNsCharOrWhitespace && c !== CHAR_COMMA && c !== CHAR_LEFT_SQUARE_BRACKET && c !== CHAR_RIGHT_SQUARE_BRACKET && c !== CHAR_LEFT_CURLY_BRACKET && c !== CHAR_RIGHT_CURLY_BRACKET) && c !== CHAR_SHARP && !(prev === CHAR_COLON && !cIsNsChar) || isNsCharOrWhitespace(prev) && !isWhitespace(prev) && c === CHAR_SHARP || prev === CHAR_COLON && cIsNsChar && (inblock || c !== CHAR_COMMA && c !== CHAR_LEFT_SQUARE_BRACKET && c !== CHAR_RIGHT_SQUARE_BRACKET && c !== CHAR_LEFT_CURLY_BRACKET && c !== CHAR_RIGHT_CURLY_BRACKET);
 }
 function isPlainSafeFirst(c) {
 	return isPrintable(c) && c !== CHAR_BOM && !isWhitespace(c) && c !== CHAR_MINUS && c !== CHAR_QUESTION && c !== CHAR_COLON && c !== CHAR_COMMA && c !== CHAR_LEFT_SQUARE_BRACKET && c !== CHAR_RIGHT_SQUARE_BRACKET && c !== CHAR_LEFT_CURLY_BRACKET && c !== CHAR_RIGHT_CURLY_BRACKET && c !== CHAR_SHARP && c !== CHAR_AMPERSAND && c !== CHAR_ASTERISK && c !== CHAR_EXCLAMATION && c !== CHAR_VERTICAL_LINE && c !== CHAR_EQUALS && c !== CHAR_GREATER_THAN && c !== CHAR_SINGLE_QUOTE && c !== CHAR_DOUBLE_QUOTE && c !== CHAR_PERCENT && c !== CHAR_COMMERCIAL_AT && c !== CHAR_GRAVE_ACCENT;
@@ -4449,7 +4455,7 @@ var init_config = __esmMin((() => {
 	init_js_yaml();
 	init_home();
 	DEFAULT_CONFIG = {
-		_config_version: 3,
+		_config_version: 5,
 		display: {
 			skin: "default",
 			tool_progress_command: false,
@@ -4463,14 +4469,53 @@ var init_config = __esmMin((() => {
 			save_trajectories: false,
 			model_preference: [],
 			model_queues: {},
-			discovered_models: {}
+			discovered_models: {},
+			plan_mode: {
+				enabled: true,
+				auto_approve: false
+			},
+			approval_policy: {
+				yolo: false,
+				afk: false,
+				auto_approve: []
+			},
+			thinking: {
+				enabled: false,
+				budget: null
+			},
+			max_context_size: null,
+			compaction_trigger_ratio: .85,
+			reserved_context_size: 5e4,
+			max_steps_per_turn: 1e3,
+			max_retries_per_step: 3,
+			subagent: {
+				default_model: null,
+				max_depth: 3
+			}
 		},
 		memory: { provider: null },
 		skills: { config: {} },
+		hooks: {
+			PreToolUse: [],
+			PostToolUse: [],
+			UserPromptSubmit: [],
+			Stop: [],
+			SessionStart: [],
+			SessionEnd: [],
+			SubagentStart: [],
+			SubagentStop: [],
+			PreCompact: [],
+			PostCompact: [],
+			Notification: []
+		},
 		terminal: {
 			cwd: null,
 			command_prefix: "",
 			scrub_provider_env: false
+		},
+		telemetry: {
+			enabled: false,
+			endpoint: null
 		},
 		gateway: {
 			timeout: 60,
@@ -4493,6 +4538,10 @@ var init_config = __esmMin((() => {
 			if (!cfg.agent) cfg.agent = {};
 			if (!cfg.agent.model_queues || typeof cfg.agent.model_queues !== "object") cfg.agent.model_queues = {};
 			if (!cfg.agent.discovered_models || typeof cfg.agent.discovered_models !== "object") cfg.agent.discovered_models = {};
+			return cfg;
+		},
+		4: (cfg) => {
+			if (!cfg.hooks) cfg.hooks = DEFAULT_CONFIG.hooks;
 			return cfg;
 		}
 	};
@@ -4555,7 +4604,7 @@ function resultsDir() {
 	return d;
 }
 function storeToolResult(content) {
-	const token = crypto.randomBytes(8).toString("hex");
+	const token = crypto$1.randomBytes(8).toString("hex");
 	fs.writeFileSync(path.join(resultsDir(), token + ".txt"), content || "", "utf8");
 	return {
 		token,
@@ -5160,10 +5209,10 @@ function loadFlags() {
 	}
 }
 function installId() {
-	return crypto.createHash("sha256").update(getFreddieHome()).digest("hex");
+	return crypto$1.createHash("sha256").update(getFreddieHome()).digest("hex");
 }
 function bucketFor(name) {
-	const h = crypto.createHash("sha256").update(name + ":" + installId()).digest("hex");
+	const h = crypto$1.createHash("sha256").update(name + ":" + installId()).digest("hex");
 	return parseInt(h.slice(0, 8), 16) / 4294967295 * 100;
 }
 function isFlagEnabled(name) {
@@ -11121,6 +11170,420 @@ function createLibsqlStepStore() {
 	};
 }
 //#endregion
+//#region src/agent/hooks_engine.js
+/**
+* HookEngine — runs shell commands defined in config at hook trigger points.
+* Matches kimi's server-side hook behavior.
+*
+* Kimi config key names are accepted in the config and mapped to freddie's
+* internal HOOK_NAMES via KIMI_TO_FREDDIE_HOOK. The user-facing config and
+* environment variables follow kimi convention.
+*/
+var KIMI_TO_FREDDIE_HOOK = {
+	PreToolUse: "preToolCall",
+	PostToolUse: "postToolCall",
+	UserPromptSubmit: "onMessageInbound",
+	Stop: "onMessageOutbound",
+	SessionStart: "onSessionStart",
+	SessionEnd: "onSessionEnd",
+	SubagentStart: "onTurnStart",
+	SubagentStop: "onTurnEnd",
+	PreCompact: "onPreCompact",
+	PostCompact: "onPostCompact",
+	Notification: "onMessageOutbound"
+};
+var FREDDIE_TO_KIMI = Object.fromEntries(Object.entries(KIMI_TO_FREDDIE_HOOK).map(([k, v]) => [v, k]));
+var KIMI_HOOK_NAMES = Object.keys(KIMI_TO_FREDDIE_HOOK);
+async function defaultBashRunner(command, { timeout = 3e4, env = {}, cwd } = {}) {
+	return new Promise((resolve) => {
+		const child = spawn("bash", ["-c", command], {
+			cwd: cwd || process.cwd(),
+			env: {
+				...process.env,
+				...env
+			},
+			timeout,
+			stdio: [
+				"ignore",
+				"pipe",
+				"pipe"
+			]
+		});
+		let stdout = "";
+		let stderr = "";
+		child.stdout.on("data", (d) => {
+			stdout += d.toString();
+		});
+		child.stderr.on("data", (d) => {
+			stderr += d.toString();
+		});
+		child.on("close", (exitCode) => {
+			resolve({
+				stdout: stdout.trimEnd(),
+				stderr: stderr.trimEnd(),
+				exitCode: exitCode ?? -1
+			});
+		});
+		child.on("error", (err) => {
+			resolve({
+				stdout: stdout.trimEnd(),
+				stderr: (stderr + " " + err.message).trim(),
+				exitCode: -1
+			});
+		});
+	});
+}
+var HookEngine = class {
+	/**
+	* @param {object} opts
+	* @param {object} opts.config — the full freddie config (hooks section at config.hooks)
+	* @param {function} [opts.bashRunner] — async (command, {timeout, env, cwd}) => {stdout, stderr, exitCode}
+	* @param {boolean} [opts.isBrowser] — if true, bashRunner is a no-op and shell hooks are skipped
+	*/
+	constructor({ config, bashRunner, isBrowser } = {}) {
+		this._config = config;
+		this._bashRunner = bashRunner || (isBrowser ? null : defaultBashRunner);
+		this._isBrowser = !!isBrowser;
+		this._runHistory = /* @__PURE__ */ new Set();
+	}
+	/**
+	* Run all hooks matching a trigger.
+	* @param {string} hookName — freddie internal hook name (e.g. 'preToolCall')
+	* @param {object} context — {name, args, result, sessionKey, ...}
+	* @returns {Promise<{results: Array<{command, ok, stdout, stderr, exitCode, error}>}>}
+	*/
+	async runHooks(hookName, context = {}) {
+		const kimiName = FREDDIE_TO_KIMI[hookName];
+		if (!kimiName) return { results: [] };
+		const hooks = this._config?.hooks?.[kimiName] || [];
+		if (!hooks.length) return { results: [] };
+		const results = [];
+		const hookEnv = this._buildEnv(context);
+		for (const hook of hooks) {
+			const { matcher, command, timeout = 30 } = hook;
+			if (!command) continue;
+			const matchTarget = context.name || context.action || "";
+			if (matcher && !this._testMatcher(matcher, matchTarget)) continue;
+			const dedupKey = `${command}::${hookName}::${matchTarget}`;
+			if (this._runHistory.has(dedupKey)) continue;
+			this._runHistory.add(dedupKey);
+			if (this._isBrowser || !this._bashRunner) {
+				results.push({
+					command,
+					ok: false,
+					error: "shell hooks not available in browser"
+				});
+				continue;
+			}
+			try {
+				const result = await this._bashRunner(command, {
+					timeout: timeout * 1e3,
+					env: hookEnv,
+					cwd: context.cwd || process.cwd()
+				});
+				results.push({
+					command,
+					ok: result.exitCode === 0,
+					stdout: result.stdout || "",
+					stderr: result.stderr || "",
+					exitCode: result.exitCode
+				});
+			} catch (err) {
+				results.push({
+					command,
+					ok: false,
+					error: err.message
+				});
+			}
+		}
+		return { results };
+	}
+	/**
+	* Test a matcher regex against a target string. Returns false on invalid regex.
+	*/
+	_testMatcher(matcher, target) {
+		try {
+			return new RegExp(matcher).test(target);
+		} catch {
+			return false;
+		}
+	}
+	/**
+	* Build environment variables for hook commands.
+	*/
+	_buildEnv(context) {
+		const env = {};
+		if (context.name) env.FREDDIE_TOOL_NAME = context.name;
+		if (context.args) try {
+			env.FREDDIE_TOOL_ARGS = JSON.stringify(context.args);
+		} catch {
+			env.FREDDIE_TOOL_ARGS = String(context.args);
+		}
+		if (context.sessionKey) env.FREDDIE_SESSION_ID = context.sessionKey;
+		if (context.cwd) env.FREDDIE_CWD = context.cwd;
+		else if (typeof process !== "undefined") env.FREDDIE_CWD = process.cwd();
+		return env;
+	}
+	/** Reset dedup history (for tests / new sessions). */
+	reset() {
+		this._runHistory.clear();
+	}
+	/** List the kimi hook names that can appear in config. */
+	static get KIMI_HOOK_NAMES() {
+		return KIMI_HOOK_NAMES;
+	}
+	/** Map from kimi config key to freddie internal hook name. */
+	static get KIMI_TO_FREDDIE_HOOK() {
+		return KIMI_TO_FREDDIE_HOOK;
+	}
+	/** Map from freddie internal hook name to kimi config key. */
+	static get FREDDIE_TO_KIMI() {
+		return FREDDIE_TO_KIMI;
+	}
+};
+//#endregion
+//#region src/agent/wire_hooks.js
+/**
+* WireHookBridge — enables client-side hook subscriptions.
+* Clients subscribe to hook events via wire initialize, and the
+* bridge forwards matching events for client-side handling.
+*
+* The bridge is pure in-memory — no persistence, no I/O. Browser-safe.
+* Accessible via `globalThis.__FREDDIE_WIRE_HOOKS__` in browser contexts
+* and via import in Node.js.
+*/
+var WIRE_HOOK_EVENTS = [
+	"preToolCall",
+	"postToolCall",
+	"onSessionStart",
+	"onSessionEnd",
+	"onMessageInbound",
+	"onMessageOutbound",
+	"onPreCompact",
+	"onPostCompact"
+];
+var WireHookBridge = class {
+	constructor() {
+		this._subscriptions = /* @__PURE__ */ new Map();
+		this._idCounter = 0;
+	}
+	/**
+	* Subscribe to a hook event.
+	* @param {string} eventName — e.g. 'preToolCall', 'postToolCall'
+	* @param {function} callback — called with context, returns {decision, ...}
+	* @param {object} [opts]
+	* @param {number} [opts.timeout=30000] — max ms to wait for client response
+	* @returns {string} subscription id
+	*/
+	subscribe(eventName, callback, { timeout = 3e4 } = {}) {
+		if (!WIRE_HOOK_EVENTS.includes(eventName)) throw new Error(`unknown hook event: ${eventName}. Valid: ${WIRE_HOOK_EVENTS.join(", ")}`);
+		const id = `wire-${++this._idCounter}`;
+		if (!this._subscriptions.has(eventName)) this._subscriptions.set(eventName, []);
+		this._subscriptions.get(eventName).push({
+			id,
+			callback,
+			timeout
+		});
+		return id;
+	}
+	/**
+	* Unsubscribe from a hook event.
+	* @returns {boolean} true if unsubscribed
+	*/
+	unsubscribe(eventName, id) {
+		const subs = this._subscriptions.get(eventName);
+		if (!subs) return false;
+		const idx = subs.findIndex((s) => s.id === id);
+		if (idx === -1) return false;
+		subs.splice(idx, 1);
+		if (subs.length === 0) this._subscriptions.delete(eventName);
+		return true;
+	}
+	/**
+	* Forward a hook event to all subscribed clients.
+	* Fail-open: timeout or error allows the operation to proceed.
+	* @returns {Promise<Array<{id, ok, result?, error?}>>}
+	*/
+	async forwardHook(eventName, context) {
+		const subs = this._subscriptions.get(eventName);
+		if (!subs || subs.length === 0) return [];
+		const results = [];
+		for (const sub of subs) try {
+			const result = await Promise.race([sub.callback(context), new Promise((_, reject) => setTimeout(() => reject(/* @__PURE__ */ new Error("timeout")), sub.timeout))]);
+			results.push({
+				id: sub.id,
+				ok: true,
+				result
+			});
+		} catch (err) {
+			results.push({
+				id: sub.id,
+				ok: false,
+				error: err.message
+			});
+		}
+		return results;
+	}
+	/**
+	* List active subscriptions.
+	* @returns {Array<{eventName, id, timeout}>}
+	*/
+	listSubscriptions() {
+		const result = [];
+		for (const [eventName, subs] of this._subscriptions) for (const sub of subs) result.push({
+			eventName,
+			id: sub.id,
+			timeout: sub.timeout
+		});
+		return result;
+	}
+	/** Reset all subscriptions (for tests / new sessions). */
+	reset() {
+		this._subscriptions.clear();
+		this._idCounter = 0;
+	}
+	/** Valid hook event names for wire subscriptions. */
+	static get EVENTS() {
+		return WIRE_HOOK_EVENTS;
+	}
+};
+var wireHookBridge = new WireHookBridge();
+if (typeof globalThis !== "undefined") globalThis.__FREDDIE_WIRE_HOOKS__ = wireHookBridge;
+//#endregion
+//#region src/observability/telemetry.js
+/**
+* Telemetry — lightweight event tracking for observability.
+* Events are written to JSONL and optionally flushed to a remote endpoint.
+* All tracking is opt-in via config (telemetry.enabled, default false).
+* Browser-safe: in-memory buffer when filesystem unavailable.
+*/
+var Telemetry = class {
+	constructor({ enabled = false, endpoint = null, freddieHome = null } = {}) {
+		this._enabled = enabled;
+		this._endpoint = endpoint;
+		this._buffer = [];
+		this._sessionId = null;
+		this._turnId = null;
+		this._freddieHome = freddieHome;
+	}
+	_track(event, data = {}) {
+		if (!this._enabled) return;
+		const record = {
+			event,
+			session_id: this._sessionId,
+			turn_id: this._turnId,
+			timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+			...data
+		};
+		this._buffer.push(record);
+		this._flushIfNeeded();
+	}
+	_flushIfNeeded() {
+		if (this._buffer.length >= 50) this._flush();
+	}
+	async _flush() {
+		if (!this._buffer.length) return;
+		const batch = this._buffer.splice(0);
+		const jsonl = batch.map((r) => JSON.stringify(r)).join("\n") + "\n";
+		if (this._freddieHome) try {
+			const { appendFileSync } = await import("node:fs");
+			const { join } = await import("node:path");
+			appendFileSync(join(this._freddieHome, "telemetry.jsonl"), jsonl);
+		} catch {}
+		if (this._endpoint) try {
+			await fetch(this._endpoint, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(batch)
+			});
+		} catch {}
+	}
+	setSession(sessionId) {
+		this._sessionId = sessionId;
+	}
+	setTurn(turnId) {
+		this._turnId = turnId;
+	}
+	turnStarted(data) {
+		this._track("turn_started", data);
+	}
+	turnEnded(data) {
+		this._track("turn_ended", data);
+	}
+	turnInterrupted(data) {
+		this._track("turn_interrupted", data);
+	}
+	toolCall(data) {
+		this._track("tool_call", data);
+	}
+	toolCallRepeat(data) {
+		this._track("tool_call_repeat", data);
+	}
+	toolApproved(data) {
+		this._track("tool_approved", data);
+	}
+	toolRejected(data) {
+		this._track("tool_rejected", data);
+	}
+	apiError(data) {
+		this._track("api_error", data);
+	}
+	compactionFinished(data) {
+		this._track("compaction_finished", data);
+	}
+	compactionFailed(data) {
+		this._track("compaction_failed", data);
+	}
+	planSubmitted(data) {
+		this._track("plan_submitted", data);
+	}
+	planResolved(data) {
+		this._track("plan_resolved", data);
+	}
+	yoloToggled(data) {
+		this._track("yolo_toggle", data);
+	}
+	afkToggled(data) {
+		this._track("afk_toggle", data);
+	}
+	skillInvoked(data) {
+		this._track("skill_invoked", data);
+	}
+	subagentCreated(data) {
+		this._track("subagent_created", data);
+	}
+	hookTriggered(data) {
+		this._track("hook_triggered", data);
+	}
+	mcpConnected(data) {
+		this._track("mcp_connected", data);
+	}
+	mcpFailed(data) {
+		this._track("mcp_failed", data);
+	}
+	turnForceStopped(data) {
+		this._track("turn_force_stopped", data);
+	}
+	goalCreated(data) {
+		this._track("goal_created", data);
+	}
+	goalCompleted(data) {
+		this._track("goal_completed", data);
+	}
+	goalBlocked(data) {
+		this._track("goal_blocked", data);
+	}
+	async flush() {
+		await this._flush();
+	}
+	reset() {
+		this._buffer = [];
+		this._sessionId = null;
+		this._turnId = null;
+	}
+};
+var telemetry = new Telemetry();
+//#endregion
 //#region src/learn/gm-learn.js
 var gm_learn_exports = /* @__PURE__ */ __exportAll({
 	autoRecall: () => autoRecall,
@@ -11284,6 +11747,400 @@ var init_gm_learn = __esmMin((() => {
 	_pk = null;
 	_isBrowser = typeof window !== "undefined" || typeof importScripts === "function";
 }));
+//#endregion
+//#region plugins/task/store.js
+async function _loadFs() {
+	if (_fs) return true;
+	try {
+		const { createRequire } = await import("node:module");
+		const require = createRequire(import.meta.url);
+		_fs = require("node:fs");
+		_path = require("node:path");
+		return true;
+	} catch {
+		return false;
+	}
+}
+async function _resolveStorePath() {
+	if (_storePath) return _storePath;
+	if (!_getFreddieHome) try {
+		const { getFreddieHome } = await Promise.resolve().then(() => (init_home(), home_exports));
+		_getFreddieHome = getFreddieHome;
+	} catch {
+		return null;
+	}
+	const home = _getFreddieHome();
+	_storePath = _path.join(home, "tasks", "tasks.jsonl");
+	return _storePath;
+}
+async function _ensureDir(dir) {
+	try {
+		_fs.mkdirSync(dir, { recursive: true });
+	} catch {}
+}
+function _toStorable(task) {
+	return {
+		id: task.id,
+		status: task.status,
+		description: task.description || null,
+		started: task.started,
+		stopped: task.stopped || null,
+		exit_code: task.exitCode ?? null,
+		error: task.error || null,
+		output_preview: (task.output || "").slice(0, 2e3) || null,
+		session_id: task.sessionId || null,
+		pid: task.pid ?? null
+	};
+}
+async function persistTask(task) {
+	if (!await _loadFs()) {
+		_memFallback.set(task.id, _toStorable(task));
+		return;
+	}
+	const sp = await _resolveStorePath();
+	if (!sp) return;
+	await _ensureDir(_path.dirname(sp));
+	try {
+		const line = JSON.stringify(_toStorable(task)) + "\n";
+		_fs.appendFileSync(sp, line, "utf8");
+	} catch {}
+}
+async function _rewriteAll(tasks) {
+	if (!await _loadFs()) return;
+	const sp = await _resolveStorePath();
+	if (!sp) return;
+	await _ensureDir(_path.dirname(sp));
+	try {
+		const lines = [];
+		for (const t of tasks) lines.push(JSON.stringify(_toStorable(t)) + "\n");
+		_fs.writeFileSync(sp, lines.join(""), "utf8");
+	} catch {}
+}
+async function loadTasks() {
+	if (!await _loadFs()) return [..._memFallback.values()];
+	const sp = await _resolveStorePath();
+	if (!sp) return [];
+	try {
+		if (!_fs.existsSync(sp)) return [];
+		const lines = _fs.readFileSync(sp, "utf8").trim().split("\n").filter(Boolean);
+		const map = /* @__PURE__ */ new Map();
+		for (const line of lines) try {
+			const obj = JSON.parse(line);
+			if (obj.id) map.set(obj.id, obj);
+		} catch {}
+		return [...map.values()];
+	} catch {
+		return [];
+	}
+}
+async function cleanCompleted$1(tasks) {
+	if (!await _loadFs()) {
+		for (const [id, t] of _memFallback) if (t.status === "completed" || t.status === "failed" || t.status === "timed_out" || t.status === "stopped") _memFallback.delete(id);
+		return;
+	}
+	await _rewriteAll(tasks);
+}
+var _fs, _path, _getFreddieHome, _storePath, _memFallback;
+var init_store = __esmMin((() => {
+	_fs = null;
+	_path = null;
+	_getFreddieHome = null;
+	_storePath = null;
+	_memFallback = /* @__PURE__ */ new Map();
+}));
+//#endregion
+//#region src/agent/notifications.js
+var NotificationManager, notificationManager;
+var init_notifications = __esmMin((() => {
+	NotificationManager = class {
+		constructor() {
+			this._queue = [];
+			this._delivered = /* @__PURE__ */ new Set();
+		}
+		/**
+		* Push a notification to the queue.
+		* @param {string} type - notification type (e.g. 'task_complete', 'subagent_complete')
+		* @param {string} message - human-readable message
+		* @returns {string} notification id
+		*/
+		notify(type, message) {
+			const id = `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+			this._queue.push({
+				id,
+				type,
+				message,
+				timestamp: Date.now(),
+				delivered: false
+			});
+			return id;
+		}
+		/**
+		* Deliver pending notifications (up to 4 per call).
+		* Marks delivered notifications so they are not returned again.
+		* @returns {{ id: string, type: string, message: string }[]}
+		*/
+		deliverPending() {
+			const pending = this._queue.filter((n) => !n.delivered).slice(0, 4);
+			for (const n of pending) n.delivered = true;
+			return pending.map((n) => ({
+				id: n.id,
+				type: n.type,
+				message: n.message
+			}));
+		}
+		/**
+		* Check if any undelivered notifications exist.
+		* @returns {boolean}
+		*/
+		hasPending() {
+			return this._queue.some((n) => !n.delivered);
+		}
+		/**
+		* Remove all delivered notifications from the queue to prevent unbounded
+		* growth. Call periodically (e.g. on session end).
+		*/
+		clearDelivered() {
+			this._queue = this._queue.filter((n) => !n.delivered);
+		}
+		/**
+		* Reset to empty state (for testing).
+		*/
+		reset() {
+			this._queue = [];
+			this._delivered = /* @__PURE__ */ new Set();
+		}
+	};
+	notificationManager = new NotificationManager();
+}));
+//#endregion
+//#region plugins/task/registry.js
+var registry_exports = /* @__PURE__ */ __exportAll({
+	awaitTask: () => awaitTask,
+	cleanCompleted: () => cleanCompleted,
+	cleanupStaleTasks: () => cleanupStaleTasks,
+	createTask: () => createTask,
+	getTask: () => getTask,
+	getTaskOutput: () => getTaskOutput,
+	listAllTasks: () => listAllTasks,
+	listTasks: () => listTasks,
+	reconcileTasks: () => reconcileTasks,
+	reset: () => reset,
+	restoreTasks: () => restoreTasks,
+	startPeriodicReconciliation: () => startPeriodicReconciliation,
+	stopPeriodicReconciliation: () => stopPeriodicReconciliation,
+	stopTask: () => stopTask,
+	updateTask: () => updateTask
+});
+function generateId() {
+	if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+	return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+function createTask(meta = {}) {
+	const id = generateId();
+	const task = {
+		id,
+		status: "running",
+		started: Date.now(),
+		output: "",
+		stderr: "",
+		exitCode: null,
+		error: null,
+		description: null,
+		pid: null,
+		sessionId: null,
+		_kill: null,
+		...meta
+	};
+	_tasks.set(id, task);
+	persistTask(task);
+	return id;
+}
+function getTask(id) {
+	return _tasks.get(id) || null;
+}
+function listTasks() {
+	return [..._tasks.values()].filter((t) => t.status === "running").map(({ id, status, started, description }) => ({
+		id,
+		status,
+		started,
+		description: description || null
+	}));
+}
+function listAllTasks() {
+	return [..._tasks.values()].map(({ id, status, started, stopped, description, exitCode, error }) => ({
+		id,
+		status,
+		started,
+		stopped: stopped || null,
+		description: description || null,
+		exit_code: exitCode ?? null,
+		error: error || null
+	}));
+}
+function updateTask(id, updates) {
+	const t = _tasks.get(id);
+	if (t) {
+		Object.assign(t, updates);
+		persistTask(t);
+		if (updates.status && updates.status !== "running") notificationManager.notify("task_complete", `Background task ${id} completed: ${t.description || "unnamed task"}`);
+	}
+}
+function stopTask(id) {
+	const t = _tasks.get(id);
+	if (!t) return { error: `unknown task_id: ${id}` };
+	if (typeof t._kill === "function") try {
+		t._kill();
+	} catch {}
+	t.status = "stopped";
+	t.stopped = Date.now();
+	persistTask(t);
+	return {
+		task_id: id,
+		stopped: true
+	};
+}
+function getTaskOutput(id) {
+	const t = _tasks.get(id);
+	if (!t) return { error: `unknown task_id: ${id}` };
+	return {
+		task_id: id,
+		status: t.status,
+		output: t.output || "",
+		stderr: t.stderr || "",
+		exit_code: t.exitCode ?? null,
+		error: t.error || null
+	};
+}
+function awaitTask(id, timeoutMs) {
+	const t = _tasks.get(id);
+	if (!t) return Promise.resolve({ error: `unknown task_id: ${id}` });
+	if (t.status !== "running") return Promise.resolve(getTaskOutput(id));
+	return new Promise((resolve) => {
+		const timer = setTimeout(() => resolve(getTaskOutput(id)), timeoutMs);
+		const check = () => {
+			if (t.status !== "running") {
+				clearTimeout(timer);
+				resolve(getTaskOutput(id));
+			} else setTimeout(check, 100);
+		};
+		setTimeout(check, 100);
+	});
+}
+async function restoreTasks(sessionId) {
+	const stored = await loadTasks();
+	const filtered = sessionId ? stored.filter((s) => s.session_id === sessionId) : stored;
+	for (const s of filtered) {
+		if (_tasks.has(s.id)) continue;
+		if (s.status !== "running") continue;
+		_tasks.set(s.id, {
+			id: s.id,
+			status: "stopped",
+			started: s.started,
+			stopped: Date.now(),
+			output: s.output_preview || "",
+			stderr: "",
+			exitCode: s.exit_code,
+			error: s.error || "task was interrupted by freddie restart",
+			description: s.description,
+			sessionId: s.session_id || null,
+			pid: null,
+			_kill: null
+		});
+	}
+	reconcileTasks();
+}
+function reconcileTasks() {
+	const now = Date.now();
+	const MAX_RUNNING_MS = 1440 * 60 * 1e3;
+	let reconciled = 0;
+	let lost = 0;
+	let timedOut = 0;
+	for (const [id, t] of _tasks) {
+		if (t.status !== "running") continue;
+		let processDead = false;
+		if (t.pid != null) try {
+			process.kill(t.pid, 0);
+		} catch {
+			processDead = true;
+		}
+		const isTimedOut = now - t.started > MAX_RUNNING_MS;
+		if (processDead) {
+			t.status = "lost";
+			t.stopped = now;
+			t.error = "process died unexpectedly";
+			persistTask(t);
+			notificationManager.notify("task_lost", `Background task ${id.slice(0, 8)} (${t.description || "unnamed"}) was lost: the underlying process died.`);
+			reconciled++;
+			lost++;
+		} else if (isTimedOut) {
+			t.status = "timed_out";
+			t.stopped = now;
+			t.error = "task exceeded 24 hour maximum runtime";
+			persistTask(t);
+			notificationManager.notify("task_timed_out", `Background task ${id.slice(0, 8)} (${t.description || "unnamed"}) timed out after 24 hours.`);
+			reconciled++;
+			timedOut++;
+		}
+	}
+	return {
+		reconciled,
+		lost,
+		timed_out: timedOut
+	};
+}
+function cleanupStaleTasks(maxAgeHours = 168) {
+	const now = Date.now();
+	const maxAgeMs = maxAgeHours * 60 * 60 * 1e3;
+	const terminalStates = /* @__PURE__ */ new Set([
+		"completed",
+		"failed",
+		"lost",
+		"timed_out",
+		"stopped"
+	]);
+	let cleaned = 0;
+	for (const [id, t] of _tasks) {
+		if (!terminalStates.has(t.status)) continue;
+		if (now - t.started > maxAgeMs) {
+			_tasks.delete(id);
+			cleaned++;
+		}
+	}
+	return { cleaned };
+}
+function startPeriodicReconciliation(intervalMs = 300 * 1e3) {
+	if (_reconcileInterval) return;
+	_reconcileInterval = setInterval(() => {
+		reconcileTasks();
+	}, intervalMs);
+	if (typeof _reconcileInterval?.unref === "function") _reconcileInterval.unref();
+}
+function stopPeriodicReconciliation() {
+	if (_reconcileInterval) {
+		clearInterval(_reconcileInterval);
+		_reconcileInterval = null;
+	}
+}
+function reset() {
+	_tasks.clear();
+	stopPeriodicReconciliation();
+}
+async function cleanCompleted() {
+	const kept = [];
+	for (const [id, t] of _tasks) if (t.status === "completed" || t.status === "failed" || t.status === "timed_out" || t.status === "stopped") _tasks.delete(id);
+	else kept.push(t);
+	await cleanCompleted$1(kept);
+}
+var _tasks, _reconcileInterval;
+var init_registry = __esmMin((() => {
+	init_store();
+	init_notifications();
+	_tasks = /* @__PURE__ */ new Map();
+	_reconcileInterval = null;
+}));
+//#endregion
+//#region src/agent/machine.js
+init_config();
 function looksLikeStructuredDataNotProse(text) {
 	const trimmed = text.trim();
 	if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return false;
@@ -11441,6 +12298,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 			executing_tools: { invoke: {
 				src: fromPromise$1(async ({ input }) => {
 					const h = await bootHost();
+					const hookEngine = new HookEngine({ config: loadConfig() });
 					const calls = input.messages[input.messages.length - 1].tool_calls || [];
 					const results = [];
 					const extras = [];
@@ -11448,6 +12306,10 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 						const tname = call.name || call.function?.name;
 						const targs = call.arguments || call.function?.arguments || {};
 						const tcid = call.id || call.tool_call_id;
+						telemetry.toolCall({
+							name: tname,
+							args: targs
+						});
 						const ret = await runStep(input.sessionKey, "tool:" + input.iterations + ":" + tcid, async () => {
 							const callExtras = [];
 							const pushExtras = (r) => {
@@ -11460,6 +12322,17 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 									content: r.additionalContext
 								});
 							};
+							hookEngine.runHooks("preToolCall", {
+								name: tname,
+								args: targs,
+								sessionKey: input.sessionKey,
+								cwd: input.toolCtx?.cwd
+							}).catch(() => {});
+							wireHookBridge.forwardHook("preToolCall", {
+								name: tname,
+								args: targs,
+								sessionKey: input.sessionKey
+							}).catch(() => {});
 							const pre = await h.hooks.invoke("preToolCall", {
 								name: tname,
 								args: targs
@@ -11479,6 +12352,19 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 								args: targs,
 								result: res
 							}));
+							hookEngine.runHooks("postToolCall", {
+								name: tname,
+								args: targs,
+								result: res,
+								sessionKey: input.sessionKey,
+								cwd: input.toolCtx?.cwd
+							}).catch(() => {});
+							wireHookBridge.forwardHook("postToolCall", {
+								name: tname,
+								args: targs,
+								result: res,
+								sessionKey: input.sessionKey
+							}).catch(() => {});
 							return {
 								content: res,
 								extras: callExtras
@@ -11686,7 +12572,7 @@ function timeoutResult(actor, timeoutMs) {
 		iterations: ctx.iterations || 0
 	};
 }
-async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store }) {
+async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store }) {
 	const { actor } = pa;
 	return await new Promise((resolve, reject) => {
 		let sub;
@@ -11704,6 +12590,10 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 		const t = setTimeout(() => {
 			if (settled) return;
 			settled = true;
+			telemetry.turnForceStopped({
+				reason: "timeout",
+				timeoutMs
+			});
 			const out = timeoutResult(actor, timeoutMs);
 			cleanup();
 			(async () => {
@@ -11715,6 +12605,22 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 						reason: "timeout",
 						iterations: out.iterations
 					});
+				} catch {}
+				try {
+					hookEngine.runHooks("onSessionEnd", {
+						sessionKey,
+						cwd,
+						reason: "timeout",
+						iterations: out.iterations
+					}).catch(() => {});
+				} catch {}
+				try {
+					wireHookBridge.forwardHook("onSessionEnd", {
+						sessionKey,
+						cwd,
+						reason: "timeout",
+						iterations: out.iterations
+					}).catch(() => {});
 				} catch {}
 				try {
 					await writeTrajectory(out, {
@@ -11738,12 +12644,38 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 			clearTimeout(t);
 			(async () => {
 				const out = snap.output;
+				telemetry.turnEnded({
+					iterations: out.iterations,
+					result: out.result ? "ok" : out.error ? "error" : "empty",
+					error: out.error || null
+				});
 				const outbound = await h.hooks.invoke("onMessageOutbound", { content: out?.result || "" });
+				hookEngine.runHooks("onMessageOutbound", {
+					sessionKey,
+					cwd
+				}).catch(() => {});
+				wireHookBridge.forwardHook("onMessageOutbound", {
+					sessionKey,
+					cwd,
+					content: out?.result || ""
+				}).catch(() => {});
 				if (outbound?.systemMessage || outbound?.additionalContext) out.messages = mergeHookExtras(out.messages || [], outbound, "onMessageOutbound");
 				await h.hooks.invoke("onSessionEnd", {
 					reason: out?.error ? "error" : "ok",
 					iterations: out?.iterations
 				});
+				hookEngine.runHooks("onSessionEnd", {
+					sessionKey,
+					cwd,
+					reason: out?.error ? "error" : "ok",
+					iterations: out?.iterations
+				}).catch(() => {});
+				wireHookBridge.forwardHook("onSessionEnd", {
+					sessionKey,
+					cwd,
+					reason: out?.error ? "error" : "ok",
+					iterations: out?.iterations
+				}).catch(() => {});
 				await writeTrajectory(out, {
 					prompt,
 					provider,
@@ -11770,7 +12702,21 @@ async function driveAgentActor({ pa, h, events, prompt, provider, model, skill, 
 }
 async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store } = {}) {
 	const events = [];
+	const cfg = loadConfig();
+	if (cfg.telemetry?.enabled) {
+		telemetry._enabled = true;
+		telemetry._endpoint = cfg.telemetry.endpoint || null;
+		telemetry._freddieHome = (await Promise.resolve().then(() => (init_home(), home_exports))).getFreddieHome();
+		telemetry.setSession(sessionKey || "");
+		telemetry.setTurn(sessionKey || "");
+		telemetry.turnStarted({
+			prompt,
+			model,
+			provider
+		});
+	}
 	const h = await bootHost();
+	const hookEngine = new HookEngine({ config: loadConfig() });
 	await h.hooks.invoke("onSessionStart", {
 		prompt,
 		model,
@@ -11778,6 +12724,19 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		skill,
 		cwd
 	});
+	hookEngine.runHooks("onSessionStart", {
+		sessionKey,
+		cwd
+	}).catch(() => {});
+	wireHookBridge.forwardHook("onSessionStart", {
+		sessionKey,
+		cwd,
+		prompt
+	}).catch(() => {});
+	try {
+		const { restoreTasks } = await Promise.resolve().then(() => (init_registry(), registry_exports));
+		await restoreTasks(key);
+	} catch (_) {}
 	let initMessages = [...messages];
 	const sysParts = [];
 	if (cwd) sysParts.push(`Working directory: ${cwd}. Always pass cwd="${cwd}" to bash tool calls. When reading or writing files use paths relative to this directory or absolute paths under it.`);
@@ -11798,6 +12757,15 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		content: sysParts.join("\n\n")
 	});
 	const inbound = await h.hooks.invoke("onMessageInbound", { content: prompt });
+	hookEngine.runHooks("onMessageInbound", {
+		sessionKey,
+		cwd
+	}).catch(() => {});
+	wireHookBridge.forwardHook("onMessageInbound", {
+		sessionKey,
+		cwd,
+		content: prompt
+	}).catch(() => {});
 	if (inbound?.behavior === "block") {
 		await h.hooks.invoke("onSessionEnd", { reason: "prompt_blocked" });
 		return {
@@ -11818,10 +12786,13 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		maxIterations,
 		events,
 		sessionKey: key,
-		toolCtx: cwd ? {
-			cwd,
-			...toolCtx || {}
-		} : toolCtx,
+		toolCtx: {
+			sessionKey: key,
+			...cwd ? {
+				cwd,
+				...toolCtx || {}
+			} : toolCtx || {}
+		},
 		tool_choice,
 		store
 	}), {
@@ -11837,6 +12808,7 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 	return await driveAgentActor({
 		pa,
 		h,
+		hookEngine,
 		events,
 		prompt,
 		provider,
@@ -11853,6 +12825,7 @@ async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolset
 	if (!sessionKey) throw new Error("resumeTurn requires sessionKey");
 	const events = [];
 	const h = await bootHost();
+	const hookEngine = new HookEngine({ config: loadConfig() });
 	const pa = await createPersistentActor(createAgentMachine({
 		model,
 		provider,
@@ -11874,6 +12847,7 @@ async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolset
 	return await driveAgentActor({
 		pa,
 		h,
+		hookEngine,
 		events,
 		prompt: "",
 		provider,
@@ -11946,22 +12920,69 @@ function skillAsUserMessage(name, args = "") {
 	};
 }
 //#endregion
+//#region src/context/agents_md_merge.js
+/**
+* Merge AGENTS.md files from the current directory up to the filesystem root.
+* Matches kimi's behavior: root→leaf merging, .kimi/AGENTS.md support.
+*
+* Each file's content is wrapped with a source annotation:
+* <!-- From: <path> -->
+* <content>
+*
+* Files are collected from root→leaf (parent first), so the most specific
+* (deepest) file is last and takes precedence for conflicting instructions.
+*
+* @param {string} cwd - starting directory
+* @param {object} [opts]
+* @param {number} [opts.maxDepth=10] - max directories to walk up
+* @returns {string} merged content, or empty string
+*/
+function mergeAgentsMd(cwd, { maxDepth = 10 } = {}) {
+	const parts = [];
+	const seen = /* @__PURE__ */ new Set();
+	let dir = resolve(cwd);
+	let depth = 0;
+	while (dir && depth < maxDepth) {
+		for (const name of [
+			".kimi/AGENTS.md",
+			"AGENTS.md",
+			"CLAUDE.md",
+			".claude/CLAUDE.md"
+		]) {
+			const filePath = join(dir, name);
+			if (seen.has(filePath)) continue;
+			try {
+				if (existsSync(filePath)) {
+					const content = readFileSync(filePath, "utf-8");
+					if (content.trim()) {
+						parts.unshift(`<!-- From: ${filePath} -->\n${content}`);
+						seen.add(filePath);
+					}
+				}
+			} catch {}
+		}
+		const parent = dirname(dir);
+		if (parent === dir) break;
+		dir = parent;
+		depth++;
+	}
+	return parts.join("\n\n");
+}
+//#endregion
 //#region src/context/engine.js
 var ContextPlugins = {
 	file: async ({ cwd = process.cwd() } = {}) => {
-		const candidates = [
-			".freddie-context",
-			"CLAUDE.md",
-			"AGENTS.md"
-		];
 		const blocks = [];
-		for (const c of candidates) {
-			const p = path.join(cwd, c);
-			if (fs.existsSync(p)) blocks.push({
-				name: "file:" + c,
-				body: fs.readFileSync(p, "utf8")
-			});
-		}
+		const fcPath = path.join(cwd, ".freddie-context");
+		if (fs.existsSync(fcPath)) blocks.push({
+			name: "file:.freddie-context",
+			body: fs.readFileSync(fcPath, "utf8")
+		});
+		const merged = mergeAgentsMd(cwd);
+		if (merged) blocks.push({
+			name: "file:AGENTS.md",
+			body: merged
+		});
 		return blocks;
 	},
 	skills: async () => {
