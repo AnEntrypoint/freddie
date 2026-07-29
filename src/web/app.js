@@ -1,8 +1,8 @@
-import { h, applyDiff, installStyles, components } from 'anentrypoint-design';
+import { h, applyDiff, installStyles, components, theme } from 'anentrypoint-design';
 import { fetchHost, ROUTES, ROUTE_GROUPS } from './state.js';
 import { PAGES } from './routes.js';
 
-const { AppShell, Topbar, Side, Status, EmptyState, Chip, ThemeToggle, Icon } = components;
+const { AppShell, Topbar, Side, Status, EmptyState, Chip, ThemeToggle, Icon, toast } = components;
 
 // Lazy-load the command palette from the SDK (dynamic import to avoid circular deps).
 let _paletteActionCache = null;
@@ -21,15 +21,9 @@ function buildPaletteActions() {
         { id: 'cmd-new-chat', label: 'New Chat Session', icon: 'forum', group: 'Actions', hint: null, action: () => setActive('chat') },
         { id: 'cmd-terminal', label: 'Open Terminal', icon: 'more-horizontal', group: 'Actions', hint: null, action: () => setActive('terminal') },
         { id: 'cmd-toggle-theme', label: 'Toggle Theme', icon: 'contrast', group: 'Actions', hint: null, action: () => {
-            try {
-                // Route through the SDK's ThemeToggle controller instead of
-                // directly manipulating the DOM and localStorage.
-                const btn = document.querySelector('.theme-toggle button, .theme-toggle [role="button"]');
-                if (btn) { btn.click(); return; }
-                // Fallback: cycle through the known states via the rendered component.
-                const el = document.querySelector('.theme-toggle');
-                if (el) { el.click(); }
-            } catch { /* ignore */ }
+            const cur = theme.getTheme();
+            const next = cur === 'github-dark' ? 'paper' : (cur === 'paper' ? 'ink' : (cur === 'ink' ? 'auto' : 'github-dark'));
+            theme.applyTheme(next);
         }},
         { id: 'cmd-refresh', label: 'Refresh Data', icon: 'refresh', group: 'Actions', hint: null, action: () => location.reload() },
     );
@@ -37,6 +31,12 @@ function buildPaletteActions() {
 }
 
 await installStyles();
+// Apply github-dark theme by default if no stored preference.
+if (!theme.getTheme() || theme.getTheme() === 'auto') {
+    theme.applyTheme('github-dark');
+}
+// Apply compact density for pi-web's dense app-chrome feel.
+theme.applyDensity('compact');
 // Styles installed — lift the FOUC visibility guard (see index.html reset).
 document.body.setAttribute('data-ready', '');
 
@@ -52,19 +52,11 @@ try {
 } catch { /* ignore */ }
 if (host0.degraded) state.health = { ok: false, degraded: true };
 
-// Lightweight transient error surface for mutation failures (config.saveValue,
-// chat.send, cron.create, …). state.js's mutators reject; the catch handler in
-// each callsite — or state.js's wrapMutation — routes the message here so a
+// Transient mutation-error toast via the SDK's toast() primitive.
+// state.js's mutators reject; wrapMutation routes the message here so a
 // thrown error is shown to the user instead of vanishing into the console.
-let _toastTimer = null;
 function notify(msg, tone = 'error') {
-    let el = document.getElementById('fd-toast');
-    if (!el) { el = document.createElement('div'); el.id = 'fd-toast'; el.className = 'fd-toast'; el.setAttribute('role', 'alert'); document.body.appendChild(el); }
-    el.textContent = String(msg || '').slice(0, 300);
-    el.dataset.tone = tone;
-    el.style.display = 'block';
-    if (_toastTimer) clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(() => { el.style.display = 'none'; }, 6000);
+    toast({ message: String(msg || '').slice(0, 300), kind: tone === 'error' ? 'error' : 'info', duration: 6000 });
 }
 if (typeof window !== 'undefined') window.__fd_notify = notify;
 
