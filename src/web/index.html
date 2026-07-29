@@ -16,7 +16,7 @@
 (function () {
   var t;
   try { t = localStorage.getItem('247420:theme'); } catch (e) {}
-  if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  if (!t) t = 'github-dark';
   document.documentElement.setAttribute('data-theme', t);
 })();
 </script>
@@ -27,25 +27,8 @@ html, body { margin: 0; padding: 0; height: 100%; }
    so #app never paints raw unstyled 'loading...' text. */
 body { visibility: hidden; }
 body[data-ready] { visibility: visible; }
-/* Cap raw-JSON/code dumps so unbounded payloads scroll instead of blowing
-   the page layout. Ideally belongs in the anentrypoint-design SDK CSS. */
-.fd-pre { max-height: 60vh; overflow: auto; }
-/* Topbar leaf layout (sampler pill + theme toggle). One utility class so app.js
-   carries no inline style string. Ideally belongs in the SDK CSS. */
-.fd-topbar-leaf { display: inline-flex; gap: 8px; align-items: center; }
-/* Transient mutation-error toast (see app.js notify()). Uses design-system
-   tokens so it respects the active theme. */
-.fd-toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-  z-index: 1000; max-width: 90vw; padding: 8px 14px; border-radius: var(--r-1);
-  background: var(--warn, #b3261e); color: var(--fg);
-  font: 13px/1.4 var(--ff-body, system-ui, sans-serif);
-  box-shadow: var(--shadow-2, 0 4px 16px rgba(0,0,0,.3)); }
-/* Ctrl+K search hint in the topbar. */
-.fd-search-hint { font-size: 11px; opacity: 0.5; padding: 4px 8px;
-  border: 1px solid var(--rule, currentColor); border-radius: 4px;
-  pointer-events: none; }
-/* Status bar items — inline flex with gap. */
-.fd-status-item { display: inline-flex; align-items: center; gap: 4px; }
+/* Freddie dashboard surface utilities (fd-pre, fd-topbar-leaf, fd-search-hint,
+   fd-status-item) now live in the anentrypoint-design SDK's app-surfaces.css. */
 </style>
 </head>
 <body>
