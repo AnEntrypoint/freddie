@@ -129,6 +129,7 @@ export const ROUTE_GROUPS = [
             { path: 'agents',    label: 'agents',    icon: 'members' },
             { path: 'chains',    label: 'chains',    icon: 'chevron-right' },
             { path: 'machines',  label: 'machines',  icon: 'grid' },
+            { path: 'plugins',   label: 'plugins',   icon: 'check' },
         ],
     },
     {
