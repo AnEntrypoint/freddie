@@ -41,7 +41,6 @@ theme.applyDensity('compact');
 document.body.setAttribute('data-ready', '');
 
 const root = document.getElementById('app');
-root.textContent = 'loading...';
 const host0 = await fetchHost();
 root.innerHTML = '';
 
