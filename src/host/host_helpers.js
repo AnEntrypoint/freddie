@@ -238,8 +238,8 @@ export function makeCcLoaders(ccHost, env) {
         return ccHost.plugins().length
     }
     // gm-cc must never be auto-discovered as a cc-plugin: it ships the 24
-    // deprecated gm-* platform-variant skills under a manifest named 'gm', and the
-    // single canonical gm-skill is registered by plugins/gm-skill instead. The
+    // deprecated gm-* platform-variant skills under a manifest named 'gm'.
+    // gm-skill is loaded directly as a skill (SKILL.md) — not as a plugin.
     // package extracts into node_modules under both 'gm-cc' and pnpm/bun temp dirs
     // like '.gm-cc-<hash>', so exclude by basename prefix, not exact match.
     const CC_EXCLUDE = new Set(['gm-cc'])
