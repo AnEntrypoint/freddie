@@ -80,6 +80,7 @@ emperor-penguin.md
 .gm/acptoapi-sidecar.*
 .gm/llm-validation.*
 .gm/prd.yml
+.gm/gm.db
 .codeinsight.digest
 .gm/browser-profile/
 .gm/browser-profile-*/
