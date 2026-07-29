@@ -95,7 +95,7 @@ Thin shims (resolved through host, do not bypass): `src/plugins/manager.js`, `sr
 
 ## gm-skill plugin
 
-`plugins/gm-skill/plugin.js` registers ONE canonical skill named `gm-skill`. Resolution order: (1) `~/.claude/skills/gm-skill/SKILL.md`, (2) `node_modules/gm-cc/skills/gm-skill/SKILL.md`. All other `gm-*` platform variants (gm-cc, gm-codex, gm-cursor, gm-jetbrains, gm-kilo, gm-oc, gm-vscode, gm-zed, gm-gc, gm-copilot-cli) are DEPRECATED — do not register them. `src/host/host_helpers.js::loadCcFromNodeModules` carries `CC_EXCLUDE = new Set(['gm-cc'])` so the gm-cc npm package is not auto-discovered as a cc-plugin. test.js asserts exactly one gm-prefixed skill is registered, named `gm-skill`.
+`plugins/gm-skill/plugin.js` registers ONE canonical skill named `gm-skill`. Resolution order: (1) `~/.claude/skills/gm-skill/SKILL.md`, (2) `node_modules/gm-cc/skills/gm-skill/SKILL.md`. All other `gm-*` platform variants (gm-cc, gm-codex, gm-cursor, gm-jetbrains, gm-kilo, gm-oc, gm-vscode, gm-zed, gm-gc, gm-copilot-cli) are DEPRECATED — do not register them. `src/host/host_helpers.js::loadCcFromNodeModules` carries `CC_EXCLUDE = new Set(['gm-cc'])` so the gm-cc npm package is not auto-discovered as a cc-plugin.
 
 ## Learning: gm rs-learn is THE memory mechanism
 
@@ -269,7 +269,7 @@ Slash commands that mutate system-prompt state default to deferred invalidation;
 
 ## Testing
 
-No automated tests. All testing is manual. Verify behavior by running the CLI directly: `node bin/freddie.js <verb>` or `freddie exec --prompt "..."`.
+**No automated tests. Zero. None.** All testing is manual, exhaustive debugging. There is no test framework, no test runner, no test directory, no test files, no `test` script in package.json. Every verification is done by running the actual code paths live — `exec_js` for server-side, `browser` for client-side, or direct CLI invocation: `node bin/freddie.js <verb>` or `freddie exec --prompt "..."`. Do not create test files, do not reach for jest/mocha/vitest/pytest, do not add `describe`/`it`/`test` blocks. The verification surface is the live code path exercised and witnessed through the spool dispatches.
 
 On Windows, ensure `closeDb()` and log-stream `closeAll()` are called before exit to avoid libuv handle teardown crashes.
 
