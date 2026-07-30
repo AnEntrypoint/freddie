@@ -6019,7 +6019,7 @@ async function getAcptoapi() {
 }
 function isConfiguredChainSyntax(model) {
 	if (typeof model !== "string") return false;
-	return model.includes(",") || model.startsWith("queue/") || model.startsWith("chain/") || model === "auto";
+	return model.includes(",") || model.startsWith("queue/") || model.startsWith("chain/");
 }
 async function resolveChainLinks(acptoapi, useModel) {
 	if (isConfiguredChainSyntax(useModel)) return useModel;
