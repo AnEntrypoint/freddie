@@ -1,2 +1,0 @@
-./plugins/platform-whatsapp/plugin.js:2:2 register
-register({ pi }) { pi.platforms.register({ name: 'whatsapp', module: adapter }) }

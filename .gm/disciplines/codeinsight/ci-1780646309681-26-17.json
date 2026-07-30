@@ -1,2 +1,0 @@
-./plugins/checkpoint/handler.js:26:26 
-async (args) => { const fn = ACTIONS[args.action]; return fn ? fn(args) : { error: 'unknown action' } }

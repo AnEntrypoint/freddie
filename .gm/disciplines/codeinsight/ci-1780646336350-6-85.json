@@ -1,2 +1,0 @@
-./plugins/gui-acptoapi-chains/plugin.js:6:6 base
-function base() { return getAcptoapiUrl().replace(/\/v1\/?$/, '') }

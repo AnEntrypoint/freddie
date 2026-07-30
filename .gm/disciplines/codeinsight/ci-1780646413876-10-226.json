@@ -1,6 +1,0 @@
-./plugins/process_registry/handler.js:10:14 
-async ({ action, id }) => {
-        if (action === 'list') return { processes: listProcesses() }
-        if (action === 'kill') return killProcess(id)
-        return { error: 'unknown action' }
-    }

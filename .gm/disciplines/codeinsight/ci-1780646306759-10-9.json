@@ -1,6 +1,0 @@
-./plugins/binary_extensions/handler.js:10:14 isBinary
-function isBinary(filename) {
-    const lower = String(filename).toLowerCase()
-    for (const ext of BINARY_EXTENSIONS) if (lower.endsWith(ext)) return true
-    return false
-}

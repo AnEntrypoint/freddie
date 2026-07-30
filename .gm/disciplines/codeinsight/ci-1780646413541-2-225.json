@@ -1,2 +1,0 @@
-./plugins/platform-yuanbao_sticker/plugin.js:2:2 register
-register({ pi }) { pi.platforms.register({ name: 'yuanbao_sticker', module: adapter }) }
