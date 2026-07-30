@@ -103,3 +103,4 @@ website/docs/
 .gm/.instructions-shipped-manifest.json
 state/sessions.db
 .impeccable/
+.gm/config-source-cache-*
