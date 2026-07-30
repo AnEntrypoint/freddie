@@ -1,2 +1,0 @@
-./plugins/platform-wecom_callback/plugin.js:2:2 register
-register({ pi }) { pi.platforms.register({ name: 'wecom_callback', module: adapter }) }

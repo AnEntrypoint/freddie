@@ -1,2 +1,0 @@
-./plugins/mcp_tool/plugin.js:2:2 register
-register({ pi }) { pi.tools.register(_tool) }

@@ -1,2 +1,0 @@
-./plugins/platform-slack/plugin.js:2:2 register
-register({ pi }) { pi.platforms.register({ name: 'slack', module: adapter }) }

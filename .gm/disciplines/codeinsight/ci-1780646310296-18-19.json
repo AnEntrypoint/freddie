@@ -1,2 +1,0 @@
-./plugins/checkpoint/handler.js:18:18 
-() => ({ items: fs.readdirSync(dir()).filter(f => f.endsWith('.json')).map(f => f.replace(/\.json$/, '')) })

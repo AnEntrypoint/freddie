@@ -1,2 +1,0 @@
-./plugins/mixture_of_agents/plugin.js:2:2 register
-register({ pi }) { pi.tools.register(_tool) }
