@@ -6173,7 +6173,7 @@ function tryParseJson(s) {
 		return {};
 	}
 }
-var REACHABILITY_PROBE_TIMEOUT_MS = 45e3;
+var REACHABILITY_PROBE_TIMEOUT_MS = Number(envVal("ACPTOAPI_REACHABILITY_PROBE_TIMEOUT_MS")) || 45e3;
 var REACHABILITY_PROBE_CHAIN_LINK_CAP = 3;
 async function isReachable(timeoutMs = REACHABILITY_PROBE_TIMEOUT_MS, model = null) {
 	try {
