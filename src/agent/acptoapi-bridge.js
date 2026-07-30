@@ -274,10 +274,19 @@ function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : 
 const REACHABILITY_PROBE_TIMEOUT_MS = 45000
 const REACHABILITY_PROBE_CHAIN_LINK_CAP = 3
 
-export async function isReachable(timeoutMs = REACHABILITY_PROBE_TIMEOUT_MS) {
+// model: optional override, matching callLLM's own req.model precedence
+// (getAcptoapiModel() default when omitted). Without this, a caller whose
+// actual model choice differs from FREDDIE_LLM_MODEL/'claude/haiku' (e.g.
+// casey's CASEY_LLM_MODEL, passed to callLLM per-call but NEVER threaded
+// through the separate reachability check) always probed the WRONG model --
+// live-witnessed: CASEY_LLM_MODEL=auto real turns worked once isReachable
+// was told to probe 'auto' too instead of silently falling back to
+// freddie's own unrelated default and reporting the ecosystem unreachable
+// even when the model the caller actually cares about is fully healthy.
+export async function isReachable(timeoutMs = REACHABILITY_PROBE_TIMEOUT_MS, model = null) {
     try {
         const acptoapi = await getAcptoapi()
-        const useModel = getAcptoapiModel()
+        const useModel = model || getAcptoapiModel()
         const chainModel = await resolveChainLinks(acptoapi, useModel)
         const probeChain = Array.isArray(chainModel) ? chainModel.slice(0, REACHABILITY_PROBE_CHAIN_LINK_CAP) : chainModel
         const probe = { messages: [{ role: 'user', content: 'ping' }], max_tokens: 4 }
