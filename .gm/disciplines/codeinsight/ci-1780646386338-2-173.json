@@ -1,2 +1,0 @@
-./plugins/platform-email/plugin.js:2:2 register
-register({ pi }) { pi.platforms.register({ name: 'email', module: adapter }) }

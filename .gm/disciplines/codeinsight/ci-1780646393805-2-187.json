@@ -1,2 +1,0 @@
-./plugins/platform-mattermost/plugin.js:2:2 register
-register({ pi }) { pi.platforms.register({ name: 'mattermost', module: adapter }) }

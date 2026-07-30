@@ -1,2 +1,0 @@
-./plugins/skills_hub/handler.js:28:28 
-async (a) => { const fn = ACTIONS[a.action]; return fn ? await fn(a) : { error: 'unknown action' } }

@@ -1,2 +1,0 @@
-./plugins/process_registry/handler.js:3:3 listProcesses
-function listProcesses() { return [..._processes.values()] }

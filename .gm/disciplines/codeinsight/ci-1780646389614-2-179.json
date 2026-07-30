@@ -1,2 +1,0 @@
-./plugins/platform-feishu_comment/plugin.js:2:2 register
-register({ pi }) { pi.platforms.register({ name: 'feishu_comment', module: adapter }) }
