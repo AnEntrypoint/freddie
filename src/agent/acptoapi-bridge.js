@@ -271,7 +271,19 @@ function adaptResponse(r) {
 
 function tryParseJson(s) { try { return typeof s === 'string' ? JSON.parse(s) : (s || {}) } catch { return {} } }
 
-const REACHABILITY_PROBE_TIMEOUT_MS = 45000
+// Hardcoded 45000 previously, with no override -- real config conflict
+// live-witnessed: a caller that raises ACPTOAPI_CHAIN_LINK_TIMEOUT_MS above
+// 45000 (a genuine, deliberate setting for slow-but-working reasoning
+// models, e.g. casey's own .env raises it to 60000) gets a reachability
+// probe that ALWAYS times out on any chain containing even one slow link,
+// because the outer 45s budget fires before that link's own legitimate
+// per-link timeout completes -- even though the SAME chain walk succeeds
+// fine under callLLM's real, larger outer deadline. Now reads
+// ACPTOAPI_REACHABILITY_PROBE_TIMEOUT_MS when set (falls back to the same
+// 45000 default otherwise, fully backward compatible), so a deployment that
+// tunes its chain-link timeout can keep the reachability probe's own budget
+// in sync rather than silently under-provisioned relative to it.
+const REACHABILITY_PROBE_TIMEOUT_MS = Number(envVal('ACPTOAPI_REACHABILITY_PROBE_TIMEOUT_MS')) || 45000
 const REACHABILITY_PROBE_CHAIN_LINK_CAP = 3
 
 // model: optional override, matching callLLM's own req.model precedence
