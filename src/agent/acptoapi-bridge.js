@@ -53,9 +53,23 @@ async function getAcptoapi() {
 // resolveChainLinks only builds an auto-chain around a bare single-model
 // string -- an operator who deliberately wrote 'a,b,c' or 'queue/foo' keeps
 // exclusive control of that chain, unchanged.
+//
+// 'auto' is DELIBERATELY EXCLUDED from this list, even though it looks like
+// "already configured chain syntax" at a glance -- it is the opposite: a
+// sentinel that MUST be expanded via acptoapi.buildAutoChain('auto') to
+// become real links, not a self-contained chain spec like the other three.
+// Live-witnessed bug (fixed here): with 'auto' included, resolveChainLinks
+// returned the bare string 'auto' unexpanded, and isReachable()/callLLM's own
+// !Array.isArray(chainModel) branch then called acptoapi.chat({model:'auto',
+// ...}) directly -- the literal string 'auto' is not a real model id in that
+// non-chain code path and the call hangs indefinitely (60s+, no error, no
+// resolution) rather than failing fast. isReachable()'s own 45s timeout was
+// the only thing ever resolving it, so every reachability check with
+// FREDDIE_LLM_MODEL='auto' silently reported unreachable/false regardless of
+// how healthy the real provider ecosystem actually was.
 function isConfiguredChainSyntax(model) {
     if (typeof model !== 'string') return false
-    return model.includes(',') || model.startsWith('queue/') || model.startsWith('chain/') || model === 'auto'
+    return model.includes(',') || model.startsWith('queue/') || model.startsWith('chain/')
 }
 
 // Builds the real fallback chain for a bare single-model request: the
