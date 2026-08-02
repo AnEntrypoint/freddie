@@ -197,11 +197,43 @@ export async function interactive({ callLLM, resume = null, input = process.stdi
                 callLLM,
                 timeoutMs: 600000,
                 sessionKey: state.session,
+                cwd: process.cwd(),
                 approvalMode: state.approvalMode,
                 // Foreground REPL: a present human never gets auto-rejected
                 // (kimi 1.40 reversal) — the approval waits indefinitely.
                 approvalTimeoutMs: Infinity,
                 disabledToolsets: state.planMode ? PLAN_DISABLED : undefined,
+                // Interactive channel for ask_user_question (the tool stays
+                // schema-visible in the REPL because this exists; elsewhere it
+                // is hidden — machine.js prompting filters it without a channel).
+                toolCtx: {
+                    askUser: (questions) => new Promise((resolve) => {
+                        const answers = {}
+                        const askNext = (i) => {
+                            if (i >= questions.length) { state.answeringApproval = false; return resolve(answers) }
+                            const q = questions[i]
+                            const opts = Array.isArray(q.options) && q.options.length
+                                ? '\n' + q.options.map((o, j) => `    ${j + 1}) ${o.label}${o.description ? ' — ' + o.description : ''}`).join('\n') + `\n  (answer with a number${q.multi_select ? ' (comma-separated)' : ''} or free text)` : ''
+                            state.answeringApproval = true
+                            rl.question(`  [question] ${q.question}${opts}\n  > `, (ans) => {
+                                const t = (ans || '').trim()
+                                const num = parseInt(t, 10)
+                                let val = t
+                                if (Array.isArray(q.options) && q.options.length && Number.isFinite(num) && num >= 1 && num <= q.options.length) {
+                                    val = q.multi_select ? [q.options[num - 1].label] : q.options[num - 1].label
+                                } else if (q.multi_select && t.includes(',')) {
+                                    val = t.split(',').map(s => {
+                                        const n = parseInt(s.trim(), 10)
+                                        return (Array.isArray(q.options) && Number.isFinite(n) && q.options[n - 1]) ? q.options[n - 1].label : s.trim()
+                                    })
+                                }
+                                answers[q.question] = val
+                                askNext(i + 1)
+                            })
+                        }
+                        askNext(0)
+                    }),
+                },
             })
             state.messages = out.messages
             const reply = out.result || out.error || '(no response)'

@@ -99,7 +99,7 @@ export default {
             let provider = opts.provider || undefined
             let model = opts.model || undefined
             if (!provider && model && /^[a-z][a-z0-9-]*\//.test(model)) { provider = model.split('/')[0]; model = model.slice(provider.length + 1) }
-            const out = await runTurn({ prompt: opts.prompt, provider, model, skill: opts.skill || undefined, cwd: opts.cwd || undefined, timeoutMs: Number(opts.timeout), witnessPath: opts.witness || undefined })
+            const out = await runTurn({ prompt: opts.prompt, provider, model, skill: opts.skill || undefined, cwd: opts.cwd || process.cwd(), timeoutMs: Number(opts.timeout), witnessPath: opts.witness || undefined })
             console.log(out.error ? '' : (out.result || out.messages?.at(-1)?.content || ''))
             if (out.error) console.error('error:', out.error)
             // Tear down cleanly instead of process.exit(): force-closing the

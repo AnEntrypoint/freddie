@@ -20,7 +20,16 @@ export const _tool = ({
         },
     },
     handler: async (args) => {
-        const { command, cwd = process.cwd(), timeout_ms = 60000 } = args
+        // Hallucinated-cwd guard: weak models sometimes invent paths that do not
+        // exist (witnessed: cwd:"/home/user" on Windows -> spawn ENOENT, the
+        // model read it as "environment broken" and gave up). Fall back to the
+        // process cwd and SAY so, instead of failing the spawn outright.
+        let { command, cwd = process.cwd(), timeout_ms = 60000 } = args
+        let cwdNote = ''
+        try {
+            const fs = await import('node:fs')
+            if (cwd && !fs.existsSync(cwd)) { cwdNote = ` (note: requested cwd "${cwd}" does not exist — ran in ${process.cwd()} instead)`; cwd = process.cwd() }
+        } catch { /* swallow: existsSync failure keeps the requested cwd */ }
         return await new Promise((resolve) => {
             const sh = process.platform === 'win32' ? 'cmd' : 'sh'
             const flag = process.platform === 'win32' ? '/c' : '-c'
@@ -44,7 +53,7 @@ export const _tool = ({
             child.stderr?.on('data', d => stderr += d.toString())
             child.on('close', code => {
                 clearTimeout(t)
-                const result = { exitCode: code, stdout, stderr }
+                const result = { exitCode: code, stdout, stderr: stderr + cwdNote }
                 // Windows cmd.exe can silently swallow ALL output (exit 0, empty
                 // stdout+stderr) for certain nested-quote one-liners (witnessed:
                 // node -e with double-quoted body containing single-quoted JS
