@@ -376,5 +376,31 @@ const TC = (id, name, args) => [{ id, name, arguments: args }]
     try { fs.unlinkSync(wireLogPath(sid)) } catch { /* swallow: test-log cleanup is best-effort */ }
 }
 
+// --- 10. checkpoint-revert rewinds a running turn ----------------------------
+{
+    const sid = 'verify-' + randomUUID().slice(0, 8)
+    const control = mkControl()
+    const drive = driveScripted({
+        sessionKey: sid, control, delayMs: 400,
+        script: [
+            { content: '', tool_calls: TC('tc1', 'nonexistent_tool', { step: 1 }) },
+            { content: '', tool_calls: TC('tc2', 'nonexistent_tool', { step: 2 }) },
+            { content: '', tool_calls: TC('tc3', 'nonexistent_tool', { step: 3 }) },
+            { content: 'recovered', tool_calls: [] },
+        ],
+    })
+    // Let two assistant appends stream in, then revert one step back.
+    await new Promise(r => setTimeout(r, 1500))
+    const { revertTurn } = await import('./src/agent/live-turns.js')
+    const res = await revertTurn(sid, 1)
+    check('revertTurn accepted on live turn', res.ok === true && typeof res.keptSteps === 'number')
+    const { output } = await drive
+    check('turn completes after revert', output?.result === 'recovered')
+    // The rewound context must not contain the third step's tool call turn.
+    const step3 = (output?.messages || []).filter(m => m.role === 'tool' && typeof m.content === 'string' && m.content.includes('"step":3') )
+    check('reverted step is absent from final context', step3.length === 0)
+    try { fs.unlinkSync(wireLogPath(sid)) } catch { /* swallow: test-log cleanup is best-effort */ }
+}
+
 console.log(failures === 0 ? '\nALL WIRE CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`)
 process.exit(failures === 0 ? 0 : 1)

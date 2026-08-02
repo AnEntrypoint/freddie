@@ -50,6 +50,12 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
         // tool_calls boundary check.
         on: {
             INTERRUPT: { actions: assign({ interrupt: true }) },
+            // Checkpoint-revert (kimi's D-Mail class): rewind the RUNNING turn's
+            // context to an earlier point, computed by live-turns.revertTurn
+            // from the wire log. The conversation continues from the truncated
+            // transcript at the next state boundary — lets a user (or the agent)
+            // rewind a derailing turn without abandoning it.
+            REVERT: { actions: assign({ messages: ({ event }) => [...(event.messages || [])] }) },
         },
         context: ({ input }) => ({
             messages: input?.messages ? [...input.messages] : [],
