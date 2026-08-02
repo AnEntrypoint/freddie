@@ -137,41 +137,24 @@ async function buildModel({ provider, model, inputModel }) {
         : []
 
     if (prefModels.length && chain.length) {
-        // Merge user's model_preference into the intelligence-ranked auto-chain.
-        // Preference models not already in the chain are inserted at their
-        // SWE-bench score position. The result is ordered by intelligence score
-        // (not config order), so extra providers like nvidia, cerebras, google
-        // with high-scoring models naturally lead the chain.
-        const seen = new Set(chain.map(l => l.model))
-        const extras = prefModels.filter(m => !seen.has(m))
-        if (extras.length) {
-            const scored = chain.map(l => ({ model: l.model, score: l.swe_bench_score || 0 }))
-            for (const m of extras) {
-                const s = typeof sdk.getModelScore === 'function' ? sdk.getModelScore(m) : 0
-                scored.push({ model: m, score: s || 0 })
-            }
-            scored.sort((a, b) => b.score - a.score)
-            const allModels = scored.map(m => m.model)
-            const status = typeof sdk.getStatus === 'function' ? sdk.getStatus() : []
-            if (status.length) {
-                const blocked = new Set(status.filter(s => s.ok === false).map(s => s.provider))
-                const filtered = allModels.filter(m => !blocked.has(m.split('/')[0]))
-                if (filtered.length) return filtered.join(', ')
-            }
-            return allModels.join(', ')
-        }
-    }
-
-    // All preference models already in auto-chain, or no extras added. Return
-    // the intelligence-ranked chain (not preference order).
-    if (prefModels.length && chain.length) {
+        // model_preference is an ORDERED user failover list (AGENTS.md "ordered
+        // failover, sampler-gated"): the user's declared order leads, the
+        // intelligence-ranked auto-chain is the fallback tail. Previously this
+        // score-merged — but the swe-bench score cache is inert on machines
+        // without a populated scores file, which silently demoted the user's
+        // declared order below whatever availability ranked first (witnessed:
+        // mistral/voxtral-small leading over the declared kimi-k3).
         const status = typeof sdk.getStatus === 'function' ? sdk.getStatus() : []
-        if (status.length) {
-            const blocked = new Set(status.filter(s => s.ok === false).map(s => s.provider))
-            const filtered = chain.filter(l => !blocked.has(l.model.split('/')[0]))
-            if (filtered.length) return filtered.map(l => l.model).join(', ')
+        const blocked = new Set(status.filter(s => s.ok === false).map(s => s.provider))
+        const seen = new Set()
+        const ordered = []
+        for (const m of [...prefModels, ...chain.map(l => l.model)]) {
+            if (seen.has(m)) continue
+            seen.add(m)
+            if (blocked.has(m.split('/')[0])) continue
+            ordered.push(m)
         }
-        return chain.map(l => l.model).join(', ')
+        if (ordered.length) return ordered.join(', ')
     }
 
     // No model_preference: filter by env-key presence and sampler state.

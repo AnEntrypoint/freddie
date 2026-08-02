@@ -105,6 +105,12 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                 invoke: {
                     src: fromPromise(async ({ input }) => {
                         const schemas = await getEnabledToolSchemas(input.enabledToolsets, input.disabledToolsets)
+                            .then(all => input.toolCtx?.askUser ? all : all.filter(s => (s.name || s.function?.name) !== 'ask_user_question'))
+                        // ^ ask_user_question needs an interactive channel (ctx.askUser).
+                        // Without one it can only error, and weak models were witnessed
+                        // retrying the identical doomed call 12x into the repeat-protection
+                        // force-stop (exec portfolio prompt, 2026-08-02). Hidden when no
+                        // channel exists; the REPL supplies one via toolCtx.askUser.
                         // Resolve the per-iteration tool_choice policy (see context note).
                         const tc = typeof input.tool_choice === 'function'
                             ? input.tool_choice(input.iterations)
@@ -127,7 +133,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                         const out = await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: callMessages, tools: schemas, model: input.model, provider: input.provider, tool_choice: tc }), { store: input.store })
                         return { out, compressedMessages }
                     }),
-                    input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, sessionKey: context.sessionKey, iterations: context.iterations, tool_choice: context.tool_choice, store: context.store }),
+                    input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, sessionKey: context.sessionKey, iterations: context.iterations, tool_choice: context.tool_choice, store: context.store, toolCtx: context.toolCtx }),
                     onDone: [
                         { guard: ({ event }) => Array.isArray(event.output?.out?.tool_calls) && event.output.out.tool_calls.length > 0, target: 'tool_calls', actions: assign({ messages: ({ context, event }) => [...(event.output.compressedMessages ?? context.messages), { role: 'assistant', content: event.output.out.content || '', tool_calls: event.output.out.tool_calls }] }) },
                         { target: 'done', actions: assign({ messages: ({ context, event }) => [...(event.output.compressedMessages ?? context.messages), { role: 'assistant', content: event.output.out.content || '' }], lastResult: ({ context, event }) => {
@@ -498,6 +504,12 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
         await restoreTasks(key)
     } catch (_) {}
     let initMessages = [...messages]; const sysParts = []
+    // Act-don't-narrate directive (user-witnessed stall: weak models answer
+    // open-ended build prompts with a plan and zero tool calls, ending the
+    // turn — kimi-cli's prompt drives action instead). Gated on having any
+    // toolsets enabled so contact-facing distributions (enabledToolsets: [])
+    // keep their conversational behavior.
+    if ((enabledToolsets ?? ['core']).length) sysParts.push('You are an autonomous coding agent. ACT, do not narrate: use your tools directly to accomplish the task (create and edit files, run commands) instead of describing a plan or asking which options to pick — make reasonable choices yourself. After each tool result, keep going until the task is fully done. Only stop when the work is complete or genuinely blocked.')
     if (cwd) sysParts.push(`Working directory: ${cwd}. Always pass cwd="${cwd}" to bash tool calls. When reading or writing files use paths relative to this directory or absolute paths under it.`)
     if (skill) { const sd = h.pi.skills.get(skill); if (sd?.content) sysParts.push('Skill context:\n' + sd.content) }
     // Auto-recall on turn entry: surface salient learned memories for this prompt from gm
