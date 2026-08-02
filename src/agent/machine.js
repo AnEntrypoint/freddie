@@ -8,9 +8,10 @@ import { runStep, clearSteps } from '../machines/step-journal.js'
 import { randomUUID } from 'node:crypto'
 import { HookEngine } from './hooks_engine.js'
 import { wireHookBridge } from './wire_hooks.js'
-import { loadConfig } from '../config.js'
+import { loadConfig, getConfigValue } from '../config.js'
 import { telemetry } from '../observability/telemetry.js'
-import { emit as emitEvent } from '../../plugins/gui-events/event-bus.js'
+import { emitTurnEvent } from './events.js'
+import { registerTurn, unregisterTurn, requestApproval } from './live-turns.js'
 
 const log = logger('agent')
 
@@ -20,14 +21,17 @@ function looksLikeStructuredDataNotProse(text) {
     try { JSON.parse(trimmed); return true } catch { return false }
 }
 
-export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice, store } = {}) {
+export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice, store, control = null } = {}) {
     const baseLLM = callLLM || resolveCallLLM({ provider, model })
     const llm = events ? async (input) => {
         const t0 = Date.now()
         try {
-            const out = await baseLLM(input)
+            // onChunk threads through resolveCallLLM's streaming path; each text
+            // delta becomes an assistant.delta wire event (and feeds the
+            // trajectory's llm_chunks_count, previously always 0).
+            const out = await baseLLM({ ...input, onChunk: (text) => { events.push({ type: 'llm_chunk', text, ts: new Date().toISOString() }); emitTurnEvent(sessionKey, 'assistant.delta', { text }) } })
             events.push({ type: 'llm_call', ok: true, durationMs: Date.now() - t0, provider: out?.raw?.provider || provider, model: out?.raw?.model || model, content_length: (out?.content || '').length, tool_calls_count: (out?.tool_calls || []).length, ts: new Date().toISOString() })
-            emitEvent('message.append', { sessionId: sessionKey, role: 'assistant', content: out?.content || '', tool_calls: out?.tool_calls || [], ts: new Date().toISOString() })
+            emitTurnEvent(sessionKey, 'message.append', { role: 'assistant', content: out?.content || '', tool_calls: out?.tool_calls || [] })
             return out
         } catch (e) {
             events.push({ type: 'llm_call', ok: false, durationMs: Date.now() - t0, provider, model, error: String(e?.message || e), stack: e?.stack || null, ts: new Date().toISOString() })
@@ -38,6 +42,14 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
         id: 'freddie-agent',
         initial: 'idle',
         output: ({ context }) => ({ messages: context.messages, result: context.lastResult, error: context.error, iterations: context.iterations }),
+        // Root-level INTERRUPT: registered on the machine, not a single state, so
+        // a cancel arriving mid-prompting / mid-executing_tools is not silently
+        // dropped (previously only `idle` handled it, which meant external
+        // cancelTurn() during a busy turn was a no-op). Takes effect at the next
+        // tool_calls boundary check.
+        on: {
+            INTERRUPT: { actions: assign({ interrupt: true }) },
+        },
         context: ({ input }) => ({
             messages: input?.messages ? [...input.messages] : [],
             iterations: 0,
@@ -48,6 +60,10 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
             provider, model,
             enabledToolsets, disabledToolsets,
             sessionKey,
+            // Turn control plane (steers/approval policy/repeat-protection state),
+            // shared by reference with the live-turns registry entry so external
+            // surfaces can interact with the running turn. Null = detached turn.
+            control,
             // Optional tool_choice policy. A FUNCTION receives the iteration index and
             // returns the tool_choice for that llm call (full caller control). A plain
             // VALUE (e.g. 'required') applies on ITERATION 0 ONLY, then reverts to the
@@ -76,7 +92,6 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                             iterations: 0, interrupt: false, error: null,
                         }),
                     },
-                    INTERRUPT: { actions: assign({ interrupt: true }) },
                 },
             },
             prompting: {
@@ -123,12 +138,52 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                         const calls = last.tool_calls || []
                         const results = []
                         const extras = []
+                        const control = input.control
+                        let forceStop = null
                         for (const call of calls) {
                             const tname = call.name || call.function?.name
                             const targs = call.arguments || call.function?.arguments || {}
                             const tcid = call.id || call.tool_call_id
+                            if (control) {
+                                // Tool-call repeat protection (port of kimi-cli's KimiToolset
+                                // streak logic): identical name+args in a row gets escalating
+                                // reminders at 3/5/8, and the turn is force-stopped at 12 so a
+                                // looping model can't burn the whole iteration budget.
+                                const sig = tname + ':' + JSON.stringify(targs)
+                                if (sig === control.lastSig) control.streak += 1
+                                else { control.lastSig = sig; control.streak = 1 }
+                                if (control.streak >= 12) {
+                                    results.push({ tool_call_id: tcid, content: JSON.stringify({ error: 'tool call repeat limit reached — turn force-stopped', tool: tname }) })
+                                    forceStop = 'tool_call_repeat'
+                                    break
+                                }
+                                if ([3, 5, 8].includes(control.streak)) {
+                                    extras.push({ role: 'system', content: `<system-reminder>You have repeated the identical tool call (${tname}) with identical arguments ${control.streak} times consecutively without gaining new information. Do not call it again with the same arguments — change approach or report the blocker.</system-reminder>` })
+                                }
+                                // Approval gate (agent.approval_policy: off|mutating|all).
+                                // Detached turns (batch/cron, no live-turns entry) fail OPEN
+                                // inside requestApproval to preserve pre-policy behavior.
+                                // yolo/afk session flags (plugins/core/approval_state.js,
+                                // toggled via /yolo /afk) bypass the gate entirely.
+                                let gated = false
+                                {
+                                    const { isYolo, isAfk } = await import('../../plugins/core/approval_state.js')
+                                    if (!isYolo(input.sessionKey) && !isAfk(input.sessionKey)) {
+                                        const policy = control.approvalPolicy || 'off'
+                                        gated = policy === 'all' || (policy === 'mutating' && control.mutatingTools.has(tname))
+                                    }
+                                }
+                                if (gated && !control.approvedTools.has(tname)) {
+                                    const decision = await requestApproval(input.sessionKey, { name: tname, args: targs, cwd: input.toolCtx?.cwd })
+                                    if (!decision.approved) {
+                                        emitTurnEvent(input.sessionKey, 'tool.end', { name: tname, toolCallId: tcid, denied: true })
+                                        results.push({ tool_call_id: tcid, content: JSON.stringify({ error: 'tool call denied by user', tool: tname, feedback: decision.feedback || null }) })
+                                        continue
+                                    }
+                                }
+                            }
                             telemetry.toolCall({ name: tname, args: targs })
-                            emitEvent('tool.start', { sessionId: input.sessionKey, name: tname, args: targs, toolCallId: tcid, ts: new Date().toISOString() })
+                            emitTurnEvent(input.sessionKey, 'tool.start', { name: tname, args: targs, toolCallId: tcid })
                             const ret = await runStep(input.sessionKey, 'tool:' + input.iterations + ':' + tcid, async () => {
                                 const callExtras = []
                                 const pushExtras = r => { if (r?.systemMessage) callExtras.push({ role: 'system', content: '[hook] ' + r.systemMessage }); if (r?.additionalContext) callExtras.push({ role: 'system', content: r.additionalContext }) }
@@ -143,16 +198,28 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                 return { content: res, extras: callExtras }
                             }, { store: input.store })
                             results.push({ tool_call_id: tcid, content: ret.content })
-                            emitEvent('tool.end', { sessionId: input.sessionKey, name: tname, toolCallId: tcid, result: ret.content, ts: new Date().toISOString() })
+                            emitTurnEvent(input.sessionKey, 'tool.end', { name: tname, toolCallId: tcid, result: ret.content })
                             extras.push(...ret.extras)
                         }
-                        return { results, extras }
+                        return { results, extras, forceStop }
                     }),
-                    input: ({ context }) => ({ messages: context.messages, sessionKey: context.sessionKey, iterations: context.iterations, toolCtx: context.toolCtx, store: context.store }),
-                    onDone: { target: 'prompting', actions: assign({
-                        messages: ({ context, event }) => [...context.messages, ...event.output.results.map(r => ({ role: 'tool', tool_call_id: r.tool_call_id, content: r.content })), ...event.output.extras],
-                        iterations: ({ context }) => context.iterations + 1,
-                    }) },
+                    input: ({ context }) => ({ messages: context.messages, sessionKey: context.sessionKey, iterations: context.iterations, toolCtx: context.toolCtx, store: context.store, control: context.control }),
+                    onDone: [
+                        { guard: ({ event }) => !!event.output?.forceStop, target: 'done', actions: assign({
+                            messages: ({ context, event }) => [...context.messages, ...event.output.results.map(r => ({ role: 'tool', tool_call_id: r.tool_call_id, content: r.content })), ...event.output.extras],
+                            error: ({ event }) => 'turn force-stopped: ' + event.output.forceStop,
+                        }) },
+                        { target: 'prompting', actions: assign({
+                            messages: ({ context, event }) => {
+                                // Drain pending steers (mid-turn user injections) into the
+                                // transcript at this step boundary — kimi's
+                                // _consume_pending_steers equivalent.
+                                const drained = context.control?.steers ? context.control.steers.splice(0) : []
+                                return [...context.messages, ...event.output.results.map(r => ({ role: 'tool', tool_call_id: r.tool_call_id, content: r.content })), ...event.output.extras, ...drained.map(t => ({ role: 'user', content: t }))]
+                            },
+                            iterations: ({ context }) => context.iterations + 1,
+                        }) },
+                    ],
                     onError: { target: 'done', actions: assign({ error: ({ event }) => String(event.error?.message || event.error) }) },
                 },
             },
@@ -275,12 +342,12 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
     const { actor } = pa
     return await new Promise((resolve, reject) => {
         let sub
-        const cleanup = () => { try { sub?.unsubscribe() } catch {} ; pa.flush().catch(() => {}).finally(() => { try { actor.stop() } catch {} }) }
+        const cleanup = () => { try { sub?.unsubscribe() } catch {} ; try { unregisterTurn(sessionKey) } catch { /* swallow: registry teardown is best-effort */ } ; pa.flush().catch(() => {}).finally(() => { try { actor.stop() } catch {} }) }
         let settled = false
         const t = setTimeout(() => {
             if (settled) return; settled = true
             telemetry.turnForceStopped({ reason: 'timeout', timeoutMs })
-            emitEvent('session.error', { sessionId: sessionKey, reason: 'timeout', timeoutMs, ts: new Date().toISOString() })
+            emitTurnEvent(sessionKey, 'session.error', { reason: 'timeout', timeoutMs })
             const out = timeoutResult(actor, timeoutMs)
             cleanup()
             ;(async () => {
@@ -299,9 +366,9 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
                 const out = snap.output
                 telemetry.turnEnded({ iterations: out.iterations, result: out.result ? 'ok' : (out.error ? 'error' : 'empty'), error: out.error || null })
                 if (out.error) {
-                    emitEvent('session.error', { sessionId: sessionKey, error: out.error, iterations: out.iterations, ts: new Date().toISOString() })
+                    emitTurnEvent(sessionKey, 'session.error', { error: out.error, iterations: out.iterations })
                 }
-                emitEvent('session.end', { sessionId: sessionKey, result: out.result ? 'ok' : (out.error ? 'error' : 'empty'), error: out.error || null, iterations: out.iterations, ts: new Date().toISOString() })
+                emitTurnEvent(sessionKey, 'session.end', { result: out.result ? 'ok' : (out.error ? 'error' : 'empty'), error: out.error || null, iterations: out.iterations })
                 const outbound = await h.hooks.invoke('onMessageOutbound', { content: out?.result || '' })
                 hookEngine.runHooks('onMessageOutbound', { sessionKey, cwd }).catch(() => {})
                 wireHookBridge.forwardHook('onMessageOutbound', { sessionKey, cwd, content: out?.result || '' }).catch(() => {})
@@ -326,7 +393,7 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
     })
 }
 
-export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store } = {}) {
+export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store, approvalMode = null } = {}) {
     const events = [];
     // Wire telemetry: load config to check enabled state and configure
     const cfg = loadConfig()
@@ -337,13 +404,18 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
         telemetry.setSession(sessionKey || '')
         telemetry.setTurn(sessionKey || '')
         telemetry.turnStarted({ prompt, model, provider })
-        emitEvent('session.start', { sessionId: sessionKey, prompt, model, provider, ts: new Date().toISOString() })
     }
     const h = await bootHost()
     const hookEngine = new HookEngine({ config: loadConfig() })
     await h.hooks.invoke('onSessionStart', { prompt, model, provider, skill, cwd })
     hookEngine.runHooks('onSessionStart', { sessionKey, cwd }).catch(() => {})
     wireHookBridge.forwardHook('onSessionStart', { sessionKey, cwd, prompt }).catch(() => {})
+    // Persist the turn snapshot under kind=agent so an interrupted turn (process
+    // refresh mid-tool-call) resumes exactly where it stopped via resumeTurn.
+    // Declared BEFORE restoreTasks below -- previously it sat ~25 lines further
+    // down, so this call hit the TDZ, threw a ReferenceError swallowed by its own
+    // catch, and task restore silently never ran.
+    const key = sessionKey || randomUUID()
     // Restore and reconcile tasks from prior sessions so background tasks
     // from a resumed session are properly tracked and stale ones detected.
     try {
@@ -371,9 +443,6 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     wireHookBridge.forwardHook('onMessageInbound', { sessionKey, cwd, content: prompt }).catch(() => {})
     if (inbound?.behavior === 'block') { await h.hooks.invoke('onSessionEnd', { reason: 'prompt_blocked' }); return { messages: initMessages, result: null, error: 'prompt blocked by plugsdk hook: ' + (inbound.reason || 'denied'), iterations: 0 } }
     initMessages = mergeHookExtras(initMessages, inbound, 'onMessageInbound')
-    // Persist the turn snapshot under kind=agent so an interrupted turn (process
-    // refresh mid-tool-call) resumes exactly where it stopped via resumeTurn.
-    const key = sessionKey || randomUUID()
     // cwd must reach file-path tool handlers (write/read/edit) via toolCtx, not
     // just the system-prompt text above -- those handlers resolve relative paths
     // with bare fs calls against process.cwd(), so without this every relative
@@ -381,12 +450,30 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     // caller's intended project directory (only `bash` was safe, since it takes
     // cwd as an explicit tool argument the model was told to pass).
     const mergedToolCtx = { sessionKey: key, ...(cwd ? { cwd, ...(toolCtx || {}) } : (toolCtx || {})) }
-    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx: mergedToolCtx, tool_choice, store })
+    // Turn control plane: shared by reference with the live-turns registry so
+    // wire/WS/REPL surfaces can steer, cancel, and resolve approvals against
+    // the running turn. approvalPolicy off = pre-existing behavior (no gate).
+    const control = {
+        steers: [],
+        // agent.approval_mode (off|mutating|all) is the gate mode; the older
+        // agent.approval_policy OBJECT ({yolo,afk,auto_approve}) stays as the
+        // session-state bag — its auto_approve list seeds this turn's
+        // pre-approved tools so the two conventions compose. The approvalMode
+        // arg (e.g. REPL /approve) overrides config for this turn only.
+        approvalPolicy: approvalMode || getConfigValue('agent.approval_mode', 'off'),
+        approvalTimeoutMs: getConfigValue('agent.approval_timeout_ms', 120000),
+        mutatingTools: new Set(getConfigValue('agent.approval_tools', ['bash', 'write', 'edit', 'file_operations', 'code_execution', 'process_registry', 'cronjob', 'terminal'])),
+        approvedTools: new Set(getConfigValue('agent.approval_policy', {})?.auto_approve || []),
+        lastSig: null, streak: 0,
+    }
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx: mergedToolCtx, tool_choice, store, control })
     const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages }, store })
+    registerTurn(key, { actor: pa.actor, control, pendingApproval: null, startedAt: Date.now() })
     pa.actor.send({ type: 'SUBMIT', prompt })
     // Emit session.created only for new sessions (not resumes)
-    if (!sessionKey) emitEvent('session.created', { sessionId: key, prompt, model, provider, ts: new Date().toISOString() })
-    emitEvent('message.append', { sessionId: key, role: 'user', content: prompt, ts: new Date().toISOString() })
+    if (!sessionKey) emitTurnEvent(key, 'session.created', { prompt, model, provider })
+    emitTurnEvent(key, 'session.start', { prompt, model, provider })
+    emitTurnEvent(key, 'message.append', { role: 'user', content: prompt })
     return await driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey: key, store })
 }
 
@@ -397,13 +484,26 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
     if (!sessionKey) throw new Error('resumeTurn requires sessionKey')
     const events = []; const h = await bootHost()
     const hookEngine = new HookEngine({ config: loadConfig() })
-    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey, toolCtx, store })
+    const control = {
+        steers: [],
+        // agent.approval_mode (off|mutating|all) is the gate mode; the older
+        // agent.approval_policy OBJECT ({yolo,afk,auto_approve}) stays as the
+        // session-state bag — its auto_approve list seeds this turn's
+        // pre-approved tools so the two conventions compose.
+        approvalPolicy: getConfigValue('agent.approval_mode', 'off'),
+        approvalTimeoutMs: getConfigValue('agent.approval_timeout_ms', 120000),
+        mutatingTools: new Set(getConfigValue('agent.approval_tools', ['bash', 'write', 'edit', 'file_operations', 'code_execution', 'process_registry', 'cronjob', 'terminal'])),
+        approvedTools: new Set(getConfigValue('agent.approval_policy', {})?.auto_approve || []),
+        lastSig: null, streak: 0,
+    }
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey, toolCtx, store, control })
     // createPersistentActor.load() already handles a missing/stale snapshot and
     // leaves pa.resumed=false, so the prior pre-check load() was a redundant
     // second read that opened a TOCTOU window (a concurrent delete between the two
     // reads made forget() delete a snapshot we had just confirmed). One read only.
     const pa = await createPersistentActor(machine, { kind: 'agent', key: sessionKey, input: { messages: [] }, store })
     if (!pa.resumed) return null
+    registerTurn(sessionKey, { actor: pa.actor, control, pendingApproval: null, startedAt: Date.now() })
     return await driveAgentActor({ pa, h, hookEngine, events, prompt: '', provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store })
 }
 

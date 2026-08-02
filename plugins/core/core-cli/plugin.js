@@ -66,8 +66,22 @@ export default {
                 return
             }
             const { interactive } = await import('../../../src/cli/interactive.js')
+            // pi-bridge (pi-ai) is preferred when it can actually resolve —
+            // but it hard-defaults provider=anthropic and throws
+            // 'unknown model'/'no API key' when that provider isn't keyed,
+            // which previously made `freddie run` unusable in any environment
+            // where exec's acptoapi chain worked fine. Fall back to the
+            // chain resolver on pi-bridge failure instead of dying.
             let callLLM = null
-            try { ({ callLLM } = await import('../../../src/agent/pi-bridge.js')) } catch {}
+            try {
+                const pb = await import('../../../src/agent/pi-bridge.js')
+                callLLM = async (input) => {
+                    try { return await pb.callLLM(input) } catch {
+                        const { resolveCallLLM } = await import('../../../src/agent/llm_resolver.js')
+                        return resolveCallLLM({ provider: input.provider, model: input.model })(input)
+                    }
+                }
+            } catch { /* swallow: pi-bridge absent — machine uses resolveCallLLM */ }
             // --resume with no value = continue the most recent session; --resume <id> = that one.
             const resume = opts.resume === true ? true : (opts.resume || null)
             await interactive({ callLLM, resume })
@@ -252,7 +266,38 @@ export default {
                 await deleteSession(target.id); console.log(`removed session ${target.id.slice(0, 8)}`)
                 return
             }
-            console.error('usage: freddie session [list|show <id>|rm <id>]'); process.exit(1)
+            // kimi vis-style trace viewer over the wire log. Resolves by wire-log
+            // FILENAME prefix, not sessions.db (gui-agent workspace sessions only
+            // exist as wire logs). assistant.delta lines collapse into the settled
+            // message.append; --raw dumps the untouched envelopes.
+            if (action === 'wire') {
+                if (!id) { console.error('usage: freddie session wire <id> [--raw]'); process.exit(1) }
+                const { readWireLog, wireLogDir } = await import('../../../src/agent/events.js')
+                const fs = await import('node:fs')
+                let sid = id
+                try {
+                    const files = fs.readdirSync(wireLogDir()).filter(f => f.endsWith('.jsonl'))
+                    const match = files.find(f => f === id + '.jsonl') || files.find(f => f.startsWith(id))
+                    if (match) sid = match.slice(0, -'.jsonl'.length)
+                } catch { /* swallow: missing wire dir just means no logs below */ }
+                const events = readWireLog(sid)
+                if (!events.length) { console.error('no wire log for session:', id); process.exit(1) }
+                if (process.argv.includes('--raw')) { for (const e of events) console.log(JSON.stringify(e)); return }
+                for (const e of events) {
+                    if (e.event === 'assistant.delta') continue
+                    const t = (e.ts || '').slice(11, 19)
+                    const d = e.data || {}
+                    let line = `${t}  ${e.event.padEnd(18)}`
+                    if (e.event === 'message.append') line += ` ${d.role}: ${String(d.content || (d.tool_calls?.length ? '[tool call]' : '')).slice(0, 100).replace(/\n/g, ' ')}`
+                    else if (e.event === 'tool.start') line += ` ${d.name} ${JSON.stringify(d.args || {}).slice(0, 80)}`
+                    else if (e.event === 'tool.end') line += ` ${d.name}${d.denied ? ' (denied)' : ''}`
+                    else if (e.event.startsWith('approval.')) line += ` ${d.name || ''} ${d.approved != null ? (d.approved ? 'approved' : 'rejected') : ''}`
+                    else if (e.event === 'steer.append') line += ` ${d.text}`
+                    console.log(line)
+                }
+                return
+            }
+            console.error('usage: freddie session [list|show <id>|rm <id>|wire <id> [--raw]]'); process.exit(1)
         } })
 
         // --- Onboarding: `freddie doctor` one-glance health --------------------
