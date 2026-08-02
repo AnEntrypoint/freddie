@@ -69,6 +69,21 @@ stdout is frames-only; clients MUST skip lines not starting with `{` (boot chatt
 | `queue.append` | `{text, depth}` | follow-up queued for after the turn |
 | `session.end` | `{result: "ok"|"error"|"empty", error?, iterations}` | turn settled |
 | `session.error` | `{error?|reason?, timeoutMs?}` | turn-level failure (incl. timeout) |
+| `status.update` | `{reverted?, turnsBack?, keptMessages?}` | checkpoint-revert notice (also reserved) |
+
+## Session operations
+
+- **fork** — `freddie session fork <id> [atEventIndex]` copies the wire transcript
+  into a new session id (wire log + sessions.db rebuilt via `transcriptFromWire`).
+- **undo** — `freddie session undo <id>` truncates the wire log at the last
+  `session.start` and rebuilds the DB transcript.
+- **revert (checkpoint)** — `revert {sessionId, turnsBack?}` (wire method) /
+  `{type:"revert"}` (WS): rewinds the RUNNING turn's context `turnsBack` LLM
+  steps (root `REVERT` machine event; step journal cleared; truncation computed
+  from the live wire events). kimi's D-Mail class of recovery.
+- **upload** — `POST /api/sessions/:id/files {name, contentBase64|text}` stores
+  under `<FREDDIE_HOME>/uploads/<sid>/`; the path rides the prompt frame's
+  `attachments` field and the agent reads it with file tools.
 
 ## Turn control semantics
 

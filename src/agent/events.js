@@ -24,6 +24,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { emit as busEmit } from '../../plugins/gui-events/event-bus.js'
 import { getFreddieHome } from '../home.js'
 
@@ -98,8 +99,7 @@ export function readWireLog(sessionId, { limit = 0 } = {}) {
 // locate-and-transcribe principle: return the exact recorded span, never a
 // paraphrase). Complements embedding recall in gm-learn — similarity finds
 // thematically-related facts, this finds the literal prior occurrence.
-export function searchWireLogs(query, { limit = 5, maxFiles = 50, maxSpan = 400 } = {}) {
-    const terms = String(query || '').toLowerCase().split(/[^a-z0-9_]+/).filter(t => t.length > 3)
+export function searchWireLogs(query, { limit = 5, maxFiles = 50, maxSpan = 400 } = {}) {    const terms = String(query || '').toLowerCase().split(/[^a-z0-9_]+/).filter(t => t.length > 3)
     if (!terms.length) return []
     let files
     try {
@@ -122,4 +122,58 @@ export function searchWireLogs(query, { limit = 5, maxFiles = 50, maxSpan = 400 
         if (hits.length >= limit * 4) break
     }
     return hits.sort((a, b) => b.matched - a.matched || (a.ts < b.ts ? 1 : -1)).slice(0, limit)
+}
+
+// Reconstruct a well-formed prior transcript from a session's wire log (the
+// log is the canonical record). Shared by gui-agent (turn continuity), the
+// session fork/undo actions, and any future vis tooling.
+export function transcriptFromWire(sessionId, { limit = 1000 } = {}) {
+    const msgs = []
+    for (const env of readWireLog(sessionId, { limit })) {
+        const { event, data } = env
+        if (event === 'message.append') {
+            if (data.role === 'user') msgs.push({ role: 'user', content: data.content })
+            else if (data.role === 'assistant') msgs.push({ role: 'assistant', content: data.content || '', tool_calls: data.tool_calls || [] })
+        } else if (event === 'steer.append' || event === 'queue.append') {
+            msgs.push({ role: 'user', content: data.text })
+        } else if (event === 'tool.end') {
+            msgs.push({ role: 'tool', tool_call_id: data.toolCallId, content: data.denied ? JSON.stringify({ error: 'tool call denied by user' }) : (typeof data.result === 'string' ? data.result : JSON.stringify(data.result ?? '')) })
+        }
+    }
+    return msgs
+}
+
+// Copy (a prefix of) one session's wire log into a new session id — the fork
+// half of kimi's /fork. Returns the new session id.
+export function forkWireLog(sessionId, { atIndex = null, newSessionId = null } = {}) {
+    const events = readWireLog(sessionId)
+    if (!events.length) return null
+    const sid = newSessionId || randomUUID()
+    const slice = atIndex != null ? events.slice(0, Math.max(0, Math.min(atIndex, events.length))) : events
+    const p = wireLogPath(sid)
+    fs.mkdirSync(path.dirname(p), { recursive: true })
+    fs.writeFileSync(p, slice.map(e => JSON.stringify({ ...e, sessionId: sid })).join('\n') + '\n')
+    return sid
+}
+
+// Truncate a session's wire log to the first N envelopes — the undo half of
+// kimi's /undo. Returns the number of events kept, or null when no log exists.
+export function truncateWireLog(sessionId, keepCount) {
+    const events = readWireLog(sessionId)
+    if (!events.length) return null
+    const keep = Math.max(0, Math.min(keepCount, events.length))
+    const p = wireLogPath(sessionId)
+    fs.writeFileSync(p, events.slice(0, keep).map(e => JSON.stringify(e)).join('\n') + (keep ? '\n' : ''))
+    return keep
+}
+
+// Index of the envelope where the LAST turn began (its session.start), for
+// undo: truncating here drops exactly the most recent turn. Falls back to the
+// full length (nothing to undo) and never unbounds below 0.
+export function lastTurnStartIndex(sessionId) {
+    const events = readWireLog(sessionId)
+    for (let i = events.length - 1; i >= 0; i--) {
+        if (events[i].event === 'session.start') return i
+    }
+    return events.length
 }
