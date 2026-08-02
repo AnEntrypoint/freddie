@@ -225,6 +225,30 @@ export function resolveCallLLM({ provider, model } = {}) {
                 // is externalized for vite -- unverified post-rewrite, see build:browser).
                 return await bridgeCall({ ...input, model: m })
             }
+            // Streaming path: when the caller wants deltas (GUI workspace / REPL
+            // progress), use the chain-aware sdkStream with the same opts and take
+            // ONE logical step (text-delta events stream live; tool-call events
+            // arrive fully assembled). Stop at the first finish-step: acptoapi's
+            // stream runs its own internal multi-step tool loop, but freddie's
+            // machine drives its own loop. Any mid-stream failure falls through
+            // to the buffered chat() below -- partial deltas already emitted are
+            // harmless because the settled message.append carries the
+            // authoritative full text.
+            if (typeof input.onChunk === 'function' && typeof sdk.sdkStream === 'function') {
+                try {
+                    let text = ''
+                    const tool_calls = []
+                    for await (const ev of sdk.sdkStream({ ...opts, output: 'events' })) {
+                        if (ev?.type === 'text-delta' && ev.textDelta) { text += ev.textDelta; input.onChunk(ev.textDelta) }
+                        else if (ev?.type === 'tool-call') {
+                            const args = ev.args ?? ev.input ?? {}
+                            tool_calls.push({ id: ev.toolCallId || ('call_' + tool_calls.length), type: 'function', function: { name: ev.toolName, arguments: typeof args === 'string' ? args : JSON.stringify(args) } })
+                        }
+                        else if (ev?.type === 'finish-step' || ev?.type === 'finish') break
+                    }
+                    return adapt({ choices: [{ message: { content: text, tool_calls } }], provider: m.split('/')[0], model: m })
+                } catch { /* swallow: fall through to buffered chat */ }
+            }
             const r = await sdk.chat(opts)
             return adapt(r)
         } catch (e) {
