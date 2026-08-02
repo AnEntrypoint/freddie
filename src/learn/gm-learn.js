@@ -85,14 +85,15 @@ async function ensurePlugkit() {
         _pk = { dispatch: bridge.dispatch, version: () => 'browser-bridge' }
         return _pk
     }
-    if (_failed) return null
+    if (_failed && (Date.now() - _failed) < 60000) return null
+    if (_failed) _failed = false // transient daemon hiccups get a fresh probe after 60s
     if (_initPromise) return _initPromise
     _initPromise = (async () => {
         try {
             _pk = await ensureNodeBackend()
             return _pk
         } catch (e) {
-            _failed = true
+            _failed = Date.now() // retry window, not permanent — a busy daemon recovers
             try { console.error('[gm-learn] disabled (gm rs-learn unavailable):', e && e.message) } catch (_) { /* swallow: stderr may itself be closed during teardown */ }
             return null
         } finally {

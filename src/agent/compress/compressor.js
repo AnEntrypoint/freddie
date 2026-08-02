@@ -2,11 +2,13 @@ import { shouldCompress, computeCompressionPlan, MINIMUM_CONTEXT_LENGTH } from '
 import { pruneOldToolResults } from './prune.js'
 import { SUMMARY_PREFIX, LEGACY_SUMMARY_PREFIX, SUMMARIZER_SYSTEM_PROMPT, buildSummarizerInput } from './prompt.js'
 import { markFailure, shouldRetry } from './fallback.js'
+import { splitMiddleIntoBlocks, allocateBlockBudgets, enforceTokenBudget, mapWithConcurrency, BLOCK_SOURCE_TOKENS, BLOCK_CONCURRENCY } from './blocks.js'
+import { estimateMessagesTokens, CHARS_PER_TOKEN } from './tokens.js'
 import { logger } from '../../observability/log.js'
 
 const log = logger('compressor')
 
-export async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, callLLM, auxModel = null, threshold } = {}) {
+export async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, callLLM, auxModel = null, threshold, blockSourceTokens = BLOCK_SOURCE_TOKENS, blockConcurrency = BLOCK_CONCURRENCY } = {}) {
     if (!shouldCompress({ messages, modelContextLength, threshold })) return { compressedMessages: messages, summary: null, didCompress: false, reason: 'below threshold' }
     if (!shouldRetry()) return { compressedMessages: messages, summary: null, didCompress: false, reason: 'cooldown' }
     if (typeof callLLM !== 'function') throw new Error('compress: callLLM required')
@@ -16,26 +18,49 @@ export async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_
 
     const existing = extractExistingSummary(plan.head)
     const prunedMiddle = pruneOldToolResults(plan.middle, 0)
-    const summarizerMessages = [
-        { role: 'system', content: SUMMARIZER_SYSTEM_PROMPT },
-        { role: 'user', content: (existing ? `Previous summary:\n${existing}\n\nNew turns to fold in:\n` : '') + buildSummarizerInput(prunedMiddle) },
-    ]
-    let summary
+
+    // Block-wise parallel compaction (arXiv:2605.23296): instead of ONE
+    // sequential summarize-everything call (which stalls the turn for tens of
+    // seconds and returns a summary whose length the model picks at will),
+    // the middle is split at tool_call-safe boundaries, each block is
+    // summarized by an independent call run with bounded concurrency, and each
+    // block's summary is held to an explicit share of the overall budget by
+    // deterministic truncation (enforceTokenBudget) — the instructed length is
+    // a hint, the slice is the guarantee.
+    const blocks = splitMiddleIntoBlocks(prunedMiddle, blockSourceTokens)
+    const budgets = allocateBlockBudgets(blocks, plan.summaryBudget)
+
+    let blockSummaries
     try {
-        const out = await callLLM({ messages: summarizerMessages, tools: [], model: auxModel, maxTokens: plan.summaryBudget })
-        summary = (out?.content || '').trim()
-        if (!summary) throw new Error('empty summary')
+        blockSummaries = await mapWithConcurrency(blocks, blockConcurrency, async (block, i) => {
+            const budget = budgets[i]
+            const budgetLine = `Length limit: this block's summary MUST be under ${budget} tokens (≈${budget * CHARS_PER_TOKEN} characters). Shorter is better — this is a hard cap, anything past it is discarded.`
+            const preamble = (i === 0 && existing) ? `Previous summary:\n${existing}\n\nNew turns to fold in:\n` : ''
+            const blockLabel = blocks.length > 1 ? `This is block ${i + 1} of ${blocks.length} from the same conversation; summarize only what is in this block.\n\n` : ''
+            const summarizerMessages = [
+                { role: 'system', content: SUMMARIZER_SYSTEM_PROMPT },
+                { role: 'user', content: budgetLine + '\n\n' + blockLabel + preamble + buildSummarizerInput(block) },
+            ]
+            // max_tokens (snake) reaches resolveCallLLM/acptoapi; maxTokens
+            // (camel) is kept for external callLLM consumers of the old shape.
+            const out = await callLLM({ messages: summarizerMessages, tools: [], model: auxModel, maxTokens: budget, max_tokens: budget })
+            const raw = (out?.content || '').trim()
+            if (!raw) throw new Error('empty summary')
+            return enforceTokenBudget(raw, budget)
+        })
     } catch (e) {
         markFailure()
         log.error('summarization failed', { err: String(e) })
         return { compressedMessages: messages, summary: null, didCompress: false, error: String(e) }
     }
 
+    const summary = blockSummaries.join('\n\n')
     const headWithoutOldSummary = stripExistingSummary(plan.head)
     const summaryMsg = { role: 'user', content: `${SUMMARY_PREFIX}\n\n${summary}` }
     const compressedMessages = [...headWithoutOldSummary, summaryMsg, ...plan.tail]
-    log.info('compressed', { in: messages.length, out: compressedMessages.length, summary_chars: summary.length })
-    return { compressedMessages, summary, didCompress: true, plan }
+    const blockInfo = blocks.map((b, i) => ({ index: i, messages: b.length, sourceTokens: estimateMessagesTokens(b), budget: budgets[i], summaryChars: blockSummaries[i].length }))
+    log.info('compressed', { in: messages.length, out: compressedMessages.length, blocks: blocks.length, summary_chars: summary.length })
+    return { compressedMessages, summary, didCompress: true, plan, blocks: blockInfo }
 }
 
 function extractExistingSummary(head) {

@@ -11,7 +11,8 @@ import { wireHookBridge } from './wire_hooks.js'
 import { loadConfig, getConfigValue } from '../config.js'
 import { telemetry } from '../observability/telemetry.js'
 import { emitTurnEvent } from './events.js'
-import { registerTurn, unregisterTurn, requestApproval } from './live-turns.js'
+import { registerTurn, unregisterTurn, requestApproval, loadApprovalGrants, noteToolCall } from './live-turns.js'
+import { classifyToolCall, CLASSIFIER_CONSEC_DENY_LIMIT, CLASSIFIER_TOTAL_DENY_LIMIT } from './approval_classifier.js'
 
 const log = logger('agent')
 
@@ -102,13 +103,29 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                         const tc = typeof input.tool_choice === 'function'
                             ? input.tool_choice(input.iterations)
                             : (input.iterations === 0 ? input.tool_choice : undefined)
-                        return await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: input.messages, tools: schemas, model: input.model, provider: input.provider, tool_choice: tc }), { store: input.store })
+                        // Live compaction (arXiv:2605.23296 block-parallel, deterministic
+                        // per-block budgets): past the 85% threshold the middle of the
+                        // conversation is summarized per-block and REPLACES context via
+                        // the onDone assign below (compressedMessages), so token growth
+                        // actually flattens instead of re-triggering every call. The
+                        // compressor's own cooldown/failure contract returns the original
+                        // messages untouched. Previously NOTHING in the turn path called
+                        // compress() — the whole subsystem was dead code.
+                        let callMessages = input.messages
+                        let compressedMessages = null
+                        try {
+                            const { compress } = await import('./compress/index.js')
+                            const r = await compress({ messages: input.messages, callLLM: resolveCallLLM({}) })
+                            if (r.didCompress) { compressedMessages = r.compressedMessages; callMessages = r.compressedMessages }
+                        } catch { /* swallow: compression failure keeps original messages */ }
+                        const out = await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: callMessages, tools: schemas, model: input.model, provider: input.provider, tool_choice: tc }), { store: input.store })
+                        return { out, compressedMessages }
                     }),
                     input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, sessionKey: context.sessionKey, iterations: context.iterations, tool_choice: context.tool_choice, store: context.store }),
                     onDone: [
-                        { guard: ({ event }) => Array.isArray(event.output?.tool_calls) && event.output.tool_calls.length > 0, target: 'tool_calls', actions: assign({ messages: ({ context, event }) => [...context.messages, { role: 'assistant', content: event.output.content || '', tool_calls: event.output.tool_calls }] }) },
-                        { target: 'done', actions: assign({ messages: ({ context, event }) => [...context.messages, { role: 'assistant', content: event.output.content || '' }], lastResult: ({ context, event }) => {
-                            if (event.output.content && event.output.content.trim()) return event.output.content;
+                        { guard: ({ event }) => Array.isArray(event.output?.out?.tool_calls) && event.output.out.tool_calls.length > 0, target: 'tool_calls', actions: assign({ messages: ({ context, event }) => [...(event.output.compressedMessages ?? context.messages), { role: 'assistant', content: event.output.out.content || '', tool_calls: event.output.out.tool_calls }] }) },
+                        { target: 'done', actions: assign({ messages: ({ context, event }) => [...(event.output.compressedMessages ?? context.messages), { role: 'assistant', content: event.output.out.content || '' }], lastResult: ({ context, event }) => {
+                            if (event.output.out.content && event.output.out.content.trim()) return event.output.out.content;
                             for (let i = context.messages.length - 1; i >= 0; i--) {
                                 const m = context.messages[i];
                                 if (m.role !== 'assistant' || typeof m.content !== 'string' || !m.content.trim()) continue;
@@ -116,7 +133,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                 if (looksLikeStructuredDataNotProse(m.content)) continue;
                                 return m.content;
                             }
-                            return event.output.content || '';
+                            return event.output.out.content || '';
                         } }) },
                     ],
                     onError: { target: 'done', actions: assign({ error: ({ event }) => String(event.error?.message || event.error) }) },
@@ -145,6 +162,17 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                             const targs = call.arguments || call.function?.arguments || {}
                             const tcid = call.id || call.tool_call_id
                             if (control) {
+                                // Per-tool SESSION budget caps (agent.tool_budgets config,
+                                // Claude Code's 200/session precedent). Complements the
+                                // identical-args streak detector: varying-args burn loops
+                                // hit the budget instead.
+                                const budget = control.toolBudgets?.[tname]
+                                if (budget && noteToolCall(input.sessionKey, tname) > budget) {
+                                    emitTurnEvent(input.sessionKey, 'tool.end', { name: tname, toolCallId: tcid, budgetExceeded: true })
+                                    results.push({ tool_call_id: tcid, content: JSON.stringify({ error: 'tool session budget exceeded', tool: tname, budget }) })
+                                    extras.push({ role: 'system', content: `<system-reminder>Tool ${tname} has exceeded its session budget of ${budget} calls. Do not call it again this session — answer with what you have or state the blocker.</system-reminder>` })
+                                    continue
+                                }
                                 // Tool-call repeat protection (port of kimi-cli's KimiToolset
                                 // streak logic): identical name+args in a row gets escalating
                                 // reminders at 3/5/8, and the turn is force-stopped at 12 so a
@@ -160,17 +188,58 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                 if ([3, 5, 8].includes(control.streak)) {
                                     extras.push({ role: 'system', content: `<system-reminder>You have repeated the identical tool call (${tname}) with identical arguments ${control.streak} times consecutively without gaining new information. Do not call it again with the same arguments — change approach or report the blocker.</system-reminder>` })
                                 }
-                                // Approval gate (agent.approval_policy: off|mutating|all).
+                                // Approval gate (agent.approval_mode: off|mutating|classifier|all).
                                 // Detached turns (batch/cron, no live-turns entry) fail OPEN
                                 // inside requestApproval to preserve pre-policy behavior.
                                 // yolo/afk session flags (plugins/core/approval_state.js,
                                 // toggled via /yolo /afk) bypass the gate entirely.
                                 let gated = false
+                                let classifierGate = false
                                 {
                                     const { isYolo, isAfk } = await import('../../plugins/core/approval_state.js')
                                     if (!isYolo(input.sessionKey) && !isAfk(input.sessionKey)) {
                                         const policy = control.approvalPolicy || 'off'
                                         gated = policy === 'all' || (policy === 'mutating' && control.mutatingTools.has(tname))
+                                        classifierGate = policy === 'classifier'
+                                    }
+                                }
+                                // Classifier tier (between mutating and all — Anthropic
+                                // auto-mode pattern): an LLM adjudicates every call not
+                                // already explicitly granted. approvedTools (auto_approve
+                                // config + persisted 'always' grants) OUTRANK the classifier
+                                // and skip it entirely. Deny = deny-and-continue as a tool
+                                // result; unparseable/failed verdicts fail CLOSED to the
+                                // human path; 3 consecutive or 20 total denials stop the
+                                // classifier and escalate the rest of the turn to the human.
+                                if (classifierGate && !control.approvedTools.has(tname)) {
+                                    let verdict
+                                    if (control.classifierEscalated) {
+                                        verdict = { decision: 'escalate', reason: 'classifier denial threshold reached — human adjudicates the rest of this turn' }
+                                    } else {
+                                        // Resolved lazily on the first gated call so non-classifier
+                                        // turns never pay for it; agent.approval_classifier_model
+                                        // overrides the default acptoapi 'cheap' named chain.
+                                        if (!control.classifierCallLLM) control.classifierCallLLM = resolveCallLLM({ model: getConfigValue('agent.approval_classifier_model', 'cheap') })
+                                        verdict = await classifyToolCall({ name: tname, args: targs, callLLM: control.classifierCallLLM })
+                                    }
+                                    if (verdict.decision === 'allow') {
+                                        control.classifierConsecDenials = 0
+                                    } else if (verdict.decision === 'deny') {
+                                        control.classifierDenials = (control.classifierDenials || 0) + 1
+                                        control.classifierConsecDenials = (control.classifierConsecDenials || 0) + 1
+                                        if (control.classifierConsecDenials >= CLASSIFIER_CONSEC_DENY_LIMIT || control.classifierDenials >= CLASSIFIER_TOTAL_DENY_LIMIT) control.classifierEscalated = true
+                                        emitTurnEvent(input.sessionKey, 'tool.end', { name: tname, toolCallId: tcid, denied: true, via: 'classifier' })
+                                        results.push({ tool_call_id: tcid, content: JSON.stringify({ error: 'tool call denied by policy classifier', tool: tname, reason: verdict.reason || null }) })
+                                        continue
+                                    } else {
+                                        // escalate → same human requestApproval path as the
+                                        // static gate below (bounded timeout auto-rejects).
+                                        const decision = await requestApproval(input.sessionKey, { name: tname, args: targs, cwd: input.toolCtx?.cwd })
+                                        if (!decision.approved) {
+                                            emitTurnEvent(input.sessionKey, 'tool.end', { name: tname, toolCallId: tcid, denied: true, via: 'classifier-escalation' })
+                                            results.push({ tool_call_id: tcid, content: JSON.stringify({ error: 'tool call denied by user', tool: tname, feedback: decision.feedback || null }) })
+                                            continue
+                                        }
                                     }
                                 }
                                 if (gated && !control.approvedTools.has(tname)) {
@@ -393,7 +462,7 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
     })
 }
 
-export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store, approvalMode = null } = {}) {
+export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store, approvalMode = null, approvalTimeoutMs = null } = {}) {
     const events = [];
     // Wire telemetry: load config to check enabled state and configure
     const cfg = loadConfig()
@@ -437,6 +506,15 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
         // the current instruction. Explicit priority framing fixes it.
         if (hits.length) sysParts.push('Background context from past conversations (gm rs-learn) -- for reference only, does not describe the current task:\n' + hits.map(h => '- ' + h.text).join('\n') + '\n\nThe user\'s actual request for THIS turn follows below and takes priority over the above.')
     } catch (_) {}
+    // Verbatim-span recall: exact excerpts from past sessions' wire logs matching
+    // the prompt's terms (locate-and-transcribe, never paraphrased). Complements
+    // the embedding recall above — similarity finds related facts, this finds
+    // the literal prior occurrence.
+    try {
+        const { searchWireLogs } = await import('./events.js')
+        const spans = searchWireLogs(prompt, { limit: 3 })
+        if (spans.length) sysParts.push('Verbatim excerpts from past session logs matching this prompt (exact quotes, background reference only):\n' + spans.map(s => `- [${s.ts?.slice(0, 10)} ${s.role}] ${s.text}`).join('\n'))
+    } catch (_) {}
     if (sysParts.length) initMessages.unshift({ role: 'user', content: sysParts.join('\n\n') })
     const inbound = await h.hooks.invoke('onMessageInbound', { content: prompt })
     hookEngine.runHooks('onMessageInbound', { sessionKey, cwd }).catch(() => {})
@@ -455,16 +533,25 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     // the running turn. approvalPolicy off = pre-existing behavior (no gate).
     const control = {
         steers: [],
-        // agent.approval_mode (off|mutating|all) is the gate mode; the older
+        // agent.approval_mode (off|mutating|classifier|all) is the gate mode; the older
         // agent.approval_policy OBJECT ({yolo,afk,auto_approve}) stays as the
         // session-state bag — its auto_approve list seeds this turn's
         // pre-approved tools so the two conventions compose. The approvalMode
         // arg (e.g. REPL /approve) overrides config for this turn only.
+        // approvalTimeoutMs arg likewise (REPL foreground passes Infinity —
+        // kimi 1.40's reversal: a present human never gets auto-rejected).
         approvalPolicy: approvalMode || getConfigValue('agent.approval_mode', 'off'),
-        approvalTimeoutMs: getConfigValue('agent.approval_timeout_ms', 120000),
+        approvalTimeoutMs: approvalTimeoutMs ?? getConfigValue('agent.approval_timeout_ms', 120000),
         mutatingTools: new Set(getConfigValue('agent.approval_tools', ['bash', 'write', 'edit', 'file_operations', 'code_execution', 'process_registry', 'cronjob', 'terminal'])),
-        approvedTools: new Set(getConfigValue('agent.approval_policy', {})?.auto_approve || []),
+        approvedTools: new Set([...(getConfigValue('agent.approval_policy', {})?.auto_approve || []), ...(await loadApprovalGrants(cwd))]),
+        toolBudgets: getConfigValue('agent.tool_budgets', {}),
         lastSig: null, streak: 0,
+        // Classifier-tier state (agent.approval_mode: 'classifier'): denial
+        // counters + escalation latch (see approval_classifier.js header).
+        // classifierCallLLM stays null until the first gated call resolves it
+        // lazily; verification scripts inject a stub here instead.
+        classifierDenials: 0, classifierConsecDenials: 0, classifierEscalated: false,
+        classifierCallLLM: null,
     }
     const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx: mergedToolCtx, tool_choice, store, control })
     const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages }, store })
@@ -486,15 +573,22 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
     const hookEngine = new HookEngine({ config: loadConfig() })
     const control = {
         steers: [],
-        // agent.approval_mode (off|mutating|all) is the gate mode; the older
+        // agent.approval_mode (off|mutating|classifier|all) is the gate mode; the older
         // agent.approval_policy OBJECT ({yolo,afk,auto_approve}) stays as the
         // session-state bag — its auto_approve list seeds this turn's
         // pre-approved tools so the two conventions compose.
         approvalPolicy: getConfigValue('agent.approval_mode', 'off'),
         approvalTimeoutMs: getConfigValue('agent.approval_timeout_ms', 120000),
         mutatingTools: new Set(getConfigValue('agent.approval_tools', ['bash', 'write', 'edit', 'file_operations', 'code_execution', 'process_registry', 'cronjob', 'terminal'])),
-        approvedTools: new Set(getConfigValue('agent.approval_policy', {})?.auto_approve || []),
+        approvedTools: new Set([...(getConfigValue('agent.approval_policy', {})?.auto_approve || []), ...(await loadApprovalGrants(cwd))]),
+        toolBudgets: getConfigValue('agent.tool_budgets', {}),
         lastSig: null, streak: 0,
+        // Classifier-tier state (agent.approval_mode: 'classifier'): denial
+        // counters + escalation latch (see approval_classifier.js header).
+        // classifierCallLLM stays null until the first gated call resolves it
+        // lazily; verification scripts inject a stub here instead.
+        classifierDenials: 0, classifierConsecDenials: 0, classifierEscalated: false,
+        classifierCallLLM: null,
     }
     const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey, toolCtx, store, control })
     // createPersistentActor.load() already handles a missing/stale snapshot and

@@ -245,7 +245,8 @@ export default {
             if (action === 'list') {
                 const rows = await listSessions()
                 if (!rows.length) { console.log('(no conversations yet — run `freddie run`)'); return }
-                for (const s of rows) console.log(`${s.id.slice(0, 8)}\t${new Date(s.updated_at).toISOString().slice(0, 16).replace('T', ' ')}\t${s.title || '(untitled)'}`)
+                const { getTurn } = await import('../../../src/agent/live-turns.js')
+                for (const s of rows) console.log(`${s.id.slice(0, 8)}\t${new Date(s.updated_at).toISOString().slice(0, 16).replace('T', ' ')}\t${s.title || '(untitled)'}${getTurn(s.id)?.pendingApproval ? '\t[needs input]' : ''}`)
                 return
             }
             if (action === 'show') {

@@ -121,3 +121,4 @@ state/sessions.db
 
 # whole .gm tree is per-machine agent state (nothing under it is tracked in this repo)
 .gm/
+approval-grants.json

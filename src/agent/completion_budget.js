@@ -1,4 +1,10 @@
-import { estimateMessagesTokensWithActual } from './compress/tokens.js'
+import { estimateMessagesTokens } from './compress/tokens.js'
+
+// estimateMessagesTokensWithActual: use the provider-reported count when a
+// prior LLM response supplied one, else the character-based estimate.
+function estimateMessagesTokensWithActual(messages, actualTokenCount) {
+  return Number.isFinite(actualTokenCount) ? actualTokenCount : estimateMessagesTokens(messages)
+}
 
 /**
  * Compute dynamic max_completion_tokens for a single LLM call.

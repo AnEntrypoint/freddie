@@ -1,8 +1,15 @@
 import { listSessions, search, getMessages, getSession, deleteSession } from '../../../src/sessions.js'
+import { getTurn } from '../../../src/agent/live-turns.js'
 export default {
     name: 'gui-sessions', surfaces: 'gui',
     register({ gui }) {
-        gui.route('GET', '/api/sessions', async (_, res) => res.json(await listSessions()))
+        // needsInput badges sessions whose live turn is parked on an approval
+        // (Claude agents-view / opencode status precedent) — pure read of the
+        // live-turns registry, no state change.
+        gui.route('GET', '/api/sessions', async (_, res) => {
+            const rows = await listSessions()
+            res.json(rows.map(s => ({ ...s, needsInput: !!getTurn(s.id)?.pendingApproval })))
+        })
         gui.route('GET', '/api/sessions/:id', async (req, res) => {
             const s = await getSession(req.params.id)
             if (!s) return res.status(404).json({ error: 'session not found' })

@@ -1,7 +1,7 @@
 import readline from 'node:readline'
 import { exec } from 'node:child_process'
 import { runTurn } from '../agent/machine.js'
-import { subscribeTurn, cancelTurn, resolveApproval, steerTurn } from '../agent/live-turns.js'
+import { subscribeTurn, cancelTurn, resolveApproval, steerTurn, queueTurn, drainQueue } from '../agent/live-turns.js'
 import { getConfigValue } from '../config.js'
 import { resolveCommand, COMMANDS_BY_CATEGORY } from '../commands/registry.js'
 import { getActiveSkin } from '../skin/engine.js'
@@ -29,7 +29,7 @@ const HANDLERS = {
             out.push(`\n# ${cat}`)
             for (const c of cmds) out.push(`  /${c.name}${c.args_hint ? ' ' + c.args_hint : ''}\t${c.description}`)
         }
-        out.push('\n# Conversation\n  /sessions\tList recent conversations\n  /resume <id>\tContinue a past conversation\n  /keys\tShow which provider keys are set\n  /project [name]\tShow or switch active project\n  /approve [off|mutating|all]\tShow or set the approval mode for this REPL\n  /plan\tToggle plan mode (read-only turns)\n  /cancel\tInterrupt the running turn\n  !<cmd>\tRun a local shell command')
+        out.push('\n# Conversation\n  /sessions\tList recent conversations\n  /resume <id>\tContinue a past conversation\n  /keys\tShow which provider keys are set\n  /project [name]\tShow or switch active project\n  /approve [off|mutating|all]\tShow or set the approval mode for this REPL\n  /plan\tToggle plan mode (read-only turns)\n  /cancel\tInterrupt the running turn\n  /steer <text>\tInject a message into the running turn (plain text mid-turn queues for after it)\n  !<cmd>\tRun a local shell command')
         return out.join('\n')
     },
     quit: (state) => { state.exit = true; return 'bye.' },
@@ -75,8 +75,8 @@ const HANDLERS = {
     clear: (state) => { state.messages = []; return 'cleared.' },
     approve: (state, args) => {
         const mode = args[0]
-        if (!mode) return `approval mode: ${state.approvalMode || getConfigValue('agent.approval_mode', 'off')} (usage: /approve off|mutating|all)`
-        if (!['off', 'mutating', 'all'].includes(mode)) return 'usage: /approve off|mutating|all'
+        if (!mode) return `approval mode: ${state.approvalMode || getConfigValue('agent.approval_mode', 'off')} (usage: /approve off|mutating|classifier|all)`
+        if (!['off', 'mutating', 'classifier', 'all'].includes(mode)) return 'usage: /approve off|mutating|classifier|all'
         state.approvalMode = mode
         return `approval mode for this REPL: ${mode}${mode === 'off' ? '' : ' — gated tool calls will ask before running'}`
     },
@@ -87,6 +87,12 @@ const HANDLERS = {
     cancel: (state) => {
         if (!state.turnActive) return 'no turn running'
         return cancelTurn(state.session) ? 'cancel requested (takes effect at the next step boundary)' : 'no live turn found for this session'
+    },
+    steer: (state, args) => {
+        const text = args.join(' ')
+        if (!text) return 'usage: /steer <text> — inject a message into the running turn'
+        if (!state.turnActive) return 'no turn running (plain text while a turn runs queues for after it)'
+        return steerTurn(state.session, text) ? 'steer injected at the next step boundary' : 'no live turn found for this session'
     },
 }
 
@@ -147,15 +153,22 @@ export async function interactive({ callLLM, resume = null, input = process.stdi
         }
 
         // Mid-turn input: an open approval question owns the line (its own
-        // once-listener consumes it); anything else STEERS the running turn
-        // (kimi's steering) instead of starting a parallel one.
+        // once-listener consumes it). Plain text QUEUES for after the turn
+        // (kimi 1.31's Enter channel); /steer <text> injects mid-turn.
         if (state.turnActive) {
             if (state.answeringApproval) return
-            if (steerTurn(state.session, line)) output.write('  [steer queued — injected at the next step boundary]\n')
-            else output.write('(no live turn found for this session)\n')
+            queueTurn(state.session, line)
+            output.write('  [queued — runs after this turn; /steer <text> to inject now]\n')
             return
         }
 
+        await runPrompt(line)
+        prompt()
+    })
+
+    // One full turn: persist the prompt, stream progress/deltas, run, print.
+    // Drains the follow-up queue at the end (queued mid-turn input runs next).
+    async function runPrompt(line) {
         await appendMessage(state.session, { role: 'user', content: line })
         // Live turn surface: tool progress lines as they happen, approval
         // prompts answered inline — the REPL is just another wire client.
@@ -185,6 +198,9 @@ export async function interactive({ callLLM, resume = null, input = process.stdi
                 timeoutMs: 600000,
                 sessionKey: state.session,
                 approvalMode: state.approvalMode,
+                // Foreground REPL: a present human never gets auto-rejected
+                // (kimi 1.40 reversal) — the approval waits indefinitely.
+                approvalTimeoutMs: Infinity,
                 disabledToolsets: state.planMode ? PLAN_DISABLED : undefined,
             })
             state.messages = out.messages
@@ -199,8 +215,9 @@ export async function interactive({ callLLM, resume = null, input = process.stdi
             state.turnActive = false
             try { unsub() } catch { /* swallow: listener already gone */ }
         }
-        prompt()
-    })
+        // Queued follow-ups (typed mid-turn) run next, in order.
+        for (const q of drainQueue(state.session)) await runPrompt(q)
+    }
     rl.on('close', () => {})
     prompt()
     return new Promise(resolve => rl.on('close', resolve))
