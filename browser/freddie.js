@@ -6355,39 +6355,17 @@ async function buildModel({ provider, model, inputModel }) {
 	const pref = getConfigValue("agent.model_preference", []);
 	const prefModels = Array.isArray(pref) && pref.length ? pref.map((p) => `${p.provider}/${p.model || DEFAULTS[p.provider] || ""}`.replace(/\/$/, "")).filter((s) => s.includes("/")) : [];
 	if (prefModels.length && chain.length) {
-		const seen = new Set(chain.map((l) => l.model));
-		const extras = prefModels.filter((m) => !seen.has(m));
-		if (extras.length) {
-			const scored = chain.map((l) => ({
-				model: l.model,
-				score: l.swe_bench_score || 0
-			}));
-			for (const m of extras) {
-				const s = typeof sdk.getModelScore === "function" ? sdk.getModelScore(m) : 0;
-				scored.push({
-					model: m,
-					score: s || 0
-				});
-			}
-			scored.sort((a, b) => b.score - a.score);
-			const allModels = scored.map((m) => m.model);
-			const status = typeof sdk.getStatus === "function" ? sdk.getStatus() : [];
-			if (status.length) {
-				const blocked = new Set(status.filter((s) => s.ok === false).map((s) => s.provider));
-				const filtered = allModels.filter((m) => !blocked.has(m.split("/")[0]));
-				if (filtered.length) return filtered.join(", ");
-			}
-			return allModels.join(", ");
-		}
-	}
-	if (prefModels.length && chain.length) {
 		const status = typeof sdk.getStatus === "function" ? sdk.getStatus() : [];
-		if (status.length) {
-			const blocked = new Set(status.filter((s) => s.ok === false).map((s) => s.provider));
-			const filtered = chain.filter((l) => !blocked.has(l.model.split("/")[0]));
-			if (filtered.length) return filtered.map((l) => l.model).join(", ");
+		const blocked = new Set(status.filter((s) => s.ok === false).map((s) => s.provider));
+		const seen = /* @__PURE__ */ new Set();
+		const ordered = [];
+		for (const m of [...prefModels, ...chain.map((l) => l.model)]) {
+			if (seen.has(m)) continue;
+			seen.add(m);
+			if (blocked.has(m.split("/")[0])) continue;
+			ordered.push(m);
 		}
-		return chain.map((l) => l.model).join(", ");
+		if (ordered.length) return ordered.join(", ");
 	}
 	const keyed = Array.isArray(chain) ? chain.filter((l) => {
 		const env = PROVIDER_KEYS[l.model.split("/")[0]];
@@ -13391,7 +13369,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 			} } },
 			prompting: { invoke: {
 				src: fromPromise$1(async ({ input }) => {
-					const schemas = await getEnabledToolSchemas(input.enabledToolsets, input.disabledToolsets);
+					const schemas = await getEnabledToolSchemas(input.enabledToolsets, input.disabledToolsets).then((all) => input.toolCtx?.askUser ? all : all.filter((s) => (s.name || s.function?.name) !== "ask_user_question"));
 					const tc = typeof input.tool_choice === "function" ? input.tool_choice(input.iterations) : input.iterations === 0 ? input.tool_choice : void 0;
 					let callMessages = input.messages;
 					let compressedMessages = null;
@@ -13426,7 +13404,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					sessionKey: context.sessionKey,
 					iterations: context.iterations,
 					tool_choice: context.tool_choice,
-					store: context.store
+					store: context.store,
+					toolCtx: context.toolCtx
 				}),
 				onDone: [{
 					guard: ({ event }) => Array.isArray(event.output?.out?.tool_calls) && event.output.out.tool_calls.length > 0,
@@ -14111,6 +14090,7 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 	} catch (_) {}
 	let initMessages = [...messages];
 	const sysParts = [];
+	if ((enabledToolsets ?? ["core"]).length) sysParts.push("You are an autonomous coding agent. ACT, do not narrate: use your tools directly to accomplish the task (create and edit files, run commands) instead of describing a plan or asking which options to pick — make reasonable choices yourself. After each tool result, keep going until the task is fully done. Only stop when the work is complete or genuinely blocked.");
 	if (cwd) sysParts.push(`Working directory: ${cwd}. Always pass cwd="${cwd}" to bash tool calls. When reading or writing files use paths relative to this directory or absolute paths under it.`);
 	if (skill) {
 		const sd = h.pi.skills.get(skill);
