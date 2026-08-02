@@ -10974,13 +10974,6 @@ var init_web = __esmMin((() => {
 }));
 //#endregion
 //#region src/db.js
-init_web();
-init_home();
-init_env();
-var _db = null;
-var _dbPromise = null;
-var DB_PATH = () => path.join(getFreddieHome(), "state", "sessions.db");
-var USE_MEMORY_DB = () => env("FREDDIE_TEST_DB") === "memory";
 async function db() {
 	if (_db) return _db;
 	if (_dbPromise) return await _dbPromise;
@@ -11000,121 +10993,132 @@ async function db() {
 	})();
 	return await _dbPromise;
 }
-var DbAdapter = class {
-	constructor(client, dbPath) {
-		this.client = client;
-		this.dbPath = dbPath;
-		this._fts5_unavailable = false;
-	}
-	prepare(sql) {
-		return new PreparedStatement(this.client, sql);
-	}
-	async exec(sql) {
-		try {
-			const statements = sql.split(";").filter((s) => s.trim());
-			const results = [];
-			for (const stmt of statements) if (stmt.trim()) {
-				const result = await this.client.execute({ sql: stmt.trim() });
-				results.push(result);
-			}
-			return results;
-		} catch (e) {
-			throw e;
+var _db, _dbPromise, DB_PATH, USE_MEMORY_DB, DbAdapter, PreparedStatement;
+var init_db = __esmMin((() => {
+	init_web();
+	init_home();
+	init_env();
+	_db = null;
+	_dbPromise = null;
+	DB_PATH = () => path.join(getFreddieHome(), "state", "sessions.db");
+	USE_MEMORY_DB = () => env("FREDDIE_TEST_DB") === "memory";
+	DbAdapter = class {
+		constructor(client, dbPath) {
+			this.client = client;
+			this.dbPath = dbPath;
+			this._fts5_unavailable = false;
 		}
-	}
-	async run(...args) {
-		const [sql, ...params] = args;
-		const result = await this.client.execute({
-			sql,
-			args: params
-		});
-		return {
-			changes: result.rowsAffected,
-			lastInsertRowid: result.lastInsertRowid ? BigInt(result.lastInsertRowid) : 0n
-		};
-	}
-	transaction(fn) {
-		return async (...args) => {
+		prepare(sql) {
+			return new PreparedStatement(this.client, sql);
+		}
+		async exec(sql) {
 			try {
-				await this.client.execute("BEGIN TRANSACTION");
-				const result = await fn(...args);
-				await this.client.execute("COMMIT");
-				return result;
+				const statements = sql.split(";").filter((s) => s.trim());
+				const results = [];
+				for (const stmt of statements) if (stmt.trim()) {
+					const result = await this.client.execute({ sql: stmt.trim() });
+					results.push(result);
+				}
+				return results;
 			} catch (e) {
-				try {
-					await this.client.execute("ROLLBACK");
-				} catch (_) {}
 				throw e;
 			}
-		};
-	}
-	async close() {
-		if (this.client) {
-			await this.client.close();
-			this.client = null;
 		}
-	}
-	async clearAll() {
-		try {
-			const result = await this.client.execute("SELECT name FROM sqlite_master WHERE type='table'");
-			if (result.rows && result.rows.length > 0) for (const [tableName] of result.rows) try {
-				await this.client.execute(`DROP TABLE IF EXISTS ${tableName}`);
+		async run(...args) {
+			const [sql, ...params] = args;
+			const result = await this.client.execute({
+				sql,
+				args: params
+			});
+			return {
+				changes: result.rowsAffected,
+				lastInsertRowid: result.lastInsertRowid ? BigInt(result.lastInsertRowid) : 0n
+			};
+		}
+		transaction(fn) {
+			return async (...args) => {
+				try {
+					await this.client.execute("BEGIN TRANSACTION");
+					const result = await fn(...args);
+					await this.client.execute("COMMIT");
+					return result;
+				} catch (e) {
+					try {
+						await this.client.execute("ROLLBACK");
+					} catch (_) {}
+					throw e;
+				}
+			};
+		}
+		async close() {
+			if (this.client) {
+				await this.client.close();
+				this.client = null;
+			}
+		}
+		async clearAll() {
+			try {
+				const result = await this.client.execute("SELECT name FROM sqlite_master WHERE type='table'");
+				if (result.rows && result.rows.length > 0) for (const [tableName] of result.rows) try {
+					await this.client.execute(`DROP TABLE IF EXISTS ${tableName}`);
+				} catch (e) {}
 			} catch (e) {}
-		} catch (e) {}
-	}
-};
-var PreparedStatement = class {
-	constructor(client, sql) {
-		this.client = client;
-		this.sql = sql;
-	}
-	bind(params = []) {
-		this.params = params;
-		return this;
-	}
-	async run(...params) {
-		const p = Array.isArray(params[0]) ? params[0] : params;
-		const result = await this.client.execute({
-			sql: this.sql,
-			args: p
-		});
-		return {
-			changes: result.rowsAffected,
-			lastInsertRowid: result.lastInsertRowid ? BigInt(result.lastInsertRowid) : 0n
-		};
-	}
-	async get(...params) {
-		const p = Array.isArray(params[0]) ? params[0] : params;
-		const result = await this.client.execute({
-			sql: this.sql,
-			args: p
-		});
-		if (!result.rows || result.rows.length === 0) return null;
-		const row = result.rows[0];
-		const obj = {};
-		result.columns.forEach((col, i) => {
-			obj[col] = row[i];
-		});
-		return obj;
-	}
-	async all(...params) {
-		const p = Array.isArray(params[0]) ? params[0] : params;
-		const result = await this.client.execute({
-			sql: this.sql,
-			args: p
-		});
-		if (!result.rows || result.rows.length === 0) return [];
-		return result.rows.map((row) => {
+		}
+	};
+	PreparedStatement = class {
+		constructor(client, sql) {
+			this.client = client;
+			this.sql = sql;
+		}
+		bind(params = []) {
+			this.params = params;
+			return this;
+		}
+		async run(...params) {
+			const p = Array.isArray(params[0]) ? params[0] : params;
+			const result = await this.client.execute({
+				sql: this.sql,
+				args: p
+			});
+			return {
+				changes: result.rowsAffected,
+				lastInsertRowid: result.lastInsertRowid ? BigInt(result.lastInsertRowid) : 0n
+			};
+		}
+		async get(...params) {
+			const p = Array.isArray(params[0]) ? params[0] : params;
+			const result = await this.client.execute({
+				sql: this.sql,
+				args: p
+			});
+			if (!result.rows || result.rows.length === 0) return null;
+			const row = result.rows[0];
 			const obj = {};
 			result.columns.forEach((col, i) => {
 				obj[col] = row[i];
 			});
 			return obj;
-		});
-	}
-};
+		}
+		async all(...params) {
+			const p = Array.isArray(params[0]) ? params[0] : params;
+			const result = await this.client.execute({
+				sql: this.sql,
+				args: p
+			});
+			if (!result.rows || result.rows.length === 0) return [];
+			return result.rows.map((row) => {
+				const obj = {};
+				result.columns.forEach((col, i) => {
+					obj[col] = row[i];
+				});
+				return obj;
+			});
+		}
+	};
+}));
 //#endregion
 //#region src/machines/snapshot-store.js
+init_db();
 init_log();
 var log$4 = logger("snapshot-store");
 var SNAPSHOT_SCHEMA_VERSION = 1;
@@ -11308,9 +11312,6 @@ async function createPersistentActor(machine, { kind, key, input, onTransition, 
 }
 //#endregion
 //#region src/machines/step-journal.js
-init_log();
-var log$2 = logger("step-journal");
-var _inited = false;
 async function init() {
 	const d = await db();
 	if (!_inited) {
@@ -11327,7 +11328,6 @@ async function init() {
 	}
 	return d;
 }
-var _inflight = /* @__PURE__ */ new Map();
 async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, deserialize = JSON.parse, store = null } = {}) {
 	if (store) return await store.runStep(sessionKey, stepId, fn, {
 		serialize,
@@ -11395,8 +11395,17 @@ function createLibsqlStepStore() {
 		listSteps
 	};
 }
+var log$2, _inited, _inflight;
+var init_step_journal = __esmMin((() => {
+	init_db();
+	init_log();
+	log$2 = logger("step-journal");
+	_inited = false;
+	_inflight = /* @__PURE__ */ new Map();
+}));
 //#endregion
 //#region src/agent/hooks_engine.js
+init_step_journal();
 /**
 * HookEngine — runs shell commands defined in config at hook trigger points.
 * Matches kimi's server-side hook behavior.
@@ -11825,10 +11834,14 @@ var events_exports = /* @__PURE__ */ __exportAll({
 	WIRE_EVENTS: () => WIRE_EVENTS,
 	WIRE_VERSION: () => 1,
 	emitTurnEvent: () => emitTurnEvent,
+	forkWireLog: () => forkWireLog,
+	lastTurnStartIndex: () => lastTurnStartIndex,
 	offTurnEvent: () => offTurnEvent,
 	onTurnEvent: () => onTurnEvent,
 	readWireLog: () => readWireLog,
 	searchWireLogs: () => searchWireLogs,
+	transcriptFromWire: () => transcriptFromWire,
+	truncateWireLog: () => truncateWireLog,
 	wireLogDir: () => wireLogDir,
 	wireLogPath: () => wireLogPath
 });
@@ -11925,6 +11938,58 @@ function searchWireLogs(query, { limit = 5, maxFiles = 50, maxSpan = 400 } = {})
 		if (hits.length >= limit * 4) break;
 	}
 	return hits.sort((a, b) => b.matched - a.matched || (a.ts < b.ts ? 1 : -1)).slice(0, limit);
+}
+function transcriptFromWire(sessionId, { limit = 1e3 } = {}) {
+	const msgs = [];
+	for (const env of readWireLog(sessionId, { limit })) {
+		const { event, data } = env;
+		if (event === "message.append") {
+			if (data.role === "user") msgs.push({
+				role: "user",
+				content: data.content
+			});
+			else if (data.role === "assistant") msgs.push({
+				role: "assistant",
+				content: data.content || "",
+				tool_calls: data.tool_calls || []
+			});
+		} else if (event === "steer.append" || event === "queue.append") msgs.push({
+			role: "user",
+			content: data.text
+		});
+		else if (event === "tool.end") msgs.push({
+			role: "tool",
+			tool_call_id: data.toolCallId,
+			content: data.denied ? JSON.stringify({ error: "tool call denied by user" }) : typeof data.result === "string" ? data.result : JSON.stringify(data.result ?? "")
+		});
+	}
+	return msgs;
+}
+function forkWireLog(sessionId, { atIndex = null, newSessionId = null } = {}) {
+	const events = readWireLog(sessionId);
+	if (!events.length) return null;
+	const sid = newSessionId || randomUUID();
+	const slice = atIndex != null ? events.slice(0, Math.max(0, Math.min(atIndex, events.length))) : events;
+	const p = wireLogPath(sid);
+	fs.mkdirSync(path.dirname(p), { recursive: true });
+	fs.writeFileSync(p, slice.map((e) => JSON.stringify({
+		...e,
+		sessionId: sid
+	})).join("\n") + "\n");
+	return sid;
+}
+function truncateWireLog(sessionId, keepCount) {
+	const events = readWireLog(sessionId);
+	if (!events.length) return null;
+	const keep = Math.max(0, Math.min(keepCount, events.length));
+	const p = wireLogPath(sessionId);
+	fs.writeFileSync(p, events.slice(0, keep).map((e) => JSON.stringify(e)).join("\n") + (keep ? "\n" : ""));
+	return keep;
+}
+function lastTurnStartIndex(sessionId) {
+	const events = readWireLog(sessionId);
+	for (let i = events.length - 1; i >= 0; i--) if (events[i].event === "session.start") return i;
+	return events.length;
 }
 var WIRE_EVENTS, listeners;
 var init_events = __esmMin((() => {
@@ -13290,7 +13355,10 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 			error: context.error,
 			iterations: context.iterations
 		}),
-		on: { INTERRUPT: { actions: assign$1({ interrupt: true }) } },
+		on: {
+			INTERRUPT: { actions: assign$1({ interrupt: true }) },
+			REVERT: { actions: assign$1({ messages: ({ event }) => [...event.messages || []] }) }
+		},
 		context: ({ input }) => ({
 			messages: input?.messages ? [...input.messages] : [],
 			iterations: 0,
@@ -14413,6 +14481,7 @@ function blocksToSystemMessage(blocks) {
 }
 //#endregion
 //#region src/browser/index.js
+init_step_journal();
 init_config$1();
 init_log();
 var FREDDIE_DEFAULT_CONFIG = DEFAULT_CONFIG;
