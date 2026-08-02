@@ -1,0 +1,127 @@
+// gui-agent — WebSocket agent-workspace surface over the freddie wire protocol.
+//
+// The browser equivalent of `freddie wire` (plugins/wire): one WS connection
+// per session carries replay + live turn events inbound and prompt/steer/
+// cancel/approve messages outbound, so the dashboard chat workspace can drive
+// LONG agentic turns (no more 120s POST /api/chat ceiling) with mid-turn
+// approvals and steering — the kimi-cli `kimi web` interaction model.
+//
+//   WS /api/agent/stream?sessionId=<id>
+//     → on connect: { type: 'replay', sessionId, events: [envelope, ...] }
+//     → live:       { type: 'event', ...envelope }
+//     → turn end:   { type: 'prompt.done', sessionId, result, error, iterations }
+//     ← client:     { type: 'prompt', text, cwd?, model?, provider? }
+//                   { type: 'steer', text }
+//                   { type: 'cancel' }
+//                   { type: 'approve', id?, approved, always?, feedback? }
+//
+//   POST /api/sessions/:id/cancel   — REST cancel for page-unload paths
+//   GET  /api/sessions/:id/wire     — raw wire log (debug/export)
+//
+// gui.wsRoute matches exact pathnames only (src/web/server.js), so the session
+// id rides in the query string rather than the path.
+
+import { runTurn } from '../../../src/agent/machine.js'
+import { readWireLog } from '../../../src/agent/events.js'
+import { subscribeTurn, steerTurn, cancelTurn, resolveApproval, listLiveTurns } from '../../../src/agent/live-turns.js'
+import { getConfigValue } from '../../../src/config.js'
+import { createSession, getSession, appendMessage } from '../../../src/sessions.js'
+
+const REPLAY_CAP = 500
+
+// Mirror the turn into sessions.db (session row keyed to the wire sessionId +
+// appended messages) so workspace conversations show up in `freddie session
+// list` and the dashboard sessions page. The wire log stays the canonical
+// transcript; the DB is the listing/search index over it (same dual-write
+// pattern gui-chat already uses).
+async function ensureDbSession(sid, msg) {
+    try {
+        if (await getSession(sid)) return
+        await createSession({ id: sid, platform: 'web', title: (msg.text || '').slice(0, 80), cwd: msg.cwd || null, model: msg.model || null })
+    } catch { /* swallow: DB listing is best-effort, the wire log is canonical */ }
+}
+
+async function persistTurnMessages(sid, out, priorCount) {
+    try {
+        for (const m of (out.messages || []).slice(priorCount)) {
+            await appendMessage(sid, { role: m.role, content: m.content, toolCalls: m.tool_calls || null, toolCallId: m.tool_call_id || null })
+        }
+    } catch { /* swallow: DB listing is best-effort, the wire log is canonical */ }
+}
+
+// Reconstruct a well-formed prior transcript from the session's wire log so a
+// WS-driven turn sees the conversation so far (the wire log is this surface's
+// canonical transcript — kimi's wire.jsonl model — not sessions.db).
+function priorFromWire(sid) {
+    const msgs = []
+    for (const env of readWireLog(sid, { limit: 1000 })) {
+        const { event, data } = env
+        if (event === 'message.append') {
+            if (data.role === 'user') msgs.push({ role: 'user', content: data.content })
+            else if (data.role === 'assistant') msgs.push({ role: 'assistant', content: data.content || '', tool_calls: data.tool_calls || [] })
+        } else if (event === 'steer.append') {
+            msgs.push({ role: 'user', content: data.text })
+        } else if (event === 'tool.end') {
+            msgs.push({ role: 'tool', tool_call_id: data.toolCallId, content: data.denied ? JSON.stringify({ error: 'tool call denied by user' }) : (typeof data.result === 'string' ? data.result : JSON.stringify(data.result ?? '')) })
+        }
+    }
+    return msgs
+}
+
+export default {
+    name: 'gui-agent',
+    surfaces: 'gui',
+    register({ gui }) {
+        gui.wsRoute('/api/agent/stream', (ws, req) => {
+            const sid = new URL(req.url, 'http://internal').searchParams.get('sessionId')
+            if (!sid) { try { ws.close(4400, 'sessionId query param required') } catch { /* swallow: close of an already-closing socket */ } ; return }
+            const send = (obj) => { if (ws.readyState === 1) { try { ws.send(JSON.stringify(obj)) } catch { /* swallow: a dead client must not break the turn */ } } }
+
+            // Replay first (what the client missed), then go live.
+            send({ type: 'replay', sessionId: sid, events: readWireLog(sid, { limit: REPLAY_CAP }) })
+            const unsub = subscribeTurn(sid, (env) => send({ type: 'event', ...env }))
+            ws.on('close', () => { try { unsub() } catch { /* swallow: teardown is best-effort */ } })
+
+            ws.on('message', async (raw) => {
+                let msg
+                try { msg = JSON.parse(raw.toString()) } catch { return }
+                try {
+                    if (msg.type === 'prompt' && msg.text) {
+                        if (listLiveTurns().includes(sid)) { send({ type: 'error', error: 'turn already running', sessionId: sid }); return }
+                        send({ type: 'prompt.accepted', sessionId: sid })
+                        await ensureDbSession(sid, msg)
+                        const prior = priorFromWire(sid)
+                        const out = await runTurn({
+                            prompt: msg.text,
+                            messages: prior,
+                            sessionKey: sid,
+                            cwd: msg.cwd,
+                            model: msg.model,
+                            provider: msg.provider,
+                            timeoutMs: getConfigValue('agent.turn_timeout_ms', 600000),
+                        })
+                        await persistTurnMessages(sid, out, prior.length)
+                        send({ type: 'prompt.done', sessionId: sid, result: out.result ?? null, error: out.error ?? null, iterations: out.iterations ?? 0 })
+                    } else if (msg.type === 'steer' && msg.text) {
+                        send({ type: 'steer.result', ok: steerTurn(sid, msg.text) })
+                    } else if (msg.type === 'cancel') {
+                        send({ type: 'cancel.result', ok: cancelTurn(sid) })
+                    } else if (msg.type === 'approve') {
+                        const ok = await resolveApproval(sid, msg)
+                        send({ type: 'approve.result', ok })
+                    }
+                } catch (e) {
+                    send({ type: 'error', error: String(e?.message || e), sessionId: sid })
+                }
+            })
+        })
+
+        gui.route('POST', '/api/sessions/:id/cancel', (req, res) => {
+            res.json({ ok: cancelTurn(req.params.id) })
+        })
+
+        gui.route('GET', '/api/sessions/:id/wire', (req, res) => {
+            res.json({ sessionId: req.params.id, live: listLiveTurns().includes(req.params.id), events: readWireLog(req.params.id, { limit: Number(req.query?.limit) || REPLAY_CAP }) })
+        })
+    },
+}

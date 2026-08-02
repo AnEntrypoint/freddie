@@ -64,6 +64,8 @@ Freddie has no `~/.freddie/models.json`-style user-declared model config. To poi
 
 File format, one entry per record (`acptoapi/lib/extra-providers.js::parseProviderFile`): either a single tab-separated line `<baseURL>\t<apiKey>\t<model1> <model2> ...`, or two consecutive lines (`<baseURL>` then `<apiKey>`) when models aren't pre-declared (they get probed instead). Blank lines and `#`-prefixed comments are skipped. This is a flat 3-field record — no `!command`/`$ENV_VAR` interpolation, no per-model `reasoning`/`contextWindow`/`cost`/`thinkingLevelMap` metadata, and entries are probed/cached with a TTL rather than hot-reloaded on demand. If a richer schema is ever needed, it belongs in acptoapi (the single source of truth for provider config per "acptoapi is THE SDK" above), not a new freddie-local file.
 
+**Strict-host format discovery (patched 2026-08-02, UNPUBLISHED):** acptoapi's probe detected API format by POSTing a hardcoded discovery model (`gpt-4o-mini` / `claude-3-5-haiku-latest`) and treating 404 as "no endpoint here" — which wrongly rejects strict hosts like `api.moonshot.ai` that 404 ANY unknown model id. `../acptoapi/lib/extra-providers.js` `discoverOpenAI`/`discoverAnthropic` now retry a fully-404 pass with the entry's first pre-declared model (a 404 then genuinely means "no such route"). The patched file was manually synced into freddie's `node_modules/acptoapi/lib/` for immediate effect — **it will be overwritten by the next `npm install` unless acptoapi is published and freddie's dep bumped** (`scripts/sync-upstream.mjs`). A negative probe cache entry (`~/.acptoapi/extra-probe-cache.json`, 30s negative TTL / 10min positive TTL) can also mask a fixed endpoint for one TTL window.
+
 ## Plugin architecture
 
 Every tool, platform, memory provider, GUI route, and core subsystem is a plugin under `plugins/<name>/`. There is no `src/tools/registry.js`, `src/tools/<tool>.js`, `src/gateway/platforms/*.js`, or `src/plugins/memory/*.js` — do not reach for those paths.
@@ -104,7 +106,8 @@ freddie learns through **gm rs-learn**, in-process, via `src/learn/gm-learn.js`.
 - `src/learn/gm-learn.js` lazy-loads gm-plugkit's wasm via the ESM `createPlugkit()` export (`gm-plugkit/plugkit-wasm-wrapper.js`), caches one instance process-wide, and exposes `memorize`/`recall`/`autoRecall`/`prune`/`projectNamespace`. Every call degrades to a no-op (never throws into a turn) when gm/wasm is absent. First call cold-loads the wasm + BAAI/bge-small-en-v1.5 embed model, so it is lazy off the hot path. The wasm resolves `.gm/rs-learn.db` from process cwd; namespace is per active project (`projectNamespace()`).
 - **The learning loop (workflow):** every turn (`src/agent/machine.js`) auto-recalls salient memories for the prompt on entry (injected as a "Relevant memories (gm rs-learn)" system part) and auto-learns a deduped `Q:..A:..` salient fact on substantive, non-error completion (`autoLearnTurn`, dedupe cos>=0.92, min len 40). `src/context/engine.js` `ContextPlugins.memory` does query-aware recall over the same store.
 - **The `memory` tool** (`plugins/memory/handler.js`) is the explicit manual surface over the same store: `add`->memorize, `search`->recall (score-ranked), `list`->broad recall, `forget`->prune by explicit key.
-- **gm-plugkit in-process API:** `createPlugkit()` is consumed by importing the wrapper file directly (`index.js` is CJS; the export lives on the ESM wrapper). The wrapper's CLI IIFE is guarded by `_isCliEntry` so importing it does not start the daemon.
+- **gm-plugkit in-process API (RETIRED 2026-08-02):** the old `createPlugkit()` ESM wrapper path is gone upstream — gm-plugkit ≥2.0.2100 removed `plugkit-wasm-wrapper.js` entirely (moved to a spool-daemon bootstrap: `bootstrap.js`/`cli.js`), and the last wrapper-shipping publish (2.0.2000) was itself broken (tarball omitted `wrapper/wasi-shim.js`). Older wrappers (≤2.0.1950) fail `host_plugin_call` LinkError against any fetchable wasm (self-heal always pulls the LATEST wasm from GH Releases).
+- **gm-learn backend v2 (current):** `src/learn/gm-learn.js` talks to the machine-wide **agentplug daemon** instead of hosting the wasm: embeddings via `<home>/.gm-tools/agentplug-runner(.exe) dispatch bert embed` (bge-small-en-v1.5, 384d), store in `<cwd>/.gm/gm.db` `memories` table (`namespace, text, ts, embedding F32_BLOB(384)`) with libsql's native vector index (`vector_distance_cos` recall, score = 1 − dist). Same exported API (`memorize`/`recall`/`autoRecall`/`prune`/`projectNamespace`); same no-op degradation when the daemon/binary is absent. The gm daemon's own `recall` verb currently fails `unknown_plugin` upstream (gm 0.1.1166 × runner 0.1.47 skew) — freddie's client-side vector query does not depend on it.
 - Legacy migration: `node scripts/migrate-memory-to-gm.mjs [namespace]` drains old `memory_local` rows into rs-learn. `src/cli/memory_setup.js` defaults `memory.provider='gm'` (no key/config); third-party providers stay behind explicit `configureProvider`.
 - **Browser / gh-pages path:** `src/learn/gm-learn.js` is environment-aware. Where `node:module` is unavailable (e.g. thebird on gh-pages) it skips the `createPlugkit()` import and instead routes memorize-fire/recall/auto-recall/prune through a host bridge: `globalThis.__GM_DISPATCH__(verb, body) -> json|Promise<json>` (the host's already-loaded in-page plugkit.wasm) and `globalThis.__GM_NAMESPACE__` (string or fn -> active-workspace namespace). gm-learn probes both lazily each call (so a cold-loading wasm is picked up once ready) and degrades to no-op when the bridge is absent. This makes freddie LEARN in-browser with no node deps.
 
@@ -174,10 +177,12 @@ src/auth.js                      # FileAuthStore for credentials
 src/toolsets.js                  # _FREDDIE_CORE_TOOLS, getEnabledToolSchemas
 src/agent/machine.js             # xstate turn machine + writeTrajectory
 src/agent/llm_resolver.js        # thin shim over acptoapi.chat
+src/agent/events.js              # wire envelope emitTurnEvent + replay log (<FREDDIE_HOME>/wire/*.jsonl)
+src/agent/live-turns.js          # live-turn registry: subscribe/steer/cancel/approvals
 src/agent/acptoapi-bridge.js     # HTTP passthrough to FREDDIE_LLM_URL daemon
 src/agent/model-discovery.js     # claude-cli/ACP/ollama discovery beyond acptoapi
 src/agent/model-matrix.js        # MATRIX_FILE path + matrixUsable predicate
-src/agent/pi-bridge.js           # @earendil-works/pi-ai callLLM adapter
+src/agent/pi-bridge.js           # @earendil-works/pi-ai callLLM adapter (REPL wraps it with an acptoapi-chain fallback — bare pi-bridge hard-defaults provider=anthropic and throws when unkeyed)
 src/agent/compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js
 src/commands/registry.js         # CommandDef + resolveCommand + gateway/telegram/slack views
 src/commands/profile.js          # profile CRUD
@@ -330,6 +335,7 @@ On Windows, ensure `closeDb()` and log-stream `closeAll()` are called before exi
 | Context engine | `src/context/engine.js` |
 | Browser tool | `plugins/web/lib/browse.js` (puppeteer-core, lazy; merged web plugin also has search/fetch) |
 | LLM resolver | `src/agent/llm_resolver.js` (thin shim over `acptoapi.chat`) |
+| Wire protocol | `src/agent/events.js` + `src/agent/live-turns.js` + `plugins/wire` (stdio JSON-RPC) + `plugins/gui/gui-agent` (WS) — see "Wire protocol" section |
 | Bundled skills | `skills/` (5 categories) |
 | Verification | Manual testing via CLI (`freddie exec`, `freddie dashboard`) |
 
@@ -370,6 +376,20 @@ Windows: use the npm install (`opencode.cmd`), not the broken bun shim; ACP daem
 ```
 
 `--witness <path>` writes a parallel JSONL stream with one event per line (`session_start`, `message`, `llm_call`, `session_end`). `runTurn({witnessPath})` is the in-code equivalent.
+
+## Wire protocol (turn events, approvals, steering)
+
+One typed event stream, many UIs — the kimi-cli wire-mode idea, freddie-flavored. `src/agent/events.js::emitTurnEvent(sessionId, event, data)` emits an envelope `{ v: 1, event, sessionId, ts, data }` and fans out to three sinks: the legacy `plugins/gui-events/event-bus.js` (flat `{sessionId, ...data}` payloads, unchanged for old consumers), an append-only replay log at `<FREDDIE_HOME>/wire/<sessionId>.jsonl`, and live listeners (`onTurnEvent(sessionId|'*', fn)`).
+
+Event set (`WIRE_EVENTS`): `session.created, session.start, message.append, assistant.delta (reserved, not yet emitted — the llm_resolver path is non-streaming), tool.start, tool.end, status.update, approval.request, approval.resolved, steer.append, session.end, session.error`.
+
+`src/agent/live-turns.js` is the control plane for in-flight turns: `runTurn`/`resumeTurn` register their actor + a shared `control` object (`{steers, approvalPolicy, approvalTimeoutMs, mutatingTools, approvedTools, lastSig, streak}`) keyed by sessionKey. Surfaces call `subscribeTurn` / `steerTurn` (drained as user messages at the next `tool_calls→prompting` boundary) / `cancelTurn` (root-level `INTERRUPT` — moved off `idle` so cancel works mid-turn) / `resolveApproval`.
+
+Approvals: `agent.approval_mode` config = `off` (default, pre-existing behavior) | `mutating` (gates `agent.approval_tools`, default bash/write/edit/file_operations/code_execution/process_registry/cronjob/terminal) | `all`. (The older `agent.approval_policy` OBJECT `{yolo,afk,auto_approve}` in DEFAULT_CONFIG is a separate, pre-existing session-state bag — its `auto_approve` list seeds each turn's pre-approved tools. Do NOT write a string into it.) Gated calls pause in `executing_tools` on `approval.request`; unresolved after `agent.approval_timeout_ms` (default 120s) auto-rejects; rejection feeds back to the model as the tool result `{error:'tool call denied by user', feedback}`. `/yolo`/`/afk` (`plugins/core/approval_state.js`) bypass the gate; detached turns (batch/cron, no registry entry) fail open. `runTurn({approvalMode})` overrides config per-turn (REPL `/approve`). Repeat protection (kimi `KimiToolset` port): identical name+args streaks get `<system-reminder>`s at 3/5/8 and force-stop the turn at 12 (`tool_call_repeat`).
+
+Two client surfaces consume the protocol: `freddie wire` (`plugins/wire/plugin.js` — JSON-RPC 2.0 over stdio: `initialize/prompt/steer/cancel/approve/replay/status`, events as `event` notifications; stdout is frames-only, clients must skip non-`{` lines from dotenvx/boot chatter) and `plugins/gui/gui-agent` (`WS /api/agent/stream?sessionId=` with replay-then-live + prompt/steer/cancel/approve inbound, plus `POST /api/sessions/:id/cancel` and `GET /api/sessions/:id/wire`; WS turns use `agent.turn_timeout_ms`, default 600s, instead of gui-chat's 120s POST cap). gui-agent reconstructs prior-turn context from the wire log (`priorFromWire`) — the wire log is this surface's canonical transcript, NOT sessions.db. The dashboard's `chat` page (anentrypoint-design `pages-chat.js`) is a full wire client: client-generated session ids, replay rebuild, interleaved tool cards, `ApprovalNode` (approve/always/reject), mid-turn send = steer, stop = cancel; POST /api/chat remains only for its offline outbox. Verification: `node _verify-wire.mjs` (16 scripted-callLLM checks — envelope, wire log, approvals incl. timeout, steering, cancel, repeat force-stop).
+
+REPL (`src/cli/interactive.js`) is a third wire client: live `[tool]`/`[tool done]` progress lines, inline `y/n/a` approval prompts, Ctrl-C = `cancelTurn` (INTERRUPT moved to machine root so it works mid-turn), mid-turn input = steer, 600s turn timeout (was 60s), plus `/approve` (per-REPL mode override), `/plan` (read-only turns; hides `PLAN_DISABLED` tools), `/cancel`, and `!<cmd>` shell escape (kimi Ctrl-X shell mode, readline-style).
 
 ## LLM validation witness
 

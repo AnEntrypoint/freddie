@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // Ratchet lint: every empty `catch` block (`catch {}`, `catch (e) {}`,
-// `catch (_) {}`, or any blank-body catch) must carry a `// swallow: <why>`
-// comment — either inside the block, on the line immediately before the
-// `catch`, or on the line immediately after the closing `}`. This is a
-// documentation gate, not a "never swallow errors" gate: swallowing is
-// sometimes correct (best-effort persistence, teardown, etc.) but it must
-// say why.
+// `catch (_) {}`, or any blank-body catch) must say WHY it swallows. Accepted
+// forms: a `// swallow: <why>` comment (inside the block, on the line
+// immediately before the `catch`, or on the line immediately after the
+// closing `}`), or any content-bearing comment inside the block (the
+// `catch { /* why */ }` / `catch { // why }` convention used across these
+// repos). This is a documentation gate, not a "never swallow errors" gate:
+// swallowing is sometimes correct (best-effort persistence, teardown, etc.)
+// but it must say why.
 //
 // Ratchet pattern (matches design's spacing lint): violations are recorded
 // into an ALLOW file as a snapshot count. The gate only fails the build if
@@ -39,7 +41,11 @@ function walk(dir, out) {
   }
   for (const e of entries) {
     const full = join(dir, e.name);
-    if (SKIP_PATH_PARTS.some((p) => full.includes(p))) continue;
+    // Normalize separators before the skip check: join() yields backslashes on
+    // Windows, where '/vendor/' etc. would never match and vendored trees got
+    // scanned (and flagged) despite being listed in SKIP_PATH_PARTS.
+    const norm = full.replace(/\\/g, '/');
+    if (SKIP_PATH_PARTS.some((p) => norm.includes(p))) continue;
     if (e.isDirectory()) {
       walk(full, out);
     } else if (e.isFile() && SCAN_EXT.test(e.name)) {
@@ -107,7 +113,13 @@ function findViolations(file) {
         ci++;
       }
       if (depth === 0 && body.replace(/\s/g, '').replace(/\/\*.*?\*\//gs, '') === '' ) {
-        matchIdx = i;
+        // Body is blank or comment-only. A comment-only body that actually
+        // says WHY (the repo's `catch { /* why */ }` convention, or a
+        // `// why` line comment) IS documented — only a truly blank body is
+        // a violation here (the `swallow:` window check below remains an
+        // additional accepted form for comments placed around the catch).
+        const saysWhy = (body.match(/\/\*[\s\S]*?\*\//g) || []).concat(body.match(/\/\/[^\n]*/g) || []).some((c) => /[A-Za-z0-9]/.test(c));
+        if (!saysWhy) matchIdx = i;
       } else if (depth === 0) {
         // Body is non-blank but may be ONLY a comment (still "empty" in
         // effect since no statements execute) — check for statement chars.
@@ -115,7 +127,10 @@ function findViolations(file) {
           .replace(/\/\*[\s\S]*?\*\//g, '')
           .replace(/\/\/[^\n]*/g, '')
           .replace(/\s/g, '');
-        if (stripped === '') matchIdx = i;
+        if (stripped === '') {
+          const saysWhy = (body.match(/\/\*[\s\S]*?\*\//g) || []).concat(body.match(/\/\/[^\n]*/g) || []).some((c) => /[A-Za-z0-9]/.test(c));
+          if (!saysWhy) matchIdx = i;
+        }
       }
     }
 

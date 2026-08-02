@@ -6,6 +6,7 @@ node_modules
 dist
 src/web/vendor/
 .cache
+/wire/
 # >>> gm managed (do not edit between markers)
 .gm-stop-verified
 .gm/.gm-continue-count
@@ -104,3 +105,19 @@ website/docs/
 state/sessions.db
 .impeccable/
 .gm/config-source-cache-*
+
+# runtime agent state — session artifacts, not source (freddie repo tracks no .gm content)
+.agentplug/
+.gm/exec-spool/
+.gm/gm.db*
+.gm/rs-learn.db*
+.gm/wire/
+.gm/trajectories/
+.gm/batches/
+.gm/cron.db*
+.gm/gm-instr.json
+.gm/gm-trans.json
+.gm/gm-prdlist.json
+
+# whole .gm tree is per-machine agent state (nothing under it is tracked in this repo)
+.gm/

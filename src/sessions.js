@@ -44,13 +44,15 @@ async function db() {
     return await initDb()
 }
 
-export async function createSession({ platform = 'cli', userId = null, chatId = null, threadId = null, title = null, model = null, cwd = null, skill = null, parentId = null } = {}) {
+export async function createSession({ platform = 'cli', userId = null, chatId = null, threadId = null, title = null, model = null, cwd = null, skill = null, parentId = null, id = null } = {}) {
     const d = await db()
-    const id = randomUUID()
+    // Optional caller-supplied id (gui-agent workspace sessions key the DB row
+    // to the client-generated wire sessionId so wire log and DB stay 1:1).
+    const sid = id || randomUUID()
     const now = Date.now()
     await d.prepare(`INSERT INTO sessions (id, platform, user_id, chat_id, thread_id, title, created_at, updated_at, model, cwd, skill, parent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-        .run(id, platform, userId, chatId, threadId, title, now, now, model, cwd, skill, parentId)
-    return id
+        .run(sid, platform, userId, chatId, threadId, title, now, now, model, cwd, skill, parentId)
+    return sid
 }
 
 export async function appendMessage(sessionId, { role, content = '', toolCalls = null, toolCallId = null }) {
