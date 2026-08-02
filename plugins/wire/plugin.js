@@ -29,9 +29,9 @@ import readline from 'node:readline'
 import { randomUUID } from 'node:crypto'
 import { runTurn } from '../../src/agent/machine.js'
 import { WIRE_VERSION, WIRE_EVENTS, readWireLog } from '../../src/agent/events.js'
-import { subscribeTurn, steerTurn, cancelTurn, resolveApproval, listLiveTurns } from '../../src/agent/live-turns.js'
+import { subscribeTurn, steerTurn, queueTurn, cancelTurn, resolveApproval, listLiveTurns } from '../../src/agent/live-turns.js'
 
-const METHODS = ['initialize', 'prompt', 'steer', 'cancel', 'approve', 'replay', 'status']
+const METHODS = ['initialize', 'prompt', 'steer', 'queue', 'cancel', 'approve', 'replay', 'status']
 
 function makeTransport(out) {
     const send = (obj) => out.write(JSON.stringify(obj) + '\n')
@@ -68,6 +68,10 @@ export async function serveWire({ input = process.stdin, output = process.stdout
             if (method === 'steer') {
                 if (!params.sessionId || !params.text) return t.error(id, -32602, 'steer requires sessionId + text')
                 return t.result(id, { ok: steerTurn(params.sessionId, params.text) })
+            }
+            if (method === 'queue') {
+                if (!params.sessionId || !params.text) return t.error(id, -32602, 'queue requires sessionId + text')
+                return t.result(id, { ok: queueTurn(params.sessionId, params.text) })
             }
             if (method === 'cancel') {
                 if (!params.sessionId) return t.error(id, -32602, 'cancel requires sessionId')

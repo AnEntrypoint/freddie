@@ -4,3 +4,4 @@ export { SUMMARY_PREFIX, LEGACY_SUMMARY_PREFIX, SUMMARIZER_SYSTEM_PROMPT, buildS
 export { pruneOldToolResults, PRUNED_TOOL_PLACEHOLDER } from './prune.js'
 export { estimateMessagesTokens, estimateMessageTokens, contentLengthForBudget, IMAGE_TOKEN_ESTIMATE, CHARS_PER_TOKEN } from './tokens.js'
 export { markFailure, shouldRetry, clearFailure, SUMMARY_FAILURE_COOLDOWN_SECONDS } from './fallback.js'
+export { splitMiddleIntoBlocks, allocateBlockBudgets, enforceTokenBudget, mapWithConcurrency, BLOCK_SOURCE_TOKENS, BLOCK_CONCURRENCY, MIN_BLOCK_SUMMARY_TOKENS } from './blocks.js'
