@@ -32,7 +32,7 @@ export const WIRE_VERSION = 1
 export const WIRE_EVENTS = [
     'session.created', 'session.start', 'message.append', 'assistant.delta',
     'tool.start', 'tool.end', 'status.update',
-    'approval.request', 'approval.resolved', 'steer.append',
+    'approval.request', 'approval.resolved', 'steer.append', 'queue.append',
     'session.end', 'session.error',
 ]
 
@@ -43,7 +43,9 @@ export function wireLogDir() {
 }
 
 export function wireLogPath(sessionId) {
-    return path.join(wireLogDir(), String(sessionId) + '.jsonl')
+    // Session keys can contain ':' (e.g. acp:<id> from the ACP server), which
+    // NTFS rejects — sanitize for the filename without changing the id itself.
+    return path.join(wireLogDir(), String(sessionId).replace(/[:<>"/\\|?*]/g, '_') + '.jsonl')
 }
 
 export function emitTurnEvent(sessionId, event, data = {}) {
@@ -90,4 +92,34 @@ export function readWireLog(sessionId, { limit = 0 } = {}) {
         try { out.push(JSON.parse(line)) } catch { /* swallow: skip torn line from a crash mid-append */ }
     }
     return limit > 0 ? out.slice(-limit) : out
+}
+
+// Verbatim-span recall over every session's wire log (AMA-Agent/OCR-Memory
+// locate-and-transcribe principle: return the exact recorded span, never a
+// paraphrase). Complements embedding recall in gm-learn — similarity finds
+// thematically-related facts, this finds the literal prior occurrence.
+export function searchWireLogs(query, { limit = 5, maxFiles = 50, maxSpan = 400 } = {}) {
+    const terms = String(query || '').toLowerCase().split(/[^a-z0-9_]+/).filter(t => t.length > 3)
+    if (!terms.length) return []
+    let files
+    try {
+        files = fs.readdirSync(wireLogDir()).filter(f => f.endsWith('.jsonl'))
+            .map(f => ({ f, mtime: fs.statSync(path.join(wireLogDir(), f)).mtimeMs }))
+            .sort((a, b) => b.mtime - a.mtime).slice(0, maxFiles)
+    } catch { return [] }
+    const hits = []
+    for (const { f } of files) {
+        const sid = f.slice(0, -'.jsonl'.length)
+        for (const env of readWireLog(sid)) {
+            if (env.event !== 'message.append' && env.event !== 'steer.append') continue
+            const text = String(env.data?.content ?? env.data?.text ?? '')
+            const lower = text.toLowerCase()
+            const matched = terms.filter(t => lower.includes(t))
+            if (!matched.length) continue
+            hits.push({ sessionId: sid, ts: env.ts, role: env.data?.role || 'user', text: text.slice(0, maxSpan), matched: matched.length })
+            if (hits.length >= limit * 4) break
+        }
+        if (hits.length >= limit * 4) break
+    }
+    return hits.sort((a, b) => b.matched - a.matched || (a.ts < b.ts ? 1 : -1)).slice(0, limit)
 }

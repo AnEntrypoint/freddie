@@ -18,7 +18,46 @@
 import { randomUUID } from 'node:crypto'
 import { emitTurnEvent, onTurnEvent } from './events.js'
 
+// Repo-root-scoped approval grants, persisted across turns and resumeTurn
+// (Claude repo-root always-allow rules + Codex fork-preservation precedent).
+// One JSON file keyed by cwd: { "<cwd>": ["bash", "write", ...] }. The 'always'
+// resolution writes here; runTurn/resumeTurn seed control.approvedTools from it.
+const GRANTS_GLOBAL = 'global'
+let _grantsCache = null
+
+async function grantsFile() {
+    const { getFreddieHome } = await import('../home.js')
+    const path = await import('node:path')
+    return path.join(getFreddieHome(), 'approval-grants.json')
+}
+
+export async function loadApprovalGrants(cwd) {
+    try {
+        if (!_grantsCache) {
+            const fs = await import('node:fs')
+            _grantsCache = JSON.parse(fs.readFileSync(await grantsFile(), 'utf8'))
+        }
+    } catch { _grantsCache = _grantsCache || {} /* swallow: missing/corrupt grants file = no grants */ }
+    return [...(_grantsCache[GRANTS_GLOBAL] || []), ...(cwd && _grantsCache[cwd] ? _grantsCache[cwd] : [])]
+}
+
+async function persistApprovalGrant(cwd, toolName) {
+    try {
+        const key = cwd || GRANTS_GLOBAL
+        const grants = _grantsCache || {}
+        if (!Array.isArray(grants[key])) grants[key] = []
+        if (!grants[key].includes(toolName)) grants[key].push(toolName)
+        _grantsCache = grants
+        const fs = await import('node:fs')
+        fs.writeFileSync(await grantsFile(), JSON.stringify(grants, null, 2))
+    } catch { /* swallow: grant persistence is best-effort */ }
+}
+
 const turns = new Map() // sessionKey -> { actor, control, pendingApproval, startedAt }
+// Per-session follow-up queue (kimi 1.31's Enter=queue channel). Lives outside
+// the live-turn entry so queued prompts survive the turn they were typed
+// during — the surface (REPL/gui-agent) drains them after turn completion.
+const sessionQueues = new Map() // sessionKey -> string[]
 
 export function registerTurn(sessionKey, entry) {
     turns.set(sessionKey, entry)
@@ -47,6 +86,44 @@ export function steerTurn(sessionKey, text) {
     return true
 }
 
+// Queue a follow-up prompt for AFTER the running turn (kimi's Enter channel).
+// Works with or without a live turn — the caller drains post-completion.
+export function queueTurn(sessionKey, text) {
+    if (!text) return false
+    if (!sessionQueues.has(sessionKey)) sessionQueues.set(sessionKey, [])
+    sessionQueues.get(sessionKey).push(String(text))
+    emitTurnEvent(sessionKey, 'queue.append', { text: String(text), depth: sessionQueues.get(sessionKey).length })
+    return true
+}
+
+export function drainQueue(sessionKey) {
+    const q = sessionQueues.get(sessionKey) || []
+    sessionQueues.delete(sessionKey)
+    return q
+}
+
+export function queueDepth(sessionKey) {
+    return (sessionQueues.get(sessionKey) || []).length
+}
+
+// Per-tool SESSION budget counters (Claude Code's WebSearch/subagent caps
+// precedent): live outside the per-turn control so a budget holds across the
+// whole conversation, not just one turn. agent.tool_budgets config maps
+// tool name -> max calls per session (absent tool = uncapped).
+const toolCounts = new Map() // sessionKey -> Map<toolName, count>
+
+export function noteToolCall(sessionKey, name) {
+    if (!toolCounts.has(sessionKey)) toolCounts.set(sessionKey, new Map())
+    const m = toolCounts.get(sessionKey)
+    const n = (m.get(name) || 0) + 1
+    m.set(name, n)
+    return n
+}
+
+export function getToolCount(sessionKey, name) {
+    return toolCounts.get(sessionKey)?.get(name) || 0
+}
+
 export function cancelTurn(sessionKey) {
     const t = turns.get(sessionKey)
     if (!t) return false
@@ -63,16 +140,19 @@ export function requestApproval(sessionKey, { name, args, cwd }) {
     if (!t) return Promise.resolve({ approved: true })
     return new Promise((resolve) => {
         const id = randomUUID()
-        const timer = setTimeout(() => {
+        // A non-finite approvalTimeoutMs (REPL foreground, kimi 1.40's reversal)
+        // means NO auto-reject timer at all — the request waits for the human.
+        const bounded = Number.isFinite(t.control.approvalTimeoutMs)
+        const timer = bounded ? setTimeout(() => {
             if (t.pendingApproval?.id !== id) return
             t.pendingApproval = null
             emitTurnEvent(sessionKey, 'approval.resolved', { id, name, approved: false, timedOut: true, feedback: 'approval timed out' })
             resolve({ approved: false, feedback: 'approval timed out' })
-        }, t.control.approvalTimeoutMs)
-        if (typeof timer.unref === 'function') timer.unref()
+        }, t.control.approvalTimeoutMs) : null
+        if (timer && typeof timer.unref === 'function') timer.unref()
         t.pendingApproval = {
-            id, name,
-            resolve: (d) => { clearTimeout(timer); resolve(d) },
+            id, name, cwd: cwd ?? null,
+            resolve: (d) => { if (timer) clearTimeout(timer); resolve(d) },
         }
         emitTurnEvent(sessionKey, 'approval.request', { id, name, args, cwd: cwd ?? null })
     })
@@ -94,6 +174,9 @@ export async function resolveApproval(sessionKey, { id, approved, always = false
             const { addAutoApprovedAction } = await import('../../plugins/core/approval_state.js')
             addAutoApprovedAction(sessionKey, pending.name)
         } catch { /* swallow: approval_state mirror is best-effort */ }
+        // Repo-root scoped persistence: future turns (and resumeTurn) in this
+        // cwd skip the gate for this tool.
+        await persistApprovalGrant(pending.cwd, pending.name)
     }
     emitTurnEvent(sessionKey, 'approval.resolved', { id: pending.id, name: pending.name, approved: !!approved, always: !!always, feedback: feedback ?? null })
     pending.resolve({ approved: !!approved, feedback: feedback ?? null })

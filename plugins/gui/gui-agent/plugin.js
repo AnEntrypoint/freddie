@@ -23,7 +23,7 @@
 
 import { runTurn } from '../../../src/agent/machine.js'
 import { readWireLog } from '../../../src/agent/events.js'
-import { subscribeTurn, steerTurn, cancelTurn, resolveApproval, listLiveTurns } from '../../../src/agent/live-turns.js'
+import { subscribeTurn, steerTurn, queueTurn, drainQueue, cancelTurn, resolveApproval, listLiveTurns } from '../../../src/agent/live-turns.js'
 import { getConfigValue } from '../../../src/config.js'
 import { createSession, getSession, appendMessage } from '../../../src/sessions.js'
 
@@ -90,20 +90,31 @@ export default {
                         if (listLiveTurns().includes(sid)) { send({ type: 'error', error: 'turn already running', sessionId: sid }); return }
                         send({ type: 'prompt.accepted', sessionId: sid })
                         await ensureDbSession(sid, msg)
-                        const prior = priorFromWire(sid)
-                        const out = await runTurn({
-                            prompt: msg.text,
-                            messages: prior,
-                            sessionKey: sid,
-                            cwd: msg.cwd,
-                            model: msg.model,
-                            provider: msg.provider,
-                            timeoutMs: getConfigValue('agent.turn_timeout_ms', 600000),
-                        })
-                        await persistTurnMessages(sid, out, prior.length)
-                        send({ type: 'prompt.done', sessionId: sid, result: out.result ?? null, error: out.error ?? null, iterations: out.iterations ?? 0 })
+                        // Run the prompt, then auto-drain queued follow-ups
+                        // (kimi 1.31's Enter=queue channel) into subsequent
+                        // turns until the queue is empty.
+                        let next = msg.text
+                        while (next) {
+                            const prior = priorFromWire(sid)
+                            const out = await runTurn({
+                                prompt: next,
+                                messages: prior,
+                                sessionKey: sid,
+                                cwd: msg.cwd,
+                                model: msg.model,
+                                provider: msg.provider,
+                                timeoutMs: getConfigValue('agent.turn_timeout_ms', 600000),
+                            })
+                            await persistTurnMessages(sid, out, prior.length)
+                            send({ type: 'prompt.done', sessionId: sid, result: out.result ?? null, error: out.error ?? null, iterations: out.iterations ?? 0 })
+                            const queued = drainQueue(sid)
+                            next = queued.length ? queued.join('\n') : null
+                            if (next) send({ type: 'queue.next', sessionId: sid, text: next })
+                        }
                     } else if (msg.type === 'steer' && msg.text) {
                         send({ type: 'steer.result', ok: steerTurn(sid, msg.text) })
+                    } else if (msg.type === 'queue' && msg.text) {
+                        send({ type: 'queue.result', ok: queueTurn(sid, msg.text) })
                     } else if (msg.type === 'cancel') {
                         send({ type: 'cancel.result', ok: cancelTurn(sid) })
                     } else if (msg.type === 'approve') {

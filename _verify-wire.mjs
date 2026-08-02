@@ -194,5 +194,187 @@ const TC = (id, name, args) => [{ id, name, arguments: args }]
     try { fs.unlinkSync(wireLogPath(sid)) } catch { /* swallow: test-log cleanup is best-effort */ }
 }
 
+// --- 8. non-finite approval timeout waits indefinitely (kimi 1.40 surface split)
+{
+    const sid = 'verify-' + randomUUID().slice(0, 8)
+    const control = mkControl({ approvalPolicy: 'mutating', approvalTimeoutMs: Infinity })
+    let done = false
+    const drive = driveScripted({
+        sessionKey: sid, control,
+        script: [
+            { content: '', tool_calls: TC('tc1', 'bash', { cmd: 'x' }) },
+            { content: 'finished', tool_calls: [] },
+        ],
+    }).then(r => { done = true; return r })
+    // No resolver for 1.5s: a bounded timeout (the verify default is 3000ms)
+    // would still be pending, an Infinity one must not auto-reject either.
+    await new Promise(r => setTimeout(r, 1500))
+    check('unbounded approval does not auto-reject', done === false)
+    const t = (await import('./src/agent/live-turns.js')).getTurn(sid)
+    await resolveApproval(sid, { id: t?.pendingApproval?.id, approved: true })
+    const { output } = await drive
+    check('turn completes after late approval', output?.result === 'finished')
+    try { fs.unlinkSync(wireLogPath(sid)) } catch { /* swallow: test-log cleanup is best-effort */ }
+}
+
+// --- 9. per-tool session budget caps ------------------------------------------
+{
+    const sid = 'verify-' + randomUUID().slice(0, 8)
+    const control = mkControl({ toolBudgets: { bash: 2 } })
+    let calls = 0
+    const { output } = await driveScripted({
+        sessionKey: sid, control,
+        callLLM: async () => {
+            calls++
+            if (calls <= 4) return { content: '', tool_calls: TC('tc' + calls, 'bash', { cmd: 'n' + calls }) }
+            return { content: 'gave up calling', tool_calls: [] }
+        },
+    })
+    const budgeted = (output?.messages || []).filter(m => m.role === 'tool' && typeof m.content === 'string' && m.content.includes('budget exceeded'))
+    const reminder = (output?.messages || []).find(m => m.role === 'system' && typeof m.content === 'string' && m.content.includes('session budget'))
+    check('budget caps tool after N session calls', budgeted.length >= 1)
+    check('budget breach injects system reminder', !!reminder)
+    check('turn completes after budget breach', output?.result === 'gave up calling')
+    try { fs.unlinkSync(wireLogPath(sid)) } catch { /* swallow: test-log cleanup is best-effort */ }
+}
+
+// --- 10. classifier approval mode (LLM-adjudicated gate) ---------------------
+// A stub classifier callLLM injected via control.classifierCallLLM returns
+// ALLOW / DENY / garbage on cue — no network. Exercises the machine's
+// classifier branch in executing_tools (src/agent/approval_classifier.js).
+
+// 10a. ALLOW dispatches without ever touching the human path
+{
+    const sid = 'verify-' + randomUUID().slice(0, 8)
+    const seen = []
+    onTurnEvent(sid, (e) => seen.push(e))
+    let classifyCalls = 0
+    const control = mkControl({ approvalPolicy: 'classifier', classifierCallLLM: async () => { classifyCalls++; return { content: 'ALLOW' } } })
+    const { output } = await driveScripted({
+        sessionKey: sid, control,
+        script: [
+            { content: '', tool_calls: TC('tc1', 'bash', { cmd: 'echo hi' }) },
+            { content: 'echoed', tool_calls: [] },
+        ],
+    })
+    check('classifier consulted once for the gated call', classifyCalls === 1)
+    check('classifier ALLOW dispatches (tool.start fired)', seen.some(e => e.event === 'tool.start' && e.data.name === 'bash'))
+    check('classifier ALLOW never asks the human', !seen.some(e => e.event === 'approval.request'))
+    check('turn completes after classifier allow', output?.result === 'echoed')
+    try { fs.unlinkSync(wireLogPath(sid)) } catch { /* swallow: test-log cleanup is best-effort */ }
+}
+
+// 10b. DENY feeds back as a tool result and bumps the counters
+{
+    const sid = 'verify-' + randomUUID().slice(0, 8)
+    const seen = []
+    onTurnEvent(sid, (e) => seen.push(e))
+    const control = mkControl({ approvalPolicy: 'classifier', classifierCallLLM: async () => ({ content: 'DENY destructive command' }) })
+    const { output } = await driveScripted({
+        sessionKey: sid, control,
+        script: [
+            { content: '', tool_calls: TC('tc1', 'bash', { cmd: 'rm -rf /' }) },
+            { content: 'understood, not doing that', tool_calls: [] },
+        ],
+    })
+    const denial = (output?.messages || []).find(m => m.role === 'tool' && typeof m.content === 'string' && m.content.includes('denied by policy classifier'))
+    check('classifier DENY fed back as tool result', !!denial)
+    check('classifier denial carries the parsed reason', !!denial && denial.content.includes('destructive command'))
+    check('classifier DENY skips dispatch (no tool.start)', !seen.some(e => e.event === 'tool.start'))
+    check('classifier DENY does not ask the human', !seen.some(e => e.event === 'approval.request'))
+    check('denial counters incremented', control.classifierDenials === 1 && control.classifierConsecDenials === 1 && !control.classifierEscalated)
+    check('turn completes after classifier denial', output?.result === 'understood, not doing that')
+    try { fs.unlinkSync(wireLogPath(sid)) } catch { /* swallow: test-log cleanup is best-effort */ }
+}
+
+// 10c. 3 consecutive denials stop the classifier and escalate to the human
+{
+    const sid = 'verify-' + randomUUID().slice(0, 8)
+    const seen = []
+    onTurnEvent(sid, (e) => seen.push(e))
+    let classifyCalls = 0
+    const control = mkControl({ approvalPolicy: 'classifier', classifierCallLLM: async () => { classifyCalls++; return { content: 'DENY' } } })
+    let n = 0
+    const drive = driveScripted({
+        sessionKey: sid, control,
+        callLLM: async () => {
+            n++
+            if (n <= 4) return { content: '', tool_calls: TC('tc' + n, 'bash', { cmd: 'n' + n }) }
+            return { content: 'gave up calling', tool_calls: [] }
+        },
+    })
+    // The 4th call (after 3 consecutive denials) must arrive as a human approval.
+    let escalated = null
+    for (let i = 0; i < 100 && !escalated; i++) {
+        await new Promise(r => setTimeout(r, 50))
+        const req = seen.find(e => e.event === 'approval.request')
+        if (req) {
+            escalated = req
+            await resolveApproval(sid, { id: req.data.id, approved: true })
+        }
+    }
+    const { output } = await drive
+    check('approval.request fires after 3 consecutive classifier denials', !!escalated && escalated.data.name === 'bash')
+    check('classifier no longer consulted once escalated', classifyCalls === 3)
+    check('escalation latch + counters set', control.classifierEscalated === true && control.classifierDenials === 3 && control.classifierConsecDenials === 3)
+    const denials = (output?.messages || []).filter(m => m.role === 'tool' && typeof m.content === 'string' && m.content.includes('denied by policy classifier'))
+    check('first three calls denied by classifier, fourth ran past a human yes', denials.length === 3 && output?.result === 'gave up calling')
+    try { fs.unlinkSync(wireLogPath(sid)) } catch { /* swallow: test-log cleanup is best-effort */ }
+}
+
+// 10d. garbage verdict fails CLOSED to the human — never auto-allow, never auto-deny
+{
+    const sid = 'verify-' + randomUUID().slice(0, 8)
+    const seen = []
+    onTurnEvent(sid, (e) => seen.push(e))
+    const control = mkControl({ approvalPolicy: 'classifier', classifierCallLLM: async () => ({ content: 'well, it depends on many factors' }) })
+    const drive = driveScripted({
+        sessionKey: sid, control,
+        script: [
+            { content: '', tool_calls: TC('tc1', 'bash', { cmd: 'echo hi' }) },
+            { content: 'done after human', tool_calls: [] },
+        ],
+    })
+    let req0 = null
+    for (let i = 0; i < 100 && !req0; i++) {
+        await new Promise(r => setTimeout(r, 50))
+        const req = seen.find(e => e.event === 'approval.request')
+        if (req) {
+            req0 = req
+            // NOT auto-allowed: no tool.start may precede the human request.
+            const startIdx = seen.findIndex(e => e.event === 'tool.start')
+            const reqIdx = seen.indexOf(req)
+            check('garbage verdict did not auto-allow (request precedes dispatch)', startIdx === -1 || reqIdx < startIdx)
+            await resolveApproval(sid, { id: req.data.id, approved: true })
+        }
+    }
+    const { output } = await drive
+    check('garbage verdict escalates to the human', !!req0)
+    const autoDeny = (output?.messages || []).find(m => m.role === 'tool' && typeof m.content === 'string' && m.content.includes('denied by policy classifier'))
+    check('garbage verdict did not auto-deny', !autoDeny)
+    check('turn completes after human approves escalation', output?.result === 'done after human')
+    try { fs.unlinkSync(wireLogPath(sid)) } catch { /* swallow: test-log cleanup is best-effort */ }
+}
+
+// 10e. approvedTools outrank the classifier (explicit grants skip it entirely)
+{
+    const sid = 'verify-' + randomUUID().slice(0, 8)
+    const seen = []
+    onTurnEvent(sid, (e) => seen.push(e))
+    let classifyCalls = 0
+    const control = mkControl({ approvalPolicy: 'classifier', approvedTools: new Set(['bash']), classifierCallLLM: async () => { classifyCalls++; return { content: 'DENY' } } })
+    const { output } = await driveScripted({
+        sessionKey: sid, control,
+        script: [
+            { content: '', tool_calls: TC('tc1', 'bash', { cmd: 'echo hi' }) },
+            { content: 'granted path done', tool_calls: [] },
+        ],
+    })
+    check('pre-approved tool skips the classifier', classifyCalls === 0)
+    check('pre-approved tool dispatches directly', seen.some(e => e.event === 'tool.start' && e.data.name === 'bash') && !seen.some(e => e.event === 'approval.request'))
+    check('turn completes via the grant path', output?.result === 'granted path done')
+    try { fs.unlinkSync(wireLogPath(sid)) } catch { /* swallow: test-log cleanup is best-effort */ }
+}
+
 console.log(failures === 0 ? '\nALL WIRE CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`)
 process.exit(failures === 0 ? 0 : 1)
