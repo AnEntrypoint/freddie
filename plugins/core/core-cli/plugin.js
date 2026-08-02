@@ -241,7 +241,7 @@ export default {
         } })
 
         // --- Conversation management: `freddie session list|show|rm` -----------
-        C({ name: 'session', description: 'Manage conversations (list|show <id>|rm <id>)', args: [{ name: 'action', default: 'list' }, { name: 'id' }], action: async (action, id) => {
+        C({ name: 'session', description: 'Manage conversations (list|show <id>|rm <id>|wire <id>|fork <id> [at]|undo <id>)', args: [{ name: 'action', default: 'list' }, { name: 'id' }, { name: 'a2' }], action: async (action, id, a2) => {
             if (action === 'list') {
                 const rows = await listSessions()
                 if (!rows.length) { console.log('(no conversations yet — run `freddie run`)'); return }
@@ -298,7 +298,56 @@ export default {
                 }
                 return
             }
-            console.error('usage: freddie session [list|show <id>|rm <id>|wire <id> [--raw]]'); process.exit(1)
+            // kimi /fork: copy the wire transcript (optionally a prefix) into a
+            // new session id — wire log + sessions.db stay consistent.
+            if (action === 'fork') {
+                if (!id) { console.error('usage: freddie session fork <id> [atEventIndex]'); process.exit(1) }
+                const { forkWireLog, transcriptFromWire, wireLogDir } = await import('../../../src/agent/events.js')
+                const fs = await import('node:fs')
+                let sid = id
+                try {
+                    const files = fs.readdirSync(wireLogDir()).filter(f => f.endsWith('.jsonl'))
+                    const match = files.find(f => f === id + '.jsonl') || files.find(f => f.startsWith(id))
+                    if (match) sid = match.slice(0, -'.jsonl'.length)
+                } catch { /* swallow: missing wire dir just means no logs below */ }
+                const atIdx = a2 != null && a2 !== '' ? Number(a2) : null
+                const newSid = forkWireLog(sid, { atIndex: Number.isFinite(atIdx) ? atIdx : null })
+                if (!newSid) { console.error('no wire log to fork for session:', id); process.exit(1) }
+                const { createSession, getSession, appendMessage } = await import('../../../src/sessions.js')
+                const source = await getSession(sid).catch(() => null)
+                if (!(await getSession(newSid).catch(() => null))) {
+                    await createSession({ id: newSid, platform: source?.platform || 'web', title: 'fork of ' + (source?.title || sid.slice(0, 8)), cwd: source?.cwd || null, model: source?.model || null })
+                }
+                for (const m of transcriptFromWire(newSid)) {
+                    await appendMessage(newSid, { role: m.role, content: m.content, toolCalls: m.tool_calls || null, toolCallId: m.tool_call_id || null })
+                }
+                console.log(`forked ${sid.slice(0, 8)} -> ${newSid}${Number.isFinite(atIdx) ? ' (at event ' + atIdx + ')' : ''}`)
+                return
+            }
+            // kimi /undo: drop the LAST turn — truncate the wire log at the last
+            // session.start, then rebuild the DB transcript to match.
+            if (action === 'undo') {
+                if (!id) { console.error('usage: freddie session undo <id>'); process.exit(1) }
+                const { lastTurnStartIndex, truncateWireLog, transcriptFromWire, wireLogDir } = await import('../../../src/agent/events.js')
+                const fs = await import('node:fs')
+                let sid = id
+                try {
+                    const files = fs.readdirSync(wireLogDir()).filter(f => f.endsWith('.jsonl'))
+                    const match = files.find(f => f === id + '.jsonl') || files.find(f => f.startsWith(id))
+                    if (match) sid = match.slice(0, -'.jsonl'.length)
+                } catch { /* swallow: missing wire dir just means no logs below */ }
+                const cut = lastTurnStartIndex(sid)
+                const kept = truncateWireLog(sid, cut)
+                if (kept == null) { console.error('no wire log for session:', id); process.exit(1) }
+                const { purgeSessionMessages, appendMessage } = await import('../../../src/sessions.js')
+                await purgeSessionMessages(sid)
+                for (const m of transcriptFromWire(sid)) {
+                    await appendMessage(sid, { role: m.role, content: m.content, toolCalls: m.tool_calls || null, toolCallId: m.tool_call_id || null })
+                }
+                console.log(`undid last turn of ${sid.slice(0, 8)} (kept ${kept} events)`)
+                return
+            }
+            console.error('usage: freddie session [list|show <id>|rm <id>|wire <id> [--raw]|fork <id> [at]|undo <id>]'); process.exit(1)
         } })
 
         // --- Onboarding: `freddie doctor` one-glance health --------------------

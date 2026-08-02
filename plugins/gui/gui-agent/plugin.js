@@ -22,12 +22,19 @@
 // id rides in the query string rather than the path.
 
 import { runTurn } from '../../../src/agent/machine.js'
-import { readWireLog } from '../../../src/agent/events.js'
-import { subscribeTurn, steerTurn, queueTurn, drainQueue, cancelTurn, resolveApproval, listLiveTurns } from '../../../src/agent/live-turns.js'
+import { readWireLog, transcriptFromWire } from '../../../src/agent/events.js'
+import { subscribeTurn, steerTurn, queueTurn, drainQueue, cancelTurn, revertTurn, resolveApproval, listLiveTurns } from '../../../src/agent/live-turns.js'
 import { getConfigValue } from '../../../src/config.js'
 import { createSession, getSession, appendMessage } from '../../../src/sessions.js'
+import { getFreddieHome } from '../../../src/home.js'
+import fs from 'node:fs'
+import path from 'node:path'
 
 const REPLAY_CAP = 500
+
+// Turn continuity comes from the wire log (this surface's canonical
+// transcript — kimi's wire.jsonl model), reconstructed by the shared helper.
+const priorFromWire = (sid) => transcriptFromWire(sid, { limit: 1000 })
 
 // Mirror the turn into sessions.db (session row keyed to the wire sessionId +
 // appended messages) so workspace conversations show up in `freddie session
@@ -47,25 +54,6 @@ async function persistTurnMessages(sid, out, priorCount) {
             await appendMessage(sid, { role: m.role, content: m.content, toolCalls: m.tool_calls || null, toolCallId: m.tool_call_id || null })
         }
     } catch { /* swallow: DB listing is best-effort, the wire log is canonical */ }
-}
-
-// Reconstruct a well-formed prior transcript from the session's wire log so a
-// WS-driven turn sees the conversation so far (the wire log is this surface's
-// canonical transcript — kimi's wire.jsonl model — not sessions.db).
-function priorFromWire(sid) {
-    const msgs = []
-    for (const env of readWireLog(sid, { limit: 1000 })) {
-        const { event, data } = env
-        if (event === 'message.append') {
-            if (data.role === 'user') msgs.push({ role: 'user', content: data.content })
-            else if (data.role === 'assistant') msgs.push({ role: 'assistant', content: data.content || '', tool_calls: data.tool_calls || [] })
-        } else if (event === 'steer.append') {
-            msgs.push({ role: 'user', content: data.text })
-        } else if (event === 'tool.end') {
-            msgs.push({ role: 'tool', tool_call_id: data.toolCallId, content: data.denied ? JSON.stringify({ error: 'tool call denied by user' }) : (typeof data.result === 'string' ? data.result : JSON.stringify(data.result ?? '')) })
-        }
-    }
-    return msgs
 }
 
 export default {
@@ -90,10 +78,18 @@ export default {
                         if (listLiveTurns().includes(sid)) { send({ type: 'error', error: 'turn already running', sessionId: sid }); return }
                         send({ type: 'prompt.accepted', sessionId: sid })
                         await ensureDbSession(sid, msg)
+                        // Attachments (uploaded via POST /api/sessions/:id/files)
+                        // are referenced by disk path — the agent reads them with
+                        // its file tools (read_media_file covers images), which
+                        // keeps this path model-agnostic.
+                        const attached = Array.isArray(msg.attachments) ? msg.attachments.filter(a => a && a.path) : []
+                        const promptText = attached.length
+                            ? msg.text + '\n\n[Attachments saved to disk: ' + attached.map(a => `${a.name || 'file'} -> ${a.path}`).join('; ') + ' — read them with your file tools if relevant]'
+                            : msg.text
                         // Run the prompt, then auto-drain queued follow-ups
                         // (kimi 1.31's Enter=queue channel) into subsequent
                         // turns until the queue is empty.
-                        let next = msg.text
+                        let next = promptText
                         while (next) {
                             const prior = priorFromWire(sid)
                             const out = await runTurn({
@@ -117,6 +113,8 @@ export default {
                         send({ type: 'queue.result', ok: queueTurn(sid, msg.text) })
                     } else if (msg.type === 'cancel') {
                         send({ type: 'cancel.result', ok: cancelTurn(sid) })
+                    } else if (msg.type === 'revert') {
+                        send({ type: 'revert.result', ...(await revertTurn(sid, msg.turnsBack ?? 1)) })
                     } else if (msg.type === 'approve') {
                         const ok = await resolveApproval(sid, msg)
                         send({ type: 'approve.result', ok })
@@ -129,6 +127,25 @@ export default {
 
         gui.route('POST', '/api/sessions/:id/cancel', (req, res) => {
             res.json({ ok: cancelTurn(req.params.id) })
+        })
+
+        // File upload for workspace prompts (kimi web's POST /{id}/files).
+        // Stored under <FREDDIE_HOME>/uploads/<sid>/ with a sanitized name; the
+        // returned path rides the prompt frame's attachments field.
+        gui.route('POST', '/api/sessions/:id/files', (req, res) => {
+            try {
+                const { name, contentBase64, text } = req.body || {}
+                if (!name || (contentBase64 == null && text == null)) return res.status(400).json({ error: 'name + contentBase64|text required' })
+                const safe = String(name).replace(/[\\/:*?"<>|]/g, '_').slice(0, 120)
+                const dir = path.join(getFreddieHome(), 'uploads', req.params.id)
+                fs.mkdirSync(dir, { recursive: true })
+                const p = path.join(dir, safe)
+                if (text != null) fs.writeFileSync(p, String(text))
+                else fs.writeFileSync(p, Buffer.from(String(contentBase64), 'base64'))
+                res.json({ ok: true, path: p, name: safe, bytes: fs.statSync(p).size })
+            } catch (e) {
+                res.status(500).json({ error: String(e?.message || e) })
+            }
         })
 
         gui.route('GET', '/api/sessions/:id/wire', (req, res) => {

@@ -101,9 +101,18 @@ export async function deleteSession(id) {
     // 'ai' trigger only fires on INSERT, so deleting the messages does not purge
     // the index. Rebuild the FTS index after the message rows are gone.
     await d.prepare(`DELETE FROM messages WHERE session_id = ?`).run(id)
-    try { await d.prepare(`INSERT INTO messages_fts(messages_fts) VALUES('rebuild')`).run() } catch {}
+    try { await d.prepare(`INSERT INTO messages_fts(messages_fts) VALUES('rebuild')`).run() } catch { /* swallow: FTS rebuild is best-effort */ }
     const info = await d.prepare(`DELETE FROM sessions WHERE id = ?`).run(id)
     return { id, deleted: (info.changes ?? info.rowsAffected ?? 0) > 0 }
+}
+
+// Message-only purge (session row survives) — session undo rebuilds the DB
+// transcript from the truncated wire log after this.
+export async function purgeSessionMessages(id) {
+    const d = await db()
+    const info = await d.prepare(`DELETE FROM messages WHERE session_id = ?`).run(id)
+    try { await d.prepare(`INSERT INTO messages_fts(messages_fts) VALUES('rebuild')`).run() } catch { /* swallow: FTS rebuild is best-effort */ }
+    return { id, deleted: (info.changes ?? info.rowsAffected ?? 0) }
 }
 
 export async function setSessionTitle(id, title) {
