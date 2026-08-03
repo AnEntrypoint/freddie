@@ -110,7 +110,7 @@ export async function interactive({ callLLM, resume = null, input = process.stdi
     if (!state.session) state.session = await createSession({ platform: 'cli' })
     output.write(`${skin.branding.welcome}\n`)
     const rl = readline.createInterface({ input, output, terminal: input.isTTY })
-    const prompt = () => { if (!state.exit) rl.setPrompt(skin.branding.prompt_symbol); rl.prompt() }
+    const prompt = () => { if (!state.exit && !rl.closed) rl.setPrompt(skin.branding.prompt_symbol); if (!rl.closed) rl.prompt() }
 
     // Ctrl-C interrupts the running turn (kimi's cancel) instead of killing
     // the REPL; with no turn active it exits as before.
@@ -209,8 +209,12 @@ export async function interactive({ callLLM, resume = null, input = process.stdi
                 toolCtx: {
                     askUser: (questions) => new Promise((resolve) => {
                         const answers = {}
+                        // EOF (piped stdin ending) must not leave the promise
+                        // hanging or prompt() a closed interface — resolve with
+                        // whatever answers we have so the machine can proceed.
+                        rl.once('close', () => { state.answeringApproval = false; resolve(answers) })
                         const askNext = (i) => {
-                            if (i >= questions.length) { state.answeringApproval = false; return resolve(answers) }
+                            if (i >= questions.length || rl.closed) { state.answeringApproval = false; return resolve(answers) }
                             const q = questions[i]
                             const opts = Array.isArray(q.options) && q.options.length
                                 ? '\n' + q.options.map((o, j) => `    ${j + 1}) ${o.label}${o.description ? ' — ' + o.description : ''}`).join('\n') + `\n  (answer with a number${q.multi_select ? ' (comma-separated)' : ''} or free text)` : ''

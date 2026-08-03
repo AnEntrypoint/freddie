@@ -124,12 +124,12 @@ export const ROUTE_GROUPS = [
             { path: 'tools',     label: 'tools',     icon: 'file-code' },
             { path: 'skills',    label: 'skills',    icon: 'check' },
             { path: 'cron',      label: 'cron',      icon: 'play' },
-            { path: 'batch',     label: 'batch',     icon: 'square' },
+            { path: 'batch',     label: 'batch',     icon: 'rows' },
             { path: 'gateway',   label: 'gateway',   icon: 'arrow-right' },
             { path: 'agents',    label: 'agents',    icon: 'members' },
             { path: 'chains',    label: 'chains',    icon: 'chevron-right' },
             { path: 'machines',  label: 'machines',  icon: 'grid' },
-            { path: 'plugins',   label: 'plugins',   icon: 'check' },
+            { path: 'plugins',   label: 'plugins',   icon: 'clipboard' },
         ],
     },
     {
@@ -141,7 +141,7 @@ export const ROUTE_GROUPS = [
             { path: 'settings',  label: 'settings',  icon: 'settings' },
             { path: 'theme',     label: 'theme',     icon: 'contrast' },
             { path: 'projects',  label: 'projects',  icon: 'square' },
-            { path: 'worktree',  label: 'worktrees', icon: 'arrow-right' },
+            { path: 'worktree',  label: 'worktrees', icon: 'copy' },
         ],
     },
     {
