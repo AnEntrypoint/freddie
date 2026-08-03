@@ -53,6 +53,9 @@ export async function runTui({ callLLM = null, resume = null } = {}) {
     const quit = () => {
         if (quitting) return
         quitting = true
+        // Restore the real console before teardown so exit-time logs land
+        // on stdout, not in a transcript that will never render again.
+        Object.assign(console, origConsole)
         tui.stop()
         resolveDone()
     }
@@ -71,21 +74,37 @@ export async function runTui({ callLLM = null, resume = null } = {}) {
         bits.push(state.turnActive ? 'enter queues · /steer injects · ctrl+c cancels' : '/help · ctrl+c quits')
         return bits.join(' | ')
     }
-    const refresh = () => { status.invalidate(); tui.requestRender() }
+    // Renders are only valid after tui.start() (raw mode + first frame);
+    // boot-time notes (chatter, --resume history) queue as children and
+    // paint on the first render instead.
+    let started = false
+    const render = () => { if (started) tui.requestRender() }
+    const refresh = () => { status.invalidate(); render() }
 
     const note = (text, color = style.dim) => {
         transcript.addChild(new Text(color(text), 1, 0))
-        tui.requestRender()
+        render()
     }
     const addUserLine = (text) => {
         transcript.addChild(new Text(style.bold(skin.branding.prompt_symbol) + style.bold(text), 1, 1))
-        tui.requestRender()
+        render()
     }
     const addAssistantBlock = (text) => {
         transcript.addChild(new Text(style.dim(skin.branding.response_label.trim()), 1, 1))
         transcript.addChild(new Markdown(text, 1, 0, markdownTheme))
-        tui.requestRender()
+        render()
     }
+
+    // Subsystems (dotenvx, acptoapi chain logs, gm-learn) write via console —
+    // raw writes would tear the differential frame, so while the TUI runs
+    // the console is rerouted into the transcript as notes. pi-tui writes
+    // via terminal.write, not console, so its own output is unaffected.
+    const origConsole = { log: console.log, info: console.info, warn: console.warn, error: console.error }
+    const safe = (a) => { if (typeof a === 'string') return a; try { return JSON.stringify(a) } catch { return String(a) } }
+    console.log = (...a) => note(a.map(safe).join(' '))
+    console.info = (...a) => note(a.map(safe).join(' '))
+    console.warn = (...a) => note(a.map(safe).join(' '), style.yellow)
+    console.error = (...a) => note(a.map(safe).join(' '), style.red)
     // Rebuild the visible transcript from state.messages (/resume, --resume).
     const renderHistory = () => {
         transcript.clear()
@@ -329,6 +348,7 @@ export async function runTui({ callLLM = null, resume = null } = {}) {
 
     tui.setFocus(editor)
     tui.start()
+    started = true
     refresh()
     return done
 }
