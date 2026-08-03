@@ -4,7 +4,7 @@ import {
     ProcessTerminal, Text, TUI, matchesKey,
 } from '@earendil-works/pi-tui'
 import { runTurn } from '../agent/machine.js'
-import { subscribeTurn, cancelTurn, resolveApproval, queueTurn, drainQueue } from '../agent/live-turns.js'
+import { subscribeTurn, cancelTurn, resolveApproval, queueTurn, drainQueue, steerTurn, unqueueLast, unqueueFirst } from '../agent/live-turns.js'
 import { getConfigValue } from '../config.js'
 import { resolveCommand } from '../commands/registry.js'
 import { getActiveSkin } from '../skin/engine.js'
@@ -13,6 +13,7 @@ import { HANDLERS, PLAN_DISABLED, SLASH_COMMAND_DOCS } from './commands.js'
 import { editorTheme, markdownTheme } from './theme.js'
 import { style } from './style.js'
 import { StatusLine } from './components.js'
+import { gitBadge } from './git-badge.js'
 
 const summarizeArgs = (args) => {
     try { const s = typeof args === 'string' ? args : JSON.stringify(args); return s.length > 120 ? s.slice(0, 117) + '...' : s } catch { return '' }
@@ -30,7 +31,7 @@ const contentToText = (c) => typeof c === 'string' ? c
 // and a status bar. Resolves when the user quits.
 export async function runTui({ callLLM = null, resume = null } = {}) {
     const skin = getActiveSkin()
-    const state = { messages: [], session: null, exit: false, planMode: false, approvalMode: null, turnActive: false, pendingApproval: null, pendingAsk: null }
+    const state = { messages: [], session: null, exit: false, planMode: false, approvalMode: null, turnActive: false, pendingApproval: null, pendingAsk: null, queuedMessages: [], toastText: null, toastTimer: null }
 
     const tui = new TUI(new ProcessTerminal())
     const transcript = new Container()
@@ -61,7 +62,8 @@ export async function runTui({ callLLM = null, resume = null } = {}) {
     }
 
     const statusText = () => {
-        if (state.pendingApproval) return `APPROVAL PENDING: ${state.pendingApproval.name} — [y]es [n]o [a]lways`
+        if (state.toastText) return state.toastText
+        if (state.pendingApproval) return `APPROVAL PENDING: ${state.pendingApproval.name} — [y/enter]es [n/esc]o [a]lways (or ↑/↓ + enter)`
         if (state.pendingAsk) return `question ${state.pendingAsk.i + 1}/${state.pendingAsk.questions.length} — type an answer, enter submits`
         const model = getConfigValue('agent.model', '') || 'auto'
         const bits = [
@@ -70,10 +72,28 @@ export async function runTui({ callLLM = null, resume = null } = {}) {
             `model ${model}`,
             `approval ${state.approvalMode || getConfigValue('agent.approval_mode', 'off')}`,
         ]
+        const badge = gitBadge(process.cwd())
+        if (badge) bits.push(badge)
         if (state.planMode) bits.push('plan')
-        bits.push(state.turnActive ? 'enter queues · /steer injects · ctrl+c cancels' : '/help · ctrl+c quits')
+        if (state.queuedMessages.length) bits.push(`queued ${state.queuedMessages.length}`)
+        bits.push(state.turnActive ? 'enter queues · ctrl+s steers now · ↑ recalls queued · ctrl+c cancels' : '/help · ctrl+c quits')
         return bits.join(' | ')
     }
+    // Transient status-bar notice (kimi's toast()) — shows for durationMs then
+    // reverts to the normal status line. Used for ignored/blocked input so the
+    // user gets feedback instead of a silent no-op.
+    const toast = (text, durationMs = 3000) => {
+        if (state.toastTimer) clearTimeout(state.toastTimer)
+        state.toastText = text
+        state.toastTimer = setTimeout(() => { state.toastText = null; refresh() }, durationMs)
+        refresh()
+    }
+    // Shell-only commands (session/config/nav — never sensible injected into a
+    // running turn) are blocked from queue/steer, mirroring kimi's
+    // parse_slash_command_call + shell_registry.find_command guard: a command
+    // typed mid-turn would otherwise be misrouted through queueTurn/steerTurn
+    // instead of the shell dispatcher that actually handles it.
+    const isBlockedMidTurnCommand = (line) => line.startsWith('/') && resolveCommand(line) !== null
     // Renders are only valid after tui.start() (raw mode + first frame);
     // boot-time notes (chatter, --resume history) queue as children and
     // paint on the first render instead.
@@ -189,6 +209,11 @@ export async function runTui({ callLLM = null, resume = null } = {}) {
         refresh()
     }
 
+    // Approval choice cursor for arrow/enter navigation (kimi's
+    // should_handle_running_prompt_key: up/down/enter/1-3 alongside y/n/a).
+    const APPROVAL_CHOICES = ['y', 'n', 'a']
+    let approvalCursor = 0
+
     // Raw mode delivers Ctrl-C as data (\x03), not SIGINT — intercept it
     // ahead of the editor: reject a pending approval, else cancel the
     // running turn (kimi's cancel), else quit.
@@ -199,13 +224,52 @@ export async function runTui({ callLLM = null, resume = null } = {}) {
             else quit()
             return { consume: true }
         }
-        // A pending approval owns y/n/a (and escape = no) until resolved.
+        // A pending approval owns y/n/a/escape, arrow-navigation, number keys
+        // 1-3, and enter (confirms the arrow-selected choice) until resolved.
         if (state.pendingApproval) {
-            if (matchesKey(data, 'y')) { answerApproval('y'); return { consume: true } }
-            if (matchesKey(data, 'n') || matchesKey(data, Key.escape)) { answerApproval('n'); return { consume: true } }
-            if (matchesKey(data, 'a')) { answerApproval('a'); return { consume: true } }
+            if (matchesKey(data, 'y') || matchesKey(data, '1')) { answerApproval('y'); return { consume: true } }
+            if (matchesKey(data, 'n') || matchesKey(data, '2') || matchesKey(data, Key.escape)) { answerApproval('n'); return { consume: true } }
+            if (matchesKey(data, 'a') || matchesKey(data, '3')) { answerApproval('a'); return { consume: true } }
+            if (matchesKey(data, Key.up)) { approvalCursor = (approvalCursor + APPROVAL_CHOICES.length - 1) % APPROVAL_CHOICES.length; refresh(); return { consume: true } }
+            if (matchesKey(data, Key.down)) { approvalCursor = (approvalCursor + 1) % APPROVAL_CHOICES.length; refresh(); return { consume: true } }
+            if (matchesKey(data, Key.enter)) { answerApproval(APPROVAL_CHOICES[approvalCursor]); return { consume: true } }
+            return
+        }
+        // Ctrl+S: immediate steer (kimi's Ctrl+S). Text in the editor steers
+        // that text now; on an empty editor with queued messages, pops the
+        // oldest queued message and steers it instead (FIFO, kimi parity).
+        if (matchesKey(data, Key.ctrl('s'))) {
+            if (!state.turnActive) return { consume: true }
+            const text = editor.getText().trim()
+            if (text) {
+                if (isBlockedMidTurnCommand(text)) { toast(`/${text.slice(1).split(/\s+/)[0]} is not available during streaming`); return { consume: true } }
+                editor.setText('')
+                steerNow(text)
+            } else {
+                const popped = unqueueFirst(state.session)
+                if (popped) { state.queuedMessages.shift(); steerNow(popped) }
+            }
+            return { consume: true }
+        }
+        // ↑ on an empty editor recalls the last queued message for editing
+        // (kimi's should_handle_running_prompt_key up-case) — only when the
+        // buffer is empty, so normal cursor-up history navigation still works.
+        if (matchesKey(data, Key.up) && state.queuedMessages.length && !editor.getText().trim()) {
+            const popped = unqueueLast(state.session)
+            if (popped) { state.queuedMessages.pop(); editor.setText(popped) }
+            refresh()
+            return { consume: true }
         }
     })
+
+    // Prints the steered text into the transcript permanently (kimi shows
+    // steers in the conversation flow, distinct from queued messages which
+    // stay pending) and injects it into the running turn now.
+    const steerNow = (text) => {
+        transcript.addChild(new Text(style.bold(skin.branding.prompt_symbol) + style.cyan(text) + style.dim(' (steered)'), 1, 1))
+        steerTurn(state.session, text)
+        refresh()
+    }
 
     editor.onSubmit = (text) => { void onLine(text) }
 
@@ -231,6 +295,16 @@ export async function runTui({ callLLM = null, resume = null } = {}) {
             return
         }
 
+        // Shell-only slash commands (session/config/nav) are misrouted if
+        // queued or steered mid-turn — the shell dispatcher below is the only
+        // thing that actually handles them, and it only runs when idle.
+        // Mid-turn, block with a toast (kimi's toast() on InputAction.IGNORED)
+        // instead of silently queueing something that will error later.
+        if (line.startsWith('/') && state.turnActive) {
+            toast(`/${line.slice(1).split(/\s+/)[0]} is not available during streaming`)
+            return
+        }
+
         if (line.startsWith('/')) {
             const parts = line.slice(1).split(/\s+/)
             const name = resolveCommand('/' + parts[0]) || parts[0]
@@ -246,11 +320,14 @@ export async function runTui({ callLLM = null, resume = null } = {}) {
         }
 
         // Mid-turn input QUEUES for after the turn (kimi 1.31's Enter
-        // channel); /steer <text> injects. Approvals/questions are answered
-        // through their own channels above, not as prompt text.
+        // channel); ctrl+s steers immediately. Approvals/questions are
+        // answered through their own channels above, not as prompt text.
         if (state.turnActive) {
             queueTurn(state.session, line)
-            note('  [queued — runs after this turn; /steer <text> to inject now]')
+            state.queuedMessages.push(line)
+            note(`  ❯ ${line}`, style.dim)
+            note('  [queued — runs after this turn; ctrl+s to steer now, ↑ to recall]', style.dim)
+            refresh()
             return
         }
 
@@ -350,5 +427,14 @@ export async function runTui({ callLLM = null, resume = null } = {}) {
     tui.start()
     started = true
     refresh()
+
+    // Idle refresh (kimi's _IDLE_REFRESH_INTERVAL): the git badge resolves
+    // asynchronously in the background (git-badge.js) and the toast timer
+    // needs its own tick — a light periodic invalidate picks both up without
+    // requiring every async event to manually call refresh().
+    const idleTimer = setInterval(refresh, 1000)
+    if (typeof idleTimer.unref === 'function') idleTimer.unref()
+    done.finally(() => clearInterval(idleTimer))
+
     return done
 }

@@ -102,6 +102,21 @@ export function drainQueue(sessionKey) {
     return q
 }
 
+// Pop the most/least recently queued message back out (kimi's ↑-recall and
+// Ctrl+S-on-empty-buffer: a queued message can be edited or steered instead
+// of running as a follow-up turn) — removes it from the queue it was pushed
+// onto so it isn't delivered twice.
+export function unqueueLast(sessionKey) {
+    const q = sessionQueues.get(sessionKey)
+    if (!q || !q.length) return null
+    return q.pop()
+}
+export function unqueueFirst(sessionKey) {
+    const q = sessionQueues.get(sessionKey)
+    if (!q || !q.length) return null
+    return q.shift()
+}
+
 export function queueDepth(sessionKey) {
     return (sessionQueues.get(sessionKey) || []).length
 }
