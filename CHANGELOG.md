@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Added
+- Re-evaluated adopting `@earendil-works/pi-coding-agent`/`pi-agent-core` to cut maintenance surface (live npm registry + GitHub docs research, no code change): `InteractiveMode` still has no lightweight embedding path (requires the full `AgentSessionRuntime`/`SessionManager`), and `pi-agent-core`'s standalone `agentLoop()` generator doesn't cover freddie's wire-protocol/live-turns/approval/trajectory/session-persistence wiring already in `src/agent/machine.js` — adopting it would add an adapter shim, not remove one. AGENTS.md substrate section refreshed (version pin was stale at `^0.80.10`, now `^0.82.1`).
 - pi-web port verification (agentgui + anentrypoint-design): `GitStatusPanel`/`GitDiffView`/`WorktreeSwitcher` were built in `design` but only subpath-exported, never in the `components as C` barrel every consumer actually imports, so no rebuild ever surfaced them — barrel-exported them from `design/src/components.js`. Wired agentgui's Git tab (`site/app/js/app.js`) off the resulting placeholder onto the real components, adding the missing `git.status` WS handler (`lib/ws-handlers-util.js`, porcelain=v1 parse mirroring this repo's `plugins/gui/gui-git`) plus a `backend.js` wrapper and a new-worktree `PromptDialog`, since `WorktreeSwitcher`'s `onCreate()` takes no args by design. Verified end to end via live WS calls against the running agentgui server (`git.status`/`git.log`/`git.diff`/`worktree.list` all returned real repo data) — headless-Chrome `browser` CDP was unavailable in this sandbox.
 - Dynamic per-(provider × model × access_mode) availability matrix system. New `scripts/build-model-availability.js` enumerates models via existing `discoverModels()` and cross-probes each (model, mode) cell across 7 modes: `direct_api`, `acptoapi_passthrough` (:4800), `freddie_v1` (:4900), `kilo_acp` (:4780), `opencode_acp` (:4790), `claude_cli`, `freddie_agent_loop`. Sampler-aware (`markFailed` on per-cell failure), per-cell timeout 15s, per-provider model cap 5 (both env-tunable). Output: `.gm/model-availability.json` with `{timestamp, config, daemons, providers[].models[].modes{}, sampler, summary}`. Every cell is one of `{ok:true, latency_ms, excerpt}`, `{ok:false, latency_ms, error}`, or `{ok:false, skipped:true, reason}` — no blanks. Witnessed 2026-05-13: 23 providers × up to 5 models × 7 modes; 3 models green-in-any-mode (groq/gpt-oss-20b + claude-cli/haiku + claude-cli/sonnet); 8 individual cells green.
 - `src/agent/model-matrix.js` (28L): `loadMatrix()` + `matrixUsable(provider, model)`. 24h TTL on consumption.
@@ -15,8 +16,8 @@
 - `AGENTS.md`: added "Model availability matrix" section documenting the JSON schema, 7 modes, 6 skipped-reasons, and 3 dashboard endpoints (`/availability`, `/availability/summary`, `/availability/rebuild`).
 
 ### Refactored
-- `src/host/host.js`: createHost split from 111L → 24L body. Helper factories (`makePi`, `makeGui`, `makeCcHooks`, `makeHooksRegistry`, `makeCcLoaders`, plus `reg`/`guard`/`scopedCfg`/`nullStore`) extracted to new `src/host/host_helpers.js`. host.js drops from 197L → 64L, host_helpers.js is 152L. Both well under the 200L hard cap. Witnessed: test.js 12/12 green, plugins>=100, platforms>=18, memory>=8, surface guard + cycle errors still throw.
-- `test.js`: trimmed from 202L → 199L (within the 200L cap) by collapsing redundant blank lines and joining the final two control statements. Every assertion preserved. Witnessed 12/12 green.
+- `src/host/host.js`: createHost split from 111L -> 24L body. Helper factories (`makePi`, `makeGui`, `makeCcHooks`, `makeHooksRegistry`, `makeCcLoaders`, plus `reg`/`guard`/`scopedCfg`/`nullStore`) extracted to new `src/host/host_helpers.js`. host.js drops from 197L -> 64L, host_helpers.js is 152L. Both well under the 200L hard cap. Witnessed: test.js 12/12 green, plugins>=100, platforms>=18, memory>=8, surface guard + cycle errors still throw.
+- `test.js`: trimmed from 202L -> 199L (within the 200L cap) by collapsing redundant blank lines and joining the final two control statements. Every assertion preserved. Witnessed 12/12 green.
 
 ### Removed (dead code, post-plugin-migration cleanup)
 - 19 zero-import orphan files deleted after exhaustive reachability audit (no static import, no `await import()` string, no test reference, no AGENTS/CHANGELOG mention, no plugin handler call). Files: `src/cli/{mcp_config,auth_commands,voice,tips,skills_config,env_loader,plugins_cmd}.js`, `src/agent/{onboarding,skill_preprocessing,skill_utils,subdirectory_hints,lmstudio_reasoning,manual_compression_feedback,memory_manager,insights,prompt_builder,shell_hooks,moonshot_schema,copilot_acp_client}.js`. test.js 12/12 still green post-delete.
@@ -26,13 +27,13 @@
 - "SQL injection" flags at `src/tools/environments/{daytona,vercel_sandbox}.js`, `src/web/state.js:{35,46}`, `test.js:190` are HTTP DELETE/PUT URL templates in REST clients / browser fetch calls. No SQL anywhere in any of these files. Detector matches the literal `DELETE` keyword in URL paths.
 
 ### Dependencies
-- `plugsdk`: ^1.0.15 → ^1.0.16 via `scripts/sync-upstream.mjs`. `acptoapi ^1.0.56`, `anentrypoint-design ^0.0.94`, `gm-cc ^2.0.727` already current.
+- `plugsdk`: ^1.0.15 -> ^1.0.16 via `scripts/sync-upstream.mjs`. `acptoapi ^1.0.56`, `anentrypoint-design ^0.0.94`, `gm-cc ^2.0.727` already current.
 
 ### Provider witness (2026-05-12, post acptoapi 1.0.56)
 - `.gm/llm-validation.json` regenerated: 5/15 pass — groq, mistral, **cloudflare (NEW, ACCOUNT_ID guard fix worked)**, sambanova, claude-cli all REAL_OK. openrouter regressed to backoff status due to upstream sampler chain ordering after nvidia (deepseek 410 Gone) failed first. kilo + opencode daemons not running (expected).
 
 ### Fixed
-- `src/agent/llm_resolver.js`: assistant tool_calls returning to provider on the second turn were missing OpenAI's required `type:"function"` and `function:{name,arguments:string}` wrapping. Added `toOpenAIMessages()` that wraps assistant tool_calls and stringifies tool message content. Witnessed: mistral previously errored 422 `messages.2.tool_calls.0.type : property "type" is missing`; after fix returns `Emperor Penguin` through full PLAN → EXECUTE → VERIFY → COMPLETE loop. Trajectory artifact at `penguins/.freddie/trajectories/2026-05-12T15-54-49-902-...json`.
+- `src/agent/llm_resolver.js`: assistant tool_calls returning to provider on the second turn were missing OpenAI's required `type:"function"` and `function:{name,arguments:string}` wrapping. Added `toOpenAIMessages()` that wraps assistant tool_calls and stringifies tool message content. Witnessed: mistral previously errored 422 `messages.2.tool_calls.0.type : property "type" is missing`; after fix returns `Emperor Penguin` through full PLAN -> EXECUTE -> VERIFY -> COMPLETE loop. Trajectory artifact at `penguins/.freddie/trajectories/2026-05-12T15-54-49-902-...json`.
 - `plugins/core-cli/plugin.js`: `freddie exec` now uses `resolveCallLLM` instead of hardcoded acptoapi `callLLM` — previously failed `fetch failed` when acptoapi daemon wasn't running, even with valid `--model` and provider key. Added `--provider`, `--skill`, `--cwd` flags; auto-parses `provider/model` from `--model`.
 
 ### Added
@@ -57,9 +58,9 @@
 
 ### Added
 - Per-provider model list probing: `POST /api/providers/:name/probe` fetches live model list; `/api/providers` includes cached `models`/`modelsError`; models page shows model list per provider with probe-all button
-- `hasKey()` fixed to use `resolveKey()` 4-source chain (env → auth-store → freddie.env → acptoapi.env); previously only checked `process.env`, causing keys stored via auth-store to be invisible to the LLM resolver
+- `hasKey()` fixed to use `resolveKey()` 4-source chain (env -> auth-store -> freddie.env -> acptoapi.env); previously only checked `process.env`, causing keys stored via auth-store to be invisible to the LLM resolver
 - Expanded LLM provider support: cerebras, google, mistral, codestral, cloudflare-workers-ai, xai, zai, opencode, nvidia, sambanova, qwen (15 providers total)
-- `src/agent/model-sampler.js`: background availability sampler with exponential backoff (30s→60s→120s→240s→480s cap)
+- `src/agent/model-sampler.js`: background availability sampler with exponential backoff (30s->60s->120s->240s->480s cap)
 - `agent.model_preference` config key (ordered list of {provider, model} objects) for user-defined failover priority
 - `resolveCallLLM` now walks preference list, skips unavailable providers via sampler, marks failed providers on error
 - Config schema version bumped to 2 with automatic migration
