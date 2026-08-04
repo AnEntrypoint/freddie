@@ -44,7 +44,7 @@ var __copyProps = (to, from, except, desc) => {
 	}
 	return to;
 };
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", {
 	value: mod,
 	enumerable: true
 }) : target, mod));
@@ -421,7 +421,9 @@ function createHost$1({ on = {}, dataRoot, env = process.env, timeout = 6e4 } = 
 	const monitorOnDemand = /* @__PURE__ */ new Map();
 	const mcpToolHandles = [];
 	function pluginDataDir(plugin) {
-		const dir = join(dataRoot || join(homedir(), ".plugsdk-data"), plugin.manifest.name.replace(/[^a-zA-Z0-9_-]/g, "-"));
+		const root = dataRoot || join(homedir(), ".plugsdk-data");
+		const id = plugin.manifest.name.replace(/[^a-zA-Z0-9_-]/g, "-");
+		const dir = join(root, id);
 		if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 		return dir;
 	}
@@ -582,8 +584,10 @@ function createHost$1({ on = {}, dataRoot, env = process.env, timeout = 6e4 } = 
 	function runCommand(plugin, handler, eventName, payload) {
 		return new Promise((res) => {
 			const ms = handler.timeout ?? timeout;
-			const child = spawn(subst(handler.command, plugin), {
-				shell: handler.shell === "powershell" ? "powershell" : true,
+			const cmd = subst(handler.command, plugin);
+			const shell = handler.shell === "powershell" ? "powershell" : true;
+			const child = spawn(cmd, {
+				shell,
 				env: childEnv(plugin, { CLAUDE_PROJECT_DIR: payload.cwd || env.CLAUDE_PROJECT_DIR || process.cwd() }),
 				stdio: [
 					"pipe",
@@ -1380,7 +1384,7 @@ var init_env = __esmMin((() => {
 }));
 //#endregion
 //#region node_modules/js-yaml/dist/js-yaml.mjs
-/*! js-yaml 5.2.2 https://github.com/nodeca/js-yaml @license MIT */
+/*! js-yaml 5.2.3 https://github.com/nodeca/js-yaml @license MIT */
 function defineScalarTag(tagName, options) {
 	return {
 		tagName,
@@ -1568,6 +1572,11 @@ function representYamlBinary(object) {
 	for (let index = 0; index < object.length; index++) binary += String.fromCharCode(object[index]);
 	return btoa(binary);
 }
+function makeUtcDate(year, month, day, hour = 0, minute = 0, second = 0, fraction = 0) {
+	const date = new Date(Date.UTC(year, month, day, hour, minute, second, fraction));
+	date.setUTCFullYear(year, month, day);
+	return date;
+}
 function resolveYamlTimestamp(source) {
 	let match = YAML_DATE_REGEXP.exec(source);
 	if (match === null) match = YAML_TIMESTAMP_REGEXP.exec(source);
@@ -1576,7 +1585,7 @@ function resolveYamlTimestamp(source) {
 	const month = +match[2] - 1;
 	const day = +match[3];
 	if (!match[4]) {
-		const date = new Date(Date.UTC(year, month, day));
+		const date = makeUtcDate(year, month, day);
 		if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month || date.getUTCDate() !== day) return NOT_RESOLVED;
 		return date;
 	}
@@ -1590,7 +1599,7 @@ function resolveYamlTimestamp(source) {
 		while (value.length < 3) value += "0";
 		fraction = +value;
 	}
-	const date = new Date(Date.UTC(year, month, day, hour, minute, second, fraction));
+	const date = makeUtcDate(year, month, day, hour, minute, second, fraction);
 	if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month || date.getUTCDate() !== day) return NOT_RESOLVED;
 	if (match[9]) {
 		const offsetHour = +match[10];
@@ -1613,9 +1622,9 @@ function pick(object, keys) {
 }
 function createTagDefinitionMap() {
 	return {
-		scalar: {},
-		sequence: {},
-		mapping: {}
+		scalar: Object.create(null),
+		sequence: Object.create(null),
+		mapping: Object.create(null)
 	};
 }
 function createTagDefinitionListMap() {
@@ -2172,6 +2181,10 @@ function constructFromEvents(events, options) {
 			}
 			case 6: {
 				const frame = state.frames.pop();
+				if (frame.kind === "mapping" && frame.hasKey) {
+					state.position = frame.keyPosition;
+					throwError$1(state, "incomplete mapping pair in event stream");
+				}
 				if (frame.kind === "document") state.documents.push(frame.value);
 				else {
 					const value = frame.tag.carrierIsResult ? frame.value : finalizeCollection(state, frame.position, frame.tag, frame.value);
@@ -2824,10 +2837,6 @@ function parseNode(state, parentIndent, nodeContext, allowToSeek, allowCompact, 
 		else if (state.lineIndent === parentIndent) indentStatus = 0;
 		else indentStatus = -1;
 	}
-	if (state.position === state.lineStart && testDocumentSeparator(state)) {
-		state.depth--;
-		return false;
-	}
 	if (indentStatus === 1) while (true) {
 		const ch = state.input.charCodeAt(state.position);
 		const propertyState = snapshotState(state);
@@ -3149,20 +3158,18 @@ function visitNode(node, visitor, ctx) {
 				isKey: false
 			})) return true;
 			break;
-		case "mapping":
-			for (const { key, value } of node.items) {
-				if (visitNode(key, visitor, {
-					depth,
-					parent: node,
-					isKey: true
-				})) return true;
-				if (visitNode(value, visitor, {
-					depth,
-					parent: node,
-					isKey: false
-				})) return true;
-			}
-			break;
+		case "mapping": for (const { key, value } of node.items) {
+			if (visitNode(key, visitor, {
+				depth,
+				parent: node,
+				isKey: true
+			})) return true;
+			if (visitNode(value, visitor, {
+				depth,
+				parent: node,
+				isKey: false
+			})) return true;
+		}
 	}
 	return false;
 }
@@ -3301,14 +3308,14 @@ function chooseScalarStyle(state, string, layout, singleLineOnly, forceQuote, in
 			if (char === CHAR_LINE_FEED) {
 				hasLineBreak = true;
 				if (shouldTrackWidth) {
-					hasFoldableLine = hasFoldableLine || i - previousLineBreak - 1 > lineWidth && string[previousLineBreak + 1] !== " ";
+					hasFoldableLine = hasFoldableLine || i - previousLineBreak - 1 > lineWidth && !isMoreIndented(string[previousLineBreak + 1]);
 					previousLineBreak = i;
 				}
 			} else if (!isPrintable(char)) return STYLE_DOUBLE;
 			plain = plain && isPlainSafe(char, prevChar, inblock);
 			prevChar = char;
 		}
-		hasFoldableLine = hasFoldableLine || shouldTrackWidth && i - previousLineBreak - 1 > lineWidth && string[previousLineBreak + 1] !== " ";
+		hasFoldableLine = hasFoldableLine || shouldTrackWidth && i - previousLineBreak - 1 > lineWidth && !isMoreIndented(string[previousLineBreak + 1]);
 	}
 	if (!hasLineBreak && !hasFoldableLine) {
 		if (plain && !forceQuote) return STYLE_PLAIN;
@@ -3367,27 +3374,30 @@ function encodeFlowBreaks(string, indent) {
 function dropEndingNewline(string) {
 	return string[string.length - 1] === "\n" ? string.slice(0, -1) : string;
 }
+function isMoreIndented(char) {
+	return char === " " || char === "	";
+}
 function foldBlockScalar(string, width) {
 	const lineRe = /(\n+)([^\n]*)/g;
 	let nextLF = string.indexOf("\n");
 	if (nextLF === -1) nextLF = string.length;
 	lineRe.lastIndex = nextLF;
 	let result = foldLine(string.slice(0, nextLF), width);
-	let prevMoreIndented = string[0] === "\n" || string[0] === " ";
+	let prevMoreIndented = string[0] === "\n" || isMoreIndented(string[0]);
 	let moreIndented;
 	let match;
 	while (match = lineRe.exec(string)) {
 		const prefix = match[1];
 		const line = match[2];
-		moreIndented = line[0] === " ";
+		moreIndented = line !== "" && isMoreIndented(line[0]);
 		result += prefix + (!prevMoreIndented && !moreIndented && line !== "" ? "\n" : "") + foldLine(line, width);
 		prevMoreIndented = moreIndented;
 	}
 	return result;
 }
 function foldLine(line, width) {
-	if (line === "" || line[0] === " ") return line;
-	const breakRe = / [^ ]/g;
+	if (line === "" || isMoreIndented(line[0])) return line;
+	const breakRe = / [^ \t]/g;
 	let match;
 	let start = 0;
 	let end;
@@ -3949,7 +3959,11 @@ var init_js_yaml = __esmMin((() => {
 			return Object.prototype.hasOwnProperty.call(container, String(key));
 		},
 		keys: (container) => Object.keys(container),
-		get: (container, key) => container[String(key)]
+		get: (container, key) => {
+			const normalizedKey = String(key);
+			if (!Object.prototype.hasOwnProperty.call(container, normalizedKey)) return null;
+			return container[normalizedKey];
+		}
 	});
 	setTag = defineMappingTag("tag:yaml.org,2002:set", {
 		create: () => /* @__PURE__ */ new Set(),
@@ -3997,10 +4011,8 @@ var init_js_yaml = __esmMin((() => {
 						if (tag.matchByTagPrefix) prefix.sequence.push(tag);
 						else exact.sequence[tag.tagName] = tag;
 						break;
-					case "mapping":
-						if (tag.matchByTagPrefix) prefix.mapping.push(tag);
-						else exact.mapping[tag.tagName] = tag;
-						break;
+					case "mapping": if (tag.matchByTagPrefix) prefix.mapping.push(tag);
+					else exact.mapping[tag.tagName] = tag;
 				}
 			}
 			const implicitScalarAnyFirstChar = implicitScalarTags.filter((tag) => tag.implicitFirstChars === null);
@@ -4101,7 +4113,11 @@ var init_js_yaml = __esmMin((() => {
 			return normalizedKey !== null && Object.prototype.hasOwnProperty.call(container, normalizedKey);
 		},
 		keys: (container) => Object.keys(container),
-		get: (container, key) => container[String(key)]
+		get: (container, key) => {
+			const normalizedKey = String(key);
+			if (!Object.prototype.hasOwnProperty.call(container, normalizedKey)) return null;
+			return container[normalizedKey];
+		}
 	});
 	DEFAULT_SNIPPET_OPTIONS = {
 		maxLength: 79,
@@ -4131,10 +4147,10 @@ var init_js_yaml = __esmMin((() => {
 		simpleEscapeCheck[i] = simpleEscapeSequence(i) ? 1 : 0;
 		simpleEscapeMap[i] = simpleEscapeSequence(i);
 	}
-	DEFAULT_TAG_HANDLERS = {
+	DEFAULT_TAG_HANDLERS = Object.assign(Object.create(null), {
 		"!": "!",
 		"!!": "tag:yaml.org,2002:"
-	};
+	});
 	NO_RANGE$2 = -1;
 	DEFAULT_CONSTRUCTOR_OPTIONS = {
 		filename: "",
@@ -9525,7 +9541,7 @@ var init_cursor = __esmMin((() => {
 			this.#stream = stream;
 			this.#encoding = encoding;
 			this.#reader = void 0;
-			this.#queue = new ByteQueue(16 * 1024);
+			this.#queue = new ByteQueue(16384);
 			this.#closed = void 0;
 			this.#done = false;
 		}
@@ -10116,7 +10132,8 @@ function openWs(url, jwt, protocolVersion = 2) {
 	var subprotocols = void 0;
 	if (protocolVersion == 3) subprotocols = Array.from(subprotocolsV3.keys());
 	else subprotocols = Array.from(subprotocolsV2.keys());
-	return new WsClient$1(new _WebSocket(url, subprotocols), jwt);
+	const socket = new _WebSocket(url, subprotocols);
+	return new WsClient$1(socket, jwt);
 }
 /** Open a Hrana client over HTTP connected to the given `url`.
 *
@@ -10194,7 +10211,8 @@ function resultSetFromHrana(hranaRows) {
 	const columnTypes = hranaRows.columnDecltypes.map((c) => c ?? "");
 	const rows = hranaRows.rows;
 	const rowsAffected = hranaRows.affectedRowCount;
-	return new ResultSetImpl(columns, columnTypes, rows, rowsAffected, hranaRows.lastInsertRowid !== void 0 ? hranaRows.lastInsertRowid : void 0);
+	const lastInsertRowid = hranaRows.lastInsertRowid !== void 0 ? hranaRows.lastInsertRowid : void 0;
+	return new ResultSetImpl(columns, columnTypes, rows, rowsAffected, lastInsertRowid);
 }
 function mapHranaError(e) {
 	if (e instanceof ClientError) {
@@ -10514,7 +10532,7 @@ var init_ws = __esmMin((() => {
 	init_util$2();
 	import_promise_limit$1 = /* @__PURE__ */ __toESM(require_promise_limit(), 1);
 	init_api();
-	maxConnAgeMillis = 60 * 1e3;
+	maxConnAgeMillis = 6e4;
 	sqlCacheCapacity$1 = 100;
 	WsClient = class {
 		#url;
@@ -12378,7 +12396,7 @@ function markFailure(now = Date.now()) {
 }
 function shouldRetry(now = Date.now()) {
 	if (_lastFailure === null) return true;
-	return now - _lastFailure >= 600 * 1e3;
+	return now - _lastFailure >= 6e5;
 }
 function clearFailure() {
 	_lastFailure = null;
@@ -12636,7 +12654,7 @@ async function ensureNodeBackend() {
 			JSON.stringify({ text })
 		], {
 			timeout: 2e4,
-			maxBuffer: 8 * 1024 * 1024
+			maxBuffer: 8388608
 		});
 		const r = JSON.parse(stdout);
 		if (!Array.isArray(r.embedding) || !r.embedding.length) throw new Error("bert embed failed: " + String(stdout).slice(0, 160));
@@ -13172,7 +13190,7 @@ async function restoreTasks(sessionId) {
 }
 function reconcileTasks() {
 	const now = Date.now();
-	const MAX_RUNNING_MS = 1440 * 60 * 1e3;
+	const MAX_RUNNING_MS = 864e5;
 	let reconciled = 0;
 	let lost = 0;
 	let timedOut = 0;
@@ -13229,7 +13247,7 @@ function cleanupStaleTasks(maxAgeHours = 168) {
 	}
 	return { cleaned };
 }
-function startPeriodicReconciliation(intervalMs = 300 * 1e3) {
+function startPeriodicReconciliation(intervalMs = 3e5) {
 	if (_reconcileInterval) return;
 	_reconcileInterval = setInterval(() => {
 		reconcileTasks();
