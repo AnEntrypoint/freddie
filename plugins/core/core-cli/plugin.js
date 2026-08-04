@@ -65,7 +65,7 @@ export default {
                 await runPrintModeAndExit({ prompt: opts.prompt, model: opts.model || undefined, provider: opts.provider || undefined, cwd: opts.cwd || undefined, timeout: Number(opts.timeout) })
                 return
             }
-            const { interactive } = await import('../../../src/cli/interactive.js')
+            const { launchTui } = await import('../../../src/tui/index.js')
             // pi-bridge (pi-ai) is preferred when it can actually resolve —
             // but it hard-defaults provider=anthropic and throws
             // 'unknown model'/'no API key' when that provider isn't keyed,
@@ -84,7 +84,7 @@ export default {
             } catch { /* swallow: pi-bridge absent — machine uses resolveCallLLM */ }
             // --resume with no value = continue the most recent session; --resume <id> = that one.
             const resume = opts.resume === true ? true : (opts.resume || null)
-            await interactive({ callLLM, resume })
+            await launchTui({ callLLM, resume })
         } })
         C({ name: 'exec', description: 'Run a single prompt through the agent and exit (--print for non-interactive stdout output)', options: [{ flag: '--prompt <prompt>', required: true }, { flag: '--model <model>', default: '' }, { flag: '--provider <provider>', default: '' }, { flag: '--skill <skill>', default: '' }, { flag: '--cwd <cwd>', default: '' }, { flag: '--timeout <ms>', default: '60000' }, { flag: '--witness <path>', default: '' }, { flag: '--print', default: false }], action: async (opts) => {
             if (opts.print) {
