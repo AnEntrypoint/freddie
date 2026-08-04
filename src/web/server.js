@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url'
 import { WebSocketServer } from 'ws'
 import { bootHost } from '../host/index.js'
 import { logger } from '../observability/log.js'
-import fs from 'node:fs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const log = logger('web_server')
@@ -42,34 +41,15 @@ export async function createDashboard({ port = 0 } = {}) {
     const debugApi = host.gui._state.apis.get('debug')
     if (debugApi?.attach) debugApi.attach(app)
 
-    // Serve the anentrypoint-design SDK from the local node_modules copy.
-    const sdkDist = path.join(__dirname, '..', '..', 'node_modules', 'anentrypoint-design', 'dist')
-    app.get('/vendor/anentrypoint-design/247420.js', (req, res) => {
-        try {
-            const content = fs.readFileSync(path.join(sdkDist, '247420.js'), 'utf8')
-            res.type('application/javascript').send(content)
-        } catch (e) {
-            log.warn('sdk.js serve failed', { err: String(e) })
-            res.status(404).end()
-        }
-    })
-    app.get('/vendor/anentrypoint-design/247420.css', (req, res) => {
-        try {
-            const content = fs.readFileSync(path.join(sdkDist, '247420.css'), 'utf8')
-            res.type('text/css').send(content)
-        } catch (e) {
-            log.warn('sdk.css serve failed', { err: String(e) })
-            res.status(404).end()
-        }
-    })
-
-    // SPA fallback: unknown non-API, non-vendor GET routes serve index.html
-    // so deep links (and client-side hash routes) don't return Express's
-    // default 404 HTML. /api/* and /vendor/* are excluded — those 404
-    // legitimately as data.
+    // SPA fallback: unknown non-API GET routes serve index.html so deep links
+    // (and client-side hash routes) don't return Express's default 404 HTML.
+    // /api/* is excluded — that 404s legitimately as data. The SDK itself is
+    // no longer served locally: index.html loads it live from
+    // unpkg.com/anentrypoint-design@latest so the dashboard always tracks the
+    // newest published build without a local npm install.
     app.use((req, res, next) => {
         if (req.method !== 'GET') return next()
-        if (req.path.startsWith('/api/') || req.path.startsWith('/vendor/')) return next()
+        if (req.path.startsWith('/api/')) return next()
         // Only serve index.html for paths that don't match any registered route
         res.set('Cache-Control', 'no-cache').sendFile(path.join(__dirname, 'index.html'))
     })
