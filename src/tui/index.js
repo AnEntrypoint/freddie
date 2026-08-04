@@ -25,6 +25,19 @@ export async function launchTui({ output = process.stdout, callLLM = null, resum
         log.info('non-tty, falling back to readline cli')
         return interactive({ output, callLLM, resume })
     }
+    // Inside a tmux/psmux pane, stdin is a pty, not a real Win32 console
+    // handle. pi-tui's Windows raw-mode setup (Terminal.enableWindowsVTInput)
+    // unconditionally loads a native addon that calls SetConsoleMode on the
+    // console handle — against a pty that call corrupts/bypasses Node's own
+    // cross-platform setRawMode(true), leaving all keyboard input (including
+    // Ctrl+C) undelivered while the process stays alive and unresponsive.
+    // process.env.TMUX is set by tmux (and psmux, which IS tmux 3.3.7 built
+    // for Windows) in every pane — skip straight to the readline fallback,
+    // which has no raw-mode/native-console dependency and works correctly.
+    if (process.platform === 'win32' && process.env.TMUX) {
+        log.info('win32 + tmux/psmux pty detected, falling back to readline cli (pi-tui raw-mode input is broken under this combination)')
+        return interactive({ output, callLLM, resume })
+    }
     try {
         const { runTui } = await import('./app.js')
         return await runTui({ callLLM, resume })
