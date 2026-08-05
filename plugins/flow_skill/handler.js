@@ -121,7 +121,7 @@ export async function runFlowSkill({ name, flowArgs = '', model = null, provider
     }
 }
 
-// ── CLI command: /flow:<name> ───────────────────────────────────────────────
+// CLI command: /flow:<name>
 
 /**
  * Handle the /flow:<name> slash command from the REPL.

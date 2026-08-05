@@ -17,7 +17,7 @@ export class WhatsappAdapter extends EventEmitter {
         this.platform = 'whatsapp'
         this.token = opts.token || env('WHATSAPP_API_TOKEN')
         this.phoneId = opts.phoneId || env('WHATSAPP_PHONE_NUMBER_ID')
-        this.verifyToken = opts.verifyToken || env('WHATSAPP_VERIFY_TOKEN') || 'freddie'
+        this.verifyToken = opts.verifyToken || env('WHATSAPP_VERIFY_TOKEN')
         // App secret enables X-Hub-Signature-256 verification on inbound webhooks.
         // When set, unsigned or wrongly-signed requests are rejected.
         this.appSecret = opts.appSecret || env('WHATSAPP_APP_SECRET') || ''
@@ -57,12 +57,13 @@ export class WhatsappAdapter extends EventEmitter {
 
     async start() {
         if (!this.token || !this.phoneId) throw new Error('WhatsappAdapter: WHATSAPP_API_TOKEN + WHATSAPP_PHONE_NUMBER_ID required')
+        if (!this.verifyToken) throw new Error('WhatsappAdapter: WHATSAPP_VERIFY_TOKEN required')
         const app = express()
         // Capture the raw body so the signature can be verified over exact bytes.
         app.use(express.json({ verify: (req, _res, buf) => { req.rawBody = buf } }))
 
         app.get(this.path, (req, res) => {
-            if (req.query['hub.verify_token'] === this.verifyToken) return res.send(req.query['hub.challenge'])
+            if (timingSafeEqualStr(String(req.query['hub.verify_token'] || ''), this.verifyToken)) return res.send(req.query['hub.challenge'])
             res.sendStatus(403)
         })
         app.post(this.path, (req, res) => {
@@ -85,6 +86,7 @@ export class WhatsappAdapter extends EventEmitter {
                         text: m.text?.body || '',
                         // surface the platform message id for dedup, and the message type
                         // so media-only messages are recognisable upstream.
+                        id: m.id,
                         raw: { ...m, id: m.id, type: m.type },
                     }
                     const mediaObj = m.image || m.audio || m.document || m.video
