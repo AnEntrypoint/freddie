@@ -2,7 +2,7 @@
   "name": "freddie",
   "version": "0.0.261",
   "type": "module",
-  "description": "Open JS agent harness built on pi-mono, floosie, xstate, and anentrypoint-design",
+  "description": "Open JS agent harness built on pi-mono, xstate, and anentrypoint-design",
   "bin": {
     "freddie": "./bin/freddie.js"
   },
@@ -32,7 +32,6 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "flatspace": "^1.0.20",
-    "floosie": "^0.7.7",
     "gm-plugkit": "^2.0.2464",
     "gm-skill": "^2.0.2464",
     "js-yaml": "^5.2.3",
@@ -44,6 +43,11 @@
     "xstate": "^5.32.5"
   },
   "optionalDependencies": {
+    "blessed": "^0.1.81",
+    "dockerode": "^5.0.1",
+    "puppeteer-core": "^25.5.0",
+    "ssh2": "^1.17.0",
+    "undici": "^8.10.0",
     "@libsql/darwin-arm64": "^0.5.29",
     "@libsql/darwin-x64": "^0.5.29",
     "@libsql/linux-arm64-gnu": "^0.5.29",
@@ -88,8 +92,6 @@
   ],
   "devDependencies": {
     "esbuild": "^0.28.1",
-    "vite": "^8.2.0",
-    "vscode-oniguruma": "^2.0.1",
-    "vscode-textmate": "^9.3.2"
+    "vite": "^8.2.0"
   }
 }
