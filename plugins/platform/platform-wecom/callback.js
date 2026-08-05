@@ -1,6 +1,12 @@
 import express from 'express'
 import { EventEmitter } from 'node:events'
 import { env } from '../../../src/env.js'
+import { verifyMsgSignature } from './crypto.js'
+
+function extractEncrypt(body) {
+    const m = String(body || '').match(/<Encrypt><!\[CDATA\[([\s\S]*?)\]\]><\/Encrypt>/)
+    return m ? m[1] : ''
+}
 
 export class WecomCallbackAdapter extends EventEmitter {
     constructor(opts = {}) { super(); this.platform = 'wecom_callback'; this.token = opts.token || env('WECOM_CALLBACK_TOKEN'); this.aesKey = opts.aesKey || env('WECOM_ENCODING_AES_KEY'); this.port = opts.port || 0 }
@@ -8,7 +14,13 @@ export class WecomCallbackAdapter extends EventEmitter {
     async start() {
         if (!this.token) throw new Error('WECOM_CALLBACK_TOKEN required')
         const app = express(); app.use(express.text({ type: '*/*' }))
-        app.post('/wecom/callback', (req, res) => { this.emit('message', { from: 'wecom', text: req.body || '', raw: req.body }); res.send('') })
+        app.post('/wecom/callback', (req, res) => {
+            const { msg_signature: signature, timestamp, nonce } = req.query
+            const encrypt = extractEncrypt(req.body)
+            if (!verifyMsgSignature({ token: this.token, timestamp, nonce, encrypt, signature })) return res.sendStatus(401)
+            this.emit('message', { from: 'wecom', text: req.body || '', raw: req.body })
+            res.send('')
+        })
         this._server = await new Promise(r => { const s = app.listen(this.port, () => r(s)) })
         this.port = this._server.address().port
     }

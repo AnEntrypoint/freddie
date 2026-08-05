@@ -196,7 +196,7 @@ export class DiscordAdapter extends EventEmitter {
                 if (!allowedIds.includes(m.author?.id)) return
             }
             if (m.author?.id && this._botUserId && m.author.id === this._botUserId) return   // never reply to our own messages
-            const base = { from: m.author?.id, text: m.content || '', raw: m, platform: 'discord' }
+            const base = { from: m.author?.id, text: m.content || '', id: m.id, raw: m, platform: 'discord' }
             // ws.on('message', ...) above is a sync callback and can't await this,
             // so the fetch-and-emit path runs as a detached async task: the
             // message still emits exactly once, after attachment fetches settle,

@@ -70,22 +70,28 @@ export class Gateway {
         } catch (e) {
             log.warn('cannot persist gateway-msg, continuing without resumability', { msgKey, err: String(e) })
         }
-        let cur = { ...msg, platform }
-        for (const h of this.hooks.inbound) cur = (await h(cur)) || cur
-        const result = await runStep(msgKey, 'run', () => runTurn({ prompt: cur.text || '', callLLM: this.callLLM }))
-        let reply = { to: msg.from, text: result.result || result.error || '', platform, result }
-        for (const h of this.hooks.outbound) reply = (await h(reply)) || reply
         const adapter = this.platforms.get(platform)
-        // Clear the in-flight snapshot whether or not the send throws: a send
-        // failure must not leave the message to be re-driven (and re-replied) on
-        // the next boot. The contract is "cleared once processing completes".
+        // Clear the in-flight snapshot whether or not any stage below throws: a
+        // hook/runTurn/send failure must not leave the message to be re-driven
+        // (and re-replied) on the next boot. The contract is "cleared once
+        // processing completes", success or failure alike.
         try {
+            let cur = { ...msg, platform }
+            for (const h of this.hooks.inbound) cur = (await h(cur)) || cur
+            const result = await runStep(msgKey, 'run', () => runTurn({ prompt: cur.text || '', callLLM: this.callLLM }))
+            let reply = { to: msg.from, text: result.result || result.error || '', platform, result }
+            for (const h of this.hooks.outbound) reply = (await h(reply)) || reply
             await adapter.send?.(reply)
+            return reply
+        } catch (e) {
+            log.error('handleInbound failed, sending safe-fail reply', { msgKey, err: String(e) })
+            const reply = { to: msg.from, text: 'Sorry, something went wrong processing your message.', platform, result: { error: String(e) } }
+            try { await adapter.send?.(reply) } catch (sendErr) { log.error('safe-fail reply send also failed', { msgKey, err: String(sendErr) }) }
+            return reply
         } finally {
             await clear('gateway-msg', msgKey)
             await clearSteps(msgKey)
         }
-        return reply
     }
 }
 

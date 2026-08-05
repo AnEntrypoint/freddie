@@ -21,7 +21,7 @@
 //
 // Max 1000 moves. State is in-memory — no persistence.
 
-// ── Parser: detect format, extract nodes and edges ──────────────────────────
+// Parser: detect format, extract nodes and edges
 
 const RE_MERMAID = /^\s*(flowchart|graph)\s+(TB|TD|BT|RL|LR)\s*$/im
 const RE_D2_LINE = /^\s*\w[\w.]*\s*:\s*/m
@@ -35,7 +35,7 @@ function detectFormat(content) {
     return 'mermaid' // default
 }
 
-// ── Mermaid parser ──────────────────────────────────────────────────────────
+// Mermaid parser
 
 // Ordered bracket pairs for node shape detection. Tested longest-first so
 // [[ (subroutine) matches before [ (rectangle).
@@ -165,7 +165,7 @@ function parseMermaidEdge(line) {
     return null
 }
 
-// ── D2 parser ───────────────────────────────────────────────────────────────
+// D2 parser
 
 function parseD2(content) {
     const lines = content.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#') && !l.startsWith('//'))
@@ -226,7 +226,7 @@ function parseD2(content) {
     return { nodes, edges, format: 'd2' }
 }
 
-// ── Unified parse ───────────────────────────────────────────────────────────
+// Unified parse
 
 function parseFlowchart(content) {
     const format = detectFormat(content)
@@ -234,7 +234,7 @@ function parseFlowchart(content) {
     return parseMermaid(content)
 }
 
-// ── Graph walker ────────────────────────────────────────────────────────────
+// Graph walker
 
 function findStartNode(nodes, edges) {
     // Prefer a node named 'BEGIN', 'START', 'start' (case-insensitive)
@@ -260,7 +260,7 @@ function getOutgoingEdges(nodeId, edges) {
     return edges.filter(e => e.from === nodeId)
 }
 
-// ── FlowRunner ──────────────────────────────────────────────────────────────
+// FlowRunner
 
 export class FlowRunner {
     /**
@@ -435,7 +435,7 @@ export class FlowRunner {
     }
 }
 
-// ── Convenience factory ─────────────────────────────────────────────────────
+// Convenience factory
 
 /**
  * Create a FlowRunner from raw skill content, using the project's LLM resolver.
@@ -445,6 +445,6 @@ export function createFlowRunner({ skillName, skillContent, callLLM, maxMoves, c
     return new FlowRunner({ skillName, skillContent, callLLM, maxMoves, ctx })
 }
 
-// ── Exported helpers ────────────────────────────────────────────────────────
+// Exported helpers
 
 export { parseFlowchart, findStartNode, detectFormat }

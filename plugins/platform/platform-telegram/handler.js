@@ -30,7 +30,7 @@ export class TelegramAdapter extends EventEmitter {
                 })
                 if (data.ok) for (const u of data.result) {
                     this.offset = Math.max(this.offset, u.update_id)
-                    if (u.message) this.emit('message', { from: String(u.message.from?.id || ''), text: u.message.text || '', raw: u })
+                    if (u.message) this.emit('message', { from: String(u.message.from?.id || ''), text: u.message.text || '', id: String(u.message.message_id ?? u.update_id), raw: u })
                 }
             } catch (e) { await new Promise(r => setTimeout(r, 5000)) }
         }
