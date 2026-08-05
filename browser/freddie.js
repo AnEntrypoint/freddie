@@ -6166,7 +6166,7 @@ function adaptTool(t) {
 	};
 }
 function adaptResponse(r) {
-	const choice = r.choices?.[0]?.message || {};
+	const choice = r?.choices?.[0]?.message || {};
 	const content = typeof choice.content === "string" ? choice.content : "";
 	const tool_calls = Array.isArray(choice.tool_calls) ? choice.tool_calls.map((tc) => ({
 		id: tc.id,
@@ -11145,11 +11145,31 @@ async function init$1() {
 	}
 	return d;
 }
+function safeStringify(value) {
+	const seen = /* @__PURE__ */ new WeakSet();
+	return JSON.stringify(value, (k, v) => {
+		if (typeof v === "object" && v !== null) {
+			if (seen.has(v)) return "[Circular]";
+			seen.add(v);
+		}
+		return v;
+	});
+}
 async function persist(kind, key, snapshot, { machineId = null } = {}) {
 	if (!kind || !key) throw new Error("persist requires kind and key");
 	const d = await init$1();
 	const status = snapshot?.status || "active";
-	const json = JSON.stringify(snapshot);
+	let json;
+	try {
+		json = JSON.stringify(snapshot);
+	} catch (e) {
+		log$4.error("snapshot has circular structure, persisting with [Circular] markers", {
+			kind,
+			key,
+			err: String(e)
+		});
+		json = safeStringify(snapshot);
+	}
 	await d.prepare(`INSERT INTO machine_snapshots (kind, key, schema_version, machine_id, snapshot_json, status, updated)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(kind, key) DO UPDATE SET
