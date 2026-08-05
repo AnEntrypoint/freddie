@@ -68,6 +68,25 @@ async function init() {
     return d
 }
 
+// JSON.stringify with circular-reference protection. A circular xstate
+// context (self-referential actor refs, DOM-like back-pointers a plugin's
+// context accidentally retains, etc) must not repeatedly throw the exact
+// same RangeError on every transition forever -- that silently disables
+// persistence for the affected actor while looking like nothing is wrong
+// (the throw is caught by the caller and logged, but the actor keeps
+// running with zero durability). Circular refs are replaced with a marker
+// string instead of crashing the whole persist.
+function safeStringify(value) {
+    const seen = new WeakSet()
+    return JSON.stringify(value, (k, v) => {
+        if (typeof v === 'object' && v !== null) {
+            if (seen.has(v)) return '[Circular]'
+            seen.add(v)
+        }
+        return v
+    })
+}
+
 // Persist (upsert) a snapshot. status is the actor snapshot status
 // ('active' | 'done' | 'error' | 'stopped'). machineId guards against rehydrating
 // a snapshot into a structurally different machine after a code change.
@@ -75,7 +94,13 @@ export async function persist(kind, key, snapshot, { machineId = null } = {}) {
     if (!kind || !key) throw new Error('persist requires kind and key')
     const d = await init()
     const status = snapshot?.status || 'active'
-    const json = JSON.stringify(snapshot)
+    let json
+    try {
+        json = JSON.stringify(snapshot)
+    } catch (e) {
+        log.error('snapshot has circular structure, persisting with [Circular] markers', { kind, key, err: String(e) })
+        json = safeStringify(snapshot)
+    }
     await d.prepare(`INSERT INTO machine_snapshots (kind, key, schema_version, machine_id, snapshot_json, status, updated)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(kind, key) DO UPDATE SET
