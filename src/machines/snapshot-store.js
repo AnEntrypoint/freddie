@@ -68,14 +68,6 @@ async function init() {
     return d
 }
 
-// JSON.stringify with circular-reference protection. A circular xstate
-// context (self-referential actor refs, DOM-like back-pointers a plugin's
-// context accidentally retains, etc) must not repeatedly throw the exact
-// same RangeError on every transition forever -- that silently disables
-// persistence for the affected actor while looking like nothing is wrong
-// (the throw is caught by the caller and logged, but the actor keeps
-// running with zero durability). Circular refs are replaced with a marker
-// string instead of crashing the whole persist.
 function safeStringify(value) {
     const seen = new WeakSet()
     return JSON.stringify(value, (k, v) => {

@@ -8,18 +8,6 @@
 <script type="importmap">
 { "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
 </script>
-<!-- Theme: the SDK ThemeToggle controller is the single source of truth and
-     persists to <html data-theme> (verified in browser). Pre-paint the saved or
-     system theme onto <html> here, BEFORE the module loads, so first paint
-     matches the controller and there is no wrong-theme flash. -->
-<script>
-(function () {
-  var t;
-  try { t = localStorage.getItem('247420:theme'); } catch (e) {}
-  if (!t) t = 'github-dark';
-  document.documentElement.setAttribute('data-theme', t);
-})();
-</script>
 <style>
 html, body { margin: 0; padding: 0; height: 100%; }
 #app { height: 100%; }
@@ -32,6 +20,14 @@ body[data-ready] { visibility: visible; }
 </style>
 </head>
 <body>
+<script>
+(function () {
+  var t;
+  try { t = localStorage.getItem('247420:theme'); } catch (e) {}
+  if (!t) t = 'github-dark';
+  document.body.setAttribute('data-theme', t);
+})();
+</script>
 <div id="app"></div>
 <script type="module" src="./app.js"></script>
 <script>
