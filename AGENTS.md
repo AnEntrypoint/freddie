@@ -21,7 +21,7 @@ Instructions for AI coding assistants working on Freddie. Present-tense rules on
 The stack is **thebird -> freddie -> acptoapi**. Each layer owns one concern:
 
 - **acptoapi** owns all upstream LLM/provider connectivity: HTTP/SSE to OpenAI, Anthropic, Gemini, brand providers, ACP daemons, Claude CLI. Plus chain/queue/sampler/matrix.
-- **freddie** owns agent-loop orchestration: tools, skills, sessions, memory. Calls *only* acptoapi for LLM access. No direct `fetch('https://api.openai.com/...')`. Migration debt still present in `plugins/media/lib/vision.js`, `plugins/image_gen`, `plugins/media/lib/tts.js`, `plugins/media/lib/transcription.js`, `src/agent/adapters/codex_responses_adapter.js`, `src/imagegen/provider.js`, `src/agent/model-discovery.js` — when you touch one, add the matching endpoint to acptoapi and call through acptoapi.
+- **freddie** owns agent-loop orchestration: tools, skills, sessions, memory. Calls *only* acptoapi for LLM access. No direct `fetch('https://api.openai.com/...')`. The prior migration-debt list here (`plugins/media/lib/vision.js`, `plugins/image_gen`, `plugins/media/lib/tts.js`, `plugins/media/lib/transcription.js`, `src/agent/adapters/codex_responses_adapter.js`, `src/imagegen/provider.js`, `src/agent/model-discovery.js`) is stale — those paths were relocated in the plugin-category-directory reorg and now correctly route through `getAcptoapiUrl()`/`acptoapi-bridge.js`. Six unrelated, fully dead direct-fetch adapter files (`xai_adapter.js`, `openrouter_adapter.js`, `bedrock_adapter.js`, `gemini_cloudcode_adapter.js`, `google_code_assist.js`, `google_oauth.js`) were found with zero live importers and removed rather than migrated.
 - **thebird** owns browser presentation: webjsx UI, pyodide hermes shell. Talks to freddie for everything LLM-related when freddie is reachable; falls back to direct acptoapi only when there is no freddie.
 
 Versioning: freddie pins `acptoapi` with a caret range (`^X.Y.Z`), bumped by `scripts/sync-upstream.mjs` on a weekly cron + manual dispatch. Thebird vendors freddie via `scripts/sync-upstream.mjs` against upstream main.
@@ -347,8 +347,8 @@ rs-plugkit exec utility verbs + rs-exec timeout aliases — see rs-learn (recall
 ## Plugsdk integration
 
 - plugsdk publishes automatically to npm registry on push to main.
-- Freddie installs plugsdk from registry, NOT via `file:` dep — a stale `"link": true` entry in package-lock.json blocks `npm ci`.
-- `src/host/contract.js` re-exports `piAdapter`, `HookType`, `allowResult`, `blockResult`, `modifyResult` from plugsdk and uses `HookType` constants in `FREDDIE_TO_SDK_HOOK` mapping.
+- Freddie installs plugsdk from registry, NOT via `file:` dep. (A historical `"link": true` lockfile entry that used to block `npm ci` does not reproduce in the current lockfile — confirmed clean.)
+- `src/host/contract.js` re-exports only `HookType` from plugsdk (`piAdapter`/`allowResult`/`blockResult`/`modifyResult` are not real plugsdk exports and are not referenced here) and uses `HookType` constants in `FREDDIE_TO_SDK_HOOK` mapping, alongside its own `validatePlugin`/`topoSort`/`PI_VERBS`/`GUI_VERBS`/`HOOK_NAMES`/`FREDDIE_TO_NATIVE_HOOK`/`definePlugin`/`PluginRunner`/`PluginRuntime`/`SURFACES`. `plugsdk`'s declared `exports['./dispatcher']` subpath (`package.json`) points at a file that is never built/published — do not attempt to import `plugsdk/dispatcher`.
 
 ## opencode CLI shim
 

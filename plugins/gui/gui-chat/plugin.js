@@ -1,6 +1,9 @@
 import { runTurn } from '../../../src/agent/machine.js'
 import { createSession, getMessages, appendMessage } from '../../../src/sessions.js'
 import { host } from '../../../src/host/index.js'
+import { logger } from '../../../src/observability/log.js'
+
+const log = logger('gui-chat')
 
 // A client-supplied sessionId continues that conversation: prior turns'
 // messages are reloaded and fed back into runTurn (which otherwise starts a
@@ -19,7 +22,8 @@ async function loadPriorMessages(sessionId) {
 async function persistNewMessages(sessionId, allMessages, priorCount) {
     if (!sessionId) return
     for (const m of allMessages.slice(priorCount)) {
-        try { await appendMessage(sessionId, { role: m.role, content: m.content, toolCalls: m.tool_calls || null, toolCallId: m.tool_call_id || null }) } catch (_) {}
+        try { await appendMessage(sessionId, { role: m.role, content: m.content, toolCalls: m.tool_calls || null, toolCallId: m.tool_call_id || null }) }
+        catch (e) { log.error('failed to persist chat message -- reply not saved, next load of this session will be missing it', { sessionId, role: m.role, err: String(e) }) }
     }
 }
 

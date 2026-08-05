@@ -252,7 +252,7 @@ function adaptTool(t) {
 }
 
 function adaptResponse(r) {
-    const choice = r.choices?.[0]?.message || {}
+    const choice = r?.choices?.[0]?.message || {}
     const content = typeof choice.content === 'string' ? choice.content : ''
     const tool_calls = Array.isArray(choice.tool_calls)
         ? choice.tool_calls.map(tc => ({ id: tc.id, name: tc.function?.name, arguments: tryParseJson(tc.function?.arguments) }))
