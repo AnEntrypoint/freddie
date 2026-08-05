@@ -33,7 +33,7 @@ async function expand(kind, target, { cwd, maxFile }) {
         try { const r = await fetch(target); return (await r.text()).slice(0, maxFile) } catch (e) { return null }
     }
     if (kind === 'session') {
-        const msgs = getMessages(target)
+        const msgs = await getMessages(target)
         return msgs.map(m => `[${m.role}] ${m.content}`).join('\n').slice(0, maxFile)
     }
     return null
