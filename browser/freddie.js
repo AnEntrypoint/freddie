@@ -14334,29 +14334,66 @@ async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolset
 init_js_yaml();
 init_home();
 var FRONTMATTER = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
-function listSkills(extraDirs = []) {
-	const dirs = [
+function skillRootsByPrecedence(extraDirs = []) {
+	const home = os.homedir();
+	return [
 		path.join(getFreddieHome(), "skills"),
 		path.join(process.cwd(), "skills"),
+		path.join(home, ".claude", "skills"),
+		path.join(home, ".agents", "skills"),
 		...extraDirs
 	];
+}
+var LIST_CACHE_TTL_MS = 2e3;
+var _listCache = null;
+function listSkills(extraDirs = []) {
+	const cacheKey = extraDirs.join(" ");
+	const now = Date.now();
+	if (_listCache && _listCache.cacheKey === cacheKey && now - _listCache.ts < LIST_CACHE_TTL_MS) return _listCache.result;
+	const seenRoots = /* @__PURE__ */ new Set();
 	const out = [];
-	for (const d of dirs) if (fs.existsSync(d)) walk(d, out);
-	return out.filter(platformOk);
+	for (const d of skillRootsByPrecedence(extraDirs)) {
+		const resolved = path.resolve(d);
+		if (seenRoots.has(resolved) || !fs.existsSync(resolved)) continue;
+		seenRoots.add(resolved);
+		walk(resolved, out);
+	}
+	const result = dedupeByFirstOccurrence(out.filter(platformOk));
+	_listCache = {
+		cacheKey,
+		ts: now,
+		result
+	};
+	return result;
+}
+function dedupeByFirstOccurrence(skills) {
+	const seenNames = /* @__PURE__ */ new Set();
+	const out = [];
+	for (const s of skills) {
+		if (seenNames.has(s.name)) continue;
+		seenNames.add(s.name);
+		out.push(s);
+	}
+	return out;
 }
 function walk(d, out) {
 	for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
 		const full = path.join(d, entry.name);
 		if (entry.isDirectory()) walk(full, out);
-		else if (entry.name === "SKILL.md") out.push(loadSkill(full));
+		else if (entry.name === "SKILL.md") try {
+			out.push(loadSkill(full));
+		} catch (e) {
+			console.error(`[skills] failed to load ${full}: ${e.message}`);
+		}
 	}
 }
 function loadSkill(file) {
 	const raw = fs.readFileSync(file, "utf8");
+	const dirName = path.basename(path.dirname(file));
 	const m = FRONTMATTER.exec(raw);
 	if (!m) return {
 		file,
-		name: path.basename(path.dirname(file)),
+		name: dirName,
 		description: "",
 		body: raw,
 		frontmatter: {}
@@ -14364,11 +14401,18 @@ function loadSkill(file) {
 	const fm = load$1(m[1]) || {};
 	return {
 		file,
-		name: fm.name || path.basename(path.dirname(file)),
+		name: fm.name || dirName,
 		description: fm.description || "",
 		frontmatter: fm,
 		body: m[2],
-		platforms: fm.platforms
+		platforms: fm.platforms,
+		license: fm.license,
+		allowedTools: fm["allowed-tools"] || fm.allowedTools,
+		metadata: fm.metadata,
+		nameMismatch: !!fm.name && fm.name !== dirName ? {
+			frontmatterName: fm.name,
+			dirName
+		} : null
 	};
 }
 function platformOk(skill) {
