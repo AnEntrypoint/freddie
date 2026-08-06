@@ -385,7 +385,9 @@ async function getWasmInstance(plugin, modulePath) {
 		} catch {
 			try {
 				w.start?.(instance);
-			} catch {}
+			} catch (e) {
+				console.error(`[plugsdk] wasm WASI init failed for plugin '${plugin.manifest.name}' (${modulePath}): ${e.message}`);
+			}
 		}
 	} else {
 		const mod = await WebAssembly.compile(bytes);
@@ -502,7 +504,8 @@ function createHost$1({ on = {}, dataRoot, env = process.env, timeout = 6e4 } = 
 						"pipe"
 					]
 				}));
-			} catch {
+			} catch (e) {
+				console.error(`[plugsdk] failed to spawn MCP server '${serverName}' for plugin '${plugin.manifest.name}': ${e.message}`);
 				continue;
 			}
 			let exited = false;
@@ -532,7 +535,9 @@ function createHost$1({ on = {}, dataRoot, env = process.env, timeout = 6e4 } = 
 					]
 				})).on("error", () => {});
 				on.onLsp?.(plugin, lang, cfg);
-			} catch {}
+			} catch (e) {
+				console.error(`[plugsdk] failed to spawn LSP server for '${lang}' in plugin '${plugin.manifest.name}': ${e.message} (loader still surfaces lspServers)`);
+			}
 		}
 	}
 	function emitComponents(plugin) {
