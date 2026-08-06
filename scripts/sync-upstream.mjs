@@ -116,7 +116,12 @@ const osvScript = resolve(ROOT, 'scripts', 'osv-scan-lockfile.mjs')
 if (existsSync(osvScript)) {
     console.log('\n--- osv-scan-lockfile ---')
     try {
-        execFileSync(process.execPath, [osvScript], { cwd: ROOT, stdio: 'inherit', shell: true })
+        // process.execPath is a real binary (node.exe), not a shell shim like
+        // npm.cmd above -- shell:true here concatenates argv into one string
+        // for cmd.exe without quoting, breaking on any space in the install
+        // path (e.g. Windows' default "C:\Program Files\nodejs\node.exe").
+        // execFileSync's argv array already avoids that with shell:false.
+        execFileSync(process.execPath, [osvScript], { cwd: ROOT, stdio: 'inherit' })
     } catch (e) {
         console.error('! osv-scan-lockfile exited non-zero:', e.message)
         process.exitCode = 1
