@@ -13,6 +13,14 @@ const CHECKS = [
     { name: 'gh-cli', run: () => { const r = spawnSync('gh', ['--version'], { encoding: 'utf8' }); return r.status === 0 ? { ok: true, value: r.stdout.split('\n')[0] } : { ok: false, fix: 'install gh CLI' } } },
     { name: 'git', run: () => { const r = spawnSync('git', ['--version'], { encoding: 'utf8' }); return r.status === 0 ? { ok: true, value: r.stdout.trim() } : { ok: false, fix: 'install git' } } },
     { name: 'config-file', run: () => { const p = path.join(getFreddieHome(), 'config.yaml'); return fs.existsSync(p) ? { ok: true } : { ok: false, fix: 'freddie setup' } } },
+    { name: 'skills', run: async () => {
+        const { listSkills, skillRoots } = await import('../skills/index.js')
+        const skills = listSkills()
+        const roots = skillRoots().filter(d => fs.existsSync(d))
+        const mismatches = skills.filter(s => s.nameMismatch)
+        if (!skills.length) return { ok: false, fix: 'no skills found in any root: ' + skillRoots().join(', '), value: '0 skills, ' + roots.length + ' root(s) exist' }
+        return { ok: true, value: `${skills.length} skill(s) from ${roots.length} root(s)` + (mismatches.length ? `; ${mismatches.length} name mismatch(es): ${mismatches.map(m => m.file).join(', ')}` : '') }
+    } },
     ...providerEnvKeys().map(key => ({
         name: 'provider:' + key,
         run: () => env(key)

@@ -11,6 +11,6 @@ const ACTIONS = {
 export const skillManagerTool = ({
     name: 'skill_manager',
     toolset: 'core',
-    schema: { name: 'skill_manager', description: 'List, fetch, or invoke a skill from ~/.freddie/skills/ or bundled skills/.', parameters: { type: 'object', properties: { action: { type: 'string', enum: Object.keys(ACTIONS) }, name: { type: 'string' }, args: { type: 'string' } }, required: ['action'] } },
+    schema: { name: 'skill_manager', description: 'List, fetch, or invoke a skill from ~/.freddie/skills/, bundled skills/, or a global Agent Skills directory (~/.claude/skills, ~/.agents/skills).', parameters: { type: 'object', properties: { action: { type: 'string', enum: Object.keys(ACTIONS) }, name: { type: 'string' }, args: { type: 'string' } }, required: ['action'] } },
     handler: async (a) => { const fn = ACTIONS[a.action]; return fn ? fn(a) : { error: 'unknown action' } },
 })
