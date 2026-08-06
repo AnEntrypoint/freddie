@@ -102,13 +102,31 @@ export default {
             const out = await runTurn({ prompt: opts.prompt, provider, model, skill: opts.skill || undefined, cwd: opts.cwd || process.cwd(), timeoutMs: Number(opts.timeout), witnessPath: opts.witness || undefined })
             console.log(out.error ? '' : (out.result || out.messages?.at(-1)?.content || ''))
             if (out.error) console.error('error:', out.error)
-            // Tear down cleanly instead of process.exit(): force-closing the
-            // process while undici keep-alive sockets and a pending setImmediate
-            // are still live makes libuv double-close its async handle and assert
-            // UV_HANDLE_CLOSING on Windows. Close the HTTP dispatcher's sockets,
-            // then set exitCode and let the event loop drain on its own.
-            try { const u = await import('undici'); await u.getGlobalDispatcher()?.close?.() } catch {}
+            // Close every handle this turn is actually responsible for (undici's
+            // HTTP dispatcher, the libsql sessions.js handle, log streams) before
+            // exiting. A live process._getActiveHandles()/_getActiveRequests()
+            // probe confirmed all three matter: acptoapi's own background
+            // subsystems (extra-providers probe, readiness's preemptive prober)
+            // hold undici sockets open past this turn's own completion, and
+            // AGENTS.md's documented Windows gotcha (libsql native handle +
+            // log-stream) applies here too. destroy() (not close()) is correct
+            // for the dispatcher since close() waits on in-flight requests this
+            // process no longer cares about.
+            try { const u = await import('undici'); await u.getGlobalDispatcher()?.destroy?.() } catch {}
+            try { const { closeDb } = await import('../../../src/sessions.js'); closeDb() } catch {}
+            try { const { closeAll } = await import('../../../src/observability/log.js'); closeAll() } catch {}
+            // Even after closing every handle this process is responsible for, a
+            // live diagnostic (process._getActiveHandles()/_getActiveRequests(),
+            // both empty post-cleanup) proved the process still would not exit on
+            // its own -- some native-addon-level libuv reference (outside JS-level
+            // introspection, likely from the libsql or agentplug-runner bindings)
+            // keeps the loop alive with nothing left for JS code to close. Explicit
+            // process.exit() is safe here specifically because it now runs only
+            // after every handle this process owns has already been torn down --
+            // the original UV_HANDLE_CLOSING concern was about exiting while
+            // handles were still open mid-flight, which this ordering avoids.
             process.exitCode = out.error ? 1 : 0
+            process.exit(process.exitCode)
         } })
         C({ name: 'cron', description: 'Manage cron jobs', args: [{ name: 'action', default: 'list' }, { name: 'a1' }, { name: 'a2' }], action: async (action, a1, a2) => {
             const { listJobs, createJob, cancelJob, deleteJob, tick } = await import('../../../src/cron/scheduler.js')

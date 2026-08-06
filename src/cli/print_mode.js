@@ -77,12 +77,34 @@ export async function runPrintModeAndExit(opts) {
     process.exitCode = 0
   }
 
-  // Tear down cleanly: close undici keep-alive sockets so the event loop drains
-  // without a UV_HANDLE_CLOSING assertion on Windows (same as `freddie exec`).
+  // Close every handle this turn is actually responsible for (undici's HTTP
+  // dispatcher, the libsql sessions.js handle, log streams) before returning.
+  // acptoapi's own background subsystems (extra-providers probe, readiness's
+  // preemptive prober) hold undici sockets open past this turn's own
+  // completion -- destroy() (not close()) is correct since close() waits on
+  // in-flight requests this process no longer cares about. closeDb()/closeAll()
+  // are AGENTS.md's documented Windows gotcha (libsql native handle + log
+  // stream must close before exit or the open handle keeps the loop alive).
   try {
     const u = await import('undici')
-    await u.getGlobalDispatcher()?.close?.()
+    await u.getGlobalDispatcher()?.destroy?.()
   } catch {}
-
-  return result
+  try {
+    const { closeDb } = await import('../sessions.js')
+    closeDb()
+  } catch {}
+  try {
+    const { closeAll } = await import('../observability/log.js')
+    closeAll()
+  } catch {}
+  // Even after closing every handle this process owns, a live diagnostic
+  // (process._getActiveHandles()/_getActiveRequests(), confirmed empty
+  // post-cleanup on the `freddie exec` path this shares its teardown shape
+  // with) proved the process still would not exit on its own -- some
+  // native-addon-level libuv reference outside JS introspection (likely
+  // libsql or agentplug-runner bindings) keeps the loop alive with nothing
+  // left for JS code to close. process.exit() is safe here specifically
+  // because it now runs only after every handle this process owns has
+  // already been torn down.
+  process.exit(process.exitCode)
 }
