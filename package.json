@@ -32,29 +32,29 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "flatspace": "^1.0.20",
-    "gm-plugkit": "^2.0.2464",
-    "gm-skill": "^2.0.2464",
+    "gm-plugkit": "^2.0.2496",
+    "gm-skill": "^2.0.2496",
     "js-yaml": "^5.2.3",
     "msgpackr": "^2.0.5",
-    "plugsdk": "^1.0.21",
+    "plugsdk": "^1.0.26",
     "vscode-languageserver": "^10.1.0",
     "vscode-languageserver-textdocument": "^1.0.12",
     "ws": "^8.21.2",
     "xstate": "^5.32.5"
   },
   "optionalDependencies": {
-    "blessed": "^0.1.81",
-    "dockerode": "^5.0.1",
-    "puppeteer-core": "^25.5.0",
-    "ssh2": "^1.17.0",
-    "undici": "^8.10.0",
     "@libsql/darwin-arm64": "^0.5.29",
     "@libsql/darwin-x64": "^0.5.29",
     "@libsql/linux-arm64-gnu": "^0.5.29",
     "@libsql/linux-arm64-musl": "^0.5.29",
     "@libsql/linux-x64-gnu": "^0.5.29",
     "@libsql/linux-x64-musl": "^0.5.29",
-    "@libsql/win32-x64-msvc": "^0.5.29"
+    "@libsql/win32-x64-msvc": "^0.5.29",
+    "blessed": "^0.1.81",
+    "dockerode": "^5.0.1",
+    "puppeteer-core": "^25.5.0",
+    "ssh2": "^1.17.0",
+    "undici": "^8.10.0"
   },
   "engines": {
     "node": ">=20.6.0"
