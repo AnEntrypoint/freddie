@@ -325,7 +325,7 @@ On Windows, ensure `closeDb()` and log-stream `closeAll()` are called before exi
 | ACP (JSON-RPC stdio) | `src/acp/server.js` |
 | TUI | substrate (`pi-tui` + pi-coding-agent) |
 | Plugins + memory | `src/plugins/manager.js` + `src/agent/memory_provider.js` + `plugins/memory-*/` |
-| Skills loader | `src/skills/index.js` — content drops into `~/.freddie/skills/` |
+| Skills loader | `src/skills/index.js` — scans `~/.freddie/skills/`, `<cwd>/skills/`, and the Agent Skills standard global dirs `~/.claude/skills`, `~/.agents/skills` (`skillRootsByPrecedence()`), 2s-TTL cached |
 | Context compressor | `src/agent/compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js` |
 | Documentation site | `website/` (flatspace + content/pages/*.yaml + theme.mjs) |
 | Cron scheduler | `src/cron/{scheduler,cron-parse}.js` (async API) |
