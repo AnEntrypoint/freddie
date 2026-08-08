@@ -1,0 +1,117 @@
+import { Gateway } from '../../../src/gateway/run.js'
+import { makePlatform } from '../../../src/gateway/platforms.js'
+import { AcpServer } from '../../../src/acp/server.js'
+
+export function registerRuntimeCommands(C) {
+    C({ name: 'gateway', description: 'Start messaging gateway', options: [{ flag: '--port <port>', default: '0' }], action: async (opts) => {
+        const webhook = await makePlatform('webhook', { port: Number(opts.port) })
+        const api = await makePlatform('api_server', { port: 0 })
+        const gw = new Gateway({ platforms: { webhook, api_server: api } })
+        await gw.start()
+        console.log('webhook port:', webhook.port, '\napi_server port:', api.port)
+        process.on('SIGINT', async () => { await gw.stop(); process.exit(0) })
+    } })
+    C({ name: 'acp', description: 'Start ACP json-rpc stdio server', action: () => { new AcpServer().start() } })
+    C({ name: 'run', description: 'Interactive REPL (--print for non-interactive stdout output)', options: [{ flag: '--resume [id]', default: '' }, { flag: '--print', default: false }, { flag: '--prompt <prompt>', default: '' }, { flag: '--model <model>', default: '' }, { flag: '--provider <provider>', default: '' }, { flag: '--cwd <cwd>', default: '' }, { flag: '--timeout <ms>', default: '60000' }], action: async (opts) => {
+        if (opts.print) {
+            if (!opts.prompt) { console.error('--prompt is required with --print'); process.exit(1) }
+            const { runPrintModeAndExit } = await import('../../../src/cli/print_mode.js')
+            await runPrintModeAndExit({ prompt: opts.prompt, model: opts.model || undefined, provider: opts.provider || undefined, cwd: opts.cwd || undefined, timeout: Number(opts.timeout) })
+            return
+        }
+        const { launchTui } = await import('../../../src/tui/index.js')
+        // pi-bridge (pi-ai) is preferred when it can actually resolve —
+        // but it hard-defaults provider=anthropic and throws
+        // 'unknown model'/'no API key' when that provider isn't keyed,
+        // which previously made `freddie run` unusable in any environment
+        // where exec's acptoapi chain worked fine. Fall back to the
+        // chain resolver on pi-bridge failure instead of dying.
+        let callLLM = null
+        try {
+            const pb = await import('../../../src/agent/pi-bridge.js')
+            callLLM = async (input) => {
+                try { return await pb.callLLM(input) } catch {
+                    const { resolveCallLLM } = await import('../../../src/agent/llm_resolver.js')
+                    return resolveCallLLM({ provider: input.provider, model: input.model })(input)
+                }
+            }
+        } catch { /* swallow: pi-bridge absent — machine uses resolveCallLLM */ }
+        // --resume with no value = continue the most recent session; --resume <id> = that one.
+        const resume = opts.resume === true ? true : (opts.resume || null)
+        await launchTui({ callLLM, resume })
+    } })
+    C({ name: 'exec', description: 'Run a single prompt through the agent and exit (--print for non-interactive stdout output)', options: [{ flag: '--prompt <prompt>', required: true }, { flag: '--model <model>', default: '' }, { flag: '--provider <provider>', default: '' }, { flag: '--skill <skill>', default: '' }, { flag: '--cwd <cwd>', default: '' }, { flag: '--timeout <ms>', default: '60000' }, { flag: '--witness <path>', default: '' }, { flag: '--print', default: false }], action: async (opts) => {
+        if (opts.print) {
+            const { runPrintModeAndExit } = await import('../../../src/cli/print_mode.js')
+            let provider = opts.provider || undefined
+            let model = opts.model || undefined
+            if (!provider && model && /^[a-z][a-z0-9-]*\//.test(model)) { provider = model.split('/')[0]; model = model.slice(provider.length + 1) }
+            await runPrintModeAndExit({ prompt: opts.prompt, model, provider, cwd: opts.cwd || undefined, timeout: Number(opts.timeout) })
+            return
+        }
+        const { runTurn } = await import('../../../src/agent/machine.js')
+        let provider = opts.provider || undefined
+        let model = opts.model || undefined
+        if (!provider && model && /^[a-z][a-z0-9-]*\//.test(model)) { provider = model.split('/')[0]; model = model.slice(provider.length + 1) }
+        const out = await runTurn({ prompt: opts.prompt, provider, model, skill: opts.skill || undefined, cwd: opts.cwd || process.cwd(), timeoutMs: Number(opts.timeout), witnessPath: opts.witness || undefined })
+        console.log(out.error ? '' : (out.result || out.messages?.at(-1)?.content || ''))
+        if (out.error) console.error('error:', out.error)
+        // Close every handle this turn is actually responsible for (undici's
+        // HTTP dispatcher, the libsql sessions.js handle, log streams) before
+        // exiting. A live process._getActiveHandles()/_getActiveRequests()
+        // probe confirmed all three matter: acptoapi's own background
+        // subsystems (extra-providers probe, readiness's preemptive prober)
+        // hold undici sockets open past this turn's own completion, and
+        // AGENTS.md's documented Windows gotcha (libsql native handle +
+        // log-stream) applies here too. destroy() (not close()) is correct
+        // for the dispatcher since close() waits on in-flight requests this
+        // process no longer cares about.
+        try { const u = await import('undici'); await u.getGlobalDispatcher()?.destroy?.() } catch {}
+        try { const { closeDb } = await import('../../../src/sessions.js'); closeDb() } catch {}
+        try { const { closeAll } = await import('../../../src/observability/log.js'); closeAll() } catch {}
+        // Even after closing every handle this process is responsible for, a
+        // live diagnostic (process._getActiveHandles()/_getActiveRequests(),
+        // both empty post-cleanup) proved the process still would not exit on
+        // its own -- some native-addon-level libuv reference (outside JS-level
+        // introspection, likely from the libsql or agentplug-runner bindings)
+        // keeps the loop alive with nothing left for JS code to close. Explicit
+        // process.exit() is safe here specifically because it now runs only
+        // after every handle this process owns has already been torn down --
+        // the original UV_HANDLE_CLOSING concern was about exiting while
+        // handles were still open mid-flight, which this ordering avoids.
+        process.exitCode = out.error ? 1 : 0
+        process.exit(process.exitCode)
+    } })
+    C({ name: 'cron', description: 'Manage cron jobs', args: [{ name: 'action', default: 'list' }, { name: 'a1' }, { name: 'a2' }], action: async (action, a1, a2) => {
+        const { listJobs, createJob, cancelJob, deleteJob, tick } = await import('../../../src/cron/scheduler.js')
+        if (action === 'list') { for (const j of await listJobs()) console.log(`${j.id}\t${j.cron}\t${j.enabled ? 'on ' : 'off'}\t${j.prompt.slice(0, 60)}`); return }
+        if (action === 'add') { console.log('created:', await createJob({ cron: a1, prompt: a2 })); return }
+        if (action === 'cancel') { await cancelJob(Number(a1)); console.log('cancelled:', a1); return }
+        if (action === 'delete') { await deleteJob(Number(a1)); console.log('deleted:', a1); return }
+        if (action === 'tick') { console.log('fired:', (await tick()).length); return }
+    } })
+    C({ name: 'batch', description: 'Run prompts in parallel from file', args: [{ name: 'file', required: true }], options: [{ flag: '--concurrency <n>', default: '4' }, { flag: '--model <model>', default: '' }], action: async (file, opts) => {
+        const fs = await import('node:fs')
+        const { runBatch } = await import('../../../src/batch.js')
+        const raw = fs.readFileSync(file, 'utf8').trim().split('\n')
+        const prompts = raw.map(l => { try { return JSON.parse(l).prompt || JSON.parse(l) } catch { return l } }).filter(Boolean)
+        const out = await runBatch({ prompts, concurrency: Number(opts.concurrency), model: opts.model })
+        console.log('batch:', out.id, '\nfile:', out.file, '\nresults:', out.results.length)
+    } })
+    C({ name: 'models', description: 'Discover working models per provider key', args: [{ name: 'action', default: 'discover' }, { name: 'provider' }], action: async (action, provider) => {
+        const { discoverAndPersist, listKnownProviders } = await import('../../../src/models/discovery.js')
+        if (action === 'providers') { for (const p of listKnownProviders()) console.log(p); return }
+        const result = await discoverAndPersist({ provider })
+        for (const [p, r] of Object.entries(result)) {
+            if (r.error) console.log(`${p.padEnd(12)} [fail] ${r.error}`)
+            else console.log(`${p.padEnd(12)} [ok] ${r.models.length} models - ${r.models.slice(0, 5).join(', ')}${r.models.length > 5 ? ', ...' : ''}`)
+        }
+    } })
+    C({ name: 'dashboard', description: 'Boot web dashboard', options: [{ flag: '--port <port>', default: '0' }, { flag: '--cwd <dir>', default: '' }], action: async (opts) => {
+        if (opts.cwd) { const p = process.platform === 'win32' ? opts.cwd.replace(/^\/([a-z])\//i, '$1:/') : opts.cwd; process.chdir(p) }
+        const { createDashboard } = await import('../../../src/web/server.js')
+        const d = await createDashboard({ port: Number(opts.port) })
+        console.log('dashboard:', d.url)
+        process.on('SIGINT', async () => { await d.stop(); process.exit(0) })
+    } })
+}
