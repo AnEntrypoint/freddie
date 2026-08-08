@@ -61,7 +61,7 @@ ACP protocol detail (`acpChat`, kilo/opencode backends, `/event`-before-`/messag
 
 ### Custom OpenAI-compatible endpoints (no `models.json` equivalent — use acptoapi's extra-providers file)
 
-Freddie has no `~/.freddie/models.json`-style user-declared model config. To point at a custom OpenAI-compatible endpoint (local Ollama/LM Studio/vLLM, a private gateway, etc.), declare it in acptoapi's own `~/.acptoapi/extra-providers.txt` — `src/agent/llm_resolver.js::warmExtraProviders()` (line 37) calls into `acptoapi/lib/extra-providers` on startup so freddie's `buildAutoChain()` env-key scan (resolver priority step 4 above) picks these up automatically, same as any other provider.
+Freddie has no `~/.freddie/models.json`-style user-declared model config. To point at a custom OpenAI-compatible endpoint (local Ollama/LM Studio/vLLM, a private gateway, etc.), declare it in acptoapi's own `~/.acptoapi/extra-providers.txt` — `src/agent/llm_provider_warmup.js::warmExtraProviders()` (re-exported from `llm_resolver.js`) calls into `acptoapi/lib/extra-providers` on startup so freddie's `buildAutoChain()` env-key scan (resolver priority step 4 above) picks these up automatically, same as any other provider.
 
 File format, one entry per record (`acptoapi/lib/extra-providers.js::parseProviderFile`): either a single tab-separated line `<baseURL>\t<apiKey>\t<model1> <model2> ...`, or two consecutive lines (`<baseURL>` then `<apiKey>`) when models aren't pre-declared (they get probed instead). Blank lines and `#`-prefixed comments are skipped. This is a flat 3-field record — no `!command`/`$ENV_VAR` interpolation, no per-model `reasoning`/`contextWindow`/`cost`/`thinkingLevelMap` metadata, and entries are probed/cached with a TTL rather than hot-reloaded on demand. If a richer schema is ever needed, it belongs in acptoapi (the single source of truth for provider config per "acptoapi is THE SDK" above), not a new freddie-local file.
 
@@ -176,10 +176,10 @@ src/config.js                    # loadConfig, saveConfigValue, DEFAULT_CONFIG, 
 src/sessions.js                  # libsql + FTS5 (async API — every callsite must await)
 src/auth.js                      # FileAuthStore for credentials
 src/toolsets.js                  # _FREDDIE_CORE_TOOLS, getEnabledToolSchemas
-src/agent/machine.js             # xstate turn machine + writeTrajectory
-src/agent/llm_resolver.js        # thin shim over acptoapi.chat
+src/agent/machine.js             # xstate turn machine entrypoint (runTurn/resumeTurn/invokeCompactHooks); createAgentMachine in machine_builder.js, writeTrajectory in turn_trajectory.js
+src/agent/llm_resolver.js        # thin shim over acptoapi.chat (resolveCallLLM); warmExtraProviders/PROVIDER_KEYS in llm_provider_warmup.js
 src/agent/events.js              # wire envelope emitTurnEvent + replay log (<FREDDIE_HOME>/wire/*.jsonl)
-src/agent/live-turns.js          # live-turn registry: subscribe/steer/cancel/approvals
+src/agent/live-turns.js          # live-turn registry entrypoint: subscribe/steer/cancel/approvals, re-exporting turn-registry/turn-steering/turn-approval/turn-revert.js
 src/agent/acptoapi-bridge.js     # HTTP passthrough to FREDDIE_LLM_URL daemon
 src/agent/model-discovery.js     # claude-cli/ACP/ollama discovery beyond acptoapi
 src/agent/model-matrix.js        # MATRIX_FILE path + matrixUsable predicate
@@ -363,7 +363,7 @@ Windows: use the npm install (`opencode.cmd`), not the broken bun shim; ACP daem
 
 ## Trajectory recorder
 
-`src/agent/machine.js::writeTrajectory()` writes one JSON per turn under `<FREDDIE_HOME>/trajectories/<ts>-<slug>.json` when `agent.save_trajectories=true` OR `--witness <path>` is set on `freddie exec`. Schema (`schema_version: 2`):
+`src/agent/turn_trajectory.js::writeTrajectory()` writes one JSON per turn under `<FREDDIE_HOME>/trajectories/<ts>-<slug>.json` when `agent.save_trajectories=true` OR `--witness <path>` is set on `freddie exec`. Schema (`schema_version: 2`):
 
 ```
 {
