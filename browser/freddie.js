@@ -988,6 +988,7 @@ function topoSort(plugins) {
 	for (const p of plugins) visit(p.name, []);
 	return out;
 }
+path.dirname(fileURLToPath(import.meta.url));
 //#endregion
 //#region src/env.js
 /**
@@ -4646,8 +4647,96 @@ function applyToolMiddleware(toolCall, result) {
 	return applyPostCall(result);
 }
 //#endregion
-//#region src/host/tool-resources.js
-var fsCjs = createRequire(import.meta.url)("fs");
+//#region src/host/env-scope.js
+function envVarAllowed(name, allowPatterns) {
+	if (!allowPatterns || !allowPatterns.length) return true;
+	return allowPatterns.includes(name);
+}
+function makeScopedEnvReader(resources, pluginName, toolName, logger, realEnv) {
+	return (name) => {
+		if (resources?.env_vars !== void 0 && !envVarAllowed(name, resources.env_vars)) {
+			logger?.warn?.(`capability manifest denied env read for tool '${toolName}'`, {
+				plugin: pluginName,
+				tool: toolName,
+				name
+			});
+			throw new Error(`plugin '${pluginName}' tool '${toolName}': env var '${name}' not in declared env_vars allowlist [${(resources.env_vars || []).join(", ")}]`);
+		}
+		return realEnv[name];
+	};
+}
+//#endregion
+//#region src/host/pii-scan.js
+var PII_PATTERNS = [
+	{
+		kind: "ssn",
+		re: /\b\d{3}-\d{2}-\d{4}\b/g
+	},
+	{
+		kind: "email",
+		re: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g
+	},
+	{
+		kind: "credit_card",
+		re: /\b(?:\d[ -]?){13,19}\b/g
+	}
+];
+function luhnValid(digits) {
+	let sum = 0, alt = false;
+	for (let i = digits.length - 1; i >= 0; i--) {
+		let d = digits.charCodeAt(i) - 48;
+		if (alt) {
+			d *= 2;
+			if (d > 9) d -= 9;
+		}
+		sum += d;
+		alt = !alt;
+	}
+	return digits.length >= 13 && sum % 10 === 0;
+}
+function scanForPII(text) {
+	if (typeof text !== "string" || !text) return [];
+	const hits = [];
+	for (const { kind, re } of PII_PATTERNS) {
+		re.lastIndex = 0;
+		let m;
+		while (m = re.exec(text)) if (kind === "credit_card") {
+			const digits = m[0].replace(/[ -]/g, "");
+			if (!luhnValid(digits)) continue;
+			hits.push({
+				kind,
+				sample: `${digits.slice(0, 4)}...${digits.slice(-4)}`
+			});
+		} else {
+			const raw = m[0];
+			hits.push({
+				kind,
+				sample: kind === "email" ? `${raw[0]}***@***` : `***-**-${raw.slice(-4)}`
+			});
+		}
+	}
+	return hits;
+}
+function enforcePII(resources, pluginName, toolName, logger, { argsText, resultText }) {
+	const mode = resources?.pii;
+	if (mode !== "log" && mode !== "block") return;
+	const hits = [...scanForPII(argsText).map((h) => ({
+		...h,
+		where: "args"
+	})), ...scanForPII(resultText).map((h) => ({
+		...h,
+		where: "result"
+	}))];
+	if (!hits.length) return;
+	logger?.warn?.(`PII-shaped data detected in tool '${toolName}'`, {
+		plugin: pluginName,
+		tool: toolName,
+		hits
+	});
+	if (mode === "block") throw new Error(`plugin '${pluginName}' tool '${toolName}': PII-shaped data (${hits.map((h) => h.kind).join(", ")}) blocked by capability manifest (resources.pii: 'block')`);
+}
+//#endregion
+//#region src/host/resource-guards.js
 var FORBIDDEN_PATH_SUBSTRINGS = [
 	"/etc/passwd",
 	"/etc/shadow",
@@ -4706,10 +4795,9 @@ function hostAllowed(hostname, allowPatterns) {
 	}
 	return false;
 }
-function envVarAllowed(name, allowPatterns) {
-	if (!allowPatterns || !allowPatterns.length) return true;
-	return allowPatterns.includes(name);
-}
+//#endregion
+//#region src/host/resource-enforcement.js
+var fsCjs = createRequire(import.meta.url)("fs");
 async function withResourceEnforcement(resources, pluginName, toolName, logger, fn) {
 	if (!resources) return fn();
 	const denials = [];
@@ -4780,87 +4868,6 @@ async function withResourceEnforcement(resources, pluginName, toolName, logger, 
 		}
 	}
 }
-function makeScopedEnvReader(resources, pluginName, toolName, logger, realEnv) {
-	return (name) => {
-		if (resources?.env_vars !== void 0 && !envVarAllowed(name, resources.env_vars)) {
-			logger?.warn?.(`capability manifest denied env read for tool '${toolName}'`, {
-				plugin: pluginName,
-				tool: toolName,
-				name
-			});
-			throw new Error(`plugin '${pluginName}' tool '${toolName}': env var '${name}' not in declared env_vars allowlist [${(resources.env_vars || []).join(", ")}]`);
-		}
-		return realEnv[name];
-	};
-}
-var PII_PATTERNS = [
-	{
-		kind: "ssn",
-		re: /\b\d{3}-\d{2}-\d{4}\b/g
-	},
-	{
-		kind: "email",
-		re: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g
-	},
-	{
-		kind: "credit_card",
-		re: /\b(?:\d[ -]?){13,19}\b/g
-	}
-];
-function luhnValid(digits) {
-	let sum = 0, alt = false;
-	for (let i = digits.length - 1; i >= 0; i--) {
-		let d = digits.charCodeAt(i) - 48;
-		if (alt) {
-			d *= 2;
-			if (d > 9) d -= 9;
-		}
-		sum += d;
-		alt = !alt;
-	}
-	return digits.length >= 13 && sum % 10 === 0;
-}
-function scanForPII(text) {
-	if (typeof text !== "string" || !text) return [];
-	const hits = [];
-	for (const { kind, re } of PII_PATTERNS) {
-		re.lastIndex = 0;
-		let m;
-		while (m = re.exec(text)) if (kind === "credit_card") {
-			const digits = m[0].replace(/[ -]/g, "");
-			if (!luhnValid(digits)) continue;
-			hits.push({
-				kind,
-				sample: `${digits.slice(0, 4)}...${digits.slice(-4)}`
-			});
-		} else {
-			const raw = m[0];
-			hits.push({
-				kind,
-				sample: kind === "email" ? `${raw[0]}***@***` : `***-**-${raw.slice(-4)}`
-			});
-		}
-	}
-	return hits;
-}
-function enforcePII(resources, pluginName, toolName, logger, { argsText, resultText }) {
-	const mode = resources?.pii;
-	if (mode !== "log" && mode !== "block") return;
-	const hits = [...scanForPII(argsText).map((h) => ({
-		...h,
-		where: "args"
-	})), ...scanForPII(resultText).map((h) => ({
-		...h,
-		where: "result"
-	}))];
-	if (!hits.length) return;
-	logger?.warn?.(`PII-shaped data detected in tool '${toolName}'`, {
-		plugin: pluginName,
-		tool: toolName,
-		hits
-	});
-	if (mode === "block") throw new Error(`plugin '${pluginName}' tool '${toolName}': PII-shaped data (${hits.map((h) => h.kind).join(", ")}) blocked by capability manifest (resources.pii: 'block')`);
-}
 function readManifestResources(dir) {
 	const manifestPath = path.join(dir, "plugin.json");
 	if (!fs.existsSync(manifestPath)) return null;
@@ -4871,142 +4878,8 @@ function readManifestResources(dir) {
 	}
 }
 //#endregion
-//#region src/host/host_helpers.js
+//#region src/host/cc-integration.js
 init_env();
-path.dirname(fileURLToPath(import.meta.url));
-function reg(map, kind) {
-	return {
-		register(spec) {
-			if (!spec?.name) throw new Error(`${kind}.name required`);
-			map.set(spec.name, spec);
-		},
-		get: (n) => map.get(n),
-		list: () => [...map.values()],
-		has: (n) => map.has(n),
-		size: () => map.size,
-		unregister: (n) => map.delete(n)
-	};
-}
-function maybeChaosInject(toolName) {
-	const pct = Number(env("FREDDIE_CHAOS_INJECT"));
-	if (!pct || pct <= 0) return;
-	if (Math.random() * 100 < pct) throw new Error(`[FREDDIE_CHAOS_INJECT] synthetic failure injected for tool '${toolName}' (chaos_pct=${pct})`);
-}
-function makePi() {
-	const m = {
-		tools: /* @__PURE__ */ new Map(),
-		envs: /* @__PURE__ */ new Map(),
-		commands: /* @__PURE__ */ new Map(),
-		crons: /* @__PURE__ */ new Map(),
-		platforms: /* @__PURE__ */ new Map(),
-		memory: /* @__PURE__ */ new Map(),
-		skills: /* @__PURE__ */ new Map(),
-		contexts: /* @__PURE__ */ new Map(),
-		agentExts: /* @__PURE__ */ new Map(),
-		cli: /* @__PURE__ */ new Map()
-	};
-	return {
-		_state: m,
-		tools: reg(m.tools, "tool"),
-		envs: reg(m.envs, "env"),
-		commands: reg(m.commands, "command"),
-		crons: reg(m.crons, "cron"),
-		platforms: reg(m.platforms, "platform"),
-		memory: reg(m.memory, "memory"),
-		skills: reg(m.skills, "skill"),
-		contexts: reg(m.contexts, "context"),
-		agentExts: reg(m.agentExts, "agentExt"),
-		cli: reg(m.cli, "cli"),
-		async dispatchTool(name, args = {}, ctx = {}, opts = {}) {
-			const t = m.tools.get(name);
-			if (!t) return JSON.stringify({ error: `unknown tool: ${name}` });
-			if (t.checkFn && t.checkFn(t) === false) return JSON.stringify({
-				error: `tool unavailable: ${name}`,
-				requires: t.requiresEnv || []
-			});
-			const hooks = opts.hooks;
-			const resources = opts.resourcesFor && t.__plugin ? opts.resourcesFor(t.__plugin) : null;
-			const scopedEnv = makeScopedEnvReader(resources, t.__plugin, name, opts.logger, process.env);
-			const ctxWithProgress = {
-				...ctx,
-				...hooks ? { onProgress: (partial) => hooks.invoke("onToolProgress", {
-					name,
-					args,
-					partial
-				}) } : {},
-				env: scopedEnv
-			};
-			try {
-				maybeChaosInject(name);
-				enforcePII(resources, t.__plugin, name, opts.logger, {
-					argsText: JSON.stringify(args),
-					resultText: ""
-				});
-				const r = await withResourceEnforcement(resources, t.__plugin, name, opts.logger, () => t.handler(args, ctxWithProgress));
-				const raw = typeof r === "string" ? r : JSON.stringify(r);
-				enforcePII(resources, t.__plugin, name, opts.logger, {
-					argsText: "",
-					resultText: raw
-				});
-				return applyToolMiddleware({
-					name,
-					tool: t,
-					args
-				}, raw);
-			} catch (e) {
-				return JSON.stringify({
-					error: String(e?.message || e),
-					tool: name
-				});
-			}
-		}
-	};
-}
-function makeGui() {
-	const r = [], pages = /* @__PURE__ */ new Map(), nav = [], debugs = /* @__PURE__ */ new Map(), apis = /* @__PURE__ */ new Map(), assets = /* @__PURE__ */ new Map(), wsRoutes = /* @__PURE__ */ new Map();
-	return {
-		_state: {
-			routes: r,
-			pages,
-			nav,
-			debugs,
-			apis,
-			assets,
-			wsRoutes
-		},
-		route: (method, p, h) => r.push({
-			method: method.toUpperCase(),
-			path: p,
-			handler: h
-		}),
-		unroute: (method, p) => {
-			const i = r.findIndex((x) => x.method === method.toUpperCase() && x.path === p);
-			if (i === -1) return false;
-			r.splice(i, 1);
-			return true;
-		},
-		wsRoute: (p, onConnection) => wsRoutes.set(p, onConnection),
-		page: (s, d) => pages.set(s, d),
-		nav: (i) => nav.push(i),
-		debug: (n, fn) => debugs.set(n, fn),
-		api: (g, d) => apis.set(g, d),
-		asset: (p, c) => assets.set(p, c),
-		routes: { list: () => r },
-		pages: {
-			get: (s) => pages.get(s),
-			list: () => [...pages.values()],
-			has: (s) => pages.has(s)
-		},
-		navItems: { list: () => nav },
-		debugs: {
-			list: () => [...debugs.entries()].map(([n, f]) => ({
-				name: n,
-				snapshot: f
-			})),
-			get: (n) => debugs.get(n)
-		}
-	};
-}
 function ccPayloadFor(name, payload) {
 	if (name === "preToolCall" || name === "postToolCall") return {
 		tool_name: payload?.name,
@@ -5021,31 +4894,6 @@ function ccPayloadFor(name, payload) {
 	};
 	return payload || {};
 }
-function guard(surface, allowed, name, verbs) {
-	if (allowed) return surface;
-	return new Proxy({}, { get(_, key) {
-		if (verbs.includes(String(key))) return () => {
-			throw new Error(`plugin ${name}: surface verb '${String(key)}' not allowed (declared surfaces=${name})`);
-		};
-		return surface[key];
-	} });
-}
-function scopedCfg(name, store) {
-	const k = `plugins.${name}`;
-	return {
-		get: (kk, d) => store.get(`${k}.${kk}`, d),
-		set: (kk, v) => store.set(`${k}.${kk}`, v),
-		all: () => store.all(k) || {}
-	};
-}
-var nullStore = () => {
-	const m = /* @__PURE__ */ new Map();
-	return {
-		get: (k, d) => m.has(k) ? m.get(k) : d,
-		set: (k, v) => m.set(k, v),
-		all: (p) => Object.fromEntries([...m.entries()].filter(([k]) => k.startsWith(p)))
-	};
-};
 function makeCcHooks({ surfaces, pi, binPaths, inboundListeners }) {
 	const pi_ok = surfaces.includes("pi");
 	return {
@@ -5218,6 +5066,280 @@ function makeCcLoaders(ccHost, env) {
 	};
 }
 //#endregion
+//#region src/host/surface-factories.js
+init_env();
+function reg(map, kind) {
+	return {
+		register(spec) {
+			if (!spec?.name) throw new Error(`${kind}.name required`);
+			map.set(spec.name, spec);
+		},
+		get: (n) => map.get(n),
+		list: () => [...map.values()],
+		has: (n) => map.has(n),
+		size: () => map.size,
+		unregister: (n) => map.delete(n)
+	};
+}
+function maybeChaosInject(toolName) {
+	const pct = Number(env("FREDDIE_CHAOS_INJECT"));
+	if (!pct || pct <= 0) return;
+	if (Math.random() * 100 < pct) throw new Error(`[FREDDIE_CHAOS_INJECT] synthetic failure injected for tool '${toolName}' (chaos_pct=${pct})`);
+}
+function makePi() {
+	const m = {
+		tools: /* @__PURE__ */ new Map(),
+		envs: /* @__PURE__ */ new Map(),
+		commands: /* @__PURE__ */ new Map(),
+		crons: /* @__PURE__ */ new Map(),
+		platforms: /* @__PURE__ */ new Map(),
+		memory: /* @__PURE__ */ new Map(),
+		skills: /* @__PURE__ */ new Map(),
+		contexts: /* @__PURE__ */ new Map(),
+		agentExts: /* @__PURE__ */ new Map(),
+		cli: /* @__PURE__ */ new Map()
+	};
+	return {
+		_state: m,
+		tools: reg(m.tools, "tool"),
+		envs: reg(m.envs, "env"),
+		commands: reg(m.commands, "command"),
+		crons: reg(m.crons, "cron"),
+		platforms: reg(m.platforms, "platform"),
+		memory: reg(m.memory, "memory"),
+		skills: reg(m.skills, "skill"),
+		contexts: reg(m.contexts, "context"),
+		agentExts: reg(m.agentExts, "agentExt"),
+		cli: reg(m.cli, "cli"),
+		async dispatchTool(name, args = {}, ctx = {}, opts = {}) {
+			const t = m.tools.get(name);
+			if (!t) return JSON.stringify({ error: `unknown tool: ${name}` });
+			if (t.checkFn && t.checkFn(t) === false) return JSON.stringify({
+				error: `tool unavailable: ${name}`,
+				requires: t.requiresEnv || []
+			});
+			const hooks = opts.hooks;
+			const resources = opts.resourcesFor && t.__plugin ? opts.resourcesFor(t.__plugin) : null;
+			const scopedEnv = makeScopedEnvReader(resources, t.__plugin, name, opts.logger, process.env);
+			const ctxWithProgress = {
+				...ctx,
+				...hooks ? { onProgress: (partial) => hooks.invoke("onToolProgress", {
+					name,
+					args,
+					partial
+				}) } : {},
+				env: scopedEnv
+			};
+			try {
+				maybeChaosInject(name);
+				enforcePII(resources, t.__plugin, name, opts.logger, {
+					argsText: JSON.stringify(args),
+					resultText: ""
+				});
+				const r = await withResourceEnforcement(resources, t.__plugin, name, opts.logger, () => t.handler(args, ctxWithProgress));
+				const raw = typeof r === "string" ? r : JSON.stringify(r);
+				enforcePII(resources, t.__plugin, name, opts.logger, {
+					argsText: "",
+					resultText: raw
+				});
+				return applyToolMiddleware({
+					name,
+					tool: t,
+					args
+				}, raw);
+			} catch (e) {
+				return JSON.stringify({
+					error: String(e?.message || e),
+					tool: name
+				});
+			}
+		}
+	};
+}
+function makeGui() {
+	const r = [], pages = /* @__PURE__ */ new Map(), nav = [], debugs = /* @__PURE__ */ new Map(), apis = /* @__PURE__ */ new Map(), assets = /* @__PURE__ */ new Map(), wsRoutes = /* @__PURE__ */ new Map();
+	return {
+		_state: {
+			routes: r,
+			pages,
+			nav,
+			debugs,
+			apis,
+			assets,
+			wsRoutes
+		},
+		route: (method, p, h) => r.push({
+			method: method.toUpperCase(),
+			path: p,
+			handler: h
+		}),
+		unroute: (method, p) => {
+			const i = r.findIndex((x) => x.method === method.toUpperCase() && x.path === p);
+			if (i === -1) return false;
+			r.splice(i, 1);
+			return true;
+		},
+		wsRoute: (p, onConnection) => wsRoutes.set(p, onConnection),
+		page: (s, d) => pages.set(s, d),
+		nav: (i) => nav.push(i),
+		debug: (n, fn) => debugs.set(n, fn),
+		api: (g, d) => apis.set(g, d),
+		asset: (p, c) => assets.set(p, c),
+		routes: { list: () => r },
+		pages: {
+			get: (s) => pages.get(s),
+			list: () => [...pages.values()],
+			has: (s) => pages.has(s)
+		},
+		navItems: { list: () => nav },
+		debugs: {
+			list: () => [...debugs.entries()].map(([n, f]) => ({
+				name: n,
+				snapshot: f
+			})),
+			get: (n) => debugs.get(n)
+		}
+	};
+}
+function guard(surface, allowed, name, verbs) {
+	if (allowed) return surface;
+	return new Proxy({}, { get(_, key) {
+		if (verbs.includes(String(key))) return () => {
+			throw new Error(`plugin ${name}: surface verb '${String(key)}' not allowed (declared surfaces=${name})`);
+		};
+		return surface[key];
+	} });
+}
+function scopedCfg(name, store) {
+	const k = `plugins.${name}`;
+	return {
+		get: (kk, d) => store.get(`${k}.${kk}`, d),
+		set: (kk, v) => store.set(`${k}.${kk}`, v),
+		all: () => store.all(k) || {}
+	};
+}
+var nullStore = () => {
+	const m = /* @__PURE__ */ new Map();
+	return {
+		get: (k, d) => m.has(k) ? m.get(k) : d,
+		set: (k, v) => m.set(k, v),
+		all: (p) => Object.fromEntries([...m.entries()].filter(([k]) => k.startsWith(p)))
+	};
+};
+//#endregion
+//#region src/host/plugin-runtime.js
+function recordPi(pi, cap, pluginName) {
+	return {
+		...pi,
+		tools: {
+			...pi.tools,
+			register: (s) => {
+				cap.tools.push(s.name);
+				return pi.tools.register({
+					...s,
+					__plugin: pluginName
+				});
+			}
+		},
+		commands: {
+			...pi.commands,
+			register: (s) => {
+				cap.commands.push(s.name);
+				return pi.commands.register(s);
+			}
+		},
+		crons: {
+			...pi.crons,
+			register: (s) => {
+				cap.crons.push(s.name);
+				return pi.crons.register(s);
+			}
+		}
+	};
+}
+function recordGui(gui, cap) {
+	return {
+		...gui,
+		route: (method, path, h) => {
+			cap.routes.push(`${method.toUpperCase()} ${path}`);
+			cap._routeDefs.push({
+				method: method.toUpperCase(),
+				path
+			});
+			return gui.route(method, path, h);
+		}
+	};
+}
+function recordHooks(hooks, cap) {
+	return {
+		...hooks,
+		on: (name, fn) => {
+			cap.hooks.push(name);
+			cap._hookFns.push({
+				name,
+				fn
+			});
+			return hooks.on(name, fn);
+		}
+	};
+}
+async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, pi, gui, hooks, host }) {
+	const name = [...sourcePaths.entries()].find(([, f]) => f === filePath)?.[0];
+	if (!name) return null;
+	const cap = capabilities.get(name);
+	if (cap) {
+		for (const t of cap.tools) pi.tools.unregister(t);
+		for (const c of cap.commands) pi.commands.unregister(c);
+		for (const c of cap.crons) pi.crons.unregister(c);
+		for (const { method, path: p } of cap._routeDefs || []) gui.unroute(method, p);
+		for (const { name: hn, fn } of cap._hookFns || []) hooks.off(hn, fn);
+	}
+	const idx = loaded.findIndex((p) => p.name === name);
+	if (idx !== -1) loaded.splice(idx, 1);
+	capabilities.delete(name);
+	const reloadCopy = filePath.replace(/\.m?js$/, `.reload-${Date.now()}.mjs`);
+	fs.copyFileSync(filePath, reloadCopy);
+	let mod;
+	try {
+		mod = await import(pathToFileURL(reloadCopy).href);
+	} finally {
+		fs.unlink(reloadCopy, () => {});
+	}
+	const fresh = mod.default || mod.plugin;
+	if (!fresh) return null;
+	fresh.__sourceFile = filePath;
+	const newCap = {
+		tools: [],
+		hooks: [],
+		commands: [],
+		crons: [],
+		routes: [],
+		_hookFns: [],
+		_routeDefs: []
+	};
+	const want = fresh.surfaces;
+	const ctxPi = want === "pi" || want === "both" ? recordPi(pi, newCap, name) : pi;
+	const ctxGui = want === "gui" || want === "both" ? recordGui(gui, newCap) : gui;
+	const ctxHooks = recordHooks(hooks, newCap);
+	await validatePlugin(fresh).register({
+		pi: ctxPi,
+		gui: ctxGui,
+		hooks: ctxHooks,
+		log: {
+			info() {},
+			warn() {},
+			error() {}
+		},
+		config: nullStore(),
+		host,
+		env: process.env
+	});
+	loaded.push(fresh);
+	capabilities.set(name, newCap);
+	sourcePaths.set(name, filePath);
+	return name;
+}
+//#endregion
 //#region src/flags.js
 init_home();
 function flagsPath() {
@@ -5243,6 +5365,62 @@ function isFlagEnabled(name) {
 	if (typeof entry === "boolean") return entry;
 	if (typeof entry === "object" && entry !== null && typeof entry.rollout_pct === "number") return bucketFor(name) < entry.rollout_pct;
 	return true;
+}
+//#endregion
+//#region src/host/plugin-discovery.js
+function isFlagDisabled(dir) {
+	const manifestPath = path.join(dir, "plugin.json");
+	if (!fs.existsSync(manifestPath)) return false;
+	try {
+		const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+		if (!manifest.feature_flag) return false;
+		return !isFlagEnabled(manifest.feature_flag);
+	} catch {
+		return false;
+	}
+}
+async function discoverPlugins(roots) {
+	const found = [];
+	for (const root of roots) await scanPluginDir(root, found, 1);
+	return found;
+}
+async function scanPluginDir(root, found, depth) {
+	if (!root || !fs.existsSync(root)) return;
+	for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+		if (!entry.isDirectory()) continue;
+		const dir = path.join(root, entry.name);
+		const file = path.join(dir, "plugin.js");
+		if (fs.existsSync(file)) {
+			if (isFlagDisabled(dir)) continue;
+			const declaredResources = readManifestResources(dir);
+			const mod = await import(pathToFileURL(file).href);
+			const p = mod.default || mod.plugin;
+			if (p) {
+				p.__sourceFile = file;
+				p.__resources = declaredResources;
+				found.push(p);
+			}
+			continue;
+		}
+		const handlerFile = path.join(dir, "handler.js");
+		if (fs.existsSync(handlerFile)) {
+			if (isFlagDisabled(dir)) continue;
+			const declaredResources = readManifestResources(dir);
+			const _tool = (await import(pathToFileURL(handlerFile).href))._tool;
+			if (!_tool) continue;
+			found.push({
+				name: `tool-${entry.name}`,
+				surfaces: "pi",
+				__sourceFile: handlerFile,
+				__resources: declaredResources,
+				register({ pi }) {
+					pi.tools.register(_tool);
+				}
+			});
+			continue;
+		}
+		if (depth > 0) await scanPluginDir(dir, found, depth - 1);
+	}
 }
 //#endregion
 //#region src/host/host.js
@@ -5308,61 +5486,6 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
 			}
 		}
 		return loaded.length;
-	};
-}
-function recordPi(pi, cap, pluginName) {
-	return {
-		...pi,
-		tools: {
-			...pi.tools,
-			register: (s) => {
-				cap.tools.push(s.name);
-				return pi.tools.register({
-					...s,
-					__plugin: pluginName
-				});
-			}
-		},
-		commands: {
-			...pi.commands,
-			register: (s) => {
-				cap.commands.push(s.name);
-				return pi.commands.register(s);
-			}
-		},
-		crons: {
-			...pi.crons,
-			register: (s) => {
-				cap.crons.push(s.name);
-				return pi.crons.register(s);
-			}
-		}
-	};
-}
-function recordGui(gui, cap) {
-	return {
-		...gui,
-		route: (method, path, h) => {
-			cap.routes.push(`${method.toUpperCase()} ${path}`);
-			cap._routeDefs.push({
-				method: method.toUpperCase(),
-				path
-			});
-			return gui.route(method, path, h);
-		}
-	};
-}
-function recordHooks(hooks, cap) {
-	return {
-		...hooks,
-		on: (name, fn) => {
-			cap.hooks.push(name);
-			cap._hookFns.push({
-				name,
-				fn
-			});
-			return hooks.on(name, fn);
-		}
 	};
 }
 function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env = process.env } = {}) {
@@ -5450,116 +5573,6 @@ function createHost({ surfaces = ["pi", "gui"], configStore = nullStore(), env =
 	host.loadCcPlugins = cc.loadCcPlugins;
 	host.loadCcFromNodeModules = cc.loadCcFromNodeModules;
 	return host;
-}
-function isFlagDisabled(dir) {
-	const manifestPath = path.join(dir, "plugin.json");
-	if (!fs.existsSync(manifestPath)) return false;
-	try {
-		const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-		if (!manifest.feature_flag) return false;
-		return !isFlagEnabled(manifest.feature_flag);
-	} catch {
-		return false;
-	}
-}
-async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, pi, gui, hooks, host }) {
-	const name = [...sourcePaths.entries()].find(([, f]) => f === filePath)?.[0];
-	if (!name) return null;
-	const cap = capabilities.get(name);
-	if (cap) {
-		for (const t of cap.tools) pi.tools.unregister(t);
-		for (const c of cap.commands) pi.commands.unregister(c);
-		for (const c of cap.crons) pi.crons.unregister(c);
-		for (const { method, path: p } of cap._routeDefs || []) gui.unroute(method, p);
-		for (const { name: hn, fn } of cap._hookFns || []) hooks.off(hn, fn);
-	}
-	const idx = loaded.findIndex((p) => p.name === name);
-	if (idx !== -1) loaded.splice(idx, 1);
-	capabilities.delete(name);
-	const reloadCopy = filePath.replace(/\.m?js$/, `.reload-${Date.now()}.mjs`);
-	fs.copyFileSync(filePath, reloadCopy);
-	let mod;
-	try {
-		mod = await import(pathToFileURL(reloadCopy).href);
-	} finally {
-		fs.unlink(reloadCopy, () => {});
-	}
-	const fresh = mod.default || mod.plugin;
-	if (!fresh) return null;
-	fresh.__sourceFile = filePath;
-	const newCap = {
-		tools: [],
-		hooks: [],
-		commands: [],
-		crons: [],
-		routes: [],
-		_hookFns: [],
-		_routeDefs: []
-	};
-	const want = fresh.surfaces;
-	const ctxPi = want === "pi" || want === "both" ? recordPi(pi, newCap, name) : pi;
-	const ctxGui = want === "gui" || want === "both" ? recordGui(gui, newCap) : gui;
-	const ctxHooks = recordHooks(hooks, newCap);
-	await validatePlugin(fresh).register({
-		pi: ctxPi,
-		gui: ctxGui,
-		hooks: ctxHooks,
-		log: {
-			info() {},
-			warn() {},
-			error() {}
-		},
-		config: nullStore(),
-		host,
-		env: process.env
-	});
-	loaded.push(fresh);
-	capabilities.set(name, newCap);
-	sourcePaths.set(name, filePath);
-	return name;
-}
-async function discoverPlugins(roots) {
-	const found = [];
-	for (const root of roots) await scanPluginDir(root, found, 1);
-	return found;
-}
-async function scanPluginDir(root, found, depth) {
-	if (!root || !fs.existsSync(root)) return;
-	for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-		if (!entry.isDirectory()) continue;
-		const dir = path.join(root, entry.name);
-		const file = path.join(dir, "plugin.js");
-		if (fs.existsSync(file)) {
-			if (isFlagDisabled(dir)) continue;
-			const declaredResources = readManifestResources(dir);
-			const mod = await import(pathToFileURL(file).href);
-			const p = mod.default || mod.plugin;
-			if (p) {
-				p.__sourceFile = file;
-				p.__resources = declaredResources;
-				found.push(p);
-			}
-			continue;
-		}
-		const handlerFile = path.join(dir, "handler.js");
-		if (fs.existsSync(handlerFile)) {
-			if (isFlagDisabled(dir)) continue;
-			const declaredResources = readManifestResources(dir);
-			const _tool = (await import(pathToFileURL(handlerFile).href))._tool;
-			if (!_tool) continue;
-			found.push({
-				name: `tool-${entry.name}`,
-				surfaces: "pi",
-				__sourceFile: handlerFile,
-				__resources: declaredResources,
-				register({ pi }) {
-					pi.tools.register(_tool);
-				}
-			});
-			continue;
-		}
-		if (depth > 0) await scanPluginDir(dir, found, depth - 1);
-	}
 }
 //#endregion
 //#region src/projects.js
@@ -5769,712 +5782,6 @@ function resetHostForTests() {
 	_loadPromise = null;
 	_dotenvLoaded = false;
 	stopWatchingPlugins();
-}
-//#endregion
-//#region src/toolsets.js
-function available(host) {
-	return host.pi.tools.list().filter((t) => !t.checkFn || t.checkFn(t) !== false);
-}
-async function getEnabledToolSchemas(enabled = ["core"], disabled = []) {
-	const h = await bootHost();
-	const enabledSet = new Set(enabled);
-	const disabledSet = new Set(disabled);
-	return available(h).filter((t) => enabledSet.has(t.toolset || "core") && !disabledSet.has(t.name)).map((t) => sanitizeSchema(t.schema));
-}
-//#endregion
-//#region src/observability/log.js
-function streamFor(name) {
-	if (_streams.has(name)) return _streams.get(name);
-	const dir = path.join(getFreddieHome(), "logs");
-	try {
-		fs.mkdirSync(dir, { recursive: true });
-	} catch {}
-	let s;
-	if (typeof fs.createWriteStream === "function") s = fs.createWriteStream(path.join(dir, `${name}.log`), { flags: "a" });
-	else s = {
-		write(line) {
-			try {
-				console.log("[" + name + "]", line.trim());
-			} catch {}
-		},
-		end() {}
-	};
-	_streams.set(name, s);
-	return s;
-}
-function log({ subsystem = "app", severity = "info", msg = "", ...rest }) {
-	const rec = {
-		ts: (/* @__PURE__ */ new Date()).toISOString(),
-		subsystem,
-		severity,
-		msg,
-		...rest
-	};
-	const line = JSON.stringify(rec) + "\n";
-	streamFor(subsystem).write(line);
-	if (SEVERITIES[severity] >= 30) streamFor("errors").write(line);
-}
-function logger(subsystem) {
-	return {
-		debug: (msg, e = {}) => log({
-			subsystem,
-			severity: "debug",
-			msg,
-			...e
-		}),
-		info: (msg, e = {}) => log({
-			subsystem,
-			severity: "info",
-			msg,
-			...e
-		}),
-		warn: (msg, e = {}) => log({
-			subsystem,
-			severity: "warning",
-			msg,
-			...e
-		}),
-		error: (msg, e = {}) => log({
-			subsystem,
-			severity: "error",
-			msg,
-			...e
-		})
-	};
-}
-var SEVERITIES, _streams;
-var init_log = __esmMin((() => {
-	init_home();
-	SEVERITIES = {
-		debug: 10,
-		info: 20,
-		warning: 30,
-		error: 40
-	};
-	_streams = /* @__PURE__ */ new Map();
-}));
-//#endregion
-//#region src/agent/tool_call_text.js
-init_log();
-function randId() {
-	return "call_" + Math.random().toString(36).slice(2, 10);
-}
-function parseKimiSection(content) {
-	if (!content.includes("<|tool_call_begin|>")) return [];
-	const re = /<\|tool_call_begin\|>\s*([\s\S]*?)\s*<\|tool_call_argument_begin\|>\s*([\s\S]*?)\s*<\|tool_call_end\|>/g;
-	const out = [];
-	let m;
-	while ((m = re.exec(content)) !== null) {
-		const name = (m[1] || "").replace(/^functions\./, "").replace(/:\d+\s*$/, "").trim();
-		let args;
-		try {
-			args = JSON.parse((m[2] || "").trim());
-		} catch {
-			args = {};
-		}
-		if (name) out.push({
-			id: randId(),
-			name,
-			arguments: args
-		});
-	}
-	return out;
-}
-function parsePythonTag(content) {
-	if (!content.includes("<|python_tag|>")) return [];
-	const after = content.slice(content.indexOf("<|python_tag|>") + 14).trim().split("\n")[0];
-	const mc = /^([A-Za-z_][A-Za-z0-9_.]*)\s*\(([\s\S]*?)\)\s*$/.exec(after);
-	if (!mc) return [];
-	const name = mc[1].split(".")[0];
-	const inner = mc[2].trim();
-	let args = {};
-	if (/^\{[\s\S]*\}$/.test(inner)) try {
-		args = JSON.parse(inner);
-	} catch {
-		args = {};
-	}
-	else if (/^"[\s\S]*"$/.test(inner)) {
-		const s = inner.slice(1, -1);
-		args = {
-			query: s,
-			input: s
-		};
-	} else if (/=/.test(inner)) {
-		const kwRe = /([A-Za-z_][A-Za-z0-9_]*)\s*=\s*("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[\d.]+|true|false|null)/g;
-		let mm;
-		while ((mm = kwRe.exec(inner)) !== null) {
-			let v = mm[2];
-			if (/^["']/.test(v)) v = v.slice(1, -1);
-			else if (/^[\d.]+$/.test(v)) v = Number(v);
-			else if (v === "true") v = true;
-			else if (v === "false") v = false;
-			else if (v === "null") v = null;
-			args[mm[1]] = v;
-		}
-	} else if (inner) args = {
-		query: inner,
-		input: inner
-	};
-	return name ? [{
-		id: randId(),
-		name,
-		arguments: args
-	}] : [];
-}
-function parseBareJsonArray(content) {
-	const trimmed = content.trim();
-	if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return [];
-	let parsed;
-	try {
-		parsed = JSON.parse(trimmed);
-	} catch {
-		return [];
-	}
-	if (!Array.isArray(parsed) || !parsed.length) return [];
-	const out = [];
-	for (const item of parsed) {
-		if (!item || typeof item !== "object") return [];
-		const name = item.name;
-		if (typeof name !== "string" || !name) return [];
-		const args = item.parameters ?? item.arguments ?? {};
-		if (typeof args !== "object" || args === null) return [];
-		out.push({
-			id: randId(),
-			name,
-			arguments: args
-		});
-	}
-	return out;
-}
-function parseBareFunctionCallObject(content) {
-	const trimmed = content.trim();
-	if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return [];
-	let parsed;
-	try {
-		parsed = JSON.parse(trimmed);
-	} catch {
-		return [];
-	}
-	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return [];
-	const name = parsed.name ?? parsed.function?.name;
-	if (typeof name !== "string" || !name) return [];
-	const args = parsed.parameters ?? parsed.arguments ?? parsed.function?.arguments ?? {};
-	if (typeof args !== "object" || args === null) return [];
-	return [{
-		id: randId(),
-		name,
-		arguments: args
-	}];
-}
-function findBalancedJsonObjectEnd(text, startIndex) {
-	let depth = 0, inString = false, escaped = false;
-	for (let i = startIndex; i < text.length; i++) {
-		const ch = text[i];
-		if (inString) {
-			if (escaped) escaped = false;
-			else if (ch === "\\") escaped = true;
-			else if (ch === "\"") inString = false;
-			continue;
-		}
-		if (ch === "\"") {
-			inString = true;
-			continue;
-		}
-		if (ch === "{") depth++;
-		else if (ch === "}") {
-			depth--;
-			if (depth === 0) return i;
-		}
-	}
-	return -1;
-}
-function parseNameFollowedByJsonObject(content) {
-	const trimmed = content.trim();
-	const match = /^([A-Za-z_][A-Za-z0-9_]*)\{/.exec(trimmed);
-	if (!match) return [];
-	const name = match[1];
-	const jsonStart = name.length;
-	const jsonEnd = findBalancedJsonObjectEnd(trimmed, jsonStart);
-	if (jsonEnd === -1) return [];
-	let args;
-	try {
-		args = JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1));
-	} catch {
-		return [];
-	}
-	if (typeof args !== "object" || args === null) return [];
-	return [{
-		id: randId(),
-		name,
-		arguments: args
-	}];
-}
-function parseTextToolCalls(content) {
-	if (typeof content !== "string" || !content) return [];
-	const kimi = parseKimiSection(content);
-	if (kimi.length) return kimi;
-	const pythonTag = parsePythonTag(content);
-	if (pythonTag.length) return pythonTag;
-	const bareArray = parseBareJsonArray(content);
-	if (bareArray.length) return bareArray;
-	const bareObject = parseBareFunctionCallObject(content);
-	if (bareObject.length) return bareObject;
-	return parseNameFollowedByJsonObject(content);
-}
-//#endregion
-//#region src/agent/acptoapi-bridge.js
-var log$6 = logger("acptoapi");
-var envVal = (k) => {
-	try {
-		return typeof process !== "undefined" && process.env ? process.env[k] : void 0;
-	} catch {
-		return;
-	}
-};
-var ACPTOAPI_TIMEOUT_MS = Number(envVal("FREDDIE_LLM_TIMEOUT_MS")) || 24e4;
-function getAcptoapiModel() {
-	return envVal("FREDDIE_LLM_MODEL") || "claude/haiku";
-}
-var _acptoapi = null;
-async function getAcptoapi() {
-	if (!_acptoapi) {
-		const mod = await import("acptoapi");
-		_acptoapi = mod.default && typeof mod.default === "object" ? mod.default : mod;
-	}
-	return _acptoapi;
-}
-function isConfiguredChainSyntax(model) {
-	if (typeof model !== "string") return false;
-	return model.includes(",") || model.startsWith("queue/") || model.startsWith("chain/");
-}
-async function resolveChainLinks(acptoapi, useModel) {
-	if (isConfiguredChainSyntax(useModel)) return useModel;
-	try {
-		const links = acptoapi.buildAutoChain(useModel);
-		return Array.isArray(links) && links.length ? links.map((l) => l.model || l) : useModel;
-	} catch {
-		return useModel;
-	}
-}
-async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } = {}) {
-	const acptoapi = await getAcptoapi();
-	const useModel = model || getAcptoapiModel();
-	const chainModel = await resolveChainLinks(acptoapi, useModel);
-	const hasTools = Array.isArray(tools) && tools.length > 0;
-	const adaptedMessages = messages.map(adaptMessage);
-	if (hasTools && cwd) {
-		const sysIdx = adaptedMessages.findIndex((m) => m.role === "system");
-		const cwdNote = `\nWorking directory: ${cwd}\nUse your built-in tools (Bash, Read, Write) to explore files in this directory when needed.`;
-		if (sysIdx >= 0) adaptedMessages[sysIdx] = {
-			...adaptedMessages[sysIdx],
-			content: (adaptedMessages[sysIdx].content || "") + cwdNote
-		};
-		else adaptedMessages.unshift({
-			role: "system",
-			content: cwdNote.trim()
-		});
-	}
-	let _timeoutHandle;
-	const _timeout = new Promise((_, reject) => {
-		_timeoutHandle = setTimeout(() => reject(/* @__PURE__ */ new Error("acptoapi call timeout")), ACPTOAPI_TIMEOUT_MS);
-	});
-	const chatOpts = {
-		messages: adaptedMessages,
-		...hasTools ? { tools: tools.map(adaptTool) } : {},
-		...hasTools && tool_choice ? { tool_choice } : {},
-		max_tokens: 4096
-	};
-	let json;
-	try {
-		json = await Promise.race([Array.isArray(chainModel) ? acptoapi.chatChain(chainModel, chatOpts) : acptoapi.chat({
-			model: chainModel,
-			...chatOpts
-		}), _timeout]);
-	} finally {
-		clearTimeout(_timeoutHandle);
-	}
-	const servedModel = Array.isArray(chainModel) ? (Array.isArray(json.__chainAttempted) ? json.__chainAttempted.filter((a) => a.ok).slice(-1)[0]?.model : null) || json.model || null : useModel;
-	log$6.info("completed", {
-		model: useModel,
-		servedModel,
-		usage: json.usage
-	});
-	const adapted = adaptResponse(json);
-	adapted.model = servedModel;
-	if (forcedToolChoiceMissed(tool_choice, hasTools, adapted) && servedModel) {
-		const uselessMiss = !adapted.content || isLikelyToolRefusal(adapted.content);
-		log$6.warn("tool_choice required but no tool call returned", {
-			model: servedModel,
-			uselessMiss,
-			hadContent: !!adapted.content
-		});
-		if (uselessMiss) try {
-			const mod = await getAcptoapi();
-			if (mod && typeof mod.recordModelFailure === "function") mod.recordModelFailure(servedModel);
-		} catch {}
-	}
-	return adapted;
-}
-function forcedToolChoiceMissed(tool_choice, hasTools, adapted) {
-	return (tool_choice === "required" || tool_choice?.type === "required") && hasTools && !adapted.tool_calls.length;
-}
-var TOOL_REFUSAL_MARKERS = [
-	"don't have the tools",
-	"do not have the tools",
-	"don't have access to",
-	"do not have access to",
-	"unable to access the",
-	"i cannot call",
-	"i can't call",
-	"no tool available",
-	"lack the necessary tools"
-];
-function isLikelyToolRefusal(text) {
-	if (!text) return false;
-	const norm = String(text).toLowerCase().replace(/\s+/g, " ").trim();
-	return TOOL_REFUSAL_MARKERS.some((m) => norm.includes(m));
-}
-function adaptMessage(m) {
-	if (m.role === "tool") return {
-		role: "tool",
-		tool_call_id: m.tool_call_id,
-		content: typeof m.content === "string" ? m.content : JSON.stringify(m.content)
-	};
-	if (m.role === "assistant" && Array.isArray(m.tool_calls) && m.tool_calls.length) return {
-		role: "assistant",
-		content: m.content || "",
-		tool_calls: m.tool_calls.map((tc) => ({
-			id: tc.id || tc.tool_call_id,
-			type: "function",
-			function: {
-				name: tc.name || tc.function?.name,
-				arguments: typeof tc.arguments === "string" ? tc.arguments : JSON.stringify(tc.arguments || tc.function?.arguments || {})
-			}
-		}))
-	};
-	return {
-		role: m.role,
-		content: typeof m.content === "string" ? m.content : JSON.stringify(m.content)
-	};
-}
-function adaptTool(t) {
-	return {
-		type: "function",
-		function: {
-			name: t.name,
-			description: t.description,
-			parameters: t.parameters || t.input_schema || {
-				type: "object",
-				properties: {}
-			}
-		}
-	};
-}
-function adaptResponse(r) {
-	const choice = r?.choices?.[0]?.message || {};
-	const content = typeof choice.content === "string" ? choice.content : "";
-	const tool_calls = Array.isArray(choice.tool_calls) ? choice.tool_calls.map((tc) => ({
-		id: tc.id,
-		name: tc.function?.name,
-		arguments: tryParseJson(tc.function?.arguments)
-	})) : [];
-	if (!tool_calls.length) {
-		const textTC = parseTextToolCalls(content);
-		if (textTC.length) return {
-			content: "",
-			tool_calls: textTC,
-			raw: r
-		};
-	}
-	return {
-		content,
-		tool_calls,
-		raw: r
-	};
-}
-function tryParseJson(s) {
-	try {
-		return typeof s === "string" ? JSON.parse(s) : s || {};
-	} catch {
-		return {};
-	}
-}
-var REACHABILITY_PROBE_TIMEOUT_MS = Number(envVal("ACPTOAPI_REACHABILITY_PROBE_TIMEOUT_MS")) || 45e3;
-var REACHABILITY_PROBE_CHAIN_LINK_CAP = 3;
-async function isReachable(timeoutMs = REACHABILITY_PROBE_TIMEOUT_MS, model = null) {
-	try {
-		const acptoapi = await getAcptoapi();
-		const chainModel = await resolveChainLinks(acptoapi, model || getAcptoapiModel());
-		const probeChain = Array.isArray(chainModel) ? chainModel.slice(0, REACHABILITY_PROBE_CHAIN_LINK_CAP) : chainModel;
-		const probe = {
-			messages: [{
-				role: "user",
-				content: "ping"
-			}],
-			max_tokens: 4
-		};
-		const result = await Promise.race([Array.isArray(probeChain) ? acptoapi.chatChain(probeChain, probe) : acptoapi.chat({
-			model: probeChain,
-			...probe
-		}), new Promise((_, reject) => setTimeout(() => reject(/* @__PURE__ */ new Error("reachability probe timeout")), timeoutMs))]);
-		return !!(result && result.choices && result.choices.length);
-	} catch {
-		return false;
-	}
-}
-//#endregion
-//#region src/models/discovery.js
-init_config$1();
-init_log();
-_sdkNs && _sdkNs.default;
-var MATRIX_FILE = path.resolve(new URL(".", "" + import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), "..", "..", ".gm", "model-availability.json");
-//#endregion
-//#region src/agent/llm_resolver.js
-init_config$1();
-init_env();
-var _req = createRequire(import.meta.url);
-var REACHABLE_TTL_MS = 5e3;
-function createResolverState() {
-	return {
-		warmExtraPromise: null,
-		lastReachable: {
-			at: 0,
-			ok: false
-		}
-	};
-}
-var _state = null;
-function state() {
-	if (!_state) _state = createResolverState();
-	return _state;
-}
-async function warmExtraProviders() {
-	const s = state();
-	if (!s.warmExtraPromise) try {
-		const extra = _req("acptoapi/lib/extra-providers");
-		if (extra && typeof extra.loadAndRegisterAsync === "function") s.warmExtraPromise = extra.loadAndRegisterAsync();
-		else s.warmExtraPromise = Promise.resolve();
-	} catch {
-		s.warmExtraPromise = Promise.resolve();
-	}
-	await s.warmExtraPromise;
-}
-async function cachedReachable() {
-	const s = state();
-	const now = Date.now();
-	if (now - s.lastReachable.at < REACHABLE_TTL_MS) return s.lastReachable.ok;
-	const ok = await isReachable();
-	s.lastReachable = {
-		at: now,
-		ok
-	};
-	return ok;
-}
-var sdk = _sdkNs && (_sdkNs.default || _sdkNs) || {};
-var PROVIDER_KEYS = sdk.PROVIDER_KEYS || {};
-var DEFAULTS = sdk.PROVIDER_DEFAULTS || {};
-var toTools = (s) => s?.length ? s.map((t) => ({
-	type: "function",
-	function: {
-		name: t.name,
-		description: t.description || "",
-		parameters: t.parameters || {
-			type: "object",
-			properties: {}
-		}
-	}
-})) : void 0;
-var toMsgs = (ms) => ms.map((m) => {
-	if (m.role === "assistant" && Array.isArray(m.tool_calls) && m.tool_calls.length) return {
-		role: "assistant",
-		content: m.content || "",
-		tool_calls: m.tool_calls.map((tc) => ({
-			id: tc.id,
-			type: "function",
-			function: {
-				name: tc.name || tc.function?.name,
-				arguments: typeof (tc.arguments || tc.function?.arguments) === "string" ? tc.arguments || tc.function?.arguments : JSON.stringify(tc.arguments || tc.function?.arguments || {})
-			}
-		}))
-	};
-	if (m.role === "tool") return {
-		role: "tool",
-		tool_call_id: m.tool_call_id,
-		content: typeof m.content === "string" ? m.content : JSON.stringify(m.content)
-	};
-	return m;
-});
-var tryJson = (s) => {
-	try {
-		return typeof s === "string" ? JSON.parse(s) : s || {};
-	} catch {
-		return {};
-	}
-};
-function flattenContent(c) {
-	if (typeof c === "string") return {
-		text: c,
-		toolUses: []
-	};
-	if (Array.isArray(c)) return {
-		text: c.filter((p) => p && (p.type === "text" || typeof p.text === "string")).map((p) => p.text || "").join(""),
-		toolUses: c.filter((p) => p && p.type === "tool_use")
-	};
-	return {
-		text: "",
-		toolUses: []
-	};
-}
-function adapt(result) {
-	const c = result?.choices?.[0]?.message || {};
-	const flat = flattenContent(c.content);
-	const openaiTC = Array.isArray(c.tool_calls) ? c.tool_calls.map((tc) => ({
-		id: tc.id,
-		name: tc.function?.name,
-		arguments: tryJson(tc.function?.arguments)
-	})) : [];
-	const anthropicTC = flat.toolUses.map((t) => ({
-		id: t.id,
-		name: t.name,
-		arguments: t.input || {}
-	}));
-	const tool_calls = openaiTC.concat(anthropicTC);
-	if (!tool_calls.length) {
-		const textTC = parseTextToolCalls(flat.text);
-		if (textTC.length) return {
-			content: "",
-			tool_calls: textTC,
-			raw: result
-		};
-	}
-	return {
-		content: flat.text,
-		tool_calls,
-		raw: result
-	};
-}
-var NAMED_CHAIN_NAMES = /* @__PURE__ */ new Set([
-	"fast",
-	"cheap",
-	"smart",
-	"reasoning",
-	"free",
-	"local",
-	"auto"
-]);
-async function buildModel({ provider, model, inputModel }) {
-	if (provider) return `${provider}/${model || DEFAULTS[provider] || ""}`.replace(/\/$/, "");
-	if (model) return model;
-	if (inputModel) {
-		if (typeof inputModel === "string" && !inputModel.includes("/") && !inputModel.includes(",") && NAMED_CHAIN_NAMES.has(inputModel)) return inputModel;
-		return inputModel;
-	}
-	let chain = [];
-	try {
-		chain = typeof sdk.buildAutoChain === "function" ? sdk.buildAutoChain(void 0, { hasTools: true }) : [];
-	} catch {}
-	const pref = getConfigValue("agent.model_preference", []);
-	const prefModels = Array.isArray(pref) && pref.length ? pref.map((p) => `${p.provider}/${p.model || DEFAULTS[p.provider] || ""}`.replace(/\/$/, "")).filter((s) => s.includes("/")) : [];
-	if (prefModels.length && chain.length) {
-		const status = typeof sdk.getStatus === "function" ? sdk.getStatus() : [];
-		const blocked = new Set(status.filter((s) => s.ok === false).map((s) => s.provider));
-		const seen = /* @__PURE__ */ new Set();
-		const ordered = [];
-		for (const m of [...prefModels, ...chain.map((l) => l.model)]) {
-			if (seen.has(m)) continue;
-			seen.add(m);
-			if (blocked.has(m.split("/")[0])) continue;
-			ordered.push(m);
-		}
-		if (ordered.length) return ordered.join(", ");
-	}
-	const keyed = Array.isArray(chain) ? chain.filter((l) => {
-		const env = PROVIDER_KEYS[l.model.split("/")[0]];
-		return env && process.env[env];
-	}) : [];
-	const status = typeof sdk.getStatus === "function" ? sdk.getStatus() : [];
-	if (status.length && keyed.length) {
-		const blocked = new Set(status.filter((s) => s.ok === false).map((s) => s.provider));
-		const filtered = keyed.filter((l) => !blocked.has(l.model.split("/")[0]));
-		if (filtered.length) return filtered.map((l) => l.model).join(", ");
-	}
-	if (keyed.length) return keyed.map((l) => l.model).join(", ");
-	if (await cachedReachable()) return env("FREDDIE_LLM_MODEL") || "auto";
-	return null;
-}
-function resolveCallLLM({ provider, model } = {}) {
-	warmExtraProviders();
-	return async (input) => {
-		const m = await buildModel({
-			provider,
-			model,
-			inputModel: input.model
-		});
-		if (!m) {
-			const status = typeof sdk.getStatus === "function" ? sdk.getStatus().map((s) => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(", ") : "";
-			throw new Error("no LLM backend reachable: set a provider API key or FREDDIE_LLM_MODEL" + (status ? " | sampler: " + status : ""));
-		}
-		try {
-			if (typeof m === "string" && !m.includes(",") && !/^queue\//.test(m) && await cachedReachable()) return await callLLM({
-				...input,
-				model: m
-			});
-			const opts = {
-				model: m,
-				messages: toMsgs(input.messages),
-				tools: toTools(input.tools),
-				max_tokens: input.max_tokens || 4096,
-				onFallback: input.onFallback,
-				output: "openai",
-				fallbackOn: [
-					"error",
-					"rate_limit",
-					"timeout",
-					"empty"
-				]
-			};
-			if (/^queue\//.test(m)) opts.queuesMap = getConfigValue("agent.model_queues", {}) || {};
-			if (m.includes(",") || /^queue\//.test(m)) opts.matrixSource = env("FREDDIE_MATRIX_URL") || MATRIX_FILE;
-			if (typeof sdk.chat !== "function") return await callLLM({
-				...input,
-				model: m
-			});
-			if (typeof input.onChunk === "function" && typeof sdk.sdkStream === "function") try {
-				let text = "";
-				const tool_calls = [];
-				for await (const ev of sdk.sdkStream({
-					...opts,
-					output: "events"
-				})) if (ev?.type === "text-delta" && ev.textDelta) {
-					text += ev.textDelta;
-					input.onChunk(ev.textDelta);
-				} else if (ev?.type === "tool-call") {
-					const args = ev.args ?? ev.input ?? {};
-					tool_calls.push({
-						id: ev.toolCallId || "call_" + tool_calls.length,
-						type: "function",
-						function: {
-							name: ev.toolName,
-							arguments: typeof args === "string" ? args : JSON.stringify(args)
-						}
-					});
-				} else if (ev?.type === "finish-step" || ev?.type === "finish") break;
-				return adapt({
-					choices: [{ message: {
-						content: text,
-						tool_calls
-					} }],
-					provider: m.split("/")[0],
-					model: m
-				});
-			} catch {}
-			return adapt(await sdk.chat(opts));
-		} catch (e) {
-			if (/queue not found or empty/i.test(e.message)) throw e;
-			if (e.chainHistory || /All chain links failed|chain\(\) requires/i.test(e.message)) throw new Error(`chain exhausted: ${(e.attempted || []).map((a) => `${a.model}:${a.reason || "ok"}`).join("; ") || e.message}`);
-			throw e;
-		}
-	};
 }
 //#endregion
 //#region node_modules/@libsql/core/lib-esm/api.js
@@ -11118,10 +10425,82 @@ var init_db = __esmMin((() => {
 	};
 }));
 //#endregion
+//#region src/observability/log.js
+function streamFor(name) {
+	if (_streams.has(name)) return _streams.get(name);
+	const dir = path.join(getFreddieHome(), "logs");
+	try {
+		fs.mkdirSync(dir, { recursive: true });
+	} catch {}
+	let s;
+	if (typeof fs.createWriteStream === "function") s = fs.createWriteStream(path.join(dir, `${name}.log`), { flags: "a" });
+	else s = {
+		write(line) {
+			try {
+				console.log("[" + name + "]", line.trim());
+			} catch {}
+		},
+		end() {}
+	};
+	_streams.set(name, s);
+	return s;
+}
+function log({ subsystem = "app", severity = "info", msg = "", ...rest }) {
+	const rec = {
+		ts: (/* @__PURE__ */ new Date()).toISOString(),
+		subsystem,
+		severity,
+		msg,
+		...rest
+	};
+	const line = JSON.stringify(rec) + "\n";
+	streamFor(subsystem).write(line);
+	if (SEVERITIES[severity] >= 30) streamFor("errors").write(line);
+}
+function logger(subsystem) {
+	return {
+		debug: (msg, e = {}) => log({
+			subsystem,
+			severity: "debug",
+			msg,
+			...e
+		}),
+		info: (msg, e = {}) => log({
+			subsystem,
+			severity: "info",
+			msg,
+			...e
+		}),
+		warn: (msg, e = {}) => log({
+			subsystem,
+			severity: "warning",
+			msg,
+			...e
+		}),
+		error: (msg, e = {}) => log({
+			subsystem,
+			severity: "error",
+			msg,
+			...e
+		})
+	};
+}
+var SEVERITIES, _streams;
+var init_log = __esmMin((() => {
+	init_home();
+	SEVERITIES = {
+		debug: 10,
+		info: 20,
+		warning: 30,
+		error: 40
+	};
+	_streams = /* @__PURE__ */ new Map();
+}));
+//#endregion
 //#region src/machines/snapshot-store.js
 init_db();
 init_log();
-var log$4 = logger("snapshot-store");
+var log$6 = logger("snapshot-store");
 var SNAPSHOT_SCHEMA_VERSION = 1;
 function createLibsqlSnapshotStore() {
 	return {
@@ -11168,7 +10547,7 @@ async function persist(kind, key, snapshot, { machineId = null } = {}) {
 	try {
 		json = JSON.stringify(snapshot);
 	} catch (e) {
-		log$4.error("snapshot has circular structure, persisting with [Circular] markers", {
+		log$6.error("snapshot has circular structure, persisting with [Circular] markers", {
 			kind,
 			key,
 			err: String(e)
@@ -11193,7 +10572,7 @@ async function load(kind, key, { machineId = null } = {}) {
 	const row = await (await init$1()).prepare(`SELECT * FROM machine_snapshots WHERE kind = ? AND key = ?`).get(kind, key);
 	if (!row) return null;
 	if (Number(row.schema_version) !== 1) {
-		log$4.info("discarding stale snapshot (schema mismatch)", {
+		log$6.info("discarding stale snapshot (schema mismatch)", {
 			kind,
 			key,
 			had: row.schema_version,
@@ -11203,7 +10582,7 @@ async function load(kind, key, { machineId = null } = {}) {
 		return null;
 	}
 	if (machineId && row.machine_id && row.machine_id !== machineId) {
-		log$4.info("discarding stale snapshot (machine id mismatch)", {
+		log$6.info("discarding stale snapshot (machine id mismatch)", {
 			kind,
 			key,
 			had: row.machine_id,
@@ -11215,7 +10594,7 @@ async function load(kind, key, { machineId = null } = {}) {
 	try {
 		return JSON.parse(row.snapshot_json);
 	} catch (e) {
-		log$4.error("unparseable snapshot, discarding", {
+		log$6.error("unparseable snapshot, discarding", {
 			kind,
 			key,
 			err: String(e)
@@ -11250,7 +10629,7 @@ async function sweepDone() {
 //#endregion
 //#region src/machines/persistent-actor.js
 init_log();
-var log$3 = logger("persistent-actor");
+var log$5 = logger("persistent-actor");
 function redactSensitive(context) {
 	try {
 		return JSON.parse(redactSecret(JSON.stringify(context)));
@@ -11283,7 +10662,7 @@ async function createPersistentActor(machine, { kind, key, input, onTransition, 
 		const from = lastValue;
 		const to = snap.value;
 		const context = redactSensitive(snap.context);
-		if (JSON.stringify(from) !== JSON.stringify(to)) log$3.info("transition", {
+		if (JSON.stringify(from) !== JSON.stringify(to)) log$5.info("transition", {
 			kind,
 			key,
 			from,
@@ -11299,7 +10678,7 @@ async function createPersistentActor(machine, { kind, key, input, onTransition, 
 				else await clearFn(kind, key);
 				onTransition?.(snap);
 			} catch (e) {
-				log$3.error("persist failed", {
+				log$5.error("persist failed", {
 					kind,
 					key,
 					err: String(e)
@@ -11307,7 +10686,7 @@ async function createPersistentActor(machine, { kind, key, input, onTransition, 
 			}
 		});
 	});
-	if (resumed) log$3.info("actor resumed from snapshot", {
+	if (resumed) log$5.info("actor resumed from snapshot", {
 		kind,
 		key,
 		machineId
@@ -11332,101 +10711,7 @@ async function createPersistentActor(machine, { kind, key, input, onTransition, 
 	};
 }
 //#endregion
-//#region src/machines/step-journal.js
-async function init() {
-	const d = await db();
-	if (!_inited) {
-		await d.exec(`CREATE TABLE IF NOT EXISTS step_results (
-            session_key TEXT NOT NULL,
-            step_id TEXT NOT NULL,
-            status TEXT NOT NULL,
-            result_json TEXT,
-            started INTEGER NOT NULL,
-            done INTEGER,
-            PRIMARY KEY (session_key, step_id)
-        )`);
-		_inited = true;
-	}
-	return d;
-}
-async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, deserialize = JSON.parse, store = null } = {}) {
-	if (store) return await store.runStep(sessionKey, stepId, fn, {
-		serialize,
-		deserialize
-	});
-	if (!sessionKey || !stepId) return await fn();
-	const d = await init();
-	const lockKey = sessionKey + "\0" + stepId;
-	if (_inflight.has(lockKey)) return await _inflight.get(lockKey);
-	const exec = (async () => {
-		const row = await d.prepare(`SELECT status, result_json FROM step_results WHERE session_key = ? AND step_id = ?`).get(sessionKey, stepId);
-		if (row && row.status === "done") try {
-			return deserialize(row.result_json);
-		} catch (e) {
-			log$2.error("cached step result unparseable, re-running", {
-				sessionKey,
-				stepId,
-				err: String(e)
-			});
-			await d.prepare(`DELETE FROM step_results WHERE session_key = ? AND step_id = ?`).run(sessionKey, stepId);
-		}
-		await d.prepare(`INSERT INTO step_results (session_key, step_id, status, started, done)
-            VALUES (?, ?, 'started', ?, NULL)
-            ON CONFLICT(session_key, step_id) DO UPDATE SET status='started', started=excluded.started, done=NULL`).run(sessionKey, stepId, Date.now());
-		const result = await fn();
-		let json;
-		try {
-			json = serialize(result);
-		} catch (e) {
-			log$2.error("step result not serializable; not journaled (resume will re-run)", {
-				sessionKey,
-				stepId,
-				err: String(e)
-			});
-			return result;
-		}
-		await d.prepare(`UPDATE step_results SET status='done', result_json=?, done=? WHERE session_key = ? AND step_id = ?`).run(json, Date.now(), sessionKey, stepId);
-		return result;
-	})();
-	_inflight.set(lockKey, exec);
-	try {
-		return await exec;
-	} finally {
-		_inflight.delete(lockKey);
-	}
-}
-async function isStepDone(sessionKey, stepId, { store = null } = {}) {
-	if (store) return await store.isStepDone(sessionKey, stepId);
-	if (!sessionKey || !stepId) return false;
-	return (await (await init()).prepare(`SELECT status FROM step_results WHERE session_key = ? AND step_id = ?`).get(sessionKey, stepId))?.status === "done";
-}
-async function listSteps(sessionKey) {
-	return await (await init()).prepare(`SELECT step_id, status, started, done FROM step_results WHERE session_key = ? ORDER BY started`).all(sessionKey);
-}
-async function clearSteps(sessionKey, { store = null } = {}) {
-	if (store) return await store.clearSteps(sessionKey);
-	if (!sessionKey) return;
-	await (await init()).prepare(`DELETE FROM step_results WHERE session_key = ?`).run(sessionKey);
-}
-function createLibsqlStepStore() {
-	return {
-		runStep,
-		isStepDone,
-		clearSteps,
-		listSteps
-	};
-}
-var log$2, _inited, _inflight;
-var init_step_journal = __esmMin((() => {
-	init_db();
-	init_log();
-	log$2 = logger("step-journal");
-	_inited = false;
-	_inflight = /* @__PURE__ */ new Map();
-}));
-//#endregion
 //#region src/agent/hooks_engine.js
-init_step_journal();
 /**
 * HookEngine — runs shell commands defined in config at hook trigger points.
 * Matches kimi's server-side hook behavior.
@@ -12034,6 +11319,29 @@ var init_events = __esmMin((() => {
 	listeners = /* @__PURE__ */ new Map();
 }));
 //#endregion
+//#region src/agent/turn-registry.js
+init_telemetry();
+init_events();
+var turns = /* @__PURE__ */ new Map();
+var toolCounts = /* @__PURE__ */ new Map();
+function registerTurn(sessionKey, entry) {
+	turns.set(sessionKey, entry);
+	return entry;
+}
+function unregisterTurn(sessionKey) {
+	turns.delete(sessionKey);
+}
+function noteToolCall(sessionKey, name) {
+	if (!toolCounts.has(sessionKey)) toolCounts.set(sessionKey, /* @__PURE__ */ new Map());
+	const m = toolCounts.get(sessionKey);
+	const n = (m.get(name) || 0) + 1;
+	m.set(name, n);
+	return n;
+}
+//#endregion
+//#region src/agent/turn-steering.js
+init_events();
+//#endregion
 //#region plugins/core/approval_state.js
 var approval_state_exports = /* @__PURE__ */ __exportAll({
 	addAutoApprovedAction: () => addAutoApprovedAction,
@@ -12086,13 +11394,12 @@ function isAutoApproved(sessionId, action) {
 }
 var _yolo, _afk, _autoApproved;
 var init_approval_state = __esmMin((() => {
-	init_telemetry();
 	_yolo = /* @__PURE__ */ new Map();
 	_afk = /* @__PURE__ */ new Map();
 	_autoApproved = /* @__PURE__ */ new Map();
 }));
 //#endregion
-//#region src/agent/live-turns.js
+//#region src/agent/turn-approval.js
 init_events();
 var GRANTS_GLOBAL = "global";
 var _grantsCache = null;
@@ -12110,22 +11417,6 @@ async function loadApprovalGrants(cwd) {
 		_grantsCache = _grantsCache || {};
 	}
 	return [..._grantsCache[GRANTS_GLOBAL] || [], ...cwd && _grantsCache[cwd] ? _grantsCache[cwd] : []];
-}
-var turns = /* @__PURE__ */ new Map();
-function registerTurn(sessionKey, entry) {
-	turns.set(sessionKey, entry);
-	return entry;
-}
-function unregisterTurn(sessionKey) {
-	turns.delete(sessionKey);
-}
-var toolCounts = /* @__PURE__ */ new Map();
-function noteToolCall(sessionKey, name) {
-	if (!toolCounts.has(sessionKey)) toolCounts.set(sessionKey, /* @__PURE__ */ new Map());
-	const m = toolCounts.get(sessionKey);
-	const n = (m.get(name) || 0) + 1;
-	m.set(name, n);
-	return n;
 }
 function requestApproval(sessionKey, { name, args, cwd }) {
 	const t = turns.get(sessionKey);
@@ -12166,7 +11457,742 @@ function requestApproval(sessionKey, { name, args, cwd }) {
 	});
 }
 //#endregion
+//#region src/machines/step-journal.js
+async function init() {
+	const d = await db();
+	if (!_inited) {
+		await d.exec(`CREATE TABLE IF NOT EXISTS step_results (
+            session_key TEXT NOT NULL,
+            step_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            result_json TEXT,
+            started INTEGER NOT NULL,
+            done INTEGER,
+            PRIMARY KEY (session_key, step_id)
+        )`);
+		_inited = true;
+	}
+	return d;
+}
+async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, deserialize = JSON.parse, store = null } = {}) {
+	if (store) return await store.runStep(sessionKey, stepId, fn, {
+		serialize,
+		deserialize
+	});
+	if (!sessionKey || !stepId) return await fn();
+	const d = await init();
+	const lockKey = sessionKey + "\0" + stepId;
+	if (_inflight.has(lockKey)) return await _inflight.get(lockKey);
+	const exec = (async () => {
+		const row = await d.prepare(`SELECT status, result_json FROM step_results WHERE session_key = ? AND step_id = ?`).get(sessionKey, stepId);
+		if (row && row.status === "done") try {
+			return deserialize(row.result_json);
+		} catch (e) {
+			log$4.error("cached step result unparseable, re-running", {
+				sessionKey,
+				stepId,
+				err: String(e)
+			});
+			await d.prepare(`DELETE FROM step_results WHERE session_key = ? AND step_id = ?`).run(sessionKey, stepId);
+		}
+		await d.prepare(`INSERT INTO step_results (session_key, step_id, status, started, done)
+            VALUES (?, ?, 'started', ?, NULL)
+            ON CONFLICT(session_key, step_id) DO UPDATE SET status='started', started=excluded.started, done=NULL`).run(sessionKey, stepId, Date.now());
+		const result = await fn();
+		let json;
+		try {
+			json = serialize(result);
+		} catch (e) {
+			log$4.error("step result not serializable; not journaled (resume will re-run)", {
+				sessionKey,
+				stepId,
+				err: String(e)
+			});
+			return result;
+		}
+		await d.prepare(`UPDATE step_results SET status='done', result_json=?, done=? WHERE session_key = ? AND step_id = ?`).run(json, Date.now(), sessionKey, stepId);
+		return result;
+	})();
+	_inflight.set(lockKey, exec);
+	try {
+		return await exec;
+	} finally {
+		_inflight.delete(lockKey);
+	}
+}
+async function isStepDone(sessionKey, stepId, { store = null } = {}) {
+	if (store) return await store.isStepDone(sessionKey, stepId);
+	if (!sessionKey || !stepId) return false;
+	return (await (await init()).prepare(`SELECT status FROM step_results WHERE session_key = ? AND step_id = ?`).get(sessionKey, stepId))?.status === "done";
+}
+async function listSteps(sessionKey) {
+	return await (await init()).prepare(`SELECT step_id, status, started, done FROM step_results WHERE session_key = ? ORDER BY started`).all(sessionKey);
+}
+async function clearSteps(sessionKey, { store = null } = {}) {
+	if (store) return await store.clearSteps(sessionKey);
+	if (!sessionKey) return;
+	await (await init()).prepare(`DELETE FROM step_results WHERE session_key = ?`).run(sessionKey);
+}
+function createLibsqlStepStore() {
+	return {
+		runStep,
+		isStepDone,
+		clearSteps,
+		listSteps
+	};
+}
+var log$4, _inited, _inflight;
+var init_step_journal = __esmMin((() => {
+	init_db();
+	init_log();
+	log$4 = logger("step-journal");
+	_inited = false;
+	_inflight = /* @__PURE__ */ new Map();
+}));
+//#endregion
+//#region src/agent/turn-revert.js
+init_events();
+//#endregion
+//#region src/toolsets.js
+function available(host) {
+	return host.pi.tools.list().filter((t) => !t.checkFn || t.checkFn(t) !== false);
+}
+async function getEnabledToolSchemas(enabled = ["core"], disabled = []) {
+	const h = await bootHost();
+	const enabledSet = new Set(enabled);
+	const disabledSet = new Set(disabled);
+	return available(h).filter((t) => enabledSet.has(t.toolset || "core") && !disabledSet.has(t.name)).map((t) => sanitizeSchema(t.schema));
+}
+//#endregion
+//#region src/agent/acptoapi_config.js
+init_log();
+var log$3 = logger("acptoapi");
+var envVal = (k) => {
+	try {
+		return typeof process !== "undefined" && process.env ? process.env[k] : void 0;
+	} catch {
+		return;
+	}
+};
+var ACPTOAPI_TIMEOUT_MS = Number(envVal("FREDDIE_LLM_TIMEOUT_MS")) || 24e4;
+function getAcptoapiModel() {
+	return envVal("FREDDIE_LLM_MODEL") || "claude/haiku";
+}
+var _acptoapi = null;
+async function getAcptoapi() {
+	if (!_acptoapi) {
+		const mod = await import("acptoapi");
+		_acptoapi = mod.default && typeof mod.default === "object" ? mod.default : mod;
+	}
+	return _acptoapi;
+}
+function isConfiguredChainSyntax(model) {
+	if (typeof model !== "string") return false;
+	return model.includes(",") || model.startsWith("queue/") || model.startsWith("chain/");
+}
+async function resolveChainLinks(acptoapi, useModel) {
+	if (isConfiguredChainSyntax(useModel)) return useModel;
+	try {
+		const links = acptoapi.buildAutoChain(useModel);
+		return Array.isArray(links) && links.length ? links.map((l) => l.model || l) : useModel;
+	} catch {
+		return useModel;
+	}
+}
+var REACHABILITY_PROBE_TIMEOUT_MS = Number(envVal("ACPTOAPI_REACHABILITY_PROBE_TIMEOUT_MS")) || 45e3;
+async function isReachable(timeoutMs = REACHABILITY_PROBE_TIMEOUT_MS, model = null) {
+	try {
+		const acptoapi = await getAcptoapi();
+		const chainModel = await resolveChainLinks(acptoapi, model || getAcptoapiModel());
+		const probeChain = Array.isArray(chainModel) ? chainModel.slice(0, 3) : chainModel;
+		const probe = {
+			messages: [{
+				role: "user",
+				content: "ping"
+			}],
+			max_tokens: 4
+		};
+		const result = await Promise.race([Array.isArray(probeChain) ? acptoapi.chatChain(probeChain, probe) : acptoapi.chat({
+			model: probeChain,
+			...probe
+		}), new Promise((_, reject) => setTimeout(() => reject(/* @__PURE__ */ new Error("reachability probe timeout")), timeoutMs))]);
+		return !!(result && result.choices && result.choices.length);
+	} catch {
+		return false;
+	}
+}
+//#endregion
+//#region src/agent/tool_call_text.js
+function randId() {
+	return "call_" + Math.random().toString(36).slice(2, 10);
+}
+function parseKimiSection(content) {
+	if (!content.includes("<|tool_call_begin|>")) return [];
+	const re = /<\|tool_call_begin\|>\s*([\s\S]*?)\s*<\|tool_call_argument_begin\|>\s*([\s\S]*?)\s*<\|tool_call_end\|>/g;
+	const out = [];
+	let m;
+	while ((m = re.exec(content)) !== null) {
+		const name = (m[1] || "").replace(/^functions\./, "").replace(/:\d+\s*$/, "").trim();
+		let args;
+		try {
+			args = JSON.parse((m[2] || "").trim());
+		} catch {
+			args = {};
+		}
+		if (name) out.push({
+			id: randId(),
+			name,
+			arguments: args
+		});
+	}
+	return out;
+}
+function parsePythonTag(content) {
+	if (!content.includes("<|python_tag|>")) return [];
+	const after = content.slice(content.indexOf("<|python_tag|>") + 14).trim().split("\n")[0];
+	const mc = /^([A-Za-z_][A-Za-z0-9_.]*)\s*\(([\s\S]*?)\)\s*$/.exec(after);
+	if (!mc) return [];
+	const name = mc[1].split(".")[0];
+	const inner = mc[2].trim();
+	let args = {};
+	if (/^\{[\s\S]*\}$/.test(inner)) try {
+		args = JSON.parse(inner);
+	} catch {
+		args = {};
+	}
+	else if (/^"[\s\S]*"$/.test(inner)) {
+		const s = inner.slice(1, -1);
+		args = {
+			query: s,
+			input: s
+		};
+	} else if (/=/.test(inner)) {
+		const kwRe = /([A-Za-z_][A-Za-z0-9_]*)\s*=\s*("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[\d.]+|true|false|null)/g;
+		let mm;
+		while ((mm = kwRe.exec(inner)) !== null) {
+			let v = mm[2];
+			if (/^["']/.test(v)) v = v.slice(1, -1);
+			else if (/^[\d.]+$/.test(v)) v = Number(v);
+			else if (v === "true") v = true;
+			else if (v === "false") v = false;
+			else if (v === "null") v = null;
+			args[mm[1]] = v;
+		}
+	} else if (inner) args = {
+		query: inner,
+		input: inner
+	};
+	return name ? [{
+		id: randId(),
+		name,
+		arguments: args
+	}] : [];
+}
+function parseBareJsonArray(content) {
+	const trimmed = content.trim();
+	if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return [];
+	let parsed;
+	try {
+		parsed = JSON.parse(trimmed);
+	} catch {
+		return [];
+	}
+	if (!Array.isArray(parsed) || !parsed.length) return [];
+	const out = [];
+	for (const item of parsed) {
+		if (!item || typeof item !== "object") return [];
+		const name = item.name;
+		if (typeof name !== "string" || !name) return [];
+		const args = item.parameters ?? item.arguments ?? {};
+		if (typeof args !== "object" || args === null) return [];
+		out.push({
+			id: randId(),
+			name,
+			arguments: args
+		});
+	}
+	return out;
+}
+function parseBareFunctionCallObject(content) {
+	const trimmed = content.trim();
+	if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return [];
+	let parsed;
+	try {
+		parsed = JSON.parse(trimmed);
+	} catch {
+		return [];
+	}
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return [];
+	const name = parsed.name ?? parsed.function?.name;
+	if (typeof name !== "string" || !name) return [];
+	const args = parsed.parameters ?? parsed.arguments ?? parsed.function?.arguments ?? {};
+	if (typeof args !== "object" || args === null) return [];
+	return [{
+		id: randId(),
+		name,
+		arguments: args
+	}];
+}
+function findBalancedJsonObjectEnd(text, startIndex) {
+	let depth = 0, inString = false, escaped = false;
+	for (let i = startIndex; i < text.length; i++) {
+		const ch = text[i];
+		if (inString) {
+			if (escaped) escaped = false;
+			else if (ch === "\\") escaped = true;
+			else if (ch === "\"") inString = false;
+			continue;
+		}
+		if (ch === "\"") {
+			inString = true;
+			continue;
+		}
+		if (ch === "{") depth++;
+		else if (ch === "}") {
+			depth--;
+			if (depth === 0) return i;
+		}
+	}
+	return -1;
+}
+function parseNameFollowedByJsonObject(content) {
+	const trimmed = content.trim();
+	const match = /^([A-Za-z_][A-Za-z0-9_]*)\{/.exec(trimmed);
+	if (!match) return [];
+	const name = match[1];
+	const jsonStart = name.length;
+	const jsonEnd = findBalancedJsonObjectEnd(trimmed, jsonStart);
+	if (jsonEnd === -1) return [];
+	let args;
+	try {
+		args = JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1));
+	} catch {
+		return [];
+	}
+	if (typeof args !== "object" || args === null) return [];
+	return [{
+		id: randId(),
+		name,
+		arguments: args
+	}];
+}
+function parseTextToolCalls(content) {
+	if (typeof content !== "string" || !content) return [];
+	const kimi = parseKimiSection(content);
+	if (kimi.length) return kimi;
+	const pythonTag = parsePythonTag(content);
+	if (pythonTag.length) return pythonTag;
+	const bareArray = parseBareJsonArray(content);
+	if (bareArray.length) return bareArray;
+	const bareObject = parseBareFunctionCallObject(content);
+	if (bareObject.length) return bareObject;
+	return parseNameFollowedByJsonObject(content);
+}
+//#endregion
+//#region src/agent/acptoapi_format.js
+function forcedToolChoiceMissed(tool_choice, hasTools, adapted) {
+	return (tool_choice === "required" || tool_choice?.type === "required") && hasTools && !adapted.tool_calls.length;
+}
+var TOOL_REFUSAL_MARKERS = [
+	"don't have the tools",
+	"do not have the tools",
+	"don't have access to",
+	"do not have access to",
+	"unable to access the",
+	"i cannot call",
+	"i can't call",
+	"no tool available",
+	"lack the necessary tools"
+];
+function isLikelyToolRefusal(text) {
+	if (!text) return false;
+	const norm = String(text).toLowerCase().replace(/\s+/g, " ").trim();
+	return TOOL_REFUSAL_MARKERS.some((m) => norm.includes(m));
+}
+function adaptMessage(m) {
+	if (m.role === "tool") return {
+		role: "tool",
+		tool_call_id: m.tool_call_id,
+		content: typeof m.content === "string" ? m.content : JSON.stringify(m.content)
+	};
+	if (m.role === "assistant" && Array.isArray(m.tool_calls) && m.tool_calls.length) return {
+		role: "assistant",
+		content: m.content || "",
+		tool_calls: m.tool_calls.map((tc) => ({
+			id: tc.id || tc.tool_call_id,
+			type: "function",
+			function: {
+				name: tc.name || tc.function?.name,
+				arguments: typeof tc.arguments === "string" ? tc.arguments : JSON.stringify(tc.arguments || tc.function?.arguments || {})
+			}
+		}))
+	};
+	return {
+		role: m.role,
+		content: typeof m.content === "string" ? m.content : JSON.stringify(m.content)
+	};
+}
+function adaptTool(t) {
+	return {
+		type: "function",
+		function: {
+			name: t.name,
+			description: t.description,
+			parameters: t.parameters || t.input_schema || {
+				type: "object",
+				properties: {}
+			}
+		}
+	};
+}
+function adaptResponse(r) {
+	const choice = r?.choices?.[0]?.message || {};
+	const content = typeof choice.content === "string" ? choice.content : "";
+	const tool_calls = Array.isArray(choice.tool_calls) ? choice.tool_calls.map((tc) => ({
+		id: tc.id,
+		name: tc.function?.name,
+		arguments: tryParseJson(tc.function?.arguments)
+	})) : [];
+	if (!tool_calls.length) {
+		const textTC = parseTextToolCalls(content);
+		if (textTC.length) return {
+			content: "",
+			tool_calls: textTC,
+			raw: r
+		};
+	}
+	return {
+		content,
+		tool_calls,
+		raw: r
+	};
+}
+function tryParseJson(s) {
+	try {
+		return typeof s === "string" ? JSON.parse(s) : s || {};
+	} catch {
+		return {};
+	}
+}
+//#endregion
+//#region src/agent/acptoapi-bridge.js
+async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } = {}) {
+	const acptoapi = await getAcptoapi();
+	const useModel = model || getAcptoapiModel();
+	const chainModel = await resolveChainLinks(acptoapi, useModel);
+	const hasTools = Array.isArray(tools) && tools.length > 0;
+	const adaptedMessages = messages.map(adaptMessage);
+	if (hasTools && cwd) {
+		const sysIdx = adaptedMessages.findIndex((m) => m.role === "system");
+		const cwdNote = `\nWorking directory: ${cwd}\nUse your built-in tools (Bash, Read, Write) to explore files in this directory when needed.`;
+		if (sysIdx >= 0) adaptedMessages[sysIdx] = {
+			...adaptedMessages[sysIdx],
+			content: (adaptedMessages[sysIdx].content || "") + cwdNote
+		};
+		else adaptedMessages.unshift({
+			role: "system",
+			content: cwdNote.trim()
+		});
+	}
+	let _timeoutHandle;
+	const _timeout = new Promise((_, reject) => {
+		_timeoutHandle = setTimeout(() => reject(/* @__PURE__ */ new Error("acptoapi call timeout")), ACPTOAPI_TIMEOUT_MS);
+	});
+	const chatOpts = {
+		messages: adaptedMessages,
+		...hasTools ? { tools: tools.map(adaptTool) } : {},
+		...hasTools && tool_choice ? { tool_choice } : {},
+		max_tokens: 4096
+	};
+	let json;
+	try {
+		json = await Promise.race([Array.isArray(chainModel) ? acptoapi.chatChain(chainModel, chatOpts) : acptoapi.chat({
+			model: chainModel,
+			...chatOpts
+		}), _timeout]);
+	} finally {
+		clearTimeout(_timeoutHandle);
+	}
+	const servedModel = Array.isArray(chainModel) ? (Array.isArray(json.__chainAttempted) ? json.__chainAttempted.filter((a) => a.ok).slice(-1)[0]?.model : null) || json.model || null : useModel;
+	log$3.info("completed", {
+		model: useModel,
+		servedModel,
+		usage: json.usage
+	});
+	const adapted = adaptResponse(json);
+	adapted.model = servedModel;
+	if (forcedToolChoiceMissed(tool_choice, hasTools, adapted) && servedModel) {
+		const uselessMiss = !adapted.content || isLikelyToolRefusal(adapted.content);
+		log$3.warn("tool_choice required but no tool call returned", {
+			model: servedModel,
+			uselessMiss,
+			hadContent: !!adapted.content
+		});
+		if (uselessMiss) try {
+			const mod = await getAcptoapi();
+			if (mod && typeof mod.recordModelFailure === "function") mod.recordModelFailure(servedModel);
+		} catch {}
+	}
+	return adapted;
+}
+//#endregion
+//#region src/models/discovery.js
+init_config$1();
+init_log();
+_sdkNs && _sdkNs.default;
+var MATRIX_FILE = path.resolve(new URL(".", "" + import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), "..", "..", ".gm", "model-availability.json");
+//#endregion
+//#region src/agent/llm_provider_warmup.js
+var _req = createRequire(import.meta.url);
+function createResolverState() {
+	return {
+		warmExtraPromise: null,
+		lastReachable: {
+			at: 0,
+			ok: false
+		}
+	};
+}
+var _state = null;
+function state() {
+	if (!_state) _state = createResolverState();
+	return _state;
+}
+async function warmExtraProviders() {
+	const s = state();
+	if (!s.warmExtraPromise) try {
+		const extra = _req("acptoapi/lib/extra-providers");
+		if (extra && typeof extra.loadAndRegisterAsync === "function") s.warmExtraPromise = extra.loadAndRegisterAsync();
+		else s.warmExtraPromise = Promise.resolve();
+	} catch {
+		s.warmExtraPromise = Promise.resolve();
+	}
+	await s.warmExtraPromise;
+}
+var sdk = _sdkNs && (_sdkNs.default || _sdkNs) || {};
+var PROVIDER_KEYS = sdk.PROVIDER_KEYS || {};
+var DEFAULTS = sdk.PROVIDER_DEFAULTS || {};
+async function cachedReachable() {
+	const s = state();
+	const now = Date.now();
+	if (now - s.lastReachable.at < 5e3) return s.lastReachable.ok;
+	const ok = await isReachable();
+	s.lastReachable = {
+		at: now,
+		ok
+	};
+	return ok;
+}
+//#endregion
+//#region src/agent/llm_resolver.js
+init_config$1();
+init_env();
+var toTools = (s) => s?.length ? s.map((t) => ({
+	type: "function",
+	function: {
+		name: t.name,
+		description: t.description || "",
+		parameters: t.parameters || {
+			type: "object",
+			properties: {}
+		}
+	}
+})) : void 0;
+var toMsgs = (ms) => ms.map((m) => {
+	if (m.role === "assistant" && Array.isArray(m.tool_calls) && m.tool_calls.length) return {
+		role: "assistant",
+		content: m.content || "",
+		tool_calls: m.tool_calls.map((tc) => ({
+			id: tc.id,
+			type: "function",
+			function: {
+				name: tc.name || tc.function?.name,
+				arguments: typeof (tc.arguments || tc.function?.arguments) === "string" ? tc.arguments || tc.function?.arguments : JSON.stringify(tc.arguments || tc.function?.arguments || {})
+			}
+		}))
+	};
+	if (m.role === "tool") return {
+		role: "tool",
+		tool_call_id: m.tool_call_id,
+		content: typeof m.content === "string" ? m.content : JSON.stringify(m.content)
+	};
+	return m;
+});
+var tryJson = (s) => {
+	try {
+		return typeof s === "string" ? JSON.parse(s) : s || {};
+	} catch {
+		return {};
+	}
+};
+function flattenContent(c) {
+	if (typeof c === "string") return {
+		text: c,
+		toolUses: []
+	};
+	if (Array.isArray(c)) return {
+		text: c.filter((p) => p && (p.type === "text" || typeof p.text === "string")).map((p) => p.text || "").join(""),
+		toolUses: c.filter((p) => p && p.type === "tool_use")
+	};
+	return {
+		text: "",
+		toolUses: []
+	};
+}
+function adapt(result) {
+	const c = result?.choices?.[0]?.message || {};
+	const flat = flattenContent(c.content);
+	const openaiTC = Array.isArray(c.tool_calls) ? c.tool_calls.map((tc) => ({
+		id: tc.id,
+		name: tc.function?.name,
+		arguments: tryJson(tc.function?.arguments)
+	})) : [];
+	const anthropicTC = flat.toolUses.map((t) => ({
+		id: t.id,
+		name: t.name,
+		arguments: t.input || {}
+	}));
+	const tool_calls = openaiTC.concat(anthropicTC);
+	if (!tool_calls.length) {
+		const textTC = parseTextToolCalls(flat.text);
+		if (textTC.length) return {
+			content: "",
+			tool_calls: textTC,
+			raw: result
+		};
+	}
+	return {
+		content: flat.text,
+		tool_calls,
+		raw: result
+	};
+}
+var NAMED_CHAIN_NAMES = /* @__PURE__ */ new Set([
+	"fast",
+	"cheap",
+	"smart",
+	"reasoning",
+	"free",
+	"local",
+	"auto"
+]);
+async function buildModel({ provider, model, inputModel }) {
+	if (provider) return `${provider}/${model || DEFAULTS[provider] || ""}`.replace(/\/$/, "");
+	if (model) return model;
+	if (inputModel) {
+		if (typeof inputModel === "string" && !inputModel.includes("/") && !inputModel.includes(",") && NAMED_CHAIN_NAMES.has(inputModel)) return inputModel;
+		return inputModel;
+	}
+	let chain = [];
+	try {
+		chain = typeof sdk.buildAutoChain === "function" ? sdk.buildAutoChain(void 0, { hasTools: true }) : [];
+	} catch {}
+	const pref = getConfigValue("agent.model_preference", []);
+	const prefModels = Array.isArray(pref) && pref.length ? pref.map((p) => `${p.provider}/${p.model || DEFAULTS[p.provider] || ""}`.replace(/\/$/, "")).filter((s) => s.includes("/")) : [];
+	if (prefModels.length && chain.length) {
+		const status = typeof sdk.getStatus === "function" ? sdk.getStatus() : [];
+		const blocked = new Set(status.filter((s) => s.ok === false).map((s) => s.provider));
+		const seen = /* @__PURE__ */ new Set();
+		const ordered = [];
+		for (const m of [...prefModels, ...chain.map((l) => l.model)]) {
+			if (seen.has(m)) continue;
+			seen.add(m);
+			if (blocked.has(m.split("/")[0])) continue;
+			ordered.push(m);
+		}
+		if (ordered.length) return ordered.join(", ");
+	}
+	const keyed = Array.isArray(chain) ? chain.filter((l) => {
+		const env = PROVIDER_KEYS[l.model.split("/")[0]];
+		return env && process.env[env];
+	}) : [];
+	const status = typeof sdk.getStatus === "function" ? sdk.getStatus() : [];
+	if (status.length && keyed.length) {
+		const blocked = new Set(status.filter((s) => s.ok === false).map((s) => s.provider));
+		const filtered = keyed.filter((l) => !blocked.has(l.model.split("/")[0]));
+		if (filtered.length) return filtered.map((l) => l.model).join(", ");
+	}
+	if (keyed.length) return keyed.map((l) => l.model).join(", ");
+	if (await cachedReachable()) return env("FREDDIE_LLM_MODEL") || "auto";
+	return null;
+}
+function resolveCallLLM({ provider, model } = {}) {
+	warmExtraProviders();
+	return async (input) => {
+		const m = await buildModel({
+			provider,
+			model,
+			inputModel: input.model
+		});
+		if (!m) {
+			const status = typeof sdk.getStatus === "function" ? sdk.getStatus().map((s) => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(", ") : "";
+			throw new Error("no LLM backend reachable: set a provider API key or FREDDIE_LLM_MODEL" + (status ? " | sampler: " + status : ""));
+		}
+		try {
+			if (typeof m === "string" && !m.includes(",") && !/^queue\//.test(m) && await cachedReachable()) return await callLLM({
+				...input,
+				model: m
+			});
+			const opts = {
+				model: m,
+				messages: toMsgs(input.messages),
+				tools: toTools(input.tools),
+				max_tokens: input.max_tokens || 4096,
+				onFallback: input.onFallback,
+				output: "openai",
+				fallbackOn: [
+					"error",
+					"rate_limit",
+					"timeout",
+					"empty"
+				]
+			};
+			if (/^queue\//.test(m)) opts.queuesMap = getConfigValue("agent.model_queues", {}) || {};
+			if (m.includes(",") || /^queue\//.test(m)) opts.matrixSource = env("FREDDIE_MATRIX_URL") || MATRIX_FILE;
+			if (typeof sdk.chat !== "function") return await callLLM({
+				...input,
+				model: m
+			});
+			if (typeof input.onChunk === "function" && typeof sdk.sdkStream === "function") try {
+				let text = "";
+				const tool_calls = [];
+				for await (const ev of sdk.sdkStream({
+					...opts,
+					output: "events"
+				})) if (ev?.type === "text-delta" && ev.textDelta) {
+					text += ev.textDelta;
+					input.onChunk(ev.textDelta);
+				} else if (ev?.type === "tool-call") {
+					const args = ev.args ?? ev.input ?? {};
+					tool_calls.push({
+						id: ev.toolCallId || "call_" + tool_calls.length,
+						type: "function",
+						function: {
+							name: ev.toolName,
+							arguments: typeof args === "string" ? args : JSON.stringify(args)
+						}
+					});
+				} else if (ev?.type === "finish-step" || ev?.type === "finish") break;
+				return adapt({
+					choices: [{ message: {
+						content: text,
+						tool_calls
+					} }],
+					provider: m.split("/")[0],
+					model: m
+				});
+			} catch {}
+			return adapt(await sdk.chat(opts));
+		} catch (e) {
+			if (/queue not found or empty/i.test(e.message)) throw e;
+			if (e.chainHistory || /All chain links failed|chain\(\) requires/i.test(e.message)) throw new Error(`chain exhausted: ${(e.attempted || []).map((a) => `${a.model}:${a.reason || "ok"}`).join("; ") || e.message}`);
+			throw e;
+		}
+	};
+}
+//#endregion
 //#region src/agent/approval_classifier.js
+init_step_journal();
 var ARGS_PROMPT_CAP = 4e3;
 function buildPrompt(name, args) {
 	let argsJson;
@@ -12648,663 +12674,7 @@ var init_compress = __esmMin((() => {
 	init_blocks();
 }));
 //#endregion
-//#region src/learn/gm-learn.js
-var gm_learn_exports = /* @__PURE__ */ __exportAll({
-	autoRecall: () => autoRecall,
-	learnAvailable: () => learnAvailable,
-	memorize: () => memorize,
-	projectNamespace: () => projectNamespace,
-	prune: () => prune,
-	recall: () => recall
-});
-function findBrowserBridge() {
-	const g = typeof globalThis !== "undefined" ? globalThis : null;
-	if (!g) return null;
-	if (typeof g.__GM_DISPATCH__ === "function") return { dispatch: g.__GM_DISPATCH__ };
-	const gm = g.__gm || g.__debug && g.__debug.gm;
-	if (gm && typeof gm.dispatch === "function") return { dispatch: (v, b) => gm.dispatch(v, b) };
-	return null;
-}
-async function ensureNodeBackend() {
-	const fs = await import("node:fs");
-	const os = await import("node:os");
-	const path = await import("node:path");
-	const runner = path.join(os.homedir(), ".gm-tools", process.platform === "win32" ? "agentplug-runner.exe" : "agentplug-runner");
-	if (!fs.existsSync(runner)) throw new Error("agentplug-runner not installed at " + runner);
-	const embed = async (text) => {
-		const { stdout } = await execFileAsync(runner, [
-			"dispatch",
-			"bert",
-			"embed",
-			JSON.stringify({ text })
-		], {
-			timeout: 2e4,
-			maxBuffer: 8388608
-		});
-		const r = JSON.parse(stdout);
-		if (!Array.isArray(r.embedding) || !r.embedding.length) throw new Error("bert embed failed: " + String(stdout).slice(0, 160));
-		return r.embedding;
-	};
-	const dbDir = path.join(process.cwd(), ".gm");
-	fs.mkdirSync(dbDir, { recursive: true });
-	const { createClient } = await Promise.resolve().then(() => (init_web(), web_exports));
-	const db = createClient({ url: "file:" + path.join(dbDir, "gm.db") });
-	await db.execute("CREATE TABLE IF NOT EXISTS memories (id INTEGER PRIMARY KEY, namespace TEXT, text TEXT, ts INTEGER, embedding F32_BLOB(384))");
-	try {
-		await db.execute("CREATE INDEX IF NOT EXISTS memories_vec ON memories (libsql_vector_idx(embedding))");
-	} catch (_) {}
-	await embed("probe");
-	return {
-		_node: true,
-		embed,
-		db
-	};
-}
-async function ensurePlugkit() {
-	if (_pk) return _pk;
-	if (_isBrowser) {
-		const bridge = findBrowserBridge();
-		if (!bridge) return null;
-		_pk = {
-			dispatch: bridge.dispatch,
-			version: () => "browser-bridge"
-		};
-		return _pk;
-	}
-	if (_failed && Date.now() - _failed < 6e4) return null;
-	if (_failed) _failed = false;
-	if (_initPromise) return _initPromise;
-	_initPromise = (async () => {
-		try {
-			_pk = await ensureNodeBackend();
-			return _pk;
-		} catch (e) {
-			_failed = Date.now();
-			try {
-				console.error("[gm-learn] disabled (gm rs-learn unavailable):", e && e.message);
-			} catch (_) {}
-			return null;
-		} finally {
-			_initPromise = null;
-		}
-	})();
-	return _initPromise;
-}
-function learnAvailable() {
-	return Boolean(_pk) || Boolean(_isBrowser && findBrowserBridge());
-}
-async function projectNamespace() {
-	if (_isBrowser) try {
-		const g = globalThis;
-		const ns = typeof g.__GM_NAMESPACE__ === "function" ? g.__GM_NAMESPACE__() : g.__GM_NAMESPACE__;
-		return (ns == null ? "" : String(ns)).trim() || "default";
-	} catch (_) {
-		return "default";
-	}
-	try {
-		const mod = await Promise.resolve().then(() => (init_projects(), projects_exports));
-		const p = mod.getActiveProject && mod.getActiveProject();
-		return p && p.name || "default";
-	} catch (_) {
-		return "default";
-	}
-}
-function normalizeHits(resp) {
-	return (resp && resp.data && Array.isArray(resp.data.hits) ? resp.data.hits : resp && Array.isArray(resp.hits) ? resp.hits : []).map((h) => ({
-		text: h.text != null ? String(h.text) : "",
-		score: typeof h.score === "number" ? h.score : typeof h.cos === "number" ? h.cos : 0,
-		key: h.key || null,
-		namespace: h.namespace || "default"
-	})).filter((h) => h.text);
-}
-async function memorize(text, { namespace = "default", key = null } = {}) {
-	const t = (text || "").toString().trim();
-	if (!t) return null;
-	const pk = await ensurePlugkit();
-	if (!pk) return null;
-	try {
-		if (pk._node) {
-			const emb = await pk.embed(t);
-			const r = await pk.db.execute({
-				sql: "INSERT INTO memories (namespace, text, ts, embedding) VALUES (?, ?, ?, vector(?))",
-				args: [
-					namespace,
-					t,
-					Date.now(),
-					vecSql(emb)
-				]
-			});
-			return String(r.lastInsertRowid ?? key ?? "");
-		}
-		const body = {
-			text: t,
-			namespace
-		};
-		if (key) body.key = key;
-		const r = await pk.dispatch("memorize-fire", body);
-		if (r && r.ok === false) return null;
-		return r && r.data && r.data.key || r && r.key || null;
-	} catch (e) {
-		try {
-			console.error("[gm-learn] memorize failed:", e && e.message);
-		} catch (_) {}
-		return null;
-	}
-}
-async function recall(query, { limit = 5, namespace = "default" } = {}) {
-	const q = (query || "").toString().trim();
-	if (!q) return [];
-	const pk = await ensurePlugkit();
-	if (!pk) return [];
-	try {
-		if (pk._node) {
-			const emb = await pk.embed(q);
-			return (await pk.db.execute({
-				sql: "SELECT id, text, namespace, vector_distance_cos(embedding, vector(?)) AS dist FROM memories WHERE namespace = ? ORDER BY dist ASC LIMIT ?",
-				args: [
-					vecSql(emb),
-					namespace,
-					limit * 4
-				]
-			})).rows.map((row) => ({
-				text: String(row.text || ""),
-				score: 1 - Number(row.dist ?? 1),
-				key: String(row.id),
-				namespace: row.namespace || "default"
-			})).filter((h) => h.text).slice(0, limit);
-		}
-		const r = await pk.dispatch("recall", {
-			query: q,
-			limit,
-			namespace
-		});
-		if (r && r.ok === false) return [];
-		return normalizeHits(r).slice(0, limit);
-	} catch (e) {
-		try {
-			console.error("[gm-learn] recall failed:", e && e.message);
-		} catch (_) {}
-		return [];
-	}
-}
-async function autoRecall(prompt, { limit = 5, namespace = "default" } = {}) {
-	const p = (prompt || "").toString().trim();
-	if (!p) return [];
-	const pk = await ensurePlugkit();
-	if (!pk) return [];
-	if (pk._node) return recall(p, {
-		limit,
-		namespace
-	});
-	try {
-		let hits = normalizeHits(await pk.dispatch("auto-recall", p));
-		if (!hits.length) hits = await recall(p, {
-			limit,
-			namespace
-		});
-		return hits.slice(0, limit);
-	} catch (_) {
-		return recall(p, {
-			limit,
-			namespace
-		});
-	}
-}
-async function prune(keys) {
-	const list = Array.isArray(keys) ? keys.filter(Boolean) : keys ? [keys] : [];
-	if (!list.length) return { pruned: 0 };
-	const pk = await ensurePlugkit();
-	if (!pk) return { pruned: 0 };
-	try {
-		if (pk._node) {
-			let pruned = 0;
-			for (const k of list) {
-				const r = await pk.db.execute({
-					sql: "DELETE FROM memories WHERE id = ?",
-					args: [Number(k)]
-				});
-				pruned += Number(r.rowsAffected ?? 0);
-			}
-			return { pruned };
-		}
-		const r = await pk.dispatch("memorize-prune", { keys: list });
-		return r && r.data || r || { pruned: list.length };
-	} catch (e) {
-		try {
-			console.error("[gm-learn] prune failed:", e && e.message);
-		} catch (_) {}
-		return { pruned: 0 };
-	}
-}
-var execFileAsync, _initPromise, _failed, _pk, _isBrowser, vecSql;
-var init_gm_learn = __esmMin((() => {
-	execFileAsync = promisify(execFile);
-	_initPromise = null;
-	_failed = false;
-	_pk = null;
-	_isBrowser = typeof window !== "undefined" || typeof importScripts === "function";
-	vecSql = (emb) => "[" + emb.map((n) => Number(n).toPrecision(7)).join(",") + "]";
-}));
-//#endregion
-//#region plugins/task/store.js
-async function _loadFs() {
-	if (_fs) return true;
-	try {
-		const { createRequire } = await import("node:module");
-		const require = createRequire(import.meta.url);
-		_fs = require("node:fs");
-		_path = require("node:path");
-		return true;
-	} catch {
-		return false;
-	}
-}
-async function _resolveStorePath() {
-	if (_storePath) return _storePath;
-	if (!_getFreddieHome) try {
-		const { getFreddieHome } = await Promise.resolve().then(() => (init_home(), home_exports));
-		_getFreddieHome = getFreddieHome;
-	} catch {
-		return null;
-	}
-	const home = _getFreddieHome();
-	_storePath = _path.join(home, "tasks", "tasks.jsonl");
-	return _storePath;
-}
-async function _ensureDir(dir) {
-	try {
-		_fs.mkdirSync(dir, { recursive: true });
-	} catch {}
-}
-function _toStorable(task) {
-	return {
-		id: task.id,
-		status: task.status,
-		description: task.description || null,
-		started: task.started,
-		stopped: task.stopped || null,
-		exit_code: task.exitCode ?? null,
-		error: task.error || null,
-		output_preview: (task.output || "").slice(0, 2e3) || null,
-		session_id: task.sessionId || null,
-		pid: task.pid ?? null
-	};
-}
-async function persistTask(task) {
-	if (!await _loadFs()) {
-		_memFallback.set(task.id, _toStorable(task));
-		return;
-	}
-	const sp = await _resolveStorePath();
-	if (!sp) return;
-	await _ensureDir(_path.dirname(sp));
-	try {
-		const line = JSON.stringify(_toStorable(task)) + "\n";
-		_fs.appendFileSync(sp, line, "utf8");
-	} catch {}
-}
-async function _rewriteAll(tasks) {
-	if (!await _loadFs()) return;
-	const sp = await _resolveStorePath();
-	if (!sp) return;
-	await _ensureDir(_path.dirname(sp));
-	try {
-		const lines = [];
-		for (const t of tasks) lines.push(JSON.stringify(_toStorable(t)) + "\n");
-		_fs.writeFileSync(sp, lines.join(""), "utf8");
-	} catch {}
-}
-async function loadTasks() {
-	if (!await _loadFs()) return [..._memFallback.values()];
-	const sp = await _resolveStorePath();
-	if (!sp) return [];
-	try {
-		if (!_fs.existsSync(sp)) return [];
-		const lines = _fs.readFileSync(sp, "utf8").trim().split("\n").filter(Boolean);
-		const map = /* @__PURE__ */ new Map();
-		for (const line of lines) try {
-			const obj = JSON.parse(line);
-			if (obj.id) map.set(obj.id, obj);
-		} catch {}
-		return [...map.values()];
-	} catch {
-		return [];
-	}
-}
-async function cleanCompleted$1(tasks) {
-	if (!await _loadFs()) {
-		for (const [id, t] of _memFallback) if (t.status === "completed" || t.status === "failed" || t.status === "timed_out" || t.status === "stopped") _memFallback.delete(id);
-		return;
-	}
-	await _rewriteAll(tasks);
-}
-var _fs, _path, _getFreddieHome, _storePath, _memFallback;
-var init_store = __esmMin((() => {
-	_fs = null;
-	_path = null;
-	_getFreddieHome = null;
-	_storePath = null;
-	_memFallback = /* @__PURE__ */ new Map();
-}));
-//#endregion
-//#region src/agent/notifications.js
-var NotificationManager, notificationManager;
-var init_notifications = __esmMin((() => {
-	NotificationManager = class {
-		constructor() {
-			this._queue = [];
-			this._delivered = /* @__PURE__ */ new Set();
-		}
-		/**
-		* Push a notification to the queue.
-		* @param {string} type - notification type (e.g. 'task_complete', 'subagent_complete')
-		* @param {string} message - human-readable message
-		* @param {'info'|'warning'|'error'} [severity='info'] - severity level
-		* @returns {string} notification id
-		*/
-		notify(type, message, severity = "info") {
-			const id = `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-			this._queue.push({
-				id,
-				type,
-				message,
-				severity,
-				timestamp: Date.now(),
-				delivered: false
-			});
-			return id;
-		}
-		/**
-		* Deliver pending notifications (up to 4 per call).
-		* Marks delivered notifications so they are not returned again.
-		* @returns {{ id: string, type: string, message: string }[]}
-		*/
-		deliverPending() {
-			const pending = this._queue.filter((n) => !n.delivered).slice(0, 4);
-			for (const n of pending) n.delivered = true;
-			return pending.map((n) => ({
-				id: n.id,
-				type: n.type,
-				message: n.message
-			}));
-		}
-		/**
-		* Check if any undelivered notifications exist.
-		* @returns {boolean}
-		*/
-		hasPending() {
-			return this._queue.some((n) => !n.delivered);
-		}
-		/**
-		* Remove all delivered notifications from the queue to prevent unbounded
-		* growth. Call periodically (e.g. on session end).
-		*/
-		clearDelivered() {
-			this._queue = this._queue.filter((n) => !n.delivered);
-		}
-		/**
-		* Reset to empty state (for testing).
-		*/
-		reset() {
-			this._queue = [];
-			this._delivered = /* @__PURE__ */ new Set();
-		}
-		/**
-		* Return all notifications (most recent first).
-		* @returns {{ id: string, type: string, message: string, severity: string, timestamp: number }[]}
-		*/
-		getAll() {
-			return [...this._queue].reverse();
-		}
-		/**
-		* Dismiss a single notification by id.
-		* @param {string} id
-		* @returns {boolean} true if a notification was removed
-		*/
-		dismiss(id) {
-			const idx = this._queue.findIndex((n) => n.id === id);
-			if (idx < 0) return false;
-			this._queue.splice(idx, 1);
-			return true;
-		}
-		/**
-		* Dismiss all delivered notifications.
-		*/
-		dismissAll() {
-			this._queue = this._queue.filter((n) => !n.delivered);
-		}
-	};
-	notificationManager = new NotificationManager();
-}));
-//#endregion
-//#region plugins/task/registry.js
-var registry_exports = /* @__PURE__ */ __exportAll({
-	awaitTask: () => awaitTask,
-	cleanCompleted: () => cleanCompleted,
-	cleanupStaleTasks: () => cleanupStaleTasks,
-	createTask: () => createTask,
-	getTask: () => getTask,
-	getTaskOutput: () => getTaskOutput,
-	listAllTasks: () => listAllTasks,
-	listTasks: () => listTasks,
-	reconcileTasks: () => reconcileTasks,
-	reset: () => reset,
-	restoreTasks: () => restoreTasks,
-	startPeriodicReconciliation: () => startPeriodicReconciliation,
-	stopPeriodicReconciliation: () => stopPeriodicReconciliation,
-	stopTask: () => stopTask,
-	updateTask: () => updateTask
-});
-function generateId() {
-	if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
-	return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-}
-function createTask(meta = {}) {
-	const id = generateId();
-	const task = {
-		id,
-		status: "running",
-		started: Date.now(),
-		output: "",
-		stderr: "",
-		exitCode: null,
-		error: null,
-		description: null,
-		pid: null,
-		sessionId: null,
-		_kill: null,
-		...meta
-	};
-	_tasks.set(id, task);
-	persistTask(task);
-	return id;
-}
-function getTask(id) {
-	return _tasks.get(id) || null;
-}
-function listTasks() {
-	return [..._tasks.values()].filter((t) => t.status === "running").map(({ id, status, started, description }) => ({
-		id,
-		status,
-		started,
-		description: description || null
-	}));
-}
-function listAllTasks() {
-	return [..._tasks.values()].map(({ id, status, started, stopped, description, exitCode, error }) => ({
-		id,
-		status,
-		started,
-		stopped: stopped || null,
-		description: description || null,
-		exit_code: exitCode ?? null,
-		error: error || null
-	}));
-}
-function updateTask(id, updates) {
-	const t = _tasks.get(id);
-	if (t) {
-		Object.assign(t, updates);
-		persistTask(t);
-		if (updates.status && updates.status !== "running") notificationManager.notify("task_complete", `Background task ${id} completed: ${t.description || "unnamed task"}`);
-	}
-}
-function stopTask(id) {
-	const t = _tasks.get(id);
-	if (!t) return { error: `unknown task_id: ${id}` };
-	if (typeof t._kill === "function") try {
-		t._kill();
-	} catch {}
-	t.status = "stopped";
-	t.stopped = Date.now();
-	persistTask(t);
-	return {
-		task_id: id,
-		stopped: true
-	};
-}
-function getTaskOutput(id) {
-	const t = _tasks.get(id);
-	if (!t) return { error: `unknown task_id: ${id}` };
-	return {
-		task_id: id,
-		status: t.status,
-		output: t.output || "",
-		stderr: t.stderr || "",
-		exit_code: t.exitCode ?? null,
-		error: t.error || null
-	};
-}
-function awaitTask(id, timeoutMs) {
-	const t = _tasks.get(id);
-	if (!t) return Promise.resolve({ error: `unknown task_id: ${id}` });
-	if (t.status !== "running") return Promise.resolve(getTaskOutput(id));
-	return new Promise((resolve) => {
-		const timer = setTimeout(() => resolve(getTaskOutput(id)), timeoutMs);
-		const check = () => {
-			if (t.status !== "running") {
-				clearTimeout(timer);
-				resolve(getTaskOutput(id));
-			} else setTimeout(check, 100);
-		};
-		setTimeout(check, 100);
-	});
-}
-async function restoreTasks(sessionId) {
-	const stored = await loadTasks();
-	const filtered = sessionId ? stored.filter((s) => s.session_id === sessionId) : stored;
-	for (const s of filtered) {
-		if (_tasks.has(s.id)) continue;
-		if (s.status !== "running") continue;
-		_tasks.set(s.id, {
-			id: s.id,
-			status: "stopped",
-			started: s.started,
-			stopped: Date.now(),
-			output: s.output_preview || "",
-			stderr: "",
-			exitCode: s.exit_code,
-			error: s.error || "task was interrupted by freddie restart",
-			description: s.description,
-			sessionId: s.session_id || null,
-			pid: null,
-			_kill: null
-		});
-	}
-	reconcileTasks();
-}
-function reconcileTasks() {
-	const now = Date.now();
-	const MAX_RUNNING_MS = 864e5;
-	let reconciled = 0;
-	let lost = 0;
-	let timedOut = 0;
-	for (const [id, t] of _tasks) {
-		if (t.status !== "running") continue;
-		let processDead = false;
-		if (t.pid != null) try {
-			process.kill(t.pid, 0);
-		} catch {
-			processDead = true;
-		}
-		const isTimedOut = now - t.started > MAX_RUNNING_MS;
-		if (processDead) {
-			t.status = "lost";
-			t.stopped = now;
-			t.error = "process died unexpectedly";
-			persistTask(t);
-			notificationManager.notify("task_lost", `Background task ${id.slice(0, 8)} (${t.description || "unnamed"}) was lost: the underlying process died.`);
-			reconciled++;
-			lost++;
-		} else if (isTimedOut) {
-			t.status = "timed_out";
-			t.stopped = now;
-			t.error = "task exceeded 24 hour maximum runtime";
-			persistTask(t);
-			notificationManager.notify("task_timed_out", `Background task ${id.slice(0, 8)} (${t.description || "unnamed"}) timed out after 24 hours.`);
-			reconciled++;
-			timedOut++;
-		}
-	}
-	return {
-		reconciled,
-		lost,
-		timed_out: timedOut
-	};
-}
-function cleanupStaleTasks(maxAgeHours = 168) {
-	const now = Date.now();
-	const maxAgeMs = maxAgeHours * 60 * 60 * 1e3;
-	const terminalStates = /* @__PURE__ */ new Set([
-		"completed",
-		"failed",
-		"lost",
-		"timed_out",
-		"stopped"
-	]);
-	let cleaned = 0;
-	for (const [id, t] of _tasks) {
-		if (!terminalStates.has(t.status)) continue;
-		if (now - t.started > maxAgeMs) {
-			_tasks.delete(id);
-			cleaned++;
-		}
-	}
-	return { cleaned };
-}
-function startPeriodicReconciliation(intervalMs = 3e5) {
-	if (_reconcileInterval) return;
-	_reconcileInterval = setInterval(() => {
-		reconcileTasks();
-	}, intervalMs);
-	if (typeof _reconcileInterval?.unref === "function") _reconcileInterval.unref();
-}
-function stopPeriodicReconciliation() {
-	if (_reconcileInterval) {
-		clearInterval(_reconcileInterval);
-		_reconcileInterval = null;
-	}
-}
-function reset() {
-	_tasks.clear();
-	stopPeriodicReconciliation();
-}
-async function cleanCompleted() {
-	const kept = [];
-	for (const [id, t] of _tasks) if (t.status === "completed" || t.status === "failed" || t.status === "timed_out" || t.status === "stopped") _tasks.delete(id);
-	else kept.push(t);
-	await cleanCompleted$1(kept);
-}
-var _tasks, _reconcileInterval;
-var init_registry = __esmMin((() => {
-	init_store();
-	init_notifications();
-	_tasks = /* @__PURE__ */ new Map();
-	_reconcileInterval = null;
-}));
-//#endregion
-//#region src/agent/machine.js
-init_log();
+//#region src/agent/machine_builder.js
 init_config$1();
 init_telemetry();
 init_events();
@@ -13797,6 +13167,292 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 		}
 	});
 }
+//#endregion
+//#region src/agent/turn_helpers.js
+function mergeHookExtras(messages, r, tag) {
+	if (!r) return messages;
+	const e = [];
+	if (r.systemMessage) e.push({
+		role: "system",
+		content: "[hook:" + tag + "] " + r.systemMessage
+	});
+	if (r.additionalContext) e.push({
+		role: "system",
+		content: r.additionalContext
+	});
+	return e.length ? [...messages, ...e] : messages;
+}
+function timeoutResult(actor, timeoutMs) {
+	const ctx = actor.getSnapshot()?.context || {};
+	const messages = Array.isArray(ctx.messages) ? [...ctx.messages] : [];
+	const pairedIds = new Set(messages.filter((m) => m && m.role === "tool" && m.tool_call_id).map((m) => m.tool_call_id));
+	const lastAssistant = [...messages].reverse().find((m) => m && m.role === "assistant" && Array.isArray(m.tool_calls));
+	if (lastAssistant) for (const tc of lastAssistant.tool_calls) {
+		const tcid = tc?.id || tc?.tool_call_id;
+		if (tcid && !pairedIds.has(tcid)) messages.push({
+			role: "tool",
+			tool_call_id: tcid,
+			content: JSON.stringify({ error: "timeout: tool_call interrupted" }),
+			synthetic: true
+		});
+	}
+	messages.push({
+		role: "system",
+		content: `Agent turn interrupted by ${timeoutMs / 1e3}s timeout. Any tool calls above without paired results were cut short and did not complete.`,
+		synthetic: true
+	});
+	return {
+		messages,
+		result: null,
+		error: "agent turn timeout",
+		iterations: ctx.iterations || 0
+	};
+}
+//#endregion
+//#region src/learn/gm-learn-backend.js
+function findBrowserBridge() {
+	const g = typeof globalThis !== "undefined" ? globalThis : null;
+	if (!g) return null;
+	if (typeof g.__GM_DISPATCH__ === "function") return { dispatch: g.__GM_DISPATCH__ };
+	const gm = g.__gm || g.__debug && g.__debug.gm;
+	if (gm && typeof gm.dispatch === "function") return { dispatch: (v, b) => gm.dispatch(v, b) };
+	return null;
+}
+async function ensureNodeBackend() {
+	const fs = await import("node:fs");
+	const os = await import("node:os");
+	const path = await import("node:path");
+	const runner = path.join(os.homedir(), ".gm-tools", process.platform === "win32" ? "agentplug-runner.exe" : "agentplug-runner");
+	if (!fs.existsSync(runner)) throw new Error("agentplug-runner not installed at " + runner);
+	const embed = async (text) => {
+		const { stdout } = await execFileAsync(runner, [
+			"dispatch",
+			"bert",
+			"embed",
+			JSON.stringify({ text })
+		], {
+			timeout: 2e4,
+			maxBuffer: 8388608
+		});
+		const r = JSON.parse(stdout);
+		if (!Array.isArray(r.embedding) || !r.embedding.length) throw new Error("bert embed failed: " + String(stdout).slice(0, 160));
+		return r.embedding;
+	};
+	const dbDir = path.join(process.cwd(), ".gm");
+	fs.mkdirSync(dbDir, { recursive: true });
+	const { createClient } = await Promise.resolve().then(() => (init_web(), web_exports));
+	const db = createClient({ url: "file:" + path.join(dbDir, "gm.db") });
+	await db.execute("CREATE TABLE IF NOT EXISTS memories (id INTEGER PRIMARY KEY, namespace TEXT, text TEXT, ts INTEGER, embedding F32_BLOB(384))");
+	try {
+		await db.execute("CREATE INDEX IF NOT EXISTS memories_vec ON memories (libsql_vector_idx(embedding))");
+	} catch (_) {}
+	await embed("probe");
+	return {
+		_node: true,
+		embed,
+		db
+	};
+}
+function learnAvailable() {
+	return Boolean(_pk) || Boolean(_isBrowser && findBrowserBridge());
+}
+async function ensurePlugkit() {
+	if (_pk) return _pk;
+	if (_isBrowser) {
+		const bridge = findBrowserBridge();
+		if (!bridge) return null;
+		_pk = {
+			dispatch: bridge.dispatch,
+			version: () => "browser-bridge"
+		};
+		return _pk;
+	}
+	if (_failed && Date.now() - _failed < 6e4) return null;
+	if (_failed) _failed = false;
+	if (_initPromise) return _initPromise;
+	_initPromise = (async () => {
+		try {
+			_pk = await ensureNodeBackend();
+			return _pk;
+		} catch (e) {
+			_failed = Date.now();
+			try {
+				console.error("[gm-learn] disabled (gm rs-learn unavailable):", e && e.message);
+			} catch (_) {}
+			return null;
+		} finally {
+			_initPromise = null;
+		}
+	})();
+	return _initPromise;
+}
+function normalizeHits(resp) {
+	return (resp && resp.data && Array.isArray(resp.data.hits) ? resp.data.hits : resp && Array.isArray(resp.hits) ? resp.hits : []).map((h) => ({
+		text: h.text != null ? String(h.text) : "",
+		score: typeof h.score === "number" ? h.score : typeof h.cos === "number" ? h.cos : 0,
+		key: h.key || null,
+		namespace: h.namespace || "default"
+	})).filter((h) => h.text);
+}
+var execFileAsync, _initPromise, _failed, _pk, _isBrowser, vecSql;
+var init_gm_learn_backend = __esmMin((() => {
+	execFileAsync = promisify(execFile);
+	_initPromise = null;
+	_failed = false;
+	_pk = null;
+	_isBrowser = typeof window !== "undefined" || typeof importScripts === "function";
+	vecSql = (emb) => "[" + emb.map((n) => Number(n).toPrecision(7)).join(",") + "]";
+}));
+//#endregion
+//#region src/learn/gm-learn.js
+var gm_learn_exports = /* @__PURE__ */ __exportAll({
+	autoRecall: () => autoRecall,
+	learnAvailable: () => learnAvailable,
+	memorize: () => memorize,
+	projectNamespace: () => projectNamespace,
+	prune: () => prune,
+	recall: () => recall
+});
+async function projectNamespace() {
+	if (_isBrowser) try {
+		const g = globalThis;
+		const ns = typeof g.__GM_NAMESPACE__ === "function" ? g.__GM_NAMESPACE__() : g.__GM_NAMESPACE__;
+		return (ns == null ? "" : String(ns)).trim() || "default";
+	} catch (_) {
+		return "default";
+	}
+	try {
+		const mod = await Promise.resolve().then(() => (init_projects(), projects_exports));
+		const p = mod.getActiveProject && mod.getActiveProject();
+		return p && p.name || "default";
+	} catch (_) {
+		return "default";
+	}
+}
+async function memorize(text, { namespace = "default", key = null } = {}) {
+	const t = (text || "").toString().trim();
+	if (!t) return null;
+	const pk = await ensurePlugkit();
+	if (!pk) return null;
+	try {
+		if (pk._node) {
+			const emb = await pk.embed(t);
+			const r = await pk.db.execute({
+				sql: "INSERT INTO memories (namespace, text, ts, embedding) VALUES (?, ?, ?, vector(?))",
+				args: [
+					namespace,
+					t,
+					Date.now(),
+					vecSql(emb)
+				]
+			});
+			return String(r.lastInsertRowid ?? key ?? "");
+		}
+		const body = {
+			text: t,
+			namespace
+		};
+		if (key) body.key = key;
+		const r = await pk.dispatch("memorize-fire", body);
+		if (r && r.ok === false) return null;
+		return r && r.data && r.data.key || r && r.key || null;
+	} catch (e) {
+		try {
+			console.error("[gm-learn] memorize failed:", e && e.message);
+		} catch (_) {}
+		return null;
+	}
+}
+async function recall(query, { limit = 5, namespace = "default" } = {}) {
+	const q = (query || "").toString().trim();
+	if (!q) return [];
+	const pk = await ensurePlugkit();
+	if (!pk) return [];
+	try {
+		if (pk._node) {
+			const emb = await pk.embed(q);
+			return (await pk.db.execute({
+				sql: "SELECT id, text, namespace, vector_distance_cos(embedding, vector(?)) AS dist FROM memories WHERE namespace = ? ORDER BY dist ASC LIMIT ?",
+				args: [
+					vecSql(emb),
+					namespace,
+					limit * 4
+				]
+			})).rows.map((row) => ({
+				text: String(row.text || ""),
+				score: 1 - Number(row.dist ?? 1),
+				key: String(row.id),
+				namespace: row.namespace || "default"
+			})).filter((h) => h.text).slice(0, limit);
+		}
+		const r = await pk.dispatch("recall", {
+			query: q,
+			limit,
+			namespace
+		});
+		if (r && r.ok === false) return [];
+		return normalizeHits(r).slice(0, limit);
+	} catch (e) {
+		try {
+			console.error("[gm-learn] recall failed:", e && e.message);
+		} catch (_) {}
+		return [];
+	}
+}
+async function autoRecall(prompt, { limit = 5, namespace = "default" } = {}) {
+	const p = (prompt || "").toString().trim();
+	if (!p) return [];
+	const pk = await ensurePlugkit();
+	if (!pk) return [];
+	if (pk._node) return recall(p, {
+		limit,
+		namespace
+	});
+	try {
+		let hits = normalizeHits(await pk.dispatch("auto-recall", p));
+		if (!hits.length) hits = await recall(p, {
+			limit,
+			namespace
+		});
+		return hits.slice(0, limit);
+	} catch (_) {
+		return recall(p, {
+			limit,
+			namespace
+		});
+	}
+}
+async function prune(keys) {
+	const list = Array.isArray(keys) ? keys.filter(Boolean) : keys ? [keys] : [];
+	if (!list.length) return { pruned: 0 };
+	const pk = await ensurePlugkit();
+	if (!pk) return { pruned: 0 };
+	try {
+		if (pk._node) {
+			let pruned = 0;
+			for (const k of list) {
+				const r = await pk.db.execute({
+					sql: "DELETE FROM memories WHERE id = ?",
+					args: [Number(k)]
+				});
+				pruned += Number(r.rowsAffected ?? 0);
+			}
+			return { pruned };
+		}
+		const r = await pk.dispatch("memorize-prune", { keys: list });
+		return r && r.data || r || { pruned: list.length };
+	} catch (e) {
+		try {
+			console.error("[gm-learn] prune failed:", e && e.message);
+		} catch (_) {}
+		return { pruned: 0 };
+	}
+}
+var init_gm_learn = __esmMin((() => {
+	init_gm_learn_backend();
+}));
+//#endregion
+//#region src/agent/turn_trajectory.js
 async function writeTrajectory(out, { prompt, provider, model, skill, cwd, events = [], errorStack = null, witnessPath = null }) {
 	try {
 		const { getConfigValue } = await Promise.resolve().then(() => (init_config$1(), config_exports));
@@ -13892,26 +13548,11 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
 		}
 	} catch (_) {}
 }
-function mergeHookExtras(messages, r, tag) {
-	if (!r) return messages;
-	const e = [];
-	if (r.systemMessage) e.push({
-		role: "system",
-		content: "[hook:" + tag + "] " + r.systemMessage
-	});
-	if (r.additionalContext) e.push({
-		role: "system",
-		content: r.additionalContext
-	});
-	return e.length ? [...messages, ...e] : messages;
-}
-var AUTOLEARN_MIN_LEN = 40;
-var AUTOLEARN_DEDUPE_COS = .92;
 async function autoLearnTurn({ prompt, out }) {
 	try {
 		if (!out || out.error) return;
 		const result = (out.result || "").toString().trim();
-		if (result.length < AUTOLEARN_MIN_LEN) return;
+		if (result.length < 40) return;
 		const { memorize, recall, projectNamespace } = await Promise.resolve().then(() => (init_gm_learn(), gm_learn_exports));
 		const namespace = await projectNamespace();
 		const fact = `Q: ${(prompt || "").toString().trim().slice(0, 200)}\nA: ${result.slice(0, 600)}`;
@@ -13919,36 +13560,15 @@ async function autoLearnTurn({ prompt, out }) {
 			limit: 1,
 			namespace
 		});
-		if (existing.length && existing[0].score >= AUTOLEARN_DEDUPE_COS) return;
+		if (existing.length && existing[0].score >= .92) return;
 		await memorize(fact, { namespace });
 	} catch (_) {}
 }
-function timeoutResult(actor, timeoutMs) {
-	const ctx = actor.getSnapshot()?.context || {};
-	const messages = Array.isArray(ctx.messages) ? [...ctx.messages] : [];
-	const pairedIds = new Set(messages.filter((m) => m && m.role === "tool" && m.tool_call_id).map((m) => m.tool_call_id));
-	const lastAssistant = [...messages].reverse().find((m) => m && m.role === "assistant" && Array.isArray(m.tool_calls));
-	if (lastAssistant) for (const tc of lastAssistant.tool_calls) {
-		const tcid = tc?.id || tc?.tool_call_id;
-		if (tcid && !pairedIds.has(tcid)) messages.push({
-			role: "tool",
-			tool_call_id: tcid,
-			content: JSON.stringify({ error: "timeout: tool_call interrupted" }),
-			synthetic: true
-		});
-	}
-	messages.push({
-		role: "system",
-		content: `Agent turn interrupted by ${timeoutMs / 1e3}s timeout. Any tool calls above without paired results were cut short and did not complete.`,
-		synthetic: true
-	});
-	return {
-		messages,
-		result: null,
-		error: "agent turn timeout",
-		iterations: ctx.iterations || 0
-	};
-}
+//#endregion
+//#region src/agent/turn_driver.js
+init_step_journal();
+init_telemetry();
+init_events();
 async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store }) {
 	const { actor } = pa;
 	return await new Promise((resolve, reject) => {
@@ -14093,6 +13713,446 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
 		});
 	});
 }
+//#endregion
+//#region plugins/task/store.js
+async function _loadFs() {
+	if (_fs) return true;
+	try {
+		const { createRequire } = await import("node:module");
+		const require = createRequire(import.meta.url);
+		_fs = require("node:fs");
+		_path = require("node:path");
+		return true;
+	} catch {
+		return false;
+	}
+}
+async function _resolveStorePath() {
+	if (_storePath) return _storePath;
+	if (!_getFreddieHome) try {
+		const { getFreddieHome } = await Promise.resolve().then(() => (init_home(), home_exports));
+		_getFreddieHome = getFreddieHome;
+	} catch {
+		return null;
+	}
+	const home = _getFreddieHome();
+	_storePath = _path.join(home, "tasks", "tasks.jsonl");
+	return _storePath;
+}
+async function _ensureDir(dir) {
+	try {
+		_fs.mkdirSync(dir, { recursive: true });
+	} catch {}
+}
+function _toStorable(task) {
+	return {
+		id: task.id,
+		status: task.status,
+		description: task.description || null,
+		started: task.started,
+		stopped: task.stopped || null,
+		exit_code: task.exitCode ?? null,
+		error: task.error || null,
+		output_preview: (task.output || "").slice(0, 2e3) || null,
+		session_id: task.sessionId || null,
+		pid: task.pid ?? null
+	};
+}
+async function persistTask(task) {
+	if (!await _loadFs()) {
+		_memFallback.set(task.id, _toStorable(task));
+		return;
+	}
+	const sp = await _resolveStorePath();
+	if (!sp) return;
+	await _ensureDir(_path.dirname(sp));
+	try {
+		const line = JSON.stringify(_toStorable(task)) + "\n";
+		_fs.appendFileSync(sp, line, "utf8");
+	} catch {}
+}
+async function _rewriteAll(tasks) {
+	if (!await _loadFs()) return;
+	const sp = await _resolveStorePath();
+	if (!sp) return;
+	await _ensureDir(_path.dirname(sp));
+	try {
+		const lines = [];
+		for (const t of tasks) lines.push(JSON.stringify(_toStorable(t)) + "\n");
+		_fs.writeFileSync(sp, lines.join(""), "utf8");
+	} catch {}
+}
+async function loadTasks() {
+	if (!await _loadFs()) return [..._memFallback.values()];
+	const sp = await _resolveStorePath();
+	if (!sp) return [];
+	try {
+		if (!_fs.existsSync(sp)) return [];
+		const lines = _fs.readFileSync(sp, "utf8").trim().split("\n").filter(Boolean);
+		const map = /* @__PURE__ */ new Map();
+		for (const line of lines) try {
+			const obj = JSON.parse(line);
+			if (obj.id) map.set(obj.id, obj);
+		} catch {}
+		return [...map.values()];
+	} catch {
+		return [];
+	}
+}
+async function cleanCompleted$1(tasks) {
+	if (!await _loadFs()) {
+		for (const [id, t] of _memFallback) if (t.status === "completed" || t.status === "failed" || t.status === "timed_out" || t.status === "stopped") _memFallback.delete(id);
+		return;
+	}
+	await _rewriteAll(tasks);
+}
+var _fs, _path, _getFreddieHome, _storePath, _memFallback;
+var init_store = __esmMin((() => {
+	_fs = null;
+	_path = null;
+	_getFreddieHome = null;
+	_storePath = null;
+	_memFallback = /* @__PURE__ */ new Map();
+}));
+//#endregion
+//#region src/agent/notifications.js
+var NotificationManager, notificationManager;
+var init_notifications = __esmMin((() => {
+	NotificationManager = class {
+		constructor() {
+			this._queue = [];
+			this._delivered = /* @__PURE__ */ new Set();
+		}
+		/**
+		* Push a notification to the queue.
+		* @param {string} type - notification type (e.g. 'task_complete', 'subagent_complete')
+		* @param {string} message - human-readable message
+		* @param {'info'|'warning'|'error'} [severity='info'] - severity level
+		* @returns {string} notification id
+		*/
+		notify(type, message, severity = "info") {
+			const id = `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+			this._queue.push({
+				id,
+				type,
+				message,
+				severity,
+				timestamp: Date.now(),
+				delivered: false
+			});
+			return id;
+		}
+		/**
+		* Deliver pending notifications (up to 4 per call).
+		* Marks delivered notifications so they are not returned again.
+		* @returns {{ id: string, type: string, message: string }[]}
+		*/
+		deliverPending() {
+			const pending = this._queue.filter((n) => !n.delivered).slice(0, 4);
+			for (const n of pending) n.delivered = true;
+			return pending.map((n) => ({
+				id: n.id,
+				type: n.type,
+				message: n.message
+			}));
+		}
+		/**
+		* Check if any undelivered notifications exist.
+		* @returns {boolean}
+		*/
+		hasPending() {
+			return this._queue.some((n) => !n.delivered);
+		}
+		/**
+		* Remove all delivered notifications from the queue to prevent unbounded
+		* growth. Call periodically (e.g. on session end).
+		*/
+		clearDelivered() {
+			this._queue = this._queue.filter((n) => !n.delivered);
+		}
+		/**
+		* Reset to empty state (for testing).
+		*/
+		reset() {
+			this._queue = [];
+			this._delivered = /* @__PURE__ */ new Set();
+		}
+		/**
+		* Return all notifications (most recent first).
+		* @returns {{ id: string, type: string, message: string, severity: string, timestamp: number }[]}
+		*/
+		getAll() {
+			return [...this._queue].reverse();
+		}
+		/**
+		* Dismiss a single notification by id.
+		* @param {string} id
+		* @returns {boolean} true if a notification was removed
+		*/
+		dismiss(id) {
+			const idx = this._queue.findIndex((n) => n.id === id);
+			if (idx < 0) return false;
+			this._queue.splice(idx, 1);
+			return true;
+		}
+		/**
+		* Dismiss all delivered notifications.
+		*/
+		dismissAll() {
+			this._queue = this._queue.filter((n) => !n.delivered);
+		}
+	};
+	notificationManager = new NotificationManager();
+}));
+//#endregion
+//#region plugins/task/state.js
+function generateId() {
+	if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+	return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+var _tasks, _reconcileState;
+var init_state = __esmMin((() => {
+	_tasks = /* @__PURE__ */ new Map();
+	_reconcileState = { interval: null };
+}));
+//#endregion
+//#region plugins/task/crud.js
+function createTask(meta = {}) {
+	const id = generateId();
+	const task = {
+		id,
+		status: "running",
+		started: Date.now(),
+		output: "",
+		stderr: "",
+		exitCode: null,
+		error: null,
+		description: null,
+		pid: null,
+		sessionId: null,
+		_kill: null,
+		...meta
+	};
+	_tasks.set(id, task);
+	persistTask(task);
+	return id;
+}
+function getTask(id) {
+	return _tasks.get(id) || null;
+}
+function listTasks() {
+	return [..._tasks.values()].filter((t) => t.status === "running").map(({ id, status, started, description }) => ({
+		id,
+		status,
+		started,
+		description: description || null
+	}));
+}
+function listAllTasks() {
+	return [..._tasks.values()].map(({ id, status, started, stopped, description, exitCode, error }) => ({
+		id,
+		status,
+		started,
+		stopped: stopped || null,
+		description: description || null,
+		exit_code: exitCode ?? null,
+		error: error || null
+	}));
+}
+function updateTask(id, updates) {
+	const t = _tasks.get(id);
+	if (t) {
+		Object.assign(t, updates);
+		persistTask(t);
+		if (updates.status && updates.status !== "running") notificationManager.notify("task_complete", `Background task ${id} completed: ${t.description || "unnamed task"}`);
+	}
+}
+function stopTask(id) {
+	const t = _tasks.get(id);
+	if (!t) return { error: `unknown task_id: ${id}` };
+	if (typeof t._kill === "function") try {
+		t._kill();
+	} catch {}
+	t.status = "stopped";
+	t.stopped = Date.now();
+	persistTask(t);
+	return {
+		task_id: id,
+		stopped: true
+	};
+}
+function getTaskOutput(id) {
+	const t = _tasks.get(id);
+	if (!t) return { error: `unknown task_id: ${id}` };
+	return {
+		task_id: id,
+		status: t.status,
+		output: t.output || "",
+		stderr: t.stderr || "",
+		exit_code: t.exitCode ?? null,
+		error: t.error || null
+	};
+}
+function awaitTask(id, timeoutMs) {
+	const t = _tasks.get(id);
+	if (!t) return Promise.resolve({ error: `unknown task_id: ${id}` });
+	if (t.status !== "running") return Promise.resolve(getTaskOutput(id));
+	return new Promise((resolve) => {
+		const timer = setTimeout(() => resolve(getTaskOutput(id)), timeoutMs);
+		const check = () => {
+			if (t.status !== "running") {
+				clearTimeout(timer);
+				resolve(getTaskOutput(id));
+			} else setTimeout(check, 100);
+		};
+		setTimeout(check, 100);
+	});
+}
+var init_crud = __esmMin((() => {
+	init_store();
+	init_notifications();
+	init_state();
+}));
+//#endregion
+//#region plugins/task/lifecycle.js
+async function restoreTasks(sessionId) {
+	const stored = await loadTasks();
+	const filtered = sessionId ? stored.filter((s) => s.session_id === sessionId) : stored;
+	for (const s of filtered) {
+		if (_tasks.has(s.id)) continue;
+		if (s.status !== "running") continue;
+		_tasks.set(s.id, {
+			id: s.id,
+			status: "stopped",
+			started: s.started,
+			stopped: Date.now(),
+			output: s.output_preview || "",
+			stderr: "",
+			exitCode: s.exit_code,
+			error: s.error || "task was interrupted by freddie restart",
+			description: s.description,
+			sessionId: s.session_id || null,
+			pid: null,
+			_kill: null
+		});
+	}
+	reconcileTasks();
+}
+function reconcileTasks() {
+	const now = Date.now();
+	const MAX_RUNNING_MS = 864e5;
+	let reconciled = 0;
+	let lost = 0;
+	let timedOut = 0;
+	for (const [id, t] of _tasks) {
+		if (t.status !== "running") continue;
+		let processDead = false;
+		if (t.pid != null) try {
+			process.kill(t.pid, 0);
+		} catch {
+			processDead = true;
+		}
+		const isTimedOut = now - t.started > MAX_RUNNING_MS;
+		if (processDead) {
+			t.status = "lost";
+			t.stopped = now;
+			t.error = "process died unexpectedly";
+			persistTask(t);
+			notificationManager.notify("task_lost", `Background task ${id.slice(0, 8)} (${t.description || "unnamed"}) was lost: the underlying process died.`);
+			reconciled++;
+			lost++;
+		} else if (isTimedOut) {
+			t.status = "timed_out";
+			t.stopped = now;
+			t.error = "task exceeded 24 hour maximum runtime";
+			persistTask(t);
+			notificationManager.notify("task_timed_out", `Background task ${id.slice(0, 8)} (${t.description || "unnamed"}) timed out after 24 hours.`);
+			reconciled++;
+			timedOut++;
+		}
+	}
+	return {
+		reconciled,
+		lost,
+		timed_out: timedOut
+	};
+}
+function cleanupStaleTasks(maxAgeHours = 168) {
+	const now = Date.now();
+	const maxAgeMs = maxAgeHours * 60 * 60 * 1e3;
+	const terminalStates = /* @__PURE__ */ new Set([
+		"completed",
+		"failed",
+		"lost",
+		"timed_out",
+		"stopped"
+	]);
+	let cleaned = 0;
+	for (const [id, t] of _tasks) {
+		if (!terminalStates.has(t.status)) continue;
+		if (now - t.started > maxAgeMs) {
+			_tasks.delete(id);
+			cleaned++;
+		}
+	}
+	return { cleaned };
+}
+function startPeriodicReconciliation(intervalMs = 3e5) {
+	if (_reconcileState.interval) return;
+	_reconcileState.interval = setInterval(() => {
+		reconcileTasks();
+	}, intervalMs);
+	if (typeof _reconcileState.interval?.unref === "function") _reconcileState.interval.unref();
+}
+function stopPeriodicReconciliation() {
+	if (_reconcileState.interval) {
+		clearInterval(_reconcileState.interval);
+		_reconcileState.interval = null;
+	}
+}
+function reset() {
+	_tasks.clear();
+	stopPeriodicReconciliation();
+}
+async function cleanCompleted() {
+	const kept = [];
+	for (const [id, t] of _tasks) if (t.status === "completed" || t.status === "failed" || t.status === "timed_out" || t.status === "stopped") _tasks.delete(id);
+	else kept.push(t);
+	await cleanCompleted$1(kept);
+}
+var init_lifecycle = __esmMin((() => {
+	init_store();
+	init_notifications();
+	init_state();
+}));
+//#endregion
+//#region plugins/task/registry.js
+var registry_exports = /* @__PURE__ */ __exportAll({
+	awaitTask: () => awaitTask,
+	cleanCompleted: () => cleanCompleted,
+	cleanupStaleTasks: () => cleanupStaleTasks,
+	createTask: () => createTask,
+	getTask: () => getTask,
+	getTaskOutput: () => getTaskOutput,
+	listAllTasks: () => listAllTasks,
+	listTasks: () => listTasks,
+	reconcileTasks: () => reconcileTasks,
+	reset: () => reset,
+	restoreTasks: () => restoreTasks,
+	startPeriodicReconciliation: () => startPeriodicReconciliation,
+	stopPeriodicReconciliation: () => stopPeriodicReconciliation,
+	stopTask: () => stopTask,
+	updateTask: () => updateTask
+});
+var init_registry = __esmMin((() => {
+	init_crud();
+	init_lifecycle();
+}));
+//#endregion
+//#region src/agent/machine.js
+init_config$1();
+init_telemetry();
+init_events();
 async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store, approvalMode = null, approvalTimeoutMs = null } = {}) {
 	const events = [];
 	const cfg = loadConfig();
@@ -14335,6 +14395,10 @@ async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolset
 	});
 }
 //#endregion
+//#region src/browser/config.js
+init_config$1();
+var FREDDIE_DEFAULT_CONFIG = DEFAULT_CONFIG;
+//#endregion
 //#region src/skills/index.js
 init_js_yaml();
 init_home();
@@ -14547,11 +14611,7 @@ function blocksToSystemMessage(blocks) {
 	};
 }
 //#endregion
-//#region src/browser/index.js
-init_step_journal();
-init_config$1();
-init_log();
-var FREDDIE_DEFAULT_CONFIG = DEFAULT_CONFIG;
+//#region src/browser/adapter-guards.js
 var FreddieAdapterError = class extends Error {
 	constructor(message) {
 		super(message);
@@ -14583,7 +14643,7 @@ function guardFs(fsAdapter) {
 		stat: fsAdapter?.stat || missing("stat", "a plugin or embedder tool tried to stat a path through the adapter fs")
 	};
 }
-async function resolvePlugins(list) {
+async function resolvePlugins(list, validatePlugin) {
 	const out = [];
 	for (const entry of list) {
 		const p = typeof entry === "function" ? await entry() : entry;
@@ -14592,6 +14652,8 @@ async function resolvePlugins(list) {
 	}
 	return out;
 }
+//#endregion
+//#region src/browser/boot.js
 /**
 * bootHostBrowser(adapters) — adapter-parameterized host boot for browser /
 * non-Node embedders. See the FreddieBrowserAdapters typedef above for the
@@ -14618,13 +14680,18 @@ async function bootHostBrowser(adapters = {}) {
 		surfaces: ["pi", "gui"],
 		env: adapters.env && typeof adapters.env === "object" ? adapters.env : {}
 	});
-	const plugins = Array.isArray(adapters.plugins) ? await resolvePlugins(adapters.plugins) : [];
+	const plugins = Array.isArray(adapters.plugins) ? await resolvePlugins(adapters.plugins, validatePlugin) : [];
 	await host.load(plugins);
 	host.storage = guardStorage(adapters.storage);
 	host.fsAdapter = guardFs(adapters.fs);
 	host.callLLM = adapters.callLLM;
 	return host;
 }
+//#endregion
+//#region src/browser/index.js
+init_step_journal();
+init_log();
+init_config$1();
 //#endregion
 export { ContextPlugins, DEFAULT_CONFIG, FREDDIE_DEFAULT_CONFIG, FreddieAdapterError, SNAPSHOT_SCHEMA_VERSION, assign, blocksToSystemMessage, bootHost, bootHostBrowser, buildContext, createActor, createAgentMachine, createLibsqlSnapshotStore, createLibsqlStepStore, createMachine, createPersistentActor, findSkill, fromPromise, host, listSkills, log, logger, parseTextToolCalls, resetHostForTests, resumeTurn, runTurn, skillAsUserMessage, waitFor };
 
