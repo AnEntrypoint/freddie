@@ -19,6 +19,9 @@ jobs:
       - name: Install deps
         run: npm install --no-audit --no-fund
 
+      - name: Lint (syntax + package.json shape + split/naming warnings)
+        run: npm run lint
+
       - name: Plugin-discovery smoke boot
         run: |
           node -e "
