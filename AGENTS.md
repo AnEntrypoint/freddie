@@ -21,7 +21,7 @@ Instructions for AI coding assistants working on Freddie. Present-tense rules on
 The stack is **thebird -> freddie -> acptoapi**. Each layer owns one concern:
 
 - **acptoapi** owns all upstream LLM/provider connectivity: HTTP/SSE to OpenAI, Anthropic, Gemini, brand providers, ACP daemons, Claude CLI. Plus chain/queue/sampler/matrix.
-- **freddie** owns agent-loop orchestration: tools, skills, sessions, memory. Calls *only* acptoapi for LLM access. No direct `fetch('https://api.openai.com/...')`. The prior migration-debt list here (`plugins/media/lib/vision.js`, `plugins/image_gen`, `plugins/media/lib/tts.js`, `plugins/media/lib/transcription.js`, `src/agent/adapters/codex_responses_adapter.js`, `src/imagegen/provider.js`, `src/agent/model-discovery.js`) is stale — those paths were relocated in the plugin-category-directory reorg and now correctly route through `getAcptoapiUrl()`/`acptoapi-bridge.js`. Six unrelated, fully dead direct-fetch adapter files (`xai_adapter.js`, `openrouter_adapter.js`, `bedrock_adapter.js`, `gemini_cloudcode_adapter.js`, `google_code_assist.js`, `google_oauth.js`) were found with zero live importers and removed rather than migrated.
+- **freddie** owns agent-loop orchestration: tools, skills, sessions, memory. Calls *only* acptoapi for LLM access. No direct `fetch('https://api.openai.com/...')`. The prior migration-debt list here (`plugins/media/lib/vision.js`, `plugins/image_gen`, `plugins/media/lib/tts.js`, `plugins/media/lib/transcription.js`, `src/agent/adapters/codex_responses_adapter.js`, `src/imagegen/provider.js`, `src/agent/model-discovery.js`) is stale — those paths were relocated in the plugin-category-directory reorg and now correctly route through `getAcptoapiUrl()`/`acptoapi-bridge.js`. `src/agent/model-discovery.js` and `src/agent/model-matrix.js` no longer exist as separate files — both were consolidated into `src/models/discovery.js` (`listKnownProviders`, `discoverModels`, `loadMatrix`, `matrixUsable`, `MATRIX_FILE`). Six unrelated, fully dead direct-fetch adapter files (`xai_adapter.js`, `openrouter_adapter.js`, `bedrock_adapter.js`, `gemini_cloudcode_adapter.js`, `google_code_assist.js`, `google_oauth.js`) were found with zero live importers and removed rather than migrated.
 - **thebird** owns browser presentation: webjsx UI, pyodide hermes shell. Talks to freddie for everything LLM-related when freddie is reachable; falls back to direct acptoapi only when there is no freddie.
 
 Versioning: freddie pins `acptoapi` with a caret range (`^X.Y.Z`), bumped by `scripts/sync-upstream.mjs` on a weekly cron + manual dispatch. Thebird vendors freddie via `scripts/sync-upstream.mjs` against upstream main.
@@ -43,7 +43,7 @@ Sampler funcs (`isAvailable`, `markFailed`, `markOk`, `resetAvailability`, `getS
 
 Matrix wired: shim passes `matrixSource: process.env.FREDDIE_MATRIX_URL || <repo>/.gm/model-availability.json` only for comma-list or `queue/<name>` model strings; single-shot omits to avoid leaking chain opts into upstream HTTP body.
 
-**No runtime provider-registration API exists in acptoapi or freddie (verified against acptoapi's own `AGENTS.md`).** `PROVIDER_KEYS`/`PROVIDER_DEFAULTS` are exported from acptoapi's `lib/provider-maps.js` as a static, hand-edited list of 17 providers — adding a new one means editing that file directly in the acptoapi repo, propagated to freddie on `npm install`, not calling a `registerProvider()`-style function at runtime. Freddie's own plugin contract (`src/host/contract.js` `PI_VERBS`) has no `provider` verb either, so a freddie plugin author has no in-tree path to add a bespoke provider — they'd have to open a PR against acptoapi directly. This is consistent with the "acptoapi is THE SDK" architecture above (provider breadth is acptoapi's job, not freddie's), but it does mean provider extensibility is edit-and-release, not runtime-pluggable, on either side. Not a defect to fix unilaterally — if a plugin-runtime provider-registration API is ever wanted, it's an acptoapi-repo design decision (a new export + a `provider` `PI_VERB` delegating to it), not something to bolt onto freddie alone.
+**No runtime provider-registration API exists in acptoapi or freddie (verified against acptoapi's own `AGENTS.md`).** `PROVIDER_KEYS`/`PROVIDER_DEFAULTS` are exported from acptoapi's `lib/provider-maps.js` as a static, hand-edited list (`PROVIDER_KEYS` currently has 29 entries, `PROVIDER_DEFAULTS` 34 — the two are different, larger sets than any older "17 providers" count, and grow independently as acptoapi adds brands) — adding a new one means editing that file directly in the acptoapi repo, propagated to freddie on `npm install`, not calling a `registerProvider()`-style function at runtime. Freddie's own plugin contract (`src/host/contract.js` `PI_VERBS`) has no `provider` verb either, so a freddie plugin author has no in-tree path to add a bespoke provider — they'd have to open a PR against acptoapi directly. This is consistent with the "acptoapi is THE SDK" architecture above (provider breadth is acptoapi's job, not freddie's), but it does mean provider extensibility is edit-and-release, not runtime-pluggable, on either side. Not a defect to fix unilaterally — if a plugin-runtime provider-registration API is ever wanted, it's an acptoapi-repo design decision (a new export + a `provider` `PI_VERB` delegating to it), not something to bolt onto freddie alone.
 
 ## LLM resolver priority
 
@@ -75,7 +75,7 @@ Contract: `{ name, version?, surfaces: 'pi'|'gui'|'both', requires?: [...names],
 
 - PI_VERBS: `tool, env, command, cron, platform, memory, skill, context, agentExt, cli`
 - GUI_VERBS: `route, page, nav, debug, api, asset`
-- HOOK_NAMES: `preToolCall, postToolCall, preLlmCall, postLlmCall, onSessionStart, onSessionEnd, onTurnStart, onTurnEnd, onMessageInbound, onMessageOutbound`
+- HOOK_NAMES: `preToolCall, postToolCall, onToolProgress, preLlmCall, postLlmCall, onSessionStart, onSessionEnd, onTurnStart, onTurnEnd, onMessageInbound, onMessageOutbound, onPreCompact, onPostCompact`
 - Surface guard throws `plugin <name>: surface verb '<verb>' not allowed` at load.
 - `requires` cycles throw `plugin cycle: a -> b -> a` synchronously.
 
@@ -85,7 +85,7 @@ Host: `src/host/host.js` — `createHost({surfaces, configStore, env})` + `disco
 
 **The bash tool inherits `process.env` verbatim by default** (`plugins/tools/bash/handler.js`) — every provider API key is visible to any spawned command. `terminal.scrub_provider_env` (config, default `false`) opts a session into stripping known provider credential env vars (`src/auth.js::listKnownEnvVars()`, the dedup'd `ENV_OF` value set) from the subprocess env via `src/host/tool-resources.js::scrubEnv()`, for running less-trusted commands. Off by default since many legitimate commands (curl-ing a provider API directly, etc.) need the real keys.
 
-**Freddie has no plugin distribution/install mechanism.** pi.dev's "Pi Packages" doc describes `pi install`/`remove`/`list`/`update` over npm/git/local sources, discovered via a `pi` key in `package.json` (or convention directories) and tracked in `settings.json`. Freddie's plugin roots are always local filesystem discovery only (`<repo>/plugins`, `~/.freddie/plugins/`, trust-gated `<cwd>/.freddie/plugins/`) — there is no `freddie install <spec>` equivalent to fetch a third-party plugin package from npm/git. A real gap if third-party plugin distribution is ever wanted; not urgent today since all current plugins ship in-repo.
+**Plugin distribution**: `freddie plugin validate|install|remove|list|registry|search` (`plugins/plugin-validate/plugin.js`) over `src/plugins/install.js` (`installPlugin`/`removePlugin`/`listInstalledPlugins`, supporting `npm:<pkg>`, `git:<url>`, and local-path specs) and `src/plugins/install-registry.js` (`fetchRegistryIndex`/`searchRegistry`/`getRegistryUrl`/`setRegistryUrl`). No freddie-owned registry is hosted yet — the registry URL config key defaults unset and `install`/`search` against it fail with a clear message until one is configured — but the npm/git/local install path itself is real and CLI-reachable, unlike pi.dev's `pi install`/`remove`/`list`/`update` package-manager surface (`settings.json`-tracked, `pi` key in `package.json`) which freddie does not replicate.
 
 **A consumer building a message-facing agent for an UNTRUSTED end user (a WhatsApp/Discord/SMS contact, never a developer at a terminal) must NOT enable the bare `'core'` toolset.** `core` is scoped for a CODING agent and bundles `bash`, `code_execution`, `edit`, `write`, `file_operations`, `credential_files`, `read`, `grep`, `terminal`, `cronjob`, `process_registry`, `mcp_tool`/`mcp_oauth*`, `send_message` (bypasses whatever outbound pipeline the consumer built), and more — every one of these becomes schema-visible and CALLABLE by the model on every turn using that `enabledToolsets`, reachable by whatever text the end user sent, since `bootHost` always discovers freddie's own `plugins/` regardless of the consumer's own roots. Use the `'contact-facing'`/`'field-worker'` distributions in `src/toolset_distributions.js` (`enabledToolsets: []`, no bare `core`) as the safe starting point for this class of consumer, then add the consumer's OWN registered toolset (e.g. a CRM's `case_*` tools) separately. (Found live in a downstream consumer: `enabledToolsets: ['cases','core']` exposed a real, callable `bash` handler to every inbound message from the public.)
 
@@ -94,11 +94,11 @@ Host: `src/host/host.js` — `createHost({surfaces, configStore, env})` + `disco
 - `config` — scoped under `plugins.<name>` (`get/set/all`)
 - `host` — `{plugins(), get(name)}`
 
-Thin shims (resolved through host, do not bypass): `src/plugins/manager.js`, `src/web/server.js` (iterates `host.gui.routes.list()`), `bin/freddie.js` (iterates `host.pi.cli.list()`), `src/gateway/platforms.js` (`*Adapter$` name match), `src/agent/memory_provider.js` (host-router).
+Thin shims (resolved through host, do not bypass): `src/plugins/install.js`/`install-registry.js` (npm/git/local plugin install, no `manager.js` — plugin listing goes straight through `host()`, e.g. `src/cli/plugins.js`'s `listPluginsInstalled()` calling `host().plugins()`), `src/web/server.js` (iterates `host.gui.routes.list()`), `bin/freddie.js` (iterates `host.pi.cli.list()`), `src/gateway/platforms.js` (`*Adapter$` name match), `src/agent/memory_provider.js` (host-router).
 
 ## gm-skill
 
-`gm-skill` is loaded directly as a skill from its SKILL.md — not registered as a plugin. Resolution order: (1) `~/.claude/skills/gm-skill/SKILL.md`, (2) `node_modules/gm-cc/skills/gm-skill/SKILL.md`. All other `gm-*` platform variants (gm-cc, gm-codex, gm-cursor, gm-jetbrains, gm-kilo, gm-oc, gm-vscode, gm-zed, gm-gc, gm-copilot-cli) are DEPRECATED. `src/host/host_helpers.js::loadCcFromNodeModules` carries `CC_EXCLUDE = new Set(['gm-cc'])` so the gm-cc npm package is not auto-discovered as a cc-plugin.
+`gm-skill` is loaded directly as a skill from its SKILL.md — not registered as a plugin. Resolution order: (1) `~/.claude/skills/gm-skill/SKILL.md`, (2) `node_modules/gm-cc/skills/gm-skill/SKILL.md`. All other `gm-*` platform variants (gm-cc, gm-codex, gm-cursor, gm-jetbrains, gm-kilo, gm-oc, gm-vscode, gm-zed, gm-gc, gm-copilot-cli) are DEPRECATED. `src/host/cc-integration.js::loadCcFromNodeModules` carries `CC_EXCLUDE = new Set(['gm-cc'])` so the gm-cc npm package is not auto-discovered as a cc-plugin.
 
 ## Learning: gm rs-learn is THE memory mechanism
 
@@ -181,8 +181,7 @@ src/agent/llm_resolver.js        # thin shim over acptoapi.chat (resolveCallLLM)
 src/agent/events.js              # wire envelope emitTurnEvent + replay log (<FREDDIE_HOME>/wire/*.jsonl)
 src/agent/live-turns.js          # live-turn registry entrypoint: subscribe/steer/cancel/approvals, re-exporting turn-registry/turn-steering/turn-approval/turn-revert.js
 src/agent/acptoapi-bridge.js     # HTTP passthrough to FREDDIE_LLM_URL daemon
-src/agent/model-discovery.js     # claude-cli/ACP/ollama discovery beyond acptoapi
-src/agent/model-matrix.js        # MATRIX_FILE path + matrixUsable predicate
+src/models/discovery.js          # claude-cli/ACP/ollama discovery beyond acptoapi + MATRIX_FILE path/matrixUsable predicate
 src/agent/pi-bridge.js           # @earendil-works/pi-ai callLLM adapter (REPL wraps it with an acptoapi-chain fallback — bare pi-bridge hard-defaults provider=anthropic and throws when unkeyed)
 src/agent/compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js
 src/commands/registry.js         # CommandDef + resolveCommand + gateway/telegram/slack views
@@ -194,14 +193,14 @@ src/batch.js                     # parallel batch runner
 src/web/{server,app,state,routes,index.html}  # thin dashboard mount over SDK
 src/gateway/run.js               # Gateway + hooks
 src/acp/server.js                # JSON-RPC stdio
-src/plugins/manager.js           # thin shim over host
+src/plugins/{install,install-registry}.js  # npm/git/local plugin install + registry search
 src/agent/memory_provider.js     # host-router
 src/skills/index.js              # SKILL.md loader
 src/skin/engine.js               # _BUILTIN_SKINS + load/get/set
 src/observability/log.js         # structured logs
 src/observability/debug.js       # /debug registry
 src/host/{contract,host,host_helpers,index}.js  # plugin contract + discovery + singleton
-plugins/<name>/{plugin,handler}.js               # ~150 plugins: tools, platforms, memory, gui, core
+plugins/<name>/{plugin,handler}.js               # ~100 plugins: tools, platforms, memory, gui, core
 skills/                          # bundled skill bundles (creative/, software-development/, ops/, data/, planning/)
 website/                         # flatspace docs site: flatspace.config.mjs + theme.mjs + content/pages/*.yaml
 bin/freddie.js                   # commander CLI: tools, skills, profile, skin, sessions, search, gateway, acp, run, cron, batch, dashboard, help-all + user-facing key/path/conversation verbs: auth, project, session, doctor, setup
@@ -311,7 +310,7 @@ On Windows, ensure `closeDb()` and log-stream `closeAll()` are called before exi
 | Concern | Freddie location |
 |---|---|
 | Agent loop | `src/agent/machine.js` (xstate, freddie-original — `pi-agent-core` not installed, see Substrate) |
-| CLI entry | `bin/freddie.js` (commander) + `src/tui/index.js` (pi-tui `InteractiveMode` if available/TTY, else `src/cli/interactive.js` readline REPL) |
+| CLI entry | `bin/freddie.js` (commander) + `src/tui/index.js` (`launchTui()`, a from-scratch shell over `pi-tui` primitives on a real TTY — `pi-coding-agent`'s `InteractiveMode` is not installed, see Substrate — else `src/cli/interactive.js` readline REPL) |
 | Tools | `plugins/<name>/{plugin,handler}.js` (no `src/tools/`) |
 | Toolsets | `src/toolsets.js` |
 | Session store | `src/sessions.js` (libsql + FTS5, async API) |
@@ -323,8 +322,8 @@ On Windows, ensure `closeDb()` and log-stream `closeAll()` are called before exi
 | Skin engine | `src/skin/engine.js` |
 | Gateway + platforms | `src/gateway/run.js` + `plugins/platform-*/` |
 | ACP (JSON-RPC stdio) | `src/acp/server.js` |
-| TUI | substrate (`pi-tui` + pi-coding-agent) |
-| Plugins + memory | `src/plugins/manager.js` + `src/agent/memory_provider.js` + `plugins/memory-*/` |
+| TUI | `src/tui/{index,app}.js`, from-scratch shell over `pi-tui` primitives (`pi-coding-agent` not installed, see Substrate) |
+| Plugins + memory | `src/plugins/{install,install-registry}.js` + `src/agent/memory_provider.js` + `plugins/memory-*/` |
 | Skills loader | `src/skills/index.js` — scans `~/.freddie/skills/`, `<cwd>/skills/`, and the Agent Skills standard global dirs `~/.claude/skills`, `~/.agents/skills` (`skillRootsByPrecedence()`), 2s-TTL cached |
 | Context compressor | `src/agent/compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js` |
 | Documentation site | `website/` (flatspace + content/pages/*.yaml + theme.mjs) |
