@@ -96,6 +96,7 @@ export function createLineHandlers({ tui, transcript, editor, state, ui, skin, c
 
         // Live turn surface — the same wire events the REPL subscribes to.
         const toolLines = new Map()
+        const subagentLines = new Map()
         let assistantMd = null
         let assistantAcc = ''
         let sawDelta = false
@@ -118,6 +119,16 @@ export function createLineHandlers({ tui, transcript, editor, state, ui, skin, c
             } else if (env.event === 'tool.end') {
                 const t = toolLines.get(env.data.toolCallId)
                 if (t) t.line.setText(style.dim(`  ${env.data.denied ? '✗' : '✓'} ${t.name}${env.data.denied ? ' (denied)' : ''}`))
+            } else if (env.event === 'subagent.spawn') {
+                const l = new Text(style.dim(`  >> [${env.data.subagent_type}] ${env.data.description || env.data.agent_id} ${env.data.background ? '(background)' : ''}`), 1, 0)
+                subagentLines.set(env.data.agent_id, l)
+                transcript.addChild(l)
+            } else if (env.event === 'subagent.end') {
+                const l = subagentLines.get(env.data.agent_id)
+                if (l) {
+                    const mark = env.data.status === 'completed' ? 'OK' : env.data.status === 'timed_out' ? 'TIMEOUT' : 'FAIL'
+                    l.setText(style.dim(`  [${mark}] [${env.data.subagent_type}] ${env.data.agent_id} - ${env.data.status}`))
+                }
             } else if (env.event === 'approval.request') {
                 ui.askApproval(env.data)
             } else if (env.event === 'steer.append') {
