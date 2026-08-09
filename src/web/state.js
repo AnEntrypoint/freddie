@@ -87,6 +87,10 @@ export async function fetchHost() {
             env: { list: () => env, isSet: k => (env.find(e => e.key === k) || {}).set || false },
             gateway: { platforms: () => gateway.platforms || [] },
             agents: () => j('/api/agents').catch(() => ({ count: 0, turns: 0, active: null })),
+            subagents: {
+                list: () => j('/api/subagents').catch(() => []),
+                get: id => j('/api/subagents/' + encodeURIComponent(id)).catch(() => null),
+            },
             health: () => health,
             config: {
                 load: () => j('/api/config').catch(() => ({})),
