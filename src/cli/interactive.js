@@ -9,6 +9,7 @@ import { createSession, appendMessage, listSessions, getMessages } from '../sess
 import { listAllProfiles, switchProfile } from '../commands/profile.js'
 import { listAuthProviders, hasUsableSecret, envForProvider } from '../auth.js'
 import { listProjects, getActiveProject, setActiveProject } from '../projects.js'
+import { listSubagents } from '../../plugins/core/delegate/store.js'
 
 // Tools disabled in plan mode (read-only turn): mutation-capable tools are
 // hidden from the model so it can inspect (bash/read/grep stay) but not
@@ -29,7 +30,7 @@ const HANDLERS = {
             out.push(`\n# ${cat}`)
             for (const c of cmds) out.push(`  /${c.name}${c.args_hint ? ' ' + c.args_hint : ''}\t${c.description}`)
         }
-        out.push('\n# Conversation\n  /sessions\tList recent conversations\n  /resume <id>\tContinue a past conversation\n  /keys\tShow which provider keys are set\n  /project [name]\tShow or switch active project\n  /approve [off|mutating|all]\tShow or set the approval mode for this REPL\n  /plan\tToggle plan mode (read-only turns)\n  /cancel\tInterrupt the running turn\n  /steer <text>\tInject a message into the running turn (plain text mid-turn queues for after it)\n  !<cmd>\tRun a local shell command')
+        out.push('\n# Conversation\n  /sessions\tList recent conversations\n  /resume <id>\tContinue a past conversation\n  /subagents\tList active/recent fan-out subagents\n  /keys\tShow which provider keys are set\n  /project [name]\tShow or switch active project\n  /approve [off|mutating|all]\tShow or set the approval mode for this REPL\n  /plan\tToggle plan mode (read-only turns)\n  /cancel\tInterrupt the running turn\n  /steer <text>\tInject a message into the running turn (plain text mid-turn queues for after it)\n  !<cmd>\tRun a local shell command')
         return out.join('\n')
     },
     quit: (state) => { state.exit = true; return 'bye.' },
@@ -42,6 +43,15 @@ const HANDLERS = {
         const rows = await listSessions(20)
         if (!rows.length) return '(no sessions yet)'
         return rows.map(s => `  ${s.id.slice(0, 8)}  ${new Date(s.updated_at).toISOString().slice(0, 16).replace('T', ' ')}  ${s.title || '(untitled)'}`).join('\n')
+    },
+    subagents: async () => {
+        const rows = await listSubagents()
+        if (!rows.length) return '(no subagents yet)'
+        return rows
+            .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+            .slice(0, 20)
+            .map(s => `  ${s.agent_id}  [${s.status}]  depth=${s.depth ?? '?'}  ${s.subagent_type || '?'}  ${s.description || s.task?.slice(0, 60) || ''}`)
+            .join('\n')
     },
     resume: async (state, args) => {
         const wanted = args[0]
@@ -184,6 +194,8 @@ export async function interactive({ callLLM, resume = null, input = process.stdi
         const unsub = subscribeTurn(state.session, (env) => {
             if (env.event === 'tool.start') output.write(`  [tool] ${env.data.name} ${summarizeArgs(env.data.args)}\n`)
             else if (env.event === 'tool.end') output.write(env.data.denied ? `  [tool denied] ${env.data.name}\n` : `  [tool done] ${env.data.name}\n`)
+            else if (env.event === 'subagent.spawn') output.write(`  [subagent] ${env.data.subagent_type} ${env.data.description || env.data.agent_id}${env.data.background ? ' (background)' : ''}\n`)
+            else if (env.event === 'subagent.end') output.write(`  [subagent ${env.data.status}] ${env.data.agent_id}\n`)
             else if (env.event === 'approval.request') askApproval(env.data)
             else if (env.event === 'steer.append') output.write(`  [steer] ${env.data.text}\n`)
             else if (env.event === 'assistant.delta') { state.sawDelta = true; output.write(env.data.text || '') }

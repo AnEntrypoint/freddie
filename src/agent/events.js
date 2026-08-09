@@ -35,6 +35,7 @@ export const WIRE_EVENTS = [
     'tool.start', 'tool.end', 'status.update',
     'approval.request', 'approval.resolved', 'steer.append', 'queue.append',
     'session.end', 'session.error',
+    'subagent.spawn', 'subagent.progress', 'subagent.end',
 ]
 
 const listeners = new Map() // sessionId | '*' -> Set<fn>

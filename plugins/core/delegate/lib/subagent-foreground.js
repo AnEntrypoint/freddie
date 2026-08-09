@@ -6,6 +6,7 @@
 import { runTurn } from '../../../../src/agent/machine.js'
 import { persistSubagent } from '../store.js'
 import { buildContinuationPrompt } from './subagent-helpers.js'
+import { emitTurnEvent } from '../../../../src/agent/events.js'
 
 const CONTINUATION_MIN_CHARS = 200
 
@@ -65,6 +66,7 @@ export async function runSubagentInForeground({
             iterations: null,
             timed_out: false,
         })
+        emitTurnEvent(ctx.sessionKey, 'subagent.end', { agent_id: agentId, subagent_type, depth, status: 'error', error: err?.message || String(err) })
         return {
             result: null,
             error: err?.message || String(err),
@@ -118,6 +120,7 @@ export async function runSubagentInForeground({
         iterations: out.iterations,
         timed_out: isTimeout,
     })
+    emitTurnEvent(ctx.sessionKey, 'subagent.end', { agent_id: agentId, subagent_type, depth, status, error: out.error || null, iterations: out.iterations, timed_out: isTimeout })
 
     return {
         result: finalResult,

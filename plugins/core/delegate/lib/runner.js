@@ -14,6 +14,7 @@ import { telemetry } from '../../../../src/observability/telemetry.js'
 import { generateAgentId, normalizeTimeout, collectGitContext, buildResumePrompt, DEFAULT_TIMEOUT_S } from './subagent-helpers.js'
 import { runSubagentInBackground } from './subagent-background.js'
 import { runSubagentInForeground } from './subagent-foreground.js'
+import { emitTurnEvent } from '../../../../src/agent/events.js'
 
 const MAX_DEPTH = 3
 
@@ -152,6 +153,7 @@ export async function runSubagent({
     })
 
     telemetry.subagentCreated({ agent_id: agentId, subagent_type, depth, background: run_in_background })
+    emitTurnEvent(ctx.sessionKey, 'subagent.spawn', { agent_id: agentId, subagent_type, depth, background: run_in_background, description: description || null, resumed: resumeUsed })
 
     if (run_in_background) {
         return runSubagentInBackground({
