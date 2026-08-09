@@ -2,7 +2,6 @@ node_modules
 .thoth-test-home
 *.log
 .DS_Store
-.env
 dist
 src/web/vendor/
 .cache
@@ -125,3 +124,4 @@ approval-grants.json
 /uploads/
 # project-home runtime config (per-machine, never commit)
 config.yaml
+config.bat
