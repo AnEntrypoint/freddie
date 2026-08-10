@@ -69,6 +69,9 @@ function parseVerdict(raw) {
     const text = String(raw || '').trim()
     if (!text) return { decision: 'escalate', reason: 'classifier returned an empty answer' }
     const upper = text.toUpperCase()
+    const hasAllow = /\bALLOW\b/.test(upper)
+    const hasDeny = /\bDENY\b/.test(upper)
+    if (hasAllow && hasDeny) return { decision: 'escalate', reason: 'contradictory classifier answer (both ALLOW and DENY present): ' + text.slice(0, 80) }
     const lead = upper.replace(/^[^A-Z]+/, '').match(/^(ALLOW|DENY)\b/)
     if (lead) {
         if (lead[1] === 'ALLOW') return { decision: 'allow', reason: null }
@@ -78,10 +81,8 @@ function parseVerdict(raw) {
         const reason = firstLine.replace(/^[^A-Za-z]*deny\b[^A-Za-z]*/i, '').trim() || null
         return { decision: 'deny', reason }
     }
-    const hasAllow = /\bALLOW\b/.test(upper)
-    const hasDeny = /\bDENY\b/.test(upper)
-    if (hasAllow && !hasDeny) return { decision: 'allow', reason: null }
-    if (hasDeny && !hasAllow) return { decision: 'deny', reason: null }
+    if (hasAllow) return { decision: 'allow', reason: null }
+    if (hasDeny) return { decision: 'deny', reason: null }
     return { decision: 'escalate', reason: 'unparseable classifier answer: ' + text.slice(0, 80) }
 }
 
