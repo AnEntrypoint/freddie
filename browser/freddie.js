@@ -12888,7 +12888,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 						const tcid = call.id || call.tool_call_id;
 						if (control) {
 							const budget = control.toolBudgets?.[tname];
-							if (budget && noteToolCall(input.sessionKey, tname) > budget) {
+							if (Number.isFinite(budget) && noteToolCall(input.sessionKey, tname) > budget) {
 								emitTurnEvent(input.sessionKey, "tool.end", {
 									name: tname,
 									toolCallId: tcid,
