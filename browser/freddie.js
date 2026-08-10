@@ -12231,6 +12231,12 @@ function parseVerdict(raw) {
 		reason: "classifier returned an empty answer"
 	};
 	const upper = text.toUpperCase();
+	const hasAllow = /\bALLOW\b/.test(upper);
+	const hasDeny = /\bDENY\b/.test(upper);
+	if (hasAllow && hasDeny) return {
+		decision: "escalate",
+		reason: "contradictory classifier answer (both ALLOW and DENY present): " + text.slice(0, 80)
+	};
 	const lead = upper.replace(/^[^A-Z]+/, "").match(/^(ALLOW|DENY)\b/);
 	if (lead) {
 		if (lead[1] === "ALLOW") return {
@@ -12242,13 +12248,11 @@ function parseVerdict(raw) {
 			reason: text.split("\n")[0].replace(/^[^A-Za-z]*deny\b[^A-Za-z]*/i, "").trim() || null
 		};
 	}
-	const hasAllow = /\bALLOW\b/.test(upper);
-	const hasDeny = /\bDENY\b/.test(upper);
-	if (hasAllow && !hasDeny) return {
+	if (hasAllow) return {
 		decision: "allow",
 		reason: null
 	};
-	if (hasDeny && !hasAllow) return {
+	if (hasDeny) return {
 		decision: "deny",
 		reason: null
 	};
