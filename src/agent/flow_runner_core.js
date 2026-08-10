@@ -110,7 +110,7 @@ export class FlowRunner {
 
             const next = this._advanceToNext(node, edges, nodes)
             if (!next) {
-                return { ok: true, result: this.state.results, state: this.state }
+                return { ok: false, error: `Flow "${this.skillName}" stalled: no outgoing edge from node "${node.id}" and no END node reached`, result: this.state.results, state: this.state }
             }
             return { ok: true, state: this.state }
         } catch (e) {
@@ -155,6 +155,9 @@ export class FlowRunner {
             }
 
             if (!matchedEdge) {
+                if (!outgoing.length) {
+                    return { ok: false, error: `Flow "${this.skillName}" stalled: decision node "${node.id}" has no outgoing edges`, result: this.state.results, state: this.state }
+                }
                 // Default: take the first edge
                 matchedEdge = outgoing[0]
                 this.state.messages.push({
