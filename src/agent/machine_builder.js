@@ -174,7 +174,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                 // identical-args streak detector: varying-args burn loops
                                 // hit the budget instead.
                                 const budget = control.toolBudgets?.[tname]
-                                if (budget && noteToolCall(input.sessionKey, tname) > budget) {
+                                if (Number.isFinite(budget) && noteToolCall(input.sessionKey, tname) > budget) {
                                     emitTurnEvent(input.sessionKey, 'tool.end', { name: tname, toolCallId: tcid, budgetExceeded: true })
                                     results.push({ tool_call_id: tcid, content: JSON.stringify({ error: 'tool session budget exceeded', tool: tname, budget }) })
                                     extras.push({ role: 'system', content: `<system-reminder>Tool ${tname} has exceeded its session budget of ${budget} calls. Do not call it again this session — answer with what you have or state the blocker.</system-reminder>` })
