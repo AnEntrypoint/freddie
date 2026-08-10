@@ -1,6 +1,6 @@
 {
   "name": "freddie",
-  "version": "0.0.277",
+  "version": "0.0.278",
   "type": "module",
   "description": "Open JS agent harness built on pi-mono, xstate, and anentrypoint-design",
   "bin": {
