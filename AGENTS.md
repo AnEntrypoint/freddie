@@ -104,6 +104,33 @@ Thin shims (resolved through host, do not bypass): `src/plugins/install.js`/`ins
 
 Non-trivial freddie fixes are verified adversarially, not self-reported: after `gm`'s PROVE/EMIT phase produces a witnessed fix, capture the diff and spawn a fresh `Agent(subagent_type='general-purpose')` with NO exposure to the fixing session's reasoning — only the diff and the surrounding file — instructed to apply `/lean`'s `G_INDEP` gate ("verifier has not read the implementation") and attack the change rather than confirm it, defaulting to a REAL DEFECT verdict unless CONFIRMED CORRECT can be defended with a specific code citation. A REAL DEFECT verdict routes back into the SAME PRD row (still narrow scope) for an immediate fix and a second live witness, never a silent inline patch outside the PRD. This surfaces defects a single unverified pass misses: e.g. `src/agent/flow_runner_core.js`'s `_processTask` used to report `ok: true` when a task node had no outgoing edge and no END was reached (silent stall-as-success); the adversarial pass on the fix additionally caught that the fix dropped `state.results` on the new error path and that `_processDecision` had the same defect class as an uncaught `TypeError` (empty `outgoing` array), both fixed same-cycle. A single `Agent()` call already achieves the `G_INDEP` property; a `Workflow` script is only worth building when verifying many files/rows in parallel, not built speculatively ahead of that need.
 
+**Formalized template (use this shape every time, don't re-derive):**
+
+- **Capture the diff first, narrowly.** `git diff -- <touched files>` (never the whole working tree). For each touched file, `Read` that one file in full for context — not a merged blob of every touched file, so the verifier can tell which hunk belongs to which file. That pair — diff + per-file context — is the ENTIRE input to the verifier. Do not paste PRD rows, mutable history, or the fixing session's own reasoning; the verifier must not see why the change was made, only what it is.
+- **The verifier call:**
+  ```
+  Agent(
+    subagent_type='general-purpose',
+    description='Adversarial G_INDEP review of <short change desc>',
+    prompt=`You have NOT seen why this change was made and must not guess at intent charitably.
+      Diff:
+      <diff>
+      Full file(s) for context:
+      <file contents>
+      Apply lean's G_INDEP gate: you have not read the implementation's reasoning, only the artifact.
+      Attack this change — look for: silently swallowed error paths, dropped state/fields,
+      off-by-one/empty-collection edge cases, uncaught exceptions on degenerate input,
+      sibling code with the same defect class left unfixed.
+      Default verdict is REAL DEFECT. Only return CONFIRMED CORRECT if you can cite the
+      specific line(s) that make each attack fail. Report: verdict, and if REAL DEFECT,
+      the exact file:line and failing input/state that reproduces it.`
+  )
+  ```
+- **Routing a REAL DEFECT verdict back into gm:** never patch inline outside the PRD, and the row this routes into ALWAYS goes through PROVE/EMIT again followed by a re-run of the SAME verifier template against the new diff, regardless of which of the two paths below applies — a REAL DEFECT verdict is never discharged by adding a row alone. If the originating PRD row is still open (not yet `prd-resolve`d), re-dispatch `prd-add` with the SAME `id` (upsert-rescopes in place per gm's SPECIFY "Rows are cut..." rule) and a `subject` naming the specific defect the verifier cited. If the row was already `prd-resolve`d and deleted (or never existed — a drive-by fix outside the PRD flow), `prd-add` a FRESH row for the regression the verifier found, citing the defect — then drive that fresh row through the same fix/re-verify cycle just like the rescope path. `prd-resolve` for a row fires only once a verifier pass returns CONFIRMED CORRECT — gm's own `prd-resolve` contract (this file's SPECIFY-phase description) requires `witness_evidence` for any row, generically; this loop's specific instance of that generic requirement is: name the file/line the verifier's CONFIRMED CORRECT citation pointed at, so a later reader can tell which claim it was.
+- **Multi-file diffs:** when a diff spans several files with no single natural "surrounding file," the verifier gets the diff plus every touched file individually (per the capture step above) — never a same-verdict shortcut of reviewing only a subset because the set is large.
+- **Scaling to many rows:** once a gm pass has more than one EMIT diff awaiting adversarial review, this codebase's `Workflow` tool (multi-agent orchestration — see its own tool description for `pipeline()`/`parallel()` semantics) runs the same per-row diff-capture + verifier-call shape as a pipeline stage, so verification of row N doesn't block on row N-1 — not built speculatively before there's more than one row to verify in parallel.
+- **If the verifier's own citation doesn't hold up** (cites a line that doesn't actually defend against the attack, or misreads the diff): treat this the same as any other unwitnessed claim — re-dispatch a second, independent verifier `Agent()` call against the same diff+file input before trusting a CONFIRMED CORRECT verdict on a contested change; do not resolve a row on a citation you can see is wrong.
+
 ## Learning: gm rs-learn is THE memory mechanism
 
 freddie learns through **gm rs-learn**, in-process, via `src/learn/gm-learn.js`. This is the single canonical learning store; the local-SQLite store is gone and the third-party providers (`plugins/memory-*/`) are legacy opt-in only.
