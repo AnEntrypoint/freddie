@@ -57,7 +57,7 @@ export async function tick(now = new Date(), { callLLM = null } = {}) {
 let _interval = null
 export function startScheduler({ callLLM = null, intervalMs = 30000 } = {}) {
     stopScheduler()
-    _interval = setInterval(() => { tick(new Date(), { callLLM }) }, intervalMs)
+    _interval = setInterval(() => { tick(new Date(), { callLLM }).catch(e => log.error('cron scheduler tick failed', { err: String(e) })) }, intervalMs)
     return _interval
 }
 
