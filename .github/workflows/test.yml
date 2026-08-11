@@ -19,6 +19,9 @@ jobs:
       - name: Install deps
         run: npm install --no-audit --no-fund
 
+      - name: Re-resolve github: deps to current default-branch HEAD
+        run: npm update acptoapi anentrypoint-design plugsdk --no-audit --no-fund
+
       - name: Lint (syntax + package.json shape + split/naming warnings)
         run: npm run lint
 

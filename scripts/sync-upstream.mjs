@@ -63,10 +63,19 @@ function majorOf(version) {
 
 const changes = []
 const skipped = []
+const githubDepsToRefresh = []
 for (const name of targets) {
     const cur = (pkg.dependencies || {})[name] || (pkg.devDependencies || {})[name]
     if (!cur) continue
     if (cur.startsWith('file:')) { console.log(`skip ${name}: file: dep (local-dev pattern)`); continue }
+
+    if (cur.startsWith('github:')) {
+        if (cur.includes('#')) { console.log(`skip ${name}: github: dep is ref-pinned (${cur}) — not an always-latest spec`); continue }
+        console.log(`~ ${name}: ${cur} — will re-resolve default-branch HEAD via npm update`)
+        githubDepsToRefresh.push(name)
+        continue
+    }
+
     if (cur === 'latest') { console.log(`skip ${name}: already tracks the latest dist-tag`); continue }
 
     let latest
@@ -101,15 +110,21 @@ if (skipped.length) {
     for (const s of skipped) console.log(`  ${s.name}: ${s.from} -> ${s.to}  (${s.reason})`)
 }
 
-if (!changes.length) { console.log('nothing to update'); process.exit(0) }
-if (dryRun) { console.log('--dry-run: not writing package.json'); process.exit(0) }
+if (!changes.length && !githubDepsToRefresh.length) { console.log('nothing to update'); process.exit(0) }
+if (dryRun) { console.log('--dry-run: not writing package.json / not refreshing lockfile'); process.exit(0) }
 
-writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n')
+if (changes.length) writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n')
 try { execFileSync('npm', ['install', '--package-lock-only'], { cwd: ROOT, stdio: 'inherit', shell: true }) }
 catch (e) { console.error('! npm install --package-lock-only failed:', e.message); process.exit(1) }
 
+if (githubDepsToRefresh.length) {
+    try { execFileSync('npm', ['update', ...githubDepsToRefresh], { cwd: ROOT, stdio: 'inherit', shell: true }) }
+    catch (e) { console.error('! npm update (github deps) failed:', e.message); process.exit(1) }
+}
+
 console.log('\nsummary:')
 for (const c of changes) console.log(`  ${c.name}: ${c.from} -> ${c.to}`)
+for (const g of githubDepsToRefresh) console.log(`  ${g}: lockfile SHA re-resolved to current default-branch HEAD`)
 
 // Run osv.dev vulnerability scan on the updated lockfile
 const osvScript = resolve(ROOT, 'scripts', 'osv-scan-lockfile.mjs')
