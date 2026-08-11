@@ -28,13 +28,13 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Rewrite local-file deps to github: specs
+      - name: "Rewrite local-file deps to github: specs"
         run: node .github/workflows/rewrite-file-deps.cjs
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Re-resolve github: deps to current default-branch HEAD
+      - name: "Re-resolve github: deps to current default-branch HEAD"
         run: npm update acptoapi anentrypoint-design plugsdk --no-audit --no-fund
 
       - name: Build website
