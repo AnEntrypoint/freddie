@@ -45,8 +45,8 @@ export async function createDashboard({ port = 0 } = {}) {
     // (and client-side hash routes) don't return Express's default 404 HTML.
     // /api/* is excluded — that 404s legitimately as data. The SDK itself is
     // no longer served locally: index.html loads it live from
-    // unpkg.com/anentrypoint-design@latest so the dashboard always tracks the
-    // newest published build without a local npm install.
+    // cdn.jsdelivr.net/gh/AnEntrypoint/design@main so the dashboard always
+    // tracks the newest commit on main without a local npm install.
     app.use((req, res, next) => {
         if (req.method !== 'GET') return next()
         if (req.path.startsWith('/api/')) return next()
