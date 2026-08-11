@@ -1,14 +1,12 @@
 const fs = require('fs')
-const { execSync } = require('child_process')
 
 const p = JSON.parse(fs.readFileSync('package.json', 'utf8'))
 
-for (const name of ['anentrypoint-design', 'acptoapi']) {
+const REPO_NAME = { 'anentrypoint-design': 'design', 'acptoapi': 'acptoapi', 'plugsdk': 'plugsdk' }
+for (const name of Object.keys(REPO_NAME)) {
     if (p.dependencies && p.dependencies[name] && p.dependencies[name].startsWith('file:')) {
-        let v = '0.0.0'
-        try { v = execSync(`npm view ${name} version`, { encoding: 'utf8' }).trim() } catch {}
-        p.dependencies[name] = '^' + v
-        console.log(`Pinned ${name} to ^${v}`)
+        p.dependencies[name] = `github:AnEntrypoint/${REPO_NAME[name]}`
+        console.log(`Repointed ${name} to ${p.dependencies[name]}`)
     }
 }
 
