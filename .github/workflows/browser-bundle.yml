@@ -21,7 +21,7 @@ jobs:
       - name: Install deps
         run: npm install --no-audit --no-fund
 
-      - name: Re-resolve github: deps to current default-branch HEAD
+      - name: "Re-resolve github: deps to current default-branch HEAD"
         run: npm update acptoapi anentrypoint-design plugsdk --no-audit --no-fund
 
       - name: Build browser bundle
