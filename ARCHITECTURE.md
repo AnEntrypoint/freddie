@@ -11,9 +11,9 @@ entry point** into freddie's runtime for other layers of the stack. It also ship
 GUI (`src/web/app.js`) and a CLI/TUI (`src/cli`, `src/pi`).
 
 Freddie does **not** own visual/GUI component code — that lives entirely upstream in
-`anentrypoint-design`. It is consumed two ways, both tracking the newest published build:
-the npm dependency at the `latest` dist-tag for Node-side imports, and
-`https://unpkg.com/anentrypoint-design@latest/dist/247420.{js,css}` for the browser.
+`anentrypoint-design`. It is consumed two ways, both tracking the newest commit on `main`:
+the `github:AnEntrypoint/design` dependency spec for Node-side imports, and
+`https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/dist/247420.{js,css}` for the browser.
 See AGENTS.md "Kit consumption strategy (fleet-wide)" for the rule and its two exclusions.
 
 ## How it fits with design and thebird
@@ -53,8 +53,5 @@ the process thebird's `docs/acptoapi-integration.md` external-mode config points
   publishes to `gh-pages` under `/browser/`.
 - `pages.yml` — builds the marketing/docs website (`website/`, via flatspace) and folds the browser
   bundle + skills into the same Pages artifact.
-- `publish.yml` — on push to `master`: prepares `package.json`, installs, runs `node test.js`,
-  `npm publish`, then restores/commits the version bump.
 - `test.yml` (CI, every push/PR): `node test.js` unit tests plus a plugin-discovery smoke boot
-  (`discoverPlugins(['plugins'])` must not throw) — runs on PRs too, unlike `publish.yml` which
-  only gates the real npm publish.
+  (`discoverPlugins(['plugins'])` must not throw).
