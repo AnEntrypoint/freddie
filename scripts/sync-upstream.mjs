@@ -14,10 +14,10 @@
 // After a successful bump, runs osv-scan-lockfile.mjs if it exists.
 //
 // DEPENDENCY ORDER for multi-repo bumps:
-//   plugsdk / gm / acptoapi / anentrypoint-design publish first (npm publish),
-//   then freddie's npm install picks up the new versions.
+//   plugsdk / gm / acptoapi / anentrypoint-design push to main first,
+//   then freddie's npm install picks up the new commits.
 //   thebird vendors freddie via scripts/sync-upstream.mjs — it runs last.
-//   When bumping a dep that cascades through all repos, publish in this order:
+//   When bumping a dep that cascades through all repos, push in this order:
 //     1. plugsdk  (no intra-stack deps)
 //     2. gm       (depends on plugsdk)
 //     3. acptoapi (depends on plugsdk)
