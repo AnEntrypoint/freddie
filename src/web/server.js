@@ -45,8 +45,10 @@ export async function createDashboard({ port = 0 } = {}) {
     // (and client-side hash routes) don't return Express's default 404 HTML.
     // /api/* is excluded — that 404s legitimately as data. The SDK itself is
     // no longer served locally: index.html loads it live from
-    // cdn.jsdelivr.net/gh/AnEntrypoint/design@main so the dashboard always
-    // tracks the newest commit on main without a local npm install.
+    // raw.githack.com/AnEntrypoint/design/main so the dashboard always
+    // tracks the newest commit on main without a local npm install. (Not
+    // jsDelivr's cdn.jsdelivr.net/gh/... equivalent — that caches a GitHub
+    // @main branch reference for up to 12h regardless of purge.)
     app.use((req, res, next) => {
         if (req.method !== 'GET') return next()
         if (req.path.startsWith('/api/')) return next()
