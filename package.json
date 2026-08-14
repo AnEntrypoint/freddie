@@ -23,23 +23,23 @@
     "link-local-design": "node scripts/link-local-design.mjs"
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "^0.83.0",
-    "@earendil-works/pi-tui": "^0.83.0",
+    "@earendil-works/pi-ai": "^0.84.2",
+    "@earendil-works/pi-tui": "^0.84.2",
     "@libsql/client": "^0.17.4",
     "acptoapi": "github:AnEntrypoint/acptoapi",
     "anentrypoint-design": "github:AnEntrypoint/design",
     "commander": "^15.0.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "flatspace": "^1.0.20",
-    "gm-plugkit": "^2.0.2496",
-    "gm-skill": "^2.0.2496",
-    "js-yaml": "^5.2.3",
+    "flatspace": "^1.0.23",
+    "gm-plugkit": "^2.0.2576",
+    "gm-skill": "^2.0.2576",
+    "js-yaml": "^5.3.0",
     "msgpackr": "^2.0.5",
     "plugsdk": "github:AnEntrypoint/plugsdk",
     "vscode-languageserver": "^10.1.0",
     "vscode-languageserver-textdocument": "^1.0.12",
-    "ws": "^8.21.2",
+    "ws": "^8.21.3",
     "xstate": "^5.32.5"
   },
   "optionalDependencies": {
@@ -88,7 +88,7 @@
     "xstate"
   ],
   "devDependencies": {
-    "esbuild": "^0.28.1",
-    "vite": "^8.2.0"
+    "esbuild": "^0.28.2",
+    "vite": "^8.2.1"
   }
 }
