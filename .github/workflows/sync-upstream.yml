@@ -2,7 +2,7 @@ name: sync-upstream
 
 on:
   schedule:
-    - cron: '0 6 * * 1'
+    - cron: '0 6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -13,16 +13,20 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: true
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - run: node scripts/sync-upstream.mjs --dry-run
-      - run: node scripts/sync-upstream.mjs
+      - run: node scripts/sync-upstream.mjs --dry-run --force-major
+      - run: node scripts/sync-upstream.mjs --force-major
+      - name: Sync submodule pointers to upstream main
+        run: git submodule update --remote --merge
       - name: Open PR if changes
         uses: peter-evans/create-pull-request@v8
         with:
           commit-message: 'chore(deps): sync sibling upstream versions'
           title: 'chore(deps): sync sibling upstream versions'
-          body: 'Automated sibling-package version bump produced by scripts/sync-upstream.mjs.'
+          body: 'Automated sibling-package version bump produced by scripts/sync-upstream.mjs, plus submodule pointer sync to each submodule''s upstream main.'
           branch: chore/sync-upstream
           delete-branch: true
