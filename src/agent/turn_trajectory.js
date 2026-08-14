@@ -39,10 +39,18 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
                 ...llmCalls.map(e => JSON.stringify({ event: 'llm_call', ...e })),
                 JSON.stringify({ event: 'session_end', iterations: out.iterations, error: out.error, error_stack: errorStack, compressor_invocations: compressorInvocations }),
             ].join('\n')
-            fs.mkdirSync(path.dirname(witnessPath), { recursive: true })
-            fs.writeFileSync(witnessPath, jsonl)
+            const absWitnessPath = path.resolve(witnessPath)
+            const witnessDir = path.dirname(absWitnessPath)
+            // Windows fs.mkdirSync(..., {recursive:true}) can throw EEXIST on an
+            // already-existing directory when given a relative path (the recursive
+            // walk doesn't uniformly no-op on a pre-existing leaf on win32) --
+            // resolving to an absolute path avoids the trigger; the explicit EEXIST
+            // swallow is defense in depth so an existing dir never aborts the write.
+            try { fs.mkdirSync(witnessDir, { recursive: true }) }
+            catch (e) { if (e?.code !== 'EEXIST') throw e }
+            fs.writeFileSync(absWitnessPath, jsonl)
         }
-    } catch (_) {}
+    } catch (e) { if (process.env.FREDDIE_DEBUG_TRAJECTORY) console.error('[writeTrajectory]', e) }
 }
 
 // Auto-learn: distill a salient fact from a completed turn and memorize it into gm rs-learn.

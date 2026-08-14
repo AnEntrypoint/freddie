@@ -50,7 +50,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     // keep their conversational behavior.
     if ((enabledToolsets ?? ['core']).length) sysParts.push('You are an autonomous coding agent. ACT, do not narrate: use your tools directly to accomplish the task (create and edit files, run commands) instead of describing a plan or asking which options to pick — make reasonable choices yourself. After each tool result, keep going until the task is fully done. Only stop when the work is complete or genuinely blocked.')
     if (cwd) sysParts.push(`Working directory: ${cwd}. Always pass cwd="${cwd}" to bash tool calls. When reading or writing files use paths relative to this directory or absolute paths under it.`)
-    if (skill) { const sd = h.pi.skills.get(skill); if (sd?.content) sysParts.push('Skill context:\n' + sd.content) }
+    if (skill) { const sd = h.pi.skills.get(skill); const skillText = sd?.content || sd?.body; if (skillText) sysParts.push('Skill context:\n' + skillText) }
     // Auto-recall on turn entry: surface salient learned memories for this prompt from gm
     // rs-learn (freddie's primary learning store). Best-effort; never blocks the turn.
     try {

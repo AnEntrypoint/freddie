@@ -62,12 +62,39 @@ function walk(d, out) {
     }
 }
 
+// Top-level frontmatter is often hand-authored prose, not strict-YAML-authored --
+// a plain scalar value containing an unescaped ': ' (e.g. "this skill is the
+// tree root: load it first") is a real YAML grammar violation (ambiguous with a
+// nested mapping) that every conformant parser rejects, js-yaml included. Rather
+// than require every SKILL.md author to quote their prose, repair only the
+// top-level (unindented) 'key: value' lines whose value contains that shape by
+// wrapping the value in quotes, then retry the real parse.
+const TOP_LEVEL_KV = /^([A-Za-z0-9_-]+):[ \t]+(.*)$/
+function repairPlainScalarColons(block) {
+    return block.split('\n').map(line => {
+        const m = TOP_LEVEL_KV.exec(line)
+        if (!m) return line
+        const [, key, value] = m
+        if (/^['"[{|>]/.test(value)) return line
+        if (!/: /.test(value)) return line
+        return `${key}: ${JSON.stringify(value)}`
+    }).join('\n')
+}
+
+function loadFrontmatter(block) {
+    try { return yaml.load(block) || {} }
+    catch (e) {
+        try { return yaml.load(repairPlainScalarColons(block)) || {} }
+        catch { throw e }
+    }
+}
+
 export function loadSkill(file) {
-    const raw = fs.readFileSync(file, 'utf8')
+    const raw = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
     const dirName = path.basename(path.dirname(file))
     const m = FRONTMATTER.exec(raw)
     if (!m) return { file, name: dirName, description: '', body: raw, frontmatter: {} }
-    const fm = yaml.load(m[1]) || {}
+    const fm = loadFrontmatter(m[1])
     const name = fm.name || dirName
     return {
         file, name, description: fm.description || '', frontmatter: fm, body: m[2], platforms: fm.platforms,
