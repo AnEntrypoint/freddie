@@ -2,7 +2,6 @@ node_modules
 .thoth-test-home
 *.log
 .DS_Store
-.env
 dist
 src/web/vendor/
 .cache
