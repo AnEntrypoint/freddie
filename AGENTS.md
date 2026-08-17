@@ -366,6 +366,7 @@ On Windows, ensure `closeDb()` and log-stream `closeAll()` are called before exi
 | Auth store | `src/auth.js` (FileAuthStore) + pi-ai key resolution |
 | Context engine | `src/context/engine.js` |
 | Browser tool | `plugins/web/lib/browse.js` (puppeteer-core, lazy; merged web plugin also has search/fetch) |
+| Document extraction | `plugins/document-extraction/{plugin,handler}.js` — Deflector/Extractor/Discovery/Learner over git-tracked plaintext lessons files (`<cwd>/.gm-lessons/<type>.md`), all LLM calls via `resolveCallLLM`; PDF-native text extraction deliberately excluded — PDFs route through the image/vision path, no `pdf-parse` dep |
 | LLM resolver | `src/agent/llm_resolver.js` (thin shim over `acptoapi.chat`) |
 | Wire protocol | `src/agent/events.js` + `src/agent/live-turns.js` + `plugins/wire` (stdio JSON-RPC) + `plugins/gui/gui-agent` (WS) — see "Wire protocol" section |
 | Bundled skills | `skills/` (5 categories) |
