@@ -20,8 +20,8 @@ const ACTIONS = {
 }
 
 export const _tool = ({
-    name: 'checkpoint',
+    name: 'checkpoint_kv',
     toolset: 'core',
-    schema: { name: 'checkpoint', description: 'Save/load/list/delete named JSON checkpoints under ~/.freddie/checkpoints.', parameters: { type: 'object', properties: { action: { type: 'string', enum: Object.keys(ACTIONS) }, name: { type: 'string' }, data: {} }, required: ['action'] } },
+    schema: { name: 'checkpoint_kv', description: 'Save/load/list/delete named JSON blobs under ~/.freddie/checkpoints. Distinct from the session-checkpoint tool (checkpoint), which snapshots conversation state.', parameters: { type: 'object', properties: { action: { type: 'string', enum: Object.keys(ACTIONS) }, name: { type: 'string' }, data: {} }, required: ['action'] } },
     handler: async (args) => { const fn = ACTIONS[args.action]; return fn ? fn(args) : { error: 'unknown action' } },
 })
