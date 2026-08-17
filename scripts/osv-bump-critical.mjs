@@ -3,7 +3,7 @@
 // `node scripts/osv-scan-lockfile.mjs --json <path>`) and bumps each flagged
 // package to its patched version via `npm install <pkg>@<fixedVersion>
 // --package-lock-only`, mirroring sync-upstream.mjs's install pattern. Does
-// NOT open the PR itself — that's peter-evans/create-pull-request@v6 in the
+// NOT open the PR itself — that's peter-evans/create-pull-request@v8 in the
 // wiring workflow, same action AGENTS.md documents sync-upstream.yml uses.
 // Usage: node scripts/osv-bump-critical.mjs <findings.json> [--dry-run]
 import { execFileSync } from 'node:child_process'
