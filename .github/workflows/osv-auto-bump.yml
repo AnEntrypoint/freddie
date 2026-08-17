@@ -3,7 +3,7 @@ name: osv-auto-bump
 # On a CRITICAL finding from scripts/osv-scan-lockfile.mjs, opens a PR
 # bumping the flagged package(s) to their patched version. Reuses the same
 # PR-creation pattern sync-upstream.yml already uses (AGENTS.md documents
-# this: peter-evans/create-pull-request@v6).
+# this: peter-evans/create-pull-request@v8).
 
 on:
   schedule:

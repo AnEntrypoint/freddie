@@ -388,7 +388,7 @@ Windows: use the npm install (`opencode.cmd`), not the broken bun shim; ACP daem
 
 ## scripts/sync-upstream.mjs
 
-`node scripts/sync-upstream.mjs [--dry-run] [pkg ...]` regenerates the lockfile resolution for the 3 `github:`-spec deps (plugsdk, acptoapi, anentrypoint-design) so each tracks its repo's current default-branch HEAD, and still bumps `gm-cc` from the npm registry (unrelated to this composed-dependency set) via `^<latest>`. Skips `file:` deps and any dep already on a `github:` spec with no ref pin. Wired into `.github/workflows/sync-upstream.yml` (weekly cron + workflow_dispatch); opens a PR via `peter-evans/create-pull-request@v8` on changes.
+`node scripts/sync-upstream.mjs [--dry-run] [pkg ...]` regenerates the lockfile resolution for the 3 `github:`-spec deps (plugsdk, acptoapi, anentrypoint-design) so each tracks its repo's current default-branch HEAD, and still bumps `gm-cc` from the npm registry (unrelated to this composed-dependency set) via `^<latest>`. Skips `file:` deps and any dep already on a `github:` spec with no ref pin. Wired into `.github/workflows/sync-upstream.yml` (daily cron + workflow_dispatch); opens a PR via `peter-evans/create-pull-request@v8` on changes.
 
 - **npm version**: the dev environment runs npm 10.7.0 — below the 11.x line. CI workflows target Node 24, which ships npm 11.x. Do NOT run `npm install -g npm@latest` (a global system change); the gap is noted here for awareness. When the global npm is eventually updated, remove this note.
 
