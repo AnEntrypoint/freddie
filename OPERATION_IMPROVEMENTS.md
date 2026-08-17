@@ -1,5 +1,15 @@
 # Operation Improvement Audit
 
+**Point-in-time snapshot, not a live status board.** At least two freddie
+findings below are already resolved and were proven stale by a later
+verification pass: the "direct provider fetch bypassing acptoapi" item (3-HIGH)
+names `codex_responses_adapter.js`/`src/imagegen/provider.js`, both of which
+already route through `getAcptoapiUrl()`; and the `test.js` line-count item
+(3-MEDIUM) refers to a file that no longer exists (freddie has zero automated
+tests by design). Re-verify a finding against the current tree before acting
+on it — do not assume anything here is still open just because it is written
+down.
+
 A complete, prioritised list of everything we can improve across the four-repo
 operation: **freddie** (agent harness), **acptoapi** (LLM SDK / protocol bridge),
 **casey** (surveillance orchestrator), **anentrypoint-design** (UI SDK).
