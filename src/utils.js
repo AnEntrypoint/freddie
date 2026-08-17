@@ -1,13 +1,6 @@
 import crypto from 'node:crypto'
 export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
 export const sleep = (ms) => new Promise(r => setTimeout(r, ms))
-export async function retry({ fn, attempts = 3, backoff = 200, factor = 2 }) {
-    let last
-    for (let i = 0; i < attempts; i++) {
-        try { return await fn(i) } catch (e) { last = e; if (i < attempts - 1) await sleep(backoff * Math.pow(factor, i)) }
-    }
-    throw last
-}
 export function debounce(fn, ms) {
     let t = null
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms) }

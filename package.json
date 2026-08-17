@@ -20,7 +20,8 @@
     "start": "node bin/freddie.js",
     "lint": "node scripts/lint.mjs",
     "build:browser": "vite build --config vite.browser.config.js",
-    "link-local-design": "node scripts/link-local-design.mjs"
+    "link-local-design": "node scripts/link-local-design.mjs",
+    "postinstall": "node scripts/scan-deps.mjs"
   },
   "dependencies": {
     "@earendil-works/pi-ai": "latest",
