@@ -330,13 +330,12 @@ On Windows, ensure `closeDb()` and log-stream `closeAll()` are called before exi
 
 - `pi-coding-agent` ships a photon-rs wasm; install needs network.
 - `pi-ai` reads provider keys via `findEnvKeys` / `getEnvApiKey`. Match its env var names (`ANTHROPIC_API_KEY`, etc.).
-- **libsql async debt**: every call into `src/sessions.js` (listSessions/search/getMessages/createSession/appendMessage) and `src/cron/scheduler.js` (listJobs/createJob/cancelJob/deleteJob) must be `await`ed. Sync callsites silently wrap each call in a Promise that rejects on iteration, surfacing as `TypeError: ... is not iterable`. Tool ACTIONS inner functions are async; handlers await dispatched fn.
-- **Bulk-rename: git grep is case-sensitive on literal patterns**: `git grep -lI <name>` only matches lowercase. For case-variant sweep, use `git grep -liI -e <lower> -e <Title> -e <UPPER>`. Single-form check is a false-clean trap.
-- **codeinsight `🔐 hardcoded secrets` / `🔐 SQL injection` are regex-only**, not value/AST. False positives: env-var names like `DAYTONA_API_KEY` in `process.env.X` references; function param names like `secret` in HMAC helpers; URL query keys like `?appkey=&appsecret=`; HTTP `DELETE` URL paths flagged as SQL `DELETE FROM`. Always read the actual line before treating as a finding.
-- **codeinsight orphan detector misses three reachability paths**: (1) `await import('./path/' + variable + '.js')` dynamic strings; (2) plugin auto-discovery walking `plugins/<dir>/plugin.js` from `discoverPlugins()` in `src/host/host.js`; (3) HTTP-served static files like `src/web/app.js` referenced only from `src/web/index.html`. Exempt these before deleting "dead" files.
+- libsql async-debt callsite list (sessions.js/cron/scheduler.js await requirement) — see rs-learn (recall "Freddie libsql async debt").
+- Bulk-rename git grep case-sensitivity trap — see rs-learn (recall "Freddie bulk-rename gotcha").
+- codeinsight secrets/SQL-injection detector false-positive shapes — see rs-learn (recall "Freddie codeinsight hardcoded-secrets/SQL-injection detectors").
+- codeinsight orphan-detector reachability blind spots — see rs-learn (recall "Freddie codeinsight orphan detector misses three reachability paths").
 - **freddie exec Windows invocation**: `bun run bin/freddie.js exec --prompt "..."`. Do NOT use `bun x freddie` — hangs on Windows from npm registry fetch timeouts. Args: `--prompt` (required), `--model` (default ''), `--timeout` (default 60000ms). Validated CI entry point.
-- **GitHub Actions `deploy-pages@v5`**: rejects if 2+ artifacts named "github-pages" exist. `gh run rerun --failed` can silently re-upload transients; trigger a fresh run via empty commit instead.
-- **Rebase regression trap**: after `git pull --rebase` following a rejected push, a CI auto-bump commit on remote can revert local fixes. `.github/workflows/restore-package.cjs` pins anentrypoint-design via `npm view` + `^<latest>`; `publish.yml` runs `npm install --package-lock-only` to keep lockfile valid. Recurrence tell: if pages CI fails with `lock file's anentrypoint-design@X.Y.Z does not satisfy anentrypoint-design@` (empty version = file: dep), audit `restore-package.cjs` and `publish.yml` for reversion — do not manually re-pin in `package.json` forever.
+- GitHub Pages CI gotchas (deploy-pages@v5 duplicate-artifact rejection, rebase-regression revert trap) — see rs-learn (recall "Freddie CI gotchas").
 
 ## Subsystem guide
 
