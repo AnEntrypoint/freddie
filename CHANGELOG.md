@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Added
+- `plugins/document-extraction/`: cheap-model document extraction plugin (Deflector/Extractor/Discovery/Learner pattern) over git-tracked plaintext lessons files — why: generalized structured-data extraction from adversarially-formatted documents without a schema database, per the "Freddie: Generalized Document Extraction via Cheap Subagents" spec, routed through acptoapi's `resolveCallLLM`, no direct provider calls.
+
 ### Docs
 - `AGENTS.md` Substrate gotchas: drained 5 detail-heavy single-crate/single-platform entries (libsql async debt, git-grep case sensitivity, codeinsight secrets/SQLi false-positives, codeinsight orphan-detector blind spots, GitHub Pages CI gotchas) to rs-learn, compressed to one-line pointers — why: keeps AGENTS.md resident cost to cross-cutting rules per the Memory discipline drain policy.
 
