@@ -11766,8 +11766,8 @@ var envVal = (k) => {
 	}
 };
 var ACPTOAPI_TIMEOUT_MS = Number(envVal("FREDDIE_LLM_TIMEOUT_MS")) || 24e4;
-function getAcptoapiModel() {
-	return envVal("FREDDIE_LLM_MODEL") || "claude/haiku";
+function getAcptoapiModel(defaultModel = null) {
+	return envVal("FREDDIE_LLM_MODEL") || defaultModel || null;
 }
 var _acptoapi = null;
 async function getAcptoapi() {
@@ -11794,14 +11794,16 @@ var REACHABILITY_PROBE_TIMEOUT_MS = Number(envVal("ACPTOAPI_REACHABILITY_PROBE_T
 async function isReachable(timeoutMs = REACHABILITY_PROBE_TIMEOUT_MS, model = null) {
 	try {
 		const acptoapi = await getAcptoapi();
-		const chainModel = await resolveChainLinks(acptoapi, model || getAcptoapiModel());
+		const useModel = model || getAcptoapiModel();
+		if (!useModel) return false;
+		const chainModel = await resolveChainLinks(acptoapi, useModel);
 		const probeChain = Array.isArray(chainModel) ? chainModel.slice(0, 3) : chainModel;
 		const probe = {
 			messages: [{
 				role: "user",
 				content: "ping"
 			}],
-			max_tokens: 4
+			max_tokens: 32
 		};
 		const result = await Promise.race([Array.isArray(probeChain) ? acptoapi.chatChain(probeChain, probe) : acptoapi.chat({
 			model: probeChain,
@@ -11878,6 +11880,27 @@ function parsePythonTag(content) {
 		name,
 		arguments: args
 	}] : [];
+}
+function parseMinicpmFunctionTags(content) {
+	if (!content.includes("<function ")) return [];
+	const fnRe = /<function\s+name="([^"]+)">([\s\S]*?)<\/function>/g;
+	const paramRe = /<param\s+name="([^"]+)">(?:<!\[CDATA\[([\s\S]*?)\]\]>|([\s\S]*?))<\/param>/g;
+	const out = [];
+	let m;
+	while ((m = fnRe.exec(content)) !== null) {
+		const name = m[1];
+		const body = m[2];
+		const args = {};
+		let pm;
+		paramRe.lastIndex = 0;
+		while ((pm = paramRe.exec(body)) !== null) args[pm[1]] = pm[2] !== void 0 && pm[2] !== "" ? pm[2] : pm[3];
+		if (name) out.push({
+			id: randId(),
+			name,
+			arguments: args
+		});
+	}
+	return out;
 }
 function parseBareJsonArray(content) {
 	const trimmed = content.trim();
@@ -11973,6 +11996,8 @@ function parseTextToolCalls(content) {
 	if (kimi.length) return kimi;
 	const pythonTag = parsePythonTag(content);
 	if (pythonTag.length) return pythonTag;
+	const minicpm = parseMinicpmFunctionTags(content);
+	if (minicpm.length) return minicpm;
 	const bareArray = parseBareJsonArray(content);
 	if (bareArray.length) return bareArray;
 	const bareObject = parseBareFunctionCallObject(content);
@@ -12134,7 +12159,18 @@ _sdkNs && _sdkNs.default;
 var MATRIX_FILE = path.resolve(new URL(".", "" + import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), "..", "..", ".gm", "model-availability.json");
 //#endregion
 //#region src/agent/llm_provider_warmup.js
+init_config$1();
 var _req = createRequire(import.meta.url);
+function preferredModel() {
+	try {
+		const pref = getConfigValue("agent.model_preference", []);
+		const first = Array.isArray(pref) ? pref[0] : null;
+		if (!first || !first.provider) return null;
+		return (first.model ? `${first.provider}/${first.model}` : DEFAULTS[first.provider] ? `${first.provider}/${DEFAULTS[first.provider]}` : null) || null;
+	} catch {
+		return null;
+	}
+}
 function createResolverState() {
 	return {
 		warmExtraPromise: null,
@@ -12167,7 +12203,7 @@ async function cachedReachable() {
 	const s = state();
 	const now = Date.now();
 	if (now - s.lastReachable.at < 5e3) return s.lastReachable.ok;
-	const ok = await isReachable();
+	const ok = await isReachable(void 0, preferredModel());
 	s.lastReachable = {
 		at: now,
 		ok
@@ -12249,7 +12285,8 @@ function adapt(result) {
 		if (textTC.length) return {
 			content: "",
 			tool_calls: textTC,
-			raw: result
+			raw: result,
+			recoveredFromText: true
 		};
 	}
 	return {
@@ -12280,7 +12317,7 @@ async function buildModel({ provider, model, inputModel }) {
 	} catch {}
 	const pref = getConfigValue("agent.model_preference", []);
 	const prefModels = Array.isArray(pref) && pref.length ? pref.map((p) => `${p.provider}/${p.model || DEFAULTS[p.provider] || ""}`.replace(/\/$/, "")).filter((s) => s.includes("/")) : [];
-	if (prefModels.length && chain.length) {
+	if (prefModels.length) {
 		const status = typeof sdk.getStatus === "function" ? sdk.getStatus() : [];
 		const blocked = new Set(status.filter((s) => s.ok === false).map((s) => s.provider));
 		const seen = /* @__PURE__ */ new Set();
@@ -12344,7 +12381,7 @@ function resolveCallLLM({ provider, model } = {}) {
 				...input,
 				model: m
 			});
-			if (typeof input.onChunk === "function" && typeof sdk.sdkStream === "function") try {
+			if (!m.split(",").some((link) => /^extra-[0-9a-f]+\//.test(link.trim())) && typeof input.onChunk === "function" && typeof sdk.sdkStream === "function") try {
 				let text = "";
 				const tool_calls = [];
 				for await (const ev of sdk.sdkStream({
@@ -12504,6 +12541,10 @@ function estimateMessagesTokens(messages = []) {
 	for (const m of messages) total += estimateMessageTokens(m);
 	return total;
 }
+function estimateToolSchemaTokens(tools = []) {
+	if (!Array.isArray(tools) || !tools.length) return 0;
+	return Math.ceil(JSON.stringify(tools).length / 4);
+}
 var IMAGE_TOKEN_ESTIMATE, IMAGE_CHAR_EQUIVALENT, IMAGE_TYPES;
 var init_tokens = __esmMin((() => {
 	IMAGE_TOKEN_ESTIMATE = 1600;
@@ -12515,10 +12556,78 @@ var init_tokens = __esmMin((() => {
 	]);
 }));
 //#endregion
+//#region src/agent/compress/blocks.js
+function isSafeCut(messages, i) {
+	const prev = messages[i - 1];
+	if (messages[i]?.role === "tool") return false;
+	if (prev?.role === "assistant" && Array.isArray(prev.tool_calls) && prev.tool_calls.length) return false;
+	return true;
+}
+function splitMiddleIntoBlocks(middle, blockSourceTokens = BLOCK_SOURCE_TOKENS) {
+	if (!Array.isArray(middle) || middle.length === 0) return [];
+	const blocks = [];
+	let start = 0;
+	let used = 0;
+	for (let i = 0; i < middle.length; i++) {
+		used += estimateMessageTokens(middle[i]);
+		if (used >= blockSourceTokens && i + 1 < middle.length && isSafeCut(middle, i + 1)) {
+			blocks.push(middle.slice(start, i + 1));
+			start = i + 1;
+			used = 0;
+		}
+	}
+	if (start < middle.length) blocks.push(middle.slice(start));
+	return blocks;
+}
+function allocateBlockBudgets(blocks, summaryBudget) {
+	if (!blocks.length) return [];
+	const sizes = blocks.map((b) => estimateMessagesTokens(b));
+	const total = sizes.reduce((a, b) => a + b, 0) || 1;
+	return sizes.map((s) => Math.max(200, Math.floor(summaryBudget * s / total)));
+}
+function enforceTokenBudget(text, budgetTokens) {
+	if (typeof text !== "string") return "";
+	const maxChars = Math.max(0, Math.floor(budgetTokens * 4));
+	if (text.length <= maxChars) return text;
+	let cut = maxChars;
+	const lastNewline = text.lastIndexOf("\n", maxChars);
+	if (lastNewline >= Math.floor(maxChars * .8)) cut = lastNewline;
+	return text.slice(0, cut);
+}
+async function mapWithConcurrency(items, limit, fn) {
+	const results = new Array(items.length);
+	let next = 0;
+	const workers = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
+		while (next < items.length) {
+			const i = next++;
+			results[i] = await fn(items[i], i);
+		}
+	});
+	await Promise.all(workers);
+	return results;
+}
+var BLOCK_SOURCE_TOKENS;
+var init_blocks = __esmMin((() => {
+	init_tokens();
+	BLOCK_SOURCE_TOKENS = 8e3;
+}));
+//#endregion
 //#region src/agent/compress/policy.js
-function shouldCompress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, threshold = COMPRESSION_THRESHOLD } = {}) {
+function usableContextLength(modelContextLength, tools) {
+	const overhead = estimateToolSchemaTokens(tools);
+	return Math.max(MINIMUM_CONTEXT_LENGTH, modelContextLength - overhead);
+}
+function compressionTier({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, tools = [], threshold = COMPRESSION_THRESHOLD, hardThreshold = HARD_COMPRESSION_THRESHOLD } = {}) {
+	if (!Array.isArray(messages) || messages.length < 4) return null;
+	const used = estimateMessagesTokens(messages);
+	const usable = usableContextLength(modelContextLength, tools);
+	if (used >= usable * hardThreshold) return "hard";
+	if (used >= usable * threshold) return "soft";
+	return null;
+}
+function shouldCompress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, tools = [], threshold = COMPRESSION_THRESHOLD } = {}) {
 	if (!Array.isArray(messages) || messages.length < 4) return false;
-	return estimateMessagesTokens(messages) >= Math.max(MINIMUM_CONTEXT_LENGTH, modelContextLength) * threshold;
+	return estimateMessagesTokens(messages) >= usableContextLength(modelContextLength, tools) * threshold;
 }
 function computeCompressionPlan(messages, modelContextLength = MINIMUM_CONTEXT_LENGTH) {
 	const total = messages.length;
@@ -12554,20 +12663,23 @@ function tailCutoffByTokens(messages, minIndex, contextLen) {
 	let count = 0;
 	for (let i = messages.length - 1; i >= minIndex; i--) {
 		const t = estimateMessagesTokens([messages[i]]);
-		if (used + t > tailBudgetTokens && count >= 2) break;
+		if (used + t > tailBudgetTokens && count >= 2 && isSafeCut(messages, i + 1)) break;
 		used += t;
 		count++;
 	}
+	while (count < messages.length - minIndex && !isSafeCut(messages, messages.length - count)) count++;
 	return Math.max(2, count);
 }
-var MINIMUM_CONTEXT_LENGTH, SUMMARY_RATIO, MIN_SUMMARY_TOKENS, SUMMARY_TOKENS_CEILING, COMPRESSION_THRESHOLD;
+var MINIMUM_CONTEXT_LENGTH, SUMMARY_RATIO, MIN_SUMMARY_TOKENS, SUMMARY_TOKENS_CEILING, COMPRESSION_THRESHOLD, HARD_COMPRESSION_THRESHOLD;
 var init_policy = __esmMin((() => {
 	init_tokens();
+	init_blocks();
 	MINIMUM_CONTEXT_LENGTH = 8e3;
 	SUMMARY_RATIO = .2;
 	MIN_SUMMARY_TOKENS = 2e3;
 	SUMMARY_TOKENS_CEILING = 12e3;
 	COMPRESSION_THRESHOLD = .85;
+	HARD_COMPRESSION_THRESHOLD = .95;
 }));
 //#endregion
 //#region src/agent/compress/prune.js
@@ -12652,74 +12764,30 @@ var init_fallback = __esmMin((() => {
 	_lastFailure = null;
 }));
 //#endregion
-//#region src/agent/compress/blocks.js
-function isSafeCut(messages, i) {
-	const prev = messages[i - 1];
-	if (messages[i]?.role === "tool") return false;
-	if (prev?.role === "assistant" && Array.isArray(prev.tool_calls) && prev.tool_calls.length) return false;
-	return true;
-}
-function splitMiddleIntoBlocks(middle, blockSourceTokens = BLOCK_SOURCE_TOKENS) {
-	if (!Array.isArray(middle) || middle.length === 0) return [];
-	const blocks = [];
-	let start = 0;
-	let used = 0;
-	for (let i = 0; i < middle.length; i++) {
-		used += estimateMessageTokens(middle[i]);
-		if (used >= blockSourceTokens && i + 1 < middle.length && isSafeCut(middle, i + 1)) {
-			blocks.push(middle.slice(start, i + 1));
-			start = i + 1;
-			used = 0;
-		}
-	}
-	if (start < middle.length) blocks.push(middle.slice(start));
-	return blocks;
-}
-function allocateBlockBudgets(blocks, summaryBudget) {
-	if (!blocks.length) return [];
-	const sizes = blocks.map((b) => estimateMessagesTokens(b));
-	const total = sizes.reduce((a, b) => a + b, 0) || 1;
-	return sizes.map((s) => Math.max(200, Math.floor(summaryBudget * s / total)));
-}
-function enforceTokenBudget(text, budgetTokens) {
-	if (typeof text !== "string") return "";
-	const maxChars = Math.max(0, Math.floor(budgetTokens * 4));
-	if (text.length <= maxChars) return text;
-	let cut = maxChars;
-	const lastNewline = text.lastIndexOf("\n", maxChars);
-	if (lastNewline >= Math.floor(maxChars * .8)) cut = lastNewline;
-	return text.slice(0, cut);
-}
-async function mapWithConcurrency(items, limit, fn) {
-	const results = new Array(items.length);
-	let next = 0;
-	const workers = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
-		while (next < items.length) {
-			const i = next++;
-			results[i] = await fn(items[i], i);
-		}
-	});
-	await Promise.all(workers);
-	return results;
-}
-var BLOCK_SOURCE_TOKENS;
-var init_blocks = __esmMin((() => {
-	init_tokens();
-	BLOCK_SOURCE_TOKENS = 8e3;
-}));
-//#endregion
 //#region src/agent/compress/compressor.js
-async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, callLLM, auxModel = null, threshold, blockSourceTokens = BLOCK_SOURCE_TOKENS, blockConcurrency = 4 } = {}) {
-	if (!shouldCompress({
+async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, callLLM, auxModel = null, tools = [], threshold, blockSourceTokens = BLOCK_SOURCE_TOKENS, blockConcurrency = 4 } = {}) {
+	const tier = compressionTier({
 		messages,
 		modelContextLength,
+		tools,
 		threshold
-	})) return {
+	});
+	if (!tier) return {
 		compressedMessages: messages,
 		summary: null,
 		didCompress: false,
 		reason: "below threshold"
 	};
+	if (tier === "hard") {
+		const pruned = pruneOldToolResults(messages, 2);
+		if (pruned.some((m, i) => m.content !== messages[i].content)) return {
+			compressedMessages: pruned,
+			summary: null,
+			didCompress: true,
+			tier: "hard",
+			reason: "emergency prune"
+		};
+	}
 	if (!shouldRetry()) return {
 		compressedMessages: messages,
 		summary: null,
@@ -12834,6 +12902,7 @@ var compress_exports = /* @__PURE__ */ __exportAll({
 	BLOCK_SOURCE_TOKENS: () => BLOCK_SOURCE_TOKENS,
 	CHARS_PER_TOKEN: () => 4,
 	COMPRESSION_THRESHOLD: () => COMPRESSION_THRESHOLD,
+	HARD_COMPRESSION_THRESHOLD: () => HARD_COMPRESSION_THRESHOLD,
 	IMAGE_TOKEN_ESTIMATE: () => IMAGE_TOKEN_ESTIMATE,
 	LEGACY_SUMMARY_PREFIX: () => LEGACY_SUMMARY_PREFIX,
 	MINIMUM_CONTEXT_LENGTH: () => MINIMUM_CONTEXT_LENGTH,
@@ -12847,11 +12916,13 @@ var compress_exports = /* @__PURE__ */ __exportAll({
 	buildSummarizerInput: () => buildSummarizerInput,
 	clearFailure: () => clearFailure,
 	compress: () => compress,
+	compressionTier: () => compressionTier,
 	computeCompressionPlan: () => computeCompressionPlan,
 	contentLengthForBudget: () => contentLengthForBudget,
 	enforceTokenBudget: () => enforceTokenBudget,
 	estimateMessageTokens: () => estimateMessageTokens,
 	estimateMessagesTokens: () => estimateMessagesTokens,
+	estimateToolSchemaTokens: () => estimateToolSchemaTokens,
 	mapWithConcurrency: () => mapWithConcurrency,
 	markFailure: () => markFailure,
 	pruneOldToolResults: () => pruneOldToolResults,
@@ -12882,6 +12953,12 @@ function looksLikeStructuredDataNotProse(text) {
 	} catch {
 		return false;
 	}
+}
+var COMPLETION_CLAIM_RE = /\b(i(?:'ve| have)\s+(?:successfully\s+)?(?:created|written|wrote|built|completed|finished|updated|generated|added|implemented)|(?:has|have)\s+been\s+(?:successfully\s+)?(?:created|written|completed|updated)|✅|task\s+(?:is\s+)?(?:complete|done)|all\s+set)\b/i;
+function claimsCompletionWithNoEvidence(content, toolCallsUsedThisTurn) {
+	if (toolCallsUsedThisTurn > 0) return false;
+	if (typeof content !== "string" || !content.trim()) return false;
+	return COMPLETION_CLAIM_RE.test(content);
 }
 function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ["core"], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice, store, control = null } = {}) {
 	const baseLLM = callLLM || resolveCallLLM({
@@ -12952,6 +13029,10 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 			interrupt: false,
 			lastResult: null,
 			error: null,
+			emptyResponseStreak: 0,
+			textRecoveredStreak: 0,
+			toolCallsUsedThisTurn: 0,
+			completionClaimStreak: 0,
 			provider,
 			model,
 			enabledToolsets,
@@ -12972,7 +13053,9 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					}],
 					iterations: 0,
 					interrupt: false,
-					error: null
+					error: null,
+					toolCallsUsedThisTurn: 0,
+					completionClaimStreak: 0
 				})
 			} } },
 			prompting: { invoke: {
@@ -12982,24 +13065,33 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					let callMessages = input.messages;
 					let compressedMessages = null;
 					try {
+						if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] before compress import, msgcount", input.messages.length);
 						const { compress } = await Promise.resolve().then(() => (init_compress(), compress_exports));
+						if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] before compress() call");
 						const r = await compress({
 							messages: input.messages,
-							callLLM: resolveCallLLM({})
+							callLLM: resolveCallLLM({}),
+							tools: schemas
 						});
+						if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] after compress() call, didCompress=", r.didCompress);
 						if (r.didCompress) {
 							compressedMessages = r.compressedMessages;
 							callMessages = r.compressedMessages;
 						}
-					} catch {}
+					} catch (e) {
+						if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] compress threw", e.message);
+					}
+					if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] before llm() call, iteration", input.iterations);
+					const out = await runStep(input.sessionKey, "llm:" + input.iterations, () => llm({
+						messages: callMessages,
+						tools: schemas,
+						model: input.model,
+						provider: input.provider,
+						tool_choice: tc
+					}), { store: input.store });
+					if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] after llm() call");
 					return {
-						out: await runStep(input.sessionKey, "llm:" + input.iterations, () => llm({
-							messages: callMessages,
-							tools: schemas,
-							model: input.model,
-							provider: input.provider,
-							tool_choice: tc
-						}), { store: input.store }),
+						out,
 						compressedMessages
 					};
 				}),
@@ -13013,36 +13105,73 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					iterations: context.iterations,
 					tool_choice: context.tool_choice,
 					store: context.store,
-					toolCtx: context.toolCtx
+					toolCtx: context.toolCtx,
+					control: context.control
 				}),
-				onDone: [{
-					guard: ({ event }) => Array.isArray(event.output?.out?.tool_calls) && event.output.out.tool_calls.length > 0,
-					target: "tool_calls",
-					actions: assign$1({ messages: ({ context, event }) => [...event.output.compressedMessages ?? context.messages, {
-						role: "assistant",
-						content: event.output.out.content || "",
-						tool_calls: event.output.out.tool_calls
-					}] })
-				}, {
-					target: "done",
-					actions: assign$1({
-						messages: ({ context, event }) => [...event.output.compressedMessages ?? context.messages, {
-							role: "assistant",
-							content: event.output.out.content || ""
-						}],
-						lastResult: ({ context, event }) => {
-							if (event.output.out.content && event.output.out.content.trim()) return event.output.out.content;
-							for (let i = context.messages.length - 1; i >= 0; i--) {
-								const m = context.messages[i];
-								if (m.role !== "assistant" || typeof m.content !== "string" || !m.content.trim()) continue;
-								if (Array.isArray(m.tool_calls) && m.tool_calls.length > 0) continue;
-								if (looksLikeStructuredDataNotProse(m.content)) continue;
-								return m.content;
+				onDone: [
+					{
+						guard: ({ event }) => Array.isArray(event.output?.out?.tool_calls) && event.output.out.tool_calls.length > 0,
+						target: "tool_calls",
+						actions: assign$1({
+							messages: ({ context, event }) => {
+								const base = [...event.output.compressedMessages ?? context.messages, {
+									role: "assistant",
+									content: event.output.out.content || "",
+									tool_calls: event.output.out.tool_calls
+								}];
+								if (event.output.out.recoveredFromText && (context.textRecoveredStreak || 0) < 3) base.push({
+									role: "system",
+									content: `<system-reminder>Your last tool call was recovered from plain-text output, not a native tool_calls response. It worked this time, but use the real structured tool-calling format going forward — do not write the call as text.</system-reminder>`
+								});
+								return base;
+							},
+							textRecoveredStreak: ({ context, event }) => event.output.out.recoveredFromText ? (context.textRecoveredStreak || 0) + 1 : 0,
+							toolCallsUsedThisTurn: ({ context, event }) => (context.toolCallsUsedThisTurn || 0) + event.output.out.tool_calls.length
+						})
+					},
+					{
+						guard: ({ context, event }) => !(event.output?.out?.content || "").trim() && (context.emptyResponseStreak || 0) < 2,
+						target: "prompting",
+						actions: assign$1({
+							emptyResponseStreak: ({ context }) => (context.emptyResponseStreak || 0) + 1,
+							messages: ({ context, event }) => [...event.output.compressedMessages ?? context.messages, {
+								role: "system",
+								content: `<system-reminder>Your last response had no content and called no tool — the turn cannot end this way. Either call a real tool to make progress, or answer directly in plain text.</system-reminder>`
+							}]
+						})
+					},
+					{
+						guard: ({ context, event }) => claimsCompletionWithNoEvidence(event.output?.out?.content, context.toolCallsUsedThisTurn || 0) && (context.completionClaimStreak || 0) < 2,
+						target: "prompting",
+						actions: assign$1({
+							completionClaimStreak: ({ context }) => (context.completionClaimStreak || 0) + 1,
+							messages: ({ context, event }) => [...event.output.compressedMessages ?? context.messages, {
+								role: "system",
+								content: `<system-reminder>Your response claims work was completed, but you made no tool calls this turn — nothing was actually created or changed. If the task requires creating/editing files or running commands, call the real tool now. If the work was genuinely already done in an earlier turn, say so without re-claiming it as just-completed.</system-reminder>`
+							}]
+						})
+					},
+					{
+						target: "done",
+						actions: assign$1({
+							messages: ({ context, event }) => [...event.output.compressedMessages ?? context.messages, {
+								role: "assistant",
+								content: event.output.out.content || ""
+							}],
+							lastResult: ({ context, event }) => {
+								if (event.output.out.content && event.output.out.content.trim()) return event.output.out.content;
+								for (let i = context.messages.length - 1; i >= 0; i--) {
+									const m = context.messages[i];
+									if (m.role !== "assistant" || typeof m.content !== "string" || !m.content.trim()) continue;
+									if (Array.isArray(m.tool_calls) && m.tool_calls.length > 0) continue;
+									if (looksLikeStructuredDataNotProse(m.content)) continue;
+									return m.content;
+								}
+								return event.output.out.content || "";
 							}
-							return event.output.out.content || "";
-						}
-					})
-				}],
+						})
+					}
+				],
 				onError: {
 					target: "done",
 					actions: assign$1({ error: ({ event }) => String(event.error?.message || event.error) })
@@ -13070,6 +13199,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					const extras = [];
 					const control = input.control;
 					let forceStop = null;
+					let enabledToolNames = null;
 					for (const call of calls) {
 						const tname = call.name || call.function?.name;
 						const targs = call.arguments || call.function?.arguments || {};
@@ -13293,6 +13423,34 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 							result: ret.content
 						});
 						extras.push(...ret.extras);
+						if (control && typeof ret.content === "string") {
+							let unknownName = null;
+							try {
+								const parsed = JSON.parse(ret.content);
+								if (typeof parsed?.error === "string" && parsed.error.startsWith("unknown tool: ")) unknownName = parsed.error.slice(14);
+							} catch {}
+							if (unknownName) {
+								control.unknownToolStreak = (control.unknownToolStreak || 0) + 1;
+								if (control.unknownToolStreak >= 5) {
+									results.push({
+										tool_call_id: tcid,
+										content: JSON.stringify({
+											error: "unknown-tool retry limit reached — turn force-stopped",
+											tool: unknownName
+										})
+									});
+									forceStop = "unknown_tool_repeat";
+									break;
+								}
+								if (control.unknownToolStreak === 2) {
+									if (!enabledToolNames) enabledToolNames = (await getEnabledToolSchemas(input.enabledToolsets, input.disabledToolsets)).map((s) => s.name || s.function?.name).filter(Boolean);
+									extras.push({
+										role: "system",
+										content: `<system-reminder>The tool "${unknownName}" does not exist. Stop calling it. Available tools this turn: ${enabledToolNames.join(", ") || "(none)"}. Pick a real tool from that list, or answer directly if none fits.</system-reminder>`
+									});
+								}
+							} else control.unknownToolStreak = 0;
+						}
 					}
 					return {
 						results,
@@ -13306,7 +13464,9 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					iterations: context.iterations,
 					toolCtx: context.toolCtx,
 					store: context.store,
-					control: context.control
+					control: context.control,
+					enabledToolsets: context.enabledToolsets,
+					disabledToolsets: context.disabledToolsets
 				}),
 				onDone: [{
 					guard: ({ event }) => !!event.output?.forceStop,
