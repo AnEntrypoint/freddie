@@ -42,6 +42,26 @@ function parsePythonTag(content) {
     return name ? [{ id: randId(), name, arguments: args }] : []
 }
 
+function parseMinicpmFunctionTags(content) {
+    if (!content.includes('<function ')) return []
+    const fnRe = /<function\s+name="([^"]+)">([\s\S]*?)<\/function>/g
+    const paramRe = /<param\s+name="([^"]+)">(?:<!\[CDATA\[([\s\S]*?)\]\]>|([\s\S]*?))<\/param>/g
+    const out = []
+    let m
+    while ((m = fnRe.exec(content)) !== null) {
+        const name = m[1]
+        const body = m[2]
+        const args = {}
+        let pm
+        paramRe.lastIndex = 0
+        while ((pm = paramRe.exec(body)) !== null) {
+            args[pm[1]] = pm[2] !== undefined && pm[2] !== '' ? pm[2] : pm[3]
+        }
+        if (name) out.push({ id: randId(), name, arguments: args })
+    }
+    return out
+}
+
 function parseBareJsonArray(content) {
     const trimmed = content.trim()
     if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) return []
@@ -110,6 +130,8 @@ export function parseTextToolCalls(content) {
     if (kimi.length) return kimi
     const pythonTag = parsePythonTag(content)
     if (pythonTag.length) return pythonTag
+    const minicpm = parseMinicpmFunctionTags(content)
+    if (minicpm.length) return minicpm
     const bareArray = parseBareJsonArray(content)
     if (bareArray.length) return bareArray
     const bareObject = parseBareFunctionCallObject(content)

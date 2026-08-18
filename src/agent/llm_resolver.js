@@ -42,7 +42,13 @@ function adapt(result) {
     // iterates; clear the text content since it was the call, not a reply.
     if (!tool_calls.length) {
         const textTC = parseTextToolCalls(flat.text)
-        if (textTC.length) return { content: '', tool_calls: textTC, raw: result }
+        // recoveredFromText flags the turn loop to nudge the model back toward
+        // native structured tool_calls (little-coder's output-parser pattern) --
+        // previously this recovery was invisible to the caller, so a model that
+        // never learns to use real tool_calls just keeps emitting text-shaped
+        // calls turn after turn with zero corrective pressure, and the loop
+        // silently kept parsing them forever.
+        if (textTC.length) return { content: '', tool_calls: textTC, raw: result, recoveredFromText: true }
     }
     return { content: flat.text, tool_calls, raw: result }
 }
@@ -74,7 +80,7 @@ async function buildModel({ provider, model, inputModel }) {
         ? pref.map(p => `${p.provider}/${p.model || DEFAULTS[p.provider] || ''}`.replace(/\/$/, '')).filter(s => s.includes('/'))
         : []
 
-    if (prefModels.length && chain.length) {
+    if (prefModels.length) {
         // model_preference is an ORDERED user failover list (AGENTS.md "ordered
         // failover, sampler-gated"): the user's declared order leads, the
         // intelligence-ranked auto-chain is the fallback tail. Previously this
@@ -155,7 +161,18 @@ export function resolveCallLLM({ provider, model } = {}) {
             // to the buffered chat() below -- partial deltas already emitted are
             // harmless because the settled message.append carries the
             // authoritative full text.
-            if (typeof input.onChunk === 'function' && typeof sdk.sdkStream === 'function') {
+            // acptoapi's sdk.stream() (unlike sdk.chat()) resolves a single model
+            // string via its own bare resolveModel(), which has no knowledge of
+            // extra-provider prefixes (`extra-<hash>/...` from
+            // ~/.acptoapi/extra-providers.txt) -- it falls through resolveModel's
+            // last-resort branch and gets misrouted to the ACP daemon dispatcher,
+            // failing with "Unable to connect" against a port nothing is
+            // listening on. sdk.chat()'s chain() machinery consults the real
+            // extra-providers registry correctly. Skip the streaming fast path
+            // for any link that is (or starts with, in a chain) an extra-
+            // provider model so it falls through to the working buffered call.
+            const usesExtraProvider = m.split(',').some(link => /^extra-[0-9a-f]+\//.test(link.trim()))
+            if (!usesExtraProvider && typeof input.onChunk === 'function' && typeof sdk.sdkStream === 'function') {
                 try {
                     let text = ''
                     const tool_calls = []

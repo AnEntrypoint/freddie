@@ -17,6 +17,25 @@ function looksLikeStructuredDataNotProse(text) {
     try { JSON.parse(trimmed); return true } catch { return false }
 }
 
+// Mandatory-tool-call completion gating (reliable-small-llm-agent-harness
+// blog's strongest idea): a text response is not evidence that real work
+// happened. Live-witnessed this session: a model told to write index.html
+// and server.mjs answered "I have successfully created both files... ✅
+// index.html - 4 bytes ✅ server.mjs - 4 bytes" while zero tool calls were
+// made in that turn -- a confident, structured-looking completion claim
+// with no underlying action. Only fires when the ENTIRE turn made zero tool
+// calls (toolCallsUsedThisTurn === 0) AND the final response contains a
+// completion-shaped claim -- a turn that already called real tools earlier
+// and is now just summarizing what it did is legitimate and must not be
+// blocked (checking toolCallsUsedThisTurn, not just "this response", is
+// what tells the two cases apart).
+const COMPLETION_CLAIM_RE = /\b(i(?:'ve| have)\s+(?:successfully\s+)?(?:created|written|wrote|built|completed|finished|updated|generated|added|implemented)|(?:has|have)\s+been\s+(?:successfully\s+)?(?:created|written|completed|updated)|✅|task\s+(?:is\s+)?(?:complete|done)|all\s+set)\b/i
+function claimsCompletionWithNoEvidence(content, toolCallsUsedThisTurn) {
+    if (toolCallsUsedThisTurn > 0) return false
+    if (typeof content !== 'string' || !content.trim()) return false
+    return COMPLETION_CLAIM_RE.test(content)
+}
+
 export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice, store, control = null } = {}) {
     const baseLLM = callLLM || resolveCallLLM({ provider, model })
     const llm = events ? async (input) => {
@@ -59,6 +78,10 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
             interrupt: false,
             lastResult: null,
             error: null,
+            emptyResponseStreak: 0,
+            textRecoveredStreak: 0,
+            toolCallsUsedThisTurn: 0,
+            completionClaimStreak: 0,
             provider, model,
             enabledToolsets, disabledToolsets,
             sessionKey,
@@ -92,6 +115,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                         actions: assign({
                             messages: ({ context, event }) => [...context.messages, { role: 'user', content: event.prompt }],
                             iterations: 0, interrupt: false, error: null,
+                            toolCallsUsedThisTurn: 0, completionClaimStreak: 0,
                         }),
                     },
                 },
@@ -121,16 +145,75 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                         let callMessages = input.messages
                         let compressedMessages = null
                         try {
+                            if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] before compress import, msgcount', input.messages.length)
                             const { compress } = await import('./compress/index.js')
-                            const r = await compress({ messages: input.messages, callLLM: resolveCallLLM({}) })
+                            if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] before compress() call')
+                            const r = await compress({ messages: input.messages, callLLM: resolveCallLLM({}), tools: schemas })
+                            if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] after compress() call, didCompress=', r.didCompress)
                             if (r.didCompress) { compressedMessages = r.compressedMessages; callMessages = r.compressedMessages }
-                        } catch { /* swallow: compression failure keeps original messages */ }
+                        } catch (e) { if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] compress threw', e.message) }
+                        if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] before llm() call, iteration', input.iterations)
                         const out = await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: callMessages, tools: schemas, model: input.model, provider: input.provider, tool_choice: tc }), { store: input.store })
+                        if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] after llm() call')
                         return { out, compressedMessages }
                     }),
-                    input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, sessionKey: context.sessionKey, iterations: context.iterations, tool_choice: context.tool_choice, store: context.store, toolCtx: context.toolCtx }),
+                    input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, sessionKey: context.sessionKey, iterations: context.iterations, tool_choice: context.tool_choice, store: context.store, toolCtx: context.toolCtx, control: context.control }),
                     onDone: [
-                        { guard: ({ event }) => Array.isArray(event.output?.out?.tool_calls) && event.output.out.tool_calls.length > 0, target: 'tool_calls', actions: assign({ messages: ({ context, event }) => [...(event.output.compressedMessages ?? context.messages), { role: 'assistant', content: event.output.out.content || '', tool_calls: event.output.out.tool_calls }] }) },
+                        { guard: ({ event }) => Array.isArray(event.output?.out?.tool_calls) && event.output.out.tool_calls.length > 0, target: 'tool_calls', actions: assign({
+                            // output-parser pattern (little-coder): a text-recovered tool
+                            // call (out.recoveredFromText, set in llm_resolver.js::adapt())
+                            // still lets the turn proceed -- the call itself is real and
+                            // gets executed below -- but silently accepting it forever gives
+                            // the model zero pressure to ever emit a native structured
+                            // tool_calls block instead. Nudge back to native calling on
+                            // every recovery, capped (textRecoveredStreak) so a model that
+                            // genuinely can't emit native calls (e.g. speaks XML/pythonic
+                            // natively) doesn't get an escalating wall of reminders it can
+                            // never satisfy -- after 3 the reminder stops repeating; the
+                            // recovery keeps working either way, this is guidance not a gate.
+                            messages: ({ context, event }) => {
+                                const base = [...(event.output.compressedMessages ?? context.messages), { role: 'assistant', content: event.output.out.content || '', tool_calls: event.output.out.tool_calls }]
+                                if (event.output.out.recoveredFromText && (context.textRecoveredStreak || 0) < 3) {
+                                    base.push({ role: 'system', content: `<system-reminder>Your last tool call was recovered from plain-text output, not a native tool_calls response. It worked this time, but use the real structured tool-calling format going forward — do not write the call as text.</system-reminder>` })
+                                }
+                                return base
+                            },
+                            textRecoveredStreak: ({ context, event }) => event.output.out.recoveredFromText ? (context.textRecoveredStreak || 0) + 1 : 0,
+                            toolCallsUsedThisTurn: ({ context, event }) => (context.toolCallsUsedThisTurn || 0) + event.output.out.tool_calls.length,
+                        }) },
+                        // Empty-response detection: no tool_calls AND no real content
+                        // (live-witnessed with MiniCPM5-1B: a turn ending in a bare
+                        // apology with no tool call, per this session's browser-OS build
+                        // attempts). Give the model up to 2 corrective nudges to either
+                        // answer or call a real tool before letting it end the turn — a
+                        // silent stop on the very first empty response wastes the rest of
+                        // an otherwise-viable turn on a model that just needed a push.
+                        // Streak lives in context (`emptyResponseStreak`), read-then-
+                        // compared in the guard and incremented in a separate `assign`
+                        // -- never a side-effecting guard predicate. xstate can evaluate
+                        // a guard more than once while resolving which transition array
+                        // entry matches; a guard that mutates state as a side effect
+                        // double-counts on re-evaluation (live-witnessed: an infinite
+                        // prompting<->prompting loop that never reached the intended
+                        // cutoff because the counter raced ahead of the real response
+                        // count).
+                        { guard: ({ context, event }) => !(event.output?.out?.content || '').trim() && (context.emptyResponseStreak || 0) < 2,
+                          target: 'prompting',
+                          actions: assign({
+                            emptyResponseStreak: ({ context }) => (context.emptyResponseStreak || 0) + 1,
+                            messages: ({ context, event }) => [...(event.output.compressedMessages ?? context.messages), { role: 'system', content: `<system-reminder>Your last response had no content and called no tool — the turn cannot end this way. Either call a real tool to make progress, or answer directly in plain text.</system-reminder>` }],
+                          }) },
+                        // Mandatory-tool-call completion gating -- see claimsCompletionWithNoEvidence
+                        // above. Same 2-nudge-then-let-through shape as the empty-response
+                        // check: a wrong correction on a legitimately tool-free turn (a real
+                        // answer that happens to match the phrase pattern) must not deadlock the
+                        // turn forever, so this is pressure, not a hard block.
+                        { guard: ({ context, event }) => claimsCompletionWithNoEvidence(event.output?.out?.content, context.toolCallsUsedThisTurn || 0) && (context.completionClaimStreak || 0) < 2,
+                          target: 'prompting',
+                          actions: assign({
+                            completionClaimStreak: ({ context }) => (context.completionClaimStreak || 0) + 1,
+                            messages: ({ context, event }) => [...(event.output.compressedMessages ?? context.messages), { role: 'system', content: `<system-reminder>Your response claims work was completed, but you made no tool calls this turn — nothing was actually created or changed. If the task requires creating/editing files or running commands, call the real tool now. If the work was genuinely already done in an earlier turn, say so without re-claiming it as just-completed.</system-reminder>` }],
+                          }) },
                         { target: 'done', actions: assign({ messages: ({ context, event }) => [...(event.output.compressedMessages ?? context.messages), { role: 'assistant', content: event.output.out.content || '' }], lastResult: ({ context, event }) => {
                             if (event.output.out.content && event.output.out.content.trim()) return event.output.out.content;
                             for (let i = context.messages.length - 1; i >= 0; i--) {
@@ -164,6 +247,9 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                         const extras = []
                         const control = input.control
                         let forceStop = null
+                        // Only computed when a hallucinated-tool-name check actually fires
+                        // (see below) — cheap to skip on the common all-valid-calls path.
+                        let enabledToolNames = null
                         for (const call of calls) {
                             const tname = call.name || call.function?.name
                             const targs = call.arguments || call.function?.arguments || {}
@@ -276,10 +362,43 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                             results.push({ tool_call_id: tcid, content: ret.content })
                             emitTurnEvent(input.sessionKey, 'tool.end', { name: tname, toolCallId: tcid, result: ret.content })
                             extras.push(...ret.extras)
+                            // Hallucinated/unknown tool name detection: dispatchTool's
+                            // unknown-tool error ({"error":"unknown tool: X"}, see
+                            // src/host/surface-factories.js) is otherwise just another
+                            // silent tool-result string — live-witnessed with a small
+                            // local model (MiniCPM5-1B) inventing nonexistent tools
+                            // ('curl') and retrying variations with no correction. Same
+                            // escalation shape as the repeat-call streak above: count
+                            // consecutive unknown-tool calls on `control`, remind at 2,
+                            // force-stop at 5 (lower ceiling than the 12-call repeat
+                            // limit — a model naming a tool that doesn't exist has zero
+                            // chance of succeeding by retrying, unlike a repeated real
+                            // call that might eventually see different tool-side state).
+                            if (control && typeof ret.content === 'string') {
+                                let unknownName = null
+                                try { const parsed = JSON.parse(ret.content); if (typeof parsed?.error === 'string' && parsed.error.startsWith('unknown tool: ')) unknownName = parsed.error.slice('unknown tool: '.length) } catch {}
+                                if (unknownName) {
+                                    control.unknownToolStreak = (control.unknownToolStreak || 0) + 1
+                                    if (control.unknownToolStreak >= 5) {
+                                        results.push({ tool_call_id: tcid, content: JSON.stringify({ error: 'unknown-tool retry limit reached — turn force-stopped', tool: unknownName }) })
+                                        forceStop = 'unknown_tool_repeat'
+                                        break
+                                    }
+                                    if (control.unknownToolStreak === 2) {
+                                        if (!enabledToolNames) {
+                                            const schemas = await getEnabledToolSchemas(input.enabledToolsets, input.disabledToolsets)
+                                            enabledToolNames = schemas.map(s => s.name || s.function?.name).filter(Boolean)
+                                        }
+                                        extras.push({ role: 'system', content: `<system-reminder>The tool "${unknownName}" does not exist. Stop calling it. Available tools this turn: ${enabledToolNames.join(', ') || '(none)'}. Pick a real tool from that list, or answer directly if none fits.</system-reminder>` })
+                                    }
+                                } else {
+                                    control.unknownToolStreak = 0
+                                }
+                            }
                         }
                         return { results, extras, forceStop }
                     }),
-                    input: ({ context }) => ({ messages: context.messages, sessionKey: context.sessionKey, iterations: context.iterations, toolCtx: context.toolCtx, store: context.store, control: context.control }),
+                    input: ({ context }) => ({ messages: context.messages, sessionKey: context.sessionKey, iterations: context.iterations, toolCtx: context.toolCtx, store: context.store, control: context.control, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets }),
                     onDone: [
                         { guard: ({ event }) => !!event.output?.forceStop, target: 'done', actions: assign({
                             messages: ({ context, event }) => [...context.messages, ...event.output.results.map(r => ({ role: 'tool', tool_call_id: r.tool_call_id, content: r.content })), ...event.output.extras],

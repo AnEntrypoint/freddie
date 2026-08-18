@@ -1,7 +1,24 @@
 import { spawn } from 'node:child_process'
+import path from 'node:path'
 import { getConfigValue } from '../../../src/config.js'
 import { scrubEnv } from '../../../src/host/tool-resources.js'
 import { listKnownEnvVars } from '../../../src/auth.js'
+import { wasWrittenThisSession } from '../files/lib/turn_writes.js'
+
+// Matches a shell redirect/overwrite targeting a file path: `cat > path`,
+// `cat >> path`, `echo ... > path`, `tee path`/`tee -a path`. Deliberately
+// narrow (false negatives over false positives -- this only needs to catch
+// the common "model routes around write/edit via bash" pattern, not every
+// possible shell construct) so it never blocks a legitimate command that
+// merely happens to contain a `>` character elsewhere (comparisons, heredocs
+// targeting a NEW path, etc).
+const REDIRECT_TO_FILE_RE = /(?:^|[|;&]|\n)\s*(?:cat|echo|printf)\b[^|;&\n]*?>{1,2}\s*['"]?([^\s'";&|]+)['"]?\s*(?:[|;&]|$)|(?:^|[|;&]|\n)\s*tee\b\s+(?:-a\s+)?['"]?([^\s'";&|]+)['"]?/
+
+export function detectRedirectTarget(command) {
+    const m = REDIRECT_TO_FILE_RE.exec(command)
+    if (!m) return null
+    return m[1] || m[2] || null
+}
 export const _tool = ({
     name: 'bash',
     toolset: 'core',
@@ -19,12 +36,34 @@ export const _tool = ({
             required: ['command'],
         },
     },
-    handler: async (args) => {
+    handler: async (args, ctx = {}) => {
         // Hallucinated-cwd guard: weak models sometimes invent paths that do not
         // exist (witnessed: cwd:"/home/user" on Windows -> spawn ENOENT, the
         // model read it as "environment broken" and gave up). Fall back to the
         // process cwd and SAY so, instead of failing the spawn outright.
         let { command, cwd = process.cwd(), timeout_ms = 60000 } = args
+
+        // write-guard: a model that already wrote/edited a file successfully
+        // this turn sometimes routes around the write/edit tool by shelling
+        // out to a redirect instead -- live-witnessed with MiniCPM5-1B:
+        // `write` produced valid HTML, then a later `bash "cat > index.html"`
+        // (no stdin piped in) hung on the missing input until timeout, which
+        // truncated the file to 0 bytes. Block the redirect and point the
+        // model back at write/edit -- a loud, correctable error beats a
+        // silent hang-then-clobber every time (Jidoka: stop rather than pass
+        // a defect downstream).
+        const redirectTarget = detectRedirectTarget(command)
+        if (redirectTarget) {
+            const resolvedTarget = ctx.cwd && !path.isAbsolute(redirectTarget) ? path.join(ctx.cwd, redirectTarget) : redirectTarget
+            if (wasWrittenThisSession(ctx.sessionKey, resolvedTarget)) {
+                return {
+                    exitCode: -1,
+                    stdout: '',
+                    stderr: `blocked: "${redirectTarget}" was already written this turn via the write/edit tool. Use the write tool (to overwrite) or edit tool (to change part of it) instead of a shell redirect -- a bash redirect with no piped stdin will hang and can truncate the file to empty on timeout.`,
+                    blocked: true,
+                }
+            }
+        }
         let cwdNote = ''
         try {
             const fs = await import('node:fs')

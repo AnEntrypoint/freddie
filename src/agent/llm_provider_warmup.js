@@ -1,7 +1,25 @@
 import * as sdkNs from 'acptoapi'
 import { isReachable as bridgeReachable } from './acptoapi-bridge.js'
+import { getConfigValue } from '../config.js'
 import { createRequire } from 'node:module'
 const _req = createRequire(import.meta.url)
+
+// First model_preference entry, if any -- the same "user's declared order
+// leads" source resolveCallLLM's buildModel() already reads. Passed into
+// bridgeReachable() so the reachability probe checks the model this
+// deployment actually configured instead of acptoapi_config.js's own
+// (now-removed) hardcoded 'claude/haiku' guess, which was unreachable on
+// any machine running purely local/extra-provider models with no
+// FREDDIE_LLM_MODEL env var set.
+function preferredModel() {
+    try {
+        const pref = getConfigValue('agent.model_preference', [])
+        const first = Array.isArray(pref) ? pref[0] : null
+        if (!first || !first.provider) return null
+        const model = first.model ? `${first.provider}/${first.model}` : (DEFAULTS[first.provider] ? `${first.provider}/${DEFAULTS[first.provider]}` : null)
+        return model || null
+    } catch { return null }
+}
 
 // Encapsulated resolver state (warm-up promise + reachability cache), created
 // once lazily on first use -- mirrors host/index.js's own `host()` lazy-
@@ -59,7 +77,7 @@ export async function cachedReachable() {
     const s = state()
     const now = Date.now()
     if (now - s.lastReachable.at < REACHABLE_TTL_MS) return s.lastReachable.ok
-    const ok = await bridgeReachable()
+    const ok = await bridgeReachable(undefined, preferredModel())
     s.lastReachable = { at: now, ok }
     return ok
 }
