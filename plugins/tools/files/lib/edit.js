@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { findClosestLine } from './fuzzy_match.js'
 import { applyUnifiedDiff } from './patch_parser.js'
+import { recordWrite } from './turn_writes.js'
 
 export const editTool = ({
     name: 'edit',
@@ -39,6 +40,7 @@ export const editTool = ({
         if (occurrences > 1 && !replace_all) return { error: `old_string matches ${occurrences} times; pass replace_all=true` }
         const out = replace_all ? src.split(old_string).join(new_string) : src.replace(old_string, new_string)
         fs.writeFileSync(resolved, out, 'utf8')
+        recordWrite(ctx.sessionKey, resolved)
         return { path: resolved, replacements: replace_all ? occurrences : 1 }
     },
 })

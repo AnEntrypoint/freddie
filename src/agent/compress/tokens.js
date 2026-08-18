@@ -29,3 +29,17 @@ export function estimateMessagesTokens(messages = []) {
     for (const m of messages) total += estimateMessageTokens(m)
     return total
 }
+
+// Reserved budget for a turn's system-prompt + tool-schema overhead, which
+// never appears in `messages` (it's assembled separately by the caller) but
+// still occupies real context window on every request. jcode.sh's Rust
+// compaction engine hardcodes this at 18000 tokens; freddie's toolset size
+// varies by deployment (a 'core'+'browse' coder turn measured at 70 tools /
+// ~7900-8785 prompt tokens this session, while casey's contact-facing tier
+// enables a handful) so a fixed constant would be wrong in both directions.
+// Pass the actual resolved tool schema array (getEnabledToolSchemas' output)
+// when available; omitted/empty returns 0, same as not reserving at all.
+export function estimateToolSchemaTokens(tools = []) {
+    if (!Array.isArray(tools) || !tools.length) return 0
+    return Math.ceil(JSON.stringify(tools).length / CHARS_PER_TOKEN)
+}

@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { recordWrite } from './turn_writes.js'
 
 export const writeTool = ({
     name: 'write',
@@ -20,6 +21,7 @@ export const writeTool = ({
         const resolved = ctx.cwd && !path.isAbsolute(p) ? path.join(ctx.cwd, p) : p
         fs.mkdirSync(path.dirname(resolved), { recursive: true })
         fs.writeFileSync(resolved, content, 'utf8')
+        recordWrite(ctx.sessionKey, resolved)
         return { path: resolved, bytes: Buffer.byteLength(content, 'utf8') }
     },
 })

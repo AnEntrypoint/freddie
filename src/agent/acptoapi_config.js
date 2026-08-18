@@ -21,8 +21,19 @@ export function getAcptoapiUrl() {
     return envVal('FREDDIE_LLM_URL') || null
 }
 
-export function getAcptoapiModel() {
-    return envVal('FREDDIE_LLM_MODEL') || 'claude/haiku'
+// No hardcoded model guess here: this module is deliberately Node/browser
+// agnostic (no config.js import -- that pulls in node:fs) and previously
+// defaulted to the literal 'claude/haiku' when FREDDIE_LLM_MODEL was unset.
+// On a machine with no anthropic key and no acptoapi daemon (a purely
+// local-model setup via extra-providers.txt), that hardcoded guess is
+// unreachable every single call -- isReachable()/callLLM() then wasted a
+// full chain-probe cycle on a model nothing ever configured, before any
+// real (e.g. extra-provider) model got a turn. defaultModel lets a Node
+// caller (llm_provider_warmup.js) inject the SAME first entry it already
+// resolves from agent.model_preference, so this module has zero opinion of
+// its own about which model to guess.
+export function getAcptoapiModel(defaultModel = null) {
+    return envVal('FREDDIE_LLM_MODEL') || defaultModel || null
 }
 
 let _acptoapi = null
@@ -114,9 +125,23 @@ export async function isReachable(timeoutMs = REACHABILITY_PROBE_TIMEOUT_MS, mod
     try {
         const acptoapi = await getAcptoapi()
         const useModel = model || getAcptoapiModel()
+        // No configured/injected model at all (no FREDDIE_LLM_MODEL, no
+        // per-call override, no defaultModel ever threaded in): there is
+        // nothing to probe. Report unreachable without spending a real
+        // chain-probe cycle guessing at a model nobody configured.
+        if (!useModel) return false
         const chainModel = await resolveChainLinks(acptoapi, useModel)
         const probeChain = Array.isArray(chainModel) ? chainModel.slice(0, REACHABILITY_PROBE_CHAIN_LINK_CAP) : chainModel
-        const probe = { messages: [{ role: 'user', content: 'ping' }], max_tokens: 4 }
+        // max_tokens: 4 previously -- too tight for a reasoning model that
+        // always opens with a <think> preamble (witnessed: MiniCPM5-1B's
+        // 4-token probe response was literally "<think>\nOkay," with zero
+        // real content, which isEmptyResult()/the choices-length check below
+        // then read as "unreachable" even though the SAME model served a
+        // correct, fast, real response seconds later at a normal token
+        // budget). 32 tokens is enough for a short <think> preamble to
+        // resolve into at least the start of real content on any model,
+        // reasoning or not, while staying cheap for a health probe.
+        const probe = { messages: [{ role: 'user', content: 'ping' }], max_tokens: 32 }
         const result = await Promise.race([
             Array.isArray(probeChain) ? acptoapi.chatChain(probeChain, probe) : acptoapi.chat({ model: probeChain, ...probe }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('reachability probe timeout')), timeoutMs)),

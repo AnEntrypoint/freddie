@@ -1,4 +1,4 @@
-import { shouldCompress, computeCompressionPlan, MINIMUM_CONTEXT_LENGTH } from './policy.js'
+import { shouldCompress, computeCompressionPlan, compressionTier, MINIMUM_CONTEXT_LENGTH } from './policy.js'
 import { pruneOldToolResults } from './prune.js'
 import { SUMMARY_PREFIX, LEGACY_SUMMARY_PREFIX, SUMMARIZER_SYSTEM_PROMPT, buildSummarizerInput } from './prompt.js'
 import { markFailure, shouldRetry } from './fallback.js'
@@ -8,8 +8,25 @@ import { logger } from '../../observability/log.js'
 
 const log = logger('compressor')
 
-export async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, callLLM, auxModel = null, threshold, blockSourceTokens = BLOCK_SOURCE_TOKENS, blockConcurrency = BLOCK_CONCURRENCY } = {}) {
-    if (!shouldCompress({ messages, modelContextLength, threshold })) return { compressedMessages: messages, summary: null, didCompress: false, reason: 'below threshold' }
+export async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, callLLM, auxModel = null, tools = [], threshold, blockSourceTokens = BLOCK_SOURCE_TOKENS, blockConcurrency = BLOCK_CONCURRENCY } = {}) {
+    const tier = compressionTier({ messages, modelContextLength, tools, threshold })
+    if (!tier) return { compressedMessages: messages, summary: null, didCompress: false, reason: 'below threshold' }
+    // hard tier: the turn is critically over budget (>=95% of usable context
+    // by default) -- waiting on the async LLM summarize path below risks the
+    // request itself blowing the model's context ceiling before a summary
+    // ever comes back, and every extra second here is a second the caller's
+    // own turn timeout is burning. Prune tool-result content synchronously
+    // (cheap, no LLM round-trip, safe by construction -- see prune.js) as an
+    // immediate stopgap; the NEXT turn's soft-tier check still runs the real
+    // summarize compaction below once the emergency has passed.
+    if (tier === 'hard') {
+        const pruned = pruneOldToolResults(messages, 2)
+        const actuallyPruned = pruned.some((m, i) => m.content !== messages[i].content)
+        if (actuallyPruned) return { compressedMessages: pruned, summary: null, didCompress: true, tier: 'hard', reason: 'emergency prune' }
+        // Nothing left to prune (fewer than 2 tool results already) -- fall
+        // through to the real summarize path below; hard tier only skips
+        // AHEAD of the wait when a cheap synchronous win is available.
+    }
     if (!shouldRetry()) return { compressedMessages: messages, summary: null, didCompress: false, reason: 'cooldown' }
     if (typeof callLLM !== 'function') throw new Error('compress: callLLM required')
 

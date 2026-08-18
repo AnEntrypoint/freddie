@@ -19,7 +19,7 @@ export const MIN_BLOCK_SUMMARY_TOKENS = 200
 // tool_call from its tool results: either the next message is a tool result
 // (its call lives behind the cut), or the previous message is an assistant
 // message with tool_calls (its results live ahead of the cut).
-function isSafeCut(messages, i) {
+export function isSafeCut(messages, i) {
     const prev = messages[i - 1]
     const next = messages[i]
     if (next?.role === 'tool') return false

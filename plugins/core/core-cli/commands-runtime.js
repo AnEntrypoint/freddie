@@ -50,10 +50,20 @@ export function registerRuntimeCommands(C) {
             return
         }
         const { runTurn } = await import('../../../src/agent/machine.js')
+        const { getConfigValue } = await import('../../../src/config.js')
         let provider = opts.provider || undefined
         let model = opts.model || undefined
         if (!provider && model && /^[a-z][a-z0-9-]*\//.test(model)) { provider = model.split('/')[0]; model = model.slice(provider.length + 1) }
-        const out = await runTurn({ prompt: opts.prompt, provider, model, skill: opts.skill || undefined, cwd: opts.cwd || process.cwd(), timeoutMs: Number(opts.timeout), witnessPath: opts.witness || undefined })
+        // toolsets.enabled/disabled (set via `freddie toolsets <distribution>` /
+        // applyDistribution()) was previously write-only -- exec always ran the
+        // runTurn/createAgentMachine hardcoded ['core'] default regardless of a
+        // saved distribution, so e.g. the 'coder' distribution's ['core','browse']
+        // (which includes web_fetch) never actually reached the agent loop from
+        // this command. undefined here (config unset) still falls through to
+        // runTurn's own ['core'] default, unchanged behavior for the common case.
+        const enabledToolsets = getConfigValue('toolsets.enabled', undefined)
+        const disabledToolsets = getConfigValue('toolsets.disabled', undefined)
+        const out = await runTurn({ prompt: opts.prompt, provider, model, skill: opts.skill || undefined, cwd: opts.cwd || process.cwd(), timeoutMs: Number(opts.timeout), witnessPath: opts.witness || undefined, enabledToolsets, disabledToolsets })
         console.log(out.error ? '' : (out.result || out.messages?.at(-1)?.content || ''))
         if (out.error) console.error('error:', out.error)
         // Close every handle this turn is actually responsible for (undici's
