@@ -96,6 +96,10 @@ function buildSide() {
 
 function view() {
     const body = state.body || EmptyState({ text: 'loading...' });
+    // The chat page composes its own WorkspaceShell (rail+sessions+main) for
+    // kimi-cli-parity layout — wrapping it in another AppShell would nest two
+    // app frames, so it renders standalone instead of inside .fd-page/AppShell.
+    if (state.active === 'chat' && state.body) return body;
     const main = h('div', { key: state.active, class: 'fd-page' }, ...(Array.isArray(body) ? body : [body]));
     const samplerPill = state.sampler.error
         ? Chip({ tone: 'miss', children: 'sampler err' })
