@@ -1,4 +1,4 @@
-# Freddie
+# ƒreddie
 
 An open JS agent harness built on xstate and anentrypoint-design. Features a full gateway, context compressor, multi-platform adapters, and a live dashboard — built with:
 
