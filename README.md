@@ -1,6 +1,6 @@
 # ƒreddie
 
-An open JS agent harness built on xstate and anentrypoint-design. Features a full gateway, context compressor, multi-platform adapters, and a live dashboard — built with:
+An open JS agent. Features a full gateway, context compressor, multi-platform adapters, and a live dashboard — built with:
 
 - [`@earendil-works/pi-ai`](https://www.npmjs.com/package/@earendil-works/pi-ai) — provider abstraction (Anthropic / OpenAI / Groq / …)
 - [`@earendil-works/pi-tui`](https://www.npmjs.com/package/@earendil-works/pi-tui) — TUI primitives
