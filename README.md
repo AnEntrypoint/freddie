@@ -1,5 +1,7 @@
 # ƒreddie
 
+<img width="128" height="128" alt="image" src="https://github.com/user-attachments/assets/86cc5ee2-9e0a-4052-9ce9-31a633d23897" />
+
 An open JS agent. Features a full gateway, context compressor, multi-platform adapters, and a live dashboard — built with:
 
 - [`@earendil-works/pi-ai`](https://www.npmjs.com/package/@earendil-works/pi-ai) — provider abstraction (Anthropic / OpenAI / Groq / …)
