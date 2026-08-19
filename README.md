@@ -10,7 +10,7 @@ An open JS agent. Features a full gateway, context compressor, multi-platform ad
 - [`plugsdk`](https://github.com/AnEntrypoint/plugsdk) — plugin contract types consumed by `src/host/contract.js`
 - [`flatspace`](https://www.npmjs.com/package/flatspace) — flat-file CMS + static site builder (powers the `website/` documentation site)
 
-`@earendil-works/pi-coding-agent` and `@earendil-works/pi-agent-core` are **not** dependencies — freddie's agent loop, session store, and plugin system are original code, not thin wrappers over that package (see AGENTS.md's "Substrate" section for the full rationale). `floosie` is not currently a dependency either, and is not imported anywhere in `src/`.
+`@earendil-works/pi-coding-agent` and `@earendil-works/pi-agent-core` are **not** dependencies — ƒreddie's agent loop, session store, and plugin system are original code, not thin wrappers over that package (see AGENTS.md's "Substrate" section for the full rationale). `floosie` is not currently a dependency either, and is not imported anywhere in `src/`.
 
 See [AGENTS.md](./AGENTS.md) for the full subsystem guide and residual complement — it is the maintained source of truth; this file gives a lighter overview and defers to it on any conflict.
 
