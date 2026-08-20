@@ -8,6 +8,11 @@ export default {
             if (!cron || !prompt) return res.status(400).json({ error: 'cron and prompt required' })
             try { res.json({ id: await createJob({ cron, prompt, model }) }) } catch (e) { res.status(400).json({ error: String(e.message || e) }) }
         })
-        gui.route('DELETE', '/api/cron/:id', async (req, res) => { await deleteJob(Number(req.params.id)); res.json({ ok: true }) })
+        gui.route('DELETE', '/api/cron/:id', async (req, res) => {
+            const id = Number(req.params.id)
+            if (!Number.isFinite(id)) return res.status(400).json({ error: 'id must be a number' })
+            try { await deleteJob(id); res.json({ ok: true }) }
+            catch (e) { res.status(400).json({ error: String(e.message || e) }) }
+        })
     },
 }
