@@ -1,6 +1,7 @@
 // Freddie dashboard Service Worker: caches the shell (index.html, app.js)
-// for offline VIEWING. The SDK js/css load from unpkg @latest (cross-origin)
-// and are not precached here, so first paint after an offline reload needs
+// for offline VIEWING. The SDK js/css load live from jsDelivr's GitHub-CDN
+// mode (cdn.jsdelivr.net/gh/AnEntrypoint/design@main, cross-origin) and are
+// not precached here, so first paint after an offline reload needs
 // network for the SDK even though the shell itself is available. Never
 // intercepts POST /api/chat or any other /api/* request -- true offline LLM
 // response generation is impossible by definition (the model call needs real
