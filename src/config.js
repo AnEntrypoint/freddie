@@ -75,8 +75,11 @@ export function getConfigValue(dotpath, fallback = undefined) {
     return getDot(cfg, dotpath, fallback)
 }
 
+const UNSAFE_DOT_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
+
 function setDot(obj, dotpath, value) {
     const keys = dotpath.split('.')
+    if (keys.some(k => UNSAFE_DOT_KEYS.has(k))) throw new Error('invalid config key: ' + dotpath)
     let cur = obj
     for (let i = 0; i < keys.length - 1; i++) {
         if (typeof cur[keys[i]] !== 'object' || cur[keys[i]] === null) cur[keys[i]] = {}

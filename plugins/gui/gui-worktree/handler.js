@@ -34,11 +34,10 @@ export async function listWorktrees(req, res) {
 function sanitizeTargetPath(cwd, targetPath) {
     if (!targetPath) throw new Error('path is required')
     const resolved = path.isAbsolute(targetPath) ? path.resolve(targetPath) : path.resolve(cwd, targetPath)
-    // The worktree target must live alongside the repo (or a subpath of it),
-    // never escape to an arbitrary filesystem location outside the allowed
-    // project tree -- mirrors the cwd allowlist discipline in gui-git/lib.js.
     const repoParent = path.resolve(cwd, '..')
-    if (resolved !== cwd && !resolved.startsWith(repoParent + path.sep) && !resolved.startsWith(cwd + path.sep)) {
+    const isWithinCwd = resolved === cwd || resolved.startsWith(cwd + path.sep)
+    const isDirectSibling = path.dirname(resolved) === repoParent
+    if (!isWithinCwd && !isDirectSibling) {
         throw new Error('worktree path must be within or alongside the project directory')
     }
     return resolved

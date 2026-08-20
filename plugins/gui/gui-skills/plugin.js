@@ -12,6 +12,7 @@ export default {
                 const { name } = req.params
                 const { enabled } = req.body || {}
                 if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be a boolean' })
+                if (name === '__proto__' || name === 'constructor' || name === 'prototype') return res.status(400).json({ error: 'invalid skill name' })
                 const skillState = config.get('skillState') || {}
                 skillState[name] = { ...(skillState[name] || {}), enabled }
                 config.set('skillState', skillState)
