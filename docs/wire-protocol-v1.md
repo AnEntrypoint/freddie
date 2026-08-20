@@ -70,6 +70,9 @@ stdout is frames-only; clients MUST skip lines not starting with `{` (boot chatt
 | `session.end` | `{result: "ok"|"error"|"empty", error?, iterations}` | turn settled |
 | `session.error` | `{error?|reason?, timeoutMs?}` | turn-level failure (incl. timeout) |
 | `status.update` | `{reverted?, turnsBack?, keptMessages?}` | checkpoint-revert notice (also reserved) |
+| `subagent.spawn` | — | reserved, not yet emitted (no `emitTurnEvent` call site in the tree) |
+| `subagent.progress` | — | reserved, not yet emitted (no `emitTurnEvent` call site in the tree) |
+| `subagent.end` | — | reserved, not yet emitted (no `emitTurnEvent` call site in the tree) |
 
 ## Session operations
 

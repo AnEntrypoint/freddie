@@ -19,7 +19,11 @@ const host0 = await fetchHost();
 root.innerHTML = '';
 
 function routeFromHash() {
-    const m = String(location.hash || '').match(/^#(?:fd-)?([a-z]+)/i);
+    // [a-z-]+ (not [a-z]+) so a hyphenated path like 'session-tree' captures
+    // whole -- the letters-only form truncated at the hyphen to 'session',
+    // which never matches a real ROUTES entry and silently fell back to
+    // 'home' on every #fd-session-tree navigation (including a sidebar click).
+    const m = String(location.hash || '').match(/^#(?:fd-)?([a-z-]+)/i);
     const p = m && m[1];
     return ROUTES.find(r => r.path === p) ? p : 'home';
 }
