@@ -33,6 +33,21 @@ import path from 'node:path'
 
 const REPLAY_CAP = 500
 
+// Session ids are client-generated UUIDs (newSessionId() in the SDK's
+// pages-chat.js) and uploaded filenames are user-supplied -- both reach
+// path.join(<FREDDIE_HOME>/uploads, ...) below. Express decodes %2F inside a
+// route param BEFORE param-splitting, so req.params.id can itself contain a
+// literal '/' (e.g. '..%2F..%2Fetc' -> '../../etc'), and a bare '..' segment
+// contains none of the characters the old filename regex stripped -- both
+// escaped the uploads sandbox. path.basename() collapses any directory
+// component but does not resolve '..' on its own (basename('..') === '..'),
+// so '.'/'..' are rejected explicitly after basename'ing.
+function sanitizePathSegment(seg) {
+    const s = path.basename(String(seg || ''))
+    if (!s || s === '.' || s === '..') return null
+    return s
+}
+
 // Turn continuity comes from the wire log (this surface's canonical
 // transcript — kimi's wire.jsonl model), reconstructed by the shared helper.
 const priorFromWire = (sid) => transcriptFromWire(sid, { limit: 1000 })
@@ -143,10 +158,13 @@ export default {
         // returned path rides the prompt frame's attachments field.
         gui.route('POST', '/api/sessions/:id/files', (req, res) => {
             try {
+                const sid = sanitizePathSegment(req.params.id)
+                if (!sid) return res.status(400).json({ error: 'invalid session id' })
                 const { name, contentBase64, text } = req.body || {}
                 if (!name || (contentBase64 == null && text == null)) return res.status(400).json({ error: 'name + contentBase64|text required' })
-                const safe = String(name).replace(/[\\/:*?"<>|]/g, '_').slice(0, 120)
-                const dir = path.join(getFreddieHome(), 'uploads', req.params.id)
+                const safe = sanitizePathSegment(String(name).slice(0, 120))
+                if (!safe) return res.status(400).json({ error: 'invalid file name' })
+                const dir = path.join(getFreddieHome(), 'uploads', sid)
                 fs.mkdirSync(dir, { recursive: true })
                 const p = path.join(dir, safe)
                 if (text != null) fs.writeFileSync(p, String(text))
@@ -165,7 +183,9 @@ export default {
         // the read half of the same <FREDDIE_HOME>/uploads/<sid>/ store, for
         // kimi web's session-files-panel parity (COMPONENT_API.md FileGrid shape).
         gui.route('GET', '/api/sessions/:id/staged-files', (req, res) => {
-            const dir = path.join(getFreddieHome(), 'uploads', req.params.id)
+            const sid = sanitizePathSegment(req.params.id)
+            if (!sid) return res.status(400).json({ error: 'invalid session id' })
+            const dir = path.join(getFreddieHome(), 'uploads', sid)
             if (!fs.existsSync(dir)) return res.json({ files: [] })
             const files = fs.readdirSync(dir, { withFileTypes: true })
                 .filter((e) => e.isFile())
@@ -177,8 +197,10 @@ export default {
         })
 
         gui.route('GET', '/api/sessions/:id/staged-files/:name', (req, res) => {
-            const safe = String(req.params.name).replace(/[\\/:*?"<>|]/g, '_').slice(0, 120)
-            const p = path.join(getFreddieHome(), 'uploads', req.params.id, safe)
+            const sid = sanitizePathSegment(req.params.id)
+            const safe = sanitizePathSegment(String(req.params.name).slice(0, 120))
+            if (!sid || !safe) return res.status(400).json({ error: 'invalid session id or file name' })
+            const p = path.join(getFreddieHome(), 'uploads', sid, safe)
             if (!fs.existsSync(p)) return res.status(404).json({ error: 'not found' })
             res.download(p, safe)
         })
