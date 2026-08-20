@@ -8,7 +8,16 @@ import { logger } from '../observability/log.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const log = logger('web_server')
 
-export async function createDashboard({ port = 0 } = {}) {
+// The dashboard exposes unauthenticated, sensitive surfaces (POST
+// /api/terminal/exec runs arbitrary shell commands; /api/auth and
+// /api/mcp/oauth/:server touch stored provider secrets) with no auth
+// middleware anywhere in this file. Binding to a non-loopback address by
+// default would put all of that on the network unauthenticated. Default to
+// loopback-only; a caller that genuinely wants LAN/remote access passes an
+// explicit host.
+const DEFAULT_HOST = '127.0.0.1'
+
+export async function createDashboard({ port = 0, host: bindHost = DEFAULT_HOST } = {}) {
     const host = await bootHost()
     // Rehydrate any interrupted machines (agent turns, batches) from their
     // persisted snapshots; surface lifecycle markers. Non-blocking on failure.
@@ -44,18 +53,17 @@ export async function createDashboard({ port = 0 } = {}) {
     // SPA fallback: unknown non-API GET routes serve index.html so deep links
     // (and client-side hash routes) don't return Express's default 404 HTML.
     // /api/* is excluded — that 404s legitimately as data. The SDK itself is
-    // no longer served locally: index.html loads it live from
-    // raw.githack.com/AnEntrypoint/design/main so the dashboard always
-    // tracks the newest commit on main without a local npm install. (Not
-    // jsDelivr's cdn.jsdelivr.net/gh/... equivalent — that caches a GitHub
-    // @main branch reference for up to 12h regardless of purge.)
+    // no longer served locally: index.html loads it live from jsDelivr's
+    // GitHub-CDN mode (cdn.jsdelivr.net/gh/AnEntrypoint/design@main) so the
+    // dashboard tracks main without a local npm install.
     app.use((req, res, next) => {
         if (req.method !== 'GET') return next()
         if (req.path.startsWith('/api/')) return next()
         // Only serve index.html for paths that don't match any registered route
         res.set('Cache-Control', 'no-cache').sendFile(path.join(__dirname, 'index.html'))
     })
-    const { server, actualPort } = await new Promise((res, rej) => { const s = app.listen(port, () => { const a = s.address(); res({ server: s, actualPort: a && typeof a === 'object' ? a.port : port }) }); s.once('error', rej) })
+    if (bindHost !== DEFAULT_HOST) log.warn('dashboard binding to a non-loopback host with no built-in authentication', { host: bindHost })
+    const { server, actualPort } = await new Promise((res, rej) => { const s = app.listen(port, bindHost, () => { const a = s.address(); res({ server: s, actualPort: a && typeof a === 'object' ? a.port : port }) }); s.once('error', rej) })
 
     // Raw WebSocket upgrade routes (host.gui.wsRoute) -- ws in noServer mode,
     // matched by exact pathname against the real http.Server's 'upgrade'
@@ -69,5 +77,6 @@ export async function createDashboard({ port = 0 } = {}) {
         wss.handleUpgrade(req, socket, head, (ws) => onConnection(ws, req))
     })
 
-    return { server, port: actualPort, url: `http://127.0.0.1:${actualPort}/`, stop: () => new Promise(r => server.close(() => r())) }
+    const displayHost = (bindHost === '0.0.0.0' || bindHost === '::') ? '127.0.0.1' : bindHost
+    return { server, port: actualPort, url: `http://${displayHost}:${actualPort}/`, stop: () => new Promise(r => server.close(() => r())) }
 }
