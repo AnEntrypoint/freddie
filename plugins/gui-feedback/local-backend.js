@@ -4,6 +4,16 @@
 
 const isBrowser = typeof window !== 'undefined'
 
+// Feedback ids are always generated as 'fb-<base36>-<base36>' (plugin.js's
+// generateId()) or 'gh-<number>' for GitHub-backed items (routed elsewhere,
+// never reaching this file). Reject anything else before it reaches a
+// path.join(dir, id + '.json') -- an unvalidated id (e.g. '../auth/x') would
+// otherwise let a client read/overwrite arbitrary JSON files under
+// <FREDDIE_HOME> via GET/POST /api/feedback/:id/vote.
+function isSafeId(id) {
+    return typeof id === 'string' && /^[a-zA-Z0-9_-]+$/.test(id)
+}
+
 async function getFreddieHome() {
     const { getFreddieHome: gfh } = await import('../../src/home.js')
     return gfh()
@@ -38,6 +48,7 @@ export async function loadLocalFeedbackItems() {
 
 export async function saveLocalFeedbackItem(id, item) {
     if (isBrowser) return
+    if (!isSafeId(id)) throw new Error('invalid feedback id')
     const fs = await import('node:fs')
     const path = await import('node:path')
     const dir = await getFeedbackDir()
@@ -48,6 +59,7 @@ export async function saveLocalFeedbackItem(id, item) {
 
 export async function loadLocalFeedbackFile(id) {
     if (isBrowser) return null
+    if (!isSafeId(id)) return null
     const fs = await import('node:fs')
     const path = await import('node:path')
     const dir = await getFeedbackDir()
