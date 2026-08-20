@@ -1,4 +1,4 @@
-import { notificationManager } from '../../src/agent/notifications.js'
+import { notificationManager } from '../../../src/agent/notifications.js'
 
 export default {
     name: 'gui-notifications',

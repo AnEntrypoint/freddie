@@ -9,6 +9,17 @@ const _require = createRequire(import.meta.url)
 const CHECKS = [
     { name: 'freddie-home', run: () => fs.existsSync(getFreddieHome()) ? { ok: true } : { ok: false, fix: 'mkdir -p ' + getFreddieHome() } },
     { name: 'node-version', run: () => { const v = process.versions.node; const major = Number(v.split('.')[0]); return major >= 20 ? { ok: true, value: v } : { ok: false, fix: 'install node >=20', value: v } } },
+    // Warn-only, never fails: npm itself has no `engines` gate in package.json
+    // (AGENTS.md notes the dev box runs 10.7.0 while CI's Node 24 ships 11.x) --
+    // this just surfaces which one a given machine has, since npm 10.x has no
+    // diagnostic surface elsewhere in freddie for that gap.
+    { name: 'npm-version', run: () => {
+        const r = spawnSync('npm', ['--version'], { encoding: 'utf8', shell: process.platform === 'win32' })
+        if (r.status !== 0) return { ok: false, fix: 'install npm' }
+        const v = r.stdout.trim()
+        const major = Number(v.split('.')[0])
+        return { ok: true, value: v + (major < 11 ? ' (CI runs npm 11.x; local installs may resolve deps differently)' : '') }
+    } },
     { name: '@libsql/client', run: () => { try { _require.resolve('@libsql/client'); return { ok: true } } catch { return { ok: false, fix: 'npm install' } } } },
     { name: 'gh-cli', run: () => { const r = spawnSync('gh', ['--version'], { encoding: 'utf8' }); return r.status === 0 ? { ok: true, value: r.stdout.split('\n')[0] } : { ok: false, fix: 'install gh CLI' } } },
     { name: 'git', run: () => { const r = spawnSync('git', ['--version'], { encoding: 'utf8' }); return r.status === 0 ? { ok: true, value: r.stdout.trim() } : { ok: false, fix: 'install git' } } },

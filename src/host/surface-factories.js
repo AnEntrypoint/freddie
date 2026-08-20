@@ -4,7 +4,19 @@ import { withResourceEnforcement, makeScopedEnvReader, enforcePII } from './tool
 
 export function reg(map, kind) {
     return {
-        register(spec) { if (!spec?.name) throw new Error(`${kind}.name required`); map.set(spec.name, spec) },
+        register(spec) {
+            if (!spec?.name) throw new Error(`${kind}.name required`)
+            // src/toolsets.js's t.toolset || 'core' pattern used to silently
+            // alias a missing toolset field to the highest-privilege bundle
+            // (fail-open); a tool that omits it is almost certainly a typo or
+            // an in-progress definition, not an intentional 'core' choice —
+            // catching it at registration time (fail fast, loud, at the
+            // boundary that still names the cause) is strictly better than
+            // discovering it live in an untrusted-end-user consumer's
+            // toolset scoping months later.
+            if (kind === 'tool' && !spec.toolset) throw new Error(`tool '${spec.name}' missing required 'toolset' field (was silently defaulting to 'core', the highest-privilege bundle)`)
+            map.set(spec.name, spec)
+        },
         get: (n) => map.get(n), list: () => [...map.values()], has: (n) => map.has(n), size: () => map.size,
         unregister: (n) => map.delete(n),
     }

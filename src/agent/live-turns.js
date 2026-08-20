@@ -50,4 +50,6 @@ export {
     resolveApproval,
 } from './turn-approval.js'
 
+export { requestQuestion, resolveQuestion } from './turn-question.js'
+
 export { revertTurn } from './turn-revert.js'

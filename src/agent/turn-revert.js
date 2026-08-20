@@ -41,6 +41,25 @@ export async function revertTurn(sessionKey, turnsBack = 1) {
             msgs.push({ role: 'tool', tool_call_id: data.toolCallId, content: data.denied ? JSON.stringify({ error: 'tool call denied by user' }) : (typeof data.result === 'string' ? data.result : JSON.stringify(data.result ?? '')) })
         }
     }
+    // REVERT only reassigns context.messages (machine_builder.js's root
+    // transient action) — it does NOT abort whatever's mid-flight in
+    // executing_tools. A pending question/approval promise left unsettled
+    // would resolve later against a transcript that's already been rewound
+    // out from under it (or hang forever for askUser, which has no
+    // auto-reject timer by design). Settle both gates first, same shape as
+    // cancelTurn in turn-steering.js.
+    const q = t.pendingQuestion
+    if (q) {
+        t.pendingQuestion = null
+        emitTurnEvent(sessionKey, 'question.resolved', { id: q.id, answers: {}, rejected: true, reverted: true })
+        try { q.reject(new Error('turn reverted')) } catch { /* swallow: already-settled reject must not break revert */ }
+    }
+    const a = t.pendingApproval
+    if (a) {
+        t.pendingApproval = null
+        emitTurnEvent(sessionKey, 'approval.resolved', { id: a.id, name: a.name, approved: false, reverted: true, feedback: 'turn reverted' })
+        try { a.resolve({ approved: false, feedback: 'turn reverted' }) } catch { /* swallow: already-settled resolve must not break revert */ }
+    }
     try { t.actor.send({ type: 'REVERT', messages: msgs }) } catch (e) { return { ok: false, reason: String(e?.message || e) } }
     try {
         const { clearSteps } = await import('../machines/step-journal.js')

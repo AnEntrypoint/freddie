@@ -7,8 +7,8 @@
 // POST /api/voice/transcribe  — accept base64 audio, return text + confidence
 // POST /api/voice/synthesize  — accept text + voice, return base64 audio
 
-import { env } from '../../src/env.js'
-import { getAcptoapiUrl } from '../../src/agent/acptoapi-bridge.js'
+import { env } from '../../../src/env.js'
+import { getAcptoapiUrl } from '../../../src/agent/acptoapi-bridge.js'
 
 const isBrowser = typeof window !== 'undefined'
 

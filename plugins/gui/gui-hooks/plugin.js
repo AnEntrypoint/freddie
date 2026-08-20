@@ -9,7 +9,7 @@
  * The wire hook bridge is a pure in-memory singleton; this plugin exposes
  * its state through the dashboard HTTP API.
  */
-import { wireHookBridge } from '../../src/agent/wire_hooks.js'
+import { wireHookBridge } from '../../../src/agent/wire_hooks.js'
 
 export default {
     name: 'gui-hooks',

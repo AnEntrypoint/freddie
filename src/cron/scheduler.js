@@ -48,7 +48,12 @@ export async function tick(now = new Date(), { callLLM = null } = {}) {
             // runStep makes the fire idempotent within the minute as a second layer
             // atop the last_run guard. Cron step rows accumulate (one per fired
             // minute-key) but are tiny; minute-keys rotate so they don't collide.
-            runStep('cron:' + j.id, 'fire:' + minuteKey, () => runTurn({ prompt: j.prompt, callLLM })).catch(e => log.error('cron run failed', { id: j.id, err: String(e) }))
+            // approvalTimeoutMs:0: cron jobs are detached, nobody can ever
+            // answer an approval.request for them, so a gated tool call under
+            // agent.approval_mode=mutating/etc should fail fast rather than
+            // park for the human-facing 120s default (see src/batch.js's
+            // runOne for the same fix + full rationale).
+            runStep('cron:' + j.id, 'fire:' + minuteKey, () => runTurn({ prompt: j.prompt, callLLM, approvalTimeoutMs: 0 })).catch(e => log.error('cron run failed', { id: j.id, err: String(e) }))
         } catch (e) { log.error('cron tick failed', { id: j.id, err: String(e) }) }
     }
     return fired

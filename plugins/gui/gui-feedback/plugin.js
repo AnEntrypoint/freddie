@@ -5,7 +5,7 @@
 // Browser-compatible: filesystem and child_process ops are only invoked inside
 // route handlers (server-side), never at module-load time.
 
-import { registerDebug } from '../../src/observability/debug.js'
+import { registerDebug } from '../../../src/observability/debug.js'
 import { ghAvailable, createGitHubIssue, listGitHubIssues, addGitHubReaction } from './github-backend.js'
 import { loadLocalFeedbackItems, saveLocalFeedbackItem, updateLocalVotes } from './local-backend.js'
 

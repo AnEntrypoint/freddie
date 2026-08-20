@@ -56,6 +56,12 @@ export function queueDepth(sessionKey) {
 export function cancelTurn(sessionKey) {
     const t = turns.get(sessionKey)
     if (!t) return false
+    const pending = t.pendingQuestion
+    if (pending) {
+        t.pendingQuestion = null
+        emitTurnEvent(sessionKey, 'question.resolved', { id: pending.id, answers: {}, rejected: true, cancelled: true })
+        try { pending.reject(new Error('turn cancelled')) } catch { /* swallow: reject of an already-settled question must not break cancel */ }
+    }
     try { t.actor.send({ type: 'INTERRUPT' }) } catch { return false }
     return true
 }

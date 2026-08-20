@@ -2,7 +2,7 @@
 // PluginsConfig component): {name, surfaces, requires, source, enabled}
 // per plugin — distinct from gui-plugin-graph's D3 {nodes,edges} shape,
 // which is built for the dependency-graph visualization, not a list UI.
-import { registerDebug } from '../../src/observability/debug.js'
+import { registerDebug } from '../../../src/observability/debug.js'
 
 function listFrom(host) {
     // host.plugins() returns a stripped-down {name,version,surfaces,requires}

@@ -6,9 +6,9 @@
 <title>Plugins — Freddie</title>
 
 
-<link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/dist/247420.css">
 <script type="importmap">
-{ "imports": { "anentrypoint-design": "https://unpkg.com/anentrypoint-design@latest/dist/247420.js" } }
+{ "imports": { "anentrypoint-design": "https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/dist/247420.js" } }
 </script>
 <style>
 .app-stage { width: 100%; max-width: var(--stage-wide, min(96vw, 1440px)); margin-inline: auto; padding: var(--space-6, 48px) var(--space-4, 24px) var(--space-8, 96px); display: grid; gap: var(--space-6, 48px); box-sizing: border-box }
@@ -19,7 +19,7 @@
 .page-body pre { margin: var(--space-3, 16px) 0; background: var(--panel-2); padding: var(--space-3, 16px); border-radius: var(--r-1, 10px); overflow-x: auto }
 /* .app-stage owns inter-block rhythm via grid gap; sections/hero must not double it.
    These selectors carry !important because this inline block loads before the
-   unpkg CSS bundle, which would otherwise win on load-order for equal specificity. */
+   jsDelivr CSS bundle, which would otherwise win on load-order for equal specificity. */
 .ds-247420 .app-stage > .ds-hero { margin: 0 !important; padding: var(--space-4, 24px) 0 0 !important; max-width: none !important; gap: var(--space-4, 24px) !important }
 .ds-247420 .app-stage > .ds-section { margin: 0 !important }
 .app-stage .row + .row { margin-top: var(--space-1, 4px) }

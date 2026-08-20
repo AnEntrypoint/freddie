@@ -13,11 +13,17 @@
  * Browser-compatible: this module only registers Express routes; it has no
  * DOM / browser-specific code. The dashboard SDK consumes the JSON endpoints.
  */
-import { getClients } from '../core/mcp/lib/tool.js'
+import { getClients } from '../../core/mcp/lib/tool.js'
 
 export default {
     name: 'gui-mcp',
     surfaces: 'gui',
+    // Statically imports from and (in route handlers below) dynamically
+    // imports plugins/core/mcp's lib/tool.js + lib/oauth-manager.js -- this
+    // requires entry makes that real coupling visible to gui-plugin-graph's
+    // dependency visualization (which reads ONLY the requires array, not
+    // static/dynamic imports) and enforces load-order/presence via topoSort.
+    requires: ['mcp'],
     register({ gui }) {
         // Health check — returns ok + connected server count
         gui.route('GET', '/api/mcp/health', (_req, res) => {

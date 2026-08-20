@@ -10,7 +10,7 @@
 // This module owns the shared mutable state (turns/sessionQueues/toolCounts
 // Maps) that steering/queue, approval, and cancel/revert all operate on.
 
-import { onTurnEvent } from './events.js'
+import { onTurnEvent, emitTurnEvent } from './events.js'
 
 export const turns = new Map() // sessionKey -> { actor, control, pendingApproval, startedAt }
 // Per-session follow-up queue (kimi 1.31's Enter=queue channel). Lives outside
@@ -34,6 +34,21 @@ export function getTurn(sessionKey) {
 }
 
 export function unregisterTurn(sessionKey) {
+    const t = turns.get(sessionKey)
+    if (t) {
+        const q = t.pendingQuestion
+        if (q) {
+            t.pendingQuestion = null
+            emitTurnEvent(sessionKey, 'question.resolved', { id: q.id, answers: {}, rejected: true, unregistered: true })
+            try { q.reject(new Error('turn ended')) } catch { /* swallow: already-settled reject must not break unregister */ }
+        }
+        const a = t.pendingApproval
+        if (a) {
+            t.pendingApproval = null
+            emitTurnEvent(sessionKey, 'approval.resolved', { id: a.id, name: a.name, approved: false, unregistered: true, feedback: 'turn ended' })
+            try { a.resolve({ approved: false, feedback: 'turn ended' }) } catch { /* swallow: already-settled resolve must not break unregister */ }
+        }
+    }
     turns.delete(sessionKey)
 }
 

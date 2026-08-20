@@ -1,6 +1,6 @@
 import path from 'node:path'
 import fs from 'node:fs'
-import { listProjects, getActiveProject } from '../../src/projects.js'
+import { listProjects, getActiveProject } from '../../../src/projects.js'
 
 // Resolve and validate a path against registered project directories.
 // Falls back to the active project when no explicit path is supplied.

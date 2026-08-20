@@ -1,6 +1,6 @@
 import { exec } from 'node:child_process';
-import { getActiveProject } from '../../src/projects.js';
-import { resolveAllowedCwd } from '../gui/gui-git/lib.js';
+import { getActiveProject } from '../../../src/projects.js';
+import { resolveAllowedCwd } from '../gui-git/lib.js';
 
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 const MAX_TIMEOUT = 120000;    // 2 minutes

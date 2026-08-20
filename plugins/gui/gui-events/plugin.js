@@ -22,7 +22,7 @@
  */
 
 import { on, emit } from './event-bus.js';
-import { logger } from '../../src/observability/log.js';
+import { logger } from '../../../src/observability/log.js';
 
 const log = logger('gui_events');
 const HEARTBEAT_MS = 30_000;

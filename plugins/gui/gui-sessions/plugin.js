@@ -4,11 +4,12 @@ export default {
     name: 'gui-sessions', surfaces: 'gui',
     register({ gui }) {
         // needsInput badges sessions whose live turn is parked on an approval
-        // (Claude agents-view / opencode status precedent) — pure read of the
-        // live-turns registry, no state change.
+        // or a pending ask_user_question gate (Claude agents-view / opencode
+        // status precedent) — pure read of the live-turns registry, no state
+        // change.
         gui.route('GET', '/api/sessions', async (_, res) => {
             const rows = await listSessions()
-            res.json(rows.map(s => ({ ...s, needsInput: !!getTurn(s.id)?.pendingApproval })))
+            res.json(rows.map(s => { const t = getTurn(s.id); return { ...s, needsInput: !!(t?.pendingApproval || t?.pendingQuestion) } }))
         })
         gui.route('GET', '/api/sessions/:id', async (req, res) => {
             const s = await getSession(req.params.id)

@@ -18,7 +18,13 @@ import { runStep, clearSteps } from './machines/step-journal.js'
 async function runOne({ job, model, callLLM, file }) {
     let rec
     try {
-        const out = await runTurn({ prompt: job.p, model, callLLM, timeoutMs: 60000 })
+        // approvalTimeoutMs:0 (not the human-facing 120s default): batch jobs
+        // are detached, nobody can ever answer an approval.request for them,
+        // so a gated tool call under agent.approval_mode=mutating/etc should
+        // fail fast instead of parking for two minutes before auto-rejecting
+        // (registerTurn now always runs, so this turn is registered like any
+        // interactive one — see AGENTS.md's Approvals section).
+        const out = await runTurn({ prompt: job.p, model, callLLM, timeoutMs: 60000, approvalTimeoutMs: 0 })
         rec = { i: job.i, prompt: job.p, result: out.result, error: out.error }
     } catch (e) {
         rec = { i: job.i, prompt: job.p, error: String(e?.message || e) }

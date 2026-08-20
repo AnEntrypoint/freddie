@@ -29,9 +29,9 @@ import readline from 'node:readline'
 import { randomUUID } from 'node:crypto'
 import { runTurn } from '../../src/agent/machine.js'
 import { WIRE_VERSION, WIRE_EVENTS, readWireLog } from '../../src/agent/events.js'
-import { subscribeTurn, steerTurn, queueTurn, cancelTurn, revertTurn, resolveApproval, listLiveTurns } from '../../src/agent/live-turns.js'
+import { subscribeTurn, steerTurn, queueTurn, cancelTurn, revertTurn, resolveApproval, resolveQuestion, requestQuestion, listLiveTurns } from '../../src/agent/live-turns.js'
 
-const METHODS = ['initialize', 'prompt', 'steer', 'queue', 'cancel', 'revert', 'approve', 'replay', 'status']
+const METHODS = ['initialize', 'prompt', 'steer', 'queue', 'cancel', 'revert', 'approve', 'answer', 'replay', 'status']
 
 function makeTransport(out) {
     const send = (obj) => out.write(JSON.stringify(obj) + '\n')
@@ -86,6 +86,11 @@ export async function serveWire({ input = process.stdin, output = process.stdout
                 const ok = await resolveApproval(params.sessionId, params)
                 return t.result(id, { ok })
             }
+            if (method === 'answer') {
+                if (!params.sessionId || !params.id) return t.error(id, -32602, 'answer requires sessionId + id')
+                const ok = resolveQuestion(params.sessionId, params)
+                return t.result(id, { ok })
+            }
             if (method === 'prompt') {
                 if (!params.text) return t.error(id, -32602, 'prompt requires text')
                 // Generate the session key client-side when absent so the
@@ -100,6 +105,7 @@ export async function serveWire({ input = process.stdin, output = process.stdout
                     model: params.model,
                     provider: params.provider,
                     timeoutMs: params.timeoutMs || 600000,
+                    toolCtx: { askUser: (questions) => requestQuestion(sid, questions) },
                 })
                 return t.result(id, { sessionId: sid, result: out.result ?? null, error: out.error ?? null, iterations: out.iterations ?? 0 })
             }
