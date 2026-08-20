@@ -50,9 +50,10 @@ export async function uploadFile(req, res) {
         // base64-encoded file content in JSON body.
         const { path: targetPath, content, name } = req.body || {}
         if (!content || !name) return res.status(400).json({ error: 'name and content are required' })
-        // `name` must be a bare filename, never a traversal/absolute path --
-        // otherwise path.join(dirPath, name) can escape the allowlisted root
-        // resolveAllowedPath just validated (e.g. name: '../../../etc/x').
+        // `name` is untrusted request input. Strip any directory component so
+        // it can only ever name a file inside the already-validated dirPath —
+        // path.join(dirPath, name) below would otherwise let a name like
+        // '../../../etc/whatever' escape the allowlisted project tree.
         const safeName = path.basename(String(name))
         if (!safeName || safeName === '.' || safeName === '..') return res.status(400).json({ error: 'invalid file name' })
         let dirPath = resolveAllowedPath(targetPath)
@@ -61,7 +62,7 @@ export async function uploadFile(req, res) {
         } else {
             dirPath = path.dirname(dirPath)
         }
-        const dest = path.join(dirPath, safeName)
+        const dest = resolveAllowedPath(path.join(dirPath, safeName))
         if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true })
         // content can be a data URL or raw base64
         let buf

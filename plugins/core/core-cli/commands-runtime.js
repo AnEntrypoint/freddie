@@ -117,10 +117,13 @@ export function registerRuntimeCommands(C) {
             else console.log(`${p.padEnd(12)} [ok] ${r.models.length} models - ${r.models.slice(0, 5).join(', ')}${r.models.length > 5 ? ', ...' : ''}`)
         }
     } })
-    C({ name: 'dashboard', description: 'Boot web dashboard', options: [{ flag: '--port <port>', default: '0' }, { flag: '--cwd <dir>', default: '' }], action: async (opts) => {
+    C({ name: 'dashboard', description: 'Boot web dashboard', options: [{ flag: '--port <port>', default: '0' }, { flag: '--host <host>', default: '127.0.0.1' }, { flag: '--cwd <dir>', default: '' }], action: async (opts) => {
         if (opts.cwd) { const p = process.platform === 'win32' ? opts.cwd.replace(/^\/([a-z])\//i, '$1:/') : opts.cwd; process.chdir(p) }
         const { createDashboard } = await import('../../../src/web/server.js')
-        const d = await createDashboard({ port: Number(opts.port) })
+        // --host defaults to loopback: every gui-* /api/* route (including
+        // POST /api/terminal/exec, an unauthenticated shell) has no built-in
+        // auth, so binding wider than localhost by default would expose them.
+        const d = await createDashboard({ port: Number(opts.port), host: opts.host })
         console.log('dashboard:', d.url)
         process.on('SIGINT', async () => { await d.stop(); process.exit(0) })
     } })
