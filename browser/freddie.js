@@ -935,7 +935,8 @@ var GUI_VERBS = [
 	"nav",
 	"debug",
 	"api",
-	"asset"
+	"asset",
+	"wsRoute"
 ];
 var HOOK_NAMES = [
 	"preToolCall",
@@ -1109,11 +1110,6 @@ var init_env = __esmMin((() => {
 		KIMI_REGION: {
 			purpose: "Kimi (Moonshot) region selector",
 			kind: "string"
-		},
-		YUANBAO_API_KEY: {
-			purpose: "Tencent Yuanbao provider key",
-			kind: "secret",
-			provider: true
 		},
 		AZURE_OPENAI_API_VERSION: {
 			purpose: "Azure OpenAI API version",
@@ -5260,6 +5256,7 @@ function reg(map, kind) {
 	return {
 		register(spec) {
 			if (!spec?.name) throw new Error(`${kind}.name required`);
+			if (kind === "tool" && !spec.toolset) throw new Error(`tool '${spec.name}' missing required 'toolset' field (was silently defaulting to 'core', the highest-privilege bundle)`);
 			map.set(spec.name, spec);
 		},
 		get: (n) => map.get(n),
@@ -11310,7 +11307,7 @@ var init_telemetry = __esmMin((() => {
 	telemetry = new Telemetry();
 }));
 //#endregion
-//#region plugins/gui-events/event-bus.js
+//#region plugins/gui/gui-events/event-bus.js
 function emit(event, data) {
 	const arr = listeners$1.get(event);
 	if (!arr) return;
@@ -11499,6 +11496,8 @@ var init_events = __esmMin((() => {
 		"status.update",
 		"approval.request",
 		"approval.resolved",
+		"question.request",
+		"question.resolved",
 		"steer.append",
 		"queue.append",
 		"session.end",
@@ -11520,6 +11519,39 @@ function registerTurn(sessionKey, entry) {
 	return entry;
 }
 function unregisterTurn(sessionKey) {
+	const t = turns.get(sessionKey);
+	if (t) {
+		const q = t.pendingQuestion;
+		if (q) {
+			t.pendingQuestion = null;
+			emitTurnEvent(sessionKey, "question.resolved", {
+				id: q.id,
+				answers: {},
+				rejected: true,
+				unregistered: true
+			});
+			try {
+				q.reject(/* @__PURE__ */ new Error("turn ended"));
+			} catch {}
+		}
+		const a = t.pendingApproval;
+		if (a) {
+			t.pendingApproval = null;
+			emitTurnEvent(sessionKey, "approval.resolved", {
+				id: a.id,
+				name: a.name,
+				approved: false,
+				unregistered: true,
+				feedback: "turn ended"
+			});
+			try {
+				a.resolve({
+					approved: false,
+					feedback: "turn ended"
+				});
+			} catch {}
+		}
+	}
 	turns.delete(sessionKey);
 }
 function noteToolCall(sessionKey, name) {
@@ -11647,6 +11679,9 @@ function requestApproval(sessionKey, { name, args, cwd }) {
 		});
 	});
 }
+//#endregion
+//#region src/agent/turn-question.js
+init_events();
 //#endregion
 //#region src/machines/step-journal.js
 async function init() {
@@ -14602,10 +14637,8 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 	initMessages = mergeHookExtras(initMessages, inbound, "onMessageInbound");
 	const mergedToolCtx = {
 		sessionKey: key,
-		...cwd ? {
-			cwd,
-			...toolCtx || {}
-		} : toolCtx || {}
+		...cwd ? { cwd } : {},
+		...toolCtx || {}
 	};
 	const control = {
 		steers: [],
@@ -14619,7 +14652,9 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 			"code_execution",
 			"process_registry",
 			"cronjob",
-			"terminal"
+			"terminal",
+			"skills_hub",
+			"skills_sync"
 		])),
 		approvedTools: /* @__PURE__ */ new Set([...getConfigValue("agent.approval_policy", {})?.auto_approve || [], ...await loadApprovalGrants(cwd)]),
 		toolBudgets: getConfigValue("agent.tool_budgets", {}),
@@ -14653,6 +14688,7 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		actor: pa.actor,
 		control,
 		pendingApproval: null,
+		pendingQuestion: null,
 		startedAt: Date.now()
 	});
 	pa.actor.send({
@@ -14706,7 +14742,9 @@ async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolset
 			"code_execution",
 			"process_registry",
 			"cronjob",
-			"terminal"
+			"terminal",
+			"skills_hub",
+			"skills_sync"
 		])),
 		approvedTools: /* @__PURE__ */ new Set([...getConfigValue("agent.approval_policy", {})?.auto_approve || [], ...await loadApprovalGrants(cwd)]),
 		toolBudgets: getConfigValue("agent.tool_budgets", {}),
@@ -14740,6 +14778,7 @@ async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolset
 		actor: pa.actor,
 		control,
 		pendingApproval: null,
+		pendingQuestion: null,
 		startedAt: Date.now()
 	});
 	return await driveAgentActor({
