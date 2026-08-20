@@ -22,10 +22,7 @@ jobs:
       - run: node scripts/sync-upstream.mjs --dry-run --force-major
       - run: node scripts/sync-upstream.mjs --force-major
       - name: Sync submodule pointers to upstream main
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git submodule update --remote --merge
+        run: git submodule update --remote --checkout
       - name: Open PR if changes
         uses: peter-evans/create-pull-request@v8
         with:
