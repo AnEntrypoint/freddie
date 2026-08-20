@@ -151,5 +151,27 @@ export default {
         gui.route('GET', '/api/sessions/:id/wire', (req, res) => {
             res.json({ sessionId: req.params.id, live: listLiveTurns().includes(req.params.id), events: readWireLog(req.params.id, { limit: Number(req.query?.limit) || REPLAY_CAP }) })
         })
+
+        // List/download files staged via POST /api/sessions/:id/files above —
+        // the read half of the same <FREDDIE_HOME>/uploads/<sid>/ store, for
+        // kimi web's session-files-panel parity (COMPONENT_API.md FileGrid shape).
+        gui.route('GET', '/api/sessions/:id/staged-files', (req, res) => {
+            const dir = path.join(getFreddieHome(), 'uploads', req.params.id)
+            if (!fs.existsSync(dir)) return res.json({ files: [] })
+            const files = fs.readdirSync(dir, { withFileTypes: true })
+                .filter((e) => e.isFile())
+                .map((e) => {
+                    const st = fs.statSync(path.join(dir, e.name))
+                    return { name: e.name, path: e.name, type: 'file', size: st.size, modified: st.mtime.toISOString() }
+                })
+            res.json({ files })
+        })
+
+        gui.route('GET', '/api/sessions/:id/staged-files/:name', (req, res) => {
+            const safe = String(req.params.name).replace(/[\\/:*?"<>|]/g, '_').slice(0, 120)
+            const p = path.join(getFreddieHome(), 'uploads', req.params.id, safe)
+            if (!fs.existsSync(p)) return res.status(404).json({ error: 'not found' })
+            res.download(p, safe)
+        })
     },
 }
