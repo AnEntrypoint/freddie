@@ -1,25 +1,21 @@
-const PLATFORM_MODULES = {
-    telegram: '../../gateway/platforms/telegram.js',
-    discord: '../../gateway/platforms/discord.js',
-    slack: '../../gateway/platforms/slack.js',
-    whatsapp: '../../gateway/platforms/whatsapp.js',
-    email: '../../gateway/platforms/email.js',
-    sms: '../../gateway/platforms/sms.js',
-    matrix: '../../gateway/platforms/matrix.js',
-    signal: '../../gateway/platforms/signal.js',
-    mattermost: '../../gateway/platforms/mattermost.js',
-}
+import { makePlatform, listPlatformNames } from '../../../src/gateway/platforms.js'
 
+// Was a hardcoded PLATFORM_MODULES map pointing at src/gateway/platforms/<name>.js
+// -- that directory never existed (the real registry is src/gateway/platforms.js's
+// makePlatform()/listPlatformNames(), backed by plugins/platform/platform-<name>/),
+// so every call here threw on import. Routes through the real registry instead,
+// which also means this tracks whatever platforms are actually registered rather
+// than a separately-maintained, driftable list (email/sms/mattermost were never
+// real registered platforms).
 export const _tool = ({
     name: 'send_message',
     toolset: 'core',
-    schema: { name: 'send_message', description: 'Send a message to a recipient on the named platform. Uses the gateway adapter; requires the platform credentials.', parameters: { type: 'object', properties: { platform: { type: 'string', enum: Object.keys(PLATFORM_MODULES) }, to: { type: 'string' }, text: { type: 'string' } }, required: ['platform', 'to', 'text'] } },
+    schema: { name: 'send_message', description: 'Send a message to a recipient on the named platform. Uses the gateway adapter; requires the platform credentials.', parameters: { type: 'object', properties: { platform: { type: 'string' }, to: { type: 'string' }, text: { type: 'string' } }, required: ['platform', 'to', 'text'] } },
     handler: async ({ platform, to, text }) => {
-        const mod = PLATFORM_MODULES[platform]
-        if (!mod) return { error: 'unknown platform: ' + platform }
-        const m = await import(mod)
-        const cls = Object.values(m)[0]
-        const inst = new cls({})
+        const names = await listPlatformNames()
+        if (!names.includes(platform)) return { error: 'unknown platform: ' + platform + ' (known: ' + names.join(', ') + ')' }
+        let inst
+        try { inst = await makePlatform(platform, {}) } catch (e) { return { error: String(e.message || e) } }
         try { await inst.start() } catch (e) { return { error: String(e.message || e) } }
         try {
             const out = await inst.send({ to, text })

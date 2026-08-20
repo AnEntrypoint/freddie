@@ -38,7 +38,7 @@ export function registerWorkspaceCommands(C) {
             const rows = await listSessions()
             if (!rows.length) { console.log('(no conversations yet — run `freddie run`)'); return }
             const { getTurn } = await import('../../../src/agent/live-turns.js')
-            for (const s of rows) console.log(`${s.id.slice(0, 8)}\t${new Date(s.updated_at).toISOString().slice(0, 16).replace('T', ' ')}\t${s.title || '(untitled)'}${getTurn(s.id)?.pendingApproval ? '\t[needs input]' : ''}`)
+            for (const s of rows) { const t = getTurn(s.id); console.log(`${s.id.slice(0, 8)}\t${new Date(s.updated_at).toISOString().slice(0, 16).replace('T', ' ')}\t${s.title || '(untitled)'}${(t?.pendingApproval || t?.pendingQuestion) ? '\t[needs input]' : ''}`) }
             return
         }
         if (action === 'show') {

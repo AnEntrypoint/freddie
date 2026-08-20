@@ -84,7 +84,20 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     // path silently lands in the freddie server's own cwd instead of the
     // caller's intended project directory (only `bash` was safe, since it takes
     // cwd as an explicit tool argument the model was told to pass).
-    const mergedToolCtx = { sessionKey: key, ...(cwd ? { cwd, ...(toolCtx || {}) } : (toolCtx || {})) }
+    // askUser is opt-in per caller, NOT injected unconditionally here: batch
+    // (src/batch.js) and cron (src/cron/scheduler.js) call runTurn with no
+    // toolCtx at all, and registerTurn now always runs (pendingQuestion:null
+    // seeded above) — so an unconditional askUser would make requestQuestion
+    // create a genuinely pending promise nothing will ever resolve for a
+    // detached turn, hanging it until timeoutMs instead of the tool being
+    // correctly hidden by machine_builder.js's toolCtx?.askUser schema
+    // filter. Interactive surfaces (wire, gui-agent, REPL) pass their own
+    // askUser in toolCtx explicitly.
+    const mergedToolCtx = {
+        sessionKey: key,
+        ...(cwd ? { cwd } : {}),
+        ...(toolCtx || {}),
+    }
     // Turn control plane: shared by reference with the live-turns registry so
     // wire/WS/REPL surfaces can steer, cancel, and resolve approvals against
     // the running turn. approvalPolicy off = pre-existing behavior (no gate).
@@ -99,7 +112,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
         // kimi 1.40's reversal: a present human never gets auto-rejected).
         approvalPolicy: approvalMode || getConfigValue('agent.approval_mode', 'off'),
         approvalTimeoutMs: approvalTimeoutMs ?? getConfigValue('agent.approval_timeout_ms', 120000),
-        mutatingTools: new Set(getConfigValue('agent.approval_tools', ['bash', 'write', 'edit', 'file_operations', 'code_execution', 'process_registry', 'cronjob', 'terminal'])),
+        mutatingTools: new Set(getConfigValue('agent.approval_tools', ['bash', 'write', 'edit', 'file_operations', 'code_execution', 'process_registry', 'cronjob', 'terminal', 'skills_hub', 'skills_sync'])),
         approvedTools: new Set([...(getConfigValue('agent.approval_policy', {})?.auto_approve || []), ...(await loadApprovalGrants(cwd))]),
         toolBudgets: getConfigValue('agent.tool_budgets', {}),
         lastSig: null, streak: 0,
@@ -112,7 +125,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     }
     const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx: mergedToolCtx, tool_choice, store, control })
     const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages }, store })
-    registerTurn(key, { actor: pa.actor, control, pendingApproval: null, startedAt: Date.now() })
+    registerTurn(key, { actor: pa.actor, control, pendingApproval: null, pendingQuestion: null, startedAt: Date.now() })
     pa.actor.send({ type: 'SUBMIT', prompt })
     // Emit session.created only for new sessions (not resumes)
     if (!sessionKey) emitTurnEvent(key, 'session.created', { prompt, model, provider })
@@ -136,7 +149,7 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
         // pre-approved tools so the two conventions compose.
         approvalPolicy: getConfigValue('agent.approval_mode', 'off'),
         approvalTimeoutMs: getConfigValue('agent.approval_timeout_ms', 120000),
-        mutatingTools: new Set(getConfigValue('agent.approval_tools', ['bash', 'write', 'edit', 'file_operations', 'code_execution', 'process_registry', 'cronjob', 'terminal'])),
+        mutatingTools: new Set(getConfigValue('agent.approval_tools', ['bash', 'write', 'edit', 'file_operations', 'code_execution', 'process_registry', 'cronjob', 'terminal', 'skills_hub', 'skills_sync'])),
         approvedTools: new Set([...(getConfigValue('agent.approval_policy', {})?.auto_approve || []), ...(await loadApprovalGrants(cwd))]),
         toolBudgets: getConfigValue('agent.tool_budgets', {}),
         lastSig: null, streak: 0,
@@ -154,7 +167,7 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
     // reads made forget() delete a snapshot we had just confirmed). One read only.
     const pa = await createPersistentActor(machine, { kind: 'agent', key: sessionKey, input: { messages: [] }, store })
     if (!pa.resumed) return null
-    registerTurn(sessionKey, { actor: pa.actor, control, pendingApproval: null, startedAt: Date.now() })
+    registerTurn(sessionKey, { actor: pa.actor, control, pendingApproval: null, pendingQuestion: null, startedAt: Date.now() })
     return await driveAgentActor({ pa, h, hookEngine, events, prompt: '', provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store })
 }
 

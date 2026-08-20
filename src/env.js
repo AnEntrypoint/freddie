@@ -37,7 +37,6 @@ const REGISTRY = {
     ZAI_ENDPOINT: { purpose: 'Z.ai endpoint override', kind: 'url' },
     KIMI_BASE_URL: { purpose: 'Kimi (Moonshot) base URL override', kind: 'url' },
     KIMI_REGION: { purpose: 'Kimi (Moonshot) region selector', kind: 'string' },
-    YUANBAO_API_KEY: { purpose: 'Tencent Yuanbao provider key', kind: 'secret', provider: true },
     AZURE_OPENAI_API_VERSION: { purpose: 'Azure OpenAI API version', kind: 'string' },
     AZURE_OPENAI_DEPLOYMENT: { purpose: 'Azure OpenAI deployment name', kind: 'string' },
     AZURE_OPENAI_ENDPOINT: { purpose: 'Azure OpenAI endpoint URL', kind: 'url' },

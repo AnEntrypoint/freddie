@@ -41,7 +41,7 @@ a follow-up; steering rides `_meta.freddie.steer: true` on `session/prompt`.
 
 WS notes: on connect the server sends `{ "type": "replay", "sessionId", "events": [envelope, ...] }`
 (cap 500), then live `{ "type": "event", ...envelope }` frames. Client sends
-`{ "type": "prompt"|"steer"|"queue"|"cancel"|"approve", ... }`. Turn ends send
+`{ "type": "prompt"|"steer"|"queue"|"cancel"|"approve"|"answer", ... }`. Turn ends send
 `{ "type": "prompt.done", "sessionId", "result", "error", "iterations }`; queued
 follow-ups auto-run with a preceding `{ "type": "queue.next", "text" }`.
 
@@ -49,7 +49,7 @@ stdio notes: requests `{ "jsonrpc": "2.0", "id", "method", "params" }`; response
 carry `result`/`error`; events arrive as `{ "jsonrpc": "2.0", "method": "event", "params": envelope }`.
 Methods: `initialize`, `prompt {text, sessionId?, cwd?, model?, provider?, timeoutMs?}`,
 `steer {sessionId, text}`, `queue {sessionId, text}`, `cancel {sessionId}`,
-`approve {sessionId, id?, approved, always?, feedback?}`, `replay {sessionId, limit?}`, `status`.
+`revert {sessionId, turnsBack?}`, `approve {sessionId, id?, approved, always?, feedback?}`, `answer {sessionId, id, answers?, rejected?}`, `replay {sessionId, limit?}`, `status`.
 stdout is frames-only; clients MUST skip lines not starting with `{` (boot chatter).
 
 ## Events
@@ -65,6 +65,8 @@ stdout is frames-only; clients MUST skip lines not starting with `{` (boot chatt
 | `status.update` | free-form | reserved status channel |
 | `approval.request` | `{id, name, args, cwd}` | gated tool call paused; resolve via `approve` |
 | `approval.resolved` | `{id, name, approved, always?, feedback?, timedOut?}` | approval settled (timeout only for bounded surfaces) |
+| `question.request` | `{id, questions}` | `ask_user_question` paused; resolve via `answer` |
+| `question.resolved` | `{id, answers, rejected?, cancelled?}` | question settled |
 | `steer.append` | `{text}` | mid-turn injected user message (next step boundary) |
 | `queue.append` | `{text, depth}` | follow-up queued for after the turn |
 | `session.end` | `{result: "ok"|"error"|"empty", error?, iterations}` | turn settled |

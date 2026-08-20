@@ -15,7 +15,7 @@
 //   session.end  session.error
 //
 // Fan-out on every emit:
-//   1. plugins/gui-events/event-bus.js  (legacy flat payload {sessionId, ...data})
+//   1. plugins/gui/gui-events/event-bus.js  (legacy flat payload {sessionId, ...data})
 //   2. <FREDDIE_HOME>/wire/<sessionId>.jsonl  (append-only replay log)
 //   3. live listeners registered via onTurnEvent (per-session or '*')
 //
@@ -25,7 +25,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { emit as busEmit } from '../../plugins/gui-events/event-bus.js'
+import { emit as busEmit } from '../../plugins/gui/gui-events/event-bus.js'
 import { getFreddieHome } from '../home.js'
 
 export const WIRE_VERSION = 1
@@ -33,7 +33,8 @@ export const WIRE_VERSION = 1
 export const WIRE_EVENTS = [
     'session.created', 'session.start', 'message.append', 'assistant.delta',
     'tool.start', 'tool.end', 'status.update',
-    'approval.request', 'approval.resolved', 'steer.append', 'queue.append',
+    'approval.request', 'approval.resolved', 'question.request', 'question.resolved',
+    'steer.append', 'queue.append',
     'session.end', 'session.error',
     'subagent.spawn', 'subagent.progress', 'subagent.end',
 ]

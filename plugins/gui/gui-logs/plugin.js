@@ -27,7 +27,7 @@
 // still needs it populated.
 import fs from 'node:fs'
 import path from 'node:path'
-import { getFreddieHome } from '../../src/home.js'
+import { getFreddieHome } from '../../../src/home.js'
 
 const POLL_MS = 500
 

@@ -23,7 +23,7 @@
 
 import { runTurn } from '../../../src/agent/machine.js'
 import { readWireLog, transcriptFromWire } from '../../../src/agent/events.js'
-import { subscribeTurn, steerTurn, queueTurn, drainQueue, cancelTurn, revertTurn, resolveApproval, listLiveTurns } from '../../../src/agent/live-turns.js'
+import { subscribeTurn, steerTurn, queueTurn, drainQueue, cancelTurn, revertTurn, resolveApproval, resolveQuestion, requestQuestion, listLiveTurns } from '../../../src/agent/live-turns.js'
 import { getConfigValue } from '../../../src/config.js'
 import { createSession, getSession, appendMessage } from '../../../src/sessions.js'
 import { getFreddieHome } from '../../../src/home.js'
@@ -124,6 +124,7 @@ export default {
                                 model: msg.model,
                                 provider: msg.provider,
                                 timeoutMs: getConfigValue('agent.turn_timeout_ms', 600000),
+                                toolCtx: { askUser: (questions) => requestQuestion(sid, questions) },
                             })
                             await persistTurnMessages(sid, out, prior.length)
                             send({ type: 'prompt.done', sessionId: sid, result: out.result ?? null, error: out.error ?? null, iterations: out.iterations ?? 0 })
@@ -142,6 +143,9 @@ export default {
                     } else if (msg.type === 'approve') {
                         const ok = await resolveApproval(sid, msg)
                         send({ type: 'approve.result', ok })
+                    } else if (msg.type === 'answer') {
+                        const ok = resolveQuestion(sid, msg)
+                        send({ type: 'answer.result', ok })
                     }
                 } catch (e) {
                     send({ type: 'error', error: String(e?.message || e), sessionId: sid })

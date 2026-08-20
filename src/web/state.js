@@ -1,4 +1,5 @@
 import { h } from 'anentrypoint-design';
+import { PAGES } from './routes.js';
 
 export const j = async (u, opts) => {
     const r = await fetch(u, opts);
@@ -110,59 +111,41 @@ export async function fetchHost() {
 // importance; the whole list is still flat for the command palette.
 export const ROUTE_GROUPS = [
     {
-        group: 'Core',
+        group: 'Work',
         items: [
-            { path: 'home',      label: 'home',      icon: 'page' },
             { path: 'chat',      label: 'chat',      icon: 'forum' },
             { path: 'sessions',  label: 'sessions',  icon: 'thread' },
-            { path: 'terminal',  label: 'terminal',  icon: 'screen' },
             { path: 'files',     label: 'files',     icon: 'folder' },
             { path: 'git',       label: 'git',       icon: 'branch' },
-            { path: 'voice',     label: 'voice',     icon: 'mic' },
+            { path: 'terminal',  label: 'terminal',  icon: 'screen' },
         ],
     },
     {
-        group: 'Infrastructure',
+        group: 'Setup',
         items: [
-            { path: 'models',    label: 'models',    icon: 'circle-dot' },
-            { path: 'tools',     label: 'tools',     icon: 'file-code' },
-            { path: 'skills',    label: 'skills',    icon: 'check' },
-            { path: 'cron',      label: 'cron',      icon: 'play' },
-            { path: 'batch',     label: 'batch',     icon: 'rows' },
-            { path: 'gateway',   label: 'gateway',   icon: 'arrow-right' },
-            { path: 'agents',    label: 'agents',    icon: 'members' },
-            { path: 'chains',    label: 'chains',    icon: 'chevron-right' },
-            { path: 'machines',  label: 'machines',  icon: 'grid' },
-            { path: 'plugins',   label: 'plugins',   icon: 'clipboard' },
-        ],
-    },
-    {
-        group: 'Configuration',
-        items: [
-            { path: 'auth',      label: 'auth',      icon: 'lock' },
             { path: 'env',       label: 'keys',      icon: 'hash' },
-            { path: 'config',    label: 'config',    icon: 'pencil' },
-            { path: 'settings',  label: 'settings',  icon: 'settings' },
-            { path: 'theme',     label: 'theme',     icon: 'contrast' },
+            { path: 'models',    label: 'models',    icon: 'circle-dot' },
             { path: 'projects',  label: 'projects',  icon: 'square' },
-            { path: 'worktree',  label: 'worktrees', icon: 'copy' },
-        ],
-    },
-    {
-        group: 'Observability',
-        items: [
+            { path: 'cron',      label: 'cron',      icon: 'play' },
             { path: 'logs',      label: 'logs',      icon: 'file-text' },
-            { path: 'analytics', label: 'analytics', icon: 'activity' },
-            { path: 'health',    label: 'health',    icon: 'activity' },
-            { path: 'debug',     label: 'debug',     icon: 'info' },
-            { path: 'session-tree', label: 'session tree', icon: 'thread' },
-            { path: 'notifications', label: 'notifications', icon: 'bell' },
         ],
     },
 ];
 
-// Flat list for the command palette, route lookup, and ROUTES.length.
-export const ROUTES = ROUTE_GROUPS.flatMap(g => g.items);
+// Command palette + sidebar show only the curated ROUTE_GROUPS above, but
+// route VALIDATION (routeFromHash's is-this-a-real-page check, setDocTitle's
+// label lookup) must cover every page FREDDIE_PAGES actually registers —
+// otherwise a direct link/bookmark to a page the curated nav omits (e.g.
+// #fd-config, #fd-worktree) silently redirects to home instead of rendering.
+// Un-curated pages get a bare title-cased label/generic icon: they're
+// reachable, just not promoted in the nav chrome.
+const curatedPaths = new Set(ROUTE_GROUPS.flatMap(g => g.items).map(r => r.path));
+export const ROUTES = [
+    ...ROUTE_GROUPS.flatMap(g => g.items),
+    ...Object.keys(PAGES).filter(p => !curatedPaths.has(p)).map(path => ({
+        path, label: path.replace(/-/g, ' '), icon: 'file-code',
+    })),
+];
 
 export function pre(obj) {
     return h('pre', { class: 'fd-pre' }, typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));

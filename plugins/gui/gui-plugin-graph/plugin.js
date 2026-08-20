@@ -1,7 +1,7 @@
 // Plugin dependency graph: D3-compatible {nodes,edges} derived from each
 // plugin's declared `requires` array (already used for cycle detection at
 // load time) plus what it actually registered, via host.capabilities().
-import { registerDebug } from '../../src/observability/debug.js'
+import { registerDebug } from '../../../src/observability/debug.js'
 
 function graphFrom(host) {
     const plugins = host.plugins()

@@ -1,5 +1,7 @@
 import express from 'express'
+import fs from 'node:fs'
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { WebSocketServer } from 'ws'
 import { bootHost } from '../host/index.js'
@@ -7,6 +9,22 @@ import { logger } from '../observability/log.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const log = logger('web_server')
+const REPO_ROOT = path.resolve(__dirname, '../..')
+
+// index.html's static fallback points the SDK at jsDelivr's @main (gh/ mode) —
+// safe but caches a branch reference up to 12h (AGENTS.md's "Kit consumption
+// strategy"). Serving through the dashboard, pin to the design submodule's
+// actual checked-out commit instead: immutable + fast (a specific commit is
+// cached forever) and it tracks whatever scripts/sync-upstream.mjs's daily
+// `git submodule update --remote --checkout` last landed, no separate bump
+// step. Falls back to @main (leaves index.html untouched) if the submodule
+// SHA can't be read (e.g. a shallow clone without the submodule checked out).
+function designSdkSha() {
+    try {
+        return execFileSync('git', ['ls-tree', 'HEAD', 'design'], { cwd: REPO_ROOT, encoding: 'utf8' })
+            .split(/\s+/)[2]?.trim() || null
+    } catch { return null }
+}
 
 // The dashboard exposes unauthenticated, sensitive surfaces (POST
 // /api/terminal/exec runs arbitrary shell commands; /api/auth and
@@ -39,10 +57,20 @@ export async function createDashboard({ port = 0, host: bindHost = DEFAULT_HOST 
         }
         next()
     })
+    // index.html ships pointing the SDK at jsDelivr's @main; rewrite to the
+    // design submodule's pinned commit when readable (see designSdkSha above).
+    const sha = designSdkSha()
+    const indexHtmlPath = path.join(__dirname, 'index.html')
+    const sendIndexHtml = (res) => {
+        let html = fs.readFileSync(indexHtmlPath, 'utf8')
+        if (sha) html = html.replaceAll('AnEntrypoint/design@main', `AnEntrypoint/design@${sha}`)
+        res.set('Cache-Control', 'no-cache').type('html').send(html)
+    }
+    app.get(['/', '/index.html'], (req, res) => sendIndexHtml(res))
     // Express 5 matches routes in registration order. Specific routes (app.js,
     // /api/*) must be registered BEFORE the catch-all SPA fallback below,
     // otherwise the fallback would swallow them.
-    app.use(express.static(__dirname))
+    app.use(express.static(__dirname, { index: false }))
     for (const r of host.gui.routes.list()) {
         const verb = r.method.toLowerCase()
         if (typeof app[verb] === 'function') app[verb](r.path, r.handler)
@@ -52,15 +80,12 @@ export async function createDashboard({ port = 0, host: bindHost = DEFAULT_HOST 
 
     // SPA fallback: unknown non-API GET routes serve index.html so deep links
     // (and client-side hash routes) don't return Express's default 404 HTML.
-    // /api/* is excluded — that 404s legitimately as data. The SDK itself is
-    // no longer served locally: index.html loads it live from jsDelivr's
-    // GitHub-CDN mode (cdn.jsdelivr.net/gh/AnEntrypoint/design@main) so the
-    // dashboard tracks main without a local npm install.
+    // /api/* is excluded — that 404s legitimately as data.
     app.use((req, res, next) => {
         if (req.method !== 'GET') return next()
         if (req.path.startsWith('/api/')) return next()
         // Only serve index.html for paths that don't match any registered route
-        res.set('Cache-Control', 'no-cache').sendFile(path.join(__dirname, 'index.html'))
+        sendIndexHtml(res)
     })
     if (bindHost !== DEFAULT_HOST) log.warn('dashboard binding to a non-loopback host with no built-in authentication', { host: bindHost })
     const { server, actualPort } = await new Promise((res, rej) => { const s = app.listen(port, bindHost, () => { const a = s.address(); res({ server: s, actualPort: a && typeof a === 'object' ? a.port : port }) }); s.once('error', rej) })

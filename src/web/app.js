@@ -5,9 +5,10 @@ import { PAGES } from './routes.js';
 const { EmptyState, Panel, toast } = components;
 
 await installStyles();
-// Apply github-dark theme by default if no stored preference.
-if (!theme.getTheme() || theme.getTheme() === 'auto') {
-    theme.applyTheme('github-dark');
+// Default dark is ink (the kit's data-theme dark). github-dark is valid but
+// ThemeToggle's compact label maps every non-ink mode to "light".
+if (!theme.getTheme() || theme.getTheme() === 'auto' || theme.getTheme() === 'github-dark') {
+    theme.applyTheme('ink');
 }
 // Apply compact density for pi-web's dense app-chrome feel.
 theme.applyDensity('compact');
