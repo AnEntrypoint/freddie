@@ -1,5 +1,6 @@
 import { exec } from 'node:child_process';
 import { getActiveProject } from '../../src/projects.js';
+import { resolveAllowedCwd } from '../gui/gui-git/lib.js';
 
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 const MAX_TIMEOUT = 120000;    // 2 minutes
@@ -12,15 +13,17 @@ export async function execCommand(req, res) {
         return;
     }
 
-    // Resolve working directory
-    let workDir = cwd;
-    if (!workDir) {
-        try {
-            const active = getActiveProject();
-            if (active) workDir = active.path;
-        } catch { /* use process.cwd() fallback */ }
+    // Resolve working directory -- must be an active/registered project path,
+    // matching the allowlist gui-git/gui-worktree/gui-files enforce, so the
+    // terminal can't be pointed at an arbitrary filesystem location outside
+    // the multi-project sandbox.
+    let workDir;
+    try {
+        workDir = resolveAllowedCwd(cwd);
+    } catch (e) {
+        res.status(400).json({ error: { message: String(e.message || e) } });
+        return;
     }
-    if (!workDir) workDir = process.cwd();
 
     // Sanitize timeout
     const t = Math.min(Math.max(parseInt(timeout, 10) || DEFAULT_TIMEOUT, 1000), MAX_TIMEOUT);
