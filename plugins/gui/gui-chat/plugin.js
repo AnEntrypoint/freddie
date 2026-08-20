@@ -2,6 +2,7 @@ import { runTurn } from '../../../src/agent/machine.js'
 import { createSession, getMessages, appendMessage } from '../../../src/sessions.js'
 import { host } from '../../../src/host/index.js'
 import { logger } from '../../../src/observability/log.js'
+import { resolveAllowedCwd } from '../gui-git/lib.js'
 
 const log = logger('gui-chat')
 
@@ -33,6 +34,15 @@ export default {
         gui.route('POST', '/api/chat', async (req, res) => {
             const { prompt, sessionId: incomingSessionId = null, cwd, skill, provider, model } = req.body || {}
             if (!prompt) return res.status(400).json({ error: 'prompt required' })
+            // A client-supplied cwd is threaded straight into the agent's
+            // bash/file tool context (src/agent/machine.js) -- it must resolve
+            // inside a registered project path, or a caller could point the
+            // agent's own tools at any filesystem location, defeating the
+            // multi-project sandbox every sibling gui-* plugin enforces.
+            if (cwd) {
+                try { resolveAllowedCwd(cwd) }
+                catch (e) { return res.status(400).json({ error: 'cwd not in an allowlisted project path: ' + String(e.message || e) }) }
+            }
             // Content negotiation: the SDK dashboard chat client does a plain
             // fetch().json() and reads `.result`/`.messages` — it is NOT an
             // EventSource consumer. Default to a single JSON response so that

@@ -27,6 +27,7 @@ import { subscribeTurn, steerTurn, queueTurn, drainQueue, cancelTurn, revertTurn
 import { getConfigValue } from '../../../src/config.js'
 import { createSession, getSession, appendMessage } from '../../../src/sessions.js'
 import { getFreddieHome } from '../../../src/home.js'
+import { resolveAllowedCwd } from '../gui-git/lib.js'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -76,6 +77,14 @@ export default {
                 try {
                     if (msg.type === 'prompt' && msg.text) {
                         if (listLiveTurns().includes(sid)) { send({ type: 'error', error: 'turn already running', sessionId: sid }); return }
+                        // msg.cwd is threaded straight into the agent's bash/file
+                        // tool context (src/agent/machine.js) -- must resolve
+                        // inside a registered project path, matching the
+                        // allowlist every sibling gui-* plugin enforces.
+                        if (msg.cwd) {
+                            try { resolveAllowedCwd(msg.cwd) }
+                            catch (e) { send({ type: 'error', error: 'cwd not in an allowlisted project path: ' + String(e.message || e), sessionId: sid }); return }
+                        }
                         send({ type: 'prompt.accepted', sessionId: sid })
                         await ensureDbSession(sid, msg)
                         // Attachments (uploaded via POST /api/sessions/:id/files)
