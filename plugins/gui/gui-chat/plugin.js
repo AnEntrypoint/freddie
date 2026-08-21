@@ -3,6 +3,7 @@ import { createSession, getMessages, appendMessage } from '../../../src/sessions
 import { host } from '../../../src/host/index.js'
 import { logger } from '../../../src/observability/log.js'
 import { resolveAllowedCwd } from '../gui-git/lib.js'
+import { redactSecrets } from '../../../src/auth.js'
 
 const log = logger('gui-chat')
 
@@ -83,11 +84,11 @@ export default {
             host().hooks.on('onToolProgress', onProgress)
             try {
                 const out = await runTurn({ prompt, messages: priorMessages, sessionKey: sessionId || undefined, timeoutMs: 120000, cwd, skill, provider, model })
-                if (out.error) { send('error', { error: out.error }); res.end(); return }
+                if (out.error) { send('error', { error: redactSecrets(String(out.error)) }); res.end(); return }
                 await persistNewMessages(sessionId, out.messages || [], priorMessages.length)
                 for (const m of out.messages) send('message', m)
                 send('done', { result: out.result || '', iterations: out.iterations, sessionId })
-            } catch (e) { send('error', { error: String(e.message || e) }) }
+            } catch (e) { send('error', { error: redactSecrets(String(e.message || e)) }) }
             finally { host().hooks.off('onToolProgress', onProgress) }
             res.end()
         })

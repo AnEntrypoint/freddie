@@ -28,6 +28,7 @@ import { getConfigValue } from '../../../src/config.js'
 import { createSession, getSession, appendMessage } from '../../../src/sessions.js'
 import { getFreddieHome } from '../../../src/home.js'
 import { resolveAllowedCwd } from '../gui-git/lib.js'
+import { redactSecrets } from '../../../src/auth.js'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -98,7 +99,7 @@ export default {
                         // allowlist every sibling gui-* plugin enforces.
                         if (msg.cwd) {
                             try { resolveAllowedCwd(msg.cwd) }
-                            catch (e) { send({ type: 'error', error: 'cwd not in an allowlisted project path: ' + String(e.message || e), sessionId: sid }); return }
+                            catch (e) { send({ type: 'error', error: 'cwd not in an allowlisted project path: ' + redactSecrets(String(e.message || e)), sessionId: sid }); return }
                         }
                         send({ type: 'prompt.accepted', sessionId: sid })
                         await ensureDbSession(sid, msg)
@@ -127,7 +128,7 @@ export default {
                                 toolCtx: { askUser: (questions) => requestQuestion(sid, questions) },
                             })
                             await persistTurnMessages(sid, out, prior.length)
-                            send({ type: 'prompt.done', sessionId: sid, result: out.result ?? null, error: out.error ?? null, iterations: out.iterations ?? 0 })
+                            send({ type: 'prompt.done', sessionId: sid, result: out.result ?? null, error: out.error ? redactSecrets(String(out.error)) : null, iterations: out.iterations ?? 0 })
                             const queued = drainQueue(sid)
                             next = queued.length ? queued.join('\n') : null
                             if (next) send({ type: 'queue.next', sessionId: sid, text: next })
@@ -148,7 +149,7 @@ export default {
                         send({ type: 'answer.result', ok })
                     }
                 } catch (e) {
-                    send({ type: 'error', error: String(e?.message || e), sessionId: sid })
+                    send({ type: 'error', error: redactSecrets(String(e?.message || e)), sessionId: sid })
                 }
             })
         })
