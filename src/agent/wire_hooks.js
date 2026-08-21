@@ -18,6 +18,9 @@ const WIRE_HOOK_EVENTS = [
   'onMessageOutbound',
   'onPreCompact',
   'onPostCompact',
+  'postLlmCall',
+  'onTurnStart',
+  'onTurnEnd',
 ]
 
 export class WireHookBridge {
