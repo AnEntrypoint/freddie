@@ -91,15 +91,29 @@ export async function getProviderAuthState(provider) {
 // whether that value happens to match a known provider env var (a
 // credential_files:set call for an arbitrary/custom credential name has no
 // entry in ENV_OF at all, so name-matching alone under-covers it).
-// Deliberately excludes 'credential' itself: FileAuthStore.getCredential
-// returns {name, value, updated} wrapped under a 'credential' key
-// (credential_files:get's result shape), and 'credential' is a CONTAINER
-// key, not a value-holding one -- masking on it would also blank the
-// sibling `name` (the credential's identifier, e.g. "ANTHROPIC_API_KEY",
-// not itself secret) and `updated` timestamp, destroying wire-log/
-// trajectory observability for no security benefit, since `value` (still in
-// this set) already correctly masks the actual secret one level deeper.
-const SECRET_FIELD_NAMES = new Set(['value', 'apikey', 'api_key', 'token', 'secret', 'password', 'auth_token'])
+// 'credential' IS included, deliberately, despite FileAuthStore.getCredential
+// returning {name, value, updated} wrapped under a 'credential' key
+// (credential_files:get's result shape) -- an earlier version of this file
+// excluded 'credential' to keep the sibling `name`/`updated` fields legible
+// in that specific shape, but that traded away real coverage: a caller can
+// also legitimately hold a bare secret STRING directly under a key literally
+// named `credential` (not nested under a further `value` key), and excluding
+// 'credential' left that case masked only by the env-var exact-match/
+// substring path, which under-covers exactly the arbitrary/custom-credential
+// case this comment already calls out. Keep 'credential' in the set (safe
+// default: mask the whole subtree) and let CREDENTIAL_RESULT_KEYS below
+// carve out the one well-known shape where selective unmasking is safe.
+const SECRET_FIELD_NAMES = new Set(['value', 'credential', 'apikey', 'api_key', 'token', 'secret', 'password', 'auth_token'])
+
+// The exact {name, value, updated} shape FileAuthStore.getCredential/
+// credential_files:get returns. When a 'credential'-keyed node has EXACTLY
+// this shape, `name` (the credential's identifier, e.g. "ANTHROPIC_API_KEY")
+// and `updated` (a timestamp) are not secret content -- only `value` is --
+// so this one well-known shape is unmasked selectively instead of via the
+// generic mask-the-whole-subtree default, restoring wire-log/trajectory
+// observability without reopening the bare-string-under-credential leak the
+// generic exclusion caused.
+const CREDENTIAL_RESULT_KEYS = new Set(['name', 'value', 'updated'])
 const KNOWN_SECRET_VALUES = () => new Set(Object.values(ENV_OF).map(envVar => process.env[envVar]).filter(Boolean))
 
 // Deep-clones `input`, replacing any string that is either (a) a live value
@@ -119,6 +133,17 @@ const KNOWN_SECRET_VALUES = () => new Set(Object.values(ENV_OF).map(envVar => pr
 // call's args/result can cross into a durable or external sink (wire log,
 // live listeners, trajectory files, the approval classifier's LLM prompt) so
 // a raw secret never leaves the dispatch site.
+// Depth cap for the recursive walk below. Every real caller's input is
+// tool-call args/results that already crossed a JSON.parse boundary
+// upstream (an LLM provider's tool-call payload, a JSON-serializable tool
+// handler return value) -- JSON.parse can never produce a circular
+// reference or pathological depth, so this never fires on any real input.
+// It exists as a worst-case bound (gm SPECIFY's "optimize the worst case,
+// not the average, bound it explicitly in the code") in case a future
+// caller passes something else, converting an unbounded-recursion crash
+// into a graceful degrade-to-fingerprint on the excess depth.
+const MAX_REDACT_DEPTH = 64
+
 export function redactSecrets(input) {
     const known = [...KNOWN_SECRET_VALUES()]
     const embeddable = known.filter(v => v.length >= 8) // substring scan needs a length floor to avoid over-matching; exact-match below does not
@@ -131,30 +156,49 @@ export function redactSecrets(input) {
     // subtree is masked regardless of nesting depth -- the field-name signal
     // must survive descending into an object/array value, not just gate a
     // direct string child.
-    const maskAllStrings = (node) => {
+    const maskAllStrings = (node, depth) => {
+        if (depth > MAX_REDACT_DEPTH) return '[redacted: max depth exceeded]'
         if (typeof node === 'string') return node ? tokenFingerprint(node) : node
-        if (Array.isArray(node)) return node.map(maskAllStrings)
+        if (Array.isArray(node)) return node.map(v => maskAllStrings(v, depth + 1))
         if (node && typeof node === 'object') {
             const out = {}
-            for (const [k, v] of Object.entries(node)) out[k] = maskAllStrings(v)
+            for (const [k, v] of Object.entries(node)) out[k] = maskAllStrings(v, depth + 1)
             return out
         }
         return node
     }
-    const walk = (node, keyHint) => {
+    // credential_files:get's exact {name, value, updated} result shape: unmask
+    // `name`/`updated` selectively (still redacting `value` via the normal
+    // SECRET_FIELD_NAMES path below) instead of mask-all-ing the whole node,
+    // since those two fields are never secret content. Any OTHER shape under
+    // a 'credential' key (a bare string, an object with different keys) is
+    // NOT this well-known shape and falls through to the safe mask-all
+    // default.
+    const isCredentialResultShape = (node) =>
+        node && typeof node === 'object' && !Array.isArray(node) &&
+        Object.keys(node).length > 0 && Object.keys(node).every(k => CREDENTIAL_RESULT_KEYS.has(k))
+    const walk = (node, keyHint, depth) => {
+        if (depth > MAX_REDACT_DEPTH) return '[redacted: max depth exceeded]'
         const underSecretField = keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase())
-        if (underSecretField) return maskAllStrings(node)
+        if (underSecretField) {
+            if (String(keyHint).toLowerCase() === 'credential' && isCredentialResultShape(node)) {
+                const out = {}
+                for (const [k, v] of Object.entries(node)) out[k] = k === 'value' ? maskAllStrings(v, depth + 1) : v
+                return out
+            }
+            return maskAllStrings(node, depth)
+        }
         if (typeof node === 'string') {
             if (known.includes(node)) return tokenFingerprint(node)
             return redactEmbedded(node)
         }
-        if (Array.isArray(node)) return node.map(v => walk(v, keyHint))
+        if (Array.isArray(node)) return node.map(v => walk(v, keyHint, depth + 1))
         if (node && typeof node === 'object') {
             const out = {}
-            for (const [k, v] of Object.entries(node)) out[k] = walk(v, k)
+            for (const [k, v] of Object.entries(node)) out[k] = walk(v, k, depth + 1)
             return out
         }
         return node
     }
-    return walk(input, null)
+    return walk(input, null, 0)
 }
