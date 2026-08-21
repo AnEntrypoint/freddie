@@ -51,7 +51,11 @@ export function validatePlugin(p) {
 }
 
 export function topoSort(plugins) {
-    const byName = new Map(plugins.map(p => [p.name, p]))
+    const byName = new Map()
+    for (const p of plugins) {
+        if (byName.has(p.name)) console.error(JSON.stringify({ ts: Date.now(), level: 'warn', msg: `plugin name collision: '${p.name}' declared by multiple plugin objects, only the last one is registered -- the earlier one's register() never runs`, plugin: p.name, losing_sourceFile: byName.get(p.name).__sourceFile || null, winning_sourceFile: p.__sourceFile || null }))
+        byName.set(p.name, p)
+    }
     const seen = new Map()
     const out = []
     const visit = (name, stack) => {

@@ -15,6 +15,7 @@ export function reg(map, kind) {
             // discovering it live in an untrusted-end-user consumer's
             // toolset scoping months later.
             if (kind === 'tool' && !spec.toolset) throw new Error(`tool '${spec.name}' missing required 'toolset' field (was silently defaulting to 'core', the highest-privilege bundle)`)
+            if (map.has(spec.name)) console.error(JSON.stringify({ ts: Date.now(), level: 'warn', msg: `${kind} name collision: '${spec.name}' registered twice, second registration wins`, kind, name: spec.name, losing_owner: map.get(spec.name).__plugin || null, winning_owner: spec.__plugin || null }))
             map.set(spec.name, spec)
         },
         get: (n) => map.get(n), list: () => [...map.values()], has: (n) => map.has(n), size: () => map.size,
@@ -96,20 +97,43 @@ export function makeGui() {
     const r=[], pages=new Map(), nav=[], debugs=new Map(), apis=new Map(), assets=new Map(), wsRoutes=new Map()
     return {
         _state: { routes:r, pages, nav, debugs, apis, assets, wsRoutes },
-        route:(method,p,h)=>r.push({method:method.toUpperCase(),path:p,handler:h}),
+        route:(method,p,h)=>{
+            const m = method.toUpperCase()
+            if (r.some(x=>x.method===m&&x.path===p)) console.error(JSON.stringify({ ts: Date.now(), level: 'warn', msg: `route collision: '${m} ${p}' registered twice, both remain reachable in registration order`, method: m, path: p }))
+            r.push({method:m,path:p,handler:h})
+        },
         unroute:(method,p)=>{ const i = r.findIndex(x=>x.method===method.toUpperCase()&&x.path===p); if (i===-1) return false; r.splice(i,1); return true },
         // Raw WebSocket upgrade route -- separate from route()/unroute() since
         // Express has no native upgrade handling; src/web/server.js wires
         // these onto the real http.Server's 'upgrade' event via the ws
         // package's noServer mode, matched by exact pathname.
-        wsRoute:(p,onConnection)=>wsRoutes.set(p,onConnection),
+        wsRoute:(p,onConnection)=>{
+            if (wsRoutes.has(p)) console.error(JSON.stringify({ ts: Date.now(), level: 'warn', msg: `wsRoute collision: '${p}' registered twice, second registration wins`, path: p }))
+            wsRoutes.set(p,onConnection)
+        },
         unwsRoute:(p)=>wsRoutes.delete(p),
-        page:(s,d)=>pages.set(s,d), unpage:(s)=>pages.delete(s),
+        page:(s,d)=>{
+            if (pages.has(s)) console.error(JSON.stringify({ ts: Date.now(), level: 'warn', msg: `page collision: '${s}' registered twice, second registration wins`, slug: s }))
+            pages.set(s,d)
+        },
+        unpage:(s)=>pages.delete(s),
         nav:(i)=>nav.push(i),
         unnav:(index)=>{ if (index >= 0 && index < nav.length) { nav.splice(index, 1); return true } return false },
-        debug:(n,fn)=>debugs.set(n,fn), undebug:(n)=>debugs.delete(n),
-        api:(g,d)=>apis.set(g,d), unapi:(g)=>apis.delete(g),
-        asset:(p,c)=>assets.set(p,c), unasset:(p)=>assets.delete(p),
+        debug:(n,fn)=>{
+            if (debugs.has(n)) console.error(JSON.stringify({ ts: Date.now(), level: 'warn', msg: `debug collision: '${n}' registered twice, second registration wins`, name: n }))
+            debugs.set(n,fn)
+        },
+        undebug:(n)=>debugs.delete(n),
+        api:(g,d)=>{
+            if (apis.has(g)) console.error(JSON.stringify({ ts: Date.now(), level: 'warn', msg: `api collision: '${g}' registered twice, second registration wins`, group: g }))
+            apis.set(g,d)
+        },
+        unapi:(g)=>apis.delete(g),
+        asset:(p,c)=>{
+            if (assets.has(p)) console.error(JSON.stringify({ ts: Date.now(), level: 'warn', msg: `asset collision: '${p}' registered twice, second registration wins`, path: p }))
+            assets.set(p,c)
+        },
+        unasset:(p)=>assets.delete(p),
         routes:{ list:()=>r }, pages:{ get:(s)=>pages.get(s), list:()=>[...pages.values()], has:(s)=>pages.has(s) },
         navItems:{ list:()=>nav },
         debugs:{ list:()=>[...debugs.entries()].map(([n,f])=>({name:n,snapshot:f})), get:(n)=>debugs.get(n) },
