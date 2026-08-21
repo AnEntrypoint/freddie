@@ -92,8 +92,11 @@ export async function getMessages(sessionId) {
     })
 }
 
-export async function listSessions(limit = 50) {
+export async function listSessions(limit = 50, { sessionId = null } = {}) {
     const d = await db()
+    if (sessionId) {
+        return await d.prepare(`SELECT id, platform, title, created_at, updated_at, model, cwd, skill, parent_id FROM sessions WHERE id = ? ORDER BY updated_at DESC LIMIT ?`).all(sessionId, limit)
+    }
     return await d.prepare(`SELECT id, platform, title, created_at, updated_at, model, cwd, skill, parent_id FROM sessions ORDER BY updated_at DESC LIMIT ?`).all(limit)
 }
 
@@ -128,18 +131,27 @@ export async function setSessionTitle(id, title) {
     return { id, title }
 }
 
-export async function search(query, limit = 20) {
+// sessionId scopes the search to one conversation's messages. Optional and
+// backward-compatible: existing callers (GUI GET /api/search, `freddie
+// session` CLI) that omit it keep searching across every session, unchanged.
+// A model-facing tool caller supplies its own current session id here to get
+// safe same-session-only results by default (see plugins/core/session_search).
+export async function search(query, { sessionId = null, limit = 20 } = {}) {
     const d = await db()
     const likePattern = `%${query}%`
     // Try FTS5 if available (libsql, but not busybase since triggers can't be created)
     try {
-        const ftsResult = await d.prepare(`SELECT m.id, m.session_id, m.content FROM messages_fts f JOIN messages m ON m.id = f.rowid WHERE messages_fts MATCH ? ORDER BY rank LIMIT ?`).all(query, limit)
+        const ftsResult = sessionId
+            ? await d.prepare(`SELECT m.id, m.session_id, m.content FROM messages_fts f JOIN messages m ON m.id = f.rowid WHERE messages_fts MATCH ? AND m.session_id = ? ORDER BY rank LIMIT ?`).all(query, sessionId, limit)
+            : await d.prepare(`SELECT m.id, m.session_id, m.content FROM messages_fts f JOIN messages m ON m.id = f.rowid WHERE messages_fts MATCH ? ORDER BY rank LIMIT ?`).all(query, limit)
         if (ftsResult && ftsResult.length > 0) return ftsResult
     } catch (e) {
         // FTS5 not available, fall through to LIKE
     }
     // Fallback to LIKE search
-    return await d.prepare(`SELECT id, session_id, content FROM messages WHERE content LIKE ? ORDER BY ts DESC LIMIT ?`).all(likePattern, limit)
+    return sessionId
+        ? await d.prepare(`SELECT id, session_id, content FROM messages WHERE content LIKE ? AND session_id = ? ORDER BY ts DESC LIMIT ?`).all(likePattern, sessionId, limit)
+        : await d.prepare(`SELECT id, session_id, content FROM messages WHERE content LIKE ? ORDER BY ts DESC LIMIT ?`).all(likePattern, limit)
 }
 
 export function closeDb() { return closeDbImpl() }
