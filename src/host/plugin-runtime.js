@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import { pathToFileURL } from 'node:url'
-import { validatePlugin } from './contract.js'
-import { nullStore } from './host_helpers.js'
+import { validatePlugin, PI_VERBS, GUI_VERBS } from './contract.js'
+import { nullStore, scopedCfg, guard } from './host_helpers.js'
 
 // pluginName threaded through so every registered tool spec carries __plugin
 // provenance -- host_helpers.js's dispatchTool reads t.__plugin to look up the
@@ -25,6 +25,94 @@ export function recordHooks(hooks, cap) {
     return { ...hooks, on: (name, fn) => { cap.hooks.push(name); cap._hookFns.push({ name, fn }); return hooks.on(name, fn) } }
 }
 
+// Unregisters one plugin's tool/command/cron/route/hook entries by
+// provenance, using the capabilities Map entry recorded for it at register
+// time. Shared by reloadPlugin (below) and disablePlugin (host.js) -- both
+// need the exact same "tear down everything this plugin registered" step,
+// one before re-registering a fresh module, the other before parking the
+// plugin in the disabled pool with nothing left registered.
+export function unregisterByProvenance(cap, { pi, gui, hooks }) {
+    if (!cap) return
+    for (const t of cap.tools) pi.tools.unregister(t)
+    for (const c of cap.commands) pi.commands.unregister(c)
+    for (const c of cap.crons) pi.crons.unregister(c)
+    for (const { method, path: p } of cap._routeDefs || []) gui.unroute(method, p)
+    for (const { name: hn, fn } of cap._hookFns || []) hooks.off(hn, fn)
+}
+
+// Re-registers an already-validated plugin object against fresh recording
+// wrappers, returning the new capabilities entry. Shared by the boot-time
+// loader (host.js's makePluginLoader) and enablePlugin (below) -- both need
+// the identical "wire pi/gui/hooks, call register(), capture provenance,
+// surface-not-permitted guard" step. A runtime re-enable of a
+// surfaces:'gui'-only plugin against a `pi`-only host (or vice versa) must
+// be denied the SAME way boot-time loading denies it -- falling back to the
+// raw unguarded pi/gui object here (as an earlier version of this function
+// did) would let a re-enabled plugin bypass the surface contract entirely,
+// AND its calls would never route through recordPi/recordGui, so nothing
+// it registers would be captured in `cap` -- making it permanently
+// un-disable-able too.
+export async function registerPlugin(p, { surfaces, pi, gui, hooks, configStore, env, host }) {
+    const cap = { tools: [], hooks: [], commands: [], crons: [], routes: [], _hookFns: [], _routeDefs: [] }
+    const want = p.surfaces
+    const ctxPi = (want === 'pi' || want === 'both') && surfaces.includes('pi') ? recordPi(pi, cap, p.name) : guard(pi, false, p.name, PI_VERBS)
+    const ctxGui = (want === 'gui' || want === 'both') && surfaces.includes('gui') ? recordGui(gui, cap) : guard(gui, false, p.name, GUI_VERBS)
+    const ctxHooks = recordHooks(hooks, cap)
+    const log = (lv, m, f) => { const line = JSON.stringify({ ts: Date.now(), plugin: p.name, level: lv, msg: m, ...(f || {}) }); if (env.FREDDIE_LOG_STDOUT) console.log(line) }
+    const logger = { info: (m, f) => log('info', m, f), warn: (m, f) => log('warn', m, f), error: (m, f) => log('error', m, f) }
+    await p.register({ pi: ctxPi, gui: ctxGui, hooks: ctxHooks, log: logger, config: scopedCfg(p.name, configStore), host, env })
+    return cap
+}
+
+// Runtime disable: unregister a currently-loaded plugin's tools/routes/
+// hooks (immediate effect -- a disabled plugin's tool is no longer
+// model-callable, its GUI routes 404 again) and persist the disable via
+// src/flags.js so a restart doesn't silently re-enable it. The plugin
+// object itself moves from `loaded` into `disabled` rather than being
+// discarded, so enablePlugin can re-register it later without re-running
+// discoverPlugins (no re-import, no ESM-cache-bust trick needed -- unlike
+// reloadPlugin, the underlying module content hasn't changed).
+export function disablePlugin(name, { loaded, capabilities, disabled, pi, gui, hooks }) {
+    const idx = loaded.findIndex(p => p.name === name)
+    if (idx === -1) return false
+    const p = loaded[idx]
+    unregisterByProvenance(capabilities.get(name), { pi, gui, hooks })
+    loaded.splice(idx, 1)
+    capabilities.delete(name)
+    disabled.set(name, p)
+    return true
+}
+
+// Runtime enable: re-registers a plugin previously parked in `disabled`
+// (by a prior disablePlugin call, or skipped at boot per a persisted
+// flags.json entry) using the same object reference, so its register()
+// function -- already proven safe to call more than once, since
+// reloadPlugin does exactly that on every hot-reload -- runs again against
+// fresh recording wrappers. A register() throw is NOT swallowed here --
+// it propagates to the caller (host.js's enablePlugin wrapper), same as a
+// register() throw during boot propagates into makePluginLoader's own
+// try/catch; a caller that wants a boolean instead of a rejection wraps
+// this call itself. The plugin stays parked in `disabled` on failure (never
+// pushed into `loaded`), so a failed re-enable is safely retryable.
+//
+// Also mirrors makePluginLoader's `if (p.__resources !== undefined)
+// resources.set(...)` step -- a plugin that starts flag-disabled skips that
+// step at boot entirely (the loader's early-exit runs before it), so
+// without this, re-enabling it via the toggle would leave it permanently
+// absent from `resources`, which dispatchTool's enforcement (host.js)
+// treats as "no manifest / fully unrestricted" -- silently dropping any
+// declared resources.* allowlist the plugin's manifest actually has.
+export async function enablePlugin(name, { surfaces, disabled, loaded, capabilities, resources, pi, gui, hooks, configStore, env, host }) {
+    const p = disabled.get(name)
+    if (!p) return false
+    const cap = await registerPlugin(p, { surfaces, pi, gui, hooks, configStore, env, host })
+    loaded.push(p)
+    capabilities.set(name, cap)
+    disabled.delete(name)
+    if (resources && p.__resources !== undefined) resources.set(name, p.__resources)
+    return true
+}
+
 // Re-requires a single changed plugin.js/handler.js, unregisters its old
 // tool/hook/command/cron/route entries by provenance (the capabilities Map
 // recorded at load time), then re-registers the fresh module. Session state
@@ -33,16 +121,23 @@ export function recordHooks(hooks, cap) {
 // recorded in sourcePaths (set at discoverPlugins/load time); an unknown path
 // is a no-op that returns null so callers can distinguish "nothing to reload"
 // from a thrown error.
-export async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, pi, gui, hooks, host }) {
+export async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, disabled, pi, gui, hooks, host }) {
     const name = [...sourcePaths.entries()].find(([, f]) => f === filePath)?.[0]
     if (!name) return null
+    // A currently-disabled plugin (flag-skipped at boot, or disabled at
+    // runtime) has nothing registered to unregister and no `loaded` entry to
+    // replace -- unconditionally re-registering it here would silently
+    // undo the disable (bypassing both the persisted flags.json entry and
+    // the operator's explicit toggle) the next time its source file changes
+    // on disk, and would leave a stale entry in `disabled` alongside the
+    // freshly (re)loaded one, so GET /api/plugins would list the same
+    // plugin twice with contradictory enabled states. Treat it the same as
+    // an unknown path: no-op, re-enable via the toggle to pick up the
+    // fresh module.
+    if (disabled && disabled.has(name)) return null
     const cap = capabilities.get(name)
     if (cap) {
-        for (const t of cap.tools) pi.tools.unregister(t)
-        for (const c of cap.commands) pi.commands.unregister(c)
-        for (const c of cap.crons) pi.crons.unregister(c)
-        for (const { method, path: p } of cap._routeDefs || []) gui.unroute(method, p)
-        for (const { name: hn, fn } of cap._hookFns || []) hooks.off(hn, fn)
+        unregisterByProvenance(cap, { pi, gui, hooks })
     }
     const idx = loaded.findIndex(p => p.name === name)
     if (idx !== -1) loaded.splice(idx, 1)
