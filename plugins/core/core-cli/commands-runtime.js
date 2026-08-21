@@ -92,19 +92,31 @@ export function registerRuntimeCommands(C) {
         process.exitCode = out.error ? 1 : 0
         process.exit(process.exitCode)
     } })
-    C({ name: 'cron', description: 'Manage cron jobs', args: [{ name: 'action', default: 'list' }, { name: 'a1' }, { name: 'a2' }], action: async (action, a1, a2) => {
+    C({ name: 'cron', description: 'Manage cron jobs (list|add <cron> <prompt>|cancel <id>|delete <id>|tick)', args: [{ name: 'action', default: 'list' }, { name: 'a1' }, { name: 'a2' }], action: async (action, a1, a2) => {
         const { listJobs, createJob, cancelJob, deleteJob, tick } = await import('../../../src/cron/scheduler.js')
         if (action === 'list') { for (const j of await listJobs()) console.log(`${j.id}\t${j.cron}\t${j.enabled ? 'on ' : 'off'}\t${j.prompt.slice(0, 60)}`); return }
-        if (action === 'add') { console.log('created:', await createJob({ cron: a1, prompt: a2 })); return }
-        if (action === 'cancel') { await cancelJob(Number(a1)); console.log('cancelled:', a1); return }
-        if (action === 'delete') { await deleteJob(Number(a1)); console.log('deleted:', a1); return }
+        if (action === 'add') {
+            if (!a1 || !a2) { console.error('usage: freddie cron add <cron-expr> <prompt>'); process.exit(1) }
+            console.log('created:', await createJob({ cron: a1, prompt: a2 })); return
+        }
+        if (action === 'cancel') {
+            if (!a1) { console.error('usage: freddie cron cancel <id>'); process.exit(1) }
+            await cancelJob(Number(a1)); console.log('cancelled:', a1); return
+        }
+        if (action === 'delete') {
+            if (!a1) { console.error('usage: freddie cron delete <id>'); process.exit(1) }
+            await deleteJob(Number(a1)); console.log('deleted:', a1); return
+        }
         if (action === 'tick') { console.log('fired:', (await tick()).length); return }
+        console.error('usage: freddie cron [list|add <cron> <prompt>|cancel <id>|delete <id>|tick]'); process.exit(1)
     } })
     C({ name: 'batch', description: 'Run prompts in parallel from file', args: [{ name: 'file', required: true }], options: [{ flag: '--concurrency <n>', default: '4' }, { flag: '--model <model>', default: '' }], action: async (file, opts) => {
         const fs = await import('node:fs')
+        if (!fs.existsSync(file)) { console.error('error: file not found:', file); process.exit(1) }
         const { runBatch } = await import('../../../src/batch.js')
         const raw = fs.readFileSync(file, 'utf8').trim().split('\n')
         const prompts = raw.map(l => { try { return JSON.parse(l).prompt || JSON.parse(l) } catch { return l } }).filter(Boolean)
+        if (!prompts.length) console.error(`warning: no prompts parsed from ${file} — nothing to run`)
         const out = await runBatch({ prompts, concurrency: Number(opts.concurrency), model: opts.model })
         console.log('batch:', out.id, '\nfile:', out.file, '\nresults:', out.results.length)
     } })

@@ -149,8 +149,8 @@ export function registerWorkspaceCommands(C) {
         for (const c of await runDoctor()) console.log(`  ${c.ok ? '[ok]' : '[--]'} ${c.name.padEnd(16)} ${c.value || c.fix || ''}`)
         console.log('\n# provider keys')
         let anyKey = false
-        for (const p of listAuthProviders()) { const ok = await hasUsableSecret(p); if (ok) anyKey = true; if (ok) console.log(`  [ok] ${p}`) }
-        if (!anyKey) console.log('  [--] no provider keys set — run `freddie auth set <provider>` or `freddie setup`')
+        for (const p of listAuthProviders()) { const ok = await hasUsableSecret(p); if (ok) anyKey = true; console.log(`  ${ok ? '[ok]' : '[--]'} ${p}`) }
+        if (!anyKey) console.log('  hint: run `freddie auth set <provider>` or `freddie setup`')
         const proj = getActiveProject()
         console.log(`\n# workspace\n  active project: ${proj.name}\n  home: ${displayFreddieHome()}  (${getFreddieHome()})`)
         const sessions = await listSessions(500)
