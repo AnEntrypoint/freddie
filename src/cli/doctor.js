@@ -68,6 +68,27 @@ const CHECKS = [
         const ok = await isReachable(15000)
         return ok ? { ok: true, value: url || 'in-process' } : { ok: false, fix: 'check FREDDIE_LLM_URL / provider keys / acptoapi config', value: url || 'in-process' }
     } },
+    { name: 'gm-learn', run: async () => {
+        // learnAvailable() alone only reads the cached backend state -- a fresh
+        // process reports unavailable even when the backend WOULD succeed, since
+        // ensurePlugkit() has never run yet. Probe it directly instead, bounded so a
+        // hung/overloaded shared daemon (live-witnessed: agentplug-runner queue
+        // contention can push a single embed dispatch well past 20s) fails this
+        // check cleanly rather than stalling the whole `freddie doctor` run.
+        const GM_LEARN_DOCTOR_TIMEOUT_MS = 12000
+        try {
+            const { recall } = await import('../learn/gm-learn.js')
+            const hits = await Promise.race([
+                recall('doctor healthcheck probe', { limit: 1 }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timed out probing gm-learn backend')), GM_LEARN_DOCTOR_TIMEOUT_MS)),
+            ])
+            const { learnAvailable } = await import('../learn/gm-learn.js')
+            if (!learnAvailable()) return { ok: false, fix: 'agentplug-runner not installed or backend unreachable at ~/.gm-tools -- see AGENTS.md Learning section', value: `0 hit(s) (backend unavailable)` }
+            return { ok: true, value: `backend reachable, ${hits.length} hit(s) for probe query` }
+        } catch (e) {
+            return { ok: false, fix: 'gm-learn backend unreachable or timed out -- check ~/.gm-tools/agentplug-runner and shared daemon queue depth', value: String(e.message || e) }
+        }
+    } },
     { name: 'design-version', run: () => {
         // Additive, warn-only: never fails the doctor run. Compares the installed
         // anentrypoint-design's own package.json version against the range freddie's
