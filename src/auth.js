@@ -91,31 +91,61 @@ export async function getProviderAuthState(provider) {
 // whether that value happens to match a known provider env var (a
 // credential_files:set call for an arbitrary/custom credential name has no
 // entry in ENV_OF at all, so name-matching alone under-covers it).
-const SECRET_FIELD_NAMES = new Set(['value', 'credential', 'apikey', 'api_key', 'token', 'secret', 'password', 'auth_token'])
+// Deliberately excludes 'credential' itself: FileAuthStore.getCredential
+// returns {name, value, updated} wrapped under a 'credential' key
+// (credential_files:get's result shape), and 'credential' is a CONTAINER
+// key, not a value-holding one -- masking on it would also blank the
+// sibling `name` (the credential's identifier, e.g. "ANTHROPIC_API_KEY",
+// not itself secret) and `updated` timestamp, destroying wire-log/
+// trajectory observability for no security benefit, since `value` (still in
+// this set) already correctly masks the actual secret one level deeper.
+const SECRET_FIELD_NAMES = new Set(['value', 'apikey', 'api_key', 'token', 'secret', 'password', 'auth_token'])
 const KNOWN_SECRET_VALUES = () => new Set(Object.values(ENV_OF).map(envVar => process.env[envVar]).filter(Boolean))
 
 // Deep-clones `input`, replacing any string that is either (a) a live value
-// of a known provider env var, (b) held under a credential-shaped field
-// name, or (c) CONTAINS a known provider env var value as a substring (the
-// bash/write/edit path: a command or file content embedding a real key
-// inline, e.g. `curl -H "Authorization: Bearer sk-ant-..."` or a written
-// .env file's contents, is never itself the exact string value — it is a
-// larger string the secret is embedded IN), with a redacted form. Never
-// mutates its input. Used at every boundary a tool call's args/result can
-// cross into a durable or external sink (wire log, live listeners,
-// trajectory files, the approval classifier's LLM prompt) so a raw secret
-// never leaves the dispatch site.
+// of a known provider env var (exact match, ANY length -- a short custom key
+// is still a real secret and must not be exempted from the exact-match path,
+// only from the embedded-substring scan below, which needs a length floor to
+// avoid over-matching short strings that merely happen to recur), (b) held
+// under a credential-shaped field name -- recursively, so a `value`/`token`/
+// etc field whose OWN value is an object/array (credential_files:set accepts
+// an untyped `value: {}`) has every string leaf beneath it masked too, not
+// only a direct string leaf, or (c) CONTAINS a known provider env var value
+// (>=8 chars) as a substring (the bash/write/edit path: a command or file
+// content embedding a real key inline, e.g. `curl -H "Authorization: Bearer
+// sk-ant-..."` or a written .env file's contents, is never itself the exact
+// string value -- it is a larger string the secret is embedded IN), with a
+// redacted form. Never mutates its input. Used at every boundary a tool
+// call's args/result can cross into a durable or external sink (wire log,
+// live listeners, trajectory files, the approval classifier's LLM prompt) so
+// a raw secret never leaves the dispatch site.
 export function redactSecrets(input) {
-    const known = [...KNOWN_SECRET_VALUES()].filter(v => v.length >= 8) // skip trivially-short values that would over-match
+    const known = [...KNOWN_SECRET_VALUES()]
+    const embeddable = known.filter(v => v.length >= 8) // substring scan needs a length floor to avoid over-matching; exact-match below does not
     const redactEmbedded = (s) => {
         let out = s
-        for (const secret of known) { if (out.includes(secret)) out = out.split(secret).join(tokenFingerprint(secret)) }
+        for (const secret of embeddable) { if (out.includes(secret)) out = out.split(secret).join(tokenFingerprint(secret)) }
         return out
     }
+    // Once a credential-shaped field name is seen, every string leaf in its
+    // subtree is masked regardless of nesting depth -- the field-name signal
+    // must survive descending into an object/array value, not just gate a
+    // direct string child.
+    const maskAllStrings = (node) => {
+        if (typeof node === 'string') return node ? tokenFingerprint(node) : node
+        if (Array.isArray(node)) return node.map(maskAllStrings)
+        if (node && typeof node === 'object') {
+            const out = {}
+            for (const [k, v] of Object.entries(node)) out[k] = maskAllStrings(v)
+            return out
+        }
+        return node
+    }
     const walk = (node, keyHint) => {
+        const underSecretField = keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase())
+        if (underSecretField) return maskAllStrings(node)
         if (typeof node === 'string') {
             if (known.includes(node)) return tokenFingerprint(node)
-            if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase()) && node) return tokenFingerprint(node)
             return redactEmbedded(node)
         }
         if (Array.isArray(node)) return node.map(v => walk(v, keyHint))
