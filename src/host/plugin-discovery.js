@@ -48,6 +48,13 @@ export async function discoverPlugins(roots) {
 // found[] order may now differ from strict directory-entry order, which is
 // safe because host.js's load() re-sorts by topoSort(requires[]) right after
 // discovery returns -- nothing downstream depends on discovery order itself.
+//
+// Recursive scanPluginDir calls for subdirectories (category folders) also
+// run concurrently via Promise.allSettled. This parallelizes the depth > 0
+// recursion, eliminating sequential awaits across multiple category folders
+// (plugins/core/, plugins/gui/, etc.). Each recursive call populates the
+// shared found[] array; traversal order remains deterministic from a caller's
+// perspective because all siblings complete before returning.
 async function scanPluginDir(root, found, depth) {
     if (!root || !fs.existsSync(root)) return
     const subDirs = []
@@ -90,5 +97,9 @@ async function scanPluginDir(root, found, depth) {
         if (depth > 0) subDirs.push(dir)
     }
     if (imports.length) await Promise.allSettled(imports)
-    for (const dir of subDirs) await scanPluginDir(dir, found, depth - 1)
+    if (subDirs.length) {
+        await Promise.allSettled(
+            subDirs.map(dir => scanPluginDir(dir, found, depth - 1))
+        )
+    }
 }
