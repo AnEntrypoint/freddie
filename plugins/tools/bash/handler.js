@@ -4,6 +4,7 @@ import { getConfigValue } from '../../../src/config.js'
 import { scrubEnv } from '../../../src/host/tool-resources.js'
 import { listKnownEnvVars } from '../../../src/auth.js'
 import { wasWrittenThisSession } from '../files/lib/turn_writes.js'
+import { killTree } from '../../../src/tools/kill_tree.js'
 
 // Matches a shell redirect/overwrite targeting a file path: `cat > path`,
 // `cat >> path`, `echo ... > path`, `tee path`/`tee -a path`. Deliberately
@@ -87,14 +88,21 @@ export const _tool = ({
                 : process.env
             const child = spawn(sh, [flag, fullCommand], { cwd, env: childEnv })
             let stdout = '', stderr = ''
-            const t = setTimeout(() => { try { child.kill('SIGKILL') } catch {} resolve({ exitCode: -1, stdout, stderr: stderr + '\n[timeout]', timedOut: true }) }, timeout_ms)
+            // killTree, not bare child.kill: the spawned process on Windows IS
+            // cmd.exe, and TerminateProcess against cmd.exe does not propagate to
+            // whatever it launched. Live-witnessed: `cmd /c ping -n 30 127.0.0.1`
+            // killed via plain child.kill('SIGKILL') left ping.exe running and
+            // still visible in tasklist after the parent was gone. taskkill /T
+            // recurses the whole process tree; POSIX's process.kill(pid,'SIGKILL')
+            // already covers the sh -c case, so killTree degrades to that there.
+            const t = setTimeout(() => { killTree(child.pid); resolve({ exitCode: -1, stdout, stderr: stderr + '\n[timeout]', timedOut: true }) }, timeout_ms)
             // ctx.signal is the turn's AbortController signal (machine.js) --
             // fired when the OUTER turn-level timeout elapses, independently of
             // and potentially far sooner than this handler's own timeout_ms.
             // Without this, a turn that reports itself timed out left the real
             // child process running to its own completion with nothing tracking
             // or able to cancel it.
-            const onAbort = () => { clearTimeout(t); try { child.kill('SIGKILL') } catch {} resolve({ exitCode: -1, stdout, stderr: stderr + '\n[aborted: turn ended]', aborted: true }) }
+            const onAbort = () => { clearTimeout(t); killTree(child.pid); resolve({ exitCode: -1, stdout, stderr: stderr + '\n[aborted: turn ended]', aborted: true }) }
             if (ctx.signal) {
                 if (ctx.signal.aborted) onAbort()
                 else ctx.signal.addEventListener('abort', onAbort, { once: true })

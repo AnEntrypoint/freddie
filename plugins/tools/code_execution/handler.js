@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { killTree } from '../../../src/tools/kill_tree.js'
 const RUNNERS = {
     python: ['python', '-c'], python3: ['python3', '-c'],
     node: ['node', '-e'], deno: ['deno', 'eval'],
@@ -15,13 +16,17 @@ export const _tool = ({
         return await new Promise(resolve => {
             const child = spawn(cmd[0], [cmd[1], code], { env: process.env })
             let stdout = '', stderr = ''
-            const t = setTimeout(() => { try { child.kill('SIGKILL') } catch {} resolve({ exitCode: -1, stdout, stderr: stderr + '\n[timeout]' }) }, timeout_ms)
+            // killTree, not bare child.kill -- see bash/handler.js's kill_tree.js
+            // usage for the live-witnessed Windows cmd.exe/grandchild-process
+            // rationale this generalizes from (a runner whose interpreter itself
+            // forks, or bash via git-bash on Windows, has the same exposure).
+            const t = setTimeout(() => { killTree(child.pid); resolve({ exitCode: -1, stdout, stderr: stderr + '\n[timeout]' }) }, timeout_ms)
             // ctx.signal is the turn's AbortController (machine.js) -- fired on
             // turn-level timeout, independently of and potentially sooner than
             // this handler's own timeout_ms. Same defect/fix shape as bash's
             // handler: without this the subprocess outlives a turn that already
             // reported itself ended.
-            const onAbort = () => { clearTimeout(t); try { child.kill('SIGKILL') } catch {} resolve({ exitCode: -1, stdout, stderr: stderr + '\n[aborted: turn ended]', aborted: true }) }
+            const onAbort = () => { clearTimeout(t); killTree(child.pid); resolve({ exitCode: -1, stdout, stderr: stderr + '\n[aborted: turn ended]', aborted: true }) }
             if (ctx.signal) {
                 if (ctx.signal.aborted) onAbort()
                 else ctx.signal.addEventListener('abort', onAbort, { once: true })
