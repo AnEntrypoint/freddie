@@ -6,6 +6,12 @@ import { getFreddieHome } from '../home.js'
 
 const FRONTMATTER = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/
 
+// Frontmatter size bound: prevent unbounded YAML parsing of maliciously large
+// frontmatter sections. A legitimate skill's frontmatter is rarely >16KB;
+// this cap mirrors the 64KB body limit in skills_hub and prevents pathological
+// memory consumption during skill catalog loads.
+const MAX_FRONTMATTER_BYTES = 16 * 1024
+
 export function skillRootsByPrecedence(extraDirs = []) {
     const home = os.homedir()
     return [
@@ -94,6 +100,11 @@ export function loadSkill(file) {
     const dirName = path.basename(path.dirname(file))
     const m = FRONTMATTER.exec(raw)
     if (!m) return { file, name: dirName, description: '', body: raw, frontmatter: {} }
+    // Bound frontmatter size to prevent unbounded YAML parsing of malicious payloads
+    if (Buffer.byteLength(m[1], 'utf8') > MAX_FRONTMATTER_BYTES) {
+        console.warn(`[skills] frontmatter in ${file} exceeds ${MAX_FRONTMATTER_BYTES} bytes, skipping parse`)
+        return { file, name: dirName, description: '', body: raw, frontmatter: {} }
+    }
     const fm = loadFrontmatter(m[1])
     const name = fm.name || dirName
     return {
