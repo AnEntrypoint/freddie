@@ -76,7 +76,16 @@ export function decodeJwtClaims(jwt) {
 export function tokenFingerprint(token) {
     const s = typeof token === 'string' ? token : (token?.access_token || token?.value || '')
     if (!s) return ''
-    return s.slice(0, 4) + '…' + s.slice(-4)
+    // A flat slice(0,4)+…+slice(-4) fully reconstructs any secret <= 8
+    // chars (the two windows overlap or exactly abut) -- found live: the
+    // design SDK's env page renders this fingerprint directly and
+    // unconditionally next to a field documented as "never displayed".
+    // Cap the revealed window at a third of the real length (4-char
+    // ceiling per side, same as before for any real-length key) so a
+    // short/legacy/test token can never be reassembled from what's shown.
+    const n = Math.min(4, Math.floor(s.length / 3))
+    if (n < 1) return '•'.repeat(s.length)
+    return s.slice(0, n) + '…' + s.slice(-n)
 }
 
 export async function getProviderAuthState(provider) {
