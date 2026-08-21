@@ -10,6 +10,7 @@ import { registerTurn, loadApprovalGrants } from './live-turns.js'
 import { createAgentMachine } from './machine_builder.js'
 import { mergeHookExtras } from './turn_helpers.js'
 import { driveAgentActor } from './turn_driver.js'
+import { redactSecrets } from '../auth.js'
 
 export { createAgentMachine }
 
@@ -140,9 +141,9 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     registerTurn(key, { actor: pa.actor, control, pendingApproval: null, pendingQuestion: null, startedAt: Date.now() })
     pa.actor.send({ type: 'SUBMIT', prompt })
     // Emit session.created only for new sessions (not resumes)
-    if (!sessionKey) emitTurnEvent(key, 'session.created', { prompt, model, provider })
-    emitTurnEvent(key, 'session.start', { prompt, model, provider })
-    emitTurnEvent(key, 'message.append', { role: 'user', content: prompt })
+    if (!sessionKey) emitTurnEvent(key, 'session.created', redactSecrets({ prompt, model, provider }))
+    emitTurnEvent(key, 'session.start', redactSecrets({ prompt, model, provider }))
+    emitTurnEvent(key, 'message.append', { role: 'user', content: redactSecrets(prompt) })
     return await driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey: key, store })
 }
 

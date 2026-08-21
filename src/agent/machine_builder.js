@@ -48,9 +48,9 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
             // onChunk threads through resolveCallLLM's streaming path; each text
             // delta becomes an assistant.delta wire event (and feeds the
             // trajectory's llm_chunks_count, previously always 0).
-            const out = await baseLLM({ ...input, onChunk: (text) => { events.push({ type: 'llm_chunk', text, ts: new Date().toISOString() }); emitTurnEvent(sessionKey, 'assistant.delta', { text }) } })
+            const out = await baseLLM({ ...input, onChunk: (text) => { events.push({ type: 'llm_chunk', text, ts: new Date().toISOString() }); emitTurnEvent(sessionKey, 'assistant.delta', { text: redactSecrets(text) }) } })
             events.push({ type: 'llm_call', ok: true, durationMs: Date.now() - t0, provider: out?.raw?.provider || provider, model: out?.raw?.model || model, content_length: (out?.content || '').length, tool_calls_count: (out?.tool_calls || []).length, ts: new Date().toISOString() })
-            emitTurnEvent(sessionKey, 'message.append', { role: 'assistant', content: out?.content || '', tool_calls: out?.tool_calls || [] })
+            emitTurnEvent(sessionKey, 'message.append', { role: 'assistant', content: redactSecrets(out?.content || ''), tool_calls: redactSecrets(out?.tool_calls || []) })
             return out
         } catch (e) {
             events.push({ type: 'llm_call', ok: false, durationMs: Date.now() - t0, provider, model, error: String(e?.message || e), stack: e?.stack || null, ts: new Date().toISOString() })
