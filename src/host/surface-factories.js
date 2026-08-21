@@ -116,10 +116,11 @@ export function makeGui() {
     }
 }
 
-export function guard(surface, allowed, name, verbs) {
+export function guard(surface, allowed, name, verbs, declaredSurfaces) {
     if (allowed) return surface
     return new Proxy({}, { get(_, key) {
-        if (verbs.includes(String(key))) return () => { throw new Error(`plugin ${name}: surface verb '${String(key)}' not allowed (declared surfaces=${name})`) }
+        const k = String(key)
+        if (verbs.includes(k) || verbs.includes(k.replace(/s$/, ''))) return () => { throw new Error(`plugin ${name}: surface verb '${k}' not allowed (declared surfaces=${declaredSurfaces})`) }
         return surface[key]
     } })
 }

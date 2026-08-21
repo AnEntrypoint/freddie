@@ -25,6 +25,7 @@ export const sessionQueues = new Map() // sessionKey -> string[]
 export const toolCounts = new Map() // sessionKey -> Map<toolName, count>
 
 export function registerTurn(sessionKey, entry) {
+    if (turns.has(sessionKey)) throw new Error(`turn already live for session ${sessionKey}`)
     turns.set(sessionKey, entry)
     return entry
 }

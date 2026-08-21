@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import { pathToFileURL } from 'node:url'
-import { validatePlugin } from './contract.js'
-import { nullStore } from './host_helpers.js'
+import { validatePlugin, PI_VERBS, GUI_VERBS } from './contract.js'
+import { nullStore, guard } from './host_helpers.js'
 
 // pluginName threaded through so every registered tool spec carries __plugin
 // provenance -- host_helpers.js's dispatchTool reads t.__plugin to look up the
@@ -81,8 +81,8 @@ export async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded
     fresh.__sourceFile = filePath
     const newCap = { tools: [], hooks: [], commands: [], crons: [], routes: [], _hookFns: [], _routeDefs: [], wsRoutes: [], pages: [], navItems: [], debugs: [], apis: [], assets: [] }
     const want = fresh.surfaces
-    const ctxPi = (want === 'pi' || want === 'both') ? recordPi(pi, newCap, name) : pi
-    const ctxGui = (want === 'gui' || want === 'both') ? recordGui(gui, newCap) : gui
+    const ctxPi = (want === 'pi' || want === 'both') ? recordPi(pi, newCap, name) : guard(pi, false, name, PI_VERBS, want)
+    const ctxGui = (want === 'gui' || want === 'both') ? recordGui(gui, newCap) : guard(gui, false, name, GUI_VERBS, want)
     const ctxHooks = recordHooks(hooks, newCap)
     await validatePlugin(fresh).register({ pi: ctxPi, gui: ctxGui, hooks: ctxHooks, log: { info(){}, warn(){}, error(){} }, config: nullStore(), host, env: process.env })
     loaded.push(fresh)

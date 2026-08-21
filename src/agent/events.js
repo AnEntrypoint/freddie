@@ -92,7 +92,7 @@ export function readWireLog(sessionId, { limit = 0 } = {}) {
     const out = []
     for (const line of text.split('\n')) {
         if (!line.trim()) continue
-        try { out.push(JSON.parse(line)) } catch { /* swallow: skip torn line from a crash mid-append */ }
+        try { out.push(JSON.parse(line)) } catch (e) { console.error('events.js: corrupted wire-log line, skipping', { sessionId, error: String(e) }) }
     }
     return limit > 0 ? out.slice(-limit) : out
 }

@@ -6,7 +6,7 @@ import { wireHookBridge } from './wire_hooks.js'
 import { loadConfig, getConfigValue } from '../config.js'
 import { telemetry } from '../observability/telemetry.js'
 import { emitTurnEvent } from './events.js'
-import { registerTurn, loadApprovalGrants } from './live-turns.js'
+import { registerTurn, getTurn, loadApprovalGrants } from './live-turns.js'
 import { createAgentMachine } from './machine_builder.js'
 import { mergeHookExtras } from './turn_helpers.js'
 import { driveAgentActor } from './turn_driver.js'
@@ -49,6 +49,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     // down, so this call hit the TDZ, threw a ReferenceError swallowed by its own
     // catch, and task restore silently never ran.
     const key = sessionKey || randomUUID()
+    if (getTurn(key)) return { messages, result: null, error: `turn already live for session ${key}`, iterations: 0 }
     // Restore and reconcile tasks from prior sessions so background tasks
     // from a resumed session are properly tracked and stale ones detected.
     try {
@@ -156,6 +157,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
 // completed or never persisted) — caller falls back to a fresh runTurn.
 export async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, toolCtx = null, store } = {}) {
     if (!sessionKey) throw new Error('resumeTurn requires sessionKey')
+    if (getTurn(sessionKey)) return null
     const events = []; const h = await bootHost()
     const hookEngine = new HookEngine({ config: loadConfig() })
     // wireHookBridge for resumeTurn follows same pattern as runTurn
