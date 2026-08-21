@@ -136,9 +136,13 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
         classifierDenials: 0, classifierConsecDenials: 0, classifierEscalated: false,
         classifierCallLLM: null,
     }
-    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx: mergedToolCtx, tool_choice, store, control })
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx: mergedToolCtx, tool_choice, store, control, h, hookEngine, wireHookBridge })
     const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages }, store })
     registerTurn(key, { actor: pa.actor, control, pendingApproval: null, pendingQuestion: null, startedAt: Date.now() })
+    // onTurnStart hook: fire when turn begins
+    await h.hooks.invoke('onTurnStart', { sessionKey: key, prompt, model, provider })
+    hookEngine.runHooks('onTurnStart', { sessionKey: key, cwd }).catch(() => {})
+    wireHookBridge.forwardHook('onTurnStart', { sessionKey: key, prompt }).catch(() => {})
     pa.actor.send({ type: 'SUBMIT', prompt })
     // Emit session.created only for new sessions (not resumes)
     if (!sessionKey) emitTurnEvent(key, 'session.created', redactSecrets({ prompt, model, provider }))
@@ -154,6 +158,8 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
     if (!sessionKey) throw new Error('resumeTurn requires sessionKey')
     const events = []; const h = await bootHost()
     const hookEngine = new HookEngine({ config: loadConfig() })
+    // wireHookBridge for resumeTurn follows same pattern as runTurn
+    wireHookBridge.forwardHook('onSessionStart', { sessionKey, cwd }).catch(() => {})
     const control = {
         steers: [],
         // agent.approval_mode (off|mutating|classifier|all) is the gate mode; the older
@@ -173,7 +179,7 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
         classifierDenials: 0, classifierConsecDenials: 0, classifierEscalated: false,
         classifierCallLLM: null,
     }
-    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey, toolCtx, store, control })
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey, toolCtx, store, control, h, hookEngine, wireHookBridge })
     // createPersistentActor.load() already handles a missing/stale snapshot and
     // leaves pa.resumed=false, so the prior pre-check load() was a redundant
     // second read that opened a TOCTOU window (a concurrent delete between the two
@@ -181,6 +187,10 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
     const pa = await createPersistentActor(machine, { kind: 'agent', key: sessionKey, input: { messages: [] }, store })
     if (!pa.resumed) return null
     registerTurn(sessionKey, { actor: pa.actor, control, pendingApproval: null, pendingQuestion: null, startedAt: Date.now() })
+    // onTurnStart hook: fire when resumed turn begins
+    await h.hooks.invoke('onTurnStart', { sessionKey, model, provider })
+    hookEngine.runHooks('onTurnStart', { sessionKey, cwd }).catch(() => {})
+    wireHookBridge.forwardHook('onTurnStart', { sessionKey }).catch(() => {})
     return await driveAgentActor({ pa, h, hookEngine, events, prompt: '', provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store })
 }
 

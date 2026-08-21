@@ -96,8 +96,16 @@ export function registerRuntimeCommands(C) {
         const { listJobs, createJob, cancelJob, deleteJob, tick } = await import('../../../src/cron/scheduler.js')
         if (action === 'list') { for (const j of await listJobs()) console.log(`${j.id}\t${j.cron}\t${j.enabled ? 'on ' : 'off'}\t${j.prompt.slice(0, 60)}`); return }
         if (action === 'add') {
-            if (!a1 || !a2) { console.error('usage: freddie cron add <cron-expr> <prompt>'); process.exit(1) }
-            console.log('created:', await createJob({ cron: a1, prompt: a2 })); return
+            if (!a1) { console.error('usage: freddie cron add <cron-expr> <prompt>'); process.exit(1) }
+            if (!a2) { console.error('usage: freddie cron add <cron-expr> <prompt>'); process.exit(1) }
+            try {
+                const result = await createJob({ cron: a1, prompt: a2 })
+                console.log('created:', result)
+            } catch (e) {
+                console.error('error:', e.message)
+                process.exit(1)
+            }
+            return
         }
         if (action === 'cancel') {
             if (!a1) { console.error('usage: freddie cron cancel <id>'); process.exit(1) }
@@ -114,9 +122,10 @@ export function registerRuntimeCommands(C) {
         const fs = await import('node:fs')
         if (!fs.existsSync(file)) { console.error('error: file not found:', file); process.exit(1) }
         const { runBatch } = await import('../../../src/batch.js')
-        const raw = fs.readFileSync(file, 'utf8').trim().split('\n')
+        const raw = fs.readFileSync(file, 'utf8').trim().split('\n').filter(Boolean)
+        if (!raw.length) { console.error(`error: no lines in file: ${file}`); process.exit(1) }
         const prompts = raw.map(l => { try { return JSON.parse(l).prompt || JSON.parse(l) } catch { return l } }).filter(Boolean)
-        if (!prompts.length) console.error(`warning: no prompts parsed from ${file} — nothing to run`)
+        if (!prompts.length) { console.error(`error: no prompts parsed from ${file}`); process.exit(1) }
         const out = await runBatch({ prompts, concurrency: Number(opts.concurrency), model: opts.model })
         console.log('batch:', out.id, '\nfile:', out.file, '\nresults:', out.results.length)
     } })

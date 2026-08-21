@@ -7,6 +7,7 @@ import { runTurn } from '../../../../src/agent/machine.js'
 import { persistSubagent } from '../store.js'
 import { buildContinuationPrompt } from './subagent-helpers.js'
 import { emitTurnEvent } from '../../../../src/agent/events.js'
+import { redactSecrets } from '../../../../src/auth.js'
 
 const CONTINUATION_MIN_CHARS = 200
 
@@ -87,7 +88,7 @@ export function runSubagentInBackground({
             iterations: out.iterations,
             timed_out: status === 'timed_out',
         })
-        emitTurnEvent(ctx.sessionKey, 'subagent.end', { agent_id: agentId, subagent_type, depth, status, error: out.error || null, iterations: out.iterations, timed_out: status === 'timed_out' })
+        emitTurnEvent(ctx.sessionKey, 'subagent.end', { agent_id: agentId, subagent_type, depth, status, error: out.error ? redactSecrets(out.error) : null, iterations: out.iterations, timed_out: status === 'timed_out' })
     }).catch(async (err) => {
         await persistSubagent({
             agent_id: agentId,
@@ -105,7 +106,7 @@ export function runSubagentInBackground({
             iterations: null,
             timed_out: false,
         })
-        emitTurnEvent(ctx.sessionKey, 'subagent.end', { agent_id: agentId, subagent_type, depth, status: 'error', error: err?.message || String(err) })
+        emitTurnEvent(ctx.sessionKey, 'subagent.end', { agent_id: agentId, subagent_type, depth, status: 'error', error: redactSecrets(err?.message || String(err)) })
     })
     return {
         result: `Subagent started in background (task_id: ${taskId}, agent_id: ${agentId}). Type: ${subagent_type}.`,

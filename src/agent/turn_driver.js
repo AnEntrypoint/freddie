@@ -5,6 +5,9 @@ import { emitTurnEvent } from './events.js'
 import { unregisterTurn } from './live-turns.js'
 import { writeTrajectory, autoLearnTurn } from './turn_trajectory.js'
 import { mergeHookExtras, timeoutResult } from './turn_helpers.js'
+import { redactSecrets } from '../auth.js'
+import { HookEngine } from './hooks_engine.js'
+import { loadConfig } from '../config.js'
 
 // session-end hooks + trajectory. Shared by runTurn (fresh) and resumeTurn
 // (rehydrated from a persisted snapshot after a refresh/restart).
@@ -22,6 +25,10 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
             cleanup()
             ;(async () => {
                 try { await clearSteps(sessionKey, { store }) } catch {}
+                // onTurnEnd hook: fire when turn completes (timeout path)
+                try { await h.hooks.invoke('onTurnEnd', { reason: 'timeout', iterations: out.iterations }) } catch {}
+                try { const hE = new HookEngine({ config: loadConfig() }); hE.runHooks('onTurnEnd', { sessionKey, cwd, reason: 'timeout', iterations: out.iterations }).catch(() => {}) } catch {}
+                try { wireHookBridge.forwardHook('onTurnEnd', { sessionKey, reason: 'timeout', iterations: out.iterations }).catch(() => {}) } catch {}
                 try { await h.hooks.invoke('onSessionEnd', { reason: 'timeout', iterations: out.iterations }) } catch {}
                 try { hookEngine.runHooks('onSessionEnd', { sessionKey, cwd, reason: 'timeout', iterations: out.iterations }).catch(() => {}) } catch {}
                 try { wireHookBridge.forwardHook('onSessionEnd', { sessionKey, cwd, reason: 'timeout', iterations: out.iterations }).catch(() => {}) } catch {}
@@ -36,9 +43,13 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
                 const out = snap.output
                 telemetry.turnEnded({ iterations: out.iterations, result: out.result ? 'ok' : (out.error ? 'error' : 'empty'), error: out.error || null })
                 if (out.error) {
-                    emitTurnEvent(sessionKey, 'session.error', { error: out.error, iterations: out.iterations })
+                    emitTurnEvent(sessionKey, 'session.error', { error: redactSecrets(out.error), iterations: out.iterations })
                 }
-                emitTurnEvent(sessionKey, 'session.end', { result: out.result ? 'ok' : (out.error ? 'error' : 'empty'), error: out.error || null, iterations: out.iterations })
+                emitTurnEvent(sessionKey, 'session.end', { result: out.result ? 'ok' : (out.error ? 'error' : 'empty'), error: out.error ? redactSecrets(out.error) : null, iterations: out.iterations })
+                // onTurnEnd hook: fire when turn completes (normal path)
+                await h.hooks.invoke('onTurnEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
+                hookEngine.runHooks('onTurnEnd', { sessionKey, cwd, reason: out?.error ? 'error' : 'ok', iterations: out?.iterations }).catch(() => {})
+                wireHookBridge.forwardHook('onTurnEnd', { sessionKey, reason: out?.error ? 'error' : 'ok', iterations: out?.iterations }).catch(() => {})
                 const outbound = await h.hooks.invoke('onMessageOutbound', { content: out?.result || '' })
                 hookEngine.runHooks('onMessageOutbound', { sessionKey, cwd }).catch(() => {})
                 wireHookBridge.forwardHook('onMessageOutbound', { sessionKey, cwd, content: out?.result || '' }).catch(() => {})

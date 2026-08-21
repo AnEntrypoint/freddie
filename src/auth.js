@@ -65,6 +65,13 @@ export function listKnownEnvVars() {
 }
 
 export async function hasUsableSecret(provider) {
+    // Bedrock requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+    if (provider === 'bedrock') {
+        const hasAccessKey = process.env['AWS_ACCESS_KEY_ID'] || await getAuthStore().getCredential('AWS_ACCESS_KEY_ID')
+        const hasSecretKey = process.env['AWS_SECRET_ACCESS_KEY'] || await getAuthStore().getCredential('AWS_SECRET_ACCESS_KEY')
+        return Boolean(hasAccessKey?.value || process.env['AWS_ACCESS_KEY_ID']) && Boolean(hasSecretKey?.value || process.env['AWS_SECRET_ACCESS_KEY'])
+    }
+
     const env = envForProvider(provider)
     if (!env) return false
     if (process.env[env]) return true
@@ -102,6 +109,16 @@ export function tokenFingerprint(token) {
 }
 
 export async function getProviderAuthState(provider) {
+    // Bedrock requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY;
+    // report both env vars in the state for bedrock
+    if (provider === 'bedrock') {
+        return {
+            provider,
+            env: 'AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY',
+            hasSecret: await hasUsableSecret(provider),
+        }
+    }
+
     return {
         provider,
         env: envForProvider(provider),

@@ -40,7 +40,7 @@ function claimsCompletionWithNoEvidence(content, toolCallsUsedThisTurn) {
     return COMPLETION_CLAIM_RE.test(content)
 }
 
-export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice, store, control = null } = {}) {
+export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice, store, control = null, h = null, hookEngine = null, wireHookBridge = null } = {}) {
     const baseLLM = callLLM || resolveCallLLM({ provider, model })
     const llm = events ? async (input) => {
         const t0 = Date.now()
@@ -51,6 +51,10 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
             const out = await baseLLM({ ...input, onChunk: (text) => { events.push({ type: 'llm_chunk', text, ts: new Date().toISOString() }); emitTurnEvent(sessionKey, 'assistant.delta', { text: redactSecrets(text) }) } })
             events.push({ type: 'llm_call', ok: true, durationMs: Date.now() - t0, provider: out?.raw?.provider || provider, model: out?.raw?.model || model, content_length: (out?.content || '').length, tool_calls_count: (out?.tool_calls || []).length, ts: new Date().toISOString() })
             emitTurnEvent(sessionKey, 'message.append', { role: 'assistant', content: redactSecrets(out?.content || ''), tool_calls: redactSecrets(out?.tool_calls || []) })
+            // postLlmCall hook: fire after LLM completion
+            if (h?.hooks) await h.hooks.invoke('postLlmCall', { provider: out?.raw?.provider || provider, model: out?.raw?.model || model, content_length: (out?.content || '').length })
+            if (hookEngine) hookEngine.runHooks('postLlmCall', { sessionKey, cwd: toolCtx?.cwd, provider: out?.raw?.provider || provider, model: out?.raw?.model || model }).catch(() => {})
+            if (wireHookBridge) wireHookBridge.forwardHook('postLlmCall', { sessionKey, provider: out?.raw?.provider || provider, model: out?.raw?.model || model }).catch(() => {})
             return out
         } catch (e) {
             events.push({ type: 'llm_call', ok: false, durationMs: Date.now() - t0, provider, model, error: String(e?.message || e), stack: e?.stack || null, ts: new Date().toISOString() })
@@ -168,7 +172,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                             // real wire event (status.update, matching the shape other
                             // non-fatal turn-level notices use) unconditionally -- the debug
                             // console.error stays for interactive trace-mode verbosity.
-                            emitTurnEvent(input.sessionKey, 'status.update', { kind: 'compression_error', error: String(e?.message || e) })
+                            emitTurnEvent(input.sessionKey, 'status.update', { kind: 'compression_error', error: redactSecrets(String(e?.message || e)) })
                             if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] compress threw', e.message)
                         }
                         if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] before llm() call, iteration', input.iterations)

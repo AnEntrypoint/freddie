@@ -7,6 +7,7 @@
 import { randomUUID } from 'node:crypto'
 import { emitTurnEvent } from './events.js'
 import { turns } from './turn-registry.js'
+import { redactSecrets } from '../auth.js'
 
 export function requestQuestion(sessionKey, questions) {
     const t = turns.get(sessionKey)
@@ -34,7 +35,7 @@ export function resolveQuestion(sessionKey, { id, answers = {}, rejected = false
     if (!pending) return false
     if (!id || pending.id !== id) return false
     t.pendingQuestion = null
-    emitTurnEvent(sessionKey, 'question.resolved', { id: pending.id, answers: answers || {}, rejected: !!rejected })
+    emitTurnEvent(sessionKey, 'question.resolved', { id: pending.id, answers: redactSecrets(answers || {}), rejected: !!rejected })
     if (rejected) pending.reject(new Error('question rejected by user'))
     else pending.resolve(answers || {})
     return true

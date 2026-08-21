@@ -11,12 +11,13 @@
 
 import { emitTurnEvent } from './events.js'
 import { turns, sessionQueues } from './turn-registry.js'
+import { redactSecrets } from '../auth.js'
 
 export function steerTurn(sessionKey, text) {
     const t = turns.get(sessionKey)
     if (!t || !text) return false
     t.control.steers.push(String(text))
-    emitTurnEvent(sessionKey, 'steer.append', { text: String(text) })
+    emitTurnEvent(sessionKey, 'steer.append', { text: redactSecrets(String(text)) })
     return true
 }
 
@@ -24,7 +25,7 @@ export function queueTurn(sessionKey, text) {
     if (!text) return false
     if (!sessionQueues.has(sessionKey)) sessionQueues.set(sessionKey, [])
     sessionQueues.get(sessionKey).push(String(text))
-    emitTurnEvent(sessionKey, 'queue.append', { text: String(text), depth: sessionQueues.get(sessionKey).length })
+    emitTurnEvent(sessionKey, 'queue.append', { text: redactSecrets(String(text)), depth: sessionQueues.get(sessionKey).length })
     return true
 }
 
