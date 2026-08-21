@@ -72,13 +72,32 @@ export function enforceTokenBudget(text, budgetTokens) {
 
 // mapWithConcurrency: Promise.all-style parallel execution bounded to `limit`
 // in-flight calls, results returned in input order.
+//
+// If one worker's fn() throws, Promise.all rejects immediately and propagates
+// to the caller (compressor.js: markFailure + didCompress:false) — correct
+// outer behavior, unchanged. But the OTHER workers' in-flight fn() calls
+// (compressor.js's usage: other blocks' summarizer LLM calls, already
+// dispatched and running) were previously left running as orphaned promises
+// with nothing consuming their result — real, uncancelled outbound LLM HTTP
+// requests continuing to bill/rate-limit after compress() already returned an
+// error. An internal AbortController is created and aborted the instant any
+// worker throws; it is threaded into every fn(item, i, signal) call so a
+// signal-aware fn (compressor.js's summarizer callLLM invocation, which reads
+// input.signal the same way the main llm() path does) actually cancels its
+// in-flight sibling calls instead of running them to natural completion.
 export async function mapWithConcurrency(items, limit, fn) {
     const results = new Array(items.length)
     let next = 0
+    const controller = new AbortController()
     const workers = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
         while (next < items.length) {
             const i = next++
-            results[i] = await fn(items[i], i)
+            try {
+                results[i] = await fn(items[i], i, controller.signal)
+            } catch (e) {
+                controller.abort(e)
+                throw e
+            }
         }
     })
     await Promise.all(workers)

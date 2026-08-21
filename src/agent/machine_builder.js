@@ -12,6 +12,8 @@ import { requestApproval, noteToolCall } from './live-turns.js'
 import { classifyToolCall, CLASSIFIER_CONSEC_DENY_LIMIT, CLASSIFIER_TOTAL_DENY_LIMIT } from './approval_classifier.js'
 import { redactSecrets } from '../auth.js'
 import { logger } from '../observability/log.js'
+import { pairDanglingToolCalls } from './turn_helpers.js'
+import { invokeCompactHooks } from './compact_hooks.js'
 
 const machineLog = logger('agent-machine')
 
@@ -167,13 +169,61 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                         // compress() — the whole subsystem was dead code.
                         let callMessages = input.messages
                         let compressedMessages = null
+                        // Skip compress() entirely when this iteration's llm:N step is
+                        // ALREADY journaled done (a resumed turn re-entering 'prompting'
+                        // on the persisted pre-invoke snapshot after a crash that happened
+                        // after llm() completed and journaled but before the actor's onDone
+                        // assign committed). runStep's own cache below will return the
+                        // cached llm:N result regardless of what compress() produces here --
+                        // so re-running compress() on every resume wastes a real summarizer
+                        // LLM call for zero effect (callMessages is discarded once runStep
+                        // short-circuits) and, worse, produces a FRESH, non-deterministic
+                        // summary that may differ from whatever compressedMessages
+                        // accompanied the original cached llm:N call, an inconsistency a
+                        // future resumeTurn flow that consults compressedMessages before
+                        // the llm:N cache would silently propagate.
+                        const { isStepDone } = await import('../machines/step-journal.js')
+                        const llmStepAlreadyDone = await isStepDone(input.sessionKey, 'llm:' + input.iterations, { store: input.store }).catch(() => false)
+                        if (llmStepAlreadyDone) {
+                            if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] llm:' + input.iterations + ' already journaled done, skipping compress() on resume')
+                        } else
                         try {
                             if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] before compress import, msgcount', input.messages.length)
-                            const { compress } = await import('./compress/index.js')
-                            if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] before compress() call')
-                            const r = await compress({ messages: input.messages, callLLM: resolveCallLLM({}), tools: schemas })
-                            if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] after compress() call, didCompress=', r.didCompress)
-                            if (r.didCompress) { compressedMessages = r.compressedMessages; callMessages = r.compressedMessages }
+                            // onPreCompact/onPostCompact: the only live production compaction
+                            // call site (this one) previously never invoked these documented
+                            // HOOK_NAMEs at all -- a plugin veto via onPreCompact's
+                            // {behavior:'block'} had zero effect on real compaction. Gate the
+                            // real compress() call behind the hook so a block actually skips
+                            // compression for this turn, and fire onPostCompact with the real
+                            // summary once compress() actually compresses.
+                            const { post, skipped } = await invokeCompactHooks({ trigger: 'auto', messages: input.messages })
+                            if (!skipped) {
+                                if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] before compress() call')
+                                const { compress } = await import('./compress/index.js')
+                                // Resolve the ACTUAL model's context window instead of always
+                                // compressing against the hardcoded MINIMUM_CONTEXT_LENGTH=8000
+                                // default: a large-context model (128K-200K+) was triggering
+                                // compaction at ~6800 tokens used, needlessly summarizing and
+                                // discarding detail with 190K+ tokens of real headroom left; a
+                                // genuinely small-context model wasn't flagged 'hard' until it
+                                // may already exceed its real ceiling. contextLengthForModel
+                                // never throws -- an unresolvable/unknown model (offline,
+                                // models.dev unreachable, obscure model id) returns null and
+                                // compress()'s own MINIMUM_CONTEXT_LENGTH default applies, no
+                                // regression for that case.
+                                const { contextLengthForModel } = await import('../models/discovery.js')
+                                const modelContextLength = (await contextLengthForModel(input.model).catch(() => null)) || undefined
+                                // scopeKey isolates the summarizer-failure cooldown per session
+                                // (fallback.js's markFailure/shouldRetry) -- without it, one
+                                // session's transient summarizer failure silently disabled
+                                // compression for every OTHER concurrent turn in this process.
+                                const r = await compress({ messages: input.messages, callLLM: resolveCallLLM({}), tools: schemas, scopeKey: input.sessionKey || '', ...(modelContextLength ? { modelContextLength } : {}) })
+                                if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] after compress() call, didCompress=', r.didCompress)
+                                if (r.didCompress) {
+                                    compressedMessages = r.compressedMessages; callMessages = r.compressedMessages
+                                    await post(r.compressedMessages)
+                                }
+                            }
                         } catch (e) {
                             // An error here (import failure, or compress() throwing before
                             // its own internal try/catch around the summarize call is
@@ -193,10 +243,35 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                         if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] before llm() call, iteration', input.iterations)
                         const out = await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: callMessages, tools: schemas, model: input.model, provider: input.provider, tool_choice: tc, signal: input.signal }), { store: input.store })
                         if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] after llm() call')
-                        return { out, compressedMessages }
+                        // startMessages is the transcript this invoke actually STARTED
+                        // against (input.messages, captured at invoke-input time below) —
+                        // every onDone branch below appends its new content onto THIS,
+                        // never a live re-read of context.messages. Without it, a REVERT
+                        // landing after this invoke was dispatched but before it resolves
+                        // (machine_builder.js's root REVERT handler reassigns
+                        // context.messages to a rewound transcript while this fromPromise
+                        // is still in flight) gets silently undone: onDone's assign would
+                        // otherwise spread the ALREADY-REVERTED context.messages and append
+                        // the STALE pre-revert LLM response on top of it, re-inserting
+                        // content the revert was supposed to remove and pairing a stale
+                        // tool_calls message against a transcript that no longer has the
+                        // tool-call context that produced it.
+                        return { out, compressedMessages, startMessages: input.messages }
                     }),
                     input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, sessionKey: context.sessionKey, iterations: context.iterations, tool_choice: context.tool_choice, store: context.store, toolCtx: context.toolCtx, control: context.control, signal: context.signal }),
                     onDone: [
+                        // REVERT-during-flight guard: if context.messages no longer IS the
+                        // same array reference this invoke started against (the root
+                        // REVERT handler reassigns context.messages via assign(), which
+                        // always produces a fresh array), a revert landed while this LLM
+                        // call was in flight. The response was generated from a transcript
+                        // that no longer exists — appending it (even onto a snapshot) would
+                        // pair a stale assistant/tool_calls message against context that no
+                        // longer has the tool-call history that produced it. Discard the
+                        // stale response and re-enter 'prompting' fresh against whatever
+                        // REVERT already installed, at the SAME iteration count (this
+                        // completed call never counted as a real turn step).
+                        { guard: ({ context, event }) => context.messages !== event.output.startMessages, target: 'prompting' },
                         { guard: ({ event }) => Array.isArray(event.output?.out?.tool_calls) && event.output.out.tool_calls.length > 0, target: 'tool_calls', actions: assign({
                             // output-parser pattern (little-coder): a text-recovered tool
                             // call (out.recoveredFromText, set in llm_resolver.js::adapt())
@@ -268,9 +343,23 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                 },
             },
             tool_calls: {
+                // Both budget-exhausted and interrupted routes leave 'prompting'
+                // straight to 'done' WITHOUT ever entering 'executing_tools' --
+                // the last assistant message's tool_calls (already appended by
+                // prompting.onDone) never gets any paired tool-role result.
+                // pairDanglingToolCalls applies the same repair timeoutResult()
+                // already performs for the wall-clock-timeout exit path, so all
+                // three termination-mid-tool-calls routes leave a well-formed
+                // transcript a later LLM replay won't reject.
                 always: [
-                    { guard: ({ context }) => context.iterations >= context.maxIterations, target: 'done', actions: assign({ error: 'iteration budget exhausted' }) },
-                    { guard: ({ context }) => context.interrupt, target: 'done', actions: assign({ error: 'interrupted' }) },
+                    { guard: ({ context }) => context.iterations >= context.maxIterations, target: 'done', actions: assign({
+                        error: 'iteration budget exhausted',
+                        messages: ({ context }) => pairDanglingToolCalls(context.messages, 'iteration budget exhausted: tool_call not dispatched'),
+                    }) },
+                    { guard: ({ context }) => context.interrupt, target: 'done', actions: assign({
+                        error: 'interrupted',
+                        messages: ({ context }) => pairDanglingToolCalls(context.messages, 'interrupted: tool_call not dispatched'),
+                    }) },
                     { target: 'executing_tools' },
                 ],
             },
@@ -313,6 +402,16 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                 else { control.lastSig = sig; control.streak = 1 }
                                 if (control.streak >= 12) {
                                     results.push({ tool_call_id: tcid, content: JSON.stringify({ error: 'tool call repeat limit reached — turn force-stopped', tool: tname }) })
+                                    // calls[] can hold MULTIPLE entries in one batch (a model
+                                    // batching several edits); breaking here leaves every call
+                                    // AFTER this one un-iterated, so it never gets a results[]
+                                    // entry -- pair them now so onDone's forceStop branch does
+                                    // not leave those tool_call_ids dangling in the transcript.
+                                    for (const remaining of calls.slice(calls.indexOf(call) + 1)) {
+                                        const rid = remaining.id || remaining.tool_call_id
+                                        const rname = remaining.name || remaining.function?.name
+                                        if (rid) results.push({ tool_call_id: rid, content: JSON.stringify({ error: 'turn force-stopped before this call was dispatched', tool: rname }) })
+                                    }
                                     forceStop = 'tool_call_repeat'
                                     break
                                 }
@@ -351,7 +450,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                         // turns never pay for it; agent.approval_classifier_model
                                         // overrides the default acptoapi 'cheap' named chain.
                                         if (!control.classifierCallLLM) control.classifierCallLLM = resolveCallLLM({ model: getConfigValue('agent.approval_classifier_model', 'cheap') })
-                                        verdict = await classifyToolCall({ name: tname, args: targs, callLLM: control.classifierCallLLM })
+                                        verdict = await classifyToolCall({ name: tname, args: targs, callLLM: control.classifierCallLLM, signal: input.signal })
                                     }
                                     if (verdict.decision === 'allow') {
                                         control.classifierConsecDenials = 0
@@ -396,19 +495,36 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                             const redactedTargs = redactSecrets(targs)
                             telemetry.toolCall({ name: tname, args: redactedTargs })
                             emitTurnEvent(input.sessionKey, 'tool.start', { name: tname, args: redactedTargs, toolCallId: tcid })
-                            const ret = await runStep(input.sessionKey, 'tool:' + input.iterations + ':' + tcid, async () => {
-                                const callExtras = []
-                                const pushExtras = r => { if (r?.systemMessage) callExtras.push({ role: 'system', content: '[hook] ' + r.systemMessage }); if (r?.additionalContext) callExtras.push({ role: 'system', content: r.additionalContext }) }
-                                hookEngine.runHooks('preToolCall', { name: tname, args: targs, sessionKey: input.sessionKey, cwd: input.toolCtx?.cwd }).catch(() => {})
-                                wireHookBridge.forwardHook('preToolCall', { name: tname, args: targs, sessionKey: input.sessionKey }).catch(() => {})
-                                const pre = await h.hooks.invoke('preToolCall', { name: tname, args: targs }); pushExtras(pre)
-                                if (pre?.behavior === 'block') { return { content: JSON.stringify({ error: 'tool call denied by plugsdk hook', tool: tname, reason: pre.reason || 'denied' }), extras: callExtras } }
-                                const res = await h.pi.dispatchTool(tname, (pre && pre.args) || targs, input.toolCtx || {}, { hooks: h.hooks })
-                                pushExtras(await h.hooks.invoke('postToolCall', { name: tname, args: targs, result: res }))
-                                hookEngine.runHooks('postToolCall', { name: tname, args: targs, result: res, sessionKey: input.sessionKey, cwd: input.toolCtx?.cwd }).catch(() => {})
-                                wireHookBridge.forwardHook('postToolCall', { name: tname, args: targs, result: res, sessionKey: input.sessionKey }).catch(() => {})
-                                return { content: res, extras: callExtras }
-                            }, { store: input.store })
+                            // A plugin tool handler bug (null-deref, unhandled rejection, a
+                            // thrown non-Error) escaping dispatchTool's own {error:...}
+                            // convention used to propagate past this whole fromPromise via
+                            // its onError transition -- which discards EVERY already-
+                            // completed result[] entry from earlier calls in this SAME
+                            // batch (closure-local, never reaches onError's action) even
+                            // though those tool calls' real side effects (a file write, a
+                            // command that already ran) already happened. Catching here
+                            // converts a single call's throw into a synthetic error result
+                            // for THAT call only, so prior successes still flow through the
+                            // normal onDone path instead of vanishing under a whole-batch
+                            // error with no messages update.
+                            let ret
+                            try {
+                                ret = await runStep(input.sessionKey, 'tool:' + input.iterations + ':' + tcid, async () => {
+                                    const callExtras = []
+                                    const pushExtras = r => { if (r?.systemMessage) callExtras.push({ role: 'system', content: '[hook] ' + r.systemMessage }); if (r?.additionalContext) callExtras.push({ role: 'system', content: r.additionalContext }) }
+                                    hookEngine.runHooks('preToolCall', { name: tname, args: targs, sessionKey: input.sessionKey, cwd: input.toolCtx?.cwd }).catch(() => {})
+                                    wireHookBridge.forwardHook('preToolCall', { name: tname, args: targs, sessionKey: input.sessionKey }).catch(() => {})
+                                    const pre = await h.hooks.invoke('preToolCall', { name: tname, args: targs }); pushExtras(pre)
+                                    if (pre?.behavior === 'block') { return { content: JSON.stringify({ error: 'tool call denied by plugsdk hook', tool: tname, reason: pre.reason || 'denied' }), extras: callExtras } }
+                                    const res = await h.pi.dispatchTool(tname, (pre && pre.args) || targs, input.toolCtx || {}, { hooks: h.hooks })
+                                    pushExtras(await h.hooks.invoke('postToolCall', { name: tname, args: targs, result: res }))
+                                    hookEngine.runHooks('postToolCall', { name: tname, args: targs, result: res, sessionKey: input.sessionKey, cwd: input.toolCtx?.cwd }).catch(() => {})
+                                    wireHookBridge.forwardHook('postToolCall', { name: tname, args: targs, result: res, sessionKey: input.sessionKey }).catch(() => {})
+                                    return { content: res, extras: callExtras }
+                                }, { store: input.store })
+                            } catch (e) {
+                                ret = { content: JSON.stringify({ error: String(e?.message || e), tool: tname }), extras: [] }
+                            }
                             results.push({ tool_call_id: tcid, content: ret.content })
                             emitTurnEvent(input.sessionKey, 'tool.end', { name: tname, toolCallId: tcid, result: redactSecrets(ret.content) })
                             extras.push(...ret.extras)
@@ -431,6 +547,14 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                     control.unknownToolStreak = (control.unknownToolStreak || 0) + 1
                                     if (control.unknownToolStreak >= 5) {
                                         results.push({ tool_call_id: tcid, content: JSON.stringify({ error: 'unknown-tool retry limit reached — turn force-stopped', tool: unknownName }) })
+                                        // Same trailing-calls pairing as the repeat-streak break
+                                        // above -- this is a SECOND, distinct break site in the
+                                        // same loop, subject to the identical defect.
+                                        for (const remaining of calls.slice(calls.indexOf(call) + 1)) {
+                                            const rid = remaining.id || remaining.tool_call_id
+                                            const rname = remaining.name || remaining.function?.name
+                                            if (rid) results.push({ tool_call_id: rid, content: JSON.stringify({ error: 'turn force-stopped before this call was dispatched', tool: rname }) })
+                                        }
                                         forceStop = 'unknown_tool_repeat'
                                         break
                                     }
@@ -448,7 +572,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                         }
                         return { results, extras, forceStop }
                     }),
-                    input: ({ context }) => ({ messages: context.messages, sessionKey: context.sessionKey, iterations: context.iterations, toolCtx: context.toolCtx, store: context.store, control: context.control, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets }),
+                    input: ({ context }) => ({ messages: context.messages, sessionKey: context.sessionKey, iterations: context.iterations, toolCtx: context.toolCtx, store: context.store, control: context.control, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, signal: context.signal }),
                     onDone: [
                         { guard: ({ event }) => !!event.output?.forceStop, target: 'done', actions: assign({
                             messages: ({ context, event }) => [...context.messages, ...event.output.results.map(r => ({ role: 'tool', tool_call_id: r.tool_call_id, content: r.content })), ...event.output.extras],

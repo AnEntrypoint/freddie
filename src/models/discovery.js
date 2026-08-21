@@ -111,19 +111,50 @@ export function matrixUsable(provider, model) {
 export const MATRIX_FILE = MATRIX_PATH
 
 // -- models.dev public catalog fetch (formerly src/agent/models_dev.js) --
-// Not currently imported anywhere in the repo (grep-verified during the
-// f23-models-merge refactor); kept as-is in case a future caller wants the
-// models.dev source rather than the acptoapi-backed discovery above.
+// The endpoint moved since this was last touched: /api/models.json now
+// serves the models.dev landing page (HTML, not JSON) -- live-probed and
+// confirmed 2026-08-21. /api.json is the current catalog endpoint, keyed by
+// provider id -> {models: {modelId -> {..., limit: {context, output}, ...}}},
+// confirmed against a live fetch.
 let _modelsDevCache = null
-const MODELS_DEV_ENDPOINT = 'https://models.dev/api/models.json'
+const MODELS_DEV_ENDPOINT = 'https://models.dev/api.json'
 export async function fetchModelsDev({ refresh = false } = {}) {
     if (_modelsDevCache && !refresh) return _modelsDevCache
     try { const r = await fetch(MODELS_DEV_ENDPOINT); _modelsDevCache = await r.json(); return _modelsDevCache } catch { return _modelsDevCache || {} }
 }
+// findModelDev(slug) — slug is a bare model id (e.g. 'claude-opus-4-7'), NOT
+// provider-prefixed. Searches every provider's models map since the same
+// model id can appear under multiple providers (openai-compat mirrors) and
+// the caller (contextLengthForModel below) does not know the provider ahead
+// of an acptoapi resolveModel() call in the common case.
 export async function findModelDev(slug) {
     const data = await fetchModelsDev()
-    if (Array.isArray(data)) return data.find(m => m.slug === slug || m.id === slug) || null
-    if (data && typeof data === 'object') return data[slug] || null
+    if (!data || typeof data !== 'object') return null
+    for (const provider of Object.values(data)) {
+        const models = provider?.models
+        if (!models || typeof models !== 'object') continue
+        if (models[slug]) return models[slug]
+        const hit = Object.values(models).find(m => m.id === slug)
+        if (hit) return hit
+    }
     return null
 }
 export function clearModelsDevCache() { _modelsDevCache = null }
+
+// contextLengthForModel(modelString) -> number|null — resolves a real context
+// window figure for compress()'s modelContextLength argument. modelString may
+// carry a provider prefix ('anthropic/claude-opus-4-7') or be bare
+// ('claude-opus-4-7'); the bare model id (after the last '/') is what
+// findModelDev searches on, matching models.dev's own id shape. Returns null
+// (never throws) for an unresolvable/unknown model or a fetch failure — the
+// caller's own default (MINIMUM_CONTEXT_LENGTH) applies, no regression for
+// the unresolvable case.
+export async function contextLengthForModel(modelString) {
+    if (!modelString || typeof modelString !== 'string') return null
+    const slug = modelString.includes('/') ? modelString.slice(modelString.lastIndexOf('/') + 1) : modelString
+    try {
+        const meta = await findModelDev(slug)
+        const ctx = meta?.limit?.context
+        return Number.isFinite(ctx) && ctx > 0 ? ctx : null
+    } catch { return null }
+}

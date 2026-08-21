@@ -34,31 +34,37 @@ export class SshEnvironment {
         return this._connecting
     }
 
-    async run(cmd, { timeoutMs = 60000 } = {}) {
+    // signal: the owning turn's AbortController signal (machine.js) -- same
+    // contract as LocalEnvironment.run.
+    async run(cmd, { timeoutMs = 60000, signal = null } = {}) {
         const client = await this._connect()
         return new Promise((resolve) => {
             let settled = false
-            const t = setTimeout(() => {
-                if (settled) return
-                settled = true
-                resolve({ exitCode: -1, stdout: '', stderr: '[timeout]' })
-            }, timeoutMs)
+            let sshStream = null
+            // ssh2's Channel#signal sends a REAL SSH-protocol signal request to
+            // the remote command (documented ssh2 API) -- unlike merely closing
+            // OUR local channel object (stream.close()), which stops us from
+            // reading further output but does not itself terminate the remote
+            // process; the remote sshd/shell keeps running the command to its
+            // own completion, orphaned from freddie's bookkeeping the instant
+            // this promise settles. KILL is sent first (best-effort — not every
+            // sshd honors channel signal requests depending on server config),
+            // followed by close() to tear down the local channel regardless.
+            const killRemote = () => { try { sshStream?.signal('KILL') } catch {} try { sshStream?.close() } catch {} }
+            const finish = (result) => { if (settled) return; settled = true; clearTimeout(t); signal?.removeEventListener('abort', onAbort); resolve(result) }
+            const t = setTimeout(() => { killRemote(); finish({ exitCode: -1, stdout: '', stderr: '[timeout]', timedOut: true }) }, timeoutMs)
+            const onAbort = () => { killRemote(); finish({ exitCode: -1, stdout: '', stderr: '[aborted: turn ended]', aborted: true }) }
+            if (signal) {
+                if (signal.aborted) onAbort()
+                else signal.addEventListener('abort', onAbort, { once: true })
+            }
             client.exec(cmd, (err, stream) => {
-                if (err) {
-                    clearTimeout(t)
-                    if (settled) return
-                    settled = true
-                    return resolve({ exitCode: -1, stdout: '', stderr: err.message })
-                }
+                if (err) return finish({ exitCode: -1, stdout: '', stderr: err.message })
+                sshStream = stream
                 let stdout = '', stderr = ''
                 stream.on('data', d => { stdout += d.toString() })
                 stream.stderr.on('data', d => { stderr += d.toString() })
-                stream.on('close', code => {
-                    clearTimeout(t)
-                    if (settled) return
-                    settled = true
-                    resolve({ exitCode: code ?? -1, stdout, stderr })
-                })
+                stream.on('close', code => finish({ exitCode: code ?? -1, stdout, stderr }))
             })
         })
     }

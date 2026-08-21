@@ -69,6 +69,16 @@ export function cancelTurn(sessionKey) {
         emitTurnEvent(sessionKey, 'approval.resolved', { id: approval.id, name: approval.name, approved: false, cancelled: true, feedback: 'turn cancelled' })
         try { approval.resolve({ approved: false, feedback: 'turn cancelled' }) } catch { /* swallow: resolve of an already-settled approval must not break cancel */ }
     }
+    // Abort in-flight I/O (LLM HTTP call, tool subprocess, compress() summarizer
+    // call) — INTERRUPT alone only takes effect at the machine's next state
+    // boundary (the 'tool_calls' state's always-guard), which is never reached
+    // while a 'prompting' fromPromise invoke is still awaiting the network. The
+    // AbortController is the only handle that actually stops that I/O; without
+    // this call a cancelled turn against a slow/hung provider hangs exactly as
+    // long as an uncancelled one would. Swallowed like the INTERRUPT send below
+    // so an already-aborted controller or a throwing abort listener can't break
+    // the rest of cancelTurn's settlement.
+    try { t.abortController?.abort(new Error('turn cancelled')) } catch { /* swallow: abort must not break cancel */ }
     try { t.actor.send({ type: 'INTERRUPT' }) } catch { return false }
     return true
 }

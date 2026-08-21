@@ -37,7 +37,14 @@ export function buildSummarizerInput(middleMessages) {
             lines.push(`[${role}] (tool_calls: ${m.tool_calls.map(c => c.name || c.function?.name || '?').join(', ')})`)
             if (content) lines.push(content)
         } else if (m.tool_call_id) {
-            lines.push(`[tool result for ${m.tool_call_id}] ${content.slice(0, 2000)}`)
+            // content can be undefined here: JSON.stringify(undefined) returns the
+            // JS value undefined (not a string) when m.content is undefined, so
+            // .slice would throw. A tool-role message with content:undefined/null
+            // is reachable whenever a plugin tool handler returns undefined/null on
+            // some code path (a degenerate/buggy handler, or an early-return
+            // omission) — matches the defensive String(content||'') pattern already
+            // used elsewhere in this module (tokens.js's contentLengthForBudget).
+            lines.push(`[tool result for ${m.tool_call_id}] ${String(content || '').slice(0, 2000)}`)
         } else {
             lines.push(`[${role}] ${content}`)
         }

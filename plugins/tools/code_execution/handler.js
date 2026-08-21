@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { killTree } from '../../../src/tools/kill_tree.js'
+import { registerProcess } from '../process_registry/handler.js'
 const RUNNERS = {
     python: ['python', '-c'], python3: ['python3', '-c'],
     node: ['node', '-e'], deno: ['deno', 'eval'],
@@ -15,6 +16,7 @@ export const _tool = ({
         if (!cmd) return { error: 'unknown runner: ' + runner }
         return await new Promise(resolve => {
             const child = spawn(cmd[0], [cmd[1], code], { env: process.env })
+            try { registerProcess('exec-' + Date.now() + '-' + child.pid, child, { tool: 'code_execution', runner }) } catch {}
             let stdout = '', stderr = ''
             // killTree, not bare child.kill -- see bash/handler.js's kill_tree.js
             // usage for the live-witnessed Windows cmd.exe/grandchild-process

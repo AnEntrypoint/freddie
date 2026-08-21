@@ -9,6 +9,38 @@ let _dbPromise = null
 const DB_PATH = () => path.join(getFreddieHome(), 'state', 'sessions.db')
 const USE_MEMORY_DB = () => env('FREDDIE_TEST_DB') === 'memory'
 
+// @libsql/client's local-file (sqlite3.js) backend exposes no busyTimeout
+// config option (confirmed against node_modules/@libsql/core's Config type --
+// no such field exists in this version), so a concurrent cross-process writer
+// hitting a locked sessions.db file throws SQLITE_BUSY/SQLITE_LOCKED
+// immediately instead of SQLite's native busy-handler blocking-and-retrying.
+// This bounded retry converts that immediate throw into an automatic,
+// short-backoff wait for the common transient-contention case (another
+// freddie process mid-write), and still surfaces a clear, logged error after
+// the retries are exhausted rather than propagating an unhandled rejection
+// into a turn's caller. Every DbAdapter/PreparedStatement method that issues
+// a real client.execute() call routes through this, so step-journal.js's
+// runStep, snapshot-store.js's persist, and sessions.js's write methods all
+// get the retry with no per-call-site change needed.
+const BUSY_RETRY_ATTEMPTS = 3
+const BUSY_RETRY_BASE_MS = 50
+function isBusyError(e) {
+    return e?.code === 'SQLITE_BUSY' || e?.code === 'SQLITE_LOCKED'
+}
+async function withBusyRetry(fn) {
+    let lastErr
+    for (let attempt = 0; attempt <= BUSY_RETRY_ATTEMPTS; attempt++) {
+        try {
+            return await fn()
+        } catch (e) {
+            lastErr = e
+            if (!isBusyError(e) || attempt === BUSY_RETRY_ATTEMPTS) throw e
+            await new Promise(r => setTimeout(r, BUSY_RETRY_BASE_MS * (attempt + 1)))
+        }
+    }
+    throw lastErr
+}
+
 export async function db() {
     if (_db) return _db
     if (_dbPromise) return await _dbPromise
@@ -47,24 +79,20 @@ class DbAdapter {
     }
 
     async exec(sql) {
-        try {
-            const statements = sql.split(';').filter(s => s.trim())
-            const results = []
-            for (const stmt of statements) {
-                if (stmt.trim()) {
-                    const result = await this.client.execute({ sql: stmt.trim() })
-                    results.push(result)
-                }
+        const statements = sql.split(';').filter(s => s.trim())
+        const results = []
+        for (const stmt of statements) {
+            if (stmt.trim()) {
+                const result = await withBusyRetry(() => this.client.execute({ sql: stmt.trim() }))
+                results.push(result)
             }
-            return results
-        } catch (e) {
-            throw e
         }
+        return results
     }
 
     async run(...args) {
         const [sql, ...params] = args
-        const result = await this.client.execute({ sql, args: params })
+        const result = await withBusyRetry(() => this.client.execute({ sql, args: params }))
         return {
             changes: result.rowsAffected,
             lastInsertRowid: result.lastInsertRowid ? BigInt(result.lastInsertRowid) : 0n
@@ -125,7 +153,7 @@ class PreparedStatement {
 
     async run(...params) {
         const p = Array.isArray(params[0]) ? params[0] : params
-        const result = await this.client.execute({ sql: this.sql, args: p })
+        const result = await withBusyRetry(() => this.client.execute({ sql: this.sql, args: p }))
         return {
             changes: result.rowsAffected,
             lastInsertRowid: result.lastInsertRowid ? BigInt(result.lastInsertRowid) : 0n
@@ -134,7 +162,7 @@ class PreparedStatement {
 
     async get(...params) {
         const p = Array.isArray(params[0]) ? params[0] : params
-        const result = await this.client.execute({ sql: this.sql, args: p })
+        const result = await withBusyRetry(() => this.client.execute({ sql: this.sql, args: p }))
         if (!result.rows || result.rows.length === 0) return null
         const row = result.rows[0]
         const obj = {}
@@ -146,7 +174,7 @@ class PreparedStatement {
 
     async all(...params) {
         const p = Array.isArray(params[0]) ? params[0] : params
-        const result = await this.client.execute({ sql: this.sql, args: p })
+        const result = await withBusyRetry(() => this.client.execute({ sql: this.sql, args: p }))
         if (!result.rows || result.rows.length === 0) return []
         return result.rows.map(row => {
             const obj = {}

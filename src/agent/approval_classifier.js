@@ -99,10 +99,10 @@ function parseVerdict(raw) {
 // (resolveCallLLM output): async ({messages, max_tokens}) -> {content}.
 // Returns {decision: 'allow'|'deny'|'escalate', reason}. NEVER throws — a
 // broken classifier must degrade to the human path, not crash the turn.
-export async function classifyToolCall({ name, args, callLLM }) {
+export async function classifyToolCall({ name, args, callLLM, signal }) {
     let out
     try {
-        out = await callLLM({ messages: [{ role: 'user', content: buildPrompt(name, args) }], max_tokens: 16 })
+        out = await callLLM({ messages: [{ role: 'user', content: buildPrompt(name, args) }], max_tokens: 16, signal })
     } catch (e) {
         return { decision: 'escalate', reason: 'classifier LLM call failed: ' + String(e?.message || e) }
     }

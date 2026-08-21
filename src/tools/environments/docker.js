@@ -30,26 +30,60 @@ export class DockerEnvironment {
         return this._starting
     }
 
-    async run(cmd, { timeoutMs = 120000 } = {}) {
+    // signal: the owning turn's AbortController signal (machine.js) -- same
+    // contract as LocalEnvironment.run, so a turn-level cancel/timeout can
+    // stop an in-flight docker exec too, not just a bare local subprocess.
+    async run(cmd, { timeoutMs = 120000, signal = null } = {}) {
         const container = await this._ensureContainer()
-        const exec = await container.exec({ Cmd: ['sh', '-c', cmd], AttachStdout: true, AttachStderr: true, WorkingDir: this.cwd })
+        // Wrap the real command so its PID is discoverable from a SECOND exec
+        // afterward: `echo $$` prints the shell's own PID as the first line of
+        // stdout, which is also the PID any child process the command spawns
+        // inherits as its process-group leader for a simple `sh -c` command --
+        // matches AutoRemove-container semantics where PID 1 in the exec's own
+        // namespace is this shell. `kill -9 <pid>` (issued via a fresh exec
+        // when the timeout/abort fires) actually terminates the running
+        // command inside the container, unlike merely destroying the local
+        // demuxed stream (which stops US from reading output but leaves the
+        // container-side process running to its own completion).
+        const exec = await container.exec({ Cmd: ['sh', '-c', 'echo $$; exec ' + cmd], AttachStdout: true, AttachStderr: true, WorkingDir: this.cwd })
+        let remotePid = null
+        const killRemote = () => {
+            if (!remotePid) return
+            container.exec({ Cmd: ['kill', '-9', String(remotePid)], AttachStdout: false, AttachStderr: false })
+                .then(killExec => killExec.start({}, () => {}))
+                .catch(() => {})
+        }
         return new Promise((resolve) => {
             let settled = false
-            const t = setTimeout(() => { if (settled) return; settled = true; resolve({ exitCode: -1, stdout: '', stderr: '[timeout]' }) }, timeoutMs)
+            const finish = (result) => { if (settled) return; settled = true; clearTimeout(t); signal?.removeEventListener('abort', onAbort); resolve(result) }
+            const t = setTimeout(() => { killRemote(); finish({ exitCode: -1, stdout: '', stderr: '[timeout]', timedOut: true }) }, timeoutMs)
+            const onAbort = () => { killRemote(); finish({ exitCode: -1, stdout: '', stderr: '[aborted: turn ended]', aborted: true }) }
+            if (signal) {
+                if (signal.aborted) onAbort()
+                else signal.addEventListener('abort', onAbort, { once: true })
+            }
             exec.start({}, (err, stream) => {
-                if (err) { clearTimeout(t); if (settled) return; settled = true; return resolve({ exitCode: -1, stdout: '', stderr: err.message }) }
-                let stdout = '', stderr = ''
-                this._docker.modem.demuxStream(stream, { write: d => { stdout += d.toString() } }, { write: d => { stderr += d.toString() } })
+                if (err) return finish({ exitCode: -1, stdout: '', stderr: err.message })
+                let stdout = '', stderr = '', pidCaptured = false
+                const captureFirstLineAsPid = (chunk) => {
+                    if (pidCaptured) { stdout += chunk; return }
+                    const text = stdout + chunk
+                    const nl = text.indexOf('\n')
+                    if (nl === -1) { stdout = text; return }
+                    const pidLine = text.slice(0, nl).trim()
+                    if (/^\d+$/.test(pidLine)) remotePid = Number(pidLine)
+                    stdout = text.slice(nl + 1)
+                    pidCaptured = true
+                }
+                this._docker.modem.demuxStream(stream, { write: d => captureFirstLineAsPid(d.toString()) }, { write: d => { stderr += d.toString() } })
                 stream.on('end', async () => {
-                    clearTimeout(t)
                     if (settled) return
-                    settled = true
                     try {
                         const inspect = await exec.inspect()
-                        resolve({ exitCode: inspect.ExitCode ?? -1, stdout, stderr })
-                    } catch (e) { resolve({ exitCode: -1, stdout, stderr: stderr + '\n' + e.message }) }
+                        finish({ exitCode: inspect.ExitCode ?? -1, stdout, stderr })
+                    } catch (e) { finish({ exitCode: -1, stdout, stderr: stderr + '\n' + e.message }) }
                 })
-                stream.on('error', e => { clearTimeout(t); if (settled) return; settled = true; resolve({ exitCode: -1, stdout, stderr: stderr + '\n' + e.message }) })
+                stream.on('error', e => finish({ exitCode: -1, stdout, stderr: stderr + '\n' + e.message }))
             })
         })
     }

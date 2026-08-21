@@ -5,6 +5,7 @@ import { scrubEnv } from '../../../src/host/tool-resources.js'
 import { listKnownEnvVars } from '../../../src/auth.js'
 import { wasWrittenThisSession } from '../files/lib/turn_writes.js'
 import { killTree } from '../../../src/tools/kill_tree.js'
+import { registerProcess } from '../process_registry/handler.js'
 
 // Matches a shell redirect/overwrite targeting a file path: `cat > path`,
 // `cat >> path`, `echo ... > path`, `tee path`/`tee -a path`. Deliberately
@@ -87,6 +88,14 @@ export const _tool = ({
                 ? scrubEnv(process.env, listKnownEnvVars())
                 : process.env
             const child = spawn(sh, [flag, fullCommand], { cwd, env: childEnv })
+            // process_registry was always empty in practice (registerProcess
+            // exported but never called by any real spawn call site) --
+            // wiring it here + code_execution/handler.js makes the
+            // `process_registry` tool's list/kill actions actually reflect
+            // live freddie-spawned subprocesses instead of always reporting
+            // none. Best-effort: registration must never block the actual
+            // command from running.
+            try { registerProcess('bash-' + Date.now() + '-' + child.pid, child, { tool: 'bash', command: fullCommand.slice(0, 200) }) } catch {}
             let stdout = '', stderr = ''
             // killTree, not bare child.kill: the spawned process on Windows IS
             // cmd.exe, and TerminateProcess against cmd.exe does not propagate to

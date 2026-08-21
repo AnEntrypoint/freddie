@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { WebSocketServer } from 'ws'
 import { bootHost } from '../host/index.js'
 import { logger } from '../observability/log.js'
+import { redactSecrets } from '../auth.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const log = logger('web_server')
@@ -71,6 +72,12 @@ export async function createDashboard({ port = 0, host: bindHost = DEFAULT_HOST 
     // /api/*) must be registered BEFORE the catch-all SPA fallback below,
     // otherwise the fallback would swallow them.
     app.use(express.static(__dirname, { index: false }))
+    // Structural res.json redaction boundary — see commit message for rationale.
+    app.use((req, res, next) => {
+        const originalJson = res.json.bind(res)
+        res.json = (body) => originalJson(redactSecrets(body))
+        next()
+    })
     for (const r of host.gui.routes.list()) {
         const verb = r.method.toLowerCase()
         if (typeof app[verb] === 'function') app[verb](r.path, r.handler)
