@@ -39,4 +39,15 @@ for (const def of host.pi.cli.list()) {
     cmd.action(def.action)
 }
 
-program.parseAsync(process.argv).catch(e => { console.error(e); process.exit(1) })
+// Top-level catch for any subcommand action's rejected promise. Expected,
+// user-facing failures (unknown provider, non-TTY setup, etc) throw a plain
+// Error with an already-actionable message -- printing the raw error object
+// dumps its stack trace over that message, which reads as an internal crash
+// even when the failure is an ordinary, anticipated validation error. Print
+// just the message; opt into the full stack via FREDDIE_DEBUG for diagnosing
+// a genuine internal fault.
+program.parseAsync(process.argv).catch(e => {
+    console.error('error:', e?.message || e)
+    if (process.env.FREDDIE_DEBUG) console.error(e?.stack || '')
+    process.exit(1)
+})

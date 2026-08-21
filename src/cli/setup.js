@@ -9,9 +9,25 @@ const ENV_BY_PROVIDER = { anthropic: 'ANTHROPIC_API_KEY', openai: 'OPENAI_API_KE
 const TTS_PROVIDERS = ['none', 'elevenlabs', 'kittentts', 'neutts', 'espeak']
 const GATEWAY_PLATFORMS = ['telegram', 'discord', 'slack', 'whatsapp', 'matrix', 'mattermost', 'signal', 'email', 'sms', 'webhook', 'feishu', 'dingtalk', 'wecom', 'weixin', 'qqbot', 'bluebubbles', 'homeassistant']
 
+// Non-interactive stdin (CI, piped, /dev/null) has no lines for rl.question()
+// to ever receive: EOF fires readline's 'close' event, not 'line', so the
+// question's callback never fires and the returned promise hangs forever with
+// nothing else pinning the event loop -- the process was observed exiting 0
+// anyway (no remaining handle to keep it alive) after printing only the first
+// prompt, silently abandoning the wizard mid-flow with zero config written and
+// zero error surfaced. Fail fast at the boundary instead (this project's own
+// fail-fast constraint): reject the very first ask() with a specific,
+// actionable error naming the wizard step, in the same tool-call cycle the
+// caller can still explain themselves in the error message.
 function makeAsker(input, output) {
     const rl = readline.createInterface({ input, output })
-    const ask = (q) => new Promise(r => rl.question(q, a => r(a.trim())))
+    let closed = false
+    rl.on('close', () => { closed = true })
+    const ask = (q) => new Promise((resolve, reject) => {
+        if (!input.isTTY) { rl.close(); reject(new Error('freddie setup requires an interactive terminal (non-TTY stdin detected) -- run it from a real shell, or configure freddie non-interactively via `freddie auth set <provider>` / `freddie config` / environment variables instead')); return }
+        rl.question(q, a => resolve(a.trim()))
+        rl.once('close', () => { if (!closed) reject(new Error('freddie setup: input closed before answering "' + q.trim() + '"')) })
+    })
     return { ask, close: () => rl.close() }
 }
 
