@@ -162,7 +162,7 @@ Isolation boundary: each project gets its own sessions DB, config.json, skills/,
 
 All web UI for freddie + thebird lives in `anentrypoint-design`. Consumers must not duplicate components inline.
 
-- **freddie dashboard** (`src/web/`) is minimal: `index.html` (importmap), `app.js` (~100L thin mount), `state.js` (HTTP client), `routes.js` (re-exports SDK's `FREDDIE_PAGES`), `server.js`. No inline components. No inline CSS beyond reset. Any new page goes into `anentrypoint-design`'s `FREDDIE_PAGES`, not into `app.js`.
+- **freddie dashboard** (`src/web/`) is minimal: `index.html` (importmap), `app.js` (~150L thin mount), `state.js` (HTTP client), `routes.js` (re-exports SDK's `FREDDIE_PAGES`), `server.js`, `sw.js` (offline-shell service worker). No inline components. No inline CSS beyond reset. Any new page goes into `anentrypoint-design`'s `FREDDIE_PAGES`, not into `app.js`.
 - **thebird** consumes the same SDK. Bespoke windowing (`wm.js`, `launcher.js`, `shell.js`) and any context-menu / theme-toggle DOM should migrate into the SDK as reusable kits; do not extend them in thebird.
 - Theme toggle: SDK owns the controller. Consumers import it; they do NOT reimplement localStorage + `prefers-color-scheme` listeners.
 
@@ -223,7 +223,7 @@ src/cli/interactive.js           # readline REPL, skin-aware
 src/context/engine.js            # context block builders (file, skills, memory)
 src/cron/{scheduler,cron-parse}.js  # persistent cron jobs (async API)
 src/batch.js                     # parallel batch runner
-src/web/{server,app,state,routes,index.html}  # thin dashboard mount over SDK
+src/web/{server,app,state,routes,index.html,sw.js}  # thin dashboard mount over SDK
 src/gateway/run.js               # Gateway + hooks
 src/acp/server.js                # JSON-RPC stdio
 src/plugins/{install,install-registry}.js  # npm/git/local plugin install + registry search
@@ -366,7 +366,7 @@ On Windows, ensure `closeDb()` and log-stream `closeAll()` are called before exi
 | Cron scheduler | `src/cron/{scheduler,cron-parse}.js` (async API) |
 | Batch runner | `src/batch.js` |
 | Execution environments | `src/tools/environments/{local,docker,ssh}.js` (modal/daytona/singularity are explicit residual) |
-| Dashboard | `src/web/{server,app,state,routes,index.html}` — thin mount over `anentrypoint-design` SDK |
+| Dashboard | `src/web/{server,app,state,routes,index.html,sw.js}` — thin mount over `anentrypoint-design` SDK |
 | Auth store | `src/auth.js` (FileAuthStore) + pi-ai key resolution |
 | Context engine | `src/context/engine.js` |
 | Browser tool | `plugins/web/lib/browse.js` (puppeteer-core, lazy; merged web plugin also has search/fetch) |
