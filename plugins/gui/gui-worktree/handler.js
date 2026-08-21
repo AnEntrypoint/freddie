@@ -1,6 +1,24 @@
 import path from 'node:path'
 import { resolveAllowedCwd, git } from '../gui-git/lib.js'
 
+// `branch` is untrusted request input reaching `git` argv positions (as a
+// plain positional arg after `-b`, and standalone when checking out an
+// existing branch) -- a value starting with `-` would be parsed by git as a
+// flag rather than a ref name (e.g. `--upload-pack=...`), the same
+// argument-injection class gui-git/lib.js's sanitizeFile already guards for
+// the `file` pathspec. Also rejects `..` as a full path segment (git ref
+// syntax already forbids a `..` component, but this is checked before the
+// value ever reaches git, matching sanitizeFile's own defense-in-depth
+// stance) and empty/whitespace-only values.
+function sanitizeBranch(branch) {
+    if (branch === undefined || branch === null || branch === '') return null
+    const b = String(branch).trim()
+    if (!b) return null
+    if (b.startsWith('-')) throw new Error('branch must not start with -')
+    if (b.split('/').some(seg => seg === '..' || seg === '.')) throw new Error('branch must not contain . or .. segments')
+    return b
+}
+
 // `git worktree list --porcelain` emits blank-line-separated stanzas of
 // `key value` lines: worktree <path>, HEAD <sha>, branch <ref> (or `bare`/`detached`).
 function parseWorktreeList(raw) {
@@ -53,9 +71,10 @@ async function branchExists(cwd, branch) {
 
 export async function createWorktree(req, res) {
     try {
-        const { cwd: cwdParam, branch, path: targetPath } = req.body || {}
+        const { cwd: cwdParam, branch: branchParam, path: targetPath } = req.body || {}
         const cwd = resolveAllowedCwd(cwdParam)
         const resolvedTarget = sanitizeTargetPath(cwd, targetPath)
+        const branch = sanitizeBranch(branchParam)
         const args = ['worktree', 'add', resolvedTarget]
         if (branch) {
             // A single `branch` field from the UI is ambiguous: an existing

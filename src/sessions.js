@@ -70,9 +70,16 @@ export async function appendMessage(sessionId, { role, content = '', toolCalls =
     return info.lastInsertRowid
 }
 
+// Defensive upper bound, not a UX-facing page size -- every real caller
+// (resume, context references, diagnostics, TUI/REPL history) needs the full
+// conversation and none paginate today, so this exists only to keep a single
+// pathological session (a runaway loop appending millions of rows) from
+// loading unboundedly into memory; ordinary sessions never come close.
+const MAX_SESSION_MESSAGES = 50000
+
 export async function getMessages(sessionId) {
     const d = await db()
-    const rows = await d.prepare(`SELECT id, role, content, tool_calls, tool_call_id, ts FROM messages WHERE session_id = ? ORDER BY ts ASC, id ASC`).all(sessionId)
+    const rows = await d.prepare(`SELECT id, role, content, tool_calls, tool_call_id, ts FROM messages WHERE session_id = ? ORDER BY ts ASC, id ASC LIMIT ?`).all(sessionId, MAX_SESSION_MESSAGES)
     return rows.map(r => {
         let tool_calls = null
         if (r.tool_calls) {
