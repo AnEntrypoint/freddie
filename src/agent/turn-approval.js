@@ -38,12 +38,25 @@ export async function loadApprovalGrants(cwd) {
 async function persistApprovalGrant(cwd, toolName) {
     try {
         const key = cwd || GRANTS_GLOBAL
-        const grants = _grantsCache || {}
+        const fs = await import('node:fs')
+        const file = await grantsFile()
+        // Re-read the file immediately before merging, instead of trusting the
+        // in-process _grantsCache -- two freddie processes sharing the same
+        // FREDDIE_HOME (two CLI invocations, or a dashboard process plus a
+        // REPL) each cache their own snapshot; writing from that stale cache
+        // silently discards a concurrent grant the OTHER process already
+        // persisted (a lost-update race with no detection). A fresh on-disk
+        // read right before the read-modify-write closes that window --
+        // still not a true cross-process lock, but the window shrinks from
+        // "however long this process has been alive" to "the gap between
+        // this read and this write", and both processes end up converging on
+        // the union of grants rather than one silently clobbering the other.
+        let grants = {}
+        try { grants = JSON.parse(fs.readFileSync(file, 'utf8')) } catch { /* missing/corrupt = start fresh, matches loadApprovalGrants' own swallow */ }
         if (!Array.isArray(grants[key])) grants[key] = []
         if (!grants[key].includes(toolName)) grants[key].push(toolName)
         _grantsCache = grants
-        const fs = await import('node:fs')
-        fs.writeFileSync(await grantsFile(), JSON.stringify(grants, null, 2))
+        fs.writeFileSync(file, JSON.stringify(grants, null, 2))
     } catch { /* swallow: grant persistence is best-effort */ }
 }
 
