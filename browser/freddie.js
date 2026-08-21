@@ -14239,14 +14239,29 @@ async function recall(query, { limit = 5, namespace = "default" } = {}) {
 	try {
 		if (pk._node) {
 			const emb = await pk.embed(q);
-			return (await pk.db.execute({
-				sql: "SELECT id, text, namespace, vector_distance_cos(embedding, vector(?)) AS dist FROM memories WHERE namespace = ? ORDER BY dist ASC LIMIT ?",
-				args: [
-					vecSql(emb),
-					namespace,
-					limit * 4
-				]
-			})).rows.map((row) => ({
+			const vec = vecSql(emb);
+			const total = (await pk.db.execute("SELECT COUNT(*) AS n FROM memories")).rows[0]?.n ?? 0;
+			let k = Math.min(Math.max(limit * 4, 20), Number(total) || limit * 4);
+			let rows = [];
+			for (let attempt = 0; attempt < 4; attempt++) {
+				rows = (await pk.db.execute({
+					sql: `SELECT m.id AS id, m.text AS text, m.namespace AS namespace,
+                                 vector_distance_cos(m.embedding, vector(?)) AS dist
+                          FROM vector_top_k('memories_vec', vector(?), ?) AS v
+                          JOIN memories AS m ON m.rowid = v.id
+                          WHERE m.namespace = ?
+                          ORDER BY dist ASC`,
+					args: [
+						vec,
+						vec,
+						k,
+						namespace
+					]
+				})).rows;
+				if (rows.length >= limit || k >= Number(total)) break;
+				k = Math.min(k * 2, Number(total) || k * 2);
+			}
+			return rows.map((row) => ({
 				text: String(row.text || ""),
 				score: 1 - Number(row.dist ?? 1),
 				key: String(row.id),
@@ -14428,6 +14443,7 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
 		if (process.env.FREDDIE_DEBUG_TRAJECTORY) console.error("[writeTrajectory]", e);
 	}
 }
+var AUTOLEARN_TIMEOUT_MS = 8e3;
 async function autoLearnTurn({ prompt, out }) {
 	try {
 		if (!out || out.error) return;
@@ -14436,12 +14452,17 @@ async function autoLearnTurn({ prompt, out }) {
 		const { memorize, recall, projectNamespace } = await Promise.resolve().then(() => (init_gm_learn(), gm_learn_exports));
 		const namespace = await projectNamespace();
 		const fact = `Q: ${(prompt || "").toString().trim().slice(0, 200)}\nA: ${result.slice(0, 600)}`;
-		const existing = await recall(fact, {
-			limit: 1,
-			namespace
-		});
-		if (existing.length && existing[0].score >= .92) return;
-		await memorize(fact, { namespace });
+		let autolearnTimer;
+		await Promise.race([(async () => {
+			const existing = await recall(fact, {
+				limit: 1,
+				namespace
+			});
+			if (existing.length && existing[0].score >= .92) return;
+			await memorize(fact, { namespace });
+		})().finally(() => clearTimeout(autolearnTimer)), new Promise((_, reject) => {
+			autolearnTimer = setTimeout(() => reject(/* @__PURE__ */ new Error("autoLearnTurn timeout")), AUTOLEARN_TIMEOUT_MS);
+		})]);
 	} catch (_) {}
 }
 //#endregion
