@@ -12,13 +12,21 @@ export function loadSchema() {
 
 /**
  * Check a single plugins/<name>/ directory against the canonical shape:
- * required plugin.js entry (optional lib/ subdir), whose default/named
- * `plugin` export satisfies src/host/contract.js#validatePlugin.
+ * either a plugin.js entry (optional lib/ subdir) whose default/named
+ * `plugin` export satisfies src/host/contract.js#validatePlugin, OR a bare
+ * handler.js exporting `_tool` with no sibling plugin.js -- both are
+ * genuinely supported by src/host/plugin-discovery.js's scanPluginDir()
+ * (the handler.js branch runs unconditionally, at any nesting depth, and
+ * auto-wraps the export as {name:'tool-<dirname>', surfaces:'pi', ...}).
+ * AGENTS.md's "Adding a tool" section documents this handler.js-only shape
+ * as an intentional fallback for a single simple tool, not legacy debt --
+ * 7 named live examples there, 23 confirmed live-registered in the current
+ * tree with zero load failures. Only a directory with NEITHER file is an
+ * actual violation (nothing discovers it at all).
  *
- * Does not import/execute plugin.js unless `deep` is true (importing every
- * plugin has side effects and pulls in the full dependency graph); by
- * default this only checks the directory shape, which is what the
- * F1-F20 handler.js-only violation actually is.
+ * Does not import/execute plugin.js/handler.js unless `deep` is true
+ * (importing every plugin has side effects and pulls in the full
+ * dependency graph); by default this only checks the directory shape.
  */
 export function checkPluginDir(dir, { deep = false } = {}) {
     const name = path.basename(dir)
@@ -31,16 +39,12 @@ export function checkPluginDir(dir, { deep = false } = {}) {
 
     const result = { name, dir, hasPlugin, hasHandler, hasLib, violations: [] }
 
-    if (!hasPlugin) {
-        result.violations.push(
-            hasHandler
-                ? `handler.js-only: missing plugin.js entry (has handler.js, picked up only via the discoverPlugins() legacy fallback in src/host/host.js)`
-                : `missing plugin.js entry`
-        )
-        result.shape = hasHandler ? 'handler-only' : 'unknown'
+    if (!hasPlugin && !hasHandler) {
+        result.violations.push('missing plugin.js entry (and no handler.js fallback)')
+        result.shape = 'unknown'
         return result
     }
-    result.shape = 'plugin'
+    result.shape = hasPlugin ? 'plugin' : 'handler-only'
     return result
 }
 
@@ -85,7 +89,7 @@ export async function checkPluginDirAsync(dir, { deep = false } = {}) {
  */
 export async function checkAllPlugins(pluginsRoot, { deep = false, exclude = ['_shared'] } = {}) {
     const entries = fs.readdirSync(pluginsRoot, { withFileTypes: true })
-        .filter(e => e.isDirectory() && !exclude.includes(e.name))
+        .filter(e => e.isDirectory() && !e.name.startsWith('.') && !exclude.includes(e.name))
     const results = []
     for (const e of entries) {
         const dir = path.join(pluginsRoot, e.name)

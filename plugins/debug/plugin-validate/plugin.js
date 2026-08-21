@@ -34,7 +34,7 @@ export default {
     register({ pi }) {
         pi.cli.register({
             name: 'plugin-validate',
-            description: 'Validate plugins/*/ directories against src/host/plugin-manifest-schema.json (plugin.js entry required, handler.js-only is a violation)',
+            description: 'Validate plugins/*/ directories against src/host/plugin-manifest-schema.json (plugin.js or handler.js-only fallback required; a directory with neither is a violation)',
             args: [
                 { name: 'target', description: 'single plugin dir name to check, or omit to check all' },
                 { name: 'deep', description: 'pass "deep" to also import plugin.js and run it through validatePlugin()' },
