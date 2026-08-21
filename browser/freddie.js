@@ -11669,17 +11669,9 @@ function redactSecrets(input) {
 		}
 		return node;
 	};
-	const isCredentialResultShape = (node) => node && typeof node === "object" && !Array.isArray(node) && Object.keys(node).length > 0 && Object.keys(node).every((k) => CREDENTIAL_RESULT_KEYS.has(k));
 	const walk = (node, keyHint, depth) => {
 		if (depth > MAX_REDACT_DEPTH) return "[redacted: max depth exceeded]";
-		if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase())) {
-			if (String(keyHint).toLowerCase() === "credential" && isCredentialResultShape(node)) {
-				const out = {};
-				for (const [k, v] of Object.entries(node)) out[k] = k === "value" ? maskAllStrings(v, depth + 1) : v;
-				return out;
-			}
-			return maskAllStrings(node, depth);
-		}
+		if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase())) return maskAllStrings(node, depth);
 		if (typeof node === "string") {
 			if (known.includes(node)) return tokenFingerprint(node);
 			return redactEmbedded(node);
@@ -11694,7 +11686,7 @@ function redactSecrets(input) {
 	};
 	return walk(input, null, 0);
 }
-var FileAuthStore, _store, PROVIDERS, ENV_OF, SECRET_FIELD_NAMES, CREDENTIAL_RESULT_KEYS, KNOWN_SECRET_VALUES, MAX_REDACT_DEPTH;
+var FileAuthStore, _store, PROVIDERS, ENV_OF, SECRET_FIELD_NAMES, KNOWN_SECRET_VALUES, MAX_REDACT_DEPTH;
 var init_auth = __esmMin((() => {
 	init_home();
 	FileAuthStore = class {
@@ -11776,11 +11768,6 @@ var init_auth = __esmMin((() => {
 		"secret",
 		"password",
 		"auth_token"
-	]);
-	CREDENTIAL_RESULT_KEYS = /* @__PURE__ */ new Set([
-		"name",
-		"value",
-		"updated"
 	]);
 	KNOWN_SECRET_VALUES = () => new Set(Object.values(ENV_OF).map((envVar) => process.env[envVar]).filter(Boolean));
 	MAX_REDACT_DEPTH = 64;
