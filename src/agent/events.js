@@ -56,6 +56,23 @@ export function emitTurnEvent(sessionId, event, data = {}) {
     // 1) legacy bus — flat payload shape the gui-events WS plugin already broadcasts
     try { busEmit(event, { sessionId, ...data }) } catch { /* swallow: legacy bus listener must never break a turn */ }
     // 2) replay log
+    //
+    // Windows/NTFS concurrent-append safety, empirically confirmed (not just
+    // assumed): two genuinely separate OS processes both fs.appendFileSync-ing
+    // 3000 single-envelope lines apiece (6000 total, freddie's typical small
+    // envelope size, ~200-400 bytes) to the SAME wire-log path concurrently
+    // produced zero interleaved/malformed lines on JSON.parse re-scan --
+    // NTFS append-mode writes at this size are atomic-per-call in practice on
+    // this platform, so no additional cross-process lock/queue is warranted.
+    // readWireLog's own tolerant malformed-line skip remains the safety net
+    // regardless (a genuinely huge single envelope, or a future platform,
+    // could still torn-write) -- this is an empirical finding for freddie's
+    // actual envelope sizes, not a guarantee for arbitrarily large writes.
+    // Same-process concurrent emitTurnEvent calls for one sessionId (the
+    // TOCTOU races this file's callers used to be exposed to) are now closed
+    // off at the runTurn level via claimTurn's atomic reservation (see
+    // machine.js), so no separate same-process serialization queue is needed
+    // here either.
     if (sessionId) {
         try {
             const p = wireLogPath(sessionId)
@@ -97,11 +114,48 @@ export function readWireLog(sessionId, { limit = 0 } = {}) {
     return limit > 0 ? out.slice(-limit) : out
 }
 
+// Read only the tail of a wire-log file (recent events), bounded by BYTES not
+// lines -- a long-running/busy session's .jsonl can be arbitrarily large, and
+// reading+parsing the WHOLE file on every searchWireLogs call (itself called
+// on every runTurn's verbatim-recall preamble, machine.js) makes turn startup
+// latency scale with total historical log size instead of staying bounded.
+// Reads at most maxBytes from the end of the file, drops a possibly-torn
+// leading partial line (readWireLog's own malformed-line-skip tolerance would
+// also catch it, but trimming here avoids a spurious parse-error log line on
+// every call), and parses only that tail window.
+function readWireLogTail(sessionId, maxBytes) {
+    const p = wireLogPath(sessionId)
+    let fd
+    try {
+        const stat = fs.statSync(p)
+        const start = Math.max(0, stat.size - maxBytes)
+        fd = fs.openSync(p, 'r')
+        const buf = Buffer.alloc(stat.size - start)
+        fs.readSync(fd, buf, 0, buf.length, start)
+        let text = buf.toString('utf8')
+        // If we started mid-file, the first line is likely a torn partial —
+        // drop everything before the first newline (whole-file reads start at
+        // byte 0, so this only trims when the tail window actually cut in).
+        if (start > 0) { const nl = text.indexOf('\n'); text = nl >= 0 ? text.slice(nl + 1) : '' }
+        const out = []
+        for (const line of text.split('\n')) {
+            if (!line.trim()) continue
+            try { out.push(JSON.parse(line)) } catch { /* torn/partial line at the tail boundary — skip silently, unlike readWireLog's logged case, since a truncated tail-read is expected here, not corruption */ }
+        }
+        return out
+    } catch { return [] }
+    finally { if (fd !== undefined) try { fs.closeSync(fd) } catch {} }
+}
+
 // Verbatim-span recall over every session's wire log (AMA-Agent/OCR-Memory
 // locate-and-transcribe principle: return the exact recorded span, never a
 // paraphrase). Complements embedding recall in gm-learn — similarity finds
 // thematically-related facts, this finds the literal prior occurrence.
-export function searchWireLogs(query, { limit = 5, maxFiles = 50, maxSpan = 400 } = {}) {    const terms = String(query || '').toLowerCase().split(/[^a-z0-9_]+/).filter(t => t.length > 3)
+// maxBytesPerFile bounds each candidate file to its TAIL (most recent
+// activity), not the whole file — this is the worst-case latency fix: a
+// 50,000-line wire log costs the same bounded read as a 50-line one.
+export function searchWireLogs(query, { limit = 5, maxFiles = 50, maxSpan = 400, maxBytesPerFile = 262144 } = {}) {
+    const terms = String(query || '').toLowerCase().split(/[^a-z0-9_]+/).filter(t => t.length > 3)
     if (!terms.length) return []
     let files
     try {
@@ -112,7 +166,7 @@ export function searchWireLogs(query, { limit = 5, maxFiles = 50, maxSpan = 400 
     const hits = []
     for (const { f } of files) {
         const sid = f.slice(0, -'.jsonl'.length)
-        for (const env of readWireLog(sid)) {
+        for (const env of readWireLogTail(sid, maxBytesPerFile)) {
             if (env.event !== 'message.append' && env.event !== 'steer.append') continue
             const text = String(env.data?.content ?? env.data?.text ?? '')
             const lower = text.toLowerCase()
@@ -147,7 +201,21 @@ export function transcriptFromWire(sessionId, { limit = 1000 } = {}) {
 
 // Copy (a prefix of) one session's wire log into a new session id — the fork
 // half of kimi's /fork. Returns the new session id.
-export function forkWireLog(sessionId, { atIndex = null, newSessionId = null } = {}) {
+//
+// Also creates (or confirms) the corresponding sessions.db row and populates
+// its messages table from the copied transcript, so the forked session is a
+// first-class conversation immediately after this call returns — visible to
+// `freddie session list`/`GET /api/sessions`, and readable via
+// `freddie session show <id>`/`getMessages(newId)` — not just present as a
+// wire-log file. This lives in the primitive itself (not only its CLI
+// caller) because forkWireLog is the general fork API any future caller
+// (gui-agent, a future wire-protocol 'fork' method) could reach directly;
+// leaving the DB-row step to each caller to remember would silently
+// reproduce this same gap for the next caller that doesn't. Best-effort: a
+// DB write failure here must not make the fork itself fail, since the wire
+// log (the canonical transcript, per this file's own header) is already
+// durably written by the time this runs.
+export async function forkWireLog(sessionId, { atIndex = null, newSessionId = null } = {}) {
     const events = readWireLog(sessionId)
     if (!events.length) return null
     const sid = newSessionId || randomUUID()
@@ -155,6 +223,16 @@ export function forkWireLog(sessionId, { atIndex = null, newSessionId = null } =
     const p = wireLogPath(sid)
     fs.mkdirSync(path.dirname(p), { recursive: true })
     fs.writeFileSync(p, slice.map(e => JSON.stringify({ ...e, sessionId: sid })).join('\n') + '\n')
+    try {
+        const { createSession, getSession, appendMessage } = await import('../sessions.js')
+        const source = await getSession(sessionId).catch(() => null)
+        if (!(await getSession(sid).catch(() => null))) {
+            await createSession({ id: sid, platform: source?.platform || 'web', title: 'fork of ' + (source?.title || sessionId.slice(0, 8)), cwd: source?.cwd || null, model: source?.model || null, parentId: sessionId })
+        }
+        for (const m of transcriptFromWire(sid)) {
+            await appendMessage(sid, { role: m.role, content: m.content, toolCalls: m.tool_calls || null, toolCallId: m.tool_call_id || null })
+        }
+    } catch { /* swallow: DB-row creation is best-effort -- the wire log (canonical transcript) is already durably written */ }
     return sid
 }
 

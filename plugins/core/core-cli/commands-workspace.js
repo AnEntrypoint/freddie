@@ -94,7 +94,11 @@ export function registerWorkspaceCommands(C) {
         // new session id — wire log + sessions.db stay consistent.
         if (action === 'fork') {
             if (!id) { console.error('usage: freddie session fork <id> [atEventIndex]'); process.exit(1) }
-            const { forkWireLog, transcriptFromWire, wireLogDir } = await import('../../../src/agent/events.js')
+            // forkWireLog itself now creates the sessions.db row + populates
+            // messages from the copied transcript (moved into the primitive so
+            // every caller gets it, not just this CLI command) -- this caller
+            // only needs to resolve the wire-log filename prefix and call it.
+            const { forkWireLog, wireLogDir } = await import('../../../src/agent/events.js')
             const fs = await import('node:fs')
             let sid = id
             try {
@@ -103,16 +107,8 @@ export function registerWorkspaceCommands(C) {
                 if (match) sid = match.slice(0, -'.jsonl'.length)
             } catch { /* swallow: missing wire dir just means no logs below */ }
             const atIdx = a2 != null && a2 !== '' ? Number(a2) : null
-            const newSid = forkWireLog(sid, { atIndex: Number.isFinite(atIdx) ? atIdx : null })
+            const newSid = await forkWireLog(sid, { atIndex: Number.isFinite(atIdx) ? atIdx : null })
             if (!newSid) { console.error('no wire log to fork for session:', id); process.exit(1) }
-            const { createSession, getSession, appendMessage } = await import('../../../src/sessions.js')
-            const source = await getSession(sid).catch(() => null)
-            if (!(await getSession(newSid).catch(() => null))) {
-                await createSession({ id: newSid, platform: source?.platform || 'web', title: 'fork of ' + (source?.title || sid.slice(0, 8)), cwd: source?.cwd || null, model: source?.model || null })
-            }
-            for (const m of transcriptFromWire(newSid)) {
-                await appendMessage(newSid, { role: m.role, content: m.content, toolCalls: m.tool_calls || null, toolCallId: m.tool_call_id || null })
-            }
             console.log(`forked ${sid.slice(0, 8)} -> ${newSid}${Number.isFinite(atIdx) ? ' (at event ' + atIdx + ')' : ''}`)
             return
         }
