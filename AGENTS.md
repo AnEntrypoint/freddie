@@ -303,6 +303,14 @@ Auto-discovered on `bootHost()`. For multi-tool files export `_tool0`, `_tool1`,
 
 **Verification (comprehensive audit 2026-08-21):** All 23 handler-only directories above have been codesearch-verified as discoverable, present, and live-registered via the `src/host/plugin-discovery.js::scanPluginDir()` fallback (lines 52-66). Each directory contains a `handler.js` file exporting `_tool` or multi-tool (`_tool0`, `_tool1`, ...) that is auto-discovered at `bootHost()` time, regardless of whether a sibling `plugin.js` exists. A directory matching this shape is not dead/orphaned code just because it lacks a `plugin.js` — the fallback ensures registration and discoverability unconditionally.
 
+### Security & access control for handler-only tools
+
+**Privilege & gating mechanisms:**
+- **Core toolset privileges** (lines 271-279): `bash`, `send_message`, `code_execution`, `terminal`, `process_registry`, `env_passthrough`, `managed_tool_gateway`, `budget_config` — these are highly privileged and access-gated per the "Plugin architecture" section above. For untrusted-end-user contexts, exclude the entire `'core'` toolset and use `'contact-facing'`/`'field-worker'` distributions in `src/toolset_distributions.js`.
+- **Approval gating** (see "Wire protocol" section's Approvals paragraph): core tools in the `agent.approval_tools` default list are gated when `approval_mode` is set to `mutating`/`classifier`/`all`. Default mode is `off` (no gating), so toolset exclusion remains the primary control for untrusted consumers.
+- **Credential & env access**: `bash` and `env_passthrough` inherit `process.env` by default; use `terminal.scrub_provider_env` to strip provider keys before spawning untrusted commands (see "Plugin architecture" section).
+- **Cross-references**: `src/host/plugin-trust.js::checkPluginTrust()` gates project-local `.freddie/plugins/` discovery; `src/toolsets.js` defines toolset membership; `src/auth.js::redactSecrets()` redacts credentials at wire/trajectory/approval-classifier boundaries.
+
 ## Adding a slash command
 
 Add a `CommandDef` to `COMMAND_REGISTRY` in `src/commands/registry.js`:
