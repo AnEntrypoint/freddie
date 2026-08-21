@@ -11658,33 +11658,43 @@ function redactSecrets(input) {
 		for (const secret of embeddable) if (out.includes(secret)) out = out.split(secret).join(tokenFingerprint(secret));
 		return out;
 	};
-	const maskAllStrings = (node) => {
+	const maskAllStrings = (node, depth) => {
+		if (depth > MAX_REDACT_DEPTH) return "[redacted: max depth exceeded]";
 		if (typeof node === "string") return node ? tokenFingerprint(node) : node;
-		if (Array.isArray(node)) return node.map(maskAllStrings);
+		if (Array.isArray(node)) return node.map((v) => maskAllStrings(v, depth + 1));
 		if (node && typeof node === "object") {
 			const out = {};
-			for (const [k, v] of Object.entries(node)) out[k] = maskAllStrings(v);
+			for (const [k, v] of Object.entries(node)) out[k] = maskAllStrings(v, depth + 1);
 			return out;
 		}
 		return node;
 	};
-	const walk = (node, keyHint) => {
-		if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase())) return maskAllStrings(node);
+	const isCredentialResultShape = (node) => node && typeof node === "object" && !Array.isArray(node) && Object.keys(node).length > 0 && Object.keys(node).every((k) => CREDENTIAL_RESULT_KEYS.has(k));
+	const walk = (node, keyHint, depth) => {
+		if (depth > MAX_REDACT_DEPTH) return "[redacted: max depth exceeded]";
+		if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase())) {
+			if (String(keyHint).toLowerCase() === "credential" && isCredentialResultShape(node)) {
+				const out = {};
+				for (const [k, v] of Object.entries(node)) out[k] = k === "value" ? maskAllStrings(v, depth + 1) : v;
+				return out;
+			}
+			return maskAllStrings(node, depth);
+		}
 		if (typeof node === "string") {
 			if (known.includes(node)) return tokenFingerprint(node);
 			return redactEmbedded(node);
 		}
-		if (Array.isArray(node)) return node.map((v) => walk(v, keyHint));
+		if (Array.isArray(node)) return node.map((v) => walk(v, keyHint, depth + 1));
 		if (node && typeof node === "object") {
 			const out = {};
-			for (const [k, v] of Object.entries(node)) out[k] = walk(v, k);
+			for (const [k, v] of Object.entries(node)) out[k] = walk(v, k, depth + 1);
 			return out;
 		}
 		return node;
 	};
-	return walk(input, null);
+	return walk(input, null, 0);
 }
-var FileAuthStore, _store, PROVIDERS, ENV_OF, SECRET_FIELD_NAMES, KNOWN_SECRET_VALUES;
+var FileAuthStore, _store, PROVIDERS, ENV_OF, SECRET_FIELD_NAMES, CREDENTIAL_RESULT_KEYS, KNOWN_SECRET_VALUES, MAX_REDACT_DEPTH;
 var init_auth = __esmMin((() => {
 	init_home();
 	FileAuthStore = class {
@@ -11759,6 +11769,7 @@ var init_auth = __esmMin((() => {
 	};
 	SECRET_FIELD_NAMES = /* @__PURE__ */ new Set([
 		"value",
+		"credential",
 		"apikey",
 		"api_key",
 		"token",
@@ -11766,7 +11777,13 @@ var init_auth = __esmMin((() => {
 		"password",
 		"auth_token"
 	]);
+	CREDENTIAL_RESULT_KEYS = /* @__PURE__ */ new Set([
+		"name",
+		"value",
+		"updated"
+	]);
 	KNOWN_SECRET_VALUES = () => new Set(Object.values(ENV_OF).map((envVar) => process.env[envVar]).filter(Boolean));
+	MAX_REDACT_DEPTH = 64;
 }));
 //#endregion
 //#region plugins/core/approval_state.js
