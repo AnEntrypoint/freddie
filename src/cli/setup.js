@@ -1,6 +1,6 @@
 import readline from 'node:readline'
 import { saveConfigValue, getConfigValue } from '../config.js'
-import { getAuthStore } from '../auth.js'
+import { getAuthStore, extraEnvForProvider } from '../auth.js'
 import { listBuiltinSkins, setActiveSkin } from '../skin/engine.js'
 import { listEnvironments } from '../tools/environments/index.js'
 

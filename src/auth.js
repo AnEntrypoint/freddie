@@ -44,45 +44,48 @@ export function resetAuthStoreForTests() { _store = null }
 
 const PROVIDERS = ['anthropic', 'openai', 'groq', 'openrouter', 'xai', 'gemini', 'bedrock', 'codex', 'kimi', 'zai', 'deepseek', 'mistral', 'perplexity']
 const ENV_OF = { anthropic: 'ANTHROPIC_API_KEY', openai: 'OPENAI_API_KEY', groq: 'GROQ_API_KEY', openrouter: 'OPENROUTER_API_KEY', xai: 'XAI_API_KEY', gemini: 'GEMINI_API_KEY', bedrock: 'AWS_ACCESS_KEY_ID', codex: 'OPENAI_API_KEY', kimi: 'KIMI_API_KEY', zai: 'ZAI_API_KEY', deepseek: 'DEEPSEEK_API_KEY', mistral: 'MISTRAL_API_KEY', perplexity: 'PERPLEXITY_API_KEY' }
-// Bedrock requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY; register both
-// as provider-scoped secrets so they're deduplicated in listKnownEnvVars() for scrubEnv/redactSecrets coverage
-const BEDROCK_ENV_VARS = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']
+// Providers needing MORE than one credential env var (bedrock's static-credential
+// path is a paired access-key-id + secret-access-key per AWS SigV4 --
+// acptoapi/lib/providers/bedrock.js:31 reads process.env.AWS_SECRET_ACCESS_KEY
+// directly alongside AWS_ACCESS_KEY_ID). ENV_OF stays single-var-per-provider (the
+// primary/identifying credential, used for envForProvider's 1:1 contract);
+// EXTRA_ENV_OF carries any ADDITIONAL required vars, keyed the same way, so
+// hasUsableSecret/clearProviderAuth/listKnownEnvVars/KNOWN_SECRET_VALUES all cover
+// every credential a provider needs without a per-provider hardcoded branch.
+const EXTRA_ENV_OF = { bedrock: ['AWS_SECRET_ACCESS_KEY'] }
 
 export function isKnownAuthProvider(name) { return PROVIDERS.includes(name) }
 export function listAuthProviders() { return [...PROVIDERS] }
 export function envForProvider(name) { return ENV_OF[name] || null }
-// Dedup'd env var names across all known providers (some providers share one,
-// e.g. codex reuses OPENAI_API_KEY) -- used by src/host/tool-resources.js's
-// scrubEnv() to strip provider credentials from a spawned subprocess env.
-// Bedrock requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY; both must
-// be included for scrubEnv() and redactSecrets() coverage.
-export function listKnownEnvVars() {
-    const all = new Set(Object.values(ENV_OF))
-    // Explicitly add bedrock's secondary secret (AWS_SECRET_ACCESS_KEY)
-    // that is not listed in ENV_OF but is required for full credential coverage
-    for (const v of BEDROCK_ENV_VARS) { all.add(v) }
-    return [...all]
+// Every additional (non-primary) credential env var a provider needs, e.g.
+// bedrock's paired AWS_SECRET_ACCESS_KEY alongside its primary AWS_ACCESS_KEY_ID.
+export function extraEnvForProvider(name) { return EXTRA_ENV_OF[name] ? [...EXTRA_ENV_OF[name]] : [] }
+// Dedup'd env var names across all known providers, primary AND extra (some
+// providers share a primary, e.g. codex reuses OPENAI_API_KEY; some need more
+// than one var, e.g. bedrock) -- used by src/host/tool-resources.js's scrubEnv()
+// to strip provider credentials from a spawned subprocess env, and by
+// redactSecrets()/KNOWN_SECRET_VALUES() below to mask every live credential value.
+export function listKnownEnvVars() { return [...new Set([...Object.values(ENV_OF), ...Object.values(EXTRA_ENV_OF).flat()])] }
+
+async function envVarUsable(name) {
+    if (process.env[name]) return true
+    const cred = await getAuthStore().getCredential(name)
+    return Boolean(cred?.value)
 }
 
 export async function hasUsableSecret(provider) {
-    // Bedrock requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-    if (provider === 'bedrock') {
-        const hasAccessKey = process.env['AWS_ACCESS_KEY_ID'] || await getAuthStore().getCredential('AWS_ACCESS_KEY_ID')
-        const hasSecretKey = process.env['AWS_SECRET_ACCESS_KEY'] || await getAuthStore().getCredential('AWS_SECRET_ACCESS_KEY')
-        return Boolean(hasAccessKey?.value || process.env['AWS_ACCESS_KEY_ID']) && Boolean(hasSecretKey?.value || process.env['AWS_SECRET_ACCESS_KEY'])
-    }
-
     const env = envForProvider(provider)
     if (!env) return false
-    if (process.env[env]) return true
-    const cred = await getAuthStore().getCredential(env)
-    return Boolean(cred?.value)
+    if (!(await envVarUsable(env))) return false
+    for (const extra of extraEnvForProvider(provider)) { if (!(await envVarUsable(extra))) return false }
+    return true
 }
 
 export async function clearProviderAuth(provider) {
     const env = envForProvider(provider)
     if (!env) return false
     await getAuthStore().deleteCredential(env)
+    for (const extra of extraEnvForProvider(provider)) { await getAuthStore().deleteCredential(extra) }
     return true
 }
 
@@ -109,19 +112,11 @@ export function tokenFingerprint(token) {
 }
 
 export async function getProviderAuthState(provider) {
-    // Bedrock requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY;
-    // report both env vars in the state for bedrock
-    if (provider === 'bedrock') {
-        return {
-            provider,
-            env: 'AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY',
-            hasSecret: await hasUsableSecret(provider),
-        }
-    }
-
+    const extras = extraEnvForProvider(provider)
     return {
         provider,
         env: envForProvider(provider),
+        extraEnv: extras.length ? extras : undefined,
         hasSecret: await hasUsableSecret(provider),
     }
 }
@@ -160,12 +155,7 @@ export async function getProviderAuthState(provider) {
 // prove the unmasked field cannot carry a secret.
 const SECRET_FIELD_NAMES = new Set(['value', 'credential', 'apikey', 'api_key', 'token', 'secret', 'password', 'auth_token'])
 
-const KNOWN_SECRET_VALUES = () => {
-    const all = new Set(Object.values(ENV_OF).map(envVar => process.env[envVar]).filter(Boolean))
-    // Also include bedrock's secondary secret key that is not in ENV_OF
-    for (const envVar of BEDROCK_ENV_VARS) { if (process.env[envVar]) all.add(process.env[envVar]) }
-    return all
-}
+const KNOWN_SECRET_VALUES = () => new Set(listKnownEnvVars().map(envVar => process.env[envVar]).filter(Boolean))
 
 // Deep-clones `input`, replacing any string that is either (a) a live value
 // of a known provider env var (exact match, ANY length -- a short custom key

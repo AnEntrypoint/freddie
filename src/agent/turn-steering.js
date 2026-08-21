@@ -63,6 +63,12 @@ export function cancelTurn(sessionKey) {
         emitTurnEvent(sessionKey, 'question.resolved', { id: pending.id, answers: {}, rejected: true, cancelled: true })
         try { pending.reject(new Error('turn cancelled')) } catch { /* swallow: reject of an already-settled question must not break cancel */ }
     }
+    const approval = t.pendingApproval
+    if (approval) {
+        t.pendingApproval = null
+        emitTurnEvent(sessionKey, 'approval.resolved', { id: approval.id, name: approval.name, approved: false, cancelled: true, feedback: 'turn cancelled' })
+        try { approval.resolve({ approved: false, feedback: 'turn cancelled' }) } catch { /* swallow: resolve of an already-settled approval must not break cancel */ }
+    }
     try { t.actor.send({ type: 'INTERRUPT' }) } catch { return false }
     return true
 }
