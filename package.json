@@ -55,6 +55,7 @@
     "dockerode": "latest",
     "puppeteer-core": "latest",
     "ssh2": "latest",
+    "tar-stream": "latest",
     "undici": "latest"
   },
   "engines": {
