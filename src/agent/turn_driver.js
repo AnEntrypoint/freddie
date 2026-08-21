@@ -9,6 +9,30 @@ import { redactSecrets } from '../auth.js'
 import { HookEngine } from './hooks_engine.js'
 import { loadConfig } from '../config.js'
 
+// h.hooks.invoke (plugsdk's PluginRunner-driven dispatch, src/host/contract.js)
+// has no built-in per-hook timeout of its own -- unlike hookEngine.runHooks,
+// which bounds each shell-hook command via its own timeout (default 30s).
+// A bare `await h.hooks.invoke(...)` in this file's cleanup sequences hangs
+// forever if a plugin's onTurnEnd/onSessionEnd handler returns a promise that
+// never settles (a hung fetch, a deadlock, any third-party plugin bug --
+// freddie explicitly supports `freddie plugin install npm:<pkg>|git:<url>`) --
+// this is the SAME "unbounded await with nothing timing it out" class the
+// autoRecall preamble fix already solved for a different call site
+// (machine.js's AUTORECALL_TIMEOUT_MS), applied here for hook cleanup calls.
+// Cleanup runs AFTER the turn has already ended/timed out, so a short bound
+// (not turnMs-scale) is correct: a stalled hook is abandoned, never left to
+// block resolve(out) — the turn's own side effects already happened; only
+// this observability cleanup is at risk of hanging.
+const HOOK_CLEANUP_TIMEOUT_MS = 5000
+function boundedHookInvoke(h, name, data) {
+    if (!h?.hooks) return Promise.resolve(null)
+    let timer
+    return Promise.race([
+        h.hooks.invoke(name, data).finally(() => clearTimeout(timer)),
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`hook ${name} timed out after ${HOOK_CLEANUP_TIMEOUT_MS}ms`)), HOOK_CLEANUP_TIMEOUT_MS) }),
+    ]).catch(() => null)
+}
+
 // session-end hooks + trajectory. Shared by runTurn (fresh) and resumeTurn
 // (rehydrated from a persisted snapshot after a refresh/restart).
 async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store, abortController }) {
@@ -31,12 +55,30 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
             try { abortController?.abort(new Error('agent turn timeout')) } catch {}
             cleanup()
             ;(async () => {
+                // cleanup() above only unsubscribes + flushes (pa.flush(), not
+                // pa.forget()) before stopping the actor -- actor.stop() halts the
+                // state machine directly rather than driving it through a real
+                // transition to a final state, so createPersistentActor's own
+                // subscribe callback (which clears the snapshot on snap.status
+                // !== 'active') never fires for a timed-out turn. The last
+                // snapshot persisted before timeout therefore keeps
+                // status='active' in machine_snapshots forever for this
+                // (kind='agent', key=sessionKey) -- a later resumeTurn call would
+                // find that stale snapshot and try to resurrect the exact
+                // transcript this timeout just gave up on. Clear it explicitly,
+                // same store pa itself uses (store?.clear falls back to the
+                // default libsql-backed clear, matching createPersistentActor's
+                // own store?.clear||clear fallback shape).
+                try {
+                    const clearFn = store?.clear || (await import('../machines/snapshot-store.js')).clear
+                    await clearFn('agent', sessionKey)
+                } catch {}
                 try { await clearSteps(sessionKey, { store }) } catch {}
                 // onTurnEnd hook: fire when turn completes (timeout path)
-                try { await h.hooks.invoke('onTurnEnd', { reason: 'timeout', iterations: out.iterations }) } catch {}
+                await boundedHookInvoke(h, 'onTurnEnd', { reason: 'timeout', iterations: out.iterations })
                 try { const hE = new HookEngine({ config: loadConfig() }); hE.runHooks('onTurnEnd', { sessionKey, cwd, reason: 'timeout', iterations: out.iterations }).catch(() => {}) } catch {}
                 try { wireHookBridge.forwardHook('onTurnEnd', { sessionKey, reason: 'timeout', iterations: out.iterations }).catch(() => {}) } catch {}
-                try { await h.hooks.invoke('onSessionEnd', { reason: 'timeout', iterations: out.iterations }) } catch {}
+                await boundedHookInvoke(h, 'onSessionEnd', { reason: 'timeout', iterations: out.iterations })
                 try { hookEngine.runHooks('onSessionEnd', { sessionKey, cwd, reason: 'timeout', iterations: out.iterations }).catch(() => {}) } catch {}
                 try { wireHookBridge.forwardHook('onSessionEnd', { sessionKey, cwd, reason: 'timeout', iterations: out.iterations }).catch(() => {}) } catch {}
                 try { await writeTrajectory(out, { prompt, provider, model, skill, cwd, events, errorStack: null, witnessPath }) } catch {}
@@ -54,14 +96,14 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
                 }
                 emitTurnEvent(sessionKey, 'session.end', { result: out.result ? 'ok' : (out.error ? 'error' : 'empty'), error: out.error ? redactSecrets(out.error) : null, iterations: out.iterations })
                 // onTurnEnd hook: fire when turn completes (normal path)
-                await h.hooks.invoke('onTurnEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
+                await boundedHookInvoke(h, 'onTurnEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
                 hookEngine.runHooks('onTurnEnd', { sessionKey, cwd, reason: out?.error ? 'error' : 'ok', iterations: out?.iterations }).catch(() => {})
                 wireHookBridge.forwardHook('onTurnEnd', { sessionKey, reason: out?.error ? 'error' : 'ok', iterations: out?.iterations }).catch(() => {})
-                const outbound = await h.hooks.invoke('onMessageOutbound', { content: out?.result || '' })
+                const outbound = await boundedHookInvoke(h, 'onMessageOutbound', { content: out?.result || '' })
                 hookEngine.runHooks('onMessageOutbound', { sessionKey, cwd }).catch(() => {})
                 wireHookBridge.forwardHook('onMessageOutbound', { sessionKey, cwd, content: out?.result || '' }).catch(() => {})
                 if (outbound?.systemMessage || outbound?.additionalContext) out.messages = mergeHookExtras(out.messages || [], outbound, 'onMessageOutbound')
-                await h.hooks.invoke('onSessionEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
+                await boundedHookInvoke(h, 'onSessionEnd', { reason: out?.error ? 'error' : 'ok', iterations: out?.iterations })
                 hookEngine.runHooks('onSessionEnd', { sessionKey, cwd, reason: out?.error ? 'error' : 'ok', iterations: out?.iterations }).catch(() => {})
                 wireHookBridge.forwardHook('onSessionEnd', { sessionKey, cwd, reason: out?.error ? 'error' : 'ok', iterations: out?.iterations }).catch(() => {})
                 const errorStack = out?.error ? (events.find(e => e.type === 'llm_call' && !e.ok)?.stack || null) : null
