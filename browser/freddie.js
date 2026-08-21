@@ -5078,6 +5078,221 @@ function readManifestResources(dir) {
 	}
 }
 //#endregion
+//#region src/auth.js
+var auth_exports = /* @__PURE__ */ __exportAll({
+	clearProviderAuth: () => clearProviderAuth,
+	decodeJwtClaims: () => decodeJwtClaims,
+	envForProvider: () => envForProvider,
+	extraEnvForProvider: () => extraEnvForProvider,
+	getAuthStore: () => getAuthStore,
+	getProviderAuthState: () => getProviderAuthState,
+	hasUsableSecret: () => hasUsableSecret,
+	isExpiring: () => isExpiring,
+	isKnownAuthProvider: () => isKnownAuthProvider,
+	listAuthProviders: () => listAuthProviders,
+	listKnownEnvVars: () => listKnownEnvVars,
+	redactSecrets: () => redactSecrets,
+	resetAuthStoreForTests: () => resetAuthStoreForTests,
+	tokenFingerprint: () => tokenFingerprint
+});
+function getAuthStore() {
+	if (!_store) _store = new FileAuthStore();
+	return _store;
+}
+function resetAuthStoreForTests() {
+	_store = null;
+}
+function isKnownAuthProvider(name) {
+	return PROVIDERS.includes(name);
+}
+function listAuthProviders() {
+	return [...PROVIDERS];
+}
+function envForProvider(name) {
+	return ENV_OF[name] || null;
+}
+function extraEnvForProvider(name) {
+	return EXTRA_ENV_OF[name] ? [...EXTRA_ENV_OF[name]] : [];
+}
+function listKnownEnvVars() {
+	return [.../* @__PURE__ */ new Set([...Object.values(ENV_OF), ...Object.values(EXTRA_ENV_OF).flat()])];
+}
+async function envVarUsable(name) {
+	if (process.env[name]) return true;
+	const cred = await getAuthStore().getCredential(name);
+	return Boolean(cred?.value);
+}
+async function hasUsableSecret(provider) {
+	const env = envForProvider(provider);
+	if (!env) return false;
+	if (!await envVarUsable(env)) return false;
+	for (const extra of extraEnvForProvider(provider)) if (!await envVarUsable(extra)) return false;
+	return true;
+}
+async function clearProviderAuth(provider) {
+	const env = envForProvider(provider);
+	if (!env) return false;
+	await getAuthStore().deleteCredential(env);
+	for (const extra of extraEnvForProvider(provider)) await getAuthStore().deleteCredential(extra);
+	return true;
+}
+function isExpiring(token, { skewSeconds = 60 } = {}) {
+	if (!token || typeof token !== "object") return true;
+	const exp = token.expires_at || token.exp;
+	if (!exp) return false;
+	const now = Math.floor(Date.now() / 1e3);
+	return (typeof exp === "string" ? Math.floor(new Date(exp).getTime() / 1e3) : exp) - now < skewSeconds;
+}
+function decodeJwtClaims(jwt) {
+	if (typeof jwt !== "string") return null;
+	const parts = jwt.split(".");
+	if (parts.length < 2) return null;
+	try {
+		return JSON.parse(Buffer.from(parts[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
+	} catch {
+		return null;
+	}
+}
+function tokenFingerprint(token) {
+	const s = typeof token === "string" ? token : token?.access_token || token?.value || "";
+	if (!s) return "";
+	return s.slice(0, 4) + "…" + s.slice(-4);
+}
+async function getProviderAuthState(provider) {
+	const extras = extraEnvForProvider(provider);
+	return {
+		provider,
+		env: envForProvider(provider),
+		extraEnv: extras.length ? extras : void 0,
+		hasSecret: await hasUsableSecret(provider)
+	};
+}
+function redactSecrets(input) {
+	const known = [...KNOWN_SECRET_VALUES()];
+	const embeddable = known.filter((v) => v.length >= 8);
+	const redactEmbedded = (s) => {
+		let out = s;
+		for (const secret of embeddable) if (out.includes(secret)) out = out.split(secret).join(tokenFingerprint(secret));
+		return out;
+	};
+	const maskAllStrings = (node, depth) => {
+		if (depth > MAX_REDACT_DEPTH) return "[redacted: max depth exceeded]";
+		if (typeof node === "string") return node ? tokenFingerprint(node) : node;
+		if (Array.isArray(node)) return node.map((v) => maskAllStrings(v, depth + 1));
+		if (node && typeof node === "object") {
+			const out = {};
+			for (const [k, v] of Object.entries(node)) out[k] = maskAllStrings(v, depth + 1);
+			return out;
+		}
+		return node;
+	};
+	const walk = (node, keyHint, depth) => {
+		if (depth > MAX_REDACT_DEPTH) return "[redacted: max depth exceeded]";
+		if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase())) return maskAllStrings(node, depth);
+		if (typeof node === "string") {
+			if (known.includes(node)) return tokenFingerprint(node);
+			return redactEmbedded(node);
+		}
+		if (Array.isArray(node)) return node.map((v) => walk(v, keyHint, depth + 1));
+		if (node && typeof node === "object") {
+			const out = {};
+			for (const [k, v] of Object.entries(node)) out[k] = walk(v, k, depth + 1);
+			return out;
+		}
+		return node;
+	};
+	return walk(input, null, 0);
+}
+var FileAuthStore, _store, PROVIDERS, ENV_OF, EXTRA_ENV_OF, SECRET_FIELD_NAMES, KNOWN_SECRET_VALUES, MAX_REDACT_DEPTH;
+var init_auth = __esmMin((() => {
+	init_home();
+	FileAuthStore = class {
+		constructor() {
+			this.dir = path.join(getFreddieHome(), "auth");
+			fs.mkdirSync(this.dir, { recursive: true });
+		}
+		_path(name) {
+			const resolvedPath = path.join(this.dir, name + ".json");
+			if (resolvedPath !== this.dir && !resolvedPath.startsWith(this.dir + path.sep)) throw new Error(`Path traversal attempt: resolved path ${resolvedPath} is not within ${this.dir}`);
+			return resolvedPath;
+		}
+		async setCredential(name, value) {
+			fs.writeFileSync(this._path(name), JSON.stringify({
+				name,
+				value,
+				updated: Date.now()
+			}), {
+				encoding: "utf8",
+				mode: 384
+			});
+			return {
+				name,
+				stored: true
+			};
+		}
+		async getCredential(name) {
+			const p = this._path(name);
+			if (!fs.existsSync(p)) return null;
+			return JSON.parse(fs.readFileSync(p, "utf8"));
+		}
+		async listCredentials() {
+			return fs.readdirSync(this.dir).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
+		}
+		async deleteCredential(name) {
+			const p = this._path(name);
+			if (fs.existsSync(p)) fs.unlinkSync(p);
+			return {
+				name,
+				deleted: true
+			};
+		}
+	};
+	_store = null;
+	PROVIDERS = [
+		"anthropic",
+		"openai",
+		"groq",
+		"openrouter",
+		"xai",
+		"gemini",
+		"bedrock",
+		"codex",
+		"kimi",
+		"zai",
+		"deepseek",
+		"mistral",
+		"perplexity"
+	];
+	ENV_OF = {
+		anthropic: "ANTHROPIC_API_KEY",
+		openai: "OPENAI_API_KEY",
+		groq: "GROQ_API_KEY",
+		openrouter: "OPENROUTER_API_KEY",
+		xai: "XAI_API_KEY",
+		gemini: "GEMINI_API_KEY",
+		bedrock: "AWS_ACCESS_KEY_ID",
+		codex: "OPENAI_API_KEY",
+		kimi: "KIMI_API_KEY",
+		zai: "ZAI_API_KEY",
+		deepseek: "DEEPSEEK_API_KEY",
+		mistral: "MISTRAL_API_KEY",
+		perplexity: "PERPLEXITY_API_KEY"
+	};
+	EXTRA_ENV_OF = { bedrock: ["AWS_SECRET_ACCESS_KEY"] };
+	SECRET_FIELD_NAMES = /* @__PURE__ */ new Set([
+		"value",
+		"credential",
+		"apikey",
+		"api_key",
+		"token",
+		"secret",
+		"password",
+		"auth_token"
+	]);
+	KNOWN_SECRET_VALUES = () => new Set(listKnownEnvVars().map((envVar) => process.env[envVar]).filter(Boolean));
+	MAX_REDACT_DEPTH = 64;
+}));
+//#endregion
 //#region src/observability/log.js
 function streamFor(name) {
 	if (_streams.has(name)) return _streams.get(name);
@@ -5100,12 +5315,14 @@ function streamFor(name) {
 }
 function log({ subsystem = "app", severity = "info", msg = "", ...rest }) {
 	const ts = (/* @__PURE__ */ new Date()).toISOString();
+	const redactedRest = redactSecrets(rest);
+	const redactedMsg = typeof msg === "string" ? redactSecrets(msg) : msg;
 	const rec = {
 		ts,
 		subsystem,
 		severity,
-		msg,
-		...rest
+		msg: redactedMsg,
+		...redactedRest
 	};
 	let line;
 	try {
@@ -5115,7 +5332,7 @@ function log({ subsystem = "app", severity = "info", msg = "", ...rest }) {
 			ts,
 			subsystem,
 			severity,
-			msg,
+			msg: redactedMsg,
 			logSerializationError: String(e?.message || e)
 		}) + "\n";
 	}
@@ -5153,6 +5370,7 @@ function logger(subsystem) {
 var SEVERITIES, _streams;
 var init_log = __esmMin((() => {
 	init_home();
+	init_auth();
 	SEVERITIES = {
 		debug: 10,
 		info: 20,
@@ -11738,221 +11956,6 @@ function noteToolCall(sessionKey, name) {
 	return n;
 }
 //#endregion
-//#region src/auth.js
-var auth_exports = /* @__PURE__ */ __exportAll({
-	clearProviderAuth: () => clearProviderAuth,
-	decodeJwtClaims: () => decodeJwtClaims,
-	envForProvider: () => envForProvider,
-	extraEnvForProvider: () => extraEnvForProvider,
-	getAuthStore: () => getAuthStore,
-	getProviderAuthState: () => getProviderAuthState,
-	hasUsableSecret: () => hasUsableSecret,
-	isExpiring: () => isExpiring,
-	isKnownAuthProvider: () => isKnownAuthProvider,
-	listAuthProviders: () => listAuthProviders,
-	listKnownEnvVars: () => listKnownEnvVars,
-	redactSecrets: () => redactSecrets,
-	resetAuthStoreForTests: () => resetAuthStoreForTests,
-	tokenFingerprint: () => tokenFingerprint
-});
-function getAuthStore() {
-	if (!_store) _store = new FileAuthStore();
-	return _store;
-}
-function resetAuthStoreForTests() {
-	_store = null;
-}
-function isKnownAuthProvider(name) {
-	return PROVIDERS.includes(name);
-}
-function listAuthProviders() {
-	return [...PROVIDERS];
-}
-function envForProvider(name) {
-	return ENV_OF[name] || null;
-}
-function extraEnvForProvider(name) {
-	return EXTRA_ENV_OF[name] ? [...EXTRA_ENV_OF[name]] : [];
-}
-function listKnownEnvVars() {
-	return [.../* @__PURE__ */ new Set([...Object.values(ENV_OF), ...Object.values(EXTRA_ENV_OF).flat()])];
-}
-async function envVarUsable(name) {
-	if (process.env[name]) return true;
-	const cred = await getAuthStore().getCredential(name);
-	return Boolean(cred?.value);
-}
-async function hasUsableSecret(provider) {
-	const env = envForProvider(provider);
-	if (!env) return false;
-	if (!await envVarUsable(env)) return false;
-	for (const extra of extraEnvForProvider(provider)) if (!await envVarUsable(extra)) return false;
-	return true;
-}
-async function clearProviderAuth(provider) {
-	const env = envForProvider(provider);
-	if (!env) return false;
-	await getAuthStore().deleteCredential(env);
-	for (const extra of extraEnvForProvider(provider)) await getAuthStore().deleteCredential(extra);
-	return true;
-}
-function isExpiring(token, { skewSeconds = 60 } = {}) {
-	if (!token || typeof token !== "object") return true;
-	const exp = token.expires_at || token.exp;
-	if (!exp) return false;
-	const now = Math.floor(Date.now() / 1e3);
-	return (typeof exp === "string" ? Math.floor(new Date(exp).getTime() / 1e3) : exp) - now < skewSeconds;
-}
-function decodeJwtClaims(jwt) {
-	if (typeof jwt !== "string") return null;
-	const parts = jwt.split(".");
-	if (parts.length < 2) return null;
-	try {
-		return JSON.parse(Buffer.from(parts[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
-	} catch {
-		return null;
-	}
-}
-function tokenFingerprint(token) {
-	const s = typeof token === "string" ? token : token?.access_token || token?.value || "";
-	if (!s) return "";
-	return s.slice(0, 4) + "…" + s.slice(-4);
-}
-async function getProviderAuthState(provider) {
-	const extras = extraEnvForProvider(provider);
-	return {
-		provider,
-		env: envForProvider(provider),
-		extraEnv: extras.length ? extras : void 0,
-		hasSecret: await hasUsableSecret(provider)
-	};
-}
-function redactSecrets(input) {
-	const known = [...KNOWN_SECRET_VALUES()];
-	const embeddable = known.filter((v) => v.length >= 8);
-	const redactEmbedded = (s) => {
-		let out = s;
-		for (const secret of embeddable) if (out.includes(secret)) out = out.split(secret).join(tokenFingerprint(secret));
-		return out;
-	};
-	const maskAllStrings = (node, depth) => {
-		if (depth > MAX_REDACT_DEPTH) return "[redacted: max depth exceeded]";
-		if (typeof node === "string") return node ? tokenFingerprint(node) : node;
-		if (Array.isArray(node)) return node.map((v) => maskAllStrings(v, depth + 1));
-		if (node && typeof node === "object") {
-			const out = {};
-			for (const [k, v] of Object.entries(node)) out[k] = maskAllStrings(v, depth + 1);
-			return out;
-		}
-		return node;
-	};
-	const walk = (node, keyHint, depth) => {
-		if (depth > MAX_REDACT_DEPTH) return "[redacted: max depth exceeded]";
-		if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase())) return maskAllStrings(node, depth);
-		if (typeof node === "string") {
-			if (known.includes(node)) return tokenFingerprint(node);
-			return redactEmbedded(node);
-		}
-		if (Array.isArray(node)) return node.map((v) => walk(v, keyHint, depth + 1));
-		if (node && typeof node === "object") {
-			const out = {};
-			for (const [k, v] of Object.entries(node)) out[k] = walk(v, k, depth + 1);
-			return out;
-		}
-		return node;
-	};
-	return walk(input, null, 0);
-}
-var FileAuthStore, _store, PROVIDERS, ENV_OF, EXTRA_ENV_OF, SECRET_FIELD_NAMES, KNOWN_SECRET_VALUES, MAX_REDACT_DEPTH;
-var init_auth = __esmMin((() => {
-	init_home();
-	FileAuthStore = class {
-		constructor() {
-			this.dir = path.join(getFreddieHome(), "auth");
-			fs.mkdirSync(this.dir, { recursive: true });
-		}
-		_path(name) {
-			const resolvedPath = path.join(this.dir, name + ".json");
-			if (resolvedPath !== this.dir && !resolvedPath.startsWith(this.dir + path.sep)) throw new Error(`Path traversal attempt: resolved path ${resolvedPath} is not within ${this.dir}`);
-			return resolvedPath;
-		}
-		async setCredential(name, value) {
-			fs.writeFileSync(this._path(name), JSON.stringify({
-				name,
-				value,
-				updated: Date.now()
-			}), {
-				encoding: "utf8",
-				mode: 384
-			});
-			return {
-				name,
-				stored: true
-			};
-		}
-		async getCredential(name) {
-			const p = this._path(name);
-			if (!fs.existsSync(p)) return null;
-			return JSON.parse(fs.readFileSync(p, "utf8"));
-		}
-		async listCredentials() {
-			return fs.readdirSync(this.dir).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
-		}
-		async deleteCredential(name) {
-			const p = this._path(name);
-			if (fs.existsSync(p)) fs.unlinkSync(p);
-			return {
-				name,
-				deleted: true
-			};
-		}
-	};
-	_store = null;
-	PROVIDERS = [
-		"anthropic",
-		"openai",
-		"groq",
-		"openrouter",
-		"xai",
-		"gemini",
-		"bedrock",
-		"codex",
-		"kimi",
-		"zai",
-		"deepseek",
-		"mistral",
-		"perplexity"
-	];
-	ENV_OF = {
-		anthropic: "ANTHROPIC_API_KEY",
-		openai: "OPENAI_API_KEY",
-		groq: "GROQ_API_KEY",
-		openrouter: "OPENROUTER_API_KEY",
-		xai: "XAI_API_KEY",
-		gemini: "GEMINI_API_KEY",
-		bedrock: "AWS_ACCESS_KEY_ID",
-		codex: "OPENAI_API_KEY",
-		kimi: "KIMI_API_KEY",
-		zai: "ZAI_API_KEY",
-		deepseek: "DEEPSEEK_API_KEY",
-		mistral: "MISTRAL_API_KEY",
-		perplexity: "PERPLEXITY_API_KEY"
-	};
-	EXTRA_ENV_OF = { bedrock: ["AWS_SECRET_ACCESS_KEY"] };
-	SECRET_FIELD_NAMES = /* @__PURE__ */ new Set([
-		"value",
-		"credential",
-		"apikey",
-		"api_key",
-		"token",
-		"secret",
-		"password",
-		"auth_token"
-	]);
-	KNOWN_SECRET_VALUES = () => new Set(listKnownEnvVars().map((envVar) => process.env[envVar]).filter(Boolean));
-	MAX_REDACT_DEPTH = 64;
-}));
-//#endregion
 //#region src/agent/turn-steering.js
 init_events();
 init_auth();
@@ -13803,7 +13806,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 									emitTurnEvent(input.sessionKey, "status.update", {
 										kind: "classifier_escalation",
 										name: tname,
-										reason: verdict.reason || null
+										reason: verdict.reason ? redactSecrets(verdict.reason) : null
 									});
 									const decision = await requestApproval(input.sessionKey, {
 										name: tname,
@@ -13853,13 +13856,14 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 								}
 							}
 						}
+						const redactedTargs = redactSecrets(targs);
 						telemetry.toolCall({
 							name: tname,
-							args: targs
+							args: redactedTargs
 						});
 						emitTurnEvent(input.sessionKey, "tool.start", {
 							name: tname,
-							args: redactSecrets(targs),
+							args: redactedTargs,
 							toolCallId: tcid
 						});
 						const ret = await runStep(input.sessionKey, "tool:" + input.iterations + ":" + tcid, async () => {
@@ -14345,15 +14349,16 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
 				states.push("VERIFY");
 				toolResults.push({
 					tool_call_id: m.tool_call_id,
-					content: redactSecrets(typeof m.content === "string" ? m.content : JSON.stringify(m.content))
+					content: typeof m.content === "string" ? redactSecrets(m.content) : JSON.stringify(redactSecrets(m.content))
 				});
 			}
 			if (m.role === "system" && typeof m.content === "string" && /\[trajectory\.compressed\]/.test(m.content)) compressorInvocations += 1;
 		}
 		const ts = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-").replace(/Z$/, "");
 		const slug = (prompt || "turn").slice(0, 40).replace(/[^a-zA-Z0-9-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase();
-		const llmCalls = events.filter((e) => e.type === "llm_call");
-		const streamChunks = events.filter((e) => e.type === "llm_chunk");
+		const redactedEvents = redactSecrets(events);
+		const llmCalls = redactedEvents.filter((e) => e.type === "llm_call");
+		const streamChunks = redactedEvents.filter((e) => e.type === "llm_chunk");
 		const redactedMessages = redactSecrets(out.messages || []);
 		const redactedPrompt = redactSecrets(prompt);
 		const payload = {
@@ -14374,7 +14379,7 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
 			llm_calls: llmCalls,
 			llm_chunks_count: streamChunks.length,
 			compressor_invocations: compressorInvocations,
-			events,
+			events: redactedEvents,
 			messages: redactedMessages
 		};
 		const file = path.join(dir, `${ts}-${slug}.json`);
