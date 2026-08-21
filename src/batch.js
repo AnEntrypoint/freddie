@@ -76,12 +76,23 @@ export function createBatchMachine({ prompts, concurrency, model, callLLM, file 
 
 export async function runBatch({ prompts = [], concurrency = 4, model, callLLM, batchId } = {}) {
     if (!Array.isArray(prompts) || prompts.length === 0) throw new Error('prompts required')
+    // createBatchMachine's running.invoke does
+    // `context.prompts.filter(...).slice(0, context.concurrency)` to pick the
+    // next batch of in-flight prompts. A non-positive concurrency (a caller
+    // bug, or an unvalidated dashboard input — the gui-batch route forwards
+    // whatever number it's given) makes Array.prototype.slice take from the
+    // END of the array instead of the start; at concurrency values <= the
+    // negative of the pending count this yields an empty batch on every
+    // invoke, so `done` never grows and the run hangs forever with no error.
+    // Clamp to a real positive integer here, the single place every caller
+    // (gui-batch, CLI batch, cron) funnels through.
+    const safeConcurrency = Number.isFinite(concurrency) && concurrency > 0 ? Math.floor(concurrency) : 4
     const id = batchId || randomUUID()
     const dir = path.join(getFreddieHome(), 'batches')
     fs.mkdirSync(dir, { recursive: true })
     const file = path.join(dir, id + '.jsonl')
     const machine = createBatchMachine({ model, callLLM })
-    const pa = await createPersistentActor(machine, { kind: 'batch', key: id, input: { id, file, model, concurrency, prompts } })
+    const pa = await createPersistentActor(machine, { kind: 'batch', key: id, input: { id, file, model, concurrency: safeConcurrency, prompts } })
     return await driveBatch(pa)
 }
 

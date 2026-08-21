@@ -4,7 +4,14 @@
 import { getAcptoapiUrl } from '../../../src/agent/acptoapi-bridge.js'
 import { env } from '../../../src/env.js'
 
-function base() { return getAcptoapiUrl().replace(/\/v1\/?$/, '') }
+// getAcptoapiUrl() returns null when FREDDIE_LLM_URL is unset (its own doc
+// comment explicitly warns callers must guard against that) -- the in-process
+// callLLM() path never needs it, but THIS bridge talks to acptoapi's HTTP
+// chain-management API (/v1/chains etc, not exposed by the in-process SDK),
+// so it needs a real base URL regardless. Default to acptoapi's own
+// documented default port (127.0.0.1:4800, per its AGENTS.md) rather than
+// crashing every route in this file with "Cannot read properties of null".
+function base() { return (getAcptoapiUrl() || 'http://127.0.0.1:4800').replace(/\/v1\/?$/, '') }
 const HDR = () => ({ 'content-type': 'application/json', authorization: 'Bearer none' })
 
 async function fwd(url, init) {
