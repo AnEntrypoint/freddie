@@ -30,6 +30,32 @@ export function registerTurn(sessionKey, entry) {
     return entry
 }
 
+// Synchronous claim-before-await: reserves sessionKey in the SAME microtask
+// as the caller's TOCTOU check, closing the window a multi-await preamble
+// (hooks, autoRecall, wire-log search) would otherwise leave open between
+// "is this key free" and "register it". Returns the entry on success, null
+// if the key is already claimed — the caller must check for null and bail
+// immediately, never fall through to the preamble. mergeTurnEntry fills in
+// the remaining fields (actor, control) once the async setup completes.
+export function claimTurn(sessionKey, partialEntry = {}) {
+    if (turns.has(sessionKey)) return null
+    const entry = { actor: null, control: null, pendingApproval: null, pendingQuestion: null, startedAt: Date.now(), ...partialEntry }
+    turns.set(sessionKey, entry)
+    return entry
+}
+
+// Fill in the fields a claimTurn() placeholder didn't have yet (actor,
+// control) once the async preamble finishes. No-op (returns null) if the
+// entry was removed from under us (e.g. unregisterTurn ran concurrently) --
+// callers must treat a null return as "turn no longer live" rather than
+// re-inserting a stale entry.
+export function mergeTurnEntry(sessionKey, fields) {
+    const entry = turns.get(sessionKey)
+    if (!entry) return null
+    Object.assign(entry, fields)
+    return entry
+}
+
 export function getTurn(sessionKey) {
     return turns.get(sessionKey) || null
 }

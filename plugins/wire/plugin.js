@@ -29,7 +29,7 @@ import readline from 'node:readline'
 import { randomUUID } from 'node:crypto'
 import { runTurn } from '../../src/agent/machine.js'
 import { WIRE_VERSION, WIRE_EVENTS, readWireLog } from '../../src/agent/events.js'
-import { subscribeTurn, steerTurn, queueTurn, cancelTurn, revertTurn, resolveApproval, resolveQuestion, requestQuestion, listLiveTurns } from '../../src/agent/live-turns.js'
+import { subscribeTurn, steerTurn, queueTurn, cancelTurn, revertTurn, resolveApproval, resolveQuestion, requestQuestion, listLiveTurns, getTurn } from '../../src/agent/live-turns.js'
 
 const METHODS = ['initialize', 'prompt', 'steer', 'queue', 'cancel', 'revert', 'approve', 'answer', 'replay', 'status']
 
@@ -97,6 +97,18 @@ export async function serveWire({ input = process.stdin, output = process.stdout
                 // subscription is active BEFORE the turn starts and the client
                 // sees the full event sequence from session.created onward.
                 const sid = params.sessionId || randomUUID()
+                // handle(msg) is deliberately unawaited (see the loop below), so a
+                // client sending two 'prompt' frames with the same explicit
+                // sessionId in quick succession (a retry-after-apparent-hang UI
+                // pattern) would otherwise reach runTurn() twice before either
+                // call's own internal claim (machine.js's claimTurn, synchronous
+                // and reached before this handler's first await) resolves the
+                // race -- both branches would still run this function's own
+                // pre-runTurn work (the subs.set below) twice. getTurn is a
+                // synchronous Map read with no await ahead of it, so checking
+                // here closes that window at the wire-protocol's own boundary
+                // instead of relying solely on the deeper machine.js claim.
+                if (getTurn(sid)) return t.error(id, -32000, 'prompt already in flight for this sessionId')
                 if (!subs.has(sid)) subs.set(sid, subscribeTurn(sid, (env) => t.notify('event', env)))
                 const out = await runTurn({
                     prompt: params.text,

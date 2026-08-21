@@ -6,7 +6,7 @@ import { wireHookBridge } from './wire_hooks.js'
 import { loadConfig, getConfigValue } from '../config.js'
 import { telemetry } from '../observability/telemetry.js'
 import { emitTurnEvent } from './events.js'
-import { registerTurn, getTurn, loadApprovalGrants } from './live-turns.js'
+import { claimTurn, mergeTurnEntry, unregisterTurn, getTurn, registerTurn, loadApprovalGrants } from './live-turns.js'
 import { createAgentMachine } from './machine_builder.js'
 import { mergeHookExtras } from './turn_helpers.js'
 import { driveAgentActor } from './turn_driver.js'
@@ -28,6 +28,25 @@ const DEFAULT_APPROVAL_TOOLS = ['bash', 'write', 'edit', 'file_operations', 'cod
 
 export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store, approvalMode = null, approvalTimeoutMs = null } = {}) {
     const events = [];
+    // Atomic claim-before-await: claimTurn's turns.has+turns.set pair runs
+    // synchronously in this same microtask, so it is the actual TOCTOU fix --
+    // a bare getTurn() read-then-later-registerTurn() pairing (the prior
+    // shape) leaves an open window across the ~130-line async preamble below
+    // (hooks, autoRecall, wire-log search) where two concurrent callers for
+    // the same explicit sessionKey (plugins/wire/plugin.js's handle(msg) is
+    // deliberately unawaited, so two rapid 'prompt' frames sharing one
+    // sessionId both pass a pre-preamble check before either registers) both
+    // proceed through the full preamble -- hooks fire twice, wire
+    // session.created/session.start/message.append events emit twice --
+    // before a later registerTurn call finally throws. claimTurn reserves the
+    // key up front so the SECOND caller bails here, before any side effect.
+    // Only meaningful for an explicit sessionKey -- a fresh session
+    // (randomUUID() minted below) can never collide with a concurrent caller.
+    let claimed = null
+    if (sessionKey) {
+        claimed = claimTurn(sessionKey)
+        if (!claimed) return { messages, result: null, error: `turn already live for session ${sessionKey}`, iterations: 0 }
+    }
     // Wire telemetry: load config to check enabled state and configure
     const cfg = loadConfig()
     if (cfg.telemetry?.enabled) {
@@ -49,7 +68,14 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     // down, so this call hit the TDZ, threw a ReferenceError swallowed by its own
     // catch, and task restore silently never ran.
     const key = sessionKey || randomUUID()
-    if (getTurn(key)) return { messages, result: null, error: `turn already live for session ${key}`, iterations: 0 }
+    // A fresh session (no caller-supplied sessionKey) has no claim yet -- claim
+    // it now under its minted key. registerTurn's own guard makes this
+    // effectively unreachable (randomUUID collision), but claiming here keeps
+    // exactly one code path (mergeTurnEntry below) responsible for filling in
+    // the real actor/control, instead of a fresh-session branch and an
+    // explicit-sessionKey branch diverging.
+    if (!claimed) claimed = claimTurn(key)
+    if (!claimed) return { messages, result: null, error: `turn already live for session ${key}`, iterations: 0 }
     // Restore and reconcile tasks from prior sessions so background tasks
     // from a resumed session are properly tracked and stale ones detected.
     try {
@@ -100,7 +126,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     const inbound = await h.hooks.invoke('onMessageInbound', { content: prompt })
     hookEngine.runHooks('onMessageInbound', { sessionKey, cwd }).catch(() => {})
     wireHookBridge.forwardHook('onMessageInbound', { sessionKey, cwd, content: prompt }).catch(() => {})
-    if (inbound?.behavior === 'block') { await h.hooks.invoke('onSessionEnd', { reason: 'prompt_blocked' }); return { messages: initMessages, result: null, error: 'prompt blocked by plugsdk hook: ' + (inbound.reason || 'denied'), iterations: 0 } }
+    if (inbound?.behavior === 'block') { await h.hooks.invoke('onSessionEnd', { reason: 'prompt_blocked' }); unregisterTurn(key); return { messages: initMessages, result: null, error: 'prompt blocked by plugsdk hook: ' + (inbound.reason || 'denied'), iterations: 0 } }
     initMessages = mergeHookExtras(initMessages, inbound, 'onMessageInbound')
     // cwd must reach file-path tool handlers (write/read/edit) via toolCtx, not
     // just the system-prompt text above -- those handlers resolve relative paths
@@ -156,7 +182,16 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     mergedToolCtx.signal = abortController.signal
     const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx: mergedToolCtx, tool_choice, store, control, h, hookEngine, wireHookBridge, signal: abortController.signal })
     const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages }, store })
-    registerTurn(key, { actor: pa.actor, control, pendingApproval: null, pendingQuestion: null, startedAt: Date.now() })
+    // The atomic claim happened synchronously at claimTurn() above, before any
+    // await in this function -- that is the actual TOCTOU fix (see the
+    // claimTurn call site's comment). This call only fills in the fields the
+    // placeholder didn't have yet. A null return means the entry was removed
+    // from under us (unregisterTurn ran concurrently, e.g. a cancel racing
+    // setup) -- surface that as the same "turn no longer live" shape rather
+    // than silently resurrecting a stale entry.
+    if (!mergeTurnEntry(key, { actor: pa.actor, control, abortController })) {
+        return { messages, result: null, error: `turn no longer live for session ${key}`, iterations: 0 }
+    }
     // onTurnStart hook: fire when turn begins
     await h.hooks.invoke('onTurnStart', { sessionKey: key, prompt, model, provider })
     hookEngine.runHooks('onTurnStart', { sessionKey: key, cwd }).catch(() => {})
@@ -174,7 +209,12 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
 // completed or never persisted) — caller falls back to a fresh runTurn.
 export async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, toolCtx = null, store } = {}) {
     if (!sessionKey) throw new Error('resumeTurn requires sessionKey')
-    if (getTurn(sessionKey)) return null
+    // Same atomic-claim-before-await shape as runTurn above: claimTurn's
+    // turns.has+turns.set pair is synchronous, closing the TOCTOU window the
+    // prior getTurn()-then-later-registerTurn() pairing left open across this
+    // function's own await chain (loadApprovalGrants, createPersistentActor).
+    const claimed = claimTurn(sessionKey)
+    if (!claimed) return null
     const events = []; const h = await bootHost()
     const hookEngine = new HookEngine({ config: loadConfig() })
     // wireHookBridge for resumeTurn follows same pattern as runTurn
@@ -207,8 +247,11 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
     // second read that opened a TOCTOU window (a concurrent delete between the two
     // reads made forget() delete a snapshot we had just confirmed). One read only.
     const pa = await createPersistentActor(machine, { kind: 'agent', key: sessionKey, input: { messages: [] }, store })
-    if (!pa.resumed) { await pa.forget(); return null }
-    registerTurn(sessionKey, { actor: pa.actor, control, pendingApproval: null, pendingQuestion: null, startedAt: Date.now() })
+    if (!pa.resumed) { unregisterTurn(sessionKey); await pa.forget(); return null }
+    if (!mergeTurnEntry(sessionKey, { actor: pa.actor, control, abortController })) {
+        await pa.forget()
+        return null
+    }
     // onTurnStart hook: fire when resumed turn begins
     await h.hooks.invoke('onTurnStart', { sessionKey, model, provider })
     hookEngine.runHooks('onTurnStart', { sessionKey, cwd }).catch(() => {})
@@ -216,16 +259,4 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
     return await driveAgentActor({ pa, h, hookEngine, events, prompt: '', provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store, abortController })
 }
 
-export async function invokeCompactHooks({ trigger = 'auto', messages = [] } = {}) {
-    const h = await bootHost()
-    const hookEngine = new HookEngine({ config: loadConfig() })
-    const pre = await h.hooks.invoke('onPreCompact', { trigger, messages })
-    hookEngine.runHooks('onPreCompact', { trigger }).catch(() => {})
-    wireHookBridge.forwardHook('onPreCompact', { trigger }).catch(() => {})
-    if (pre?.behavior === 'block') return { skipped: true, reason: pre.reason || 'blocked' }
-    return { pre, post: async (summary) => {
-        await h.hooks.invoke('onPostCompact', { trigger, messages, summary })
-        hookEngine.runHooks('onPostCompact', { trigger }).catch(() => {})
-        wireHookBridge.forwardHook('onPostCompact', { trigger }).catch(() => {})
-    } }
-}
+export { invokeCompactHooks } from './compact_hooks.js'

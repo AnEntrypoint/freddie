@@ -26,6 +26,8 @@
 
 export {
     registerTurn,
+    claimTurn,
+    mergeTurnEntry,
     getTurn,
     unregisterTurn,
     listLiveTurns,
