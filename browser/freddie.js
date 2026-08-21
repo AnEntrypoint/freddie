@@ -11651,16 +11651,27 @@ async function getProviderAuthState(provider) {
 	};
 }
 function redactSecrets(input) {
-	const known = [...KNOWN_SECRET_VALUES()].filter((v) => v.length >= 8);
+	const known = [...KNOWN_SECRET_VALUES()];
+	const embeddable = known.filter((v) => v.length >= 8);
 	const redactEmbedded = (s) => {
 		let out = s;
-		for (const secret of known) if (out.includes(secret)) out = out.split(secret).join(tokenFingerprint(secret));
+		for (const secret of embeddable) if (out.includes(secret)) out = out.split(secret).join(tokenFingerprint(secret));
 		return out;
 	};
+	const maskAllStrings = (node) => {
+		if (typeof node === "string") return node ? tokenFingerprint(node) : node;
+		if (Array.isArray(node)) return node.map(maskAllStrings);
+		if (node && typeof node === "object") {
+			const out = {};
+			for (const [k, v] of Object.entries(node)) out[k] = maskAllStrings(v);
+			return out;
+		}
+		return node;
+	};
 	const walk = (node, keyHint) => {
+		if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase())) return maskAllStrings(node);
 		if (typeof node === "string") {
 			if (known.includes(node)) return tokenFingerprint(node);
-			if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase()) && node) return tokenFingerprint(node);
 			return redactEmbedded(node);
 		}
 		if (Array.isArray(node)) return node.map((v) => walk(v, keyHint));
@@ -11748,7 +11759,6 @@ var init_auth = __esmMin((() => {
 	};
 	SECRET_FIELD_NAMES = /* @__PURE__ */ new Set([
 		"value",
-		"credential",
 		"apikey",
 		"api_key",
 		"token",
