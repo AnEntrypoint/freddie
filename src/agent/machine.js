@@ -66,10 +66,20 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     if (cwd) sysParts.push(`Working directory: ${cwd}. Always pass cwd="${cwd}" to bash tool calls. When reading or writing files use paths relative to this directory or absolute paths under it.`)
     if (skill) { const sd = h.pi.skills.get(skill); const skillText = sd?.content || sd?.body; if (skillText) sysParts.push('Skill context:\n' + skillText) }
     // Auto-recall on turn entry: surface salient learned memories for this prompt from gm
-    // rs-learn (freddie's primary learning store). Best-effort; never blocks the turn.
+    // rs-learn (freddie's primary learning store). Best-effort; never blocks the turn --
+    // bounded by AUTORECALL_TIMEOUT_MS so a hung/unreachable gm-learn backend degrades to
+    // "no memories surfaced this turn" instead of stalling the whole preamble (live-witnessed:
+    // an unhealthy backend hung this call 20-30+s with no internal timeout of its own, and
+    // this happens BEFORE driveAgentActor's own timeoutMs timer is armed, so runTurn's
+    // configured turn timeout provided zero protection against it).
     try {
         const { autoRecall, projectNamespace } = await import('../learn/gm-learn.js')
-        const hits = await autoRecall(prompt, { limit: 5, namespace: await projectNamespace() })
+        const AUTORECALL_TIMEOUT_MS = 4000
+        let autorecallTimer
+        const hits = await Promise.race([
+            (async () => autoRecall(prompt, { limit: 5, namespace: await projectNamespace() }))().finally(() => clearTimeout(autorecallTimer)),
+            new Promise((_, reject) => { autorecallTimer = setTimeout(() => reject(new Error('autoRecall timeout')), AUTORECALL_TIMEOUT_MS) }),
+        ])
         // Weak models were witnessed answering FROM this block instead of the new
         // user message below it (asked to remember a number, answered a prior
         // turn's unrelated question instead) -- the plain "Relevant memories:"
