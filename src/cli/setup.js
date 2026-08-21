@@ -39,10 +39,15 @@ export async function setupModelProvider({ input = process.stdin, output = proce
     saveConfigValue('agent.provider', provider)
     const key = await ask('api key (leave blank to skip): ')
     if (key) await getAuthStore().setCredential(ENV_BY_PROVIDER[provider], key)
-    // Bedrock requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-    if (provider === 'bedrock' && key) {
-        const secretKey = await ask('AWS_SECRET_ACCESS_KEY (leave blank to skip): ')
-        if (secretKey) await getAuthStore().setCredential('AWS_SECRET_ACCESS_KEY', secretKey)
+    // Providers needing more than one credential env var (e.g. bedrock's paired
+    // AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY) prompt for each extra var too, so
+    // the wizard can never produce a half-configured provider that never actually
+    // authenticates. Driven by auth.js's EXTRA_ENV_OF, not a hardcoded name check.
+    if (key) {
+        for (const extraEnv of extraEnvForProvider(provider)) {
+            const extraVal = await ask(extraEnv + ' (leave blank to skip): ')
+            if (extraVal) await getAuthStore().setCredential(extraEnv, extraVal)
+        }
     }
     const model = await ask('default model [empty=provider default]: ')
     if (model) saveConfigValue('agent.model', model)

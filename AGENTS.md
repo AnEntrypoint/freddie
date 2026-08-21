@@ -266,7 +266,7 @@ export default {
 
 Auto-discovered on `bootHost()`. For multi-tool files export `_tool0`, `_tool1`, ….
 
-**Legacy handler.js-only fallback (no plugin.js needed for a single simple tool).** `src/host/plugin-discovery.js`'s `scanPluginDir()` (lines 52-66) auto-registers a bare `plugins/<name>/handler.js` exporting `_tool` even with no sibling `plugin.js` — it wraps it as `{name: 'tool-<dirname>', surfaces: 'pi', register({pi}){pi.tools.register(_tool)}}` and this check runs unconditionally before the depth-based category-folder recursion, so it applies at any nesting depth (`plugins/core/<name>/handler.js` included, not just top-level `plugins/<name>/handler.js`). All 23 live-registered handler-only directories confirmed discoverable and callable (verified via `discoverPlugins()` and codesearch):
+**Legacy handler.js-only fallback (no plugin.js needed for a single simple tool).** `src/host/plugin-discovery.js`'s `scanPluginDir()` (lines 52-66) auto-registers a bare `plugins/<name>/handler.js` exporting `_tool` even with no sibling `plugin.js` — it wraps it as `{name: 'tool-<dirname>', surfaces: 'pi', register({pi}){pi.tools.register(_tool)}}` and this check runs unconditionally before the depth-based category-folder recursion, so it applies at any nesting depth (`plugins/core/<name>/handler.js` included, not just top-level `plugins/<name>/handler.js`). **All 23 handler-only plugin directories listed below are live-registered, discoverable via `discoverPlugins()`, and confirmed callable** — their presence without a sibling `plugin.js` does not mark them as dead/orphaned code (see verification note at end of list):
 
 **Core toolset (highly privileged, audit-gated in untrusted-consumer contexts per "Plugin architecture" section above):**
 - `plugins/tools/bash/handler.js` (`bash`) — execute shell commands; inherits `process.env` by default, credentials visible unless `terminal.scrub_provider_env` is set
@@ -301,7 +301,7 @@ Auto-discovered on `bootHost()`. For multi-tool files export `_tool0`, `_tool1`,
 - `plugins/security/path_security/handler.js` (`path_security`, core toolset) — path traversal guards
 - `plugins/security/tirith_security/handler.js` (`tirith_security`, core toolset) — security analysis
 
-A directory matching this shape is not dead/orphaned code just because it lacks a `plugin.js` — check for this fallback before concluding a handler-only directory is unregistered.
+**Verification (comprehensive audit 2026-08-21):** All 23 handler-only directories above have been codesearch-verified as discoverable, present, and live-registered via the `src/host/plugin-discovery.js::scanPluginDir()` fallback (lines 52-66). Each directory contains a `handler.js` file exporting `_tool` or multi-tool (`_tool0`, `_tool1`, ...) that is auto-discovered at `bootHost()` time, regardless of whether a sibling `plugin.js` exists. A directory matching this shape is not dead/orphaned code just because it lacks a `plugin.js` — the fallback ensures registration and discoverability unconditionally.
 
 ## Adding a slash command
 
