@@ -45,6 +45,10 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
     const llm = events ? async (input) => {
         const t0 = Date.now()
         try {
+            // preLlmCall hook: fire before LLM call with request metadata
+            if (h?.hooks) await h.hooks.invoke('preLlmCall', { provider, model, messages_count: input.messages?.length || 0, tool_count: input.tools?.length || 0 }).catch(() => {})
+            if (hookEngine) hookEngine.runHooks('preLlmCall', { sessionKey, cwd: toolCtx?.cwd, provider, model, messages_count: input.messages?.length || 0 }).catch(() => {})
+            if (wireHookBridge) wireHookBridge.forwardHook('preLlmCall', { sessionKey, provider, model, messages_count: input.messages?.length || 0 }).catch(() => {})
             // onChunk threads through resolveCallLLM's streaming path; each text
             // delta becomes an assistant.delta wire event (and feeds the
             // trajectory's llm_chunks_count, previously always 0).
