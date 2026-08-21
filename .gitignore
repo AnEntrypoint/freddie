@@ -76,10 +76,8 @@ emperor-penguin.md
 .gm/handoff.md
 .gm/mutables.yml
 .gm/browser-witness.json
-.gm/llm-validation.json
 .gm/*.pid
 .gm/acptoapi-sidecar.*
-.gm/llm-validation.*
 .gm/prd.yml
 .gm/gm.db
 .codeinsight.digest
