@@ -88,10 +88,22 @@ export const _tool = ({
             const child = spawn(sh, [flag, fullCommand], { cwd, env: childEnv })
             let stdout = '', stderr = ''
             const t = setTimeout(() => { try { child.kill('SIGKILL') } catch {} resolve({ exitCode: -1, stdout, stderr: stderr + '\n[timeout]', timedOut: true }) }, timeout_ms)
+            // ctx.signal is the turn's AbortController signal (machine.js) --
+            // fired when the OUTER turn-level timeout elapses, independently of
+            // and potentially far sooner than this handler's own timeout_ms.
+            // Without this, a turn that reports itself timed out left the real
+            // child process running to its own completion with nothing tracking
+            // or able to cancel it.
+            const onAbort = () => { clearTimeout(t); try { child.kill('SIGKILL') } catch {} resolve({ exitCode: -1, stdout, stderr: stderr + '\n[aborted: turn ended]', aborted: true }) }
+            if (ctx.signal) {
+                if (ctx.signal.aborted) onAbort()
+                else ctx.signal.addEventListener('abort', onAbort, { once: true })
+            }
             child.stdout?.on('data', d => stdout += d.toString())
             child.stderr?.on('data', d => stderr += d.toString())
             child.on('close', code => {
                 clearTimeout(t)
+                ctx.signal?.removeEventListener('abort', onAbort)
                 const result = { exitCode: code, stdout, stderr: stderr + cwdNote }
                 // Windows cmd.exe can silently swallow ALL output (exit 0, empty
                 // stdout+stderr) for certain nested-quote one-liners (witnessed:
@@ -105,7 +117,7 @@ export const _tool = ({
                 }
                 resolve(result)
             })
-            child.on('error', e => { clearTimeout(t); resolve({ exitCode: -1, stdout, stderr: stderr + '\n' + e.message }) })
+            child.on('error', e => { clearTimeout(t); ctx.signal?.removeEventListener('abort', onAbort); resolve({ exitCode: -1, stdout, stderr: stderr + '\n' + e.message }) })
         })
     },
 })

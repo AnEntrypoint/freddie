@@ -115,12 +115,37 @@ async function buildModel({ provider, model, inputModel }) {
     return null
 }
 
+// acptoapi's chat()/chatChain()/sdk.sdkStream() accept no `signal` option --
+// confirmed against acptoapi/AGENTS.md's own readiness-prober note ("NOT a
+// `signal` field on sdk.chat opts -- that leaks into the provider body and
+// most brands 400 with 'property signal is unsupported'"), the same
+// constraint acptoapi-bridge.js documents for its own timeout race. So a turn
+// timeout cannot abort the underlying upstream socket through acptoapi; what
+// IS achievable, and what this does, is stop OUR side from continuing to
+// await it — race the real call against the signal's abort event, same shape
+// as acptoapi-bridge.js's existing `_timeout` race, so the turn can end
+// promptly instead of the caller hanging until the provider's own (often much
+// longer) internal timeout elapses.
+function raceAbort(promise, signal) {
+    if (!signal) return promise
+    if (signal.aborted) return Promise.reject(signal.reason || new Error('aborted'))
+    return new Promise((resolve, reject) => {
+        const onAbort = () => reject(signal.reason || new Error('aborted'))
+        signal.addEventListener('abort', onAbort, { once: true })
+        promise.then(
+            v => { signal.removeEventListener('abort', onAbort); resolve(v) },
+            e => { signal.removeEventListener('abort', onAbort); reject(e) },
+        )
+    })
+}
+
 export function resolveCallLLM({ provider, model } = {}) {
     // Fire async extra-provider probe on first call (non-blocking). The sync
     // loadFromCache inside buildAutoChain picks up the previous run's probe
     // cache immediately; this async refresh updates the cache for future turns.
     warmExtraProviders()
     return async (input) => {
+        if (input.signal?.aborted) throw new Error('aborted: ' + (input.signal.reason?.message || input.signal.reason || 'turn aborted before LLM call started'))
         const m = await buildModel({ provider, model, inputModel: input.model })
         if (!m) {
             const status = typeof sdk.getStatus === 'function' ? sdk.getStatus().map(s => `${s.provider}(ok=${s.ok},fails=${s.failCount})`).join(', ') : ''
@@ -130,7 +155,7 @@ export function resolveCallLLM({ provider, model } = {}) {
             const isSimple = typeof m === 'string' && !m.includes(',') && !/^queue\//.test(m)
 
             if (isSimple && await cachedReachable()) {
-                return await bridgeCall({ ...input, model: m })
+                return await raceAbort(bridgeCall({ ...input, model: m }), input.signal)
             }
 
             // fallbackOn list mirrors acptoapi/lib/named-chains.js FALLBACK_ON.
@@ -150,7 +175,7 @@ export function resolveCallLLM({ provider, model } = {}) {
                 // Browser/no-sdk context: fall back to acptoapi-bridge's in-process
                 // call (may be a no-op/broken in true browser bundles since acptoapi
                 // is externalized for vite -- unverified post-rewrite, see build:browser).
-                return await bridgeCall({ ...input, model: m })
+                return await raceAbort(bridgeCall({ ...input, model: m }), input.signal)
             }
             // Streaming path: when the caller wants deltas (GUI workspace / REPL
             // progress), use the chain-aware sdkStream with the same opts and take
@@ -176,7 +201,13 @@ export function resolveCallLLM({ provider, model } = {}) {
                 try {
                     let text = ''
                     const tool_calls = []
+                    // sdk.sdkStream() returns an async iterator, not a plain Promise
+                    // -- raceAbort can't wrap it directly, so the abort check lives
+                    // inside the loop body itself: a signal fired mid-stream breaks
+                    // out on the next chunk instead of draining to the provider's
+                    // own completion with nothing left reading the result.
                     for await (const ev of sdk.sdkStream({ ...opts, output: 'events' })) {
+                        if (input.signal?.aborted) throw (input.signal.reason || new Error('aborted'))
                         if (ev?.type === 'text-delta' && ev.textDelta) { text += ev.textDelta; input.onChunk(ev.textDelta) }
                         else if (ev?.type === 'tool-call') {
                             const args = ev.args ?? ev.input ?? {}
@@ -185,9 +216,12 @@ export function resolveCallLLM({ provider, model } = {}) {
                         else if (ev?.type === 'finish-step' || ev?.type === 'finish') break
                     }
                     return adapt({ choices: [{ message: { content: text, tool_calls } }], provider: m.split('/')[0], model: m })
-                } catch { /* swallow: fall through to buffered chat */ }
+                } catch (e) {
+                    if (input.signal?.aborted) throw (input.signal.reason || e)
+                    /* swallow: fall through to buffered chat */
+                }
             }
-            const r = await sdk.chat(opts)
+            const r = await raceAbort(sdk.chat(opts), input.signal)
             return adapt(r)
         } catch (e) {
             if (/queue not found or empty/i.test(e.message)) throw e
