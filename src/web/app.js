@@ -42,16 +42,20 @@ function notify(msg, tone = 'error') {
 if (typeof window !== 'undefined') window.__fd_notify = notify;
 
 async function refreshSampler() {
+    let next;
     try {
         const j = await fetch('/api/models/sampler').then(r => r.json());
         const ents = Object.values(j.status || {});
-        const next = { total: ents.length, ok: ents.filter(s => s && s.available !== false).length, bad: ents.filter(s => s && s.available === false).length, error: false };
-        // Only rerender if the sampler data actually changed.
-        if (next.total !== state.sampler.total || next.ok !== state.sampler.ok || next.bad !== state.sampler.bad) {
-            state.sampler = next;
-            rerender();
-        }
-    } catch { state.sampler = { ok: 0, bad: 0, total: 0, error: true }; }
+        next = { total: ents.length, ok: ents.filter(s => s && s.available !== false).length, bad: ents.filter(s => s && s.available === false).length, error: false };
+    } catch {
+        next = { ok: 0, bad: 0, total: 0, error: true };
+    }
+    // Only rerender if the sampler data actually changed (covers the error branch too,
+    // so a transient poll failure repaints the status bar instead of leaving a stale view).
+    if (next.total !== state.sampler.total || next.ok !== state.sampler.ok || next.bad !== state.sampler.bad || next.error !== state.sampler.error) {
+        state.sampler = next;
+        rerender();
+    }
 }
 await refreshSampler();
 setInterval(refreshSampler, 15000);

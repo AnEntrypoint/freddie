@@ -75,8 +75,15 @@ export default {
       const sessionId = data?.sessionId;
       for (const [ws, subs] of clients) {
         if (ws.readyState !== 1) continue;
-        // Match: wildcard (empty set or contains '*') or explicit sessionId match
-        if (subs.size === 0 || subs.has('*') || (sessionId && subs.has(sessionId))) {
+        // Match: explicit '*' wildcard, or an explicit sessionId match. An
+        // empty subs set means the client hasn't subscribed to anything yet
+        // and must NOT be treated as "subscribed to everything" -- this
+        // socket has no auth (see src/web/server.js's loopback-only-bind
+        // comment), so defaulting an unsubscribed connection to the full
+        // event firehose would leak every session's live transcript to any
+        // local process/tab that opens the socket without ever sending a
+        // subscribe message.
+        if (subs.has('*') || (sessionId && subs.has(sessionId))) {
           try { ws.send(payload); } catch { /* ignore send errors */ }
         }
       }
