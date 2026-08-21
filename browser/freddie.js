@@ -10921,7 +10921,21 @@ var init_web = __esmMin((() => {
 }));
 //#endregion
 //#region src/db.js
-async function db() {
+function isBusyError(e) {
+	return e?.code === "SQLITE_BUSY" || e?.code === "SQLITE_LOCKED";
+}
+async function withBusyRetry(fn) {
+	let lastErr;
+	for (let attempt = 0; attempt <= BUSY_RETRY_ATTEMPTS; attempt++) try {
+		return await fn();
+	} catch (e) {
+		lastErr = e;
+		if (!isBusyError(e) || attempt === BUSY_RETRY_ATTEMPTS) throw e;
+		await new Promise((r) => setTimeout(r, BUSY_RETRY_BASE_MS * (attempt + 1)));
+	}
+	throw lastErr;
+}
+async function db$1() {
 	if (_db) return _db;
 	if (_dbPromise) return await _dbPromise;
 	_dbPromise = (async () => {
@@ -10940,7 +10954,20 @@ async function db() {
 	})();
 	return await _dbPromise;
 }
-var _db, _dbPromise, DB_PATH, USE_MEMORY_DB, DbAdapter, PreparedStatement;
+async function closeDb$1() {
+	if (_db) {
+		await _db.close();
+		_db = null;
+	}
+	_dbPromise = null;
+}
+async function resetForTests$1() {
+	if (_db) await _db.clearAll();
+	await closeDb$1();
+	_db = null;
+	_dbPromise = null;
+}
+var _db, _dbPromise, DB_PATH, USE_MEMORY_DB, BUSY_RETRY_ATTEMPTS, BUSY_RETRY_BASE_MS, DbAdapter, PreparedStatement;
 var init_db = __esmMin((() => {
 	init_web();
 	init_home();
@@ -10949,6 +10976,8 @@ var init_db = __esmMin((() => {
 	_dbPromise = null;
 	DB_PATH = () => path.join(getFreddieHome(), "state", "sessions.db");
 	USE_MEMORY_DB = () => env("FREDDIE_TEST_DB") === "memory";
+	BUSY_RETRY_ATTEMPTS = 3;
+	BUSY_RETRY_BASE_MS = 50;
 	DbAdapter = class {
 		constructor(client, dbPath) {
 			this.client = client;
@@ -10959,24 +10988,20 @@ var init_db = __esmMin((() => {
 			return new PreparedStatement(this.client, sql);
 		}
 		async exec(sql) {
-			try {
-				const statements = sql.split(";").filter((s) => s.trim());
-				const results = [];
-				for (const stmt of statements) if (stmt.trim()) {
-					const result = await this.client.execute({ sql: stmt.trim() });
-					results.push(result);
-				}
-				return results;
-			} catch (e) {
-				throw e;
+			const statements = sql.split(";").filter((s) => s.trim());
+			const results = [];
+			for (const stmt of statements) if (stmt.trim()) {
+				const result = await withBusyRetry(() => this.client.execute({ sql: stmt.trim() }));
+				results.push(result);
 			}
+			return results;
 		}
 		async run(...args) {
 			const [sql, ...params] = args;
-			const result = await this.client.execute({
+			const result = await withBusyRetry(() => this.client.execute({
 				sql,
 				args: params
-			});
+			}));
 			return {
 				changes: result.rowsAffected,
 				lastInsertRowid: result.lastInsertRowid ? BigInt(result.lastInsertRowid) : 0n
@@ -11023,10 +11048,10 @@ var init_db = __esmMin((() => {
 		}
 		async run(...params) {
 			const p = Array.isArray(params[0]) ? params[0] : params;
-			const result = await this.client.execute({
+			const result = await withBusyRetry(() => this.client.execute({
 				sql: this.sql,
 				args: p
-			});
+			}));
 			return {
 				changes: result.rowsAffected,
 				lastInsertRowid: result.lastInsertRowid ? BigInt(result.lastInsertRowid) : 0n
@@ -11034,10 +11059,10 @@ var init_db = __esmMin((() => {
 		}
 		async get(...params) {
 			const p = Array.isArray(params[0]) ? params[0] : params;
-			const result = await this.client.execute({
+			const result = await withBusyRetry(() => this.client.execute({
 				sql: this.sql,
 				args: p
-			});
+			}));
 			if (!result.rows || result.rows.length === 0) return null;
 			const row = result.rows[0];
 			const obj = {};
@@ -11048,10 +11073,10 @@ var init_db = __esmMin((() => {
 		}
 		async all(...params) {
 			const p = Array.isArray(params[0]) ? params[0] : params;
-			const result = await this.client.execute({
+			const result = await withBusyRetry(() => this.client.execute({
 				sql: this.sql,
 				args: p
-			});
+			}));
 			if (!result.rows || result.rows.length === 0) return [];
 			return result.rows.map((row) => {
 				const obj = {};
@@ -11065,10 +11090,15 @@ var init_db = __esmMin((() => {
 }));
 //#endregion
 //#region src/machines/snapshot-store.js
-init_db();
-init_log();
-var log$7 = logger("snapshot-store");
-var SNAPSHOT_SCHEMA_VERSION = 1;
+var snapshot_store_exports = /* @__PURE__ */ __exportAll({
+	SNAPSHOT_SCHEMA_VERSION: () => 1,
+	clear: () => clear,
+	createLibsqlSnapshotStore: () => createLibsqlSnapshotStore,
+	list: () => list,
+	load: () => load,
+	persist: () => persist,
+	sweepDone: () => sweepDone
+});
 function createLibsqlSnapshotStore() {
 	return {
 		persist,
@@ -11078,9 +11108,8 @@ function createLibsqlSnapshotStore() {
 		sweepDone
 	};
 }
-var _inited$1 = false;
 async function init$1() {
-	const d = await db();
+	const d = await db$1();
 	if (!_inited$1) {
 		await d.exec(`CREATE TABLE IF NOT EXISTS machine_snapshots (
             kind TEXT NOT NULL,
@@ -11193,8 +11222,17 @@ async function list({ kind = null, status = "active" } = {}) {
 async function sweepDone() {
 	return { removed: (await (await init$1()).prepare(`DELETE FROM machine_snapshots WHERE status != 'active'`).run()).changes };
 }
+var log$7, SNAPSHOT_SCHEMA_VERSION, _inited$1;
+var init_snapshot_store = __esmMin((() => {
+	init_db();
+	init_log();
+	log$7 = logger("snapshot-store");
+	SNAPSHOT_SCHEMA_VERSION = 1;
+	_inited$1 = false;
+}));
 //#endregion
 //#region src/machines/persistent-actor.js
+init_snapshot_store();
 init_log();
 var log$6 = logger("persistent-actor");
 function redactSensitive(context) {
@@ -11705,6 +11743,173 @@ var init_event_bus = __esmMin((() => {
 	listeners$1 = /* @__PURE__ */ new Map();
 }));
 //#endregion
+//#region src/sessions.js
+var sessions_exports = /* @__PURE__ */ __exportAll({
+	appendMessage: () => appendMessage,
+	closeDb: () => closeDb,
+	createSession: () => createSession,
+	deleteSession: () => deleteSession,
+	getMessages: () => getMessages,
+	getSession: () => getSession,
+	listSessions: () => listSessions,
+	purgeSessionMessages: () => purgeSessionMessages,
+	resetForTests: () => resetForTests,
+	search: () => search,
+	setSessionTitle: () => setSessionTitle
+});
+async function initDb() {
+	const d = await db$1();
+	if (_initialized) return d;
+	_initialized = true;
+	await d.exec(`
+        CREATE TABLE IF NOT EXISTS sessions (
+            id TEXT PRIMARY KEY,
+            platform TEXT, user_id TEXT, chat_id TEXT, thread_id TEXT,
+            title TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, model TEXT,
+            cwd TEXT, skill TEXT, parent_id TEXT
+        );
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL, role TEXT NOT NULL, content TEXT,
+            tool_calls TEXT, tool_call_id TEXT, ts INTEGER NOT NULL,
+            FOREIGN KEY(session_id) REFERENCES sessions(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_msg_session ON messages(session_id, ts);
+    `);
+	for (const col of [
+		"cwd",
+		"skill",
+		"parent_id"
+	]) try {
+		await d.exec(`ALTER TABLE sessions ADD COLUMN ${col} TEXT`);
+	} catch {}
+	try {
+		await d.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(content, session_id UNINDEXED, content='messages', content_rowid='id')`);
+		await d.prepare(`CREATE TRIGGER IF NOT EXISTS messages_ai AFTER INSERT ON messages BEGIN INSERT INTO messages_fts(rowid, content, session_id) VALUES (new.id, new.content, new.session_id); END`).run();
+	} catch (e) {
+		console.log("[sessions.js] FTS5 creation failed:", e.message);
+	}
+	return d;
+}
+async function db() {
+	return await initDb();
+}
+async function createSession({ platform = "cli", userId = null, chatId = null, threadId = null, title = null, model = null, cwd = null, skill = null, parentId = null, id = null } = {}) {
+	const d = await db();
+	const sid = id || randomUUID();
+	const now = Date.now();
+	if (id) {
+		await d.prepare(`INSERT OR IGNORE INTO sessions (id, platform, user_id, chat_id, thread_id, title, created_at, updated_at, model, cwd, skill, parent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(sid, platform, userId, chatId, threadId, title, now, now, model, cwd, skill, parentId);
+		return sid;
+	}
+	await d.prepare(`INSERT INTO sessions (id, platform, user_id, chat_id, thread_id, title, created_at, updated_at, model, cwd, skill, parent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(sid, platform, userId, chatId, threadId, title, now, now, model, cwd, skill, parentId);
+	return sid;
+}
+async function appendMessage(sessionId, { role, content = "", toolCalls = null, toolCallId = null }) {
+	const d = await db();
+	const now = Date.now();
+	const info = await d.prepare(`INSERT INTO messages (session_id, role, content, tool_calls, tool_call_id, ts) VALUES (?, ?, ?, ?, ?, ?)`).run(sessionId, role, content, toolCalls ? JSON.stringify(toolCalls) : null, toolCallId, now);
+	await d.prepare(`UPDATE sessions SET updated_at = ? WHERE id = ?`).run(now, sessionId);
+	if (role === "user" && content) {
+		const title = content.replace(/\s+/g, " ").trim().slice(0, 60);
+		if (title) await d.prepare(`UPDATE sessions SET title = ? WHERE id = ? AND (title IS NULL OR title = '')`).run(title, sessionId);
+	}
+	return info.lastInsertRowid;
+}
+async function getMessages(sessionId) {
+	return (await (await db()).prepare(`SELECT id, role, content, tool_calls, tool_call_id, ts FROM messages WHERE session_id = ? ORDER BY ts ASC, id ASC LIMIT ?`).all(sessionId, MAX_SESSION_MESSAGES)).map((r) => {
+		let tool_calls = null;
+		let tool_calls_corrupted = false;
+		if (r.tool_calls) try {
+			tool_calls = JSON.parse(r.tool_calls);
+		} catch (e) {
+			console.error("sessions.js: corrupted tool_calls, treating as null", {
+				id: r.id,
+				error: String(e)
+			});
+			tool_calls_corrupted = true;
+		}
+		return {
+			...r,
+			tool_calls,
+			...tool_calls_corrupted ? { tool_calls_corrupted: true } : {}
+		};
+	});
+}
+async function listSessions(limit = 50, { sessionId = null } = {}) {
+	const d = await db();
+	if (sessionId) return await d.prepare(`SELECT id, platform, title, created_at, updated_at, model, cwd, skill, parent_id FROM sessions WHERE id = ? ORDER BY updated_at DESC LIMIT ?`).all(sessionId, limit);
+	return await d.prepare(`SELECT id, platform, title, created_at, updated_at, model, cwd, skill, parent_id FROM sessions ORDER BY updated_at DESC LIMIT ?`).all(limit);
+}
+async function getSession(id) {
+	return await (await db()).prepare(`SELECT id, platform, title, created_at, updated_at, model, cwd, skill, parent_id FROM sessions WHERE id = ?`).get(id) || null;
+}
+async function deleteSession(id) {
+	const d = await db();
+	const info = await d.transaction(async () => {
+		await d.prepare(`DELETE FROM messages WHERE session_id = ?`).run(id);
+		try {
+			await d.prepare(`INSERT INTO messages_fts(messages_fts) VALUES('rebuild')`).run();
+		} catch {}
+		return await d.prepare(`DELETE FROM sessions WHERE id = ?`).run(id);
+	})();
+	return {
+		id,
+		deleted: (info.changes ?? info.rowsAffected ?? 0) > 0
+	};
+}
+async function purgeSessionMessages(id) {
+	const d = await db();
+	const info = await d.transaction(async () => {
+		const info = await d.prepare(`DELETE FROM messages WHERE session_id = ?`).run(id);
+		try {
+			await d.prepare(`INSERT INTO messages_fts(messages_fts) VALUES('rebuild')`).run();
+		} catch {}
+		return info;
+	})();
+	return {
+		id,
+		deleted: info.changes ?? info.rowsAffected ?? 0
+	};
+}
+async function setSessionTitle(id, title) {
+	await (await db()).prepare(`UPDATE sessions SET title = ? WHERE id = ?`).run(title, id);
+	return {
+		id,
+		title
+	};
+}
+function escapeFtsQuery(query) {
+	return "\"" + String(query).replace(/"/g, "\"\"") + "\"";
+}
+async function search(query, { sessionId = null, limit = 20 } = {}) {
+	const d = await db();
+	const likePattern = `%${query}%`;
+	const ftsQuery = escapeFtsQuery(query);
+	try {
+		const ftsResult = sessionId ? await d.prepare(`SELECT m.id, m.session_id, m.content FROM messages_fts f JOIN messages m ON m.id = f.rowid WHERE messages_fts MATCH ? AND m.session_id = ? ORDER BY rank LIMIT ?`).all(ftsQuery, sessionId, limit) : await d.prepare(`SELECT m.id, m.session_id, m.content FROM messages_fts f JOIN messages m ON m.id = f.rowid WHERE messages_fts MATCH ? ORDER BY rank LIMIT ?`).all(ftsQuery, limit);
+		if (ftsResult && ftsResult.length > 0) {
+			ftsResult.searchMode = "fts";
+			return ftsResult;
+		}
+	} catch (e) {}
+	const likeResult = sessionId ? await d.prepare(`SELECT id, session_id, content FROM messages WHERE content LIKE ? AND session_id = ? ORDER BY ts DESC LIMIT ?`).all(likePattern, sessionId, limit) : await d.prepare(`SELECT id, session_id, content FROM messages WHERE content LIKE ? ORDER BY ts DESC LIMIT ?`).all(likePattern, limit);
+	likeResult.searchMode = "like";
+	return likeResult;
+}
+function closeDb() {
+	return closeDb$1();
+}
+function resetForTests() {
+	return resetForTests$1();
+}
+var _initialized, MAX_SESSION_MESSAGES;
+var init_sessions = __esmMin((() => {
+	init_db();
+	_initialized = false;
+	MAX_SESSION_MESSAGES = 5e4;
+}));
+//#endregion
 //#region src/agent/events.js
 var events_exports = /* @__PURE__ */ __exportAll({
 	WIRE_EVENTS: () => WIRE_EVENTS,
@@ -11786,7 +11991,37 @@ function readWireLog(sessionId, { limit = 0 } = {}) {
 	}
 	return limit > 0 ? out.slice(-limit) : out;
 }
-function searchWireLogs(query, { limit = 5, maxFiles = 50, maxSpan = 400 } = {}) {
+function readWireLogTail(sessionId, maxBytes) {
+	const p = wireLogPath(sessionId);
+	let fd;
+	try {
+		const stat = fs.statSync(p);
+		const start = Math.max(0, stat.size - maxBytes);
+		fd = fs.openSync(p, "r");
+		const buf = Buffer.alloc(stat.size - start);
+		fs.readSync(fd, buf, 0, buf.length, start);
+		let text = buf.toString("utf8");
+		if (start > 0) {
+			const nl = text.indexOf("\n");
+			text = nl >= 0 ? text.slice(nl + 1) : "";
+		}
+		const out = [];
+		for (const line of text.split("\n")) {
+			if (!line.trim()) continue;
+			try {
+				out.push(JSON.parse(line));
+			} catch {}
+		}
+		return out;
+	} catch {
+		return [];
+	} finally {
+		if (fd !== void 0) try {
+			fs.closeSync(fd);
+		} catch {}
+	}
+}
+function searchWireLogs(query, { limit = 5, maxFiles = 50, maxSpan = 400, maxBytesPerFile = 262144 } = {}) {
 	const terms = String(query || "").toLowerCase().split(/[^a-z0-9_]+/).filter((t) => t.length > 3);
 	if (!terms.length) return [];
 	let files;
@@ -11801,7 +12036,7 @@ function searchWireLogs(query, { limit = 5, maxFiles = 50, maxSpan = 400 } = {})
 	const hits = [];
 	for (const { f } of files) {
 		const sid = f.slice(0, -6);
-		for (const env of readWireLog(sid)) {
+		for (const env of readWireLogTail(sid, maxBytesPerFile)) {
 			if (env.event !== "message.append" && env.event !== "steer.append") continue;
 			const text = String(env.data?.content ?? env.data?.text ?? "");
 			const lower = text.toLowerCase();
@@ -11846,7 +12081,7 @@ function transcriptFromWire(sessionId, { limit = 1e3 } = {}) {
 	}
 	return msgs;
 }
-function forkWireLog(sessionId, { atIndex = null, newSessionId = null } = {}) {
+async function forkWireLog(sessionId, { atIndex = null, newSessionId = null } = {}) {
 	const events = readWireLog(sessionId);
 	if (!events.length) return null;
 	const sid = newSessionId || randomUUID();
@@ -11857,6 +12092,24 @@ function forkWireLog(sessionId, { atIndex = null, newSessionId = null } = {}) {
 		...e,
 		sessionId: sid
 	})).join("\n") + "\n");
+	try {
+		const { createSession, getSession, appendMessage } = await Promise.resolve().then(() => (init_sessions(), sessions_exports));
+		const source = await getSession(sessionId).catch(() => null);
+		if (!await getSession(sid).catch(() => null)) await createSession({
+			id: sid,
+			platform: source?.platform || "web",
+			title: "fork of " + (source?.title || sessionId.slice(0, 8)),
+			cwd: source?.cwd || null,
+			model: source?.model || null,
+			parentId: sessionId
+		});
+		for (const m of transcriptFromWire(sid)) await appendMessage(sid, {
+			role: m.role,
+			content: m.content,
+			toolCalls: m.tool_calls || null,
+			toolCallId: m.tool_call_id || null
+		});
+	} catch {}
 	return sid;
 }
 function truncateWireLog(sessionId, keepCount) {
@@ -11904,13 +12157,24 @@ init_telemetry();
 init_events();
 var turns = /* @__PURE__ */ new Map();
 var toolCounts = /* @__PURE__ */ new Map();
-function registerTurn(sessionKey, entry) {
-	if (turns.has(sessionKey)) throw new Error(`turn already live for session ${sessionKey}`);
+function claimTurn(sessionKey, partialEntry = {}) {
+	if (turns.has(sessionKey)) return null;
+	const entry = {
+		actor: null,
+		control: null,
+		pendingApproval: null,
+		pendingQuestion: null,
+		startedAt: Date.now(),
+		...partialEntry
+	};
 	turns.set(sessionKey, entry);
 	return entry;
 }
-function getTurn(sessionKey) {
-	return turns.get(sessionKey) || null;
+function mergeTurnEntry(sessionKey, fields) {
+	const entry = turns.get(sessionKey);
+	if (!entry) return null;
+	Object.assign(entry, fields);
+	return entry;
 }
 function unregisterTurn(sessionKey) {
 	const t = turns.get(sessionKey);
@@ -12089,8 +12353,15 @@ init_events();
 init_auth();
 //#endregion
 //#region src/machines/step-journal.js
+var step_journal_exports = /* @__PURE__ */ __exportAll({
+	clearSteps: () => clearSteps,
+	createLibsqlStepStore: () => createLibsqlStepStore,
+	isStepDone: () => isStepDone,
+	listSteps: () => listSteps,
+	runStep: () => runStep
+});
 async function init() {
-	const d = await db();
+	const d = await db$1();
 	if (!_inited) {
 		await d.exec(`CREATE TABLE IF NOT EXISTS step_results (
             session_key TEXT NOT NULL,
@@ -12112,7 +12383,7 @@ async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, des
 	});
 	if (!sessionKey || !stepId) return await fn();
 	const d = await init();
-	const lockKey = sessionKey + "\0" + stepId;
+	const lockKey = sessionKey + " " + stepId;
 	if (_inflight.has(lockKey)) return await _inflight.get(lockKey);
 	const exec = (async () => {
 		const row = await d.prepare(`SELECT status, result_json FROM step_results WHERE session_key = ? AND step_id = ?`).get(sessionKey, stepId);
@@ -12126,9 +12397,12 @@ async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, des
 			});
 			await d.prepare(`DELETE FROM step_results WHERE session_key = ? AND step_id = ?`).run(sessionKey, stepId);
 		}
+		const claimTs = Date.now();
 		await d.prepare(`INSERT INTO step_results (session_key, step_id, status, started, done)
             VALUES (?, ?, 'started', ?, NULL)
-            ON CONFLICT(session_key, step_id) DO UPDATE SET status='started', started=excluded.started, done=NULL`).run(sessionKey, stepId, Date.now());
+            ON CONFLICT(session_key, step_id) DO UPDATE SET status='started', started=excluded.started, done=NULL`).run(sessionKey, stepId, claimTs);
+		const claimCheck = await d.prepare(`SELECT started FROM step_results WHERE session_key = ? AND step_id = ?`).get(sessionKey, stepId);
+		if (claimCheck && Number(claimCheck.started) !== claimTs) throw new Error(`runStep: lost cross-process claim race for ${sessionKey}/${stepId} -- another process's concurrent runStep call is executing this step`);
 		const result = await fn();
 		let json;
 		try {
@@ -12196,20 +12470,12 @@ async function getEnabledToolSchemas(enabled = ["core"], disabled = []) {
 }
 //#endregion
 //#region src/agent/acptoapi_config.js
-init_log();
-var log$3 = logger("acptoapi");
-var envVal = (k) => {
-	try {
-		return typeof process !== "undefined" && process.env ? process.env[k] : void 0;
-	} catch {
-		return;
-	}
-};
-var ACPTOAPI_TIMEOUT_MS = Number(envVal("FREDDIE_LLM_TIMEOUT_MS")) || 24e4;
+function getAcptoapiUrl() {
+	return envVal("FREDDIE_LLM_URL") || null;
+}
 function getAcptoapiModel(defaultModel = null) {
 	return envVal("FREDDIE_LLM_MODEL") || defaultModel || null;
 }
-var _acptoapi = null;
 async function getAcptoapi() {
 	if (!_acptoapi) {
 		const mod = await import("acptoapi");
@@ -12230,7 +12496,6 @@ async function resolveChainLinks(acptoapi, useModel) {
 		return useModel;
 	}
 }
-var REACHABILITY_PROBE_TIMEOUT_MS = Number(envVal("ACPTOAPI_REACHABILITY_PROBE_TIMEOUT_MS")) || 45e3;
 async function isReachable(timeoutMs = REACHABILITY_PROBE_TIMEOUT_MS, model = null) {
 	try {
 		const acptoapi = await getAcptoapi();
@@ -12254,6 +12519,21 @@ async function isReachable(timeoutMs = REACHABILITY_PROBE_TIMEOUT_MS, model = nu
 		return false;
 	}
 }
+var log$3, envVal, ACPTOAPI_TIMEOUT_MS, _acptoapi, REACHABILITY_PROBE_TIMEOUT_MS;
+var init_acptoapi_config = __esmMin((() => {
+	init_log();
+	log$3 = logger("acptoapi");
+	envVal = (k) => {
+		try {
+			return typeof process !== "undefined" && process.env ? process.env[k] : void 0;
+		} catch {
+			return;
+		}
+	};
+	ACPTOAPI_TIMEOUT_MS = Number(envVal("FREDDIE_LLM_TIMEOUT_MS")) || 24e4;
+	_acptoapi = null;
+	REACHABILITY_PROBE_TIMEOUT_MS = Number(envVal("ACPTOAPI_REACHABILITY_PROBE_TIMEOUT_MS")) || 45e3;
+}));
 //#endregion
 //#region src/agent/tool_call_text.js
 function randId() {
@@ -12444,22 +12724,12 @@ function parseTextToolCalls(content) {
 	if (bareObject.length) return bareObject;
 	return parseNameFollowedByJsonObject(content);
 }
+var init_tool_call_text = __esmMin((() => {}));
 //#endregion
 //#region src/agent/acptoapi_format.js
 function forcedToolChoiceMissed(tool_choice, hasTools, adapted) {
 	return (tool_choice === "required" || tool_choice?.type === "required") && hasTools && !adapted.tool_calls.length;
 }
-var TOOL_REFUSAL_MARKERS = [
-	"don't have the tools",
-	"do not have the tools",
-	"don't have access to",
-	"do not have access to",
-	"unable to access the",
-	"i cannot call",
-	"i can't call",
-	"no tool available",
-	"lack the necessary tools"
-];
 function isLikelyToolRefusal(text) {
 	if (!text) return false;
 	const norm = String(text).toLowerCase().replace(/\s+/g, " ").trim();
@@ -12530,6 +12800,21 @@ function tryParseJson(s) {
 		return {};
 	}
 }
+var TOOL_REFUSAL_MARKERS;
+var init_acptoapi_format = __esmMin((() => {
+	init_tool_call_text();
+	TOOL_REFUSAL_MARKERS = [
+		"don't have the tools",
+		"do not have the tools",
+		"don't have access to",
+		"do not have access to",
+		"unable to access the",
+		"i cannot call",
+		"i can't call",
+		"no tool available",
+		"lack the necessary tools"
+	];
+}));
 //#endregion
 //#region src/agent/acptoapi-bridge.js
 async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } = {}) {
@@ -12591,14 +12876,183 @@ async function callLLM({ messages, tools = [], model, tool_choice, cwd = null } 
 	}
 	return adapted;
 }
+var init_acptoapi_bridge = __esmMin((() => {
+	init_acptoapi_config();
+	init_acptoapi_format();
+}));
 //#endregion
 //#region src/models/discovery.js
-init_config$1();
-init_log();
-_sdkNs && _sdkNs.default;
-var MATRIX_FILE = path.resolve(new URL(".", "" + import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), "..", "..", ".gm", "model-availability.json");
+var discovery_exports = /* @__PURE__ */ __exportAll({
+	MATRIX_FILE: () => MATRIX_FILE,
+	clearModelsDevCache: () => clearModelsDevCache,
+	contextLengthForModel: () => contextLengthForModel,
+	discoverAndPersist: () => discoverAndPersist,
+	discoverModels: () => discoverModels,
+	fetchModelsDev: () => fetchModelsDev,
+	findModelDev: () => findModelDev,
+	flattenForOpenAI: () => flattenForOpenAI,
+	listKnownProviders: () => listKnownProviders,
+	loadMatrix: () => loadMatrix,
+	matrixUsable: () => matrixUsable
+});
+function listKnownProviders() {
+	const cached = getConfigValue("agent.discovered_models", {}) || {};
+	return [.../* @__PURE__ */ new Set([
+		...Object.keys(cached),
+		...Object.keys(_sdk.PROVIDER_KEYS || {}),
+		...NON_KEY_PROVIDERS
+	])];
+}
+async function discoverModels({ provider } = {}) {
+	const url = getAcptoapiUrl();
+	if (!url) throw new Error("FREDDIE_LLM_URL must be set for this adapter (acptoapi is in-process only otherwise)");
+	const base = url.replace(/\/v1\/?$/, "");
+	try {
+		const r = await fetch(base + "/v1/models", {
+			headers: { authorization: "Bearer none" },
+			signal: AbortSignal.timeout(1e4)
+		});
+		if (!r.ok) {
+			const text = await r.text();
+			log$2.warn("discover failed", {
+				status: r.status,
+				body: text.slice(0, 200)
+			});
+			return {};
+		}
+		const json = await r.json();
+		const byProvider = {};
+		for (const m of json.data || []) {
+			const id = m.id || "";
+			const slash = id.indexOf("/");
+			if (slash <= 0) continue;
+			const p = id.slice(0, slash);
+			const modelName = id.slice(slash + 1);
+			if (provider && p !== provider) continue;
+			byProvider[p] = byProvider[p] || {
+				provider: p,
+				models: [],
+				last_ok_at: Date.now()
+			};
+			byProvider[p].models.push(modelName);
+		}
+		log$2.info("discovered", { count: Object.keys(byProvider).length });
+		return byProvider;
+	} catch (e) {
+		log$2.warn("discover error", { error: e.message });
+		return {};
+	}
+}
+async function discoverAndPersist({ provider } = {}) {
+	const result = await discoverModels({ provider });
+	const merged = { ...getConfigValue("agent.discovered_models", {}) || {} };
+	for (const [p, r] of Object.entries(result)) if (!r.error) merged[p] = {
+		models: r.models,
+		last_ok_at: r.last_ok_at
+	};
+	saveConfigValue("agent.discovered_models", merged);
+	return result;
+}
+function flattenForOpenAI() {
+	const cached = getConfigValue("agent.discovered_models", {}) || {};
+	const queues = getConfigValue("agent.model_queues", {}) || {};
+	const data = [];
+	for (const [provider, info] of Object.entries(cached)) for (const model of info.models || []) data.push({
+		id: `${provider}/${model}`,
+		object: "model",
+		created: Math.floor((info.last_ok_at || Date.now()) / 1e3),
+		owned_by: provider
+	});
+	for (const name of Object.keys(queues)) data.push({
+		id: `queue/${name}`,
+		object: "model",
+		created: Math.floor(Date.now() / 1e3),
+		owned_by: "queue"
+	});
+	return data;
+}
+function loadMatrix() {
+	if (_matrixCache && Date.now() - _matrixCache.loadedAt < 6e4) return _matrixCache.data;
+	if (!fs.existsSync(MATRIX_PATH)) return null;
+	try {
+		const data = JSON.parse(fs.readFileSync(MATRIX_PATH, "utf8"));
+		if (Date.now() - new Date(data.timestamp).getTime() > MATRIX_TTL_MS) return null;
+		_matrixCache = {
+			data,
+			loadedAt: Date.now()
+		};
+		return data;
+	} catch {
+		return null;
+	}
+}
+function matrixUsable(provider, model) {
+	const m = loadMatrix();
+	if (!m) return null;
+	const p = m.providers.find((x) => x.id === provider);
+	if (!p) return null;
+	if (!model) return p.models.some((mm) => mm.usable_in_any_mode);
+	const mm = p.models.find((x) => x.id === model || x.id === model.replace(/^[^/]+\//, ""));
+	return mm ? mm.usable_in_any_mode : null;
+}
+async function fetchModelsDev({ refresh = false } = {}) {
+	if (_modelsDevCache && !refresh) return _modelsDevCache;
+	try {
+		_modelsDevCache = await (await fetch(MODELS_DEV_ENDPOINT)).json();
+		return _modelsDevCache;
+	} catch {
+		return _modelsDevCache || {};
+	}
+}
+async function findModelDev(slug) {
+	const data = await fetchModelsDev();
+	if (!data || typeof data !== "object") return null;
+	for (const provider of Object.values(data)) {
+		const models = provider?.models;
+		if (!models || typeof models !== "object") continue;
+		if (models[slug]) return models[slug];
+		const hit = Object.values(models).find((m) => m.id === slug);
+		if (hit) return hit;
+	}
+	return null;
+}
+function clearModelsDevCache() {
+	_modelsDevCache = null;
+}
+async function contextLengthForModel(modelString) {
+	if (!modelString || typeof modelString !== "string") return null;
+	const slug = modelString.includes("/") ? modelString.slice(modelString.lastIndexOf("/") + 1) : modelString;
+	try {
+		const ctx = (await findModelDev(slug))?.limit?.context;
+		return Number.isFinite(ctx) && ctx > 0 ? ctx : null;
+	} catch {
+		return null;
+	}
+}
+var _sdk, log$2, NON_KEY_PROVIDERS, MATRIX_PATH, MATRIX_TTL_MS, _matrixCache, MATRIX_FILE, _modelsDevCache, MODELS_DEV_ENDPOINT;
+var init_discovery = __esmMin((() => {
+	init_acptoapi_bridge();
+	init_config$1();
+	init_log();
+	_sdk = _sdkNs && (_sdkNs.default || _sdkNs) || {};
+	log$2 = logger("model-discovery");
+	NON_KEY_PROVIDERS = [
+		"claude-cli",
+		"kilo",
+		"opencode",
+		"ollama"
+	];
+	MATRIX_PATH = path.resolve(new URL(".", "" + import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), "..", "..", ".gm", "model-availability.json");
+	MATRIX_TTL_MS = 864e5;
+	_matrixCache = null;
+	MATRIX_FILE = MATRIX_PATH;
+	_modelsDevCache = null;
+	MODELS_DEV_ENDPOINT = "https://models.dev/api.json";
+}));
 //#endregion
 //#region src/agent/llm_provider_warmup.js
+init_discovery();
+init_acptoapi_bridge();
 init_config$1();
 var _req = createRequire(import.meta.url);
 function preferredModel() {
@@ -12653,6 +13107,8 @@ async function cachedReachable() {
 //#endregion
 //#region src/agent/llm_resolver.js
 init_config$1();
+init_acptoapi_bridge();
+init_tool_call_text();
 init_env();
 var toTools = (s) => s?.length ? s.map((t) => ({
 	type: "function",
@@ -12948,7 +13404,7 @@ function parseVerdict(raw) {
 		reason: "unparseable classifier answer: " + text.slice(0, 80)
 	};
 }
-async function classifyToolCall({ name, args, callLLM }) {
+async function classifyToolCall({ name, args, callLLM, signal }) {
 	let out;
 	try {
 		out = await callLLM({
@@ -12956,7 +13412,8 @@ async function classifyToolCall({ name, args, callLLM }) {
 				role: "user",
 				content: buildPrompt(name, args)
 			}],
-			max_tokens: 16
+			max_tokens: 16,
+			signal
 		});
 	} catch (e) {
 		return {
@@ -12965,6 +13422,80 @@ async function classifyToolCall({ name, args, callLLM }) {
 		};
 	}
 	return parseVerdict(out?.content);
+}
+//#endregion
+//#region src/agent/turn_helpers.js
+function mergeHookExtras(messages, r, tag) {
+	if (!r) return messages;
+	const e = [];
+	if (r.systemMessage) e.push({
+		role: "system",
+		content: "[hook:" + tag + "] " + r.systemMessage
+	});
+	if (r.additionalContext) e.push({
+		role: "system",
+		content: r.additionalContext
+	});
+	return e.length ? [...messages, ...e] : messages;
+}
+function pairDanglingToolCalls(messages, reasonText) {
+	const out = [...messages];
+	const pairedIds = new Set(out.filter((m) => m && m.role === "tool" && m.tool_call_id).map((m) => m.tool_call_id));
+	const lastAssistant = [...out].reverse().find((m) => m && m.role === "assistant" && Array.isArray(m.tool_calls));
+	if (lastAssistant) for (const tc of lastAssistant.tool_calls) {
+		const tcid = tc?.id || tc?.tool_call_id;
+		if (tcid && !pairedIds.has(tcid)) out.push({
+			role: "tool",
+			tool_call_id: tcid,
+			content: JSON.stringify({ error: reasonText }),
+			synthetic: true
+		});
+	}
+	return out;
+}
+function timeoutResult(actor, timeoutMs) {
+	const ctx = actor.getSnapshot()?.context || {};
+	const messages = pairDanglingToolCalls(Array.isArray(ctx.messages) ? ctx.messages : [], "timeout: tool_call interrupted");
+	messages.push({
+		role: "system",
+		content: `Agent turn interrupted by ${timeoutMs / 1e3}s timeout. Any tool calls above without paired results were cut short and did not complete.`,
+		synthetic: true
+	});
+	return {
+		messages,
+		result: null,
+		error: "agent turn timeout",
+		iterations: ctx.iterations || 0
+	};
+}
+//#endregion
+//#region src/agent/compact_hooks.js
+init_config$1();
+async function invokeCompactHooks({ trigger = "auto", messages = [] } = {}) {
+	const h = await bootHost();
+	const hookEngine = new HookEngine({ config: loadConfig() });
+	const pre = await h.hooks.invoke("onPreCompact", {
+		trigger,
+		messages
+	});
+	hookEngine.runHooks("onPreCompact", { trigger }).catch(() => {});
+	wireHookBridge.forwardHook("onPreCompact", { trigger }).catch(() => {});
+	if (pre?.behavior === "block") return {
+		skipped: true,
+		reason: pre.reason || "blocked"
+	};
+	return {
+		pre,
+		post: async (summary) => {
+			await h.hooks.invoke("onPostCompact", {
+				trigger,
+				messages,
+				summary
+			});
+			hookEngine.runHooks("onPostCompact", { trigger }).catch(() => {});
+			wireHookBridge.forwardHook("onPostCompact", { trigger }).catch(() => {});
+		}
+	};
 }
 //#endregion
 //#region src/agent/compress/tokens.js
@@ -13059,10 +13590,16 @@ function enforceTokenBudget(text, budgetTokens) {
 async function mapWithConcurrency(items, limit, fn) {
 	const results = new Array(items.length);
 	let next = 0;
+	const controller = new AbortController();
 	const workers = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
 		while (next < items.length) {
 			const i = next++;
-			results[i] = await fn(items[i], i);
+			try {
+				results[i] = await fn(items[i], i, controller.signal);
+			} catch (e) {
+				controller.abort(e);
+				throw e;
+			}
 		}
 	});
 	await Promise.all(workers);
@@ -13174,7 +13711,7 @@ function buildSummarizerInput(middleMessages) {
 		if (m.tool_calls) {
 			lines.push(`[${role}] (tool_calls: ${m.tool_calls.map((c) => c.name || c.function?.name || "?").join(", ")})`);
 			if (content) lines.push(content);
-		} else if (m.tool_call_id) lines.push(`[tool result for ${m.tool_call_id}] ${content.slice(0, 2e3)}`);
+		} else if (m.tool_call_id) lines.push(`[tool result for ${m.tool_call_id}] ${String(content || "").slice(0, 2e3)}`);
 		else lines.push(`[${role}] ${content}`);
 	}
 	return lines.join("\n\n");
@@ -13211,23 +13748,26 @@ Be specific. Use file paths, identifiers, line numbers, error messages verbatim.
 }));
 //#endregion
 //#region src/agent/compress/fallback.js
-function markFailure(now = Date.now()) {
-	_lastFailure = now;
+function markFailure(scopeOrNow, maybeNow) {
+	const [scope, now] = typeof scopeOrNow === "string" || scopeOrNow == null ? [scopeOrNow ?? "", maybeNow ?? Date.now()] : ["", scopeOrNow];
+	_lastFailureByScope.set(scope, now);
 }
-function shouldRetry(now = Date.now()) {
-	if (_lastFailure === null) return true;
-	return now - _lastFailure >= 6e5;
+function shouldRetry(scopeOrNow, maybeNow) {
+	const [scope, now] = typeof scopeOrNow === "string" || scopeOrNow == null ? [scopeOrNow ?? "", maybeNow ?? Date.now()] : ["", scopeOrNow];
+	const last = _lastFailureByScope.get(scope);
+	if (last === void 0) return true;
+	return now - last >= 6e5;
 }
-function clearFailure() {
-	_lastFailure = null;
+function clearFailure(scope = "") {
+	_lastFailureByScope.delete(scope);
 }
-var _lastFailure;
+var _lastFailureByScope;
 var init_fallback = __esmMin((() => {
-	_lastFailure = null;
+	_lastFailureByScope = /* @__PURE__ */ new Map();
 }));
 //#endregion
 //#region src/agent/compress/compressor.js
-async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, callLLM, auxModel = null, tools = [], threshold, blockSourceTokens = BLOCK_SOURCE_TOKENS, blockConcurrency = 4 } = {}) {
+async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, callLLM, auxModel = null, tools = [], threshold, blockSourceTokens = BLOCK_SOURCE_TOKENS, blockConcurrency = 4, scopeKey = "" } = {}) {
 	const tier = compressionTier({
 		messages,
 		modelContextLength,
@@ -13250,7 +13790,7 @@ async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH,
 			reason: "emergency prune"
 		};
 	}
-	if (!shouldRetry()) return {
+	if (!shouldRetry(scopeKey)) return {
 		compressedMessages: messages,
 		summary: null,
 		didCompress: false,
@@ -13269,7 +13809,7 @@ async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH,
 	const budgets = allocateBlockBudgets(blocks, plan.summaryBudget);
 	let blockSummaries;
 	try {
-		blockSummaries = await mapWithConcurrency(blocks, blockConcurrency, async (block, i) => {
+		blockSummaries = await mapWithConcurrency(blocks, blockConcurrency, async (block, i, signal) => {
 			const budget = budgets[i];
 			const budgetLine = `Length limit: this block's summary MUST be under ${budget} tokens (≈${budget * 4} characters). Shorter is better — this is a hard cap, anything past it is discarded.`;
 			const preamble = i === 0 && existing ? `Previous summary:\n${existing}\n\nNew turns to fold in:\n` : "";
@@ -13285,13 +13825,14 @@ async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH,
 				tools: [],
 				model: auxModel,
 				maxTokens: budget,
-				max_tokens: budget
+				max_tokens: budget,
+				signal
 			}))?.content || "").trim();
 			if (!raw) throw new Error("empty summary");
 			return enforceTokenBudget(raw, budget);
 		});
 	} catch (e) {
-		markFailure();
+		markFailure(scopeKey);
 		log$1.error("summarization failed", { err: String(e) });
 		return {
 			compressedMessages: messages,
@@ -13565,19 +14106,33 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					const tc = typeof input.tool_choice === "function" ? input.tool_choice(input.iterations) : input.iterations === 0 ? input.tool_choice : void 0;
 					let callMessages = input.messages;
 					let compressedMessages = null;
-					try {
+					const { isStepDone } = await Promise.resolve().then(() => (init_step_journal(), step_journal_exports));
+					if (await isStepDone(input.sessionKey, "llm:" + input.iterations, { store: input.store }).catch(() => false)) {
+						if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] llm:" + input.iterations + " already journaled done, skipping compress() on resume");
+					} else try {
 						if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] before compress import, msgcount", input.messages.length);
-						const { compress } = await Promise.resolve().then(() => (init_compress(), compress_exports));
-						if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] before compress() call");
-						const r = await compress({
-							messages: input.messages,
-							callLLM: resolveCallLLM({}),
-							tools: schemas
+						const { post, skipped } = await invokeCompactHooks({
+							trigger: "auto",
+							messages: input.messages
 						});
-						if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] after compress() call, didCompress=", r.didCompress);
-						if (r.didCompress) {
-							compressedMessages = r.compressedMessages;
-							callMessages = r.compressedMessages;
+						if (!skipped) {
+							if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] before compress() call");
+							const { compress } = await Promise.resolve().then(() => (init_compress(), compress_exports));
+							const { contextLengthForModel } = await Promise.resolve().then(() => (init_discovery(), discovery_exports));
+							const modelContextLength = await contextLengthForModel(input.model).catch(() => null) || void 0;
+							const r = await compress({
+								messages: input.messages,
+								callLLM: resolveCallLLM({}),
+								tools: schemas,
+								scopeKey: input.sessionKey || "",
+								...modelContextLength ? { modelContextLength } : {}
+							});
+							if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] after compress() call, didCompress=", r.didCompress);
+							if (r.didCompress) {
+								compressedMessages = r.compressedMessages;
+								callMessages = r.compressedMessages;
+								await post(r.compressedMessages);
+							}
 						}
 					} catch (e) {
 						emitTurnEvent(input.sessionKey, "status.update", {
@@ -13598,7 +14153,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] after llm() call");
 					return {
 						out,
-						compressedMessages
+						compressedMessages,
+						startMessages: input.messages
 					};
 				}),
 				input: ({ context }) => ({
@@ -13616,6 +14172,10 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					signal: context.signal
 				}),
 				onDone: [
+					{
+						guard: ({ context, event }) => context.messages !== event.output.startMessages,
+						target: "prompting"
+					},
 					{
 						guard: ({ event }) => Array.isArray(event.output?.out?.tool_calls) && event.output.out.tool_calls.length > 0,
 						target: "tool_calls",
@@ -13688,12 +14248,18 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 				{
 					guard: ({ context }) => context.iterations >= context.maxIterations,
 					target: "done",
-					actions: assign$1({ error: "iteration budget exhausted" })
+					actions: assign$1({
+						error: "iteration budget exhausted",
+						messages: ({ context }) => pairDanglingToolCalls(context.messages, "iteration budget exhausted: tool_call not dispatched")
+					})
 				},
 				{
 					guard: ({ context }) => context.interrupt,
 					target: "done",
-					actions: assign$1({ error: "interrupted" })
+					actions: assign$1({
+						error: "interrupted",
+						messages: ({ context }) => pairDanglingToolCalls(context.messages, "interrupted: tool_call not dispatched")
+					})
 				},
 				{ target: "executing_tools" }
 			] },
@@ -13747,6 +14313,17 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 										tool: tname
 									})
 								});
+								for (const remaining of calls.slice(calls.indexOf(call) + 1)) {
+									const rid = remaining.id || remaining.tool_call_id;
+									const rname = remaining.name || remaining.function?.name;
+									if (rid) results.push({
+										tool_call_id: rid,
+										content: JSON.stringify({
+											error: "turn force-stopped before this call was dispatched",
+											tool: rname
+										})
+									});
+								}
 								forceStop = "tool_call_repeat";
 								break;
 							}
@@ -13779,7 +14356,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 									verdict = await classifyToolCall({
 										name: tname,
 										args: targs,
-										callLLM: control.classifierCallLLM
+										callLLM: control.classifierCallLLM,
+										signal: input.signal
 									});
 								}
 								if (verdict.decision === "allow") control.classifierConsecDenials = 0;
@@ -13866,66 +14444,77 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 							args: redactedTargs,
 							toolCallId: tcid
 						});
-						const ret = await runStep(input.sessionKey, "tool:" + input.iterations + ":" + tcid, async () => {
-							const callExtras = [];
-							const pushExtras = (r) => {
-								if (r?.systemMessage) callExtras.push({
-									role: "system",
-									content: "[hook] " + r.systemMessage
+						let ret;
+						try {
+							ret = await runStep(input.sessionKey, "tool:" + input.iterations + ":" + tcid, async () => {
+								const callExtras = [];
+								const pushExtras = (r) => {
+									if (r?.systemMessage) callExtras.push({
+										role: "system",
+										content: "[hook] " + r.systemMessage
+									});
+									if (r?.additionalContext) callExtras.push({
+										role: "system",
+										content: r.additionalContext
+									});
+								};
+								hookEngine.runHooks("preToolCall", {
+									name: tname,
+									args: targs,
+									sessionKey: input.sessionKey,
+									cwd: input.toolCtx?.cwd
+								}).catch(() => {});
+								wireHookBridge.forwardHook("preToolCall", {
+									name: tname,
+									args: targs,
+									sessionKey: input.sessionKey
+								}).catch(() => {});
+								const pre = await h.hooks.invoke("preToolCall", {
+									name: tname,
+									args: targs
 								});
-								if (r?.additionalContext) callExtras.push({
-									role: "system",
-									content: r.additionalContext
-								});
-							};
-							hookEngine.runHooks("preToolCall", {
-								name: tname,
-								args: targs,
-								sessionKey: input.sessionKey,
-								cwd: input.toolCtx?.cwd
-							}).catch(() => {});
-							wireHookBridge.forwardHook("preToolCall", {
-								name: tname,
-								args: targs,
-								sessionKey: input.sessionKey
-							}).catch(() => {});
-							const pre = await h.hooks.invoke("preToolCall", {
-								name: tname,
-								args: targs
-							});
-							pushExtras(pre);
-							if (pre?.behavior === "block") return {
+								pushExtras(pre);
+								if (pre?.behavior === "block") return {
+									content: JSON.stringify({
+										error: "tool call denied by plugsdk hook",
+										tool: tname,
+										reason: pre.reason || "denied"
+									}),
+									extras: callExtras
+								};
+								const res = await h.pi.dispatchTool(tname, pre && pre.args || targs, input.toolCtx || {}, { hooks: h.hooks });
+								pushExtras(await h.hooks.invoke("postToolCall", {
+									name: tname,
+									args: targs,
+									result: res
+								}));
+								hookEngine.runHooks("postToolCall", {
+									name: tname,
+									args: targs,
+									result: res,
+									sessionKey: input.sessionKey,
+									cwd: input.toolCtx?.cwd
+								}).catch(() => {});
+								wireHookBridge.forwardHook("postToolCall", {
+									name: tname,
+									args: targs,
+									result: res,
+									sessionKey: input.sessionKey
+								}).catch(() => {});
+								return {
+									content: res,
+									extras: callExtras
+								};
+							}, { store: input.store });
+						} catch (e) {
+							ret = {
 								content: JSON.stringify({
-									error: "tool call denied by plugsdk hook",
-									tool: tname,
-									reason: pre.reason || "denied"
+									error: String(e?.message || e),
+									tool: tname
 								}),
-								extras: callExtras
+								extras: []
 							};
-							const res = await h.pi.dispatchTool(tname, pre && pre.args || targs, input.toolCtx || {}, { hooks: h.hooks });
-							pushExtras(await h.hooks.invoke("postToolCall", {
-								name: tname,
-								args: targs,
-								result: res
-							}));
-							hookEngine.runHooks("postToolCall", {
-								name: tname,
-								args: targs,
-								result: res,
-								sessionKey: input.sessionKey,
-								cwd: input.toolCtx?.cwd
-							}).catch(() => {});
-							wireHookBridge.forwardHook("postToolCall", {
-								name: tname,
-								args: targs,
-								result: res,
-								sessionKey: input.sessionKey
-							}).catch(() => {});
-							return {
-								content: res,
-								extras: callExtras
-							};
-						}, { store: input.store });
+						}
 						results.push({
 							tool_call_id: tcid,
 							content: ret.content
@@ -13952,6 +14541,17 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 											tool: unknownName
 										})
 									});
+									for (const remaining of calls.slice(calls.indexOf(call) + 1)) {
+										const rid = remaining.id || remaining.tool_call_id;
+										const rname = remaining.name || remaining.function?.name;
+										if (rid) results.push({
+											tool_call_id: rid,
+											content: JSON.stringify({
+												error: "turn force-stopped before this call was dispatched",
+												tool: rname
+											})
+										});
+									}
 									forceStop = "unknown_tool_repeat";
 									break;
 								}
@@ -13979,7 +14579,8 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 					store: context.store,
 					control: context.control,
 					enabledToolsets: context.enabledToolsets,
-					disabledToolsets: context.disabledToolsets
+					disabledToolsets: context.disabledToolsets,
+					signal: context.signal
 				}),
 				onDone: [{
 					guard: ({ event }) => !!event.output?.forceStop,
@@ -14034,47 +14635,6 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 			}
 		}
 	});
-}
-//#endregion
-//#region src/agent/turn_helpers.js
-function mergeHookExtras(messages, r, tag) {
-	if (!r) return messages;
-	const e = [];
-	if (r.systemMessage) e.push({
-		role: "system",
-		content: "[hook:" + tag + "] " + r.systemMessage
-	});
-	if (r.additionalContext) e.push({
-		role: "system",
-		content: r.additionalContext
-	});
-	return e.length ? [...messages, ...e] : messages;
-}
-function timeoutResult(actor, timeoutMs) {
-	const ctx = actor.getSnapshot()?.context || {};
-	const messages = Array.isArray(ctx.messages) ? [...ctx.messages] : [];
-	const pairedIds = new Set(messages.filter((m) => m && m.role === "tool" && m.tool_call_id).map((m) => m.tool_call_id));
-	const lastAssistant = [...messages].reverse().find((m) => m && m.role === "assistant" && Array.isArray(m.tool_calls));
-	if (lastAssistant) for (const tc of lastAssistant.tool_calls) {
-		const tcid = tc?.id || tc?.tool_call_id;
-		if (tcid && !pairedIds.has(tcid)) messages.push({
-			role: "tool",
-			tool_call_id: tcid,
-			content: JSON.stringify({ error: "timeout: tool_call interrupted" }),
-			synthetic: true
-		});
-	}
-	messages.push({
-		role: "system",
-		content: `Agent turn interrupted by ${timeoutMs / 1e3}s timeout. Any tool calls above without paired results were cut short and did not complete.`,
-		synthetic: true
-	});
-	return {
-		messages,
-		result: null,
-		error: "agent turn timeout",
-		iterations: ctx.iterations || 0
-	};
 }
 //#endregion
 //#region src/learn/gm-learn-backend.js
@@ -14472,6 +15032,14 @@ init_telemetry();
 init_events();
 init_auth();
 init_config$1();
+var HOOK_CLEANUP_TIMEOUT_MS = 5e3;
+function boundedHookInvoke(h, name, data) {
+	if (!h?.hooks) return Promise.resolve(null);
+	let timer;
+	return Promise.race([h.hooks.invoke(name, data).finally(() => clearTimeout(timer)), new Promise((_, reject) => {
+		timer = setTimeout(() => reject(/* @__PURE__ */ new Error(`hook ${name} timed out after ${HOOK_CLEANUP_TIMEOUT_MS}ms`)), HOOK_CLEANUP_TIMEOUT_MS);
+	})]).catch(() => null);
+}
 async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store, abortController }) {
 	const { actor } = pa;
 	return await new Promise((resolve, reject) => {
@@ -14508,14 +15076,15 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
 			cleanup();
 			(async () => {
 				try {
-					await clearSteps(sessionKey, { store });
+					await (store?.clear || (await Promise.resolve().then(() => (init_snapshot_store(), snapshot_store_exports))).clear)("agent", sessionKey);
 				} catch {}
 				try {
-					await h.hooks.invoke("onTurnEnd", {
-						reason: "timeout",
-						iterations: out.iterations
-					});
+					await clearSteps(sessionKey, { store });
 				} catch {}
+				await boundedHookInvoke(h, "onTurnEnd", {
+					reason: "timeout",
+					iterations: out.iterations
+				});
 				try {
 					new HookEngine({ config: loadConfig() }).runHooks("onTurnEnd", {
 						sessionKey,
@@ -14531,12 +15100,10 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
 						iterations: out.iterations
 					}).catch(() => {});
 				} catch {}
-				try {
-					await h.hooks.invoke("onSessionEnd", {
-						reason: "timeout",
-						iterations: out.iterations
-					});
-				} catch {}
+				await boundedHookInvoke(h, "onSessionEnd", {
+					reason: "timeout",
+					iterations: out.iterations
+				});
 				try {
 					hookEngine.runHooks("onSessionEnd", {
 						sessionKey,
@@ -14589,7 +15156,7 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
 					error: out.error ? redactSecrets(out.error) : null,
 					iterations: out.iterations
 				});
-				await h.hooks.invoke("onTurnEnd", {
+				await boundedHookInvoke(h, "onTurnEnd", {
 					reason: out?.error ? "error" : "ok",
 					iterations: out?.iterations
 				});
@@ -14604,7 +15171,7 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
 					reason: out?.error ? "error" : "ok",
 					iterations: out?.iterations
 				}).catch(() => {});
-				const outbound = await h.hooks.invoke("onMessageOutbound", { content: out?.result || "" });
+				const outbound = await boundedHookInvoke(h, "onMessageOutbound", { content: out?.result || "" });
 				hookEngine.runHooks("onMessageOutbound", {
 					sessionKey,
 					cwd
@@ -14615,7 +15182,7 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
 					content: out?.result || ""
 				}).catch(() => {});
 				if (outbound?.systemMessage || outbound?.additionalContext) out.messages = mergeHookExtras(out.messages || [], outbound, "onMessageOutbound");
-				await h.hooks.invoke("onSessionEnd", {
+				await boundedHookInvoke(h, "onSessionEnd", {
 					reason: out?.error ? "error" : "ok",
 					iterations: out?.iterations
 				});
@@ -15111,6 +15678,16 @@ var DEFAULT_APPROVAL_TOOLS = [
 ];
 async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store, approvalMode = null, approvalTimeoutMs = null } = {}) {
 	const events = [];
+	let claimed = null;
+	if (sessionKey) {
+		claimed = claimTurn(sessionKey);
+		if (!claimed) return {
+			messages,
+			result: null,
+			error: `turn already live for session ${sessionKey}`,
+			iterations: 0
+		};
+	}
 	const cfg = loadConfig();
 	if (cfg.telemetry?.enabled) {
 		telemetry._enabled = true;
@@ -15143,7 +15720,8 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		prompt
 	}).catch(() => {});
 	const key = sessionKey || randomUUID();
-	if (getTurn(key)) return {
+	if (!claimed) claimed = claimTurn(key);
+	if (!claimed) return {
 		messages,
 		result: null,
 		error: `turn already live for session ${key}`,
@@ -15195,6 +15773,7 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 	}).catch(() => {});
 	if (inbound?.behavior === "block") {
 		await h.hooks.invoke("onSessionEnd", { reason: "prompt_blocked" });
+		unregisterTurn(key);
 		return {
 			messages: initMessages,
 			result: null,
@@ -15247,13 +15826,16 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		input: { messages: initMessages },
 		store
 	});
-	registerTurn(key, {
+	if (!mergeTurnEntry(key, {
 		actor: pa.actor,
 		control,
-		pendingApproval: null,
-		pendingQuestion: null,
-		startedAt: Date.now()
-	});
+		abortController
+	})) return {
+		messages,
+		result: null,
+		error: `turn no longer live for session ${key}`,
+		iterations: 0
+	};
 	await h.hooks.invoke("onTurnStart", {
 		sessionKey: key,
 		prompt,
@@ -15305,7 +15887,7 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 }
 async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, toolCtx = null, store } = {}) {
 	if (!sessionKey) throw new Error("resumeTurn requires sessionKey");
-	if (getTurn(sessionKey)) return null;
+	if (!claimTurn(sessionKey)) return null;
 	const events = [];
 	const h = await bootHost();
 	const hookEngine = new HookEngine({ config: loadConfig() });
@@ -15354,16 +15936,18 @@ async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolset
 		store
 	});
 	if (!pa.resumed) {
+		unregisterTurn(sessionKey);
 		await pa.forget();
 		return null;
 	}
-	registerTurn(sessionKey, {
+	if (!mergeTurnEntry(sessionKey, {
 		actor: pa.actor,
 		control,
-		pendingApproval: null,
-		pendingQuestion: null,
-		startedAt: Date.now()
-	});
+		abortController
+	})) {
+		await pa.forget();
+		return null;
+	}
 	await h.hooks.invoke("onTurnStart", {
 		sessionKey,
 		model,
@@ -15719,7 +16303,9 @@ async function bootHostBrowser(adapters = {}) {
 }
 //#endregion
 //#region src/browser/index.js
+init_snapshot_store();
 init_step_journal();
+init_tool_call_text();
 init_log();
 init_config$1();
 //#endregion
