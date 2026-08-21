@@ -11651,12 +11651,17 @@ async function getProviderAuthState(provider) {
 	};
 }
 function redactSecrets(input) {
-	const known = KNOWN_SECRET_VALUES();
+	const known = [...KNOWN_SECRET_VALUES()].filter((v) => v.length >= 8);
+	const redactEmbedded = (s) => {
+		let out = s;
+		for (const secret of known) if (out.includes(secret)) out = out.split(secret).join(tokenFingerprint(secret));
+		return out;
+	};
 	const walk = (node, keyHint) => {
 		if (typeof node === "string") {
-			if (known.has(node)) return tokenFingerprint(node);
+			if (known.includes(node)) return tokenFingerprint(node);
 			if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase()) && node) return tokenFingerprint(node);
-			return node;
+			return redactEmbedded(node);
 		}
 		if (Array.isArray(node)) return node.map((v) => walk(v, keyHint));
 		if (node && typeof node === "object") {
