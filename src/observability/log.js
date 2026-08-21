@@ -24,7 +24,12 @@ function streamFor(name) {
 export function log({ subsystem = 'app', severity = 'info', msg = '', ...rest }) {
     const ts = new Date().toISOString()
     const rec = { ts, subsystem, severity, msg, ...rest }
-    const line = JSON.stringify(rec) + '\n'
+    let line
+    try {
+        line = JSON.stringify(rec) + '\n'
+    } catch (e) {
+        line = JSON.stringify({ ts, subsystem, severity, msg, logSerializationError: String(e?.message || e) }) + '\n'
+    }
     streamFor(subsystem).write(line)
     if (SEVERITIES[severity] >= 30) streamFor('errors').write(line)
 }
