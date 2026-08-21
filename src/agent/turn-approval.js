@@ -90,7 +90,13 @@ export async function resolveApproval(sessionKey, { id, approved, always = false
     const t = turns.get(sessionKey)
     const pending = t?.pendingApproval
     if (!pending) return false
-    if (id && pending.id !== id) return false
+    // Mandatory id match — symmetric with resolveQuestion's guard
+    // (turn-question.js). A falsy/omitted id must NOT fall through to
+    // resolving whatever happens to be pending: plugins/wire/plugin.js and
+    // gui-agent's WS 'approve' handler both forward client-supplied params
+    // verbatim, so an id-less resolve from an untrusted caller would force-
+    // approve another session's gated tool call with zero ownership check.
+    if (!id || pending.id !== id) return false
     t.pendingApproval = null
     // "always" whitelists this tool name for the rest of the turn (kimi's
     // approve_for_session, scoped to one turn rather than a session), and is
