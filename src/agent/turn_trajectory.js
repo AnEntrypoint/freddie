@@ -3,6 +3,7 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
         const { getConfigValue } = await import('../config.js')
         if (!getConfigValue('agent.save_trajectories', false) && !witnessPath) return
         const { getFreddieHome } = await import('../home.js')
+        const { redactSecrets } = await import('../auth.js')
         const fs = await import('node:fs')
         const path = await import('node:path')
         const dir = path.join(getFreddieHome(), 'trajectories')
@@ -12,30 +13,31 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
         const toolResults = []
         let compressorInvocations = 0
         for (const m of out.messages || []) {
-            if (m.role === 'assistant' && m.tool_calls?.length) { states.push('EXECUTE'); for (const tc of m.tool_calls) toolCalls.push({ name: tc.name || tc.function?.name, arguments: tc.arguments || tc.function?.arguments || {}, id: tc.id }) }
+            if (m.role === 'assistant' && m.tool_calls?.length) { states.push('EXECUTE'); for (const tc of m.tool_calls) toolCalls.push({ name: tc.name || tc.function?.name, arguments: redactSecrets(tc.arguments || tc.function?.arguments || {}), id: tc.id }) }
             else if (m.role === 'user') states.push('PLAN')
             else if (m.role === 'assistant') states.push('COMPLETE')
-            else if (m.role === 'tool') { states.push('VERIFY'); toolResults.push({ tool_call_id: m.tool_call_id, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) }) }
+            else if (m.role === 'tool') { states.push('VERIFY'); toolResults.push({ tool_call_id: m.tool_call_id, content: redactSecrets(typeof m.content === 'string' ? m.content : JSON.stringify(m.content)) }) }
             if (m.role === 'system' && typeof m.content === 'string' && /\[trajectory\.compressed\]/.test(m.content)) compressorInvocations += 1
         }
         const ts = new Date().toISOString().replace(/[:.]/g, '-').replace(/Z$/, '')
         const slug = (prompt || 'turn').slice(0, 40).replace(/[^a-zA-Z0-9-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase()
         const llmCalls = events.filter(e => e.type === 'llm_call')
         const streamChunks = events.filter(e => e.type === 'llm_chunk')
+        const redactedMessages = redactSecrets(out.messages || [])
         const payload = {
             schema_version: 2, ts, prompt, provider, model, skill, cwd,
             iterations: out.iterations, result: out.result, error: out.error, error_stack: errorStack,
             state_transitions: states, tool_calls: toolCalls, tool_results: toolResults,
             llm_calls: llmCalls, llm_chunks_count: streamChunks.length,
             compressor_invocations: compressorInvocations,
-            events, messages: out.messages,
+            events, messages: redactedMessages,
         }
         const file = path.join(dir, `${ts}-${slug}.json`)
         fs.writeFileSync(file, JSON.stringify(payload, null, 2))
         if (witnessPath) {
             const jsonl = [
                 JSON.stringify({ event: 'session_start', ts, prompt, provider, model, skill, cwd }),
-                ...(out.messages || []).map((m, i) => JSON.stringify({ event: 'message', index: i, role: m.role, content: m.content, tool_calls: m.tool_calls || null, tool_call_id: m.tool_call_id || null })),
+                ...redactedMessages.map((m, i) => JSON.stringify({ event: 'message', index: i, role: m.role, content: m.content, tool_calls: m.tool_calls || null, tool_call_id: m.tool_call_id || null })),
                 ...llmCalls.map(e => JSON.stringify({ event: 'llm_call', ...e })),
                 JSON.stringify({ event: 'session_end', iterations: out.iterations, error: out.error, error_stack: errorStack, compressor_invocations: compressorInvocations }),
             ].join('\n')

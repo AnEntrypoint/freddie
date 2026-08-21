@@ -6,6 +6,25 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { getFreddieHome } from '../home.js'
 import { env, envRegistry, providerEnvKeys } from '../env.js'
 const _require = createRequire(import.meta.url)
+
+// npm-version below must pass shell:true (spawnSync('npm', ...) with no shell
+// genuinely ENOENTs on Windows -- npm is a .cmd shim, and Windows process
+// creation without a shell does not consult PATHEXT the way a shell does), but
+// shell:true + an argv array together trip Node's DEP0190 deprecation warning
+// unconditionally, printed raw to stderr on every single `freddie doctor` run
+// and polluting an otherwise-clean structured diagnostic report with a warning
+// the end user cannot act on (there is no unsafe input here -- '--version' is
+// a fixed literal, never influenced by user input). Filter only this specific
+// warning code, never warnings generally, so a genuine deprecation elsewhere
+// in the process still surfaces normally.
+const _origEmitWarning = process.emitWarning.bind(process)
+process.emitWarning = (warning, ...rest) => {
+    const opts = rest[0]
+    const code = (typeof opts === 'object' && opts) ? opts.code : rest[1]
+    if (code === 'DEP0190') return
+    return _origEmitWarning(warning, ...rest)
+}
+
 const CHECKS = [
     { name: 'freddie-home', run: () => fs.existsSync(getFreddieHome()) ? { ok: true } : { ok: false, fix: 'mkdir -p ' + getFreddieHome() } },
     { name: 'node-version', run: () => { const v = process.versions.node; const major = Number(v.split('.')[0]); return major >= 20 ? { ok: true, value: v } : { ok: false, fix: 'install node >=20', value: v } } },

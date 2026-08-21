@@ -14,9 +14,22 @@ export function dprint(...args) { if (_verbose) console.error('[debug]', ...args
 export function dumpDebug(name) { return name ? snapshot(name) : { subsystems: listDebug(), all: snapshotAll() } }
 
 // --- dump: full state export (sessions + config) --------------------------
+// getMessages is fetched in fixed-size concurrent batches (not one
+// Promise.all over the whole list) -- listSessions(1000) can return up to
+// 1000 rows, and firing 1000 concurrent unthrottled DB queries at once (each
+// holding its full message array in memory until every other query also
+// resolves) has no ceiling as install age/session count grows. DUMP_CONCURRENCY
+// mirrors src/batch.js's existing concurrency-slice shape (default 4) already
+// used for LLM batch jobs -- same bounded-fan-out idea, applied here to DB reads.
+const DUMP_CONCURRENCY = 8
 export async function dumpAll(outFile = null) {
     const sessions = await listSessions(1000)
-    const enriched = await Promise.all(sessions.map(async s => ({ ...s, messages: await getMessages(s.id) })))
+    const enriched = []
+    for (let i = 0; i < sessions.length; i += DUMP_CONCURRENCY) {
+        const batch = sessions.slice(i, i + DUMP_CONCURRENCY)
+        const results = await Promise.all(batch.map(async s => ({ ...s, messages: await getMessages(s.id) })))
+        enriched.push(...results)
+    }
     const out = { ts: Date.now(), freddie_home: getFreddieHome(), config: loadConfig(), sessions: enriched }
     const json = JSON.stringify(out, null, 2)
     if (outFile) { fs.mkdirSync(path.dirname(outFile), { recursive: true }); fs.writeFileSync(outFile, json, 'utf8'); return { written: outFile, bytes: json.length } }

@@ -13,6 +13,18 @@ import { driveAgentActor } from './turn_driver.js'
 
 export { createAgentMachine }
 
+// Default agent.approval_tools gate list — the tools that pause for a human
+// (approval_mode:'mutating') or the classifier (approval_mode:'classifier')
+// before dispatch. credential_files is a member because its `get` action
+// returns a raw provider credential as the tool result: under any non-'off'
+// approval_mode a production deployment turns on specifically to gate
+// unattended tool calls, a credential read must be gated exactly like every
+// other mutating tool, not exempt from the policy it was designed to enforce.
+// Single source of truth for both runTurn and resumeTurn below — they must
+// stay byte-identical, so this constant (not two inline array literals) is
+// the fix for that sync requirement, not just this one gap.
+const DEFAULT_APPROVAL_TOOLS = ['bash', 'write', 'edit', 'file_operations', 'code_execution', 'process_registry', 'cronjob', 'terminal', 'skills_hub', 'skills_sync', 'credential_files']
+
 export async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 30000, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store, approvalMode = null, approvalTimeoutMs = null } = {}) {
     const events = [];
     // Wire telemetry: load config to check enabled state and configure
@@ -112,7 +124,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
         // kimi 1.40's reversal: a present human never gets auto-rejected).
         approvalPolicy: approvalMode || getConfigValue('agent.approval_mode', 'off'),
         approvalTimeoutMs: approvalTimeoutMs ?? getConfigValue('agent.approval_timeout_ms', 120000),
-        mutatingTools: new Set(getConfigValue('agent.approval_tools', ['bash', 'write', 'edit', 'file_operations', 'code_execution', 'process_registry', 'cronjob', 'terminal', 'skills_hub', 'skills_sync'])),
+        mutatingTools: new Set(getConfigValue('agent.approval_tools', DEFAULT_APPROVAL_TOOLS)),
         approvedTools: new Set([...(getConfigValue('agent.approval_policy', {})?.auto_approve || []), ...(await loadApprovalGrants(cwd))]),
         toolBudgets: getConfigValue('agent.tool_budgets', {}),
         lastSig: null, streak: 0,
@@ -149,7 +161,7 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
         // pre-approved tools so the two conventions compose.
         approvalPolicy: getConfigValue('agent.approval_mode', 'off'),
         approvalTimeoutMs: getConfigValue('agent.approval_timeout_ms', 120000),
-        mutatingTools: new Set(getConfigValue('agent.approval_tools', ['bash', 'write', 'edit', 'file_operations', 'code_execution', 'process_registry', 'cronjob', 'terminal', 'skills_hub', 'skills_sync'])),
+        mutatingTools: new Set(getConfigValue('agent.approval_tools', DEFAULT_APPROVAL_TOOLS)),
         approvedTools: new Set([...(getConfigValue('agent.approval_policy', {})?.auto_approve || []), ...(await loadApprovalGrants(cwd))]),
         toolBudgets: getConfigValue('agent.tool_budgets', {}),
         lastSig: null, streak: 0,
