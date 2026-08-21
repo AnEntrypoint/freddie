@@ -137,7 +137,14 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
         classifierDenials: 0, classifierConsecDenials: 0, classifierEscalated: false,
         classifierCallLLM: null,
     }
-    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx: mergedToolCtx, tool_choice, store, control, h, hookEngine, wireHookBridge })
+    // Per-turn AbortController: the one cancellation handle a timeout can use to
+    // actually stop in-flight I/O (LLM HTTP call, tool subprocess), not just the
+    // xstate actor. Threaded into mergedToolCtx (so tool handlers like bash read
+    // ctx.signal) and into the machine's fromPromise invokes below (so the LLM
+    // call can race it). driveAgentActor's cleanup() calls abort() on timeout.
+    const abortController = new AbortController()
+    mergedToolCtx.signal = abortController.signal
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey: key, toolCtx: mergedToolCtx, tool_choice, store, control, h, hookEngine, wireHookBridge, signal: abortController.signal })
     const pa = await createPersistentActor(machine, { kind: 'agent', key, input: { messages: initMessages }, store })
     registerTurn(key, { actor: pa.actor, control, pendingApproval: null, pendingQuestion: null, startedAt: Date.now() })
     // onTurnStart hook: fire when turn begins
@@ -149,7 +156,7 @@ export async function runTurn({ prompt, messages = [], model, provider, callLLM,
     if (!sessionKey) emitTurnEvent(key, 'session.created', redactSecrets({ prompt, model, provider }))
     emitTurnEvent(key, 'session.start', redactSecrets({ prompt, model, provider }))
     emitTurnEvent(key, 'message.append', { role: 'user', content: redactSecrets(prompt) })
-    return await driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey: key, store })
+    return await driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey: key, store, abortController })
 }
 
 // Rehydrate an interrupted turn from its persisted snapshot and drive it to
@@ -181,19 +188,22 @@ export async function resumeTurn({ sessionKey, model, provider, callLLM, enabled
         classifierDenials: 0, classifierConsecDenials: 0, classifierEscalated: false,
         classifierCallLLM: null,
     }
-    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey, toolCtx, store, control, h, hookEngine, wireHookBridge })
+    // Per-turn AbortController — same rationale as runTurn above.
+    const abortController = new AbortController()
+    const mergedToolCtx = { ...(toolCtx || {}), signal: abortController.signal }
+    const machine = createAgentMachine({ model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations, events, sessionKey, toolCtx: mergedToolCtx, store, control, h, hookEngine, wireHookBridge, signal: abortController.signal })
     // createPersistentActor.load() already handles a missing/stale snapshot and
     // leaves pa.resumed=false, so the prior pre-check load() was a redundant
     // second read that opened a TOCTOU window (a concurrent delete between the two
     // reads made forget() delete a snapshot we had just confirmed). One read only.
     const pa = await createPersistentActor(machine, { kind: 'agent', key: sessionKey, input: { messages: [] }, store })
-    if (!pa.resumed) return null
+    if (!pa.resumed) { await pa.forget(); return null }
     registerTurn(sessionKey, { actor: pa.actor, control, pendingApproval: null, pendingQuestion: null, startedAt: Date.now() })
     // onTurnStart hook: fire when resumed turn begins
     await h.hooks.invoke('onTurnStart', { sessionKey, model, provider })
     hookEngine.runHooks('onTurnStart', { sessionKey, cwd }).catch(() => {})
     wireHookBridge.forwardHook('onTurnStart', { sessionKey }).catch(() => {})
-    return await driveAgentActor({ pa, h, hookEngine, events, prompt: '', provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store })
+    return await driveAgentActor({ pa, h, hookEngine, events, prompt: '', provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store, abortController })
 }
 
 export async function invokeCompactHooks({ trigger = 'auto', messages = [] } = {}) {

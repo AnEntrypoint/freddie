@@ -3,6 +3,9 @@ import path from 'node:path'
 import { loadClaudePlugin } from 'plugsdk'
 import { HOOK_NAMES, FREDDIE_TO_NATIVE_HOOK } from './contract.js'
 import { env } from '../env.js'
+import { logger } from '../observability/log.js'
+
+const hookLog = logger('cc-hooks')
 
 function ccPayloadFor(name, payload) {
     if (name === 'preToolCall' || name === 'postToolCall')
@@ -37,19 +40,26 @@ export function makeHooksRegistry(ccHost) {
         off(name, fn) { const l = reg2[name]; if (!l) return false; const i = l.indexOf(fn); if (i === -1) return false; l.splice(i, 1); return true },
         async invoke(name, payload) {
             let cur = payload
-            for (const fn of reg2[name] || []) cur = (await fn(cur)) ?? cur
+            for (const fn of reg2[name] || []) {
+                try { cur = (await fn(cur)) ?? cur }
+                catch (e) { hookLog.error('hook listener threw, skipping (fail-open)', { hook: name, err: String(e?.message || e), stack: e?.stack || null }) }
+            }
             const native = FREDDIE_TO_NATIVE_HOOK[name]
             if (native && ccHost.plugins().length && !env('FREDDIE_DISABLE_CC_HOOKS')) {
-                const r = await ccHost.dispatch(native, ccPayloadFor(name, cur))
-                const extras = {}
-                if (typeof r.systemMessage === 'string' && r.systemMessage.length) extras.systemMessage = r.systemMessage
-                const addCtx = r.hookSpecificOutput?.additionalContext
-                if (typeof addCtx === 'string' && addCtx.length) extras.additionalContext = addCtx
-                if (r.decision === 'block') return { ...cur, ...extras, behavior: 'block', reason: r.reason }
-                const pd = r.hookSpecificOutput?.permissionDecision
-                if (pd === 'deny') return { ...cur, ...extras, behavior: 'block', reason: r.hookSpecificOutput?.permissionDecisionReason || 'denied' }
-                if (r.hookSpecificOutput?.updatedInput) return { ...cur, ...extras, ...r.hookSpecificOutput.updatedInput }
-                if (Object.keys(extras).length) return { ...cur, ...extras }
+                try {
+                    const r = await ccHost.dispatch(native, ccPayloadFor(name, cur))
+                    const extras = {}
+                    if (typeof r.systemMessage === 'string' && r.systemMessage.length) extras.systemMessage = r.systemMessage
+                    const addCtx = r.hookSpecificOutput?.additionalContext
+                    if (typeof addCtx === 'string' && addCtx.length) extras.additionalContext = addCtx
+                    if (r.decision === 'block') return { ...cur, ...extras, behavior: 'block', reason: r.reason }
+                    const pd = r.hookSpecificOutput?.permissionDecision
+                    if (pd === 'deny') return { ...cur, ...extras, behavior: 'block', reason: r.hookSpecificOutput?.permissionDecisionReason || 'denied' }
+                    if (r.hookSpecificOutput?.updatedInput) return { ...cur, ...extras, ...r.hookSpecificOutput.updatedInput }
+                    if (Object.keys(extras).length) return { ...cur, ...extras }
+                } catch (e) {
+                    hookLog.error('cc-plugin native hook dispatch threw, skipping (fail-open)', { hook: name, native, err: String(e?.message || e), stack: e?.stack || null })
+                }
             }
             return cur
         },

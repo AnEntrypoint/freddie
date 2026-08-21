@@ -40,7 +40,7 @@ function claimsCompletionWithNoEvidence(content, toolCallsUsedThisTurn) {
     return COMPLETION_CLAIM_RE.test(content)
 }
 
-export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice, store, control = null, h = null, hookEngine = null, wireHookBridge = null } = {}) {
+export function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enabledToolsets = ['core'], disabledToolsets = [], events, sessionKey, toolCtx = null, tool_choice, store, control = null, h = null, hookEngine = null, wireHookBridge = null, signal = null } = {}) {
     const baseLLM = callLLM || resolveCallLLM({ provider, model })
     const llm = events ? async (input) => {
         const t0 = Date.now()
@@ -51,8 +51,12 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
             if (wireHookBridge) wireHookBridge.forwardHook('preLlmCall', { sessionKey, provider, model, messages_count: input.messages?.length || 0 }).catch(() => {})
             // onChunk threads through resolveCallLLM's streaming path; each text
             // delta becomes an assistant.delta wire event (and feeds the
-            // trajectory's llm_chunks_count, previously always 0).
-            const out = await baseLLM({ ...input, onChunk: (text) => { events.push({ type: 'llm_chunk', text, ts: new Date().toISOString() }); emitTurnEvent(sessionKey, 'assistant.delta', { text: redactSecrets(text) }) } })
+            // trajectory's llm_chunks_count, previously always 0). signal
+            // threads the turn's AbortController through to baseLLM so a turn
+            // timeout can stop awaiting this call instead of leaving it running
+            // with nothing tracking it (see llm_resolver.js's race for why this
+            // cancels OUR wait, not necessarily the upstream socket).
+            const out = await baseLLM({ ...input, signal: input.signal ?? signal, onChunk: (text) => { events.push({ type: 'llm_chunk', text, ts: new Date().toISOString() }); emitTurnEvent(sessionKey, 'assistant.delta', { text: redactSecrets(text) }) } })
             events.push({ type: 'llm_call', ok: true, durationMs: Date.now() - t0, provider: out?.raw?.provider || provider, model: out?.raw?.model || model, content_length: (out?.content || '').length, tool_calls_count: (out?.tool_calls || []).length, ts: new Date().toISOString() })
             emitTurnEvent(sessionKey, 'message.append', { role: 'assistant', content: redactSecrets(out?.content || ''), tool_calls: redactSecrets(out?.tool_calls || []) })
             // postLlmCall hook: fire after LLM completion
@@ -118,6 +122,13 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
             // createLibsqlStepStore contract) threaded to both runStep call sites
             // below. Undefined = default libsql-backed step journal.
             store,
+            // Per-turn AbortController signal (set by machine.js's runTurn/
+            // resumeTurn). Threaded to the LLM fromPromise invoke below so a
+            // turn timeout can stop the in-flight call instead of orphaning it.
+            // Tool dispatch reads it via toolCtx.signal (mergedToolCtx), not
+            // context.signal, since dispatchTool's ctx is the tool-facing
+            // contract surface.
+            signal,
         }),
         states: {
             idle: {
@@ -180,11 +191,11 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                             if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] compress threw', e.message)
                         }
                         if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] before llm() call, iteration', input.iterations)
-                        const out = await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: callMessages, tools: schemas, model: input.model, provider: input.provider, tool_choice: tc }), { store: input.store })
+                        const out = await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: callMessages, tools: schemas, model: input.model, provider: input.provider, tool_choice: tc, signal: input.signal }), { store: input.store })
                         if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] after llm() call')
                         return { out, compressedMessages }
                     }),
-                    input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, sessionKey: context.sessionKey, iterations: context.iterations, tool_choice: context.tool_choice, store: context.store, toolCtx: context.toolCtx, control: context.control }),
+                    input: ({ context }) => ({ messages: context.messages, model: context.model, provider: context.provider, enabledToolsets: context.enabledToolsets, disabledToolsets: context.disabledToolsets, sessionKey: context.sessionKey, iterations: context.iterations, tool_choice: context.tool_choice, store: context.store, toolCtx: context.toolCtx, control: context.control, signal: context.signal }),
                     onDone: [
                         { guard: ({ event }) => Array.isArray(event.output?.out?.tool_calls) && event.output.out.tool_calls.length > 0, target: 'tool_calls', actions: assign({
                             // output-parser pattern (little-coder): a text-recovered tool

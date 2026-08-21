@@ -11,7 +11,7 @@ import { loadConfig } from '../config.js'
 
 // session-end hooks + trajectory. Shared by runTurn (fresh) and resumeTurn
 // (rehydrated from a persisted snapshot after a refresh/restart).
-async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store }) {
+async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, model, skill, cwd, witnessPath, timeoutMs, sessionKey, store, abortController }) {
     const { actor } = pa
     return await new Promise((resolve, reject) => {
         let sub
@@ -22,6 +22,13 @@ async function driveAgentActor({ pa, h, hookEngine, events, prompt, provider, mo
             telemetry.turnForceStopped({ reason: 'timeout', timeoutMs })
             emitTurnEvent(sessionKey, 'session.error', { reason: 'timeout', timeoutMs })
             const out = timeoutResult(actor, timeoutMs)
+            // Stopping the xstate actor (inside cleanup, below) only halts the
+            // state machine — any fromPromise invoke genuinely in flight (an LLM
+            // HTTP call, a tool subprocess) keeps running against real I/O with
+            // nothing left awaiting it unless the turn's AbortController is
+            // fired. abort() must never itself throw into this handler — a
+            // listener-side error must not block the rest of timeout cleanup.
+            try { abortController?.abort(new Error('agent turn timeout')) } catch {}
             cleanup()
             ;(async () => {
                 try { await clearSteps(sessionKey, { store }) } catch {}
