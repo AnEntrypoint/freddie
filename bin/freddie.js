@@ -36,6 +36,20 @@ program
     .option('-a, --approve', 'trust this project\'s local plugins (.freddie/plugins/) without prompting')
     .option('--no-approve', 'do not trust this project\'s local plugins without prompting')
 
+// Fast path: `freddie --version`/`-V` needs nothing from the plugin host --
+// version() below already prints a fixed literal string -- but bootHost()
+// ran unconditionally regardless, paying the full plugin-discovery cost
+// (~100 plugins across plugins/ and ~/.freddie/plugins/) live-measured at
+// ~1.2s wall clock just to print "0.1.0", real latency for a command a
+// script/CI healthcheck might call often and expect near-instant. --help/-h
+// cannot take the same shortcut: it needs host.pi.cli.list() below to print
+// the real subcommand list, not just the two approve flags.
+const _argv2 = process.argv.slice(2)
+if (_argv2.length === 1 && (_argv2[0] === '--version' || _argv2[0] === '-V')) {
+    console.log(program.version())
+    process.exit(0)
+}
+
 const host = await bootHost([], { approveCwdPlugins: _approveCwdPlugins })
 for (const def of host.pi.cli.list()) {
     const cmd = program.command(def.name).description(def.description || '')

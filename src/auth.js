@@ -95,18 +95,28 @@ const SECRET_FIELD_NAMES = new Set(['value', 'credential', 'apikey', 'api_key', 
 const KNOWN_SECRET_VALUES = () => new Set(Object.values(ENV_OF).map(envVar => process.env[envVar]).filter(Boolean))
 
 // Deep-clones `input`, replacing any string that is either (a) a live value
-// of a known provider env var, or (b) held under a credential-shaped field
-// name, with tokenFingerprint(value). Never mutates its input. Used at every
-// boundary a tool call's args/result can cross into a durable or external
-// sink (wire log, live listeners, trajectory files, the approval classifier's
-// LLM prompt) so a raw secret never leaves the dispatch site.
+// of a known provider env var, (b) held under a credential-shaped field
+// name, or (c) CONTAINS a known provider env var value as a substring (the
+// bash/write/edit path: a command or file content embedding a real key
+// inline, e.g. `curl -H "Authorization: Bearer sk-ant-..."` or a written
+// .env file's contents, is never itself the exact string value — it is a
+// larger string the secret is embedded IN), with a redacted form. Never
+// mutates its input. Used at every boundary a tool call's args/result can
+// cross into a durable or external sink (wire log, live listeners,
+// trajectory files, the approval classifier's LLM prompt) so a raw secret
+// never leaves the dispatch site.
 export function redactSecrets(input) {
-    const known = KNOWN_SECRET_VALUES()
+    const known = [...KNOWN_SECRET_VALUES()].filter(v => v.length >= 8) // skip trivially-short values that would over-match
+    const redactEmbedded = (s) => {
+        let out = s
+        for (const secret of known) { if (out.includes(secret)) out = out.split(secret).join(tokenFingerprint(secret)) }
+        return out
+    }
     const walk = (node, keyHint) => {
         if (typeof node === 'string') {
-            if (known.has(node)) return tokenFingerprint(node)
+            if (known.includes(node)) return tokenFingerprint(node)
             if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase()) && node) return tokenFingerprint(node)
-            return node
+            return redactEmbedded(node)
         }
         if (Array.isArray(node)) return node.map(v => walk(v, keyHint))
         if (node && typeof node === 'object') {
