@@ -8,7 +8,7 @@ import { logger } from '../../observability/log.js'
 
 const log = logger('compressor')
 
-export async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, callLLM, auxModel = null, tools = [], threshold, blockSourceTokens = BLOCK_SOURCE_TOKENS, blockConcurrency = BLOCK_CONCURRENCY } = {}) {
+export async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_LENGTH, callLLM, auxModel = null, tools = [], threshold, blockSourceTokens = BLOCK_SOURCE_TOKENS, blockConcurrency = BLOCK_CONCURRENCY, scopeKey = '' } = {}) {
     const tier = compressionTier({ messages, modelContextLength, tools, threshold })
     if (!tier) return { compressedMessages: messages, summary: null, didCompress: false, reason: 'below threshold' }
     // hard tier: the turn is critically over budget (>=95% of usable context
@@ -27,7 +27,7 @@ export async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_
         // through to the real summarize path below; hard tier only skips
         // AHEAD of the wait when a cheap synchronous win is available.
     }
-    if (!shouldRetry()) return { compressedMessages: messages, summary: null, didCompress: false, reason: 'cooldown' }
+    if (!shouldRetry(scopeKey)) return { compressedMessages: messages, summary: null, didCompress: false, reason: 'cooldown' }
     if (typeof callLLM !== 'function') throw new Error('compress: callLLM required')
 
     const plan = computeCompressionPlan(messages, modelContextLength)
@@ -49,7 +49,7 @@ export async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_
 
     let blockSummaries
     try {
-        blockSummaries = await mapWithConcurrency(blocks, blockConcurrency, async (block, i) => {
+        blockSummaries = await mapWithConcurrency(blocks, blockConcurrency, async (block, i, signal) => {
             const budget = budgets[i]
             const budgetLine = `Length limit: this block's summary MUST be under ${budget} tokens (≈${budget * CHARS_PER_TOKEN} characters). Shorter is better — this is a hard cap, anything past it is discarded.`
             const preamble = (i === 0 && existing) ? `Previous summary:\n${existing}\n\nNew turns to fold in:\n` : ''
@@ -60,13 +60,16 @@ export async function compress({ messages, modelContextLength = MINIMUM_CONTEXT_
             ]
             // max_tokens (snake) reaches resolveCallLLM/acptoapi; maxTokens
             // (camel) is kept for external callLLM consumers of the old shape.
-            const out = await callLLM({ messages: summarizerMessages, tools: [], model: auxModel, maxTokens: budget, max_tokens: budget })
+            // signal (mapWithConcurrency's per-call AbortSignal) cancels this
+            // block's own in-flight LLM call the instant a SIBLING block's call
+            // throws, closing the orphaned-outbound-request window.
+            const out = await callLLM({ messages: summarizerMessages, tools: [], model: auxModel, maxTokens: budget, max_tokens: budget, signal })
             const raw = (out?.content || '').trim()
             if (!raw) throw new Error('empty summary')
             return enforceTokenBudget(raw, budget)
         })
     } catch (e) {
-        markFailure()
+        markFailure(scopeKey)
         log.error('summarization failed', { err: String(e) })
         return { compressedMessages: messages, summary: null, didCompress: false, error: String(e) }
     }
