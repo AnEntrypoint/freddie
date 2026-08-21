@@ -14,11 +14,19 @@ program.name('freddie').version('0.1.0').description('Freddie — open JS agent 
 // depends on it), so parse just these two options eagerly via a throwaway
 // Command clone rather than the full program -- the full parseAsync() below
 // still runs against the real argv afterward for normal subcommand dispatch.
+// configureOutput swallowing both streams is required, not just exitOverride:
+// exitOverride() alone only replaces commander's process.exit() call with a
+// thrown CommanderError, which the catch below discards -- but commander
+// writes --help/--version output to stdout as a side effect BEFORE it exits,
+// so without this the throwaway _preParse also prints its own truncated help
+// (only the two approve flags, none of the real subcommands) ahead of the
+// real program's correct help further down, doubling every `freddie --help`.
 const _preParse = new Command()
     .option('-a, --approve', 'trust this project\'s local plugins (.freddie/plugins/) without prompting')
     .option('--no-approve', 'do not trust this project\'s local plugins without prompting')
     .allowUnknownOption(true)
     .allowExcessArguments(true)
+    .configureOutput({ writeOut: () => {}, writeErr: () => {} })
     .exitOverride()
 try { _preParse.parse(process.argv) } catch { /* --help/--version etc in this pre-parse are handled by the real parse below */ }
 const _preOpts = _preParse.opts()
@@ -35,7 +43,14 @@ for (const def of host.pi.cli.list()) {
         const tag = a.required ? `<${a.name}>` : `[${a.name}]`
         cmd.argument(tag, a.description || '', a.default)
     }
-    for (const o of def.options || []) cmd.option(o.flag, o.description || '', o.default)
+    // requiredOption() enforces the flag at commander's own parse time (a
+    // clean "error: required option '--x <x>' not specified" before the
+    // action ever runs) -- plain option() silently ignores a CommandDef's
+    // required:true, letting an action run with the option undefined (e.g.
+    // `exec` with no --prompt used to boot the full agent/LLM chain on an
+    // undefined prompt and fail deep downstream with an opaque "fetch failed"
+    // instead of rejecting immediately at the CLI boundary).
+    for (const o of def.options || []) o.required ? cmd.requiredOption(o.flag, o.description || '', o.default) : cmd.option(o.flag, o.description || '', o.default)
     cmd.action(def.action)
 }
 

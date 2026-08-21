@@ -86,3 +86,35 @@ export async function getProviderAuthState(provider) {
         hasSecret: await hasUsableSecret(provider),
     }
 }
+
+// Field names that carry a raw secret value by convention, independent of
+// whether that value happens to match a known provider env var (a
+// credential_files:set call for an arbitrary/custom credential name has no
+// entry in ENV_OF at all, so name-matching alone under-covers it).
+const SECRET_FIELD_NAMES = new Set(['value', 'credential', 'apikey', 'api_key', 'token', 'secret', 'password', 'auth_token'])
+const KNOWN_SECRET_VALUES = () => new Set(Object.values(ENV_OF).map(envVar => process.env[envVar]).filter(Boolean))
+
+// Deep-clones `input`, replacing any string that is either (a) a live value
+// of a known provider env var, or (b) held under a credential-shaped field
+// name, with tokenFingerprint(value). Never mutates its input. Used at every
+// boundary a tool call's args/result can cross into a durable or external
+// sink (wire log, live listeners, trajectory files, the approval classifier's
+// LLM prompt) so a raw secret never leaves the dispatch site.
+export function redactSecrets(input) {
+    const known = KNOWN_SECRET_VALUES()
+    const walk = (node, keyHint) => {
+        if (typeof node === 'string') {
+            if (known.has(node)) return tokenFingerprint(node)
+            if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase()) && node) return tokenFingerprint(node)
+            return node
+        }
+        if (Array.isArray(node)) return node.map(v => walk(v, keyHint))
+        if (node && typeof node === 'object') {
+            const out = {}
+            for (const [k, v] of Object.entries(node)) out[k] = walk(v, k)
+            return out
+        }
+        return node
+    }
+    return walk(input, null)
+}

@@ -25,6 +25,15 @@
 // denied calls is showing the classifier something is off, and a human should
 // look.
 
+// classifyToolCall's args cross a real network boundary to an external LLM
+// provider (agent.approval_classifier_model, default acptoapi 'cheap' chain)
+// -- a raw credential in args (e.g. credential_files:set{value:'sk-...'})
+// must never leave this process in that request body. Reuses auth.js's
+// redactSecrets so a credential-shaped value is masked the same way here as
+// at the wire-event emit sites, rather than needing a second policy to keep
+// in sync.
+import { redactSecrets as redactArgsForClassifier } from '../auth.js'
+
 // A model that keeps getting denied is either working on something the policy
 // rejects wholesale (human should decide) or looping (repeat protection's
 // job). These bounds trip the human in before costs pile up.
@@ -39,7 +48,7 @@ const ARGS_PROMPT_CAP = 4000
 // this far more reliably than prose principles.
 function buildPrompt(name, args) {
     let argsJson
-    try { argsJson = JSON.stringify(args ?? {}) } catch { argsJson = '"<unserializable>"' }
+    try { argsJson = JSON.stringify(redactArgsForClassifier(args) ?? {}) } catch { argsJson = '"<unserializable>"' }
     if (argsJson.length > ARGS_PROMPT_CAP) argsJson = argsJson.slice(0, ARGS_PROMPT_CAP) + '…[truncated]'
     return `You are a tool-call safety classifier for an autonomous coding agent. You see ONLY the tool name and its JSON arguments — never the conversation, the user's messages, or the agent's reasoning. Judge the call on its own.
 

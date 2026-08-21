@@ -10,6 +10,10 @@ import { telemetry } from '../observability/telemetry.js'
 import { emitTurnEvent } from './events.js'
 import { requestApproval, noteToolCall } from './live-turns.js'
 import { classifyToolCall, CLASSIFIER_CONSEC_DENY_LIMIT, CLASSIFIER_TOTAL_DENY_LIMIT } from './approval_classifier.js'
+import { redactSecrets } from '../auth.js'
+import { logger } from '../observability/log.js'
+
+const machineLog = logger('agent-machine')
 
 function looksLikeStructuredDataNotProse(text) {
     const trimmed = text.trim()
@@ -151,7 +155,22 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                             const r = await compress({ messages: input.messages, callLLM: resolveCallLLM({}), tools: schemas })
                             if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] after compress() call, didCompress=', r.didCompress)
                             if (r.didCompress) { compressedMessages = r.compressedMessages; callMessages = r.compressedMessages }
-                        } catch (e) { if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] compress threw', e.message) }
+                        } catch (e) {
+                            // An error here (import failure, or compress() throwing before
+                            // its own internal try/catch around the summarize call is
+                            // reached -- e.g. compress: callLLM required) is otherwise
+                            // completely invisible in production: compressor.js's OWN
+                            // summarization-failure path already logs via the real
+                            // structured logger (src/observability/log.js), but this outer
+                            // boundary previously only surfaced under an opt-in trace flag,
+                            // silently falling through to uncompressed messages turn after
+                            // turn with no diagnostic trail pointing at the cause. Emit a
+                            // real wire event (status.update, matching the shape other
+                            // non-fatal turn-level notices use) unconditionally -- the debug
+                            // console.error stays for interactive trace-mode verbosity.
+                            emitTurnEvent(input.sessionKey, 'status.update', { kind: 'compression_error', error: String(e?.message || e) })
+                            if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] compress threw', e.message)
+                        }
                         if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] before llm() call, iteration', input.iterations)
                         const out = await runStep(input.sessionKey, 'llm:' + input.iterations, () => llm({ messages: callMessages, tools: schemas, model: input.model, provider: input.provider, tool_choice: tc }), { store: input.store })
                         if (process.env.FREDDIE_DEBUG_TRACE) console.error('[trace] after llm() call')
@@ -327,6 +346,17 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                     } else {
                                         // escalate → same human requestApproval path as the
                                         // static gate below (bounded timeout auto-rejects).
+                                        // verdict.reason here is the ONLY signal distinguishing a
+                                        // classifier that is working as designed (denial-threshold
+                                        // escalation, an unparseable/contradictory answer) from one
+                                        // that is actually broken (LLM call failed -- unreachable
+                                        // model, bad config): classifyToolCall correctly fails
+                                        // CLOSED to this same escalate path either way, but without
+                                        // logging the reason an unattended operator under
+                                        // approval_mode:classifier sees every call time out with an
+                                        // identical generic denial and has no trail back to "the
+                                        // classifier model is unreachable" as the root cause.
+                                        emitTurnEvent(input.sessionKey, 'status.update', { kind: 'classifier_escalation', name: tname, reason: verdict.reason || null })
                                         const decision = await requestApproval(input.sessionKey, { name: tname, args: targs, cwd: input.toolCtx?.cwd })
                                         if (!decision.approved) {
                                             emitTurnEvent(input.sessionKey, 'tool.end', { name: tname, toolCallId: tcid, denied: true, via: 'classifier-escalation' })
@@ -345,7 +375,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                 }
                             }
                             telemetry.toolCall({ name: tname, args: targs })
-                            emitTurnEvent(input.sessionKey, 'tool.start', { name: tname, args: targs, toolCallId: tcid })
+                            emitTurnEvent(input.sessionKey, 'tool.start', { name: tname, args: redactSecrets(targs), toolCallId: tcid })
                             const ret = await runStep(input.sessionKey, 'tool:' + input.iterations + ':' + tcid, async () => {
                                 const callExtras = []
                                 const pushExtras = r => { if (r?.systemMessage) callExtras.push({ role: 'system', content: '[hook] ' + r.systemMessage }); if (r?.additionalContext) callExtras.push({ role: 'system', content: r.additionalContext }) }
@@ -360,7 +390,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                 return { content: res, extras: callExtras }
                             }, { store: input.store })
                             results.push({ tool_call_id: tcid, content: ret.content })
-                            emitTurnEvent(input.sessionKey, 'tool.end', { name: tname, toolCallId: tcid, result: ret.content })
+                            emitTurnEvent(input.sessionKey, 'tool.end', { name: tname, toolCallId: tcid, result: redactSecrets(ret.content) })
                             extras.push(...ret.extras)
                             // Hallucinated/unknown tool name detection: dispatchTool's
                             // unknown-tool error ({"error":"unknown tool: X"}, see

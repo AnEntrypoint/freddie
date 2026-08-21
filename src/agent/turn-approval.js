@@ -7,6 +7,10 @@
 import { randomUUID } from 'node:crypto'
 import { emitTurnEvent } from './events.js'
 import { turns } from './turn-registry.js'
+import { redactSecrets } from '../auth.js'
+import { logger } from '../observability/log.js'
+
+const log = logger('approval')
 
 // Repo-root-scoped approval grants, persisted across turns and resumeTurn
 // (Claude repo-root always-allow rules + Codex fork-preservation precedent).
@@ -44,12 +48,24 @@ async function persistApprovalGrant(cwd, toolName) {
 }
 
 // Called from the machine's executing_tools state before dispatching a gated
-// tool. Resolves { approved, feedback? }. A missing registry entry means the
-// turn is running detached (batch/cron with no control plane) — fail OPEN to
-// preserve pre-approval-policy behavior for those paths.
+// tool. Resolves { approved, feedback? }. A missing registry entry historically
+// meant the turn was running detached (batch/cron with no control plane), and
+// this fails OPEN to preserve pre-approval-policy behavior for those paths --
+// but registerTurn now runs unconditionally for every runTurn/resumeTurn call
+// (see AGENTS.md's Wire protocol Approvals paragraph), so this branch SHOULD
+// be unreachable in normal operation. It is kept as a defensive fallback
+// rather than an assertion because a caller driving the machine directly
+// without going through runTurn/resumeTurn (a future integration, a test
+// harness) could still hit it -- but a gated tool call silently running
+// without approval is exactly the failure this whole subsystem exists to
+// prevent, so if it ever DOES fire that is itself a security-relevant event
+// worth a durable, searchable log line, not a silent pass-through.
 export function requestApproval(sessionKey, { name, args, cwd }) {
     const t = turns.get(sessionKey)
-    if (!t) return Promise.resolve({ approved: true })
+    if (!t) {
+        log.warn('approval gate bypassed: no registered turn for session', { sessionKey, tool: name })
+        return Promise.resolve({ approved: true })
+    }
     return new Promise((resolve) => {
         const id = randomUUID()
         // A non-finite approvalTimeoutMs (REPL foreground, kimi 1.40's reversal)
@@ -66,7 +82,7 @@ export function requestApproval(sessionKey, { name, args, cwd }) {
             id, name, cwd: cwd ?? null,
             resolve: (d) => { if (timer) clearTimeout(timer); resolve(d) },
         }
-        emitTurnEvent(sessionKey, 'approval.request', { id, name, args, cwd: cwd ?? null })
+        emitTurnEvent(sessionKey, 'approval.request', { id, name, args: redactSecrets(args), cwd: cwd ?? null })
     })
 }
 
