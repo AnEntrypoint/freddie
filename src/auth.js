@@ -143,7 +143,12 @@ export async function getProviderAuthState(provider) {
 // prove the unmasked field cannot carry a secret.
 const SECRET_FIELD_NAMES = new Set(['value', 'credential', 'apikey', 'api_key', 'token', 'secret', 'password', 'auth_token'])
 
-const KNOWN_SECRET_VALUES = () => new Set(Object.values(ENV_OF).map(envVar => process.env[envVar]).filter(Boolean))
+const KNOWN_SECRET_VALUES = () => {
+    const all = new Set(Object.values(ENV_OF).map(envVar => process.env[envVar]).filter(Boolean))
+    // Also include bedrock's secondary secret key that is not in ENV_OF
+    for (const envVar of BEDROCK_ENV_VARS) { if (process.env[envVar]) all.add(process.env[envVar]) }
+    return all
+}
 
 // Deep-clones `input`, replacing any string that is either (a) a live value
 // of a known provider env var (exact match, ANY length -- a short custom key
