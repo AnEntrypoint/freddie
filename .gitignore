@@ -119,8 +119,13 @@ state/sessions.db
 .gm/gm-trans.json
 .gm/gm-prdlist.json
 
-# whole .gm tree is per-machine agent state (nothing under it is tracked in this repo)
-.gm/
+# .gm/ session-scratch only (exec-spool, prd, mutables, memories) — model-availability.json
+# and llm-validation.json ARE tracked for matrix-aware chain scoring in acptoapi
+.gm/exec-spool/
+.gm/prd.yml
+.gm/mutables.yml
+.gm/memories/
+# approval-grants.json and runtime config are per-machine, never commit
 approval-grants.json
 /uploads/
 # project-home runtime config (per-machine, never commit)

@@ -24,8 +24,9 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
         const llmCalls = events.filter(e => e.type === 'llm_call')
         const streamChunks = events.filter(e => e.type === 'llm_chunk')
         const redactedMessages = redactSecrets(out.messages || [])
+        const redactedPrompt = redactSecrets(prompt)
         const payload = {
-            schema_version: 2, ts, prompt, provider, model, skill, cwd,
+            schema_version: 2, ts, prompt: redactedPrompt, provider, model, skill, cwd,
             iterations: out.iterations, result: out.result, error: out.error, error_stack: errorStack,
             state_transitions: states, tool_calls: toolCalls, tool_results: toolResults,
             llm_calls: llmCalls, llm_chunks_count: streamChunks.length,
@@ -36,7 +37,7 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
         fs.writeFileSync(file, JSON.stringify(payload, null, 2))
         if (witnessPath) {
             const jsonl = [
-                JSON.stringify({ event: 'session_start', ts, prompt, provider, model, skill, cwd }),
+                JSON.stringify({ event: 'session_start', ts, prompt: redactedPrompt, provider, model, skill, cwd }),
                 ...redactedMessages.map((m, i) => JSON.stringify({ event: 'message', index: i, role: m.role, content: m.content, tool_calls: m.tool_calls || null, tool_call_id: m.tool_call_id || null })),
                 ...llmCalls.map(e => JSON.stringify({ event: 'llm_call', ...e })),
                 JSON.stringify({ event: 'session_end', iterations: out.iterations, error: out.error, error_stack: errorStack, compressor_invocations: compressorInvocations }),
