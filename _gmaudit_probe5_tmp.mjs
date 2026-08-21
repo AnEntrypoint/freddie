@@ -1,0 +1,6 @@
+process.chdir('C:/dev/freddie')
+const mod = await import('file:///C:/dev/freddie/src/learn/gm-learn.js')
+const t0 = Date.now()
+const hits = await mod.recall('say hello', { namespace: 'freddie', limit: 3 })
+console.log('recall took', Date.now()-t0, 'ms')
+console.log(JSON.stringify(hits, null, 2))

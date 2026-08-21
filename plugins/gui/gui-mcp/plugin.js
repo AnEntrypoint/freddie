@@ -14,6 +14,7 @@
  * DOM / browser-specific code. The dashboard SDK consumes the JSON endpoints.
  */
 import { getClients } from '../../core/mcp/lib/tool.js'
+import { redactSecrets } from '../../../src/auth.js'
 
 export default {
     name: 'gui-mcp',
@@ -91,7 +92,7 @@ export default {
                 const servers = await mgr.listServers()
                 res.json({ servers })
             } catch (e) {
-                res.status(500).json({ error: e.message })
+                res.status(500).json({ error: redactSecrets(e.message) })
             }
         })
 
@@ -106,7 +107,11 @@ export default {
                 await mgr.storeToken(server, { accessToken, refreshToken, expiresAt: expiresAt ? expiresAt * 1000 : null, tokenType })
                 res.json({ stored: server })
             } catch (e) {
-                res.status(500).json({ error: e.message })
+                // e.message is redacted here specifically because this route's own
+                // request body just carried a raw OAuth accessToken/refreshToken --
+                // a downstream error that happens to quote the bad input back
+                // (validation message, write-failure detail) must never echo it.
+                res.status(500).json({ error: redactSecrets(e.message) })
             }
         })
 
@@ -119,7 +124,7 @@ export default {
                 await mgr.removeToken(server)
                 res.json({ deleted: server })
             } catch (e) {
-                res.status(500).json({ error: e.message })
+                res.status(500).json({ error: redactSecrets(e.message) })
             }
         })
 

@@ -67,9 +67,18 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
 
 // Auto-learn: distill a salient fact from a completed turn and memorize it into gm rs-learn.
 // Only fires on substantive, non-error outcomes; dedupes against existing near-identical
-// memories so the store does not fill with restatements. Best-effort — never throws.
+// memories so the store does not fill with restatements. Best-effort — never throws, and
+// never blocks turn completion: this call sits directly in driveAgentActor's done-state
+// handler ahead of clearSteps/cleanup/resolve(out) (see turn_driver.js), so an unbounded
+// stall here stalls the whole runTurn resolution even though the actual agent work
+// already finished — same defect class the sibling autoRecall preamble call in
+// machine.js was fixed for (see its AUTORECALL_TIMEOUT_MS comment). Live-witnessed: a
+// real warm-daemon embed round trip costs 2.7-8.3s under normal shared-daemon queue
+// contention, and this path pays two of them (recall dedupe-check + memorize) with no
+// bound of its own beyond gm-learn-backend.js's per-call 20000ms exec ceiling.
 const AUTOLEARN_MIN_LEN = 40 // skip trivial one-liners
 const AUTOLEARN_DEDUPE_COS = 0.92 // a hit this similar means we already know it
+const AUTOLEARN_TIMEOUT_MS = 8000
 async function autoLearnTurn({ prompt, out }) {
     try {
         if (!out || out.error) return
@@ -79,9 +88,15 @@ async function autoLearnTurn({ prompt, out }) {
         const namespace = await projectNamespace()
         // Concise salient fact: the user's ask + the outcome, capped to keep recall sharp.
         const fact = `Q: ${(prompt || '').toString().trim().slice(0, 200)}\nA: ${result.slice(0, 600)}`
-        const existing = await recall(fact, { limit: 1, namespace })
-        if (existing.length && existing[0].score >= AUTOLEARN_DEDUPE_COS) return
-        await memorize(fact, { namespace })
+        let autolearnTimer
+        await Promise.race([
+            (async () => {
+                const existing = await recall(fact, { limit: 1, namespace })
+                if (existing.length && existing[0].score >= AUTOLEARN_DEDUPE_COS) return
+                await memorize(fact, { namespace })
+            })().finally(() => clearTimeout(autolearnTimer)),
+            new Promise((_, reject) => { autolearnTimer = setTimeout(() => reject(new Error('autoLearnTurn timeout')), AUTOLEARN_TIMEOUT_MS) }),
+        ])
     } catch (_) {}
 }
 

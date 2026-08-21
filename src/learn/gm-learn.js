@@ -65,11 +65,37 @@ export async function recall(query, { limit = 5, namespace = 'default' } = {}) {
     try {
         if (pk._node) {
             const emb = await pk.embed(q)
-            const r = await pk.db.execute({
-                sql: 'SELECT id, text, namespace, vector_distance_cos(embedding, vector(?)) AS dist FROM memories WHERE namespace = ? ORDER BY dist ASC LIMIT ?',
-                args: [vecSql(emb), namespace, limit * 4],
-            })
-            return r.rows.map(row => ({
+            const vec = vecSql(emb)
+            // vector_top_k('memories_vec', vector(?), k) is the index-eligible ANN form --
+            // a plain `ORDER BY vector_distance_cos(...)` scalar-function query bypasses
+            // the memories_vec index entirely (live-witnessed EXPLAIN QUERY PLAN: SCAN
+            // memories + TEMP B-TREE FOR ORDER BY, i.e. an O(total rows across every
+            // namespace sharing this gm.db) full table scan on every recall call). The
+            // index has no namespace awareness, so fetch progressively wider top-k
+            // candidate sets and filter by namespace client-side until `limit` namespace
+            // matches are found or the corpus is exhausted -- mirrors the prior
+            // `limit * 4` over-fetch factor as a starting point, doubling on shortfall.
+            const total = (await pk.db.execute('SELECT COUNT(*) AS n FROM memories')).rows[0]?.n ?? 0
+            let k = Math.min(Math.max(limit * 4, 20), Number(total) || limit * 4)
+            let rows = []
+            for (let attempt = 0; attempt < 4; attempt++) {
+                // vector_top_k exposes only `id` (already ANN-sorted); distance is
+                // recomputed here but only across the k narrowed candidates, not the
+                // full table, so this ORDER BY sorts a small in-memory set, not a scan.
+                const r = await pk.db.execute({
+                    sql: `SELECT m.id AS id, m.text AS text, m.namespace AS namespace,
+                                 vector_distance_cos(m.embedding, vector(?)) AS dist
+                          FROM vector_top_k('memories_vec', vector(?), ?) AS v
+                          JOIN memories AS m ON m.rowid = v.id
+                          WHERE m.namespace = ?
+                          ORDER BY dist ASC`,
+                    args: [vec, vec, k, namespace],
+                })
+                rows = r.rows
+                if (rows.length >= limit || k >= Number(total)) break
+                k = Math.min(k * 2, Number(total) || k * 2)
+            }
+            return rows.map(row => ({
                 text: String(row.text || ''),
                 score: 1 - Number(row.dist ?? 1),
                 key: String(row.id),
