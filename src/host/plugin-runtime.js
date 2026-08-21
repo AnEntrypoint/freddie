@@ -60,7 +60,22 @@ export async function registerPlugin(p, { surfaces, pi, gui, hooks, configStore,
     const ctxHooks = recordHooks(hooks, cap)
     const log = (lv, m, f) => { const line = JSON.stringify({ ts: Date.now(), plugin: p.name, level: lv, msg: m, ...(f || {}) }); if (env.FREDDIE_LOG_STDOUT) console.log(line) }
     const logger = { info: (m, f) => log('info', m, f), warn: (m, f) => log('warn', m, f), error: (m, f) => log('error', m, f) }
-    await p.register({ pi: ctxPi, gui: ctxGui, hooks: ctxHooks, log: logger, config: scopedCfg(p.name, configStore), host, env })
+    try {
+        await p.register({ pi: ctxPi, gui: ctxGui, hooks: ctxHooks, log: logger, config: scopedCfg(p.name, configStore), host, env })
+    } catch (e) {
+        // register() can throw AFTER already calling pi.tools.register()/
+        // gui.route()/hooks.on() one or more times through the recording
+        // wrappers above -- those calls already took real effect (a tool
+        // this throw never accounted for can be live and model-callable)
+        // even though the caller (enablePlugin) never gets far enough to
+        // push this plugin into `loaded`/`capabilities`. Left alone, that
+        // partial registration is permanently un-disable-able: a later
+        // disablePlugin(name) finds no `loaded` entry and no-ops. Roll back
+        // whatever `cap` captured before the throw, then rethrow so the
+        // caller still sees the original failure.
+        unregisterByProvenance(cap, { pi, gui, hooks })
+        throw e
+    }
     return cap
 }
 
@@ -121,7 +136,7 @@ export async function enablePlugin(name, { surfaces, disabled, loaded, capabilit
 // recorded in sourcePaths (set at discoverPlugins/load time); an unknown path
 // is a no-op that returns null so callers can distinguish "nothing to reload"
 // from a thrown error.
-export async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, disabled, pi, gui, hooks, host }) {
+export async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded, disabled, surfaces, pi, gui, hooks, host }) {
     const name = [...sourcePaths.entries()].find(([, f]) => f === filePath)?.[0]
     if (!name) return null
     // A currently-disabled plugin (flag-skipped at boot, or disabled at
@@ -161,10 +176,26 @@ export async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded
     fresh.__sourceFile = filePath
     const newCap = { tools: [], hooks: [], commands: [], crons: [], routes: [], _hookFns: [], _routeDefs: [] }
     const want = fresh.surfaces
-    const ctxPi = (want === 'pi' || want === 'both') ? recordPi(pi, newCap, name) : pi
-    const ctxGui = (want === 'gui' || want === 'both') ? recordGui(gui, newCap) : gui
+    // Same surfaces-mismatch guard as registerPlugin (above) -- falling back
+    // to the raw unguarded pi/gui object here would let a hot-reloaded
+    // plugin whose declared `surfaces` doesn't match the host's enabled
+    // surfaces bypass the surface contract on reload, the identical bypass
+    // registerPlugin was fixed to close. `surfaces` defaults to both when a
+    // caller doesn't pass it (dev/test callers of reloadPlugin predating
+    // this param), matching createHost's own default so existing behavior
+    // for a caller not yet updated to pass it is unchanged.
+    const hostSurfaces = surfaces || ['pi', 'gui']
+    const ctxPi = (want === 'pi' || want === 'both') && hostSurfaces.includes('pi') ? recordPi(pi, newCap, name) : guard(pi, false, name, PI_VERBS)
+    const ctxGui = (want === 'gui' || want === 'both') && hostSurfaces.includes('gui') ? recordGui(gui, newCap) : guard(gui, false, name, GUI_VERBS)
     const ctxHooks = recordHooks(hooks, newCap)
-    await validatePlugin(fresh).register({ pi: ctxPi, gui: ctxGui, hooks: ctxHooks, log: { info(){}, warn(){}, error(){} }, config: nullStore(), host, env: process.env })
+    try {
+        await validatePlugin(fresh).register({ pi: ctxPi, gui: ctxGui, hooks: ctxHooks, log: { info(){}, warn(){}, error(){} }, config: nullStore(), host, env: process.env })
+    } catch (e) {
+        // Same partial-registration hazard as registerPlugin's catch above --
+        // roll back whatever newCap captured before the throw.
+        unregisterByProvenance(newCap, { pi, gui, hooks })
+        throw e
+    }
     loaded.push(fresh)
     capabilities.set(name, newCap)
     sourcePaths.set(name, filePath)

@@ -1,7 +1,7 @@
 import { createHost as createPluginHost } from 'plugsdk'
 import { validatePlugin, topoSort, PI_VERBS, GUI_VERBS } from './contract.js'
 import { makePi, makeGui, guard, scopedCfg, nullStore, makeCcHooks, makeHooksRegistry, makeCcLoaders } from './host_helpers.js'
-import { recordPi, recordGui, recordHooks, reloadPlugin, disablePlugin as disablePluginRuntime, enablePlugin as enablePluginRuntime } from './plugin-runtime.js'
+import { recordPi, recordGui, recordHooks, reloadPlugin, unregisterByProvenance, disablePlugin as disablePluginRuntime, enablePlugin as enablePluginRuntime } from './plugin-runtime.js'
 import { isFlagEnabled, disableFlag, enableFlag } from '../flags.js'
 
 export { discoverPlugins } from './plugin-discovery.js'
@@ -16,11 +16,27 @@ export { discoverPlugins } from './plugin-discovery.js'
 // skip persists across restarts via flags.json, same file/mechanism.
 function pluginFlagName(name) { return 'plugin:' + name }
 
+// Plugins the boot loader refuses to honor a disable-flag for, regardless of
+// how that flag got set. host.disablePlugin('gui-plugins-list') already
+// refuses the RUNTIME toggle path (see the host object below) -- but
+// flags.json is a generic, directly-writable store, and `freddie flag
+// disable plugin:gui-plugins-list` (plugins/feature-flags) reaches the exact
+// same persisted key through a completely different, unguarded CLI path.
+// gui-plugins-list owns BOTH routes the toggle feature is reached through
+// (GET /api/plugins, POST /api/plugins/:name); if the boot loader honored a
+// disable flag set that way, the plugin would come up parked in `disabled`
+// with its own re-enable route never registered -- the exact "no path back"
+// trap the runtime guard exists to prevent, just reached one layer lower.
+// Enforcing this at the one place flags are actually READ (not every place
+// they might get WRITTEN) closes the hole for every current and future
+// write path, not just the ones this file happens to know about.
+const PROTECTED_FROM_DISABLE = new Set(['gui-plugins-list'])
+
 function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, loaded, capabilities, failed, sourcePaths, resources, disabled }) {
     return async function load(plugins) {
         const sorted = topoSort(plugins.map(validatePlugin))
         for (const p of sorted) {
-            if (!isFlagEnabled(pluginFlagName(p.name))) { disabled.set(p.name, p); continue }
+            if (!PROTECTED_FROM_DISABLE.has(p.name) && !isFlagEnabled(pluginFlagName(p.name))) { disabled.set(p.name, p); continue }
             const want = p.surfaces
             const cap = { tools: [], hooks: [], commands: [], crons: [], routes: [], _hookFns: [], _routeDefs: [] }
             const ctxPi  = (want === 'pi'  || want === 'both') && surfaces.includes('pi')  ? recordPi(pi, cap, p.name)   : guard(pi, false, p.name, PI_VERBS)
@@ -36,6 +52,13 @@ function makePluginLoader({ surfaces, pi, gui, hooks, configStore, env, host, lo
                 if (p.__sourceFile) sourcePaths.set(p.name, p.__sourceFile)
                 if (p.__resources !== undefined) resources.set(p.name, p.__resources)
             } catch (e) {
+                // register() can throw after already calling pi.tools.register()/
+                // gui.route()/hooks.on() through the recording wrappers above --
+                // roll back whatever `cap` captured so a failed plugin doesn't
+                // leave live, un-tracked, un-unregisterable tools/routes/hooks
+                // behind (same hazard plugin-runtime.js's registerPlugin/
+                // reloadPlugin guard against on their own throw paths).
+                unregisterByProvenance(cap, { pi, gui, hooks })
                 // One bad plugin must not crash boot for every plugin after it in
                 // topo order -- capture context for /debug inspection, log loud, and
                 // keep loading the rest. Also surfaced via host.failed()/`freddie
@@ -101,7 +124,7 @@ export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(),
         resources: (n) => n ? (resources.has(n) ? resources.get(n) : null) : Object.fromEntries(resources),
         failedPlugins: () => failed.slice(),
         shutdown: () => ccHost.shutdown(),
-        reloadPlugin: (filePath) => reloadPlugin({ filePath, sourcePaths, capabilities, loaded, disabled, pi, gui, hooks, host }),
+        reloadPlugin: (filePath) => reloadPlugin({ filePath, sourcePaths, capabilities, loaded, disabled, surfaces, pi, gui, hooks, host }),
         // Runtime enable/disable (dashboard `plugins` page toggle). Effect is
         // immediate (tools/routes/hooks torn down or re-registered right
         // away) AND persisted via flags.js so a restart honors the choice --
@@ -133,6 +156,21 @@ export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(),
         //     untracked and un-unregisterable. `pendingToggle` serializes
         //     per-name so the second call is refused outright rather than
         //     racing the first.
+        //  4. (enable only) Requires-satisfaction guard: `requires` is a
+        //     registration-ORDER contract (topoSort/validatePlugin above
+        //     guarantee a dependency registers before its dependent at
+        //     boot) -- a plugin's register() may read `host.get(depName)`
+        //     assuming that ordering held. Re-enabling X while X's own
+        //     `requires` entry Y is currently disabled breaks that
+        //     assumption silently; this mirrors topoSort's own boot-time
+        //     `plugin missing: <name> (required by ...)` check for the
+        //     runtime-enable path.
+        //
+        // Self-disable protection additionally applies at the boot loader
+        // itself (PROTECTED_FROM_DISABLE, above) -- a persisted flags.json
+        // entry set through a path other than this method (e.g. `freddie
+        // flag disable plugin:gui-plugins-list`) is otherwise unguarded
+        // here, since this method only gates ITS OWN call path.
         disablePlugin: (name) => {
             if (name === 'gui-plugins-list') throw new Error(`refusing to disable '${name}': it owns the only GUI-reachable route to re-enable a plugin`)
             const dependents = loaded.filter(p => p.name !== name && Array.isArray(p.requires) && p.requires.includes(name)).map(p => p.name)
@@ -147,6 +185,11 @@ export function createHost({ surfaces = ['pi','gui'], configStore = nullStore(),
         },
         enablePlugin: async (name) => {
             if (pendingToggle.has(name)) throw new Error(`toggle already in progress for '${name}'`)
+            const target = disabled.get(name)
+            if (target && Array.isArray(target.requires) && target.requires.length) {
+                const missing = target.requires.filter(dep => !loaded.some(p => p.name === dep))
+                if (missing.length) throw new Error(`refusing to enable '${name}': requires ${missing.join(', ')}, currently disabled`)
+            }
             pendingToggle.add(name)
             try {
                 const ok = await enablePluginRuntime(name, { surfaces, disabled, loaded, capabilities, resources, pi, gui, hooks, configStore, env, host })
