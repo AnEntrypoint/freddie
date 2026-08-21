@@ -41,6 +41,7 @@ const REGISTRY = {
     AZURE_OPENAI_DEPLOYMENT: { purpose: 'Azure OpenAI deployment name', kind: 'string' },
     AZURE_OPENAI_ENDPOINT: { purpose: 'Azure OpenAI endpoint URL', kind: 'url' },
     AWS_ACCESS_KEY_ID: { purpose: 'AWS access key id (Bedrock provider)', kind: 'secret', provider: true },
+    AWS_SECRET_ACCESS_KEY: { purpose: 'AWS secret access key (Bedrock provider)', kind: 'secret', provider: true },
     AWS_SESSION_TOKEN: { purpose: 'AWS session token (Bedrock provider)', kind: 'secret' },
     AWS_REGION: { purpose: 'AWS region for Bedrock provider', kind: 'string' },
     GOOGLE_OAUTH_TOKEN: { purpose: 'Google OAuth token (Gemini/Meet)', kind: 'secret', provider: true },

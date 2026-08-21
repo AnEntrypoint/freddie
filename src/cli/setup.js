@@ -39,6 +39,11 @@ export async function setupModelProvider({ input = process.stdin, output = proce
     saveConfigValue('agent.provider', provider)
     const key = await ask('api key (leave blank to skip): ')
     if (key) await getAuthStore().setCredential(ENV_BY_PROVIDER[provider], key)
+    // Bedrock requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+    if (provider === 'bedrock' && key) {
+        const secretKey = await ask('AWS_SECRET_ACCESS_KEY (leave blank to skip): ')
+        if (secretKey) await getAuthStore().setCredential('AWS_SECRET_ACCESS_KEY', secretKey)
+    }
     const model = await ask('default model [empty=provider default]: ')
     if (model) saveConfigValue('agent.model', model)
     close()

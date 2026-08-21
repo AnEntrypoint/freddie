@@ -4,7 +4,18 @@ import { getFreddieHome } from './home.js'
 
 class FileAuthStore {
     constructor() { this.dir = path.join(getFreddieHome(), 'auth'); fs.mkdirSync(this.dir, { recursive: true }) }
-    _path(name) { return path.join(this.dir, name + '.json') }
+    _path(name) {
+        const resolvedPath = path.join(this.dir, name + '.json')
+        // Defense in depth: confirm resolved path stays within this.dir.
+        // The tool handler validates name via SAFE_NAME regex before calling
+        // this method, but a double-check here catches logic errors or future
+        // refactors that skip the validation layer. An invalid path is always
+        // a misconfiguration or attack, never a legitimate edge case.
+        if (resolvedPath !== this.dir && !resolvedPath.startsWith(this.dir + path.sep)) {
+            throw new Error(`Path traversal attempt: resolved path ${resolvedPath} is not within ${this.dir}`)
+        }
+        return resolvedPath
+    }
     async setCredential(name, value) {
         fs.writeFileSync(this._path(name), JSON.stringify({ name, value, updated: Date.now() }), { encoding: 'utf8', mode: 0o600 })
         return { name, stored: true }
@@ -33,6 +44,9 @@ export function resetAuthStoreForTests() { _store = null }
 
 const PROVIDERS = ['anthropic', 'openai', 'groq', 'openrouter', 'xai', 'gemini', 'bedrock', 'codex', 'kimi', 'zai', 'deepseek', 'mistral', 'perplexity']
 const ENV_OF = { anthropic: 'ANTHROPIC_API_KEY', openai: 'OPENAI_API_KEY', groq: 'GROQ_API_KEY', openrouter: 'OPENROUTER_API_KEY', xai: 'XAI_API_KEY', gemini: 'GEMINI_API_KEY', bedrock: 'AWS_ACCESS_KEY_ID', codex: 'OPENAI_API_KEY', kimi: 'KIMI_API_KEY', zai: 'ZAI_API_KEY', deepseek: 'DEEPSEEK_API_KEY', mistral: 'MISTRAL_API_KEY', perplexity: 'PERPLEXITY_API_KEY' }
+// Bedrock requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY; register both
+// as provider-scoped secrets so they're deduplicated in listKnownEnvVars() for scrubEnv/redactSecrets coverage
+const BEDROCK_ENV_VARS = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']
 
 export function isKnownAuthProvider(name) { return PROVIDERS.includes(name) }
 export function listAuthProviders() { return [...PROVIDERS] }
@@ -40,7 +54,15 @@ export function envForProvider(name) { return ENV_OF[name] || null }
 // Dedup'd env var names across all known providers (some providers share one,
 // e.g. codex reuses OPENAI_API_KEY) -- used by src/host/tool-resources.js's
 // scrubEnv() to strip provider credentials from a spawned subprocess env.
-export function listKnownEnvVars() { return [...new Set(Object.values(ENV_OF))] }
+// Bedrock requires both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY; both must
+// be included for scrubEnv() and redactSecrets() coverage.
+export function listKnownEnvVars() {
+    const all = new Set(Object.values(ENV_OF))
+    // Explicitly add bedrock's secondary secret (AWS_SECRET_ACCESS_KEY)
+    // that is not listed in ENV_OF but is required for full credential coverage
+    for (const v of BEDROCK_ENV_VARS) { all.add(v) }
+    return [...all]
+}
 
 export async function hasUsableSecret(provider) {
     const env = envForProvider(provider)
