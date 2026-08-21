@@ -90,30 +90,37 @@ export async function getProviderAuthState(provider) {
 // Field names that carry a raw secret value by convention, independent of
 // whether that value happens to match a known provider env var (a
 // credential_files:set call for an arbitrary/custom credential name has no
-// entry in ENV_OF at all, so name-matching alone under-covers it).
-// 'credential' IS included, deliberately, despite FileAuthStore.getCredential
-// returning {name, value, updated} wrapped under a 'credential' key
-// (credential_files:get's result shape) -- an earlier version of this file
-// excluded 'credential' to keep the sibling `name`/`updated` fields legible
-// in that specific shape, but that traded away real coverage: a caller can
-// also legitimately hold a bare secret STRING directly under a key literally
-// named `credential` (not nested under a further `value` key), and excluding
-// 'credential' left that case masked only by the env-var exact-match/
-// substring path, which under-covers exactly the arbitrary/custom-credential
-// case this comment already calls out. Keep 'credential' in the set (safe
-// default: mask the whole subtree) and let CREDENTIAL_RESULT_KEYS below
-// carve out the one well-known shape where selective unmasking is safe.
+// entry in ENV_OF at all, so name-matching alone under-covers it). 'credential'
+// is included despite FileAuthStore.getCredential returning {name, value,
+// updated} wrapped under a 'credential' key (credential_files:get's result
+// shape, where `name` is normally just the identifier and `updated` a
+// timestamp) -- a caller can also hold a bare secret STRING directly under a
+// key literally named `credential` (not nested under `value`), so excluding
+// 'credential' entirely would under-cover that case.
+//
+// Once a 'credential'/'value'/etc field name is seen, EVERY string leaf in
+// its subtree is masked unconditionally, with NO shape-based carve-out for
+// sibling fields like `name`/`updated`. An earlier version of this file
+// tried selectively unmasking `name`/`updated` for the well-known
+// {name,value,updated} shape (to keep wire-log/trajectory output showing
+// which credential was touched) -- two adversarial passes found this
+// unsafe: (1) trusting `name` as "always the identifier" has no structural
+// guarantee behind it -- a confused/malicious credential_files:set call
+// can place the actual secret payload in `name` instead of `value`, and (2)
+// running `name`'s string through the exact-match/embedded-substring scan
+// as a fallback still only catches a secret that happens to already be a
+// live process.env value -- an arbitrary/custom credential's secret content
+// is by definition NOT in process.env (same under-coverage this file's own
+// opening comment already names), so the scan gives no real protection.
+// There is no way to distinguish "name legitimately holds an identifier"
+// from "name happens to hold the secret" from field name or shape alone;
+// mask-all under a secret-shaped key is the only sound default. The
+// observability loss (wire logs no longer show which credential a
+// tool.start/tool.end touched) is an accepted, disclosed tradeoff -- never
+// silently reopen this as a "nice to have" without a structural way to
+// prove the unmasked field cannot carry a secret.
 const SECRET_FIELD_NAMES = new Set(['value', 'credential', 'apikey', 'api_key', 'token', 'secret', 'password', 'auth_token'])
 
-// The exact {name, value, updated} shape FileAuthStore.getCredential/
-// credential_files:get returns. When a 'credential'-keyed node has EXACTLY
-// this shape, `name` (the credential's identifier, e.g. "ANTHROPIC_API_KEY")
-// and `updated` (a timestamp) are not secret content -- only `value` is --
-// so this one well-known shape is unmasked selectively instead of via the
-// generic mask-the-whole-subtree default, restoring wire-log/trajectory
-// observability without reopening the bare-string-under-credential leak the
-// generic exclusion caused.
-const CREDENTIAL_RESULT_KEYS = new Set(['name', 'value', 'updated'])
 const KNOWN_SECRET_VALUES = () => new Set(Object.values(ENV_OF).map(envVar => process.env[envVar]).filter(Boolean))
 
 // Deep-clones `input`, replacing any string that is either (a) a live value
@@ -167,27 +174,10 @@ export function redactSecrets(input) {
         }
         return node
     }
-    // credential_files:get's exact {name, value, updated} result shape: unmask
-    // `name`/`updated` selectively (still redacting `value` via the normal
-    // SECRET_FIELD_NAMES path below) instead of mask-all-ing the whole node,
-    // since those two fields are never secret content. Any OTHER shape under
-    // a 'credential' key (a bare string, an object with different keys) is
-    // NOT this well-known shape and falls through to the safe mask-all
-    // default.
-    const isCredentialResultShape = (node) =>
-        node && typeof node === 'object' && !Array.isArray(node) &&
-        Object.keys(node).length > 0 && Object.keys(node).every(k => CREDENTIAL_RESULT_KEYS.has(k))
     const walk = (node, keyHint, depth) => {
         if (depth > MAX_REDACT_DEPTH) return '[redacted: max depth exceeded]'
         const underSecretField = keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase())
-        if (underSecretField) {
-            if (String(keyHint).toLowerCase() === 'credential' && isCredentialResultShape(node)) {
-                const out = {}
-                for (const [k, v] of Object.entries(node)) out[k] = k === 'value' ? maskAllStrings(v, depth + 1) : v
-                return out
-            }
-            return maskAllStrings(node, depth)
-        }
+        if (underSecretField) return maskAllStrings(node, depth)
         if (typeof node === 'string') {
             if (known.includes(node)) return tokenFingerprint(node)
             return redactEmbedded(node)
