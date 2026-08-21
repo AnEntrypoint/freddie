@@ -106,7 +106,7 @@ export async function resolveApproval(sessionKey, { id, approved, always = false
         // cwd skip the gate for this tool.
         await persistApprovalGrant(pending.cwd, pending.name)
     }
-    emitTurnEvent(sessionKey, 'approval.resolved', { id: pending.id, name: pending.name, approved: !!approved, always: !!always, feedback: feedback ?? null })
+    emitTurnEvent(sessionKey, 'approval.resolved', { id: pending.id, name: pending.name, approved: !!approved, always: !!always, feedback: feedback != null ? redactSecrets(feedback) : null })
     pending.resolve({ approved: !!approved, feedback: feedback ?? null })
     return true
 }

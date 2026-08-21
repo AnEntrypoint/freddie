@@ -16,13 +16,22 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
             if (m.role === 'assistant' && m.tool_calls?.length) { states.push('EXECUTE'); for (const tc of m.tool_calls) toolCalls.push({ name: tc.name || tc.function?.name, arguments: redactSecrets(tc.arguments || tc.function?.arguments || {}), id: tc.id }) }
             else if (m.role === 'user') states.push('PLAN')
             else if (m.role === 'assistant') states.push('COMPLETE')
-            else if (m.role === 'tool') { states.push('VERIFY'); toolResults.push({ tool_call_id: m.tool_call_id, content: redactSecrets(typeof m.content === 'string' ? m.content : JSON.stringify(m.content)) }) }
+            else if (m.role === 'tool') { states.push('VERIFY'); toolResults.push({ tool_call_id: m.tool_call_id, content: typeof m.content === 'string' ? redactSecrets(m.content) : JSON.stringify(redactSecrets(m.content)) }) }
             if (m.role === 'system' && typeof m.content === 'string' && /\[trajectory\.compressed\]/.test(m.content)) compressorInvocations += 1
         }
         const ts = new Date().toISOString().replace(/[:.]/g, '-').replace(/Z$/, '')
         const slug = (prompt || 'turn').slice(0, 40).replace(/[^a-zA-Z0-9-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase()
-        const llmCalls = events.filter(e => e.type === 'llm_call')
-        const streamChunks = events.filter(e => e.type === 'llm_chunk')
+        // Redact the raw events array once, up front -- it is written into the
+        // payload verbatim below (the .json file's own replay/debug record),
+        // and llm_calls/llm_chunks_count are both derived views over it. A
+        // separate un-redacted copy of `events` alongside a redacted `llmCalls`
+        // subset would leave the same llm_call error/stack content (which can
+        // embed a live credential, see machine_builder.js's LLM-failure event
+        // construction) reachable raw via the `events` field even though the
+        // filtered `llm_calls` field next to it is clean.
+        const redactedEvents = redactSecrets(events)
+        const llmCalls = redactedEvents.filter(e => e.type === 'llm_call')
+        const streamChunks = redactedEvents.filter(e => e.type === 'llm_chunk')
         const redactedMessages = redactSecrets(out.messages || [])
         const redactedPrompt = redactSecrets(prompt)
         const payload = {
@@ -31,7 +40,7 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
             state_transitions: states, tool_calls: toolCalls, tool_results: toolResults,
             llm_calls: llmCalls, llm_chunks_count: streamChunks.length,
             compressor_invocations: compressorInvocations,
-            events, messages: redactedMessages,
+            events: redactedEvents, messages: redactedMessages,
         }
         const file = path.join(dir, `${ts}-${slug}.json`)
         fs.writeFileSync(file, JSON.stringify(payload, null, 2))

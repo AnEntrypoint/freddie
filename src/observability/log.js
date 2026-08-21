@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { getFreddieHome } from '../home.js'
+import { redactSecrets } from '../auth.js'
 
 const SEVERITIES = { debug: 10, info: 20, warning: 30, error: 40 }
 
@@ -21,14 +22,23 @@ function streamFor(name) {
     return s
 }
 
+// Every record written through this sink is redacted the same way every
+// other durable-write boundary in this codebase already is (wire events,
+// trajectory files, the approval classifier's LLM prompt, telemetry) --
+// log.js is the one general-purpose sink every subsystem's logger() funnels
+// through, so making it structurally safe here means no future call site
+// needs to remember to pre-redact. redactSecrets never throws on its own
+// (pure structural walk), so no best-effort guard is needed around it.
 export function log({ subsystem = 'app', severity = 'info', msg = '', ...rest }) {
     const ts = new Date().toISOString()
-    const rec = { ts, subsystem, severity, msg, ...rest }
+    const redactedRest = redactSecrets(rest)
+    const redactedMsg = typeof msg === 'string' ? redactSecrets(msg) : msg
+    const rec = { ts, subsystem, severity, msg: redactedMsg, ...redactedRest }
     let line
     try {
         line = JSON.stringify(rec) + '\n'
     } catch (e) {
-        line = JSON.stringify({ ts, subsystem, severity, msg, logSerializationError: String(e?.message || e) }) + '\n'
+        line = JSON.stringify({ ts, subsystem, severity, msg: redactedMsg, logSerializationError: String(e?.message || e) }) + '\n'
     }
     streamFor(subsystem).write(line)
     if (SEVERITIES[severity] >= 30) streamFor('errors').write(line)

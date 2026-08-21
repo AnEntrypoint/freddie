@@ -375,7 +375,7 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                         // approval_mode:classifier sees every call time out with an
                                         // identical generic denial and has no trail back to "the
                                         // classifier model is unreachable" as the root cause.
-                                        emitTurnEvent(input.sessionKey, 'status.update', { kind: 'classifier_escalation', name: tname, reason: verdict.reason || null })
+                                        emitTurnEvent(input.sessionKey, 'status.update', { kind: 'classifier_escalation', name: tname, reason: verdict.reason ? redactSecrets(verdict.reason) : null })
                                         const decision = await requestApproval(input.sessionKey, { name: tname, args: targs, cwd: input.toolCtx?.cwd })
                                         if (!decision.approved) {
                                             emitTurnEvent(input.sessionKey, 'tool.end', { name: tname, toolCallId: tcid, denied: true, via: 'classifier-escalation' })
@@ -393,8 +393,9 @@ export function createAgentMachine({ provider, model, maxIterations = 90, callLL
                                     }
                                 }
                             }
-                            telemetry.toolCall({ name: tname, args: targs })
-                            emitTurnEvent(input.sessionKey, 'tool.start', { name: tname, args: redactSecrets(targs), toolCallId: tcid })
+                            const redactedTargs = redactSecrets(targs)
+                            telemetry.toolCall({ name: tname, args: redactedTargs })
+                            emitTurnEvent(input.sessionKey, 'tool.start', { name: tname, args: redactedTargs, toolCallId: tcid })
                             const ret = await runStep(input.sessionKey, 'tool:' + input.iterations + ':' + tcid, async () => {
                                 const callExtras = []
                                 const pushExtras = r => { if (r?.systemMessage) callExtras.push({ role: 'system', content: '[hook] ' + r.systemMessage }); if (r?.additionalContext) callExtras.push({ role: 'system', content: r.additionalContext }) }

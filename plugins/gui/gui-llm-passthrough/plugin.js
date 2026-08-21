@@ -4,6 +4,7 @@ import { MATRIX_FILE, flattenForOpenAI } from '../../../src/models/discovery.js'
 import { logger } from '../../../src/observability/log.js'
 import { randomId } from '../../../src/utils.js'
 import { env } from '../../../src/env.js'
+import { redactSecrets } from '../../../src/auth.js'
 
 const _require = createRequire(import.meta.url)
 const sdk = _require('acptoapi')
@@ -39,7 +40,7 @@ export default {
                     res.write('data: [DONE]\n\n'); res.end(); return
                 }
                 res.json(out)
-            } catch (e) { log.error('chat-completions-failed', { error: String(e.message || e) }); res.status(500).json({ error: { message: String(e.message || e), type: 'upstream_error' } }) }
+            } catch (e) { const msg = redactSecrets(String(e.message || e)); log.error('chat-completions-failed', { error: msg }); res.status(500).json({ error: { message: msg, type: 'upstream_error' } }) }
         })
     },
 }
