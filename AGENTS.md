@@ -266,7 +266,42 @@ export default {
 
 Auto-discovered on `bootHost()`. For multi-tool files export `_tool0`, `_tool1`, ….
 
-**Legacy handler.js-only fallback (no plugin.js needed for a single simple tool).** `src/host/plugin-discovery.js`'s `scanPluginDir()` (lines 52-66) auto-registers a bare `plugins/<name>/handler.js` exporting `_tool` even with no sibling `plugin.js` — it wraps it as `{name: 'tool-<dirname>', surfaces: 'pi', register({pi}){pi.tools.register(_tool)}}` and this check runs unconditionally before the depth-based category-folder recursion, so it applies at any nesting depth (`plugins/core/<name>/handler.js` included, not just top-level `plugins/<name>/handler.js`). Real, live-registered examples today: `plugins/ask_user/handler.js`, `plugins/tool_backend_helpers/handler.js`, `plugins/tool_output_limits/handler.js`, `plugins/core/checkpoint/handler.js`, `plugins/core/clarify/handler.js`, `plugins/core/todo/handler.js`, `plugins/core/delegate/handler.js` — none has a `plugin.js`, all are genuinely discovered and callable (confirmed live via `discoverPlugins()`). A directory matching this shape is not dead/orphaned code just because it lacks a `plugin.js` — check for this fallback before concluding a handler-only directory is unregistered.
+**Legacy handler.js-only fallback (no plugin.js needed for a single simple tool).** `src/host/plugin-discovery.js`'s `scanPluginDir()` (lines 52-66) auto-registers a bare `plugins/<name>/handler.js` exporting `_tool` even with no sibling `plugin.js` — it wraps it as `{name: 'tool-<dirname>', surfaces: 'pi', register({pi}){pi.tools.register(_tool)}}` and this check runs unconditionally before the depth-based category-folder recursion, so it applies at any nesting depth (`plugins/core/<name>/handler.js` included, not just top-level `plugins/<name>/handler.js`). All 23 live-registered handler-only directories confirmed discoverable and callable (verified via `discoverPlugins()` and codesearch):
+
+**Core toolset (highly privileged, audit-gated in untrusted-consumer contexts per "Plugin architecture" section above):**
+- `plugins/tools/bash/handler.js` (`bash`) — execute shell commands; inherits `process.env` by default, credentials visible unless `terminal.scrub_provider_env` is set
+- `plugins/tools/send_message/handler.js` (`send_message`) — send messages via registered gateway platforms; bypasses outbound pipeline, reaches external recipients directly
+- `plugins/tools/code_execution/handler.js` (`code_execution`) — run arbitrary code
+- `plugins/tools/terminal/handler.js` (`terminal`) — interactive shell access
+- `plugins/tools/process_registry/handler.js` (`process_registry`) — list and interact with OS processes
+- `plugins/tools/env_passthrough/handler.js` (`env_passthrough`) — access environment variables
+- `plugins/tools/managed_tool_gateway/handler.js` (`managed_tool_gateway`) — gateway handler for managed tools
+- `plugins/tools/budget_config/handler.js` (`budget_config`) — per-tool session budgets
+
+**Core checklist & workflow tools:**
+- `plugins/core/checkpoint/handler.js` (`checkpoint_kv`) — save/restore context checkpoints
+- `plugins/core/clarify/handler.js` (`clarify`) — inline user clarification prompts
+- `plugins/core/delegate/handler.js` (`delegate`) — delegation control
+- `plugins/core/todo/handler.js` (`todo`) — todo management
+- `plugins/ask_user/handler.js` (`ask_user_question`) — user approval/input gates
+
+**Core infrastructure & helpers:**
+- `plugins/tool_backend_helpers/handler.js` (internal) — helper functions for tool schemas (`shapeArgs`, `describeTools`)
+- `plugins/tool_output_limits/handler.js` (internal) — tool output sizing/limiting helpers
+- `plugins/memory/memory/handler.js` (`memory`) — explicit recall/search/forget surface over the gm-learn store
+- `plugins/debug/debug_helpers/handler.js` (`debug_helpers`) — debugging utilities
+
+**Community/experimental (creative & research toolsets):**
+- `plugins/community/mixture_of_agents/handler.js` (`mixture_of_agents`, core toolset)
+- `plugins/community/neutts_synth/handler.js` (`neutts_synth`, creative toolset)
+- `plugins/community/rl_training/handler.js` (`rl_training`, core toolset)
+
+**Security-hardening tools:**
+- `plugins/security/osv_check/handler.js` (`osv_check`, core toolset) — CVE/vulnerability scanning
+- `plugins/security/path_security/handler.js` (`path_security`, core toolset) — path traversal guards
+- `plugins/security/tirith_security/handler.js` (`tirith_security`, core toolset) — security analysis
+
+A directory matching this shape is not dead/orphaned code just because it lacks a `plugin.js` — check for this fallback before concluding a handler-only directory is unregistered.
 
 ## Adding a slash command
 
