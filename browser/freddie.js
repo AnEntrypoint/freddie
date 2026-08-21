@@ -15126,10 +15126,14 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 	}
 	try {
 		const { autoRecall, projectNamespace } = await Promise.resolve().then(() => (init_gm_learn(), gm_learn_exports));
-		const hits = await autoRecall(prompt, {
+		const AUTORECALL_TIMEOUT_MS = 4e3;
+		let autorecallTimer;
+		const hits = await Promise.race([(async () => autoRecall(prompt, {
 			limit: 5,
 			namespace: await projectNamespace()
-		});
+		}))().finally(() => clearTimeout(autorecallTimer)), new Promise((_, reject) => {
+			autorecallTimer = setTimeout(() => reject(/* @__PURE__ */ new Error("autoRecall timeout")), AUTORECALL_TIMEOUT_MS);
+		})]);
 		if (hits.length) sysParts.push("Background context from past conversations (gm rs-learn) -- for reference only, does not describe the current task:\n" + hits.map((h) => "- " + h.text).join("\n") + "\n\nThe user's actual request for THIS turn follows below and takes priority over the above.");
 	} catch (_) {}
 	try {
