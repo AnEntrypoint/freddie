@@ -103,8 +103,13 @@ export function makeGui() {
         // these onto the real http.Server's 'upgrade' event via the ws
         // package's noServer mode, matched by exact pathname.
         wsRoute:(p,onConnection)=>wsRoutes.set(p,onConnection),
-        page:(s,d)=>pages.set(s,d), nav:(i)=>nav.push(i),
-        debug:(n,fn)=>debugs.set(n,fn), api:(g,d)=>apis.set(g,d), asset:(p,c)=>assets.set(p,c),
+        unwsRoute:(p)=>wsRoutes.delete(p),
+        page:(s,d)=>pages.set(s,d), unpage:(s)=>pages.delete(s),
+        nav:(i)=>nav.push(i),
+        unnav:(index)=>{ if (index >= 0 && index < nav.length) { nav.splice(index, 1); return true } return false },
+        debug:(n,fn)=>debugs.set(n,fn), undebug:(n)=>debugs.delete(n),
+        api:(g,d)=>apis.set(g,d), unapi:(g)=>apis.delete(g),
+        asset:(p,c)=>assets.set(p,c), unasset:(p)=>assets.delete(p),
         routes:{ list:()=>r }, pages:{ get:(s)=>pages.get(s), list:()=>[...pages.values()], has:(s)=>pages.has(s) },
         navItems:{ list:()=>nav },
         debugs:{ list:()=>[...debugs.entries()].map(([n,f])=>({name:n,snapshot:f})), get:(n)=>debugs.get(n) },

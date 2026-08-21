@@ -19,7 +19,16 @@ export function recordPi(pi, cap, pluginName) {
     }
 }
 export function recordGui(gui, cap) {
-    return { ...gui, route: (method, path, h) => { cap.routes.push(`${method.toUpperCase()} ${path}`); cap._routeDefs.push({ method: method.toUpperCase(), path }); return gui.route(method, path, h) } }
+    return {
+        ...gui,
+        route: (method, path, h) => { cap.routes.push(`${method.toUpperCase()} ${path}`); cap._routeDefs.push({ method: method.toUpperCase(), path }); return gui.route(method, path, h) },
+        wsRoute: (path, onConnection) => { cap.wsRoutes.push(path); return gui.wsRoute(path, onConnection) },
+        page: (slug, def) => { cap.pages.push(slug); return gui.page(slug, def) },
+        nav: (item) => { cap.navItems.push(item); return gui.nav(item) },
+        debug: (name, fn) => { cap.debugs.push(name); return gui.debug(name, fn) },
+        api: (group, def) => { cap.apis.push(group); return gui.api(group, def) },
+        asset: (path, content) => { cap.assets.push(path); return gui.asset(path, content) },
+    }
 }
 export function recordHooks(hooks, cap) {
     return { ...hooks, on: (name, fn) => { cap.hooks.push(name); cap._hookFns.push({ name, fn }); return hooks.on(name, fn) } }
@@ -43,6 +52,12 @@ export async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded
         for (const c of cap.crons) pi.crons.unregister(c)
         for (const { method, path: p } of cap._routeDefs || []) gui.unroute(method, p)
         for (const { name: hn, fn } of cap._hookFns || []) hooks.off(hn, fn)
+        for (const p of cap.wsRoutes || []) gui.unwsRoute(p)
+        for (const s of cap.pages || []) gui.unpage(s)
+        for (const item of cap.navItems || []) { const idx = gui._state.nav.indexOf(item); if (idx !== -1) gui.unnav(idx) }
+        for (const n of cap.debugs || []) gui.undebug(n)
+        for (const g of cap.apis || []) gui.unapi(g)
+        for (const p of cap.assets || []) gui.unasset(p)
     }
     const idx = loaded.findIndex(p => p.name === name)
     if (idx !== -1) loaded.splice(idx, 1)
@@ -64,7 +79,7 @@ export async function reloadPlugin({ filePath, sourcePaths, capabilities, loaded
     const fresh = mod.default || mod.plugin
     if (!fresh) return null
     fresh.__sourceFile = filePath
-    const newCap = { tools: [], hooks: [], commands: [], crons: [], routes: [], _hookFns: [], _routeDefs: [] }
+    const newCap = { tools: [], hooks: [], commands: [], crons: [], routes: [], _hookFns: [], _routeDefs: [], wsRoutes: [], pages: [], navItems: [], debugs: [], apis: [], assets: [] }
     const want = fresh.surfaces
     const ctxPi = (want === 'pi' || want === 'both') ? recordPi(pi, newCap, name) : pi
     const ctxGui = (want === 'gui' || want === 'both') ? recordGui(gui, newCap) : gui
