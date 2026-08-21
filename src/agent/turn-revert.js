@@ -65,6 +65,25 @@ export async function revertTurn(sessionKey, turnsBack = 1) {
         const { clearSteps } = await import('../machines/step-journal.js')
         await clearSteps(sessionKey)
     } catch { /* swallow: journal cleanup is best-effort */ }
+    // Bring the two OTHER durable records of this conversation (the wire-log
+    // file, and sessions.db's messages table) into agreement with the actor's
+    // now-rewound live context -- without this, GET /api/sessions/:id/wire,
+    // `freddie session show <id>`, and gui-agent's priorFromWire all keep
+    // showing the STALE pre-revert transcript even though the live turn is
+    // now operating on the rewound one. Truncate the wire log to the cut
+    // boundary (same truncate-not-append scheme the sibling /undo CLI path
+    // already uses via truncateWireLog, so there's one consistent convention
+    // rather than two), then purge+rebuild sessions.db's messages from the
+    // now-truncated wire log the same way /undo does.
+    try {
+        const { truncateWireLog } = await import('./events.js')
+        const { purgeSessionMessages, appendMessage } = await import('../sessions.js')
+        truncateWireLog(sessionKey, cutAt)
+        await purgeSessionMessages(sessionKey)
+        for (const m of transcriptFromWire(sessionKey)) {
+            await appendMessage(sessionKey, { role: m.role, content: m.content, toolCalls: m.tool_calls || null, toolCallId: m.tool_call_id || null })
+        }
+    } catch { /* swallow: durable-record reconciliation is best-effort -- the live actor context (the source of truth for the running turn) is already correct regardless */ }
     emitTurnEvent(sessionKey, 'status.update', { reverted: true, turnsBack, keptMessages: msgs.length })
     return { ok: true, keptSteps: boundaries.length - turnsBack }
 }
