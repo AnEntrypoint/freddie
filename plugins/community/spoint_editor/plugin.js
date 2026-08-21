@@ -155,7 +155,7 @@ const lintTool = {
 }
 
 export default {
-  name: 'spoint_editor',
+  name: 'spoint-editor',
   surfaces: 'pi',
   register({ pi }) {
     pi.tools.register(placeTool)

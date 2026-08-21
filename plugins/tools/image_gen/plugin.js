@@ -29,7 +29,7 @@ const _tool = ({
 })
 
 export default {
-    name: 'tool-image_gen',
+    name: 'tool-image-gen',
     surfaces: 'pi',
     register({ pi }) {
         pi.tools.register(_tool)

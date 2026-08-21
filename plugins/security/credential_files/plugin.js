@@ -26,7 +26,7 @@ const _tool = ({
 })
 
 export default {
-    name: 'tool-credential_files',
+    name: 'tool-credential-files',
     surfaces: 'pi',
     register({ pi }) {
         pi.tools.register(_tool)

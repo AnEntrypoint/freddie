@@ -1,7 +1,7 @@
 import { _tool, setLogger } from './handler.js'
 
 export default {
-    name: 'flow_skill',
+    name: 'flow-skill',
     surfaces: 'pi',
     register({ pi, log }) {
         setLogger(log)

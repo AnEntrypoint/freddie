@@ -1,7 +1,7 @@
 import { readMediaFileTool } from './handler.js'
 
 export default {
-    name: 'read_media_file',
+    name: 'read-media-file',
     surfaces: 'pi',
     register({ pi }) {
         pi.tools.register(readMediaFileTool)

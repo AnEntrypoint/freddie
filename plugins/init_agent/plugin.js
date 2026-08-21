@@ -1,7 +1,7 @@
 import { initAgent } from './handler.js'
 
 export default {
-    name: 'init_agent',
+    name: 'init-agent',
     surfaces: 'pi',
     register({ pi }) {
         pi.tools.register(initAgent)

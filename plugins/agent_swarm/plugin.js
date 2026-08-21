@@ -1,7 +1,7 @@
 import { _tool } from './handler.js'
 
 export default {
-    name: 'agent_swarm',
+    name: 'agent-swarm',
     surfaces: 'pi',
     // handler.js statically imports runSubagent from plugins/core/delegate's
     // lib/runner.js -- core/delegate has no plugin.js of its own, so it

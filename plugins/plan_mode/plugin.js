@@ -3,7 +3,7 @@ import { _enterPlanMode, _exitPlanMode } from './handler.js';
 import { setFreddieHomeGetter } from './state.js';
 
 export default {
-  name: 'plan_mode',
+  name: 'plan-mode',
   version: '1.0.0',
   surfaces: 'pi',
   async register({ pi, log, config, host }) {
