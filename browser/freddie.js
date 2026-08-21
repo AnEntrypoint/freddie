@@ -5571,6 +5571,8 @@ async function discoverPlugins(roots) {
 }
 async function scanPluginDir(root, found, depth) {
 	if (!root || !fs.existsSync(root)) return;
+	const subDirs = [];
+	const imports = [];
 	for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
 		if (!entry.isDirectory()) continue;
 		const dir = path.join(root, entry.name);
@@ -5578,34 +5580,40 @@ async function scanPluginDir(root, found, depth) {
 		if (fs.existsSync(file)) {
 			if (isFlagDisabled(dir)) continue;
 			const declaredResources = readManifestResources(dir);
-			const mod = await import(pathToFileURL(file).href);
-			const p = mod.default || mod.plugin;
-			if (p) {
-				p.__sourceFile = file;
-				p.__resources = declaredResources;
-				found.push(p);
-			}
+			imports.push(import(pathToFileURL(file).href).then((mod) => {
+				const p = mod.default || mod.plugin;
+				if (p) {
+					p.__sourceFile = file;
+					p.__resources = declaredResources;
+					found.push(p);
+				}
+			}));
 			continue;
 		}
 		const handlerFile = path.join(dir, "handler.js");
 		if (fs.existsSync(handlerFile)) {
 			if (isFlagDisabled(dir)) continue;
 			const declaredResources = readManifestResources(dir);
-			const _tool = (await import(pathToFileURL(handlerFile).href))._tool;
-			if (!_tool) continue;
-			found.push({
-				name: `tool-${entry.name}`,
-				surfaces: "pi",
-				__sourceFile: handlerFile,
-				__resources: declaredResources,
-				register({ pi }) {
-					pi.tools.register(_tool);
-				}
-			});
+			const entryName = entry.name;
+			imports.push(import(pathToFileURL(handlerFile).href).then((handlerMod) => {
+				const _tool = handlerMod._tool;
+				if (!_tool) return;
+				found.push({
+					name: `tool-${entryName}`,
+					surfaces: "pi",
+					__sourceFile: handlerFile,
+					__resources: declaredResources,
+					register({ pi }) {
+						pi.tools.register(_tool);
+					}
+				});
+			}));
 			continue;
 		}
-		if (depth > 0) await scanPluginDir(dir, found, depth - 1);
+		if (depth > 0) subDirs.push(dir);
 	}
+	if (imports.length) await Promise.allSettled(imports);
+	for (const dir of subDirs) await scanPluginDir(dir, found, depth - 1);
 }
 //#endregion
 //#region src/host/host.js
@@ -10685,7 +10693,7 @@ var init_log = __esmMin((() => {
 //#region src/machines/snapshot-store.js
 init_db();
 init_log();
-var log$6 = logger("snapshot-store");
+var log$7 = logger("snapshot-store");
 var SNAPSHOT_SCHEMA_VERSION = 1;
 function createLibsqlSnapshotStore() {
 	return {
@@ -10732,7 +10740,7 @@ async function persist(kind, key, snapshot, { machineId = null } = {}) {
 	try {
 		json = JSON.stringify(snapshot);
 	} catch (e) {
-		log$6.error("snapshot has circular structure, persisting with [Circular] markers", {
+		log$7.error("snapshot has circular structure, persisting with [Circular] markers", {
 			kind,
 			key,
 			err: String(e)
@@ -10757,7 +10765,7 @@ async function load(kind, key, { machineId = null } = {}) {
 	const row = await (await init$1()).prepare(`SELECT * FROM machine_snapshots WHERE kind = ? AND key = ?`).get(kind, key);
 	if (!row) return null;
 	if (Number(row.schema_version) !== 1) {
-		log$6.info("discarding stale snapshot (schema mismatch)", {
+		log$7.info("discarding stale snapshot (schema mismatch)", {
 			kind,
 			key,
 			had: row.schema_version,
@@ -10767,7 +10775,7 @@ async function load(kind, key, { machineId = null } = {}) {
 		return null;
 	}
 	if (machineId && row.machine_id && row.machine_id !== machineId) {
-		log$6.info("discarding stale snapshot (machine id mismatch)", {
+		log$7.info("discarding stale snapshot (machine id mismatch)", {
 			kind,
 			key,
 			had: row.machine_id,
@@ -10779,7 +10787,7 @@ async function load(kind, key, { machineId = null } = {}) {
 	try {
 		return JSON.parse(row.snapshot_json);
 	} catch (e) {
-		log$6.error("unparseable snapshot, discarding", {
+		log$7.error("unparseable snapshot, discarding", {
 			kind,
 			key,
 			err: String(e)
@@ -10814,7 +10822,7 @@ async function sweepDone() {
 //#endregion
 //#region src/machines/persistent-actor.js
 init_log();
-var log$5 = logger("persistent-actor");
+var log$6 = logger("persistent-actor");
 function redactSensitive(context) {
 	try {
 		return JSON.parse(redactSecret(JSON.stringify(context)));
@@ -10847,7 +10855,7 @@ async function createPersistentActor(machine, { kind, key, input, onTransition, 
 		const from = lastValue;
 		const to = snap.value;
 		const context = redactSensitive(snap.context);
-		if (JSON.stringify(from) !== JSON.stringify(to)) log$5.info("transition", {
+		if (JSON.stringify(from) !== JSON.stringify(to)) log$6.info("transition", {
 			kind,
 			key,
 			from,
@@ -10863,7 +10871,7 @@ async function createPersistentActor(machine, { kind, key, input, onTransition, 
 				else await clearFn(kind, key);
 				onTransition?.(snap);
 			} catch (e) {
-				log$5.error("persist failed", {
+				log$6.error("persist failed", {
 					kind,
 					key,
 					err: String(e)
@@ -10871,7 +10879,7 @@ async function createPersistentActor(machine, { kind, key, input, onTransition, 
 			}
 		});
 	});
-	if (resumed) log$5.info("actor resumed from snapshot", {
+	if (resumed) log$6.info("actor resumed from snapshot", {
 		kind,
 		key,
 		machineId
@@ -11565,6 +11573,187 @@ function noteToolCall(sessionKey, name) {
 //#region src/agent/turn-steering.js
 init_events();
 //#endregion
+//#region src/auth.js
+var auth_exports = /* @__PURE__ */ __exportAll({
+	clearProviderAuth: () => clearProviderAuth,
+	decodeJwtClaims: () => decodeJwtClaims,
+	envForProvider: () => envForProvider,
+	getAuthStore: () => getAuthStore,
+	getProviderAuthState: () => getProviderAuthState,
+	hasUsableSecret: () => hasUsableSecret,
+	isExpiring: () => isExpiring,
+	isKnownAuthProvider: () => isKnownAuthProvider,
+	listAuthProviders: () => listAuthProviders,
+	listKnownEnvVars: () => listKnownEnvVars,
+	redactSecrets: () => redactSecrets,
+	resetAuthStoreForTests: () => resetAuthStoreForTests,
+	tokenFingerprint: () => tokenFingerprint
+});
+function getAuthStore() {
+	if (!_store) _store = new FileAuthStore();
+	return _store;
+}
+function resetAuthStoreForTests() {
+	_store = null;
+}
+function isKnownAuthProvider(name) {
+	return PROVIDERS.includes(name);
+}
+function listAuthProviders() {
+	return [...PROVIDERS];
+}
+function envForProvider(name) {
+	return ENV_OF[name] || null;
+}
+function listKnownEnvVars() {
+	return [...new Set(Object.values(ENV_OF))];
+}
+async function hasUsableSecret(provider) {
+	const env = envForProvider(provider);
+	if (!env) return false;
+	if (process.env[env]) return true;
+	const cred = await getAuthStore().getCredential(env);
+	return Boolean(cred?.value);
+}
+async function clearProviderAuth(provider) {
+	const env = envForProvider(provider);
+	if (!env) return false;
+	await getAuthStore().deleteCredential(env);
+	return true;
+}
+function isExpiring(token, { skewSeconds = 60 } = {}) {
+	if (!token || typeof token !== "object") return true;
+	const exp = token.expires_at || token.exp;
+	if (!exp) return false;
+	const now = Math.floor(Date.now() / 1e3);
+	return (typeof exp === "string" ? Math.floor(new Date(exp).getTime() / 1e3) : exp) - now < skewSeconds;
+}
+function decodeJwtClaims(jwt) {
+	if (typeof jwt !== "string") return null;
+	const parts = jwt.split(".");
+	if (parts.length < 2) return null;
+	try {
+		return JSON.parse(Buffer.from(parts[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
+	} catch {
+		return null;
+	}
+}
+function tokenFingerprint(token) {
+	const s = typeof token === "string" ? token : token?.access_token || token?.value || "";
+	if (!s) return "";
+	return s.slice(0, 4) + "…" + s.slice(-4);
+}
+async function getProviderAuthState(provider) {
+	return {
+		provider,
+		env: envForProvider(provider),
+		hasSecret: await hasUsableSecret(provider)
+	};
+}
+function redactSecrets(input) {
+	const known = KNOWN_SECRET_VALUES();
+	const walk = (node, keyHint) => {
+		if (typeof node === "string") {
+			if (known.has(node)) return tokenFingerprint(node);
+			if (keyHint && SECRET_FIELD_NAMES.has(String(keyHint).toLowerCase()) && node) return tokenFingerprint(node);
+			return node;
+		}
+		if (Array.isArray(node)) return node.map((v) => walk(v, keyHint));
+		if (node && typeof node === "object") {
+			const out = {};
+			for (const [k, v] of Object.entries(node)) out[k] = walk(v, k);
+			return out;
+		}
+		return node;
+	};
+	return walk(input, null);
+}
+var FileAuthStore, _store, PROVIDERS, ENV_OF, SECRET_FIELD_NAMES, KNOWN_SECRET_VALUES;
+var init_auth = __esmMin((() => {
+	init_home();
+	FileAuthStore = class {
+		constructor() {
+			this.dir = path.join(getFreddieHome(), "auth");
+			fs.mkdirSync(this.dir, { recursive: true });
+		}
+		_path(name) {
+			return path.join(this.dir, name + ".json");
+		}
+		async setCredential(name, value) {
+			fs.writeFileSync(this._path(name), JSON.stringify({
+				name,
+				value,
+				updated: Date.now()
+			}), {
+				encoding: "utf8",
+				mode: 384
+			});
+			return {
+				name,
+				stored: true
+			};
+		}
+		async getCredential(name) {
+			const p = this._path(name);
+			if (!fs.existsSync(p)) return null;
+			return JSON.parse(fs.readFileSync(p, "utf8"));
+		}
+		async listCredentials() {
+			return fs.readdirSync(this.dir).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
+		}
+		async deleteCredential(name) {
+			const p = this._path(name);
+			if (fs.existsSync(p)) fs.unlinkSync(p);
+			return {
+				name,
+				deleted: true
+			};
+		}
+	};
+	_store = null;
+	PROVIDERS = [
+		"anthropic",
+		"openai",
+		"groq",
+		"openrouter",
+		"xai",
+		"gemini",
+		"bedrock",
+		"codex",
+		"kimi",
+		"zai",
+		"deepseek",
+		"mistral",
+		"perplexity"
+	];
+	ENV_OF = {
+		anthropic: "ANTHROPIC_API_KEY",
+		openai: "OPENAI_API_KEY",
+		groq: "GROQ_API_KEY",
+		openrouter: "OPENROUTER_API_KEY",
+		xai: "XAI_API_KEY",
+		gemini: "GEMINI_API_KEY",
+		bedrock: "AWS_ACCESS_KEY_ID",
+		codex: "OPENAI_API_KEY",
+		kimi: "KIMI_API_KEY",
+		zai: "ZAI_API_KEY",
+		deepseek: "DEEPSEEK_API_KEY",
+		mistral: "MISTRAL_API_KEY",
+		perplexity: "PERPLEXITY_API_KEY"
+	};
+	SECRET_FIELD_NAMES = /* @__PURE__ */ new Set([
+		"value",
+		"credential",
+		"apikey",
+		"api_key",
+		"token",
+		"secret",
+		"password",
+		"auth_token"
+	]);
+	KNOWN_SECRET_VALUES = () => new Set(Object.values(ENV_OF).map((envVar) => process.env[envVar]).filter(Boolean));
+}));
+//#endregion
 //#region plugins/core/approval_state.js
 var approval_state_exports = /* @__PURE__ */ __exportAll({
 	addAutoApprovedAction: () => addAutoApprovedAction,
@@ -11624,6 +11813,9 @@ var init_approval_state = __esmMin((() => {
 //#endregion
 //#region src/agent/turn-approval.js
 init_events();
+init_auth();
+init_log();
+var log$5 = logger("approval");
 var GRANTS_GLOBAL = "global";
 var _grantsCache = null;
 async function grantsFile() {
@@ -11643,7 +11835,13 @@ async function loadApprovalGrants(cwd) {
 }
 function requestApproval(sessionKey, { name, args, cwd }) {
 	const t = turns.get(sessionKey);
-	if (!t) return Promise.resolve({ approved: true });
+	if (!t) {
+		log$5.warn("approval gate bypassed: no registered turn for session", {
+			sessionKey,
+			tool: name
+		});
+		return Promise.resolve({ approved: true });
+	}
 	return new Promise((resolve) => {
 		const id = randomUUID();
 		const timer = Number.isFinite(t.control.approvalTimeoutMs) ? setTimeout(() => {
@@ -11674,7 +11872,7 @@ function requestApproval(sessionKey, { name, args, cwd }) {
 		emitTurnEvent(sessionKey, "approval.request", {
 			id,
 			name,
-			args,
+			args: redactSecrets(args),
 			cwd: cwd ?? null
 		});
 	});
@@ -12456,11 +12654,12 @@ function resolveCallLLM({ provider, model } = {}) {
 //#endregion
 //#region src/agent/approval_classifier.js
 init_step_journal();
+init_auth();
 var ARGS_PROMPT_CAP = 4e3;
 function buildPrompt(name, args) {
 	let argsJson;
 	try {
-		argsJson = JSON.stringify(args ?? {});
+		argsJson = JSON.stringify(redactSecrets(args) ?? {});
 	} catch {
 		argsJson = "\"<unserializable>\"";
 	}
@@ -12979,6 +13178,8 @@ var init_compress = __esmMin((() => {
 init_config$1();
 init_telemetry();
 init_events();
+init_auth();
+init_log();
 function looksLikeStructuredDataNotProse(text) {
 	const trimmed = text.trim();
 	if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return false;
@@ -13114,6 +13315,10 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 							callMessages = r.compressedMessages;
 						}
 					} catch (e) {
+						emitTurnEvent(input.sessionKey, "status.update", {
+							kind: "compression_error",
+							error: String(e?.message || e)
+						});
 						if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] compress threw", e.message);
 					}
 					if (process.env.FREDDIE_DEBUG_TRACE) console.error("[trace] before llm() call, iteration", input.iterations);
@@ -13331,6 +13536,11 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 									});
 									continue;
 								} else {
+									emitTurnEvent(input.sessionKey, "status.update", {
+										kind: "classifier_escalation",
+										name: tname,
+										reason: verdict.reason || null
+									});
 									const decision = await requestApproval(input.sessionKey, {
 										name: tname,
 										args: targs,
@@ -13385,7 +13595,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 						});
 						emitTurnEvent(input.sessionKey, "tool.start", {
 							name: tname,
-							args: targs,
+							args: redactSecrets(targs),
 							toolCallId: tcid
 						});
 						const ret = await runStep(input.sessionKey, "tool:" + input.iterations + ":" + tcid, async () => {
@@ -13455,7 +13665,7 @@ function createAgentMachine({ provider, model, maxIterations = 90, callLLM, enab
 						emitTurnEvent(input.sessionKey, "tool.end", {
 							name: tname,
 							toolCallId: tcid,
-							result: ret.content
+							result: redactSecrets(ret.content)
 						});
 						extras.push(...ret.extras);
 						if (control && typeof ret.content === "string") {
@@ -13848,6 +14058,7 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
 		const { getConfigValue } = await Promise.resolve().then(() => (init_config$1(), config_exports));
 		if (!getConfigValue("agent.save_trajectories", false) && !witnessPath) return;
 		const { getFreddieHome } = await Promise.resolve().then(() => (init_home(), home_exports));
+		const { redactSecrets } = await Promise.resolve().then(() => (init_auth(), auth_exports));
 		const fs = await import("node:fs");
 		const path = await import("node:path");
 		const dir = path.join(getFreddieHome(), "trajectories");
@@ -13861,7 +14072,7 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
 				states.push("EXECUTE");
 				for (const tc of m.tool_calls) toolCalls.push({
 					name: tc.name || tc.function?.name,
-					arguments: tc.arguments || tc.function?.arguments || {},
+					arguments: redactSecrets(tc.arguments || tc.function?.arguments || {}),
 					id: tc.id
 				});
 			} else if (m.role === "user") states.push("PLAN");
@@ -13870,7 +14081,7 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
 				states.push("VERIFY");
 				toolResults.push({
 					tool_call_id: m.tool_call_id,
-					content: typeof m.content === "string" ? m.content : JSON.stringify(m.content)
+					content: redactSecrets(typeof m.content === "string" ? m.content : JSON.stringify(m.content))
 				});
 			}
 			if (m.role === "system" && typeof m.content === "string" && /\[trajectory\.compressed\]/.test(m.content)) compressorInvocations += 1;
@@ -13879,6 +14090,7 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
 		const slug = (prompt || "turn").slice(0, 40).replace(/[^a-zA-Z0-9-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase();
 		const llmCalls = events.filter((e) => e.type === "llm_call");
 		const streamChunks = events.filter((e) => e.type === "llm_chunk");
+		const redactedMessages = redactSecrets(out.messages || []);
 		const payload = {
 			schema_version: 2,
 			ts,
@@ -13898,7 +14110,7 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
 			llm_chunks_count: streamChunks.length,
 			compressor_invocations: compressorInvocations,
 			events,
-			messages: out.messages
+			messages: redactedMessages
 		};
 		const file = path.join(dir, `${ts}-${slug}.json`);
 		fs.writeFileSync(file, JSON.stringify(payload, null, 2));
@@ -13913,7 +14125,7 @@ async function writeTrajectory(out, { prompt, provider, model, skill, cwd, event
 					skill,
 					cwd
 				}),
-				...(out.messages || []).map((m, i) => JSON.stringify({
+				...redactedMessages.map((m, i) => JSON.stringify({
 					event: "message",
 					index: i,
 					role: m.role,
@@ -14551,6 +14763,19 @@ var init_registry = __esmMin((() => {
 init_config$1();
 init_telemetry();
 init_events();
+var DEFAULT_APPROVAL_TOOLS = [
+	"bash",
+	"write",
+	"edit",
+	"file_operations",
+	"code_execution",
+	"process_registry",
+	"cronjob",
+	"terminal",
+	"skills_hub",
+	"skills_sync",
+	"credential_files"
+];
 async function runTurn({ prompt, messages = [], model, provider, callLLM, enabledToolsets, disabledToolsets, maxIterations = 90, timeoutMs = 3e4, cwd, skill, witnessPath, sessionKey, toolCtx = null, tool_choice, store, approvalMode = null, approvalTimeoutMs = null } = {}) {
 	const events = [];
 	const cfg = loadConfig();
@@ -14644,18 +14869,7 @@ async function runTurn({ prompt, messages = [], model, provider, callLLM, enable
 		steers: [],
 		approvalPolicy: approvalMode || getConfigValue("agent.approval_mode", "off"),
 		approvalTimeoutMs: approvalTimeoutMs ?? getConfigValue("agent.approval_timeout_ms", 12e4),
-		mutatingTools: new Set(getConfigValue("agent.approval_tools", [
-			"bash",
-			"write",
-			"edit",
-			"file_operations",
-			"code_execution",
-			"process_registry",
-			"cronjob",
-			"terminal",
-			"skills_hub",
-			"skills_sync"
-		])),
+		mutatingTools: new Set(getConfigValue("agent.approval_tools", DEFAULT_APPROVAL_TOOLS)),
 		approvedTools: /* @__PURE__ */ new Set([...getConfigValue("agent.approval_policy", {})?.auto_approve || [], ...await loadApprovalGrants(cwd)]),
 		toolBudgets: getConfigValue("agent.tool_budgets", {}),
 		lastSig: null,
@@ -14734,18 +14948,7 @@ async function resumeTurn({ sessionKey, model, provider, callLLM, enabledToolset
 		steers: [],
 		approvalPolicy: getConfigValue("agent.approval_mode", "off"),
 		approvalTimeoutMs: getConfigValue("agent.approval_timeout_ms", 12e4),
-		mutatingTools: new Set(getConfigValue("agent.approval_tools", [
-			"bash",
-			"write",
-			"edit",
-			"file_operations",
-			"code_execution",
-			"process_registry",
-			"cronjob",
-			"terminal",
-			"skills_hub",
-			"skills_sync"
-		])),
+		mutatingTools: new Set(getConfigValue("agent.approval_tools", DEFAULT_APPROVAL_TOOLS)),
 		approvedTools: /* @__PURE__ */ new Set([...getConfigValue("agent.approval_policy", {})?.auto_approve || [], ...await loadApprovalGrants(cwd)]),
 		toolBudgets: getConfigValue("agent.tool_budgets", {}),
 		lastSig: null,
