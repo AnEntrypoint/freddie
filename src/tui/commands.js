@@ -100,6 +100,10 @@ export const HANDLERS = {
         await state.runPrompt(message.content)
         return ''
     },
+    // Shorthand for /skill gm — the gm skill is common enough (and its slash
+    // form familiar from Claude Code) to warrant a direct alias rather than
+    // requiring the generic /skill <name> form for this one case.
+    gm: (state, args) => HANDLERS.skill(state, ['gm', ...args]),
 }
 
 // Short descriptions for the editor's slash-command autocomplete
@@ -120,4 +124,5 @@ export const SLASH_COMMAND_DOCS = {
     goal: 'Show or set this session\'s goal',
     skills: 'List available skills',
     skill: 'Run a skill by name',
+    gm: 'Run the gm skill (shorthand for /skill gm)',
 }

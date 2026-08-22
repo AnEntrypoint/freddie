@@ -52,7 +52,16 @@ async function ensureNodeBackend() {
 
     // One daemon round-trip per embed. The runner's `dispatch` subcommand talks to
     // the already-running shared daemon (warm); a cold daemon costs a few seconds
-    // on the first call and stays warm after.
+    // on the first call and stays warm after. Every real caller (machine.js's
+    // autoRecall, AUTORECALL_TIMEOUT_MS=4000; doctor.js's health check,
+    // GM_LEARN_DOCTOR_TIMEOUT_MS=12000) already races this call against its own
+    // shorter outer timeout and treats a miss as intended best-effort
+    // degradation — raising this inner exec timeout past those outer bounds
+    // does not help either caller succeed sooner, and since execFile's own
+    // timeout is what actually kills the child process, it only leaves the
+    // orphaned agentplug-runner subprocess running longer per slow-daemon
+    // turn. A real fix needs a shared AbortSignal from the outer race, not a
+    // bigger inner number.
     const embed = async (text) => {
         const { stdout } = await execFileAsync(runner, ['dispatch', 'bert', 'embed', JSON.stringify({ text })], { timeout: 20000, maxBuffer: 8 * 1024 * 1024 })
         const r = JSON.parse(stdout)

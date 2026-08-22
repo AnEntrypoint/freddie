@@ -1,4 +1,4 @@
-// `freddie profile [--seconds=N]` — real CPU profiling via node:inspector's
+// `freddie cpu-profile [--seconds=N]` — real CPU profiling via node:inspector's
 // built-in Profiler domain (no new dep). Writes a .cpuprofile file loadable
 // in Chrome DevTools, plus an in-terminal top-N self-time summary.
 // `freddie heap-snapshot [path]` / `freddie heap-diff <before> <after>` --
@@ -83,7 +83,7 @@ export default {
     name: 'debug-profiling', surfaces: 'pi',
     register({ pi }) {
         pi.cli.register({
-            name: 'profile',
+            name: 'cpu-profile',
             description: 'Capture a real CPU profile of this process (--seconds=N, default 5), write a .cpuprofile file + terminal top-N self-time summary',
             options: [{ flag: '--seconds <n>', default: '5' }, { flag: '--out <path>', default: '' }],
             action: async (opts) => {

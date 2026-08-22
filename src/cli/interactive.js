@@ -114,6 +114,10 @@ const HANDLERS = {
         await state.runPrompt(message.content)
         return ''
     },
+    // Shorthand for /skill gm — the gm skill is common enough (and its slash
+    // form familiar from Claude Code) to warrant a direct alias rather than
+    // requiring the generic /skill <name> form for this one case.
+    gm: (state, args) => HANDLERS.skill(state, ['gm', ...args]),
 }
 
 export async function interactive({ callLLM, resume = null, input = process.stdin, output = process.stdout } = {}) {
