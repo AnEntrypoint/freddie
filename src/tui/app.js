@@ -1,6 +1,6 @@
 import {
     CombinedAutocompleteProvider, Container, Editor, Loader,
-    ProcessTerminal, Text, TUI,
+    ProcessTerminal, Text, TuiMainScreen,
 } from '@earendil-works/pi-tui'
 import { getActiveSkin } from '../skin/engine.js'
 import { createSession } from '../sessions.js'
@@ -23,7 +23,7 @@ export async function runTui({ callLLM = null, resume = null } = {}) {
     const skin = getActiveSkin()
     const state = { messages: [], session: null, exit: false, planMode: false, approvalMode: null, turnActive: false, pendingApproval: null, pendingAsk: null, queuedMessages: [], toastText: null, toastTimer: null }
 
-    const tui = new TUI(new ProcessTerminal())
+    const tui = new TuiMainScreen(new ProcessTerminal())
     const transcript = new Container()
     const editor = new Editor(tui, editorTheme, { paddingX: 1 })
     editor.setAutocompleteProvider(new CombinedAutocompleteProvider(

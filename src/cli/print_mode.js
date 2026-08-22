@@ -3,7 +3,7 @@
  * Outputs result to stdout, exits with appropriate code.
  *
  * Four UI modes in the freddie/kimi parity model:
- *   Shell  — interactive TUI (pi-tui InteractiveMode or readline REPL)
+ *   Shell  — interactive TUI (pi-tui TuiMainScreen or readline REPL)
  *   Print  — non-interactive stdout (this module)
  *   ACP    — JSON-RPC stdio (src/acp/server.js)
  *   Web    — dashboard (src/web/server.js)
