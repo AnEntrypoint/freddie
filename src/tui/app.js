@@ -69,7 +69,8 @@ export async function runTui({ callLLM = null, resume = null } = {}) {
     console.warn = (...a) => ui.note(a.map(safe).join(' '), style.yellow)
     console.error = (...a) => ui.note(a.map(safe).join(' '), style.red)
 
-    const { onLine, steerNow } = createLineHandlers({ tui, transcript, editor, state, ui, skin, callLLM })
+    const { onLine, runPrompt, steerNow } = createLineHandlers({ tui, transcript, editor, state, ui, skin, callLLM })
+    state.runPrompt = runPrompt
     attachInputListener({ tui, editor, state, ui, steerNow })
     editor.onSubmit = (text) => { void onLine(text) }
 

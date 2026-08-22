@@ -5,6 +5,8 @@ import { listAllProfiles, switchProfile } from '../commands/profile.js'
 import { listAuthProviders, hasUsableSecret, envForProvider } from '../auth.js'
 import { listProjects, getActiveProject, setActiveProject } from '../projects.js'
 import { cancelTurn, steerTurn } from '../agent/live-turns.js'
+import { goalCommand } from '../commands/goal.js'
+import { skillsListCommand, resolveSkillInvocation } from '../commands/skills_command.js'
 
 // Tools disabled in plan mode (read-only turn): mutation-capable tools are
 // hidden from the model so it can inspect (bash/read/grep stay) but not
@@ -90,6 +92,14 @@ export const HANDLERS = {
         if (!state.turnActive) return 'no turn running (plain text while a turn runs queues for after it)'
         return steerTurn(state.session, text) ? 'steer injected at the next step boundary' : 'no live turn found for this session'
     },
+    goal: (state, args) => goalCommand(state.session, args),
+    skills: () => skillsListCommand(),
+    skill: async (state, args) => {
+        const { error, message } = resolveSkillInvocation(args)
+        if (error) return error
+        await state.runPrompt(message.content)
+        return ''
+    },
 }
 
 // Short descriptions for the editor's slash-command autocomplete
@@ -107,4 +117,7 @@ export const SLASH_COMMAND_DOCS = {
     plan: 'Toggle plan mode (read-only turns)',
     cancel: 'Interrupt the running turn',
     steer: 'Inject a message into the running turn',
+    goal: 'Show or set this session\'s goal',
+    skills: 'List available skills',
+    skill: 'Run a skill by name',
 }

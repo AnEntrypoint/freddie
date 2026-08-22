@@ -10,6 +10,8 @@ import { listAllProfiles, switchProfile } from '../commands/profile.js'
 import { listAuthProviders, hasUsableSecret, envForProvider } from '../auth.js'
 import { listProjects, getActiveProject, setActiveProject } from '../projects.js'
 import { listSubagents } from '../../plugins/core/delegate/store.js'
+import { goalCommand } from '../commands/goal.js'
+import { skillsListCommand, resolveSkillInvocation } from '../commands/skills_command.js'
 
 // Tools disabled in plan mode (read-only turn): mutation-capable tools are
 // hidden from the model so it can inspect (bash/read/grep stay) but not
@@ -104,6 +106,14 @@ const HANDLERS = {
         if (!state.turnActive) return 'no turn running (plain text while a turn runs queues for after it)'
         return steerTurn(state.session, text) ? 'steer injected at the next step boundary' : 'no live turn found for this session'
     },
+    goal: (state, args) => goalCommand(state.session, args),
+    skills: () => skillsListCommand(),
+    skill: async (state, args) => {
+        const { error, message } = resolveSkillInvocation(args)
+        if (error) return error
+        await state.runPrompt(message.content)
+        return ''
+    },
 }
 
 export async function interactive({ callLLM, resume = null, input = process.stdin, output = process.stdout } = {}) {
@@ -118,6 +128,7 @@ export async function interactive({ callLLM, resume = null, input = process.stdi
         output.write(msg + '\n')
     }
     if (!state.session) state.session = await createSession({ platform: 'cli' })
+    state.runPrompt = (line) => runPrompt(line)
     output.write(`${skin.branding.welcome}\n`)
     const rl = readline.createInterface({ input, output, terminal: input.isTTY })
     const prompt = () => { if (!state.exit && !rl.closed) rl.setPrompt(skin.branding.prompt_symbol); if (!rl.closed) rl.prompt() }
@@ -153,6 +164,10 @@ export async function interactive({ callLLM, resume = null, input = process.stdi
         if (line.startsWith('/')) {
             const parts = line.slice(1).split(/\s+/)
             const name = resolveCommand('/' + parts[0]) || parts[0]
+            if (state.turnActive && name !== 'cancel' && name !== 'steer') {
+                output.write(`/${parts[0]} is not available while a turn is running (use /cancel or /steer, or wait — it will queue as a message otherwise)\n`)
+                return prompt()
+            }
             const handler = HANDLERS[name]
             if (!handler) { output.write(`unknown command: /${parts[0]}\n`); return prompt() }
             try { output.write((await handler(state, parts.slice(1))) + '\n') }

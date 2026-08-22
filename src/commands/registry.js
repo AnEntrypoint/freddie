@@ -12,6 +12,7 @@ export const COMMAND_REGISTRY = [
     cmd('tools', 'List available tools', 'Tools & Skills'),
     cmd('skills', 'Skills hub: install, list, run', 'Tools & Skills'),
     cmd('skill', 'Run a skill by name', 'Tools & Skills', { args_hint: '<name>' }),
+    cmd('goal', 'Show or set this session\'s goal', 'Tools & Skills', { args_hint: '[objective|done|blocked|active|budget <n> <unit>]' }),
     cmd('memory', 'Memory provider commands', 'Configuration'),
     cmd('skin', 'Switch CLI skin', 'Configuration', { args_hint: '[name]' }),
     cmd('profile', 'Manage profiles', 'Configuration', { args_hint: '<list|create|switch|delete>' }),
