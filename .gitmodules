@@ -1,9 +1,6 @@
 [submodule "design"]
 	path = design
 	url = https://github.com/AnEntrypoint/design.git
-[submodule "acptoapi"]
-	path = acptoapi
-	url = https://github.com/AnEntrypoint/acptoapi.git
 [submodule "plugsdk"]
 	path = plugsdk
 	url = https://github.com/AnEntrypoint/plugsdk.git
