@@ -1,0 +1,22 @@
+===== src/toolsets.js =====
+4|export const _FREDDIE_CORE_TOOLS = ['bash', 'read', 'write', 'edit', 'grep']
+===== src/toolset_distributions.js =====
+2|import { _FREDDIE_CORE_TOOLS, getEnabledToolNames } from './toolsets.js'
+53|    // _FREDDIE_CORE_TOOLS (toolsets.js's own already-defined minimal set:
+74|        const keep = new Set(_FREDDIE_CORE_TOOLS)
+77|    saveConfigValue('toolsets.enabled', d.enabledToolsets)
+78|    saveConfigValue('toolsets.disabled', disabledToolsets)
+===== src/index.js =====
+4|export * from './toolsets.js'
+===== src/host/surface-factories.js =====
+10|            // src/toolsets.js's t.toolset || 'core' pattern used to silently
+===== src/host/tool-middleware.js =====
+106|// exposure boundary instead (src/toolsets.js getEnabledToolSchemas), which is
+===== src/agent/machine_builder.js =====
+3|import { getEnabledToolSchemas } from '../toolsets.js'
+===== plugins/flow_skill/handler.js =====
+85|        const { getEnabledToolSchemas, getAvailableToolsets } = await import('../../src/toolsets.js')
+===== plugins/core/core-cli/subsystem-guide.js =====
+10|    ['toolset', 'src/toolsets.js'],
+===== plugins/core/delegate/lib/runner.js =====
+10|import { getEnabledToolNames } from '../../../../src/toolsets.js'

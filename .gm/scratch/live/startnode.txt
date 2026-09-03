@@ -1,0 +1,60 @@
+findStartNode, getOutgoingEdges } from './flow_graph.js'
+import { extractBlanks, substituteBlanks, parseBlankTags } from './flow_blanks.js'
+import { recordFlowRun, ensureFlowDebug } from './flow_debug.js'
+
+const DEFAULT_MAX_DEPTH = 4
+
+function normalizeChoice(text) {
+    let s = String(text || '').trim()
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+        s = s.slice(1, -1).trim()
+    }
+    return s.toLowerCase()
+}
+
+function edgeLabels(outgoing) {
+    return outgoing.map(e => e.label || 'default')
+}
+
+export class FlowRunner {
+    constructor({
+        skillName, skillContent, callLLM, maxMoves = 1000, ctx = null,
+        dispatchTool = null, tools = null, maxToolRounds = 20,
+        maxDepth = DEFAULT_MAX_DEPTH, depth = 0, filled = null,
+    }) {
+        this.skillName = skillName
+        this.skillContent = skillContent
+        this.callLLM = callLLM
+        this.maxMoves = maxMoves
+        this.ctx = ctx
+        this.dispatchTool = dispatchTool
+        this.tools = tools
+        this.maxToolRounds = maxToolRounds
+        this.maxDepth = maxDepth
+        this.depth = depth
+        this._nodes = {}
+        this._edges = []
+        this.state = { moves: 0, currentNode: null, messages: [], results: {}, path: [], filled: { ...(filled || {}) } }
+        ensureFlowDebug()
+    }
+
+    _aborted() {
+        const ctx = this.ctx
+        if (!ctx) return false
+        if (ctx.abort === true) return true
+        if (typeof ctx.abort === 'function' && ctx.abort()) return true
+        const sig = ctx.signal
+        if (sig && (sig.aborted === true || (typeof sig.aborted === 'function' && sig.aborted()))) return true
+        return false
+    }
+
+    _progress(phase, node) {
+        const fn = this.ctx?.onProgress
+        if (typeof fn !== 'function') return
+        try {
+            fn({
+                flow: this.skillName,
+                node: node?.id,
+                type: node?.type,
+                moves: this.state.moves,
+    

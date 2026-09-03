@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://freddie.dev/schemas/plugin-manifest.json",
+  "title": "Freddie plugin.json manifest",
+  "description": "Optional manifest sitting alongside a plugin's plugin.js/handler.js. Describes the plugin for discovery/marketplace tooling -- freddie itself only reads the feature_flag field (src/host/host.js isFlagDisabled) at load-gate time; every other field here is descriptive metadata consumed by validatePluginManifest()/plugin-install-cli/plugin-certification-badges.",
+  "type": "object",
+  "required": ["name", "version"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "description": "Plugin directory name / registration name, kebab-case."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+      "description": "Semver version string."
+    },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["tool", "env", "command", "cron", "platform", "memory", "skill", "context", "agentExt", "cli", "route", "page", "nav", "debug", "api", "asset"] },
+      "description": "Which PI_VERBS/GUI_VERBS (src/host/contract.js) this plugin registers against."
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Other freddie plugin names this plugin's register() calls host.get()/requires on. Distinct from the real plugin.js 'requires' array (that one is load-order-enforced by topoSort at boot); this is descriptive-only for marketplace/install tooling."
+    },
+    "safety_rating": {
+      "type": "string",
+      "enum": ["community", "certified", "experimental"],
+      "description": "Mechanically-derived badge tier (see plugin-certification-badges row) -- never a hand-asserted claim; install/validate tooling recomputes this from real checks."
+    },
+    "feature_flag": {
+      "type": "string",
+      "description": "Name checked against src/flags.js isFlagEnabled() at discovery time (src/host/host.js isFlagDisabled) -- the ONE field freddie's own loader reads. Absent means no gate."
+    },
+    "registry_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Optional self-hostable static JSON index URL this plugin's updates can be fetched from (see plugin-registry-backend-design row)."
+    },
+    "resources": {
+      "type": "object",
+      "description": "Optional declared resource-capability allowlist, validated by validatePluginManifest() and ENFORCED live at dispatchTool time (src/host/host_helpers.js + src/host/tool-resources.js) -- distinct from the 'capabilities' field above (which only names PI_VERBS/GUI_VERBS registration categories and is descriptive-only). Omitting this object, or omitting an individual sub-field, means unrestricted for that resource kind (back-compat default for the many existing plugins that ship no manifest at all). Present sub-fields are treated as an allowlist: any access outside it is denied and logged.",
+      "properties": {
+        "fs_paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Filesystem path prefixes (absolute or cwd-relative) this plugin's tool handlers may read/write. Checked via real path containment (path.relative), not substring matching. A trailing '/**' or '/*' is stripped and treated as 'this directory and its descendants'."
+        },
+        "network_hosts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Hostnames (exact, or '*.example.com' wildcard-subdomain) this plugin's tool handlers may fetch() from or open a WebSocket connection to. Checked against the real parsed URL hostname of every outbound fetch, and every `new WebSocket(...)` construction against the ambient global, during the handler's call window. The WebSocket gate covers only callers referencing the global `WebSocket` -- a plugin using a named import of a third-party WebSocket implementation (e.g. `import { WebSocket } from 'ws'`) is a structurally separate binding this gate cannot reach (see src/host/tool-resources.js); such a plugin should self-enforce its own declared allowlist (see plugins/community/spoint_editor/plugin.js for the pattern)."
+        },
+        "env_vars": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Environment variable names this plugin's tool handlers may read via ctx.env(name). Exact-name allowlist only."
+        },
+        "pii": {
+          "type": "string",
+          "enum": ["log", "block"],
+          "description": "Opt-in PII-pattern guard (src/host/tool-resources.js scanForPII/enforcePII) run over this tool's args and stringified result at every dispatchTool call. Absent (default): no scanning at all, zero behavior/perf change. 'log': scan and logger.warn on any SSN/email/Luhn-valid-credit-card-shaped hit, call proceeds unchanged (recommended default once opted in -- heuristic regex/Luhn detection has real false-positive risk on legitimate business data, e.g. long numeric ids). 'block': same detection, but throws instead of proceeding on any hit."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

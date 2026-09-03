@@ -1,0 +1,87 @@
+title: Platforms
+slug: platforms
+hero:
+  heading: platforms
+  subheading: 16 functional gateway adapters — meet your users where they are
+  accent: same agent, sixteen surfaces.
+  body: every adapter extends EventEmitter, exposes `getRequiredEnv()`, emits `'message'` events. drop credentials in env, start the gateway, the agent talks to your users on whichever channel they prefer. inbound webhooks fan in to one loop. outbound replies fan back out.
+  badges:
+    - { label: "16", desc: production adapters }
+    - { label: webhook, desc: catch-all }
+    - { label: "REST + long-poll", desc: transports }
+  ctas:
+    - { label: platform plugins, href: "https://github.com/AnEntrypoint/freddie/tree/main/plugins" }
+    - { label: how to add, href: "#how-to-add" }
+sections:
+  - id: when
+    name: when do you turn on a platform?
+    lede: platforms are opt-in by env. set the credentials, the gateway lights up. omit them, the adapter quietly stays dark.
+    features:
+      - name: chat
+        desc: telegram, discord, slack, matrix, signal, mattermost, zulip — for community ops, support, devrel.
+        benefit: one bot persona across every chat your team uses.
+      - name: messaging
+        desc: whatsapp (meta graph), sms (twilio), email (raw smtp) — for transactional + 1:1 user reach.
+        benefit: hit users on rails they already check.
+      - name: enterprise
+        desc: dingtalk, feishu, wechat, wecom, qq — for asia-pacific deployments.
+        benefit: regional reach without rebuilding the agent.
+      - name: other
+        desc: bluebubbles (imessage relay), home assistant, generic webhook, api server — long-tail integrations.
+        benefit: anything that speaks http can wire in via the webhook adapter.
+  - id: why
+    name: why one gateway, not n bots?
+    lede: every adapter is the same shape. the gateway is one express server with n adapter mounts.
+    features:
+      - name: one process, n surfaces
+        desc: gateway boots once. each adapter mounts its routes (webhook) or starts its long-poll loop (telegram, matrix). all inbound messages route to one agent loop.
+        benefit: one log, one config, one deploy. no fanout deployment headache.
+      - name: hooks for filtering and rate limits
+        desc: per-platform hook chain runs before the agent sees a message. drop, transform, throttle, redact.
+        benefit: spam control + abuse prevention without touching the agent code.
+      - name: outbound buffer
+        desc: api_server adapter lets pull-based clients (mobile, embedded) poll for replies via `GET /messages`.
+        benefit: works behind nat, no inbound port required.
+      - name: env-gated start
+        desc: every adapter throws on `start()` if required credentials are absent. the gateway logs which adapters started, which were skipped.
+        benefit: clear startup line shows you exactly what's live and what's missing.
+  - id: how-to-add
+    name: how do I add a platform?
+    lede: "create `plugins/platform-<name>/{plugin,handler}.js` — a class ending in `Adapter` plus `pi.platforms.register`."
+    features:
+      - name: 1 — extend EventEmitter
+        desc: "in `handler.js`, `export class MynameAdapter extends EventEmitter`. the class name MUST end in `Adapter` so the gateway resolves it."
+      - name: 2 — declare credentials
+        desc: "`getRequiredEnv() { return ['MY_TOKEN'] }`"
+      - name: 3 — implement lifecycle
+        desc: "`async start()`, `async stop()`, `async send(recipient, content)`"
+      - name: 4 — emit messages
+        desc: "`this.emit('message', { recipient, content, raw })` on inbound"
+      - name: 5 — register the plugin
+        desc: "`plugin.js` default-exports `{ name: 'platform-myname', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'myname', module }) } }`."
+examples:
+  - { label: platform plugins, href: "https://github.com/AnEntrypoint/freddie/tree/main/plugins", desc: every platform-* adapter }
+  - { label: telegram adapter, href: "https://github.com/AnEntrypoint/freddie/tree/main/plugins/platform-telegram", desc: long-poll example }
+  - { label: webhook adapter, href: "https://github.com/AnEntrypoint/freddie/tree/main/plugins/platform-webhook", desc: catch-all }
+body: |
+  ## starting the gateway
+
+  ```
+  export TELEGRAM_BOT_TOKEN=<token>
+  export DISCORD_BOT_TOKEN=<token>
+  node bin/freddie.js gateway --port 3001
+  ```
+
+  the gateway logs which adapters lit up and which stayed dark for missing credentials.
+
+  ## inspecting required env per adapter
+
+  ```
+  import { TelegramAdapter } from './plugins/platform-telegram/handler.js'
+  new TelegramAdapter({}).getRequiredEnv()
+  // ['TELEGRAM_BOT_TOKEN']
+  ```
+
+  ## hooks
+
+  install hooks via `gateway.use(fn)`. each hook is `async (msg, next) => ...` and can drop, mutate, or throttle before the agent sees the message.

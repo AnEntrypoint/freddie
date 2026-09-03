@@ -1,0 +1,7 @@
+src/toolsets.js
+4:export const _FREDDIE_CORE_TOOLS = ['bash', 'read', 'write', 'edit', 'grep']
+
+src/toolset_distributions.js
+2:import { _FREDDIE_CORE_TOOLS, getEnabledToolNames } from './toolsets.js'
+53:    // _FREDDIE_CORE_TOOLS (toolsets.js's own already-defined minimal set:
+74:        const keep = new Set(_FREDDIE_CORE_TOOLS)

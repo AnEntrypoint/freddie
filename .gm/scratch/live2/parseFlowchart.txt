@@ -1,0 +1,62 @@
+// Mermaid flowchart parser + unified dispatch. Detects Mermaid/D2 format and
+// extracts nodes/edges from skill bodies. Browser-compatible: no node built-ins.
+//
+// Mermaid syntax supported:
+//   flowchart TD / graph TD / flowchart LR / graph LR
+//   A[Task label]      — rectangle (task)
+//   A{Decision?}       — diamond (decision)
+//   A((Circle))        — circle (start)
+//   A([Stadium])       — stadium (end)
+//   A[[Subroutine]]    — subroutine (nested skill)
+//   A --> B            — plain edge
+//   A -->|choice| B    — labeled edge (decision branch)
+//   A -- text --> B    — alternative labeled edge
+//
+// D2 parsing (syntax + format detection) lives in flow_parser_d2.js.
+
+import { detectFormat, parseD2 } from './flow_parser_d2.js'
+import { protectBlanks, restoreBlanks } from './flow_blanks.js'
+
+// Mermaid parser
+
+// Ordered bracket pairs for node shape detection. Tested longest-first so
+// [[ (subroutine) matches before [ (rectangle).
+const BRACKET_PAIRS = [
+    { open: '[[', close: ']]', type: 'subroutine' },
+    { open: '((', close: '))', type: 'start' },
+    { open: '([', close: '])', type: 'end' },
+    { open: '[',  close: ']',  type: 'task' },
+    { open: '{',  close: '}',  type: 'decision' },
+    { open: '(',  close: ')',  type: 'task' },
+    { open: '>',  close: ']',  type: 'task' },
+    { open: '/',  close: '/',  type: 'task' },
+    { open: '\\', close: '\\', type: 'task' },
+    { open: '/',  close: '\\', type: 'task' },
+    { open: '\\', close: '/',  type: 'task' },
+]
+
+function parseMermaidNode(line) {
+    // Match: ID<open>label<close>  where <open>/<close> are from BRACKET_PAIRS.
+    // The ID is alphanumeric; the open bracket follows immediately.
+    const idMatch = line.match(/^(\w+)\s*(.+)$/)
+    if (!idMatch) return null
+    const id = idMatch[1]
+    const rest = idMatch[2]
+    for (const bp of BRACKET_PAIRS) {
+        if (rest.startsWith(bp.open) && rest.endsWith(bp.close)) {
+            const label = rest.slice(bp.open.length, rest.length - bp.close.length).trim() || id
+            return { id, label, type: bp.type }
+        }
+    }
+    return null
+}
+
+function parseMermaid(content) {
+    const lines = content.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('%%'))
+    const nodes = {}  // id -> { id, label, type }
+    const edges = []  // { from, to, label }
+    const chainEdges = [] // deferred chain edges
+
+    for (const line of lines) {
+        // Skip flowchart/graph declarations and subgraph markers
+        if (/^(f

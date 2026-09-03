@@ -1,0 +1,12 @@
+import { FlowRunner } from '../../src/agent/flow_runner.js'
+import { resolveCallLLM } from '../../src/agent/llm_resolver.js'
+
+let _log = null
+
+export function setLogger(log) {
+    _log = log
+}
+
+export const _tool = {
+    name: 'run_flow',
+    toolset: 'core',

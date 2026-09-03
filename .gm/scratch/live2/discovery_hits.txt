@@ -1,0 +1,170 @@
+--- 5-13 ---
+   5|import { isFlagEnabled } from '../flags.js'
+   6|
+   7|// A plugin.json's optional feature_flag field gates the plugin's own
+   8|// registration behind src/flags.js -- disabled means the plugin is skipped
+   9|// entirely at discovery time (kill switch), never even reaching register().
+  10|// Requires no other manifest fields; a missing plugin.json is the common case
+  11|// and simply means no flag gate applies.
+  12|function isFlagDisabled(dir) {
+  13|    const manifestPath = path.join(dir, 'plugin.json')
+--- 7-15 ---
+   7|// A plugin.json's optional feature_flag field gates the plugin's own
+   8|// registration behind src/flags.js -- disabled means the plugin is skipped
+   9|// entirely at discovery time (kill switch), never even reaching register().
+  10|// Requires no other manifest fields; a missing plugin.json is the common case
+  11|// and simply means no flag gate applies.
+  12|function isFlagDisabled(dir) {
+  13|    const manifestPath = path.join(dir, 'plugin.json')
+  14|    if (!fs.existsSync(manifestPath)) return false
+  15|    try {
+--- 8-16 ---
+   8|// registration behind src/flags.js -- disabled means the plugin is skipped
+   9|// entirely at discovery time (kill switch), never even reaching register().
+  10|// Requires no other manifest fields; a missing plugin.json is the common case
+  11|// and simply means no flag gate applies.
+  12|function isFlagDisabled(dir) {
+  13|    const manifestPath = path.join(dir, 'plugin.json')
+  14|    if (!fs.existsSync(manifestPath)) return false
+  15|    try {
+  16|        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+--- 11-19 ---
+  11|// and simply means no flag gate applies.
+  12|function isFlagDisabled(dir) {
+  13|    const manifestPath = path.join(dir, 'plugin.json')
+  14|    if (!fs.existsSync(manifestPath)) return false
+  15|    try {
+  16|        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+  17|        if (!manifest.feature_flag) return false
+  18|        return !isFlagEnabled(manifest.feature_flag)
+  19|    } catch { return false }
+--- 28-36 ---
+  28|}
+  29|
+  30|// A directory under a root is either a plugin dir (has plugin.js or the
+  31|// legacy handler.js) or, if it has neither, a pure category folder (e.g.
+  32|// plugins/gui/, plugins/platform/ per the f22 reorg) whose own children are
+  33|// the plugin dirs. `depth` caps the recursion at one category level deep so
+  34|// a root never turns into an unbounded filesystem walk. A plugin.json's
+  35|// feature_flag gate (isFlagDisabled) applies at every level -- a category
+  36|// folder itself is never flag-gated (it isn't a plugin), only its leaf
+--- 29-37 ---
+  29|
+  30|// A directory under a root is either a plugin dir (has plugin.js or the
+  31|// legacy handler.js) or, if it has neither, a pure category folder (e.g.
+  32|// plugins/gui/, plugins/platform/ per the f22 reorg) whose own children are
+  33|// the plugin dirs. `depth` caps the recursion at one category level deep so
+  34|// a root never turns into an unbounded filesystem walk. A plugin.json's
+  35|// feature_flag gate (isFlagDisabled) applies at every level -- a category
+  36|// folder itself is never flag-gated (it isn't a plugin), only its leaf
+  37|// plugin dirs are.
+--- 32-40 ---
+  32|// plugins/gui/, plugins/platform/ per the f22 reorg) whose own children are
+  33|// the plugin dirs. `depth` caps the recursion at one category level deep so
+  34|// a root never turns into an unbounded filesystem walk. A plugin.json's
+  35|// feature_flag gate (isFlagDisabled) applies at every level -- a category
+  36|// folder itself is never flag-gated (it isn't a plugin), only its leaf
+  37|// plugin dirs are.
+  38|//
+  39|// Leaf-dir imports within one directory level run concurrently
+  40|// (Promise.allSettled, not Promise.all) rather than one at a time: measured
+--- 45-53 ---
+  45|// Promise.all) preserves the pre-existing per-plugin isolation: one plugin's
+  46|// import throwing must not abort discovery of its siblings, matching how
+  47|// host.js's load() already isolates a register()-time throw per plugin.
+  48|// found[] order may now differ from strict directory-entry order, which is
+  49|// safe because host.js's load() re-sorts by topoSort(requires[]) right after
+  50|// discovery returns -- nothing downstream depends on discovery order itself.
+  51|//
+  52|// Recursive scanPluginDir calls for subdirectories (category folders) also
+  53|// run concurrently via Promise.allSettled. This parallelizes the depth > 0
+--- 63-71 ---
+  63|        if (!entry.isDirectory()) continue
+  64|        const dir = path.join(root, entry.name)
+  65|        const file = path.join(dir, 'plugin.js')
+  66|        if (fs.existsSync(file)) {
+  67|            if (isFlagDisabled(dir)) continue
+  68|            const declaredResources = readManifestResources(dir)
+  69|            imports.push(
+  70|                import(pathToFileURL(file).href).then(mod => {
+  71|                    const p = mod.default || mod.plugin
+--- 75-83 ---
+  75|            continue
+  76|        }
+  77|        const handlerFile = path.join(dir, 'handler.js')
+  78|        if (fs.existsSync(handlerFile)) {
+  79|            if (isFlagDisabled(dir)) continue
+  80|            const declaredResources = readManifestResources(dir)
+  81|            const entryName = entry.name
+  82|            imports.push(
+  83|                import(pathToFileURL(handlerFile).href).then(handlerMod => {
+--- 82-90 ---
+  82|            imports.push(
+  83|                import(pathToFileURL(handlerFile).href).then(handlerMod => {
+  84|                    // Multi-tool files export _tool0, _tool1, ... (documented
+  85|                    // convention, AGENTS.md "Adding a tool") alongside the
+  86|                    // single-tool _tool shape -- both must register, since a
+  87|                    // handler-only directory has no plugin.js to wire multiple
+  88|                    // tools in by hand.
+  89|                    const tools = [handlerMod._tool, ...Object.keys(handlerMod).filter(k => /^_tool\d+$/.test(k)).sort().map(k => handlerMod[k])].filter(Boolean)
+  90|                    if (!tools.length) return
+--- 84-92 ---
+  84|                    // Multi-tool files export _tool0, _tool1, ... (documented
+  85|                    // convention, AGENTS.md "Adding a tool") alongside the
+  86|                    // single-tool _tool shape -- both must register, since a
+  87|                    // handler-only directory has no plugin.js to wire multiple
+  88|                    // tools in by hand.
+  89|                    const tools = [handlerMod._tool, ...Object.keys(handlerMod).filter(k => /^_tool\d+$/.test(k)).sort().map(k => handlerMod[k])].filter(Boolean)
+  90|                    if (!tools.length) return
+  91|                    found.push({
+  92|                        name: `tool-${entryName}`,
+--- 85-93 ---
+  85|                    // convention, AGENTS.md "Adding a tool") alongside the
+  86|                    // single-tool _tool shape -- both must register, since a
+  87|                    // handler-only directory has no plugin.js to wire multiple
+  88|                    // tools in by hand.
+  89|                    const tools = [handlerMod._tool, ...Object.keys(handlerMod).filter(k => /^_tool\d+$/.test(k)).sort().map(k => handlerMod[k])].filter(Boolean)
+  90|                    if (!tools.length) return
+  91|                    found.push({
+  92|                        name: `tool-${entryName}`,
+  93|                        surfaces: 'pi',
+--- 86-94 ---
+  86|                    // single-tool _tool shape -- both must register, since a
+  87|                    // handler-only directory has no plugin.js to wire multiple
+  88|                    // tools in by hand.
+  89|                    const tools = [handlerMod._tool, ...Object.keys(handlerMod).filter(k => /^_tool\d+$/.test(k)).sort().map(k => handlerMod[k])].filter(Boolean)
+  90|                    if (!tools.length) return
+  91|                    found.push({
+  92|                        name: `tool-${entryName}`,
+  93|                        surfaces: 'pi',
+  94|                        __sourceFile: handlerFile,
+--- 87-95 ---
+  87|                    // handler-only directory has no plugin.js to wire multiple
+  88|                    // tools in by hand.
+  89|                    const tools = [handlerMod._tool, ...Object.keys(handlerMod).filter(k => /^_tool\d+$/.test(k)).sort().map(k => handlerMod[k])].filter(Boolean)
+  90|                    if (!tools.length) return
+  91|                    found.push({
+  92|                        name: `tool-${entryName}`,
+  93|                        surfaces: 'pi',
+  94|                        __sourceFile: handlerFile,
+  95|                        __resources: declaredResources,
+--- 88-96 ---
+  88|                    // tools in by hand.
+  89|                    const tools = [handlerMod._tool, ...Object.keys(handlerMod).filter(k => /^_tool\d+$/.test(k)).sort().map(k => handlerMod[k])].filter(Boolean)
+  90|                    if (!tools.length) return
+  91|                    found.push({
+  92|                        name: `tool-${entryName}`,
+  93|                        surfaces: 'pi',
+  94|                        __sourceFile: handlerFile,
+  95|                        __resources: declaredResources,
+  96|                        register({ pi }) { for (const t of tools) pi.tools.register(t) },
+--- 94-102 ---
+  94|                        __sourceFile: handlerFile,
+  95|                        __resources: declaredResources,
+  96|                        register({ pi }) { for (const t of tools) pi.tools.register(t) },
+  97|                    })
+  98|                })
+  99|            )
+ 100|            continue
+ 101|        }
+ 102|        if (depth > 0) subDirs.push(dir)

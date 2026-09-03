@@ -1,0 +1,80 @@
+1|            dispatchTool = (toolName, toolArgs, toolCtx) => {
+2|                if (toolName === 'run_flow') return JSON.stringify({ error: 'run_flow cannot nest inside a flow node' })
+3|                return h.pi.dispatchTool(toolName, toolArgs, toolCtx || ctx || {})
+4|            }
+5|        }
+6|        const sets = Array.isArray(ctx?.enabledToolsets)
+7|            ? ctx.enabledToolsets
+8|            : await getAvailableToolsets()
+9|        const disabled = [
+10|            ...(Array.isArray(ctx?.disabledToolsets) ? ctx.disabledToolsets : []),
+11|            'run_flow',
+12|        ]
+13|        const schemas = await getEnabledToolSchemas(sets, disabled)
+14|        tools = (schemas || []).filter(s => (s.name || s.function?.name) !== 'run_flow')
+15|        if (!ctx?.askUser) tools = tools.filter(s => (s.name || s.function?.name) !== 'ask_user_question')
+16|    } catch {
+17|        dispatchTool = null
+18|        tools = null
+19|    }
+20|
+21|    const findSkillBound = typeof findSkill === 'function' ? findSkill : null
+22|    const runCtx = { ...(ctx || {}), findSkill: findSkillBound || ctx?.findSkill }
+23|    const runner = new FlowRunner({
+24|        skillName: name,
+25|        skillContent: skill.body,
+26|        callLLM,
+27|        maxMoves: 1000,
+28|        ctx: runCtx,
+29|        dispatchTool,
+30|        tools,
+31|    })
+32|
+33|    const result = await runner.run(flowArgs)
+34|
+35|    if (log) {
+36|        if (result.ok) {
+37|            log.info(`run_flow: ${name} completed in ${result.state.moves} moves`)
+38|        } else {
+39|            log.warn(`run_flow: ${name} failed: ${result.error}`)
+40|        }
+41|    }
+42|
+43|    const out = {
+44|        ok: result.ok,
+45|        state: {
+46|            moves: result.state.moves,
+47|            path: result.state.path,
+48|            nodeCount: result.state.path.length,
+49|        },
+50|    }
+51|    if (result.result) out.result = result.result
+52|    if (result.error) out.error = result.error
+53|    if (result.state.filled && Object.keys(result.state.filled).length) out.state.filled = result.state.filled
+54|    return out
+55|}
+56|
+57|export async function flowCommandHandler(state, args) {
+58|    const name = args[0]
+59|    if (!name) return 'usage: /flow <name> [args...] — run a flow skill'
+60|
+61|    const flowArgs = args.slice(1).join(' ')
+62|
+63|    const result = await runFlowSkill({
+64|        name,
+65|        flowArgs,
+66|        log: _log,
+67|    })
+68|
+69|    if (!result.ok) {
+70|        return `flow error: ${result.error}`
+71|    }
+72|
+73|    const resSummary = result.result
+74|        ? '\nResults:\n' + Object.entries(result.result)
+75|            .map(([id, r]) => `  ${id}: ${(r.content || r.choice || '').slice(0, 120)}`)
+76|            .join('\n')
+77|        : ''
+78|
+79|    return `Flow "${name}" completed in ${result.state.moves} moves, ${result.state.nodeCount} nodes visited.${resSummary}`
+80|}

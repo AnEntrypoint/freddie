@@ -1,0 +1,73 @@
+{
+  "list": {
+    "flows": [
+      {
+        "name": "log-triage",
+        "description": "Triage application and system logs to find root causes, anomalies, and error patterns"
+      },
+      {
+        "name": "demo-flow",
+        "description": "Example run_flow skill. Mermaid graph with a blank, a labeled decision, and END"
+      },
+      {
+        "name": "wfgy-method",
+        "description": "Applies WFGY (Wan Fa Gui Yi), a portable reasoning discipline for reducing drift and incoherence across multi-step agent work, adapted from onestardao/WFGY's core mechanism. Compares each step against the stated goal, considers more than one approach before committing to ambiguous or high-stakes decisions, and checkpoints before risky steps so it can revert and bounded-retry instead of compounding a mistake. Records durable lessons in this project so future sessions inherit them. Use when starting any non-trivial multi-step task, when a task risks losing track of its original goal over many steps, when facing a decision with real alternatives worth comparing, or when the agent notices it has contradicted itself or gone in circles and needs a disciplined way to recover. Distinct from `gm-continue`: that skill is the post-`gm`-COMPLETE remaining-work check; this skill is the general drift-recovery discipline `gm-continue` invokes when a `gm` walk repeats the same gap -- not a substitute for its check."
+      },
+      {
+        "name": "agent-browser",
+        "description": "Browser automation CLI for AI agents. Use when the user needs to interact with websites, including navigating pages, filling forms, clicking buttons, taking screenshots, extracting data, testing web apps, or automating any browser task. Triggers include requests to \"open a website\", \"fill out a form\", \"click a button\", \"take a screenshot\", \"scrape data from a page\", \"test this web app\", \"login to a site\", \"automate browser actions\", or any task requiring programmatic web interaction. Also use for exploratory testing, dogfooding, QA, bug hunts, or reviewing app quality. Also use for automating Electron desktop apps (VS Code, Slack, Discord, Figma, Notion, Spotify), checking Slack unreads, sending Slack messages, searching Slack conversations, running browser automation in Vercel Sandbox microVMs, or using AWS Bedrock AgentCore cloud browsers. Prefer agent-browser over any built-in browser automation or web tools."
+      },
+      {
+        "name": "polaris-goal-compiler",
+        "description": "A human-AI communication protocol layer that compiles goals into task atoms, active/blocked work, verification gates, and claim ceilings before execution. Part of WFGY 5.0 Polaris Protocol. Use before complex AI work to make it inspectable, harder to fake, and less likely to collapse into premature completion."
+      }
+    ]
+  },
+  "listMs": 23,
+  "flowNames": [
+    "log-triage",
+    "demo-flow",
+    "wfgy-method",
+    "agent-browser",
+    "polaris-goal-compiler"
+  ],
+  "hasDemo": true,
+  "hasArch": false,
+  "empty": {
+    "ok": false,
+    "error": "source is empty",
+    "state": {
+      "moves": 0
+    }
+  },
+  "garbage": {
+    "ok": false,
+    "error": "source is not a mermaid/d2 flowchart",
+    "state": {
+      "moves": 0
+    }
+  },
+  "missing": {
+    "ok": false,
+    "error": "Flow skill not found: nope-xyz",
+    "state": {
+      "moves": 0
+    }
+  },
+  "archSkill": {
+    "message": {
+      "role": "user",
+      "content": "[skill:architecture-diagram]\n\n# Architecture Diagram\n\nYou are an expert software architect. Produce clear, accurate architecture diagrams from user descriptions or codebases.\n\n## Inputs you accept\n\n- Natural language description of a system (\"I have a Node.js API, a Postgres DB, and a Redis cache\")\n- A directory path or list of source files to analyse\n- An existing diagram to update or extend\n\n## Output formats\n\nChoose the best format for the request:\n1. **Mermaid** (`graph TD`, `sequenceDiagram`, `C4Context`) — preferred for GitHub/Notion\n2. **PlantUML** (`@startuml`) — preferred for enterprise/Java shops\n3. **ASCII art** — for terminal output or when no renderer is available\n\n## Process\n\n1. Identify the **system boundary** — what is in scope vs external.\n2. Identify **components**: services, databases, queues, external APIs, clients.\n3. Identify **data flows**: reads, writes, events, API calls.\n4. Group components into **layers** (presentation / application / data / infra).\n5. Label every arrow with the **protocol or action** (HTTP GET, SQL, AMQP publish).\n6. Add a legend if non-obvious glyphs are used.\n\n## Rules\n\n- Keep diagrams under 20 nodes. Split into sub-diagrams if larger.\n- Never invent components not mentioned or clearly implied.\n- Always show the entry point and the persistence layer.\n- For sequence diagrams: happy path first, then `alt` error blocks.\n\n## Example (Mermaid)\n\n```mermaid\ngraph TD\n    Browser -->|HTTPS| API[Node.js API]\n    API -->|SQL| DB[(Postgres)]\n    API -->|GET/SET| Cache[(Redis)]\n    API -->|publish| Queue[RabbitMQ]\n    Worker -->|consume| Queue\n    Worker -->|SQL| DB\n```\n\nAsk the user for the system description if none is provided; otherwise produce the diagram immediately.\n"
+    }
+  },
+  "archIsDump": false,
+  "archNotWalked": true,
+  "mgrDemo": true,
+  "mgrArch": false,
+  "inlineWalkable": true,
+  "demoWalkable": true,
+  "archWalkable": false,
+  "descHasSpontaneous": true,
+  "descHasSource": true,
+  "hasSourceParam": true
+}

@@ -1,0 +1,201 @@
+pub fn prd_path() -> std::path::PathBuf {
+pub fn prd_path_for(cwd: Option<&str>) -> std::path::PathBuf {
+pub fn peek_pending_commit_comments(cwd: Option<&str>) -> Vec<(String, String)> {
+pub fn drain_pending_commit_comments(cwd: Option<&str>) -> Vec<(String, String)> {
+pub fn status_is_open(status: &str) -> bool {
+pub fn handle_list(_content: &str) -> (String, String, i32) {
+pub fn handle_add(content: &str) -> (String, String, i32) {
+pub fn handle_defer(content: &str) -> (String, String, i32) {
+pub fn handle_resolve(content: &str) -> (String, String, i32) {
+
+use serde_yaml::Value;
+use super::cas;
+use super::gm_dir;
+use super::yaml_util::{defer_marker_in_text, invalidate_residual_marker, levenshtein, yaml_to_json};
+use crate::pkfs;
+
+pub fn prd_path() -> std::path::PathBuf {
+    gm_dir().join("prd.yml")
+}
+
+pub fn prd_path_for(cwd: Option<&str>) -> std::path::PathBuf {
+    match cwd {
+        Some(c) => std::path::Path::new(c).join(".gm").join("prd.yml"),
+        None => prd_path(),
+    }
+}
+
+pub fn peek_pending_commit_comments(cwd: Option<&str>) -> Vec<(String, String)> {
+    let path = prd_path_for(cwd);
+    let path_s = path.to_string_lossy().to_string();
+    if !pkfs::exists(&path_s) {
+        return Vec::new();
+    }
+    let raw = match pkfs::read_to_string(&path_s) {
+        Some(s) => s,
+        None => return Vec::new(),
+    };
+    let doc: Value = match serde_yaml::from_str(&raw) {
+        Ok(v) => v,
+        Err(_) => return Vec::new(),
+    };
+    let mut out = Vec::new();
+    if let Some(seq) = doc.as_sequence() {
+        for item in seq {
+            if let Some(map) = item.as_mapping() {
+                let status = map.get(&Value::String("status".to_string())).and_then(|v| v.as_str()).unwrap_or("");
+                let comment = map.get(&Value::String("commit_comment".to_string())).and_then(|v| v.as_str());
+                if !status_is_open(status) {
+                    if let Some(c) = comment {
+                        if !c.trim().is_empty() {
+                            let id = map.get(&Value::String("id".to_string())).and_then(|v| v.as_str()).unwrap_or("").to_string();
+                            out.push((id, c.trim().to_string()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    out
+}
+
+pub fn drain_pending_commit_comments(cwd: Option<&str>) -> Vec<(String, String)> {
+    let path = prd_path_for(cwd);
+    let path_s = path.to_string_lossy().to_string();
+    if !pkfs::exists(&path_s) {
+        return Vec::new();
+    }
+    let mut drained: Vec<(String, String)> = Vec::new();
+    let cas_max_attempts = super::fsm::graph().policy.cas_max_attempts;
+    let _ = cas::cas_retry_write(&path_s, cas_max_attempts, "prd-drain-commit-comments", |mut doc: Value| {
+        drained.clear();
+        if let Some(seq) = doc.as_sequence_mut() {
+            seq.retain(|item| {
+                let Some(map) = item.as_mapping() else { return true };
+                let status = map.get(&Value::String("status".to_string())).and_then(|v| v.as_str()).unwrap_or("");
+                if status_is_open(status) {
+                    return true;
+                }
+                let id = map.get(&Value::String("id".to_string())).and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let comment = map.get(&Value::String("commit_comment".to_string())).and_then(|v| v.as_str())
+                    .map(|c| c.trim().to_string()).filter(|c| !c.is_empty());
+                if let Some(c) = comment {
+                    drained.push((id, c));
+                }
+                false
+            });
+        }
+        cas::CasOutcome::Write(doc, ())
+    });
+    drained
+}
+
+pub fn status_is_open(status: &str) -> bool {
+    let normalized = status.trim().to_ascii_lowercase();
+    !super::fsm::graph().policy.prd_closed_statuses.iter().any(|s| s.eq_ignore_ascii_case(&normalized))
+}
+
+fn subject_from_fields(item_map: &serde_yaml::Mapping) -> &str {
+    ["subject", "title", "name", "task", "goal", "description", "notes"]
+        .iter()
+        .find_map(|f| item_map.get(&Value::String(f.to_string()))
+            .and_then(|v| v.as_str())
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty()))
+        .unwrap_or("")
+}
+
+fn slug_from_subject(subject: &str) -> Option<String> {
+    let s = subject.trim();
+    if s.is_empty() { return None; }
+    let mut out = String::with_capacity(s.len());
+    let mut prev_dash = false;
+    for ch in s.chars() {
+        if ch.is_ascii_alphanumeric() {
+            out.push(ch.to_ascii_lowercase());
+            prev_dash = false;
+        } else if !prev_dash && !out.is_empty() {
+            out.push('-');
+            prev_dash = true;
+        }
+    }
+    while out.ends_with('-') { out.pop(); }
+    if out.is_empty() { return None; }
+    if out.len() > 64 { out.truncate(64); while out.ends_with('-') { out.pop(); } }
+    Some(out)
+}
+
+pub fn handle_list(_content: &str) -> (String, String, i32) {
+    let path = prd_path();
+    let path_s = path.to_string_lossy().to_string();
+    if !pkfs::exists(&path_s) {
+        return (serde_json::json!({ "items": [], "count": 0 }).to_string(), String::new(), 0);
+    }
+    let raw = match pkfs::read_to_string(&path_s) {
+        Some(s) => s,
+        None => return (String::new(), "read failed".to_string(), 1),
+    };
+    let doc: Value = match serde_yaml::from_str(&raw) {
+        Ok(v) => v,
+        Err(e) => return (String::new(), format!("parse failed: {}", e), 1),
+    };
+    let seq = doc.as_sequence().cloned()
+        .or_else(|| doc.get("items").and_then(|v| v.as_sequence()).cloned())
+        .unwrap_or_default();
+    let items: Vec<serde_json::Value> = seq.iter().filter_map(|item| {
+        let m = item.as_mapping()?;
+        let mut out = serde_json::Map::new();
+        for (k, v) in m {
+            if let Some(ks) = k.as_str() {
+                out.insert(ks.to_string(), yaml_to_json(v));
+            }
+        }
+        Some(serde_json::Value::Object(out))
+    }).collect();
+    let count = items.len();
+    (serde_json::json!({ "items": items, "count": count }).to_string(), String::new(), 0)
+}
+
+
+pub fn handle_add(content: &str) -> (String, String, i32) {
+    let trimmed = content.trim();
+    if trimmed.is_empty() {
+        return (String::new(), "missing body: provide PRD item as JSON or YAML".to_string(), 1);
+    }
+    let new_item: Value = match serde_yaml::from_str::<Value>(trimmed) {
+        Ok(v) => v,
+        Err(_) => match serde_json::from_str::<serde_json::Value>(trimmed)
+            .ok()
+            .and_then(|j| serde_yaml::to_value(j).ok()) {
+            Some(v) => v,
+            None => return (String::new(), "parse failed".to_string(), 1),
+        },
+    };
+    let item_map = match new_item.as_mapping() {
+        Some(m) => m.clone(),
+        None => return (String::new(), "item must be a mapping with id/subject/status".to_string(), 1),
+    };
+    let has_external_block = item_map.get(&Value::String("blockedBy".to_string()))
+        .and_then(|v| v.as_sequence())
+        .map(|seq| seq.iter().any(|x| matches!(x.as_str(), Some("external") | Some("out-of-reach"))))
+        .unwrap_or(false);
+    if !has_external_block {
+        let mut scan_buf = String::new();
+        for field in &["description", "subject", "notes"] {
+            if let Some(s) = item_map.get(&Value::String(field.to_string())).and_then(|v| v.as_str()) {
+                scan_buf.push_str(s);
+                scan_buf.push('\n');
+            }
+        }
+        if let Some(marker) = defer_marker_in_text(&scan_buf) {
+            let err = format!(
+                "PRD item rejected: deferral language detected ('{}'). Per §22 Fix on Sight and §17 Maximal Cover, in-spirit reachable work must be executed this turn, not deferred. Everything is fixable: drop the deferral phrasing and either execute this turn, or -- if the fix depends on something outside the tree -- rescope the row to the concrete reach action that builds past it (drive the crashing tool's protocol directly, spawn your own instance, open the cross-repo change, script the credential path) and execute THAT. There is no 'declare it externally blocked' exit; `blockedBy` may only transiently carry the reach path while it is being built.",
+                marker
+            );
+            return (String::new(), err, 1);
+        }
+    }
+    let provided_id = item_map.get(&Value::String("id".to_string()))
+        .or_else(|| item_map.get(&Value::String("slug".to_string())))
+        .or_else(|| item_map.get(&Value::String("prd_id".to_string())))
+        .and_t

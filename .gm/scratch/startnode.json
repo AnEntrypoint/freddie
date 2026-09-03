@@ -1,0 +1,63 @@
+{
+  "nodes": {
+    "BEGIN": {
+      "id": "BEGIN",
+      "label": "\"boot\"",
+      "type": "task"
+    },
+    "A": {
+      "id": "A",
+      "label": "\"say hi\"",
+      "type": "task"
+    },
+    "END": {
+      "id": "END",
+      "label": "\"done\"",
+      "type": "task"
+    }
+  },
+  "edges": [
+    {
+      "from": "BEGIN",
+      "to": "A",
+      "label": ""
+    },
+    {
+      "from": "A",
+      "to": "END",
+      "label": ""
+    }
+  ],
+  "start": "BEGIN",
+  "stadiumNodes": {
+    "BEGIN": {
+      "type": "end",
+      "label": "\"boot\""
+    },
+    "A": {
+      "type": "task",
+      "label": "\"say hi\""
+    },
+    "END": {
+      "type": "end",
+      "label": "\"done\""
+    }
+  },
+  "stadiumStart": "BEGIN",
+  "circleNodes": {
+    "BEGIN": {
+      "type": "start",
+      "label": "begin"
+    },
+    "A": {
+      "type": "task",
+      "label": "work"
+    },
+    "END": {
+      "type": "end",
+      "label": "end"
+    }
+  },
+  "circleStart": "BEGIN",
+  "findStartSrc": "function findStartNode(nodes, edges) {\n    // Prefer a node named 'BEGIN', 'START', 'start' (case-insensitive)\n    const names = Object.keys(nodes)\n    const byLabel = (label) => names.find(id => nodes[id].label.toLowerCase() === label.toLowerCase())\n    const begin = byLabel('begin') || byLabel('start')\n    if (begin) return begin\n\n    // Prefer a node of type 'start'\n    const startNode = names.find(id => nodes[id].type === 'start')\n    if (startNode) return startNode\n\n    // Fallback: node with no incoming edges\n    const hasIncoming = new Set(edges.map(e => e.to))\n    const root = names.find(id => !hasIncoming.has(id))\n    if (root) return root\n\n    // Last resort: first node\n    return names[0] || null\n}"
+}

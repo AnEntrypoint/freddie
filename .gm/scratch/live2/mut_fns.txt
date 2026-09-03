@@ -1,0 +1,139 @@
+pub fn mutables_path() -> std::path::PathBuf {
+pub fn handle_add(content: &str) -> (String, String, i32) {
+pub fn handle_list(_content: &str) -> (String, String, i32) {
+pub fn all_obligation_kinds() -> Vec<&'static str> {
+pub fn all_typed() -> bool {
+pub fn obligations_ready(kinds: &[&str]) -> Result<(), Vec<String>> {
+pub fn state_obligations_ready() -> bool { obligations_ready(STATE_OBLIGATION_KINDS).is_ok() }
+pub fn conc_obligations_ready() -> bool { obligations_ready(CONC_OBLIGATION_KINDS).is_ok() }
+pub fn sec_obligations_ready() -> bool { obligations_ready(SEC_OBLIGATION_KINDS).is_ok() }
+pub fn res_obligations_ready() -> bool { obligations_ready(RES_OBLIGATION_KINDS).is_ok() }
+pub fn obligations_blocker_message(kinds: &[&str]) -> String {
+pub fn pending_detailed() -> Vec<serde_json::Value> {
+pub fn handle_resolve(content: &str) -> (String, String, i32) {
+pub fn handle_defer(content: &str) -> (String, String, i32) {
+
+use serde_yaml::Value;
+use super::cas;
+use super::gm_dir;
+use super::memorize;
+use super::yaml_util::{invalidate_residual_marker, levenshtein, yaml_to_json};
+use crate::pkfs;
+
+pub fn mutables_path() -> std::path::PathBuf {
+    gm_dir().join("mutables.yml")
+}
+
+fn extract_depends_on(map: &serde_yaml::Mapping) -> Vec<String> {
+    map.get(&Value::String("depends_on".to_string()))
+        .and_then(|v| v.as_sequence())
+        .map(|seq| seq.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+        .unwrap_or_default()
+}
+
+fn find_cycle(start_id: &str, deps: &std::collections::HashMap<String, Vec<String>>) -> Option<Vec<String>> {
+    let mut path: Vec<String> = vec![start_id.to_string()];
+    let mut on_path: std::collections::HashSet<String> = std::collections::HashSet::new();
+    on_path.insert(start_id.to_string());
+
+    fn walk(
+        node: &str,
+        deps: &std::collections::HashMap<String, Vec<String>>,
+        path: &mut Vec<String>,
+        on_path: &mut std::collections::HashSet<String>,
+    ) -> Option<Vec<String>> {
+        let Some(children) = deps.get(node) else { return None };
+        for child in children {
+            if on_path.contains(child) {
+                let mut cycle = path.clone();
+                cycle.push(child.clone());
+                return Some(cycle);
+            }
+            path.push(child.clone());
+            on_path.insert(child.clone());
+            if let Some(c) = walk(child, deps, path, on_path) {
+                return Some(c);
+            }
+            path.pop();
+            on_path.remove(child);
+        }
+        None
+    }
+
+    walk(start_id, deps, &mut path, &mut on_path)
+}
+
+pub fn handle_add(content: &str) -> (String, String, i32) {
+    let trimmed = content.trim();
+    if trimmed.is_empty() {
+        return (String::new(), "missing body".to_string(), 1);
+    }
+    let new_item: Value = match serde_yaml::from_str::<Value>(trimmed) {
+        Ok(v) => v,
+        Err(_) => match serde_json::from_str::<serde_json::Value>(trimmed)
+            .ok()
+            .and_then(|j| serde_yaml::to_value(j).ok()) {
+            Some(v) => v,
+            None => return (String::new(), "parse failed".to_string(), 1),
+        },
+    };
+    let map = match new_item.as_mapping() {
+        Some(m) => m.clone(),
+        None => return (String::new(), "item must be a mapping".to_string(), 1),
+    };
+    let id = map.get(&Value::String("id".to_string()))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| format!("mut-{}", crate::orchestrator::state::now_ms()));
+    let new_depends_on = extract_depends_on(&map);
+    let path = mutables_path();
+    let path_s = path.to_string_lossy().to_string();
+    let policy = super::fsm::graph().policy;
+
+    let outcome = cas::cas_retry_write(&path_s, policy.cas_max_attempts, "mutable-add", |mut doc: Value| {
+        if !new_depends_on.is_empty() {
+            let mut deps: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+            if let Some(seq) = doc.as_sequence() {
+                for item in seq {
+                    if let Some(m) = item.as_mapping() {
+                        if let Some(existing_id) = m.get(&Value::String("id".to_string())).and_then(|v| v.as_str()) {
+                            deps.insert(existing_id.to_string(), extract_depends_on(m));
+                        }
+                    }
+                }
+            }
+            deps.insert(id.clone(), new_depends_on.clone());
+            if let Some(cycle) = find_cycle(&id, &deps) {
+                return cas::CasOutcome::Abort(
+                    String::new(),
+                    format!("mutable-add rejected: depends_on introduces a cycle: {}", cycle.join(" -> ")),
+                    1,
+                );
+            }
+        }
+        if let Some(seq) = doc.as_sequence_mut() {
+            let mut new_with_id = map.clone();
+            new_with_id.insert(Value::String("id".to_string()), Value::String(id.clone()));
+            if !new_with_id.contains_key(&Value::String("status".to_string())) {
+                new_with_id.insert(Value::String("status".to_string()), Value::String(policy.mutables_default_status.clone()));
+            }
+            seq.push(Value::Mapping(new_with_id));
+        } else {
+            return cas::CasOutcome::Abort(String::new(), "mutables.yml is not a sequence".to_string(), 1);
+        }
+        cas::CasOutcome::Write(doc, ())
+    });
+    if let Err((out, err, rc)) = outcome {
+        return (out, err, rc);
+    }
+    invalidate_residual_marker();
+    #[cfg(target_arch = "wasm32")]
+    crate::wasm_dispatch::emit_event("mutable.added", serde_json::json!({ "id": id }));
+    (serde_json::json!({ "added": id }).to_string(), String::new(), 0)
+}
+
+pub fn handle_list(_content: &str) -> (String, String, i32) {
+    let path = mutables_path();
+    let path_s = path.to_string_lossy().to_string();
+    if !pkfs::exists(&path_s) {
+        return (serde_json:

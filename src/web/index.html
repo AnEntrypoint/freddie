@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en" class="ds-247420">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Freddie Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/dist/247420.css">
+<script type="importmap">
+{ "imports": { "anentrypoint-design": "https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/dist/247420.js" } }
+</script>
+<style>
+html, body { margin: 0; padding: 0; height: 100%; }
+#app { height: 100%; }
+/* FOUC guard: hide the document until app.js signals ready (after installStyles)
+   so #app never paints raw unstyled 'loading...' text. */
+body { visibility: hidden; }
+body[data-ready] { visibility: visible; }
+/* Freddie dashboard surface utilities (fd-pre, fd-topbar-leaf, fd-search-hint,
+   fd-status-item) now live in the anentrypoint-design SDK's app-surfaces.css. */
+/* Desktop: stretch page/panel/table/KPI to the main pane (measured 988px table
+   in a 1664px .app-main at 1920x1080 — a leftover content-sized island). */
+html.ds-247420 .fd-page,
+html.ds-247420 .fd-page-root,
+html.ds-247420 .fd-page-inner {
+  width: 100%; max-width: none; box-sizing: border-box;
+}
+html.ds-247420 .fd-page-inner {
+  display: flex; flex-direction: column; align-items: stretch;
+}
+html.ds-247420 .app-main > .fd-page { align-self: stretch; width: 100%; }
+html.ds-247420 .fd-page .panel { width: 100%; max-width: none; box-sizing: border-box; }
+html.ds-247420 .fd-page .ds-table-wrap,
+html.ds-247420 .fd-page table { width: 100%; }
+html.ds-247420 .fd-page .kpi {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  width: 100%; gap: 12px;
+}
+html.ds-247420 .fd-page .kpi-card { width: 100%; max-width: none; }
+html.ds-247420 .fd-tty {
+  display: flex; flex-direction: column; min-height: 12rem;
+  background: var(--bg); color: var(--fg); font-family: var(--ff-mono, ui-monospace, monospace);
+  border: 1px solid var(--rule, currentColor);
+}
+html.ds-247420 .fd-tty-head {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding: 4px 8px; font-size: 11px; text-transform: lowercase;
+  border-bottom: 1px solid var(--rule, currentColor);
+}
+html.ds-247420 .fd-tty-slot {
+  flex: 1; min-height: 8rem; margin: 0; padding: 8px;
+  overflow: auto; white-space: pre-wrap; word-break: break-word;
+}
+html.ds-247420 .fd-session-mux { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+html.ds-247420 .fd-msg-flash { outline: 2px solid var(--accent, #6cf); }
+html.ds-247420 .fd-msg-search { display: flex; gap: 8px; align-items: center; padding: 8px; }
+html.ds-247420 .chat-composer,
+html.ds-247420 .chat-composer textarea,
+html.ds-247420 .agentchat-main-col .chat-composer {
+  box-shadow: none; border: none; outline: none;
+}
+html.ds-247420 .chat-composer textarea { background: none; }
+</style>
+</head>
+<body>
+<script>
+(function () {
+  var t;
+  try { t = localStorage.getItem('247420:theme'); } catch (e) {}
+  if (!t || t === 'auto') t = 'ink';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<div id="app"></div>
+<script type="module" src="./app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () { /* offline shell caching is progressive enhancement -- a failed registration must not block the dashboard */ });
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+import { HookType } from 'plugsdk'
+
+export { HookType }
+export function definePlugin(p) { return p }
+export class PluginRunner {}
+export class PluginRuntime {}
+
+export const SURFACES = ['pi', 'gui', 'both']
+
+export const PI_VERBS = ['tool', 'env', 'command', 'cron', 'platform', 'memory', 'skill', 'context', 'agentExt', 'cli']
+export const GUI_VERBS = ['route', 'page', 'nav', 'debug', 'api', 'asset', 'wsRoute']
+
+export const HOOK_NAMES = [
+    'preToolCall', 'postToolCall', 'onToolProgress',
+    'preLlmCall', 'postLlmCall',
+    'onSessionStart', 'onSessionEnd',
+    'onTurnStart', 'onTurnEnd',
+    'onMessageInbound', 'onMessageOutbound',
+    'onPreCompact', 'onPostCompact',
+]
+
+export const FREDDIE_TO_SDK_HOOK = {
+    preToolCall:        HookType.PRE_TOOL_USE,
+    postToolCall:       HookType.POST_TOOL_USE,
+    onSessionStart:     HookType.SESSION_START,
+    onSessionEnd:       HookType.SESSION_END,
+    onMessageInbound:   HookType.PROMPT_SUBMIT,
+    onMessageOutbound:  HookType.STOP,
+    onPreCompact:       HookType.PRE_COMPACT,
+    onPostCompact:      HookType.POST_COMPACT,
+}
+
+export const FREDDIE_TO_NATIVE_HOOK = {
+    preToolCall:       'PreToolUse',
+    postToolCall:      'PostToolUse',
+    onSessionStart:    'SessionStart',
+    onSessionEnd:      'SessionEnd',
+    onMessageInbound:  'UserPromptSubmit',
+    onMessageOutbound: 'Stop',
+    onPreCompact:      'PreCompact',
+    onPostCompact:     'PostCompact',
+}
+
+export function validatePlugin(p) {
+    if (!p || typeof p !== 'object') throw new Error('plugin: object required')
+    if (!p.name || typeof p.name !== 'string') throw new Error('plugin.name: string required')
+    if (!SURFACES.includes(p.surfaces)) throw new Error(`plugin ${p.name}: surfaces must be one of ${SURFACES.join(',')}`)
+    if (typeof p.register !== 'function') throw new Error(`plugin ${p.name}: register(ctx) function required`)
+    if (p.requires && !Array.isArray(p.requires)) throw new Error(`plugin ${p.name}: requires must be array`)
+    return p
+}
+
+export function topoSort(plugins) {
+    const byName = new Map()
+    for (const p of plugins) {
+        if (byName.has(p.name)) console.error(JSON.stringify({ ts: Date.now(), level: 'warn', msg: `plugin name collision: '${p.name}' declared by multiple plugin objects, only the last one is registered -- the earlier one's register() never runs`, plugin: p.name, losing_sourceFile: byName.get(p.name).__sourceFile || null, winning_sourceFile: p.__sourceFile || null }))
+        byName.set(p.name, p)
+    }
+    const seen = new Map()
+    const out = []
+    const visit = (name, stack) => {
+        if (seen.get(name) === 'done') return
+        if (seen.get(name) === 'visiting') throw new Error(`plugin cycle: ${[...stack, name].join(' -> ')}`)
+        const p = byName.get(name)
+        if (!p) throw new Error(`plugin missing: ${name} (required by ${stack[stack.length - 1] || 'root'})`)
+        seen.set(name, 'visiting')
+        for (const dep of p.requires || []) visit(dep, [...stack, name])
+        seen.set(name, 'done')
+        out.push(p)
+    }
+    for (const p of plugins) visit(p.name, [])
+    return out
+}

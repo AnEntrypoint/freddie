@@ -1,0 +1,2154 @@
+
+===== plugins/document-extraction/plugin.js (173 bytes) =====
+import { _tool } from './handler.js'
+
+export default {
+    name: 'document-extraction',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(_tool)
+    },
+}
+
+
+===== plugins/flow_skill/plugin.js (202 bytes) =====
+import { _tool, setLogger } from './handler.js'
+
+export default {
+    name: 'flow-skill',
+    surfaces: 'pi',
+    register({ pi, log }) {
+        setLogger(log)
+        pi.tools.register(_tool)
+    },
+}
+
+===== plugins/disk-cleanup/plugin.js (911 bytes) =====
+import fs from 'node:fs'
+import path from 'node:path'
+import { getFreddieHome } from '../../src/home.js'
+
+const MAX_AGE_DAYS = { logs: 30, batches: 14, 'tool-results': 7, checkpoints: 90 }
+export function cleanup({ now = Date.now() } = {}) {
+    const removed = []
+    for (const [sub, days] of Object.entries(MAX_AGE_DAYS)) {
+        const dir = path.join(getFreddieHome(), sub)
+        if (!fs.existsSync(dir)) continue
+        const cutoff = now - days * 86400_000
+        for (const f of fs.readdirSync(dir)) {
+            const p = path.join(dir, f)
+            try { if (fs.statSync(p).mtimeMs < cutoff) { fs.rmSync(p, { recursive: true, force: true }); removed.push(p) } } catch {}
+        }
+    }
+    return { removed: removed.length }
+}
+export default {
+    name: 'disk-cleanup', surfaces: 'pi',
+    register({ hooks }) {
+        hooks.on('onSessionEnd', async (p) => { cleanup(); return p })
+    },
+}
+
+
+===== plugins/feature-flags/plugin.js (1948 bytes) =====
+import { listFlags, enableFlag, disableFlag, rolloutFlag } from '../../src/flags.js'
+
+export default {
+    name: 'feature-flags', surfaces: 'pi',
+    register({ pi }) {
+        pi.cli.register({
+            name: 'flag',
+            description: 'Manage per-project feature flags (list|enable <name>|disable <name>|rollout <name> <pct>)',
+            args: [{ name: 'action', default: 'list' }, { name: 'name' }, { name: 'pct' }],
+            action: (action, name, pct) => {
+                if (action === 'list') {
+                    const flags = listFlags()
+                    if (!flags.length) { console.log('no flags declared -- every undeclared flag defaults to enabled'); return }
+                    for (const f of flags) console.log(`  ${f.name.padEnd(24)} ${f.effective ? 'on ' : 'off'}  ${f.rollout_pct != null ? `(rollout ${f.rollout_pct}%)` : ''}`)
+                    return
+                }
+                if (action === 'enable') { if (!name) { console.log('usage: freddie flag enable <name>'); return }; enableFlag(name); console.log(`enabled: ${name}`); return }
+                if (action === 'disable') { if (!name) { console.log('usage: freddie flag disable <name>'); return }; disableFlag(name); console.log(`disabled: ${name}`); return }
+                if (action === 'rollout') {
+                    if (!name || pct === undefined) { console.log('usage: freddie flag rollout <name> <pct>'); return }
+                    const n = Number(pct)
+                    if (!N
+
+===== plugins/debug-perf/plugin.js (3478 bytes) =====
+// registerDebug('perf', ...) — LLM latency percentiles computed from real
+// recorded trajectories (src/agent/machine.js writeTrajectory), plugin load
+// times measured at boot, and process cold-start time.
+import fs from 'node:fs'
+import path from 'node:path'
+import { getFreddieHome } from '../../src/home.js'
+import { registerDebug } from '../../src/observability/debug.js'
+
+const BOOT_TS = Date.now()
+let firstReadyTs = null
+export function markReady() { if (firstReadyTs === null) firstReadyTs = Date.now() }
+
+function percentile(sorted, p) {
+    if (!sorted.length) return null
+    const idx = Math.min(sorted.length - 1, Math.floor(p / 100 * sorted.length))
+    return sorted[idx]
+}
+
+function recentTrajectoryDurations(limit = 200) {
+    const dir = path.join(getFreddieHome(), 'trajectories')
+    if (!fs.existsSync(dir)) return []
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.json')).sort().slice(-limit)
+    const durations = []
+    for (const f of files) {
+        try {
+            const j = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))
+            for (const call of j.llm_calls || []) if (typeof call.durationMs === 'number') durations.push(call.durationMs)
+        } catch {}
+    }
+    return durations.sort((a, b) => a - b)
+}
+
+export function computePerfSnapshot() {
+    const durations = recentTrajectoryDurations()
+    return {
+        cold_start_ms: firstReadyTs ? firstReadyTs - BOOT_TS : null,
+        llm_latency_ms: { p50: percentile(durations, 50)
+
+===== plugins/session-replay/plugin.js (3652 bytes) =====
+// `freddie session replay <id>` — reconstructs a conversation from the real
+// session store, and if a matching trajectory file exists under
+// <FREDDIE_HOME>/trajectories/ (src/agent/machine.js's writeTrajectory,
+// schema_version 2), replays tool_calls/tool_results/state_transitions in
+// order with timing, for post-mortem debugging.
+import fs from 'node:fs'
+import path from 'node:path'
+import { getFreddieHome } from '../../src/home.js'
+import { listSessions, getSession, getMessages } from '../../src/sessions.js'
+
+function findTrajectoryFor(sessionId, prompt) {
+    const dir = path.join(getFreddieHome(), 'trajectories')
+    if (!fs.existsSync(dir)) return null
+    // Trajectories are keyed by timestamp+prompt-slug, not session id (that
+    // linkage doesn't exist in the recorder yet) -- best-effort match against
+    // the session's own first-prompt slug, most recent first.
+    const slug = (prompt || '').slice(0, 40).replace(/[^a-zA-Z0-9-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase()
+    if (!slug) return null
+    const candidates = fs.readdirSync(dir).filter((f) => f.endsWith('.json') && f.includes(slug)).sort()
+    if (!candidates.length) return null
+    try { return JSON.parse(fs.readFileSync(path.join(dir, candidates[candidates.length - 1]), 'utf8')) }
+    catch { return null }
+}
+
+function replayTrajectory(traj) {
+    if (traj.schema_version !== 2) { console.log(`  (trajectory schema_version ${traj.schema_version} unsupported, skipping replay detail)`); return }
+  
+
+===== plugins/debug-repl/plugin.js (3855 bytes) =====
+// `freddie debug` — a REPL with full introspection against the LIVE host:
+// .plugins, .hooks <name>, .machines, .simulate <prompt>. Real introspection,
+// not a mocked shell -- every command reads/dispatches through the actual
+// running host object this process booted.
+import readline from 'node:readline'
+import { list as listSnapshots } from '../../src/machines/snapshot-store.js'
+import { runTurn } from '../../src/agent/machine.js'
+
+async function handleDot(line, host, output) {
+    const [cmd, ...rest] = line.slice(1).split(/\s+/)
+    if (cmd === 'plugins') {
+        for (const p of host.plugins()) output.write(`  ${p.name.padEnd(28)} surfaces=${p.surfaces} requires=[${(p.requires || []).join(',')}]\n`)
+        return
+    }
+    if (cmd === 'hooks') {
+        const name = rest[0]
+        if (!name) { output.write(`known hooks: ${host.hooks.names().join(', ')}\n`); return }
+        const listeners = host.hooks.listeners(name)
+        output.write(`${name}: ${listeners.length} listener(s)\n`)
+        return
+    }
+    if (cmd === 'machines') {
+        const rows = await listSnapshots({ kind: rest[0] || null, status: null })
+        if (!rows.length) { output.write('no persisted machine snapshots\n'); return }
+        for (const r of rows) output.write(`  kind=${r.kind.padEnd(20)} key=${r.key.padEnd(24)} status=${r.status}\n`)
+        return
+    }
+    if (cmd === 'simulate') {
+        const prompt = rest.join(' ')
+        if (!prompt) { output.write('usage: .simulate <prompt>
+
+===== plugins/task/plugin.js (2562 bytes) =====
+import { _task, _taskOutput, _taskStop } from './handler.js'
+import { listTasks, listAllTasks, cleanCompleted, restoreTasks, reconcileTasks, cleanupStaleTasks, startPeriodicReconciliation } from './registry.js'
+
+export default {
+    name: 'task',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(_task)
+        pi.tools.register(_taskOutput)
+        pi.tools.register(_taskStop)
+
+        // CLI subcommands: `freddie task list [--all]`, `freddie task clean`,
+        // `freddie task reconcile`, `freddie task cleanup`
+        pi.cli.register({
+            name: 'task',
+            description: 'List, clean, reconcile, or cleanup background tasks',
+            args: [
+                { name: 'action', default: 'list', description: 'list | clean | reconcile | cleanup' },
+            ],
+            options: [
+                { flag: '--all', description: 'Show all tasks including completed', default: false },
+            ],
+            action: async (action, opts) => {
+                if (action === 'clean') {
+                    await cleanCompleted()
+                    console.log('cleaned completed/failed/stopped tasks')
+                    return
+                }
+                if (action === 'reconcile') {
+                    const result = reconcileTasks()
+                    console.log(`reconciled: ${result.reconciled} (${result.lost} lost, ${result.timed_out} timed out)`)
+                    return
+                }
+                if (action === 'clea
+
+===== plugins/workflow-templates/plugin.js (2591 bytes) =====
+// `freddie workflow create <template>` — scaffold a resumable xstate workflow
+// instance from a known template (approval-workflow.js and siblings under
+// src/machines/templates/).
+import { startApprovalWorkflow } from '../../src/machines/templates/approval-workflow.js'
+import { startMultiStageReview } from '../../src/machines/templates/multi-stage-review.js'
+import { startIncidentResponse } from '../../src/machines/templates/incident-response.js'
+
+const TEMPLATES = {
+    approval: {
+        description: 'idle -> pending -> approved|rejected',
+        start: (key, opts) => startApprovalWorkflow({ key, requestedBy: opts.requestedBy || 'cli', reason: opts.reason || '' }),
+    },
+    'multi-stage-review': {
+        description: 'draft -> reviewN -> ... -> approved|rejected (N configurable via --stages)',
+        start: (key, opts) => startMultiStageReview({ key, stageCount: opts.stages ? Number(opts.stages) : 2, submittedBy: opts.requestedBy || 'cli' }),
+    },
+    'incident-response': {
+        description: 'detected -> triaging -> mitigating -> resolved -> postmortem',
+        start: (key) => startIncidentResponse({ key }),
+    },
+}
+
+export default {
+    name: 'workflow-templates', surfaces: 'pi',
+    register({ pi }) {
+        pi.cli.register({
+            name: 'workflow',
+            description: 'Manage resumable workflow instances (create <template> [key])',
+            args: [{ name: 'action', default: 'list' }, { name: 'template' }, { name: 'key' }],
+            optio
+
+===== plugins/read_media_file/plugin.js (192 bytes) =====
+import { readMediaFileTool } from './handler.js'
+
+export default {
+    name: 'read-media-file',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(readMediaFileTool)
+    },
+}
+
+===== plugins/checkpoint/plugin.js (163 bytes) =====
+import { _tool } from './handler.js'
+
+export default {
+    name: 'checkpoint',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(_tool)
+    },
+}
+
+===== plugins/plan_mode/plugin.js (1705 bytes) =====
+// Plan mode plugin — registers enter_plan_mode and exit_plan_mode tools
+import { _enterPlanMode, _exitPlanMode } from './handler.js';
+import { setFreddieHomeGetter } from './state.js';
+
+export default {
+  name: 'plan-mode',
+  version: '1.0.0',
+  surfaces: 'pi',
+  async register({ pi, log, config, host }) {
+    // Wire up freddie home getter for plan file paths BEFORE registering the
+    // tools (host.js's makePluginLoader awaits every plugin's register(), so
+    // an async register here is safe and already the documented contract).
+    // A fire-and-forget .then() used to race state.js's getPlanFilePath(): its
+    // first call for a given sessionId permanently caches whichever path was
+    // available at that moment (_planFiles.set, never invalidated), so a tool
+    // call landing before this import resolved would lock that session onto
+    // the wrong /plans/<id>.md browser-fallback path forever, even once the
+    // real getter became available moments later. Awaiting here eliminates
+    // the race outright — package.json's "type":"module" means require is
+    // undefined regardless of Node vs browser, and src/home.js is pure ESM
+    // (createRequire can't load it synchronously either), so a plain awaited
+    // dynamic import is the correct fix, not a synchronous-require workaround.
+    try {
+      const mod = await import('../../src/home.js');
+      if (mod?.getFreddieHome) setFreddieHomeGetter(mod.getFreddieHome);
+    } catch { /* browser: src/home.js's node bu
+
+===== plugins/todo/plugin.js (171 bytes) =====
+import { todoListTool } from './handler.js'
+
+export default {
+    name: 'todo',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(todoListTool)
+    },
+}
+
+===== plugins/cron/plugin.js (282 bytes) =====
+import { cronCreateTool, cronDeleteTool, cronListTool } from './handler.js'
+export default {
+    name: 'cron', surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(cronCreateTool)
+        pi.tools.register(cronDeleteTool)
+        pi.tools.register(cronListTool)
+    },
+}
+
+===== plugins/dmail/plugin.js (158 bytes) =====
+import { _tool } from './handler.js'
+
+export default {
+    name: 'dmail',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(_tool)
+    },
+}
+
+===== plugins/doctor-deep/plugin.js (3226 bytes) =====
+// `freddie doctor --deep [--unsafe]` — dispatches a minimal synthetic call to
+// every registered tool's handler with schema-derived dummy args, reporting
+// pass/threw/timeout per tool without mutating real state. Destructive verbs
+// (bash/write/edit/etc) are skipped by default -- pass --unsafe to include them.
+const UNSAFE_TOOLSETS = new Set(['core'])
+const UNSAFE_NAMES = new Set(['bash', 'write', 'edit', 'file_operations', 'terminal', 'code_execution', 'delegate', 'cronjob', 'send_message', 'credential_files'])
+
+function dummyFor(schema) {
+    const props = schema?.parameters?.properties || {}
+    const out = {}
+    for (const [k, spec] of Object.entries(props)) {
+        switch (spec.type) {
+            case 'number': case 'integer': out[k] = 0; break
+            case 'boolean': out[k] = false; break
+            case 'array': out[k] = []; break
+            case 'object': out[k] = {}; break
+            default: out[k] = spec.enum?.[0] ?? ''
+        }
+    }
+    return out
+}
+
+async function dispatchWithTimeout(pi, name, args, timeoutMs = 5000) {
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
+    return Promise.race([pi.dispatchTool(name, args), timeout])
+}
+
+export async function runDeepChecks(host, { unsafe = false } = {}) {
+    const rows = []
+    for (const t of host.pi.tools.list()) {
+        if (!unsafe && UNSAFE_NAMES.has(t.name)) { rows.push({ name: t.name, status: 'skipped', reason: 'destructive verb, pass -
+
+===== plugins/context-engine/plugin.js (502 bytes) =====
+import { buildContext, blocksToSystemMessage } from '../../src/context/engine.js'
+export default {
+    name: 'context-engine', surfaces: 'pi',
+    register({ hooks }) {
+        hooks.on('preLlmCall', async (p) => {
+            if (!p?.message) return p
+            const blocks = await buildContext({ message: p.message, plugins: ['file', 'skills'] })
+            const sys = blocksToSystemMessage(blocks)
+            return sys ? { ...p, prepend: [sys, ...(p.prepend || [])] } : p
+        })
+    },
+}
+
+
+===== plugins/debug-profiling/plugin.js (6172 bytes) =====
+// `freddie cpu-profile [--seconds=N]` — real CPU profiling via node:inspector's
+// built-in Profiler domain (no new dep). Writes a .cpuprofile file loadable
+// in Chrome DevTools, plus an in-terminal top-N self-time summary.
+// `freddie heap-snapshot [path]` / `freddie heap-diff <before> <after>` --
+// real heap snapshots via the built-in HeapProfiler domain.
+import fs from 'node:fs'
+import path from 'node:path'
+import inspector from 'node:inspector'
+import { getFreddieHome } from '../../src/home.js'
+
+function withSession(fn) {
+    const session = new inspector.Session()
+    session.connect()
+    return fn(session).finally(() => session.disconnect())
+}
+
+function post(session, method, params = null) {
+    return new Promise((resolve, reject) => session.post(method, params, (err, result) => err ? reject(err) : resolve(result)))
+}
+
+async function captureCpuProfile(seconds) {
+    return withSession(async (session) => {
+        await post(session, 'Profiler.enable')
+        await post(session, 'Profiler.start')
+        await new Promise((r) => setTimeout(r, seconds * 1000))
+        const { profile } = await post(session, 'Profiler.stop')
+        return profile
+    })
+}
+
+function topSelfTime(profile, topN = 10) {
+    const byId = new Map(profile.nodes.map((n) => [n.id, n]))
+    const hits = new Map()
+    for (const nodeId of profile.samples) hits.set(nodeId, (hits.get(nodeId) || 0) + 1)
+    return [...hits.entries()]
+        .map(([id, count]) => { const n = byId.get(id); return {
+
+===== plugins/init_agent/plugin.js (171 bytes) =====
+import { initAgent } from './handler.js'
+
+export default {
+    name: 'init-agent',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(initAgent)
+    },
+}
+
+===== plugins/debug-plugin-failures/plugin.js (482 bytes) =====
+// Exposes plugins whose register() threw during boot -- captured by the
+// error boundary in src/host/host.js's makePluginLoader -- for /debug
+// inspection without needing to grep boot logs.
+import { registerDebug } from '../../src/observability/debug.js'
+
+export default {
+    name: 'debug-plugin-failures', surfaces: 'pi',
+    register({ host }) {
+        registerDebug('plugin-failures', () => ({ count: host.failedPlugins().length, failures: host.failedPlugins() }))
+    },
+}
+
+
+===== plugins/think/plugin.js (197 bytes) =====
+import { _tool, setLogger } from './handler.js'
+
+export default {
+    name: 'think',
+    surfaces: 'pi',
+    register({ pi, log }) {
+        setLogger(log)
+        pi.tools.register(_tool)
+    },
+}
+
+===== plugins/plugin-validate/plugin.js (11535 bytes) =====
+// `freddie plugin validate <path>` — load a single plugin.js/handler.js file
+// and check it against the real contract (src/host/contract.js validatePlugin)
+// without a full host boot. Standalone pre-flight for plugin authors.
+import path from 'node:path'
+import fs from 'node:fs'
+import { validatePlugin } from '../../src/host/contract.js'
+import { validatePluginManifest } from '../../src/host/host_helpers.js'
+import { loadCandidate, installPlugin } from './candidate-loader.js'
+
+export default {
+    name: 'plugin-validate', surfaces: 'pi',
+    register({ pi }) {
+        pi.cli.register({
+            name: 'plugin',
+            description: 'Manage plugins: validate <path>, install <spec>, remove <name>, list, registry [set <url>|list], search <query>',
+            args: [{ name: 'action', default: 'validate' }, { name: 'target' }, { name: 'extra' }],
+            action: async (action, target, extra) => {
+                if (action === 'install') {
+                    const { installPlugin: installFromStore } = await import('../../src/plugins/install.js')
+                    try {
+                        const result = await installFromStore(target)
+                        console.log(`OK    installed ${result.name} from ${result.source}`)
+                        console.log('Restart the dashboard or start a new session for the plugin to be discovered.')
+                    } catch (e) { console.log(`FAIL  ${e.message}`); process.exitCode = 1 }
+                    return
+    
+
+===== plugins/debug-i18n/plugin.js (1113 bytes) =====
+// registerDebug('i18n', ...) — per-locale key coverage against en.json's
+// superset. With only en.json existing initially this correctly reports
+// 100pct for en and an empty missing-key list for every other locale (there
+// are none yet) — an honest empty state, not fabricated numbers.
+import { listLocales, getLocaleKeys } from '../../src/i18n/catalog.js'
+import { registerDebug } from '../../src/observability/debug.js'
+
+function snapshot() {
+    const locales = listLocales()
+    const enKeys = new Set(getLocaleKeys('en'))
+    const coverage = locales.map(locale => {
+        const keys = new Set(getLocaleKeys(locale))
+        const missing = [...enKeys].filter(k => !keys.has(k))
+        const pct = enKeys.size ? Math.round(((enKeys.size - missing.length) / enKeys.size) * 100) : 100
+        return { locale, key_count: keys.size, missing_count: missing.length, coverage_pct: pct, missing_keys: missing }
+    })
+    return { total_keys_in_en: enKeys.size, locales: coverage }
+}
+
+export default {
+    name: 'debug-i18n', surfaces: 'pi',
+    register() {
+        registerDebug('i18n', snapshot)
+    },
+}
+
+
+===== plugins/debug-naming/plugin.js (2407 bytes) =====
+// registerDebug('naming', ...) — live naming-debt metric (comment count per
+// file, per scripts/lint.mjs's computeNamingDebt) without re-spawning the
+// whole lint script per request. Caches the last run for CACHE_MS.
+//
+// DEV-ONLY, introspects freddie's OWN source checkout: scripts/lint.mjs is
+// deliberately excluded from the published npm package (package.json's
+// `files` whitelist is bin/src/plugins/skills/docs only -- scripts/ is dev
+// tooling, correctly not shipped to a consumer) and this plugin's metric is
+// only meaningful against freddie's own dev tree in the first place, never
+// a consuming app's. Lazy-imported inside register() with a real try/catch
+// (not a top-level import, which would throw at MODULE LOAD time and take
+// down the whole plugin-discovery pass for every consumer -- live-witnessed:
+// this exact top-level import crashed a consumer's (casey) entire boot with
+// ERR_MODULE_NOT_FOUND, since bootHost's plugin discovery imports every
+// plugins/*/plugin.js unconditionally) so an npm-installed consumer with no
+// scripts/ directory silently gets no 'naming' debug registration instead of
+// a hard crash -- the same degrade-gracefully discipline the rest of this
+// plugin's own debug-registry surface already follows for an absent metric.
+import { registerDebug } from '../../src/observability/debug.js'
+
+const CACHE_MS = 60_000
+let cached = null
+let cachedAt = 0
+
+async function snapshot() {
+    const now = Date.now()
+    if (cached && now - cachedAt 
+
+===== plugins/goal/plugin.js (402 bytes) =====
+// Goal plugin — registers goal tracking tools
+import { createGoalTool, getGoalTool, updateGoalTool, setGoalBudgetTool } from './handler.js';
+
+export default {
+    name: 'goal',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(createGoalTool);
+        pi.tools.register(getGoalTool);
+        pi.tools.register(updateGoalTool);
+        pi.tools.register(setGoalBudgetTool);
+    },
+};
+
+===== plugins/memory-review/plugin.js (2263 bytes) =====
+// `freddie memory review <query>` — the one real remaining privacy-control
+// gap in gm rs-learn (per AGENTS.md's Learning section): prune() only
+// supports explicit key-based deletion, with no bulk "what does freddie
+// remember about X" surface to find those keys in the first place. This
+// bridges recall() (search) to prune() (delete) for a human-driven review.
+import { recall, prune } from '../../src/learn/gm-learn.js'
+
+export default {
+    name: 'memory-review', surfaces: 'pi',
+    register({ pi }) {
+        pi.cli.register({
+            name: 'memory',
+            description: 'Review what freddie remembers about a topic, for user-driven privacy deletion (review <query> [--limit=N] [--forget])',
+            args: [{ name: 'action', default: 'review' }, { name: 'query' }],
+            options: [{ flag: '--limit <n>', default: '10' }, { flag: '--forget', default: false }],
+            action: async (action, query, opts) => {
+                if (action !== 'review') { console.log(`unknown action '${action}' -- usage: freddie memory review <query>`); return }
+                if (!query) { console.log('usage: freddie memory review <query> [--limit=N] [--forget]'); process.exitCode = 1; return }
+                const limit = Number(opts.limit) || 10
+                const hits = await recall(query, { limit })
+                if (!hits.length) { console.log(`no memories found matching: ${query}`); return }
+                console.log(`${hits.length} memor${hits.length === 1 ?
+
+===== plugins/wire/plugin.js (8114 bytes) =====
+// `freddie wire` — JSON-RPC 2.0 over stdio, the stable agent↔UI contract.
+//
+// Port of kimi-cli's wire-mode idea onto freddie's event protocol
+// (src/agent/events.js): ONE line-delimited JSON-RPC stream that any UI can
+// attach to — dashboard WebSocket bridge, editor extensions, test harnesses —
+// instead of scraping the REPL or reverse-engineering REST shapes.
+//
+// Framing: one JSON object per line, both directions. stdout carries ONLY
+// protocol frames; anything a client can't parse as a frame should be ignored
+// (dotenvx/plugin boot chatter may interleave on unusual setups).
+//
+// Methods (client → agent):
+//   initialize {}                        → { protocolVersion, events, methods }
+//   prompt { text, sessionId?, cwd?, model?, provider?, timeoutMs? }
+//                                        → { sessionId, result, error, iterations }
+//   steer { sessionId, text }            → { ok }
+//   cancel { sessionId }                 → { ok }
+//   approve { sessionId, id?, approved, always?, feedback? }
+//                                        → { ok }
+//   replay { sessionId, limit? }         → { events: [envelope, ...] }
+//   status {}                            → { liveTurns }
+//
+// Notifications (agent → client): { jsonrpc: '2.0', method: 'event', params: envelope }
+// where envelope = { v, event, sessionId, ts, data } — see WIRE_EVENTS for the
+// event set. A client that wants live events for a session subscribes simply by
+// issuing `prompt` (auto-subscribed for 
+
+===== plugins/glob/plugin.js (353 bytes) =====
+// Standalone glob tool plugin. Uses ripgrep (rg --files --glob) to find
+// files matching a glob pattern, sorted by modification time, most recent
+// first. Respects .gitignore by default.
+import { globTool } from './handler.js'
+
+export default {
+    name: 'glob',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(globTool)
+    },
+}
+
+===== plugins/session_io/plugin.js (295 bytes) =====
+import { _exportSession, _importSession, _sessionMerge } from './handler.js'
+
+export default {
+    name: 'session-io',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(_exportSession)
+        pi.tools.register(_importSession)
+        pi.tools.register(_sessionMerge)
+    },
+}
+
+===== plugins/agent_swarm/plugin.js (717 bytes) =====
+import { _tool } from './handler.js'
+
+export default {
+    name: 'agent-swarm',
+    surfaces: 'pi',
+    // handler.js statically imports runSubagent from plugins/core/delegate's
+    // lib/runner.js -- core/delegate has no plugin.js of its own, so it
+    // auto-registers via the legacy handler.js-only fallback (see AGENTS.md's
+    // "Adding a tool" section) under the name 'tool-delegate'. This requires
+    // entry makes that real coupling visible to gui-plugin-graph's
+    // dependency visualization (which reads ONLY the requires array, not
+    // static imports) and enforces load-order/presence via topoSort.
+    requires: ['tool-delegate'],
+    register({ pi }) {
+        pi.tools.register(_tool)
+    },
+}
+
+===== plugins/debug/observability/plugin.js (452 bytes) =====
+import { inc, metricsText } from '../../../src/observability/metrics.js'
+
+export default {
+    name: 'observability',
+    surfaces: 'both',
+    register({ hooks, gui }) {
+        hooks.on('preToolCall', async (p) => { inc('tool_calls_total'); inc(`tool_call:${p?.name || 'unknown'}`); return p })
+        gui.route('GET', '/metrics', (_, res) => { res.set('content-type', 'text/plain'); res.send(metricsText()) })
+    },
+}
+
+export { inc, metricsText }
+
+
+===== plugins/debug/plugin-validate/plugin.js (3061 bytes) =====
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { checkAllPlugins, checkPluginDirAsync, summarize } from './lib/validate.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+// This plugin itself lives at plugins/debug/plugin-validate/ (post-f22
+// category reorg), so plugins/ is two levels up, not one.
+const PLUGINS_ROOT = path.join(__dirname, '..', '..')
+
+// A bare plugin dir name (e.g. "core-cli") no longer sits directly under
+// plugins/ post-f22-reorg — it's one category folder deeper. Accept either
+// a bare name (searched across every category) or an explicit
+// "category/name" path.
+function resolveTargetDir(target) {
+    const direct = path.join(PLUGINS_ROOT, target)
+    if (fs.existsSync(direct)) return direct
+    for (const cat of fs.readdirSync(PLUGINS_ROOT, { withFileTypes: true })) {
+        if (!cat.isDirectory()) continue
+        const candidate = path.join(PLUGINS_ROOT, cat.name, target)
+        if (fs.existsSync(candidate)) return candidate
+    }
+    return direct
+}
+
+export default {
+    // Distinct plugin identity from plugins/plugin-validate/ (origin's
+    // single-file "freddie plugin validate <path>"/"freddie plugin install
+    // <name>" tool) -- this is the bulk directory-scan checker against
+    // src/host/plugin-manifest-schema.json, registered as its own CLI verb
+    // (freddie plugin-validate) so both tools coexist without a name clash.
+    name: 'plugin-validate-bulk',
+    sur
+
+===== plugins/memory/memory-providers/plugin.js (2081 bytes) =====
+// Consolidated memory-provider plugin. Replaces 8 formerly-separate
+// memory-<name> directories with one registration point:
+//   - 7 providers are pure REST wrappers (endpoint + auth header + field
+//     names only) driven by ../../_shared/generic-rest-memory.js's
+//     createMemoryProvider() factory via the descriptor table below.
+//   - 1 provider (holographic) has genuinely divergent logic (filesystem
+//     storage, no network/auth at all) and keeps its own adapter module
+//     under ./lib/holographic-adapter.js per the "small adapter module"
+//     allowance for providers whose APIs diverge from the REST shape.
+import { createMemoryProvider } from '../../_shared/generic-rest-memory.js'
+import { HolographicMemory } from './lib/holographic-adapter.js'
+
+// Config-driven REST providers: name/className/base/envKey only, ~4 lines each.
+const REST_PROVIDERS = [
+    { name: 'byterover', className: 'ByteroverMemory', base: 'https://api.byterover.com', envKey: 'BYTEROVER_API_KEY' },
+    { name: 'hindsight', className: 'HindsightMemory', base: 'https://api.hindsightai.com', envKey: 'HINDSIGHT_API_KEY' },
+    { name: 'honcho', className: 'HonchoMemory', base: 'https://api.honcho.dev', envKey: 'HONCHO_API_KEY' },
+    { name: 'mem0', className: 'Mem0Memory', base: 'https://api.mem0.ai/v1', envKey: 'MEM0_API_KEY' },
+    { name: 'openviking', className: 'OpenvikingMemory', base: 'https://api.openviking.com', envKey: 'OPENVIKING_API_KEY' },
+    { name: 'retaindb', className: 'Retai
+
+===== plugins/gui/gui-worktree/plugin.js (352 bytes) =====
+import { listWorktrees, createWorktree, removeWorktree } from './handler.js'
+
+export default {
+    name: 'gui-worktree',
+    surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/worktree', listWorktrees)
+        gui.route('POST', '/api/worktree', createWorktree)
+        gui.route('DELETE', '/api/worktree', removeWorktree)
+    },
+}
+
+
+===== plugins/gui/gui-agent/plugin.js (12700 bytes) =====
+// gui-agent — WebSocket agent-workspace surface over the freddie wire protocol.
+//
+// The browser equivalent of `freddie wire` (plugins/wire): one WS connection
+// per session carries replay + live turn events inbound and prompt/steer/
+// cancel/approve messages outbound, so the dashboard chat workspace can drive
+// LONG agentic turns (no more 120s POST /api/chat ceiling) with mid-turn
+// approvals and steering — the kimi-cli `kimi web` interaction model.
+//
+//   WS /api/agent/stream?sessionId=<id>
+//     → on connect: { type: 'replay', sessionId, events: [envelope, ...] }
+//     → live:       { type: 'event', ...envelope }
+//     → turn end:   { type: 'prompt.done', sessionId, result, error, iterations }
+//     ← client:     { type: 'prompt', text, cwd?, model?, provider? }
+//                   { type: 'steer', text }
+//                   { type: 'cancel' }
+//                   { type: 'approve', id?, approved, always?, feedback? }
+//
+//   POST /api/sessions/:id/cancel   — REST cancel for page-unload paths
+//   GET  /api/sessions/:id/wire     — raw wire log (debug/export)
+//
+// gui.wsRoute matches exact pathnames only (src/web/server.js), so the session
+// id rides in the query string rather than the path.
+
+import { runTurn } from '../../../src/agent/machine.js'
+import { readWireLog, transcriptFromWire } from '../../../src/agent/events.js'
+import { subscribeTurn, steerTurn, queueTurn, drainQueue, cancelTurn, revertTurn, resolveApproval, resolveQuestion, requestQuestion, lis
+
+===== plugins/gui/gui-sessions/plugin.js (1351 bytes) =====
+import { listSessions, search, getMessages, getSession, deleteSession } from '../../../src/sessions.js'
+import { getTurn } from '../../../src/agent/live-turns.js'
+export default {
+    name: 'gui-sessions', surfaces: 'gui',
+    register({ gui }) {
+        // needsInput badges sessions whose live turn is parked on an approval
+        // or a pending ask_user_question gate (Claude agents-view / opencode
+        // status precedent) — pure read of the live-turns registry, no state
+        // change.
+        gui.route('GET', '/api/sessions', async (_, res) => {
+            const rows = await listSessions()
+            res.json(rows.map(s => { const t = getTurn(s.id); return { ...s, needsInput: !!(t?.pendingApproval || t?.pendingQuestion) } }))
+        })
+        gui.route('GET', '/api/sessions/:id', async (req, res) => {
+            const s = await getSession(req.params.id)
+            if (!s) return res.status(404).json({ error: 'session not found' })
+            res.json(s)
+        })
+        gui.route('GET', '/api/sessions/:id/messages', async (req, res) => res.json(await getMessages(req.params.id)))
+        gui.route('DELETE', '/api/sessions/:id', async (req, res) => res.json(await deleteSession(req.params.id)))
+        gui.route('GET', '/api/search', async (req, res) => res.json(await search(String(req.query.q || ''))))
+    },
+}
+
+
+===== plugins/gui/gui-batch/plugin.js (533 bytes) =====
+import { runBatch } from '../../../src/batch.js'
+export default {
+    name: 'gui-batch', surfaces: 'gui',
+    register({ gui }) {
+        gui.route('POST', '/api/batch', async (req, res) => {
+            const { prompts = [], concurrency = 4, model = '' } = req.body || {}
+            if (!prompts.length) return res.status(400).json({ error: 'prompts required' })
+            try { res.json(await runBatch({ prompts, concurrency, model })) } catch (e) { res.status(500).json({ error: String(e.message || e) }) }
+        })
+    },
+}
+
+
+===== plugins/gui/gui-hooks/plugin.js (1846 bytes) =====
+/**
+ * gui-hooks — Dashboard routes for wire hook subscription management.
+ *
+ * Routes:
+ *   GET  /api/hooks/subscriptions      — list active wire hook subscriptions
+ *   POST /api/hooks/subscribe          — subscribe to a hook event
+ *   DELETE /api/hooks/subscribe/:id    — unsubscribe by subscription id
+ *
+ * The wire hook bridge is a pure in-memory singleton; this plugin exposes
+ * its state through the dashboard HTTP API.
+ */
+import { wireHookBridge } from '../../../src/agent/wire_hooks.js'
+
+export default {
+    name: 'gui-hooks',
+    surfaces: 'gui',
+    register({ gui }) {
+        // List active wire hook subscriptions
+        gui.route('GET', '/api/hooks/subscriptions', (_req, res) => {
+            res.json({ subscriptions: wireHookBridge.listSubscriptions() })
+        })
+
+        // Subscribe to a hook event. Body: { eventName, timeout? }
+        gui.route('POST', '/api/hooks/subscribe', (req, res) => {
+            const { eventName, timeout } = req.body || {}
+            if (!eventName) return res.status(400).json({ error: 'eventName is required' })
+            try {
+                const id = wireHookBridge.subscribe(eventName, async () => ({ decision: 'allow' }), { timeout })
+                res.json({ ok: true, id, eventName })
+            } catch (e) {
+                res.status(400).json({ error: e.message })
+            }
+        })
+
+        // Unsubscribe from a hook event. Query: ?eventName=...&id=...
+        gui.route('DELETE', '/api/hooks/subscribe/:id', (
+
+===== plugins/gui/gui-cron/plugin.js (1010 bytes) =====
+import { listJobs, createJob, deleteJob } from '../../../src/cron/scheduler.js'
+export default {
+    name: 'gui-cron', surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/cron', async (_, res) => res.json(await listJobs()))
+        gui.route('POST', '/api/cron', async (req, res) => {
+            const { cron, prompt, model = null } = req.body || {}
+            if (!cron || !prompt) return res.status(400).json({ error: 'cron and prompt required' })
+            try { res.json({ id: await createJob({ cron, prompt, model }) }) } catch (e) { res.status(400).json({ error: String(e.message || e) }) }
+        })
+        gui.route('DELETE', '/api/cron/:id', async (req, res) => {
+            const id = Number(req.params.id)
+            if (!Number.isFinite(id)) return res.status(400).json({ error: 'id must be a number' })
+            try { await deleteJob(id); res.json({ ok: true }) }
+            catch (e) { res.status(400).json({ error: String(e.message || e) }) }
+        })
+    },
+}
+
+
+===== plugins/gui/gui-events/plugin.js (3716 bytes) =====
+/**
+ * gui-events — Real-time WebSocket events for session lifecycle.
+ *
+ * WebSocket endpoint: /api/events
+ *
+ * Event types (matching pi-web):
+ *   session.created  — new session created
+ *   session.start    — agent turn started
+ *   message.append   — new message in transcript
+ *   assistant.delta  — streaming assistant text (for in-progress turns)
+ *   tool.start       — tool execution started
+ *   tool.end         — tool execution completed
+ *   session.end      — agent turn completed
+ *   session.error    — session error
+ *   status.update    — session status change
+ *
+ * Clients can filter by session ID:
+ *   send: {"type":"subscribe","sessionId":"..."}
+ *   send: {"type":"unsubscribe","sessionId":"..."}
+ *
+ * Heartbeat: every 30s to keep connections alive.
+ */
+
+import { on, emit } from './event-bus.js';
+import { logger } from '../../../src/observability/log.js';
+
+const log = logger('gui_events');
+const HEARTBEAT_MS = 30_000;
+
+export default {
+  name: 'gui-events',
+  surfaces: 'gui',
+  register({ gui }) {
+    // Track connected clients: ws -> Set<sessionId | '*'> (empty or '*' means all)
+    const clients = new Map();
+
+    gui.wsRoute('/api/events', (ws, req) => {
+      const subs = new Set();
+      clients.set(ws, subs);
+
+      log.info('client connected', { remote: req?.socket?.remoteAddress });
+
+      // Heartbeat
+      const heartbeat = setInterval(() => {
+        if (ws.readyState === 1) {
+          try { ws.ping(); } catch { /* ignore */ }
+        }
+      }, HEA
+
+===== plugins/gui/gui-acptoapi-chains/plugin.js (3524 bytes) =====
+// freddie ↔ acptoapi chain bridge — surfaces acptoapi /v1/chains, /debug/probe-live
+// through freddie's GUI API so the dashboard can manage named fallback chains
+// without thebird talking directly to acptoapi.
+import { getAcptoapiUrl } from '../../../src/agent/acptoapi-bridge.js'
+import { env } from '../../../src/env.js'
+
+function base() { return getAcptoapiUrl().replace(/\/v1\/?$/, '') }
+const HDR = () => ({ 'content-type': 'application/json', authorization: 'Bearer none' })
+
+async function fwd(url, init) {
+    try {
+        const r = await fetch(url, init)
+        const ct = r.headers.get('content-type') || ''
+        if (ct.includes('json')) return { status: r.status, json: await r.json() }
+        return { status: r.status, text: await r.text() }
+    } catch (e) { return { status: 502, json: { error: { message: e.message, via: url } } } }
+}
+
+export default {
+    name: 'gui-acptoapi-chains', surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/acptoapi/health', async (_, res) => {
+            const r = await fwd(base() + '/health', { headers: HDR() })
+            res.status(r.status === 502 ? 502 : 200).json(r.json || { text: r.text })
+        })
+
+        gui.route('GET', '/api/acptoapi/chains', async (_, res) => {
+            const r = await fwd(base() + '/v1/chains', { headers: HDR() })
+            res.status(r.status).json(r.json || {})
+        })
+
+        gui.route('POST', '/api/acptoapi/chains', async (req, res) => {
+            const { name, lin
+
+===== plugins/gui/gui-machines/plugin.js (5009 bytes) =====
+// Exposes live persisted machine snapshots over HTTP for the dashboard.
+// GET /api/machines        -> { count, kinds:{<kind>:n}, machines:[{kind,key,status,state,updated}] }
+// GET /api/machines/:kind  -> machines filtered to one kind
+// POST /api/machines/resume -> { ok, summary } : drive resumeAll() on demand
+import { list } from '../../../src/machines/snapshot-store.js'
+import { registerDebug } from '../../../src/observability/debug.js'
+import { stateMachinesSnapshot, stateMachinesLiveSnapshot } from '../../../src/observability/state-machines.js'
+
+// window.__debug.machines() / GET /debug/machines — live persisted machine census.
+registerDebug('machines', () => ({ note: 'GET /api/machines for live snapshots', kinds: ['agent', 'cron', 'batch', 'gateway', 'gateway-msg', 'acp', 'acp-prompt'] }))
+
+async function snapshotRows(kind = null) {
+    const rows = await list({ kind, status: null })
+    return rows.map(r => {
+        let state = null
+        try { const ps = JSON.parse(r.snapshot_json || 'null'); state = ps?.value ?? null } catch {}
+        return { kind: r.kind, key: r.key, status: r.status, state, machine_id: r.machine_id, updated: r.updated }
+    })
+}
+
+export default {
+    name: 'gui-machines', surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/machines', async (_req, res) => {
+            try {
+                // list() does not return snapshot_json (truncated for size); re-read full per row.
+                const { db } = await import('../..
+
+===== plugins/gui/gui-projects/plugin.js (1366 bytes) =====
+import { listProjects, getActiveProject, createProject, deleteProject, setActiveProject } from '../../../src/projects.js'
+import { resetHostForTests } from '../../../src/host/index.js'
+
+export default {
+    name: 'gui-projects',
+    surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/projects', (_, res) => res.json({ active: getActiveProject(), projects: listProjects() }))
+        gui.route('POST', '/api/projects', (req, res) => {
+            try {
+                const { name, path: projectPath } = req.body || {}
+                const created = createProject({ name, projectPath })
+                res.json(created)
+            } catch (e) { res.status(400).json({ error: e.message }) }
+        })
+        gui.route('DELETE', '/api/projects/:name', (req, res) => {
+            try { deleteProject(req.params.name); res.json({ ok: true }) }
+            catch (e) { res.status(400).json({ error: e.message }) }
+        })
+        gui.route('POST', '/api/projects/active', (req, res) => {
+            try {
+                const { name } = req.body || {}
+                const proj = setActiveProject(name)
+                resetHostForTests()
+                res.json({ ok: true, active: proj, note: 'restart dashboard to load new project plugins' })
+            } catch (e) { res.status(400).json({ error: e.message }) }
+        })
+    },
+}
+
+
+===== plugins/gui/gui-profiles-commands-health/plugin.js (2092 bytes) =====
+import { createRequire } from 'module'
+import { listAllProfiles } from '../../../src/commands/profile.js'
+import { COMMAND_REGISTRY } from '../../../src/commands/registry.js'
+import { getFreddieHome } from '../../../src/home.js'
+import { resolveKey } from '../../../src/credentials/index.js'
+const _require = createRequire(import.meta.url)
+const { probeModels, getCachedModels, PROVIDER_KEYS, PROVIDER_DEFAULTS: DEFAULTS, getStatus, peekStatus } = _require('acptoapi')
+export default {
+    name: 'gui-profiles-commands-health', surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/profiles', (_, res) => res.json(listAllProfiles()))
+        gui.route('GET', '/api/commands', (_, res) => res.json(COMMAND_REGISTRY))
+        gui.route('GET', '/api/health', (_, res) => res.json({ ok: true, ts: Date.now(), freddie_home: getFreddieHome() }))
+        gui.route('GET', '/api/providers', async (_, res) => {
+            const status = getStatus()
+            const providers = await Promise.all(Object.keys(PROVIDER_KEYS).map(async name => {
+                const envKey = PROVIDER_KEYS[name]
+                const resolved = await resolveKey(name).catch(() => ({ value: null }))
+                const configured = !!(resolved.value || (envKey && process.env[envKey]))
+                const s = status.find(x => x.provider === name)
+                const available = configured && (s ? s.ok !== false : true)
+                const cached = getCachedModels(name)
+                return { 
+
+===== plugins/gui/gui-tools/plugin.js (427 bytes) =====
+export default {
+    name: 'gui-tools', surfaces: 'gui',
+    register({ gui, host }) {
+        gui.route('GET', '/api/tools', (_, res) => res.json(host.pi.tools.list().map(t => ({ name: t.name, toolset: t.toolset, schema: t.schema }))))
+        gui.route('GET', '/api/tools/detail', (_, res) => res.json(host.pi.tools.list().map(t => ({ name: t.name, toolset: t.toolset, description: t.schema?.description || '' }))))
+    },
+}
+
+
+===== plugins/gui/gui-mcp/plugin.js (6487 bytes) =====
+/**
+ * gui-mcp — Dashboard routes for MCP server management.
+ *
+ * Routes:
+ *   GET /api/mcp/health          — overall MCP subsystem health check
+ *   GET /api/mcp/tools           — list all tools with server attribution
+ *   GET /api/mcp/servers         — list server statuses (connected/disconnected/error)
+ *   POST /api/mcp/reconnect/:id  — reconnect a disconnected server
+ *   GET /api/mcp/oauth           — list MCP servers with stored OAuth tokens
+ *   POST /api/mcp/oauth/:server  — store an OAuth token for a server
+ *   DELETE /api/mcp/oauth/:server — remove an OAuth token for a server
+ *
+ * Browser-compatible: this module only registers Express routes; it has no
+ * DOM / browser-specific code. The dashboard SDK consumes the JSON endpoints.
+ */
+import { getClients } from '../../core/mcp/lib/tool.js'
+import { redactSecrets } from '../../../src/auth.js'
+
+export default {
+    name: 'gui-mcp',
+    surfaces: 'gui',
+    // Statically imports from and (in route handlers below) dynamically
+    // imports plugins/core/mcp's lib/tool.js + lib/oauth-manager.js -- this
+    // requires entry makes that real coupling visible to gui-plugin-graph's
+    // dependency visualization (which reads ONLY the requires array, not
+    // static/dynamic imports) and enforces load-order/presence via topoSort.
+    requires: ['mcp'],
+    register({ gui }) {
+        // Health check — returns ok + connected server count
+        gui.route('GET', '/api/mcp/health', (_req, res) => {
+            const clien
+
+===== plugins/gui/gui-models-discover/plugin.js (4320 bytes) =====
+import { createRequire } from 'module'
+import { discoverAndPersist, listKnownProviders, MATRIX_FILE } from '../../../src/models/discovery.js'
+import { getConfigValue, saveConfigValue } from '../../../src/config.js'
+import fs from 'node:fs'
+import path from 'node:path'
+import { spawn } from 'node:child_process'
+const _require = createRequire(import.meta.url)
+const { PROVIDER_KEYS, PROVIDER_DEFAULTS: DEFAULTS, getStatus, peekStatus, listAllQueues } = _require('acptoapi')
+
+const MATRIX_PATH = path.resolve(new URL('.', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'), '..', '..', '.gm', 'model-availability.json')
+let _rebuildInFlight = null
+
+export default {
+    name: 'gui-models-discover', surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/models/providers', (_, res) => res.json({ providers: listKnownProviders(), keys: PROVIDER_KEYS, defaults: DEFAULTS }))
+        gui.route('GET', '/api/models/cached', (_, res) => res.json(getConfigValue('agent.discovered_models', {}) || {}))
+        gui.route('POST', '/api/models/discover', async (req, res) => {
+            try { const provider = req.body?.provider; const result = await discoverAndPersist({ provider }); res.json(result) }
+            catch (e) { res.status(500).json({ error: String(e.message || e) }) }
+        })
+        gui.route('GET', '/api/models/queues', (_, res) => {
+            const local = getConfigValue('agent.model_queues', {}) || {}
+            try {
+                const all = listAllQ
+
+===== plugins/gui/gui-debug/plugin.js (1822 bytes) =====
+import path from 'node:path'
+import fs from 'node:fs'
+import { listDebug, snapshotAll, attachDebugRoutes } from '../../../src/observability/debug.js'
+import { getFreddieHome } from '../../../src/home.js'
+export default {
+    name: 'gui-debug', surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/debug', (_, res) => res.json(listDebug()))
+        gui.route('GET', '/api/debug-all', (_, res) => res.json(snapshotAll()))
+        gui.route('GET', '/api/logs', (_, res) => {
+            const dir = path.join(getFreddieHome(), 'logs')
+            if (!fs.existsSync(dir)) return res.json([])
+            res.json(fs.readdirSync(dir).filter(f => f.endsWith('.log')).map(f => f.replace(/\.log$/, '')))
+        })
+        gui.route('GET', '/api/logs/:subsystem', (req, res) => {
+            // subsystem is a log-filename stem (see src/observability/log.js) --
+            // reject traversal/absolute segments before joining, or a value like
+            // '../../auth/anthropic' could read any '.log'-suffixed path outside
+            // <FREDDIE_HOME>/logs.
+            const subsystem = String(req.params.subsystem || '')
+            if (!/^[a-zA-Z0-9_-]+$/.test(subsystem)) return res.status(400).json({ error: 'invalid subsystem name' })
+            const file = path.join(getFreddieHome(), 'logs', subsystem + '.log')
+            if (!fs.existsSync(file)) return res.json([])
+            const max = Number(req.query.max) || 200
+            let lines = fs.readFileSync(file, 'utf8
+
+===== plugins/gui/gui-feedback/plugin.js (5193 bytes) =====
+// Feedback widget: POST /api/feedback for submission, GET /api/feedback for
+// listing (sorted by vote count), POST /api/feedback/:id/vote for voting.
+// When GITHUB_TOKEN is configured and `gh` CLI is available, creates a GitHub
+// issue per submission; otherwise writes to <FREDDIE_HOME>/feedback/<timestamp>.json.
+// Browser-compatible: filesystem and child_process ops are only invoked inside
+// route handlers (server-side), never at module-load time.
+
+import { registerDebug } from '../../../src/observability/debug.js'
+import { ghAvailable, createGitHubIssue, listGitHubIssues, addGitHubReaction } from './github-backend.js'
+import { loadLocalFeedbackItems, saveLocalFeedbackItem, updateLocalVotes } from './local-backend.js'
+
+function generateId() {
+    return 'fb-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8)
+}
+
+registerDebug('feedback', () => ({
+    note: 'POST /api/feedback to submit, GET /api/feedback to list, POST /api/feedback/:id/vote to vote',
+    githubRequired: 'GITHUB_TOKEN env var for GitHub issue creation',
+}))
+
+export default {
+    name: 'gui-feedback', surfaces: 'gui',
+    register({ gui }) {
+        // POST /api/feedback — submit feedback
+        gui.route('POST', '/api/feedback', async (req, res) => {
+            try {
+                const { title, body, email } = req.body || {}
+                if (!title || typeof title !== 'string' || !title.trim()) {
+                    return res.status(400).json({ ok: false, error: 'title is r
+
+===== plugins/gui/gui-notifications/plugin.js (756 bytes) =====
+import { notificationManager } from '../../../src/agent/notifications.js'
+
+export default {
+    name: 'gui-notifications',
+    surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/notifications', async (_, res) => {
+            res.json(notificationManager.getAll())
+        })
+        gui.route('POST', '/api/notifications/dismiss-all', async (_, res) => {
+            notificationManager.dismissAll()
+            res.json({ ok: true })
+        })
+        gui.route('POST', '/api/notifications/:id/dismiss', async (req, res) => {
+            const ok = notificationManager.dismiss(req.params.id)
+            if (!ok) return res.status(404).json({ error: 'notification not found' })
+            res.json({ ok: true })
+        })
+    },
+}
+
+===== plugins/gui/gui-env/plugin.js (1303 bytes) =====
+import { getAuthStore } from '../../../src/auth.js'
+const ENV_KEYS = ['ANTHROPIC_API_KEY','OPENAI_API_KEY','GROQ_API_KEY','OPENROUTER_API_KEY','TELEGRAM_BOT_TOKEN','DISCORD_BOT_TOKEN','SLACK_BOT_TOKEN','SLACK_SIGNING_SECRET','WHATSAPP_API_TOKEN','SIGNAL_CLI_URL','MATRIX_HOMESERVER','MATTERMOST_URL','HONCHO_API_KEY','MEM0_API_KEY','SUPERMEMORY_API_KEY','BYTEROVER_API_KEY','HINDSIGHT_API_KEY','OPENVIKING_API_KEY','RETAINDB_API_KEY','SERPAPI_KEY','REPLICATE_API_TOKEN','SMTP_HOST','TWILIO_SID','HASS_TOKEN']
+export default {
+    name: 'gui-env', surfaces: 'gui',
+    register({ gui }) {
+        // A key set via `freddie auth set` (or the dashboard) lives in the auth
+        // store, not process.env. Report it as set with its source so the env
+        // page reflects the real key state, not just the shell environment.
+        gui.route('GET', '/api/env', async (_, res) => {
+            const store = getAuthStore()
+            const out = []
+            for (const k of ENV_KEYS) {
+                if (process.env[k]) { out.push({ key: k, set: true, source: 'env' }); continue }
+                const cred = await store.getCredential(k)
+                out.push({ key: k, set: !!cred?.value, source: cred?.value ? 'stored' : 'none' })
+            }
+            res.json(out)
+        })
+    },
+}
+
+
+===== plugins/gui/gui-voice/plugin.js (6433 bytes) =====
+// Voice API surface: status probe, audio transcription, and speech synthesis.
+// Browser-compatible: browser clients use the MediaRecorder API for mic capture
+// and the Audio element for playback; the API endpoints here are server-side
+// (Express routes) that delegate to the media plugin's TTS/transcription handlers.
+//
+// GET  /api/voice/status      — probe TTS + STT backend availability
+// POST /api/voice/transcribe  — accept base64 audio, return text + confidence
+// POST /api/voice/synthesize  — accept text + voice, return base64 audio
+
+import { env } from '../../../src/env.js'
+import { getAcptoapiUrl } from '../../../src/agent/acptoapi-bridge.js'
+
+const isBrowser = typeof window !== 'undefined'
+
+// --- backend availability probes ---
+
+function ttsAvailable() {
+    if (isBrowser) return false
+    return Boolean(env('OPENAI_API_KEY') || env('ELEVENLABS_API_KEY'))
+}
+
+function sttAvailable() {
+    if (isBrowser) return false
+    return Boolean(env('OPENAI_API_KEY'))
+}
+
+function ttsProvider() {
+    if (env('ELEVENLABS_API_KEY')) return 'elevenlabs'
+    if (env('OPENAI_API_KEY')) return 'openai'
+    return 'none'
+}
+
+function sttProvider() {
+    if (env('OPENAI_API_KEY')) return 'openai'
+    return 'none'
+}
+
+// --- TTS: call acptoapi /v1/audio/speech ---
+
+async function synthesizeText({ text, voice = 'alloy', provider = 'openai' }) {
+    const base = getAcptoapiUrl().replace(/\/v1\/?$/, '')
+    const body = provider === 'elevenlabs'
+        ? { text, voice: voice || '21m00Tcm
+
+===== plugins/gui/gui-plugin-graph/plugin.js (1001 bytes) =====
+// Plugin dependency graph: D3-compatible {nodes,edges} derived from each
+// plugin's declared `requires` array (already used for cycle detection at
+// load time) plus what it actually registered, via host.capabilities().
+import { registerDebug } from '../../../src/observability/debug.js'
+
+function graphFrom(host) {
+    const plugins = host.plugins()
+    const nodes = plugins.map(p => ({
+        id: p.name,
+        surfaces: p.surfaces,
+        capabilities: host.capabilities(p.name) || { tools: [], hooks: [], commands: [], crons: [], routes: [] },
+    }))
+    const edges = plugins.flatMap(p => (p.requires || []).map(dep => ({ from: p.name, to: dep })))
+    return { nodes, edges }
+}
+
+registerDebug('plugin-graph', () => ({ note: 'GET /api/plugin-graph for the full D3-compatible dependency tree' }))
+
+export default {
+    name: 'gui-plugin-graph', surfaces: 'gui',
+    register({ gui, host }) {
+        gui.route('GET', '/api/plugin-graph', (_req, res) => res.json(graphFrom(host)))
+    },
+}
+
+
+===== plugins/gui/gui-auth/plugin.js (2109 bytes) =====
+import { listAuthProviders, isKnownAuthProvider, envForProvider, hasUsableSecret, getAuthStore, clearProviderAuth, tokenFingerprint } from '../../../src/auth.js'
+
+// Dashboard key management. Mirrors the `freddie auth` CLI verbs so users can
+// set/inspect/remove provider API keys from the web UI without env vars or a
+// restart. GET never returns raw secret values — only presence, source, and a
+// masked fingerprint.
+async function providerState(p) {
+    const env = envForProvider(p) || ''
+    const inEnv = !!(env && process.env[env])
+    const stored = inEnv ? null : await getAuthStore().getCredential(env)
+    const value = inEnv ? process.env[env] : (stored?.value || '')
+    return {
+        provider: p,
+        env,
+        set: await hasUsableSecret(p),
+        source: inEnv ? 'env' : (stored ? 'stored' : 'none'),
+        fingerprint: value ? tokenFingerprint(value) : '',
+    }
+}
+
+export default {
+    name: 'gui-auth',
+    surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/auth', async (_, res) => {
+            const rows = []
+            for (const p of listAuthProviders()) rows.push(await providerState(p))
+            res.json(rows)
+        })
+        gui.route('POST', '/api/auth', async (req, res) => {
+            const { provider, key } = req.body || {}
+            if (!isKnownAuthProvider(provider)) return res.status(400).json({ error: 'unknown provider', known: listAuthProviders() })
+            if (!key || typeof key !== 'string' || !key.trim(
+
+===== plugins/gui/gui-config/plugin.js (806 bytes) =====
+import { loadConfig, saveConfigValue, DEFAULT_CONFIG } from '../../../src/config.js'
+import { listBuiltinSkins } from '../../../src/skin/engine.js'
+export default {
+    name: 'gui-config', surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/config', (_, res) => res.json(loadConfig()))
+        gui.route('GET', '/api/config/defaults', (_, res) => res.json(DEFAULT_CONFIG))
+        gui.route('GET', '/api/skins', (_, res) => res.json(listBuiltinSkins()))
+        gui.route('POST', '/api/config', (req, res) => {
+            const { key, value } = req.body || {}
+            if (!key) return res.status(400).json({ error: 'key required' })
+            try { res.json(saveConfigValue(key, value)) } catch (e) { res.status(400).json({ error: String(e.message || e) }) }
+        })
+    },
+}
+
+
+===== plugins/gui/gui-git/plugin.js (306 bytes) =====
+import { gitStatus, gitDiff, gitLog } from './handler.js'
+
+export default {
+    name: 'gui-git',
+    surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/git/status', gitStatus)
+        gui.route('GET', '/api/git/diff', gitDiff)
+        gui.route('GET', '/api/git/log', gitLog)
+    },
+}
+
+
+===== plugins/gui/gui-subagents/plugin.js (630 bytes) =====
+import { listSubagents, loadSubagent } from '../../core/delegate/store.js'
+
+export default {
+    name: 'gui-subagents', surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/subagents', async (_, res) => {
+            const rows = await listSubagents()
+            res.json(rows.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')))
+        })
+        gui.route('GET', '/api/subagents/:id', async (req, res) => {
+            const s = await loadSubagent(req.params.id)
+            if (!s) return res.status(404).json({ error: 'subagent not found' })
+            res.json(s)
+        })
+    },
+}
+
+
+===== plugins/gui/gui-agents/plugin.js (1099 bytes) =====
+import { bootHost } from '../../../src/host/index.js'
+
+export default {
+    name: 'gui-agents', surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/agents', async (req, res) => {
+            try {
+                const host = await bootHost()
+                const sessions = await (await import('../../../src/sessions.js')).listSessions()
+                const activeSessions = sessions.filter(s => {
+                    const updated = new Date(s.updated_at || 0)
+                    const now = new Date()
+                    return (now - updated) < 300000
+                })
+                res.json({
+                    count: activeSessions.length,
+                    active: activeSessions.length > 0 ? activeSessions[0].id : null,
+                    turns: sessions.reduce((acc, s) => acc + (s.turn_count || 0), 0),
+                    last_activity: activeSessions.length > 0 ? activeSessions[0].updated_at : null,
+                })
+            } catch (e) {
+                res.status(500).json({ error: String(e.message || e) })
+            }
+        })
+    },
+}
+
+
+===== plugins/gui/gui-logs/plugin.js (4640 bytes) =====
+// WS /api/logs/stream -- tails new lines appended to any *.log file under
+// ~/.freddie/logs/ in real time, broadcasting to every connected client.
+// Read-side listing already exists at GET /api/logs (subsystem list) + GET
+// /api/logs/:subsystem (lines, optional ?max=&severity=) in
+// plugins/gui-debug/plugin.js -- this plugin adds only the new live-tail
+// capability, not a competing route.
+//
+// REAL BUG FOUND live (exec_js witness): fs.watch(dir) on this
+// Windows/Node runtime fires exactly one 'rename' event when a log file is
+// FIRST created via src/observability/log.js's fs.createWriteStream(...,
+// {flags:'a'}), but subsequent .write() calls on that SAME open stream never
+// emit a further 'change'/'rename' event -- confirmed by writing 3 lines
+// through the real logger() and observing only 1 fs.watch event total, even
+// though all 3 lines land on disk (readFileSync after the fact shows all
+// 3). fs.watch is therefore unreliable as the SOLE trigger for tailing an
+// append-mode write stream here; a periodic size-poll is layered on top as
+// the correctness-bearing mechanism, with fs.watch kept as a low-latency
+// fast path for the (also real, separately confirmed) new-file-created case.
+//
+// SECOND real bug found live: src/observability/log.js's own log() mirrors
+// every severity>=warning record into BOTH <subsystem>.log AND errors.log --
+// tailing "every *.log file" therefore delivers the identical record twice
+// for any warning/error line (once from its o
+
+===== plugins/gui/gui-terminal/plugin.js (286 bytes) =====
+import { execCommand, terminalStatus } from './handler.js';
+
+export default {
+    name: 'gui-terminal',
+    surfaces: 'gui',
+    register({ gui }) {
+        gui.route('POST', '/api/terminal/exec', execCommand);
+        gui.route('GET', '/api/terminal/status', terminalStatus);
+    },
+};
+
+===== plugins/gui/gui-skills/plugin.js (1063 bytes) =====
+import path from 'node:path'
+import { listSkills } from '../../../src/skills/index.js'
+export default {
+    name: 'gui-skills', surfaces: 'gui',
+    register({ gui, config }) {
+        gui.route('GET', '/api/skills', (_, res) => {
+            const skillState = config.get('skillState') || {}
+            res.json({ home: listSkills(), bundled: listSkills([path.resolve('skills')]), skillState })
+        })
+        gui.route('POST', '/api/skills/:name', (req, res) => {
+            try {
+                const { name } = req.params
+                const { enabled } = req.body || {}
+                if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be a boolean' })
+                const skillState = config.get('skillState') || {}
+                skillState[name] = { ...(skillState[name] || {}), enabled }
+                config.set('skillState', skillState)
+                res.json({ ok: true, name, skillState: skillState[name] })
+            } catch (e) { res.status(400).json({ error: e.message }) }
+        })
+    },
+}
+
+
+===== plugins/gui/gui-workspace-files/plugin.js (237 bytes) =====
+import { listWorkspaceFiles } from './handler.js'
+
+export default {
+    name: 'gui-workspace-files',
+    surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/sessions/:id/workspace-files', listWorkspaceFiles)
+    },
+}
+
+
+===== plugins/gui/gui-gateway/plugin.js (373 bytes) =====
+export default {
+    name: 'gui-gateway', surfaces: 'gui',
+    register({ gui, host }) {
+        gui.route('GET', '/api/gateway', (_, res) => {
+            const platforms = host.pi.platforms.list().map(p => p.name)
+            res.json({ platforms: platforms.map(p => ({ name: p, enabled: false, note: 'start with freddie gateway --port <port>' })) })
+        })
+    },
+}
+
+
+===== plugins/gui/gui-chat/plugin.js (5949 bytes) =====
+import { runTurn } from '../../../src/agent/machine.js'
+import { createSession, getMessages, appendMessage } from '../../../src/sessions.js'
+import { host } from '../../../src/host/index.js'
+import { logger } from '../../../src/observability/log.js'
+import { resolveAllowedCwd } from '../gui-git/lib.js'
+import { redactSecrets } from '../../../src/auth.js'
+
+const log = logger('gui-chat')
+
+// A client-supplied sessionId continues that conversation: prior turns'
+// messages are reloaded and fed back into runTurn (which otherwise starts a
+// brand-new xstate machine with no memory of anything), and the new turn's
+// messages are persisted back so the NEXT call in this session sees them too.
+// Without this, sessionId was purely a display label -- runTurn never saw it
+// and every call was independently stateless regardless of continuity intent.
+async function loadPriorMessages(sessionId) {
+    if (!sessionId) return []
+    try {
+        const rows = await getMessages(sessionId)
+        return rows.map(r => ({ role: r.role, content: r.content, ...(r.tool_calls ? { tool_calls: r.tool_calls } : {}), ...(r.tool_call_id ? { tool_call_id: r.tool_call_id } : {}) }))
+    } catch (_) { return [] }
+}
+
+async function persistNewMessages(sessionId, allMessages, priorCount) {
+    if (!sessionId) return
+    for (const m of allMessages.slice(priorCount)) {
+        try { await appendMessage(sessionId, { role: m.role, content: m.content, toolCalls: m.tool_calls || null, toolCallId: m.tool_call_id |
+
+===== plugins/gui/gui-plugins-list/plugin.js (1213 bytes) =====
+// Flat plugin list for the dashboard's Plugins panel (design SDK's
+// PluginsConfig component): {name, surfaces, requires, source, enabled}
+// per plugin — distinct from gui-plugin-graph's D3 {nodes,edges} shape,
+// which is built for the dependency-graph visualization, not a list UI.
+import { registerDebug } from '../../../src/observability/debug.js'
+
+function listFrom(host) {
+    // host.plugins() returns a stripped-down {name,version,surfaces,requires}
+    // view; the real loaded plugin object (with __sourceFile) lives behind
+    // host.get(name) — pull the source path from there.
+    return host.plugins().map(p => ({
+        name: p.name,
+        version: p.version,
+        surfaces: p.surfaces,
+        requires: p.requires || [],
+        source: (host.get(p.name) || {}).__sourceFile || null,
+        enabled: true, // freddie has no per-plugin runtime disable today; always true once loaded
+    }))
+}
+
+registerDebug('plugins-list', () => ({ note: 'GET /api/plugins for the flat plugin list' }))
+
+export default {
+    name: 'gui-plugins-list', surfaces: 'gui',
+    register({ gui, host }) {
+        gui.route('GET', '/api/plugins', (_req, res) => res.json({ plugins: listFrom(host) }))
+    },
+}
+
+
+===== plugins/gui/gui-files/plugin.js (523 bytes) =====
+import { listFiles, readFile, writeFile, deleteFile, moveFile, uploadFile } from './handler.js'
+
+export default {
+    name: 'gui-files',
+    surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/api/files/tree', listFiles)
+        gui.route('GET', '/api/files/read', readFile)
+        gui.route('PUT', '/api/files/write', writeFile)
+        gui.route('DELETE', '/api/files', deleteFile)
+        gui.route('POST', '/api/files/move', moveFile)
+        gui.route('POST', '/api/files/upload', uploadFile)
+    },
+}
+
+===== plugins/gui/gui-llm-passthrough/plugin.js (3953 bytes) =====
+import { createRequire } from 'module'
+import { getConfigValue } from '../../../src/config.js'
+import { MATRIX_FILE, flattenForOpenAI } from '../../../src/models/discovery.js'
+import { logger } from '../../../src/observability/log.js'
+import { randomId } from '../../../src/utils.js'
+import { env } from '../../../src/env.js'
+import { redactSecrets } from '../../../src/auth.js'
+import { warmExtraProviders } from '../../../src/agent/llm_resolver.js'
+
+const _require = createRequire(import.meta.url)
+const sdk = _require('acptoapi')
+const log = logger('gui-llm-passthrough')
+
+function matrixSource() { return env('FREDDIE_MATRIX_URL') || MATRIX_FILE }
+
+export default {
+    name: 'gui-llm-passthrough', surfaces: 'gui',
+    register({ gui }) {
+        gui.route('GET', '/v1/models', async (_, res) => {
+            try {
+                const rows = await sdk.listAllModelsAndQueues({ queuesMap: getConfigValue('agent.model_queues', {}) || {}, matrixSource: matrixSource() })
+                const local = flattenForOpenAI()
+                const seen = new Set(rows.map(r => r.id))
+                for (const r of local) if (!seen.has(r.id)) rows.push(r)
+                if (rows.length === 0) rows.push({ id: 'freddie/auto', object: 'model', created: Math.floor(Date.now() / 1000), owned_by: 'freddie' })
+                res.json({ object: 'list', data: rows })
+            } catch (e) { log.error('list-models-failed', { error: String(e.message || e) }); res.json({ object: 'list', data: flattenFo
+
+===== plugins/tools/achievements/plugin.js (307 bytes) =====
+import { award, listAchievements } from './lib/store.js'
+
+export default {
+    name: 'achievements',
+    surfaces: 'pi',
+    register({ hooks }) {
+        hooks.on('onSessionStart', async (p) => { await award('session-start', { id: p.session?.id }); return p })
+    },
+}
+
+export { award, listAchievements }
+
+
+===== plugins/tools/media/plugin.js (1374 bytes) =====
+// Consolidated media plugin. Replaces 4 formerly-separate directories
+// (transcription, tts, voice_mode, vision) with one registration point --
+// STT, TTS, and the voice-mode toggle are one feature set (a single
+// full-duplex voice loop), and vision was folded in alongside them: it has
+// no independent enablement mechanism of its own (no separate config flag,
+// no separate toggle tool like voice_mode's `enabled` switch) -- it is gated
+// by the same env-driven `checkFn` pattern as transcription/tts (presence of
+// a provider key), just like every other tool in this set. The upstream
+// design-kit voice UI (anentrypoint-design's src/components/voice.js) is a
+// consumer of the transcription/tts/voice_mode trio only; it has no vision
+// wiring, which is further evidence vision has no voice-mode-adjacent
+// independent toggling need of its own.
+//
+// 4 tools register as before: transcription/tts/voice_mode/vision.
+import { transcriptionTool } from './lib/transcription.js'
+import { ttsTool } from './lib/tts.js'
+import { voiceModeTool } from './lib/voice-mode.js'
+import { visionTool } from './lib/vision.js'
+
+export default {
+    name: 'media',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(transcriptionTool)
+        pi.tools.register(ttsTool)
+        pi.tools.register(voiceModeTool)
+        pi.tools.register(visionTool)
+    },
+}
+
+
+===== plugins/tools/web/plugin.js (3674 bytes) =====
+// Merged web plugin: search (DuckDuckGo/SerpAPI), fetch (plain HTTP), and
+// browse (puppeteer-core automation), gated by the website-policy/url-safety
+// modules under lib/. Formerly separate plugins/{browser,web_tools,web_search,
+// website_policy,url_safety}.
+import { webSearch } from './lib/search.js'
+import { webFetch } from './lib/fetch.js'
+import { browse } from './lib/browse.js'
+
+export default {
+    name: 'web',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register({
+            name: 'web_search',
+            toolset: 'browse',
+            schema: {
+                name: 'web_search',
+                description: 'Search the web (DuckDuckGo HTML or SerpAPI). Returns title, URL, snippet, and date. Results cached for 5 minutes.',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        query: { type: 'string', description: 'Search query' },
+                        num_results: { type: 'number', default: 10, description: 'Number of results (max 20)' },
+                        include_content: { type: 'boolean', default: false, description: 'Also fetch each result\'s page content' },
+                    },
+                    required: ['query'],
+                },
+            },
+            checkFn: () => true,
+            requiresEnv: ['SERPAPI_KEY (optional, falls back to DDG)'],
+            handler: async (args) => webSearch(args),
+        })
+
+        pi.tools.register({
+            n
+
+===== plugins/tools/files/plugin.js (1382 bytes) =====
+// Consolidated file-I/O plugin. Replaces 10 formerly-separate directories
+// (read, write, edit, grep, file_operations, file_state, file_tools,
+// patch_parser, fuzzy_match, binary_extensions) with one registration point.
+//
+// 7 tools register as before: read/write/edit/grep/file_operations/file_state/file_tools.
+// patch_parser, fuzzy_match, and binary_extensions were never standalone
+// concepts of their own -- they are libraries FOR the tools above (patch_parser
+// and fuzzy_match are used directly by the edit tool's diff-apply and
+// suggest-on-miss paths; binary_extensions is shared filter data) -- so they
+// move to ./lib/*.js as internal modules, not tool registrations.
+import { readTool } from './lib/read.js'
+import { writeTool } from './lib/write.js'
+import { editTool } from './lib/edit.js'
+import { grepTool } from './lib/grep.js'
+import { fileOperationsTool } from './lib/file_operations.js'
+import { fileStateTool } from './lib/file_state.js'
+import { fileToolsTool } from './lib/file_tools.js'
+
+export default {
+    name: 'files',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(readTool)
+        pi.tools.register(writeTool)
+        pi.tools.register(editTool)
+        pi.tools.register(grepTool)
+        pi.tools.register(fileOperationsTool)
+        pi.tools.register(fileStateTool)
+        pi.tools.register(fileToolsTool)
+    },
+}
+
+
+===== plugins/tools/image_gen/plugin.js (1298 bytes) =====
+// Thin plugin wrapper: all image-generation provider/registry/routing logic
+// lives in src/imagegen/.
+import { env } from '../../../src/env.js'
+import { generate } from '../../../src/imagegen/index.js'
+
+const _tool = ({
+    name: 'image_gen',
+    toolset: 'creative',
+    schema: {
+        name: 'image_gen',
+        description: 'Generate an image from a prompt. Routes through acptoapi /v1/images/generations.',
+        parameters: {
+            type: 'object',
+            properties: {
+                prompt: { type: 'string' },
+                provider: { type: 'string', enum: ['openai', 'replicate'] },
+                size: { type: 'string', default: '1024x1024' },
+                model: { type: 'string' },
+            },
+            required: ['prompt'],
+        },
+    },
+    checkFn: () => Boolean(env('OPENAI_API_KEY') || env('REPLICATE_API_TOKEN')),
+    requiresEnv: ['OPENAI_API_KEY or REPLICATE_API_TOKEN'],
+    handler: async ({ prompt, provider, size = '1024x1024', model }) => {
+        const which = provider || (env('OPENAI_API_KEY') ? 'openai' : 'replicate')
+        return await generate({ provider: which, prompt, size, model })
+    },
+})
+
+export default {
+    name: 'tool-image-gen',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(_tool)
+    },
+}
+
+
+===== plugins/platform/platform-homeassistant/plugin.js (286 bytes) =====
+import * as adapter from './handler.js'
+import { _tool } from './tool.js'
+export default {
+    name: 'platform-homeassistant',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.platforms.register({ name: 'homeassistant', module: adapter })
+        pi.tools.register(_tool)
+    },
+}
+
+
+===== plugins/platform/platform-telegram/plugin.js (184 bytes) =====
+import * as adapter from './handler.js'
+export default { name: 'platform-telegram', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'telegram', module: adapter }) } }
+
+
+===== plugins/platform/platform-slack/plugin.js (178 bytes) =====
+import * as adapter from './handler.js'
+export default { name: 'platform-slack', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'slack', module: adapter }) } }
+
+
+===== plugins/platform/platform-discord/plugin.js (274 bytes) =====
+import * as adapter from './handler.js'
+import { _tool } from './tool.js'
+export default {
+    name: 'platform-discord',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.platforms.register({ name: 'discord', module: adapter })
+        pi.tools.register(_tool)
+    },
+}
+
+
+===== plugins/platform/platform-api_server/plugin.js (188 bytes) =====
+import * as adapter from './handler.js'
+export default { name: 'platform-api-server', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'api_server', module: adapter }) } }
+
+
+===== plugins/platform/platform-wecom/plugin.js (391 bytes) =====
+import * as adapter from './handler.js'
+import * as callbackAdapter from './callback.js'
+import * as crypto from './crypto.js'
+export default {
+    name: 'platform-wecom',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.platforms.register({ name: 'wecom', module: adapter })
+        pi.platforms.register({ name: 'wecom_callback', module: callbackAdapter })
+    },
+}
+export { crypto }
+
+
+===== plugins/platform/platform-matrix/plugin.js (180 bytes) =====
+import * as adapter from './handler.js'
+export default { name: 'platform-matrix', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'matrix', module: adapter }) } }
+
+
+===== plugins/platform/platform-dingtalk/plugin.js (184 bytes) =====
+import * as adapter from './handler.js'
+export default { name: 'platform-dingtalk', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'dingtalk', module: adapter }) } }
+
+
+===== plugins/platform/platform-weixin/plugin.js (180 bytes) =====
+import * as adapter from './handler.js'
+export default { name: 'platform-weixin', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'weixin', module: adapter }) } }
+
+
+===== plugins/platform/platform-whatsapp/plugin.js (184 bytes) =====
+import * as adapter from './handler.js'
+export default { name: 'platform-whatsapp', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'whatsapp', module: adapter }) } }
+
+
+===== plugins/platform/platform-feishu/plugin.js (762 bytes) =====
+import * as adapter from './handler.js'
+import * as commentAdapter from './comment.js'
+import * as commentRulesAdapter from './comment-rules.js'
+import { _tool as feishuDocTool } from './feishu-doc.js'
+import { _tool as feishuDriveTool } from './feishu-drive.js'
+
+export default {
+    name: 'platform-feishu',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.platforms.register({ name: 'feishu', module: adapter })
+        pi.platforms.register({ name: 'feishu_comment', module: commentAdapter })
+        pi.platforms.register({ name: 'feishu_comment_rules', module: commentRulesAdapter })
+        pi.tools.register(feishuDocTool)
+        pi.tools.register(feishuDriveTool)
+    },
+}
+export { commentAdapter as comment, commentRulesAdapter as commentRules }
+
+
+===== plugins/platform/platform-providers/plugin.js (4805 bytes) =====
+// Consolidated webhook-style platform plugin. Replaces 6 formerly-separate
+// platform-<name> directories with one registration point:
+//   - webhook, mattermost, qqbot, bluebubbles are genuine base+config: an
+//     express server receiving one webhook POST and (for 3 of them) a plain
+//     bearer-auth REST call to send replies, differing only in route path,
+//     body parser, field names, and endpoint -- driven through
+//     ../../_shared/webhook-platform-base.js's createWebhookPlatform() factory
+//     via the descriptor table below.
+//   - sms (Twilio) and email (raw SMTP) have genuinely divergent protocols
+//     (form-urlencoded + TwiML XML + Basic auth; raw SMTP socket, no webhook
+//     receive at all) and keep their own adapter modules under ./lib/ per
+//     the "small adapter module" allowance for platforms whose transport
+//     diverges from the REST-webhook shape.
+import { env } from '../../../src/env.js'
+import { createWebhookPlatform } from '../../_shared/webhook-platform-base.js'
+import { SmsAdapter } from './lib/sms-adapter.js'
+import { EmailAdapter } from './lib/email-adapter.js'
+
+const DESCRIPTORS = [
+    {
+        // Generic catch-all: no auth, no outbound REST call -- replies are
+        // just buffered on this.outbox for the caller to inspect/relay.
+        name: 'webhook', className: 'WebhookAdapter',
+        routePath: (self) => self.path,
+        buildOpts: (self, opts) => { self.path = opts.path || '/webhook' },
+        parseMessage: (req) => (
+
+===== plugins/platform/platform-signal/plugin.js (180 bytes) =====
+import * as adapter from './handler.js'
+export default { name: 'platform-signal', surfaces: 'pi', register({ pi }) { pi.platforms.register({ name: 'signal', module: adapter }) } }
+
+
+===== plugins/security/skills-guard/plugin.js (195 bytes) =====
+import { skillsGuardTool } from './lib/skills_guard.js'
+
+export default {
+    name: 'skills-guard',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(skillsGuardTool)
+    },
+}
+
+
+===== plugins/security/credential_files/plugin.js (1696 bytes) =====
+// Thin plugin wrapper: all credential pool/source logic lives in src/credentials/.
+import { getAuthStore } from '../../../src/auth.js'
+
+// Credential names must be valid identifiers (letters, digits, dash, underscore).
+// This rejects path-traversal attempts at the tool handler entry point before any
+// FileAuthStore method is called. Reject-don't-sanitize: a name that fails this
+// check is operator error or an attempt, never a legitimate input to be "fixed".
+const SAFE_NAME = /^[A-Za-z0-9_-]+$/
+
+const _tool = ({
+    name: 'credential_files',
+    toolset: 'core',
+    schema: { name: 'credential_files', description: 'Get/set credentials in ~/.freddie/auth/.', parameters: { type: 'object', properties: { action: { type: 'string', enum: ['get', 'set', 'list', 'delete'] }, name: { type: 'string' }, value: {} }, required: ['action'] } },
+    handler: async ({ action, name, value }) => {
+        // Validate name for actions that use it (everything except 'list')
+        if (action !== 'list' && (!name || typeof name !== 'string' || !SAFE_NAME.test(name))) {
+            return { error: `invalid credential name: must match ${SAFE_NAME.source}` }
+        }
+        const s = getAuthStore()
+        if (action === 'get') return { credential: await s.getCredential(name) }
+        if (action === 'set') return await s.setCredential(name, value)
+        if (action === 'list') return { credentials: await s.listCredentials() }
+        if (action === 'delete') return await s.deleteCredential(n
+
+===== plugins/community/spotify/plugin.js (1642 bytes) =====
+import { env } from '../../../src/env.js'
+
+const spotifyTool = {
+    name: 'spotify',
+    toolset: 'core',
+    schema: { name: 'spotify', description: 'Spotify playback control (Web API).', parameters: { type: 'object', properties: { action: { type: 'string', enum: ['play', 'pause', 'next', 'previous', 'search', 'queue'] }, query: { type: 'string' }, uri: { type: 'string' } }, required: ['action'] } },
+    requiresEnv: ['SPOTIFY_ACCESS_TOKEN'],
+    checkFn: () => Boolean(env('SPOTIFY_ACCESS_TOKEN')),
+    handler: async ({ action, query, uri }) => {
+        if (!env('SPOTIFY_ACCESS_TOKEN')) return { error: 'SPOTIFY_ACCESS_TOKEN required' }
+        const auth = { authorization: `Bearer ${env('SPOTIFY_ACCESS_TOKEN')}` }
+        const base = 'https://api.spotify.com/v1'
+        const map = { play: ['PUT', '/me/player/play'], pause: ['PUT', '/me/player/pause'], next: ['POST', '/me/player/next'], previous: ['POST', '/me/player/previous'] }
+        if (map[action]) { const r = await fetch(base + map[action][1], { method: map[action][0], headers: auth, body: uri ? JSON.stringify({ uris: [uri] }) : null }); return { status: r.status } }
+        if (action === 'search') return await (await fetch(`${base}/search?q=${encodeURIComponent(query)}&type=track&limit=10`, { headers: auth })).json()
+        if (action === 'queue') return await (await fetch(`${base}/me/player/queue?uri=${encodeURIComponent(uri)}`, { method: 'POST', headers: auth })).json()
+        return { error: 'unknown action'
+
+===== plugins/community/spoint_editor/plugin.js (9156 bytes) =====
+// Freddie tool plugin driving a real spoint game-server editor session over its actual wire
+// protocol (msgpackr WebSocket at ws://<host>:<port>/ws). Protocol reverse-engineered from the
+// real spoint source at the sibling C:/dev/spoint checkout -- see wire.js's header comment for
+// full file:line citations. Three tools:
+//   - spoint_place: real PLACE_MODEL (0x82) / PLACE_APP (0x83) editor messages
+//     (src/sdk/EditorHandlers.js HANDLERS[MSG.PLACE_MODEL]/HANDLERS[MSG.PLACE_APP])
+//   - spoint_terrain_reseed: real TERRAIN_RESEED (0x9b) message
+//     (src/sdk/EditorHandlers.js HANDLERS[MSG.TERRAIN_RESEED]) -- the ONLY real terrain-adjacent
+//     editor endpoint that exists server-side; no live per-field terrain-config-value edit
+//     endpoint exists (confirmed by reading every HANDLERS entry in EditorHandlers.js), so this
+//     tool is honestly scoped to seed reroll only rather than inventing a fake field-edit call.
+//   - spoint_lint_world: no server-side lint endpoint exists (same HANDLERS audit); fetches a
+//     live SCENE_GRAPH (0x89 reply) + APP_LIST (0x85 reply, requested via LIST_APPS 0x84) and
+//     runs the SAME 4 checks spoint's own client/editor/WorldValidator.js lintWorld() runs,
+//     ported verbatim in lint.js with per-check file:line citations.
+//
+// Auth: spoint gates every editor-namespaced message (EditorHandlers.HANDLED_TYPES) behind a
+// per-connection isEditor flag (src/sdk/ServerHandlers.js:42,196-207). That flag is true
+// automatically wh
+
+===== plugins/community/google_meet/plugin.js (1488 bytes) =====
+import { env } from '../../../src/env.js'
+
+const googleMeetTool = {
+    name: 'google_meet',
+    toolset: 'core',
+    schema: { name: 'google_meet', description: 'Schedule / list Google Meet calls.', parameters: { type: 'object', properties: { action: { type: 'string', enum: ['list', 'schedule'] }, summary: { type: 'string' }, start: { type: 'string' }, end: { type: 'string' } }, required: ['action'] } },
+    requiresEnv: ['GOOGLE_OAUTH_TOKEN'],
+    checkFn: () => Boolean(env('GOOGLE_OAUTH_TOKEN')),
+    handler: async ({ action, summary, start, end }) => {
+        if (!env('GOOGLE_OAUTH_TOKEN')) return { error: 'GOOGLE_OAUTH_TOKEN required' }
+        const auth = { authorization: `Bearer ${env('GOOGLE_OAUTH_TOKEN')}` }
+        if (action === 'list') return await (await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1', { headers: auth })).json()
+        if (action === 'schedule') return await (await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1', { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify({ summary, start: { dateTime: start }, end: { dateTime: end }, conferenceData: { createRequest: { requestId: String(Date.now()) } } }) })).json()
+        return { error: 'unknown action' }
+    },
+}
+
+export default {
+    name: 'google-meet',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(googleMeetTool)
+    },
+}
+
+
+===== plugins/core/core-cron/plugin.js (479 bytes) =====
+import { listJobs, createJob, cancelJob, deleteJob, tick, startScheduler, stopScheduler } from '../../../src/cron/scheduler.js'
+import { cronjobTool } from './lib/cronjob-tool.js'
+export default {
+    name: 'core-cron', surfaces: 'pi',
+    register({ pi }) {
+        pi.crons.register({ name: 'scheduler', list: listJobs, create: createJob, cancel: cancelJob, delete: deleteJob, tick, start: startScheduler, stop: stopScheduler })
+        pi.tools.register(cronjobTool)
+    },
+}
+
+
+===== plugins/core/core-context-engine/plugin.js (656 bytes) =====
+import { buildContext, blocksToSystemMessage, ContextPlugins } from '../../../src/context/engine.js'
+export default {
+    name: 'core-context-engine', surfaces: 'pi',
+    register({ pi, hooks }) {
+        pi.contexts.register({ name: 'engine', build: buildContext, render: blocksToSystemMessage, plugins: ContextPlugins })
+        hooks.on('preLlmCall', async (p) => {
+            if (!p?.message) return p
+            const blocks = await buildContext({ message: p.message, plugins: ['file', 'skills'] })
+            const sys = blocksToSystemMessage(blocks)
+            return sys ? { ...p, prepend: [sys, ...(p.prepend || [])] } : p
+        })
+    },
+}
+
+
+===== plugins/core/core-compressor/plugin.js (874 bytes) =====
+import { compress, shouldCompress } from '../../../src/agent/compress/index.js'
+export default {
+    name: 'core-compressor', surfaces: 'pi', requires: ['core-agent-machine'],
+    register({ pi }) {
+        // The live compaction call site is src/agent/machine.js's prompting state
+        // (compress() with didCompress -> context replacement). The preLlmCall
+        // hook that used to sit here was doubly dead: machine.js never invokes a
+        // 'preLlmCall' hook, and it read plan?.compressed, a field
+        // computeCompressionPlan never returns (and it passed a bare array where
+        // the API takes {messages}). agentExt registrations stay for external
+        // consumers (npm import { compress }).
+        pi.agentExts.register({ name: 'compress', fn: compress })
+        pi.agentExts.register({ name: 'shouldCompress', fn: shouldCompress })
+    },
+}
+
+
+===== plugins/core/confirmation/plugin.js (480 bytes) =====
+import { approvalTool } from './lib/approval.js'
+import { slashConfirmTool } from './lib/slash_confirm.js'
+import { interruptTool, setInterrupt, isInterrupted, clearInterrupt } from './lib/interrupt.js'
+
+export default {
+    name: 'confirmation',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(approvalTool)
+        pi.tools.register(slashConfirmTool)
+        pi.tools.register(interruptTool)
+    },
+}
+
+export { setInterrupt, isInterrupted, clearInterrupt }
+
+
+===== plugins/core/mcp/plugin.js (1138 bytes) =====
+// Consolidated MCP plugin. Replaces 3 formerly-separate directories
+// (mcp_tool, mcp_oauth, mcp_oauth_manager) with one registration point --
+// oauth and oauth-manager are lifecycle stages (authorize/exchange, then
+// persist/retrieve tokens) of the same MCP-server integration as mcp_tool.
+import { mcpTool } from './lib/tool.js'
+import { mcpOauthTool } from './lib/oauth.js'
+import { mcpOauthManagerTool } from './lib/oauth-manager.js'
+import { autoConnectMcpServers } from './lib/auto-connect.js'
+
+export default {
+    name: 'mcp',
+    surfaces: 'pi',
+    register({ pi, hooks }) {
+        pi.tools.register(mcpTool)
+        pi.tools.register(mcpOauthTool)
+        pi.tools.register(mcpOauthManagerTool)
+        // Auto-connect any MCP servers declared in config / standard `.mcp.json`
+        // (incl. an optional one-time install step) at session start, so their
+        // tools are already available to a turn. Fail-open: a missing/offline
+        // server must not block the rest of the turn.
+        if (hooks?.on) {
+            hooks.on('onSessionStart', () => autoConnectMcpServers().catch(() => null))
+        }
+    },
+}
+
+
+===== plugins/core/sessions/plugin.js (249 bytes) =====
+import { sessionSearchTool, sessionListTool } from './lib/search.js'
+
+export default {
+    name: 'sessions',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(sessionSearchTool)
+        pi.tools.register(sessionListTool)
+    },
+}
+
+
+===== plugins/core/core-cli/plugin.js (758 bytes) =====
+import { registerDiagnosticsCommand } from '../../../src/cli/diagnostics.js'
+import { registerAuthCommand } from './commands-auth.js'
+import { registerWorkspaceCommands } from './commands-workspace.js'
+import { registerRuntimeCommands } from './commands-runtime.js'
+import { registerConfigCommands } from './commands-config.js'
+import { registerDevtoolsCommands } from './commands-devtools.js'
+
+export default {
+    name: 'core-cli', surfaces: 'pi',
+    register({ pi, host }) {
+        const C = pi.cli.register.bind(pi.cli)
+        registerDevtoolsCommands(C, host)
+        registerConfigCommands(C)
+        registerRuntimeCommands(C)
+        registerAuthCommand(C)
+        registerWorkspaceCommands(C)
+        registerDiagnosticsCommand(C, host)
+    },
+}
+
+
+===== plugins/core/core-agent-machine/plugin.js (323 bytes) =====
+import { runTurn, createAgentMachine } from '../../../src/agent/machine.js'
+export default {
+    name: 'core-agent-machine', surfaces: 'pi',
+    register({ pi }) {
+        pi.agentExts.register({ name: 'runTurn', fn: runTurn })
+        pi.agentExts.register({ name: 'createAgentMachine', fn: createAgentMachine })
+    },
+}
+
+
+===== plugins/core/skills/plugin.js (562 bytes) =====
+import { skillManagerTool } from './lib/skill_manager.js'
+import { skillUsageTool } from './lib/skill_usage.js'
+import { skillsIndexTool } from './lib/skills_index.js'
+import { skillTool } from './lib/skills_tool.js'
+import { registerCoreSkills } from './lib/core_skills.js'
+
+export default {
+    name: 'skills',
+    surfaces: 'pi',
+    register({ pi }) {
+        registerCoreSkills(pi)
+        pi.tools.register(skillManagerTool)
+        pi.tools.register(skillUsageTool)
+        pi.tools.register(skillsIndexTool)
+        pi.tools.register(skillTool)
+    },
+}
+
+
+===== plugins/core/core-commands/plugin.js (358 bytes) =====
+import { COMMAND_REGISTRY, COMMANDS_BY_CATEGORY } from '../../../src/commands/registry.js'
+export default {
+    name: 'core-commands', surfaces: 'pi',
+    register({ pi }) {
+        for (const c of COMMAND_REGISTRY) pi.commands.register({ name: c.name, description: c.description, category: c.category, aliases: c.aliases, args_hint: c.args_hint })
+    },
+}
+
+
+===== plugins/core/skills-hub/plugin.js (283 bytes) =====
+import { skillsHubTool } from './lib/skills_hub.js'
+import { skillsSyncTool } from './lib/skills_sync.js'
+
+export default {
+    name: 'skills-hub',
+    surfaces: 'pi',
+    register({ pi }) {
+        pi.tools.register(skillsHubTool)
+        pi.tools.register(skillsSyncTool)
+    },
+}

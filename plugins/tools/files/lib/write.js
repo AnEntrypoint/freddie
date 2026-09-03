@@ -1,0 +1,27 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { recordWrite } from './turn_writes.js'
+
+export const writeTool = ({
+    name: 'write',
+    toolset: 'core',
+    schema: {
+        name: 'write',
+        description: 'Write content to a file (overwrites).',
+        parameters: {
+            type: 'object',
+            properties: {
+                path: { type: 'string' },
+                content: { type: 'string' },
+            },
+            required: ['path', 'content'],
+        },
+    },
+    handler: async ({ path: p, content }, ctx = {}) => {
+        const resolved = ctx.cwd && !path.isAbsolute(p) ? path.join(ctx.cwd, p) : p
+        fs.mkdirSync(path.dirname(resolved), { recursive: true })
+        fs.writeFileSync(resolved, content, 'utf8')
+        recordWrite(ctx.sessionKey, resolved)
+        return { bytes: Buffer.byteLength(content, 'utf8') }
+    },
+})

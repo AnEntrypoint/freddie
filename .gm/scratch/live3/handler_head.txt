@@ -1,0 +1,80 @@
+1|import { FlowRunner } from '../../src/agent/flow_runner.js'
+2|import { resolveCallLLM } from '../../src/agent/llm_resolver.js'
+3|
+4|let _log = null
+5|
+6|export function setLogger(log) {
+7|    _log = log
+8|}
+9|
+10|export const _tool = {
+11|    name: 'run_flow',
+12|    toolset: 'core',
+13|    schema: {
+14|        name: 'run_flow',
+15|        description:
+16|            'Preferred mechanism for multi-step tool graphs. Direct tool calls remain legal for single steps. ' +
+17|            'Run a flow skill by name. Flow skills are SKILL.md files that contain a Mermaid or D2 flowchart. ' +
+18|            'The flowchart is walked from BEGIN to END, feeding each node to the LLM with path history, prior results, and remaining blanks. ' +
+19|            'Mark unknowns as {{name}} or {{name:hint}}; they are filled by the same LLM only when that node is visited ' +
+20|            '(output <blank name="name">value</blank>). ' +
+21|            'Decision nodes must output <choice>value</choice> to select the branch. ' +
+22|            'Task and decision nodes may emit tool_calls; the runner dispatches them via the host and feeds results back into the same node before advancing.',
+23|        parameters: {
+24|            type: 'object',
+25|            properties: {
+26|                name: {
+27|                    type: 'string',
+28|                    description: 'Exact skill name (findSkill match; no fuzzy lookup).',
+29|                },
+30|                args: {
+31|                    type: 'string',
+32|                    description: 'Optional arguments to pass to the flow skill.',
+33|                },
+34|                model: {
+35|                    type: 'string',
+36|                    description: 'Optional model override for the LLM calls within the flow.',
+37|                },
+38|                provider: {
+39|                    type: 'string',
+40|                    description: 'Optional provider override for the LLM calls within the flow.',
+41|                },
+42|            },
+43|            required: ['name'],
+44|        },
+45|    },
+46|    handler: async (args, ctx) => {
+47|        return await runFlowSkill({
+48|            name: args.name,
+49|            flowArgs: args.args || '',
+50|            model: args.model || null,
+51|            provider: args.provider || null,
+52|            ctx,
+53|            log: _log,
+54|        })
+55|    },
+56|}
+57|
+58|export async function runFlowSkill({ name, flowArgs = '', model = null, provider = null, ctx = null, log = null, findSkillFn = null } = {}) {
+59|    if (log) log.info(`run_flow: ${name} args=${flowArgs}`)
+60|
+61|    let skill
+62|    let findSkill = findSkillFn || null
+63|    try {
+64|        if (!findSkill) findSkill = (await import('../../src/skills/index.js')).findSkill
+65|        skill = findSkill(name)
+66|    } catch (e) {
+67|        if (log) log.warn(`run_flow: skill lookup failed: ${e.message}`)
+68|        skill = null
+69|    }
+70|
+71|    if (!skill) {
+72|        return { ok: false, error: `Flow skill not found: ${name}`, state: { moves: 0 } }
+73|    }
+74|
+75|    if (!skill.body || !skill.body.trim()) {
+76|        return { ok: false, error: `Skill "${name}" has no body content`, state: { moves: 0 } }
+77|    }
+78|
+79|    const callLLM = resolveCallLLM({ provider: provider || undefined, model: model || undefined })
+80|

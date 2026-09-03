@@ -1,0 +1,84 @@
+{
+  "name": "freddie",
+  "version": "0.0.279",
+  "type": "module",
+  "description": "Open JS agent harness built on pi-mono, xstate, and anentrypoint-design",
+  "bin": {
+    "freddie": "./bin/freddie.js"
+  },
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./browser": {
+      "browser": "./dist/browser/freddie.js",
+      "default": "./src/browser/index.js"
+    },
+    "./plugins/*": "./plugins/*",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "start": "node bin/freddie.js",
+    "lint": "node scripts/lint.mjs",
+    "build:browser": "vite build --config vite.browser.config.js",
+    "link-local-design": "node scripts/link-local-design.mjs",
+    "postinstall": "node scripts/scan-deps.mjs"
+  },
+  "dependencies": {
+    "@earendil-works/pi-tui": "latest",
+    "@modelcontextprotocol/sdk": "latest",
+    "acptoapi": "github:AnEntrypoint/acptoapi",
+    "anentrypoint-design": "github:AnEntrypoint/design",
+    "busybase": "github:AnEntrypoint/busybase",
+    "commander": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "flatspace": "1.0.23",
+    "gm-plugkit": "latest",
+    "gm-skill": "latest",
+    "js-yaml": "latest",
+    "libsql-plugkit-client": "github:AnEntrypoint/libsql-plugkit-client",
+    "msgpackr": "latest",
+    "plugsdk": "github:AnEntrypoint/plugsdk",
+    "vscode-languageserver": "latest",
+    "vscode-languageserver-textdocument": "latest",
+    "ws": "latest",
+    "xstate": "latest"
+  },
+  "optionalDependencies": {
+    "blessed": "latest",
+    "ssh2": "latest",
+    "undici": "latest"
+  },
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "plugins/",
+    "skills/",
+    "scripts/",
+    "README.md",
+    "CHANGELOG.md",
+    "AGENTS.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnEntrypoint/freddie.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AnEntrypoint/freddie/issues"
+  },
+  "homepage": "https://github.com/AnEntrypoint/freddie#readme",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "agent",
+    "llm",
+    "cli",
+    "coding-agent",
+    "freddie",
+    "pi-mono",
+    "xstate"
+  ]
+}

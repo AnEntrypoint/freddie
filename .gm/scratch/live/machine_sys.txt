@@ -1,0 +1,60 @@
+1|    // A fresh session (no caller-supplied sessionKey) has no claim yet -- claim
+2|    // it now under its minted key. registerTurn's own guard makes this
+3|    // effectively unreachable (randomUUID collision), but claiming here keeps
+4|    // exactly one code path (mergeTurnEntry below) responsible for filling in
+5|    // the real actor/control, instead of a fresh-session branch and an
+6|    // explicit-sessionKey branch diverging.
+7|    if (!claimed) claimed = claimTurn(key)
+8|    if (!claimed) return { messages, result: null, error: `turn already live for session ${key}`, iterations: 0 }
+9|    // Restore and reconcile tasks from prior sessions so background tasks
+10|    // from a resumed session are properly tracked and stale ones detected.
+11|    try {
+12|        const { restoreTasks } = await import('../../plugins/task/registry.js')
+13|        await restoreTasks(key)
+14|    } catch (_) {}
+15|    let initMessages = [...messages]; const sysParts = []
+16|    // Act-don't-narrate directive (user-witnessed stall: weak models answer
+17|    // open-ended build prompts with a plan and zero tool calls, ending the
+18|    // turn — kimi-cli's prompt drives action instead). Gated on having any
+19|    // toolsets enabled so contact-facing distributions (enabledToolsets: [])
+20|    // keep their conversational behavior.
+21|    if ((enabledToolsets ?? ['core']).length) sysParts.push('You are an autonomous coding agent. ACT, do not narrate: use your tools directly to accomplish the task (create and edit files, run commands) instead of describing a plan or asking which options to pick — make reasonable choices yourself. After each tool result, keep going until the task is fully done. Only stop when the work is complete or genuinely blocked. Preferred mechanism for multi-step tool graphs is run_flow (a Mermaid/D2 skill walked node-by-node, with LLM decisions and {{blank}} injection). Direct tool calls remain legal for single steps.')
+22|    if (cwd) sysParts.push(`Working directory: ${cwd}. Always pass cwd="${cwd}" to bash tool calls. When reading or writing files use paths relative to this directory or absolute paths under it.`)
+23|    if (skill) { const sd = h.pi.skills.get(skill); const skillText = sd?.content || sd?.body; if (skillText) sysParts.push('Skill context:\n' + skillText) }
+24|    // Auto-recall on turn entry: surface salient learned memories for this prompt from gm
+25|    // rs-learn (freddie's primary learning store). Best-effort; never blocks the turn --
+26|    // bounded by AUTORECALL_TIMEOUT_MS so a hung/unreachable gm-learn backend degrades to
+27|    // "no memories surfaced this turn" instead of stalling the whole preamble (live-witnessed:
+28|    // an unhealthy backend hung this call 20-30+s with no internal timeout of its own, and
+29|    // this happens BEFORE driveAgentActor's own timeoutMs timer is armed, so runTurn's
+30|    // configured turn timeout provided zero protection against it).
+31|    try {
+32|        const { autoRecall, projectNamespace } = await import('../learn/gm-learn.js')
+33|        const AUTORECALL_TIMEOUT_MS = 4000
+34|        const autorecallAbort = new AbortController()
+35|        let autorecallTimer
+36|        const hits = await Promise.race([
+37|            (async () => autoRecall(prompt, { limit: 5, namespace: await projectNamespace(), signal: autorecallAbort.signal }))().finally(() => clearTimeout(autorecallTimer)),
+38|            new Promise((_, reject) => { autorecallTimer = setTimeout(() => { autorecallAbort.abort(); reject(new Error('autoRecall timeout')) }, AUTORECALL_TIMEOUT_MS) }),
+39|        ])
+40|        // Weak models were witnessed answering FROM this block instead of the new
+41|        // user message below it (asked to remember a number, answered a prior
+42|        // turn's unrelated question instead) -- the plain "Relevant memories:"
+43|        // label gave no signal that this is background reference material, not
+44|        // the current instruction. Explicit priority framing fixes it.
+45|        if (hits.length) sysParts.push('Background context from past conversations (gm rs-learn) -- for reference only, does not describe the current task:\n' + hits.map(h => '- ' + h.text).join('\n') + '\n\nThe user\'s actual request for THIS turn follows below and takes priority over the above.')
+46|    } catch (_) {}
+47|    // Verbatim-span recall: exact excerpts from past sessions' wire logs matching
+48|    // the prompt's terms (locate-and-transcribe, never paraphrased). Complements
+49|    // the embedding recall above — similarity finds related facts, this finds
+50|    // the literal prior occurrence.
+51|    try {
+52|        const { searchWireLogs } = await import('./events.js')
+53|        const spans = searchWireLogs(prompt, { limit: 3 })
+54|        if (spans.length) sysParts.push('Verbatim excerpts from past session logs matching this prompt (exact quotes, background reference only):\n' + spans.map(s => `- [${s.ts?.slice(0, 10)} ${s.role}] ${s.text}`).join('\n'))
+55|    } catch (_) {}
+56|    if (sysParts.length) initMessages.unshift({ role: 'user', content: sysParts.join('\n\n') })
+57|    const inbound = await h.hooks.invoke('onMessageInbound', { content: prompt })
+58|    hookEngine.runHooks('onMessageInbound', { sessionKey, cwd }).catch(() => {})
+59|    wireHookBridge.forwardHook('onMessageInbound', { sessionKey, cwd, content: prompt }).catch(() => {})
+60|    if (inbound?.behavior === 'block') { await h.hooks.invoke('onSessionEnd', { reason: 'prompt_blocked' }); unregisterTurn(key); return { messages: initMessages, result: null, error: 'prompt blocked by plugsdk hook: ' + (inbound.reason || 'denied'), iterations: 0 } }

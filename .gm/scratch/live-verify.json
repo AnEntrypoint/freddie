@@ -1,0 +1,42 @@
+{
+  "handlerKeys": [
+    "_tool",
+    "flowCommandHandler",
+    "isWalkableFlowchart",
+    "listWalkableFlows",
+    "runFlowSkill",
+    "runFlowSource",
+    "setLogger"
+  ],
+  "toolName": "run_flow",
+  "runnerKeys": [
+    "FlowRunner",
+    "createFlowRunner",
+    "detectFormat",
+    "extractBlanks",
+    "extractFlowchart",
+    "findStartNode",
+    "getOutgoingEdges",
+    "parseBlankTags",
+    "parseFlowchart",
+    "substituteBlanks"
+  ],
+  "demoWalkable": true,
+  "archWalkable": false,
+  "gmWalkable": false,
+  "flowNames": [
+    "demo-flow"
+  ],
+  "flowCount": 1,
+  "hasDemo": true,
+  "hasArch": false,
+  "inlineWalkable": true,
+  "inlineBareWalkable": false,
+  "parseInline": [
+    "BEGIN",
+    "A",
+    "END"
+  ],
+  "findStart": "present",
+  "findStartType": "function"
+}

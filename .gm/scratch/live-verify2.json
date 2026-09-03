@@ -1,0 +1,93 @@
+{
+  "runner": [
+    "FlowRunner",
+    "createFlowRunner",
+    "detectFormat",
+    "extractBlanks",
+    "extractFlowchart",
+    "findStartNode",
+    "getOutgoingEdges",
+    "parseBlankTags",
+    "parseFlowchart",
+    "substituteBlanks"
+  ],
+  "graph": [
+    "findStartNode",
+    "getOutgoingEdges"
+  ],
+  "demoWalkable": true,
+  "archWalkable": false,
+  "demoExtract": {
+    "source": "flowchart TD\nBEGIN((begin))\nBEGIN --> GREET[Greet {{who:person name}}]\nGREET --> ASK{Continue?}\nASK -->|yes| END([end])\nASK -->|no| END\n",
+    "format": "mermaid",
+    "fenced": true
+  },
+  "demoParseKeys": [
+    "nodes",
+    "edges",
+    "format"
+  ],
+  "demoNodeIds": [
+    "BEGIN",
+    "GREET",
+    "ASK",
+    "END"
+  ],
+  "demoNodeSample": {
+    "BEGIN": {
+      "type": "start",
+      "label": "begin"
+    },
+    "GREET": {
+      "type": "task",
+      "label": "Greet {{who:person name}}"
+    },
+    "ASK": {
+      "type": "decision",
+      "label": "Continue?"
+    },
+    "END": {
+      "type": "end",
+      "label": "end"
+    }
+  },
+  "findStartNodeType": "function",
+  "findStartNodeLen": 2,
+  "inlineNodes": [
+    "BEGIN",
+    "A",
+    "END"
+  ],
+  "inlineSample": {
+    "BEGIN": {
+      "type": "task",
+      "label": "\"boot\""
+    },
+    "A": {
+      "type": "task",
+      "label": "\"say hi\""
+    },
+    "END": {
+      "type": "task",
+      "label": "\"done\""
+    }
+  },
+  "inlineWalkableFenced": true,
+  "inlineWalkableBare": false,
+  "list": [
+    {
+      "name": "demo-flow",
+      "description": "Example run_flow skill. Mermaid graph with a blank, a labeled decision, and END"
+    }
+  ],
+  "hasDemo": true,
+  "hasArch": false,
+  "handleEmpty": {
+    "flows": [
+      {
+        "name": "demo-flow",
+        "description": "Example run_flow skill. Mermaid graph with a blank, a labeled decision, and END"
+      }
+    ]
+  }
+}

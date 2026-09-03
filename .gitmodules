@@ -1,0 +1,18 @@
+[submodule "design"]
+	path = design
+	url = https://github.com/AnEntrypoint/design.git
+[submodule "acptoapi"]
+	path = acptoapi
+	url = https://github.com/AnEntrypoint/acptoapi.git
+[submodule "plugsdk"]
+	path = plugsdk
+	url = https://github.com/AnEntrypoint/plugsdk.git
+[submodule "gm"]
+	path = gm
+	url = https://github.com/AnEntrypoint/gm.git
+[submodule "busybase"]
+	path = busybase
+	url = https://github.com/AnEntrypoint/busybase.git
+[submodule "libsql-plugkit-client"]
+	path = libsql-plugkit-client
+	url = https://github.com/AnEntrypoint/libsql-plugkit-client.git

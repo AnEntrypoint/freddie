@@ -1,0 +1,105 @@
+{
+  "inlineBareWalkable": false,
+  "inlineFencedWalkable": true,
+  "empty": {
+    "ok": false,
+    "error": "source is empty",
+    "state": {
+      "moves": 0
+    }
+  },
+  "garbage": {
+    "ok": false,
+    "error": "source is not a mermaid/d2 flowchart",
+    "state": {
+      "moves": 0
+    }
+  },
+  "missing": {
+    "ok": false,
+    "error": "Flow skill not found: nope-xyz",
+    "state": {
+      "moves": 0
+    }
+  },
+  "inlineSource": {
+    "ok": false,
+    "error": "Flow \"(inline)\" stalled: no outgoing edge from node \"END\" and no END node reached",
+    "keys": [
+      "ok",
+      "state",
+      "result",
+      "error"
+    ],
+    "state": {
+      "moves": 2,
+      "path": [
+        "BEGIN",
+        "A",
+        "END"
+      ],
+      "nodeCount": 3
+    }
+  },
+  "handlerSource": {
+    "ok": false,
+    "error": "Flow \"(inline)\" stalled: no outgoing edge from node \"END\" and no END node reached",
+    "keys": [
+      "ok",
+      "state",
+      "result",
+      "error"
+    ]
+  },
+  "handleEmpty": {
+    "flows": [
+      {
+        "name": "demo-flow",
+        "description": "Example run_flow skill. Mermaid graph with a blank, a labeled decision, and END"
+      }
+    ]
+  },
+  "arch": {
+    "message": {
+      "role": "user",
+      "content": "[skill:architecture-diagram]\n\n# Architecture Diagram\n\nYou are an expert software architect. Produce clear, accurate architecture diagrams from user descriptions or codebases.\n\n## Inputs you accept\n\n- Natural language description of a system (\"I have a Node.js API, a Postgres DB, and a Redis cache\")\n- A directory path or list of source files to analyse\n- An existing diagram to update or extend\n\n## Output formats\n\nChoose the best format for the request:\n1. **Mermaid** (`graph TD`, `sequenceDiagram`, `C4Context`) — preferred for GitHub/Notion\n2. **PlantUML** (`@startuml`) — preferred for enterprise/Java shops\n3. **ASCII art** — for terminal output or when no renderer is available\n\n## Process\n\n1. Identify the **system boundary** — what is in scope vs external.\n2. Identify **components**: services, databases, queues, external APIs, clients.\n3. Identify **data flows**: reads, writes, events, API calls.\n4. Group components into **layers** (presentation / application / data / infra).\n5. Label every arrow with the **protocol or action** (HTTP GET, SQL, AMQP publish).\n6. Add a legend if non-obvious glyphs are used.\n\n## Rules\n\n- Keep diagrams under 20 nodes. Split into sub-diagrams if larger.\n- Never invent components not mentioned or clearly implied.\n- Always show the entry point and the persistence layer.\n- For sequence diagrams: happy path first, then `alt` error blocks.\n\n## Example (Mermaid)\n\n```mermaid\ngraph TD\n    Browser -->|HTTPS| API[Node.js API]\n    API -->|SQL| DB[(Postgres)]\n    API -->|GET/SET| Cache[(Redis)]\n    API -->|publish| Queue[RabbitMQ]\n    Worker -->|consume| Queue\n    Worker -->|SQL| DB\n```\n\nAsk the user for the system description if none is provided; otherwise produce the diagram immediately.\n"
+    }
+  },
+  "archDump": false,
+  "missingSkill": {
+    "error": "skill not found: nope",
+    "available": [
+      "architecture-diagram",
+      "ascii-video",
+      "concept-diagrams",
+      "etl-pipelines",
+      "sql-explainer",
+      "incident-response",
+      "log-triage",
+      "demo-flow",
+      "okr-drafter",
+      "weekly-review",
+      "code-review",
+      "rfc-writer",
+      "systematic-debugging",
+      "polaris-protocol",
+      "wfgy-method",
+      "agent-browser",
+      "enagage",
+      "fifth-dimension-engine",
+      "gm",
+      "gm-continue",
+      "lean",
+      "polaris-goal-compiler"
+    ]
+  },
+  "demoViaSkillWouldWalk": true,
+  "mgrWalkable": [
+    "demo-flow"
+  ],
+  "mgrCount": 22,
+  "toolset": "core",
+  "descHasSpontaneous": true,
+  "descHasReduces": true,
+  "hasSourceParam": true
+}

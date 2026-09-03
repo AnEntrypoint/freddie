@@ -1,0 +1,251 @@
+FILE src/toolset_distributions.js
+24:    // mcp_tool/mcp_oauth*, send_message (bypasses whatever outbound pipeline
+
+FILE src/observability/state-machines.js
+68:// executing_tools, done, error, etc.) are already identifier-safe, but this
+
+FILE src/tui/input-handlers.js
+412:            // executing_tools onDone) increments exactly ONCE per full LLM-
+
+FILE src/host/plugin-discovery.js
+84:                    // Multi-tool files export _tool0, _tool1, ... (documented
+86:                    // single-tool _tool shape -- both must register, since a
+89:                    const tools = [handlerMod._tool, ...Object.keys(handlerMod).filter(k => /^_tool\d+$/.test(k)).sort().map(k => handlerMod[k])].filter(Boolean)
+
+FILE src/host/host.js
+86:    // src/mcp/server.js, src/acp/tools.js, doctor-deep, managed_tool_gateway --
+
+FILE src/browser/index.js
+23:// runTurn/resumeTurn's executing_tools step which still calls the bare
+
+FILE src/cli/interactive.js
+486:            // (machine_builder.js's executing_tools onDone) increments exactly
+
+FILE src/cli/hooks.js
+5:export function loadHooks() { try { return JSON.parse(fs.readFileSync(file(), 'utf8')) } catch { return { pre_command: [], post_command: [], pre_tool: [], post_tool: [] } } }
+
+FILE src/agent/machine_builder.js
+133:        // a cancel arriving mid-prompting / mid-executing_tools is not silently
+484:                // straight to 'done' WITHOUT ever entering 'executing_tools' --
+500:                    { target: 'executing_tools' },
+503:            executing_tools: {
+695:                                        forceStop = 'unknown_tool_repeat'
+
+FILE src/agent/turn-approval.js
+63:// Called from the machine's executing_tools state before dispatching a gated
+
+FILE src/agent/flow_runner_core.js
+212:    _toolName(tc) {
+216:    _toolArgs(tc) {
+225:    _toolId(tc, i) {
+264:                traces.push({ skipped: true, names: calls.map(c => this._toolName(c)).filter(Boolean) })
+270:                const name = this._toolName(tc)
+271:                const args = this._toolArgs(tc)
+272:                const id = this._toolId(tc, i)
+
+FILE src/agent/machine.js
+17:// Default agent.approval_tools gate list — the tools that pause for a human
+168:        mutatingTools: new Set(getConfigValue('agent.approval_tools', DEFAULT_APPROVAL_TOOLS)),
+248:        mutatingTools: new Set(getConfigValue('agent.approval_tools', DEFAULT_APPROVAL_TOOLS)),
+
+FILE src/agent/turn-revert.js
+46:    // executing_tools. A pending question/approval promise left unsettled
+
+FILE src/agent/approval_classifier.js
+22:// machine in executing_tools): CLASSIFIER_CONSEC_DENY_LIMIT consecutive or
+
+FILE plugins/document-extraction/plugin.js
+1:import { _tool } from './handler.js'
+7:        pi.tools.register(_tool)
+
+FILE plugins/document-extraction/handler.js
+59:export const _tool = ({
+
+FILE plugins/flow_skill/plugin.js
+1:import { _tool, setLogger } from './handler.js'
+8:        pi.tools.register(_tool)
+
+FILE plugins/flow_skill/handler.js
+10:export const _tool = {
+
+FILE plugins/ask_user/handler.js
+1:export const _tool = {
+
+FILE plugins/checkpoint/plugin.js
+1:import { _tool } from './handler.js'
+7:        pi.tools.register(_tool)
+
+FILE plugins/checkpoint/handler.js
+3:export const _tool = {
+
+FILE plugins/tool_backend_helpers/handler.js
+17:export const _tool = ({
+
+FILE plugins/dmail/plugin.js
+1:import { _tool } from './handler.js'
+7:        pi.tools.register(_tool)
+
+FILE plugins/dmail/handler.js
+3:export const _tool = {
+
+FILE plugins/think/plugin.js
+1:import { _tool, setLogger } from './handler.js'
+8:        pi.tools.register(_tool)
+
+FILE plugins/think/handler.js
+10:export const _tool = {
+
+FILE plugins/tool_output_limits/handler.js
+28:export const _tool = ({
+
+FILE plugins/plugin-validate/candidate-loader.js
+20:        if (tools.length) return { kind: 'handler.js', value: { name: `tool-${path.basename(dir)}`, surfaces: 'pi', register() {}, _tools: tools } }
+
+FILE plugins/plugin-validate/plugin.js
+174:                    console.log(`OK    ${dir}  (${kind}, surfaces=${value.surfaces}${value._tools ? `, tools=${value._tools.map(t => t.name).join(',')}` : ''})`)
+
+FILE plugins/agent_swarm/plugin.js
+1:import { _tool } from './handler.js'
+15:        pi.tools.register(_tool)
+
+FILE plugins/agent_swarm/handler.js
+36:export const _tool = {
+
+FILE plugins/debug/debug_helpers/handler.js
+3:export const _tool = ({
+
+FILE plugins/debug/plugin-validate/lib/validate.js
+17: * handler.js exporting `_tool` with no sibling plugin.js -- both are
+
+FILE plugins/memory/memory/handler.js
+37:export const _tool = ({
+
+FILE plugins/gui/gui-mcp/plugin.js
+135:            // Dynamic import of the mcp_tool handler to call reconnect
+
+FILE plugins/tools/terminal/handler.js
+58:export const _tool = ({
+
+FILE plugins/tools/budget_config/handler.js
+3:export const _tool = ({
+
+FILE plugins/tools/bash/handler.js
+24:export const _tool = ({
+
+FILE plugins/tools/code_execution/handler.js
+10:export const _tool = ({
+
+FILE plugins/tools/managed_tool_gateway/handler.js
+3:export const _tool = ({
+4:    name: 'managed_tool_gateway',
+6:    schema: { name: 'managed_tool_gateway', description: 'Proxy: dispatch any registered tool by name with arguments. Used for tool-level audit and policy interception.', parameters: { type: 'object', properties: { name: { type: 'string' }, arguments: {} }, required: ['name'] } },
+
+FILE plugins/tools/send_message/handler.js
+10:export const _tool = ({
+
+FILE plugins/tools/web/plugin.js
+3:// modules under lib/. Formerly separate plugins/{browser,web_tools,web_search,
+
+FILE plugins/tools/env_passthrough/handler.js
+9:export const _tool = ({
+
+FILE plugins/tools/wait/handler.js
+12:export const _tool0 = {
+33:export const _tool1 = {
+
+FILE plugins/tools/files/plugin.js
+2:// (read, write, edit, grep, file_operations, file_state, file_tools,
+5:// 7 tools register as before: read/write/edit/grep/file_operations/file_state/file_tools.
+17:import { fileToolsTool } from './lib/file_tools.js'
+
+FILE plugins/tools/process_registry/handler.js
+13:export const _tool = ({
+
+FILE plugins/tools/image_gen/plugin.js
+6:const _tool = ({
+35:        pi.tools.register(_tool)
+
+FILE plugins/tools/files/lib/file_tools.js
+16:    name: 'file_tools',
+18:    schema: { name: 'file_tools', description: 'list/glob files (recursive walk skipping node_modules, .git, dist).', parameters: { type: 'object', properties: { dir: { type: 'string', default: '.' }, ext: { type: 'string' }, limit: { type: 'number', default: 1000 } } } },
+
+FILE plugins/platform/platform-homeassistant/plugin.js
+2:import { _tool } from './tool.js'
+8:        pi.tools.register(_tool)
+
+FILE plugins/platform/platform-homeassistant/tool.js
+3:export const _tool = ({
+4:    name: 'homeassistant_tool',
+6:    schema: { name: 'homeassistant_tool', description: 'Read state or call a service on Home Assistant.', parameters: { type: 'object', properties: { action: { type: 'string', enum: ['state', 'service'] }, entity_id: { type: 'string' }, domain: { type: 'string' }, service: { type: 'string' }, data: {} }, required: ['action'] } },
+
+FILE plugins/platform/platform-discord/plugin.js
+2:import { _tool } from './tool.js'
+8:        pi.tools.register(_tool)
+
+FILE plugins/platform/platform-discord/tool.js
+3:export const _tool = ({
+4:    name: 'discord_tool',
+6:    schema: { name: 'discord_tool', description: 'Send a message to a Discord channel via REST.', parameters: { type: 'object', properties: { channel_id: { type: 'string' }, content: { type: 'string' } }, required: ['channel_id', 'content'] } },
+
+FILE plugins/platform/platform-feishu/feishu-drive.js
+3:export const _tool = ({
+
+FILE plugins/platform/platform-feishu/feishu-doc.js
+3:export const _tool = ({
+
+FILE plugins/platform/platform-feishu/plugin.js
+4:import { _tool as feishuDocTool } from './feishu-doc.js'
+5:import { _tool as feishuDriveTool } from './feishu-drive.js'
+
+FILE plugins/security/path_security/handler.js
+23:export const _tool = ({
+
+FILE plugins/security/credential_files/plugin.js
+10:const _tool = ({
+32:        pi.tools.register(_tool)
+
+FILE plugins/security/tirith_security/handler.js
+7:export const _tool = ({
+
+FILE plugins/security/osv_check/handler.js
+1:export const _tool = ({
+
+FILE plugins/community/neutts_synth/handler.js
+3:export const _tool = ({
+
+FILE plugins/community/mixture_of_agents/handler.js
+3:export const _tool = ({
+
+FILE plugins/community/rl_training/handler.js
+3:export const _tool = ({
+
+FILE plugins/core/clarify/handler.js
+1:export const _tool = ({
+
+FILE plugins/core/checkpoint/handler.js
+22:export const _tool = ({
+
+FILE plugins/core/subagent_status/handler.js
+81:export const _tool = ({
+
+FILE plugins/core/mcp/plugin.js
+2:// (mcp_tool, mcp_oauth, mcp_oauth_manager) with one registration point --
+4:// persist/retrieve tokens) of the same MCP-server integration as mcp_tool.
+
+FILE plugins/core/todo/handler.js
+29:export const _tool = ({
+
+FILE plugins/core/delegate/handler.js
+37:export const _tool = ({
+
+FILE plugins/core/core-cli/commands-devtools.js
+142:            total_tool_calls: totalToolCalls,
+159:        console.log(`  total tool calls: ${report.total_tool_calls}`)
+
+FILE plugins/core/skills/plugin.js
+4:import { skillTool } from './lib/skills_tool.js'
+
+FILE plugins/core/mcp/lib/tool.js
+8:    name: 'mcp_tool',
+10:    schema: { name: 'mcp_tool', description: 'Connect to an external MCP server (stdio) and call its tools.', parameters: { type: 'object', properties: { action: { type: 'string', enum: ['connect', 'list', 'call', 'disconnect'] }, id: { type: 'string' }, command: { type: 'string' }, args: { type: 'array' }, name: { type: 'string' }, arguments: {} }, required: ['action'] } },
+60: * Connect to an MCP server over stdio. Shared by the `mcp_tool` `connect`

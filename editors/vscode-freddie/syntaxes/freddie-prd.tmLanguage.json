@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Freddie PRD",
+  "scopeName": "source.freddie-prd-yaml",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#row-start" },
+    { "include": "#known-field" },
+    { "include": "#status-value" },
+    { "include": "#string" }
+  ],
+  "repository": {
+    "comment": {
+      "match": "#.*$",
+      "name": "comment.line.number-sign.freddie-prd"
+    },
+    "row-start": {
+      "match": "^-\\s+(?=(id|subject|description|status|blockedBy|witness|witness_evidence|commit_comment|text|title)\\s*:)",
+      "name": "keyword.control.freddie-prd.row-start"
+    },
+    "known-field": {
+      "match": "(?:^\\s*|(?<=^-\\s))(id|subject|description|status|blockedBy|witness|witness_evidence|commit_comment|text|title)\\s*:",
+      "captures": {
+        "1": { "name": "entity.name.tag.freddie-prd.field" }
+      }
+    },
+    "status-value": {
+      "match": "(?<=status:\\s)(pending|completed|witnessed|resolved|unknown)\\b",
+      "name": "constant.language.freddie-prd.status"
+    },
+    "string": {
+      "match": "'[^']*'|\"[^\"]*\"",
+      "name": "string.quoted.freddie-prd"
+    }
+  }
+}

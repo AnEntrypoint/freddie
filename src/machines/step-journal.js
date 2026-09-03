@@ -1,0 +1,174 @@
+// Step journal — the persistent-compute layer atop snapshot-store.
+//
+// snapshot-store resumes a machine from its last *committed transition*. That
+// leaves one recompute window: if the process dies while a fromPromise invoke is
+// in flight (LLM HTTP call sent, or a tool running), the persisted snapshot is
+// still the pre-invoke state, so resume RE-RUNS that invoke from scratch — paying
+// for the LLM call twice and repeating any tool side-effect.
+//
+// runStep closes that window. Wrap each effectful call inside an invoke in
+// runStep(sessionKey, stepId, fn): the first time it runs fn and journals the
+// result; on resume, a completed journal row returns the cached result WITHOUT
+// calling fn again. This makes completed LLM calls and tool side-effects
+// at-most-once. The single genuinely-interrupted step (started, no done) re-runs
+// — at-least-once for exactly the one call that was mid-flight at crash.
+import { db } from '../db.js'
+import { logger } from '../observability/log.js'
+
+const log = logger('step-journal')
+
+let _inited = false
+async function init() {
+    const d = await db()
+    if (!_inited) {
+        await d.exec(`CREATE TABLE IF NOT EXISTS step_results (
+            session_key TEXT NOT NULL,
+            step_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            result_json TEXT,
+            started INTEGER NOT NULL,
+            done INTEGER,
+            PRIMARY KEY (session_key, step_id)
+        )`)
+        _inited = true
+    }
+    return d
+}
+
+// In-process lock: the started DB marker survives restarts, but within one live
+// process two concurrent runStep calls for the same key must not both run fn.
+const _inflight = new Map() // `${sessionKey} ${stepId}` -> Promise
+
+// runStep(sessionKey, stepId, fn[, opts]) — idempotent effect execution.
+// - completed journal row (status=done) -> return cached result, fn NOT called.
+// - started-only row (crash during fn) -> re-run fn (at-least-once for the one
+//   interrupted step), then mark done.
+// - no row -> write started marker, run fn, mark done, return.
+// sessionKey null/empty disables journaling (just runs fn) so non-resumable
+// callers are unaffected.
+// opts.store: optional alternate step store (see createLibsqlStepStore's
+// contract below) implementing runStep itself — when passed, this function
+// delegates entirely to store.runStep instead of touching the libsql-backed
+// step_results table. Every existing caller omits it and gets the default
+// libsql behavior unchanged.
+export async function runStep(sessionKey, stepId, fn, { serialize = JSON.stringify, deserialize = JSON.parse, store = null } = {}) {
+    if (store) return await store.runStep(sessionKey, stepId, fn, { serialize, deserialize })
+    if (!sessionKey || !stepId) return await fn()
+    const d = await init()
+    const lockKey = sessionKey + ' ' + stepId
+    if (_inflight.has(lockKey)) return await _inflight.get(lockKey)
+
+    const exec = (async () => {
+        const row = await d.prepare(`SELECT status, result_json FROM step_results WHERE session_key = ? AND step_id = ?`).get(sessionKey, stepId)
+        if (row && row.status === 'done') {
+            try { return deserialize(row.result_json) }
+            catch (e) {
+                // Stored result unparseable — discard and re-run rather than crash.
+                log.error('cached step result unparseable, re-running', { sessionKey, stepId, err: String(e) })
+                await d.prepare(`DELETE FROM step_results WHERE session_key = ? AND step_id = ?`).run(sessionKey, stepId)
+            }
+        }
+        // No completed row observed above (fresh, or started-only from a crash
+        // mid-fn): claim the started marker. This is an UPSERT, not a bare
+        // INSERT, so it still succeeds over a genuine pre-existing 'started'
+        // row left by an earlier crash within the SAME process's lifetime
+        // (the in-process _inflight Map already dedupes same-process
+        // concurrent calls, so reaching here with an existing 'started' row
+        // in-process only happens after a real crash-restart, where re-claiming
+        // and re-running is the documented at-least-once behavior).
+        //
+        // The cross-process case is different: two OS processes can both run
+        // the SELECT above, both observe no 'done' row, and both reach this
+        // UPSERT -- an upsert never fails, so both silently proceed to run fn()
+        // concurrently, contradicting this module's own at-most-once framing
+        // for real side effects (an LLM call with cost, a tool side-effect).
+        // Detect that case by re-reading the row's `started` timestamp
+        // immediately after the upsert: if it does not match the timestamp
+        // THIS call just wrote, another process's upsert landed in between (a
+        // write-write race on the same primary key, both from the SELECT-saw-
+        // nothing branch) and this call lost the race -- surface that as a
+        // clear, distinguishable error rather than silently running fn() a
+        // second time. This is a narrow-window best-effort check (not a true
+        // distributed lock), but it converts the wide double-invocation window
+        // that used to exist into a tight compare-after-write race that is
+        // vanishingly unlikely to itself collide, and — critically — never
+        // returns a false "someone else is running this" for the single-process
+        // case, since an in-process second caller never reaches this branch at
+        // all (the _inflight Map already routed it to the shared promise above).
+        const claimTs = Date.now()
+        await d.prepare(`INSERT INTO step_results (session_key, step_id, status, started, done)
+            VALUES (?, ?, 'started', ?, NULL)
+            ON CONFLICT(session_key, step_id) DO UPDATE SET status='started', started=excluded.started, done=NULL`)
+            .run(sessionKey, stepId, claimTs)
+        const claimCheck = await d.prepare(`SELECT started FROM step_results WHERE session_key = ? AND step_id = ?`).get(sessionKey, stepId)
+        if (claimCheck && Number(claimCheck.started) !== claimTs) {
+            throw new Error(`runStep: lost cross-process claim race for ${sessionKey}/${stepId} -- another process's concurrent runStep call is executing this step`)
+        }
+        const result = await fn()
+        let json
+        try { json = serialize(result) }
+        catch (e) {
+            // Non-serializable result: the call already ran and we cannot journal
+            // it. Leave no done row (so a resume re-runs it) and surface the result
+            // to the live caller. Logged so the non-idempotent path is visible.
+            log.error('step result not serializable; not journaled (resume will re-run)', { sessionKey, stepId, err: String(e) })
+            return result
+        }
+        await d.prepare(`UPDATE step_results SET status='done', result_json=?, done=? WHERE session_key = ? AND step_id = ?`)
+            .run(json, Date.now(), sessionKey, stepId)
+        return result
+    })()
+
+    _inflight.set(lockKey, exec)
+    try { return await exec }
+    finally { _inflight.delete(lockKey) }
+}
+
+// Has this step already completed? (lets a caller decide whether to re-emit
+// side-effects like message sends without running the step.)
+export async function isStepDone(sessionKey, stepId, { store = null } = {}) {
+    if (store) return await store.isStepDone(sessionKey, stepId)
+    if (!sessionKey || !stepId) return false
+    const d = await init()
+    const row = await d.prepare(`SELECT status FROM step_results WHERE session_key = ? AND step_id = ?`).get(sessionKey, stepId)
+    return row?.status === 'done'
+}
+
+export async function listSteps(sessionKey) {
+    const d = await init()
+    return await d.prepare(`SELECT step_id, status, started, done FROM step_results WHERE session_key = ? ORDER BY started`).all(sessionKey)
+}
+
+// Clear a session's journal — call when the owning machine reaches a final state
+// so a completed turn/batch leaves no journal residue.
+export async function clearSteps(sessionKey, { store = null } = {}) {
+    if (store) return await store.clearSteps(sessionKey)
+    if (!sessionKey) return
+    const d = await init()
+    await d.prepare(`DELETE FROM step_results WHERE session_key = ?`).run(sessionKey)
+}
+
+// Step store interface contract (implemented below against libsql; any
+// alternate implementation must provide these three methods with the same
+// guarantees so runStep's at-most-once/at-least-once semantics hold regardless
+// of backend):
+//
+//   runStep(sessionKey, stepId, fn, opts) -> Promise<result>
+//     sessionKey/stepId falsy -> just await fn() (journaling disabled).
+//     A completed (status='done') row for (sessionKey, stepId) -> return the
+//     cached/deserialized result, fn must NOT be called again. Otherwise
+//     (no row, or a 'started'-only row left by a crash mid-fn) -> mark
+//     started, run fn, mark done with the serialized result, return it. A
+//     result that fails to serialize must still be returned to the live
+//     caller but must NOT be journaled as done (so a resume re-runs it).
+//     Concurrent in-process calls for the same (sessionKey, stepId) must
+//     share one in-flight execution rather than double-running fn.
+//
+//   isStepDone(sessionKey, stepId) -> Promise<boolean>
+//     True iff a status='done' row exists for the key pair.
+//
+//   clearSteps(sessionKey) -> Promise<void>
+//     Delete every row for sessionKey. Idempotent.
+export function createLibsqlStepStore() {
+    return { runStep, isStepDone, clearSteps, listSteps }
+}

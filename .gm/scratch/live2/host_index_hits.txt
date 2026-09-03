@@ -1,0 +1,28 @@
+5|import { createHost, discoverPlugins } from './host.js'
+9|import { checkPluginTrust } from './plugin-trust.js'
+14|let _pluginWatcher = null
+17|const REPO_PLUGINS = path.resolve(__dirname, '..', '..', 'plugins')
+49|export async function bootHost(extraRoots = [], { approveCwdPlugins = null } = {}) {
+58|        // The repo-shipped plugins/ and the user's own ~/.freddie/plugins/ are
+60|        // project-local <cwd>/.freddie/plugins/ root is attacker-controlled
+63|        // see plugin-trust.js.
+64|        const cwdPluginRoot = path.join(process.cwd(), '.freddie', 'plugins')
+65|        const cwdTrusted = await checkPluginTrust(cwdPluginRoot, { approve: approveCwdPlugins })
+66|        const roots = [REPO_PLUGINS, path.join(getFreddieHome(), 'plugins'), ...(cwdTrusted ? [cwdPluginRoot] : []), ...extraRoots]
+67|        const plugins = await discoverPlugins(roots)
+68|        await h.load(plugins)
+69|        const ccRoots = [path.join(getFreddieHome(), 'cc-plugins'), path.join(process.cwd(), '.freddie', 'cc-plugins')]
+70|        await h.loadCcPlugins(ccRoots)
+79|// ~/.freddie/plugins/<name>/plugin.js. Debounced per-file (editors write in
+82|// loaded plugin instance is left in place (better a stale plugin than a
+84|export function watchPlugins() {
+85|    if (_pluginWatcher) return _pluginWatcher
+86|    const root = path.join(getFreddieHome(), 'plugins')
+92|        if (!relPath || !relPath.endsWith('plugin.js')) return
+101|                const reloaded = await h.reloadPlugin(filePath)
+102|                if (env('FREDDIE_LOG_STDOUT')) console.log(JSON.stringify({ ts: Date.now(), event: 'plugin_hot_reload', file: filePath, reloaded: !!reloaded, name: reloaded || null }))
+104|                if (env('FREDDIE_LOG_STDOUT')) console.error(JSON.stringify({ ts: Date.now(), event: 'plugin_hot_reload_failed', file: filePath, error: String(e?.message || e) }))
+110|    _pluginWatcher = watcher
+114|export function stopWatchingPlugins() {
+115|    if (_pluginWatcher) { _pluginWatcher.close(); _pluginWatcher = null }
+118|export function resetHostForTests() { _host = null; _loadPromise = null; _dotenvLoaded = false; stopWatchingPlugins() }

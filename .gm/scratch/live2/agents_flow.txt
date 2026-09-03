@@ -1,0 +1,40 @@
+1|if (AppState.hash === '#/chat') { Promise.resolve(PAGES['#/chat']()).then(b => { AppState.body = b; _mount() }); return }
+2|```
+3|Any future live-streaming pages (cron output, traces) need the same treatment.
+4|
+5|Inline `<script type="module">` parse errors swallow file:line in browsers. Extract the script body to a `.js` file and `node --check` it to get the exact line.
+6|
+7|## Layout
+8|
+9|```
+10|src/home.js                      # getFreddieHome, applyProfileOverride, applyHomeOverride
+11|src/projects.js                  # Multi-project registry CRUD
+12|src/config.js                    # loadConfig, saveConfigValue, DEFAULT_CONFIG, _config_version migrations
+13|src/sessions.js                  # libsql + FTS5 (async API — every callsite must await)
+14|src/auth.js                      # FileAuthStore for credentials
+15|src/toolsets.js                  # _FREDDIE_CORE_TOOLS, getEnabledToolSchemas
+16|src/agent/machine.js             # xstate turn machine entrypoint (runTurn/resumeTurn/invokeCompactHooks); createAgentMachine in machine_builder.js, writeTrajectory in turn_trajectory.js
+17|src/agent/llm_resolver.js        # thin shim over acptoapi.chat (resolveCallLLM); warmExtraProviders/PROVIDER_KEYS in llm_provider_warmup.js
+18|src/agent/events.js              # wire envelope emitTurnEvent + replay log (<FREDDIE_HOME>/wire/*.jsonl)
+19|src/agent/live-turns.js          # live-turn registry entrypoint: subscribe/steer/cancel/approvals, re-exporting turn-registry/turn-steering/turn-approval/turn-revert.js
+20|src/agent/acptoapi-bridge.js     # HTTP passthrough to FREDDIE_LLM_URL daemon
+21|src/models/discovery.js          # claude-cli/ACP/ollama discovery beyond acptoapi + MATRIX_FILE path/matrixUsable predicate
+22|src/agent/compress/{tokens,policy,prompt,prune,fallback,compressor,index}.js
+23|src/commands/registry.js         # CommandDef + resolveCommand + gateway/telegram/slack views
+24|src/commands/profile.js          # profile CRUD
+25|src/cli/interactive.js           # readline REPL, skin-aware
+26|src/context/engine.js            # context block builders (file, skills, memory)
+27|src/cron/{scheduler,cron-parse}.js  # persistent cron jobs (async API)
+28|src/batch.js                     # parallel batch runner
+29|src/web/{server,app,state,routes,index.html}  # thin dashboard mount over SDK
+30|src/gateway/run.js               # Gateway + hooks
+31|src/acp/server.js                # JSON-RPC stdio
+32|src/plugins/{install,install-registry}.js  # npm/git/local plugin install + registry search
+33|src/agent/memory_provider.js     # host-router
+34|src/skills/index.js              # SKILL.md loader
+35|src/agent/flow_{parser,parser_d2,graph,runner,runner_core,blanks,debug}.js  # run_flow mermaid/d2 walker
+36|src/skin/engine.js               # _BUILTIN_SKINS + load/get/set
+37|src/observability/log.js         # structured logs
+38|src/observability/debug.js       # /debug registry
+39|src/host/{contract,host,host_helpers,index}.js  # plugin contract + discovery + singleton
+40|plugins/<name>/{plugin,handler}.js               # ~100 plugins: tools, platforms, memory, gui, core

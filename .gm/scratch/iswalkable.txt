@@ -1,0 +1,30 @@
+export function isWalkableFlowchart(markdown, { requireFence = true } = {}) {
+    const extracted = extractFlowchart(markdown)
+    if (!extracted) return false
+    // Unfenced fallback is the whole SKILL.md — prose "START" / "->" must not count as a flow.
+    if (requireFence && !extracted.fenced) return false
+    const src = extracted.source || ''
+    const looksMermaid = /^\s*(flowchart|graph)\s+(TB|TD|BT|RL|LR)\b/im.test(src)
+    const looksD2 = extracted.format === 'd2' && /->/.test(src)
+    if (!looksMermaid && !looksD2) return false
+    // Node-shaped BEGIN/START only (id or label), never a prose word.
+    const hasExplicitStart =
+        /(?:^|[\s;])(?:BEGIN|START)\s*(?:\[|\(|\{|@|:)/m.test(src)
+        || /(?:^|[\s;])(?:BEGIN|START)\s*$/m.test(src)
+        || /\[[^\]]*\b(?:BEGIN|START)\b[^\]]*\]/.test(src)
+        || /^\s*(?:BEGIN|START)\s*:/m.test(src)
+    if (!hasExplicitStart) return false
+    try {
+        const parsed = parseFlowchart(extracted.fenced ? markdown : src)
+        const nodes = parsed.nodes || {}
+        const names = Object.keys(nodes)
+        if (!names.length) return false
+        if (names.some((id) => /^(begin|start)$/i.test(id))) return true
+        if (names.some((id) => nodes[id].type === 'start')) return true
+        if (names.some((id) => /^(begin|start)$/i.test(String(nodes[id].label || '').trim()))) return true
+        return false
+    } catch {
+        return false
+    }
+}
+
