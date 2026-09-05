@@ -263,6 +263,11 @@ function badRequest(request, message) {
   return err(request, { code: 'bad-request', message, details: { issues: [] } })
 }
 
+/** Refuse a missing or empty string field that schema pass-through no longer checks. */
+function requireNonEmptyString(request, value, message) {
+  if (typeof value !== 'string' || value.length === 0) return badRequest(request, message)
+}
+
 /**
  * The RPC refusal a preset failure becomes, or undefined when the failure is
  * about something else.
@@ -1878,7 +1883,9 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async history(request) {
-        const { sessionId, beforeSeq, maxMessages } = request.payload
+        const { sessionId, beforeSeq, maxMessages } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, sessionId, 'session.history requires payload.sessionId as a non-empty string')
+        if (refused !== undefined) return refused
         try {
           const source = await historySourceFor(sessionId)
           // Both awaits happen BEFORE the cut. Ensuring the recorded
@@ -2193,6 +2200,25 @@ export function createApiProxy(ctx, defaults) {
 
       updateQueue(request) {
         const { sessionId, itemId, action } = request.payload
+        // `action.kind` below is the first dereference, so a request without an
+        // action crashed here with a raw TypeError and a carrier-layer 500
+        // (witnessed live: "Cannot read properties of undefined (reading
+        // 'kind')"). Every other field this handler reads is only compared, so
+        // the action is the one that has to exist before the body runs.
+        if (typeof sessionId !== 'string' || sessionId.length === 0) {
+          return Promise.resolve(badRequest(request, 'session.updateQueue requires payload.sessionId as a non-empty string'))
+        }
+        if (typeof itemId !== 'string' || itemId.length === 0) {
+          return Promise.resolve(badRequest(request, 'session.updateQueue requires payload.itemId as a non-empty string'))
+        }
+        if (action === null || typeof action !== 'object' || typeof action.kind !== 'string') {
+          return Promise.resolve(badRequest(request, 'session.updateQueue requires payload.action as an object with a string kind'))
+        }
+        // An edit action carries the replacement content; reading `.some` off a
+        // missing one is the same crash one field deeper.
+        if (action.kind === 'edit' && !Array.isArray(action.content)) {
+          return Promise.resolve(badRequest(request, 'session.updateQueue edit action requires action.content as an array'))
+        }
         if (action.kind === 'edit' && action.content.some(block => block.type !== 'text')) {
           return Promise.resolve(err(request, {
             code: 'attachment-error',
@@ -2633,7 +2659,16 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async openPath(request, signal) {
-        return openPath(request, request.payload.path, signal)
+        // Without this the missing path reached node's own opener, which
+        // answered with its internal argument-type text ('The "path" argument
+        // must be of type string. Received undefined') under an `internal`
+        // code -- an implementation detail on the wire for what is a malformed
+        // request.
+        const path = request.payload.path
+        if (typeof path !== 'string' || path.length === 0) {
+          return badRequest(request, 'host.openPath requires payload.path as a non-empty string')
+        }
+        return openPath(request, path, signal)
       },
     },
 
@@ -2818,6 +2853,15 @@ export function createApiProxy(ctx, defaults) {
 
       async remove(request) {
         const { agentPreset } = request.payload
+        // `resolve`/`remove` treat a missing id as {@link defaultId}, which is
+        // the right default for a READ but not for a delete: a request with no
+        // payload silently aimed the removal at the default preset. Only the
+        // read-only guard on shipped presets stopped it from landing, and that
+        // guard does not cover a user-authored preset that happens to be the
+        // default. A destructive verb names its target explicitly or refuses.
+        if (typeof agentPreset !== 'string' || agentPreset.length === 0) {
+          return badRequest(request, 'agentPreset.remove requires payload.agentPreset as a non-empty preset id')
+        }
         const presets = ctx.get('agentPresets')
         if (presets === undefined) return err(request, noRoster(agentPreset))
         try {
