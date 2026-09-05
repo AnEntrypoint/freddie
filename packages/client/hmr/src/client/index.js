@@ -142,6 +142,19 @@ export function apply(ctx) {
   const handle = (frame) => {
     switch (frame.type) {
       case 'rebuilt':
+        // A row that registers custom elements cannot be hot-swapped: the
+        // host flags it (see the node half's treeDefinesCustomElements)
+        // because `customElements.define` binds a tag for the document's
+        // lifetime, so the re-imported module's guarded define is a silent
+        // no-op and every live element keeps the ORIGINAL class. The swap
+        // would report success while the edit never appears -- strictly
+        // worse than reloading, since it looks like it worked. Take the
+        // honest exit `shell-rebuilt` already takes.
+        if (frame.definesCustomElements === true) {
+          ctx.logger.info(`client-hmr: "${frame.id}" defines custom elements, reloading`)
+          window.location.reload()
+          break
+        }
         queue = queue.then(() => reload(frame.id)).catch((error) => {
           ctx.logger.error(`client-hmr: reload of "${frame.id}" failed`)
           ctx.logger.error(error)

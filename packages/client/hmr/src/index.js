@@ -11,7 +11,7 @@
  * watcher noticing edits, the poll observes no changes and the chain stays
  * idle.
  */
-import { readdirSync, statSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join, relative, sep } from 'node:path'
 import z from '@freddie/schemastery'
@@ -84,6 +84,45 @@ export function apply(ctx, config) {
     return files
   }
 
+  /**
+   * Whether a row's served tree registers any custom element.
+   *
+   * `customElements.define(tag, Class)` binds a tag name for the document's
+   * lifetime -- a second define for the same tag throws, which is why every
+   * definition site in this repo guards on `customElements.get(tag) ===
+   * undefined`. That guard makes a re-imported module's define a silent
+   * no-op, so the fiber swap below completes "successfully" while every live
+   * element keeps running the ORIGINAL class: the row re-renders, the log
+   * stays clean, and the edit simply does not appear. Silently serving stale
+   * code is worse than not hot-swapping at all, so a row that defines
+   * elements takes the same honest exit `shell-rebuilt` already takes -- a
+   * full reload.
+   *
+   * Read off the walk the poll already performs, so this costs no extra
+   * directory traversal; only the file reads, and only for rows not yet
+   * classified (the result is cached per row for the process's life, since a
+   * package does not start or stop defining elements without a restart).
+   * @param files - absolute paths of every file under the row's served tree.
+   * @returns whether any file calls `customElements.define`.
+   */
+  function treeDefinesCustomElements(files) {
+    for (const absPath of files) {
+      if (!absPath.endsWith('.js')) continue
+      try {
+        if (readFileSync(absPath, 'utf8').includes('customElements.define')) return true
+      } catch (error) {
+        // A file that vanished mid-walk cannot be classified; treat it as
+        // element-free rather than failing the poll. A real define in a file
+        // that exists is found on the next pass.
+        if (error.code !== 'ENOENT') ctx.logger.warn(error)
+      }
+    }
+    return false
+  }
+
+  /** Row id -> whether its tree defines custom elements (see {@link treeDefinesCustomElements}). */
+  const definesElements = new Map()
+
   const rehash = (id, root) => {
     try {
       // rebuilt() re-hashes the whole tree; an unchanged hash stays silent
@@ -97,11 +136,18 @@ export function apply(ctx, config) {
   }
 
   /** Snapshot every file's mtime/size under `root`, keyed by relative path. */
-  const snapshot = (root) => {
+  const snapshot = (root, id) => {
     const files = new Map()
     let dirty = false
     try {
-      for (const absPath of listTreeFiles(root)) {
+      const treeFiles = listTreeFiles(root)
+      // Classify once per row, off the walk already in hand (see
+      // treeDefinesCustomElements): the answer cannot change without a
+      // restart, and every later poll reuses it.
+      if (id !== undefined && !definesElements.has(id)) {
+        definesElements.set(id, treeDefinesCustomElements(treeFiles))
+      }
+      for (const absPath of treeFiles) {
         const stat = statSync(absPath)
         files.set(relative(root, absPath).split(sep).join('/'), { mtimeMs: stat.mtimeMs, size: stat.size })
       }
@@ -113,7 +159,7 @@ export function apply(ctx, config) {
   }
 
   const watchRow = (id, root) => {
-    const watch = { root, ...snapshot(root) }
+    const watch = { root, ...snapshot(root, id) }
     watchedRoots.set(id, watch)
     // The module host hashed before publishing the graph. Re-hash immediately
     // after capturing this baseline so a write in between cannot become an
@@ -133,7 +179,7 @@ export function apply(ctx, config) {
 
   const pollWatches = () => {
     for (const [id, watch] of watchedRoots) {
-      const next = snapshot(watch.root)
+      const next = snapshot(watch.root, id)
       if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) continue
       watch.files = next.files
       watch.dirty = rehash(id, watch.root) || next.dirty
@@ -258,7 +304,18 @@ export function apply(ctx, config) {
       },
     })
     const unsubscribe = ctx.clientModules.onRebuilt((id, rev) => {
-      const line = sseData({ type: 'rebuilt', id, rev })
+      // `definesCustomElements` tells the browser half a fiber swap cannot
+      // carry this row's edit (see treeDefinesCustomElements) so it reloads
+      // instead. Absent for a row never classified -- an unknown flag is
+      // merge-extensible and the client treats it as "swap", the old
+      // behavior.
+      const defines = definesElements.get(id)
+      const line = sseData({
+        type: 'rebuilt',
+        id,
+        rev,
+        ...defines === true ? { definesCustomElements: true } : {},
+      })
       for (const res of connections) res.write(line)
     })
     const shellListener = (rev) => {
