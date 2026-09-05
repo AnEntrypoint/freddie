@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@freddie/schemastery": "workspace:^",
-    "libsql-plugkit-client": "github:AnEntrypoint/libsql-plugkit-client#61057a4cf02cd9e6d1e6694c250d0f3d0099ac24"
+    "libsql-plugkit-client": "github:AnEntrypoint/libsql-plugkit-client"
   },
   "devDependencies": {
     "@freddie/freddie-invariants": "workspace:^",
