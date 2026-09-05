@@ -85,13 +85,34 @@ export function resultText(node) {
   return parts.join('\n')
 }
 
+/**
+ * Last parse, keyed by the exact raw string. `toolRowModel` calls `parseArgs`
+ * up to three times for one model (summary, file path, body) and runs on every
+ * render of every tool row, so an unmemoized JSON.parse re-parsed every
+ * settled call's whole args envelope on every keystroke -- 84ms of self time
+ * in a real-keyboard flamegraph across ~30 rows. A single-entry cache is
+ * enough for the three-in-a-row pattern and keeps no row's payload alive after
+ * the next row parses.
+ *
+ * Keyed on the raw string by value, so a changed (still-streaming) args string
+ * misses and re-parses, exactly as before. The parsed value is handed out by
+ * reference: every caller here only reads from it.
+ */
+let lastArgsRaw
+let lastArgsParsed
+
 function parseArgs(argsRaw) {
+  if (argsRaw === lastArgsRaw) return lastArgsParsed
+  let parsed
   try {
-    return JSON.parse(argsRaw)
+    parsed = JSON.parse(argsRaw)
   } catch {
     // Non-JSON args (mid-stream truncation): summary/body fall back to the raw string.
-    return undefined
+    parsed = undefined
   }
+  lastArgsRaw = argsRaw
+  lastArgsParsed = parsed
+  return parsed
 }
 
 function firstLine(text) {

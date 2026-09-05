@@ -422,7 +422,14 @@ export class FreddieInputBar extends HTMLElement {
     const machineBusy = input?.phase === 'adjudicating' || input?.phase === 'submitting'
     const workspaceTrigger = inert && !removed && onRequestWorkspace !== undefined
     const draft = input?.draft ?? ''
-    const canSteerQueue = !locked && !machineBusy && !(props.useMenuLauncher(source => source === 'command'))
+    // Computed lazily: this is read at exactly one place below (accelerated
+    // Enter), yet it walks the queue, trims the draft, and resolves every
+    // draft image through the attachment store. Eagerly it ran on EVERY
+    // keydown -- the handler held 114ms of self time in a real-keyboard
+    // flamegraph, which synthetic `input` events never surfaced because they
+    // do not fire keydown at all. The predicate is unchanged; only when it
+    // runs is.
+    const canSteerQueue = () => !locked && !machineBusy && !(props.useMenuLauncher(source => source === 'command'))
       && draft.trim() === '' && (props.draftImages === undefined || props.draftImages(input?.imageIds ?? []).length === 0)
       && running && subagent === null && (input?.queue.some(row => row.placement === 'queued') ?? false)
 
@@ -505,7 +512,7 @@ export class FreddieInputBar extends HTMLElement {
     // still-pending queued message into the running turn (the dock's per-row
     // steer button applied to the whole queue). Steering needs the same
     // window as the per-row button: a running ordinary session.
-    if (accelerated && canSteerQueue) {
+    if (accelerated && canSteerQueue()) {
       keyboard.steerQueue()
       return
     }
