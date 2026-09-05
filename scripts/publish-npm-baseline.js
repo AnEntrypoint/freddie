@@ -23,7 +23,7 @@ import { validateTarballPayload } from './publication-payload.js'
 const DEFAULT_REGISTRY = 'https://registry.npm.harnessment.com'
 const DEFAULT_OUTPUT_DIRECTORY = '.artifacts/npm-baseline'
 const PACKAGE_PATTERNS = [
-  'vendor/*/package.json',
+  'framework/*/package.json',
   'packages/!(experimental)/*/package.json',
   'apps/*/package.json',
 ]
@@ -224,7 +224,7 @@ class WorkspacePackageSet {
   static discover(root) {
     const manifestPaths = globSync(PACKAGE_PATTERNS, { cwd: root }).sort()
     if (manifestPaths.length === 0) {
-      throw new Error('no package manifests found under vendor/, packages/, or apps/')
+      throw new Error('no package manifests found under framework/, packages/, or apps/')
     }
 
     const packages = []
@@ -237,7 +237,7 @@ class WorkspacePackageSet {
       const manifest = readObject(resolve(root, manifestPath))
       const name = expectString(manifest, 'name', manifestPath)
       const version = expectString(manifest, 'version', manifestPath)
-      const isVendored = manifestPath.startsWith('vendor/')
+      const isVendored = manifestPath.startsWith('framework/')
       // Vendored packages are rescoped too (vendor/README.md), so publication
       // never carries an upstream name that would squat it on the registry.
       if (!name.startsWith('@freddie/')) {
@@ -558,7 +558,7 @@ class BaselinePackager {
       this.runner.run('pnpm', ['run', 'publint'], worktree.path)
       this.runner.run('pnpm', ['run', 'verify-built-package-invariants'], worktree.path)
       this.runner.run('pnpm', [
-        '--filter', './vendor/**',
+        '--filter', './framework/**',
         '--filter', './packages/**',
         '--filter', './apps/**',
         '--recursive',

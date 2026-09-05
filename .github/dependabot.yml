@@ -4,8 +4,9 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     exclude-paths:
-      # Vendored Cordis sources follow vendor/README.md instead of registry updates.
-      - "vendor/**"
+      # First-party framework sources are maintained in-tree, not tracked against
+      # a registry release; see framework/README.md.
+      - "framework/**"
     schedule:
       interval: "cron"
       cronjob: "0 4 * * *"

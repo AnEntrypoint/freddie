@@ -9,7 +9,7 @@
     "node": "^22.19.0 || >=24.0.0"
   },
   "workspaces": [
-    "vendor/*",
+    "framework/*",
     "packages/*/*",
     "native/landlock-run",
     "native/landlock-run/packages/*",

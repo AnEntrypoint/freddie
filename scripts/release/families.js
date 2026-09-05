@@ -325,7 +325,7 @@ class FreddieFamily extends ReleaseFamily {
 /** `vendor/*`: every package keeps its own version line, so every package has its own tag. */
 class VendorFamily extends ReleaseFamily {
   id = 'vendor'
-  patterns = ['vendor/*/package.json']
+  patterns = ['framework/*/package.json']
   tagPrefix = 'vendor-'
 
   /**

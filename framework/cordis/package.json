@@ -8,7 +8,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lanmower/freddie.git",
-    "directory": "vendor/cordis"
+    "directory": "framework/cordis"
   },
   "sideEffects": false,
   "type": "module",

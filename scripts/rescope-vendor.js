@@ -62,7 +62,7 @@ const EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs', '.tpl', '.json', '.yml
 
 const GENERIC_SKIPS = [
   // `Symbol.for('schemastery')` and the `vendor:` metadata field are upstream identifiers.
-  { file: 'vendor/schemastery/src/index.js', upstream: ['schemastery'] },
+  { file: 'framework/schemastery/src/index.js', upstream: ['schemastery'] },
   // `cordis` is also an agent-preset id — the directory name under
   // apps/cli/config/agent-presets/ — so in these files the bare name is
   // product data, not a package reference. Renaming it changed which preset
@@ -102,10 +102,10 @@ const GENERIC_SKIPS = [
 /** A string that must appear exactly `count` times once the rescope has run. */
 
 const POSTCONDITIONS = [
-  { file: 'vendor/cordis/package.json', text: '"name": "@freddie/cordis"', count: 1 },
-  { file: 'vendor/hmr/package.json', text: '"name": "@freddie/cordis-plugin-hmr"', count: 1 },
+  { file: 'framework/cordis/package.json', text: '"name": "@freddie/cordis"', count: 1 },
+  { file: 'framework/hmr/package.json', text: '"name": "@freddie/cordis-plugin-hmr"', count: 1 },
   // The vendored README owns this required entry; reject its deletion or duplication.
-  { file: 'vendor/README.md', text: '17. **`@freddie` rescope**', count: 1 },
+  { file: 'framework/README.md', text: '17. **`@freddie` rescope**', count: 1 },
   { file: 'pnpm-workspace.yaml', text: 'cordis@4.0.0-rc.7', count: 0 },
   // The preset id the shipped composition documents to its own model.
   { file: 'apps/cli/config/agent-presets/cordis/agent.cordis.yml', text: 'The `cordis` agent preset', count: 1 },
@@ -142,7 +142,7 @@ const EXACT_EDITS = [
   },
   {
     id: 'vendor-readme-table-head',
-    file: 'vendor/README.md',
+    file: 'framework/README.md',
     find: '| Directory | npm name | Version | Upstream repo | Commit |\n|---|---|---|---|---|',
     replace: '| Directory | npm name | Upstream name | Version | Upstream repo | Commit |\n|---|---|---|---|---|---|',
     expect: 1,
@@ -209,7 +209,7 @@ const EXACT_EDITS = [
   // The manifest table's name column plus the new upstream-name column, one edit per row.
   ...RENAMES.map(rename => ({
     id: `vendor-readme-row-${rename.directory}`,
-    file: 'vendor/README.md',
+    file: 'framework/README.md',
     find: `| \`${rename.directory}/\` | \`${rename.upstream}\` | `,
     replace: `| \`${rename.directory}/\` | \`${rename.scoped}\` | \`${rename.upstream}\` | `,
     expect: 1,

@@ -1,14 +1,14 @@
 {
-  "name": "@freddie/cordis-plugin-loader",
-  "description": "Plugin loader for cordis",
-  "version": "1.0.2",
+  "name": "@freddie/cordis-plugin-group",
+  "description": "Nested plugin group for cordis",
+  "version": "1.0.1",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lanmower/freddie.git",
-    "directory": "vendor/loader"
+    "directory": "framework/group"
   },
   "type": "module",
   "main": "src/index.js",
@@ -23,15 +23,7 @@
   "author": "Shigma <shigma10826@gmail.com>",
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/cordis": "workspace:^",
-    "node-addon-require-builtin": "^0.1.4"
-  },
-  "peerDependenciesMeta": {
-    "node-addon-require-builtin": {
-      "optional": true
-    }
-  },
-  "dependencies": {
-    "@freddie/cosmokit": "workspace:^"
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/cordis": "workspace:^"
   }
 }

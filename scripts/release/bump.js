@@ -376,7 +376,7 @@ function main() {
   }
 
   const summary = sharedVersion
-    ?? planned.map(entry => `${entry.label.replace('vendor/', '')} ${entry.to}`).join(', ')
+    ?? planned.map(entry => `${entry.label.replace('framework/', '')} ${entry.to}`).join(', ')
   console.log(`release bump: family ${family.id} -> ${summary}`)
   for (const entry of planned) console.log(`  ${entry.label}: ${entry.from} -> ${entry.to}`)
 

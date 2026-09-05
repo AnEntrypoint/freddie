@@ -1,5 +1,5 @@
 packages:
-  - vendor/*
+  - framework/*
   - packages/*/*
   # The Landlock launcher is developed with its harness consumers but keeps
   # its native build and publication scripts under native/landlock-run.
@@ -21,8 +21,8 @@ packages:
 linkWorkspacePackages: true
 
 overrides:
-  '@freddie/cosmokit': 'link:vendor/cosmokit'
-  '@freddie/schemastery': 'link:vendor/schemastery'
+  '@freddie/cosmokit': 'link:framework/cosmokit'
+  '@freddie/schemastery': 'link:framework/schemastery'
   # Security patches for transitive deps pulled in several levels deep
   # (mermaid>dompurify; @modelcontextprotocol/sdk>@hono/node-server>hono):
   # both resolve to a single version across the tree (pnpm why confirms no

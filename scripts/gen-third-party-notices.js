@@ -1,7 +1,7 @@
 /**
  * Generate `THIRD_PARTY_NOTICES.md` from the workspace manifests: every
  * external dependency named by a workspace `package.json`, the vendored-package
- * manifest in `vendor/README.md`, and the pnpm patch list. License and
+ * manifest in `framework/README.md`, and the pnpm patch list. License and
  * repository metadata come from the installed store, so the tree must be
  * installed. `--check` verifies the committed artifact. Tier policy and
  * ownership live in
@@ -322,11 +322,11 @@ export function tierExternalDeps(manifests, names) {
   return tiers
 }
 
-/** A vendored package row parsed out of the `vendor/README.md` manifest table. */
+/** A vendored package row parsed out of the `framework/README.md` manifest table. */
 
 /**
- * Parse the vendored-package manifest table out of `vendor/README.md`.
- * @param text - the complete `vendor/README.md` contents.
+ * Parse the vendored-package manifest table out of `framework/README.md`.
+ * @param text - the complete `framework/README.md` contents.
  * @returns one row per manifest-table entry, in table order.
  */
 export function parseVendoredRows(text) {
@@ -349,23 +349,23 @@ export function parseVendoredRows(text) {
  * rather than a package that quietly vanishes from the notices.
  */
 function collectVendored() {
-  const rows = parseVendoredRows(readFileSync(resolve(root, 'vendor/README.md'), 'utf8'))
+  const rows = parseVendoredRows(readFileSync(resolve(root, 'framework/README.md'), 'utf8'))
   const onDisk = new Map()
-  for (const entry of readdirSync(resolve(root, 'vendor'), { withFileTypes: true })) {
+  for (const entry of readdirSync(resolve(root, 'framework'), { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
-    const manifest = readManifest(`vendor/${entry.name}/package.json`)
+    const manifest = readManifest(`framework/${entry.name}/package.json`)
     if (manifest.name !== undefined) onDisk.set(manifest.name, entry.name)
   }
 
   const parsed = new Set(rows.map(row => row.npmName))
   const missing = [...onDisk.keys()].filter(name => !parsed.has(name))
   if (missing.length > 0) {
-    throw new Error(`gen-third-party-notices: vendor/README.md has no manifest-table row for ${missing.join(', ')}; its table format changed or the sync is incomplete.`)
+    throw new Error(`gen-third-party-notices: framework/README.md has no manifest-table row for ${missing.join(', ')}; its table format changed or the sync is incomplete.`)
   }
   for (const row of rows) {
     const dir = onDisk.get(row.npmName)
-    if (dir === undefined) throw new Error(`gen-third-party-notices: vendored package ${row.npmName} from vendor/README.md has no vendor/ directory.`)
-    const license = readManifest(`vendor/${dir}/package.json`).license
+    if (dir === undefined) throw new Error(`gen-third-party-notices: vendored package ${row.npmName} from framework/README.md has no framework/ directory.`)
+    const license = readManifest(`framework/${dir}/package.json`).license
     if (license !== 'MIT') {
       throw new Error(`gen-third-party-notices: vendored ${row.npmName} declares license ${JSON.stringify(license)}; the vendored section assumes MIT throughout.`)
     }
@@ -492,9 +492,9 @@ This file lists **direct** dependencies declared by the workspace and the explic
 
 The complete npm transitive closure, including the Landlock launcher workspace, is recorded with exact pinned versions in [\`pnpm-lock.yaml\`](pnpm-lock.yaml) — inspect it with \`pnpm licenses list\`.
 
-## Vendored source (\`vendor/\`)
+## Framework source (\`framework/\`)
 
-The Cordis framework and its foundation libraries are source-vendored into this repository rather than consumed from npm, and republished under the \`@freddie\` scope. All are MIT-licensed; each directory preserves its upstream \`LICENSE\` file. Exact upstream commits and local modifications are recorded in [\`vendor/README.md\`](vendor/README.md).
+The Cordis framework and its foundation libraries are source-vendored into this repository rather than consumed from npm, and republished under the \`@freddie\` scope. All are MIT-licensed; each directory preserves its upstream \`LICENSE\` file. Exact upstream commits and local modifications are recorded in [\`framework/README.md\`](framework/README.md).
 
 | Package | Upstream name | Upstream | License |
 | --- | --- | --- | --- |

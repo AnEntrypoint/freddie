@@ -5,8 +5,8 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@freddie/cosmokit': link:vendor/cosmokit
-  '@freddie/schemastery': link:vendor/schemastery
+  '@freddie/cosmokit': link:framework/cosmokit
+  '@freddie/schemastery': link:framework/schemastery
   dompurify: '>=3.4.12'
   hono: '>=4.12.34'
   brace-expansion: '>=5.0.7'
@@ -48,19 +48,19 @@ importers:
     dependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../vendor/cordis
+        version: link:../../framework/cordis
       '@freddie/cordis-plugin-hmr':
         specifier: workspace:^
-        version: link:../../vendor/hmr
+        version: link:../../framework/hmr
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../vendor/include
+        version: link:../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../vendor/loader
+        version: link:../../framework/loader
       '@freddie/cordis-plugin-timer':
         specifier: workspace:^
-        version: link:../../vendor/timer
+        version: link:../../framework/timer
       '@freddie/freddie-agent-instructions':
         specifier: workspace:^
         version: link:../../packages/context/agent-instructions
@@ -265,7 +265,7 @@ importers:
     devDependencies:
       '@freddie/cordis-plugin-group':
         specifier: workspace:^
-        version: link:../../vendor/group
+        version: link:../../framework/group
       '@freddie/freddie-client-modules':
         specifier: workspace:^
         version: link:../../packages/client/modules
@@ -295,16 +295,16 @@ importers:
     dependencies:
       '@freddie/cordis-plugin-hmr':
         specifier: workspace:*
-        version: link:../vendor/hmr
+        version: link:../framework/hmr
       '@freddie/cordis-plugin-include':
         specifier: workspace:*
-        version: link:../vendor/include
+        version: link:../framework/include
       '@freddie/cordis-plugin-logger-console':
         specifier: workspace:*
-        version: link:../vendor/logger-console
+        version: link:../framework/logger-console
       '@freddie/cordis-plugin-timer':
         specifier: workspace:*
-        version: link:../vendor/timer
+        version: link:../framework/timer
       '@freddie/freddie-acp-demo':
         specifier: workspace:*
         version: link:../packages/examples/acp-demo
@@ -597,6 +597,123 @@ importers:
         specifier: workspace:*
         version: link:../packages/workflow/workflow-worker-thread
 
+  framework/cordis:
+    dependencies:
+      '@freddie/cordis-plugin-include':
+        specifier: workspace:^
+        version: link:../include
+      '@freddie/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../loader
+      '@freddie/cosmokit':
+        specifier: link:../cosmokit
+        version: link:../cosmokit
+      '@standard-schema/spec':
+        specifier: ^1.1.0
+        version: 1.1.0
+
+  framework/cosmokit: {}
+
+  framework/group:
+    dependencies:
+      '@freddie/cordis':
+        specifier: workspace:^
+        version: link:../cordis
+      '@freddie/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../loader
+
+  framework/hmr:
+    dependencies:
+      '@babel/code-frame':
+        specifier: ^7.29.0
+        version: 7.29.7
+      '@freddie/cordis':
+        specifier: workspace:^
+        version: link:../cordis
+      '@freddie/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../loader
+      '@freddie/cordis-plugin-timer':
+        specifier: workspace:^
+        version: link:../timer
+      '@freddie/cosmokit':
+        specifier: link:../cosmokit
+        version: link:../cosmokit
+      '@freddie/schemastery':
+        specifier: link:../schemastery
+        version: link:../schemastery
+      chokidar:
+        specifier: ^5.0.0
+        version: 5.0.0
+      picomatch:
+        specifier: ^4.0.3
+        version: 4.0.4
+    devDependencies:
+      esbuild:
+        specifier: ^0.28.1
+        version: 0.28.1
+
+  framework/include:
+    dependencies:
+      '@freddie/cordis':
+        specifier: workspace:^
+        version: link:../cordis
+      '@freddie/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../loader
+      '@freddie/cosmokit':
+        specifier: link:../cosmokit
+        version: link:../cosmokit
+      js-yaml:
+        specifier: ^5.4.1
+        version: 5.4.1
+
+  framework/loader:
+    dependencies:
+      '@freddie/cordis':
+        specifier: workspace:^
+        version: link:../cordis
+      '@freddie/cosmokit':
+        specifier: link:../cosmokit
+        version: link:../cosmokit
+      node-addon-require-builtin:
+        specifier: ^0.1.4
+        version: 0.1.4
+
+  framework/logger-console:
+    dependencies:
+      '@freddie/cordis':
+        specifier: workspace:^
+        version: link:../cordis
+      '@freddie/cosmokit':
+        specifier: link:../cosmokit
+        version: link:../cosmokit
+      '@freddie/schemastery':
+        specifier: link:../schemastery
+        version: link:../schemastery
+      supports-color:
+        specifier: ^9.4.0
+        version: 9.4.0
+
+  framework/schemastery:
+    dependencies:
+      '@freddie/cosmokit':
+        specifier: link:../cosmokit
+        version: link:../cosmokit
+      '@standard-schema/spec':
+        specifier: ^1.1.0
+        version: 1.1.0
+
+  framework/timer:
+    dependencies:
+      '@freddie/cordis':
+        specifier: workspace:^
+        version: link:../cordis
+      '@freddie/cosmokit':
+        specifier: link:../cosmokit
+        version: link:../cosmokit
+
   native/landlock-run:
     devDependencies:
       '@freddie/node-addon-landlock-run':
@@ -622,12 +739,12 @@ importers:
         specifier: 0.25.1
         version: 0.25.1(zod@4.4.3)
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -661,7 +778,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-connection':
         specifier: workspace:^
         version: link:../../client/connection
@@ -683,7 +800,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -740,7 +857,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -751,15 +868,15 @@ importers:
   packages/attachment/attachment-local:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       sharp:
         specifier: ^0.35.3
         version: 0.35.3
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-attachment':
         specifier: workspace:^
         version: link:../attachment
@@ -778,22 +895,22 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-group':
         specifier: workspace:^
-        version: link:../../../vendor/group
+        version: link:../../../framework/group
       '@freddie/cordis-plugin-hmr':
         specifier: workspace:^
-        version: link:../../../vendor/hmr
+        version: link:../../../framework/hmr
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/cordis-plugin-timer':
         specifier: workspace:^
-        version: link:../../../vendor/timer
+        version: link:../../../framework/timer
       '@freddie/freddie-home-paths':
         specifier: workspace:^
         version: link:../../util/home-paths
@@ -811,13 +928,13 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -829,10 +946,10 @@ importers:
     dependencies:
       '@freddie/cordis-plugin-hmr':
         specifier: workspace:^
-        version: link:../../../vendor/hmr
+        version: link:../../../framework/hmr
       '@freddie/cordis-plugin-timer':
         specifier: workspace:^
-        version: link:../../../vendor/timer
+        version: link:../../../framework/timer
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -1058,7 +1175,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -1072,18 +1189,18 @@ importers:
         specifier: workspace:^
         version: link:../../code-runtime/code-runtime-worker-thread
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       commander:
         specifier: ^15.0.0
         version: 15.0.0
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -1307,8 +1424,8 @@ importers:
         specifier: workspace:^
         version: link:../../workspace/workspace
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       commander:
         specifier: ^15.0.0
         version: 15.0.0
@@ -1318,10 +1435,10 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -1335,15 +1452,15 @@ importers:
   packages/client/connection:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       ws:
         specifier: ^8.21.0
         version: 8.21.0
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-attachment':
         specifier: workspace:^
         version: link:../../attachment/attachment
@@ -1373,7 +1490,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-host-webserver':
         specifier: workspace:^
         version: link:../../host/webserver
@@ -1384,15 +1501,15 @@ importers:
   packages/client/hmr:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-client-modules':
         specifier: workspace:^
         version: link:../modules
@@ -1410,15 +1527,15 @@ importers:
   packages/client/locale:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       webjsx:
         specifier: ^0.0.73
         version: 0.0.73(patch_hash=982d819b8bcec5eada3c64581f6ef0f9c73ff420ea6a021365f099fe3bc45139)
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -1448,10 +1565,10 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-host-webserver':
         specifier: workspace:^
         version: link:../../host/webserver
@@ -1463,7 +1580,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -1524,7 +1641,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -1564,7 +1681,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-attachment':
         specifier: workspace:^
         version: link:../../attachment/attachment
@@ -1592,7 +1709,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-runtime':
         specifier: workspace:^
         version: link:../runtime
@@ -1620,7 +1737,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -1655,8 +1772,8 @@ importers:
   packages/client/ui-conversation:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -1666,7 +1783,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -1751,7 +1868,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-connection':
         specifier: workspace:^
         version: link:../connection
@@ -1788,7 +1905,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-locale':
         specifier: workspace:^
         version: link:../locale
@@ -1816,7 +1933,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-runtime':
         specifier: workspace:^
         version: link:../runtime
@@ -1838,7 +1955,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -1884,7 +2001,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-locale':
         specifier: workspace:^
         version: link:../locale
@@ -1912,7 +2029,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-locale':
         specifier: workspace:^
         version: link:../locale
@@ -1940,7 +2057,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-locale':
         specifier: workspace:^
         version: link:../locale
@@ -1965,7 +2082,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2008,7 +2125,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2048,7 +2165,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2091,7 +2208,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2176,7 +2293,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -2185,7 +2302,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2222,7 +2339,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-runtime':
         specifier: workspace:^
         version: link:../runtime
@@ -2236,12 +2353,12 @@ importers:
   packages/client/ui-settings:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2264,8 +2381,8 @@ importers:
   packages/client/ui-settings-general:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -2275,7 +2392,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2315,7 +2432,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2349,7 +2466,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2383,7 +2500,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2420,7 +2537,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-locale':
         specifier: workspace:^
         version: link:../locale
@@ -2448,7 +2565,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2481,7 +2598,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -2494,7 +2611,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-locale':
         specifier: workspace:^
         version: link:../locale
@@ -2526,8 +2643,8 @@ importers:
   packages/client/ui-theme:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -2537,7 +2654,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2580,7 +2697,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -2620,7 +2737,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -2660,7 +2777,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -2706,7 +2823,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-locale':
         specifier: workspace:^
         version: link:../locale
@@ -2746,7 +2863,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-client-connection':
         specifier: workspace:^
         version: link:../connection
@@ -2846,7 +2963,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-host-webserver':
         specifier: workspace:^
         version: link:../../host/webserver
@@ -2858,10 +2975,10 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-client-modules':
         specifier: workspace:^
         version: link:../modules
@@ -2885,7 +3002,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -2893,12 +3010,12 @@ importers:
   packages/code-runtime/code-runtime-worker-thread:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-code-runtime':
         specifier: workspace:^
         version: link:../code-runtime
@@ -2916,13 +3033,13 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -2946,7 +3063,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -2966,18 +3083,18 @@ importers:
   packages/compaction/compaction-basic:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3015,18 +3132,18 @@ importers:
   packages/compaction/compaction-tool-result-pruner:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-compaction':
         specifier: workspace:^
         version: link:../compaction
@@ -3046,15 +3163,15 @@ importers:
   packages/context/agent-instructions:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3100,7 +3217,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3114,12 +3231,12 @@ importers:
   packages/context/file-reference-local:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3139,15 +3256,15 @@ importers:
   packages/context/session-reference:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       zod:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3176,12 +3293,12 @@ importers:
   packages/context/time-context:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3207,12 +3324,12 @@ importers:
   packages/context/tmux-context:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3236,7 +3353,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -3262,12 +3379,12 @@ importers:
   packages/core/agent-default-model:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../agent
@@ -3284,12 +3401,12 @@ importers:
   packages/core/agent-loop:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../agent
@@ -3324,12 +3441,12 @@ importers:
   packages/core/agent-tool-presentation:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../agent
@@ -3356,7 +3473,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -3365,7 +3482,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -3388,12 +3505,12 @@ importers:
   packages/core/system-prompt:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -3407,12 +3524,12 @@ importers:
   packages/core/tools:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../agent
@@ -3442,7 +3559,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -3453,8 +3570,8 @@ importers:
   packages/credentials/credentials-local:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       chokidar:
         specifier: ^5.0.0
         version: 5.0.0
@@ -3464,7 +3581,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-atomic-write':
         specifier: workspace:^
         version: link:../../util/atomic-write
@@ -3484,15 +3601,15 @@ importers:
   packages/e2b/e2b:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       e2b:
         specifier: 2.29.1
         version: 2.29.1
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -3504,7 +3621,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-e2b':
         specifier: workspace:^
         version: link:../e2b
@@ -3518,12 +3635,12 @@ importers:
   packages/e2b/subprocess-e2b:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-e2b':
         specifier: workspace:^
         version: link:../e2b
@@ -3540,18 +3657,18 @@ importers:
   packages/examples/acp-demo:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-acp':
         specifier: workspace:^
         version: link:../../acp/acp
@@ -3592,15 +3709,15 @@ importers:
   packages/examples/agent-spine-demo:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-timer':
         specifier: workspace:^
-        version: link:../../../vendor/timer
+        version: link:../../../framework/timer
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3704,12 +3821,12 @@ importers:
   packages/experimental/agent-team:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3750,12 +3867,12 @@ importers:
   packages/experimental/tool-agent-team:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3800,10 +3917,10 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -3826,18 +3943,18 @@ importers:
   packages/extensions/cordis-host-runner:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       zod:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-timer':
         specifier: workspace:^
-        version: link:../../../vendor/timer
+        version: link:../../../framework/timer
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3867,10 +3984,10 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3900,7 +4017,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-api-remotes':
         specifier: workspace:^
         version: link:../../api/remotes
@@ -3942,13 +4059,13 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -3974,21 +4091,21 @@ importers:
   packages/feedback/message-feedback:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       zod:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -4024,7 +4141,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -4041,15 +4158,15 @@ importers:
   packages/fs/fs-local:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       koffi:
         specifier: ^3.1.0
         version: 3.1.1
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-fs':
         specifier: workspace:^
         version: link:../fs
@@ -4064,7 +4181,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-fs':
         specifier: workspace:^
         version: link:../fs
@@ -4079,7 +4196,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-fs':
         specifier: workspace:^
         version: link:../fs
@@ -4099,15 +4216,15 @@ importers:
   packages/fs/tool-fs:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       diff:
         specifier: ^9.0.0
         version: 9.0.0
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4157,15 +4274,15 @@ importers:
   packages/fs/tool-fs-search:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       '@vscode/ripgrep':
         specifier: ^1.18.0
         version: 1.18.0
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4203,12 +4320,12 @@ importers:
   packages/fs/tool-str-replace-editor:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4249,21 +4366,21 @@ importers:
   packages/gm/gm-client:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
 
   packages/goal/command-goal:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4286,15 +4403,15 @@ importers:
   packages/goal/goal:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       zod:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4324,7 +4441,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4353,15 +4470,15 @@ importers:
   packages/goal/tool-goal:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4387,12 +4504,12 @@ importers:
   packages/guard/repeat-tool-reminder:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4416,7 +4533,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -4434,7 +4551,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -4520,15 +4637,15 @@ importers:
         specifier: workspace:^
         version: link:../../workspace/workspace
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       fflate:
         specifier: ^0.8.2
         version: 0.8.3
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent-presets':
         specifier: workspace:^
         version: link:../../preset/agent-presets
@@ -4555,7 +4672,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -4564,13 +4681,13 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-client-ui-directory-picker-browse':
         specifier: workspace:^
         version: link:../../client/ui-directory-picker-browse
@@ -4599,12 +4716,12 @@ importers:
         specifier: workspace:^
         version: link:../directory-picker
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -4623,7 +4740,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -4631,15 +4748,15 @@ importers:
   packages/host/frontend-static:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-host-webserver':
         specifier: workspace:^
         version: link:../webserver
@@ -4655,10 +4772,10 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -4672,12 +4789,12 @@ importers:
   packages/host/webserver:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -4686,7 +4803,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -4705,7 +4822,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4734,12 +4851,12 @@ importers:
   packages/interaction/permission-presets:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-commands':
         specifier: workspace:^
         version: link:../commands
@@ -4772,7 +4889,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4795,12 +4912,12 @@ importers:
   packages/interaction/user-approval:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4827,7 +4944,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4842,7 +4959,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4859,18 +4976,18 @@ importers:
   packages/jobs/jobs-local:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4896,12 +5013,12 @@ importers:
   packages/jobs/tool-jobs:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -4933,12 +5050,12 @@ importers:
   packages/llm/llm:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-attachment':
         specifier: workspace:^
         version: link:../../attachment/attachment
@@ -4955,15 +5072,15 @@ importers:
   packages/llm/llm-deepseek:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       eventsource-parser:
         specifier: ^3.1.0
         version: 3.1.0
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-anonymous-user-id':
         specifier: workspace:^
         version: link:../../identity/anonymous-user-id
@@ -5001,18 +5118,18 @@ importers:
   packages/llm/llm-retry:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -5053,12 +5170,12 @@ importers:
   packages/llm/token-meter:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-compaction':
         specifier: workspace:^
         version: link:../../compaction/compaction
@@ -5079,7 +5196,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -5093,12 +5210,12 @@ importers:
   packages/lsp/lsp-stdio:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -5130,8 +5247,8 @@ importers:
   packages/mcp/mcp-client:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.3)
@@ -5141,7 +5258,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-attachment':
         specifier: workspace:^
         version: link:../../attachment/attachment
@@ -5168,7 +5285,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -5206,21 +5323,21 @@ importers:
   packages/preset/agent-presets:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       js-yaml:
         specifier: ^5.4.1
         version: 5.4.1
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -5261,12 +5378,12 @@ importers:
   packages/preset/persona:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5280,18 +5397,18 @@ importers:
   packages/runtime-diagnostics/invariants:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
 
   packages/sandbox/sandbox:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5311,12 +5428,12 @@ importers:
         specifier: workspace:^
         version: link:../../../native/landlock-run/packages/entry
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5333,12 +5450,12 @@ importers:
   packages/sandbox/sandbox-policy:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -5363,7 +5480,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5378,10 +5495,10 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -5417,7 +5534,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5435,7 +5552,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5452,15 +5569,15 @@ importers:
   packages/sdk/server:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -5496,10 +5613,10 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -5538,7 +5655,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -5561,18 +5678,18 @@ importers:
   packages/session-query/session-query-sqlite:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       libsql-plugkit-client:
         specifier: github:AnEntrypoint/libsql-plugkit-client
         version: https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/61057a4cf02cd9e6d1e6694c250d0f3d0099ac24
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5592,12 +5709,12 @@ importers:
   packages/session-query/tool-session-query:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -5642,10 +5759,10 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -5678,7 +5795,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -5698,15 +5815,15 @@ importers:
   packages/session/session-persistence-jsonl:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       koffi:
         specifier: ^3.1.0
         version: 3.1.1
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5720,21 +5837,21 @@ importers:
   packages/session/session-persistence-sqlite:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       libsql-plugkit-client:
         specifier: github:AnEntrypoint/libsql-plugkit-client
         version: https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/61057a4cf02cd9e6d1e6694c250d0f3d0099ac24
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5752,7 +5869,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5763,12 +5880,12 @@ importers:
   packages/session/session-projection-cache:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5792,13 +5909,13 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5816,7 +5933,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -5830,8 +5947,8 @@ importers:
   packages/session/session-telemetry-otel:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       '@opentelemetry/api':
         specifier: ^1.9.1
         version: 1.9.1
@@ -5850,10 +5967,10 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-anonymous-user-id':
         specifier: workspace:^
         version: link:../../identity/anonymous-user-id
@@ -5876,12 +5993,12 @@ importers:
   packages/session/session-title:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -5907,18 +6024,18 @@ importers:
   packages/session/session-title-first-prompt-llm:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5941,12 +6058,12 @@ importers:
   packages/session/session-title-llm:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -5966,12 +6083,12 @@ importers:
   packages/settings/settings:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -5982,8 +6099,8 @@ importers:
   packages/settings/settings-file:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       chokidar:
         specifier: ^5.0.0
         version: 5.0.0
@@ -5993,7 +6110,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-atomic-write':
         specifier: workspace:^
         version: link:../../util/atomic-write
@@ -6010,12 +6127,12 @@ importers:
   packages/shell/bash-local:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -6039,7 +6156,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-bash-local':
         specifier: workspace:^
         version: link:../bash-local
@@ -6068,12 +6185,12 @@ importers:
   packages/shell/pwsh-local:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -6097,7 +6214,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -6124,7 +6241,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -6141,12 +6258,12 @@ importers:
   packages/shell/shell-env:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6172,12 +6289,12 @@ importers:
   packages/shell/tool-bash:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6236,18 +6353,18 @@ importers:
   packages/shell/tool-bash-persistent:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6288,12 +6405,12 @@ importers:
   packages/shell/tool-pwsh:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6343,18 +6460,18 @@ importers:
   packages/shell/tool-pwsh-persistent:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6398,12 +6515,12 @@ importers:
   packages/skill/skill:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -6418,7 +6535,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -6429,8 +6546,8 @@ importers:
   packages/skill/skill-filesystem:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       chokidar:
         specifier: ^5.0.0
         version: 5.0.0
@@ -6440,7 +6557,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-fs':
         specifier: workspace:^
         version: link:../../fs/fs
@@ -6457,12 +6574,12 @@ importers:
   packages/skill/tool-skill:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6492,7 +6609,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -6509,12 +6626,12 @@ importers:
   packages/spill/spill-local:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -6534,12 +6651,12 @@ importers:
   packages/spill/spill-policy:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6569,7 +6686,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -6577,12 +6694,12 @@ importers:
   packages/storage/storage-domain:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -6593,12 +6710,12 @@ importers:
   packages/storage/storage-json:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -6609,15 +6726,15 @@ importers:
   packages/storage/storage-sqlite:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       libsql-plugkit-client:
         specifier: github:AnEntrypoint/libsql-plugkit-client
         version: https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/61057a4cf02cd9e6d1e6694c250d0f3d0099ac24
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -6629,7 +6746,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6685,15 +6802,15 @@ importers:
   packages/subagent/subagent-fork-in-process:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6723,13 +6840,13 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6773,15 +6890,15 @@ importers:
   packages/subagent/subagent-spawn-in-process:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6822,15 +6939,15 @@ importers:
   packages/subagent/tool-subagent:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6875,7 +6992,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6913,12 +7030,12 @@ importers:
   packages/subagent/tool-subagent-report:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -6960,7 +7077,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -6976,7 +7093,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -6991,7 +7108,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -7011,12 +7128,12 @@ importers:
         specifier: workspace:^
         version: link:../../shell/pwsh-local
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -7045,18 +7162,18 @@ importers:
   packages/terminal/tool-terminal:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -7106,18 +7223,18 @@ importers:
   packages/todo/tool-todo:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-include':
         specifier: workspace:^
-        version: link:../../../vendor/include
+        version: link:../../../framework/include
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -7152,15 +7269,15 @@ importers:
   packages/typert/loader:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7172,7 +7289,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7185,7 +7302,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7194,7 +7311,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7203,7 +7320,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7212,7 +7329,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7221,7 +7338,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7230,7 +7347,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7239,7 +7356,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7248,7 +7365,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7256,8 +7373,8 @@ importers:
   packages/web/tool-web:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
       '@joplin/turndown-plugin-gfm':
         specifier: ^1.0.67
         version: 1.0.67
@@ -7267,7 +7384,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -7308,12 +7425,12 @@ importers:
   packages/web/web:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7324,12 +7441,12 @@ importers:
   packages/web/web-fetch-http:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7343,12 +7460,12 @@ importers:
   packages/web/web-search-deepseek:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -7377,12 +7494,12 @@ importers:
   packages/web/web-search-exa:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7396,15 +7513,15 @@ importers:
   packages/workflow/tool-ralph:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/cordis-plugin-loader':
         specifier: workspace:^
-        version: link:../../../vendor/loader
+        version: link:../../../framework/loader
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -7445,12 +7562,12 @@ importers:
   packages/workflow/tool-workflow:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -7483,7 +7600,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -7503,12 +7620,12 @@ importers:
   packages/workflow/workflow-worker-thread:
     dependencies:
       '@freddie/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: workspace:^
         version: link:../../core/agent
@@ -7547,7 +7664,7 @@ importers:
     devDependencies:
       '@freddie/cordis':
         specifier: workspace:^
-        version: link:../../../vendor/cordis
+        version: link:../../../framework/cordis
       '@freddie/freddie-brand':
         specifier: workspace:^
         version: link:../../util/brand
@@ -7566,123 +7683,6 @@ importers:
       '@freddie/freddie-storage-domain':
         specifier: workspace:^
         version: link:../../storage/storage-domain
-
-  vendor/cordis:
-    dependencies:
-      '@freddie/cordis-plugin-include':
-        specifier: workspace:^
-        version: link:../include
-      '@freddie/cordis-plugin-loader':
-        specifier: workspace:^
-        version: link:../loader
-      '@freddie/cosmokit':
-        specifier: link:../cosmokit
-        version: link:../cosmokit
-      '@standard-schema/spec':
-        specifier: ^1.1.0
-        version: 1.1.0
-
-  vendor/cosmokit: {}
-
-  vendor/group:
-    dependencies:
-      '@freddie/cordis':
-        specifier: workspace:^
-        version: link:../cordis
-      '@freddie/cordis-plugin-loader':
-        specifier: workspace:^
-        version: link:../loader
-
-  vendor/hmr:
-    dependencies:
-      '@babel/code-frame':
-        specifier: ^7.29.0
-        version: 7.29.7
-      '@freddie/cordis':
-        specifier: workspace:^
-        version: link:../cordis
-      '@freddie/cordis-plugin-loader':
-        specifier: workspace:^
-        version: link:../loader
-      '@freddie/cordis-plugin-timer':
-        specifier: workspace:^
-        version: link:../timer
-      '@freddie/cosmokit':
-        specifier: link:../cosmokit
-        version: link:../cosmokit
-      '@freddie/schemastery':
-        specifier: link:../schemastery
-        version: link:../schemastery
-      chokidar:
-        specifier: ^5.0.0
-        version: 5.0.0
-      picomatch:
-        specifier: ^4.0.3
-        version: 4.0.4
-    devDependencies:
-      esbuild:
-        specifier: ^0.28.1
-        version: 0.28.1
-
-  vendor/include:
-    dependencies:
-      '@freddie/cordis':
-        specifier: workspace:^
-        version: link:../cordis
-      '@freddie/cordis-plugin-loader':
-        specifier: workspace:^
-        version: link:../loader
-      '@freddie/cosmokit':
-        specifier: link:../cosmokit
-        version: link:../cosmokit
-      js-yaml:
-        specifier: ^5.4.1
-        version: 5.4.1
-
-  vendor/loader:
-    dependencies:
-      '@freddie/cordis':
-        specifier: workspace:^
-        version: link:../cordis
-      '@freddie/cosmokit':
-        specifier: link:../cosmokit
-        version: link:../cosmokit
-      node-addon-require-builtin:
-        specifier: ^0.1.4
-        version: 0.1.4
-
-  vendor/logger-console:
-    dependencies:
-      '@freddie/cordis':
-        specifier: workspace:^
-        version: link:../cordis
-      '@freddie/cosmokit':
-        specifier: link:../cosmokit
-        version: link:../cosmokit
-      '@freddie/schemastery':
-        specifier: link:../schemastery
-        version: link:../schemastery
-      supports-color:
-        specifier: ^9.4.0
-        version: 9.4.0
-
-  vendor/schemastery:
-    dependencies:
-      '@freddie/cosmokit':
-        specifier: link:../cosmokit
-        version: link:../cosmokit
-      '@standard-schema/spec':
-        specifier: ^1.1.0
-        version: 1.1.0
-
-  vendor/timer:
-    dependencies:
-      '@freddie/cordis':
-        specifier: workspace:^
-        version: link:../cordis
-      '@freddie/cosmokit':
-        specifier: link:../cosmokit
-        version: link:../cosmokit
 
 packages:
 
