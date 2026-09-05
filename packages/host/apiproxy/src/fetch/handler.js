@@ -157,8 +157,25 @@ async function handleUnary(api, method, message, signal) {
   if (!payload.success) {
     return errorResponse(message.rpcId, { code: 'bad-request', message: `invalid payload for ${method}`, details: { issues: payload.error.issues } })
   }
+  // Payload-shape validation was removed repo-wide (see rpc.schema.js: the
+  // route schemas are identity pass-throughs), so a request with no payload at
+  // all reaches a handler that destructures it. That is not the "fails
+  // differently downstream" the removal traded for: `const { sessionId } =
+  // request.payload` throws a raw TypeError, which the catch below turns into
+  // a carrier-layer 500 -- an implementation crash, leaking an internal
+  // message, for what is purely a malformed request. Witnessed live against
+  // session.history, session.rename and agentPreset.read, each answering
+  // "handler failure: TypeError: Cannot destructure property ...".
+  //
+  // Substituting an empty object is the smallest change that keeps the
+  // no-schema design and still lets each handler answer for its OWN required
+  // fields: destructuring yields undefined, the handler's own field check
+  // fails, and the client gets a business `bad-request` naming the field. A
+  // payload that IS present passes through untouched, so no valid request
+  // changes shape.
+  const data = payload.data ?? {}
   try {
-    return fullResponse(await route.invoke(api, { rpcId: message.rpcId, payload: payload.data }, signal))
+    return fullResponse(await route.invoke(api, { rpcId: message.rpcId, payload: data }, signal))
   } catch (error) {
     // The impl never throws business errors; reaching here means the implementation itself crashed — 500, carrier layer.
     return new Response(`handler failure: ${String(error)}`, { status: 500 })

@@ -258,6 +258,11 @@ function err(request, error) {
   return { rpcId: request.rpcId, result: { ok: false, error } }
 }
 
+/** RpcResult for a request that failed the remaining handler-side field checks. */
+function badRequest(request, message) {
+  return err(request, { code: 'bad-request', message, details: { issues: [] } })
+}
+
 /**
  * The RPC refusal a preset failure becomes, or undefined when the failure is
  * about something else.
@@ -2829,7 +2834,10 @@ export function createApiProxy(ctx, defaults) {
       // resolves to a canonical cwd from the host-resident session header, and
       // the view scope is the live agent or the preset's standing key.
       async list(request) {
-        const { sessionId } = request.payload
+        const sessionId = request.payload?.sessionId
+        if (typeof sessionId !== 'string' || sessionId.length === 0) {
+          return badRequest(request, 'skill.list requires payload.sessionId as a non-empty string')
+        }
         const session = ctx.sessions.get(sessionId)
         if (session === undefined) {
           return err(request, {
@@ -2941,7 +2949,11 @@ export function createApiProxy(ctx, defaults) {
       async describe(request) {
         const credentials = ctx.get('credentials')
         if (credentials === undefined) return err(request, credentialsAbsent())
-        const entries = await Promise.all(request.payload.refs.map(async (ref) => {
+        const refs = request.payload?.refs
+        if (!Array.isArray(refs)) {
+          return badRequest(request, 'credentials.describe requires payload.refs as an array of credential references')
+        }
+        const entries = await Promise.all(refs.map(async (ref) => {
           const info = await credentials.describe(credentialRef(ref))
           const view = {
             configured: info.configured,
@@ -2956,7 +2968,14 @@ export function createApiProxy(ctx, defaults) {
       async set(request) {
         const credentials = ctx.get('credentials')
         if (credentials === undefined) return err(request, credentialsAbsent())
-        const { ref, value } = request.payload
+        const ref = request.payload?.ref
+        const value = request.payload?.value
+        if (typeof ref !== 'string' || ref.length === 0) {
+          return badRequest(request, 'credentials.set requires payload.ref as a non-empty credential reference')
+        }
+        if (typeof value !== 'string') {
+          return badRequest(request, 'credentials.set requires payload.value as a string')
+        }
         try {
           await credentials.set(credentialRef(ref), value)
         } catch (error) {
@@ -2972,7 +2991,10 @@ export function createApiProxy(ctx, defaults) {
       async unset(request) {
         const credentials = ctx.get('credentials')
         if (credentials === undefined) return err(request, credentialsAbsent())
-        const { ref } = request.payload
+        const ref = request.payload?.ref
+        if (typeof ref !== 'string' || ref.length === 0) {
+          return badRequest(request, 'credentials.unset requires payload.ref as a non-empty credential reference')
+        }
         try {
           await credentials.unset(credentialRef(ref))
         } catch (error) {

@@ -37,7 +37,7 @@ export function credentialRef(value) {
  * @returns true when {@link credentialRef} would accept it.
  */
 export function isCredentialRefName(value) {
-  return REF_PATTERN.test(value)
+  return typeof value === 'string' && REF_PATTERN.test(value)
 }
 
 /**
@@ -50,7 +50,7 @@ export function isCredentialRefName(value) {
  * @returns true when {@link credentialKey} would accept it as either segment.
  */
 export function isCredentialKeySegment(value) {
-  return KEY_SEGMENT_PATTERN.test(value)
+  return typeof value === 'string' && KEY_SEGMENT_PATTERN.test(value)
 }
 
 /**
