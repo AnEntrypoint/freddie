@@ -52,6 +52,17 @@ function moreLabel(t, count) {
 }
 
 /**
+ * Identity of a path list for the measurement cache (see `#measuredKey`).
+ * Joined on a separator only so two lists differing by an element boundary
+ * compare unequal; the key is never parsed back apart.
+ * @param paths - the matched produced-file paths.
+ * @returns the comparable key.
+ */
+function pathsKey(paths) {
+  return paths.join('')
+}
+
+/**
  * Produced-files turn-tail row custom element: renders openable chips for a
  * turn's produced paths, measuring how many fit one line via a ResizeObserver
  * bound to hidden probe chips.
@@ -63,23 +74,46 @@ export class FreddieProducedFiles extends HTMLElement {
   #rowEl = null
   #moreProbeEl = null
   #chipProbeEls = []
+  // The path list the mounted probes were last measured against. #measure()
+  // costs a forced synchronous reflow per candidate remainder label (it writes
+  // the probe's textContent, then reads its width back on the same pass, up to
+  // SHOWN_LIMIT + 1 times), and #remeasure() additionally rebuilds the
+  // ResizeObserver. Nothing else in `props` moves a chip, so re-running either
+  // for a re-render that did not change the paths is pure layout thrash --
+  // and this element re-renders on every store fanout, including the one every
+  // keystroke triggers. Compared by content, not array identity: the caller
+  // rebuilds the array each render even when the paths are unchanged.
+  #measuredKey = null
 
   /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
-    this.#shownCount = Math.min(props.matched.length, SHOWN_LIMIT)
+    const key = pathsKey(props.matched)
+    const pathsChanged = key !== this.#measuredKey
+    if (pathsChanged) this.#shownCount = Math.min(props.matched.length, SHOWN_LIMIT)
     this.#render()
-    this.#remeasure()
+    // An unchanged path list keeps the fit already measured for it; the
+    // ResizeObserver bound below still catches any genuine external resize.
+    if (pathsChanged) {
+      this.#measuredKey = key
+      this.#remeasure()
+    }
   }
 
   connectedCallback() {
     this.#render()
+    // A reconnect remounts fresh probes, so the previous measurement's probe
+    // elements are gone: measure again and re-key against the current paths.
+    this.#measuredKey = this.#props === null ? null : pathsKey(this.#props.matched)
     this.#remeasure()
   }
 
   disconnectedCallback() {
     this.#observer?.disconnect()
     this.#observer = null
+    // The probes this key vouched for die with the disconnect; a reconnect
+    // must measure against its own fresh ones rather than trust this key.
+    this.#measuredKey = null
   }
 
   #measure() {
