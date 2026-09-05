@@ -26,6 +26,24 @@ import css from './AssistantMarkdown.css.js'
 // `identity` (the stable keyed chat-node object, threaded in by
 // AssistantNodeView) plus the block's own index is the cache key: stable
 // across re-renders of the same node, distinct per block position.
+// The fence copy labels, memoized per `t`. The object below is compared by
+// IDENTITY inside MarkdownText (its `propsEqual` memo guarding
+// `#computeChildren`), so building it fresh each render made that memo miss
+// unconditionally: every render re-parsed the markdown and rebuilt every
+// inline `code` element, which showed up live as ~41 fresh `code` nodes per
+// keystroke under `freddie-markdown-text`. `t` changes identity only on a
+// locale revision, which is exactly the cadence these labels should change at
+// -- the cadence the comment at the call site already claimed.
+const codeLabelsByT = new WeakMap()
+function codeLabelsFor(t) {
+  let labels = codeLabelsByT.get(t)
+  if (labels === undefined) {
+    labels = { copyLabel: t('copy'), copiedLabel: t('copied') }
+    codeLabelsByT.set(t, labels)
+  }
+  return labels
+}
+
 const cachedBlocks = new WeakMap()
 function cachedBlockEl(identity, index, render, props) {
   let perNode = cachedBlocks.get(identity)
@@ -50,7 +68,7 @@ export function AssistantMarkdown({
 }) {
   // Stable per locale revision (t identity changes on switch): a fresh object
   // per render would rebuild MarkdownText's component table every chunk.
-  const codeLabels = { copyLabel: t('copy'), copiedLabel: t('copied') }
+  const codeLabels = codeLabelsFor(t)
   const last = blocks.length - 1
   // Tool-call heads render as tool rows in the chat view's grouping pass, so
   // a node that is only those heads (or empty) would paint an empty root
