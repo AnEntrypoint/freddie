@@ -212,6 +212,15 @@ export class FreddieChatView extends HTMLElement {
   #lastSteeringId = null
   #followSig = null
 
+  // Bound once, not per render. This is handed down to every seat and ends up
+  // in the produced-files `owner`, which AssistantNodeView caches its mentions
+  // resolver against and MarkdownText compares by IDENTITY. A fresh arrow per
+  // render therefore invalidated that cache on every keystroke and re-parsed
+  // the closing block's whole markdown document -- measured with real
+  // keyboard input as 39 fileMentions cache misses costing 47ms across ten
+  // keys, against 243 correctly-equal calls costing 0ms.
+  #openFile = (path) => { this.#requestOpenFile(path) }
+
   #listEl = null
   #columnEl = null
   #scrollHandler = null
@@ -605,7 +614,7 @@ export class FreddieChatView extends HTMLElement {
             useSession,
             selectedCallId,
             cwd,
-            openFile: (path) => { this.#requestOpenFile(path) },
+            openFile: this.#openFile,
             inspectCall,
             forkAt,
             renderMessageImages,
