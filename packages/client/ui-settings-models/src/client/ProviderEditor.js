@@ -3,7 +3,7 @@
  * primary field is a single write-only **API key** input (the page never
  * asks for an environment-variable name — a typed key stores through
  * `credentials.set` under the profile's reference, deriving `<ROUTE>_API_KEY`
- * when the profile has none); the collapsed 自定义设置 area carries the
+ * when the profile has none); the collapsed custom-settings area carries the
  * curated extras (`baseURL`, DeepSeek's id/name/context-window model
  * catalog).
  * Reasoning effort is deliberately absent: it is a per-MODEL capability, and

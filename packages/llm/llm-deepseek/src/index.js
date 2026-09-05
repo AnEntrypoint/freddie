@@ -12,7 +12,7 @@
  */
 
 import z from '@freddie/schemastery'
-import { assertUsableApiKey, LlmError, resolveRetryPolicy, RetryPolicySchema } from '@freddie/freddie-llm'
+import { assertUsableApiKey, attributionHeaders, LlmError, resolveRetryPolicy, RetryPolicySchema } from '@freddie/freddie-llm'
 import { credentialRef } from '@freddie/freddie-credentials'
 import { launchEnvironmentOf } from '@freddie/freddie-launch-environment'
 import { deepEqualJson, installSettingsSection, settingsNamespace } from '@freddie/freddie-settings'
@@ -375,6 +375,51 @@ export function apply(ctx, config) {
   ctx.llm.registerConfigurableProviders([
     { provider: PROVIDER, displayName: 'DeepSeek', settingsNs: NS, settingsPath: [] },
   ])
+  ctx.llm.registerModelDiscovery(NS, async (request) => {
+    const connection = options()
+    if ((request.provider ?? '') === PROVIDER && (request.baseURL ?? '').length === 0) {
+      return connection.models.map(model => ({
+        id: model.id,
+        ...model.name === undefined ? {} : { name: model.name },
+        ...model.contextWindow === undefined ? {} : { contextWindow: model.contextWindow },
+        ...model.maxTokens === undefined ? {} : { maxTokens: model.maxTokens },
+      }))
+    }
+    const baseURL = (request.baseURL ?? connection.baseURL).replace(/\/+$/u, '')
+    const apiKey = request.apiKey ?? await resolveApiKey({ ...connection, ...request.baseURL === undefined ? {} : { baseURL: request.baseURL } })
+    let response
+    try {
+      response = await fetch(`${baseURL}/models`, {
+        method: 'GET',
+        headers: {
+          ...attributionHeaders(),
+          authorization: `Bearer ${apiKey}`,
+          accept: 'application/json',
+        },
+        ...request.signal === undefined ? {} : { signal: request.signal },
+      })
+    } catch (error) {
+      if (request.signal?.aborted) throw error
+      throw new LlmError(`DeepSeek model listing from ${baseURL} failed`, 'TRANSPORT', { cause: error })
+    }
+    if (!response.ok) {
+      throw new LlmError(
+        `DeepSeek model listing from ${baseURL} failed (HTTP ${response.status})`,
+        response.status === 401 || response.status === 403 ? 'AUTH' : response.status >= 500 ? 'SERVER' : 'INVALID_REQUEST',
+        { status: response.status },
+      )
+    }
+    const body = await response.json()
+    const listed = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : []
+    return listed.flatMap((entry) => {
+      const id = typeof entry?.id === 'string' ? entry.id : ''
+      if (id.length === 0) return []
+      return [{
+        id,
+        ...typeof entry.name === 'string' && entry.name.length > 0 ? { name: entry.name } : {},
+      }]
+    })
+  })
   // Route effects bind to this apply fiber via the stable `ctx` reference,
   // even when a swap runs inside the scoped settings callback below.
   const registration = ctx.llm.registerAdapter([PROVIDER], adapter)

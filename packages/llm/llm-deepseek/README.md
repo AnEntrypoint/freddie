@@ -82,6 +82,8 @@ The one registration-captured fact is the retry policy: when its resolved value 
 
 The plugin also declares its route in the configurable-provider directory (`ctx.llm.listConfigurableProviders()`): provider `deepseek-official`, settings namespace `llm-deepseek`, empty settings path — the whole section is the profile. Configuration surfaces use that entry to offer this adapter alongside dormant pi-ai providers.
 
+It registers `ctx.llm.registerModelDiscovery('llm-deepseek', …)` on the same fiber. A discovery request that names provider `deepseek-official` and omits `baseURL` answers from the resolved catalog with no network call. Any other request GETs `{baseURL}/models` with the one-shot credential (or the resolved key when the caller omitted `apiKey`) and returns the advertised ids; a transport or HTTP failure throws `LlmError` and becomes `model-discovery-failed` on the wire.
+
 ## App attribution
 
 Every chat and Files API request carries the shared attribution header from freddie-llm's `attributionHeaders()`, the mandatory `User-Agent` baseline identifying the harness (see [freddie-llm § App attribution](../llm/README.md#app-attribution-attributionts)). Direct DeepSeek requests and OpenAI-compatible gateway requests get no provider-specific app-attribution headers under this adapter contract; OpenRouter app attribution is deferred to a future explicit OpenRouter adapter or mode. A request whose `GenerateOptions.purpose` is `compaction` (freddie-compaction-basic's auxiliary summarization call) additionally carries `x-freddie-compact: 1`, so the host can separate compaction traffic from conversation requests.

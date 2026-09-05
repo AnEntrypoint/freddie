@@ -15,6 +15,13 @@ import {
 /** Capability-owned timeout reason code for auxiliary title requests. */
 export const SESSION_TITLE_TIMEOUT_CODE = 'SESSION_TITLE_TIMEOUT'
 
+/**
+ * Provider-outage copy that must never become a durable session title.
+ * Gateways sometimes stream this sentence as a successful chat completion
+ * instead of an HTTP/SSE error; accepting it pins the sidebar to the outage.
+ */
+const PROVIDER_OUTAGE_TITLE = 'All upstream providers are currently unavailable. Please retry shortly.'
+
 /** Shared Loader field schemas with no library defaults. */
 export const SessionTitleLlmConfigFields = {
   targetWords: z.number().step(1).min(1).required(),
@@ -223,6 +230,9 @@ export async function generateSessionTitleWithLlm(
     .join(' ')
   const title = normalizeSessionTitle(text, Number.MAX_SAFE_INTEGER)
   if (title.length === 0) throw new Error('session-title-llm: title model produced no text')
+  if (title === PROVIDER_OUTAGE_TITLE) {
+    throw new Error('session-title-llm: title model returned a provider-outage diagnostic')
+  }
   return {
     title,
     messageSeqs: selectedMessages.map(message => message.seq),

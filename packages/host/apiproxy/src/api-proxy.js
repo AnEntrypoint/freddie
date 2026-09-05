@@ -2102,7 +2102,12 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async prompt(request) {
-        const { sessionId, mode, content, clientTimeZone } = request.payload
+        const { sessionId, mode, content, clientTimeZone } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, sessionId, 'session.prompt requires payload.sessionId as a non-empty string')
+        if (refused !== undefined) return refused
+        if (!Array.isArray(content)) {
+          return badRequest(request, 'session.prompt requires payload.content as an array')
+        }
         const canonicalTimeZone = clientTimeZone === undefined
           ? undefined
           : canonicalClientTimeZone(clientTimeZone)
