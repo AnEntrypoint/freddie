@@ -62,6 +62,21 @@ function stateStatus(state, t) {
 export class FreddieToolRow extends HTMLElement {
   #props = null
   #expanded = false
+  // Body construction latch. The card factories below tokenize their content
+  // through shiki (ReadBlock's highlightLines, CodeBlock's highlightToHtml) --
+  // a TextMate regex scan over the whole payload -- and the row rebuilds its
+  // vdom on every render pass, including the ones a keystroke fans out to
+  // every mounted row. Building a CLOSED row's body is pure waste: nothing
+  // renders it. Left ungated, a session's cost grew with its own history --
+  // 40 collapsed rows re-tokenizing on every keystroke measured 493ms
+  // synchronous plus ~3.1s over the following two frames, and
+  // findNextMatchSync dominated the bottom-up flamegraph at ~50x the next
+  // frame. The latch (never cleared) preserves DisclosureRow's
+  // keepContentWhenOpen contract: once opened, the body stays built and keeps
+  // re-rendering exactly as before, so collapsing never drops the block state
+  // (copy feedback, expanded sub-state, settled highlight memo) those
+  // elements hold.
+  #everOpened = false
   // TerminalBlock/DiffBlock/ReadBlock/SearchBlock/CodeBlock's (and WebBlock's
   // inner MarkdownText, see WebBlock.js) own one-shot factories recreate
   // their DOM element (dropping copy-feedback/expanded-state/settled-render
@@ -109,6 +124,9 @@ export class FreddieToolRow extends HTMLElement {
     const card = terminalBody ?? diffBody ?? readBody ?? searchBody ?? webBody
     const expandable = body !== null || outputText !== null || card !== null
     const open = this.#expanded && expandable
+    if (open) this.#everOpened = true
+    // See #everOpened: a row the user has never opened builds no body at all.
+    const buildBody = this.#everOpened
     // The run-state label AT needs: the StateDot and the running sweep are both
     // aria-hidden / colour-only, so a stopped or running row is otherwise silent.
     const status = stateStatus(state, t)
@@ -182,7 +200,9 @@ export class FreddieToolRow extends HTMLElement {
           /* The wrapper (sibling of the header row, so clicks inside never
               toggle it) carries the expanded body and the Inspect pill below. */
           h('div', {class: css.bodyWrap ?? ''},
-            terminalBody !== null
+            !buildBody
+              ? null
+              : terminalBody !== null
               ? (
                 (this.#terminalEl = renderTerminalBlock(this.#terminalEl, {
                   ...terminalBody.card,
