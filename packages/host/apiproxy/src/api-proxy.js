@@ -1915,7 +1915,9 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async models(request) {
-        const { sessionId } = request.payload
+        const { sessionId } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, sessionId, 'session.models requires payload.sessionId as a non-empty string')
+        if (refused !== undefined) return refused
         const found = await agentFor(sessionId)
         if ('error' in found) return err(request, found.error)
         const current = selectionFor(found.agent).current
@@ -1925,7 +1927,11 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async selectModel(request) {
-        const { sessionId, provider, model, reasoningEffort } = request.payload
+        const { sessionId, provider, model, reasoningEffort } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, sessionId, 'session.selectModel requires payload.sessionId as a non-empty string')
+          ?? requireNonEmptyString(request, provider, 'session.selectModel requires payload.provider as a non-empty string')
+          ?? requireNonEmptyString(request, model, 'session.selectModel requires payload.model as a non-empty string')
+        if (refused !== undefined) return refused
         const found = await agentFor(sessionId)
         if ('error' in found) return err(request, found.error)
         return serializeImageAdmission(found.agent, async () => {
@@ -1964,7 +1970,9 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async rename(request) {
-        const { sessionId, title } = request.payload
+        const { sessionId, title } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, sessionId, 'session.rename requires payload.sessionId as a non-empty string')
+        if (refused !== undefined) return refused
         const found = await agentFor(sessionId)
         if ('error' in found) return err(request, found.error)
         const titles = ctx.get('sessionTitle')
@@ -1994,7 +2002,9 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async fork(request) {
-        const { sessionId, atSeq } = request.payload
+        const { sessionId, atSeq } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, sessionId, 'session.fork requires payload.sessionId as a non-empty string')
+        if (refused !== undefined) return refused
         let source
         try {
           source = await readSessionState(sessionId)
