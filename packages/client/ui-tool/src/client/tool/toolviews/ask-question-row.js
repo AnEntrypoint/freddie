@@ -9,7 +9,7 @@
 import { createElement as h, Fragment } from 'webjsx'
 import { IconQuestionOutline14 } from '@freddie/freddie-client-ui-primitives'
 import { toolRowModel } from '../models/tool-call-model.js'
-import { ToolRow } from '../components/ToolRow.js'
+import { renderToolRow } from '../components/ToolRow.js'
 import { CONVERSATION_NS as NS } from '../../locale.js'
 
 function isAnswer(value) {
@@ -59,7 +59,8 @@ export function AskQuestionRow({ toolName, block, inspect, t }) {
     summary = answeredSummary(text, t) ?? model.summary
   }
   return (
-    h(ToolRow, {
+    h('freddie-tool-row', {
+      ref: (el) => { renderToolRow(el, {
       t: t,
       variant: model.variant,
       toolName: toolName,
@@ -70,7 +71,7 @@ export function AskQuestionRow({ toolName, block, inspect, t }) {
       output: model.output,
       state: state,
       inspect: inspect,
-    })
+      }) } })
   )
 }
 

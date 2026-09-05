@@ -10,7 +10,7 @@
 import { createElement as h, Fragment } from 'webjsx'
 import { IconChecklistOutline14 } from '@freddie/freddie-client-ui-primitives'
 import { toolRowModel } from '../models/tool-call-model.js'
-import { ToolRow } from '../components/ToolRow.js'
+import { renderToolRow } from '../components/ToolRow.js'
 import { CONVERSATION_NS as NS } from '../../locale.js'
 import { planSummary } from './plan-summary.js'
 
@@ -48,7 +48,8 @@ export function TodoRow({ toolName, block, inspect, t }) {
   const argsRaw = ('kind' in block ? block.call?.argsRaw : block.argsRaw) ?? ''
   const summary = summarize(argsRaw, t) ?? { text: model.summary, extra: 0 }
   return (
-    h(ToolRow, {
+    h('freddie-tool-row', {
+      ref: (el) => { renderToolRow(el, {
       t: t,
       variant: model.variant,
       toolName: toolName,
@@ -61,7 +62,7 @@ export function TodoRow({ toolName, block, inspect, t }) {
       errorSummary: model.errorSummary,
       state: model.state,
       inspect: inspect,
-    })
+      }) } })
   )
 }
 

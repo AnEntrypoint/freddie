@@ -11,7 +11,7 @@ import { applyDiff, createElement as h } from 'webjsx'
 import { MessageText, renderJsonBlock, StateDot } from '@freddie/freddie-client-ui-primitives'
 import { ReferenceIcon } from '../reference/ReferenceIcon.js'
 import { CompactionItem } from './CompactionItem.js'
-import { ContextInjectionRow } from './ContextInjectionRow.js'
+import { renderContextInjectionRow } from './ContextInjectionRow.js'
 import { renderMessageIconActions } from './MessageIconActions.js'
 import css from './MessageItem.css.js'
 
@@ -358,12 +358,20 @@ export function UserMessageNodeView({
 /** Injected-context keyed Chat renderer. */
 export function ContextMessageNodeView({ node, t }) {
   const data = node.data
-  return h(ContextInjectionRow, {
-    content: data.content,
-    source: data.source,
-    provenance: data.provenance,
-    form: data.form,
-    t,
+  // The intrinsic tag plus `ref` (not `h(ContextInjectionRow, ...)`) so the
+  // live element is REUSED across renders: the one-shot helper builds a fresh
+  // element every call, and this view re-renders on every store fanout, so the
+  // bare form replaced each row's real DOM node on every keystroke.
+  return h('freddie-context-injection-row', {
+    ref: (el) => {
+      renderContextInjectionRow(el, {
+        content: data.content,
+        source: data.source,
+        provenance: data.provenance,
+        form: data.form,
+        t,
+      })
+    },
   })
 }
 

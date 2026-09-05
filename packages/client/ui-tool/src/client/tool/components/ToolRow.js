@@ -283,9 +283,34 @@ if (typeof customElements !== 'undefined' && customElements.get('freddie-tool-ro
   customElements.define('freddie-tool-row', FreddieToolRow)
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
+/**
+ * Create (if needed) or update a ToolRow element in place -- the same
+ * create-or-reuse shape `renderCodeBlock`/`renderReadBlock` expose, and the
+ * one every caller should reach for.
+ * @param el - an existing `freddie-tool-row` to update, or null to create one.
+ * @param props - see the class's own prop set.
+ * @returns the element; keep it and pass it back in to update.
+ */
+export function renderToolRow(el, props) {
+  const target = el ?? document.createElement('freddie-tool-row')
+  target.setProps(props)
+  return target
+}
+
+/**
+ * One-shot creation helper preserving the original function-component call
+ * shape.
+ *
+ * Every call builds a NEW element, so `h(ToolRow, props)` in a re-rendered
+ * tree discards the live row and its whole subtree each pass -- the row's
+ * expanded/latched state resets and applyDiff replaces the real node instead
+ * of patching it. Measured live with a MutationObserver: one keystroke in a
+ * 30-row session created ~185 fresh `freddie-tool-row` elements (306 elements
+ * total), and `setAttribute`/`replaceChild`/`createElement` dominated the
+ * bottom-up profile. Callers that re-render MUST use {@link renderToolRow}
+ * with a held element (the webjsx `ref` escape hatch) instead; this stays for
+ * genuine one-shot construction.
+ */
 export function ToolRow(props) {
-  const el = document.createElement('freddie-tool-row')
-  el.setProps(props)
-  return el
+  return renderToolRow(null, props)
 }

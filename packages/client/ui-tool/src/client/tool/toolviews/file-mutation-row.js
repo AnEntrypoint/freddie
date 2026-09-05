@@ -12,7 +12,7 @@ import { createElement as h, Fragment } from 'webjsx'
 import { IconEditOutline16 } from '@freddie/freddie-client-ui-primitives'
 import { diffCardModel } from '../models/diff-card-model.js'
 import { toolRowModel } from '../models/tool-call-model.js'
-import { ToolRow } from '../components/ToolRow.js'
+import { renderToolRow } from '../components/ToolRow.js'
 import { CONVERSATION_NS as NS } from '../../locale.js'
 
 /**
@@ -28,7 +28,8 @@ export function FileMutationRow({ toolName, block, cwd, home, openFile, inspect,
   const model = toolRowModel(toolName, block, cwd, home)
   const diff = diffCardModel(block)
   return (
-    h(ToolRow, {
+    h('freddie-tool-row', {
+      ref: (el) => { renderToolRow(el, {
       t: t,
       variant: model.variant,
       toolName: toolName,
@@ -43,7 +44,7 @@ export function FileMutationRow({ toolName, block, cwd, home, openFile, inspect,
       filePath: model.filePath,
       onOpenFile: openFile,
       inspect: inspect,
-    })
+      }) } })
   )
 }
 

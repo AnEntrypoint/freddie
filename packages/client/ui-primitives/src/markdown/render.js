@@ -414,11 +414,21 @@ function renderAnchor(url, children, key) {
  */
 function inlineCodeHttpUrl(value) {
   if (value.trim() !== value) return undefined
+  // Cheap prefix gate before the parse. `new URL()` on a non-URL throws, and
+  // constructing the rejected TypeError (message, stack capture) costs far
+  // more than the parse itself -- paid for EVERY inline code span on every
+  // render, where the overwhelming majority are ordinary identifiers, not
+  // links. This is the same predicate the protocol check below enforces, so
+  // nothing that used to return a href stops doing so.
+  // Case-insensitive: URL schemes are, so `HTTPS://EXAMPLE.COM` is a real
+  // link the old code accepted and a case-sensitive gate would silently drop.
+  if (!/^https?:\/\//i.test(value)) return undefined
   try {
     const protocol = new URL(value).protocol
     return protocol === 'http:' || protocol === 'https:' ? value : undefined
   } catch {
-    // Not an absolute URL at all — the only way new URL() rejects a string.
+    // A well-formed prefix can still fail to parse (a bare `https://`, a bad
+    // host); those stay inert code.
     return undefined
   }
 }

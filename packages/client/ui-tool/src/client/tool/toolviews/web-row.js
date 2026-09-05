@@ -13,7 +13,7 @@ import { createElement as h, Fragment } from 'webjsx'
 import { IconBrowseOutline16, IconGlobeOutline14 } from '@freddie/freddie-client-ui-primitives'
 import { webCardModel } from '../models/web-card-model.js'
 import { toolRowModel } from '../models/tool-call-model.js'
-import { ToolRow } from '../components/ToolRow.js'
+import { renderToolRow } from '../components/ToolRow.js'
 import { CONVERSATION_NS as NS } from '../../locale.js'
 
 /** web_fetch reads one URL; web_search queries. Titles are figma literals. */
@@ -33,7 +33,8 @@ export function WebRow({ toolName, block, inspect, t }) {
   // Web search uses a globe; local grep/glob keep the magnifier family.
   const icon = toolName === 'web_fetch' ? h(IconBrowseOutline16, {size: 14}) : h(IconGlobeOutline14, {size: 14})
   return (
-    h(ToolRow, {
+    h('freddie-tool-row', {
+      ref: (el) => { renderToolRow(el, {
       t: t,
       variant: model.variant,
       toolName: toolName,
@@ -46,7 +47,7 @@ export function WebRow({ toolName, block, inspect, t }) {
       web: web,
       state: model.state,
       inspect: inspect,
-    })
+      }) } })
   )
 }
 

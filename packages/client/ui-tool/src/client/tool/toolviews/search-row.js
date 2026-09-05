@@ -15,7 +15,7 @@ import { createElement as h, Fragment } from 'webjsx'
 import { IconSearchOutline16 } from '@freddie/freddie-client-ui-primitives'
 import { searchCardModel } from '../models/search-card-model.js'
 import { toolRowModel } from '../models/tool-call-model.js'
-import { ToolRow } from '../components/ToolRow.js'
+import { renderToolRow } from '../components/ToolRow.js'
 import { CONVERSATION_NS as NS } from '../../locale.js'
 
 const SEARCH_TITLES = {
@@ -35,7 +35,8 @@ export function SearchRow({ toolName, block, inspect, t }) {
   const model = toolRowModel(toolName, block)
   const search = searchCardModel(block)
   return (
-    h(ToolRow, {
+    h('freddie-tool-row', {
+      ref: (el) => { renderToolRow(el, {
       t: t,
       variant: model.variant,
       toolName: toolName,
@@ -56,7 +57,7 @@ export function SearchRow({ toolName, block, inspect, t }) {
       search: search,
       state: model.state,
       inspect: inspect,
-    })
+      }) } })
   )
 }
 

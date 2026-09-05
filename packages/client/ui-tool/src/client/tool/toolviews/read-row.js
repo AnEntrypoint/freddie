@@ -11,7 +11,7 @@ import { createElement as h, Fragment } from 'webjsx'
 import { IconBrowseOutline16 } from '@freddie/freddie-client-ui-primitives'
 import { readCardModel } from '../models/read-card-model.js'
 import { toolRowModel } from '../models/tool-call-model.js'
-import { ToolRow } from '../components/ToolRow.js'
+import { renderToolRow } from '../components/ToolRow.js'
 import { CONVERSATION_NS as NS } from '../../locale.js'
 
 /**
@@ -23,7 +23,8 @@ export function ReadRow({ toolName, block, cwd, home, openFile, inspect, t }) {
   const model = toolRowModel(toolName, block, cwd, home)
   const read = readCardModel(block, cwd, home)
   return (
-    h(ToolRow, {
+    h('freddie-tool-row', {
+      ref: (el) => { renderToolRow(el, {
       t: t,
       variant: model.variant,
       toolName: toolName,
@@ -38,7 +39,7 @@ export function ReadRow({ toolName, block, cwd, home, openFile, inspect, t }) {
       filePath: model.filePath,
       onOpenFile: openFile,
       inspect: inspect,
-    })
+      }) } })
   )
 }
 

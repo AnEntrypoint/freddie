@@ -14,7 +14,7 @@ import { searchCardModel } from '../models/search-card-model.js'
 import { terminalCardModel, terminalFailed } from '../models/terminal-card-model.js'
 import { webCardModel } from '../models/web-card-model.js'
 import { toolRowModel } from '../models/tool-call-model.js'
-import { ToolRow } from '../components/ToolRow.js'
+import { renderToolRow } from '../components/ToolRow.js'
 
 /** Variant leading icons (figma table); all glyphs render at 14 inside the 16px leading box. */
 const VARIANT_ICONS = {
@@ -41,7 +41,8 @@ export function GenericToolCard({ toolName, block, cwd, home, openFile, inspect,
     : model.state
   const singleFile = model.filePath !== undefined
   return (
-    h(ToolRow, {
+    h('freddie-tool-row', {
+      ref: (el) => { renderToolRow(el, {
       t: t,
       variant: model.variant,
       toolName: toolName,
@@ -66,6 +67,6 @@ export function GenericToolCard({ toolName, block, cwd, home, openFile, inspect,
       filePath: model.filePath,
       onOpenFile: singleFile ? openFile : undefined,
       inspect: inspect,
-    })
+      }) } })
   )
 }
