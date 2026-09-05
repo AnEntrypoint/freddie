@@ -13,8 +13,16 @@
   z-index: 1100;
   /* Purely an announcement: it must never intercept clicks — in particular
      after the CSS fade finished while a throttled background-tab timer has
-     not yet unmounted the still-hit-testable fixed element. */
+     not yet unmounted the still-hit-testable fixed element. A copyable
+     banner re-enables pointer events (see .freddie-toast__toast--copyable)
+     only for the window it is actually visible, keeping that guarantee. */
   pointer-events: none;
+  /* Reset the button defaults the copyable variant inherits, so the two
+     element shapes render identically. */
+  border: 0;
+  margin: 0;
+  font-family: inherit;
+  text-align: left;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -43,6 +51,38 @@
   min-width: 0;
 }
 
+/* Copyable banner: clickable for the ~4s it is on screen. The animation's
+   `forwards` fill leaves opacity at 0 after the fade, and a fully transparent
+   element still hit-tests, so pointer events are re-enabled here and taken
+   away again at opacity 0 below — the "never block the UI it covers" rule the
+   base rule documents survives unchanged. */
+.freddie-toast__toast--copyable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Hovered or focused: hold at full opacity with the fade cancelled, so a
+   banner being read or aimed at cannot dim away mid-click. The JS clears its
+   unmount timer in the same gesture. */
+.freddie-toast__toast--hovered {
+  animation: freddie-toast__toast-in 160ms ease-out;
+  opacity: 1;
+}
+
+.freddie-toast__toast--copyable:focus-visible {
+  outline: 2px solid var(--freddie-alias-label-primary-inverted);
+  outline-offset: 2px;
+}
+
+/* The copy affordance: present but quiet, and never displacing the message. */
+.freddie-toast__hint {
+  flex: none;
+  margin-left: 2px;
+  opacity: 0.65;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 @keyframes freddie-toast__toast-in {
   from {
     opacity: 0;
@@ -58,6 +98,11 @@
 @keyframes freddie-toast__toast-fade {
   to {
     opacity: 0;
+    /* Hand hit-testing back at the end of the fade. Without this a copyable
+       banner whose unmount timer is throttled (background tab) would stay
+       invisible AND clickable over the UI beneath it — the exact failure the
+       base rule's `pointer-events: none` exists to prevent. */
+    pointer-events: none;
   }
 }
 
@@ -66,5 +111,12 @@
 @media (prefers-reduced-motion: reduce) {
   .freddie-toast__toast {
     animation: freddie-toast__toast-fade 1000ms ease 3000ms forwards;
+  }
+
+  /* The hover hold must survive here too: without its own reduced-motion
+     rule this banner keeps the fade above and dims away under the pointer. */
+  .freddie-toast__toast--hovered {
+    animation: none;
+    opacity: 1;
   }
 }
