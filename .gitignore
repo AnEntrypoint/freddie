@@ -1,4 +1,12 @@
 node_modules
+# acptoapi is no longer a registered submodule here (chore: remove stale
+# acptoapi submodule entry, now independent) -- it is consumed at runtime
+# via the "acptoapi": "github:AnEntrypoint/acptoapi" npm dep spec. A local
+# clone of it under this path is a deliberate, opportunistic editable
+# checkout for local iteration, never freddie's own tracked content --
+# ignore it so it stops showing as untracked content in every consumer's
+# submodule status (casey/deps/freddie, this repo's own status).
+acptoapi/
 .thoth-test-home
 *.log
 .DS_Store
