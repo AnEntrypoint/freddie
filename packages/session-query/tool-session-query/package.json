@@ -1,0 +1,64 @@
+{
+  "name": "@freddie/freddie-tool-session-query",
+  "description": "Workspace-authorized model-facing session history search, trace, and event read tools",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/session-query/tool-session-query"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/input.js",
+    "src/operations.js",
+    "src/presentation.js",
+    "src/service-boundary.js",
+    "src/workspace-access.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-query": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-timeout": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-persistence": "workspace:^",
+    "@freddie/freddie-session-persistence-jsonl": "workspace:^",
+    "@freddie/freddie-session-query": "workspace:^",
+    "@freddie/freddie-session-query-sqlite": "workspace:^",
+    "@freddie/freddie-session-title": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-timeout": "workspace:^",
+    "@freddie/freddie-tool-call-timeout-policy": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

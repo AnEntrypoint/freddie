@@ -1,0 +1,27 @@
+const css = {
+  root: 'freddie-sidebarRoot__root',
+  collapsed: 'freddie-sidebarRoot__collapsed',
+  quietBars: 'freddie-sidebarRoot__quietBars',
+  fading: 'freddie-sidebarRoot__fading',
+  wide: 'freddie-sidebarRoot__wide',
+  railIn: 'freddie-sidebarRoot__railIn',
+  logoRow: 'freddie-sidebarRoot__logoRow',
+  brand: 'freddie-sidebarRoot__brand',
+  brandIdentity: 'freddie-sidebarRoot__brandIdentity',
+  brandMark: 'freddie-sidebarRoot__brandMark',
+  brandName: 'freddie-sidebarRoot__brandName',
+  fallbackBrandName: 'freddie-sidebarRoot__fallbackBrandName',
+  iconButton: 'freddie-sidebarRoot__iconButton',
+  toggle: 'freddie-sidebarRoot__toggle',
+  panelIcon: 'freddie-sidebarRoot__panelIcon',
+  railMark: 'freddie-sidebarRoot__railMark',
+  buildRevision: 'freddie-sidebarRoot__buildRevision',
+  newSession: 'freddie-sidebarRoot__newSession',
+  newSessionLabel: 'freddie-sidebarRoot__newSessionLabel',
+  regionArea: 'freddie-sidebarRoot__regionArea',
+  footArea: 'freddie-sidebarRoot__footArea',
+  settingsArea: 'freddie-sidebarRoot__settingsArea',
+  footerActions: 'freddie-sidebarRoot__footerActions',
+}
+
+export default css

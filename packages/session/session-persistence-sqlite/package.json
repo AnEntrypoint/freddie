@@ -1,0 +1,50 @@
+{
+  "name": "@freddie/freddie-session-persistence-sqlite",
+  "description": "SQLite durable session persistence with physical chunk-row packing",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/session/session-persistence-sqlite"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/*.js",
+    "resources/sql/**/*.sql"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-persistence": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^",
+    "libsql-plugkit-client": "github:AnEntrypoint/libsql-plugkit-client"
+  },
+  "devDependencies": {
+    "@freddie/cordis-plugin-include": "workspace:^",
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-persistence": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

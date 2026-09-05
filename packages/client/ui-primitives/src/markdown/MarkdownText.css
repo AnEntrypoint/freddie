@@ -1,0 +1,304 @@
+/* Visual baseline: deepsuite `@deepseek/md` markdown.css, adapted to CSS
+   Modules. Cite pills, header anchors, and thinking-small variants are
+   intentionally absent (no matching DOM). Token names match that sheet. */
+
+.freddie-markdownText__markdown {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font: var(--dsw-font-markdown-base);
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-markdownText__markdown strong {
+  font-weight: 600;
+}
+
+.freddie-markdownText__markdown h1 {
+  font: var(--dsw-font-markdown-h1);
+  margin: 32px 0 16px;
+}
+
+.freddie-markdownText__markdown h2 {
+  font: var(--dsw-font-markdown-h2);
+  margin: 32px 0 16px;
+}
+
+.freddie-markdownText__markdown h3 {
+  font: var(--dsw-font-markdown-h3);
+  margin: 32px 0 16px;
+}
+
+.freddie-markdownText__markdown h4 {
+  font: var(--dsw-font-markdown-h4);
+  margin: 16px 0;
+}
+
+.freddie-markdownText__markdown :where(h5, h6) {
+  font: var(--dsw-font-markdown-base-strong);
+  margin: 16px 0;
+}
+
+.freddie-markdownText__markdown :where(h1, h2, h3, h4, h5, h6) strong {
+  font-weight: inherit;
+}
+
+.freddie-markdownText__markdown p {
+  margin: 16px 0;
+}
+
+/* Tighten h4–h6 against a following list (design: 8px gap). */
+.freddie-markdownText__markdown :where(h4, h5, h6) + :where(ul, ol) {
+  margin-top: 8px;
+}
+
+.freddie-markdownText__markdown :where(h4, h5, h6):has(+ :where(ul, ol)) {
+  margin-bottom: 8px;
+}
+
+.freddie-markdownText__markdown a {
+  /* deepsuite markdown.css uses brand-text (blue in newDesign); this sheet
+     keeps design-platform brand-text as near-black, so links use the blue
+     business-primary alias instead. */
+  color: var(--freddie-alias-state-business-primary);
+  transition: box-shadow var(--ds-transition-duration) var(--ds-ease-in-out);
+  position: relative;
+  text-decoration: none;
+  /* Transparent hit-area padding; literal zero-alpha only (no painted color). */
+  border-left: 3px solid rgb(255 255 255 / 0);
+  border-right: 3px solid rgb(255 255 255 / 0);
+  border-top: 2px solid rgb(255 255 255 / 0);
+  border-bottom: 2px solid rgb(255 255 255 / 0);
+  margin-left: -3px;
+  margin-right: -3px;
+}
+
+.freddie-markdownText__markdown a:hover,
+.freddie-markdownText__markdown a:focus {
+  outline: none;
+  text-decoration: underline var(--freddie-alias-state-business-primary);
+}
+
+.freddie-markdownText__markdown a:focus-visible {
+  box-shadow: 0 0 0 2px var(--freddie-alias-state-business-primary);
+}
+
+.freddie-markdownText__markdown :where(ul, ol) {
+  margin: 16px 0;
+  padding-left: 18px;
+}
+
+.freddie-markdownText__markdown li:not(:first-child) {
+  margin-top: 6px;
+}
+
+.freddie-markdownText__markdown li > :where(ul, ol) {
+  margin-top: 4px;
+}
+
+.freddie-markdownText__markdown li::marker {
+  line-height: 28px;
+  color: var(--freddie-alias-label-secondary);
+}
+
+/* Nested ol under ul/ol: markers inside (models sometimes emit this shape). */
+.freddie-markdownText__markdown :where(ul, ol) ol {
+  list-style-position: inside;
+  padding-left: 0;
+}
+
+.freddie-markdownText__markdown :where(ul, ol) ol li p {
+  display: inline;
+}
+
+.freddie-markdownText__markdown li > p {
+  margin: 8px 0;
+}
+
+.freddie-markdownText__markdown li > *:first-child {
+  margin-top: 0;
+}
+
+/* Keep list-nested code-block vertical margins (design: +4px vs other last children). */
+.freddie-markdownText__markdown li > *:last-child:not(.md-code-block) {
+  margin-bottom: 0;
+}
+
+.freddie-markdownText__markdown hr {
+  display: block;
+  border: none;
+  height: 1px;
+  margin: 32px 0;
+  background: var(--freddie-alias-border-l2);
+}
+
+.freddie-markdownText__markdown blockquote {
+  border-left: 2px solid var(--freddie-alias-label-caption);
+  margin: 16px 0 0;
+  padding-left: 14px;
+}
+
+.freddie-markdownText__markdown pre {
+  margin: 16px 0;
+  font-family: var(--ds-font-family-code);
+  overflow: auto;
+}
+
+.freddie-markdownText__markdown :not(pre) > code {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  font: var(--dsw-font-markdown-code);
+  font-family: var(--ds-font-family-code);
+  font-size: 0.875em !important;
+  background-color: var(--freddie-alias-markdown-inline-code);
+  border-radius: 6px;
+  padding: 0 5px;
+}
+
+.freddie-markdownText__markdown :where(h1, h2, h3, h4, h5, h6) code {
+  font: inherit;
+  font-family: var(--ds-font-family-code);
+}
+
+.freddie-markdownText__markdown .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.freddie-markdownText__markdown input[type='checkbox'] {
+  margin: 0 8px 0 0;
+  accent-color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-markdownText__tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* Wide tables reveal their horizontal bar on hover (or keyboard focus)
+   instead of keeping it painted. Chromium never repaints state-conditioned
+   scrollbar STYLES (neither hover-conditioned `::-webkit-scrollbar*` rules
+   nor a :hover `scrollbar-color` change reaches the painted bar), so the
+   toggle is `overflow-x` itself — a layout change repaints reliably. The
+   resting padding matches the themed bar's height, so on an overflowing
+   table the appearing bar exactly replaces it and nothing below shifts.
+   Wheel and trackpad scrolling need the pointer over the table, which is
+   already the hover that re-enables `auto`. */
+.freddie-markdownText__tableScroll.md-table-wide {
+  overflow-x: hidden;
+  padding-bottom: var(--freddie-scrollbar-width, 8px);
+}
+
+.freddie-markdownText__tableScroll.md-table-wide:hover,
+.freddie-markdownText__tableScroll.md-table-wide:focus-visible {
+  overflow-x: auto;
+  padding-bottom: 0;
+}
+
+/* Chromium keyboard-focuses scrollable containers by default; the ring uses
+   the sheet's link focus color. */
+.freddie-markdownText__tableScroll:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--freddie-alias-state-business-primary);
+}
+
+/* Many-column tables (the renderer's `md-table-wide` hook) keep their
+   natural width and scroll inside the wrapper; a hosting layout may widen
+   the wrapper through the hook (deepsuite chat TableWrapper parity). */
+.freddie-markdownText__tableScroll table {
+  border-collapse: collapse;
+  width: max-content;
+  max-width: max-content;
+}
+
+/* Tables under four columns, and any table inside a blockquote, fill the
+   column instead: cells wrap down to their minimum readable width, and the
+   wrapper's scroll only remains for the below-floor case (deepsuite chat
+   parity: `.wrapper:not(:has(th:nth-child(4), td:nth-child(4)))`). */
+.freddie-markdownText__tableFill table {
+  width: 100%;
+  max-width: none;
+}
+
+.freddie-markdownText__tableScroll th {
+  text-align: start;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--freddie-alias-border-l3);
+  border-top: none;
+  font: var(--dsw-font-markdown-table-head);
+  max-width: 320px;
+  max-width: min(30vw, 320px);
+  min-width: 100px;
+}
+
+.freddie-markdownText__tableScroll td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--freddie-alias-border-l2);
+  font: var(--dsw-font-markdown-table);
+  max-width: 320px;
+  max-width: min(30vw, 320px);
+  min-width: 100px;
+}
+
+.freddie-markdownText__tableScroll th:first-child,
+.freddie-markdownText__tableScroll td:first-child {
+  padding-left: 0;
+}
+
+.freddie-markdownText__tableScroll td:last-child {
+  padding-right: 0;
+}
+
+.freddie-markdownText__tableScroll table code {
+  font-size: 13px;
+}
+
+.freddie-markdownText__markdown > *:first-child,
+.freddie-markdownText__markdown p:first-child {
+  margin-top: 0 !important;
+}
+
+.freddie-markdownText__markdown > *:last-child,
+.freddie-markdownText__markdown p:last-child {
+  margin-bottom: 0 !important;
+}
+
+.freddie-markdownText__imageAlt {
+  color: var(--freddie-alias-label-tertiary);
+  font-style: italic;
+}
+
+.freddie-markdownText__image {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 8px;
+  background: var(--freddie-alias-bg-base);
+  object-fit: contain;
+}
+
+/* Inline file mention: the same link language this sheet gives anchors (and
+   thereby URL-promoted inline code) — link-blue at rest, underline only on
+   hover/focus. An underline at rest reads badly inside the code chip, where
+   it collides with monospace descenders and the pill background. */
+.freddie-markdownText__fileMention {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--freddie-alias-state-business-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.freddie-markdownText__fileMention:hover,
+.freddie-markdownText__fileMention:focus {
+  outline: none;
+  text-decoration: underline var(--freddie-alias-state-business-primary);
+  text-underline-offset: 3px;
+}

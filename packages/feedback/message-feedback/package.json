@@ -1,0 +1,72 @@
+{
+  "name": "@freddie/freddie-message-feedback",
+  "description": "Lifecycle-bound per-message rating and note sidecar for the Freddie",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/feedback/message-feedback"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./types": {
+      "default": "./src/types.js"
+    },
+    "./typert": {
+      "default": "./src/typert.host.js"
+    },
+    "./remote": {
+      "default": "./src/typert.remote-client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/spec.js",
+    "src/types.js",
+    "src/typert.host.js",
+    "src/typert.remote-client.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-brand": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-persistence": "workspace:^",
+    "@freddie/freddie-storage-domain": "workspace:^",
+    "@freddie/freddie-typert-protocol": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@freddie/cordis-plugin-include": "workspace:^",
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/freddie-brand": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-persistence": "workspace:^",
+    "@freddie/freddie-session-persistence-jsonl": "workspace:^",
+    "@freddie/freddie-storage": "workspace:^",
+    "@freddie/freddie-storage-domain": "workspace:^",
+    "@freddie/freddie-storage-json": "workspace:^",
+    "@freddie/freddie-typert-protocol": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

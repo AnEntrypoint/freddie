@@ -1,0 +1,64 @@
+{
+  "name": "@freddie/freddie-agent-instructions",
+  "description": "Workspace context loader for AGENTS.md/CLAUDE.md instruction files",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/context/agent-instructions"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/config.js",
+    "src/digest.js",
+    "src/files.js",
+    "src/render.js",
+    "src/state.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-fs": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-home-paths": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-agent-loop": "workspace:^",
+    "@freddie/freddie-fs": "workspace:^",
+    "@freddie/freddie-fs-local": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-llm-deepseek": "workspace:^",
+    "@freddie/freddie-home-paths": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-tool-fs": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

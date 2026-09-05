@@ -1,0 +1,49 @@
+{
+  "name": "@freddie/freddie-subprocess-local",
+  "description": "Local-subprocess implementation of the Freddie subprocess seam",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/subprocess/subprocess-local"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/*.js",
+    "scripts/ensure-spawn-helper.mjs"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/ensure-spawn-helper.mjs"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-subprocess": "workspace:^",
+    "@freddie/freddie-timeout": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "koffi": "^3.1.0",
+    "node-pty": "1.2.0-beta.15"
+  },
+  "devDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-subprocess": "workspace:^",
+    "@freddie/freddie-timeout": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

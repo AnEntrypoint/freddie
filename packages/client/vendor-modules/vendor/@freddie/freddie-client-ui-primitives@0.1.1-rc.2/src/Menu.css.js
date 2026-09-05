@@ -1,0 +1,23 @@
+const css = {
+  root: 'dsh-menu__root',
+  list: 'dsh-menu__list',
+  submenu: 'dsh-menu__submenu',
+  portal: 'dsh-menu__portal',
+  sideTop: 'dsh-menu__sideTop',
+  alignEnd: 'dsh-menu__alignEnd',
+  scrollable: 'dsh-menu__scrollable',
+  viewport: 'dsh-menu__viewport',
+  footer: 'dsh-menu__footer',
+  itemWrap: 'dsh-menu__itemWrap',
+  item: 'dsh-menu__item',
+  denseList: 'dsh-menu__denseList',
+  compactList: 'dsh-menu__compactList',
+  itemIcon: 'dsh-menu__itemIcon',
+  itemLabel: 'dsh-menu__itemLabel',
+  check: 'dsh-menu__check',
+  selected: 'dsh-menu__selected',
+  danger: 'dsh-menu__danger',
+  label: 'dsh-menu__label',
+  separator: 'dsh-menu__separator',
+}
+export default css

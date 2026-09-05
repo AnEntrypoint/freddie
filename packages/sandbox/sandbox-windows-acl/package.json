@@ -1,0 +1,56 @@
+{
+  "name": "@freddie/freddie-sandbox-windows-acl",
+  "description": "Windows ACL write-restriction sandbox backend (restricted-token spawn with capability-SID write allowlist) for the Freddie sandbox seam",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/sandbox/sandbox-windows-acl"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./runner": {
+      "default": "./src/runner.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/runner.js",
+    "src/acl.js",
+    "src/errors.js",
+    "src/ffi.js",
+    "src/grant.js",
+    "src/path-boundary.js",
+    "src/spawn.js",
+    "src/token.js",
+    "src/win32-abi.js",
+    "src/workspace-sid.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "koffi": "^3.1.0"
+  },
+  "devDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-pwsh-local": "workspace:^",
+    "@freddie/freddie-sandbox-local": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

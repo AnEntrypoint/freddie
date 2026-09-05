@@ -1,0 +1,35 @@
+{
+  "name": "@freddie/freddie-web-frontend",
+  "description": "Web application entry: buildless shell over the @freddie/freddie-client-web library, served directly by apps/cli's dsh web with no build step",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "apps/web"
+  },
+  "type": "module",
+  "exports": {
+    "./index.html": "./index.html",
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.html",
+    "src"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@freddie/cordis-plugin-group": "workspace:^",
+    "@freddie/freddie-client-modules": "workspace:^",
+    "@freddie/freddie-client-ui-primitives": "workspace:^",
+    "@freddie/freddie-client-ui-slots": "workspace:^",
+    "@freddie/freddie-client-web": "workspace:^",
+    "@freddie/freddie-cmdline": "workspace:^",
+    "@freddie/freddie-pwsh-local": "workspace:^",
+    "webjsx": "^0.0.73",
+    "fflate": "^0.8.2"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "name": "@freddie/freddie-client-ui-layout",
+  "description": "Shell plugin: three-column AppFrame with drag handles, ctx.layout viewing-state service (navigation + panels)",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/client/ui-layout"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./client": {
+      "default": "./src/client/index.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "freddie": {
+    "client": {
+      "inject": [
+        "@freddie/freddie-client-runtime",
+        "@freddie/freddie-client-ui-theme"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "bundle": "tsdown",
+    "watch": "tsdown --watch"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "webjsx": "^0.0.73"
+  },
+  "peerDependencies": {
+    "@freddie/freddie-client-runtime": "workspace:^",
+    "@freddie/freddie-client-ui-theme": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-client-locale": "workspace:^",
+    "@freddie/freddie-client-runtime": "workspace:^",
+    "@freddie/freddie-client-ui-slots": "workspace:^",
+    "@freddie/freddie-client-ui-theme": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/client/*.js"
+  ]
+}

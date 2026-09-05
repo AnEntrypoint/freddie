@@ -1,0 +1,125 @@
+.freddie-jobListAction__root {
+  position: relative;
+}
+
+.freddie-jobListAction__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 28px;
+  padding: 3px 2px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--freddie-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.freddie-jobListAction__trigger:hover,
+.freddie-jobListAction__trigger:focus-visible {
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-jobListAction__trigger svg {
+  transition: transform 120ms ease;
+}
+
+.freddie-jobListAction__triggerOpen {
+  transform: rotate(180deg);
+}
+
+.freddie-jobListAction__triggerDot {
+  flex: none;
+}
+
+.freddie-jobListAction__count {
+  margin: 0 5px;
+}
+
+.freddie-jobListAction__menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 100;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 336px;
+  max-width: min(400px, calc(100vw - 32px));
+  max-height: min(420px, calc(100vh - 140px));
+  margin: 0;
+  padding: 4px;
+  overflow: auto;
+  list-style: none;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 12px;
+  background: var(--dsw-specific-menu);
+  --freddie-scrollbar-thumb: var(--freddie-alias-scrollbar-bg-l2);
+  --freddie-scrollbar-thumb-hover: var(--freddie-alias-scrollbar-hover-l2);
+  box-shadow: var(--dsw-shadow-lv3);
+}
+
+.freddie-jobListAction__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--freddie-alias-label-primary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.freddie-jobListAction__rowSettled {
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-jobListAction__rowDot {
+  flex: none;
+}
+
+.freddie-jobListAction__kind {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: var(--freddie-alias-fill-l2);
+  color: var(--freddie-alias-label-secondary);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.freddie-jobListAction__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--dsw-font-mono);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.freddie-jobListAction__status,
+.freddie-jobListAction__duration {
+  flex: none;
+  color: var(--freddie-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+/* A failed job's detail is the producer's raw error text, so it has no bound;
+   without this it widens the row past the menu instead of eliding like .label. */
+.freddie-jobListAction__status {
+  max-width: 40%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.freddie-jobListAction__duration {
+  font-variant-numeric: tabular-nums;
+}

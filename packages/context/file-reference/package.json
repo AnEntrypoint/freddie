@@ -1,0 +1,61 @@
+{
+  "name": "@freddie/freddie-file-reference",
+  "description": "File-reference discovery contract and shared @file grammar",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/context/file-reference"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./grammar": {
+      "default": "./src/grammar.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./types": {
+      "default": "./src/types.js"
+    },
+    "./typert": {
+      "default": "./src/typert.host.js"
+    },
+    "./remote": {
+      "default": "./src/typert.remote-client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/grammar.js",
+    "src/invariant.js",
+    "src/types.js",
+    "src/typert.host.js",
+    "src/typert.remote-client.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-typert-protocol": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-typert-protocol": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}

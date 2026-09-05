@@ -1,0 +1,56 @@
+/* Composer Enter preference row: title/description plus selector pill. */
+
+.freddie-enterBehaviorRow__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--freddie-alias-border-l2);
+}
+
+.freddie-enterBehaviorRow__rowText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 48px;
+}
+
+.freddie-enterBehaviorRow__title {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-enterBehaviorRow__desc {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-enterBehaviorRow__selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 18px;
+  background: var(--freddie-alias-bg-module-platform);
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--freddie-alias-label-primary);
+  cursor: pointer;
+}
+
+.freddie-enterBehaviorRow__selector:hover {
+  background: var(--freddie-alias-interactive-bg-hover);
+}
+
+.freddie-enterBehaviorRow__chevron {
+  flex: none;
+}

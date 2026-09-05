@@ -1,0 +1,96 @@
+{
+  "name": "@freddie/freddie-subagent",
+  "description": "Abstract subagent seam (ctx.subagents): named-provider registry for delegating to child agents",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/subagent/subagent"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./client": {
+      "default": "./src/client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/*.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-agent-presets": "workspace:^",
+    "@freddie/freddie-brand": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-sandbox": "workspace:^",
+    "@freddie/freddie-sandbox-policy": "workspace:^",
+    "@freddie/freddie-scope": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-persistence": "workspace:^",
+    "@freddie/freddie-session-projection": "workspace:^",
+    "@freddie/freddie-session-projection-cache": "workspace:^",
+    "@freddie/freddie-jobs": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/freddie-user-approval": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@freddie/freddie-agent-presets": {
+      "optional": true
+    },
+    "@freddie/freddie-sandbox": {
+      "optional": true
+    },
+    "@freddie/freddie-sandbox-policy": {
+      "optional": true
+    },
+    "@freddie/freddie-session-persistence": {
+      "optional": true
+    },
+    "@freddie/freddie-session-projection": {
+      "optional": true
+    },
+    "@freddie/freddie-session-projection-cache": {
+      "optional": true
+    },
+    "@freddie/freddie-jobs": {
+      "optional": true
+    },
+    "@freddie/freddie-user-approval": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-agent-presets": "workspace:^",
+    "@freddie/freddie-brand": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-sandbox": "workspace:^",
+    "@freddie/freddie-sandbox-policy": "workspace:^",
+    "@freddie/freddie-scope": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-persistence": "workspace:^",
+    "@freddie/freddie-session-projection": "workspace:^",
+    "@freddie/freddie-session-projection-cache": "workspace:^",
+    "@freddie/freddie-storage": "workspace:^",
+    "@freddie/freddie-storage-domain": "workspace:^",
+    "@freddie/freddie-jobs": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/freddie-user-approval": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

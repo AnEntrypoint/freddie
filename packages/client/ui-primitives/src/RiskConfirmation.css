@@ -1,0 +1,73 @@
+.freddie-riskConfirmation__confirmation {
+  width: min(440px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+}
+
+.freddie-riskConfirmation__confirmationContent {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@supports (height: 100dvh) {
+  .freddie-riskConfirmation__confirmation {
+    max-height: calc(100dvh - 48px);
+  }
+}
+
+.freddie-riskConfirmation__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--freddie-alias-label-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.freddie-riskConfirmation__warning p {
+  margin: 0;
+}
+
+.freddie-riskConfirmation__warningIcon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-riskConfirmation__acknowledgement {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+  color: var(--freddie-alias-label-primary);
+  font-size: 14px;
+  line-height: 22px;
+  cursor: pointer;
+}
+
+.freddie-riskConfirmation__acknowledgement input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
+  accent-color: var(--freddie-alias-button-primary-fill);
+  cursor: pointer;
+}
+
+.freddie-riskConfirmation__acknowledgement input:focus-visible {
+  outline: 2px solid var(--freddie-alias-border-l4);
+  outline-offset: 2px;
+}
+
+.freddie-riskConfirmation__acknowledgement input:disabled {
+  cursor: default;
+}
+
+.freddie-riskConfirmation__modalAction {
+  min-width: 72px;
+}
+
+.freddie-riskConfirmation__confirmAction {
+  min-width: 136px;
+}

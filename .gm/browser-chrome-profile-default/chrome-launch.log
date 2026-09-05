@@ -1,0 +1,9 @@
+
+DevTools listening on ws://127.0.0.1:52652/devtools/browser/bddfc290-cab0-478f-b2ad-cec541654d86
+[7528:16824:0905/174351.949:ERROR:components\device_event_log\device_event_log_impl.cc:211] [17:43:51.949] USB: usb_service_win.cc:108 SetupDiGetDeviceProperty({{A45C254E-DF1C-4EFD-8020-67D146A850E0}, 6}) failed: Element not found. (0x490)
+[7528:2592:0905/174352.095:ERROR:components\services\storage\service_worker\service_worker_storage.cc:1814] Failed to delete the database: Database IO error
+[7528:15748:0905/174355.708:ERROR:google_apis\gcm\engine\gcm_store_impl.cc:321] Failed to open database \\?\C:\dev\deepseek-harness\.gm\browser-chrome-profile-default\Default\GCM Store: IO error: \\?\C:\dev\deepseek-harness\.gm\browser-chrome-profile-default\Default\GCM Store/LOCK: No further details. (ChromeMethodBFE: 15::LockFile::1)
+[7528:15748:0905/174357.800:ERROR:google_apis\gcm\engine\gcm_store_impl.cc:418] Destroy failed: IO error: \\?\C:\dev\deepseek-harness\.gm\browser-chrome-profile-default\Default\GCM Store/LOCK: No further details. (ChromeMethodBFE: 15::LockFile::1)
+[7528:1452:0905/174357.800:ERROR:components\gcm_driver\gcm_client_impl.cc:759] Failed to reset GCM store
+[7528:16824:0905/174359.294:ERROR:chrome\browser\ui\webui\ntp\new_tab_ui.cc:54] Requested load of chrome://newtab/ for incorrect profile type.
+[7528:16824:0905/174429.401:ERROR:chrome\browser\ui\webui\ntp\new_tab_ui.cc:54] Requested load of chrome://newtab/ for incorrect profile type.

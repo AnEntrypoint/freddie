@@ -1,0 +1,26 @@
+- session_id: gm-test-1
+  text: 'acptoapi xai-oauth provider had failCount=12, sampler backoff active (~4min). Root-caused: credentials are genuinely healthy (direct chatCompletion() call succeeded live, real grok-4.3 response). Backoff is from stale prior failure history, not a live bug -- server has no HTTP endpoint to force-reset sampler state. Plan: wait out the ~4min backoff, then confirm via a real /v1/chat/completions HTTP call that grok answers end-to-end through the server (not just the direct lib call).'
+  id: mut-1788448131127
+  status: witnessed
+  witness_evidence: 'curl POST http://localhost:4800/v1/chat/completions model=xai-oauth/grok-4-fast returned real response id=f6164ba3-f9ff-9b60-81b0-f275406b77d4, model=grok-4.3, content=''Hi there friend'', usage.total_tokens=606. Sampler backoff (failCount=12) cleared naturally at nextCheckIn=0 after ~4min wait; no restart or code change needed. Server PID 9128 was already running (uptime confirmed via /metrics: acptoapi_uptime_seconds=5389 at first check).'
+- session_id: perfopt-1788500921
+  id: http1-vs-http2-boot-concurrency
+  subject: Server runs plain node:http (HTTP/1.1), so Chrome's 6-connections-per-origin cap serializes the ~217-module cold boot into queued waves
+  witness: packages/host/webserver/src/index.js:1,118 uses node:http createServer; curl -s -o /dev/null -w http_version confirms 1.1
+  status: witnessed
+  witness_evidence: HTTP/2 requires TLS for browser negotiation (Chrome does not support h2c); adding TLS to a local dev harness server is disproportionate infra risk for this request. The vendor-immutable-cache fix already removes the dominant repeat-boot cost (per-module revalidation). Remaining HTTP/1.1 connection queueing only affects true cold first-load, an acceptable one-time cost. Investigated and rejected.
+- status: witnessed
+  SESSION_ID: dbg2
+  id: checkpoint-not-a-crash
+  text: Inherited JSONL checkpoint PRD (tailidx) is a cold-open optimization, not a remaining harness crash. Live decompress+scan of this session log (703337 bytes, 668 frames, 2000 events) took 64.8ms.
+  witness_evidence: 'Live decompress+scan of session-3b6f93cf jsonl.zstd: 703337 bytes, 668 frames, 2000 events, 64.8ms. Not a remaining harness failure. Checkpoint sidecar is a separate performance feature, not a crash.'
+- session_id: livereload-1788506649
+  id: prd-resolve-checkpoint-format-design-stuck
+  subject: prd-resolve for id checkpoint-format-design repeatedly fails with error 'missing PRD item id' and identical request_fingerprint bafabc0a155df2bc despite valid, distinct JSON bodies across 4+ attempts (including one after an instruction re-sync) -- looks like a daemon-side caching/dedup bug unrelated to the actual request content
+  witness: '4 separate prd-resolve dispatches to .gm/exec-spool/in/prd-resolve/, each with valid id:checkpoint-format-design present and distinct witness_evidence text, all returned request_fingerprint:bafabc0a155df2bc and error:''missing PRD item id'' -- the fingerprint identity across genuinely different payloads indicates the daemon is not hashing the actual dispatch content for this verb/id pair. mutable-resolve itself is ALSO affected: identical request_fingerprint 3874d1f1292f7b8f returned on two separate attempts with distinct bodies (tried both mutable_id and id as the field name), both erroring missing mutable id in body despite the field genuinely being present. Resolved via hand-edit of .gm/prd.yml and this file directly since the daemon verb is confirmed non-functional for this exact row across both prd-resolve and mutable-resolve.'
+  status: resolved
+- id: bert-plugin-unknown-plugin-outage
+  subject: bert embedding plugin returns unknown_plugin for every codesearch/recall dispatch this session despite bert.wasm present on disk at ~/.agentplug/plugins/bert.wasm -- codesearch and recall are non-functional
+  witness: .watcher.log shows repeated code_index_embed_failed/embed_query_failed with plugin_failure:unknown_plugin; recall-gm-adversarial-1788524327-2.json and codesearch-gm-adversarial-1788524327-3.json never landed at all (not even degraded BM25-only). .status.json on this build carries no loaded_plugin_versions diagnostic to confirm/deny the sideload-pinning theory the gm instruction prose names as the standard fix. Shared agentplug-runner daemon (shared_process:true) currently serves 2 other actively-busy peer sessions (litebox-main-55, advisor-db) -- restarting it to test the fix would interrupt their in-flight work, so deferred rather than done unilaterally. Falling back to direct Read/Grep/Glob for this session's work since the verb surface is genuinely broken, not merely inconvenient.
+  status: witnessed
+  SESSION_ID: gm-adversarial-1788524327

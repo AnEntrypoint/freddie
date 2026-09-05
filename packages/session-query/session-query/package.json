@@ -1,0 +1,52 @@
+{
+  "name": "@freddie/freddie-session-query",
+  "description": "Combined session query service contract with concrete reads, traces, and filters",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/session-query/session-query"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/*.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-brand": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-title": "workspace:^",
+    "@freddie/freddie-session-persistence": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@freddie/freddie-session-persistence": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@freddie/freddie-brand": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-title": "workspace:^",
+    "@freddie/freddie-session-persistence": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

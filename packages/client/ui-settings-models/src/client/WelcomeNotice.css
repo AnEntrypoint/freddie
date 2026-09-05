@@ -1,0 +1,36 @@
+.freddie-welcomeNotice__copy {
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-welcomeNotice__copy p {
+  margin: 0;
+}
+
+.freddie-welcomeNotice__copy p + p {
+  margin-top: 12px;
+}
+
+.freddie-welcomeNotice__error {
+  margin: 16px 0 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-welcomeNotice__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.freddie-welcomeNotice__primary {
+  min-width: 120px;
+}
+
+@media (max-width: 560px) {
+  .freddie-welcomeNotice__primary {
+    width: 100%;
+  }
+}

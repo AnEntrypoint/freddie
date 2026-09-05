@@ -1,0 +1,70 @@
+{
+  "name": "@freddie/freddie-tool-bash",
+  "description": "Model-facing bash tool with optional generic background-job and sandbox-escalation support",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/shell/tool-bash"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/background.js",
+    "src/invariant.js",
+    "src/render.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-shell": "workspace:^",
+    "@freddie/freddie-shell-env": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-sandbox": "workspace:^",
+    "@freddie/freddie-sandbox-policy": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-jobs": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/freddie-user-approval": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-agent-loop": "workspace:^",
+    "@freddie/freddie-shell": "workspace:^",
+    "@freddie/freddie-shell-env": "workspace:^",
+    "@freddie/freddie-bash-local": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-subprocess-local": "workspace:^",
+    "@freddie/freddie-sandbox": "workspace:^",
+    "@freddie/freddie-sandbox-policy": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-persistence-jsonl": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-jobs": "workspace:^",
+    "@freddie/freddie-jobs-local": "workspace:^",
+    "@freddie/freddie-tool-jobs": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/freddie-user-approval": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

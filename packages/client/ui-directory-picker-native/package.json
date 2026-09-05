@@ -1,0 +1,64 @@
+{
+  "name": "@freddie/freddie-client-ui-directory-picker-native",
+  "description": "Native directory-picker surface: the renderless workspace directory-flow occupant driving the host's OS chooser",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/client/ui-directory-picker-native"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./client": {
+      "default": "./src/client/index.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "freddie": {
+    "client": {
+      "inject": [
+        "@freddie/freddie-client-runtime",
+        "@freddie/freddie-client-ui-workspace"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "bundle": "tsdown",
+    "watch": "tsdown --watch"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "webjsx": "^0.0.73"
+  },
+  "peerDependencies": {
+    "@freddie/freddie-client-runtime": "workspace:^",
+    "@freddie/freddie-client-ui-workspace": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-client-runtime": "workspace:^",
+    "@freddie/freddie-client-ui-workspace": "workspace:^",
+    "@freddie/freddie-client-ui-slots": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/client/index.js",
+    "src/client/flow.js"
+  ]
+}

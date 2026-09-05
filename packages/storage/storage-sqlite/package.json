@@ -1,0 +1,43 @@
+{
+  "name": "@freddie/freddie-storage-sqlite",
+  "description": "libsql (plugkit WASM) KV storage backend for the Freddie storage hub, with vector-search support",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/storage/storage-sqlite"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/**/*.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-storage": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^",
+    "libsql-plugkit-client": "github:AnEntrypoint/libsql-plugkit-client#61057a4cf02cd9e6d1e6694c250d0f3d0099ac24"
+  },
+  "devDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-storage": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

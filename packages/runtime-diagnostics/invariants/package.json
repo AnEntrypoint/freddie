@@ -1,0 +1,39 @@
+{
+  "name": "@freddie/freddie-invariants",
+  "description": "Registry service for package-owned Freddie runtime invariants",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/runtime-diagnostics/invariants"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "workspace:^"
+  }
+}

@@ -1,0 +1,61 @@
+CLAUDE.local.md
+.env
+node_modules/
+lib/
+*.tsbuildinfo
+pnpm-debug.log
+dsh-web*.log
+dsh-web*.pid
+dev-server*.log
+.gm/web-stdout*.log
+.gm/web-stderr*.log
+*.err.log
+*.out.log
+.pnpm-store/
+.cache/
+examples/*/*.jsonl
+.storages/
+.sessions/
+examples/*/.sessions/
+coverage/
+.humanize/
+tmp/
+.claude/commands/
+.claude/launch.json
+.claude/settings.json
+.vscode/
+.DS_Store
+.idea
+*.stackdump
+mise.toml
+dist-exe/
+.artifacts/
+.freddie-build/
+.playwright-mcp/
+.orig
+.worktrees/
+worktrees/
+.agents/worktrees/
+.typert-*/
+
+# gm's own runtime/dispatch state -- pure per-session scratch (spool
+# in/out files, dispatch counters, timestamps, the local codesearch/
+# recall sqlite index and its embed-generation markers). .gm/memories/,
+# .gm/prd.yml, .gm/mutables.yml, .gm/disciplines/, and .gm/instructions/
+# are real, durable, repo-tracked content and are NOT covered by these
+# patterns -- gm's own design keeps memory following the codebase.
+.gm/exec-spool/
+.gm/gm.db
+.gm/last-dispatch-ts
+.gm/last-instruction-ts
+.gm/last-prompt.txt
+.gm/long-gap-retry-state
+.gm/next-step.md
+.gm/turn-state.json
+.gm/config-source-cache-default/
+.gm/config-source-cache-default.*.sync.json
+.gm/.embed-generation.*
+.gm/.gm-continue-count
+.gm/residual-check-fired
+.gm/scan-deps-stamp.json
+.agentplug-kv/

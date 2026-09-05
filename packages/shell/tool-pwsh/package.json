@@ -1,0 +1,67 @@
+{
+  "name": "@freddie/freddie-tool-pwsh",
+  "description": "Model-facing pwsh tool over the bash executor seam",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/shell/tool-pwsh"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/background.js",
+    "src/render.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-shell": "workspace:^",
+    "@freddie/freddie-shell-env": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-sandbox": "workspace:^",
+    "@freddie/freddie-sandbox-policy": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-jobs": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/freddie-user-approval": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-shell": "workspace:^",
+    "@freddie/freddie-shell-env": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-pwsh-local": "workspace:^",
+    "@freddie/freddie-sandbox": "workspace:^",
+    "@freddie/freddie-sandbox-policy": "workspace:^",
+    "@freddie/freddie-subprocess-local": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-jobs": "workspace:^",
+    "@freddie/freddie-jobs-local": "workspace:^",
+    "@freddie/freddie-tool-jobs": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/freddie-user-approval": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

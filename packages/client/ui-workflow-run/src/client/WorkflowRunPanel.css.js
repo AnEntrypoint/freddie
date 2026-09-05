@@ -1,0 +1,26 @@
+const css = {
+  root: 'freddie-workflowRunPanel__root',
+  runHeader: 'freddie-workflowRunPanel__runHeader',
+  runLeading: 'freddie-workflowRunPanel__runLeading',
+  runTitle: 'freddie-workflowRunPanel__runTitle',
+  runSummary: 'freddie-workflowRunPanel__runSummary',
+  statusTail: 'freddie-workflowRunPanel__statusTail',
+  phaseHeader: 'freddie-workflowRunPanel__phaseHeader',
+  phaseLeading: 'freddie-workflowRunPanel__phaseLeading',
+  phaseTitle: 'freddie-workflowRunPanel__phaseTitle',
+  phaseCount: 'freddie-workflowRunPanel__phaseCount',
+  phaseStatus: 'freddie-workflowRunPanel__phaseStatus',
+  separator: 'freddie-workflowRunPanel__separator',
+  phaseList: 'freddie-workflowRunPanel__phaseList',
+  phase: 'freddie-workflowRunPanel__phase',
+  members: 'freddie-workflowRunPanel__members',
+  memberRow: 'freddie-workflowRunPanel__memberRow',
+  memberButton: 'freddie-workflowRunPanel__memberButton',
+  dotSlot: 'freddie-workflowRunPanel__dotSlot',
+  memberLabelWrap: 'freddie-workflowRunPanel__memberLabelWrap',
+  memberLabel: 'freddie-workflowRunPanel__memberLabel',
+  memberStatus: 'freddie-workflowRunPanel__memberStatus',
+  empty: 'freddie-workflowRunPanel__empty',
+}
+
+export default css

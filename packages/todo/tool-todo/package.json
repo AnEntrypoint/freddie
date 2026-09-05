@@ -1,0 +1,58 @@
+{
+  "name": "@freddie/freddie-tool-todo",
+  "description": "Model-facing todo_write tool over the Freddie event-sourced session log",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/todo/tool-todo"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./client": {
+      "default": "./src/client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/*.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^"
+  },
+  "peerDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-projection": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/cordis-plugin-include": "workspace:^",
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-agent-loop": "workspace:^",
+    "@freddie/freddie-host-apiproxy": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-projection": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/freddie-user-questions": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

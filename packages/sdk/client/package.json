@@ -1,0 +1,46 @@
+{
+  "name": "@freddie/freddie-sdk-client",
+  "description": "Client SDK for driving a Freddie runtime subprocess over stdio JSON-RPC: the DeepSeekHarness high-level turns API and the lower-level HarnessClient",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/sdk/client"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/api.js",
+    "src/client.js",
+    "src/dispose.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-sdk-protocol": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-sdk-protocol": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

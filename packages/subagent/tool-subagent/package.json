@@ -1,0 +1,60 @@
+{
+  "name": "@freddie/freddie-tool-subagent",
+  "description": "Model-facing subagent delegation tool over the ctx.subagents seam",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/subagent/tool-subagent"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-subagent": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-jobs": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-persistence": "workspace:^",
+    "@freddie/freddie-session-persistence-jsonl": "workspace:^",
+    "@freddie/freddie-subagent": "workspace:^",
+    "@freddie/freddie-subagent-spawn-in-process": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-jobs": "workspace:^",
+    "@freddie/freddie-jobs-local": "workspace:^",
+    "@freddie/freddie-tool-jobs": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

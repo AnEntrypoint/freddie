@@ -1,0 +1,46 @@
+{
+  "name": "@freddie/freddie-root",
+  "version": "0.1.1-rc.2",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "workspaces": [
+    "vendor/*",
+    "packages/*/*",
+    "native/landlock-run",
+    "native/landlock-run/packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "change-scope": "node scripts/change-scope.js",
+    "migrate:packed-session-fixtures": "node scripts/migrate-packed-session-fixtures.js",
+    "publint": "node scripts/publint-all.js",
+    "gen-third-party-notices": "node scripts/gen-third-party-notices.js",
+    "verify-third-party-notices": "node scripts/gen-third-party-notices.js --check",
+    "rescope-vendor": "node scripts/rescope-vendor.js",
+    "rescope-vendor:check": "node scripts/rescope-vendor.js --check",
+    "publish:npm-baseline": "node scripts/publish-npm-baseline.js",
+    "release:freddie": "node scripts/release/bump.js --family freddie",
+    "release:vendor": "node scripts/release/bump.js --family vendor",
+    "release:verify": "node scripts/release/verify.js",
+    "release:pack": "node scripts/release/pack.js",
+    "release:verify-packed-install": "node scripts/release/verify-packed-install.js",
+    "release:publish": "node scripts/release/publish.js",
+    "freddie": "node apps/cli/src/bin.js",
+    "demo:code-mode": "node scripts/demo-code-mode.mjs",
+    "demo:cordis": "node scripts/demo-cordis.mjs",
+    "demo:acp": "node packages/examples/acp-demo/src/bin.js --config examples/acp-agent/cordis.yml"
+  },
+  "devDependencies": {
+    "@agentclientprotocol/sdk": "1.4.0",
+    "@freddie/freddie-tool-session-query": "workspace:^",
+    "js-yaml": "^5.4.1",
+    "publint": "^0.3.24",
+    "spdx-expression-parse": "^5.0.0",
+    "typescript": "^6.0.3"
+  }
+}

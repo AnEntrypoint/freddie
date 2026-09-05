@@ -1,0 +1,27 @@
+const css = {
+  text: 'freddie-contextBody__text',
+  fields: 'freddie-contextBody__fields',
+  field: 'freddie-contextBody__field',
+  fieldKey: 'freddie-contextBody__fieldKey',
+  fieldValue: 'freddie-contextBody__fieldValue',
+  files: 'freddie-contextBody__files',
+  file: 'freddie-contextBody__file',
+  filePath: 'freddie-contextBody__filePath',
+  fileAction: 'freddie-contextBody__fileAction',
+  catalogNotice: 'freddie-contextBody__catalogNotice',
+  entries: 'freddie-contextBody__entries',
+  entry: 'freddie-contextBody__entry',
+  entryName: 'freddie-contextBody__entryName',
+  entryDescription: 'freddie-contextBody__entryDescription',
+  sections: 'freddie-contextBody__sections',
+  section: 'freddie-contextBody__section',
+  sectionName: 'freddie-contextBody__sectionName',
+  sectionText: 'freddie-contextBody__sectionText',
+  relaySender: 'freddie-contextBody__relaySender',
+  recalls: 'freddie-contextBody__recalls',
+  recall: 'freddie-contextBody__recall',
+  recallLabel: 'freddie-contextBody__recallLabel',
+  recallCounts: 'freddie-contextBody__recallCounts',
+}
+
+export default css

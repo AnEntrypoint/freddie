@@ -1,0 +1,138 @@
+/* Trajectory step cell — 38px row: index · kind tag · text · optional message
+ * metrics · elapsed time. */
+
+.freddie-trajectoryCell__root {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 38px;
+  padding: 0 8px 0 20px;
+  gap: 24px;
+  border-radius: 8px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  background: var(--freddie-alias-bg-layer-3);
+  min-width: 0;
+}
+
+.freddie-trajectoryCell__selected {
+  border-color: transparent;
+  box-shadow: inset 0 0 0 2px var(--freddie-alias-brand-primary-new-colorprimary-new-color);
+}
+
+.freddie-trajectoryCell__index {
+  flex: none;
+  width: 24px;
+  font: var(--dsw-font-xs-13);
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-trajectoryCell__tagSlot {
+  flex: none;
+  width: 80px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.freddie-trajectoryCell__tag {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 22px;
+  max-width: 100%;
+  padding: 0 4px;
+  border-radius: 6px;
+  font: var(--dsw-font-xs-strong-13);
+  white-space: nowrap;
+}
+
+.freddie-trajectoryCell__tagSystem {
+  color: var(--freddie-alias-label-secondary);
+  background: var(--freddie-alias-bg-module-platform);
+}
+
+.freddie-trajectoryCell__tagUser {
+  color: var(--freddie-alias-state-success-primary);
+  background: var(--freddie-alias-state-success-tertiary);
+}
+
+.freddie-trajectoryCell__tagContext {
+  color: color-mix(
+    in srgb,
+    var(--freddie-alias-state-success-primary) 68%,
+    var(--freddie-alias-label-secondary)
+  );
+  background: var(--freddie-alias-state-success-tertiary);
+}
+
+.freddie-trajectoryCell__tagMessage {
+  color: color-mix(
+    in srgb,
+    var(--freddie-alias-brand-primary-new-colorprimary-new-color) 60%,
+    var(--freddie-alias-state-error-secondary)
+  );
+  background: color-mix(
+    in srgb,
+    color-mix(
+      in srgb,
+      var(--freddie-alias-brand-primary-new-colorprimary-new-color) 55%,
+      var(--freddie-alias-state-error-secondary)
+    ) 15%,
+    var(--freddie-alias-bg-layer-1)
+  );
+}
+
+.freddie-trajectoryCell__tagTool {
+  color: var(--freddie-alias-state-warn-label);
+  background: var(--freddie-alias-state-warn-tertiary);
+}
+
+/* run_code sub-dispatch cells: the business tint plus an indent so the
+   nesting under the parent Tool cell reads at a glance. */
+.freddie-trajectoryCell__tagSubtool {
+  color: color-mix(
+    in srgb,
+    var(--freddie-alias-state-warn-label) 62%,
+    var(--freddie-alias-label-tertiary)
+  );
+  background: color-mix(
+    in srgb,
+    var(--freddie-alias-state-warn-tertiary) 58%,
+    var(--freddie-alias-bg-layer-1)
+  );
+}
+
+.freddie-trajectoryCell__root[data-kind='subtool'] {
+  padding-left: 28px;
+}
+
+.freddie-trajectoryCell__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--dsw-font-xs-13);
+  color: var(--freddie-alias-label-primary);
+}
+
+/* Same column geometry as TrajectoryTurnHeader: 4×71 + 3×12 = 320. */
+.freddie-trajectoryCell__trailing {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 320px;
+  gap: 12px;
+  min-width: 0;
+}
+
+.freddie-trajectoryCell__metric,
+.freddie-trajectoryCell__time {
+  flex: none;
+  width: 71px;
+  text-align: left;
+  font: var(--dsw-font-xs-13);
+  color: var(--freddie-alias-label-tertiary);
+  white-space: nowrap;
+}

@@ -1,0 +1,65 @@
+{
+  "name": "@freddie/freddie-tool-fs-search",
+  "description": "Model-facing filesystem discovery tools (glob, grep) backed by the packaged ripgrep binary (@vscode/ripgrep)",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/fs/tool-fs-search"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/direct-call.js",
+    "src/glob.js",
+    "src/grep.js",
+    "src/presentation.js",
+    "src/search-core.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@vscode/ripgrep": "^1.18.0",
+    "@freddie/schemastery": "workspace:^"
+  },
+  "peerDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-output-retention": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-spill": "workspace:^",
+    "@freddie/freddie-subprocess": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-timeout": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-subprocess": "workspace:^",
+    "@freddie/freddie-subprocess-local": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-output-retention": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-spill": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-timeout": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

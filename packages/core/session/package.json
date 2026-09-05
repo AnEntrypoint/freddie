@@ -1,0 +1,52 @@
+{
+  "name": "@freddie/freddie-session",
+  "description": "Event-sourced session store for the Freddie",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/core/session"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./types": {
+      "default": "./src/types.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json",
+    "./surface": {
+      "default": "./src/surface.js"
+    }
+  },
+  "files": [
+    "src/*.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-brand": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-scope": "workspace:^",
+    "@freddie/freddie-typert-protocol": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-brand": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-scope": "workspace:^",
+    "@freddie/freddie-typert-protocol": "workspace:^",
+    "@freddie/freddie-typert-registry": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

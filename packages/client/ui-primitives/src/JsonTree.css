@@ -1,0 +1,222 @@
+.freddie-jsonTree__root {
+  --json-tree-property: #881391;
+  --json-tree-string: #c41a16;
+  --json-tree-number: #1c00cf;
+  --json-tree-keyword: #1c00cf;
+  --json-tree-punctuation: #202124;
+  --json-tree-icon: #5f6368;
+  --json-tree-hover: rgb(60 64 67 / 4%);
+
+  min-width: 0;
+  overflow: auto;
+  position: relative;
+  color: var(--freddie-alias-label-primary);
+  background: var(--freddie-alias-bg-layer-1);
+  font: 12px/16px var(--ds-font-family-code);
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+}
+
+body[data-ds-dark-theme] .freddie-jsonTree__root {
+  --json-tree-property: #5db0d7;
+  --json-tree-string: #f28b82;
+  --json-tree-number: #99c8ff;
+  --json-tree-keyword: #99c8ff;
+  --json-tree-punctuation: #e8eaed;
+  --json-tree-icon: #9aa0a6;
+  --json-tree-hover: rgb(232 234 237 / 5%);
+}
+
+.freddie-jsonTree__container {
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  padding: 6px 8px 8px;
+  white-space: pre;
+}
+
+.freddie-jsonTree__expandedTopLevel {
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 100%;
+  padding: 6px 8px 8px 14px;
+}
+
+.freddie-jsonTree__expandedTopLevel:has(> .freddie-jsonTree__topLevelBracket[data-json-root-row]:hover),
+.freddie-jsonTree__expandedTopLevel:has(> .freddie-jsonTree__topLevelBracket[data-json-root-row][data-json-copy-active]) {
+  background: var(--json-tree-hover);
+}
+
+.freddie-jsonTree__expandedTopLevelContainer {
+  padding: 0;
+}
+
+.freddie-jsonTree__row.freddie-jsonTree__topLevelBracket {
+  margin-left: 0;
+  padding-left: 0;
+}
+
+.freddie-jsonTree__children {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.freddie-jsonTree__row {
+  position: relative;
+  box-sizing: border-box;
+  min-width: 100%;
+  min-height: 16px;
+  margin: 0;
+  padding: 0 0 0 10px;
+  list-style: none;
+}
+
+.freddie-jsonTree__row:not(.freddie-jsonTree__topLevelBracket):hover:not(:has(.freddie-jsonTree__row:hover))::after,
+.freddie-jsonTree__row:not(.freddie-jsonTree__topLevelBracket)[data-json-copy-active]::after,
+.freddie-jsonTree__row:has(> .freddie-jsonTree__expander:focus-visible)::after {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 16px;
+  background: var(--json-tree-hover);
+  content: '';
+  pointer-events: none;
+}
+
+.freddie-jsonTree__row > span:not(.freddie-jsonTree__expander) {
+  position: relative;
+  z-index: 1;
+}
+
+.freddie-jsonTree__label {
+  margin-right: 3px;
+  color: var(--json-tree-property);
+  font-weight: 400;
+}
+
+.freddie-jsonTree__clickableLabel {
+  cursor: pointer;
+}
+
+.freddie-jsonTree__stringValue {
+  color: var(--json-tree-string);
+}
+
+.freddie-jsonTree__numberValue {
+  color: var(--json-tree-number);
+}
+
+.freddie-jsonTree__keywordValue {
+  color: var(--json-tree-keyword);
+}
+
+.freddie-jsonTree__otherValue {
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-jsonTree__punctuation {
+  color: var(--json-tree-punctuation);
+}
+
+.freddie-jsonTree__preview {
+  color: var(--json-tree-punctuation);
+}
+
+.freddie-jsonTree__previewProperty {
+  color: var(--json-tree-punctuation);
+}
+
+.freddie-jsonTree__previewEllipsis {
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-jsonTree__copyAnchor {
+  position: fixed;
+  z-index: 3;
+  display: inline-flex;
+}
+
+.freddie-jsonTree__copyButton {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  color: var(--freddie-alias-label-secondary);
+  background: var(--freddie-alias-bg-layer-1);
+  box-shadow: -5px 0 5px var(--freddie-alias-bg-layer-1);
+  cursor: pointer;
+}
+
+.freddie-jsonTree__copyButton:hover {
+  color: var(--freddie-alias-label-primary);
+  background: var(--freddie-alias-interactive-bg-hover);
+}
+
+.freddie-jsonTree__copyButton:focus-visible {
+  outline: 1px solid var(--freddie-alias-state-business-primary);
+  outline-offset: -1px;
+}
+
+.freddie-jsonTree__copyButton[data-state='failed'] {
+  color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-jsonTree__expander {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  width: 8px;
+  height: 16px;
+  margin: 0;
+  color: var(--json-tree-icon);
+  cursor: pointer;
+  user-select: none;
+}
+
+.freddie-jsonTree__expander::before {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid currentColor;
+  content: '';
+  transform: scale(0.75);
+  transform-origin: 33.333% center;
+}
+
+.freddie-jsonTree__collapseIcon::before {
+  transform: rotate(90deg) scale(0.75);
+}
+
+.freddie-jsonTree__expander:hover {
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-jsonTree__expander:focus-visible {
+  outline: none;
+}
+
+.freddie-jsonTree__collapsedContent {
+  margin: 0 1px;
+  color: var(--json-tree-punctuation);
+  cursor: pointer;
+}
+
+.freddie-jsonTree__collapsedContent::after {
+  content: '…';
+}

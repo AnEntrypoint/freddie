@@ -1,0 +1,17 @@
+/* Trigger row content: whatever DOM the slot outlet wraps this registrant's
+ * return value in sits between the shell's flex button and this content,
+ * with no gap of its own -- lay out the icon/label pair here instead of
+ * relying on the button's own `gap` reaching through that wrapper. */
+.freddie-chrome__triggerContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Trigger row label (the shell's button provides colors; the label only
+ * guards against overflow during the sidebar collapse crossfade). */
+.freddie-chrome__triggerLabel {
+  overflow: hidden;
+  white-space: nowrap;
+}

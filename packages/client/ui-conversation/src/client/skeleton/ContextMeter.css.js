@@ -1,0 +1,20 @@
+const css = {
+  root: 'freddie-contextMeter__root',
+  trigger: 'freddie-contextMeter__trigger',
+  track: 'freddie-contextMeter__track',
+  fill: 'freddie-contextMeter__fill',
+  panel: 'freddie-contextMeter__panel',
+  header: 'freddie-contextMeter__header',
+  figures: 'freddie-contextMeter__figures',
+  percent: 'freddie-contextMeter__percent',
+  headline: 'freddie-contextMeter__headline',
+  bar: 'freddie-contextMeter__bar',
+  segment: 'freddie-contextMeter__segment',
+  swatch: 'freddie-contextMeter__swatch',
+  colorSystem: 'freddie-contextMeter__colorSystem',
+  colorTools: 'freddie-contextMeter__colorTools',
+  colorMessages: 'freddie-contextMeter__colorMessages',
+  rows: 'freddie-contextMeter__rows',
+  row: 'freddie-contextMeter__row',
+}
+export default css

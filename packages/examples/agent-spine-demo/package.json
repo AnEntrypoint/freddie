@@ -1,0 +1,96 @@
+{
+  "name": "@freddie/freddie-agent-spine-demo",
+  "description": "The default executor-less/UI-less agent spine with fallback session titles, provider-routed retry, and optional persisted goals",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/examples/agent-spine-demo"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/cordis-plugin-timer": "workspace:^",
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-agent-loop": "workspace:^",
+    "@freddie/freddie-goal": "workspace:^",
+    "@freddie/freddie-goal-round-driver": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-home-paths": "workspace:^",
+    "@freddie/freddie-llm-retry": "workspace:^",
+    "@freddie/freddie-scope": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-title": "workspace:^",
+    "@freddie/freddie-skill": "workspace:^",
+    "@freddie/freddie-skill-filesystem": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-jobs-local": "workspace:^",
+    "@freddie/freddie-shell-env": "workspace:^",
+    "@freddie/freddie-tool-bash": "workspace:^",
+    "@freddie/freddie-tool-goal": "workspace:^",
+    "@freddie/freddie-tool-skill": "workspace:^",
+    "@freddie/freddie-tool-jobs": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/freddie-agent-instructions": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/cordis-plugin-timer": "workspace:^",
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-agent-loop": "workspace:^",
+    "@freddie/freddie-shell-env": "workspace:^",
+    "@freddie/freddie-bash-local": "workspace:^",
+    "@freddie/freddie-bash-sandbox": "workspace:^",
+    "@freddie/freddie-fs-local": "workspace:^",
+    "@freddie/freddie-fs-observation-policy": "workspace:^",
+    "@freddie/freddie-fs-sandbox": "workspace:^",
+    "@freddie/freddie-goal": "workspace:^",
+    "@freddie/freddie-goal-round-driver": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-home-paths": "workspace:^",
+    "@freddie/freddie-llm-retry": "workspace:^",
+    "@freddie/freddie-subprocess-local": "workspace:^",
+    "@freddie/freddie-sandbox-local": "workspace:^",
+    "@freddie/freddie-sandbox-policy": "workspace:^",
+    "@freddie/freddie-scope": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-title": "workspace:^",
+    "@freddie/freddie-skill": "workspace:^",
+    "@freddie/freddie-skill-filesystem": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-jobs": "workspace:^",
+    "@freddie/freddie-jobs-local": "workspace:^",
+    "@freddie/freddie-tool-bash": "workspace:^",
+    "@freddie/freddie-tool-fs": "workspace:^",
+    "@freddie/freddie-tool-goal": "workspace:^",
+    "@freddie/freddie-tool-skill": "workspace:^",
+    "@freddie/freddie-tool-jobs": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/freddie-agent-instructions": "workspace:^",
+    "@freddie/node-addon-landlock-run": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "name": "@freddie/freddie-client-ui-message-feedback",
+  "description": "Per-message feedback controls contributed to the assistant-message action strip, backed by the messageFeedback Host Remote",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/client/ui-message-feedback"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./client": {
+      "default": "./src/client/index.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "freddie": {
+    "client": {
+      "inject": [
+        "@freddie/freddie-client-runtime",
+        "@freddie/freddie-api-remotes",
+        "@freddie/freddie-client-locale",
+        "@freddie/freddie-client-ui-conversation"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "bundle": "tsdown",
+    "watch": "tsdown --watch"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-api-remotes": "workspace:^",
+    "@freddie/freddie-client-connection": "workspace:^",
+    "@freddie/freddie-client-locale": "workspace:^",
+    "@freddie/freddie-client-runtime": "workspace:^",
+    "@freddie/freddie-client-ui-conversation": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-message-feedback": "workspace:^",
+    "@freddie/freddie-typert-protocol": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-api-remotes": "workspace:^",
+    "@freddie/freddie-client-connection": "workspace:^",
+    "@freddie/freddie-client-locale": "workspace:^",
+    "@freddie/freddie-client-runtime": "workspace:^",
+    "@freddie/freddie-client-ui-conversation": "workspace:^",
+    "@freddie/freddie-client-ui-primitives": "workspace:^",
+    "@freddie/freddie-client-ui-slots": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-message-feedback": "workspace:^",
+    "@freddie/freddie-typert-protocol": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "webjsx": "^0.0.73"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/client/index.js",
+    "src/client/controller.js",
+    "src/client/locales.js",
+    "src/client/MessageFeedbackActions.js",
+    "src/client/MessageFeedbackActions.css.js"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "name": "@freddie/freddie-web-search-deepseek",
+  "description": "DeepSeek-backed search provider (native web_search via the Anthropic-compatible API) for the Freddie web capability seam (ctx.web)",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/web/web-search-deepseek"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/provider.js",
+    "src/types.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-credentials": "workspace:^",
+    "@freddie/freddie-launch-environment": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-web": "workspace:^",
+    "@freddie/cordis": "workspace:^",
+    "@freddie/freddie-settings": "workspace:^"
+  },
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-credentials": "workspace:^",
+    "@freddie/freddie-credentials-local": "workspace:^",
+    "@freddie/freddie-launch-environment": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-web": "workspace:^",
+    "@freddie/cordis": "workspace:^",
+    "@freddie/freddie-settings": "workspace:^"
+  }
+}

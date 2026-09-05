@@ -1,0 +1,81 @@
+.freddie-reasoningRow__root {
+  display: flex;
+  flex-direction: column;
+}
+
+.freddie-reasoningRow__row {
+  position: relative;
+  overflow: hidden;
+}
+
+.freddie-reasoningRow__root[data-state='running'] .freddie-reasoningRow__row::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 300px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--freddie-alias-bg-base) 60%, transparent) 55%,
+    transparent 100%
+  );
+  animation: freddie-reasoningRow__freddie-reasoning-row-sweep 2.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes freddie-reasoningRow__freddie-reasoning-row-sweep {
+  0% { left: -300px; }
+  90%, 100% { left: 100%; }
+}
+
+.freddie-reasoningRow__leading {
+  flex-shrink: 0;
+}
+
+.freddie-reasoningRow__chevron {
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-reasoningRow__title {
+  font-weight: 400;
+}
+
+.freddie-reasoningRow__separator {
+  flex: none;
+  width: 2px;
+  height: 2px;
+  margin: 0 8px;
+  border-radius: 1px;
+  background: var(--freddie-alias-label-caption);
+}
+
+.freddie-reasoningRow__summary {
+  min-width: 0;
+  overflow: hidden;
+  flex: 1 1 auto;
+  color: var(--freddie-alias-label-tertiary);
+  font-size: 14px;
+  line-height: 24px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.freddie-reasoningRow__summary[data-follow-end] {
+  text-overflow: clip;
+}
+
+.freddie-reasoningRow__thinkBody {
+  padding: 4px 0 4px 22px;
+  color: var(--freddie-alias-label-tertiary);
+  font-size: 14px;
+  line-height: 24px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .freddie-reasoningRow__root[data-state='running'] .freddie-reasoningRow__row::after {
+    animation: none;
+  }
+}

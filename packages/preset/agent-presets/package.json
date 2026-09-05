@@ -1,0 +1,66 @@
+{
+  "name": "@freddie/freddie-agent-presets",
+  "description": "Per-session agent composition from preset cordis.yml files for the Freddie",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/preset/agent-presets"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./types": {
+      "default": "./src/types.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/**/*.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/cordis-plugin-include": "workspace:^",
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-atomic-write": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-home-paths": "workspace:^",
+    "@freddie/freddie-scope": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-settings": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "js-yaml": "^5.4.1",
+    "@freddie/schemastery": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/cordis-plugin-include": "workspace:^",
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-agent-loop": "workspace:^",
+    "@freddie/freddie-atomic-write": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-home-paths": "workspace:^",
+    "@freddie/freddie-scope": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-settings": "workspace:^",
+    "@freddie/freddie-settings-file": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

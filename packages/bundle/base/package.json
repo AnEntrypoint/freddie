@@ -1,0 +1,123 @@
+{
+  "name": "@freddie/freddie-base",
+  "description": "The shared dsh core as a profile bundle: every profile's first patch layer, inserting the base plugin rows over the empty profile root",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/bundle/base"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "cordis.patch.yml"
+  ],
+  "license": "MIT",
+  "freddie": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@freddie/cordis-plugin-hmr": "workspace:^",
+    "@freddie/cordis-plugin-timer": "workspace:^",
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-agent-default-model": "workspace:^",
+    "@freddie/freddie-agent-loop": "workspace:^",
+    "@freddie/freddie-attachment-local": "workspace:^",
+    "@freddie/freddie-shell-env": "workspace:^",
+    "@freddie/freddie-bash-sandbox": "workspace:^",
+    "@freddie/freddie-command-compact": "workspace:^",
+    "@freddie/freddie-command-feedback": "workspace:^",
+    "@freddie/freddie-command-goal": "workspace:^",
+    "@freddie/freddie-commands": "workspace:^",
+    "@freddie/freddie-compaction-basic": "workspace:^",
+    "@freddie/freddie-compaction-tool-result-pruner": "workspace:^",
+    "@freddie/freddie-credentials-local": "workspace:^",
+    "@freddie/freddie-fs-local": "workspace:^",
+    "@freddie/freddie-fs-observation-policy": "workspace:^",
+    "@freddie/freddie-fs-sandbox": "workspace:^",
+    "@freddie/freddie-goal": "workspace:^",
+    "@freddie/freddie-goal-round-driver": "workspace:^",
+    "@freddie/freddie-api-gateway": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-llm-deepseek": "workspace:^",
+    "@freddie/freddie-llm-retry": "workspace:^",
+    "@freddie/freddie-permission-presets": "workspace:^",
+    "@freddie/freddie-plan-mode": "workspace:^",
+    "@freddie/freddie-pwsh-sandbox": "workspace:^",
+    "@freddie/freddie-repeat-tool-reminder": "workspace:^",
+    "@freddie/freddie-sandbox-local": "workspace:^",
+    "@freddie/freddie-sandbox-policy": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-checkpoint-policy": "workspace:^",
+    "@freddie/freddie-session-persistence-jsonl": "workspace:^",
+    "@freddie/freddie-session-projection": "workspace:^",
+    "@freddie/freddie-session-query-sqlite": "workspace:^",
+    "@freddie/freddie-session-telemetry-otel": "workspace:^",
+    "@freddie/freddie-session-title": "workspace:^",
+    "@freddie/freddie-session-title-first-prompt-llm": "workspace:^",
+    "@freddie/freddie-settings-file": "workspace:^",
+    "@freddie/freddie-skill": "workspace:^",
+    "@freddie/freddie-skill-badge": "workspace:^",
+    "@freddie/freddie-skill-filesystem": "workspace:^",
+    "@freddie/freddie-spill-local": "workspace:^",
+    "@freddie/freddie-spill-policy": "workspace:^",
+    "@freddie/freddie-subagent": "workspace:^",
+    "@freddie/freddie-subagent-fork-in-process": "workspace:^",
+    "@freddie/freddie-subagent-spawn-in-process": "workspace:^",
+    "@freddie/freddie-subprocess-local": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/freddie-jobs-local": "workspace:^",
+    "@freddie/freddie-tool-call-timeout-policy": "workspace:^",
+    "@freddie/freddie-token-meter": "workspace:^",
+    "@freddie/freddie-tool-bash": "workspace:^",
+    "@freddie/freddie-tool-fs": "workspace:^",
+    "@freddie/freddie-tool-fs-search": "workspace:^",
+    "@freddie/freddie-tool-goal": "workspace:^",
+    "@freddie/freddie-tool-pwsh": "workspace:^",
+    "@freddie/freddie-tool-ralph": "workspace:^",
+    "@freddie/freddie-tool-skill": "workspace:^",
+    "@freddie/freddie-tool-str-replace-editor": "workspace:^",
+    "@freddie/freddie-tool-subagent": "workspace:^",
+    "@freddie/freddie-tool-subagent-control": "workspace:^",
+    "@freddie/freddie-tool-subagent-report": "workspace:^",
+    "@freddie/freddie-tool-jobs": "workspace:^",
+    "@freddie/freddie-tool-todo": "workspace:^",
+    "@freddie/freddie-tool-web": "workspace:^",
+    "@freddie/freddie-tool-workflow": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^",
+    "@freddie/freddie-typert-loader": "workspace:^",
+    "@freddie/freddie-typert-registry": "workspace:^",
+    "@freddie/freddie-user-approval": "workspace:^",
+    "@freddie/freddie-user-questions": "workspace:^",
+    "@freddie/freddie-web": "workspace:^",
+    "@freddie/freddie-web-search-deepseek": "workspace:^",
+    "@freddie/freddie-workflow-worker-thread": "workspace:^",
+    "@freddie/freddie-agent-instructions": "workspace:^"
+  },
+  "peerDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

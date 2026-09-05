@@ -1,0 +1,327 @@
+.freddie-trajectoryTimeline__root {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  flex: none;
+  border-bottom: 1px solid var(--freddie-alias-border-l2);
+  user-select: none;
+}
+
+.freddie-trajectoryTimeline__root [role='tooltip'] {
+  font: var(--dsw-font-xxxs-11);
+}
+
+.freddie-trajectoryTimeline__plot {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  height: 50px;
+  overflow: hidden;
+  background: var(--freddie-alias-bg-layer-2);
+}
+
+.freddie-trajectoryTimeline__labels {
+  position: relative;
+  border-right: 1px solid var(--freddie-alias-border-l1);
+  color: var(--freddie-alias-label-caption);
+  font: var(--dsw-font-xs-13);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.freddie-trajectoryTimeline__labels span {
+  position: absolute;
+  right: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 8px;
+  text-align: right;
+}
+
+.freddie-trajectoryTimeline__labels span:nth-child(1) {
+  top: 7px;
+}
+
+.freddie-trajectoryTimeline__labels span:nth-child(2) {
+  top: 21px;
+}
+
+.freddie-trajectoryTimeline__labels span:nth-child(3) {
+  top: 35px;
+}
+
+.freddie-trajectoryTimeline__track {
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.freddie-trajectoryTimeline__track[data-panning='true'] {
+  cursor: grabbing;
+}
+
+.freddie-trajectoryTimeline__earlierHistory {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  width: 28px;
+  align-items: center;
+  justify-content: flex-start;
+  appearance: none;
+  box-sizing: border-box;
+  padding-left: 3px;
+  border: 0;
+  outline: none;
+  background: linear-gradient(
+    to right,
+    var(--freddie-alias-bg-layer-2) 0,
+    var(--freddie-alias-bg-layer-2) 38%,
+    transparent 100%
+  );
+  color: var(--freddie-alias-label-secondary);
+  font: var(--dsw-font-xs-13);
+  line-height: 1;
+  opacity: 0.72;
+  cursor: pointer;
+}
+
+.freddie-trajectoryTimeline__earlierHistory:hover {
+  opacity: 1;
+}
+
+.freddie-trajectoryTimeline__earlierHistory[aria-disabled='true'] {
+  cursor: default;
+}
+
+.freddie-trajectoryTimeline__earlierHistory:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--freddie-alias-border-l2);
+}
+
+.freddie-trajectoryTimeline__empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--freddie-alias-label-caption);
+  font: var(--dsw-font-xs-13);
+}
+
+.freddie-trajectoryTimeline__track:focus-visible {
+  outline: 1px solid var(--freddie-alias-state-business-primary);
+  outline-offset: -1px;
+}
+
+.freddie-trajectoryTimeline__lanes {
+  position: absolute;
+  z-index: 2;
+  top: 7px;
+  bottom: 7px;
+  left: var(--trajectory-domain-left);
+  width: var(--trajectory-domain-width);
+}
+
+.freddie-trajectoryTimeline__turnBoundaries {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  bottom: 0;
+  left: var(--trajectory-domain-left);
+  width: var(--trajectory-domain-width);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .freddie-trajectoryTimeline__lanes[data-animate-viewport='true'],
+  .freddie-trajectoryTimeline__turnBoundaries[data-animate-viewport='true'] {
+    transition: left 180ms ease-out;
+  }
+}
+
+.freddie-trajectoryTimeline__turnBoundary {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--trajectory-turn-left);
+  width: 1px;
+  background: var(--freddie-alias-border-l2);
+}
+
+.freddie-trajectoryTimeline__span {
+  position: absolute;
+  top: calc(var(--trajectory-span-lane) * 14px);
+  left: calc(var(--trajectory-span-left) + var(--trajectory-span-gap));
+  width: max(
+    2px,
+    calc(
+      var(--trajectory-span-width)
+      - var(--trajectory-span-gap)
+      - var(--trajectory-span-gap)
+    )
+  );
+  height: 8px;
+  min-width: 2px;
+  border-radius: 1px;
+  background: var(--freddie-alias-label-secondary);
+  opacity: 0.78;
+}
+
+.freddie-trajectoryTimeline__span[data-timeline-span='user'] {
+  background: var(--freddie-alias-state-business-primary);
+}
+
+.freddie-trajectoryTimeline__span[data-timeline-span='context'] {
+  background: color-mix(
+    in srgb,
+    var(--freddie-alias-state-success-primary) 68%,
+    var(--freddie-alias-label-secondary)
+  );
+}
+
+.freddie-trajectoryTimeline__span[data-timeline-span='message'] {
+  --trajectory-assistant-decoding-color: color-mix(
+    in srgb,
+    var(--freddie-alias-brand-primary-new-colorprimary-new-color) 60%,
+    var(--freddie-alias-state-error-secondary)
+  );
+  --trajectory-assistant-ttft-color: color-mix(
+    in srgb,
+    var(--trajectory-assistant-decoding-color) 54%,
+    var(--freddie-alias-bg-layer-2)
+  );
+
+  background: var(--trajectory-assistant-decoding-color);
+  opacity: 1;
+}
+
+.freddie-trajectoryTimeline__span[data-timeline-span='message'][data-assistant-timing='true'] {
+  background: linear-gradient(
+    to right,
+    var(--trajectory-assistant-ttft-color) 0,
+    var(--trajectory-assistant-ttft-color) var(--trajectory-assistant-ttft),
+    var(--trajectory-assistant-decoding-color) var(--trajectory-assistant-ttft),
+    var(--trajectory-assistant-decoding-color) 100%
+  );
+}
+
+.freddie-trajectoryTimeline__span[data-timeline-span='tool'],
+.freddie-trajectoryTimeline__span[data-timeline-span='subtool'] {
+  background: var(--freddie-alias-state-warn-label);
+  opacity: 1;
+}
+
+.freddie-trajectoryTimeline__span[data-error='true'] {
+  background: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-trajectoryTimeline__span[data-equal-duration='true'] {
+  width: 8px;
+  min-width: 8px;
+}
+
+.freddie-trajectoryTimeline__span[data-selected='false'] {
+  opacity: 0.2;
+}
+
+.freddie-trajectoryTimeline__span[data-hovered='true']:not([data-current='true']) {
+  z-index: 1;
+  opacity: 1;
+  box-shadow:
+    0 0 0 1px var(--freddie-alias-bg-layer-2),
+    0 0 0 2px color-mix(
+      in srgb,
+      var(--freddie-alias-state-business-primary) 80%,
+      transparent
+    );
+}
+
+.freddie-trajectoryTimeline__span[data-current='true'] {
+  z-index: 1;
+  opacity: 1;
+  box-shadow:
+    0 0 0 1px var(--freddie-alias-bg-layer-2),
+    0 0 0 2px var(--freddie-alias-state-business-primary);
+}
+
+.freddie-trajectoryTimeline__span[data-search-match='false'] {
+  opacity: 0.14;
+}
+
+.freddie-trajectoryTimeline__selection {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: var(--trajectory-selection-left);
+  width: var(--trajectory-selection-width);
+  min-width: 1px;
+  background: color-mix(
+    in srgb,
+    var(--freddie-alias-state-business-primary) 12%,
+    transparent
+  );
+  box-shadow:
+    -100vw 0 0 100vw color-mix(in srgb, var(--freddie-alias-bg-layer-1) 58%, transparent),
+    100vw 0 0 100vw color-mix(in srgb, var(--freddie-alias-bg-layer-1) 58%, transparent);
+  pointer-events: none;
+}
+
+.freddie-trajectoryTimeline__selectionEdges {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  bottom: 0;
+  left: var(--trajectory-selection-left);
+  width: var(--trajectory-selection-width);
+  min-width: 1px;
+  pointer-events: none;
+}
+
+.freddie-trajectoryTimeline__hoverLine {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  bottom: 0;
+  left: clamp(
+    0px,
+    calc(var(--trajectory-hover-left) - 1px),
+    calc(100% - 2px)
+  );
+  width: 2px;
+  background: var(--freddie-alias-state-business-primary);
+  pointer-events: none;
+}
+
+.freddie-trajectoryTimeline__selectionEdges::before,
+.freddie-trajectoryTimeline__selectionEdges::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--freddie-alias-state-business-primary);
+  content: '';
+}
+
+.freddie-trajectoryTimeline__selectionEdges::before {
+  left: 0;
+}
+
+.freddie-trajectoryTimeline__selectionEdges::after {
+  right: 0;
+}
+
+.freddie-trajectoryTimeline__selectionEdges[data-dragging='true']::before,
+.freddie-trajectoryTimeline__selectionEdges[data-dragging='true']::after {
+  width: 2px;
+}
+
+.freddie-trajectoryTimeline__selection[data-dragging='true'] {
+  background: color-mix(
+    in srgb,
+    var(--freddie-alias-state-business-primary) 18%,
+    transparent
+  );
+}

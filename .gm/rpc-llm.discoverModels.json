@@ -1,0 +1,1 @@
+{"type":"server-response","rpcId":"efb21d53-5060-46d4-bc5f-946be1a58bef","result":{"ok":false,"error":{"code":"model-discovery-failed","message":"no model discovery is registered for \"llm-deepseek\"","details":{"settingsNs":"llm-deepseek"}}}}

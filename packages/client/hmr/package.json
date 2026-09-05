@@ -1,0 +1,62 @@
+{
+  "name": "@freddie/freddie-client-hmr",
+  "description": "Dev-only hot-reload driver for script-loaded client entries: SSE rebuilt frames → invalidate/prefetch → fiber swap through the vendored Loader entry",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/client/hmr"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./client": {
+      "default": "./src/client/index.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "freddie": {
+    "client": {
+      "inject": [],
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^"
+  },
+  "optionalDependencies": {
+    "@freddie/freddie-web-frontend": "workspace:^"
+  },
+  "peerDependencies": {
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/freddie-client-modules": "workspace:^",
+    "@freddie/freddie-host-webserver": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/freddie-client-modules": "workspace:^",
+    "@freddie/freddie-host-webserver": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/events.js",
+    "src/client/index.js"
+  ]
+}

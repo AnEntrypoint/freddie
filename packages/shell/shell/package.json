@@ -1,0 +1,46 @@
+{
+  "name": "@freddie/freddie-shell",
+  "description": "Abstract bash executor seam (ctx.shell) for the Freddie",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/shell/shell"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/render.js",
+    "src/types.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-subprocess": "workspace:^",
+    "@freddie/freddie-sandbox": "workspace:^",
+    "@freddie/cordis": "workspace:^",
+    "@freddie/freddie-settings": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-subprocess": "workspace:^",
+    "@freddie/freddie-sandbox": "workspace:^",
+    "@freddie/cordis": "workspace:^",
+    "@freddie/freddie-settings": "workspace:^"
+  }
+}

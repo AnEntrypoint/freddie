@@ -1,0 +1,16 @@
+.freddie-deepSeekOnboardingDialog__description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-deepSeekOnboardingDialog__editor {
+  margin-top: 24px;
+}
+
+@media (max-width: 560px) {
+  .freddie-deepSeekOnboardingDialog__editor {
+    margin-top: 20px;
+  }
+}

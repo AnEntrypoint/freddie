@@ -1,0 +1,12 @@
+# Add the self-referential Cordis tools without changing the base ACP tool
+# presentation mode.
+- id: base
+  name: '@freddie/cordis-plugin-include'
+  config:
+    path: ./cordis.yml
+    patches:
+      - insert:
+          - id: cordis-host-runner
+            name: '@freddie/freddie-cordis-host-runner'
+          - id: tool-cordis
+            name: '@freddie/freddie-tool-cordis'

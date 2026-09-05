@@ -1,0 +1,297 @@
+/* Cordis definition card: DisclosureRow chrome (leading/chevron/title come from
+   that primitive) plus this card's own trailing run switch and source body.
+   No running sweep: `cordis_define` only registers a definition in host memory,
+   so the call settles in the same turn it starts and the state dot carries the
+   whole signal. */
+
+.freddie-cordisDefineRow__card {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The shared cordis accent (matches ui-tool's [data-tool^='cordis_'] rows). */
+.freddie-cordisDefineRow__card .freddie-cordisDefineRow__title,
+.freddie-cordisDefineRow__card .freddie-cordisDefineRow__chevron {
+  color: var(--freddie-alias-state-business-primary);
+}
+
+.freddie-cordisDefineRow__title {
+  flex: none;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+.freddie-cordisDefineRow__row {
+  gap: 0;
+}
+
+.freddie-cordisDefineRow__separator {
+  flex: none;
+  width: 2px;
+  height: 2px;
+  border-radius: 1px;
+  margin: 0 8px;
+  background: var(--freddie-alias-state-business-primary);
+}
+
+.freddie-cordisDefineRow__name {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--freddie-alias-label-secondary);
+}
+
+/* The purpose absorbs the remaining width and clips first: the name and the
+   switch are the two parts that must survive a narrow row. */
+.freddie-cordisDefineRow__purpose {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 24px;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-cordisDefineRow__errorSummary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-cordisDefineRow__requestError {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  margin-left: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 24px;
+  color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-cordisDefineRow__readout {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  margin-left: 8px;
+}
+
+/* Said once in the expanded body: this card records, the panel operates. */
+.freddie-cordisDefineRow__panelHint {
+  margin: 4px 0 2px 4px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--freddie-alias-label-caption);
+}
+
+.freddie-cordisDefineRow__statusLabel {
+  font-size: 12px;
+  line-height: 24px;
+  color: var(--freddie-alias-label-caption);
+}
+
+/* The model's question, shown beside the approve/decline pair. */
+.freddie-cordisDefineRow__approvalPrompt {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  margin-left: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 24px;
+  color: var(--freddie-alias-label-secondary);
+}
+
+/* A qualified success (nothing acknowledged the dispatch, or the browser half
+   parked on missing services): informational, so it must not read as the error
+   line beside it. */
+.freddie-cordisDefineRow__notice {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  margin-left: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 24px;
+  color: var(--freddie-alias-label-caption);
+}
+
+.freddie-cordisDefineRow__switch {
+  height: 22px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+/* Terminal definitions (unloaded, or lost to a host restart) stay in the flow
+   as a greyed card: the define call is still in the session log, so removing
+   the row would leave a replay hole. */
+.freddie-cordisDefineRow__card[data-terminal] .freddie-cordisDefineRow__title,
+.freddie-cordisDefineRow__card[data-terminal] .freddie-cordisDefineRow__name,
+.freddie-cordisDefineRow__card[data-terminal] .freddie-cordisDefineRow__purpose,
+.freddie-cordisDefineRow__card[data-terminal] .freddie-cordisDefineRow__statusLabel {
+  color: var(--freddie-alias-label-caption);
+}
+
+.freddie-cordisDefineRow__card[data-terminal] .freddie-cordisDefineRow__separator {
+  background: var(--freddie-alias-label-caption);
+}
+
+.freddie-cordisDefineRow__bodyWrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.freddie-cordisDefineRow__sourceCard {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0 4px 4px;
+}
+
+.freddie-cordisDefineRow__sourceTabs {
+  display: flex;
+  height: 32px;
+  border-bottom: 1px solid var(--freddie-alias-border-l2);
+}
+
+.freddie-cordisDefineRow__sourceTab {
+  position: relative;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--freddie-alias-label-tertiary);
+  cursor: pointer;
+  font: var(--dsw-font-xs-13);
+}
+
+.freddie-cordisDefineRow__sourceTab:hover:not(:disabled) {
+  background: var(--freddie-alias-interactive-bg-hover);
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-cordisDefineRow__sourceTab:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.freddie-cordisDefineRow__sourceTabActive {
+  color: var(--freddie-alias-state-business-primary);
+}
+
+.freddie-cordisDefineRow__sourceTabActive::after {
+  position: absolute;
+  right: 10px;
+  bottom: 0;
+  left: 10px;
+  height: 2px;
+  border-radius: 1px 1px 0 0;
+  background: var(--freddie-alias-state-business-primary);
+  content: '';
+}
+
+.freddie-cordisDefineRow__sourceTab:focus-visible {
+  outline: 1px solid var(--freddie-alias-state-business-primary);
+  outline-offset: -1px;
+}
+
+.freddie-cordisDefineRow__sourcePanel {
+  max-height: 260px;
+  overflow: auto;
+}
+
+.freddie-cordisDefineRow__sourceCode {
+  margin: 0;
+}
+
+.freddie-cordisDefineRow__codeSection {
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  margin: 4px 0 4px 4px;
+  overflow: auto;
+}
+
+.freddie-cordisDefineRow__sectionLabel {
+  flex: none;
+  padding: 2px 0;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--freddie-alias-label-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.freddie-cordisDefineRow__output {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--freddie-alias-border-l1);
+  border-radius: 8px;
+  background: var(--freddie-alias-markdown-code-block);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: var(--dsw-font-markdown-code-block-small);
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-cordisDefineRow__output[data-error] {
+  color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-cordisDefineRow__inspectButton {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 2px 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 999px;
+  background: var(--freddie-alias-bg-base);
+  color: var(--freddie-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.freddie-cordisDefineRow__card:hover .freddie-cordisDefineRow__inspectButton,
+.freddie-cordisDefineRow__inspectButton:focus-visible {
+  opacity: 1;
+}
+
+.freddie-cordisDefineRow__inspectButton:hover {
+  background: var(--freddie-alias-interactive-bg-hover-solid);
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-cordisDefineRow__visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .freddie-cordisDefineRow__inspectButton {
+    transition: none;
+  }
+}

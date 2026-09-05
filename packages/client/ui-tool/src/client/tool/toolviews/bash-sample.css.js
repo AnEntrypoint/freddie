@@ -1,0 +1,22 @@
+const css = {
+  card: 'freddie-bashSample__card',
+  terminal: 'freddie-bashSample__terminal',
+  ioCard: 'freddie-bashSample__ioCard',
+  ioSection: 'freddie-bashSample__ioSection',
+  ioLabel: 'freddie-bashSample__ioLabel',
+  ioDivider: 'freddie-bashSample__ioDivider',
+  ioText: 'freddie-bashSample__ioText',
+  root: 'freddie-bashSample__root',
+  leading: 'freddie-bashSample__leading',
+  chevron: 'freddie-bashSample__chevron',
+  iconIdle: 'freddie-bashSample__iconIdle',
+  chevronHover: 'freddie-bashSample__chevronHover',
+  title: 'freddie-bashSample__title',
+  sep: 'freddie-bashSample__sep',
+  summary: 'freddie-bashSample__summary',
+  errorSummary: 'freddie-bashSample__errorSummary',
+  bodyWrap: 'freddie-bashSample__bodyWrap',
+  inspectButton: 'freddie-bashSample__inspectButton',
+  visuallyHidden: 'freddie-bashSample__visuallyHidden',
+}
+export default css

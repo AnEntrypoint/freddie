@@ -1,0 +1,52 @@
+{
+  "name": "@freddie/freddie-client-modules",
+  "description": "Client module system, dual-face: node half composes the __FREDDIE_BOOT__ entry graph (incremental freddie.client scan, bundle route, index tap, webPlugins service); browser half is the lazy-CJS module table the vendored cordis Loader consumes as its internal seam",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/client/modules"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./client": {
+      "default": "./src/client/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "freddie": {
+    "client": {
+      "platform": "web",
+      "inject": [],
+      "immediately": true
+    }
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/freddie-host-webserver": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "files": [
+    "src/*.js",
+    "src/client/*.js"
+  ],
+  "peerDependencies": {
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/cordis": "workspace:^",
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/freddie-host-webserver": "workspace:^"
+  }
+}

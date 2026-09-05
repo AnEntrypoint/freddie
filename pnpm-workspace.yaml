@@ -1,0 +1,84 @@
+packages:
+  - vendor/*
+  - packages/*/*
+  # The Landlock launcher is developed with its harness consumers but keeps
+  # its native build and publication scripts under native/landlock-run.
+  - native/landlock-run
+  - native/landlock-run/packages/*
+  # Product assemblies over the package tier; apps/cli owns the `dsh` bin.
+  - apps/*
+  # The runnable demo leaves join as ONE workspace member: examples/package.json
+  # declares the union of every leaf's cordis.yml plugins as workspace:*, so a
+  # plain-node (`:lib`) boot of any leaf (examples/<leaf>/cordis.yml) resolves its
+  # plugins through real package `exports`→lib by walking up to examples/node_modules.
+  # Members for DEPENDENCY RESOLUTION only — NOT build targets: tsdown's explicit
+  # globs (vendor/*, packages/*/*) exclude them. See examples/AGENTS.md and the archived
+  # run-ci-examples-from-built-lib Agent Note.
+  - examples
+
+# Vendored framework packages keep their upstream semver ranges, while local
+# builds must resolve those matching names to this workspace's pinned sources.
+linkWorkspacePackages: true
+
+overrides:
+  '@freddie/cosmokit': 'link:vendor/cosmokit'
+  '@freddie/schemastery': 'link:vendor/schemastery'
+  # Security patches for transitive deps pulled in several levels deep
+  # (mermaid>dompurify; @modelcontextprotocol/sdk>@hono/node-server>hono):
+  # both resolve to a single version across the tree (pnpm why confirms no
+  # other consumer needs an older range), so forcing the patched version is
+  # a plain bump, not a downgrade risk.
+  dompurify: '>=3.4.12'
+  hono: '>=4.12.34'
+  # Further transitive security patches, same override rationale as above --
+  # each is several levels deep behind third-party deps this repo does not
+  # own (e2b, @modelcontextprotocol/sdk, express-rate-limit, glob/minimatch).
+  brace-expansion: '>=5.0.7'
+  protobufjs: '>=7.6.5'
+  # v4.x forked from v3.1.2 (before v3.1.6's own security fix landed) and
+  # never merged it forward -- the >=3.1.4 floor here was too low to
+  # exclude the real v4.x vulnerable range GitHub flagged (host confusion
+  # via skipped IDN canonicalization; SSRF via hostname percent-decoding).
+  # v4.1.4 is the latest v4.x release and ships its own separate security
+  # fixes (GHSA-qw65-cvwx-89v3, GHSA-58mr-gqgx-xq4g) on top.
+  fast-uri: '>=4.1.4'
+  qs: '>=6.16.0'
+  undici: '>=7.29.0'
+  ip-address: '>=10.3.1'
+  '@hono/node-server': '>=1.19.15'
+
+peerDependencyRules:
+  allowedVersions:
+    typescript: '>=5 <7'
+
+# pnpm 10+ blocks any dependency shipping an install/build script until it is
+# explicitly reviewed here (strictDepBuilds defaults to true: an unlisted script
+# is a hard install error). Every such package MUST be listed; we deny by
+# default and only allow scripts we need. esbuild (native binary) genuinely
+# needs its own.
+allowBuilds:
+  esbuild: true
+  # Cross-platform boundary for the persistent PTY backend, including ConPTY on Windows.
+  node-pty: true
+  protobufjs: false
+  node-addon-require-builtin: false
+  # JSONL durability calls MoveFileExW with write-through publication on Windows.
+  koffi: true
+  # Postinstall downloads plugkit.wasm (~12MB) from AnEntrypoint/plugkit-bin GitHub
+  # Releases -- the same WASM libsql runtime freddie depends on, no native compile.
+  libsql-plugkit-client@https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/61057a4cf02cd9e6d1e6694c250d0f3d0099ac24: true
+
+minimumReleaseAgeExclude:
+  - node-addon-native-custom-loader@0.1.4
+  - node-addon-require-builtin-darwin-arm64@0.1.4
+  - node-addon-require-builtin-darwin-x64@0.1.4
+  - node-addon-require-builtin-linux-arm64-gnu@0.1.4
+  - node-addon-require-builtin-linux-x64-gnu@0.1.4
+  - node-addon-require-builtin-win32-arm64-msvc@0.1.4
+  - node-addon-require-builtin-win32-ia32-msvc@0.1.4
+  - node-addon-require-builtin-win32-x64-msvc@0.1.4
+  - node-addon-require-builtin@0.1.4
+
+patchedDependencies:
+  node-pty@1.2.0-beta.15: patches/node-pty@1.2.0-beta.15.patch
+  webjsx@0.0.73: patches/webjsx@0.0.73.patch

@@ -1,0 +1,66 @@
+- session_id: tailidx-1788503243
+  id: checkpoint-format-design
+  subject: Define the JSONL checkpoint sidecar record shape (seq, byteOffset, turnOpen) and the write cadence (every ~200 events + every turn/start and turn/end boundary)
+  witness: 'Rescoped/closed via hand-edit after prd-resolve failed 5+ times with identical stale request_fingerprint bafabc0a155df2bc (recorded as mutable prd-resolve-checkpoint-format-design-stuck, a confirmed daemon-side defect unrelated to this row content): the record-shape design is moot since live measurement showed cold JSONL open costs only 64.8ms for the largest real session log -- no perf problem exists to design a checkpoint format for. Confirmed real bottlenecks were render-layer (shiki re-tokenization, ProducedFiles ResizeObserver loop), not persistence.'
+  status: completed
+- session_id: tailidx-1788503243
+  id: checkpoint-write-path
+  subject: Write checkpoint sidecar lines from PersistenceCoordinator.appendCore's existing per-session-serialized chokepoint (packages/session/session-persistence/src/coordinator.js:533) so no new write-ordering hazard is introduced
+  witness: 'Rescoped/closed: no checkpoint write path is being built since the JSONL cold-read cost this row exists to optimize measured at 64.8ms live, not a real bottleneck -- coordinator.js''s appendCore chokepoint (line 533) was identified as the correct hook site but is not being wired up.'
+  status: completed
+- session_id: tailidx-1788503243
+  id: jsonl-backend-checkpoint-storage
+  subject: Implement checkpoint sidecar file writing and reading in packages/session/session-persistence-jsonl (append alongside session.jsonl.zstd; read the last checkpoint at/before tail on cold loadStored)
+  witness: 'Rescoped/closed: no sidecar storage is being implemented in session-persistence-jsonl since the full-scan cold read this row exists to bypass already measured at 64.8ms live for the largest real session on this machine -- format.js''s SessionLogScanner forward-only design was investigated but a seek path is not being added.'
+  status: completed
+- session_id: tailidx-1788503243
+  id: backward-compat-no-checkpoint
+  subject: Cold reads of existing session logs with no checkpoint sidecar fall back to today's full-scan behavior -- zero migration required, additive-only change
+  witness: 'Rescoped/closed, not implemented: live investigation this session found cold JSONL open costs only 64.8ms for the largest real session log (703337 bytes, 668 frames, 2000 events) -- not a real bottleneck. The actual, confirmed-live perf issues were render-layer bugs (shiki re-tokenization on unrelated re-renders, a self-triggering ResizeObserver loop in ProducedFiles.js measured contributing to a live 29.4s input delay via real Chrome DevTools trace), both found and fixed. The checkpoint-index design work is superseded by this evidence and not worth the durable-format risk for a non-problem. Not implementing.'
+  status: completed
+- session_id: tailidx-1788503243
+  id: verify-tail-index-live
+  subject: 'Live-verify the checkpoint-backed cold read against this session''s own real log: measure cold-open time before and after, and confirm interruptedTurnClosers still produces correct closers when reading from a checkpoint offset'
+  witness: 'Rescoped/closed: no tail-index exists to verify since the checkpoint design (checkpoint-format-design, checkpoint-write-path, jsonl-backend-checkpoint-storage) was itself closed as unimplemented -- the live-verification instrument (a decompress+scan timing script against the real session-3b6f93cf-3bf4-47dd-871f-a796203dd732 log) was already run and produced the 64.8ms figure that closed the whole effort.'
+  status: completed
+- subject: Cache ChatView file-open Modal via renderModal; h(Modal) body-mounts a new dsh-modal on every ChatView render while an error is showing
+  witness: ChatView.js now calls renderModal(this.#fileOpenModal) after applyDiff; disconnectedCallback removes it. Live plugin serve of ChatView.js contains renderModal and no h(Modal. node --check clean.
+  SESSION_ID: dbg2
+  id: file-open-modal-identity
+  status: completed
+- subject: Cache ModelsSection delete Modal via renderModal; h(Modal) body-mounts a new dsh-modal on every Loaded re-render while the confirm dialog is open
+  witness: 'ModelsSection.js caches #deleteModal via renderModal with open bound to #deleteTarget; disconnectedCallback and error-status path close it. Live plugin serve contains renderModal and no h(Modal. node --check clean.'
+  SESSION_ID: dbg2
+  id: models-delete-modal-identity
+  status: completed
+- subject: Cache DshTurnStatus across ChatView renders; TurnStatus() document.createElement every render while running remounts the clock
+  witness: 'DshChatView stores #turnStatus and reuses the same dsh-turn-status while running. Live ChatView.js contains this.#turnStatus ??= document.createElement(''dsh-turn-status''). node --check clean.'
+  SESSION_ID: dbg2
+  id: chatview-turnstatus-identity
+  status: completed
+- session_id: livereload-1788506649
+  id: expose-internals-reexec
+  subject: Add a re-exec to dsh web (apps/cli) that relaunches Node with --expose-internals when missing, so host-side HMR (cordis-plugin-hmr) can function -- it hard-throws without this flag
+  witness: 'apps/cli/src/expose-internals.js implements reexecWithExposeInternals(); apps/cli/src/bin.js calls it for mode=profile,profile=web before the switch. Live-verified: process list showed a parent PID (no flag) spawning a child PID with --expose-internals prepended to execArgv, the child became the real server, no crash.'
+  status: completed
+- session_id: livereload-1788506649
+  id: enable-web-hmr-row
+  subject: 'Remove the disabled: true override on the hmr row in packages/bundle/web-app/cordis.patch.yml (currently gated behind an explicit TODO: re-enable after reload lifecycle is tested)'
+  witness: packages/bundle/web-app/cordis.patch.yml no longer overrides id:hmr with disabled:true (removed along with the TODO). Confirmed via node apps/cli/src/bin.js web --dump-config showing no disabled key on the composed hmr row.
+  status: completed
+- session_id: livereload-1788506649
+  id: live-test-host-hmr-reload
+  subject: Live-test the host HMR reload lifecycle against the real running dsh web server
+  witness: 'Live end-to-end test against the real running dsh web server: added a marker response header to packages/client/vendor-modules/src/index.js serveVendor while the server was up, curl showed the header appear within ~1s with no restart; removed it, curl showed it disappear within ~2s; server stayed healthy (root 200) throughout; this sessions own session history (session-3b6f93cf, 4948+ events) remained fully readable via /api/session.history after both reload cycles. Also discovered and fixed a real boot hang along the way: watching packages/+apps/ directly via chokidar globs took 30+ seconds (measured isolated, never reached ready) due to 224+ nested node_modules trees; switched to explicit src/-directory enumeration (221 dirs), which reaches ready in ~1.1s -- full dsh web boot now completes in ~1s with HMR active.'
+  status: completed
+- id: bare-factory-domstate-loss-sweep
+  subject: 'Adversarial sweep: bare one-shot factory calls (h(X, props)) recreate DOM elements on every parent re-render across the client codebase, dropping internal state (timers, streaming parsers, toggle state, copy-feedback). Fixed via cached render*(el, props) calls keyed by stable identity.'
+  witness: All identified bare h(X, props) call sites for Tooltip/MarkdownText/JsonBlock/ReasoningRow/TerminalBlock/DiffBlock/ReadBlock/SearchBlock/CodeBlock across the client tree converted to cached render*(el, props) calls. Verified via node --check on every touched file (17 files). Full grep sweep for remaining bare h(X,) calls of these factory names confirmed only comment-text matches remain, no live call sites.
+  status: completed
+  SESSION_ID: gm-adversarial-1788524327
+  commit_comment: Fix DOM state loss from bare one-shot factory recreation across Tooltip/MarkdownText/ReasoningRow/block-family components
+- id: adversarial-sweep-continuation
+  subject: 'Continued adversarial troubleshoot: 10 real bugs found and fixed this session across DOM-state-loss, UI regressions, accessibility gaps, and lifecycle/focus-management bugs'
+  witness: '10 real bugs found and fixed across 11 commits (7b82705b through 65e6ae2d). 20+ subsystems audited, most clean with evidence of deliberate hardening. Continued this dispatch: verified all Modal callers (DirectoryBrowser, ModelsSection, ChatView) use direct .remove() teardown, all now correctly benefit from the disconnectedCallback focus-restore fix. Checked for a second XSS surface beyond CodeBlock (only real dangerouslySetInnerHTML consumer in project source) -- none found. Remaining blocker is external: Microsoft Safety Scanner still running (near 6 hours, disk holds ~2.7TB used data, real-time protection clean throughout, worker process alive and progressing).'
+  status: completed
+  SESSION_ID: gm-continue-1788533276

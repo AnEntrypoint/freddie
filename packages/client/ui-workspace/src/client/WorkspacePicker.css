@@ -1,0 +1,20 @@
+/* The adoption error dialog's footer and message styles; the dialog itself is
+ * the shared Modal (same figma dialog family as the browser's own dialogs). */
+.freddie-workspacePicker__modalAction {
+  min-width: 72px;
+}
+
+.freddie-workspacePicker__modalError,
+.freddie-workspacePicker__menuStatus {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.freddie-workspacePicker__modalError {
+  color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-workspacePicker__menuStatus {
+  color: var(--freddie-alias-label-secondary);
+}

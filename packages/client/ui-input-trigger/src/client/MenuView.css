@@ -1,0 +1,122 @@
+/* Trigger candidate menu (figma SLASH 39:26572 MenuDropdown): menu surface,
+ * r12, hairline border, shadow-lv3, 4px inset padding; anchored to the
+ * composer top edge, left-aligned with the input text. Cells follow
+ * .Menu_cell (min-h 40, r10, pad 10/8, gap 8, 14/22 primary label) with a
+ * trailing dimmed description. */
+
+.freddie-menuView__menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  z-index: 100;
+  min-width: min(260px, 100%);
+  /* 537 is the design cap; the 100% clamp keeps the menu inside the composer
+     card when a narrow viewport shrinks the card below the cap (the overlay
+     anchor is exactly the card's width). */
+  max-width: min(537px, 100%);
+  /* Height cap: the 320px design maximum, clamped at runtime to the space
+   * above the composer (inline max-height set in MenuView.tsx). */
+  max-height: 320px;
+  overflow: hidden;
+  /* Elevated surface: the scrollbar thumb takes the l2 elevation tokens
+     (see ui-theme styles/scrollbar.css for the rebinding contract). */
+  --freddie-scrollbar-thumb: var(--freddie-alias-scrollbar-bg-l2);
+  --freddie-scrollbar-thumb-hover: var(--freddie-alias-scrollbar-hover-l2);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--freddie-alias-border-inverted);
+  border-radius: 12px;
+  background: var(--dsw-specific-menu);
+  box-shadow: var(--dsw-shadow-lv3);
+}
+
+.freddie-menuView__viewport {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.freddie-menuView__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--freddie-alias-label-primary);
+  text-align: left;
+}
+
+.freddie-menuView__item:hover,
+.freddie-menuView__item.freddie-menuView__active {
+  background: var(--freddie-alias-interactive-bg-hover);
+}
+
+.freddie-menuView__sectionTitle {
+  flex: none;
+  min-height: 26px;
+  padding: 6px 10px 2px;
+  color: var(--freddie-alias-label-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.freddie-menuView__sectionTitle:not(:first-child) {
+  margin-top: 4px;
+}
+
+.freddie-menuView__itemIcon {
+  display: inline-flex;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-menuView__itemName {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.freddie-menuView__itemDescription {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+/* Heading row above a source group: non-interactive small grey text,
+ * padding aligned with items (mirrors ui-primitives Menu .label). */
+.freddie-menuView__groupTitle {
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+/* Pending-source row: same cell metrics, dimmed label. */
+.freddie-menuView__loading {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--freddie-alias-label-dimmed);
+}

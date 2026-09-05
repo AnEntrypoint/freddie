@@ -1,0 +1,74 @@
+{
+  "name": "@freddie/freddie-client-ui-theme",
+  "description": "Theme plugin: Host bootstrap for the pre-plugin palette; DOM-free ThemeRuntime for light/dark/system state; --dsw-* token styles and Appearance settings row",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/client/ui-theme"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./client": {
+      "default": "./src/client/index.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "freddie": {
+    "client": {
+      "inject": [
+        "@freddie/freddie-client-connection",
+        "@freddie/freddie-client-runtime",
+        "@freddie/freddie-client-locale",
+        "@freddie/freddie-client-ui-settings",
+        "@freddie/freddie-api-remotes"
+      ],
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/cordis": "workspace:^",
+    "@freddie/freddie-api-remotes": "workspace:^",
+    "@freddie/freddie-client-connection": "workspace:^",
+    "@freddie/freddie-client-locale": "workspace:^",
+    "@freddie/freddie-client-runtime": "workspace:^",
+    "@freddie/freddie-client-ui-settings": "workspace:^",
+    "@freddie/freddie-host-webserver": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-settings": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "workspace:^",
+    "@freddie/freddie-api-remotes": "workspace:^",
+    "@freddie/freddie-client-connection": "workspace:^",
+    "@freddie/freddie-client-locale": "workspace:^",
+    "@freddie/freddie-client-runtime": "workspace:^",
+    "@freddie/freddie-client-ui-primitives": "workspace:^",
+    "@freddie/freddie-client-ui-settings": "workspace:^",
+    "@freddie/freddie-client-ui-slots": "workspace:^",
+    "@freddie/freddie-host-webserver": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-settings": "workspace:^"
+  },
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "webjsx": "^0.0.73",
+    "@freddie/schemastery": "workspace:^"
+  }
+}

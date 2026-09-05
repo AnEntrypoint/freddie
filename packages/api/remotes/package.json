@@ -1,0 +1,94 @@
+{
+  "name": "@freddie/freddie-api-remotes",
+  "description": "Remote BFF assembly and Host Agent/Session lookup policy",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/api/remotes"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./client": {
+      "default": "./src/client/index.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "freddie": {
+    "client": {
+      "inject": [
+        "@freddie/freddie-api-gateway"
+      ],
+      "platform": "web",
+      "immediately": true,
+      "external": [
+        "@freddie/freddie-commands/remote",
+        "@freddie/freddie-goal/remote",
+        "@freddie/freddie-cordis-host-runner/remote",
+        "@freddie/freddie-file-reference/remote",
+        "@freddie/freddie-host-plugin-inventory/remote",
+        "@freddie/freddie-message-feedback/remote",
+        "@freddie/freddie-session-reference/remote"
+      ]
+    }
+  },
+  "license": "MIT",
+  "files": [
+    "src/*.js",
+    "src/client/*.js"
+  ],
+  "dependencies": {
+    "@freddie/freddie-typert-protocol": "workspace:^"
+  },
+  "peerDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-agent-presets": "workspace:^",
+    "@freddie/freddie-api-gateway": "workspace:^",
+    "@freddie/freddie-commands": "workspace:^",
+    "@freddie/freddie-cordis-host-runner": "workspace:^",
+    "@freddie/freddie-credentials": "workspace:^",
+    "@freddie/freddie-file-reference": "workspace:^",
+    "@freddie/freddie-goal": "workspace:^",
+    "@freddie/freddie-host-plugin-inventory": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-message-feedback": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-persistence": "workspace:^",
+    "@freddie/freddie-session-reference": "workspace:^",
+    "@freddie/freddie-settings": "workspace:^",
+    "@freddie/freddie-typert-registry": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/freddie-agent": "workspace:^",
+    "@freddie/freddie-agent-presets": "workspace:^",
+    "@freddie/freddie-api-gateway": "workspace:^",
+    "@freddie/freddie-commands": "workspace:^",
+    "@freddie/freddie-cordis-host-runner": "workspace:^",
+    "@freddie/freddie-credentials": "workspace:^",
+    "@freddie/freddie-file-reference": "workspace:^",
+    "@freddie/freddie-goal": "workspace:^",
+    "@freddie/freddie-host-plugin-inventory": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-llm": "workspace:^",
+    "@freddie/freddie-message-feedback": "workspace:^",
+    "@freddie/freddie-session": "workspace:^",
+    "@freddie/freddie-session-persistence": "workspace:^",
+    "@freddie/freddie-session-reference": "workspace:^",
+    "@freddie/freddie-settings": "workspace:^",
+    "@freddie/freddie-typert-registry": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}

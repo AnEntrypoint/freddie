@@ -1,0 +1,60 @@
+{
+  "name": "@freddie/freddie-app-boot",
+  "description": "Shared boot glue for the app bins: .env loading, fail-loud Loader guards, snapshot-aware config resolution, and the Loader boot sequence",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/boot/app-boot"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/*.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "js-yaml": "^5.4.1"
+  },
+  "peerDependencies": {
+    "@freddie/cordis-plugin-group": "workspace:^",
+    "@freddie/cordis-plugin-hmr": "workspace:^",
+    "@freddie/cordis-plugin-include": "workspace:^",
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/freddie-launch-environment": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-home-paths": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@freddie/cordis-plugin-hmr": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@freddie/cordis-plugin-group": "workspace:^",
+    "@freddie/cordis-plugin-hmr": "workspace:^",
+    "@freddie/cordis-plugin-include": "workspace:^",
+    "@freddie/cordis-plugin-loader": "workspace:^",
+    "@freddie/cordis-plugin-timer": "workspace:^",
+    "@freddie/freddie-launch-environment": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-home-paths": "workspace:^",
+    "@freddie/freddie-system-prompt": "workspace:^",
+    "@freddie/cordis": "workspace:^"
+  }
+}
