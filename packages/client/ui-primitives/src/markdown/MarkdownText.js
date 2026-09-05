@@ -155,6 +155,8 @@ export class FreddieMarkdownText extends HTMLElement {
   #streamLabels
   #lastProps = null
   #lastChildren = []
+  // Whether applyDiff has painted this element at least once (see #render).
+  #painted = false
 
   setProps(props) {
     this.#props = props
@@ -163,6 +165,13 @@ export class FreddieMarkdownText extends HTMLElement {
 
   connectedCallback() {
     this.#render()
+  }
+
+  disconnectedCallback() {
+    // A remount must diff again: this element's children may have been moved
+    // or discarded while it was detached, so the "already painted" claim in
+    // #render no longer describes the DOM.
+    this.#painted = false
   }
 
   #computeChildren() {
@@ -181,13 +190,22 @@ export class FreddieMarkdownText extends HTMLElement {
   #render() {
     // Mirrors the React version's memo (skip on identical props) plus the
     // inner useMemo (recompute children only when a dependency changed).
-    const children = this.#lastProps !== null && propsEqual(this.#lastProps, this.#props)
-      ? this.#lastChildren
-      : this.#computeChildren()
+    const unchanged = this.#lastProps !== null && propsEqual(this.#lastProps, this.#props)
+    // Equal props AND an already-painted tree means this render cannot produce
+    // a single different node, so the whole diff is dead work. It is not free:
+    // the cached children are real DOM nodes, and webjsx re-walks them (and
+    // every element they contain) on every pass -- with real keyboard input
+    // that showed up as 40 fresh inline `code` elements per keystroke landing
+    // in their `<p>` parents, from renders whose props had not moved at all.
+    // The mounted check keeps the first paint, which must diff, on the normal
+    // path.
+    if (unchanged && this.#painted) return
+    const children = unchanged ? this.#lastChildren : this.#computeChildren()
     this.#lastProps = this.#props
     this.#lastChildren = children
     const vdom = h('div', { class: css.markdown ?? '' }, children)
     applyDiff(this, vdom)
+    this.#painted = true
   }
 }
 
