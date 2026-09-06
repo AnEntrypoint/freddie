@@ -153,6 +153,13 @@ export function createApiRemoteAgentResolver(ctx, options) {
 
   ctx.inject(['typert'], (typeCtx) => {
     const resolveAgent = async (sessionId) => {
+      if (typeof sessionId !== 'string' || sessionId.length === 0) {
+        throw new TypertLookupFailure({
+          code: 'invalid-params',
+          message: `sessionId is required and must be a non-empty string, got ${JSON.stringify(sessionId)}`,
+          details: {},
+        })
+      }
       const found = await agentFor(sessionId)
       if ('error' in found) throw new TypertLookupFailure(found.error)
       return found.agent

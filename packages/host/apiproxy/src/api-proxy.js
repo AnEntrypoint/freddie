@@ -2314,7 +2314,7 @@ export function createApiProxy(ctx, defaults) {
       },
 
       cancel(request) {
-        const { sessionId } = request.payload ?? {}
+        const { sessionId, confirm } = request.payload ?? {}
         const refused = requireNonEmptyString(request, sessionId, 'session.cancel requires payload.sessionId as a non-empty string')
         if (refused !== undefined) return Promise.resolve(refused)
         const agent = ctx.agents.get(sessionId)
@@ -2327,6 +2327,26 @@ export function createApiProxy(ctx, defaults) {
         }
         if (hasSubagentOwner(agent.session, agent)) {
           return Promise.resolve(err(request, subagentOwnershipError(sessionId)))
+        }
+        // This RPC has no notion of which connection is calling: the UI's Stop
+        // button always names the session it is scoped to, so a naive check
+        // would have to treat every legitimate Stop as indistinguishable from
+        // an in-harness agent's own probe/debugging call reaching this same
+        // endpoint (e.g. bash hitting /api) and silently killing its own live
+        // turn mid-tool-call. Rather than guess intent, a cancel that would
+        // abort a currently-running turn requires an explicit `confirm: true`
+        // acknowledgement; the UI's Stop button sets it, so it is unaffected,
+        // while an unconfirmed call against a running turn gets a clear,
+        // named refusal instead of a silent abort.
+        if (agent.status === 'running' && confirm !== true) {
+          return Promise.resolve(err(request, {
+            code: 'session-cancel-requires-confirm',
+            message: `session "${sessionId}" has a turn running; cancelling it would abort that turn `
+              + 'mid-tool-call. Pass payload.confirm=true to proceed if this is intentional (e.g. a user '
+              + 'Stop action or a deliberate self-abort), otherwise this call would silently kill the '
+              + 'session\'s own current turn.',
+            details: { sessionId },
+          }))
         }
         agent.cancel({ kind: 'user' }, { keepInbox: true })
         return Promise.resolve(ok(request, { accepted: true }))

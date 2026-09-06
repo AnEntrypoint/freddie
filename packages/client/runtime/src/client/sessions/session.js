@@ -282,7 +282,7 @@ export class Session {
     try {
       result = address !== undefined
         ? (await this.api.subagents.interrupt(address)).result
-        : (await this.api.sessions.cancel({ sessionId: this.sessionId })).result
+        : (await this.api.sessions.cancel({ sessionId: this.sessionId, confirm: true })).result
     } catch (error) {
       result = transportError(error)
     }

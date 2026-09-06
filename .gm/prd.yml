@@ -1,17 +1,6 @@
 - SESSION_ID: dsh-debug-1788622710
-  id: jank-sweep-remaining-rpc-ui
-  subject: 'Jank/edge sweep over remaining live RPC and GUI surfaces: skill.list without sessionId, session.search disabled, host.listDirectory native-only, leftover CJK in ProviderEditor comment, ui-model-selection/lib leftover, title-from-error sessions already in the list'
-  route_family: grounding
-  witness: skill.list {} -> session-not-found session undefined; session.search -> openAt never; host.listDirectory -> picker serves native; ProviderEditor.js line 6 still says 自定义设置. Expand into concrete rows as each finding is classified.
-  acceptance: Each finding is its own PRD row or explicitly closed with live evidence it is intended behavior.
-  status: pending
-- SESSION_ID: 019WieJ8
-  title: Re-derive cordis-api source anchors against framework/*.js
-  id: re-derive-cordis-api-source-anchors-against-framework-js
-  status: pending
-- session_id: hmr-agents-1
-  title: An agent probing session.cancel cancels its own running turn
-  detail: 'packages/host/apiproxy/src/api-proxy.js session.cancel calls agent.cancel({kind:''user''}) for whatever sessionId it is given, with no notion of which session is CALLING. An in-harness agent that probes the RPC surface (a normal debugging task) and includes session.cancel with a real session id silently kills its own turn: turn/end reason {kind:''aborted'', reason:{kind:''user''}}, and the in-flight tool call returns ''Error: tool call aborted''. Reproduced deterministically 3 times. Isolated by elimination: plain pwsh completes, GET / completes, a single RPC POST completes, a 5-method RPC loop completes -- only scripts including session.cancel abort. The agent cannot know this from the tool surface, and the abort looks like a harness fault rather than self-inflicted.'
-  witness: An agent calling session.cancel on its own sessionId either gets a refusal naming the self-cancel, or the turn survives; a cancel from the UI for another session still works.
-  id: an-agent-probing-session-cancel-cancels-its-own-running-turn
+  id: session-error-state-not-surfaced-in-list
+  subject: A session whose first agent turn errors before any LLM-generated title arrives still gets the deterministic fallback title (derived from the user's first message text) and appears in the session list indistinguishable from a healthy session -- no error/failed-turn indicator is carried into the list row.
+  witness: packages/session/session-title/src/index.js ensureFallback()/startPending() catch provider failures and only log a warning (lines ~313-320, ~355-367); the fallback title always derives from first.text regardless of turn outcome. packages/client/ui-workspace/src/client/rows/Rows.js has no error/status field rendered per row.
+  acceptance: A session whose main request/turn ended in an unrecovered error is visually distinguishable in the session list (a status badge/icon or equivalent), verified live by driving a session to a turn/end error state via exec_js and reading the rendered list row for the new indicator.
   status: pending
