@@ -1,6 +1,1 @@
-- SESSION_ID: dsh-debug-1788622710
-  id: session-error-state-not-surfaced-in-list
-  subject: A session whose first agent turn errors before any LLM-generated title arrives still gets the deterministic fallback title (derived from the user's first message text) and appears in the session list indistinguishable from a healthy session -- no error/failed-turn indicator is carried into the list row.
-  witness: packages/session/session-title/src/index.js ensureFallback()/startPending() catch provider failures and only log a warning (lines ~313-320, ~355-367); the fallback title always derives from first.text regardless of turn outcome. packages/client/ui-workspace/src/client/rows/Rows.js has no error/status field rendered per row.
-  acceptance: A session whose main request/turn ended in an unrecovered error is visually distinguishable in the session list (a status badge/icon or equivalent), verified live by driving a session to a turn/end error state via exec_js and reading the rendered list row for the new indicator.
-  status: pending
+[]

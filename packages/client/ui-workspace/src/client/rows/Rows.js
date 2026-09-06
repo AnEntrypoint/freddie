@@ -254,6 +254,11 @@ function sessionStatuses(node, t) {
     return subagents === undefined ? [primary] : [primary, subagents]
   }
   if (subagents !== undefined) return [subagents]
+  // A session whose most recently closed turn ended in an unrecovered error
+  // (turn/end reason.kind === 'error') is visually distinct from a healthy
+  // completion -- outranks the plain "completed"/"idle" defaults but never a
+  // pending question or live activity above.
+  if (node.errored) return [{ state: 'error', label: t('status.errored') }]
   if (node.completed) return [{ state: 'done', label: t('status.completed') }]
   return [{ state: 'done', label: t('status.idle') }]
 }

@@ -395,14 +395,23 @@ function applySessionListMetadata(state, event) {
   const lastPromptAt = event.type === 'user/message' && event.data.source.kind === 'user'
     ? event.time
     : state.lastPromptAt
-  return blank === state.blank && lastPromptAt === state.lastPromptAt
+  // The most recent turn/end's reason is the live signal: a fresh turn/start
+  // clears a stale error (the session moved on) before its own turn/end
+  // resolves the new outcome, so `errored` always reflects the LAST closed
+  // turn, never an earlier one superseded by later successful work.
+  const errored = event.type === 'turn/start'
+    ? false
+    : event.type === 'turn/end'
+      ? event.data.reason.kind === 'error'
+      : state.errored
+  return blank === state.blank && lastPromptAt === state.lastPromptAt && errored === state.errored
     ? state
-    : { blank, lastPromptAt }
+    : { blank, lastPromptAt, errored }
 }
 
 /** Fold exact list metadata for an attached Session. */
 function sessionListMetadata(events) {
-  let state = { blank: true, lastPromptAt: null }
+  let state = { blank: true, lastPromptAt: null, errored: false }
   for (const event of events) state = applySessionListMetadata(state, event)
   return state
 }
@@ -434,6 +443,9 @@ function summarize(session, running) {
     updatedAt: sessionListUpdatedAt(session.header, metadata),
     running,
     blank: metadata.blank,
+    // A currently-running turn supersedes a stale error from an earlier
+    // closed turn — a session mid-retry must not still read as errored.
+    errored: !running && metadata.errored,
     ...sessionListFields(session.header, session.events),
   }
 }
@@ -480,6 +492,10 @@ async function summarizeCold(ctx, persistence, meta, metadata, blankProbeMaxByte
     updatedAt: sessionListUpdatedAt(meta, probed ?? metadata),
     running: false,
     blank: metadata?.blank === false ? false : probed?.blank ?? false,
+    // Cold sessions cannot run, so the last closed turn's outcome is final;
+    // `errored` prefers the cached projection hint and falls back to the
+    // probed fold, same precedence as `blank` above.
+    errored: metadata?.errored ?? probed?.errored ?? false,
     // Header-only: reading the log for a blank-window preset switch would
     // defeat the same index read, and attaching the session replaces this row
     // with `summarize()`, which resolves the switch from the events.
@@ -1011,10 +1027,14 @@ export function createApiProxy(ctx, defaults) {
   ctx.inject(['sessionProjections'], (projectionCtx) => {
     projectionCtx.sessionProjections.register({
       key: 'sessionListMetadata',
-      init: () => ({ blank: true, lastPromptAt: null }),
+      init: () => ({ blank: true, lastPromptAt: null, errored: false }),
       apply: applySessionListMetadata,
       wire: { view: state => state },
-      stateVersion: 1,
+      // A stored row from before `errored` existed lacks the field; summarizeCold
+      // falls back through `probed?.errored` rather than trusting an old cache
+      // row's absence as a hard "not errored", so a version bump is unneeded for
+      // correctness, but bumping keeps the persisted shape self-describing.
+      stateVersion: 2,
     })
   })
 
@@ -3376,7 +3396,13 @@ export function createApiProxy(ctx, defaults) {
             queue.push(frame({ type: 'host/session-removed', sessionId: session.id }))
           }),
           ctx.on('agent/status', ({ agent, status }) => {
-            queue.push(frame({ type: 'host/session-status', sessionId: agent.id, running: status === 'running' }))
+            const running = status === 'running'
+            // A transition INTO idle is exactly when a turn just closed (or the
+            // session had none in flight); read the session's own live fold so
+            // the sidebar dot flips to error in the same frame as the running
+            // dot clears, instead of waiting for the next full session.list.
+            const errored = running ? false : sessionListMetadata(agent.session.events).errored
+            queue.push(frame({ type: 'host/session-status', sessionId: agent.id, running, errored }))
           }),
           ctx.on('agent/error', ({ agent, error }) => {
             queue.push(frame({ type: 'host/agent-error', sessionId: agent.id, message: errorChain(error) }))

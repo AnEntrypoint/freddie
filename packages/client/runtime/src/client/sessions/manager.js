@@ -799,7 +799,12 @@ export class SessionManager {
         return
       }
       case 'host/session-status': {
-        this.recordMutation({ kind: 'status', sessionId: frame.sessionId, running: frame.running })
+        this.recordMutation({
+          kind: 'status',
+          sessionId: frame.sessionId,
+          running: frame.running,
+          ...frame.errored === undefined ? {} : { errored: frame.errored },
+        })
         this.sessions.get(frame.sessionId)?.handleRunning(frame.running)
         this.updateCatalogActivity(frame.sessionId, frame.running)
         return
@@ -987,6 +992,7 @@ export class SessionManager {
         && prev.pendingInteraction === entry.pendingInteraction
         && prev.projectionValues === entry.projectionValues
         && prev.completed === entry.completed
+        && prev.errored === entry.errored
       ) return prev
       this.entryCache.set(entry.sessionId, entry)
       return entry
@@ -1047,8 +1053,14 @@ function applyMutation(summaries, mutation) {
       // running:true doubles as the cross-client blank flip (a blank session
       // never runs, so the first running frame proves a message landed).
       return summaries.map(summary => summary.sessionId === mutation.sessionId
-        && (summary.running !== mutation.running || (mutation.running && summary.blank))
-        ? { ...summary, running: mutation.running, blank: summary.blank && !mutation.running }
+        && (summary.running !== mutation.running || (mutation.running && summary.blank)
+          || (mutation.errored !== undefined && mutation.errored !== summary.errored))
+        ? {
+          ...summary,
+          running: mutation.running,
+          blank: summary.blank && !mutation.running,
+          ...mutation.errored === undefined ? {} : { errored: mutation.errored },
+        }
         : summary)
     case 'activity':
       return summaries.map(summary => summary.sessionId === mutation.sessionId
