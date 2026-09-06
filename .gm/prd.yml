@@ -119,3 +119,15 @@
   witness: Edit a file the agent-loop transitively imports while a turn is running; the turn survives and completes, and the reload lands after it finishes.
   id: hmr-must-not-dispose-plugins-with-in-flight-agent-turns
   status: pending
+- session_id: hmr-agents-1
+  title: Session logs have no write lock; two harness processes corrupt them
+  detail: 'packages/session/session-persistence-jsonl/src/index.js appendLines() opens the log with plain open(path,''a'') and no exclusivity. Two harness processes on the same port (a stale one pkill -f failed to kill) both appended to session-3dcbeaa2, each with its own in-memory seq counter, producing a backwards seq rewind (line 3626 committed to 5169, line 3627 restarted at 5142 with different events). scanLog then refuses the whole session: ''corrupt session log: seq gap in committed region''. The session became completely unresumable and 498 rows of tail were unreadable. Codebase already has an O_EXCL precedent at packages/attachment/attachment-local/src/store.js:174.'
+  witness: Start two harness processes against the same freddie home; the second either refuses to take the session or its appends never interleave, and session.history stays ok for every session.
+  id: session-logs-have-no-write-lock-two-harness-processes-corrupt-th
+  status: pending
+- session_id: hmr-agents-1
+  title: A stray file in a session directory hard-fails harness boot
+  detail: 'Placing any non-session file in ~/.freddie/sessions/<project>/<session>/ (I put a .zstd.bak there) makes listArtifacts -> readFirstZstdLine throw ''corrupt Zstandard session log: first frame is not exactly one header line'', which propagates out of the workspace plugin''s cordis.init and kills the ENTIRE boot: ''plugin tree failed to load''. One unreadable artifact should be skipped and reported, not taken as a fatal tree-load failure -- a single bad file makes the whole harness unstartable with an error naming the plugin rather than the file.'
+  witness: Drop an unrelated file into a session directory; the harness still boots and reports that one session as unreadable instead of failing to start.
+  id: a-stray-file-in-a-session-directory-hard-fails-harness-boot
+  status: pending

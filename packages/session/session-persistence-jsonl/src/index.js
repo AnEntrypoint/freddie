@@ -116,7 +116,19 @@ export class JsonlSessionPersistence extends SessionPersistence {
       preparedSessionCacheSize,
       writeBatchMaxDelayMs,
     })
+    // Release the writer lock on teardown so an ordinary restart is not left
+    // reclaiming its own stale lock. A crash skips this; the pid-liveness
+    // check in claimWriterLock() covers that case.
+    this.ctx.effect(() => () => {
+      if (this.writerLockPath === undefined) return
+      const path = this.writerLockPath
+      this.writerLockPath = undefined
+      return rm(path, { force: true })
+    }, 'jsonlSessionPersistence.writerLock()')
   }
+
+  /** Path of the writer lock this process holds, or `undefined` before it claims one. */
+  writerLockPath
 
   // Each backend keeps the typed service API beside its storage hooks;
   // extracting these trivial forwards would add an inheritance layer.
@@ -429,9 +441,22 @@ export class JsonlSessionPersistence extends SessionPersistence {
         signal?.throwIfAborted()
         if (!pathExists) continue
         // Read only headers so listing scales with session count, not log size.
-        const first = this.compression === 'zstd'
-          ? await this.readFirstZstdLine(path, signal)
-          : await this.readFirstLine(path, signal)
+        // One unreadable artifact is skipped and reported, never fatal: this
+        // listing runs during the workspace plugin's init, so a single damaged
+        // or foreign file here used to fail the whole plugin tree and leave the
+        // harness unstartable, with a diagnostic naming the plugin rather than
+        // the file. The neighbouring checks already `continue` past an empty
+        // file or a non-session header; a corrupt frame is the same class.
+        let first
+        try {
+          first = this.compression === 'zstd'
+            ? await this.readFirstZstdLine(path, signal)
+            : await this.readFirstLine(path, signal)
+        } catch (error) {
+          if (signal?.aborted) throw error
+          this.ctx.logger.warn(`skipping unreadable session artifact "${path}": ${String(error.message ?? error)}`)
+          continue
+        }
         signal?.throwIfAborted()
         if (first === undefined) continue // empty/half-written file
         const meta = parseHeaderMeta(first)
@@ -803,11 +828,78 @@ export class JsonlSessionPersistence extends SessionPersistence {
   }
 
   async checkRootEncoding() {
+    await this.claimWriterLock()
     for (const project of await this.listProjectDirs()) {
       for (const dir of await this.listSessionDirs(project)) {
         const incompatible = join(dir, `session${logSuffix(this.oppositeCompression())}`)
         if (await this.exists(incompatible)) throw this.encodingMismatch(incompatible)
       }
+    }
+  }
+
+  /**
+   * Take an exclusive advisory lock on this root, so only one process appends
+   * to its session logs.
+   *
+   * Every log is opened `'a'` with no exclusivity, and each writer carries its
+   * own in-memory seq counter. Two processes sharing a root therefore interleave
+   * appends and assign the same seq numbers to different events, which
+   * `SessionLogScanner` rejects as `seq gap in committed region` — refusing the
+   * whole session, including the events written before the collision. That is
+   * unrecoverable without hand-repair, so it is worth failing the second process
+   * loudly at startup instead.
+   *
+   * A lock whose recorded pid is no longer running is stale (a crash or a kill
+   * leaves the file behind) and is reclaimed rather than treated as a conflict.
+   */
+  async claimWriterLock() {
+    const lockPath = join(this.root, '.writer.lock')
+    const record = () => JSON.stringify({ pid: process.pid, since: Date.now() })
+    await mkdir(this.root, { recursive: true })
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const handle = await open(lockPath, 'wx')
+        try {
+          await handle.writeFile(record())
+        } finally {
+          await handle.close()
+        }
+        this.writerLockPath = lockPath
+        return
+      } catch (error) {
+        if (error.code !== 'EEXIST') throw error
+        const holder = await this.readWriterLock(lockPath)
+        if (holder !== undefined && this.processAlive(holder.pid)) {
+          throw new Error(
+            `session store at "${this.root}" is already held by pid ${holder.pid}. `
+            + 'Two processes writing one store corrupt its session logs; stop the other one first.',
+          )
+        }
+        // Stale (holder gone, or the record is unreadable): reclaim and retry once.
+        await rm(lockPath, { force: true })
+      }
+    }
+    throw new Error(`could not claim the session-store writer lock at "${lockPath}"`)
+  }
+
+  /** Read a lock record, or `undefined` when it is missing or not parseable. */
+  async readWriterLock(lockPath) {
+    try {
+      const parsed = JSON.parse(await readFile(lockPath, 'utf8'))
+      return typeof parsed?.pid === 'number' ? parsed : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  /** Whether a pid is still running. Signal 0 checks liveness without delivering. */
+  processAlive(pid) {
+    try {
+      process.kill(pid, 0)
+      return true
+    } catch (error) {
+      // EPERM means it exists but belongs to another user: still alive.
+      return error.code === 'EPERM'
     }
   }
 

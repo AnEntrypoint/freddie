@@ -1500,7 +1500,10 @@ export function createApiProxy(ctx, defaults) {
 
   /** Resolve a session's agent, apply one goal mutation, and acknowledge with the new CAS ref. */
   async function mutateGoal(request, mutation) {
-    const found = await agentFor(request.payload.sessionId)
+    const sessionId = request.payload?.sessionId
+    const refused = requireNonEmptyString(request, sessionId, 'goal mutation requires payload.sessionId as a non-empty string')
+    if (refused !== undefined) return refused
+    const found = await agentFor(sessionId)
     if ('error' in found) return err(request, found.error)
     const goals = goalServiceFor(found.agent)
     if ('error' in goals) return err(request, goals.error)
@@ -1682,6 +1685,9 @@ export function createApiProxy(ctx, defaults) {
           message: 'session search was aborted',
           details: {},
         })
+        const query = request.payload?.query
+        const refused = requireNonEmptyString(request, query, 'session.search requires payload.query as a non-empty string')
+        if (refused !== undefined) return refused
         if (isAborted(signal)) return cancelled()
         const sessionQuery = ctx.get('sessionQuery')
         if (sessionQuery === undefined) {
@@ -1808,22 +1814,39 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async create(request) {
-        const sessionId = request.payload.sessionId ?? `session-${randomUUID()}`
+        const payload = request.payload ?? {}
+        if (payload.sessionId !== undefined) {
+          const refused = requireNonEmptyString(request, payload.sessionId, 'session.create payload.sessionId must be a non-empty string when present')
+          if (refused !== undefined) return refused
+        }
+        if (payload.workspaceId !== undefined) {
+          const refused = requireNonEmptyString(request, payload.workspaceId, 'session.create payload.workspaceId must be a non-empty string when present')
+          if (refused !== undefined) return refused
+        }
+        if (payload.cwd !== undefined) {
+          const refused = requireNonEmptyString(request, payload.cwd, 'session.create payload.cwd must be a non-empty string when present')
+          if (refused !== undefined) return refused
+        }
+        if (payload.agentPreset !== undefined) {
+          const refused = requireNonEmptyString(request, payload.agentPreset, 'session.create payload.agentPreset must be a non-empty string when present')
+          if (refused !== undefined) return refused
+        }
+        const sessionId = payload.sessionId ?? `session-${randomUUID()}`
         let workspace
-        if (request.payload.workspaceId !== undefined) {
-          workspace = ctx.workspaceRegistry.get(brandWorkspaceId(request.payload.workspaceId))
+        if (payload.workspaceId !== undefined) {
+          workspace = ctx.workspaceRegistry.get(brandWorkspaceId(payload.workspaceId))
           if (workspace === undefined) {
             return err(request, {
               code: 'workspace-not-found',
-              message: `workspace "${request.payload.workspaceId}" not found`,
-              details: { workspaceId: request.payload.workspaceId },
+              message: `workspace "${payload.workspaceId}" not found`,
+              details: { workspaceId: payload.workspaceId },
             })
           }
         }
-        const cwd = workspace?.path ?? request.payload.cwd ?? defaults.cwd
-        const requestedPreset = request.payload.agentPreset
+        const cwd = workspace?.path ?? payload.cwd ?? defaults.cwd
+        const requestedPreset = payload.agentPreset
         try {
-          await ensureSession(sessionId, cwd, request.payload.sessionId !== undefined, requestedPreset)
+          await ensureSession(sessionId, cwd, payload.sessionId !== undefined, requestedPreset)
         } catch (error) {
           if (error instanceof AgentPresetConflict) {
             return err(request, {
@@ -1972,6 +1995,7 @@ export function createApiProxy(ctx, defaults) {
       async rename(request) {
         const { sessionId, title } = request.payload ?? {}
         const refused = requireNonEmptyString(request, sessionId, 'session.rename requires payload.sessionId as a non-empty string')
+          ?? requireNonEmptyString(request, title, 'session.rename requires payload.title as a non-empty string')
         if (refused !== undefined) return refused
         const found = await agentFor(sessionId)
         if ('error' in found) return err(request, found.error)
@@ -2217,12 +2241,7 @@ export function createApiProxy(ctx, defaults) {
       },
 
       updateQueue(request) {
-        const { sessionId, itemId, action } = request.payload
-        // `action.kind` below is the first dereference, so a request without an
-        // action crashed here with a raw TypeError and a carrier-layer 500
-        // (witnessed live: "Cannot read properties of undefined (reading
-        // 'kind')"). Every other field this handler reads is only compared, so
-        // the action is the one that has to exist before the body runs.
+        const { sessionId, itemId, action } = request.payload ?? {}
         if (typeof sessionId !== 'string' || sessionId.length === 0) {
           return Promise.resolve(badRequest(request, 'session.updateQueue requires payload.sessionId as a non-empty string'))
         }
@@ -2232,8 +2251,6 @@ export function createApiProxy(ctx, defaults) {
         if (action === null || typeof action !== 'object' || typeof action.kind !== 'string') {
           return Promise.resolve(badRequest(request, 'session.updateQueue requires payload.action as an object with a string kind'))
         }
-        // An edit action carries the replacement content; reading `.some` off a
-        // missing one is the same crash one field deeper.
         if (action.kind === 'edit' && !Array.isArray(action.content)) {
           return Promise.resolve(badRequest(request, 'session.updateQueue edit action requires action.content as an array'))
         }
@@ -2307,8 +2324,11 @@ export function createApiProxy(ctx, defaults) {
 
     subagents: {
       async list(request, signal) {
+        const parentSessionId = request.payload?.parentSessionId
+        const refused = requireNonEmptyString(request, parentSessionId, 'subagent.list requires payload.parentSessionId as a non-empty string')
+        if (refused !== undefined) return refused
         try {
-          const entries = await ctx.subagents.listChildren(request.payload.parentSessionId, signal)
+          const entries = await ctx.subagents.listChildren(parentSessionId, signal)
           return ok(request, {
             entries: entries.map(entry => entry.kind === 'child'
               ? {
@@ -2316,7 +2336,7 @@ export function createApiProxy(ctx, defaults) {
                 activity: ctx.agents.get(entry.id)?.status === 'running' ? 'running' : 'inactive',
               }
               : entry),
-            parentAvailable: ctx.agents.get(request.payload.parentSessionId) !== undefined,
+            parentAvailable: ctx.agents.get(parentSessionId) !== undefined,
           })
         } catch (error) {
           if (signal?.aborted || (error instanceof SubagentError && error.code === 'CANCELLED')) {
@@ -2340,7 +2360,11 @@ export function createApiProxy(ctx, defaults) {
       async history(request, signal) {
         const {
           parentSessionId, childSessionId, mode, beforeSeq, maxMessages,
-        } = request.payload
+        } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, parentSessionId, 'subagent.history requires payload.parentSessionId as a non-empty string')
+          ?? requireNonEmptyString(request, childSessionId, 'subagent.history requires payload.childSessionId as a non-empty string')
+          ?? requireNonEmptyString(request, mode, 'subagent.history requires payload.mode as a non-empty string')
+        if (refused !== undefined) return refused
         const verified = await catalogChild(ctx, {
           parentSessionId, childSessionId, mode,
         }, signal)
@@ -2407,7 +2431,13 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async prompt(request, signal) {
-        const { parentSessionId, childSessionId, content, clientTimeZone } = request.payload
+        const { parentSessionId, childSessionId, content, clientTimeZone } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, parentSessionId, 'subagent.prompt requires payload.parentSessionId as a non-empty string')
+          ?? requireNonEmptyString(request, childSessionId, 'subagent.prompt requires payload.childSessionId as a non-empty string')
+        if (refused !== undefined) return refused
+        if (!Array.isArray(content)) {
+          return badRequest(request, 'subagent.prompt requires payload.content as an array')
+        }
         const canonicalTimeZone = clientTimeZone === undefined
           ? undefined
           : canonicalClientTimeZone(clientTimeZone)
@@ -2537,7 +2567,9 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async delete(request) {
-        const { workspaceId } = request.payload
+        const { workspaceId } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, workspaceId, 'workspace.delete requires payload.workspaceId as a non-empty string')
+        if (refused !== undefined) return refused
         const operation = workspaceCreationChain.then(() =>
           ctx.workspaceRegistry.delete(brandWorkspaceId(workspaceId)))
         workspaceCreationChain = operation.then(() => undefined, () => undefined)
@@ -2546,7 +2578,9 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async insertBefore(request) {
-        const { workspaceId, beforeWorkspaceId } = request.payload
+        const { workspaceId, beforeWorkspaceId } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, workspaceId, 'workspace.insertBefore requires payload.workspaceId as a non-empty string')
+        if (refused !== undefined) return refused
         try {
           const workspaceIds = await ctx.workspaceRegistry.insertBefore(
             brandWorkspaceId(workspaceId),
@@ -2561,6 +2595,9 @@ export function createApiProxy(ctx, defaults) {
 
       async insertSessionBefore(request) {
         const { payload } = request
+        const refused = requireNonEmptyString(request, payload?.workspaceId, 'workspace.insertSessionBefore requires payload.workspaceId as a non-empty string')
+          ?? requireNonEmptyString(request, payload?.sessionId, 'workspace.insertSessionBefore requires payload.sessionId as a non-empty string')
+        if (refused !== undefined) return refused
         const workspace = ctx.workspaceRegistry.get(brandWorkspaceId(payload.workspaceId))
         if (workspace === undefined) return workspaceNotFound(request, payload.workspaceId)
         try {
@@ -2583,7 +2620,9 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async archiveSession(request) {
-        const { sessionId } = request.payload
+        const { sessionId } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, sessionId, 'workspace.archiveSession requires payload.sessionId as a non-empty string')
+        if (refused !== undefined) return refused
         try {
           await ctx.workspaceRegistry.archiveSession(sessionId)
         } catch (error) {
@@ -2679,20 +2718,20 @@ export function createApiProxy(ctx, defaults) {
             details: { capability: capability.kind },
           })
         }
+        const path = request.payload?.path
+        const name = request.payload?.name
+        const refused = requireNonEmptyString(request, path, 'host.createDirectory requires payload.path as a non-empty string')
+          ?? requireNonEmptyString(request, name, 'host.createDirectory requires payload.name as a non-empty string')
+        if (refused !== undefined) return refused
         try {
-          return ok(request, { path: await capability.createDirectory(request.payload.path, request.payload.name) })
+          return ok(request, { path: await capability.createDirectory(path, name) })
         } catch (error) {
           return err(request, directoryError(error))
         }
       },
 
       async openPath(request, signal) {
-        // Without this the missing path reached node's own opener, which
-        // answered with its internal argument-type text ('The "path" argument
-        // must be of type string. Received undefined') under an `internal`
-        // code -- an implementation detail on the wire for what is a malformed
-        // request.
-        const path = request.payload.path
+        const path = request.payload?.path
         if (typeof path !== 'string' || path.length === 0) {
           return badRequest(request, 'host.openPath requires payload.path as a non-empty string')
         }
@@ -2707,7 +2746,9 @@ export function createApiProxy(ctx, defaults) {
       // ref; the committed goal/change event carries the whole value to every
       // client through the projection frames.
       async create(request) {
-        const { objective, maxGoalRounds } = request.payload
+        const { objective, maxGoalRounds } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, objective, 'goal.create requires payload.objective as a non-empty string')
+        if (refused !== undefined) return refused
         return mutateGoal(request, (goals, agent) => goals.create(agent, {
           objective,
           ...(maxGoalRounds !== undefined ? { maxGoalRounds } : {}),
@@ -2715,7 +2756,9 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async edit(request) {
-        const { ref, objective, maxGoalRounds } = request.payload
+        const { ref, objective, maxGoalRounds } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, ref, 'goal.edit requires payload.ref as a non-empty string')
+        if (refused !== undefined) return refused
         return mutateGoal(request, (goals, agent) => goals.edit(agent, ref, {
           ...(objective !== undefined ? { objective } : {}),
           ...(maxGoalRounds !== undefined ? { maxGoalRounds } : {}),
@@ -2723,19 +2766,29 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async pause(request) {
+        const refused = requireNonEmptyString(request, request.payload?.ref, 'goal.pause requires payload.ref as a non-empty string')
+        if (refused !== undefined) return refused
         return mutateGoal(request, (goals, agent) => goals.pause(agent, request.payload.ref))
       },
 
       async resume(request) {
+        const refused = requireNonEmptyString(request, request.payload?.ref, 'goal.resume requires payload.ref as a non-empty string')
+        if (refused !== undefined) return refused
         return mutateGoal(request, (goals, agent) => goals.resume(agent, request.payload.ref))
       },
 
       async complete(request) {
+        const refused = requireNonEmptyString(request, request.payload?.ref, 'goal.complete requires payload.ref as a non-empty string')
+        if (refused !== undefined) return refused
         return mutateGoal(request, (goals, agent) => goals.complete(agent, request.payload.ref))
       },
 
       async clear(request) {
-        const found = await agentFor(request.payload.sessionId)
+        const sessionId = request.payload?.sessionId
+        const refused = requireNonEmptyString(request, sessionId, 'goal.clear requires payload.sessionId as a non-empty string')
+          ?? requireNonEmptyString(request, request.payload?.ref, 'goal.clear requires payload.ref as a non-empty string')
+        if (refused !== undefined) return refused
+        const found = await agentFor(sessionId)
         if ('error' in found) return err(request, found.error)
         const goals = goalServiceFor(found.agent)
         if ('error' in goals) return err(request, goals.error)
@@ -2890,13 +2943,7 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async remove(request) {
-        const { agentPreset } = request.payload
-        // `resolve`/`remove` treat a missing id as {@link defaultId}, which is
-        // the right default for a READ but not for a delete: a request with no
-        // payload silently aimed the removal at the default preset. Only the
-        // read-only guard on shipped presets stopped it from landing, and that
-        // guard does not cover a user-authored preset that happens to be the
-        // default. A destructive verb names its target explicitly or refuses.
+        const { agentPreset } = request.payload ?? {}
         if (typeof agentPreset !== 'string' || agentPreset.length === 0) {
           return badRequest(request, 'agentPreset.remove requires payload.agentPreset as a non-empty preset id')
         }
@@ -3022,9 +3069,24 @@ export function createApiProxy(ctx, defaults) {
         }
         return openTextFile(request, path, signal)
       },
-      update: request => settingsWrite(request, request.payload.ns, 'update', request.payload.patch, request.payload.expectedRevision),
-      replace: request => settingsWrite(request, request.payload.ns, 'replace', request.payload.section, request.payload.expectedRevision),
-      mutate: request => settingsWrite(request, request.payload.ns, 'mutate', request.payload.ops, request.payload.expectedRevision),
+      update(request) {
+        const ns = request.payload?.ns
+        const refused = requireNonEmptyString(request, ns, 'settings.update requires payload.ns as a non-empty settings namespace')
+        if (refused !== undefined) return Promise.resolve(refused)
+        return settingsWrite(request, ns, 'update', request.payload.patch, request.payload.expectedRevision)
+      },
+      replace(request) {
+        const ns = request.payload?.ns
+        const refused = requireNonEmptyString(request, ns, 'settings.replace requires payload.ns as a non-empty settings namespace')
+        if (refused !== undefined) return Promise.resolve(refused)
+        return settingsWrite(request, ns, 'replace', request.payload.section, request.payload.expectedRevision)
+      },
+      mutate(request) {
+        const ns = request.payload?.ns
+        const refused = requireNonEmptyString(request, ns, 'settings.mutate requires payload.ns as a non-empty settings namespace')
+        if (refused !== undefined) return Promise.resolve(refused)
+        return settingsWrite(request, ns, 'mutate', request.payload.ops, request.payload.expectedRevision)
+      },
     },
 
     credentials: {
