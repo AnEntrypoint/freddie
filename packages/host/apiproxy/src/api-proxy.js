@@ -2165,7 +2165,10 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async attachment(request) {
-        const { sessionId, attachmentId } = request.payload
+        const { sessionId, attachmentId } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, sessionId, 'session.attachment requires payload.sessionId as a non-empty string')
+          ?? requireNonEmptyString(request, attachmentId, 'session.attachment requires payload.attachmentId as a non-empty string')
+        if (refused !== undefined) return refused
         let state
         try {
           state = await readSessionState(sessionId)
@@ -2283,7 +2286,9 @@ export function createApiProxy(ctx, defaults) {
       },
 
       cancel(request) {
-        const { sessionId } = request.payload
+        const { sessionId } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, sessionId, 'session.cancel requires payload.sessionId as a non-empty string')
+        if (refused !== undefined) return Promise.resolve(refused)
         const agent = ctx.agents.get(sessionId)
         if (agent === undefined) {
           return Promise.resolve(err(request, {
@@ -2445,7 +2450,10 @@ export function createApiProxy(ctx, defaults) {
       // live Activation, which is what keeps a live child interruptible while
       // its parent Agent is offline. Absent targets are accepted no-ops there.
       interrupt(request) {
-        const { parentSessionId, childSessionId } = request.payload
+        const { parentSessionId, childSessionId } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, parentSessionId, 'subagent.interrupt requires payload.parentSessionId as a non-empty string')
+          ?? requireNonEmptyString(request, childSessionId, 'subagent.interrupt requires payload.childSessionId as a non-empty string')
+        if (refused !== undefined) return Promise.resolve(refused)
         try {
           ctx.subagents.interrupt(childSessionId, { kind: 'user', parentSessionId })
         } catch (error) {
@@ -2475,7 +2483,9 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async create(request) {
-        const { path } = request.payload
+        const { path } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, path, 'workspace.create requires payload.path as a non-empty string')
+        if (refused !== undefined) return refused
         try {
           const { workspace, created } = await ensureWorkspace(path)
           return ok(request, { workspace: workspaceView(workspace), created })
@@ -2493,6 +2503,9 @@ export function createApiProxy(ctx, defaults) {
 
       async rename(request) {
         const { payload } = request
+        const refused = requireNonEmptyString(request, payload?.workspaceId, 'workspace.rename requires payload.workspaceId as a non-empty string')
+          ?? requireNonEmptyString(request, payload?.title, 'workspace.rename requires payload.title as a non-empty string')
+        if (refused !== undefined) return refused
         const workspace = ctx.workspaceRegistry.get(brandWorkspaceId(payload.workspaceId))
         if (workspace === undefined) return workspaceNotFound(request, payload.workspaceId)
         const title = payload.title.trim()
@@ -2761,7 +2774,10 @@ export function createApiProxy(ctx, defaults) {
       // conversation's history was produced under its preset's tools; the
       // agent and the session survive, only the composition is swapped.
       async select(request) {
-        const { sessionId, agentPreset } = request.payload
+        const { sessionId, agentPreset } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, sessionId, 'agentPreset.select requires payload.sessionId as a non-empty string')
+          ?? requireNonEmptyString(request, agentPreset, 'agentPreset.select requires payload.agentPreset as a non-empty preset id')
+        if (refused !== undefined) return refused
         const presets = ctx.get('agentPresets')
         if (presets === undefined) {
           return err(request, {
@@ -2814,7 +2830,9 @@ export function createApiProxy(ctx, defaults) {
       // reconnaissance, and copy/remove/openDocument manage the roster and
       // drive the host desktop.
       async read(request) {
-        const { agentPreset } = request.payload
+        const { agentPreset } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, agentPreset, 'agentPreset.read requires payload.agentPreset as a non-empty preset id')
+        if (refused !== undefined) return refused
         const presets = ctx.get('agentPresets')
         if (presets === undefined) return err(request, noRoster(agentPreset))
         try {
@@ -2832,7 +2850,10 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async copy(request) {
-        const { from, agentPreset, name } = request.payload
+        const { from, agentPreset, name } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, from, 'agentPreset.copy requires payload.from as a non-empty preset id')
+          ?? requireNonEmptyString(request, agentPreset, 'agentPreset.copy requires payload.agentPreset as a non-empty preset id')
+        if (refused !== undefined) return refused
         const presets = ctx.get('agentPresets')
         if (presets === undefined) return err(request, noRoster(agentPreset))
         try {
@@ -2844,7 +2865,9 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async openDocument(request, signal) {
-        const { agentPreset } = request.payload
+        const { agentPreset } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, agentPreset, 'agentPreset.openDocument requires payload.agentPreset as a non-empty preset id')
+        if (refused !== undefined) return refused
         const presets = ctx.get('agentPresets')
         if (presets === undefined) return err(request, noRoster(agentPreset))
         try {
@@ -3102,7 +3125,9 @@ export function createApiProxy(ctx, defaults) {
       },
 
       async discoverModels(request, signal) {
-        const { settingsNs, provider, baseURL, api, apiKey } = request.payload
+        const { settingsNs, provider, baseURL, api, apiKey } = request.payload ?? {}
+        const refused = requireNonEmptyString(request, settingsNs, 'llm.discoverModels requires payload.settingsNs as a non-empty settings namespace')
+        if (refused !== undefined) return refused
         try {
           const models = await ctx.llm.discoverModels(settingsNs, {
             ...provider === undefined ? {} : { provider },

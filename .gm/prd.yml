@@ -64,3 +64,58 @@
   witness: '10 real bugs found and fixed across 11 commits (7b82705b through 65e6ae2d). 20+ subsystems audited, most clean with evidence of deliberate hardening. Continued this dispatch: verified all Modal callers (DirectoryBrowser, ModelsSection, ChatView) use direct .remove() teardown, all now correctly benefit from the disconnectedCallback focus-restore fix. Checked for a second XSS surface beyond CodeBlock (only real dangerouslySetInnerHTML consumer in project source) -- none found. Remaining blocker is external: Microsoft Safety Scanner still running (near 6 hours, disk holds ~2.7TB used data, real-time protection clean throughout, worker process alive and progressing).'
   status: completed
   SESSION_ID: gm-continue-1788533276
+- SESSION_ID: dsh-debug-1788622710
+  id: shipped-preset-yml-chinese
+  subject: Shipped agent-preset display metadata in apps/cli/config/agent-presets/*/preset.yml is Chinese, so agentPreset.list returns Chinese names even when the GUI locale is English
+  route_family: representation
+  witness: Live agentPreset.list on :4914 returns name=标准模式 for standard (and Chinese for code/minimal/cordis). Client presetDisplayText localizes only when rendering; the RPC payload itself is the file text. English locales.js already has Standard/PTC/Minimal/Creator copy.
+  acceptance: preset.yml name/description match the English locale strings; live agentPreset.list returns English names.
+  status: pending
+- SESSION_ID: dsh-debug-1788622710
+  id: jank-sweep-remaining-rpc-ui
+  subject: 'Jank/edge sweep over remaining live RPC and GUI surfaces: skill.list without sessionId, session.search disabled, host.listDirectory native-only, leftover CJK in ProviderEditor comment, ui-model-selection/lib leftover, title-from-error sessions already in the list'
+  route_family: grounding
+  witness: skill.list {} -> session-not-found session undefined; session.search -> openAt never; host.listDirectory -> picker serves native; ProviderEditor.js line 6 still says 自定义设置. Expand into concrete rows as each finding is classified.
+  acceptance: Each finding is its own PRD row or explicitly closed with live evidence it is intended behavior.
+  status: pending
+- SESSION_ID: dsh-debug-1788622710
+  id: credentials-describe-unguarded-refs
+  subject: credentials.describe HTTP 500s when payload.refs is missing because schema validation was dropped and the handler still calls request.payload.refs.map
+  route_family: state
+  witness: 'POST http://127.0.0.1:4914/api/credentials.describe with empty payload returns HTTP 500 handler failure: TypeError: Cannot read properties of undefined (reading ''map''). Same call with refs:[] returns 200 ok. Live on this GUI.'
+  acceptance: Missing or non-array refs returns 200 RpcResult bad-request, never a carrier 500. Live POST without refs must not throw.
+  status: pending
+- SESSION_ID: dsh-debug-1788622710
+  id: session-title-accepts-provider-error-text
+  subject: session-title-first-prompt-llm accepts upstream error copy as a durable session title, pinning sidebar rows to 'All upstream providers are currently unavailable. Please retry shortly.'
+  route_family: state
+  witness: 'session-64d109e7 history: fallback title ''/gm we are currently running'' then provider title that exact error string from session-title-first-prompt-llm; five other listed sessions share the same title. The title model streamed that sentence as successful text, not a thrown LlmError.'
+  acceptance: 'A title equal to a provider-outage sentence is rejected; fallback title remains. Live: generateSessionTitleWithLlm / validateResult must not commit that string.'
+  status: pending
+- SESSION_ID: dsh-debug-1788622710
+  id: llm-deepseek-missing-model-discovery
+  subject: llm.discoverModels fails for settingsNs=llm-deepseek because llm-deepseek never registerModelDiscovery, so the Models page cannot interrogate a live endpoint
+  route_family: execution
+  witness: POST /api/llm.discoverModels {settingsNs:llm-deepseek, provider:deepseek-official} returns 200 ok=false model-discovery-failed no model discovery is registered for llm-deepseek. llm.providers lists that ns as the DeepSeek settings namespace.
+  acceptance: llm-deepseek registers discovery; live discoverModels against the configured baseURL returns models or a business error naming the endpoint, never NO_DISCOVERY.
+  status: pending
+- session_id: opt5
+  id: toolrow-lazy-body
+  title: 'DONE: ToolRow built collapsed bodies (shiki) on every render'
+  status: resolved
+  notes: 'RESOLVED, commit 1247609. Root cause of long-session keystroke lag (fresh sessions fine, long ones lagged with tool-row count). ToolRow #render built terminal/diff/read/search/web/code bodies inside bodyWrap unconditionally, ignoring open state. ReadBlock/CodeBlock tokenize via shiki: findNextMatchSync held 33927ms bottom-up self-time, ~50x the next frame, on a 119-step session with 40 collapsed rows. Fix: #everOpened latch (never cleared, preserving DisclosureRow keepContentWhenOpen), body chain gated on it. Keystroke 493ms sync / ~3.6s settled -> 14-19ms / 145-179ms; findNextMatchSync gone from the profile; no INP insight reported. Verified live: closed row has no bodyWrap; expanding grows 24px->320px with syntax highlighting; collapse retains body; re-expand 1ms.'
+- session_id: opt5
+  id: producedfiles-remeasure-thrash
+  title: 'DONE: ProducedFiles re-measured (forced reflow) on every render'
+  status: resolved
+  notes: 'RESOLVED, commit c48ec4a. setProps called #remeasure() on every render: rebuilt the ResizeObserver, then #measure() wrote the remainder probe''s textContent and read its width back on the same synchronous pass up to SHOWN_LIMIT+1 times = a forced reflow per candidate label, on every store fanout including each keystroke''s. Fix: key the measurement on the joined path list (pathsKey helper, used by setProps/connectedCallback), skip remeasure when unchanged; connectedCallback re-keys, disconnectedCallback clears. Settled time 145-179ms -> 93-131ms; getBoundingClientRect (62.9ms) and #measure (22.5ms) left the bottom-up profile. Verified live: narrowing the container to 260px recomputes ''+ 2 files'' -> ''+ 5 files'' and restoring returns it, so the ResizeObserver still owns genuine resizes. NOTE: a literal NUL byte briefly entered this file from an editor-tool escape conversion, making git treat it as binary; caught and removed before the final commit (now UTF-8, 0 NULs, 36 insertions as a real text diff).'
+- SESSION_ID: 019WieJ8
+  title: Re-derive cordis-api source anchors against framework/*.js
+  id: re-derive-cordis-api-source-anchors-against-framework-js
+  status: pending
+- session_id: hmr-agents-1
+  title: HMR must not dispose plugins with in-flight agent turns
+  detail: 'framework/hmr/src/index.js:485 calls registry.delete(plugin) unconditionally. That cascades to FactoryOwnership.dispose() (packages/core/agent-loop/src/index.js:72-74) which aborts the turn''s AbortController, turning every in-flight tool call into ABORTED_BEFORE_DISPATCH. With hmr root:[''.''] (packages/bundle/base/cordis.patch.yml:21) any repo edit can kill a running agent turn -- this is the cause of users typing ''keep going''. Agent already exposes idle/running at agent-loop/src/agent.js:72. Fix: HMR asks before disposing and defers the reload until quiescent.'
+  witness: Edit a file the agent-loop transitively imports while a turn is running; the turn survives and completes, and the reload lands after it finishes.
+  id: hmr-must-not-dispose-plugins-with-in-flight-agent-turns
+  status: pending

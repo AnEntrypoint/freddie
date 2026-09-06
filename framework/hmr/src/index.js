@@ -80,6 +80,15 @@ class Hmr extends Service {
   /** Stashed file changes waiting to be processed */
   stashed = new Set()
 
+  /**
+   * Set while a reload is deferred because a listener reported busy work.
+   * Reloading disposes fibers, and a disposed fiber aborts whatever its
+   * plugin had in flight — for the agent loop that means killing a running
+   * turn mid-tool-call. Stashed changes survive in `stashed`, so a deferred
+   * pass reloads the same files once the work reports quiescent.
+   */
+  deferredReload = null
+
   config
 
   constructor(ctx, config) {
@@ -166,6 +175,7 @@ class Hmr extends Service {
 
   async* [Service.init]() {
     yield async () => {
+      this.stopDeferring()
       await this.watcher?.close()
       await Promise.allSettled([...this.configs.values()].map(registration => registration.watcher.close()))
       this.configs.clear()
@@ -365,7 +375,37 @@ class Hmr extends Service {
     }
   }
 
+  /** Drop the `hmr/idle` subscription a deferred pass installed, if any. */
+  stopDeferring() {
+    if (this.deferredReload === null) return
+    this.deferredReload()
+    this.deferredReload = null
+  }
+
   async partialReload() {
+    // Ask before disposing anything. A reload deletes plugins from the
+    // registry, and cordis disposes their fibers — which aborts whatever the
+    // plugin had in flight. For the agent loop that is a live turn: its
+    // AbortController fires and every pending tool call comes back
+    // ABORTED_BEFORE_DISPATCH, so a source edit silently kills the agent
+    // mid-task. A listener returning a truthy reason defers the pass; the
+    // changed files stay in `stashed`, so nothing is lost and the same reload
+    // runs when the work reports quiescent.
+    const busy = await this.ctx.serial('hmr/before-reload')
+    if (busy) {
+      // Already waiting: the earlier subscription still covers these changes,
+      // which accumulated in `stashed` behind it.
+      if (this.deferredReload !== null) return
+      this.ctx.logger.info('reload deferred: %s', typeof busy === 'string' ? busy : 'work in flight')
+      const off = this.ctx.on('hmr/idle', () => {
+        this.stopDeferring()
+        void this.partialReload()
+      })
+      this.deferredReload = off
+      return
+    }
+    this.stopDeferring()
+
     await this.analyzeChanges()
 
     const pending = new Map()
@@ -516,9 +556,10 @@ class Hmr extends Service {
     this.stashed = new Set()
   }
 
-  // [freddie] vendored modification: removed `.i18n({ 'en-US': enUS, 'zh-CN': zhCN })`
-  // and the corresponding `./locales/*.yml` imports, to avoid a runtime YAML import hook
-  // (@cordisjs/unyaml) that we don't vendor. See vendor/README.md.
+  // No `.i18n({ 'en-US': enUS, 'zh-CN': zhCN })` and no `./locales/*.yml`
+  // imports: those need a runtime YAML import hook (@cordisjs/unyaml) this
+  // project does not carry, and the texts only localized config descriptions.
+  // Divergence log entry 1 in framework/README.md.
   static Config = z.object({
     base: z.string(),
     root: z.array(String).role('table').default(['.']),

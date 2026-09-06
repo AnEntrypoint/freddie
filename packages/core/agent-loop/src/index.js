@@ -32,6 +32,13 @@ class FactoryOwnership {
   inactive = Promise.withResolvers()
   liveAgents = new Set()
   startupTasks = new Set()
+  /**
+   * Agents currently running a turn. Disposing this factory aborts their
+   * in-flight tool calls, so hot reload consults this set before deleting the
+   * plugin: reloading mid-turn is what makes an agent stop and wait for the
+   * user to say "keep going".
+   */
+  busyAgents = new Set()
 
   constructor(fiber) {
     this.fiber = fiber
@@ -50,6 +57,27 @@ class FactoryOwnership {
   track(dispose) {
     this.liveAgents.add(dispose)
     return () => { this.liveAgents.delete(dispose) }
+  }
+
+  /**
+   * Record whether one agent is mid-turn. Read by the `hmr/before-reload`
+   * listener, which defers a reload rather than aborting the turn.
+   */
+  markBusy(agent, busy) {
+    const wasBusy = this.busyAgents.size > 0
+    if (busy) this.busyAgents.add(agent)
+    else this.busyAgents.delete(agent)
+    // Announce the busy→idle edge only. A deferred hot reload is waiting on
+    // this to retry the pass it declined; without it the reload never lands.
+    if (wasBusy && this.busyAgents.size === 0) this.onIdle?.()
+  }
+
+  /** Set by the owning service to notify a deferred hot reload. */
+  onIdle
+
+  /** Whether any tracked agent is currently running a turn. */
+  get busy() {
+    return this.busyAgents.size > 0
   }
 
   /** Join config startup work that begins before an agent exists. */
@@ -281,6 +309,16 @@ export class AgentLoop extends Service {
     this.runtime = { ctx }
     ctx.effect(() => () => this.ownership.dispose(), 'agentLoop.transactions()')
     ctx.effect(() => ctx.agents.setFactory(this), 'agentLoop.setFactory()')
+    // Hot reload deletes this plugin from the registry, disposing the fiber and
+    // aborting every in-flight tool call: a source edit during a turn ends that
+    // turn with ABORTED_BEFORE_DISPATCH results and the agent stops mid-task.
+    // Vetoing here defers the reload; HMR re-runs it on `hmr/idle`.
+    this.ownership.onIdle = () => { ctx.emit('hmr/idle') }
+    ctx.effect(() => ctx.on('hmr/before-reload', () => (
+      this.ownership.busy
+        ? `agent loop is running ${this.ownership.busyAgents.size} turn(s)`
+        : undefined
+    )), 'agentLoop.deferHotReload()')
     ctx.systemPrompt.variable('provider', context => context.agent?.options.provider)
     ctx.systemPrompt.variable('model', context => context.agent?.options.model)
     ctx.systemPrompt.variable('cwd', context => context.agent?.session.header.cwd)
@@ -422,6 +460,8 @@ export class AgentLoop extends Service {
     let machine
     let detachSession
     let detachAgent
+    /** Disposer for the agent/status subscription that feeds `busyAgents`. */
+    let untrackBusy
     let disposing
     const machineReady = Promise.withResolvers()
     // Reverse teardown, memoized so every racing owner awaits one quiescence:
@@ -446,6 +486,8 @@ export class AgentLoop extends Service {
           detachAgent?.()
           detachSession?.()
         } finally {
+          untrackBusy?.()
+          if (machine !== undefined) this.ownership.markBusy(machine, false)
           untrack()
           if (!ownerTriggered) await unfollowOwner()
         }
@@ -480,6 +522,13 @@ export class AgentLoop extends Service {
     }
     try {
       const agent = machine = new ReactLoopAgent(loopCtx, id, options, session)
+      // Hot reload disposes this factory, which aborts every in-flight tool
+      // call. Tracking running/idle here lets HMR defer a reload past a live
+      // turn instead of killing it mid-task (see `hmr/before-reload`).
+      this.ownership.markBusy(agent, agent.status === 'running')
+      untrackBusy = loopCtx.on('agent/status', (payload) => {
+        if (payload.agent === agent) this.ownership.markBusy(agent, payload.status === 'running')
+      })
       machineReady.resolve()
       assertLive()
 
