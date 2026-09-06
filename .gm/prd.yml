@@ -1,1 +1,7 @@
-[]
+- session_id: debug-harness-1
+  id: untrack-gm-scratch-from-head-commit
+  title: Remove .gm/scratch dumps that git_finalize committed into a43231f
+  subject: Commit a43231f66e included the HEAD-body fix plus 20+ .gm/scratch JSON/jsonl dumps (session transcripts, RPC inventories, live process snapshots). .gitignore does not cover .gm/scratch/. Those files are session scratch, not durable gm memory.
+  acceptance: .gitignore lists .gm/scratch/; git ls-files .gm/scratch is empty; HEAD-body source fix remains; no session jsonl remains tracked.
+  route_family: repair
+  status: pending

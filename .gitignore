@@ -44,6 +44,7 @@ worktrees/
 # .gm/prd.yml, .gm/mutables.yml, .gm/disciplines/, and .gm/instructions/
 # are real, durable, repo-tracked content and are NOT covered by these
 # patterns -- gm's own design keeps memory following the codebase.
+.gm/scratch/
 .gm/exec-spool/
 .gm/gm.db
 .gm/last-dispatch-ts
