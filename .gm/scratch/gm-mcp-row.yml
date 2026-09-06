@@ -1,0 +1,51 @@
+ault-model'
+      config:
+        provider: deepseek-official
+        model: deepseek-v4-flash
+
+    - id: jobs
+      name: '@freddie/freddie-jobs-local'
+
+    # gm as a first-class harness capability: gm-mcp (github.com/AnEntrypoint/gm-mcp)
+    # is a real MCP server exposing gm's spool write-then-poll-then-clean-YAML
+    # dispatch cycle as one tool (verb/body/session_id/...). Wiring it through
+    # the existing freddie-mcp-client bridge (the same mechanism
+    # examples/mcp-memory already demonstrates for third-party MCP servers)
+    # gives every in-harness agent a native mcp__gm__gm tool call instead of
+    # shelling out via pwsh to hand-write/poll .gm/exec-spool files -- no
+    # changes needed to either gm or freddie-mcp-client. Disabled by default:
+    # a project without gm-mcp installed (GM_MCP_SERVER_PATH unset and the
+    # default relative path absent) must not fail composition boot over an
+    # optional capability.
+    - id: mcp-gm
+      name: '@freddie/freddie-mcp-client'
+      disabled: !!js >-
+        !(process.env.GM_MCP_SERVER_PATH?.trim()) && !require('node:fs').existsSync(require('node:path').join(process.env.USERPROFILE || process.env.HOME || '', '.gm-tools', 'gm-mcp', 'bin', 'gm-mcp-server.js'))
+      config:
+        serverName: gm
+        transport: stdio
+        command: node
+        args:
+          - !!js >-
+            process.env.GM_MCP_SERVER_PATH?.trim() || require('node:path').join(process.env.USERPROFILE || process.env.HOME || '', '.gm-tools', 'gm-mcp', 'bin', 'gm-mcp-server.js')
+        cwd: !!js process.cwd()
+
+    - id: llm-retry
+      name: '@freddie/freddie-llm-retry'
+
+    # User-settings document (`$FREDDIE_HOME/settings.yaml`, hot-reloaded): a
+    # `llm-deepseek:` section there overrides the adapter entries below without
+    # a restart, and is what the web Models page writes.
+    - id: settings
+      name: '@freddie/freddie-settings-file'
+
+    # Credential sources: inherited environment over the managed
+    # `$FREDDIE_HOME/.credentials.yaml`, with project and user `.env` fallbacks.
+    # Adapters resolve references per request; the Models page writes only the
+    # managed document, which is never materialized into the process environment.
+    - id: credentials
+      name: '@freddie/freddie-credentials-local'
+
+    - id: session-persistence-jsonl
+      name: '@freddie/freddie-session-persistence-jsonl'
+      config:

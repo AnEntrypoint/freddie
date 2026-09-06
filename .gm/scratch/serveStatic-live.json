@@ -1,0 +1,237 @@
+{
+  "cases": [
+    {
+      "name": "main GET",
+      "status": 200,
+      "headers": {
+        "content-type": "text/javascript; charset=utf-8",
+        "cache-control": "no-cache",
+        "last-modified": "Wed, 02 Sep 2026 10:37:02 GMT"
+      },
+      "bodyLen": 431
+    },
+    {
+      "name": "main 304 exact",
+      "status": 304,
+      "headers": {
+        "content-type": "text/javascript; charset=utf-8",
+        "cache-control": "no-cache",
+        "last-modified": "Wed, 02 Sep 2026 10:37:02 GMT"
+      },
+      "lm": "Wed, 02 Sep 2026 10:37:02 GMT"
+    },
+    {
+      "name": "ims variant \"wed, 02 sep 2026 10:37:02 gmt\"",
+      "status": 200
+    },
+    {
+      "name": "ims variant \"Wed, 02 Sep 2026 10:37:02 gmt\"",
+      "status": 200
+    },
+    {
+      "name": "ims variant \"Wed, 02 Sep 2026 10:37:02 GMT \"",
+      "status": 200
+    },
+    {
+      "name": "index GET",
+      "status": 200,
+      "headers": {
+        "content-type": "text/html; charset=utf-8"
+      },
+      "bodyLen": 386
+    },
+    {
+      "name": "traversal",
+      "status": 403,
+      "headers": {}
+    },
+    {
+      "name": "missing",
+      "status": 404
+    }
+  ],
+  "sample": [
+    "/styles/client-locale-src-client-LanguageRow.css",
+    "/styles/client-ui-agent-preset-src-client-AgentPresetLabel.css",
+    "/styles/client-ui-agent-preset-src-client-AgentPresetRow.css",
+    "/styles/client-ui-agent-preset-src-client-AgentPresetSeat.css",
+    "/styles/client-ui-agent-preset-src-client-AgentPresetSection.css",
+    "/styles/client-ui-attachment-src-AttachmentRail.css",
+    "/styles/client-ui-attachment-src-DropOverlay.css",
+    "/styles/client-ui-attachment-src-ImageLightbox.css",
+    "/styles/client-ui-attachment-src-MessageImage.css",
+    "/styles/client-ui-attachment-src-client-ComposerAttachments.css",
+    "/styles/client-ui-commands-src-client-PopupSelectView.css",
+    "/styles/client-ui-conversation-src-client-chat-AssistantMarkdown.css",
+    "/styles/client-ui-conversation-src-client-chat-ChatView.css",
+    "/styles/client-ui-conversation-src-client-chat-ContextBody.css",
+    "/styles/client-ui-conversation-src-client-chat-ContextInjectionRow.css",
+    "/styles/client-ui-conversation-src-client-chat-GenericCommandCard.css",
+    "/styles/client-ui-conversation-src-client-chat-MessageIconActions.css",
+    "/styles/client-ui-conversation-src-client-chat-MessageItem.css",
+    "/styles/client-ui-conversation-src-client-chat-ReasoningRow.css",
+    "/styles/client-ui-conversation-src-client-chat-StatsLine.css",
+    "/styles/client-ui-conversation-src-client-chat-TurnTailNodeView.css",
+    "/styles/client-ui-conversation-src-client-chat-accessibility.css",
+    "/styles/client-ui-conversation-src-client-queue-QueueDock.css",
+    "/styles/client-ui-conversation-src-client-settings-EnterBehaviorRow.css",
+    "/styles/client-ui-conversation-src-client-skeleton-ApprovalPanel.css",
+    "/styles/client-ui-conversation-src-client-skeleton-ContextMeter.css",
+    "/styles/client-ui-conversation-src-client-skeleton-ConversationRoot.css",
+    "/styles/client-ui-conversation-src-client-skeleton-DetailsPanel.css",
+    "/styles/client-ui-conversation-src-client-skeleton-HeroShell.css",
+    "/styles/client-ui-conversation-src-client-skeleton-InputBar.css",
+    "/styles/client-ui-conversation-src-client-skeleton-PermissionSelect.css",
+    "/styles/client-ui-conversation-src-client-skeleton-TodoPanel.css",
+    "/styles/client-ui-deliverables-src-client-ProducedFiles.css",
+    "/styles/client-ui-directory-picker-browse-src-client-DirectoryBrowser.css",
+    "/styles/client-ui-goal-src-client-GoalBar.css",
+    "/styles/client-ui-goal-src-client-GoalCommandInputView.css",
+    "/styles/client-ui-input-trigger-src-client-MenuView.css",
+    "/styles/client-ui-jobs-src-client-JobListAction.css",
+    "/styles/client-ui-layout-src-client-AppFrame.css",
+    "/styles/client-ui-message-feedback-src-client-MessageFeedbackActions.css"
+  ],
+  "heads": [
+    {
+      "u": "/styles/client-locale-src-client-LanguageRow.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-agent-preset-src-client-AgentPresetLabel.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-agent-preset-src-client-AgentPresetRow.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-agent-preset-src-client-AgentPresetSeat.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-agent-preset-src-client-AgentPresetSection.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-attachment-src-AttachmentRail.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-attachment-src-DropOverlay.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-attachment-src-ImageLightbox.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-attachment-src-MessageImage.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-attachment-src-client-ComposerAttachments.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-commands-src-client-PopupSelectView.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-AssistantMarkdown.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-ChatView.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-ContextBody.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-ContextInjectionRow.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-GenericCommandCard.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-MessageIconActions.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-MessageItem.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-ReasoningRow.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-StatsLine.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    }
+  ]
+}

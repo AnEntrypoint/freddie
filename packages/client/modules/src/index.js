@@ -722,7 +722,7 @@ export class ClientModuleRegistry extends Service {
         'content-type': path.endsWith('.map') ? 'application/json; charset=utf-8' : 'text/javascript; charset=utf-8',
         'cache-control': 'no-cache',
       })
-      res.end(body)
+      res.end(req.method === 'HEAD' ? undefined : body)
     } catch {
       res.writeHead(404)
       res.end()
@@ -759,7 +759,7 @@ export class ClientModuleRegistry extends Service {
         'content-type': path.endsWith('.map') ? 'application/json; charset=utf-8' : 'text/javascript; charset=utf-8',
         'cache-control': 'no-cache',
       })
-      res.end(body)
+      res.end(req.method === 'HEAD' ? undefined : body)
     } catch {
       // Registered but unreadable: loud 404 beats a silent SPA-fallback HTML page.
       res.writeHead(404)

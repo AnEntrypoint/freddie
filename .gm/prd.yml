@@ -1,8 +1,1 @@
-- session_id: gmH2-1
-  id: run-fresh-gm-debug-pass-with-native-tool
-  route_family: execution
-  title: Run a fresh Freddie /gm debug pass using the newly-wired native mcp__gm__gm tool, verify it completes cleanly
-  subject: After gm-mcp is wired as a native Freddie tool, launch a real Freddie composition and drive a genuine debug task end-to-end using the NATIVE tool path (not a manual pwsh spool write/poll), confirming the whole loop works when called the new, first-class way.
-  acceptance: A real Freddie session (headless preferred) is launched with the gm-mcp row active, given a genuine debug/fix instruction, and reaches a real completed or well-diagnosed final state using ONLY the native mcp__gm__gm tool for every gm verb dispatch -- witnessed by reading its actual session transcript, confirming native tool calls appear rather than pwsh-shelled spool writes.
-  witness: 'Precondition: wire-gm-mcp-as-first-class-freddie-plugin resolved with a live-verified native tool call.'
-  status: pending
+[]

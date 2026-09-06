@@ -92,6 +92,15 @@
           - !!js >-
             process.env.GM_MCP_SERVER_PATH?.trim() || require('node:path').join(process.env.USERPROFILE || process.env.HOME || '', '.gm-tools', 'gm-mcp', 'bin', 'gm-mcp-server.js')
         cwd: !!js process.cwd()
+        # gm-mcp's own gmDispatch polls its spool for up to 120s by default
+        # (timeout_seconds) before returning timed_out -- the shared,
+        # machine-wide agentplug-runner daemon backing every gm verb can carry
+        # a 100+-deep cross-project queue (witnessed live), so a slow verb can
+        # legitimately take longer than the client bridge's own 60s default
+        # tool-call timeout, cutting the MCP call off before gm's own timeout
+        # fires. 180s gives gm's internal 120s poll room to actually finish
+        # (or return its own timed_out response) before the transport gives up.
+        toolCallTimeoutMs: 180000
 
     - id: llm-retry
       name: '@freddie/freddie-llm-retry'

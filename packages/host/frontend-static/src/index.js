@@ -3,8 +3,9 @@
  * fallback seat: serves the built frontend directory with explicit index
  * entry points. A readable index renders at the dist root and configured index
  * path; missing paths return 404, traversal outside the dist root is 403,
- * unknown extensions ship as octet-stream, and non-GET/HEAD is 405. Every
- * index response runs through the webserver's index render (structured
+ * unknown extensions ship as octet-stream, and non-GET/HEAD is 405. HEAD
+ * carries the same headers as GET and no entity body. Every index
+ * response runs through the webserver's index render (structured
  * injection rows, then raw taps). The dist location is workspace knowledge of
  * the composing application, so `distIndex` is typically supplied through a
  * `!!js` expression, never hardcoded by a deployment.
@@ -46,8 +47,8 @@ const STATIC_MISS_CODES = new Set([
 /**
  * Serve one GET/HEAD static request from the dist root.
  * @param pathname - decoded URL pathname of the request.
- * @param req - the node:http request (read for conditional-GET revalidation).
- * @param res - the node:http response to write.
+ * @param req - the node:http request (method plus If-Modified-Since).
+ * @param res - the node:http response to write. HEAD ends with no body.
  * @param distRoot - absolute dist root directory (resolved by the caller).
  * @param distIndex - absolute path of index.html inside distRoot.
  * @param renderIndex - produces the index.html body (structured injection
@@ -98,7 +99,7 @@ export async function serveStatic(pathname, req, res, distRoot, distIndex, rende
     }
   }
   res.writeHead(200, headers)
-  res.end(body)
+  res.end(req.method === 'HEAD' ? undefined : body)
 }
 
 /**

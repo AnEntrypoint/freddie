@@ -1,0 +1,80 @@
+{
+  "names": {
+    "skill": 1,
+    "pwsh": 4,
+    "mcp__gm__gm": 29,
+    "read": 11
+  },
+  "pwshCmds": [
+    "if (Test-Path .gm/exec-spool/.status.json) { Get-Content .gm/exec-spool/.status.json -Raw } else { Write-Output 'NO_STATUS' }; Write-Output '---'; if (Test-Path .gm/exec-spool/.turn-summary.json) { Get-Content .gm/exec-spool/.turn-summary.json -Raw } else { Write-Output 'NO_TURN_SUMMARY' }; Write-Output '---'; [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()",
+    "$j = Get-Content -Raw 'C:\\dev\\deepseek-harness\\.gm\\exec-spool\\out\\instruction-debug-harness-1-1788728367639-1.json' | ConvertFrom-Json; $j.data.instruction; Write-Output \"`n===== POLICY =====\"; $j.data.policy | ConvertTo-Json -Depth 8; Write-Output \"`n===== GATES =====\"; $j.data.gates | ConvertTo-Json -Depth 8; Write-Output \"`n===== KEYS =====\"; $j.data.PSObject.Properties.Name -join ', '",
+    "Write-Output '=== FREDDIE ENV ==='; Get-ChildItem env:FREDDIE_* | ForEach-Object { \"$($_.Name)=$($_.Value)\" }; Write-Output '=== PROCESS ==='; Write-Output \"PID=$PID\"; Write-Output \"PSVersion=$($PSVersionTable.PSVersion)\"; Write-Output \"PSEdition=$($PSVersionTable.PSEdition)\"; Write-Output \"PSHome=$($PSHome)\"; Write-Output \"Host=$($Host.Name)\"; Get-Command pwsh -ErrorAction SilentlyContinue | Form",
+    "$j = Get-Content -Raw 'C:\\dev\\deepseek-harness\\.gm\\exec-spool\\out\\exec_js-debug-harness-1-1788728520773-5.json' | ConvertFrom-Json; $j.data.stdout"
+  ],
+  "spoolInLines": [
+    {
+      "type": "request/header",
+      "snippet": "{\"type\":\"request/header\",\"seq\":13,\"time\":1788728349242,\"data\":{\"header\":{\"config\":{\"provider\":\"deepseek-official\",\"model\":\"xai-oauth/grok-4.6\",\"reasoningEffort\":\"high\",\"maxTokens\":256000},\"adapterDefaults\":{\"maxTokens\":true},\"system\":\"You are an AI agent powered by Freddie.\\n\\nThe Freddie implementation checkout is at C:\\\\dev\\\\deepseek-harness\\\\. T"
+    },
+    {
+      "type": "tool/result",
+      "snippet": "{\"type\":\"tool/result\",\"seq\":43,\"time\":1788728356226,\"data\":{\"turn\":1,\"step\":1,\"message\":{\"source\":{\"kind\":\"tool\",\"callId\":\"call-15d124e8-45f9-4458-a5f5-16264254a724-0\"},\"content\":[{\"type\":\"tool-result\",\"toolCallId\":\"call-15d124e8-45f9-4458-a5f5-16264254a724-0\",\"content\":[{\"type\":\"text\",\"text\":\"<skill_content name=\\\"gm\\\">\\n<skill_resources>\\nBase di"
+    },
+    {
+      "type": "tool/result",
+      "snippet": "{\"type\":\"tool/result\",\"seq\":76,\"time\":1788728370699,\"data\":{\"turn\":1,\"step\":2,\"message\":{\"source\":{\"kind\":\"tool\",\"callId\":\"call-6b8a8b88-ca19-445d-9c28-423b3ddb0c81-2\"},\"content\":[{\"type\":\"tool-result\",\"toolCallId\":\"call-6b8a8b88-ca19-445d-9c28-423b3ddb0c81-2\",\"content\":[{\"type\":\"text\",\"text\":\"ok: true\\nverb: instruction\\ncodeinsight_overview:\\n  b"
+    },
+    {
+      "type": "tool/result",
+      "snippet": "{\"type\":\"tool/result\",\"seq\":125,\"time\":1788728380094,\"data\":{\"turn\":1,\"step\":3,\"message\":{\"source\":{\"kind\":\"tool\",\"callId\":\"call-e9b407f7-de9f-4672-8eed-7f7f7b293bd6-6\"},\"content\":[{\"type\":\"tool-result\",\"toolCallId\":\"call-e9b407f7-de9f-4672-8eed-7f7f7b293bd6-6\",\"content\":[{\"type\":\"text\",\"text\":\"<path>C:\\\\dev\\\\deepseek-harness\\\\.gm\\\\mutables.yml</pa"
+    }
+  ],
+  "gmMcpExists": false,
+  "gmMcpDirExists": false,
+  "gmMcpDirList": null,
+  "lock": "{\"pid\":24808,\"since\":1788728302323}",
+  "wsLockExists": false,
+  "wsLockDotExists": false,
+  "ports": {
+    "3080": {
+      "ns": "Command failed: netstat -ano | findstr :3080",
+      "pids": [],
+      "cmds": []
+    },
+    "3087": {
+      "ns": "  TCP    127.0.0.1:3087         0.0.0.0:0              LISTENING       22912\r\n  TCP    127.0.0.1:3087         127.0.0.1:52745        ESTABLISHED     22912\r\n  TCP    127.0.0.1:3087         127.0.0.1:59003        ESTABLISHED     22912\r\n  TCP    127.0.0.1:3087         127.0.0.1:63709        ESTABLISHED     22912\r\n  TCP    127.0.0.1:52745        127.0.0.1:3087         ESTABLISHED     8176\r\n  TCP    12",
+      "pids": [
+        "22912",
+        "8176"
+      ],
+      "cmds": [
+        "{\"ProcessId\":22912,\"ParentProcessId\":22124,\"Name\":\"node.exe\",\"CommandLine\":\"\\\"C:\\\\Program Files\\\\nodejs\\\\node.exe\\\" --expose-internals C:\\\\dev\\\\deepseek-harness\\\\apps\\\\cli\\\\src\\\\bin.js web --port 3087 --no-open\"}\r\n",
+        "{\"ProcessId\":8176,\"ParentProcessId\":18992,\"Name\":\"chrome.exe\",\"CommandLine\":\"\\\"C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\\\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --no-pre-read-main-dll --subproc-heap-profiling --metrics-shmem-handle=2152,i,8137048435264436009,15883821038128572264,524288 --field-trial-handle=1984,i,12862511681518502613,8748658687090929821,262144 --variations-seed-version=20260906-030037.213000-production --pseudonymization-salt-handle=1988,i,8996442634785233993,2665832911672202469,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2144 /prefetch:11\"}\r\n"
+      ]
+    },
+    "3090": {
+      "ns": "  TCP    127.0.0.1:3090         0.0.0.0:0              LISTENING       24808\r\n  TCP    127.0.0.1:3090         127.0.0.1:50457        ESTABLISHED     24808\r\n  TCP    127.0.0.1:3090         127.0.0.1:50766        ESTABLISHED     24808\r\n  TCP    127.0.0.1:3090         127.0.0.1:58832        ESTABLISHED     24808\r\n  TCP    127.0.0.1:3090         127.0.0.1:59595        TIME_WAIT       0\r\n  TCP    127.0",
+      "pids": [
+        "24808",
+        "0"
+      ],
+      "cmds": [
+        "{\"ProcessId\":24808,\"ParentProcessId\":18372,\"Name\":\"node.exe\",\"CommandLine\":\"\\\"C:\\\\Program Files\\\\nodejs\\\\node.exe\\\" --expose-internals C:\\\\dev\\\\deepseek-harness\\\\apps\\\\cli\\\\src\\\\bin.js web --port 3090 --no-open\"}\r\n",
+        "{\"ProcessId\":0,\"ParentProcessId\":0,\"Name\":\"System Idle Process\",\"CommandLine\":null}\r\n"
+      ]
+    },
+    "4800": {
+      "ns": "  TCP    127.0.0.1:4800         0.0.0.0:0              LISTENING       5756\r\n  TCP    127.0.0.1:4800         127.0.0.1:64222        ESTABLISHED     5756\r\n  TCP    127.0.0.1:54961        127.0.0.1:4800         TIME_WAIT       0\r\n  TCP    127.0.0.1:64222        127.0.0.1:4800         ESTABLISHED     24808\r\n",
+      "pids": [
+        "5756",
+        "0",
+        "24808"
+      ],
+      "cmds": [
+        "{\"ProcessId\":5756,\"ParentProcessId\":16660,\"Name\":\"node.exe\",\"CommandLine\":\"\\\"C:\\\\Program Files\\\\nodejs\\\\node.exe\\\" bin/acptoapi.js --port 4800\"}\r\n",
+        "{\"ProcessId\":0,\"ParentProcessId\":0,\"Name\":\"System Idle Process\",\"CommandLine\":null}\r\n",
+        "{\"ProcessId\":24808,\"ParentProcessId\":18372,\"Name\":\"node.exe\",\"CommandLine\":\"\\\"C:\\\\Program Files\\\\nodejs\\\\node.exe\\\" --expose-internals C:\\\\dev\\\\deepseek-harness\\\\apps\\\\cli\\\\src\\\\bin.js web --port 3090 --no-open\"}\r\n"
+      ]
+    }
+  }
+}

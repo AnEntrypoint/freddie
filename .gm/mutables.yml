@@ -62,7 +62,8 @@
   obligation_kind: precondition
   subject: This live Freddie session has gm-mcp mounted so mcp__gm__gm is a first-class tool, not a pwsh spool write
   text: 'Entry condition for run-fresh-gm-debug-pass-with-native-tool: the in-harness agent can dispatch gm verbs only through native mcp__gm__gm. Witness by env/process identity plus a successful native dispatch returning ok:true.'
-  status: unknown
+  status: witnessed
+  witness_evidence: 'precondition discharged live this turn: native mcp__gm__gm tool is mounted and executes. Witness: this session FREDDIE_SESSION_ID=session-b883a0dd-7537-4905-b82a-0225b9a951ba FREDDIE_HOME=C:\Users\user\.freddie FREDDIE_WEB_URL=http://127.0.0.1:3090 writer.lock pid=24808 cmdline=`node --expose-internals apps/cli/src/bin.js web --port 3090 --no-open`. First native dispatch verb=instruction session_id=debug-harness-1 returned ok:true phase=PROVE (spool instruction-debug-harness-1-1788728367639-1.json). Subsequent native verbs (phase-status, exec_js, scan_deps, codesearch, git_status, git_show, git_diff) also ok:true. Default ~/.gm-tools/gm-mcp/bin/gm-mcp-server.js is absent; the live tool still answers, so the mcp-gm cordis row is active via GM_MCP_SERVER_PATH in the Freddie process (pid 24808), not the gm-daemon exec_js env (GM_MCP_SERVER_PATH=null).'
 - session_id: gmH2-1
   id: native-gm-tool-postcondition
   obligation_kind: postcondition
@@ -70,10 +71,19 @@
   - native-gm-tool-precondition
   subject: This session's durable transcript contains mcp__gm__gm tool calls and no pwsh-shelled .gm/exec-spool writes for gm verbs
   text: 'Acceptance of run-fresh-gm-debug-pass-with-native-tool: decompress session-41730140 jsonl.zstd and confirm tool events name mcp__gm__gm; confirm no pwsh command bodies that write .gm/exec-spool/in/<verb>.'
-  status: unknown
+  status: witnessed
+  witness_evidence: 'postcondition discharged live against THIS session transcript, not stale session-41730140. Decompressed ~/.freddie/sessions/--C-dev-deepseek-harness--/session-b883a0dd-7537-4905-b82a-0225b9a951ba/session.jsonl.zstd (106 zstd frames, 361 events, 45 tool/call). tool/call names: skill=1 pwsh=4 mcp__gm__gm=29 read=11. Native gm verbs used: instruction, phase-status, exec_js, scan_deps, codesearch, git_status, git_show, git_diff, mutable-resolve -- all via mcp__gm__gm. The 4 pwsh bodies are: (1) gm-skill boot probe reading .status.json/.turn-summary.json, (2) ConvertFrom-Json of an already-written instruction OUT file, (3) FREDDIE_* env + port inventory, (4) ConvertFrom-Json of an exec_js OUT file. None write .gm/exec-spool/in/<verb>. The 4 transcript lines matching exec-spool/in are request/header (system prompt), skill-load result, instruction result, and mutables.yml read -- not pwsh writes.'
 - session_id: gmH2-1
   id: harness-live-surfaces-inventory
   obligation_kind: invariant
   subject: Live inventory of this session's process, tools, HTTP surfaces, and LLM so debug claims are about THIS agent not a stale prior session
   text: Stale-process traps have repeatedly misdiagnosed this repo. Witness pid, FREDDIE_HOME, session id, writer lock, ports 3080/3087/4800, pwsh identity, and which tools actually execute this turn.
-  status: unknown
+  status: witnessed
+  witness_evidence: 'invariant discharged live this turn against THIS agent (session-b883a0dd), not prior sessions. Process: GUI pid=24808 `apps/cli/src/bin.js web --port 3090 --no-open` parent 18372; writer.lock {pid:24808,since:1788728302323} at ~/.freddie/sessions/.writer.lock. Dual leftover GUI: pid=22912 `web --port 3087 --no-open` also LISTENING (same repo cwd). 3080 no LISTENING (curl timeout). acptoapi pid=5756 `bin/acptoapi.js --port 4800` GET /health {ok:true,backends:[kilo,opencode,...]}; GET /ready 404 route_not_found. host.describe 3090 and 3087 both ok value={version:0.0.1,cwd:C:\dev\deepseek-harness,provider:deepseek-official,model:xai-oauth/grok-4.6,attachedSessions:2,home:C:\Users\user,canOpenPath:true}. session.list 3090 includes this session-b883a0dd (running). llm.providers/models ok (deepseek-v4-flash/pro present). Live pwsh is Windows PowerShell 5.1.26100.9278 Desktop at C:\Windows\System32\WindowsPowerShell\v1.0; Get-Command pwsh empty. This-session tools already in transcript: skill, pwsh, mcp__gm__gm, read. scan_deps failCount=0 blockedCount=0 warnCount=5 css.js size-ratio only.'
+- session_id: debug-harness-1
+  id: static-head-postcondition
+  obligation_kind: postcondition
+  subject: HEAD 200 on frontend-static serveStatic omits the entity body while GET still returns bytes
+  text: In-process serveStatic('/src/main.js') HEAD returns status 200, cache-control=no-cache, last-modified set, body undefined; GET returns bodyLen=431.
+  status: witnessed
+  witness_evidence: 'postcondition discharged in-process against current source packages/host/frontend-static/src/index.js:102 res.end(req.method === ''HEAD'' ? undefined : body). node --input-type=module serveStatic(''/src/main.js''): GET status=200 cache-control=no-cache last-modified=''Wed, 02 Sep 2026 10:37:02 GMT'' bodyLen=431; HEAD status=200 same headers bodyUndef=true bodyLen=0; If-Modified-Since exact last-modified -> 304 empty body; HEAD /nope.js 404 empty; HEAD /../package.json 403 empty.'

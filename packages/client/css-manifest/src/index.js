@@ -55,7 +55,7 @@ const serveStyles = async (req, res) => {
   try {
     const body = await readFile(filePath)
     res.writeHead(200, { 'content-type': CSS_MIME })
-    res.end(body)
+    res.end(req.method === 'HEAD' ? undefined : body)
   } catch {
     res.writeHead(404)
     res.end()

@@ -1,0 +1,34 @@
+{
+  "commit": "4834d6ca45f1206488d3ad4ca26c4e842d5bb4ae 2026-09-06T23:07:11+02:00 fix(frontend-static): add Cache-Control/Last-Modified to static asset responses",
+  "head": "4834d6ca45f1206488d3ad4ca26c4e842d5bb4ae 2026-09-06T23:07:11+02:00 fix(frontend-static): add Cache-Control/Last-Modified to static asset responses",
+  "processStart": "2026-09-06T20:58:19.6327076Z",
+  "process3087": "2026-09-06T19:07:41.1202462Z",
+  "appsWebMain": true,
+  "appsWebIndex": true,
+  "distIndex": false,
+  "heads": {
+    "root": [
+      "HTTP/1.1 200 OK",
+      "content-type: text/html; charset=utf-8",
+      "Date: Sun, 06 Sep 2026 21:25:07 GMT"
+    ],
+    "main": [
+      "HTTP/1.1 200 OK",
+      "content-type: text/javascript; charset=utf-8",
+      "Date: Sun, 06 Sep 2026 21:25:07 GMT"
+    ],
+    "vendorGuess": [
+      "HTTP/1.1 404 Not Found",
+      "Date: Sun, 06 Sep 2026 21:25:07 GMT"
+    ],
+    "pluginModules": [
+      "HTTP/1.1 404 Not Found",
+      "Date: Sun, 06 Sep 2026 21:25:07 GMT"
+    ],
+    "pluginHmr": [
+      "HTTP/1.1 404 Not Found",
+      "Date: Sun, 06 Sep 2026 21:25:07 GMT"
+    ]
+  },
+  "routeFiles": []
+}

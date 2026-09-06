@@ -1,0 +1,159 @@
+{
+  "models3090": {
+    "type": "server-response",
+    "result": {
+      "ok": true,
+      "value": {
+        "current": {
+          "provider": "deepseek-official",
+          "model": "xai-oauth/grok-4.6",
+          "reasoningEffort": "high"
+        },
+        "routable": true,
+        "groups": [
+          {
+            "id": "deepseek-official",
+            "name": "DeepSeek",
+            "models": [
+              {
+                "id": "xai-oauth/grok-4.6",
+                "name": "Grok 4.6 (xAI, via acptoapi)",
+                "reasoning": {
+                  "efforts": [
+                    {
+                      "id": "off",
+                      "name": "Off"
+                    },
+                    {
+                      "id": "low",
+                      "name": "Low"
+                    },
+                    {
+                      "id": "high",
+                      "name": "High"
+                    },
+                    {
+                      "id": "max",
+                      "name": "Max"
+                    }
+                  ],
+                  "defaultEffort": "high"
+                }
+              },
+              {
+                "id": "auto",
+                "name": "Auto (acptoapi best-available)",
+                "reasoning": {
+                  "efforts": [
+                    {
+                      "id": "off",
+                      "name": "Off"
+                    },
+                    {
+                      "id": "low",
+                      "name": "Low"
+                    },
+                    {
+                      "id": "high",
+                      "name": "High"
+                    },
+                    {
+                      "id": "max",
+                      "name": "Max"
+                    }
+                  ],
+                  "defaultEffort": "high"
+                }
+              },
+              {
+                "id": "deepseek-v4-flash",
+                "name": "DeepSeek-V4-Flash",
+                "reasoning": {
+                  "efforts": [
+                    {
+                      "id": "off",
+                      "name": "Off"
+                    },
+                    {
+                      "id": "low",
+                      "name": "Low"
+                    },
+                    {
+                      "id": "high",
+                      "name": "High"
+                    },
+                    {
+                      "id": "max",
+                      "name": "Max"
+                    }
+                  ],
+                  "defaultEffort": "high"
+                }
+              },
+              {
+                "id": "deepseek-v4-pro",
+                "name": "DeepSeek-V4-Pro",
+                "reasoning": {
+                  "efforts": [
+                    {
+                      "id": "off",
+                      "name": "Off"
+                    },
+                    {
+                      "id": "low",
+                      "name": "Low"
+                    },
+                    {
+                      "id": "high",
+                      "name": "High"
+                    },
+                    {
+                      "id": "max",
+                      "name": "Max"
+                    }
+                  ],
+                  "defaultEffort": "high"
+                }
+              }
+            ]
+          }
+        ],
+        "failures": []
+      }
+    }
+  },
+  "workspace3090": {
+    "type": "server-response",
+    "result": {
+      "ok": true,
+      "value": {
+        "items": [
+          {
+            "workspaceId": "c20a6c25-b9b7-4130-85b0-84a5d4c77ce0",
+            "path": "C:\\dev\\deepseek-harness",
+            "title": "deepseek-harness",
+            "sessionIds": [
+              "session-daddc9fb-c38e-4200-8d97-277ef28b3dc2",
+              "session-3f58b58a-373c-40b9-a6f1-d4f487bb052d",
+              "session-3dcbeaa2-6545-4b28-9c57-9673226eb8b2",
+              "session-b883a0dd-7537-4905-b82a-0225b9a951ba",
+              "session-5b5c05c8-524f-4691-b4a3-c722498a7016",
+              "session-64d109e7-d35f-4ddb-8df4-16e6464d4275",
+              "session-0ec491c4-bf77-4cb0-9cc3-884f68cf17f4",
+              "session-0218e03d-cafd-48bf-a50e-948442c9a400",
+              "session-b14713cf-8941-45aa-8164-4fb75ac61900",
+              "session-70554d62-2077-42bf-b97e-d87d33892492"
+            ],
+            "createdAt": "2026-09-05T11:26:43.896Z",
+            "updatedAt": "2026-09-06T21:01:26.074Z"
+          }
+        ],
+        "archivedSessionIds": []
+      }
+    }
+  },
+  "proc24808": "\"C:\\Program Files\\nodejs\\node.exe\" --expose-internals C:\\dev\\deepseek-harness\\apps\\cli\\src\\bin.js web --port 3090 --no-open\r\n\r\nSunday, September 6, 2026 10:58:19 PM\r\n\r\n\r\n",
+  "serveStaticFiles": [
+    "packages/host/frontend-static/src/index.js"
+  ]
+}

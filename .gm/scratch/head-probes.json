@@ -1,0 +1,227 @@
+{
+  "probes": {
+    "headMain": {
+      "status": 28,
+      "stdout": "HTTP/1.1 200 OK\r\ncontent-type: text/javascript; charset=utf-8\r\nDate: Sun, 06 Sep 2026 21:43:37 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\n\r\n code=200 dl=0",
+      "stderr": "curl: (28) Operation timed out after 3004 milliseconds with 0 bytes received\r\n"
+    },
+    "getMain": {
+      "status": 0,
+      "stdout": "code=200 dl=431",
+      "stderr": ""
+    },
+    "postRoot": {
+      "status": 0,
+      "stdout": "HTTP/1.1 405 Method Not Allowed\r\nDate: Sun, 06 Sep 2026 21:43:40 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\nTransfer-Encoding: chunked\r\n\r\n code=405",
+      "stderr": ""
+    },
+    "getApiBare": {
+      "status": 0,
+      "stdout": "HTTP/1.1 404 Not Found\r\ncontent-type: text/plain;charset=UTF-8\r\nDate: Sun, 06 Sep 2026 21:43:40 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\nTransfer-Encoding: chunked\r\n\r\n code=404",
+      "stderr": ""
+    },
+    "headMain3087": {
+      "status": 28,
+      "stdout": "HTTP/1.1 200 OK\r\ncontent-type: text/javascript; charset=utf-8\r\ncache-control: no-cache\r\nlast-modified: Wed, 02 Sep 2026 10:37:02 GMT\r\nDate: Sun, 06 Sep 2026 21:43:41 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\n\r\n code=200 dl=0",
+      "stderr": "curl: (28) Operation timed out after 3009 milliseconds with 0 bytes received\r\n"
+    },
+    "getMain3087": {
+      "status": 0,
+      "stdout": "code=200 dl=431",
+      "stderr": ""
+    }
+  },
+  "inProcessHead": {
+    "status": 200,
+    "headers": {
+      "content-type": "text/javascript; charset=utf-8",
+      "cache-control": "no-cache",
+      "last-modified": "Wed, 02 Sep 2026 10:37:02 GMT"
+    },
+    "bodyLen": 431
+  },
+  "liveHeads": [
+    {
+      "u": "/styles/client-locale-src-client-LanguageRow.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-agent-preset-src-client-AgentPresetLabel.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-agent-preset-src-client-AgentPresetRow.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-agent-preset-src-client-AgentPresetSeat.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-agent-preset-src-client-AgentPresetSection.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-attachment-src-AttachmentRail.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-attachment-src-DropOverlay.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-attachment-src-ImageLightbox.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-attachment-src-MessageImage.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-attachment-src-client-ComposerAttachments.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-commands-src-client-PopupSelectView.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-AssistantMarkdown.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-ChatView.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-ContextBody.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-ContextInjectionRow.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-GenericCommandCard.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-MessageIconActions.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-MessageItem.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-ReasoningRow.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    },
+    {
+      "u": "/styles/client-ui-conversation-src-client-chat-StatsLine.css",
+      "lines": [
+        "HTTP/1.1 200 OK",
+        "content-type: text/css; charset=utf-8"
+      ]
+    }
+  ],
+  "liveSample": [
+    "/styles/client-locale-src-client-LanguageRow.css",
+    "/styles/client-ui-agent-preset-src-client-AgentPresetLabel.css",
+    "/styles/client-ui-agent-preset-src-client-AgentPresetRow.css",
+    "/styles/client-ui-agent-preset-src-client-AgentPresetSeat.css",
+    "/styles/client-ui-agent-preset-src-client-AgentPresetSection.css",
+    "/styles/client-ui-attachment-src-AttachmentRail.css",
+    "/styles/client-ui-attachment-src-DropOverlay.css",
+    "/styles/client-ui-attachment-src-ImageLightbox.css",
+    "/styles/client-ui-attachment-src-MessageImage.css",
+    "/styles/client-ui-attachment-src-client-ComposerAttachments.css",
+    "/styles/client-ui-commands-src-client-PopupSelectView.css",
+    "/styles/client-ui-conversation-src-client-chat-AssistantMarkdown.css",
+    "/styles/client-ui-conversation-src-client-chat-ChatView.css",
+    "/styles/client-ui-conversation-src-client-chat-ContextBody.css",
+    "/styles/client-ui-conversation-src-client-chat-ContextInjectionRow.css",
+    "/styles/client-ui-conversation-src-client-chat-GenericCommandCard.css",
+    "/styles/client-ui-conversation-src-client-chat-MessageIconActions.css",
+    "/styles/client-ui-conversation-src-client-chat-MessageItem.css",
+    "/styles/client-ui-conversation-src-client-chat-ReasoningRow.css",
+    "/styles/client-ui-conversation-src-client-chat-StatsLine.css",
+    "/styles/client-ui-conversation-src-client-chat-TurnTailNodeView.css",
+    "/styles/client-ui-conversation-src-client-chat-accessibility.css",
+    "/styles/client-ui-conversation-src-client-queue-QueueDock.css",
+    "/styles/client-ui-conversation-src-client-settings-EnterBehaviorRow.css",
+    "/styles/client-ui-conversation-src-client-skeleton-ApprovalPanel.css",
+    "/styles/client-ui-conversation-src-client-skeleton-ContextMeter.css",
+    "/styles/client-ui-conversation-src-client-skeleton-ConversationRoot.css",
+    "/styles/client-ui-conversation-src-client-skeleton-DetailsPanel.css",
+    "/styles/client-ui-conversation-src-client-skeleton-HeroShell.css",
+    "/styles/client-ui-conversation-src-client-skeleton-InputBar.css",
+    "/styles/client-ui-conversation-src-client-skeleton-PermissionSelect.css",
+    "/styles/client-ui-conversation-src-client-skeleton-TodoPanel.css",
+    "/styles/client-ui-deliverables-src-client-ProducedFiles.css",
+    "/styles/client-ui-directory-picker-browse-src-client-DirectoryBrowser.css",
+    "/styles/client-ui-goal-src-client-GoalBar.css",
+    "/styles/client-ui-goal-src-client-GoalCommandInputView.css",
+    "/styles/client-ui-input-trigger-src-client-MenuView.css",
+    "/styles/client-ui-jobs-src-client-JobListAction.css",
+    "/styles/client-ui-layout-src-client-AppFrame.css",
+    "/styles/client-ui-message-feedback-src-client-MessageFeedbackActions.css"
+  ]
+}

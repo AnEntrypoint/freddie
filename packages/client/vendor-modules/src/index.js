@@ -120,7 +120,7 @@ const serveVendor = async (req, res) => {
       'content-type': contentTypeFor(relPath),
       'cache-control': revalidate ? 'no-cache' : 'public, max-age=31536000, immutable',
     })
-    res.end(body)
+    res.end(req.method === 'HEAD' ? undefined : body)
   } catch {
     res.writeHead(404)
     res.end()

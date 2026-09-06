@@ -1,0 +1,219 @@
+{
+  "status": " M .gm/mutables.yml\n M .gm/prd.yml\n?? .gm/memories/mem-4c5407243a232042-954.md\n?? .gm/memories/mem-b6422e771f93132d-911.md\n?? .gm/memories/mem-ff0e58f0c70a40dc-1154.md\n?? .gm/scratch/gm-mcp-row.yml\n?? .gm/scratch/jsonl-probe.json\n?? .gm/scratch/more-probe.json\n?? .gm/scratch/rpc-sessions.json\n?? .gm/scratch/session-b883a0dd.jsonl\n?? .gm/scratch/tools-and-ports.json\n?? .gm/scratch/transcript-scan.json\n?? .gm/scratch/zstd-probe.json\n",
+  "statusFrontend": "",
+  "diffStat": " .gm/mutables.yml | 9 ++++++---\n .gm/prd.yml      | 5 +++++\n 2 files changed, 11 insertions(+), 3 deletions(-)\n",
+  "diffCached": "",
+  "assume": "H packages/host/frontend-static/src/index.js\n",
+  "skipWorktree": "ERR error: unknown switch ';'\nusage: git update-index [<options>] [--] [<file>...]\n\n    -q                    continue refresh even when index needs update\n    --[no-]ignore-submodules\n                          refresh: ignore submodules\n    --[no-]add            do not ignore new files\n    --[no-]replace        let files replace directories and vice-versa\n    --[no-]remove         notice files missing from worktree\n    --[no-]unmerged       refresh even if index contains unmerged entries\n    --refr",
+  "models": {
+    "type": "server-response",
+    "result": {
+      "ok": true,
+      "value": {
+        "current": {
+          "provider": "deepseek-official",
+          "model": "xai-oauth/grok-4.6",
+          "reasoningEffort": "high"
+        },
+        "routable": true,
+        "groups": [
+          {
+            "id": "deepseek-official",
+            "name": "DeepSeek",
+            "models": [
+              {
+                "id": "xai-oauth/grok-4.6",
+                "name": "Grok 4.6 (xAI, via acptoapi)",
+                "reasoning": {
+                  "efforts": [
+                    {
+                      "id": "off",
+                      "name": "Off"
+                    },
+                    {
+                      "id": "low",
+                      "name": "Low"
+                    },
+                    {
+                      "id": "high",
+                      "name": "High"
+                    },
+                    {
+                      "id": "max",
+                      "name": "Max"
+                    }
+                  ],
+                  "defaultEffort": "high"
+                }
+              },
+              {
+                "id": "auto",
+                "name": "Auto (acptoapi best-available)",
+                "reasoning": {
+                  "efforts": [
+                    {
+                      "id": "off",
+                      "name": "Off"
+                    },
+                    {
+                      "id": "low",
+                      "name": "Low"
+                    },
+                    {
+                      "id": "high",
+                      "name": "High"
+                    },
+                    {
+                      "id": "max",
+                      "name": "Max"
+                    }
+                  ],
+                  "defaultEffort": "high"
+                }
+              },
+              {
+                "id": "deepseek-v4-flash",
+                "name": "DeepSeek-V4-Flash",
+                "reasoning": {
+                  "efforts": [
+                    {
+                      "id": "off",
+                      "name": "Off"
+                    },
+                    {
+                      "id": "low",
+                      "name": "Low"
+                    },
+                    {
+                      "id": "high",
+                      "name": "High"
+                    },
+                    {
+                      "id": "max",
+                      "name": "Max"
+                    }
+                  ],
+                  "defaultEffort": "high"
+                }
+              },
+              {
+                "id": "deepseek-v4-pro",
+                "name": "DeepSeek-V4-Pro",
+                "reasoning": {
+                  "efforts": [
+                    {
+                      "id": "off",
+                      "name": "Off"
+                    },
+                    {
+                      "id": "low",
+                      "name": "Low"
+                    },
+                    {
+                      "id": "high",
+                      "name": "High"
+                    },
+                    {
+                      "id": "max",
+                      "name": "Max"
+                    }
+                  ],
+                  "defaultEffort": "high"
+                }
+              }
+            ]
+          }
+        ],
+        "failures": []
+      }
+    }
+  },
+  "workspace": {
+    "type": "server-response",
+    "result": {
+      "ok": true,
+      "value": {
+        "items": [
+          {
+            "workspaceId": "c20a6c25-b9b7-4130-85b0-84a5d4c77ce0",
+            "path": "C:\\dev\\deepseek-harness",
+            "title": "deepseek-harness",
+            "sessionIds": [
+              "session-daddc9fb-c38e-4200-8d97-277ef28b3dc2",
+              "session-3f58b58a-373c-40b9-a6f1-d4f487bb052d",
+              "session-3dcbeaa2-6545-4b28-9c57-9673226eb8b2",
+              "session-b883a0dd-7537-4905-b82a-0225b9a951ba",
+              "session-5b5c05c8-524f-4691-b4a3-c722498a7016",
+              "session-64d109e7-d35f-4ddb-8df4-16e6464d4275",
+              "session-0ec491c4-bf77-4cb0-9cc3-884f68cf17f4",
+              "session-0218e03d-cafd-48bf-a50e-948442c9a400",
+              "session-b14713cf-8941-45aa-8164-4fb75ac61900",
+              "session-70554d62-2077-42bf-b97e-d87d33892492"
+            ],
+            "createdAt": "2026-09-05T11:26:43.896Z",
+            "updatedAt": "2026-09-06T21:01:26.074Z"
+          }
+        ],
+        "archivedSessionIds": []
+      }
+    }
+  },
+  "host": {
+    "type": "server-response",
+    "result": {
+      "ok": true,
+      "value": {
+        "version": "0.0.1",
+        "cwd": "C:\\dev\\deepseek-harness",
+        "provider": "deepseek-official",
+        "model": "xai-oauth/grok-4.6",
+        "attachedSessions": 2,
+        "home": "C:\\Users\\user",
+        "canOpenPath": true
+      }
+    }
+  },
+  "chat": {
+    "status": 0,
+    "body": {
+      "id": "ebec2be7-7fa4-97c6-83eb-8e69e5c2f32c",
+      "object": "chat.completion",
+      "created": 1788729525,
+      "model": "grok-4.6",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK",
+            "reasoning_content": "The user message is: \"Reply with exactly OK\"\n",
+            "refusal": null
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 640,
+        "completion_tokens": 1,
+        "total_tokens": 782,
+        "prompt_tokens_details": {
+          "text_tokens": 640,
+          "audio_tokens": 0,
+          "image_tokens": 0,
+          "cached_tokens": 512
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 141,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "num_sources_used": 0,
+        "cost_in_usd_ticks": 2318800
+      },
+      "system_fingerprint": "fp_e41c6060b2628547",
+      "service_tier": "default"
+    }
+  },
+  "httpIndex": "HTTP/1.1 200 OK\r\ncontent-type: text/html; charset=utf-8\r\nDate: Sun, 06 Sep 2026 21:18:47 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\nTransfer-Encoding: chunked\r\n\r\n"
+}
