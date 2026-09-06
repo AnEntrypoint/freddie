@@ -131,3 +131,9 @@
   witness: Drop an unrelated file into a session directory; the harness still boots and reports that one session as unreadable instead of failing to start.
   id: a-stray-file-in-a-session-directory-hard-fails-harness-boot
   status: pending
+- session_id: hmr-agents-1
+  title: An agent probing session.cancel cancels its own running turn
+  detail: 'packages/host/apiproxy/src/api-proxy.js session.cancel calls agent.cancel({kind:''user''}) for whatever sessionId it is given, with no notion of which session is CALLING. An in-harness agent that probes the RPC surface (a normal debugging task) and includes session.cancel with a real session id silently kills its own turn: turn/end reason {kind:''aborted'', reason:{kind:''user''}}, and the in-flight tool call returns ''Error: tool call aborted''. Reproduced deterministically 3 times. Isolated by elimination: plain pwsh completes, GET / completes, a single RPC POST completes, a 5-method RPC loop completes -- only scripts including session.cancel abort. The agent cannot know this from the tool surface, and the abort looks like a harness fault rather than self-inflicted.'
+  witness: An agent calling session.cancel on its own sessionId either gets a refusal naming the self-cancel, or the turn survives; a cancel from the UI for another session still works.
+  id: an-agent-probing-session-cancel-cancels-its-own-running-turn
+  status: pending
