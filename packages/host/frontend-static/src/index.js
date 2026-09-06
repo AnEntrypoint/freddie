@@ -11,7 +11,7 @@
  * @module @freddie/freddie-host-frontend-static
  */
 
-import { readFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
 import z from '@freddie/schemastery'
 
@@ -46,13 +46,14 @@ const STATIC_MISS_CODES = new Set([
 /**
  * Serve one GET/HEAD static request from the dist root.
  * @param pathname - decoded URL pathname of the request.
+ * @param req - the node:http request (read for conditional-GET revalidation).
  * @param res - the node:http response to write.
  * @param distRoot - absolute dist root directory (resolved by the caller).
  * @param distIndex - absolute path of index.html inside distRoot.
  * @param renderIndex - produces the index.html body (structured injection
  * rendering) for the dist root and configured index path.
  */
-export async function serveStatic(pathname, res, distRoot, distIndex, renderIndex) {
+export async function serveStatic(pathname, req, res, distRoot, distIndex, renderIndex) {
   const target = resolve(normalize(join(distRoot, pathname)))
   // Traversal rejection: the target must be distRoot itself (`/`) or stay under
   // it. `sep`, not '/': resolve() emits backslash paths on Windows, where a '/'
@@ -64,6 +65,7 @@ export async function serveStatic(pathname, res, distRoot, distIndex, renderInde
   }
   let body
   let type
+  let lastModified
   try {
     if (target === distRoot || target === distIndex) {
       body = await renderIndex()
@@ -71,6 +73,7 @@ export async function serveStatic(pathname, res, distRoot, distIndex, renderInde
     } else {
       body = await readFile(target)
       type = MIME[extname(target)] ?? 'application/octet-stream'
+      lastModified = (await stat(target)).mtime.toUTCString()
     }
   } catch (error) {
     // Only absent or non-file targets are 404; other filesystem failures reach
@@ -80,7 +83,21 @@ export async function serveStatic(pathname, res, distRoot, distIndex, renderInde
     res.end()
     return
   }
-  res.writeHead(200, { 'content-type': type })
+  // Chunk filenames carry no content hash (stable per source file), so an
+  // asset can change without its URL changing -- no-cache (not no-store)
+  // lets the browser skip re-downloading unchanged bytes via a 304 while
+  // still revalidating every load, instead of the current TTL-0 refetch.
+  const headers = { 'content-type': type }
+  if (lastModified) {
+    headers['cache-control'] = 'no-cache'
+    headers['last-modified'] = lastModified
+    if (req.headers['if-modified-since'] === lastModified) {
+      res.writeHead(304, headers)
+      res.end()
+      return
+    }
+  }
+  res.writeHead(200, headers)
   res.end(body)
 }
 
@@ -104,6 +121,6 @@ export function apply(ctx, config) {
     }
     /* v8 ignore next -- node:http always sets url on server requests */
     const rawPath = new URL(req.url ?? '/', 'http://x').pathname
-    await serveStatic(decodeURIComponent(rawPath), res, distRoot, distIndex, renderIndex)
+    await serveStatic(decodeURIComponent(rawPath), req, res, distRoot, distIndex, renderIndex)
   }), 'frontend-static: fallback seat')
 }

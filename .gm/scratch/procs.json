@@ -1,0 +1,45 @@
+{
+  "t22912": "\"Image Name\",\"PID\",\"Session Name\",\"Session#\",\"Mem Usage\",\"Status\",\"User Name\",\"CPU Time\",\"Window Title\"\r\n\"node.exe\",\"22912\",\"Console\",\"1\",\"142,820 K\",\"Unknown\",\"MOONSHINE\\user\",\"0:06:20\",\"N/A\"\r\n",
+  "t22760": "\"Image Name\",\"PID\",\"Session Name\",\"Session#\",\"Mem Usage\",\"Status\",\"User Name\",\"CPU Time\",\"Window Title\"\r\n\"agentplug-runner.exe.sha256.tmp.17047\",\"22760\",\"Console\",\"1\",\"982,512 K\",\"Unknown\",\"MOONSHINE\\user\",\"2:40:47\",\"N/A\"\r\n",
+  "nodeCsv": [
+    "\"Image Name\",\"PID\",\"Session Name\",\"Session#\",\"Mem Usage\"",
+    "\"node.exe\",\"2124\",\"Console\",\"1\",\"1,876 K\"",
+    "\"node.exe\",\"16284\",\"Console\",\"1\",\"1,660 K\"",
+    "\"node.exe\",\"15500\",\"Console\",\"1\",\"79,880 K\"",
+    "\"node.exe\",\"11364\",\"Console\",\"1\",\"23,180 K\"",
+    "\"node.exe\",\"5756\",\"Console\",\"1\",\"74,136 K\"",
+    "\"node.exe\",\"17796\",\"Console\",\"1\",\"34,156 K\"",
+    "\"node.exe\",\"18136\",\"Console\",\"1\",\"54,900 K\"",
+    "\"node.exe\",\"15608\",\"Console\",\"1\",\"32,456 K\"",
+    "\"node.exe\",\"22944\",\"Console\",\"1\",\"153,424 K\"",
+    "\"node.exe\",\"8616\",\"Console\",\"1\",\"27,984 K\"",
+    "\"node.exe\",\"5688\",\"Console\",\"1\",\"33,220 K\"",
+    "\"node.exe\",\"22124\",\"Console\",\"1\",\"57,344 K\"",
+    "\"node.exe\",\"22912\",\"Console\",\"1\",\"142,820 K\"",
+    "\"node.exe\",\"23316\",\"Console\",\"1\",\"47,392 K\"",
+    "\"node.exe\",\"25948\",\"Console\",\"1\",\"66,924 K\"",
+    "\"node.exe\",\"26308\",\"Console\",\"1\",\"66,832 K\"",
+    "\"node.exe\",\"13032\",\"Console\",\"1\",\"99,160 K\"",
+    "\"node.exe\",\"22976\",\"Console\",\"1\",\"118,060 K\"",
+    "\"node.exe\",\"14776\",\"Console\",\"1\",\"128,576 K\"",
+    "\"node.exe\",\"18444\",\"Console\",\"1\",\"71,400 K\"",
+    "\"node.exe\",\"18760\",\"Console\",\"1\",\"66,632 K\"",
+    "\"node.exe\",\"24404\",\"Console\",\"1\",\"98,712 K\"",
+    "\"node.exe\",\"16604\",\"Console\",\"1\",\"119,064 K\"",
+    "\"node.exe\",\"9296\",\"Console\",\"1\",\"56,980 K\"",
+    "\"node.exe\",\"15300\",\"Console\",\"1\",\"158,696 K\"",
+    "\"node.exe\",\"12544\",\"Console\",\"1\",\"67,044 K\"",
+    "\"node.exe\",\"24548\",\"Console\",\"1\",\"54,104 K\"",
+    ""
+  ],
+  "cim22912": {
+    "status": 0,
+    "out": "{\"ProcessId\":22912,\"ParentProcessId\":22124,\"Name\":\"node.exe\",\"CommandLine\":\"\\\"C:\\\\Program Files\\\\nodejs\\\\node.exe\\\" --expose-internals C:\\\\dev\\\\deepseek-harness\\\\apps\\\\cli\\\\src\\\\bin.js web --port 3087 --no-open\"}\r\n",
+    "err": ""
+  },
+  "cim22760": {
+    "status": 0,
+    "out": "{\"ProcessId\":22760,\"ParentProcessId\":6832,\"Name\":\"agentplug-runner.exe.sha256.tmp.17047\",\"CommandLine\":\"\\\"C:\\\\Users\\\\user\\\\.gm-tools\\\\agentplug-runner.exe.sha256.tmp.17047\\\" daemon\"}\r\n",
+    "err": ""
+  }
+}

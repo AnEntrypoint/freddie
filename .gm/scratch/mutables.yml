@@ -57,23 +57,3 @@
   subject: Which process owns THIS session store and GUI now
   witness: FREDDIE_SESSION_ID=session-309271ab; writer.lock pid=22912 node --expose-internals apps/cli/src/bin.js web --port 3087 --no-open; POST /api/session.list includes this session; 3080 ECONNREFUSED; 4800 acptoapi still pid 5756.
   witness_evidence: writer.lock pid=22912 web --port 3087; POST /api/session.list includes session-309271ab; host.describe attachedSessions=3
-- session_id: gmH2-1
-  id: native-gm-tool-precondition
-  obligation_kind: precondition
-  subject: This live Freddie session has gm-mcp mounted so mcp__gm__gm is a first-class tool, not a pwsh spool write
-  text: 'Entry condition for run-fresh-gm-debug-pass-with-native-tool: the in-harness agent can dispatch gm verbs only through native mcp__gm__gm. Witness by env/process identity plus a successful native dispatch returning ok:true.'
-  status: unknown
-- session_id: gmH2-1
-  id: native-gm-tool-postcondition
-  obligation_kind: postcondition
-  depends_on:
-  - native-gm-tool-precondition
-  subject: This session's durable transcript contains mcp__gm__gm tool calls and no pwsh-shelled .gm/exec-spool writes for gm verbs
-  text: 'Acceptance of run-fresh-gm-debug-pass-with-native-tool: decompress session-41730140 jsonl.zstd and confirm tool events name mcp__gm__gm; confirm no pwsh command bodies that write .gm/exec-spool/in/<verb>.'
-  status: unknown
-- session_id: gmH2-1
-  id: harness-live-surfaces-inventory
-  obligation_kind: invariant
-  subject: Live inventory of this session's process, tools, HTTP surfaces, and LLM so debug claims are about THIS agent not a stale prior session
-  text: Stale-process traps have repeatedly misdiagnosed this repo. Witness pid, FREDDIE_HOME, session id, writer lock, ports 3080/3087/4800, pwsh identity, and which tools actually execute this turn.
-  status: unknown

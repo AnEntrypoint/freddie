@@ -1,0 +1,127 @@
+{
+  "size": 231218,
+  "frames": 177,
+  "frameErrs": [],
+  "decodedBytes": 875924,
+  "lineCount": 614,
+  "eventTypes": {
+    "session": 1,
+    "permission/preset": 1,
+    "sandbox/mode": 1,
+    "approval/policy": 1,
+    "agent/inbox/spliced": 4,
+    "turn/start": 1,
+    "step/start": 31,
+    "user/message": 5,
+    "session/title": 2,
+    "request/header": 1,
+    "request/context": 1,
+    "session/title-llm-request": 1,
+    "assistant/chunk": 311,
+    "text-chunks": 35,
+    "assistant/message": 31,
+    "tool/call": 79,
+    "tool/result": 78,
+    "step/end": 30
+  },
+  "toolNames": {},
+  "mcpHitCount": 171,
+  "pwshSpoolHitCount": 39,
+  "mcpHits": [
+    {
+      "type": "agent/inbox/spliced",
+      "slice": "{\"type\":\"agent/inbox/spliced\",\"seq\":3,\"time\":1788727007570,\"data\":{\"target\":\"next-turn\",\"start\":0,\"inserted\":[{\"content\":[{\"type\":\"text\",\"text\":\"use the gm skill (mcp__gm__gm tool) to debug all the functionality of the harness we're currently in (C:/"
+    },
+    {
+      "type": "user/message",
+      "slice": "{\"type\":\"user/message\",\"seq\":7,\"time\":1788727007771,\"data\":{\"content\":[{\"type\":\"text\",\"text\":\"use the gm skill (mcp__gm__gm tool) to debug all the functionality of the harness we're currently in (C:/dev/deepseek-harness) and fix any real issues that "
+    },
+    {
+      "type": "session/title",
+      "slice": "{\"type\":\"session/title\",\"seq\":11,\"time\":1788727007775,\"data\":{\"title\":\"use the gm skill (mcp__gm__gm\",\"messageSeqs\":[7],\"source\":{\"kind\":\"fallback\"}}}"
+    },
+    {
+      "type": "request/header",
+      "slice": "{\"type\":\"request/header\",\"seq\":12,\"time\":1788727007777,\"data\":{\"header\":{\"config\":{\"provider\":\"deepseek-official\",\"model\":\"deepseek-v4-flash\",\"maxTokens\":256000,\"reasoningEffort\":\"high\"},\"adapterDefaults\":{\"reasoningEffort\":true,\"maxTokens\":true},\"sy"
+    },
+    {
+      "type": "session/title-llm-request",
+      "slice": "{\"type\":\"session/title-llm-request\",\"seq\":14,\"time\":1788727007781,\"data\":{\"titleProvider\":\"session-title-first-prompt-llm\",\"messageSeqs\":[7],\"route\":{\"provider\":\"deepseek-official\",\"model\":\"deepseek-v4-flash\"},\"system\":\"Create a concise title for an "
+    },
+    {
+      "type": "assistant/chunk",
+      "slice": "{\"type\":\"assistant/chunk\",\"seq\":44,\"time\":1788727011176,\"data\":{\"turn\":1,\"step\":1,\"chunk\":{\"type\":\"block-end\",\"index\":0,\"block\":{\"type\":\"text\",\"text\":\"I'll load the gm skill first, then drive every dispatch through the native `mcp__gm__gm` tool again"
+    },
+    {
+      "type": "assistant/message",
+      "slice": "{\"type\":\"assistant/message\",\"seq\":47,\"time\":1788727011181,\"data\":{\"turn\":1,\"step\":1,\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"I'll load the gm skill first, then drive every dispatch through the native `mcp__gm__gm` tool against "
+    },
+    {
+      "type": "assistant/chunk",
+      "slice": "{\"type\":\"assistant/chunk\",\"seq\":80,\"time\":1788727036793,\"data\":{\"turn\":1,\"step\":2,\"chunk\":{\"type\":\"tool-call-delta\",\"index\":3,\"id\":\"call-2e58d399-af6a-4e11-b8ce-0416c3670c1f-3\",\"name\":\"mcp__gm__gm\",\"argumentsDelta\":\"{\\\"verb\\\":\\\"instruction\\\",\\\"sessio"
+    },
+    {
+      "type": "assistant/chunk",
+      "slice": "{\"type\":\"assistant/chunk\",\"seq\":84,\"time\":1788727036794,\"data\":{\"turn\":1,\"step\":2,\"chunk\":{\"type\":\"block-end\",\"index\":3,\"block\":{\"type\":\"tool-call\",\"id\":\"call-2e58d399-af6a-4e11-b8ce-0416c3670c1f-3\",\"name\":\"mcp__gm__gm\",\"arguments\":\"{\\\"verb\\\":\\\"instr"
+    },
+    {
+      "type": "assistant/message",
+      "slice": "{\"type\":\"assistant/message\",\"seq\":86,\"time\":1788727036797,\"data\":{\"turn\":1,\"step\":2,\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"Booting gm and dispatching `instruction` through the native MCP tool — no pwsh spool writes.\"},{\"type\""
+    },
+    {
+      "type": "tool/call",
+      "slice": "{\"type\":\"tool/call\",\"seq\":91,\"time\":1788727036832,\"data\":{\"turn\":1,\"step\":2,\"callId\":\"call-2e58d399-af6a-4e11-b8ce-0416c3670c1f-3\",\"name\":\"mcp__gm__gm\",\"arguments\":\"{\\\"verb\\\":\\\"instruction\\\",\\\"session_id\\\":\\\"ds-harness-debug\\\",\\\"cwd\\\":\\\"C:\\\\\\\\dev\\\\\\\\"
+    },
+    {
+      "type": "tool/result",
+      "slice": "{\"type\":\"tool/result\",\"seq\":92,\"time\":1788727038866,\"data\":{\"turn\":1,\"step\":2,\"message\":{\"source\":{\"kind\":\"tool\",\"callId\":\"call-2e58d399-af6a-4e11-b8ce-0416c3670c1f-3\"},\"content\":[{\"type\":\"tool-result\",\"toolCallId\":\"call-2e58d399-af6a-4e11-b8ce-0416c"
+    },
+    {
+      "type": "assistant/chunk",
+      "slice": "{\"type\":\"assistant/chunk\",\"seq\":118,\"time\":1788727044852,\"data\":{\"turn\":1,\"step\":3,\"chunk\":{\"type\":\"tool-call-delta\",\"index\":2,\"id\":\"call-84f003bb-0e52-4105-a21c-4eb82dc95f58-5\",\"name\":\"mcp__gm__gm\",\"argumentsDelta\":\"{\\\"verb\\\":\\\"phase-status\\\",\\\"sess"
+    },
+    {
+      "type": "assistant/chunk",
+      "slice": "{\"type\":\"assistant/chunk\",\"seq\":120,\"time\":1788727044852,\"data\":{\"turn\":1,\"step\":3,\"chunk\":{\"type\":\"tool-call-delta\",\"index\":3,\"id\":\"call-84f003bb-0e52-4105-a21c-4eb82dc95f58-6\",\"name\":\"mcp__gm__gm\",\"argumentsDelta\":\"{\\\"verb\\\":\\\"instruction\\\",\\\"sessi"
+    },
+    {
+      "type": "assistant/chunk",
+      "slice": "{\"type\":\"assistant/chunk\",\"seq\":123,\"time\":1788727044853,\"data\":{\"turn\":1,\"step\":3,\"chunk\":{\"type\":\"block-end\",\"index\":2,\"block\":{\"type\":\"tool-call\",\"id\":\"call-84f003bb-0e52-4105-a21c-4eb82dc95f58-5\",\"name\":\"mcp__gm__gm\",\"arguments\":\"{\\\"verb\\\":\\\"phas"
+    }
+  ],
+  "pwshSpoolHits": [
+    {
+      "type": "request/header",
+      "slice": "{\"type\":\"request/header\",\"seq\":12,\"time\":1788727007777,\"data\":{\"header\":{\"config\":{\"provider\":\"deepseek-official\",\"model\":\"deepseek-v4-flash\",\"maxTokens\":256000,\"reasoningEffort\":\"high\"},\"adapterDefaults\":{\"reasoningEffort\":true,\"maxTokens\":true},\"sy"
+    },
+    {
+      "type": "tool/result",
+      "slice": "{\"type\":\"tool/result\",\"seq\":49,\"time\":1788727011206,\"data\":{\"turn\":1,\"step\":1,\"message\":{\"source\":{\"kind\":\"tool\",\"callId\":\"call-b7d30096-b0e3-4299-b4f7-6a4a1fefe7f1-0\"},\"content\":[{\"type\":\"tool-result\",\"toolCallId\":\"call-b7d30096-b0e3-4299-b4f7-6a4a1"
+    },
+    {
+      "type": "assistant/message",
+      "slice": "{\"type\":\"assistant/message\",\"seq\":86,\"time\":1788727036797,\"data\":{\"turn\":1,\"step\":2,\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"Booting gm and dispatching `instruction` through the native MCP tool — no pwsh spool writes.\"},{\"type\""
+    },
+    {
+      "type": "tool/result",
+      "slice": "{\"type\":\"tool/result\",\"seq\":92,\"time\":1788727038866,\"data\":{\"turn\":1,\"step\":2,\"message\":{\"source\":{\"kind\":\"tool\",\"callId\":\"call-2e58d399-af6a-4e11-b8ce-0416c3670c1f-3\"},\"content\":[{\"type\":\"tool-result\",\"toolCallId\":\"call-2e58d399-af6a-4e11-b8ce-0416c"
+    },
+    {
+      "type": "tool/result",
+      "slice": "{\"type\":\"tool/result\",\"seq\":132,\"time\":1788727046974,\"data\":{\"turn\":1,\"step\":3,\"message\":{\"source\":{\"kind\":\"tool\",\"callId\":\"call-84f003bb-0e52-4105-a21c-4eb82dc95f58-6\"},\"content\":[{\"type\":\"tool-result\",\"toolCallId\":\"call-84f003bb-0e52-4105-a21c-4eb8"
+    },
+    {
+      "type": "tool/result",
+      "slice": "{\"type\":\"tool/result\",\"seq\":170,\"time\":1788727068354,\"data\":{\"turn\":1,\"step\":4,\"message\":{\"source\":{\"kind\":\"tool\",\"callId\":\"call-773c9908-5701-46a2-b94b-de37d8c77309-8\"},\"content\":[{\"type\":\"tool-result\",\"toolCallId\":\"call-773c9908-5701-46a2-b94b-de37"
+    },
+    {
+      "type": "tool/result",
+      "slice": "{\"type\":\"tool/result\",\"seq\":187,\"time\":1788727084521,\"data\":{\"turn\":1,\"step\":5,\"message\":{\"source\":{\"kind\":\"tool\",\"callId\":\"call-2cae5610-bb63-4220-a5a7-102807a6212a-10\"},\"content\":[{\"type\":\"tool-result\",\"toolCallId\":\"call-2cae5610-bb63-4220-a5a7-102"
+    },
+    {
+      "type": "tool/result",
+      "slice": "{\"type\":\"tool/result\",\"seq\":189,\"time\":1788727086573,\"data\":{\"turn\":1,\"step\":5,\"message\":{\"source\":{\"kind\":\"tool\",\"callId\":\"call-2cae5610-bb63-4220-a5a7-102807a6212a-11\"},\"content\":[{\"type\":\"tool-result\",\"toolCallId\":\"call-2cae5610-bb63-4220-a5a7-102"
+    }
+  ],
+  "firstEvent": "{\"type\":\"session\",\"version\":0,\"id\":\"session-41730140-5482-4f02-aaa8-fcdf1531d247\",\"createdAt\":1788727007562,\"cwd\":\"C:\\\\dev\\\\deepseek-harness\",\"delegationDepth\":0}"
+}
