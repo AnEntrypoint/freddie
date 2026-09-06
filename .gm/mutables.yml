@@ -43,4 +43,11 @@
   id: this-session-identity-c8a1bba2
   subject: Which exact process, session, ports, and engine own THIS in-harness agent (session-c8a1bba2), not the previous session-e3825cf9 inventory
   witness: 'FREDDIE_SESSION_ID=session-c8a1bba2-58b0-4d3d-8e9c-e8749b169bbe; FREDDIE_HOME=C:\Users\user\.freddie; JSONL exists (131584 bytes). Live pwsh is Windows PowerShell 5.1.26100.9278 Desktop/ConsoleHost at C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe; Get-Command pwsh empty; C:\Program Files\PowerShell\7\pwsh.exe missing. HTTP: 4800 acptoapi health ok + readiness xai-oauth/grok-4.6 ok:true latencyMs=3745 (pid 5756 node); 3080 GUI ECONNREFUSED this session; 3000 ECONNREFUSED. settings.yaml agent-default-model=xai-oauth/grok-4.6 via deepseek-official, llm-deepseek.baseURL=http://localhost:4800/v1. get_goal revision 1 armed goal-38ea6f34. scan_deps failCount=0 blockedCount=0 warnCount=5 css.js size-ratio.'
-  status: unknown
+  status: witnessed
+  witness_evidence: 'SUPERSEDED: this live agent is session-309271ab-de91-42de-a323-536fe36b305a under FREDDIE_HOME=C:\Users\user\AppData\Local\Temp\freddie-gm-run-home, not session-c8a1bba2 / ~/.freddie. Writer lock pid=13744. 3080/3000/4914 ECONNREFUSED. See mutable this-session-identity-309271ab.'
+- SESSION_ID: harness-debug-this
+  id: this-session-identity-309271ab
+  status: witnessed
+  subject: Which exact process, session, ports, and engine own THIS in-harness agent (session-309271ab), not prior session inventories
+  witness: 'FREDDIE_SESSION_ID=session-309271ab-de91-42de-a323-536fe36b305a; FREDDIE_HOME=C:\Users\user\AppData\Local\Temp\freddie-gm-run-home; writer.lock pid=13744 cmdline=`node apps/cli/src/bin.js --profile headless <this task>` (parent pnpm 17752). Live pwsh is Windows PowerShell 5.1.26100.9278 Desktop/ConsoleHost at C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe; Get-Command pwsh empty; Program Files\PowerShell\7 missing. HTTP: 4800 acptoapi health ok + readiness xai-oauth/grok-4.6 ok:true (pid 5756); 3080/3000/4914 ECONNREFUSED. Chat POST /v1/chat/completions xai-oauth/grok-4.6 returned 200 in 2543ms content=OK model=grok-4.6. web_search 401 names deepseek-official + DEEPSEEK_API_KEY. scan_deps failCount=0 blockedCount=0 warnCount=5 css.js size-ratio. Headless HMR disabled. Goal goal-45fa2311 armed.'
+  witness_evidence: pid 13744 headless; session-309271ab; FREDDIE_HOME temp; 4800 up; 3080 down; pwsh 5.1; web_search 401 named; grok chat 200 OK in 2543ms

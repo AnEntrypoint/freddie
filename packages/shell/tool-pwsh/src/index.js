@@ -19,7 +19,7 @@
  * @module @freddie/freddie-tool-pwsh
  */
 
-import { isAbsolute, resolve as resolvePath } from 'node:path'
+import { basename, isAbsolute, resolve as resolvePath } from 'node:path'
 import z from '@freddie/schemastery'
 import { defineTool, TOOL_ABORTED } from '@freddie/freddie-tools'
 import { HarnessError } from '@freddie/freddie-llm'
@@ -53,12 +53,31 @@ function validatePwshArgs(args) {
 }
 /* jscpd:ignore-end */
 
-function pwshDescription(backgroundEnabled, escalationModes) {
+/**
+ * Model-facing invocation clause for the executable `ctx.shell` actually spawns.
+ * Windows last-resorts to `powershell.exe` (Windows PowerShell 5.1) when `pwsh`
+ * is absent; naming `pwsh -Command` in that case is a false contract.
+ * @param pwshPath - the executor's resolved executable, when it exposes one.
+ * @returns a parenthetical naming that executable (and 5.1 last-resort when it is powershell.exe).
+ */
+export function describePwshInvocation(pwshPath) {
+  if (typeof pwshPath !== 'string' || pwshPath.length === 0) {
+    return '`pwsh -Command` (on Windows, `powershell.exe` / Windows PowerShell 5.1 is the last-resort executable when `pwsh` is not installed)'
+  }
+  const exe = basename(pwshPath)
+  if (/^powershell(\.exe)?$/iu.test(exe)) {
+    return `\`${exe} -Command\` (Windows PowerShell 5.1 last-resort; PowerShell 7 \`pwsh\` was not found)`
+  }
+  return `\`${exe} -Command\``
+}
+
+function pwshDescription(backgroundEnabled, escalationModes, pwshPath) {
   const background = backgroundEnabled
     ? 'Set `run_in_background: true` for long-running commands: the call returns a job id immediately; read its output with `job_output` and stop it with `job_kill`.'
     : 'Background execution is not available; long-running commands must finish within the timeout.'
-  const base = 'Execute a PowerShell command (`pwsh -Command`) and return its stdout/stderr. '
-    + 'Each call runs in a fresh pwsh process: no state (cwd, variables, functions) persists between calls — '
+  const invocation = describePwshInvocation(pwshPath)
+  const base = `Execute a PowerShell command (${invocation}) and return its stdout/stderr. `
+    + 'Each call runs in a fresh process: no state (cwd, variables, functions) persists between calls — '
     + 'pass `workdir` instead of using `cd`. Paths use native Windows form (`C:\\...`); read environment '
     + 'variables with `$env:NAME`. Non-zero exits are reported as `[exit code: N]`. '
     + 'Current harness environment facts are exposed through managed `$env:FREDDIE_*` variables; inspect them when needed. '
@@ -204,7 +223,7 @@ export function apply(ctx, config = {}) {
 
   ctx.tools.register(defineTool({
     name: 'pwsh',
-    description: pwshDescription(backgroundEnabled, escalationModes),
+    description: pwshDescription(backgroundEnabled, escalationModes, ctx.shell.pwshPath),
     /* jscpd:ignore-start -- deliberate mirror of freddie-tool-bash's parameter surface (pwsh-tool-and-executor Agent Note). */
     parameters: {
       command: { type: 'string', required: true, description: 'The PowerShell command to execute.' },
