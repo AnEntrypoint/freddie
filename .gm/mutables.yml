@@ -51,3 +51,9 @@
   subject: Which exact process, session, ports, and engine own THIS in-harness agent (session-309271ab), not prior session inventories
   witness: 'FREDDIE_SESSION_ID=session-309271ab-de91-42de-a323-536fe36b305a; FREDDIE_HOME=C:\Users\user\AppData\Local\Temp\freddie-gm-run-home; writer.lock pid=13744 cmdline=`node apps/cli/src/bin.js --profile headless <this task>` (parent pnpm 17752). Live pwsh is Windows PowerShell 5.1.26100.9278 Desktop/ConsoleHost at C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe; Get-Command pwsh empty; Program Files\PowerShell\7 missing. HTTP: 4800 acptoapi health ok + readiness xai-oauth/grok-4.6 ok:true (pid 5756); 3080/3000/4914 ECONNREFUSED. Chat POST /v1/chat/completions xai-oauth/grok-4.6 returned 200 in 2543ms content=OK model=grok-4.6. web_search 401 names deepseek-official + DEEPSEEK_API_KEY. scan_deps failCount=0 blockedCount=0 warnCount=5 css.js size-ratio. Headless HMR disabled. Goal goal-45fa2311 armed.'
   witness_evidence: pid 13744 headless; session-309271ab; FREDDIE_HOME temp; 4800 up; 3080 down; pwsh 5.1; web_search 401 named; grok chat 200 OK in 2543ms
+- SESSION_ID: harness-debug-this
+  id: this-session-writer-22912-web-3087
+  status: witnessed
+  subject: Which process owns THIS session store and GUI now
+  witness: FREDDIE_SESSION_ID=session-309271ab; writer.lock pid=22912 node --expose-internals apps/cli/src/bin.js web --port 3087 --no-open; POST /api/session.list includes this session; 3080 ECONNREFUSED; 4800 acptoapi still pid 5756.
+  witness_evidence: writer.lock pid=22912 web --port 3087; POST /api/session.list includes session-309271ab; host.describe attachedSessions=3
