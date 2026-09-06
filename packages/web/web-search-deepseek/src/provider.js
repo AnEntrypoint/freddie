@@ -169,11 +169,11 @@ export class DeepSeekSearchProvider {
 
     if (!response.ok) {
       const status = response.status
-      let message = `DeepSeek API error (HTTP ${status})`
+      let message = `DeepSeek search (${DEEPSEEK_PROVIDER_ID} at ${options.baseURL}) failed with HTTP ${status}`
       try {
         const parsed = await response.json()
         const detail = typeof parsed.error === 'string' ? parsed.error : parsed.error?.message ?? parsed.message
-        if (detail !== undefined && detail.length > 0) message = detail
+        if (detail !== undefined && detail.length > 0) message = `${message}: ${detail}`
       } catch (error) {
         // An abort fired mid-body must surface as WEB_ABORTED, not be swallowed
         // into a generic HTTP-error message — cancellation is not a provider
@@ -182,6 +182,13 @@ export class DeepSeekSearchProvider {
         // Otherwise: the HTTP status is already captured in `message` above; a
         // malformed/non-JSON error body (normal for gateway 5xx/429s) can only
         // cost a richer provider message, never the real error.
+      }
+      // A 401/403 always names the credential reference (never the key itself)
+      // so the operator knows exactly which env var/settings field to fix,
+      // instead of a bare third-party message (e.g. a truncated "...eway is
+      // invalid") with no indication of which provider or credential sent it.
+      if (status === 401 || status === 403) {
+        message = `${message} (credential: ${options.apiKeyEnv})`
       }
       throw new WebError(message, 'WEB_PROVIDER_ERROR')
     }

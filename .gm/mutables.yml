@@ -24,3 +24,23 @@
   witness: .watcher.log shows repeated code_index_embed_failed/embed_query_failed with plugin_failure:unknown_plugin; recall-gm-adversarial-1788524327-2.json and codesearch-gm-adversarial-1788524327-3.json never landed at all (not even degraded BM25-only). .status.json on this build carries no loaded_plugin_versions diagnostic to confirm/deny the sideload-pinning theory the gm instruction prose names as the standard fix. Shared agentplug-runner daemon (shared_process:true) currently serves 2 other actively-busy peer sessions (litebox-main-55, advisor-db) -- restarting it to test the fix would interrupt their in-flight work, so deferred rather than done unilaterally. Falling back to direct Read/Grep/Glob for this session's work since the verb surface is genuinely broken, not merely inconvenient.
   status: witnessed
   SESSION_ID: gm-adversarial-1788524327
+- SESSION_ID: harness-debug
+  id: live-process-identity
+  status: witnessed
+  subject: Which exact process/PID currently owns this in-harness agent, the web GUI, and acptoapi — stale-process traps have repeatedly misdiagnosed defects in this repo
+  witness_evidence: 'This in-harness agent is session-e3825cf9 (FREDDIE_SESSION_JSONL under ~/.freddie/sessions/--C-dev-deepseek-harness--/). Live pwsh is Windows PowerShell 5.1 (no pwsh.exe on PATH or in Program Files). HTTP: 3080 GUI up (title FREDDIE Local Build, 42 boot plugins), 4800 acptoapi health ok + xai-oauth/grok-4.6 readiness ok:true latencyMs=3745, 4914 ECONNREFUSED, 4801 ECONNREFUSED. exec_js (gm daemon pid 2568 ppid 22760) also saw 3000 open. 3080 session.list returns ONLY blank session-516e308c and session.models(session-e3825cf9) is session-not-found -- 3080 is a different process/store view, not this agent.'
+- SESSION_ID: harness-debug
+  id: current-session-health
+  status: witnessed
+  subject: Whether the current session log (session-e3825cf9) is readable, has unrecovered turn errors, or is writer-locked by a second process
+  witness_evidence: FREDDIE_SESSION_ID=session-e3825cf9-0f8b-4750-86b2-833522ec153c; session.jsonl.zstd exists (read tool refused as binary, expected). 3080 does not list this session (session-not-found). No evidence of dual-writer on THIS log this turn; the dual-process risk is 3080 being a second harness over the same FREDDIE_HOME. get_goal succeeded (revision 1, armed).
+- SESSION_ID: harness-debug
+  id: which-surfaces-are-mounted
+  status: witnessed
+  subject: Which model-facing tools and host RPC methods are actually mounted in THIS running session versus documented in tool-catalog/docs
+  witness_evidence: 'Mounted in THIS session (this turn): pwsh, read/write/edit/glob/grep, todo_write, create_goal/get_goal/update_goal, skill, web_search/web_fetch, job_list/job_output/job_kill, list_agents/subagent, str_replace_editor. Live RPC on 3080 /api/<method> works for session.list, host.describe, llm.providers, llm.models, workspace.list, session.models(other session). web_search executes but 401s. pwsh executes as powershell.exe 5.1. goal tools work (goal-f5a90354 armed). job background start/collect works (pwsh-1 completed).'
+- SESSION_ID: harness-debug
+  id: this-session-identity-c8a1bba2
+  subject: Which exact process, session, ports, and engine own THIS in-harness agent (session-c8a1bba2), not the previous session-e3825cf9 inventory
+  witness: 'FREDDIE_SESSION_ID=session-c8a1bba2-58b0-4d3d-8e9c-e8749b169bbe; FREDDIE_HOME=C:\Users\user\.freddie; JSONL exists (131584 bytes). Live pwsh is Windows PowerShell 5.1.26100.9278 Desktop/ConsoleHost at C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe; Get-Command pwsh empty; C:\Program Files\PowerShell\7\pwsh.exe missing. HTTP: 4800 acptoapi health ok + readiness xai-oauth/grok-4.6 ok:true latencyMs=3745 (pid 5756 node); 3080 GUI ECONNREFUSED this session; 3000 ECONNREFUSED. settings.yaml agent-default-model=xai-oauth/grok-4.6 via deepseek-official, llm-deepseek.baseURL=http://localhost:4800/v1. get_goal revision 1 armed goal-38ea6f34. scan_deps failCount=0 blockedCount=0 warnCount=5 css.js size-ratio.'
+  status: unknown
