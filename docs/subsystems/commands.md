@@ -2,7 +2,7 @@
 
 The human-command registry service from [`dsh-commands`](../../packages/interaction/commands). Interactive adapters use it to discover and directly execute plugin-owned commands for an exact agent without creating a model message. The [command Agent Note](../../.agents/notes/implemented/feature/2026-07-19-plugin-command-registration.md) owns dispatch and lifecycle rationale; the [package README](../../packages/interaction/commands/README.md) owns composition and limitations.
 
-Source: [`packages/interaction/commands/src/index.ts`](../../packages/interaction/commands/src/index.ts)
+Source: [`packages/interaction/commands/src/index.ts`](../../packages/interaction/commands/src/index.js)
 
 ## Input metadata
 
@@ -182,7 +182,7 @@ find(agent: Agent, name: string): CommandDefinition | undefined
 
 Types: [Agent](core.md) · [EncodedImageAttachment](attachment.md)
 
-Source: [`packages/interaction/commands/src/index.ts`](../../packages/interaction/commands/src/index.ts)
+Source: [`packages/interaction/commands/src/index.ts`](../../packages/interaction/commands/src/index.js)
 
 <a id="commands-events"></a>
 
@@ -204,5 +204,5 @@ A command was registered or unregistered. This is an unfiltered registry notific
 'commands/change'(): void
 ```
 
-Source: [`packages/interaction/commands/src/types.ts`](../../packages/interaction/commands/src/types.ts)
+Source: [`packages/interaction/commands/src/types.ts`](../../packages/interaction/commands/src/types.js)
 <!-- END GENERATED cordis-surface -->

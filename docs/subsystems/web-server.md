@@ -2,7 +2,7 @@
 
 [dsh-host-webserver](../../packages/host/webserver) is the browser HTTP carrier for the GUI host: a single `node:http` plugin providing `ctx.webServer`, a named-route registry, index.html transform callbacks, and one fallback handler that a plugin may claim. It is not part of the agent loop and not a capability seam; it knows no harness concepts, and another plugin registers every feature route, including the `/api` bridge, plugin bundles, and the HMR event stream ([layering note](../../.agents/notes/implemented/architecture/2026-07-19-gui-layering-and-rpc-protocol.md)). It serves browsers only: Electron loads the built files over `file://` and sends fetch requests through an IPC bridge instead of this server.
 
-Source: [`packages/host/webserver/src/index.ts`](../../packages/host/webserver/src/index.ts)
+Source: [`packages/host/webserver/src/index.ts`](../../packages/host/webserver/src/index.js)
 
 ## Routes
 
@@ -22,7 +22,7 @@ interface WebRoute {
 }
 ```
 
-Match order is fixed: exact table first, then longest matching prefix, then the registered fallback. Registration order carries no request-facing semantics — named routes are composed to be disjoint, and the fallback seat answers anything no named route claims; one owner only, a second registration throws. The shipped Web composition claims the seat with [`dsh-host-frontend-static`](../../packages/host/frontend-static/src/index.ts), the SPA dist server with locked semantics: non-GET/HEAD is 405, traversal outside the dist root is 403, a readable index renders at the dist root and configured index path, existing files are served directly, absent or non-file targets are empty 404 responses, and unknown extensions ship as octet-stream.
+Match order is fixed: exact table first, then longest matching prefix, then the registered fallback. Registration order carries no request-facing semantics — named routes are composed to be disjoint, and the fallback seat answers anything no named route claims; one owner only, a second registration throws. The shipped Web composition claims the seat with [`dsh-host-frontend-static`](../../packages/host/frontend-static/src/index.js), the SPA dist server with locked semantics: non-GET/HEAD is 405, traversal outside the dist root is 403, a readable index renders at the dist root and configured index path, existing files are served directly, absent or non-file targets are empty 404 responses, and unknown extensions ship as octet-stream.
 
 ## Config
 
@@ -119,7 +119,7 @@ collectIndexInjections(): IndexInjection[]
 renderIndex(html: string): string
 ```
 
-Source: [`packages/host/webserver/src/index.ts`](../../packages/host/webserver/src/index.ts)
+Source: [`packages/host/webserver/src/index.ts`](../../packages/host/webserver/src/index.js)
 
 <a id="webserver-events"></a>
 
@@ -142,5 +142,5 @@ Collect the structured index injection table. Emitted on every index render and 
 'webserver/index-inject'(table: IndexInjection[]): void
 ```
 
-Source: [`packages/host/webserver/src/index.ts`](../../packages/host/webserver/src/index.ts)
+Source: [`packages/host/webserver/src/index.ts`](../../packages/host/webserver/src/index.js)
 <!-- END GENERATED cordis-surface -->

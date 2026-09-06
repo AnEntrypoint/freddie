@@ -6,7 +6,7 @@ Status: implemented
 
 ## Problem
 
-The whole `packages/*/*/src` graph, `apps/*/src`, `vendor/*` consumers, and every root/package-level build config were TypeScript, requiring a transformation step (native Node flags, then `tsx`'s ESM hook) before `dsh` could boot from source, and a separate `tsdown`/`tsc` build before shipping browser or Node artifacts. Both prior decisions optimized that transformation step's latency and scheduling. Neither removed the step itself.
+The whole `packages/*/*/src` graph, `apps/*/src`, `framework/*` consumers, and every root/package-level build config were TypeScript, requiring a transformation step (native Node flags, then `tsx`'s ESM hook) before `dsh` could boot from source, and a separate `tsdown`/`tsc` build before shipping browser or Node artifacts. Both prior decisions optimized that transformation step's latency and scheduling. Neither removed the step itself.
 
 The vitest-based test suite (`packages/*/*/tests/**`, `docs/testing.md`'s tiered policy — unit, coverage gate, real-API e2e, snapshot, web browser snapshot) assumed the same TypeScript workspace: specs lived beside `.ts` source, `vitest.config.ts` pointed `vite-tsconfig-paths` at `tsconfig.base.json`, and coverage ran against `packages/*/*/src` compiled through the same pipeline. `vitest` itself was never a declared dependency anywhere in the workspace — the suite ran through tooling outside this repo's own dependency graph, and no root script or CI workflow invoked it.
 

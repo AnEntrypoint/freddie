@@ -1,6 +1,6 @@
 # Agent Teams
 
-Types shared by the experimental implicit-root Team domain, model tools, and host adapters. The [Agent Teams Agent Note](../../.agents/notes/implemented/feature/2026-08-05-agent-teams.md) owns identity, mailbox, task, and shared-checkout decisions; this page records the literal durable forms from [`packages/experimental/agent-team/src/types.ts`](../../packages/experimental/agent-team/src/types.ts).
+Types shared by the experimental implicit-root Team domain, model tools, and host adapters. The [Agent Teams Agent Note](../../.agents/notes/implemented/feature/2026-08-05-agent-teams.md) owns identity, mailbox, task, and shared-checkout decisions; this page records the literal durable forms from [`packages/experimental/agent-team/src/types.ts`](../../packages/experimental/agent-team/src/types.js).
 
 ## Identity and roster
 
@@ -177,5 +177,5 @@ tryMembership(agent: Agent): TeamMembership | undefined
 
 Types: [Agent](core.md)
 
-Source: [`packages/experimental/agent-team/src/index.ts`](../../packages/experimental/agent-team/src/index.ts)
+Source: [`packages/experimental/agent-team/src/index.ts`](../../packages/experimental/agent-team/src/index.js)
 <!-- END GENERATED cordis-surface -->

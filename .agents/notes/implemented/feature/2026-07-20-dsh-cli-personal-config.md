@@ -32,7 +32,7 @@ The TUI and Web register the exact personal path through Cordis HMR after boot. 
 
 **A personal full `cordis.yml` that includes the requested config.** Rejected: the personal file would have to name the leaf config's path, which varies per checkout; patches invert the dependency so the bin keeps choosing the tree and the personal layer only amends it.
 
-**Deep-merging personal patches into entry configs.** Rejected: it would fork the patch semantics from the committed overlays and the vendored include; whole-config replacement is already the documented contract.
+**Deep-merging personal patches into entry configs.** Rejected: it would fork the patch semantics from the committed overlays and the framework's include; whole-config replacement is already the documented contract.
 
 **Opt-in via env flag instead of presence.** Rejected: personal config that is off by default never gets used; presence plus explicit per-test isolation gives live runs the overlay and tests hermeticity.
 

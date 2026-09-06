@@ -1,12 +1,17 @@
-# @cordisjs/plugin-timer
+# @freddie/cordis-plugin-timer
 
 Disposal-aware timer service for Cordis.
 
+One of the harness's first-party framework packages — see
+[`framework/README.md`](../README.md) for the layer overview. It is a workspace
+package resolved through `pnpm-workspace.yaml`, not something installed
+separately.
+
 ## Usage
 
-```ts
-import { Context } from 'cordis'
-import Timer from '@cordisjs/plugin-timer'
+```js
+import { Context } from '@freddie/cordis'
+import Timer from '@freddie/cordis-plugin-timer'
 
 const root = new Context()
 await root.plugin(Timer)

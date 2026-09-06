@@ -12,7 +12,7 @@ Static lists are appropriate when they encode policy; they are needless friction
 
 ## Proposal
 
-Make the remaining package/gate inventories discoverable. A single canonical source — the `packages/<group>/<pkg>` hierarchy plus package manifests — should drive the aggregates' `references`, the module graph, and any other full-package list, with a generate-and-verify step (the existing `gen-module-graph` / `gen-cordis-catalog` pattern: a generator writes the artifact, a `--check` mode in `hygiene`/`doc-sync` fails on a stale committed copy). Module graph generation already reads package manifests. `doc-sync` should be the one command that defines and prints its sub-gates, with docs linking to that command rather than restating a second list.
+Make the remaining package/gate inventories discoverable. A single canonical source — the `packages/<group>/<pkg>` hierarchy plus package manifests — should drive the aggregates' `references`, the module graph, and any other full-package list, with a generate-and-verify step (the repository's established generator pattern: a generator writes the artifact, and a `--check` mode run in CI fails on a stale committed copy, as `gen-third-party-notices` does). Module graph generation already reads package manifests. `doc-sync` should be the one command that defines and prints its sub-gates, with docs linking to that command rather than restating a second list.
 
 The hierarchy does not need to encode every fact about a package, but it should encode the broad maintenance policy: core/product packages, integrations, capability seams, and support/test/example packages should not all require a hand-maintained exception list before scripts can tell them apart.
 

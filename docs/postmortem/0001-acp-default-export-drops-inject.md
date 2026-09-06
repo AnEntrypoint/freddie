@@ -18,7 +18,7 @@ The ACP server could not create or load a single session — the two RPCs an edi
 
 - The bridge (RFC 010) landed with a full unit suite for the codec, in-memory transport, generated protocol messages, failure paths, and HMR; a key-gated real-API e2e; and a no-key stdout-purity e2e. All green, 100% coverage.
 - A real Zed session immediately failed on `session/new` with `cannot get property "agents" without inject`.
-- Investigation initially pursued a Cordis "traceable/shadow" theory (plausible, and the mechanism is real — see Bug #2), then instrumented the actual fiber walk in vendored `reflect.ts` and ran the real subprocess. The trace showed the throw at `apply()` line 179 *at plugin load time*, on the ROOT fiber with no shadow — falsifying the shadow theory for `session/new`.
+- Investigation initially pursued a Cordis "traceable/shadow" theory (plausible, and the mechanism is real — see Bug #2), then instrumented the actual fiber walk in the framework's `reflect.js` and ran the real subprocess. The trace showed the throw at `apply()` line 179 *at plugin load time*, on the ROOT fiber with no shadow — falsifying the shadow theory for `session/new`.
 - Root cause #1 found: a stray `export default apply`. Removing it fixed `session/new`.
 - Removing it then exposed Bug #2: `session/load` still threw on `sessionPersistence` — a genuinely distinct mechanism (the shadow walk), confirmed by isolating the fix and re-running the real subprocess.
 
@@ -34,7 +34,7 @@ export function apply(ctx: Context, config: AcpConfig): void { /* … */ }
 export default apply   // ← the bug
 ```
 
-When a plugin is loaded from `cordis.yml`, the cordis Loader normalizes the imported module through `Loader.unwrapExports` (`vendor/loader/src/index.ts`):
+When a plugin is loaded from `cordis.yml`, the cordis Loader normalizes the imported module through `Loader.unwrapExports` (`framework/loader/src/index.js`):
 
 ```ts ignore-check
 unwrapExports(exports: any) {
@@ -57,10 +57,10 @@ With #1 fixed, `session/new` worked but `session/load` still threw `cannot get p
 
 `session/load` calls `agents.resume(...)`, which delegates to `AgentLoop.resume()`, which read `this.ctx.sessionPersistence`. `AgentLoop`'s `static inject` deliberately does NOT include `sessionPersistence` — injecting it would make non-persistent demos pend forever waiting for a backend that never loads. The service is provided by a separate sibling plugin/fiber and read opportunistically.
 
-Service access in Cordis goes through a context proxy (`vendor/cordis/src/reflect.ts`). When a service method is invoked through a *traceable proxy* obtained from a foreign fiber (here: the bridge fiber calls `ctx.agents.resume`, and the registry hands back `this.factory` — the `AgentLoop` — re-wrapped as a fresh traceable proxy bound to the caller), `createShadowMethod` (`vendor/cordis/src/utils.ts`) rebinds `this` to a *shadow* object whose `ctx` carries `[symbols.shadow]` pointing at `AgentLoop`'s own construction context. Inside `resume`, then, `this.ctx.sessionPersistence` resolves with the proxy handler starting its fiber walk from the shadow's fiber:
+Service access in Cordis goes through a context proxy (`framework/cordis/src/reflect.js`). When a service method is invoked through a *traceable proxy* obtained from a foreign fiber (here: the bridge fiber calls `ctx.agents.resume`, and the registry hands back `this.factory` — the `AgentLoop` — re-wrapped as a fresh traceable proxy bound to the caller), `createShadowMethod` (`framework/cordis/src/utils.js`) rebinds `this` to a *shadow* object whose `ctx` carries `[symbols.shadow]` pointing at `AgentLoop`'s own construction context. Inside `resume`, then, `this.ctx.sessionPersistence` resolves with the proxy handler starting its fiber walk from the shadow's fiber:
 
 ```ts ignore-check
-// reflect.ts get handler
+// reflect.js get handler
 let fiber = (ctx[symbols.shadow] as Context ?? ctx).fiber   // ← starts at AgentLoop's fiber
 while (true) {
   const impl = fiber.store?.[prop]

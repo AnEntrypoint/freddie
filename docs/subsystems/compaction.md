@@ -2,7 +2,7 @@
 
 The compaction seam — a [capability seam](../../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md) split like bash: Service Definition ([dsh-compaction](../../packages/compaction/compaction), `ctx.compaction`), Service Provider (a backend such as [dsh-compaction-basic](../../packages/compaction/compaction-basic)), and human Consumer ([dsh-command-compact](../../packages/compaction/command-compact)). Compaction is **one optional capability**, not part of the agent-loop spine — so its vocabulary lives here, not in [core.md](core.md). A tokenizer- or template-based backend is a sibling package implementing the same interface. Unlike bash, the interface necessarily depends on `dsh-session` and `dsh-llm`: its verbs act on an agent-owned `Session`, and its durable summary event uses the `ContentBlock` vocabulary (see the [compaction capability-seam Agent Note](../../.agents/notes/implemented/feature/2026-06-18-compaction-capability-seam.md)).
 
-Source: [`packages/compaction/compaction/src/types.ts`](../../packages/compaction/compaction/src/types.ts)
+Source: [`packages/compaction/compaction/src/types.ts`](../../packages/compaction/compaction/src/types.js)
 
 ## The `compaction/*` session events
 
@@ -190,7 +190,7 @@ abstract compactRegion( start: number, end: number, agent: CompactionAgentContex
 
 Types: [CommandId](commands.md)
 
-Source: [`packages/compaction/compaction/src/index.ts`](../../packages/compaction/compaction/src/index.ts)
+Source: [`packages/compaction/compaction/src/index.ts`](../../packages/compaction/compaction/src/index.js)
 
 <a id="ctxtoolresultpruner--toolresultpruner"></a>
 
@@ -232,5 +232,5 @@ pruneSession(session: Session): PruneResult
 
 Types: [ContentBlock](llm-streaming.md) · [Session](session.md)
 
-Source: [`packages/compaction/compaction-tool-result-pruner/src/index.ts`](../../packages/compaction/compaction-tool-result-pruner/src/index.ts)
+Source: [`packages/compaction/compaction-tool-result-pruner/src/index.ts`](../../packages/compaction/compaction-tool-result-pruner/src/index.js)
 <!-- END GENERATED cordis-surface -->

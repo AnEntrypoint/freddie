@@ -8,9 +8,9 @@ Freddie is built on the Cordis framework. Cordis core was at 4.0.0-rc.6 (a relea
 
 ## Decision
 
-Copy the needed Cordis packages (core, loader, include, group, timer, hmr, logger-console) and the cordiverse foundation libraries (cosmokit, schemastery) into `vendor/` as source, flattened, keeping their original npm names so workspace resolution is transparent. `pnpm-workspace.yaml` sets `linkWorkspacePackages: true`, so matching upstream semver ranges resolve these pinned workspaces in both source and built-artifact execution. Truly third-party dependencies (js-yaml, chokidar, @standard-schema/spec, …) stay on npm.
+Copy the needed Cordis packages (core, loader, include, group, timer, hmr, logger-console) and the cordiverse foundation libraries (cosmokit, schemastery) into the repository as source, flattened, so workspace resolution is transparent. `pnpm-workspace.yaml` sets `linkWorkspacePackages: true`, so those names resolve to these workspaces in both source and built-artifact execution. Truly third-party dependencies (js-yaml, chokidar, @standard-schema/spec, …) stay on npm.
 
-`vendor/README.md` is the manifest: upstream repo + commit SHA per package and an exhaustive local-modification log. A pre-commit guard (`scripts/check-vendor-manifest.sh`) rejects vendored-source changes that don't update the manifest in the same commit.
+That directory is now `framework/`, and the layer it holds is maintained first-party: every package was rewritten from TypeScript to plain JavaScript, the packages carry the `@freddie` scope, and there is no upstream sync procedure. [`framework/README.md`](../../../../framework/README.md) records each package's ancestor repo and fork point, and its Divergence log records what departs from that ancestry and why.
 
 ## Alternatives considered
 
@@ -19,8 +19,7 @@ Copy the needed Cordis packages (core, loader, include, group, timer, hmr, logge
 
 ## Consequences
 
-- The harness fully owns its framework layer: auditable, patchable, pinned — an RC upstream can't break us, and we can fix framework bugs in-tree.
-- Built packages execute the same vendored Cordis generation as source tests; removing workspace linking would silently substitute npm copies behind unchanged package names.
-- Upstream sync is manual (documented procedure in the manifest). The modification log keeps the diff surface known.
-- Vendored packages keep upstream code style; lint/strictness gates exclude them (their tsconfigs relax our newer compiler flags locally).
-- One local patch exists from day one: hmr's locale-YAML imports removed (the runtime YAML import hook isn't vendored).
+- The harness fully owns its framework layer: auditable, patchable — an RC upstream can't break us, and we can fix framework bugs in-tree.
+- Built packages execute the same Cordis generation as source runs; removing workspace linking would silently substitute npm copies behind these package names.
+- Ownership was the durable consequence. The layer diverged far enough that no upstream sync is possible or wanted, so the packages are edited here directly and the Divergence log carries the rationale for non-obvious shapes.
+- One departure exists from day one: hmr's locale-YAML imports removed (the runtime YAML import hook is not part of this layer).

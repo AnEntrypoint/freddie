@@ -46,7 +46,7 @@ Point `cordis.yml` at it:
 - name: './lifecycle.ts'
 ```
 
-Run (`node --import tsx ../../vendor/cordis/bin.js`) and you get:
+Run (`node --import tsx ../../framework/cordis/bin.js`) and you get:
 
 ```
 heartbeat plugin loading

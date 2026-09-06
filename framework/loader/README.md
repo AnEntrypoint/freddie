@@ -1,14 +1,20 @@
-# @cordisjs/plugin-loader
+# @freddie/cordis-plugin-loader
 
 Runtime plugin loader for Cordis. The loader owns an `EntryTree`, imports plugin
 modules by name, applies their config, and keeps the running plugin graph in
 sync with entry updates.
 
+One of the harness's first-party framework packages — see
+[`framework/README.md`](../README.md) for the layer overview, and its divergence
+log for the transactional reconciliation and lazy config resolution this loader
+carries. It is a workspace package resolved through `pnpm-workspace.yaml`, not
+something installed separately.
+
 ## Usage
 
-```ts
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
+```js
+import { Context } from '@freddie/cordis'
+import Loader from '@freddie/cordis-plugin-loader'
 
 const root = new Context()
 await root.plugin(Loader, { baseUrl: import.meta.url })
@@ -45,4 +51,4 @@ root.loader.update(id, { config: { enabled: false } })
 | `loader.await()` | Wait for pending entry imports and fiber reloads. |
 | `loader.locate(fiber?)` | Return the loader entry id that owns a fiber. |
 
-For file-backed trees, use `@cordisjs/plugin-include`.
+For file-backed trees, use `@freddie/cordis-plugin-include`.

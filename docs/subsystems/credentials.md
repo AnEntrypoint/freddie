@@ -2,7 +2,7 @@
 
 The credential seam of [dsh-credentials](../../packages/credentials/credentials) keeps secrets out of configuration: settings sections and `cordis.yml` entries carry *references* (environment-variable names), providers such as [dsh-credentials-local](../../packages/credentials/credentials-local) own the values, and consumers resolve a reference once per operation — the LLM adapters resolve once per model request, so a rotated credential reaches the very next request without any restart. One seam-wide rule binds every provider: an empty stored value is absent everywhere.
 
-Source: [`packages/credentials/credentials/src/index.ts`](../../packages/credentials/credentials/src/index.ts)
+Source: [`packages/credentials/credentials/src/index.ts`](../../packages/credentials/credentials/src/index.js)
 
 ## Identity
 
@@ -208,7 +208,7 @@ abstract modifyRecord( key: CredentialKey, mutate: (current: CredentialRecord | 
 abstract deleteRecord(key: CredentialKey): Promise<void>
 ```
 
-Source: [`packages/credentials/credentials/src/index.ts`](../../packages/credentials/credentials/src/index.ts)
+Source: [`packages/credentials/credentials/src/index.ts`](../../packages/credentials/credentials/src/index.js)
 
 <a id="authorization-events"></a>
 
@@ -258,7 +258,7 @@ Committed change to a stored credential record: a `modifyRecord` that wrote, a `
 'credentials/record-updated'(key: CredentialKey): void
 ```
 
-Source: [`packages/credentials/credentials/src/types.ts`](../../packages/credentials/credentials/src/types.ts)
+Source: [`packages/credentials/credentials/src/types.ts`](../../packages/credentials/credentials/src/types.js)
 
 <a id="credentialsreference-updated--emit"></a>
 
@@ -282,5 +282,5 @@ Committed change to a provider-managed credential source: a `set`, an `unset`, o
 'credentials/reference-updated'(ref: CredentialRef): void
 ```
 
-Source: [`packages/credentials/credentials/src/types.ts`](../../packages/credentials/credentials/src/types.ts)
+Source: [`packages/credentials/credentials/src/types.ts`](../../packages/credentials/credentials/src/types.js)
 <!-- END GENERATED cordis-surface -->

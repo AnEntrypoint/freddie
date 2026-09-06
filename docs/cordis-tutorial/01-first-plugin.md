@@ -31,7 +31,7 @@ The file is a list of plugin entries. `name` is a module specifier — a relativ
 ## Run it
 
 ```sh
-node --import tsx ../../vendor/cordis/bin.js
+node --import tsx ../../framework/cordis/bin.js
 ```
 
 Expected output:

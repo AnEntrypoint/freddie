@@ -124,4 +124,4 @@ Every product feature maps to a listener on a documented extension point — the
 | Web Client Chat business node | register a `ConversationNodeDefinition` and `conversation.chat.node` keyed renderer |
 | SessionTelemetryBackend / replayable trace | `session/event` → JSONL; replay = `sessions.create(id, { seed })` |
 | Model adapters | `LlmAdapter` subclass via `registerAdapter` (`dsh-llm-deepseek`) |
-| Plugin hot-reload | every registration is a `ctx.effect` → vendored HMR just works |
+| Plugin hot-reload | every registration is a `ctx.effect` → the framework's HMR just works |

@@ -1,12 +1,17 @@
-# @cordisjs/plugin-logger-console
+# @freddie/cordis-plugin-logger-console
 
 Console exporter for the built-in Cordis logger service.
 
+One of the harness's first-party framework packages — see
+[`framework/README.md`](../README.md) for the layer overview. It is a workspace
+package resolved through `pnpm-workspace.yaml`, not something installed
+separately.
+
 ## Usage
 
-```ts
-import { Context } from 'cordis'
-import ConsoleLogger from '@cordisjs/plugin-logger-console'
+```js
+import { Context } from '@freddie/cordis'
+import ConsoleLogger from '@freddie/cordis-plugin-logger-console'
 
 const root = new Context()
 await root.plugin(ConsoleLogger, {
@@ -32,4 +37,5 @@ root.logger('app').info('started')
 | `label` | Label width, margin, and alignment options. |
 
 The Node entry uses `node:util.inspect` for `%o` and `%O`; the browser entry
-passes log arguments through to `console`.
+passes log arguments through to `console`. The `node`/`default` conditional
+export selects between `src/index.js` and `src/browser.js`.

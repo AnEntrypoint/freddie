@@ -4,7 +4,7 @@ The optional filesystem capability has four parts: [dsh-fs](../../packages/fs/fs
 
 `dsh-fs-observation-policy` is optional. Without it, the `FileSystem` Service Definition, a provider, and the `dsh-tool-fs` Consumer form the complete, unconstrained filesystem seam: `write` unconditionally creates or overwrites, and `edit` unconditionally replaces literal text. The policy plugin changes these operations by deciding the `fs/*` waterfalls. Removing it does not break the tool because the tool calls `ctx.fs` and dispatches events; it does not call policy methods. A deployment that loads `dsh-tool-fs` is expected to also load `dsh-fs-observation-policy` so the default behavior is read-before-write/edit.
 
-Provider source: [`packages/fs/fs/src/types.ts`](../../packages/fs/fs/src/types.ts) and [`packages/fs/fs/src/index.ts`](../../packages/fs/fs/src/index.ts). Policy source: [`packages/fs/fs-observation-policy/src/types.ts`](../../packages/fs/fs-observation-policy/src/types.ts). Read-rendering source: [`packages/fs/tool-fs/src/read-render.ts`](../../packages/fs/tool-fs/src/read-render.ts).
+Provider source: [`packages/fs/fs/src/types.ts`](../../packages/fs/fs/src/types.js) and [`packages/fs/fs/src/index.ts`](../../packages/fs/fs/src/index.js). Policy source: [`packages/fs/fs-observation-policy/src/types.ts`](../../packages/fs/fs-observation-policy/src/types.ts). Read-rendering source: [`packages/fs/tool-fs/src/read-render.ts`](../../packages/fs/tool-fs/src/read-render.js).
 
 ## Target identity and metadata (provider contract)
 
@@ -425,7 +425,7 @@ abstract editText( target: FsTarget, edit: FsEditRequest, expected?: { version: 
 
 Types: [SandboxExecutionPolicy](sandbox.md)
 
-Source: [`packages/fs/fs/src/index.ts`](../../packages/fs/fs/src/index.ts)
+Source: [`packages/fs/fs/src/index.ts`](../../packages/fs/fs/src/index.js)
 
 <a id="fs-events"></a>
 
@@ -448,7 +448,7 @@ Single-slot decision for the next FileSystem.editText. Calling `next()` yields a
 'fs/edit-intent'(target: FsTarget, actor: object | undefined, next: () => { version: FsVersion } | undefined | Promise<{ version: FsVersion } | undefined>): Promise<{ version: FsVersion } | undefined>
 ```
 
-Source: [`packages/fs/fs/src/index.ts`](../../packages/fs/fs/src/index.ts)
+Source: [`packages/fs/fs/src/index.ts`](../../packages/fs/fs/src/index.js)
 
 <a id="fsobserved--emit"></a>
 
@@ -469,7 +469,7 @@ Record an authoritative positive or negative observation. Listeners must be sync
 'fs/observed'(target: FsTarget, observation: FsObservation, actor: object | undefined): void
 ```
 
-Source: [`packages/fs/fs/src/index.ts`](../../packages/fs/fs/src/index.ts)
+Source: [`packages/fs/fs/src/index.ts`](../../packages/fs/fs/src/index.js)
 
 <a id="fswrite-intent--waterfall"></a>
 
@@ -489,5 +489,5 @@ Single-slot decision for the next FileSystem.writeText. Calling `next()` yields 
 'fs/write-intent'(target: FsTarget, actor: object | undefined, next: () => FsWriteIntent | undefined | Promise<FsWriteIntent | undefined>): Promise<FsWriteIntent | undefined>
 ```
 
-Source: [`packages/fs/fs/src/index.ts`](../../packages/fs/fs/src/index.ts)
+Source: [`packages/fs/fs/src/index.ts`](../../packages/fs/fs/src/index.js)
 <!-- END GENERATED cordis-surface -->

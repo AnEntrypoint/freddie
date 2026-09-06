@@ -36,7 +36,7 @@ A new test under `packages/client` must carry a face suffix. An unsuffixed file 
 - 4 Host-face specs in `packages/client/connection/tests/`, from `*.spec.ts` to `*.host.spec.ts`: `api-request-trust`, `http-bridge`, `node-half`, `websocket-downlink`.
 - 2 snapshot files, following their spec's name with unchanged content.
 
-`scripts/rescope-vendor.ts` names three of these specs in its exact-edit table, so those paths moved with them.
+`scripts/rescope-vendor.js` names three of these specs in its exact-edit table, so those paths moved with them.
 
 ## Alternatives considered
 

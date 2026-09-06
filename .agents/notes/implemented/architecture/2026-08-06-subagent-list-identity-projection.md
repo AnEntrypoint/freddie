@@ -30,7 +30,7 @@ Relationship to existing notes:
 
 ### `subagent` projection unit
 
-It hangs beside the existing `subagentTiming` ([projection.ts](../../../../packages/subagent/subagent/src/projection.ts), [projection-types.ts](../../../../packages/subagent/subagent/src/projection-types.ts)), under key `subagent`:
+It hangs beside the existing `subagentTiming` ([projection.ts](../../../../packages/subagent/subagent/src/projection.js), [projection-types.ts](../../../../packages/subagent/subagent/src/projection-types.js)), under key `subagent`:
 
 ```ts ignore-check
 export type SubagentIdentityProjection =
@@ -51,7 +51,7 @@ declare module '@freddie/freddie-session-projection/types' {
 
 ### Enumeration: subagent-owned live-preferred merge
 
-`listChildren`'s ([list-children.ts](../../../../packages/subagent/subagent/src/list-children.ts)) enumeration goes through no query service: the two sources `ctx.sessions.list()` and `ctx.get('sessionPersistence')?.list()` merge by id, with a live record overriding the same-id persisted record wholesale and no header consistency check. Everything enumeration needs is header facts:
+`listChildren`'s ([list-children.ts](../../../../packages/subagent/subagent/src/list-children.js)) enumeration goes through no query service: the two sources `ctx.sessions.list()` and `ctx.get('sessionPersistence')?.list()` merge by id, with a live record overriding the same-id persisted record wholesale and no header consistency check. Everything enumeration needs is header facts:
 
 - Filtering: `header.origin === 'subagent' && header.parentSession === parentSessionId`.
 - `hasChildren`: the same merged material, looked at one level down — a direct descendant exists with `origin === 'subagent'` whose `parentSession` is that child.
@@ -153,7 +153,7 @@ Consuming surfaces: diagnostic handling across wire, tool, and GUI **stays entir
 
 **Deleting diagnostic rows outright.** Deletion turns corpus-corruption visibility into rows silently vanishing, and wire/tool/GUI would each have to absorb contract and snapshot changes; retention only asks the list side to derive the classification from projection-value absence and activity, at zero cost. That damaged, dead child sessions in the corpus must be visible is the original motivation for diagnostics' existence, and with retention the consuming surfaces stay wholly unchanged.
 
-**A registry computation failure channel (per-unit fault tolerance plus a supplementary `failures` field).** To report corruption and unrecognized versions to consumers, the registry would catch unit exceptions and attach a per-key failure state beside the snapshot. Rejected: a failure is not a value and needs no channel — a unit never throws, absence is itself the signal, worst case the computation comes back empty, and how that is presented is the consumer's problem. An independent observation: the vendored Cordis `emit` ([vendor/cordis/src/events.ts](../../../../vendor/cordis/src/events.ts)) catches nothing a listener throws, so with the projection driver hanging off `session/event`, a unit exception would escape along emit — which adds weight to the "a unit never throws" discipline, but fixing emit fault tolerance is outside this note's scope.
+**A registry computation failure channel (per-unit fault tolerance plus a supplementary `failures` field).** To report corruption and unrecognized versions to consumers, the registry would catch unit exceptions and attach a per-key failure state beside the snapshot. Rejected: a failure is not a value and needs no channel — a unit never throws, absence is itself the signal, worst case the computation comes back empty, and how that is presented is the consumer's problem. An independent observation: the Cordis framework's `emit` ([framework/cordis/src/events.js](../../../../framework/cordis/src/events.js)) catches nothing a listener throws, so with the projection driver hanging off `session/event`, a unit exception would escape along emit — which adds weight to the "a unit never throws" discipline, but fixing emit fault tolerance is outside this note's scope.
 
 **Values landed with query index preparation.** Projection values folded into session index rows during the sqlite backend's reconciliation rebuild, for zero log reads in the steady read state: the `projectionsFor` bulk read face, the invalidation reconciliation of row values stored against the `(key → stateVersion)` registration set, and the SCHEMA bump. Retired wholesale: the direction was backwards — query infrastructure was forced to learn domain vocabulary (projection columns, registration-set reconciliation) while the sole consumer, the subagent list, is satisfied by read-time computation; with consumers down to zero, this derived persistence has no reason to exist. `SESSION_QUERY_PROJECTIONS_UNAVAILABLE` was deleted along with the read face.
 

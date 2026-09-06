@@ -19,7 +19,7 @@ These package-specific rules supplement the repo-wide [conventions](../AGENTS.md
 
 [Naming rules](../docs/cookbook/adding-a-package.md#name-the-role-that-exists):
 
-- **Package source is buildless plain JavaScript** (`src/*.js`, ESM), runnable directly under plain `node` with no transformation step; `tsdown` bundles a package's own `lib/` output only where a package declares one (browser bundles, a packaged worker), never as a precondition for running the package. `vendor/*` stays TypeScript-authored under its own build ([vendor's own AGENTS.md](../vendor/AGENTS.md)).
+- **Package source is buildless plain JavaScript** (`src/*.js`, ESM), runnable directly under plain `node` with no transformation step; `tsdown` bundles a package's own `lib/` output only where a package declares one (browser bundles, a packaged worker), never as a precondition for running the package. `framework/*` is buildless plain JavaScript too ([its own AGENTS.md](../framework/AGENTS.md)).
 - A package's README and JSDoc are part of the change: altered behavior (config keys, defaults, error codes, wire fields) updates them in the same commit; apply [freddie-prose-standard](../.agents/skills/freddie-prose-standard/SKILL.md) for complete, concise prose and verify accuracy against code.
 - Package READMEs document model, token, and KV-cache effects using the [canonical Model Experience format](../docs/cookbook/adding-a-package.md#4-write-the-package-readme).
 - Package READMEs put durable consumer gaps and non-obvious maintainer constraints under `## Known Limitations and Deferred Work`; ordinary cleanup stays in its TODO or Agent Note.

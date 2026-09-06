@@ -1,6 +1,6 @@
 # Cordis Primer
 
-Cordis is the vendored plugin framework underneath Freddie. This primer teaches the Cordis ideas a harness plugin author needs before reading the generated service/event reference on the [subsystem pages](subsystems/core.md); the [Cordis tutorial](cordis-tutorial/index.md) walks the same ideas hands-on. The vendored source and sync procedure live in [vendor/README.md](../vendor/README.md).
+Cordis is the plugin framework underneath Freddie. This primer teaches the Cordis ideas a harness plugin author needs before reading the generated service/event reference on the [subsystem pages](subsystems/core.md); the [Cordis tutorial](cordis-tutorial/index.md) walks the same ideas hands-on. The source is first-party and lives in [framework/README.md](../framework/README.md).
 
 ## Cordis In Five Ideas
 

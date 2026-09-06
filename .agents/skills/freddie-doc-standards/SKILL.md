@@ -34,7 +34,7 @@ Then check constraints that make placement expensive or wrong:
 
 After the structural pass, hunt the standard's slop checklist with the cheapest probes first. Verify and fetch the PR's live base, then run `pnpm --silent run change-scope --base <verified-base-ref>` to identify committed and dirty paths before applying semantic judgment. After a retarget or base merge, rerun the report and audit prose introduced by the new base.
 
-1. Measure: `pnpm run verify-doc-budgets --list`, then `git ls-files '*.md' ':(exclude)vendor/**' | xargs wc -w | sort -rn | head -30` to spot unbudgeted outliers.
+1. Measure: `pnpm run verify-doc-budgets --list`, then `git ls-files '*.md' | xargs wc -w | sort -rn | head -30` to spot unbudgeted outliers.
 2. Hunt reasoning-transcript leakage — narrated history, dead design-session citations, review choreography, control-flow narration, test walkthroughs — with [freddie-trim-cot-leakage](../freddie-trim-cot-leakage/SKILL.md), which defines the taxonomy, recall batteries, and rules for what to keep or delete. Preserve only a non-obvious contract or durable rationale; the same rationale repeated beside sibling methods keeps one home.
 3. Hunt duplication by grepping distinctive phrases. Keep one home and replace other copies with links.
 4. Replace hand-written catalogs, test/status inventories, and JSDoc restatements with the authoritative tree, script, or generated reference.

@@ -81,7 +81,7 @@ The `import type {} from '@freddie/freddie-tools'` line pulls in the package's d
 `@freddie/freddie-tools` injects the `systemPrompt` service because tools contribute schemas to the system prompt, so the composition lists its provider too. Without it, the tools plugin remains PENDING as described in [chapter 6](06-composition-and-hmr.md).
 
 ```sh
-node --import tsx ../../vendor/cordis/bin.js
+node --import tsx ../../framework/cordis/bin.js
 ```
 
 ```

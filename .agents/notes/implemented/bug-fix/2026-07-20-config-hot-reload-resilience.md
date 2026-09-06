@@ -8,7 +8,7 @@ An invalid `cordis.yml` edit must not kill a running agent, but preserving the p
 
 ## Decision
 
-The vendored Cordis lifecycle and Loader plugins provide an awaited, compensating config transaction, logged as local modifications 6, 8, and 9 in [vendor/README.md](../../../../vendor/README.md).
+The Cordis lifecycle and Loader framework packages provide an awaited, compensating config transaction, logged as divergence log entries 6, 8, and 9 in [framework/README.md](../../../../framework/README.md).
 
 `Fiber.update()` returns its `internal/update` waterfall result. Config validation remains synchronous, while the default continuation returns the restart promise. Loader entry updates can therefore distinguish validation, import, application, and rollback failure from successful lifecycle settlement. `EntryTree.await()` rechecks service-gated fibers after Loader tasks drain and rejects settled failures; a fiber waiting on an absent service remains a valid pending entry rather than making settlement hang.
 
@@ -32,7 +32,7 @@ HMR contains live refresh rejection. Its `registerConfig(filename, refresh)` met
 - A rollback failure is visible and may leave an entry unavailable; the event and log do not claim otherwise.
 - Fibers waiting on declared dependencies remain valid pending entries: lifecycle settlement means no current work failed, not that every dependency exists.
 - Exact config watchers add filesystem resources only for registered paths and release them with their owning HMR fiber.
-- The vendored Loader, Include, HMR, and core event typing diverge further from upstream; the complete divergence is maintained in the vendor manifest.
+- The framework's Loader, Include, HMR, and core event handling diverge further from the upstream ancestry; the complete divergence is maintained in the framework divergence log.
 
 ## Testing
 

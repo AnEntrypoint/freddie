@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-`apps/web/tests/pwsh-terminal.e2e.ts` fails on every platform with `TypeError: duplicate loader entry id: tool-pwsh`, thrown from `vendor/loader/src/config/group.ts:64` while applying the web composition. The failing seed lane boots the full shipped bundle plus a test overlay, so the E2E never reaches its rendering assertion and every `check:ci:snapshot`/`test:web` run reports a red web test even though the feature under test is unrelated to the change under review.
+`apps/web/tests/pwsh-terminal.e2e.ts` fails on every platform with `TypeError: duplicate loader entry id: tool-pwsh`, thrown from `framework/loader/src/config/group.js:64` while applying the web composition. The failing seed lane boots the full shipped bundle plus a test overlay, so the E2E never reaches its rendering assertion and every `check:ci:snapshot`/`test:web` run reports a red web test even though the feature under test is unrelated to the change under review.
 
 The web E2E scaffold applies an `extraOverlayPath` after the shipped Web surface and base patches. `pwsh-terminal.overlay.yml` used an `insert` block to add a `tool-pwsh` row:
 

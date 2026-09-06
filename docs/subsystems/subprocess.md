@@ -2,7 +2,7 @@
 
 The subprocess seam is split across a Service Definition ([dsh-subprocess](../../packages/subprocess/subprocess), `ctx.subprocess`) and Service Provider ([dsh-subprocess-local](../../packages/subprocess/subprocess-local)); its Consumers are other capability seams and out-of-process backends: the [bash executor family](shell.md) uses collected batch output, LSP uses raw protocol pipes, the PTY backend uses the terminal primitive, and the ACP subagent backend uses piped ndjson plus inherited stderr. This seam owns the managed `FREDDIE_*` environment namespace, the shared credential scrub (`scrubbedParentEnv`), and the `CollectedOutput` shape; [dsh-shell](../../packages/shell/shell) re-exports the vocabulary so bash consumers keep one import root.
 
-Source: [`packages/subprocess/subprocess/src/types.ts`](../../packages/subprocess/subprocess/src/types.ts) and [`packages/subprocess/subprocess/src/index.ts`](../../packages/subprocess/subprocess/src/index.ts)
+Source: [`packages/subprocess/subprocess/src/types.ts`](../../packages/subprocess/subprocess/src/types.js) and [`packages/subprocess/subprocess/src/index.ts`](../../packages/subprocess/subprocess/src/index.js)
 
 ## Executable lookup
 
@@ -244,7 +244,7 @@ The terminal spec fully specifies argv, cwd, environment overrides, dimensions, 
 
 ## Service behavior
 
-The abstract [`SubprocessRuntime`](../../packages/subprocess/subprocess/src/index.ts) Service Definition specifies execution-world coordinates, executable lookup, ordinary `spawn`, and `spawnTerminal`. [`LocalSubprocessRuntime`](../../packages/subprocess/subprocess-local/src/index.ts) provides them with detached process trees, per-disposition wiring, credential scrubbing, `node-pty`, platform process inspection, and terminate-and-join disposal. See [`dsh-subprocess`](../../packages/subprocess/subprocess/README.md) for the Service Definition contract and [`dsh-subprocess-local`](../../packages/subprocess/subprocess-local/README.md) for local mechanics.
+The abstract [`SubprocessRuntime`](../../packages/subprocess/subprocess/src/index.js) Service Definition specifies execution-world coordinates, executable lookup, ordinary `spawn`, and `spawnTerminal`. [`LocalSubprocessRuntime`](../../packages/subprocess/subprocess-local/src/index.js) provides them with detached process trees, per-disposition wiring, credential scrubbing, `node-pty`, platform process inspection, and terminate-and-join disposal. See [`dsh-subprocess`](../../packages/subprocess/subprocess/README.md) for the Service Definition contract and [`dsh-subprocess-local`](../../packages/subprocess/subprocess-local/README.md) for local mechanics.
 
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
@@ -269,7 +269,7 @@ Creates one lazily consumable E2B SDK handle and deletes the sandbox at timeout 
 async getSandbox(): Promise<Sandbox>
 ```
 
-Source: [`packages/e2b/e2b/src/index.ts`](../../packages/e2b/e2b/src/index.ts)
+Source: [`packages/e2b/e2b/src/index.ts`](../../packages/e2b/e2b/src/index.js)
 
 <a id="ctxsubprocess--subprocessruntime-abstract-seam"></a>
 
@@ -318,5 +318,5 @@ abstract spawn(spec: SubprocessSpawnSpec): SubprocessHandle
 abstract spawnTerminal(spec: SubprocessTerminalSpawnSpec): Promise<SubprocessTerminalHandle>
 ```
 
-Source: [`packages/subprocess/subprocess/src/index.ts`](../../packages/subprocess/subprocess/src/index.ts)
+Source: [`packages/subprocess/subprocess/src/index.ts`](../../packages/subprocess/subprocess/src/index.js)
 <!-- END GENERATED cordis-surface -->

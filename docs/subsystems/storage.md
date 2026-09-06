@@ -2,7 +2,7 @@
 
 The storage subsystem persists everything that is not a session event log (session logs have their own seam — [persistence.md](persistence.md)). It is one optional capability, not part of the agent-loop spine, split as a [capability seam](../../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md): the hub and Service Definition ([dsh-storage](../../packages/storage/storage), `ctx.storage`), the Service Providers ([dsh-storage-json](../../packages/storage/storage-json), registered as `json`, and [dsh-storage-sqlite](../../packages/storage/storage-sqlite), registered as `sqlite`), and the Consumer data form ([dsh-storage-domain](../../packages/storage/storage-domain), `ctx.storageDomain`, also reachable as `ctx.storage.domain`) — the backend contract's only Consumer and the typed API everything else uses. The hub performs no IO itself: backends own media, data forms own semantics, and product packages never touch backends directly. Design record: [domain KV storage Agent Note](../../.agents/notes/proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.md).
 
-Source: [`packages/storage/storage/src/backend.ts`](../../packages/storage/storage/src/backend.ts) · [`packages/storage/storage-domain/src/spec.ts`](../../packages/storage/storage-domain/src/spec.ts) · [`packages/storage/storage-domain/src/events.ts`](../../packages/storage/storage-domain/src/events.ts)
+Source: [`packages/storage/storage/src/backend.ts`](../../packages/storage/storage/src/backend.js) · [`packages/storage/storage-domain/src/spec.ts`](../../packages/storage/storage-domain/src/spec.js) · [`packages/storage/storage-domain/src/events.ts`](../../packages/storage/storage-domain/src/events.js)
 
 ## The hub: `ctx.storage`
 
@@ -42,7 +42,7 @@ interface StorageBackend {
 }
 ```
 
-A backend owns one medium (a file-tree root, a database file) and exposes optional operation groups; `kv` is the only group today. `KvFacet.open(descriptor)` opens one named unit — `KvUnitDescriptor` carries the name, format version, table names, and whether a global singleton slot exists — and returns a `KvUnit` with `loadAll`, `putRecord`, `deleteRecord`, `setGlobal`, and `close`. Unit and table names must match `UNIT_NAME_RE` (safe as a file name and as a SQL identifier segment); record keys are arbitrary strings that never reach file paths. A unit does not serialize concurrent writes — ordering belongs to the caller — but each single call is atomic on the medium and durable once resolved. A medium stamped with a different version rejects `version-mismatch`; one that cannot be parsed as the unit rejects `malformed-medium` (no migration, pre-release stance). [`backend.ts`](../../packages/storage/storage/src/backend.ts) is the normative clause-by-clause contract, and the shared conformance suite in [`tests/contract.ts`](../../packages/storage/storage/tests/contract.ts) checks every clause against each backend. The [json backend](../../packages/storage/storage-json/README.md) republishes one whole human-readable file per unit atomically; the [sqlite backend](../../packages/storage/storage-sqlite/README.md) stores one document per row in one database for frequently updated data.
+A backend owns one medium (a file-tree root, a database file) and exposes optional operation groups; `kv` is the only group today. `KvFacet.open(descriptor)` opens one named unit — `KvUnitDescriptor` carries the name, format version, table names, and whether a global singleton slot exists — and returns a `KvUnit` with `loadAll`, `putRecord`, `deleteRecord`, `setGlobal`, and `close`. Unit and table names must match `UNIT_NAME_RE` (safe as a file name and as a SQL identifier segment); record keys are arbitrary strings that never reach file paths. A unit does not serialize concurrent writes — ordering belongs to the caller — but each single call is atomic on the medium and durable once resolved. A medium stamped with a different version rejects `version-mismatch`; one that cannot be parsed as the unit rejects `malformed-medium` (no migration, pre-release stance). [`backend.ts`](../../packages/storage/storage/src/backend.js) is the normative clause-by-clause contract, and the shared conformance suite in [`tests/contract.ts`](../../packages/storage/storage/tests/contract.ts) checks every clause against each backend. The [json backend](../../packages/storage/storage-json/README.md) republishes one whole human-readable file per unit atomically; the [sqlite backend](../../packages/storage/storage-sqlite/README.md) stores one document per row in one database for frequently updated data.
 
 ## Declaring a domain
 
@@ -154,7 +154,7 @@ mount<K extends keyof StorageForms>(form: K, facility: StorageForms[K]): () => v
 form<K extends keyof StorageForms>(form: K): StorageForms[K]
 ```
 
-Source: [`packages/storage/storage/src/index.ts`](../../packages/storage/storage/src/index.ts)
+Source: [`packages/storage/storage/src/index.ts`](../../packages/storage/storage/src/index.js)
 
 <a id="ctxstoragedomain--domainfacility"></a>
 
@@ -199,7 +199,7 @@ get(name: string): DomainImpl | undefined
 async closeAll(): Promise<void>
 ```
 
-Source: [`packages/storage/storage-domain/src/index.ts`](../../packages/storage/storage-domain/src/index.ts)
+Source: [`packages/storage/storage-domain/src/index.ts`](../../packages/storage/storage-domain/src/index.js)
 
 <a id="domain-events"></a>
 
@@ -223,5 +223,5 @@ A domain record or the global singleton changed, emitted once per write strictly
 'domain/changed'(change: DomainChanged): void
 ```
 
-Source: [`packages/storage/storage-domain/src/events.ts`](../../packages/storage/storage-domain/src/events.ts)
+Source: [`packages/storage/storage-domain/src/events.ts`](../../packages/storage/storage-domain/src/events.js)
 <!-- END GENERATED cordis-surface -->

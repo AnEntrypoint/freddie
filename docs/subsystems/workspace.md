@@ -145,7 +145,7 @@ Abstract directory-picking service. Subclass, implement `capability()`, and load
 abstract capability(): DirectoryPickerCapability
 ```
 
-Source: [`packages/host/directory-picker/src/index.ts`](../../packages/host/directory-picker/src/index.ts)
+Source: [`packages/host/directory-picker/src/index.ts`](../../packages/host/directory-picker/src/index.js)
 
 <a id="ctxworkspaceregistry--workspaceregistry"></a>
 
@@ -222,5 +222,5 @@ async resolveByPath(path: string): Promise<Workspace | undefined>
 
 Types: [SessionId](core.md)
 
-Source: [`packages/workspace/workspace/src/index.ts`](../../packages/workspace/workspace/src/index.ts)
+Source: [`packages/workspace/workspace/src/index.ts`](../../packages/workspace/workspace/src/index.js)
 <!-- END GENERATED cordis-surface -->

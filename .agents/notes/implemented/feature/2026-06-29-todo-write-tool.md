@@ -36,7 +36,7 @@ The schema enforces type/required/enum. Beyond that, `execute` rejects empty or 
 
 ## Why no cordis-catalog entry / no `@mode`
 
-`todo/write` is a member of `SessionEventMap`, not a first-class cordis `interface Events` event. The catalog generator (`scripts/gen-cordis-catalog.ts`) scans `interface Events` declarations; a `SessionEventMap` variant rides the existing `session/event` emit and produces no new catalog row. So it carries no `@mode` tag (which the generator requires only on `interface Events` members) — adding one would be meaningless.
+`todo/write` is a member of `SessionEventMap`, not a first-class cordis `interface Events` event. The catalog generator scans `interface Events` declarations; a `SessionEventMap` variant rides the existing `session/event` emit and produces no new catalog row. So it carries no `@mode` tag (which the generator requires only on `interface Events` members) — adding one would be meaningless.
 
 ## Testing
 

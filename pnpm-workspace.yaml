@@ -12,12 +12,12 @@ packages:
   # plain-node (`:lib`) boot of any leaf (examples/<leaf>/cordis.yml) resolves its
   # plugins through real package `exports`→lib by walking up to examples/node_modules.
   # Members for DEPENDENCY RESOLUTION only — NOT build targets: tsdown's explicit
-  # globs (vendor/*, packages/*/*) exclude them. See examples/AGENTS.md and the archived
+  # globs (framework/*, packages/*/*) exclude them. See examples/AGENTS.md and the archived
   # run-ci-examples-from-built-lib Agent Note.
   - examples
 
-# Vendored framework packages keep their upstream semver ranges, while local
-# builds must resolve those matching names to this workspace's pinned sources.
+# The framework/ packages continue the semver ranges they inherited, while local
+# builds must resolve those matching names to this workspace's own copies.
 linkWorkspacePackages: true
 
 overrides:

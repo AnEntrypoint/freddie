@@ -2,7 +2,7 @@
 
 The [skill capability family](../../packages/skill) includes the Service Definition ([dsh-skill](../../packages/skill/skill), `ctx.skills`), the local Service Provider ([dsh-skill-filesystem](../../packages/skill/skill-filesystem)), the optional packaged badge provider ([dsh-skill-badge](../../packages/skill/skill-badge)), and the Consumer ([dsh-tool-skill](../../packages/skill/tool-skill)). The registry merges provider catalogs across its host and per-scope layers; providers contribute local or packaged skills; the Consumer owns the initial and replacement catalogs plus the model-facing `skill` tool. Skills are optional instructions, not session events, so their vocabulary lives here rather than in [core.md](core.md).
 
-Source: [`packages/skill/skill/src/index.ts`](../../packages/skill/skill/src/index.ts), [`packages/skill/skill-filesystem/src/index.ts`](../../packages/skill/skill-filesystem/src/index.ts), [`packages/skill/skill-badge/src/index.ts`](../../packages/skill/skill-badge/src/index.ts), and [`packages/skill/tool-skill/src/index.ts`](../../packages/skill/tool-skill/src/index.ts).
+Source: [`packages/skill/skill/src/index.ts`](../../packages/skill/skill/src/index.js), [`packages/skill/skill-filesystem/src/index.ts`](../../packages/skill/skill-filesystem/src/index.js), [`packages/skill/skill-badge/src/index.ts`](../../packages/skill/skill-badge/src/index.js), and [`packages/skill/tool-skill/src/index.ts`](../../packages/skill/tool-skill/src/index.js).
 
 ## Provider registry
 
@@ -302,7 +302,7 @@ async snapshot(options: SkillViewOptions = {}): Promise<SkillCatalogSnapshot>
 async get(name: string, options: SkillViewOptions = {}): Promise<SkillDefinition | undefined>
 ```
 
-Source: [`packages/skill/skill/src/index.ts`](../../packages/skill/skill/src/index.ts)
+Source: [`packages/skill/skill/src/index.ts`](../../packages/skill/skill/src/index.js)
 
 <a id="skills-events"></a>
 
@@ -325,5 +325,5 @@ A skill provider, runtime contribution, or provider-backed catalog may have chan
 'skills/change'(): void
 ```
 
-Source: [`packages/skill/skill/src/index.ts`](../../packages/skill/skill/src/index.ts)
+Source: [`packages/skill/skill/src/index.ts`](../../packages/skill/skill/src/index.js)
 <!-- END GENERATED cordis-surface -->

@@ -2,12 +2,12 @@
 
 Status: resolved
 
-> **2026-09-04 addendum:** the vendored `@freddie/cordis-plugin-loader` now
+> **2026-09-04 addendum:** our `@freddie/cordis-plugin-loader` now
 > interpolates `!!js` expressions in `disabled` too (`Entry.disabledOf`,
 > `packages/client/vendor-modules/vendor/@freddie/cordis-plugin-loader@1.0.2/src/config/entry.js:88-91`)
 > — a framework-level fix distinct from this postmortem's own overlay
 > workaround. `disabled: !!js ...` is safe to use directly again as of this
-> vendored version; the win32/non-win32 bash-vs-cordis selectors in
+> loader version; the win32/non-win32 bash-vs-cordis selectors in
 > `apps/cli/config/agent-presets/*/agent.cordis.yml` and
 > `packages/bundle/base/cordis.patch.yml` rely on exactly this and are
 > confirmed correctly evaluated, not silently truthy. The narrative below

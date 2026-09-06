@@ -2,7 +2,7 @@
 
 [`@freddie/freddie-message-feedback`](../../packages/feedback/message-feedback) owns editable feedback for individual assistant messages. It is deliberately separate from the immutable Session-level `feedback/record` event: message feedback is a local storage-domain sidecar, not Session-log content or a projection, and it performs no telemetry handoff.
 
-Source: [`packages/feedback/message-feedback/src/types.ts`](../../packages/feedback/message-feedback/src/types.ts)
+Source: [`packages/feedback/message-feedback/src/types.ts`](../../packages/feedback/message-feedback/src/types.js)
 
 ## Public types
 
@@ -260,5 +260,5 @@ Storage-domain sidecar service. It inspects persisted Session history and never 
 @Remote('delete') delete(request: MessageFeedbackDeleteRequest): Promise<MessageFeedbackDeleteResult>
 ```
 
-Source: [`packages/feedback/message-feedback/src/index.ts`](../../packages/feedback/message-feedback/src/index.ts)
+Source: [`packages/feedback/message-feedback/src/index.ts`](../../packages/feedback/message-feedback/src/index.js)
 <!-- END GENERATED cordis-surface -->

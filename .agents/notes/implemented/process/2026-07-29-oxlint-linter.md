@@ -6,7 +6,7 @@ Status: implemented
 
 The repository needs type-aware TypeScript correctness rules, consistent formatting, and file-local duplicate-logic checks across its owned source. ESLint supplied those checks through a JavaScript parser, a project service, and multiple plugins, but a clean lint run spent about one minute on the local migration baseline and required an 8 GiB Node heap, CI result caches, and separately tuned ESLint concurrency.
 
-A faster runner cannot justify losing rules. The migration must preserve the strict type-checked preset, repository overrides, inline suppressions, @stylistic fixes, SonarJS checks, host/client TypeScript separation, and the vendor exclusion.
+A faster runner cannot justify losing rules. The migration must preserve the strict type-checked preset, repository overrides, inline suppressions, @stylistic fixes, SonarJS checks, host/client TypeScript separation, and the framework-layer exclusion.
 
 ## Decision
 
@@ -14,7 +14,7 @@ The root [`.oxlintrc.json`](../../../../.oxlintrc.json) is the authoritative typ
 
 `options.typeAware` enables `oxlint-tsgolint`. Its backend performs per-file TypeScript-project discovery: package sources use their package projects, host tests/examples/website use `tsconfig.host.json`, and client tests plus `scripts/client-bundle-purity.spec.ts` use `tsconfig.client.json`. The program-less root solution is never flattened. Oxlint's `--tsconfig` override affects import resolution but is ignored by type-aware linting, so this repository does not set it. The configuration explicitly carries the migrated strict-type-checked rules and repository overrides instead of enabling broad Oxlint categories whose contents may change. `typescript/no-unnecessary-condition` remains enabled from Oxlint's nursery set because it was an enforced repository rule before migration.
 
-Oxlint's JavaScript-plugin compatibility layer runs `@stylistic/eslint-plugin` and `eslint-plugin-sonarjs` so the existing formatting and file-local duplicate-logic rules remain enforced. The compatibility layer reports `@stylistic` violations and executes their safe fixes; `max-len` remains validation-only. Owned-source suppressions use `oxlint-*` directives and the `typescript/*` namespace, and unused directives remain warnings; vendored sources keep their upstream directives because Oxlint excludes `vendor/**`.
+Oxlint's JavaScript-plugin compatibility layer runs `@stylistic/eslint-plugin` and `eslint-plugin-sonarjs` so the existing formatting and file-local duplicate-logic rules remain enforced. The compatibility layer reports `@stylistic` violations and executes their safe fixes; `max-len` remains validation-only. Owned-source suppressions use `oxlint-*` directives and the `typescript/*` namespace, and unused directives remain warnings; framework sources keep their inherited directives because Oxlint excludes `framework/**`.
 
 CI does not restore or save a lint-result cache. `FREDDIE_OXLINT_THREADS` makes the shared runner pass the same bound to Oxlint's `--threads` option and the type-aware backend's `GOMAXPROCS` environment variable; ordinary local runs use both defaults. Pre-commit runs project-free Oxlint validation and safe fixes with one bounded retry, accepts selections containing only ignored files, and re-stages the result through lefthook. Public `lint` and CI retain the complete type-aware rules after preparing generated declarations.
 

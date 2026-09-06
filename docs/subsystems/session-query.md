@@ -2,7 +2,7 @@
 
 Query vocabulary over the live-preferred logical session corpus. The [Service Definition package](../../packages/session-query/session-query) owns exact reads, source precedence, relationship tracing, semantic extraction, and provider-independent filters, while the [SQLite provider](../../packages/session-query/session-query-sqlite) owns the concrete full-text index lifecycle.
 
-Source: [`packages/session-query/session-query/src/types.ts`](../../packages/session-query/session-query/src/types.ts)
+Source: [`packages/session-query/session-query/src/types.ts`](../../packages/session-query/session-query/src/types.js)
 
 ## Logical records
 
@@ -489,5 +489,5 @@ async readEvent(request: SessionEventReadRequest, signal?: AbortSignal): Promise
 
 Types: [SessionId](core.md) · [SessionTitleSnapshot](session-title.md)
 
-Source: [`packages/session-query/session-query/src/index.ts`](../../packages/session-query/session-query/src/index.ts)
+Source: [`packages/session-query/session-query/src/index.ts`](../../packages/session-query/session-query/src/index.js)
 <!-- END GENERATED cordis-surface -->

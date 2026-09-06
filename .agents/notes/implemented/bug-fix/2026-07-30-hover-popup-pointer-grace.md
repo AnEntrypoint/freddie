@@ -8,7 +8,7 @@ Both popups the workspace browser rows raise floated out of reach of the pointer
 
 ## Decision
 
-`usePointerGrace` ([packages/client/ui-primitives/src/pointer-grace.ts](../../../../packages/client/ui-primitives/src/pointer-grace.ts)) owns one cancelable delayed close, shared by both atoms, with `POINTER_GRACE_MS` at 200. Leaving arms the close; coming back cancels it. Transit through an anchor-to-popup gap is therefore survivable, while a pointer that has genuinely moved on still dismisses the popup.
+`usePointerGrace` ([packages/client/ui-primitives/src/pointer-grace.ts](../../../../packages/client/ui-primitives/src/pointer-grace.js)) owns one cancelable delayed close, shared by both atoms, with `POINTER_GRACE_MS` at 200. Leaving arms the close; coming back cancels it. Transit through an anchor-to-popup gap is therefore survivable, while a pointer that has genuinely moved on still dismisses the popup.
 
 `HoverCard` arms the grace on leave instead of closing, and its card no longer sets `pointer-events: none`, so resting on the card holds it open. Re-entering while already open cancels the pending close without restarting the dwell, which keeps the card from blinking when the pointer crosses the gap. A press on the card starts a selection instead of dismissing it; only anchor-region presses and an owner flipping `disabled` dismiss immediately, ahead of the grace.
 

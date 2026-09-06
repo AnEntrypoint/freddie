@@ -8,7 +8,7 @@ Status: implemented
 
 ## Decision
 
-`scripts/verify-cordis-config.ts` (`validateSourcePlaneResolution`) requires every configured specifier of a local workspace package — harness packages and vendored Cordis alike — to resolve through the `tsconfig.base.json` `paths` facade to a `.ts`/`.tsx` source file, using `ts.resolveModuleName` from the repository root. A failed resolution or a `.d.ts` hit (the `exports` fallback into built `lib/types`) fails `verify-cordis-config`, naming the config files and the specifier. The missing `@freddie/freddie-tui/prompt` mapping is added next to the other explicit subpath entries; removing it reproduces the gate failure.
+`scripts/verify-cordis-config.ts` (`validateSourcePlaneResolution`) requires every configured specifier of a local workspace package — harness packages and the Cordis framework alike — to resolve through the `tsconfig.base.json` `paths` facade to a `.ts`/`.tsx` source file, using `ts.resolveModuleName` from the repository root. A failed resolution or a `.d.ts` hit (the `exports` fallback into built `lib/types`) fails `verify-cordis-config`, naming the config files and the specifier. The missing `@freddie/freddie-tui/prompt` mapping is added next to the other explicit subpath entries; removing it reproduces the gate failure.
 
 ## Alternatives considered
 

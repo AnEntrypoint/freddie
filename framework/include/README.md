@@ -1,15 +1,21 @@
-# @cordisjs/plugin-include
+# @freddie/cordis-plugin-include
 
 File-backed loader tree for Cordis. The include plugin reads a YAML or JSON
 file, turns it into loader entries, and writes updates back when the file is
 writable.
 
+One of the harness's first-party framework packages — see
+[`framework/README.md`](../README.md) for the layer overview, and its divergence
+log for the patch semantics, serialized child-tree mutation, and durable
+debounced writes this include carries. It is a workspace package resolved
+through `pnpm-workspace.yaml`, not something installed separately.
+
 ## Usage
 
-```ts
-import { Context } from 'cordis'
-import Loader from '@cordisjs/plugin-loader'
-import Include from '@cordisjs/plugin-include'
+```js
+import { Context } from '@freddie/cordis'
+import Loader from '@freddie/cordis-plugin-loader'
+import Include from '@freddie/cordis-plugin-include'
 
 const root = new Context()
 await root.plugin(Loader, { baseUrl: import.meta.url })
@@ -24,7 +30,7 @@ Example `cordis.yml`:
 
 ```yaml
 - id: timer
-  name: '@cordisjs/plugin-timer'
+  name: '@freddie/cordis-plugin-timer'
 - id: app
   name: ./plugins/app
   config:
@@ -41,3 +47,7 @@ Example `cordis.yml`:
 | `enableLogs` | Enables loader apply, reload, and unload logs. |
 
 Patches can insert entries or override fields on entries with a matching `id`.
+The patch algorithm is also exported as the pure function
+`applyEntryPatches(data, patches, warn)`, alongside the `!!js`-dialect
+`entryListSchema`, so config tooling (`--dump-config`) can compose exactly what
+the include would mount without booting a tree.

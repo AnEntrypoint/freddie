@@ -11,7 +11,7 @@ The complete npm transitive closure, including the Landlock launcher workspace, 
 
 ## Framework source (`framework/`)
 
-The Cordis framework and its foundation libraries are source-vendored into this repository rather than consumed from npm, and republished under the `@freddie` scope. All are MIT-licensed; each directory preserves its upstream `LICENSE` file. Exact upstream commits and local modifications are recorded in [`framework/README.md`](framework/README.md).
+The Cordis framework and its foundation libraries are maintained as first-party source in this repository rather than consumed from npm, and published under the `@freddie` scope. All are MIT-licensed; each directory preserves the `LICENSE` file of the project it descends from. Ancestry and divergence are recorded in [`framework/README.md`](framework/README.md).
 
 | Package | Upstream name | Upstream | License |
 | --- | --- | --- | --- |

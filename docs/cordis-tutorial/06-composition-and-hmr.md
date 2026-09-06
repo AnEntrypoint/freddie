@@ -42,7 +42,7 @@ Two support plugins joined the list: HMR logs through the Cordis logger service,
 HMR reads Node's loader internals through the Loader's native helper. Run Cordis under tsx:
 
 ```sh
-node --import tsx ../../vendor/cordis/bin.js
+node --import tsx ../../framework/cordis/bin.js
 ```
 
 Now edit `hello.ts` — change the log message — and save:
@@ -98,7 +98,7 @@ export function apply(ctx: Context) {
 - name: './diagnose.ts'
 ```
 
-Run it (plain `node --import tsx ../../vendor/cordis/bin.js`; stop with Ctrl-C):
+Run it (plain `node --import tsx ../../framework/cordis/bin.js`; stop with Ctrl-C):
 
 ```
 needs-timer is PENDING — a required service is missing

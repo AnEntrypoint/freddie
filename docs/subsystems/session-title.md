@@ -2,7 +2,7 @@
 
 Durable latest-wins title state and the optional asynchronous provider vocabulary owned by [`@freddie/freddie-session-title`](../../packages/session/session-title). The shared LLM helper owns the exact auxiliary request record. Package READMEs own timing, fallback, failure, and fork behavior; the generated [persistence catalog](../persistence-catalog.md) owns the complete event declarations.
 
-Sources: [`packages/session/session-title/src/index.ts`](../../packages/session/session-title/src/index.ts), [`packages/session/session-title-llm/src/index.ts`](../../packages/session/session-title-llm/src/index.ts)
+Sources: [`packages/session/session-title/src/index.ts`](../../packages/session/session-title/src/index.js), [`packages/session/session-title-llm/src/index.ts`](../../packages/session/session-title-llm/src/index.js)
 
 ## Durable title state
 
@@ -198,5 +198,5 @@ register(provider: SessionTitleProvider): () => Promise<void>
 
 Types: [Session](session.md)
 
-Source: [`packages/session/session-title/src/index.ts`](../../packages/session/session-title/src/index.ts)
+Source: [`packages/session/session-title/src/index.ts`](../../packages/session/session-title/src/index.js)
 <!-- END GENERATED cordis-surface -->

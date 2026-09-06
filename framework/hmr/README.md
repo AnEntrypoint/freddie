@@ -1,6 +1,12 @@
-# @cordisjs/plugin-hmr
+# @freddie/cordis-plugin-hmr
 
 Hot module replacement for loader-managed Cordis plugins.
+
+One of the harness's first-party framework packages — see
+[`framework/README.md`](../README.md) for the layer overview, and its divergence
+log for the exact config watching and initial-scan suppression behavior this
+plugin carries. It is a workspace package resolved through
+`pnpm-workspace.yaml`, not something installed separately.
 
 The HMR plugin watches source files, traces Node's module graph, clears affected
 module caches, and reloads only the plugin entries that depend on changed
@@ -15,8 +21,8 @@ spelling even when Windows supplied an 8.3 alias.
 
 ## Requirements
 
-- `@cordisjs/plugin-loader`
-- `@cordisjs/plugin-timer`
+- `@freddie/cordis-plugin-loader`
+- `@freddie/cordis-plugin-timer`
 - A runtime that exposes Node's internal module loader. The package throws if
   the loader service has no internal module loader available.
 
@@ -24,9 +30,9 @@ spelling even when Windows supplied an 8.3 alias.
 
 ```yaml
 - id: timer
-  name: '@cordisjs/plugin-timer'
+  name: '@freddie/cordis-plugin-timer'
 - id: hmr
-  name: '@cordisjs/plugin-hmr'
+  name: '@freddie/cordis-plugin-hmr'
   config:
     root:
       - src
@@ -51,3 +57,4 @@ spelling even when Windows supplied an 8.3 alias.
 | --- | --- |
 | `hmr/change` | Emitted for changed files that are not handled by plugin reload or config reload. |
 | `hmr/reload` | Emitted after one or more plugin entries are reloaded. |
+| `hmr/config-update-failed` | Emitted in parallel when an exact-config refresh fails; the error is normalized and logged. |

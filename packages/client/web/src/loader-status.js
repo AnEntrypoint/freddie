@@ -8,7 +8,7 @@
 /**
  * Value mirror of cordis's `FiberState` const enum: a const enum has no
  * runtime object to import (and esbuild-based pipelines cannot inline it
- * across modules), so these values mirror the pinned vendored definition
+ * across modules), so these values mirror the framework definition
  * (same rationale as freddie-tool-cordis's mirror).
  */
 export const FIBER_STATE = {

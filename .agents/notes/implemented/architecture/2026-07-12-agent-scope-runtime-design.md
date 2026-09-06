@@ -44,7 +44,7 @@ All agents share one Cordis service graph. A derived context does not clone `Too
 
 A Cordis fiber is the live instance created when a plugin or child context is activated. Its state records whether that lifecycle is active, unloading, failed, or disposed. `ctx.effect()` and `ctx.on()` return disposers and also attach those disposers to the registering fiber, so unloading a plugin or agent scope removes everything registered through that context without a separate inventory.
 
-The vendored Cordis fiber implementation establishes ownership before arbitrary setup or `internal/plugin` observers run. A reentrant unload can see the child fiber or effect that has started, reject effects added after unload begins, and join cleanup already started through a public single-shot disposer. Teardown observers are contained individually so one callback cannot prevent structural cleanup.
+The Cordis framework's fiber implementation establishes ownership before arbitrary setup or `internal/plugin` observers run. A reentrant unload can see the child fiber or effect that has started, reject effects added after unload begins, and join cleanup already started through a public single-shot disposer. Teardown observers are contained individually so one callback cannot prevent structural cleanup.
 
 These are framework lifecycle guarantees rather than agent-specific policy. Agent creation depends on them because setup can activate arbitrary plugins and synchronously reenter owner disposal.
 

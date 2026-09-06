@@ -322,7 +322,7 @@ class FreddieFamily extends ReleaseFamily {
   installedEntry = { packageName: '@freddie/freddie', binPath: 'lib/bin.js' }
 }
 
-/** `vendor/*`: every package keeps its own version line, so every package has its own tag. */
+/** `framework/*`: every package keeps its own version line, so every package has its own tag. */
 class VendorFamily extends ReleaseFamily {
   id = 'vendor'
   patterns = ['framework/*/package.json']

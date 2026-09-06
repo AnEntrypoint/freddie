@@ -12,7 +12,7 @@ The duplicate path also exposed less configuration than a bundle. Its `repositor
 
 Freddie has one standalone external-Plugin distribution path: installable profile bundles. `dsh plugin --profile <name> add <package-or-git-spec>` records the dependency in the profile package, and the installed package declares `dsh.bundle.patch` to contribute its patch layer. The package manager owns source acquisition, versions, dependencies, build lifecycles, and its lockfile. The bundle patch owns Cordis Plugin selection and complete Plugin config.
 
-The `@freddie/freddie-repository-plugin` package, `.dsh-plugin` authoring format, `dsh-plugin-prepare` executable, generated wrapper, immutable repository cache, base `repository-plugins` row, and dedicated GitHub acceptance lane are removed. The unused vendored `@cordisjs/plugin-loader/repository` subpath and its bundled pnpm dependency are removed with their only consumer. Existing repository cache directories are inert user data; FREDDIE neither reads nor deletes them.
+The `@freddie/freddie-repository-plugin` package, `.dsh-plugin` authoring format, `dsh-plugin-prepare` executable, generated wrapper, immutable repository cache, base `repository-plugins` row, and dedicated GitHub acceptance lane are removed. The unused `@freddie/cordis-plugin-loader/repository` subpath and its bundled pnpm dependency are removed with their only consumer. Existing repository cache directories are inert user data; FREDDIE neither reads nor deletes them.
 
 Bundles compose existing owners directly. A bundle that contributes Skills mounts `@freddie/freddie-skill-filesystem`; one that contributes MCP servers mounts `@freddie/freddie-mcp-client`; native behavior mounts an ordinary compiled Cordis Plugin. These packages retain their own validation, lifecycle, registration, and teardown contracts. No compatibility parser or migration from `.dsh-plugin` is retained under the pre-release compatibility policy.
 
@@ -24,7 +24,7 @@ This note consolidates the removed repository cache, static format, config-only 
 
 **Teach the repository wrapper to load a bundle patch.** Rejected because the repository cache and preparation protocol would still duplicate profile dependency installation. Bundle packages are already accepted from npm, Git, file, and link specifications through pnpm.
 
-**Keep the generic Loader repository cache for possible future consumers.** Rejected because it has no current consumer after the package removal and carries a pinned package-manager runtime in a vendored browser-adjacent package. A dedicated cache is warranted again only if configuration-time activation without an explicit installation becomes a product requirement that profile dependencies cannot satisfy; that consumer can choose its cache contract then.
+**Keep the generic Loader repository cache for possible future consumers.** Rejected because it has no current consumer after the package removal and carries a pinned package-manager runtime in a framework package. A dedicated cache is warranted again only if configuration-time activation without an explicit installation becomes a product requirement that profile dependencies cannot satisfy; that consumer can choose its cache contract then.
 
 **Disable repository Plugin but retain its on-disk format for migration.** Rejected under the pre-release stance. Retaining a parser or compatibility loader would keep the removed contract alive without an external compatibility obligation.
 

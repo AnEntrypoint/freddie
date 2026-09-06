@@ -12,7 +12,7 @@ This codebase is developed primarily by coding agents. Agents follow enforced ga
 
 Every mechanically checkable AGENTS.md promise that can still be checked without a build or test step gets a command that exits non-zero:
 
-- [Oxlint](2026-07-29-oxlint-linter.md) with the @stylistic and SonarJS compatibility plugins, enforcing house style and file-local duplicated-logic checks; vendored code excluded.
+- [Oxlint](2026-07-29-oxlint-linter.md) with the @stylistic and SonarJS compatibility plugins, enforcing house style and file-local duplicated-logic checks; the framework layer excluded.
 - jscpd detects cross-file clones in package production source and repository scripts; narrow source-range exceptions document deliberately parallel implementations.
 - knip (dead code/deps) and publint (package correctness).
 - lefthook pre-commit applies project-free Oxlint validation and [safe fixes with a bounded retry](2026-08-09-oxlint-only-fix-workflow.md), and rejects staged whitespace.

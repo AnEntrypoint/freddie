@@ -14,7 +14,7 @@ The pnpm patch at `patches/webjsx@0.0.73.patch` is the source of the Node skip; 
 
 The keyedMap builder uses the same predicate as the new-child key read: skip a raw DOM Node **or** anything that is not a VElement (`!isVElement(matchingVNode)`). That covers string/number/bigint primitives without changing keyed VElement handling.
 
-The guard lives in both `patches/webjsx@0.0.73.patch` (pnpm's patched `node_modules` copy) and `packages/client/vendor-modules/vendor/webjsx@0.0.73/dist/applyDiff.js` (the served copy). `generate-vendor.mjs` asserts the vendored file contains `!isVElement(matchingVNode)` so a regenerate cannot drop it.
+The guard lives in both `patches/webjsx@0.0.73.patch` (pnpm's patched `node_modules` copy) and `packages/client/vendor-modules/vendor/webjsx@0.0.73/dist/applyDiff.js` (the served copy). `packages/client/vendor-modules/scripts/generate-vendor.mjs` asserts the vendored file contains `!isVElement(matchingVNode)` so a regenerate cannot drop it.
 
 ## Alternatives considered
 

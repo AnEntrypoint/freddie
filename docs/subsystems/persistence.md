@@ -40,7 +40,7 @@ interface SessionLocation {
 
 Per-session metadata travels **separately** from the event log: format version, cwd, lineage, and the seed boundary are storage concerns, not conversation events, so they stay out of `SessionEventMap` and never reach `deriveMessages()`. The header is attached to a `Session` via `session.header`.
 
-Source: [`packages/core/session/src/types.ts`](../../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts`](../../packages/core/session/src/types.js)
 
 ```ts type-equiv
 /**
@@ -379,5 +379,5 @@ abstract listSnapshots(signal?: AbortSignal): Promise<SessionPersistenceSnapshot
 
 Types: [SessionEvent](session.md) · [SessionId](core.md)
 
-Source: [`packages/session/session-persistence/src/index.ts`](../../packages/session/session-persistence/src/index.ts)
+Source: [`packages/session/session-persistence/src/index.ts`](../../packages/session/session-persistence/src/index.js)
 <!-- END GENERATED cordis-surface -->

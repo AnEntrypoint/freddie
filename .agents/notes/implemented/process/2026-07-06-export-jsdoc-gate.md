@@ -8,7 +8,7 @@ The [cordis JSDoc completeness gate](../../archived/process/2026-07-04-cordis-js
 
 ## Decision
 
-A new gate, `scripts/verify-export-jsdoc.ts` (`pnpm run verify-export-jsdoc`, wired into `doc-sync` beside `verify-cordis-catalog`), walks every module-level exported name under each `packages/<group>/<pkg>/src/` tree. The parsing and check helpers moved from `gen-cordis-catalog.ts` into a shared `scripts/jsdoc.ts`, so "documented" means the same thing on both surfaces: description prose ends at the first block tag, every checkable parameter needs a non-empty `@param`, a non-void ANNOTATED return needs a non-empty `@returns`, a stale `@param` errors, and violations aggregate into one report.
+A new gate, `scripts/verify-export-jsdoc.ts` (`pnpm run verify-export-jsdoc`, wired into `doc-sync` beside `verify-cordis-catalog`), walks every module-level exported name under each `packages/<group>/<pkg>/src/` tree. The parsing and check helpers moved from the cordis-catalog generator into a shared JSDoc module, so "documented" means the same thing on both surfaces: description prose ends at the first block tag, every checkable parameter needs a non-empty `@param`, a non-void ANNOTATED return needs a non-empty `@returns`, a stale `@param` errors, and violations aggregate into one report.
 
 The contract by declaration kind:
 
@@ -30,8 +30,8 @@ Three exemption families keep the gate from demanding boilerplate, in the spirit
 
 ## Alternatives considered
 
-- **eslint-plugin-jsdoc** (`require-jsdoc`/`require-param`/`require-returns`) — covers the mechanical core but cannot express the repo's contract: the heritage-member exemption needs cross-package type resolution, the protocol-slot and namespace-merge idioms are cordis-specific, and the completeness semantics (prose-above-tags, stale-tag errors, aggregate reporting) already have one home in `scripts/jsdoc.ts` shared with the catalog generator. Two subtly different definitions of "documented" is the failure mode this repo's one-home rule exists to prevent.
-- **Extending `gen-cordis-catalog.ts`** — the catalog generator renders a curated API and gates its freshness; a repo-wide walk has no catalog to render. Sharing the helpers while keeping the walks separate keeps each gate's scope legible.
+- **eslint-plugin-jsdoc** (`require-jsdoc`/`require-param`/`require-returns`) — covers the mechanical core but cannot express the repo's contract: the heritage-member exemption needs cross-package type resolution, the protocol-slot and namespace-merge idioms are cordis-specific, and the completeness semantics (prose-above-tags, stale-tag errors, aggregate reporting) already have one home in the shared JSDoc module the catalog generator also uses. Two subtly different definitions of "documented" is the failure mode this repo's one-home rule exists to prevent.
+- **Extending the cordis-catalog generator** — the catalog generator renders a curated API and gates its freshness; a repo-wide walk has no catalog to render. Sharing the helpers while keeping the walks separate keeps each gate's scope legible.
 - **Enforcing interface/type-alias member docs** — deferred: it would multiply the checked scope for members that are largely self-describing fields, while the seam classes carrying the load-bearing member contracts are already gated. Revisit if member-doc drift shows up in review.
 
 ## Consequences

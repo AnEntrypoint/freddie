@@ -2,7 +2,7 @@
 
 The user-settings seam of [dsh-settings](../../packages/settings/settings) holds one user-owned document of per-namespace sections and resolves each registered namespace as schema defaults, then the registrant's composition `base`, then the user section. Providers such as [dsh-settings-file](../../packages/settings/settings-file) store the raw document and push external edits; consumer plugins register a schema and read or observe the resolved value. Composition config stays in `cordis.yml` — a namespace carries only the user-editable subset.
 
-Source: [`packages/settings/settings/src/index.ts`](../../packages/settings/settings/src/index.ts)
+Source: [`packages/settings/settings/src/index.ts`](../../packages/settings/settings/src/index.js)
 
 ## Identity
 
@@ -250,7 +250,7 @@ async replace(ns: SettingsNamespace, section: object, expectedRevision?: number)
 async mutate(ns: SettingsNamespace, ops: readonly SettingsPathOp[], expectedRevision?: number): Promise<void>
 ```
 
-Source: [`packages/settings/settings/src/index.ts`](../../packages/settings/settings/src/index.ts)
+Source: [`packages/settings/settings/src/index.ts`](../../packages/settings/settings/src/index.js)
 
 <a id="settings-events"></a>
 

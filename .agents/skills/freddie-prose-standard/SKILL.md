@@ -19,7 +19,7 @@ Accept `mode: automatic | interactive`; default to `automatic`. Enter interactiv
 
 `mode` controls questions, not write authority. Review and audit tasks report findings without editing; explicitly requested write, fix, or trim tasks apply clear changes.
 
-Always exclude `vendor/` from discovery, review, and edits, even when the requested scope is the whole repository. Do not follow a symlink into it. Put exclusions after inclusion globs so a later include cannot re-admit it: for example, end ripgrep commands with `--glob '!vendor/**'`, and give Git commands an explicit `:(exclude)vendor/**` pathspec. If the requested scope contains only `vendor/`, report that no eligible files remain.
+`framework/` is first-party prose and is in scope like any other directory; it is not excluded. Its packages descend from upstream projects but are maintained here, so their docs are ours to hold to this standard. The one exception is the `LICENSE` file in each package directory, which is a legal artifact preserved verbatim and never edited.
 
 Also exclude `.agents/notes/archived/` from prose review and edits. Archived Agent Notes are frozen snapshots; inspect an exact target only to understand a historical inbound citation, never to modernize its prose or outbound links.
 
@@ -67,7 +67,7 @@ Preserve searchable mechanism names and meaningful modal, temporal, or negative 
 3. Inspect the requested scope, not only the largest files. Use searches and word counts to find candidates, then judge passages semantically.
 4. Classify each candidate as keep, add, trim, restore, restructure, or defer. Apply clear changes only when the task authorizes edits; do not manufacture edits to satisfy a deletion target.
 5. Update the owner before derivative artifacts. Re-check analogous passages after learning a new rule.
-6. Run the narrow relevant checks, documentation gates, `git diff --check`, and behavior tests for visible strings. Verify the final diff contains no `vendor/` path and report any accidental vendor match rather than claiming a clean exclusion history.
+6. Run the narrow relevant checks, documentation gates, `git diff --check`, and behavior tests for visible strings. Verify the final diff touches no `LICENSE` file and no `.agents/notes/archived/` path.
 7. Report the inspected scope, clear changes, deliberate keeps, deferred cases, and checks actually run.
 
 ## Borderline decisions

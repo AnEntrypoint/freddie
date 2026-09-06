@@ -12,7 +12,7 @@ The same `scaffold/` group also contained the independently used SDK protocol, T
 
 ## Decision
 
-The SDK project toolchain is deleted. The `@freddie/create-sdk`, `@freddie/freddie-scripts`, `@freddie/freddie-helper`, and `@freddie/freddie-telemetry` packages, their binaries, tests, templates, feature catalog, project-editing model, package-manager support, launcher telemetry, and repository creation skill have no replacement or compatibility layer. Their workspace, build, test, packaging, documentation-generator, vendoring-rescope, and dependency records are removed with them.
+The SDK project toolchain is deleted. The `@freddie/create-sdk`, `@freddie/freddie-scripts`, `@freddie/freddie-helper`, and `@freddie/freddie-telemetry` packages, their binaries, tests, templates, feature catalog, project-editing model, package-manager support, launcher telemetry, and repository creation skill have no replacement or compatibility layer. Their workspace, build, test, packaging, documentation-generator, rescope, and dependency records are removed with them.
 
 The runtime SDK remains. `@freddie/freddie-sdk-client`, `@freddie/freddie-sdk-protocol`, and `@freddie/freddie-sdk-jsonrpc-server` move unchanged from `packages/scaffold/` to `packages/sdk/`; their npm names and wire behavior do not change. Consumers continue to provide an executable plus an external `cordis.yml`, and the JSON-RPC server remains an ordinary plugin selected by that configuration. The [repository naming contract](../architecture/2026-08-11-repository-naming-contract-and-rename-ledger.md) owns this one repository meaning of `SDK` and the surviving package names; this note owns the deleted toolchain.
 

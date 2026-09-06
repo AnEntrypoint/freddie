@@ -112,7 +112,7 @@ Ask the user a concise question when you need confirmation, a choice, or missing
 }
 ```
 
-Source: [`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.ts)
+Source: [`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.js)
 
 ask_user_question pauses the tool call until the active UI provider returns a human answer.
 
@@ -144,7 +144,7 @@ Execute a TypeScript program against the available tools. Takes two required arg
 }
 ```
 
-Source: [`packages/core/tools/src/code-mode.ts`](../packages/core/tools/src/code-mode.ts)
+Source: [`packages/core/tools/src/code-mode.ts`](../packages/core/tools/src/code-mode.js)
 
 Owned by the tool registry as a reserved transport outside filterable capability layers under `mode: code` / `mode: both` (see the Code Mode Agent Note). Under `code` it is the registry's only wire contribution; the other visible capabilities are declared in a generated SDK section in the loaded runtime's language, and a program calls them through bindings scheduled under the native concurrency contract (submission-ordered starts and policy; concurrency-safe bodies overlap up to `maxParallelSubCalls`) that re-enter the complete guarded tool pipeline and link each nested execution to this outer result.
 
@@ -171,7 +171,7 @@ Use only in plan mode. Present your plan for the user's review and, on approval,
 }
 ```
 
-Source: [`packages/plan/plan-mode/src/index.ts`](../packages/plan/plan-mode/src/index.ts)
+Source: [`packages/plan/plan-mode/src/index.ts`](../packages/plan/plan-mode/src/index.js)
 
 exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-questions seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary.
 
@@ -215,7 +215,7 @@ Execute a bash command (`bash -c`) and return its stdout/stderr. Each call runs 
 }
 ```
 
-Source: [`packages/shell/tool-bash/src/index.ts`](../packages/shell/tool-bash/src/index.ts)
+Source: [`packages/shell/tool-bash/src/index.ts`](../packages/shell/tool-bash/src/index.js)
 
 The bash tool is the model-facing consumer of the bash executor seam. A `run_in_background` run registers with the generic `ctx.jobs` runtime and is collected/stopped through the `job_*` tools from `@freddie/freddie-tool-jobs`; the `enableRunInBackground` config (default true) removes the parameter entirely when disabled.
 
@@ -259,7 +259,7 @@ Execute a PowerShell command (`pwsh -Command`) and return its stdout/stderr. Eac
 }
 ```
 
-Source: [`packages/shell/tool-pwsh/src/index.ts`](../packages/shell/tool-pwsh/src/index.ts)
+Source: [`packages/shell/tool-pwsh/src/index.ts`](../packages/shell/tool-pwsh/src/index.js)
 
 The pwsh tool is the PowerShell-dialect consumer of the bash executor seam for Windows compositions (a PowerShell executor such as `@freddie/freddie-pwsh-local` backs `ctx.shell`); it mirrors the bash tool call-for-call minus sandbox controls — `run_in_background` runs register with the generic `ctx.jobs` runtime and are collected/stopped through the `job_*` tools, and the managed `FREDDIE_*` environment comes from `@freddie/freddie-shell-env`. Each call runs in a fresh process (no persistent PTY session), with native `C:\...` paths and `$env:NAME` variables.
 
@@ -347,7 +347,7 @@ Define an immutable Cordis Package. For a new Plugin, use kind:"new" and provide
 }
 ```
 
-Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.ts)
+Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.js)
 
 ### `cordis_inspect_list`
 
@@ -360,7 +360,7 @@ List every Cordis Inspect Provider currently known to the Host, including local 
 }
 ```
 
-Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.ts)
+Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.js)
 
 ### `cordis_inspect_query`
 
@@ -398,7 +398,7 @@ Run a read-only query explicitly declared by an Inspect Provider. platform, prov
 }
 ```
 
-Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.ts)
+Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.js)
 
 ### `cordis_inspect_self`
 
@@ -420,7 +420,7 @@ Inspect dynamic Cordis objects owned by the current Session at increasing levels
 }
 ```
 
-Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.ts)
+Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.js)
 
 ### `cordis_run`
 
@@ -455,7 +455,7 @@ Activate one exact Package of a dynamic Plugin. Use mode:"run" for the first act
 }
 ```
 
-Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.ts)
+Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.js)
 
 ### `cordis_stop`
 
@@ -476,7 +476,7 @@ Stop the current Run of a dynamic Plugin and cancel unfinished approval or activ
 }
 ```
 
-Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.ts)
+Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.js)
 
 ### `cordis_undefine`
 
@@ -497,7 +497,7 @@ Permanently remove a dynamic Plugin owned by the current Session. If it is runni
 }
 ```
 
-Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.ts)
+Source: [`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.js)
 
 Not in any shipped tree (a deliberate opt-in — dynamic package code reaches the real runtime, see .agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md). The toolset injects `ctx.dynamicCordisRunner` from `@freddie/freddie-cordis-host-runner`, which owns the definition registry and the vm sandbox; a composition missing it never activates the tools. A running package may register ADDITIONAL model-visible tools until it is stopped, undefined, or FREDDIE restarts; a full changed request header logs those tool-set changes.
 
@@ -551,7 +551,7 @@ Run commands in a persistent PowerShell shell. State, including the current dire
 }
 ```
 
-Source: [`packages/shell/tool-pwsh-persistent/src/index.ts`](../packages/shell/tool-pwsh-persistent/src/index.ts)
+Source: [`packages/shell/tool-pwsh-persistent/src/index.ts`](../packages/shell/tool-pwsh-persistent/src/index.js)
 
 One owner-isolated persistent pwsh tool, the Windows counterpart of the persistent bash tool; deployment composition supplies a pwsh-dialect PTY backend and may override the model-facing environment description.
 
@@ -621,7 +621,7 @@ Notes for using the `str_replace` command:
 }
 ```
 
-Source: [`packages/fs/tool-str-replace-editor/src/index.ts`](../packages/fs/tool-str-replace-editor/src/index.ts)
+Source: [`packages/fs/tool-str-replace-editor/src/index.ts`](../packages/fs/tool-str-replace-editor/src/index.js)
 
 Standalone view/create/unique literal replace/line insert tool over the filesystem seam; it composes with any shell or terminal API.
 
@@ -662,7 +662,7 @@ Edit an existing UTF-8 text file by replacing literal text.
 }
 ```
 
-Source: [`packages/fs/tool-fs/src/index.ts`](../packages/fs/tool-fs/src/index.ts)
+Source: [`packages/fs/tool-fs/src/index.ts`](../packages/fs/tool-fs/src/index.js)
 
 ### `read`
 
@@ -691,7 +691,7 @@ Read a UTF-8 text file and return line-numbered content.
 }
 ```
 
-Source: [`packages/fs/tool-fs/src/index.ts`](../packages/fs/tool-fs/src/index.ts)
+Source: [`packages/fs/tool-fs/src/index.ts`](../packages/fs/tool-fs/src/index.js)
 
 ### `read_image`
 
@@ -712,7 +712,7 @@ Read a PNG/JPEG/WebP/GIF file and return the image itself. Harness validates and
 }
 ```
 
-Source: [`packages/fs/tool-fs/src/index.ts`](../packages/fs/tool-fs/src/index.ts)
+Source: [`packages/fs/tool-fs/src/index.ts`](../packages/fs/tool-fs/src/index.js)
 
 ### `write`
 
@@ -738,7 +738,7 @@ Create or fully replace a UTF-8 text file.
 }
 ```
 
-Source: [`packages/fs/tool-fs/src/index.ts`](../packages/fs/tool-fs/src/index.ts)
+Source: [`packages/fs/tool-fs/src/index.ts`](../packages/fs/tool-fs/src/index.js)
 
 The read-before-write/edit policy is added by `@freddie/freddie-fs-observation-policy` (an `fs/*` event-gate plugin, no schema change); a deployment that loads these tools is expected to also load it. The image tool is not registered without `ctx.attachments`; its schema is route-independent, and execution refuses unless the exact routed model declares image input.
 
@@ -769,7 +769,7 @@ Find files whose paths match a glob pattern. Returns matching file paths — nev
 }
 ```
 
-Source: [`packages/fs/tool-fs-search/src/index.ts`](../packages/fs/tool-fs-search/src/index.ts)
+Source: [`packages/fs/tool-fs-search/src/index.ts`](../packages/fs/tool-fs-search/src/index.js)
 
 ### `grep`
 
@@ -798,7 +798,7 @@ Search file contents with a ripgrep regular expression. Returns matching lines w
 }
 ```
 
-Source: [`packages/fs/tool-fs-search/src/index.ts`](../packages/fs/tool-fs-search/src/index.ts)
+Source: [`packages/fs/tool-fs-search/src/index.ts`](../packages/fs/tool-fs-search/src/index.js)
 
 glob and grep are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background jobs) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments.
 
@@ -825,7 +825,7 @@ Close one persistent terminal and wait until its captured owned process tree is 
 }
 ```
 
-Source: [`packages/terminal/tool-terminal/src/index.ts`](../packages/terminal/tool-terminal/src/index.ts)
+Source: [`packages/terminal/tool-terminal/src/index.ts`](../packages/terminal/tool-terminal/src/index.js)
 
 ### `terminal_list`
 
@@ -838,7 +838,7 @@ List persistent terminal sessions owned by the current agent.
 }
 ```
 
-Source: [`packages/terminal/tool-terminal/src/index.ts`](../packages/terminal/tool-terminal/src/index.ts)
+Source: [`packages/terminal/tool-terminal/src/index.ts`](../packages/terminal/tool-terminal/src/index.js)
 
 ### `terminal_open`
 
@@ -867,7 +867,7 @@ Create a persistent, owner-isolated terminal session from a registered backend t
 }
 ```
 
-Source: [`packages/terminal/tool-terminal/src/index.ts`](../packages/terminal/tool-terminal/src/index.ts)
+Source: [`packages/terminal/tool-terminal/src/index.ts`](../packages/terminal/tool-terminal/src/index.js)
 
 ### `terminal_read`
 
@@ -896,7 +896,7 @@ Read a bounded page of retained output from a persistent terminal without sendin
 }
 ```
 
-Source: [`packages/terminal/tool-terminal/src/index.ts`](../packages/terminal/tool-terminal/src/index.ts)
+Source: [`packages/terminal/tool-terminal/src/index.ts`](../packages/terminal/tool-terminal/src/index.js)
 
 ### `terminal_send`
 
@@ -930,7 +930,7 @@ Send text to a persistent terminal. By default Enter is submitted and the call w
 }
 ```
 
-Source: [`packages/terminal/tool-terminal/src/index.ts`](../packages/terminal/tool-terminal/src/index.ts)
+Source: [`packages/terminal/tool-terminal/src/index.ts`](../packages/terminal/tool-terminal/src/index.js)
 
 ### `terminal_signal`
 
@@ -963,7 +963,7 @@ Send an allowed signal to the current foreground process group of a persistent t
 }
 ```
 
-Source: [`packages/terminal/tool-terminal/src/index.ts`](../packages/terminal/tool-terminal/src/index.ts)
+Source: [`packages/terminal/tool-terminal/src/index.ts`](../packages/terminal/tool-terminal/src/index.js)
 
 The six terminal tools are opt-in and complement one-shot shell/filesystem tools. `terminal_send(run_in_background: true)` registers with `ctx.jobs`; TUI, named key sequences, BEL, resize, auto-start, and cross-agent sharing are absent from the schema.
 
@@ -994,7 +994,7 @@ Create one persisted same-session completion goal when the current direct human 
 }
 ```
 
-Source: [`packages/goal/tool-goal/src/index.ts`](../packages/goal/tool-goal/src/index.ts)
+Source: [`packages/goal/tool-goal/src/index.ts`](../packages/goal/tool-goal/src/index.js)
 
 ### `get_goal`
 
@@ -1007,7 +1007,7 @@ Read the current same-session goal, including its exact id/revision, objective, 
 }
 ```
 
-Source: [`packages/goal/tool-goal/src/index.ts`](../packages/goal/tool-goal/src/index.ts)
+Source: [`packages/goal/tool-goal/src/index.ts`](../packages/goal/tool-goal/src/index.js)
 
 ### `update_goal`
 
@@ -1057,7 +1057,7 @@ Update the exact current goal revision. edit, pause, and resume require a direct
 }
 ```
 
-Source: [`packages/goal/tool-goal/src/index.ts`](../packages/goal/tool-goal/src/index.ts)
+Source: [`packages/goal/tool-goal/src/index.ts`](../packages/goal/tool-goal/src/index.js)
 
 create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds.
 
@@ -1120,7 +1120,7 @@ Create one reminder in the current session. Supply a non-empty prompt and exactl
 }
 ```
 
-Source: [`packages/schedule/schedule/src/tools.ts`](../packages/schedule/schedule/src/tools.ts)
+Source: [`packages/schedule/schedule/src/tools.ts`](../packages/schedule/schedule/src/tools.js)
 
 ### `schedule_delete`
 
@@ -1141,7 +1141,7 @@ Delete one active reminder in the current session by the exact id returned by sc
 }
 ```
 
-Source: [`packages/schedule/schedule/src/tools.ts`](../packages/schedule/schedule/src/tools.ts)
+Source: [`packages/schedule/schedule/src/tools.ts`](../packages/schedule/schedule/src/tools.js)
 
 ### `schedule_list`
 
@@ -1154,7 +1154,7 @@ List every active reminder in the current session in creation order, including i
 }
 ```
 
-Source: [`packages/schedule/schedule/src/tools.ts`](../packages/schedule/schedule/src/tools.ts)
+Source: [`packages/schedule/schedule/src/tools.ts`](../packages/schedule/schedule/src/tools.js)
 
 Registered only inside live root Agent scopes created after the opt-in Schedule plugin loads. Version 1 accepts after_seconds, explicit absolute at, and bounded fixed-rate every_seconds, and discloses session-local delivery; management reads and mutations require the shared Session persistence barrier.
 
@@ -1233,7 +1233,7 @@ Run a foreground fresh-agent Ralph loop toward one immutable objective. Use only
 }
 ```
 
-Source: [`packages/workflow/tool-ralph/src/index.ts`](../packages/workflow/tool-ralph/src/index.ts)
+Source: [`packages/workflow/tool-ralph/src/index.ts`](../packages/workflow/tool-ralph/src/index.js)
 
 A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap.
 
@@ -1260,7 +1260,7 @@ Load the full instructions for an available skill. Call this with the exact skil
 }
 ```
 
-Source: [`packages/skill/tool-skill/src/index.ts`](../packages/skill/tool-skill/src/index.ts)
+Source: [`packages/skill/tool-skill/src/index.ts`](../packages/skill/tool-skill/src/index.js)
 
 <a id="deepseek-aidsh-tool-session-query"></a>
 
@@ -1297,7 +1297,7 @@ Read one full unabridged event and optional neighboring raw-event summaries from
 }
 ```
 
-Source: [`packages/session-query/tool-session-query/src/index.ts`](../packages/session-query/tool-session-query/src/index.ts)
+Source: [`packages/session-query/tool-session-query/src/index.ts`](../packages/session-query/tool-session-query/src/index.js)
 
 ### `session_event_search`
 
@@ -1357,7 +1357,7 @@ Search prior events in one authorized session; the current session excludes the 
 }
 ```
 
-Source: [`packages/session-query/tool-session-query/src/index.ts`](../packages/session-query/tool-session-query/src/index.ts)
+Source: [`packages/session-query/tool-session-query/src/index.ts`](../packages/session-query/tool-session-query/src/index.js)
 
 ### `session_event_trace`
 
@@ -1382,7 +1382,7 @@ Read every direct replacement and relationship to a cited source event for one e
 }
 ```
 
-Source: [`packages/session-query/tool-session-query/src/index.ts`](../packages/session-query/tool-session-query/src/index.ts)
+Source: [`packages/session-query/tool-session-query/src/index.ts`](../packages/session-query/tool-session-query/src/index.js)
 
 ### `session_search`
 
@@ -1475,7 +1475,7 @@ Search prior sessions in the caller workspace and return the strongest matching 
 }
 ```
 
-Source: [`packages/session-query/tool-session-query/src/index.ts`](../packages/session-query/tool-session-query/src/index.ts)
+Source: [`packages/session-query/tool-session-query/src/index.ts`](../packages/session-query/tool-session-query/src/index.js)
 
 ### `session_trace`
 
@@ -1493,7 +1493,7 @@ Read the authorized session lineage around one session, including complete visib
 }
 ```
 
-Source: [`packages/session-query/tool-session-query/src/index.ts`](../packages/session-query/tool-session-query/src/index.ts)
+Source: [`packages/session-query/tool-session-query/src/index.ts`](../packages/session-query/tool-session-query/src/index.js)
 
 The five read-only tools hide provider cursors and authorize every result from the immutable calling agent session. The package is opt-in; compositions that need enforced deadlines or bounded inline output also mount the generic timeout or spill policies.
 
@@ -1529,7 +1529,7 @@ Delegate a self-contained task to a subagent (a separate agent that works in its
 }
 ```
 
-Source: [`packages/subagent/tool-subagent/src/index.ts`](../packages/subagent/tool-subagent/src/index.ts)
+Source: [`packages/subagent/tool-subagent/src/index.ts`](../packages/subagent/tool-subagent/src/index.js)
 
 The registered tool name is the load-time `toolName` config (default `subagent`); the schema above is that default. The shipped compositions load this package once per subagent backend, so the model additionally sees `subagent_fork` bound to the fork backend. Each instance's description, `run_in_background` parameter, and system-prompt policy follow its own `backgroundMode` and `enableRunInBackground`, so the two shipped schemas are not identical: `subagent` is `continuable` and defaults omitted calls to background with automatic settlement delivery, while `subagent_fork` stays `one-shot` and defaults them to foreground — see `packages/bundle/base/cordis.patch.yml` and `examples/acp-agent/cordis.yml`.
 
@@ -1556,7 +1556,7 @@ Request cancellation of a background agent's current turn by its agent id. The t
 }
 ```
 
-Source: [`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts)
+Source: [`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.js)
 
 ### `list_agents`
 
@@ -1578,7 +1578,7 @@ List your continuable background subagents by durable id and label. Use it to re
 }
 ```
 
-Source: [`packages/subagent/tool-subagent-control/src/list-agents.ts`](../packages/subagent/tool-subagent-control/src/list-agents.ts)
+Source: [`packages/subagent/tool-subagent-control/src/list-agents.ts`](../packages/subagent/tool-subagent-control/src/list-agents.js)
 
 ### `send_message`
 
@@ -1604,7 +1604,7 @@ Send a message to a background subagent by its subagent id, continuing the same 
 }
 ```
 
-Source: [`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts)
+Source: [`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.js)
 
 The globally named control tools over continuable background subagents: provider-bound `tool-subagent` instances register distinct delegation tools, while this package registers `send_message` and `interrupt_agent` once, plus `list_agents` from its separately loaded `/list-agents` plugin (whose catalog rows use the sessionProjections and live Agent registries).
 
@@ -1631,7 +1631,7 @@ Report selected content to the agent that started you. Call this once before you
 }
 ```
 
-Source: [`packages/subagent/tool-subagent-report/src/index.ts`](../packages/subagent/tool-subagent-report/src/index.ts)
+Source: [`packages/subagent/tool-subagent-report/src/index.ts`](../packages/subagent/tool-subagent-report/src/index.js)
 
 Registered per continuable in-process child rather than globally, so this schema is visible only inside such a child and survives its global `toolFilter`. The same contribution installs the child-scoped `tool:report` prompt section, which this catalog does not render. The parent-facing `send_message` tool is installed independently.
 
@@ -1662,7 +1662,7 @@ Request cancellation of a running background job by job id. Returns immediately;
 }
 ```
 
-Source: [`packages/jobs/tool-jobs/src/index.ts`](../packages/jobs/tool-jobs/src/index.ts)
+Source: [`packages/jobs/tool-jobs/src/index.ts`](../packages/jobs/tool-jobs/src/index.js)
 
 ### `job_list`
 
@@ -1675,7 +1675,7 @@ List your background jobs (running and finished) with their ids, kinds, and stat
 }
 ```
 
-Source: [`packages/jobs/tool-jobs/src/index.ts`](../packages/jobs/tool-jobs/src/index.ts)
+Source: [`packages/jobs/tool-jobs/src/index.ts`](../packages/jobs/tool-jobs/src/index.js)
 
 ### `job_output`
 
@@ -1704,7 +1704,7 @@ Read a background job. Stream jobs return only output since the previous read; f
 }
 ```
 
-Source: [`packages/jobs/tool-jobs/src/index.ts`](../packages/jobs/tool-jobs/src/index.ts)
+Source: [`packages/jobs/tool-jobs/src/index.ts`](../packages/jobs/tool-jobs/src/index.js)
 
 The kind-agnostic background-job controller: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the controller that arms producers' `ctx.jobs.start()`.
 
@@ -1736,7 +1736,7 @@ Send a durable follow-up task to another Team member and start a turn when neede
 }
 ```
 
-Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.js)
 
 ### `interrupt_agent`
 
@@ -1757,7 +1757,7 @@ Interrupt one teammate's current turn while preserving its pending inbox. Team L
 }
 ```
 
-Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.js)
 
 ### `list_agents`
 
@@ -1770,7 +1770,7 @@ List the Lead and every durable teammate with current runtime status.
 }
 ```
 
-Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.js)
 
 ### `send_message`
 
@@ -1796,7 +1796,7 @@ Send durable information to another Team member without starting an idle member.
 }
 ```
 
-Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.js)
 
 ### `spawn_teammate`
 
@@ -1835,7 +1835,7 @@ Create one named, durable teammate. Only the Team Lead may call this tool.
 }
 ```
 
-Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.js)
 
 ### `team_task_create`
 
@@ -1875,7 +1875,7 @@ Create one unowned pending task on the shared Team task board.
 }
 ```
 
-Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.js)
 
 ### `team_task_get`
 
@@ -1896,7 +1896,7 @@ Read the complete latest value of one shared task before changing or executing i
 }
 ```
 
-Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.js)
 
 ### `team_task_list`
 
@@ -1935,7 +1935,7 @@ List shared tasks, including readiness, owner, revision, blockers, and write-sco
 }
 ```
 
-Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.js)
 
 ### `team_task_update`
 
@@ -2002,7 +2002,7 @@ Compare-and-set a shared task action using the latest revision from team_task_ge
 }
 ```
 
-Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.js)
 
 ### `wait_agent`
 
@@ -2020,7 +2020,7 @@ Wait for the next teammate status, mailbox, or shared-task change after this cal
 }
 ```
 
-Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+Source: [`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.js)
 
 All ten tools are scoped to implicit Team Leads and durable teammates. The shipped dsh-base bundle keeps the package disabled; the documented Agent Teams profile patch enables it while disabling the legacy continuable-child control names.
 
@@ -2070,7 +2070,7 @@ Record and update a structured task list for the current work. Send the ENTIRE l
 }
 ```
 
-Source: [`packages/todo/tool-todo/src/index.ts`](../packages/todo/tool-todo/src/index.ts)
+Source: [`packages/todo/tool-todo/src/index.ts`](../packages/todo/tool-todo/src/index.js)
 
 todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task.
 
@@ -2167,7 +2167,7 @@ Constraints: concurrency and total-agent caps apply; no filesystem, network, tim
 }
 ```
 
-Source: [`packages/workflow/tool-workflow/src/index.ts`](../packages/workflow/tool-workflow/src/index.ts)
+Source: [`packages/workflow/tool-workflow/src/index.ts`](../packages/workflow/tool-workflow/src/index.js)
 
 <a id="deepseek-aidsh-tool-web"></a>
 
@@ -2192,7 +2192,7 @@ Fetch the content of a specific HTTP(S) URL and return it decoded to text.
 }
 ```
 
-Source: [`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.ts)
+Source: [`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.js)
 
 ### `web_search`
 
@@ -2216,6 +2216,6 @@ Search the web for current information. Provide 1–4 queries in the required qu
 }
 ```
 
-Source: [`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.ts)
+Source: [`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.js)
 
 web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps.

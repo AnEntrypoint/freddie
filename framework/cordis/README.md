@@ -1,39 +1,35 @@
-# Cordis
+# @freddie/cordis
 
-Cordis is a TypeScript plugin framework for applications that need explicit
-dependency injection, scoped services, lifecycle-managed cleanup, and optional
-configuration-driven loading. The core package is published as `cordis`; the
-official packages in this repository add a loader, config-file includes, HMR,
-console logging, timers, and project scaffolding.
+Cordis is a plugin framework for applications that need explicit dependency
+injection, scoped services, lifecycle-managed cleanup, and optional
+configuration-driven loading. This package is the kernel: context, plugin
+registry, fiber lifecycle, events, services, and the logger.
 
-## Install
+It is one of the harness's first-party framework packages. Source is plain
+JavaScript — `src/*.js`, no build step, `main`/`exports` resolving straight to
+`src/index.js`. See [`framework/README.md`](../README.md) for the layer
+overview, the full package table, and the divergence log (notably the fiber
+reentrant-disposal hardening and lazy config resolution that shape this
+kernel's lifecycle guarantees).
 
-```sh
-yarn add cordis
-```
+## Usage
 
-Cordis is ESM-first. The repository is tested on current Node releases, and the
-scaffolder requires Node 22 or newer.
+`@freddie/cordis` is a workspace package. Harness packages depend on it through
+the workspace (`"@freddie/cordis": "workspace:^"`); `pnpm-workspace.yaml`
+resolves that name to this directory. There is nothing to install separately
+when working in this repository.
+
+Cordis is ESM-first and runs on current Node releases.
 
 ## Quick Start
 
-```ts
-import { Context, Service } from 'cordis'
-
-declare module 'cordis' {
-  interface Context {
-    counter: Counter
-  }
-
-  interface Events {
-    'app/ready'(message: string): void
-  }
-}
+```js
+import { Context, Service } from '@freddie/cordis'
 
 class Counter extends Service {
   value = 0
 
-  constructor(ctx: Context) {
+  constructor(ctx) {
     super(ctx, 'counter')
   }
 
@@ -42,7 +38,7 @@ class Counter extends Service {
   }
 }
 
-const greeter = Object.assign((ctx: Context) => {
+const greeter = Object.assign((ctx) => {
   ctx.on('app/ready', (message) => {
     ctx.logger.info('%s #%d', message, ctx.counter.next())
   })
@@ -66,36 +62,26 @@ The important pieces are:
 - Effects, event listeners, and services are removed when their owning fiber is
   disposed.
 
-## Documentation
-
-- [Tutorial: build a plugin](../../docs/tutorials/build-a-plugin.md)
-- [Guide: plugin lifecycle](../../docs/guides/plugin-lifecycle.md)
-- [Guide: loader configuration](../../docs/guides/loader-config.md)
-- [API reference](../../docs/api/core.md)
-
-## Packages
+## The framework layer
 
 | Package | Purpose |
 | --- | --- |
-| `cordis` | Core context, plugin registry, fiber lifecycle, events, services, and logger. |
-| `create-cordis` | Interactive project scaffolder. |
-| `@cordisjs/plugin-loader` | Runtime plugin tree and loader service. |
-| `@cordisjs/plugin-include` | YAML/JSON config-file include support for the loader. |
-| `@cordisjs/plugin-group` | Nested plugin groups for loader configs. |
-| `@cordisjs/plugin-hmr` | Hot module replacement for loader-managed plugins. |
-| `@cordisjs/plugin-logger-console` | Console exporter for the built-in logger. |
-| `@cordisjs/plugin-timer` | Disposal-aware timeout, interval, throttle, and debounce helpers. |
-| `@cordisjs/utils` | Shared utilities used by Cordis packages. |
+| `@freddie/cordis` | Core context, plugin registry, fiber lifecycle, events, services, and logger. |
+| `@freddie/cordis-plugin-loader` | Runtime plugin tree and loader service. |
+| `@freddie/cordis-plugin-include` | YAML/JSON config-file include support for the loader. |
+| `@freddie/cordis-plugin-group` | Nested plugin groups for loader configs. |
+| `@freddie/cordis-plugin-hmr` | Hot module replacement for loader-managed plugins. |
+| `@freddie/cordis-plugin-logger-console` | Console exporter for the built-in logger. |
+| `@freddie/cordis-plugin-timer` | Disposal-aware timeout, interval, throttle, and debounce helpers. |
+| `@freddie/cosmokit` | Shared utilities used across the framework layer. |
+| `@freddie/schemastery` | Schema validator used for plugin config. |
 
-## Development
+The name mapping from the pre-rescope package names is restated for consumers
+in [`docs/rescope.md`](../../docs/rescope.md).
 
-```sh
-yarn install
-yarn build
-yarn test
-yarn lint
-```
+## Working on this package
 
-The monorepo uses Yakumo to build and test all packages. Most examples in the
-docs use public APIs from `cordis`; loader examples additionally use
-`@cordisjs/plugin-loader` and `@cordisjs/plugin-include`.
+Edit it directly, like anything under `packages/`. There is no upstream sync
+step. Verify by booting a real composition that exercises the Loader/Include
+chain end to end — the reentrancy and ordering behavior this kernel guarantees
+is not visible in a static read. See [`framework/AGENTS.md`](../AGENTS.md).

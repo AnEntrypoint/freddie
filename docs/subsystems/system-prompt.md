@@ -2,7 +2,7 @@
 
 The [system-prompt package](../../packages/core/system-prompt) owns the data exchanged between prompt contributors and one assembly call. The package [README](../../packages/core/system-prompt/README.md) documents registration, ordering, scoping, and rendering behavior; this page records the exact cross-package types that plugins implement or pass.
 
-Source: [`packages/core/system-prompt/src/index.ts`](../../packages/core/system-prompt/src/index.ts).
+Source: [`packages/core/system-prompt/src/index.ts`](../../packages/core/system-prompt/src/index.js).
 
 ## Assembly context
 
@@ -154,7 +154,7 @@ variable(name: string, provider: (context: AssembleContext) => string | undefine
 async assemble(context: AssembleContext = {}): Promise<PromptAssembly>
 ```
 
-Source: [`packages/core/system-prompt/src/index.ts`](../../packages/core/system-prompt/src/index.ts)
+Source: [`packages/core/system-prompt/src/index.ts`](../../packages/core/system-prompt/src/index.js)
 
 <a id="system-prompt-events"></a>
 
@@ -184,7 +184,7 @@ Expert waterfall over the assembled sections, contexts, tools, and variables. Sc
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/system-prompt/src/index.ts`](../../packages/core/system-prompt/src/index.ts)
+Source: [`packages/core/system-prompt/src/index.ts`](../../packages/core/system-prompt/src/index.js)
 
 <a id="system-promptchange--emit"></a>
 
@@ -201,5 +201,5 @@ Emitted when any prompt provider changes. This registry notification is unfilter
 'system-prompt/change'(): void
 ```
 
-Source: [`packages/core/system-prompt/src/index.ts`](../../packages/core/system-prompt/src/index.ts)
+Source: [`packages/core/system-prompt/src/index.ts`](../../packages/core/system-prompt/src/index.js)
 <!-- END GENERATED cordis-surface -->

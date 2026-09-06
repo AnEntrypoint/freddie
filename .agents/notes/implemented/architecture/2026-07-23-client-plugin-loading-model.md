@@ -6,11 +6,11 @@ Status: implemented
 
 ## Problem
 
-On the host, cordis plugin loading stands on Node's module machinery — the require cache and the internal ESM loader own module identity and bytes. The vendored `@cordisjs/plugin-loader` implements plugin governance and hot reload on top of that substrate, and the two meet at one boundary: `Loader.internal`.
+On the host, cordis plugin loading stands on Node's module machinery — the require cache and the internal ESM loader own module identity and bytes. The `@cordisjs/plugin-loader` implements plugin governance and hot reload on top of that substrate, and the two meet at one boundary: `Loader.internal`.
 
 The browser client runs the same cordis plugin mechanism, so it needs the same substrate underneath — and the browser has no Node module system.
 
-Conventional frontend engineering digests all dependencies at build time: one bundle, externals resolved by the bundler, nothing left to manage at runtime. Runtime module management on top of that is the unusual requirement here. The client therefore splits into two layers: the upper layer is cordis plugin loading through the same vendored Loader, and the lower layer is module-granular dependency management — `dsh-client-modules`.
+Conventional frontend engineering digests all dependencies at build time: one bundle, externals resolved by the bundler, nothing left to manage at runtime. Runtime module management on top of that is the unusual requirement here. The client therefore splits into two layers: the upper layer is cordis plugin loading through the same framework Loader, and the lower layer is module-granular dependency management — `dsh-client-modules`.
 
 The lower layer supplies four capabilities: externals (the platform list), remote arrival (same-origin external classic scripts plus lazy factory registration), versioning (content-hash revs), and hot update (invalidate/prefetch).
 
@@ -30,11 +30,11 @@ The web kernel remains framework-free and imports no dynamic package value. Modu
 
 ### One module system, one plugin governor
 
-The browser mirrors the host's division of labor. `dsh-client-modules` (`ClientModuleSystem`) takes the module-system seat that Node's internal ESM loader holds host-side; the same vendored `@cordisjs/plugin-loader` keeps the governance seat on both sides. The line between them in one sentence: **the module system owns module identity and bytes — how code arrives, registers, and becomes an exports; the Loader owns plugin lifecycle — when a plugin mounts, what it waits for, and how it is torn down.**
+The browser mirrors the host's division of labor. `dsh-client-modules` (`ClientModuleSystem`) takes the module-system seat that Node's internal ESM loader holds host-side; the same `@cordisjs/plugin-loader` keeps the governance seat on both sides. The line between them in one sentence: **the module system owns module identity and bytes — how code arrives, registers, and becomes an exports; the Loader owns plugin lifecycle — when a plugin mounts, what it waits for, and how it is torn down.**
 
 `ClientModuleSystem` is a lazy CJS table. Executing a bundle only **registers** its factory — the bundle calls `window.__ModuleLoader__.load({ id, factory })` and nothing else happens. Every module body side effect, CSS injection included, lives inside the factory closure and runs at materialization: the first `require`/import of that id, memoized after that. Import and prefetch recursively register declared dynamic requests before their consumer; a factory then materializes any registered-but-unmaterialized request synchronously. The table resolves through a fixed branch order: seed word → memoized record → graph-row classic-script registration → registered-factory materialization → loud throw. The modules factory is the bootstrap exception: the HTML facade materializes it first, and construction places those same exports directly in the memoized table. That final throw is the runtime mirror of the build-time purity gate. The system also keeps per-module bookkeeping — owned `<style data-plugin>` tag ids, observed require edges — and exposes the two verbs HMR needs: `prefetch(id)` (register the requested dynamic factories and the row's own factory; concurrent arrivals share one task) and `invalidate(id)` (drop a non-bootstrap factory and record so the next arrival reloads it).
 
-The vendored Loader consumes the module system through its `internal` contract — the only call site is `tree.import` — and owns everything entry-shaped: entry creation, fiber activation through cordis service waiting (PENDING until injected services exist, cascading when a service is provided), update/refresh, teardown. The governance code is byte-identical to the host side, per vendor policy. Browserization is compile-time mapping in the shell's vite config: a `node:module` stub alias plus `process.*` defines make `ModuleLoader.fromInternal()` return undefined — exactly the empty slot the shell fills. The module system mounts as `ctx.modules`.
+The framework Loader consumes the module system through its `internal` contract — the only call site is `tree.import` — and owns everything entry-shaped: entry creation, fiber activation through cordis service waiting (PENDING until injected services exist, cascading when a service is provided), update/refresh, teardown. The governance code is byte-identical to the host side, because both sides load the same framework package. Browserization is compile-time mapping in the shell's vite config: a `node:module` stub alias plus `process.*` defines make `ModuleLoader.fromInternal()` return undefined — exactly the empty slot the shell fills. The module system mounts as `ctx.modules`.
 
 ### External-script arrival and source maps
 
@@ -60,7 +60,7 @@ Why is the roster yml rows and not a scan? Because which plugins compose into a 
 
 **Phase two — the plugin face.**
 
-1. The kernel mounts the vendored Loader and injects the module system as `internal` before any entry exists. Ordering matters: `tree.import`'s bare-import fallback must never run in a browser.
+1. The kernel mounts the framework Loader and injects the module system as `internal` before any entry exists. Ordering matters: `tree.import`'s bare-import fallback must never run in a browser.
 2. It creates every graph row uniformly. Importing the modules row returns the memoized bootstrap exports, whose `apply()` provides the closed-over system as `ctx.modules`; rows that require that service remain PENDING until then, so the modules row needs no special creation position. Render assembly is an ordinary host-graph row provided by `dsh-client-ui-renderer`; the kernel appends no assembly pseudo-entry.
 3. Graph order governs synchronous factory availability; Cordis activation remains independent and proceeds through service waiting.
 4. `settled` = every entry created + `loader.await()` quiescent + an all-ACTIVE sweep. The sweep lists each import-failed, FAILED, or PENDING fiber with its missing services. It exists because cordis inject waits have no timeout — the sweep is the fail-loud floor.
@@ -76,7 +76,7 @@ On the browser side, the driver reloads one plugin per frame, serialized:
 
 1. `invalidate` — drop the stale factory and record. A live factory would make the next step a no-op.
 2. `prefetch` — load the external script and register the fresh factory, while the old fiber still serves.
-3. `registry.delete` — before touching the fiber. A bare fiber dispose trips the vendored Loader's self-dispose branch, which would disable the entry permanently.
+3. `registry.delete` — before touching the fiber. A bare fiber dispose trips the framework Loader's self-dispose branch, which would disable the entry permanently.
 4. Drain the old fiber's disposers.
 5. Remove owned `<style data-plugin>` tags.
 6. `entry.refresh()` — re-imports, materializing the fresh factory. CSS re-injects here, under the same stable tag ids.
@@ -94,7 +94,7 @@ The current package inventory and build forms live in the [client shell layering
 
 One governance implementation runs on both sides of the wire; the browser-specific layer is one module system plus one reload plugin. Dynamic packages have one artifact form, so the purity check covers them all. Cordis dependencies, module requests, and the boot tier live with their owners — the manifests — while the composing app holds only the roster. Host graph validation and recursive request arrival keep synchronous factory dependencies explicit. Browser-native script loading preserves the standard mapping among plugin network resources, generated bundles, and TypeScript/TSX sources, while the module system keeps only one replaceable `loadBundle` hook.
 
-Costs accepted: the vendored Loader carries idle machinery in the browser (EntryTree persistence is a no-op, groups/isolation unused); every plugin edit in dev pays a bundle rebuild plus fiber remount; graph `inject` rows are informational — activation truth is service-level — so a mismatch appears at the settled sweep, not at graph validation; the static UI libraries keep direct value exports; every bundle gains a source-map artifact; and external-script failures provide only coarse URL diagnostics instead of the HTTP status available to an explicit fetch.
+Costs accepted: the framework Loader carries idle machinery in the browser (EntryTree persistence is a no-op, groups/isolation unused); every plugin edit in dev pays a bundle rebuild plus fiber remount; graph `inject` rows are informational — activation truth is service-level — so a mismatch appears at the settled sweep, not at graph validation; the static UI libraries keep direct value exports; every bundle gains a source-map artifact; and external-script failures provide only coarse URL diagnostics instead of the HTTP status available to an explicit fetch.
 
 Roster: it lives in the web bundle's config tree (`packages/bundle/web-app/cordis.patch.yml`); `mountWebPlugins` and the `CLIENT_PACKAGES` constant are gone, and recomposing a deployment means swapping the yml/overlay. The graph composer lives in the `dsh-client-modules` node half, while the parser-preloaded client face bootstraps the browser module table. The webserver remains a plain route-registration plugin; `/api/*` binding belongs to the connection node half over `api-gateway` (`dsh-host-apiproxy` providing `ctx.apiProxy`), and the dev bundle watch plus SSE channel belongs to the hmr node half.
 
@@ -103,7 +103,7 @@ Roster: it lives in the web bundle's config tree (`packages/bundle/web-app/cordi
 | Rejected | One-line reason |
 |---|---|
 | Two-axis taxonomy (entry × arrival) with infrastructure packages lacking `dsh.client` | Erased manifest dependency edges (inject leaked to the composer), split the plugin shape in two, blinded the purity gate to half the plugins |
-| Keep evolving the hand-written loader into a governor | Re-implements entry/fiber lifecycle the vendored Loader owns; HMR would have no shared skeleton with the host side |
+| Keep evolving the hand-written loader into a governor | Re-implements entry/fiber lifecycle the framework Loader owns; HMR would have no shared skeleton with the host side |
 | Reuse `@cordisjs/plugin-hmr` in the browser | ~80% solves problems the browser doesn't have (fs watching, deep graph coloring, Node's dual caches); the reload skeleton is copied as a shape |
 | Module federation | Independently built remote bundles are exactly the form vite federation does not support |
 | Import maps | Ruled out earlier; the DI require table is the terminal mechanism |

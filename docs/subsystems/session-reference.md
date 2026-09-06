@@ -2,7 +2,7 @@
 
 Host-backed file discovery plus structured cross-session reference requests and prepared message contexts. The [file-reference contract](../../packages/context/file-reference) owns path-only completion records and grammar; the [session-reference contract](../../packages/context/session-reference) defines canonical URIs, current-surface projection, tag-safe JSON and byte retention, stable errors, and the untrusted model prompt. Host adapters use these types instead of passing their UI mention syntax into the agent core.
 
-Sources: [`packages/context/file-reference/src/types.ts`](../../packages/context/file-reference/src/types.ts) · [`packages/context/session-reference/src/types.js`](../../packages/context/session-reference/src/types.js)
+Sources: [`packages/context/file-reference/src/types.ts`](../../packages/context/file-reference/src/types.js) · [`packages/context/session-reference/src/types.js`](../../packages/context/session-reference/src/types.js)
 
 ## File candidates
 
@@ -125,7 +125,7 @@ abstract list( agent: Agent, query: string, signal: AbortSignal, ): Promise<File
 
 Types: [Agent](core.md)
 
-Source: [`packages/context/file-reference/src/index.ts`](../../packages/context/file-reference/src/index.ts)
+Source: [`packages/context/file-reference/src/index.ts`](../../packages/context/file-reference/src/index.js)
 
 <a id="ctxsessionreferenceresolver--sessionreferenceresolver"></a>
 

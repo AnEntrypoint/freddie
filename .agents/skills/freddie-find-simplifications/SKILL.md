@@ -58,7 +58,7 @@ Prove a dependency-swap candidate like any other, plus:
 
 - Read the hand-rolled implementation and name the exact surface the package covers; residual semantics the package does not cover count against the swap and stay in the Agent Note.
 - Check the package's health honestly (maintenance, adoption, transitive footprint) and prefer builtins when the engine floor has them.
-- Check the Agent Note tree first: schemastery, vendored Cordis, the twin adapters, and other recorded seams are settled — a swap that collapses one needs to beat the recorded rationale, not just cite the policy.
+- Check the Agent Note tree first: schemastery, our Cordis framework layer, the twin adapters, and other recorded seams are settled — a swap that collapses one needs to beat the recorded rationale, not just cite the policy.
 - Weigh net deletion: implementation plus dedicated tests plus docs, minus the glue that remains. A wrapper that relocates the same complexity is not a win.
 
 ## Prove Or Reject Each Candidate

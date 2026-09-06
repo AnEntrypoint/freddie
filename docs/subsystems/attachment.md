@@ -184,5 +184,5 @@ abstract readImage(ref: ImageAttachmentRef, signal?: AbortSignal): Promise<Store
 readImageRequest( ref: ImageAttachmentRef, policy: ImageRequestPolicy, signal?: AbortSignal, ): Promise<RequestImageAttachment>
 ```
 
-Source: [`packages/attachment/attachment/src/index.ts`](../../packages/attachment/attachment/src/index.ts)
+Source: [`packages/attachment/attachment/src/index.ts`](../../packages/attachment/attachment/src/index.js)
 <!-- END GENERATED cordis-surface -->

@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-The app-owned command line ([note](2026-08-06-app-owned-command-line.md)) shipped with three seams that were wider than their consumers needed: a vendored in-memory row-activation state machine (`Entry.enableRuntime` plus `enableRow` exported from `dsh-cmdline`, a command-line package owning a Loader concept) whose only purpose was the `--dev` conditional reload row, a vendored `EntryConfigResolver` protocol symbol whose only implementer was Include, and a launcher that still recognized the `headless-runner` row to pick SIGTERM exit codes, gate user-patch watching, and provide a `headlessIo` seam duplicating `ctx.appExit`.
+The app-owned command line ([note](2026-08-06-app-owned-command-line.md)) shipped with three seams that were wider than their consumers needed: a framework-side in-memory row-activation state machine (`Entry.enableRuntime` plus `enableRow` exported from `dsh-cmdline`, a command-line package owning a Loader concept) whose only purpose was the `--dev` conditional reload row, a framework-side `EntryConfigResolver` protocol symbol whose only implementer was Include, and a launcher that still recognized the `headless-runner` row to pick SIGTERM exit codes, gate user-patch watching, and provide a `headlessIo` seam duplicating `ctx.appExit`.
 
 ## Decision
 
@@ -16,7 +16,7 @@ Express all three with interfaces that already exist:
 
 ## Alternatives considered
 
-- **Keeping `enableRuntime` but moving `enableRow` out of `dsh-cmdline`**: relocation fixes the package boundary but keeps the vendored state machine whose semantics (survives reapplication, rollback on failure) must be re-derived at every upstream sync.
+- **Keeping `enableRuntime` but moving `enableRow` out of `dsh-cmdline`**: relocation fixes the package boundary but keeps the framework-side state machine whose semantics (survives reapplication, rollback on failure) are an extra contract the framework layer has to carry and re-justify.
 - **`entry.update({ disabled: null })`**: mutates the entry's serialized options, so the next include reapplication restores `disabled: true` and unmounts the row mid-session.
 - **SIGTERM 143 for one-shot surfaces via an app-registered signal handler**: the launcher's own handler races it for the exit code; winning that race needs a new launcher interface, which is the cost this change removes.
 - **Keeping `--dev` with the row created at runtime**: an interim state of this change; it still needed a mode fork in the prompt contract, a `FREDDIE_WEB_MODE` variable, and creation-versus-user-row arbitration, all to avoid an idle poll whose cost is negligible.
@@ -26,4 +26,4 @@ Express all three with interfaces that already exist:
 - A deployment that supervises `dsh --profile headless` with SIGTERM now observes exit 0 instead of 143; the caller sent the signal and sees no answer on stdout.
 - The reload chain runs in every `dsh web` process; a deployment that must not expose `/plugins/events` disables the `client-hmr` row in its patch layer.
 - One-shot runs mount the config-watch rows they previously skipped, costing a few milliseconds of startup.
-- The vendored Loader/Include divergence shrinks by one protocol symbol and one state machine, and `rescope-vendor:check` passes again (the modification log's rescope entry is restored to the position its exact-edit anchor requires).
+- The framework Loader/Include divergence shrinks by one protocol symbol and one state machine, and `rescope-vendor:check` passes again (the divergence log's rescope entry is restored to the position its exact-edit anchor requires).

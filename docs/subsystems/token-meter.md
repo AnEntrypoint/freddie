@@ -2,7 +2,7 @@
 
 `@freddie/freddie-token-meter` exposes one detached replay snapshot for request pressure and positional surface pricing. `logRevision` is the number of durable events consumed for every field in the measurement.
 
-Source: [`packages/llm/token-meter/src/types.ts`](../../packages/llm/token-meter/src/types.ts)
+Source: [`packages/llm/token-meter/src/types.ts`](../../packages/llm/token-meter/src/types.js)
 
 ## `TokenMeasurement`
 
@@ -84,5 +84,5 @@ estimateMessage(message: Message): number
 
 Types: [EpochHeader](session.md) · [Message](llm-streaming.md) · [Session](session.md)
 
-Source: [`packages/llm/token-meter/src/index.ts`](../../packages/llm/token-meter/src/index.ts)
+Source: [`packages/llm/token-meter/src/index.ts`](../../packages/llm/token-meter/src/index.js)
 <!-- END GENERATED cordis-surface -->

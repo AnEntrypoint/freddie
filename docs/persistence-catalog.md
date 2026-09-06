@@ -90,7 +90,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-Sources: [`packages/core/session/src/types.ts:340`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:347`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:376`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:408`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:340`](../packages/core/session/src/types.js) · [`packages/core/session/src/types.ts:347`](../packages/core/session/src/types.js) · [`packages/core/session/src/types.ts:376`](../packages/core/session/src/types.js) · [`packages/core/session/src/types.ts:408`](../packages/core/session/src/types.js)
 
 ## Events
 
@@ -115,7 +115,7 @@ Sources: [`packages/core/session/src/types.ts:340`](../packages/core/session/src
 }
 ```
 
-Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types.ts)
+Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types.js)
 
 ### `agent-preset/*`
 
@@ -133,7 +133,7 @@ Source: [`packages/core/agent/src/types.ts:19`](../packages/core/agent/src/types
 'agent-preset/selected': { agentPreset: string }
 ```
 
-Source: [`packages/preset/agent-presets/src/session.ts:26`](../packages/preset/agent-presets/src/session.ts)
+Source: [`packages/preset/agent-presets/src/session.ts:26`](../packages/preset/agent-presets/src/session.js)
 
 ### `approval/*`
 
@@ -160,7 +160,7 @@ Source: [`packages/preset/agent-presets/src/session.ts:26`](../packages/preset/a
 
 Types: [CallId](subsystems/core.md)
 
-Source: [`packages/interaction/user-approval/src/index.ts:44`](../packages/interaction/user-approval/src/index.ts)
+Source: [`packages/interaction/user-approval/src/index.ts:44`](../packages/interaction/user-approval/src/index.js)
 
 <a id="approvaldecided--log-only"></a>
 
@@ -178,7 +178,7 @@ Source: [`packages/interaction/user-approval/src/index.ts:44`](../packages/inter
 }
 ```
 
-Source: [`packages/interaction/user-approval/src/index.ts:55`](../packages/interaction/user-approval/src/index.ts)
+Source: [`packages/interaction/user-approval/src/index.ts:55`](../packages/interaction/user-approval/src/index.js)
 
 <a id="approvalpolicy--log-only"></a>
 
@@ -200,7 +200,7 @@ Source: [`packages/interaction/user-approval/src/index.ts:55`](../packages/inter
 }
 ```
 
-Source: [`packages/interaction/user-approval/src/index.ts:67`](../packages/interaction/user-approval/src/index.ts)
+Source: [`packages/interaction/user-approval/src/index.ts:67`](../packages/interaction/user-approval/src/index.js)
 
 ### `assistant/*`
 
@@ -215,7 +215,7 @@ Source: [`packages/interaction/user-approval/src/index.ts:67`](../packages/inter
 
 Types: [StreamChunk](subsystems/llm-streaming.md)
 
-Source: [`packages/core/session/src/types.ts:266`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:266`](../packages/core/session/src/types.js)
 
 <a id="assistantmessage--surface"></a>
 
@@ -237,7 +237,7 @@ Source: [`packages/core/session/src/types.ts:266`](../packages/core/session/src/
 
 Types: [TokenUsage](subsystems/llm-streaming.md)
 
-Source: [`packages/core/session/src/types.ts:277`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:277`](../packages/core/session/src/types.js)
 
 ### `command/*`
 
@@ -260,7 +260,7 @@ Source: [`packages/core/session/src/types.ts:277`](../packages/core/session/src/
 }
 ```
 
-Source: [`packages/interaction/commands/src/types.ts:103`](../packages/interaction/commands/src/types.ts)
+Source: [`packages/interaction/commands/src/types.ts:103`](../packages/interaction/commands/src/types.js)
 
 <a id="commandrun--log-only"></a>
 
@@ -280,7 +280,7 @@ Source: [`packages/interaction/commands/src/types.ts:103`](../packages/interacti
 'command/run': { commandId: CommandId; name: string; args?: string; source: CommandSource }
 ```
 
-Source: [`packages/interaction/commands/src/types.ts:96`](../packages/interaction/commands/src/types.ts)
+Source: [`packages/interaction/commands/src/types.ts:96`](../packages/interaction/commands/src/types.js)
 
 ### `compaction/*`
 
@@ -296,7 +296,7 @@ Source: [`packages/interaction/commands/src/types.ts:96`](../packages/interactio
 'compaction/end': { compactionId: CompactionId; sourceCommandId?: CommandId; turn: number | null; error?: string }
 ```
 
-Source: [`packages/compaction/compaction/src/types.ts:71`](../packages/compaction/compaction/src/types.ts)
+Source: [`packages/compaction/compaction/src/types.ts:71`](../packages/compaction/compaction/src/types.js)
 
 <a id="compactionprune--log-only"></a>
 
@@ -322,7 +322,7 @@ Source: [`packages/compaction/compaction/src/types.ts:71`](../packages/compactio
 }
 ```
 
-Source: [`packages/compaction/compaction/src/types.ts:81`](../packages/compaction/compaction/src/types.ts)
+Source: [`packages/compaction/compaction/src/types.ts:81`](../packages/compaction/compaction/src/types.js)
 
 <a id="compactionstart--log-only"></a>
 
@@ -337,7 +337,7 @@ Source: [`packages/compaction/compaction/src/types.ts:81`](../packages/compactio
 'compaction/start': { compactionId: CompactionId; sourceCommandId?: CommandId; turn: number | null }
 ```
 
-Source: [`packages/compaction/compaction/src/types.ts:23`](../packages/compaction/compaction/src/types.ts)
+Source: [`packages/compaction/compaction/src/types.ts:23`](../packages/compaction/compaction/src/types.js)
 
 <a id="compactionsummary--log-only"></a>
 
@@ -391,7 +391,7 @@ Source: [`packages/compaction/compaction/src/types.ts:23`](../packages/compactio
 
 Types: [ContentBlock](subsystems/core.md) · [TokenUsage](subsystems/llm-streaming.md)
 
-Source: [`packages/compaction/compaction/src/types.ts:33`](../packages/compaction/compaction/src/types.ts)
+Source: [`packages/compaction/compaction/src/types.ts:33`](../packages/compaction/compaction/src/types.js)
 
 ### `feedback/*`
 
@@ -407,7 +407,7 @@ Source: [`packages/compaction/compaction/src/types.ts:33`](../packages/compactio
 'feedback/record': { text: string }
 ```
 
-Source: [`packages/feedback/command-feedback/src/index.ts:62`](../packages/feedback/command-feedback/src/index.ts)
+Source: [`packages/feedback/command-feedback/src/index.ts:62`](../packages/feedback/command-feedback/src/index.js)
 
 ### `goal/*`
 
@@ -422,7 +422,7 @@ Source: [`packages/feedback/command-feedback/src/index.ts:62`](../packages/feedb
 'goal/change': GoalChangeMeta
 ```
 
-Source: [`packages/goal/goal/src/domain.ts:66`](../packages/goal/goal/src/domain.ts)
+Source: [`packages/goal/goal/src/domain.ts:66`](../packages/goal/goal/src/domain.js)
 
 ### `hook/*`
 
@@ -449,7 +449,7 @@ Source: [`packages/goal/goal/src/domain.ts:66`](../packages/goal/goal/src/domain
 }
 ```
 
-Source: [`packages/hooks/hook-protocol/src/types.ts:19`](../packages/hooks/hook-protocol/src/types.ts)
+Source: [`packages/hooks/hook-protocol/src/types.ts:19`](../packages/hooks/hook-protocol/src/types.js)
 
 <a id="hookresult--log-only"></a>
 
@@ -472,7 +472,7 @@ Source: [`packages/hooks/hook-protocol/src/types.ts:19`](../packages/hooks/hook-
 }
 ```
 
-Source: [`packages/hooks/hook-protocol/src/types.ts:31`](../packages/hooks/hook-protocol/src/types.ts)
+Source: [`packages/hooks/hook-protocol/src/types.ts:31`](../packages/hooks/hook-protocol/src/types.js)
 
 ### `llm/*`
 
@@ -514,7 +514,7 @@ Source: [`packages/llm/llm-retry/src/types.ts:11`](../packages/llm/llm-retry/src
 'permission/preset': { preset: string }
 ```
 
-Source: [`packages/interaction/permission-presets/src/index.ts:50`](../packages/interaction/permission-presets/src/index.ts)
+Source: [`packages/interaction/permission-presets/src/index.ts:50`](../packages/interaction/permission-presets/src/index.js)
 
 ### `plan/*`
 
@@ -531,7 +531,7 @@ Source: [`packages/interaction/permission-presets/src/index.ts:50`](../packages/
 'plan/mode': { active: boolean }
 ```
 
-Source: [`packages/plan/plan-mode/src/index.ts:53`](../packages/plan/plan-mode/src/index.ts)
+Source: [`packages/plan/plan-mode/src/index.ts:53`](../packages/plan/plan-mode/src/index.js)
 
 ### `request/*`
 
@@ -547,7 +547,7 @@ Source: [`packages/plan/plan-mode/src/index.ts:53`](../packages/plan/plan-mode/s
 'request/context': RequestContext
 ```
 
-Source: [`packages/core/session/src/types.ts:313`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:313`](../packages/core/session/src/types.js)
 
 <a id="requestheader--log-only"></a>
 
@@ -561,7 +561,7 @@ Source: [`packages/core/session/src/types.ts:313`](../packages/core/session/src/
 'request/header': { header: EpochHeader; reason: RequestHeaderReason }
 ```
 
-Source: [`packages/core/session/src/types.ts:308`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:308`](../packages/core/session/src/types.js)
 
 ### `sandbox/*`
 
@@ -584,7 +584,7 @@ Source: [`packages/core/session/src/types.ts:308`](../packages/core/session/src/
 }
 ```
 
-Source: [`packages/sandbox/sandbox-policy/src/session-mode.ts:33`](../packages/sandbox/sandbox-policy/src/session-mode.ts)
+Source: [`packages/sandbox/sandbox-policy/src/session-mode.ts:33`](../packages/sandbox/sandbox-policy/src/session-mode.js)
 
 ### `schedule/*`
 
@@ -636,7 +636,7 @@ Source: [`packages/schedule/schedule/src/types.ts:219`](../packages/schedule/sch
 'session/end-seed': Record<string, never>
 ```
 
-Source: [`packages/core/session/src/types.ts:336`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:336`](../packages/core/session/src/types.js)
 
 <a id="sessiontitle--log-only"></a>
 
@@ -652,7 +652,7 @@ Source: [`packages/core/session/src/types.ts:336`](../packages/core/session/src/
 
 Types: [SessionTitleEventData](subsystems/session-title.md)
 
-Source: [`packages/session/session-title/src/index.ts:100`](../packages/session/session-title/src/index.ts)
+Source: [`packages/session/session-title/src/index.ts:100`](../packages/session/session-title/src/index.js)
 
 <a id="sessiontitle-llm-request--log-only"></a>
 
@@ -665,7 +665,7 @@ Source: [`packages/session/session-title/src/index.ts:100`](../packages/session/
 
 Types: [SessionTitleLlmRequestEventData](subsystems/session-title.md)
 
-Source: [`packages/session/session-title-llm/src/index.ts:43`](../packages/session/session-title-llm/src/index.ts)
+Source: [`packages/session/session-title-llm/src/index.ts:43`](../packages/session/session-title-llm/src/index.js)
 
 ### `step/*`
 
@@ -678,7 +678,7 @@ Source: [`packages/session/session-title-llm/src/index.ts:43`](../packages/sessi
 'step/end': { turn: number; step: number }
 ```
 
-Source: [`packages/core/session/src/types.ts:256`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:256`](../packages/core/session/src/types.js)
 
 <a id="stepstart--log-only"></a>
 
@@ -689,7 +689,7 @@ Source: [`packages/core/session/src/types.ts:256`](../packages/core/session/src/
 'step/start': { turn: number; step: number }
 ```
 
-Source: [`packages/core/session/src/types.ts:254`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:254`](../packages/core/session/src/types.js)
 
 ### `subagent/*`
 
@@ -708,7 +708,7 @@ Source: [`packages/core/session/src/types.ts:254`](../packages/core/session/src/
 'subagent/descriptor': SubagentDescriptorData
 ```
 
-Source: [`packages/subagent/subagent/src/descriptor.ts:37`](../packages/subagent/subagent/src/descriptor.ts)
+Source: [`packages/subagent/subagent/src/descriptor.ts:37`](../packages/subagent/subagent/src/descriptor.js)
 
 ### `team/*`
 
@@ -723,7 +723,7 @@ Source: [`packages/subagent/subagent/src/descriptor.ts:37`](../packages/subagent
 
 Types: [TeamId](subsystems/agent-team.md) · [TeamMemberSnapshot](subsystems/agent-team.md)
 
-Source: [`packages/experimental/agent-team/src/types.ts:206`](../packages/experimental/agent-team/src/types.ts)
+Source: [`packages/experimental/agent-team/src/types.ts:206`](../packages/experimental/agent-team/src/types.js)
 
 <a id="teammessagedelivered--log-only"></a>
 
@@ -741,7 +741,7 @@ Source: [`packages/experimental/agent-team/src/types.ts:206`](../packages/experi
 
 Types: [TeamId](subsystems/agent-team.md) · [TeamMessageId](subsystems/agent-team.md)
 
-Source: [`packages/experimental/agent-team/src/types.ts:212`](../packages/experimental/agent-team/src/types.ts)
+Source: [`packages/experimental/agent-team/src/types.ts:212`](../packages/experimental/agent-team/src/types.js)
 
 <a id="teammessagequeued--log-only"></a>
 
@@ -754,7 +754,7 @@ Source: [`packages/experimental/agent-team/src/types.ts:212`](../packages/experi
 
 Types: [TeamId](subsystems/agent-team.md) · [TeamMessageSnapshot](subsystems/agent-team.md)
 
-Source: [`packages/experimental/agent-team/src/types.ts:210`](../packages/experimental/agent-team/src/types.ts)
+Source: [`packages/experimental/agent-team/src/types.ts:210`](../packages/experimental/agent-team/src/types.js)
 
 <a id="teamtask--log-only"></a>
 
@@ -767,7 +767,7 @@ Source: [`packages/experimental/agent-team/src/types.ts:210`](../packages/experi
 
 Types: [TeamId](subsystems/agent-team.md) · [TeamTaskSnapshot](subsystems/agent-team.md)
 
-Source: [`packages/experimental/agent-team/src/types.ts:208`](../packages/experimental/agent-team/src/types.ts)
+Source: [`packages/experimental/agent-team/src/types.ts:208`](../packages/experimental/agent-team/src/types.js)
 
 ### `todo/*`
 
@@ -782,7 +782,7 @@ Source: [`packages/experimental/agent-team/src/types.ts:208`](../packages/experi
 
 Types: [TodoItem](subsystems/session.md)
 
-Source: [`packages/core/session/src/types.ts:303`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:303`](../packages/core/session/src/types.js)
 
 ### `tool/*`
 
@@ -801,7 +801,7 @@ Source: [`packages/core/session/src/types.ts:303`](../packages/core/session/src/
 
 Types: [CallId](subsystems/core.md)
 
-Source: [`packages/core/session/src/types.ts:283`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:283`](../packages/core/session/src/types.js)
 
 <a id="toolcode-dispatch--log-only"></a>
 
@@ -826,7 +826,7 @@ Source: [`packages/core/session/src/types.ts:283`](../packages/core/session/src/
 'tool/code-dispatch': CodeDispatchEventData
 ```
 
-Source: [`packages/core/tools/src/types.ts:56`](../packages/core/tools/src/types.ts)
+Source: [`packages/core/tools/src/types.ts:56`](../packages/core/tools/src/types.js)
 
 <a id="toolcode-dispatch-start--log-only"></a>
 
@@ -849,7 +849,7 @@ Source: [`packages/core/tools/src/types.ts:56`](../packages/core/tools/src/types
 'tool/code-dispatch-start': CodeDispatchStartEventData
 ```
 
-Source: [`packages/core/tools/src/types.ts:40`](../packages/core/tools/src/types.ts)
+Source: [`packages/core/tools/src/types.ts:40`](../packages/core/tools/src/types.js)
 
 <a id="toolresult--surface"></a>
 
@@ -876,7 +876,7 @@ Source: [`packages/core/tools/src/types.ts:40`](../packages/core/tools/src/types
 }
 ```
 
-Source: [`packages/core/session/src/types.ts:295`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:295`](../packages/core/session/src/types.js)
 
 ### `tool-workflow/*`
 
@@ -956,7 +956,7 @@ Source: [`packages/workflow/tool-workflow/src/types.ts:47`](../packages/workflow
 
 Types: [TurnEndReason](subsystems/session.md)
 
-Source: [`packages/core/session/src/types.ts:252`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:252`](../packages/core/session/src/types.js)
 
 <a id="turnstart--log-only"></a>
 
@@ -972,7 +972,7 @@ Source: [`packages/core/session/src/types.ts:252`](../packages/core/session/src/
 'turn/start': { turn: number }
 ```
 
-Source: [`packages/core/session/src/types.ts:243`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:243`](../packages/core/session/src/types.js)
 
 ### `user/*`
 
@@ -991,7 +991,7 @@ Source: [`packages/core/session/src/types.ts:243`](../packages/core/session/src/
 'user/message': UserMessage
 ```
 
-Source: [`packages/core/session/src/types.ts:264`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:264`](../packages/core/session/src/types.js)
 
 ### `web/*`
 
@@ -1004,4 +1004,4 @@ Source: [`packages/core/session/src/types.ts:264`](../packages/core/session/src/
 'web/deepseek-search-llm-request': DeepSeekSearchLlmRequest
 ```
 
-Source: [`packages/web/web-search-deepseek/src/provider.ts:83`](../packages/web/web-search-deepseek/src/provider.ts)
+Source: [`packages/web/web-search-deepseek/src/provider.ts:83`](../packages/web/web-search-deepseek/src/provider.js)

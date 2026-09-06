@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Freddie is a plugin-based agent harness on vendored Cordis: **everything is a plugin**. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
+Freddie is a plugin-based agent harness built on our own Cordis framework layer (`framework/`): **everything is a plugin**. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
 
 ## Pre-release stance: foundation over blast radius
 
@@ -9,7 +9,9 @@ Freddie is a plugin-based agent harness on vendored Cordis: **everything is a pl
 ## Repository layout
 
 ```
-vendor/      Vendored Cordis source — manifest + sync procedure in vendor/README.md
+framework/   Our Cordis framework layer: kernel + loader/include/group/timer/hmr
+             plugins + cosmokit/schemastery. First-party, edit directly; see
+             framework/README.md for what diverged from the upstream ancestor.
 packages/    @freddie/freddie-<pkg> workspaces at packages/<group>/<pkg>/
   core/        product API spine: session, system-prompt, tools, agent, agent-loop
   api/         Remote BFF assembly and Typert RPC gateway
@@ -85,7 +87,7 @@ Real-API demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, and root `
 
 ## Conventions
 
-- Every npm package is `@freddie/freddie-<name>`; vendored packages are rescoped ([mapping](docs/rescope.md)) and `private: true`. `@freddie/cordis` is a peerDependency (+ dev) of every harness package.
+- Every npm package is `@freddie/freddie-<name>`; `framework/` packages carry the `@freddie` scope too ([mapping](docs/rescope.md)) and publish alongside the harness (`publishConfig.access: public`), which is why the scope matters — under the original names that publication would squat them. `@freddie/cordis` is a peerDependency (+ dev) of every harness package.
 - ESM everywhere (`"type": "module"`). Use package names across packages and `.js` in local relative imports — the workspace is buildless plain JavaScript; `packages/*/*/src` runs directly under plain `node`, no build step, no TypeScript, no `tsx`. Raw/Web `cordis.yml` bare plugins must appear in their resolver manifest's `dependencies`; `verify-cordis-config` enforces it.
 - **Registrations are effects**: every contribution goes through `ctx.effect()` / `ctx.on()`; a registry's `register()` returns the disposer.
 - **Runtime invariants assert owned relationships.** Check authoritative event streams or mutable data, not service or method presence, plugin metadata or effects, or fixed pure examples. Without a plausible relationship, an explained empty companion is correct ([package invariant rules](packages/AGENTS.md)).
@@ -129,6 +131,6 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 
 `CLAUDE.md` symlinks `AGENTS.md` at root, `packages/`, and `examples/`; edit the real file. Keep each rule self-contained while linking high-level docs. Condense when clarity survives; raise a `verify-doc-budgets` ceiling when the required content genuinely needs more space.
 
-## Vendoring policy
+## Framework layer
 
-`vendor/` packages are pinned source copies (manifest with upstream SHAs in [vendor/README.md](vendor/README.md)). Update via the sync procedure there; re-apply or retire the logged local modifications; verify live per the [verification policy](#verify-before-pushing) above.
+`framework/` packages are ours, not third-party copies. Edit them directly, like any package under `packages/` — there is no upstream to sync from and no sync procedure to follow. They descend from Cordis and friends, but every one was rewritten to plain JS and carries this project's own lifecycle, config-reconciliation, and watching behavior; [framework/README.md](framework/README.md) records each divergence and why. Record a new one there when the code's shape would otherwise be surprising, and verify live per the [verification policy](#verify-before-pushing) above.

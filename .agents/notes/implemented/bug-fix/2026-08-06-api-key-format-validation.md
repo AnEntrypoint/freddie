@@ -6,7 +6,7 @@ Status: implemented
 
 An API key holding characters no HTTP header value can carry was accepted by every configuration surface and failed only when a request was built, far from the field that caused it.
 
-Pasting a key containing an emoji, CJK text, or a full-width punctuation mark into the web Models page reported a successful save. The first turn then failed with `Cannot convert argument to a ByteString because the character at index 7 has a value of 55357 which is greater than 255` — the index and code point are UTF-16 internals with no action attached, and they disclose the code point of one character of the key. `llm-deepseek` produced this because `fetch` builds the `Bearer` header inside the `try` in [adapter.ts](../../../../packages/llm/llm-deepseek/src/adapter.ts), whose `catch` labels every failure `TRANSPORT`; that label is in `DEFAULT_RETRYABLE_CODES`, so a permanent, deterministic fault was also retried three times.
+Pasting a key containing an emoji, CJK text, or a full-width punctuation mark into the web Models page reported a successful save. The first turn then failed with `Cannot convert argument to a ByteString because the character at index 7 has a value of 55357 which is greater than 255` — the index and code point are UTF-16 internals with no action attached, and they disclose the code point of one character of the key. `llm-deepseek` produced this because `fetch` builds the `Bearer` header inside the `try` in [adapter.ts](../../../../packages/llm/llm-deepseek/src/adapter.js), whose `catch` labels every failure `TRANSPORT`; that label is in `DEFAULT_RETRYABLE_CODES`, so a permanent, deterministic fault was also retried three times.
 
 `llm-pi-ai` was worse on the same input. Its discovery probe builds the same header with a bare `fetch` in [discovery.ts](../../../../packages/llm/llm-pi-ai/src/discovery.ts) and wrapped every failure as `could not reach <url>`, so a local key fault was reported as an unreachable network. The probe is reachable from the unsaved draft: `ProviderEditor` puts the typed `keyDraft` into its probe request, so the model-listing button sent an illegal key before anything was stored.
 
@@ -40,7 +40,7 @@ The rule applies to a value that was *provided*; deciding whether one was provid
 
 ### Where the rule lives
 
-`normalizeApiKey` is a module of the `dsh-llm` Service Definition, beside [attribution.ts](../../../../packages/llm/llm/src/attribution.ts), which already owns shared header concerns. Both adapters depend on the seam and both need the rule, so it has two current consumers rather than a speculative one. It returns the trimmed value or a reason (`empty`, `illegalCharacters`).
+`normalizeApiKey` is a module of the `dsh-llm` Service Definition, beside [attribution.ts](../../../../packages/llm/llm/src/attribution.js), which already owns shared header concerns. Both adapters depend on the seam and both need the rule, so it has two current consumers rather than a speculative one. It returns the trimmed value or a reason (`empty`, `illegalCharacters`).
 
 Both adapters also need the identical "refuse a stored credential" diagnosis, differing only by package prefix. `LlmError` is declared in the Service Definition's `index.ts`, so `assertUsableApiKey(raw, pkg, ref)` lives there beside it and neither adapter carries a local copy. The predicate module stays dependency-free: importing `LlmError` into `api-key.ts` would cycle with `index.ts`'s re-export of it.
 
@@ -62,7 +62,7 @@ The client cannot import any of this: client packages reference only client pack
 
 ## Alternatives considered
 
-**A validation module shared by client and host.** Rejected by the source-plane layout: client packages reference only client packages plus `vendor/cordis` and `runtime-diagnostics/invariants`, and widening that to reach a host package would collide the two `Context` merges the split exists to keep apart. Mirroring a one-line predicate with a test on each side is the established shape here.
+**A validation module shared by client and host.** Rejected by the source-plane layout: client packages reference only client packages plus `framework/cordis` and `runtime-diagnostics/invariants`, and widening that to reach a host package would collide the two `Context` merges the split exists to keep apart. Mirroring a one-line predicate with a test on each side is the established shape here.
 
 **A per-adapter thrower in each of `llm-deepseek` and `llm-pi-ai`.** The first plan gave each adapter its own, differing only by the package prefix in the message, with a duplication-gate exemption to excuse the pair. Rejected before implementation: `LlmError` is declared in the Service Definition, so that package can own the diagnosis outright, and an exemption there would have hidden exactly the duplication it was covering for.
 

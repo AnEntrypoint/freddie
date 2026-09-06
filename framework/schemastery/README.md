@@ -1,11 +1,20 @@
-# Schemastery
+# @freddie/schemastery
 
-[![Codecov](https://img.shields.io/codecov/c/github/shigma/schemastery?style=flat-square)](https://codecov.io/gh/shigma/schemastery)
-[![downloads](https://img.shields.io/npm/dm/schemastery?style=flat-square)](https://www.npmjs.com/package/schemastery)
-[![npm](https://img.shields.io/npm/v/schemastery?style=flat-square)](https://www.npmjs.com/package/schemastery)
-[![GitHub](https://img.shields.io/github/license/shigma/schemastery?style=flat-square)](https://github.com/shigma/schemastery/blob/master/LICENSE)
+Schema validator — the config-validation foundation the framework layer's
+plugins declare their `Config` schemas with.
 
-Type Driven Schema Validator.
+One of the harness's first-party framework packages. Source is plain JavaScript
+with a single ESM entry (`src/index.js`), no build step. See
+[`framework/README.md`](../README.md) for the layer overview and the divergence
+log. It is a workspace package resolved through `pnpm-workspace.yaml`, not
+something installed separately:
+
+```js
+import Schema from '@freddie/schemastery'
+```
+
+Note that `Symbol.for('schemastery')` and the `vendor:` metadata field keep
+their original values — they are wire identifiers, not package references.
 
 ## Features
 
@@ -17,10 +26,10 @@ Type Driven Schema Validator.
 
 ## Basic Examples
 
-### use as validator (JavaScript)
+### use as validator
 
 ```js
-const Schema = require('schemastery')
+import Schema from '@freddie/schemastery'
 
 const validate = Schema.number().default(10)
 
@@ -29,15 +38,10 @@ validate(null)  // 10
 validate('')    // TypeError
 ```
 
-### use as constructor (TypeScript)
+### use as constructor
 
-```ts
-import Schema from 'schemastery'
-
-interface Config {
-  foo: Record<string, string>
-  bar: string[]
-}
+```js
+import Schema from '@freddie/schemastery'
 
 const Config = Schema.object({
   foo: Schema.dict(Schema.string()).default({}),

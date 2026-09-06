@@ -2,7 +2,7 @@
 
 The bash execution seam is split across a Service Definition ([dsh-shell](../../packages/shell/shell), `ctx.shell`), Service Providers ([dsh-bash-local](../../packages/shell/bash-local) and [dsh-bash-sandbox](../../packages/shell/bash-sandbox)), and Consumer ([dsh-tool-bash](../../packages/shell/tool-bash), the `bash` schema). Generic background-job ids, ownership, and controls live in [jobs.md](jobs.md); this seam returns a task-free process handle. Raw process-group mechanics live behind the [subprocess seam](subprocess.md).
 
-Source: [`packages/shell/shell/src/types.ts`](../../packages/shell/shell/src/types.ts)
+Source: [`packages/shell/shell/src/types.ts`](../../packages/shell/shell/src/types.js)
 
 ## Managed shell environment namespace
 
@@ -116,7 +116,7 @@ interface ShellRunResult {
    * short. Mutually exclusive with {@link aborted}: one fused deadline drives
    * both the timeout and the caller's cancellation, so a timeout and an abort
    * racing before process close report the single first-abort cause, not both
-   * (see the [timeout-library Agent Note](../../../../.agents/notes/implemented/architecture/2026-07-06-timeout-deadline-library.md)).
+   * (see the [timeout-library Agent Note](../../.agents/notes/implemented/architecture/2026-07-06-timeout-deadline-library.md)).
    */
   timedOut: boolean
   /**
@@ -264,7 +264,7 @@ abstract run(spec: ShellExecSpec): Promise<ShellRunResult>
 abstract start(spec: ShellExecSpec): ShellProcess
 ```
 
-Source: [`packages/shell/shell/src/index.ts`](../../packages/shell/shell/src/index.ts)
+Source: [`packages/shell/shell/src/index.ts`](../../packages/shell/shell/src/index.js)
 
 <a id="ctxshellenv--shellenvregistry"></a>
 
@@ -297,5 +297,5 @@ list(): BashEnvVariableInfo[]
 
 Types: [DshEnvironment](subprocess.md) · [ToolExecution](tools.md)
 
-Source: [`packages/shell/shell-env/src/index.ts`](../../packages/shell/shell-env/src/index.ts)
+Source: [`packages/shell/shell-env/src/index.ts`](../../packages/shell/shell-env/src/index.js)
 <!-- END GENERATED cordis-surface -->

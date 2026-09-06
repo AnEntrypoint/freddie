@@ -37,7 +37,7 @@ Unaided citation passes fail in both directions by deleting durable references a
 
 ## Workflow
 
-1. Scope and exclusions per [freddie-prose-standard](../freddie-prose-standard/SKILL.md): require an explicit scope; never touch `vendor/`, `.agents/notes/archived/`, or recorded fixtures and snapshots — recorded model output and sealed history keep their original voice.
+1. Scope and exclusions per [freddie-prose-standard](../freddie-prose-standard/SKILL.md): require an explicit scope; never touch `.agents/notes/archived/`, `LICENSE` files, or recorded fixtures and snapshots — recorded model output and sealed history keep their original voice.
 2. Audit read-only first: run the [recall batteries](references/recall-batteries.md) (with `--hidden` so `.agents/` is searched), then judge every hit semantically. The batteries are probes, not the definition — each review round of the original purge found cases the batteries missed, so also read the densest prose in scope (module JSDoc, READMEs, Agent Notes) without a pattern in hand.
 3. Fix owner-first per surface: generated catalogs → fix the source JSDoc or generator template, then regenerate; type-equivalence fences → fix the source JSDoc, then re-paste the page (`verify-type-equiv` pins it); model-visible strings → wording is behavior, so flag for a snapshot-backed change instead of silently rewording.
 4. Before deleting anything, enumerate the passage's propositions (prose-standard) and check the [overcorrection traps](references/examples.md#overcorrection-traps): trims that flip an obligation into an endorsement, promote a hypothetical to a shipped feature, delete a true fact, or drop provenance.

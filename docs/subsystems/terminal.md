@@ -1,6 +1,6 @@
 # Persistent PTY Sessions
 
-Types shared by PTY backends, `ctx.terminals`, and the model-facing consumer. The [persistent PTY Agent Note](../../.agents/notes/implemented/feature/2026-07-16-persistent-pty-sessions.md) owns the rationale; this page records the cross-package vocabulary from [`packages/terminal/terminal/src/types.ts`](../../packages/terminal/terminal/src/types.ts).
+Types shared by PTY backends, `ctx.terminals`, and the model-facing consumer. The [persistent PTY Agent Note](../../.agents/notes/implemented/feature/2026-07-16-persistent-pty-sessions.md) owns the rationale; this page records the cross-package vocabulary from [`packages/terminal/terminal/src/types.ts`](../../packages/terminal/terminal/src/types.js).
 
 ## Identity and readiness
 
@@ -178,5 +178,5 @@ list(owner: Agent): TerminalSessionSnapshot[]
 
 Types: [Agent](core.md)
 
-Source: [`packages/terminal/terminal/src/index.ts`](../../packages/terminal/terminal/src/index.ts)
+Source: [`packages/terminal/terminal/src/index.ts`](../../packages/terminal/terminal/src/index.js)
 <!-- END GENERATED cordis-surface -->

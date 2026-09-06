@@ -18,7 +18,7 @@ The Trajectory view had no way to hand a debugging artifact to a human: the raw 
 - **`session.log` data RPC + client-side zip** — shipped first, rejected with the user: the browser pulls the full raw JSON (≈10× the final zip size) and compresses on the main thread; for the 23 MB sessions in real use the host-side stream is strictly better. The RPC was deleted with the migration rather than left as a dead public surface.
 - **Single JSONL with envelope lines for multiple sessions** — rejected with the user: mixing sessions in one JSONL loses clean per-file boundaries; a ZIP keeps one canonical file per session.
 - **jszip** — heavier (~100 kB) and its dependency graph pulls readable-stream browser mappings; fflate is purpose-built and small.
-- **Vendoring fflate's browser entry** — the repo vendoring procedure targets cordis-scale pinned sources; a resolveId alias keeps the maintained dependency without shipping a copy (and host-side fflate needs no alias at all).
+- **Copying fflate's browser entry into the repository** — bringing a dependency in as first-party source is reserved for framework-scale code we intend to own and maintain; a resolveId alias keeps the maintained dependency without shipping a copy (and host-side fflate needs no alias at all).
 
 ## Consequences
 

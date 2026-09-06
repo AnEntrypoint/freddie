@@ -1,6 +1,6 @@
 # Same-session goals
 
-Types shared by the event-sourced goal service and its policy consumers. The [goal-domain Agent Note](../../.agents/notes/implemented/feature/2026-07-19-persisted-same-session-goal-domain.md) owns the persistence and activation decisions; this page records the exact fields and variants from [`packages/goal/goal/src/types.ts`](../../packages/goal/goal/src/types.ts).
+Types shared by the event-sourced goal service and its policy consumers. The [goal-domain Agent Note](../../.agents/notes/implemented/feature/2026-07-19-persisted-same-session-goal-domain.md) owns the persistence and activation decisions; this page records the exact fields and variants from [`packages/goal/goal/src/types.ts`](../../packages/goal/goal/src/types.js).
 
 ## Identity and lifecycle
 
@@ -140,7 +140,7 @@ interface GoalChanged {
 
 ## Service behavior
 
-[`GoalService`](../../packages/goal/goal/src/index.ts) resolves creation defaults, folds strict replay from durable `goal/change` events, enforces exact-live-agent identity and compare-and-set mutations, and emits contained `goal/changed` notifications. The package [README](../../packages/goal/goal/README.md) defines the callable API and model-visible contract.
+[`GoalService`](../../packages/goal/goal/src/index.js) resolves creation defaults, folds strict replay from durable `goal/change` events, enforces exact-live-agent identity and compare-and-set mutations, and emits contained `goal/changed` notifications. The package [README](../../packages/goal/goal/README.md) defines the callable API and model-visible contract.
 
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
@@ -245,7 +245,7 @@ block(agent: Agent, ref: GoalRef, reason: GoalBlockReason): GoalView
 
 Types: [Agent](core.md)
 
-Source: [`packages/goal/goal/src/index.ts`](../../packages/goal/goal/src/index.ts)
+Source: [`packages/goal/goal/src/index.ts`](../../packages/goal/goal/src/index.js)
 
 <a id="goal-events"></a>
 
@@ -271,5 +271,5 @@ Goal mutation accepted by one live agent. The matching `goal/change` session eve
 
 Types: [Agent](core.md) · [Scoped](scope.md)
 
-Source: [`packages/goal/goal/src/domain.ts`](../../packages/goal/goal/src/domain.ts)
+Source: [`packages/goal/goal/src/domain.ts`](../../packages/goal/goal/src/domain.js)
 <!-- END GENERATED cordis-surface -->
