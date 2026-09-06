@@ -537,7 +537,7 @@ export interface ToolResultPruneConfig {
 }
 ```
 
-Source: [`packages/compaction/compaction-tool-result-pruner/src/types.ts:4`](../packages/compaction/compaction-tool-result-pruner/src/types.ts)
+Source: [`packages/compaction/compaction-tool-result-pruner/src/index.js:4`](../packages/compaction/compaction-tool-result-pruner/src/index.js)
 
 <a id="deepseek-aidsh-cordis-host-runner"></a>
 
@@ -762,7 +762,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/hooks/hooks-claude-code/src/index.ts:45`](../packages/hooks/hooks-claude-code/src/index.ts)
+Source: `packages/hooks/hooks-claude-code` (package scaffold only, no `src/` implementation present yet)
 
 <a id="deepseek-aidsh-hooks-codex"></a>
 
@@ -789,7 +789,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/hooks/hooks-codex/src/index.ts:44`](../packages/hooks/hooks-codex/src/index.ts)
+Source: `packages/hooks/hooks-codex` (package scaffold only, no `src/` implementation present yet)
 
 <a id="deepseek-aidsh-host-apiproxy"></a>
 
@@ -1055,7 +1055,7 @@ export interface ReplayModelConfig {
 
 Depends on: [`ModelModality`](../packages/llm/llm/src/index.js) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.js)
 
-Source: [`packages/test-support/llm-replay/src/index.ts:809`](../packages/test-support/llm-replay/src/index.ts)
+Source: `packages/test-support/llm-replay` (package scaffold only, not yet built)
 
 <a id="deepseek-aidsh-llm-retry"></a>
 
@@ -1686,7 +1686,7 @@ export type Config = SessionTitleLlmConfig
 
 Depends on: [`SessionTitleLlmConfig`](../packages/session/session-title-llm/src/index.js)
 
-Source: [`packages/session/session-title-all-prompts-llm/src/index.ts:15`](../packages/session/session-title-all-prompts-llm/src/index.ts)
+Source: `packages/session/session-title-all-prompts-llm` (package scaffold only, no `src/` implementation present yet)
 
 <a id="deepseek-aidsh-session-title-first-prompt-llm"></a>
 
@@ -1962,7 +1962,7 @@ export interface Config {
 export type PermissionPolicy = 'allow' | 'reject'
 ```
 
-Source: [`packages/subagent/subagent-acp/src/index.ts:27`](../packages/subagent/subagent-acp/src/index.ts)
+Source: `packages/subagent/subagent-acp` (package scaffold only, no `src/` implementation present yet)
 
 <a id="deepseek-aidsh-subagent-freddie-sdk"></a>
 
@@ -2015,7 +2015,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/subagent/subagent-freddie-sdk/src/index.ts:29`](../packages/subagent/subagent-freddie-sdk/src/index.ts)
+Source: `packages/subagent/subagent-freddie-sdk` (package scaffold only, no `src/` implementation present yet)
 
 <a id="deepseek-aidsh-subagent-fork-in-process"></a>
 
@@ -2350,7 +2350,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/lsp/tool-lsp/src/index.ts:58`](../packages/lsp/tool-lsp/src/index.ts)
+Source: `packages/lsp/tool-lsp` (package scaffold only, no `src/` implementation present yet)
 
 <a id="deepseek-aidsh-tool-pwsh"></a>
 
@@ -2868,7 +2868,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/web/web-search-perplexity/src/index.ts:32`](../packages/web/web-search-perplexity/src/index.ts)
+Source: `packages/web/web-search-perplexity` (package scaffold only, no `src/` implementation present yet)
 
 <a id="deepseek-aidsh-workflow-worker-thread"></a>
 
@@ -2907,7 +2907,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@freddie/freddie-agent` ([`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.js))
 - `@freddie/freddie-api-gateway` — requires `typert` ([`packages/api/gateway/src/index.ts`](../packages/api/gateway/src/index.js))
 - `@freddie/freddie-api-remotes` ([`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.js))
-- `@freddie/freddie-authorization` — requires `credentials` ([`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts))
+- `@freddie/freddie-authorization` — requires `credentials` (`packages/credentials/authorization` (package scaffold only, no `src/` implementation present yet))
 - `@freddie/freddie-client-locale` ([`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.js))
 - `@freddie/freddie-client-modules` — requires `webServer` · `loader` ([`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.js))
 - `@freddie/freddie-client-runtime` ([`packages/client/runtime/src/index.ts`](../packages/client/runtime/src/index.js))
@@ -3000,35 +3000,35 @@ Abstract service classes — a deployment loads a concrete implementation packag
 
 Imported as libraries by other packages; a `cordis.yml` cannot load them.
 
-- `@freddie/freddie-acp-snapshot` ([`packages/test-support/acp-snapshot/src/index.ts`](../packages/test-support/acp-snapshot/src/index.ts))
-- `@freddie/freddie-agent-loop-testkit` ([`packages/test-support/agent-loop-testkit/src/index.ts`](../packages/test-support/agent-loop-testkit/src/index.ts))
+- `@freddie/freddie-acp-snapshot` (`packages/test-support/acp-snapshot` (package scaffold only, not yet built))
+- `@freddie/freddie-agent-loop-testkit` (`packages/test-support/agent-loop-testkit` (package scaffold only, not yet built))
 - `@freddie/freddie-anonymous-user-id` ([`packages/identity/anonymous-user-id/src/index.ts`](../packages/identity/anonymous-user-id/src/index.js))
 - `@freddie/freddie-app-boot` ([`packages/boot/app-boot/src/index.ts`](../packages/boot/app-boot/src/index.js))
 - `@freddie/freddie-atomic-write` ([`packages/util/atomic-write/src/index.ts`](../packages/util/atomic-write/src/index.js))
 - `@freddie/freddie-base` ([`packages/bundle/base/src/index.ts`](../packages/bundle/base/src/index.js))
 - `@freddie/freddie-brand` ([`packages/util/brand/src/index.ts`](../packages/util/brand/src/index.js))
-- `@freddie/freddie-client-test-runtime` ([`packages/test-support/client-runtime/src/index.ts`](../packages/test-support/client-runtime/src/index.ts))
+- `@freddie/freddie-client-test-runtime` (`packages/test-support/client-runtime` (package scaffold only, not yet built))
 - `@freddie/freddie-client-ui-primitives` ([`packages/client/ui-primitives/src/index.ts`](../packages/client/ui-primitives/src/index.js))
 - `@freddie/freddie-client-ui-slots` ([`packages/client/ui-slots/src/index.ts`](../packages/client/ui-slots/src/index.js))
 - `@freddie/freddie-client-web` ([`packages/client/web/src/index.ts`](../packages/client/web/src/index.js))
 - `@freddie/freddie-cmdline` ([`packages/boot/cmdline/src/index.ts`](../packages/boot/cmdline/src/index.js))
-- `@freddie/freddie-code-runtime-python` ([`packages/code-runtime/code-runtime-python/src/index.ts`](../packages/code-runtime/code-runtime-python/src/index.ts))
+- `@freddie/freddie-code-runtime-python` (`packages/code-runtime/code-runtime-python` (package scaffold only, not yet built))
 - `@freddie/freddie-home-paths` ([`packages/util/home-paths/src/index.ts`](../packages/util/home-paths/src/index.js))
 - `@freddie/freddie-hook-protocol` ([`packages/hooks/hook-protocol/src/index.ts`](../packages/hooks/hook-protocol/src/index.js))
 - `@freddie/freddie-launch-environment` ([`packages/util/launch-environment/src/index.ts`](../packages/util/launch-environment/src/index.js))
-- `@freddie/freddie-llm-mock-server` ([`packages/test-support/llm-mock-server/src/index.ts`](../packages/test-support/llm-mock-server/src/index.ts))
-- `@freddie/freddie-loader-smoke` ([`packages/test-support/loader-smoke/src/index.ts`](../packages/test-support/loader-smoke/src/index.ts))
+- `@freddie/freddie-llm-mock-server` (`packages/test-support/llm-mock-server` (package scaffold only, not yet built))
+- `@freddie/freddie-loader-smoke` (`packages/test-support/loader-smoke` (package scaffold only, not yet built))
 - `@freddie/freddie-native-command` ([`packages/util/native-command/src/index.js`](../packages/util/native-command/src/index.js))
 - `@freddie/freddie-output-retention` ([`packages/util/output-retention/src/index.ts`](../packages/util/output-retention/src/index.js))
 - `@freddie/freddie-sandbox-windows-acl` ([`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.js))
 - `@freddie/freddie-scope` ([`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.js))
 - `@freddie/freddie-sdk-client` ([`packages/sdk/client/src/index.ts`](../packages/sdk/client/src/index.js))
-- `@freddie/freddie-sdk-jsonrpc-demo` ([`packages/examples/jsonrpc-demo/src/index.ts`](../packages/examples/jsonrpc-demo/src/index.ts))
+- `@freddie/freddie-sdk-jsonrpc-demo` (`packages/examples/jsonrpc-demo` (package scaffold only, not yet built))
 - `@freddie/freddie-sdk-protocol` ([`packages/sdk/protocol/src/index.ts`](../packages/sdk/protocol/src/index.js))
 - `@freddie/freddie-session-telemetry` ([`packages/session/session-telemetry/src/index.ts`](../packages/session/session-telemetry/src/index.js))
 - `@freddie/freddie-session-title-llm` ([`packages/session/session-title-llm/src/index.ts`](../packages/session/session-title-llm/src/index.js))
 - `@freddie/freddie-subagent-in-process-driver` ([`packages/subagent/subagent-in-process-driver/src/index.ts`](../packages/subagent/subagent-in-process-driver/src/index.js))
 - `@freddie/freddie-timeout` ([`packages/util/timeout/src/index.ts`](../packages/util/timeout/src/index.js))
-- `@freddie/freddie-typert-generator` ([`packages/typert/generator/src/index.ts`](../packages/typert/generator/src/index.ts))
+- `@freddie/freddie-typert-generator` (`packages/typert/generator` (package scaffold only, not yet built))
 - `@freddie/freddie-typert-protocol` ([`packages/typert/protocol/src/index.ts`](../packages/typert/protocol/src/index.js))
 - `@freddie/freddie-typert-registry` ([`packages/typert/registry/src/index.ts`](../packages/typert/registry/src/index.js))

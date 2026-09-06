@@ -485,7 +485,7 @@ Source: [`packages/hooks/hook-protocol/src/types.ts:31`](../packages/hooks/hook-
 'llm/retry': LlmRetryEventData
 ```
 
-Source: [`packages/llm/llm-retry/src/types.ts:9`](../packages/llm/llm-retry/src/types.ts)
+Source: [`packages/llm/llm-retry/src/index.js:9`](../packages/llm/llm-retry/src/index.js)
 
 <a id="llmretry-started--log-only"></a>
 
@@ -496,7 +496,7 @@ Source: [`packages/llm/llm-retry/src/types.ts:9`](../packages/llm/llm-retry/src/
 'llm/retry-started': LlmRetryStartedEventData
 ```
 
-Source: [`packages/llm/llm-retry/src/types.ts:11`](../packages/llm/llm-retry/src/types.ts)
+Source: [`packages/llm/llm-retry/src/index.js:11`](../packages/llm/llm-retry/src/index.js)
 
 ### `permission/*`
 
@@ -602,7 +602,7 @@ Source: [`packages/sandbox/sandbox-policy/src/session-mode.ts:33`](../packages/s
 
 Types: [ScheduleChange](subsystems/schedule.md)
 
-Source: [`packages/schedule/schedule/src/types.ts:219`](../packages/schedule/schedule/src/types.ts)
+Source: [`packages/schedule/schedule/src/domain.js:219`](../packages/schedule/schedule/src/domain.js)
 
 ### `session/*`
 
@@ -892,7 +892,7 @@ Source: [`packages/core/session/src/types.ts:295`](../packages/core/session/src/
 'tool-workflow/agent-end': ToolWorkflowAgentEndData
 ```
 
-Source: [`packages/workflow/tool-workflow/src/types.ts:57`](../packages/workflow/tool-workflow/src/types.ts)
+Source: [`packages/workflow/tool-workflow/src/index.js:57`](../packages/workflow/tool-workflow/src/index.js)
 
 <a id="tool-workflowagent-start--log-only"></a>
 
@@ -906,7 +906,7 @@ Source: [`packages/workflow/tool-workflow/src/types.ts:57`](../packages/workflow
 'tool-workflow/agent-start': ToolWorkflowAgentStartData
 ```
 
-Source: [`packages/workflow/tool-workflow/src/types.ts:52`](../packages/workflow/tool-workflow/src/types.ts)
+Source: [`packages/workflow/tool-workflow/src/index.js:52`](../packages/workflow/tool-workflow/src/index.js)
 
 <a id="tool-workflowrun-end--log-only"></a>
 
@@ -920,7 +920,7 @@ Source: [`packages/workflow/tool-workflow/src/types.ts:52`](../packages/workflow
 'tool-workflow/run-end': ToolWorkflowRunEndData
 ```
 
-Source: [`packages/workflow/tool-workflow/src/types.ts:62`](../packages/workflow/tool-workflow/src/types.ts)
+Source: [`packages/workflow/tool-workflow/src/index.js:62`](../packages/workflow/tool-workflow/src/index.js)
 
 <a id="tool-workflowrun-start--log-only"></a>
 
@@ -934,7 +934,7 @@ Source: [`packages/workflow/tool-workflow/src/types.ts:62`](../packages/workflow
 'tool-workflow/run-start': ToolWorkflowRunStartData
 ```
 
-Source: [`packages/workflow/tool-workflow/src/types.ts:47`](../packages/workflow/tool-workflow/src/types.ts)
+Source: [`packages/workflow/tool-workflow/src/index.js:47`](../packages/workflow/tool-workflow/src/index.js)
 
 ### `turn/*`
 

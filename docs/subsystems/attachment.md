@@ -4,7 +4,7 @@ The attachment seam separates binary image ownership from the session log. A pro
 
 Unsent browser drafts may stay in memory and native clients may stage them in operating-system temporary storage. Once the host accepts a user message, its images move below `<FREDDIE_HOME>/attachments/v1` before the user event is appended. Structured model image output follows the same persist-before-event rule.
 
-Source: [`packages/attachment/attachment/src/types.ts`](../../packages/attachment/attachment/src/types.ts)
+Source: [`packages/attachment/attachment/src/index.js`](../../packages/attachment/attachment/src/index.js)
 
 ## Identity and verified metadata
 

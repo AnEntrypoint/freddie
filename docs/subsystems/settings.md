@@ -277,7 +277,7 @@ One registered namespace's RAW user section changed, whether or not the resolved
 'settings/document-updated'(ns: SettingsNamespace, revision: number): void
 ```
 
-Source: [`packages/settings/settings/src/types.ts`](../../packages/settings/settings/src/types.ts)
+Source: [`packages/settings/settings/src/index.js`](../../packages/settings/settings/src/index.js)
 
 <a id="settingsupdated--emit"></a>
 
@@ -304,5 +304,5 @@ Committed change to one registered namespace's resolved value. Emitted after the
 'settings/updated'(ns: SettingsNamespace, next: unknown, prev: unknown, source: SettingsUpdateSource): void
 ```
 
-Source: [`packages/settings/settings/src/types.ts`](../../packages/settings/settings/src/types.ts)
+Source: [`packages/settings/settings/src/index.js`](../../packages/settings/settings/src/index.js)
 <!-- END GENERATED cordis-surface -->

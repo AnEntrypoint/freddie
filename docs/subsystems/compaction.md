@@ -87,7 +87,7 @@ The Service Definition exports `toolPairingBalancedBefore(session, seq)` and `to
 
 ## Tool-result pruning outcomes
 
-The optional tool-result pruning service reports each durable content replacement and the aggregate Unicode-code-point reduction. Its public result types live in [`compaction-tool-result-pruner/src/types.ts`](../../packages/compaction/compaction-tool-result-pruner/src/types.ts).
+The optional tool-result pruning service reports each durable content replacement and the aggregate Unicode-code-point reduction. Its public result types live in [`compaction-tool-result-pruner/src/index.js`](../../packages/compaction/compaction-tool-result-pruner/src/index.js).
 
 ```ts type-equiv
 /** Cited source event and size accounting for one landed surface replacement. */

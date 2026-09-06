@@ -1202,7 +1202,7 @@ Query a language server for precise code navigation. operation is one of goToDef
 }
 ```
 
-Source: [`packages/lsp/tool-lsp/src/index.ts`](../packages/lsp/tool-lsp/src/index.ts)
+Source: `packages/lsp/tool-lsp` (package scaffold only, no `src/` implementation present yet)
 
 The lsp tool keeps provider selection and language-server subprocesses behind ctx.lsp, so its model-visible schema stays stable across providers. Requires a registered provider (e.g. `@freddie/freddie-lsp-stdio`) at runtime; without one, a query returns the structured `LSP_UNAVAILABLE` error rather than changing the schema.
 

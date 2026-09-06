@@ -114,7 +114,7 @@ cancel(key: CredentialKey): void
 async begin(request: AuthorizationRequest): Promise<AuthorizationOutcome>
 ```
 
-Source: [`packages/credentials/authorization/src/index.ts`](../../packages/credentials/authorization/src/index.ts)
+Source: `packages/credentials/authorization` (package scaffold only, no `src/` implementation present yet)
 
 <a id="ctxcredentials--credentialprovider-abstract-seam"></a>
 
@@ -232,7 +232,7 @@ One authorization attempt has finished and released its key. Fires for every ter
 'authorization/settled'(key: CredentialKey, settlement: AuthorizationSettlement): void
 ```
 
-Source: [`packages/credentials/authorization/src/index.ts`](../../packages/credentials/authorization/src/index.ts)
+Source: `packages/credentials/authorization` (package scaffold only, no `src/` implementation present yet)
 
 <a id="credentials-events"></a>
 
