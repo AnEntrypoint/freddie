@@ -1803,6 +1803,17 @@ export function createApiProxy(ctx, defaults) {
             isAborted(signal)
             || (error instanceof SessionQueryError && error.code === 'SESSION_QUERY_ABORTED')
           ) return cancelled()
+          // A deployment configured with `openAt: 'never'` has no index to
+          // search. That is a supported configuration, not a fault: reporting
+          // it as `internal` tells the client the server broke, so the UI
+          // shows a crash where it should just say search is unavailable.
+          if (error instanceof SessionQueryError && error.code === 'SESSION_QUERY_SEARCH_DISABLED') {
+            return err(request, {
+              code: 'search-unavailable',
+              message: 'session search is disabled in this deployment',
+              details: {},
+            })
+          }
           // XXX: Redact provider details before exposing this gateway beyond
           // its current single-user local deployment.
           return err(request, {
