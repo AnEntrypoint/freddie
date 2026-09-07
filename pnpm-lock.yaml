@@ -1007,6 +1007,9 @@ importers:
       '@freddie/freddie-fs-sandbox':
         specifier: workspace:^
         version: link:../../fs/fs-sandbox
+      '@freddie/freddie-gm-client':
+        specifier: workspace:^
+        version: link:../../gm/gm-client
       '@freddie/freddie-goal':
         specifier: workspace:^
         version: link:../../goal/goal
@@ -1118,6 +1121,9 @@ importers:
       '@freddie/freddie-tool-fs-search':
         specifier: workspace:^
         version: link:../../fs/tool-fs-search
+      '@freddie/freddie-tool-gm':
+        specifier: workspace:^
+        version: link:../../gm/tool-gm
       '@freddie/freddie-tool-goal':
         specifier: workspace:^
         version: link:../../goal/tool-goal
@@ -4371,6 +4377,9 @@ importers:
 
   packages/gm/gm-client:
     dependencies:
+      '@freddie/freddie-gm-config':
+        specifier: workspace:^
+        version: link:../gm-config
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4378,6 +4387,18 @@ importers:
       '@freddie/cordis':
         specifier: workspace:^
         version: link:../../../framework/cordis
+      '@freddie/freddie-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+
+  packages/gm/gm-config:
+    devDependencies:
+      '@freddie/cordis':
+        specifier: workspace:^
+        version: link:../../../framework/cordis
+      '@freddie/freddie-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
 
   packages/gm/tool-gm:
     dependencies:
@@ -4391,6 +4412,9 @@ importers:
       '@freddie/freddie-gm-client':
         specifier: workspace:^
         version: link:../gm-client
+      '@freddie/freddie-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-tools':
         specifier: workspace:^
         version: link:../../core/tools
