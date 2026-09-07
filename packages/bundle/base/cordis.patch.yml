@@ -76,25 +76,29 @@
     # gm_recall, gm_prd_add, gm_mutable_add, gm_transition, gm_exec_js,
     # gm_git_finalize) over that service, each with its own parameters/
     # output.schema instead of one opaque (verb, body: any) passthrough.
-    # Disabled by default, gated on GM_HOME_DIR alone: `!!js` expressions
-    # evaluate via `with (ctx) { eval(expr) }` in framework/loader/src/config/
-    # utils.js -- a plain function scope, never CommonJS, so `require` is not
-    # defined there (live-verified: every prior `require('node:fs')`/
-    # `require('node:path')` use in this file's disabled/config expressions,
-    # including the pre-existing mcp-gm row below, threw ReferenceError at
-    # boot and had never actually been exercised). No sync filesystem probe
-    # is available in this eval context, so existence is opt-in via an
-    # explicit env var rather than auto-detected.
+    # Always mounted, no disabled guard: `!!js` expressions evaluate via
+    # `with (ctx) { eval(expr) }` in framework/loader/src/config/utils.js -- a
+    # plain function scope, never CommonJS, so `require` is not defined
+    # there, which rules out a real synchronous fs.existsSync probe at this
+    # layer (an earlier require()-based auto-detect attempt threw
+    # ReferenceError at boot and never actually ran; an env-var-gated
+    # follow-up required setting GM_HOME_DIR on every single launch, which
+    # defeats "first-class" -- live-witnessed forgetting it on a routine
+    # restart, silently losing the native gm tools for the whole session).
+    # Mounting unconditionally is safe: Gm's constructor (gm-client/src/
+    # index.js) does no I/O -- ensureDaemon only runs lazily on the first
+    # real gm.call(), where daemon.js already throws a clear, real error
+    # naming the missing ~/.gm-tools/bootstrap.js path if gm truly isn't
+    # installed on this machine (the "misconfiguration fails loud at the
+    # earliest resolvable point" convention, not a boot-time crash).
     - id: gm-client
       name: '@freddie/freddie-gm-client'
-      disabled: !!js process.env.GM_HOME_DIR?.trim() === undefined
       config:
         sessionId: freddie-harness-1
         cwd: !!js process.cwd()
 
     - id: tool-gm
       name: '@freddie/freddie-tool-gm'
-      disabled: !!js process.env.GM_HOME_DIR?.trim() === undefined
 
     # gm as a first-class harness capability, MCP-bridge path: gm-mcp
     # (github.com/AnEntrypoint/gm-mcp) is a real MCP server exposing gm's
