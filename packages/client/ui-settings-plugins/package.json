@@ -28,11 +28,9 @@
   "freddie": {
     "client": {
       "inject": [
-        "@freddie/freddie-client-connection",
         "@freddie/freddie-client-locale",
         "@freddie/freddie-client-runtime",
-        "@freddie/freddie-client-ui-settings",
-        "@freddie/freddie-api-remotes"
+        "@freddie/freddie-client-ui-settings"
       ],
       "platform": "web"
     }
@@ -44,8 +42,6 @@
   "license": "MIT",
   "peerDependencies": {
     "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-api-remotes": "workspace:^",
-    "@freddie/freddie-client-connection": "workspace:^",
     "@freddie/freddie-client-locale": "workspace:^",
     "@freddie/freddie-client-runtime": "workspace:^",
     "@freddie/freddie-client-ui-settings": "workspace:^",
@@ -53,8 +49,6 @@
   },
   "devDependencies": {
     "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-api-remotes": "workspace:^",
-    "@freddie/freddie-client-connection": "workspace:^",
     "@freddie/freddie-client-locale": "workspace:^",
     "@freddie/freddie-client-runtime": "workspace:^",
     "@freddie/freddie-client-ui-primitives": "workspace:^",
@@ -68,7 +62,6 @@
     "src/client/index.js",
     "src/client/AgentLoopCard.js",
     "src/client/BashCard.js",
-    "src/client/WebSearchCard.js",
     "src/client/PluginCard.js",
     "src/client/PluginCard.css",
     "src/client/PluginCard.css.js",
@@ -84,8 +77,7 @@
     "src/client/card-form.js",
     "src/client/locales.js",
     "src/client/slot-contract.js",
-    "src/client/tab-store.js",
-    "src/client/web-search-card-controller.js"
+    "src/client/tab-store.js"
   ],
   "dependencies": {
     "clsx": "^2.1.1",

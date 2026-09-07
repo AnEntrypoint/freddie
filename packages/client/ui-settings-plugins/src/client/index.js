@@ -14,39 +14,27 @@ import { AgentLoopCard } from './AgentLoopCard.js'
 import { BashCard } from './BashCard.js'
 import { ConfigurablePluginsTab } from './ConfigurablePluginsTab.js'
 import { PluginsSettingsSection } from './PluginsSettingsSection.js'
-import { WebSearchCard } from './WebSearchCard.js'
 import { AGENT_LOOP_NS, AgentLoopCardController } from './agent-loop-card-controller.js'
 import { SHELL_NS, BashCardController } from './bash-card-controller.js'
 import { ConfigurablePluginsTabController } from './tab-store.js'
-import { WEB_SEARCH_NS, WebSearchCardController } from './web-search-card-controller.js'
 import { en, zh } from './locales.js'
 
 /** Dictionary namespace owned by this plugin. */
 const NS = 'settings.plugins'
 
 /** Required services (cordis fiber inject). */
-export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope']
+export const inject = ['slots', 'locale', 'settingsScope']
 
 /**
  * Mount the plugin configuration section and the cards this package ships.
  * @param ctx - the browser plugin context.
  */
 export function apply(ctx) {
-  const { api } = ctx.get('connection')
   const t = ctx.locale.bind(NS)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-plugins: section dictionaries')
 
   const bash = new BashCardController(ctx.settingsScope.bind({ namespace: SHELL_NS }))
   const agentLoop = new AgentLoopCardController(ctx.settingsScope.bind({ namespace: AGENT_LOOP_NS }))
-  const webSearch = new WebSearchCardController(ctx.settingsScope.bind({ namespace: WEB_SEARCH_NS }), api)
-
-  // The credential a card reports is not part of any settings section, so its
-  // scope publishes nothing when one is written. This is the only signal that
-  // a key written on another surface reached the Host.
-  ctx.effect(
-    () => ctx.remote.$on('credentials/reference-updated', (ref) => { webSearch.refreshCredential(ref) }),
-    'ui-settings-plugins: credential invalidations',
-  )
 
   // Which namespaces the Host serves comes from the shared describe mirror,
   // whose owning plugin already refreshes it on document commits and
@@ -132,11 +120,5 @@ export function apply(ctx) {
       locale: NS,
       inject: () => agentLoop.inject(),
     }, AgentLoopCard)
-    yield ctx.slots.register({
-      name: 'settings.plugin.item',
-      key: WEB_SEARCH_NS,
-      locale: NS,
-      inject: () => webSearch.inject(),
-    }, WebSearchCard)
   })
 }
