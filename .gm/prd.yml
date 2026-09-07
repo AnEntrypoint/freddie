@@ -1,1 +1,7 @@
-[]
+- id: git-finalize-yaml-ternary-fix
+  title: Commit the quoted extraRoots fix via git_finalize
+  subject: User required git_finalize including landing packages/bundle/base/cordis.patch.yml line 159. Working tree currently has that one modified file.
+  acceptance: git_finalize commits the quoted extraRoots change (and Agent Note); porcelain after commit is clean for those files; SHA is real.
+  status: pending
+  route_family: boundary
+  session_id: freddie-4612-1788790819663

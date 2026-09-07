@@ -321,3 +321,51 @@
   session_id: freddie-harness-1
   status: witnessed
   witness_evidence: 'Temp spool ts=now-5min busy_until=now+60s: classifyDaemonHealth=busy isDaemonHung=false. isDaemonAlive treats future busy_until as alive past STALE_MS.'
+- id: yaml-unquoted-ternary-throws
+  prd_id: quote-extraRoots-js-yaml-ternary
+  obligation_kind: precondition
+  subject: Unquoted extraRoots !!js ternary throws YAMLException under entryListSchema
+  text: Load HEAD (unquoted) extraRoots through yaml.loadAll + entryListSchema and witness YAMLException.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'node imported entryListSchema from framework/include/src/index.js and yaml.loadAll''d the unquoted extraRoots form of packages/bundle/base/cordis.patch.yml: {label:UNQUOTED, ok:false, name:YAMLException, message:''bad indentation of a mapping entry (159:120)''}.'
+- id: no-remaining-unquoted-js-ternary
+  prd_id: sweep-unquoted-js-yaml-ternaries
+  obligation_kind: invariant
+  subject: 'No !!js scalar in cordis.patch.yml contains an unquoted ? : ternary'
+  text: List every !!js line containing ? after the sweep; each must be a quoted YAML scalar.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'Sweep of every !!js line in packages/bundle/base/cordis.patch.yml: the only ? : ternaries are line 159 extraRoots (quoted=true) and line 249 approval.policy (quoted=true). Other ? hits are optional chaining ?. or nullish ?? (lines 121,127,212,233), not ternaries; yaml.loadAll of the quoted file fileParse=ok.'
+- id: yaml-quoted-ternary-parses
+  prd_id: quote-extraRoots-js-yaml-ternary
+  obligation_kind: postcondition
+  subject: Quoted extraRoots !!js parses to a __jsExpr node
+  text: Load working-tree extraRoots through yaml.loadAll + entryListSchema and witness __jsExpr containing the ternary.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'Same process on the working-tree quoted extraRoots line: {label:QUOTED, ok:true, hasJsExpr:true, expr:\"(process.env.FREDDIE_EXTRA_SESSION_ROOTS ?? '''').split(process.platform === ''win32'' ? '';'' : '':'').map(s => s.trim()).filter(Boolean)\"}.'
+- id: yaml-unquoted-ternary-throws
+  prd_id: quote-extraRoots-js-yaml-ternary
+  obligation_kind: precondition
+  subject: Unquoted extraRoots !!js ternary throws YAMLException under entryListSchema
+  text: Load HEAD unquoted extraRoots through yaml.loadAll + entryListSchema and witness YAMLException.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'node imported entryListSchema from framework/include/src/index.js and yaml.loadAll''d the unquoted extraRoots form of packages/bundle/base/cordis.patch.yml: {label:UNQUOTED, ok:false, name:YAMLException, message:''bad indentation of a mapping entry (159:120)''}.'
+- id: yaml-quoted-ternary-parses
+  prd_id: quote-extraRoots-js-yaml-ternary
+  obligation_kind: postcondition
+  subject: Quoted extraRoots !!js parses to a __jsExpr node
+  text: Load working-tree extraRoots through yaml.loadAll + entryListSchema and witness __jsExpr containing the ternary.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'Same process on the working-tree quoted extraRoots line: {label:QUOTED, ok:true, hasJsExpr:true, expr:\"(process.env.FREDDIE_EXTRA_SESSION_ROOTS ?? '''').split(process.platform === ''win32'' ? '';'' : '':'').map(s => s.trim()).filter(Boolean)\"}.'
+- id: no-remaining-unquoted-js-ternary
+  prd_id: sweep-unquoted-js-yaml-ternaries
+  obligation_kind: invariant
+  subject: 'No !!js scalar in cordis.patch.yml contains an unquoted ? : ternary'
+  text: List every !!js line containing a ternary after the sweep; each must be a quoted YAML scalar.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'Sweep of every !!js line in packages/bundle/base/cordis.patch.yml: the only ? : ternaries are line 159 extraRoots (quoted=true) and line 249 approval.policy (quoted=true). Other ? hits are optional chaining ?. or nullish ?? (lines 121,127,212,233), not ternaries; yaml.loadAll of the quoted file fileParse=ok.'

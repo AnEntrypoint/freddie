@@ -156,7 +156,7 @@
       name: '@freddie/freddie-session-persistence-jsonl'
       config:
         root: !!js freddieHomePath('sessions')
-        extraRoots: !!js (process.env.FREDDIE_EXTRA_SESSION_ROOTS ?? '').split(process.platform === 'win32' ? ';' : ':').map(s => s.trim()).filter(Boolean)
+        extraRoots: !!js "(process.env.FREDDIE_EXTRA_SESSION_ROOTS ?? '').split(process.platform === 'win32' ? ';' : ':').map(s => s.trim()).filter(Boolean)"
 
     # Durable image bytes live outside the append-only session log. Messages
     # keep content-addressed references that this shared backend resolves for
