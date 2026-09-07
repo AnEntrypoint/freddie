@@ -69,28 +69,58 @@
     - id: jobs
       name: '@freddie/freddie-jobs-local'
 
-    # gm as a first-class harness capability: gm-mcp (github.com/AnEntrypoint/gm-mcp)
-    # is a real MCP server exposing gm's spool write-then-poll-then-clean-YAML
-    # dispatch cycle as one tool (verb/body/session_id/...). Wiring it through
-    # the existing freddie-mcp-client bridge (the same mechanism
-    # examples/mcp-memory already demonstrates for third-party MCP servers)
-    # gives every in-harness agent a native mcp__gm__gm tool call instead of
-    # shelling out via pwsh to hand-write/poll .gm/exec-spool files -- no
-    # changes needed to either gm or freddie-mcp-client. Disabled by default:
-    # a project without gm-mcp installed (GM_MCP_SERVER_PATH unset and the
-    # default relative path absent) must not fail composition boot over an
-    # optional capability.
+    # gm as a first-class harness capability, native path: freddie-gm-client's
+    # ctx.gm dispatches gm's spool verbs directly against .gm/exec-spool/, in
+    # this process -- no MCP stdio hop, no subprocess. freddie-tool-gm
+    # registers real typed model-facing tools (gm_instruction, gm_codesearch,
+    # gm_recall, gm_prd_add, gm_mutable_add, gm_transition, gm_exec_js,
+    # gm_git_finalize) over that service, each with its own parameters/
+    # output.schema instead of one opaque (verb, body: any) passthrough.
+    # Disabled by default, gated on GM_HOME_DIR alone: `!!js` expressions
+    # evaluate via `with (ctx) { eval(expr) }` in framework/loader/src/config/
+    # utils.js -- a plain function scope, never CommonJS, so `require` is not
+    # defined there (live-verified: every prior `require('node:fs')`/
+    # `require('node:path')` use in this file's disabled/config expressions,
+    # including the pre-existing mcp-gm row below, threw ReferenceError at
+    # boot and had never actually been exercised). No sync filesystem probe
+    # is available in this eval context, so existence is opt-in via an
+    # explicit env var rather than auto-detected.
+    - id: gm-client
+      name: '@freddie/freddie-gm-client'
+      disabled: !!js process.env.GM_HOME_DIR?.trim() === undefined
+      config:
+        sessionId: freddie-harness-1
+        cwd: !!js process.cwd()
+
+    - id: tool-gm
+      name: '@freddie/freddie-tool-gm'
+      disabled: !!js process.env.GM_HOME_DIR?.trim() === undefined
+
+    # gm as a first-class harness capability, MCP-bridge path: gm-mcp
+    # (github.com/AnEntrypoint/gm-mcp) is a real MCP server exposing gm's
+    # spool write-then-poll-then-clean-YAML dispatch cycle as one tool
+    # (verb/body/session_id/...). Wiring it through the existing
+    # freddie-mcp-client bridge (the same mechanism examples/mcp-memory
+    # already demonstrates for third-party MCP servers) gives every
+    # in-harness agent a native mcp__gm__gm tool call instead of shelling out
+    # via pwsh to hand-write/poll .gm/exec-spool files. Kept alongside the
+    # native gm-client/tool-gm rows above (not replaced) as a fallback path:
+    # it covers every gm verb (the native tool-gm row above only wraps the
+    # highest-traffic ones) and needs a separately-installed gm-mcp rather
+    # than gm's own base install, so its own disabled guard differs.
+    # Disabled by default, gated on GM_MCP_SERVER_PATH alone -- same `require`
+    # constraint as the rows above; the on-disk default-path fallback this
+    # row used to auto-detect via `require('node:fs').existsSync(...)` never
+    # actually ran (ReferenceError at boot), so it is now opt-in only.
     - id: mcp-gm
       name: '@freddie/freddie-mcp-client'
-      disabled: !!js >-
-        !(process.env.GM_MCP_SERVER_PATH?.trim()) && !require('node:fs').existsSync(require('node:path').join(process.env.USERPROFILE || process.env.HOME || '', '.gm-tools', 'gm-mcp', 'bin', 'gm-mcp-server.js'))
+      disabled: !!js process.env.GM_MCP_SERVER_PATH?.trim() === undefined
       config:
         serverName: gm
         transport: stdio
         command: node
         args:
-          - !!js >-
-            process.env.GM_MCP_SERVER_PATH?.trim() || require('node:path').join(process.env.USERPROFILE || process.env.HOME || '', '.gm-tools', 'gm-mcp', 'bin', 'gm-mcp-server.js')
+          - !!js process.env.GM_MCP_SERVER_PATH?.trim()
         cwd: !!js process.cwd()
         # gm-mcp's own gmDispatch polls its spool for up to 120s by default
         # (timeout_seconds) before returning timed_out -- the shared,

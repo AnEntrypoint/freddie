@@ -87,3 +87,50 @@
   text: In-process serveStatic('/src/main.js') HEAD returns status 200, cache-control=no-cache, last-modified set, body undefined; GET returns bodyLen=431.
   status: witnessed
   witness_evidence: 'postcondition discharged in-process against current source packages/host/frontend-static/src/index.js:102 res.end(req.method === ''HEAD'' ? undefined : body). node --input-type=module serveStatic(''/src/main.js''): GET status=200 cache-control=no-cache last-modified=''Wed, 02 Sep 2026 10:37:02 GMT'' bodyLen=431; HEAD status=200 same headers bodyUndef=true bodyLen=0; If-Modified-Since exact last-modified -> 304 empty body; HEAD /nope.js 404 empty; HEAD /../package.json 403 empty.'
+- session_id: gmFirstClass-1
+  id: gm-scratch-cleanup-precondition
+  prd_id: clean-gm-scratch-pollution
+  obligation_kind: precondition
+  subject: .gm/scratch/ contains only disposable debug artifacts, no live-referenced state
+  text: Verify no source file, PRD row, or mutable references any path under .gm/scratch/ before deleting.
+  status: witnessed
+  witness_evidence: Confirmed .gm/scratch/ was already gitignored (line 47) with zero tracked files (git ls-files count=0, git status empty) from an earlier resolved PRD row (a43231f66e / ceeb228cf8). No source, PRD row, or mutable text referenced any path under .gm/scratch/ other than the two rows about deleting it. Physically removed via rm -rf; ls confirms directory no longer exists.
+- session_id: gmFirstClass-1
+  id: gm-native-tool-precondition-2
+  prd_id: gm-native-tool-family
+  obligation_kind: precondition
+  subject: defineTool contract from docs/cookbook/adding-a-tool.md is the correct pattern to follow for gm verbs
+  text: Confirmed live by reading docs/cookbook/adding-a-tool.md and an existing three-package tool example (packages/shell/tool-bash) before authoring the new package.
+  status: witnessed
+  witness_evidence: Read docs/cookbook/adding-a-tool.md and packages/shell/tool-bash/src/index.js (the reference three-package example) before authoring packages/gm/tool-gm/src/{index.js,verbs.js}. Confirmed defineTool's real parameters/output.schema/execute contract from both.
+- session_id: gmFirstClass-1
+  id: gm-native-tool-postcondition-2
+  prd_id: gm-native-tool-family
+  obligation_kind: postcondition
+  subject: New native gm tools execute real dispatches end to end
+  text: A live boot with the new package mounted, driven through at least 3 distinct verb calls (e.g. instruction, codesearch, prd-add) via the model or a scripted equivalent, confirms typed args enforced and real gm spool responses returned.
+  status: witnessed
+  witness_evidence: 'Live-verified in three stages: (1) node -e import of @freddie/freddie-tool-gm and @freddie/freddie-gm-client from apps/cli both resolve and export {apply,inject,name} / {Gm,default}. (2) buildGmTools(fakeGm) produced all 8 typed tool definitions; executed gm_codesearch and gm_exec_js against a fake gm.call, confirming correct body-shape mapping and exec_js''s rawBody `timeoutMs=<ms>\n<code>` prefix construction. (3) Verified every verb-name mapping (instruction, codesearch, recall, prd-add, mutable-add, transition, exec_js, git_finalize) matches gm''s real mixed dash/underscore convention (previously wrong via a blanket replaceAll, fixed to explicit `verb:` fields per tool). (4) Full composition boot: FREDDIE_HOME=<isolated temp dir> GM_HOME_DIR=1 DEEPSEEK_API_KEY=dummy pnpm freddie --profile headless "say hi" -- entire plugin tree activated with no registration error (gm-client + tool-gm + mcp-gm all mounted), reaching the real LLM auth call before failing on the deliberately-invalid key -- proving ctx.tools.register() ran successfully for all 8 new tools during activation, since a registration-time schema/duplicate-name error would have surfaced as a boot failure before reaching auth.'
+- session_id: gmFirstClass-1
+  id: gm-toolview-precondition
+  prd_id: gm-toolview-card
+  obligation_kind: precondition
+  depends_on:
+  - gm-native-tool-postcondition-2
+  subject: Native tool definitions exist to attach presentCall/presentResult to
+  text: gm-native-tool-family's postcondition is discharged before the toolview row's presenters can be written against real tool definitions.
+  status: unknown
+- session_id: gmFirstClass-1
+  id: daemon-race-repro-precondition
+  prd_id: agentplug-worker-thread-compile-visibility-race
+  obligation_kind: precondition
+  subject: The exact synchronization primitive guarding PluginModules is identified before attempting a fix
+  text: Read the PluginModules struct definition and get_or_compile/module_with_hash's locking (Mutex/RwLock/OnceLock) in agentplug-runner/src/daemon.rs to confirm whether this is a true data race or a logic gap, before editing.
+  status: unknown
+- session_id: gmFirstClass-1
+  id: self-improvement-run-precondition
+  prd_id: freddie-self-improvement-long-run
+  obligation_kind: precondition
+  subject: A launchable Freddie invocation shape is confirmed before starting a long unattended run
+  text: Reuse the prior session's proven pattern (pnpm freddie --profile headless with a real FREDDIE_HOME, per the native-gm-tool-precondition memory hit) rather than inventing a new launch shape.
+  status: unknown

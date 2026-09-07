@@ -42,11 +42,12 @@ export class Gm extends Service {
    * Dispatch one gm spool verb and wait for its response. Boots the shared
    * daemon on first call if it isn't already running.
    * @param verb - gm spool verb name (e.g. `instruction`, `codesearch`, `recall`).
-   * @param body - JSON body; `session_id` is filled in automatically if absent.
+   * @param body - JSON body; `session_id` is filled in automatically if absent. Ignored when `options.rawBody` is given.
+   * @param options.rawBody - literal text body for a plain-text-body verb (exec_js and its language stems, serp, browser, cdp) -- these reject a JSON-wrapped body outright. Mutually exclusive with `body`.
    * @param options.timeoutMs - per-dispatch timeout (default 120000, matching gm's own default).
    * @returns the parsed response body.
    */
-  async call(verb, body = {}, { timeoutMs } = {}) {
+  async call(verb, body = {}, { timeoutMs, rawBody } = {}) {
     if (!this.booted) {
       await ensureDaemon(this.config.cwd)
       this.booted = true
@@ -56,6 +57,7 @@ export class Gm extends Service {
       verb,
       sessionId: this.config.sessionId,
       body,
+      ...rawBody === undefined ? {} : { rawBody },
       ...timeoutMs === undefined ? {} : { timeoutMs },
     })
   }

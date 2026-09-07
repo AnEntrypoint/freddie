@@ -41,6 +41,8 @@
     "@freddie/freddie-fs-local": "workspace:^",
     "@freddie/freddie-headless": "workspace:^",
     "@freddie/freddie-mcp-client": "workspace:^",
+    "@freddie/freddie-gm-client": "workspace:^",
+    "@freddie/freddie-tool-gm": "workspace:^",
     "@freddie/freddie-home-paths": "workspace:^",
     "@freddie/freddie-persona": "workspace:^",
     "@freddie/freddie-plan-mode": "workspace:^",

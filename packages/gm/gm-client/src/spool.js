@@ -55,7 +55,8 @@ function nextDispatchNumber(sessionId) {
  * @param options.cwd - project root containing `.gm/exec-spool`.
  * @param options.verb - gm spool verb name.
  * @param options.sessionId - gm SESSION_ID; threaded into the body automatically.
- * @param options.body - JSON body (session_id is added if not already present).
+ * @param options.body - JSON body (session_id is added if not already present). Ignored when `rawBody` is given.
+ * @param options.rawBody - literal text body for a plain-text-body verb (exec_js and its language stems, serp, browser, cdp) -- these verbs reject a JSON-wrapped body outright, per gm's own AGENTS.md. Mutually exclusive with `body`.
  * @param options.timeoutMs - give up and throw after this many ms (default 120000).
  * @param options.pollIntervalMs - poll cadence while waiting (default 200).
  * @returns the parsed response body.
@@ -66,6 +67,7 @@ export async function dispatch({
   verb,
   sessionId,
   body = {},
+  rawBody,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
 }) {
@@ -87,8 +89,12 @@ export async function dispatch({
   // mistaken for this dispatch's real answer.
   await unlink(outPath).catch(() => {})
   await unlink(readyPath).catch(() => {})
-  const payload = { ...body, session_id: body.session_id ?? sessionId }
-  await writeFile(inPath, JSON.stringify(payload), 'utf8')
+  if (rawBody === undefined) {
+    const payload = { ...body, session_id: body.session_id ?? sessionId }
+    await writeFile(inPath, JSON.stringify(payload), 'utf8')
+  } else {
+    await writeFile(inPath, rawBody, 'utf8')
+  }
 
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {

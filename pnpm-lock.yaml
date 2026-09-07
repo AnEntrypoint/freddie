@@ -100,6 +100,9 @@ importers:
       '@freddie/freddie-fs-local':
         specifier: workspace:^
         version: link:../../packages/fs/fs-local
+      '@freddie/freddie-gm-client':
+        specifier: workspace:^
+        version: link:../../packages/gm/gm-client
       '@freddie/freddie-goal':
         specifier: workspace:^
         version: link:../../packages/goal/goal
@@ -181,6 +184,9 @@ importers:
       '@freddie/freddie-tool-fs-search':
         specifier: workspace:^
         version: link:../../packages/fs/tool-fs-search
+      '@freddie/freddie-tool-gm':
+        specifier: workspace:^
+        version: link:../../packages/gm/tool-gm
       '@freddie/freddie-tool-goal':
         specifier: workspace:^
         version: link:../../packages/goal/tool-goal
@@ -4372,6 +4378,22 @@ importers:
       '@freddie/cordis':
         specifier: workspace:^
         version: link:../../../framework/cordis
+
+  packages/gm/tool-gm:
+    dependencies:
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: workspace:^
+        version: link:../../../framework/cordis
+      '@freddie/freddie-gm-client':
+        specifier: workspace:^
+        version: link:../gm-client
+      '@freddie/freddie-tools':
+        specifier: workspace:^
+        version: link:../../core/tools
 
   packages/goal/command-goal:
     devDependencies:
