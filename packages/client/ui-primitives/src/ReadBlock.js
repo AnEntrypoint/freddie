@@ -22,12 +22,33 @@
 
 import { applyDiff, createElement as h } from 'webjsx'
 import clsx from 'clsx'
-import {
-  highlightLines,
-  subscribeGrammarLoaded,
-} from './markdown/highlight.js'
 import { createCopyFeedback } from './use-copy-feedback.js'
 import css from './ReadBlock.css.js'
+
+// highlight.js's own module graph (shiki core + the boot grammars + their
+// full mdast/hast-util-to-html transitive tree) was previously a static
+// top-level import here. That module already defers the highlighter's
+// EXECUTION cost via requestIdleCallback (see its own scheduleWarmup), but a
+// static import still forces the browser to FETCH and parse dozens of
+// individually-unbundled dev-mode ESM files before ANY client code runs at
+// all -- measured live (Chrome DevTools MCP performance trace) as a 613ms
+// critical-path chain and the dominant contributor to a 2.65s boot LCP,
+// entirely before a read card is ever shown. A dynamic import() moves that
+// fetch off the critical path the same way LAZY_GRAMMARS already moves an
+// individual grammar's fetch off it; a read card that renders before the
+// module resolves shows plain text (the same fallback an unknown/not-yet-
+// loaded language already takes) and re-renders once it lands.
+let highlightModule
+let highlightModulePromise
+const highlightModuleListeners = new Set()
+function ensureHighlightModule() {
+  if (highlightModule !== undefined) return highlightModule
+  highlightModulePromise ??= import('./markdown/highlight.js').then((mod) => {
+    highlightModule = mod
+    for (const listener of [...highlightModuleListeners]) listener()
+  })
+  return undefined
+}
 
 /**
  * Content lines shown before the height cap collapses the middle. Matches
@@ -55,6 +76,7 @@ export class FreddieReadBlock extends HTMLElement {
   #expanded = false
   #copyFeedback = null
   #unsubscribeGrammar = null
+  #onHighlightModuleReady = null
   #lastLines = null
   #lastRaw = ''
   // Highlighting memo: highlightLines re-scans the whole window with a
@@ -76,10 +98,21 @@ export class FreddieReadBlock extends HTMLElement {
     // The window's raw text, never the rendered tree: the gutter numbers and the
     // banner are chrome the file does not contain.
     this.#copyFeedback = createCopyFeedback(() => this.#raw(), () => { this.#render() })
-    // Re-render when a lazy grammar finishes loading, so a read card that showed
-    // plain text while its language's grammar imported picks up highlighting.
-    this.#unsubscribeGrammar = subscribeGrammarLoaded(() => { this.#render() })
-    this.#render()
+    // Re-render once highlight.js itself has loaded (see ensureHighlightModule),
+    // and again whenever a lazy grammar inside it finishes loading, so a read
+    // card that showed plain text while either was in flight picks up
+    // highlighting without the caller needing to know which stage it was in.
+    const onHighlightModuleReady = () => {
+      this.#unsubscribeGrammar = highlightModule.subscribeGrammarLoaded(() => { this.#render() })
+      this.#render()
+    }
+    if (highlightModule !== undefined) {
+      onHighlightModuleReady()
+    } else {
+      highlightModuleListeners.add(onHighlightModuleReady)
+      this.#render()
+    }
+    this.#onHighlightModuleReady = onHighlightModuleReady
   }
 
   disconnectedCallback() {
@@ -87,6 +120,10 @@ export class FreddieReadBlock extends HTMLElement {
     this.#copyFeedback = null
     this.#unsubscribeGrammar?.()
     this.#unsubscribeGrammar = null
+    if (this.#onHighlightModuleReady !== null) {
+      highlightModuleListeners.delete(this.#onHighlightModuleReady)
+      this.#onHighlightModuleReady = null
+    }
   }
 
   #raw() {
@@ -112,11 +149,19 @@ export class FreddieReadBlock extends HTMLElement {
     // Per-line highlighted runs aligned 1:1 with `lines`; undefined for an
     // unknown/absent (or not-yet-loaded) language, when every line renders as
     // bare text.
+    // Never memoizing an `undefined` result: it means "not ready yet" (the
+    // highlight module or a lazy grammar is still loading), and caching it
+    // against this raw/lang pair would make the eventual load-completion
+    // re-render (subscribeGrammarLoaded / onHighlightModuleReady) hit this
+    // same-raw/same-lang cache hit and keep returning the stale `undefined`
+    // forever, since neither raw nor lang changes when a load merely
+    // completes in the background.
     let highlighted
-    if (this.#highlightedRaw === raw && this.#highlightedLang === lang) {
+    if (this.#highlightedLines !== undefined && this.#highlightedRaw === raw && this.#highlightedLang === lang) {
       highlighted = this.#highlightedLines
     } else {
-      highlighted = highlightLines(raw, lang)
+      const mod = ensureHighlightModule()
+      highlighted = mod?.highlightLines(raw, lang)
       this.#highlightedRaw = raw
       this.#highlightedLang = lang
       this.#highlightedLines = highlighted

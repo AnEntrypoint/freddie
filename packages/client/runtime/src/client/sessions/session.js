@@ -398,7 +398,19 @@ export class Session {
     this.subscribedLastSeq = null
     this.liveBuffer = []
     this.notifier.markDirty()
+    const generation = this.openGeneration
     await this.open()
+    if (generation !== this.openGeneration) return
+    // A mux drop during retry exhaustion can land `turn/end` on disk after the
+    // first history page. The list snapshot already reports idle (composer
+    // enabled) while the rebuilt window still lacks the error row. Pull the
+    // tail once more whenever the session is idle so a missed terminal event
+    // becomes visible without a manual nudge.
+    if (this.openState === 'open' && !this.running) {
+      const { result } = await this.history({ maxMessages: PAGE_MESSAGES })
+      if (generation !== this.openGeneration) return
+      if (result.ok) this.installWindow(result.value.events, result.value.hasMore, result.value.projections)
+    }
   }
 
   // ---- Subscription API (useSyncExternalStore direct wiring) ----

@@ -14,13 +14,30 @@
 import { applyDiff, createElement as h } from 'webjsx'
 import clsx from 'clsx'
 import { writeClipboard } from '../clipboard.js'
-import { highlightToHtml, subscribeGrammarLoaded } from './highlight.js'
 import css from './CodeBlock.css.js'
+
+// See ReadBlock.js's identical comment: highlight.js's module graph (shiki
+// core + boot grammars + their full mdast/hast-util-to-html transitive
+// tree) was a static top-level import here too, on the critical path of
+// every markdown fence's boot -- moved to a dynamic import for the same
+// measured reason (613ms critical-path chain dominating a 2.65s boot LCP).
+let highlightModule
+let highlightModulePromise
+const highlightModuleListeners = new Set()
+function ensureHighlightModule() {
+  if (highlightModule !== undefined) return highlightModule
+  highlightModulePromise ??= import('./highlight.js').then((mod) => {
+    highlightModule = mod
+    for (const listener of [...highlightModuleListeners]) listener()
+  })
+  return undefined
+}
 
 export class FreddieCodeBlock extends HTMLElement {
   #props = { code: '' }
   #copied = false
   #unsubscribe = null
+  #onHighlightModuleReady = null
   // Highlighting memo: re-tokenizing is the expensive step (a TextMate regex
   // scan over the whole code string), and a caller streaming a growing tool
   // call's args re-renders this element on every chunk with a fresh props
@@ -38,15 +55,26 @@ export class FreddieCodeBlock extends HTMLElement {
   }
 
   connectedCallback() {
-    this.#unsubscribe = subscribeGrammarLoaded(() => {
+    const onHighlightModuleReady = () => {
+      this.#unsubscribe = highlightModule.subscribeGrammarLoaded(() => { this.#render() })
       this.#render()
-    })
-    this.#render()
+    }
+    if (highlightModule !== undefined) {
+      onHighlightModuleReady()
+    } else {
+      highlightModuleListeners.add(onHighlightModuleReady)
+      this.#render()
+    }
+    this.#onHighlightModuleReady = onHighlightModuleReady
   }
 
   disconnectedCallback() {
     this.#unsubscribe?.()
     this.#unsubscribe = null
+    if (this.#onHighlightModuleReady !== null) {
+      highlightModuleListeners.delete(this.#onHighlightModuleReady)
+      this.#onHighlightModuleReady = null
+    }
   }
 
   #onCopy = () => {
@@ -74,11 +102,16 @@ export class FreddieCodeBlock extends HTMLElement {
   #render() {
     const { lang, class: extraClass, copyLabel = 'Copy', copiedLabel = 'Copied' } = this.#props
     const trimmed = this.#trimmed()
+    // See ReadBlock.js's identical comment: an `undefined` result (module or
+    // grammar still loading) must never be memoized, or the eventual
+    // load-completion re-render would hit this same-trimmed/same-lang cache
+    // hit and keep returning the stale `undefined` forever.
     let html
-    if (this.#highlightedCode === trimmed && this.#highlightedLang === lang) {
+    if (this.#highlightedHtml !== undefined && this.#highlightedCode === trimmed && this.#highlightedLang === lang) {
       html = this.#highlightedHtml
     } else {
-      html = highlightToHtml(trimmed, lang)
+      const mod = ensureHighlightModule()
+      html = mod?.highlightToHtml(trimmed, lang)
       this.#highlightedCode = trimmed
       this.#highlightedLang = lang
       this.#highlightedHtml = html

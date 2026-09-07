@@ -16,6 +16,9 @@
     ".": {
       "default": "./src/index.js"
     },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -27,9 +30,11 @@
     "@freddie/schemastery": "workspace:^"
   },
   "peerDependencies": {
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^"
   },
   "devDependencies": {
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^"
   }
 }

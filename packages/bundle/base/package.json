@@ -100,6 +100,8 @@
     "@freddie/freddie-tool-subagent-report": "workspace:^",
     "@freddie/freddie-tool-jobs": "workspace:^",
     "@freddie/freddie-tool-todo": "workspace:^",
+    "@freddie/freddie-gm-client": "workspace:^",
+    "@freddie/freddie-tool-gm": "workspace:^",
     "@freddie/freddie-tool-web": "workspace:^",
     "@freddie/freddie-tool-workflow": "workspace:^",
     "@freddie/freddie-tools": "workspace:^",

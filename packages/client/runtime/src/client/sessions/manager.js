@@ -993,6 +993,7 @@ export class SessionManager {
         && prev.projectionValues === entry.projectionValues
         && prev.completed === entry.completed
         && prev.errored === entry.errored
+        && prev.readOnly === entry.readOnly
       ) return prev
       this.entryCache.set(entry.sessionId, entry)
       return entry

@@ -15,6 +15,13 @@ import { pathToFileURL } from 'node:url'
 /** Daemon considered dead if `.status.json`'s `ts` is older than this. */
 const STALE_MS = 5 * 60 * 1000
 
+/**
+ * A live pid whose `.status.json` `ts` has not moved for this long is hung:
+ * the process exists but is not consuming the spool. Shorter than {@link STALE_MS}
+ * so a dispatch poll fails fast instead of waiting the remaining timeout.
+ */
+export const HUNG_MS = 4 * 60 * 1000
+
 /** How long to poll for real readiness after a boot attempt before giving up. */
 const BOOT_READY_TIMEOUT_MS = 45_000
 const BOOT_READY_POLL_INTERVAL_MS = 500
@@ -39,8 +46,12 @@ export async function readStatus(cwd) {
   try {
     const text = await readFile(join(cwd, '.gm', 'exec-spool', '.status.json'), 'utf8')
     return JSON.parse(text)
-  } catch {
-    return undefined
+  } catch (error) {
+    // ENOENT: the daemon has not written status yet. SyntaxError: a partial
+    // write is not a live status. Any other syscall is unexpected.
+    if (error !== null && typeof error === 'object' && error.code === 'ENOENT') return undefined
+    if (error instanceof SyntaxError) return undefined
+    throw error
   }
 }
 
@@ -63,9 +74,27 @@ export async function isDaemonAlive(cwd) {
   try {
     process.kill(status.pid, 0)
     return true
-  } catch {
-    return false
+  } catch (error) {
+    // ESRCH: pid is gone. EPERM: pid exists but this process cannot signal it
+    // — still alive. Windows Node often omits ESRCH for a missing pid.
+    if (error !== null && typeof error === 'object' && error.code === 'EPERM') return true
+    if (error !== null && typeof error === 'object' && error.code === 'ESRCH') return false
+    if (process.platform === 'win32') return false
+    throw error
   }
+}
+
+/**
+ * Whether a still-running daemon has stopped writing `.status.json`.
+ * Distinct from {@link isDaemonAlive}: a hung pid still answers `kill(pid, 0)`.
+ * @param cwd - project root.
+ * @returns true when status exists, pid is alive, and `ts` is older than {@link HUNG_MS}.
+ */
+export async function isDaemonHung(cwd) {
+  const status = await readStatus(cwd)
+  if (status === undefined || typeof status.ts !== 'number') return false
+  if (Date.now() - status.ts < HUNG_MS) return false
+  return isDaemonAlive(cwd)
 }
 
 /**

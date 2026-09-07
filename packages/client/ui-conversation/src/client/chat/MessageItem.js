@@ -133,9 +133,11 @@ export class FreddieModelRetryItem extends HTMLElement {
       ? t('message.retry.active')
       : node.retryState === 'cancelled'
         ? t('message.retry.cancelled')
-        : node.retryState === 'started'
-          ? t('message.retry.started')
-          : t('message.retry.scheduled')
+        : node.retryState === 'exhausted'
+          ? t('message.retry.exhausted')
+          : node.retryState === 'started'
+            ? t('message.retry.started')
+            : t('message.retry.scheduled')
     const seconds = active ? remainingSeconds : scheduledSeconds
 
     const vdom = h(

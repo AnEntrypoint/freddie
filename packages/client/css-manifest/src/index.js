@@ -54,7 +54,10 @@ const serveStyles = async (req, res) => {
   }
   try {
     const body = await readFile(filePath)
-    res.writeHead(200, { 'content-type': CSS_MIME })
+    // Buildless source CSS: no hashed filenames. no-cache is the HMR contract
+    // (client-hmr relies on the host serving bundles no-cache). There is no
+    // separate production hashed-CSS pipeline in this workspace.
+    res.writeHead(200, { 'content-type': CSS_MIME, 'cache-control': 'no-cache' })
     res.end(req.method === 'HEAD' ? undefined : body)
   } catch {
     res.writeHead(404)

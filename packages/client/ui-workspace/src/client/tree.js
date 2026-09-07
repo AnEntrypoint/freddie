@@ -144,6 +144,7 @@ function sessionNode(
     completed: s.completed === true,
     updatedAt: s.updatedAt,
     ...(s.pendingInteraction === undefined ? {} : { pendingInteraction: s.pendingInteraction }),
+    ...(s.readOnly === true ? { readOnly: true } : {}),
   }
 }
 

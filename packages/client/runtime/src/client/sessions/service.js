@@ -565,6 +565,7 @@ export class SessionRuntime {
         ...(entry.parentSessionId !== undefined ? { parentId: entry.parentSessionId } : {}),
         ...(entry.origin !== undefined ? { origin: entry.origin } : {}),
         ...(entry.agentPreset !== undefined ? { agentPreset: entry.agentPreset } : {}),
+        ...(entry.readOnly === true ? { readOnly: true } : {}),
       }
     }
     if (current !== undefined && currentAddress !== undefined) {

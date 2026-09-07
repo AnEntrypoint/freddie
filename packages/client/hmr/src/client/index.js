@@ -156,8 +156,21 @@ export function apply(ctx) {
           break
         }
         queue = queue.then(() => reload(frame.id)).catch((error) => {
-          ctx.logger.error(`client-hmr: reload of "${frame.id}" failed`)
+          // reload() tears down the OLD (working) fiber's effects/styles
+          // BEFORE the new bundle's apply is known to succeed (see the
+          // module comment's documented "no rollback" ordering) -- so a
+          // failed reload does not leave the old UI in place, it leaves
+          // NOTHING in place: the entry's slot output is gone and nothing
+          // ever replaced it, which renders as a blank/white screen with no
+          // visible error. Logging alone (the prior behavior) is invisible
+          // to the user and, worse, permanently stuck: this dev channel
+          // never retries a failed id on its own. A full reload re-runs the
+          // boot kernel's own try/catch (AppWebEntry.run -- see boot.js),
+          // which DOES render a visible failure page on a genuine bug,
+          // instead of leaving a torn-down DOM with only a console log.
+          ctx.logger.error(`client-hmr: reload of "${frame.id}" failed, reloading`)
           ctx.logger.error(error)
+          window.location.reload()
         })
         break
       case 'shell-rebuilt':

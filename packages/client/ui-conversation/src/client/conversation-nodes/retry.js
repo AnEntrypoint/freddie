@@ -59,7 +59,13 @@ export const retryDefinition = {
       index === stateAttempts.length - 1
         && attempt.retryState === 'scheduled'
         && isClosed(location)
-        ? { ...attempt, retryState: 'cancelled' }
+        ? {
+          ...attempt,
+          retryState: attempt.mode === 'normal'
+            && attempt.retry >= attempt.maxRetries
+            ? 'exhausted'
+            : 'cancelled',
+        }
         : attempt)
     const current = attempts.at(-1)
     if (current === undefined) return null

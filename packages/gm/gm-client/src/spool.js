@@ -8,6 +8,7 @@
 
 import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { isDaemonAlive, isDaemonHung } from './daemon.js'
 
 const DEFAULT_POLL_INTERVAL_MS = 200
 const DEFAULT_TIMEOUT_MS = 120_000
@@ -40,6 +41,22 @@ function nextDispatchNumber(sessionId) {
   return next
 }
 
+function isMissingPathError(error) {
+  return error !== null && typeof error === 'object' && error.code === 'ENOENT'
+}
+
+function throwIfAborted(signal) {
+  if (signal === undefined) return
+  if (typeof signal.throwIfAborted === 'function') {
+    signal.throwIfAborted()
+    return
+  }
+  if (signal.aborted) {
+    const reason = signal.reason ?? new Error('This operation was aborted')
+    throw reason
+  }
+}
+
 /**
  * Dispatch one gm spool verb and wait for its response.
  *
@@ -59,8 +76,10 @@ function nextDispatchNumber(sessionId) {
  * @param options.rawBody - literal text body for a plain-text-body verb (exec_js and its language stems, serp, browser, cdp) -- these verbs reject a JSON-wrapped body outright, per gm's own AGENTS.md. Mutually exclusive with `body`.
  * @param options.timeoutMs - give up and throw after this many ms (default 120000).
  * @param options.pollIntervalMs - poll cadence while waiting (default 200).
+ * @param options.signal - abort stops polling without waiting the remaining timeout.
  * @returns the parsed response body.
- * @throws when the spool directory is missing, or the dispatch times out.
+ * @throws when the spool directory is missing, the dispatch times out, the
+ *   daemon dies mid-poll, or `signal` aborts.
  */
 export async function dispatch({
   cwd,
@@ -70,7 +89,9 @@ export async function dispatch({
   rawBody,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
+  signal,
 }) {
+  throwIfAborted(signal)
   const spoolDir = join(cwd, '.gm', 'exec-spool')
   const inDir = join(spoolDir, 'in', verb)
   const outDir = join(spoolDir, 'out')
@@ -87,8 +108,14 @@ export async function dispatch({
   // such as a process that crashed and restarted within the same
   // millisecond, or a filesystem that failed to clean up) must never be
   // mistaken for this dispatch's real answer.
-  await unlink(outPath).catch(() => {})
-  await unlink(readyPath).catch(() => {})
+  await unlink(outPath).catch((error) => {
+    // ENOENT: nothing leftover at this key. Any other syscall is unexpected.
+    if (!isMissingPathError(error)) throw error
+  })
+  await unlink(readyPath).catch((error) => {
+    // ENOENT: nothing leftover at this key. Any other syscall is unexpected.
+    if (!isMissingPathError(error)) throw error
+  })
   if (rawBody === undefined) {
     const payload = { ...body, session_id: body.session_id ?? sessionId }
     await writeFile(inPath, JSON.stringify(payload), 'utf8')
@@ -98,12 +125,22 @@ export async function dispatch({
 
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
+    throwIfAborted(signal)
+    if (!await isDaemonAlive(cwd)) {
+      throw new Error(`gm spool: daemon died while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
+    }
+    if (await isDaemonHung(cwd)) {
+      throw new Error(`gm spool: daemon hung while waiting for "${verb}" (${dispatchKey}) — .status.json ts is stale while pid is still alive; in=${inPath} out=${outPath}`)
+    }
     if (await exists(readyPath)) {
       const text = await readFile(outPath, 'utf8')
-      await unlink(readyPath).catch(() => {})
+      await unlink(readyPath).catch((error) => {
+        // ENOENT: the daemon already removed the sentinel. Any other syscall is unexpected.
+        if (!isMissingPathError(error)) throw error
+      })
       return JSON.parse(text)
     }
-    await sleep(pollIntervalMs)
+    await sleep(pollIntervalMs, signal)
   }
   throw new Error(`gm spool: dispatch "${verb}" (${dispatchKey}) timed out after ${timeoutMs}ms — in=${inPath} out=${outPath}`)
 }
@@ -112,11 +149,30 @@ async function exists(path) {
   try {
     await stat(path)
     return true
-  } catch {
-    return false
+  } catch (error) {
+    // ENOENT: the path is not present yet. Any other syscall is unexpected.
+    if (isMissingPathError(error)) return false
+    throw error
   }
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+function sleep(ms, signal) {
+  if (signal === undefined) {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }
+  if (signal.aborted) {
+    return Promise.reject(signal.reason ?? new Error('This operation was aborted'))
+  }
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(done, ms)
+    function onAbort() {
+      clearTimeout(timer)
+      reject(signal.reason ?? new Error('This operation was aborted'))
+    }
+    function done() {
+      signal.removeEventListener('abort', onAbort)
+      resolve()
+    }
+    signal.addEventListener('abort', onAbort, { once: true })
+  })
 }

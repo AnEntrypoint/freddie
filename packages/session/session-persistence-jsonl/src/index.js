@@ -79,6 +79,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
 
   static Config = z.object({
     root: z.string().required(),
+    extraRoots: z.array(z.string()).default([]),
     packChunks: z.boolean().default(DEFAULT_PACK_CHUNKS),
     compression: JsonlCompressionSchema,
     preparedSessionCacheSize: z.number().step(1).min(1).default(DEFAULT_PREPARED_SESSION_CACHE_SIZE),
@@ -94,6 +95,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
   name = 'session-persistence-jsonl'
 
   root
+  extraRoots
   packChunks
   compression
   coordinator
@@ -104,6 +106,8 @@ export class JsonlSessionPersistence extends SessionPersistence {
     this.config = config
     // Resolve once so later process.cwd() changes cannot split one backend across roots.
     this.root = resolve(config.root)
+    this.extraRoots = [...new Set((config.extraRoots ?? []).map(root => resolve(root)))]
+      .filter(root => root !== this.root)
     // Programmatic wrappers may construct the backend without Schemastery normalization.
     const preparedSessionCacheSize = config.preparedSessionCacheSize
       ?? DEFAULT_PREPARED_SESSION_CACHE_SIZE
@@ -401,6 +405,20 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return (await this.listArtifacts(signal)).map(artifact => artifact.header)
   }
 
+  /**
+   * List headers from another FREDDIE_HOME sessions root without claiming its
+   * writer lock. The owning process remains the sole writer; this process only
+   * reads header frames. Missing roots yield an empty list.
+   * @param root - absolute or cwd-relative extra sessions directory.
+   * @param signal - optional cancellation.
+   */
+  async listForeign(root, signal) {
+    signal?.throwIfAborted()
+    const resolved = resolve(root)
+    if (resolved === this.root) return this.list(signal)
+    return (await this.listArtifactsAt(resolved, signal)).map(artifact => artifact.header)
+  }
+
   /** List metadata plus a stat-derived identity for each append-only log. */
   async listSnapshots(signal) {
     const snapshots = []
@@ -426,9 +444,18 @@ export class JsonlSessionPersistence extends SessionPersistence {
     signal?.throwIfAborted()
     await this.ensureRootEncoding()
     signal?.throwIfAborted()
+    return this.listArtifactsAt(this.root, signal)
+  }
+
+  /**
+   * Scan one sessions root for headers. Does not claim `.writer.lock`, so a
+   * foreign home's owning process can keep writing while this listing runs.
+   */
+  async listArtifactsAt(root, signal) {
+    signal?.throwIfAborted()
     const artifacts = []
     const ids = new Set()
-    for (const project of await this.listProjectDirs(signal)) {
+    for (const project of await this.listProjectDirsAt(root, signal)) {
       signal?.throwIfAborted()
       for (const dir of await this.listSessionDirs(project, signal)) {
         signal?.throwIfAborted()
@@ -461,7 +488,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
         if (first === undefined) continue // empty/half-written file
         const meta = parseHeaderMeta(first)
         if (meta === undefined) continue // not a session header
-        await this.assertStoredIdentity(path, meta, undefined, signal)
+        await this.assertStoredIdentityAt(root, path, meta, undefined, signal)
         signal?.throwIfAborted()
         if (ids.has(meta.id)) {
           throw new Error(`duplicate JSONL session id "${meta.id}" appears in multiple project directories`)
@@ -760,13 +787,17 @@ export class JsonlSessionPersistence extends SessionPersistence {
 
   /** Reject metadata that does not identify the selected physical log. */
   async assertStoredIdentity(path, meta, expectedId, signal) {
+    return this.assertStoredIdentityAt(this.root, path, meta, expectedId, signal)
+  }
+
+  async assertStoredIdentityAt(root, path, meta, expectedId, signal) {
     signal?.throwIfAborted()
     if (expectedId !== undefined && meta.id !== expectedId) {
       throw new Error(`corrupt session log "${path}": requested id "${expectedId}" does not match header id "${meta.id}"`)
     }
     let expectedPath
     try {
-      expectedPath = logPath(this.root, meta.cwd, meta.id, this.compression)
+      expectedPath = logPath(root, meta.cwd, meta.id, this.compression)
     } catch (error) {
       throw new Error(`corrupt session log "${path}": header id cannot name a storage path`, { cause: error })
     }
@@ -798,11 +829,15 @@ export class JsonlSessionPersistence extends SessionPersistence {
 
   /** The human-readable project directories under the configured root. */
   async listProjectDirs(signal) {
+    return this.listProjectDirsAt(this.root, signal)
+  }
+
+  async listProjectDirsAt(root, signal) {
     try {
       signal?.throwIfAborted()
-      const entries = await readdir(this.root, { withFileTypes: true })
+      const entries = await readdir(root, { withFileTypes: true })
       signal?.throwIfAborted()
-      return entries.filter(e => e.isDirectory()).map(e => join(this.root, e.name))
+      return entries.filter(e => e.isDirectory()).map(e => join(root, e.name))
     } catch (error) {
       // Only an absent root means no sessions; rethrow every other I/O failure.
       if (isENOENT(error)) return []

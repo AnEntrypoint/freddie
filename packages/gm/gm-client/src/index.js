@@ -45,9 +45,10 @@ export class Gm extends Service {
    * @param body - JSON body; `session_id` is filled in automatically if absent. Ignored when `options.rawBody` is given.
    * @param options.rawBody - literal text body for a plain-text-body verb (exec_js and its language stems, serp, browser, cdp) -- these reject a JSON-wrapped body outright. Mutually exclusive with `body`.
    * @param options.timeoutMs - per-dispatch timeout (default 120000, matching gm's own default).
+   * @param options.signal - abort stops the spool poll without waiting the remaining timeout.
    * @returns the parsed response body.
    */
-  async call(verb, body = {}, { timeoutMs, rawBody } = {}) {
+  async call(verb, body = {}, { timeoutMs, rawBody, signal } = {}) {
     if (!this.booted) {
       await ensureDaemon(this.config.cwd)
       this.booted = true
@@ -59,6 +60,7 @@ export class Gm extends Service {
       body,
       ...rawBody === undefined ? {} : { rawBody },
       ...timeoutMs === undefined ? {} : { timeoutMs },
+      ...signal === undefined ? {} : { signal },
     })
   }
 

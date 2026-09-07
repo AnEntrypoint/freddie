@@ -14,6 +14,26 @@
  */
 
 import { defineTool } from '@freddie/freddie-tools'
+import {
+  GM_TOOL_TIMEOUT_MS,
+  codesearchMetaFromValue,
+  compactMetaFromValue,
+  presentCodesearchCall,
+  presentCodesearchResult,
+  presentGenericCall,
+  presentInstructionCall,
+  presentInstructionResult,
+  presentRecallCall,
+  presentRecallResult,
+  presentTransitionCall,
+  presentTransitionResult,
+  recallMetaFromValue,
+} from './presentation.js'
+
+const jsonOutput = {
+  schema: { type: 'object', additionalProperties: true },
+  render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
+}
 
 /**
  * Build every gm-verb tool bound to one `ctx.gm` service instance. `execute`
@@ -32,14 +52,26 @@ export function buildGmTools(gm) {
    * `git_finalize`, live-verified against gm-mcp's own dispatch.js).
    * `toBody` maps typed args to the verb's real body shape.
    */
-  const jsonTool = ({ name, verb, description, parameters, toBody, output }) => {
+  const jsonTool = ({
+    name,
+    verb,
+    description,
+    parameters,
+    toBody,
+    output = jsonOutput,
+    presentCall,
+    presentResult,
+  }) => {
     return defineTool({
       name,
       description,
       parameters,
       output,
-      async execute(args) {
-        return gm.call(verb, toBody(args))
+      timeoutMs: GM_TOOL_TIMEOUT_MS,
+      presentCall,
+      presentResult,
+      async execute(args, exec) {
+        return gm.call(verb, toBody(args), { signal: exec.signal, timeoutMs: GM_TOOL_TIMEOUT_MS })
       },
     })
   }
@@ -53,9 +85,24 @@ export function buildGmTools(gm) {
     },
     toBody: args => (args.prompt === undefined ? {} : { prompt: args.prompt }),
     output: {
-      schema: { type: 'object', additionalProperties: true },
-      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
+      ...jsonOutput,
+      presentationMeta: (_args, value) => compactMetaFromValue('gm instruction', value),
     },
+    presentCall: presentInstructionCall,
+    presentResult: presentInstructionResult,
+  })
+
+  const phaseStatusTool = jsonTool({
+    name: 'gm_phase_status',
+    verb: 'phase-status',
+    description: 'Dispatch gm\'s `phase-status` verb: the current gm session\'s phase, phase-transition history, and pending PRD/mutable counts, without the full served orchestration prose `instruction` returns.',
+    parameters: {},
+    toBody: () => ({}),
+    output: {
+      ...jsonOutput,
+      presentationMeta: (_args, value) => compactMetaFromValue('gm phase-status', value),
+    },
+    presentCall: () => presentGenericCall('gm phase-status'),
   })
 
   const codesearchTool = jsonTool({
@@ -75,9 +122,11 @@ export function buildGmTools(gm) {
       ...args.root === undefined ? {} : { root: args.root },
     }),
     output: {
-      schema: { type: 'object', additionalProperties: true },
-      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
+      ...jsonOutput,
+      presentationMeta: (_args, value) => codesearchMetaFromValue(value),
     },
+    presentCall: presentCodesearchCall,
+    presentResult: presentCodesearchResult,
   })
 
   const recallTool = jsonTool({
@@ -89,9 +138,11 @@ export function buildGmTools(gm) {
     },
     toBody: args => ({ query: args.query }),
     output: {
-      schema: { type: 'object', additionalProperties: true },
-      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
+      ...jsonOutput,
+      presentationMeta: (_args, value) => recallMetaFromValue(value),
     },
+    presentCall: presentRecallCall,
+    presentResult: presentRecallResult,
   })
 
   const prdAddTool = jsonTool({
@@ -107,10 +158,7 @@ export function buildGmTools(gm) {
       route_family: { type: 'string', description: 'One of grounding/reasoning/state/execution/boundary/representation/observability.' },
     },
     toBody: args => args,
-    output: {
-      schema: { type: 'object', additionalProperties: true },
-      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
-    },
+    presentCall: args => presentGenericCall(`gm prd-add: ${args.id}`),
   })
 
   const mutableAddTool = jsonTool({
@@ -125,10 +173,32 @@ export function buildGmTools(gm) {
       text: { type: 'string', description: 'How it will be witnessed.' },
     },
     toBody: args => args,
-    output: {
-      schema: { type: 'object', additionalProperties: true },
-      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
+    presentCall: args => presentGenericCall(`gm mutable-add: ${args.id}`),
+  })
+
+  const prdResolveTool = jsonTool({
+    name: 'gm_prd_resolve',
+    verb: 'prd-resolve',
+    description: 'Dispatch gm\'s `prd-resolve` verb: mark one row in the current gm session\'s PRD plan resolved/done. `id` and non-empty `witness_evidence` are both required -- gm refuses a resolve with no evidence the work is real (a file:line, a codesearch hit, an exec snippet, or a browser page.evaluate result).',
+    parameters: {
+      id: { type: 'string', required: true, description: 'Kebab-case row id to resolve.' },
+      witness_evidence: { type: 'string', required: true, description: 'Concrete evidence the row\'s acceptance criteria is met: file:line | codesearch hit | exec snippet | browser page.evaluate result. Required -- gm rejects an empty/absent value.' },
+      commit_comment: { type: 'string', description: 'A commit-message-shaped note explaining what satisfied this row, if applicable.' },
     },
+    toBody: args => args,
+    presentCall: args => presentGenericCall(`gm prd-resolve: ${args.id}`),
+  })
+
+  const mutableResolveTool = jsonTool({
+    name: 'gm_mutable_resolve',
+    verb: 'mutable-resolve',
+    description: 'Dispatch gm\'s `mutable-resolve` verb: discharge one previously-recorded mutable (unresolved unknown or proof obligation) with its witness text.',
+    parameters: {
+      id: { type: 'string', required: true, description: 'Kebab-case mutable id to resolve.' },
+      witness_text: { type: 'string', description: 'How the obligation was discharged or the unknown resolved.' },
+    },
+    toBody: args => args,
+    presentCall: args => presentGenericCall(`gm mutable-resolve: ${args.id}`),
   })
 
   const transitionTool = jsonTool({
@@ -140,9 +210,11 @@ export function buildGmTools(gm) {
     },
     toBody: args => ({ to: args.to }),
     output: {
-      schema: { type: 'object', additionalProperties: true },
-      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
+      ...jsonOutput,
+      presentationMeta: (_args, value) => compactMetaFromValue('gm transition', value),
     },
+    presentCall: presentTransitionCall,
+    presentResult: presentTransitionResult,
   })
 
   // exec_js is plain-text-body (gm-mcp's PLAIN_TEXT_BODY_VERBS) -- dispatch
@@ -154,13 +226,12 @@ export function buildGmTools(gm) {
       code: { type: 'string', required: true, description: 'JavaScript source to execute.' },
       timeoutMs: { type: 'number', description: 'Execution timeout in milliseconds, prefixed as a leading `timeoutMs=<ms>` line per gm\'s own plain-text-body contract.' },
     },
-    output: {
-      schema: { type: 'object', additionalProperties: true },
-      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
-    },
-    async execute(args) {
+    output: jsonOutput,
+    timeoutMs: GM_TOOL_TIMEOUT_MS,
+    presentCall: () => presentGenericCall('gm exec_js'),
+    async execute(args, exec) {
       const raw = args.timeoutMs === undefined ? args.code : `timeoutMs=${args.timeoutMs}\n${args.code}`
-      return gm.call('exec_js', {}, { rawBody: raw })
+      return gm.call('exec_js', {}, { rawBody: raw, signal: exec.signal, timeoutMs: GM_TOOL_TIMEOUT_MS })
     },
   })
 
@@ -173,18 +244,18 @@ export function buildGmTools(gm) {
       files: { type: 'array', items: { type: 'string' }, description: 'Specific files to stage; omit to stage everything relevant to the session.' },
     },
     toBody: args => args,
-    output: {
-      schema: { type: 'object', additionalProperties: true },
-      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
-    },
+    presentCall: args => presentGenericCall(`gm git_finalize: ${args.message}`),
   })
 
   return [
     instructionTool,
+    phaseStatusTool,
     codesearchTool,
     recallTool,
     prdAddTool,
+    prdResolveTool,
     mutableAddTool,
+    mutableResolveTool,
     transitionTool,
     execJsTool,
     gitFinalizeTool,

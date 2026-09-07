@@ -4,6 +4,14 @@
  */
 
 import { randomUUID } from 'node:crypto'
+
+// Minted once per host process. A reconnecting client compares this against
+// the value it saw at its last connect: an unchanged id means the same
+// server process (a network blip), a changed id means the process actually
+// restarted underneath the socket -- the client is now running JS/CSS that
+// may no longer match what the server serves, and must reload rather than
+// silently resync session state onto stale code.
+const PROCESS_INSTANCE_ID = randomUUID()
 import { mkdir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname } from 'node:path'
@@ -1489,6 +1497,36 @@ export function createApiProxy(ctx, defaults) {
         signal?.throwIfAborted()
         items.push(...summaries)
       }
+      const extraRoots = persistence.extraRoots ?? []
+      if (typeof persistence.listForeign === 'function') {
+        const seen = new Set(items.map(item => item.sessionId))
+        for (const extra of extraRoots) {
+          signal?.throwIfAborted()
+          let foreign
+          try {
+            foreign = await persistence.listForeign(extra, signal)
+          } catch (error) {
+            ctx.logger?.warn?.(
+              `skipping extra session root ${JSON.stringify(extra)}: ${String(error.message ?? error)}`,
+            )
+            continue
+          }
+          for (const meta of foreign) {
+            if (meta.cwd === undefined || seen.has(meta.id)) continue
+            seen.add(meta.id)
+            items.push({
+              sessionId: meta.id,
+              updatedAt: sessionListUpdatedAt(meta, undefined),
+              running: false,
+              blank: false,
+              errored: false,
+              readOnly: true,
+              extraHome: extra,
+              ...sessionListFields(meta),
+            })
+          }
+        }
+      }
     }
     items.sort((a, b) => b.updatedAt - a.updatedAt)
     return items
@@ -2696,6 +2734,7 @@ export function createApiProxy(ctx, defaults) {
         const selection = defaults.defaultModelSelection()
         return Promise.resolve(ok(request, {
           version: '0.0.1',
+          instanceId: PROCESS_INSTANCE_ID,
           // Same source as session.create's fallback: the UI's default project
           // must match where an unspecified-cwd session actually lands.
           cwd: defaults.cwd,

@@ -50,6 +50,7 @@ export function apply(ctx) {
     identity: candidate => sessions.scopeOf(candidate),
   })
   const workspaces = new WorkspaceRuntime(ctx, connection.api, sessions)
+  let lastInstanceId
   ctx.effect(
     () => workspaces.startInitialSelection(),
     'runtime: initial Workspace selection',
@@ -68,7 +69,18 @@ export function apply(ctx) {
       const frame = envelope.payload
       if (frame.type === 'host/remote-event') ctx.remote.$dispatch(frame.event, frame.args)
     },
-    onConnected: () => {
+    onConnected: (description) => {
+      // A changed instanceId means the server process actually restarted
+      // underneath this socket (not just a network blip) -- this tab is
+      // still running the JS/CSS bundle from before the restart, which may
+      // no longer match what the server now serves (new markup, new styles,
+      // renamed remote methods). Resyncing session state onto stale code is
+      // worse than a visible reload, so force one instead.
+      if (lastInstanceId !== undefined && description.instanceId !== undefined && description.instanceId !== lastInstanceId) {
+        window.location.reload()
+        return
+      }
+      lastInstanceId = description.instanceId
       sessions.handleConnected()
       workspaces.handleConnected()
       ctx.emit('connection/reset')

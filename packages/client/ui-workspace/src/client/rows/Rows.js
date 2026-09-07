@@ -18,7 +18,8 @@ import css from './Rows.css.js'
 
 /** Row display title: blank rows show the localized New Session label. */
 function displayTitle(node, t) {
-  return node.blank ? t('session.new') : node.title
+  if (node.blank) return t('session.new')
+  return node.readOnly === true ? `${node.title} · ${t('session.readOnly')}` : node.title
 }
 
 /** Localized compact relative time ("刚刚"/"5分钟" in zh, "now"/"5min" in en). */
@@ -382,12 +383,14 @@ export class FreddieSessionNodeItem extends HTMLElement {
     // Archive hides the row through the registry-global archive set and never
     // touches the session log, so it is not styled as destructive and needs no
     // confirmation dialog.
-    const sessionMenuItems = [
-      { id: 'rename', label: t('rename'), icon: h(IconEditOutline16) },
-      { id: 'fork', label: t('menu.fork'), icon: h(IconBranchOutline16) },
-      // 20-native glyph in the menu's 16px icon slot (Menu.module.css .itemIcon).
-      { id: 'archive', label: t('menu.archiveSession'), icon: h(IconArchiveOutline20, {size: 16}) },
-    ]
+    const sessionMenuItems = node.readOnly === true
+      ? []
+      : [
+        { id: 'rename', label: t('rename'), icon: h(IconEditOutline16) },
+        { id: 'fork', label: t('menu.fork'), icon: h(IconBranchOutline16) },
+        // 20-native glyph in the menu's 16px icon slot (Menu.module.css .itemIcon).
+        { id: 'archive', label: t('menu.archiveSession'), icon: h(IconArchiveOutline20, {size: 16}) },
+      ]
     // Figma session cell: pad 8, status slot 16, then a 4px title gap.
     const ownRow = (
       h('div', {
@@ -399,13 +402,13 @@ export class FreddieSessionNodeItem extends HTMLElement {
         role: 'treeitem',
         tabIndex: '0',
         'aria-selected': String(selected),
-        onclick: () => { onOpen(node.id) },
+        onclick: () => { if (node.readOnly !== true) onOpen(node.id) },
         onkeydown: (e) => {
           if (e.key !== 'Enter' && e.key !== ' ') return
           e.preventDefault()
-          onOpen(node.id)
+          if (node.readOnly !== true) onOpen(node.id)
         },
-        draggable: drag !== undefined,
+        draggable: drag !== undefined && node.readOnly !== true,
         ondragstart: drag === undefined
           ? null
           : (e) => {
@@ -445,7 +448,7 @@ export class FreddieSessionNodeItem extends HTMLElement {
             (rename/fork/archive) would all act on content that does not
             exist — both trailing cells stay off until the first prompt. */
         !row.blank && h('span', {class: css.time ?? ''}, timeLabel(row.updatedAt, now, t)),
-        !row.blank && (
+        !row.blank && node.readOnly !== true && (
           h('span', {class: css.rowActions ?? ''},
             // Reuse the same freddie-menu instance across renders -- see the
             // #hoverCard comment below for why.

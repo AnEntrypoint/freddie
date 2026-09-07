@@ -69,8 +69,10 @@
 /* Selection still sets data-selected for details linkage; no outline —
    tool rows match Think chrome (no selected ring). */
 
-/* Turn activity keeps the former loader's one-line footprint. A pale
-   brand-blue band sweeps from left to right; reduced-motion keeps it static. */
+/* Turn activity keeps the former loader's one-line footprint. Opacity-only
+   pulse: compositor-only (no layout/paint), so it stays cheap under motion
+   reduction with no separate reduced-motion branch needed, and needs no
+   background-clip/gradient repaint cost the former shimmer sweep carried. */
 .freddie-chatView__turnStatus {
   align-self: flex-start;
   flex: none;
@@ -79,21 +81,8 @@
   height: 26px;
   font: var(--dsw-font-s-strong-14);
   white-space: nowrap;
-  background: linear-gradient(
-    90deg,
-    var(--dsw-static-deepseek-500) 0%,
-    var(--dsw-static-deepseek-500) 40%,
-    var(--dsw-static-deepseek-200) 50%,
-    var(--dsw-static-deepseek-500) 60%,
-    var(--dsw-static-deepseek-500) 100%
-  );
-  background-position: 100% 0;
-  background-size: 250% 100%;
-  background-clip: text;
-  color: transparent;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: freddie-chatView__freddie-turn-status-shimmer 1.8s linear infinite;
+  color: var(--dsw-static-deepseek-500);
+  animation: freddie-chatView__freddie-turn-status-pulse 1.4s ease-in-out infinite;
 }
 
 .freddie-chatView__turnStatusClock {
@@ -105,19 +94,15 @@
   -webkit-text-fill-color: var(--freddie-alias-label-caption);
 }
 
-@keyframes freddie-chatView__freddie-turn-status-shimmer {
-  to {
-    background-position: 0 0;
+@keyframes freddie-chatView__freddie-turn-status-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .freddie-chatView__turnStatus {
-    background-position: 0 0;
-    background-size: 100% 100%;
-    animation: none;
-  }
-}
 
 .freddie-chatView__hint {
   color: var(--freddie-alias-label-tertiary);
