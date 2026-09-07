@@ -110,7 +110,7 @@
     "@freddie/freddie-user-approval": "workspace:^",
     "@freddie/freddie-user-questions": "workspace:^",
     "@freddie/freddie-web": "workspace:^",
-    "@freddie/freddie-web-search-deepseek": "workspace:^",
+    "@freddie/freddie-web-search-browser": "workspace:^",
     "@freddie/freddie-workflow-worker-thread": "workspace:^",
     "@freddie/freddie-agent-instructions": "workspace:^"
   },

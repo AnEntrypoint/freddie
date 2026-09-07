@@ -1178,9 +1178,9 @@ importers:
       '@freddie/freddie-web':
         specifier: workspace:^
         version: link:../../web/web
-      '@freddie/freddie-web-search-deepseek':
+      '@freddie/freddie-web-search-browser':
         specifier: workspace:^
-        version: link:../../web/web-search-deepseek
+        version: link:../../web/web-search-browser
       '@freddie/freddie-workflow-worker-thread':
         specifier: workspace:^
         version: link:../../workflow/workflow-worker-thread
@@ -7499,6 +7499,22 @@ importers:
       '@freddie/freddie-timeout':
         specifier: workspace:^
         version: link:../../util/timeout
+      '@freddie/freddie-web':
+        specifier: workspace:^
+        version: link:../web
+
+  packages/web/web-search-browser:
+    dependencies:
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: workspace:^
+        version: link:../../../framework/cordis
+      '@freddie/freddie-gm-client':
+        specifier: workspace:^
+        version: link:../../gm/gm-client
       '@freddie/freddie-web':
         specifier: workspace:^
         version: link:../web
