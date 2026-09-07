@@ -17,8 +17,13 @@
  */
 import { Context as CordisContext } from '@freddie/cordis'
 
+// Symbol.for, not a plain Symbol(): survives a hot-reload of this module
+// (this package's own client HMR can re-evaluate it live) the same way the
+// host-side freddie-scope's identical kScope tag needed the same fix -- see
+// that file's comment for the live-witnessed failure mode a plain Symbol()
+// produces.
 /** Context tag written by {@link createScope}. */
-const kScope = Symbol('freddie.client.scope')
+const kScope = Symbol.for('freddie.client.scope')
 
 /** Shared no-op plugin backing each Agent scope fiber. */
 function agentScope() {}

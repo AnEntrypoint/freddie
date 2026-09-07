@@ -9,8 +9,21 @@ import { Context as CordisContext } from '@freddie/cordis'
 
 export { AnonymousEntries, NamedEntries, ScopedLayers } from './store.js'
 
+// Symbol.for, not a plain Symbol(): this tag must survive a hot-reload of
+// this module. cordis-plugin-hmr re-evaluates ESM modules live; a plain
+// Symbol() mints a NEW identity on every re-evaluation, silently orphaning
+// every already-scoped context tagged with the OLD symbol -- scopeOf() on
+// them then returns undefined forever, exactly matching the framework's own
+// documented convention for every context symbol (framework/cordis/src/
+// utils.js's `symbols` object uses Symbol.for throughout, "avoid public
+// property-name collisions"). Live-witnessed: after this session's long
+// stretch of HMR-driven edits, every session resume in the running Web UI
+// started failing with "agent-presets: refusing to compose an unscoped
+// context" -- a fresh process restart cleared it immediately, consistent
+// with exactly this staleness class, not a logic bug in the resume path
+// itself (the whole call chain was traced and found structurally correct).
 /** Context tag written by {@link createScope}. */
-const kScope = Symbol('freddie.scope')
+const kScope = Symbol.for('freddie.scope')
 
 /** The key associated with each carrier. Presence distinguishes an unkeyed carrier from a non-carrier. */
 const carrierKeys = new WeakMap()

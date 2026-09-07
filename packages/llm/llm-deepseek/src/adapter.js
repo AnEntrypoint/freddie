@@ -473,6 +473,14 @@ export class DeepSeekAdapter extends LlmAdapter {
           const parsed = JSON.parse(rawResponse)
           providerError = parsed.error
           if (providerError?.message) message = providerError.message
+          // acptoapi's chain_exhausted error carries `hint`, naming each
+          // fallback link's own failure reason (e.g. "grok-4.6 (rate_limit),
+          // deepseek-v4-flash (timeout)") -- otherwise silently dropped, so a
+          // crash only ever showed the generic "all upstream providers
+          // unavailable" summary with no way to tell which link failed why.
+          if (typeof providerError?.hint === 'string' && providerError.hint.length > 0) {
+            message = `${message} (${providerError.hint})`
+          }
         } catch {
           // The HTTP status remains authoritative when a gateway returns malformed JSON.
         }

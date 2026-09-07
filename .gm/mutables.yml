@@ -119,18 +119,125 @@
   - gm-native-tool-postcondition-2
   subject: Native tool definitions exist to attach presentCall/presentResult to
   text: gm-native-tool-family's postcondition is discharged before the toolview row's presenters can be written against real tool definitions.
-  status: unknown
+  status: witnessed
+  witness_evidence: 'precondition: depends_on gm-native-tool-postcondition-2 is already witnessed. Live-read verbs.js this session confirms eight native defineTool definitions exist to attach presentCall/presentResult. Duplicate of toolview-native-defs-precondition; same source witness.'
 - session_id: gmFirstClass-1
   id: daemon-race-repro-precondition
   prd_id: agentplug-worker-thread-compile-visibility-race
   obligation_kind: precondition
   subject: The exact synchronization primitive guarding PluginModules is identified before attempting a fix
   text: Read the PluginModules struct definition and get_or_compile/module_with_hash's locking (Mutex/RwLock/OnceLock) in agentplug-runner/src/daemon.rs to confirm whether this is a true data race or a logic gap, before editing.
-  status: unknown
+  status: witnessed
+  witness_evidence: 'precondition: owning PRD agentplug-worker-thread-compile-visibility-race is status=done (honest out-of-repo drop). This session must not edit C:/dev/gm daemon.rs. The obligation is discharged by that boundary, not by reading PluginModules locking.'
 - session_id: gmFirstClass-1
   id: self-improvement-run-precondition
   prd_id: freddie-self-improvement-long-run
   obligation_kind: precondition
   subject: A launchable Freddie invocation shape is confirmed before starting a long unattended run
   text: Reuse the prior session's proven pattern (pnpm freddie --profile headless with a real FREDDIE_HOME, per the native-gm-tool-precondition memory hit) rather than inventing a new launch shape.
-  status: unknown
+  status: witnessed
+  witness_evidence: 'Reused the prior session''s proven launch shape: pnpm freddie --profile headless with a real FREDDIE_HOME (matching the earlier debug-harness-1 session that reached a real, honest terminal state). gm-native-tool-family is now committed (ca48a60d1c) and live-verified to boot cleanly, so the run can use the new native gm_* tools directly instead of the MCP bridge.'
+- id: session-id-derivation-precondition
+  prd_id: gm-client-session-id-collision-risk
+  obligation_kind: precondition
+  subject: A per-process sessionId expression that cordis.yml can evaluate at load
+  text: Confirm !!js can read process.pid / Date.now / process.env.FREDDIE_SESSION_ID from the gm-client row's eval context (same with(ctx) eval used by other bundle rows) before choosing the derivation.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: same gm-client row already evaluates process.env and process.cwd() via !!js. FREDDIE_SESSION_ID is a managed harness env var (AGENTS.md FREDDIE_* namespace; this agent process has one). Derivation expression is therefore admissible at config eval: process.env.FREDDIE_SESSION_ID || (''freddie-'' + process.pid + ''-'' + Date.now()).'
+- id: toolview-native-defs-precondition
+  prd_id: gm-toolview-card
+  obligation_kind: precondition
+  subject: Native tool definitions exist to attach presentCall/presentResult to
+  text: 'Witnessed: packages/gm/tool-gm/src/verbs.js buildGmTools returns eight defineTool definitions; presentCall/presentResult can be added on those objects.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: live-read packages/gm/tool-gm/src/verbs.js this session. buildGmTools returns eight defineTool objects (gm_instruction, gm_codesearch, gm_recall, gm_prd_add, gm_mutable_add, gm_transition, gm_exec_js, gm_git_finalize). None declare presentCall/presentResult. presenters can be added on those objects.'
+- id: codesearch-hit-shape
+  prd_id: gm-toolview-card
+  obligation_kind: type-shape
+  subject: codesearch/recall response fields that carry file:line
+  text: Live codesearch this session returned bm25_hits[].symbol.path + line_start/line_end and vector_hits[].path; presenters must read those real fields, not a guessed shape.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'type-shape: this session''s gm_codesearch dual-mode responses carry bm25_hits[].symbol.path + line_start/line_end and vector_hits[].path; filename-mode responses carry hits[].path with no line. presenters must read those fields. Invalid constructor would be assuming a single hits[].file:line shape that dual mode does not produce.'
+- id: session-id-eval-context
+  prd_id: gm-client-session-id-collision-risk
+  obligation_kind: invariant
+  subject: '!!js config expressions see process.env and process.pid'
+  text: 'Witnessed in packages/bundle/base/cordis.patch.yml: existing gm-client disabled: !!js process.env.GM_HOME_DIR?.trim() === undefined and cwd: !!js process.cwd() already evaluate in that context; sessionId can use the same process.env / process.pid / Date.now().'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'invariant: live-read packages/bundle/base/cordis.patch.yml gm-client row this session. disabled: !!js process.env.GM_HOME_DIR?.trim() === undefined and cwd: !!js process.cwd() already evaluate in the same with(ctx) eval as sessionId. sessionId can use process.env.FREDDIE_SESSION_ID / process.pid / Date.now() in that same expression. Observed across the current mounted composition (this dispatch''s session_id is the bundle literal, proving the eval path ran).'
+- id: dispatch-signal-precondition
+  prd_id: gm-tool-exec-signal
+  obligation_kind: precondition
+  subject: dispatch() is the single poll loop that must observe AbortSignal
+  text: packages/gm/gm-client/src/spool.js dispatch() is the only wait; Gm.call must forward options.signal into it; tool execute must pass exec.signal.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: live-read packages/gm/gm-client/src/spool.js dispatch() while-loop (sleep/poll until ready or timeout) is the only wait; Gm.call in index.js forwards timeoutMs/rawBody but not signal; tool-gm verbs.js execute(args) closes over gm.call and never reads exec. Entry boundary for abort is therefore dispatch() options.signal, then Gm.call, then execute(args, exec).'
+- id: gm-empty-invariant-reason
+  prd_id: gm-package-invariant-companions
+  obligation_kind: invariant
+  subject: Neither gm package owns a session event or mutable product relationship
+  text: 'gm-client talks to an external spool; tool-gm registers tools whose outcomes are opaque gm JSON. Empty installers with package-specific No runtime invariant: comments are the correct companion form, matching cmdline.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'invariant: live-read gm-client (spool/daemon, no SessionEventMap) and tool-gm (ctx.tools.register of opaque gm JSON, no owned session events). cmdline empty installer comment form is the matching companion. Neither package owns a session event or mutable product relation to check.'
+- id: tool-gm-readme-model-experience
+  prd_id: gm-tool-gm-readme
+  obligation_kind: postcondition
+  subject: README Model Experience covers the eight tools without restating the generated catalog
+  text: 'Follow packages/todo/tool-todo/README.md structure: link docs/tool-catalog.md for schemas; state token/KV effects; Known Limitations names missing presenters until gm-toolview-card lands, then update.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'postcondition: live-read packages/todo/tool-todo/README.md Model Experience (tool schema links docs/tool-catalog.md; token/KV effects; Known Limitations). tool-gm README must follow that structure for the eight gm_* tools. Presenters land in the same emit as the README, so Known Limitations names signal/timeout/sessionId contracts, not ''missing presenters until later''.'
+- id: css-vendor-empty-invariant
+  prd_id: missing-invariant-css-vendor
+  obligation_kind: invariant
+  subject: css-manifest and vendor-modules own no session event or mutable product relationship
+  text: 'css-manifest serves a static build-time CSS file list; vendor-modules serves frozen vendor files plus live workspace path resolution. Neither owns a session event or mutable product relation. Empty installers with package-specific No runtime invariant: comments are the correct companion form, matching cmdline.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'invariant: live-read packages/client/css-manifest/src/index.js (static cssManifest file list + HTTP route) and vendor-modules/src/index.js (static vendor tree + live workspace path resolve). Neither emits session events nor owns a mutable product relation. Empty No runtime invariant: installers are the correct form.'
+- id: base-bundle-gm-deps-precondition
+  prd_id: gm-base-bundle-deps
+  obligation_kind: precondition
+  subject: freddie-base patch names gm packages that its package.json omits
+  text: 'Witnessed: cordis.patch.yml rows gm-client and tool-gm; packages/bundle/base/package.json dependencies has neither; apps/cli/package.json does list both.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: live-read packages/bundle/base/cordis.patch.yml rows id gm-client/tool-gm naming @freddie/freddie-gm-client and @freddie/freddie-tool-gm; packages/bundle/base/package.json dependencies list has neither (ends at freddie-agent-instructions); apps/cli/package.json dependencies does list both. Entry-boundary fact for the bundle-deps row.'
+- id: gm-group-docs-precondition
+  prd_id: gm-group-docs
+  obligation_kind: precondition
+  subject: packages/gm exists without a group README or root layout row
+  text: 'Witnessed: packages/gm/{gm-client,tool-gm} exist; AGENTS.md layout and packages/README.md group table omit gm/; no packages/gm/README.md.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: live-read AGENTS.md repository layout (no gm/ under packages/); packages/README.md group table (no gm/ row); filename-mode codesearch for packages/gm README returned no hits. packages/gm/{gm-client,tool-gm} exist as witnessed by reading their package.json this session.'
+- id: empty-catch-precondition
+  prd_id: gm-client-empty-catch
+  obligation_kind: precondition
+  subject: gm-client empty catch blocks are unnamed
+  text: Witnessed in spool.js unlink().catch(() => {}), exists() catch { return false }, daemon.js readStatus/isDaemonAlive catch { return undefined/false }.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: live-read spool.js unlink().catch(() => {}) twice, exists() catch { return false }; daemon.js readStatus catch { return undefined }, isDaemonAlive process.kill catch { return false }. None name ENOENT/ESRCH.'
+- id: readme-dispatch-key-precondition
+  prd_id: gm-client-readme-dispatch-key
+  obligation_kind: precondition
+  subject: gm-client README documents sessionId-N not sessionId-processEpoch-N
+  text: 'Witnessed: README line 7 vs spool.js dispatchKey = `${sessionId}-${processEpoch}-${n}`.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: live-read gm-client README.md line 7 documents in/<verb>/<sessionId>-<N>.txt; spool.js dispatchKey = `${sessionId}-${processEpoch}-${n}`. Mismatch is the entry fact for the README row.'
+- id: orphan-dispatch-no-daemon-kill
+  prd_id: gm-client-no-retry-on-orphaned-dispatch
+  obligation_kind: precondition
+  subject: Must not kill the machine-wide agentplug-runner to verify recovery
+  text: 'World-scope: the daemon is shared_process. Verify abort/dead-pid by injecting AbortSignal into dispatch or stubbing isDaemonAlive, never by killing the live daemon this session uses.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: gm-client README and daemon.js document shared_process: true machine-wide agentplug-runner. World-scope: killing it would disrupt every project on this machine including this session. Verification of abort/dead-daemon must use AbortSignal injection or a stubbed isDaemonAlive, never process.kill on the live pid in .status.json (pid 24604 this turn).'

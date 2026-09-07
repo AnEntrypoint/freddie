@@ -1,21 +1,98 @@
-- session_id: gmFirstClass-1
-  id: gm-toolview-card
-  title: Dedicated tool-call card for gm verb dispatches
-  subject: 'mcp__gm__gm (and any new native gm tools from gm-native-tool-family) currently fall through to GenericToolCard (packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.js) -- raw args/result JSON, no verb-aware rendering, no locations for codesearch/recall hits (unlike read/search/bash which have dedicated toolviews per packages/client/ui-tool/src/client/apply.js). A first-class integration renders a gm dispatch with a render-intent matching its actual verb: locations for codesearch/recall hits (file:line, per docs/cookbook/adding-a-tool.md locations field), a compact phase/PRD-count summary for instruction/transition/prd-add.'
-  acceptance: A new toolview (or presentCall/presentResult on the native tool definitions from gm-native-tool-family) renders at least codesearch/recall results with real file:line locations and instruction/transition with phase+PRD summary instead of raw JSON; live-verified by triggering each verb through a real session and reading the rendered card, not just the source.
-  route_family: representation
+- id: gm-toolview-card
+  title: Dedicated presentCall/presentResult for native gm verb tools
+  subject: 'packages/gm/tool-gm/src/verbs.js registers eight typed tools with no presentCall/presentResult, so Web UI falls through to GenericToolCard (raw JSON). Cookbook requires UI render intent as part of tool design. Live codesearch this session: bm25_hits[].symbol.path + line_start/line_end, vector_hits[].path, filename-mode hits[].path. Live recall this session: hits[].key/text/score — no file:line. Instruction/transition pending cards are generic summaries, not raw JSON.'
+  acceptance: gm_codesearch presentResult exposes real file:line locations (or search-card meta) derived from bm25_hits.symbol.path/line_start, vector_hits.path, or filename hits.path; gm_recall presentResult is a generic/search summary of hit keys (not file:line — recall has none); gm_instruction and gm_transition presentCall/presentResult show a compact title (verb + phase or PRD-count when those fields exist) instead of raw JSON; presenters are pure functions of args/result; live-verified by executing the presenters against a real gm response captured this session.
   status: pending
+  route_family: representation
+  session_id: freddie-harness-1
+- id: gm-client-session-id-collision-risk
+  title: gm-client's bundle-fixed sessionId collides across concurrent Freddie launches
+  subject: 'packages/bundle/base/cordis.patch.yml hardcodes sessionId: freddie-harness-1. gm keys phase/PRD/mutables by session id. processEpoch in spool.js only uniquifies dispatch filenames; it does not partition .gm/prd.yml or phase. Two concurrent Freddie processes against the same project race one gm session. !!js already evaluates process.env / process.pid / process.cwd() on this same row.'
+  acceptance: sessionId is derived per-process at plugin config eval (FREDDIE_SESSION_ID when assigned, else a pid-and-epoch token), never the literal freddie-harness-1, so two concurrent Freddie processes against the same project never share a gm session id; live-verified by reading the mounted config or a real dispatch's session_id.
+  status: pending
+  route_family: state
+  session_id: freddie-harness-1
+- id: gm-package-invariant-companions
+  title: gm-client and tool-gm lack required ./invariant companions
+  subject: packages/AGENTS.md requires every workspace package to own ./invariant. gm-client and tool-gm ship without src/invariant.js or a ./invariant export. css-manifest/vendor-modules are a separate row.
+  acceptance: Both @freddie/freddie-gm-client and @freddie/freddie-tool-gm export a ./invariant companion that registers under the exact npm name with an empty installer whose leading comment starts 'No runtime invariant:' and names a package-specific reason; package.json exports/files include it; live-verified by importing the companion modules.
+  status: pending
+  route_family: observability
+  session_id: freddie-harness-1
+- id: gm-tool-exec-signal
+  title: Native gm tools ignore exec.signal and have no timeoutMs
+  subject: 'packages/gm/tool-gm/src/verbs.js execute(args) never reads exec.signal; Gm.call and dispatch() poll with setTimeout and accept no AbortSignal. Cookbook: Honor exec.signal. Timeout-policy only arms a deadline when timeoutMs is declared; these tools declare none, so a cancelled turn cannot stop an in-flight 120s spool poll.'
+  acceptance: Each gm_* execute forwards exec.signal into Gm.call/dispatch so abort stops polling; tools declare timeoutMs matching the spool default (or Config); live-verified by aborting a dispatch and observing it throw rather than wait the full 120s.
+  status: pending
+  route_family: execution
+  session_id: freddie-harness-1
+- id: gm-tool-gm-readme
+  title: tool-gm ships without a package README
+  subject: 'packages/AGENTS.md: a package''s README is part of the change. packages/gm/tool-gm has no README.md (gm-client has one). The eight model-facing tools, sessionId-not-per-call contract, presenters, and signal/timeout need a package contract.'
+  acceptance: packages/gm/tool-gm/README.md exists with Model Experience and Known Limitations matching shipped tools; files/exports do not need to ship it unless the package already ships docs.
+  status: pending
+  route_family: representation
+  session_id: freddie-harness-1
+- id: gm-client-no-retry-on-orphaned-dispatch
+  title: gm-client dispatch hangs on a dead daemon until timeoutMs
+  subject: 'dispatch() polls only for the .ready sentinel. If the shared daemon dies after the in-file is written, the caller waits the full timeoutMs (default 120s) even though isDaemonAlive already exists. World-scope: do not kill the machine-wide daemon to prove this; prove by injecting a dead-pid status or aborting the signal.'
+  acceptance: dispatch observes AbortSignal and, on each poll, daemon death via isDaemonAlive; either condition throws a named error without waiting the remaining timeout; live-verified by aborting a fake in-flight poll (no machine-wide daemon kill).
+  status: pending
+  route_family: state
+  session_id: freddie-harness-1
+- id: missing-invariant-css-vendor
+  title: css-manifest and vendor-modules lack required ./invariant companions
+  subject: 'Live read of packages/client/css-manifest/package.json and vendor-modules/package.json: no ./invariant export, no src/invariant.js. packages/AGENTS.md requires every workspace package to own ./invariant. Peer already lists freddie-invariants.'
+  acceptance: Both @freddie/freddie-client-css-manifest and @freddie/freddie-client-vendor-modules export a ./invariant companion registering the exact npm name with an empty installer whose leading comment starts 'No runtime invariant:' and names a package-specific reason; exports/files include it; live-verified by importing the companion modules.
+  status: pending
+  route_family: observability
+  session_id: freddie-harness-1
+- id: gm-base-bundle-deps
+  title: freddie-base patch inserts gm plugins that its package.json does not declare
+  subject: 'packages/bundle/base/cordis.patch.yml inserts @freddie/freddie-gm-client and @freddie/freddie-tool-gm. packages/bundle/base/package.json dependencies do not list them. AGENTS.md: Raw/Web cordis.yml bare plugins must appear in their resolver manifest''s dependencies. apps/cli/package.json does list them, so from-source CLI works; a published freddie-base consumer does not.'
+  acceptance: '@freddie/freddie-base package.json dependencies include @freddie/freddie-gm-client and @freddie/freddie-tool-gm; live-verified by reading the manifest after the change.'
+  status: pending
+  route_family: boundary
+  session_id: freddie-harness-1
+- id: gm-group-docs
+  title: packages/gm is missing from the group maps
+  subject: 'packages/gm/{gm-client,tool-gm} exist. Root AGENTS.md repository layout and packages/README.md group table omit gm/. packages/README.md: Group READMEs own package/ctx-key maps; new groups update their README and this table. There is no packages/gm/README.md.'
+  acceptance: Root AGENTS.md layout lists gm/; packages/README.md group table has a gm/ row; packages/gm/README.md exists mapping gm-client (ctx.gm) and tool-gm (gm_* tools).
+  status: pending
+  route_family: representation
+  session_id: freddie-harness-1
+- id: gm-client-empty-catch
+  title: gm-client empty catch blocks do not name what they swallow
+  subject: 'AGENTS.md: An empty catch names what it swallows and why nothing else can reach it. packages/gm/gm-client/src/spool.js unlink().catch(() => {}) and exists() catch { return false } and daemon.js readStatus/isDaemonAlive catch blocks are unnamed.'
+  acceptance: Every catch in gm-client names the expected error class or syscall (ENOENT for missing spool files; ESRCH for a dead pid probe) and why other errors cannot reach it, or rethrows unexpected errors; live-verified by reading the edited source.
+  status: pending
+  route_family: resilience
+  session_id: freddie-harness-1
+- id: gm-client-readme-dispatch-key
+  title: gm-client README documents the pre-epoch dispatch key
+  subject: README Model section says writes in/<verb>/<sessionId>-<N>.txt; spool.js actually uses <sessionId>-<processEpoch>-<N>. That mismatch will mislead the next agent writing spool files by hand.
+  acceptance: gm-client README documents the live dispatch-key format including processEpoch, AbortSignal/timeout, and per-process sessionId derivation after those land.
+  status: pending
+  route_family: representation
+  session_id: freddie-harness-1
 - session_id: gmFirstClass-1
-  id: agentplug-worker-thread-compile-visibility-race
-  title: 'agentplug-runner: per-project worker thread can observe gm plugin as permanently uncompiled despite successful main-thread warm pass'
-  subject: 'Live-witnessed today (2026-09-07, ~07:12-07:30 local) against C:/dev/deepseek-harness: daemon.log repeatedly logged ''plugin crux not yet compiled for C:\\dev\\deepseek-harness: dispatch this thread''s own get_or_compile could not run against the shared PluginModules from a worker thread'' for the gm plugin specifically, across three separate daemon restarts (PIDs 6392, 18692, 15032), each time for many minutes (one stretch exceeded 15 minutes) despite: (1) daemon-status.json showing compiled_plugin_modules:5 (all plugins including gm globally compiled), (2) the unconditional per-tick warm pass at daemon.rs:2468 (for plugin_name in ["gm","libsql","bert","treesitter"]) which is NOT gated by known_roots and should make gm visible to every worker every tick, (3) no compile-failure recorded (read_plugin_compile_failure returned None -- the log said ''not yet compiled'', not ''failed to compile''). Every gm dispatch for this project (codesearch, health, phase-status) timed out client-side during these windows; several were later swept as dispatch_orphaned with sweeping_pid matching the live daemon, confirming the daemon itself, not a dead process, held the claim. The project''s own .gm/exec-spool/.status.json heartbeat (ts field) froze during these windows and only resumed once dispatches started succeeding again. Root cause not fully isolated: module_with_hash() (daemon.rs ~line 1884, called from the worker thread) returned None despite the warm pass at line 2472 reporting Ok(()) moments earlier on the same PluginModules struct -- consistent with a stale-read/visibility race between the main-thread compile write and a worker-thread read, exposed under this machine''s real concurrent load (active_projects:102 at the time). Not root-caused to a specific line; needs focused reproduction with logging around module_with_hash''s actual synchronization primitive.'
-  acceptance: Root cause identified (the exact synchronization gap between get_or_compile's write and module_with_hash's read) and fixed so a project whose plugin the warm pass just compiled successfully never again logs 'not yet compiled' for that plugin on the very next worker-thread read; reproduced live against a project under real multi-project daemon load (not a synthetic single-project test) before and after the fix, both witnessed via daemon.log and the project's own .gm/exec-spool/.status.json heartbeat resuming immediately rather than after a multi-minute stall.
+  id: self-improvement-run-blocked-flaky-backend
+  title: 'Self-improvement run blocked: acptoapi/grok backend fails reproducibly near EMIT phase across 4 consecutive launches'
+  status: pending
+  subject: '4 consecutive headless launches of the self-improvement run (freddie-self-improvement-long-run) all crashed on ''SERVER: All upstream providers are currently unavailable'' at nearly the same point (deep into EMIT phase, near real completion of the tool-gm work). acptoapi''s own /health endpoint and simple direct completion probes (both small and large payloads) succeeded every time I checked immediately after each crash -- ruling out a simple down-backend or payload-size explanation. The retry policy in packages/llm/llm/src/retry-policy.js already covers SERVER with 5 retries + backoff, yet the process still crashed, meaning either those retries genuinely exhausted against real intermittent xai-oauth/grok-4.6 backend flakiness under the run''s real usage pattern (streaming/tool-calling/long multi-turn context), or something in the retry wiring is not actually firing for this call path (unconfirmed -- log output does not show multiple retry attempts, only the single final failure line).'
+  acceptance: Either (a) root-cause the actual retry gap if freddie-llm-retry is not firing for this call path (instrument/log retry attempts, confirm or refute), or (b) if retries are genuinely exhausting against real backend flakiness, this is an infrastructure/provider reliability issue outside this repo's tree -- document it plainly and consider raising maxRetries specifically for headless long-running compositions rather than relaunching blindly. Not resolved this session; left as an open, well-evidenced row for the next session.
+  route_family: execution
+- session_id: gmFirstClass-1
+  id: web-ui-cross-home-session-visibility
+  title: Web UI cannot see sessions from a different FREDDIE_HOME (by design, not a bug to route around)
+  subject: 'User''s explicit ask: ''web page should see all runs that are going on.'' Investigated the actual mechanism: packages/session/session-persistence-jsonl/src/index.js''s claimWriterLock() enforces exactly ONE writer per sessions directory via a .writer.lock file scoped to `this.root` -- deliberate, safety-critical (prevents corrupting concurrent JSONL session logs), confirmed live (the self-improvement run''s own isolated FREDDIE_HOME was created specifically because the real ~/.freddie/sessions store is held by the live Web UI process, pid 24808). So pointing a second process''s session-persistence root at the same ~/.freddie/sessions to make it Web-UI-visible is explicitly blocked by this exact mechanism, not an oversight. No existing cross-home discovery mechanism exists anywhere in the tree (grepped for additionalHomes/otherHomes/multiHome/FREDDIE_HOMES -- zero hits). The real fix is a NEW read-only capability: the Web UI''s session list reads its own home''s store (single writer, as today) PLUS discovers and read-only-tails other known FREDDIE_HOME session stores (each still single-writer for its own owning process), merging them for display. This is a genuine feature addition, not a bug fix -- likely needs a registry of known homes (a well-known file listing active FREDDIE_HOME paths, updated by each process on boot) and a read-only JSONL tail reader that never claims a writer lock.'
+  acceptance: The Web UI's session list displays sessions from other FREDDIE_HOME directories on the same machine (read-only, never claiming their writer lock), verified live by running a second Freddie process under a different FREDDIE_HOME and confirming its session appears in the Web UI's sidebar without being clickable/writable from there, or with a clear read-only/cross-home affordance.
   route_family: state
   status: pending
 - session_id: gmFirstClass-1
-  id: freddie-self-improvement-long-run
-  title: Launch a long Freddie self-improvement run reviewing its own codebase via native gm
-  subject: 'User''s explicit request: a long-running Freddie session, using the (now more first-class) gm integration natively, instructed to review this harness''s own codebase and fix real issues it finds, run to genuine completion rather than truncated early. Depends on gm-native-tool-family reaching a usable state (or, if that PRD row''s full scope is not yet landed, may proceed against the existing mcp-gm bridge as an interim step while the native tools land) -- the run itself must not be blocked waiting on the tool-family row if that would stall genuine progress on this row''s own objective.'
-  acceptance: A real Freddie process (headless preferred, matching prior successful pattern) is launched with a genuine self-review/self-fix instruction, using gm natively for its own dispatch (not manually pwsh-shelled spool writes), and is allowed to run to a real terminal state (COMPLETE, or a well-diagnosed and honestly-reported block like the earlier debug-harness-1 session's no-origin/no-CI stop) -- witnessed by reading its actual session transcript and .gm/prd.yml, not assumed from launch alone.
-  route_family: execution
-  status: pending
+  id: session-create-rpc-unscoped-context-error
+  title: 'CRITICAL live regression: every new message to every session fails with agent-presets unscoped-context error'
+  status: in-progress
+  note: 'Escalated severity: this is now a 100% reproducible, session-blocking bug affecting EVERY session (blank or with history) in the currently-running Web UI process (pid 24808, http://127.0.0.1:3090, real ~/.freddie home) -- every attempt to send a new message fails immediately with ''command directory warmup failed: command.list failed: internal: resume failed for session ...: agent-presets: refusing to compose an unscoped context''. DISPROVED my own hypothesis that today''s cordis.patch.yml changes caused it: reverted the file to its pre-session state, waited for HMR to reconcile, retried -- same error persisted, then restored the correct version. This is a genuine, pre-existing, live-blocking bug independent of my work today. Traced the FULL call chain via static reading with no divergence found: packages/api/remotes/src/agent-lookup.js''s createApiRemoteAgentResolver (properly single-flighted via a `resumes` Map, no race) -> ctx.agents.resume() (packages/core/agent-loop/src/index.js, only one real implementation in the tree) -> resumeWith() -> setupAndPublish() -> prepared.agent.ctx (packages/core/agent-loop/src/agent.js line 66-67: this.scope=createScope(loopCtx,this); this.ctx=this.scope.ctx.extend({agent:this}) -- structurally should always be scoped) -> packages/host/apiproxy/src/api-proxy.js composeAgent().setup(agentCtx) -> presets.mount(agentCtx, resolvedId) -> scopeOf(agentCtx) returns undefined. Read the relevant Agent Note (.agents/notes/implemented/bug-fix/2026-08-10-child-agents-join-their-parent-preset.md) -- confirms ''refusing an unscoped context'' is a DELIBERATE guard (with real unit test coverage for the negative case), designed to catch bugs loud rather than a bug itself; the guard is correctly firing on a genuinely unscoped agentCtx reaching it, meaning the actual defect is upstream of mount() in how this SPECIFIC resume call constructs or passes agentCtx -- not found despite exhaustive static tracing. Could not attach a live debugger or add observable diagnostics to the running process (its stdout is not captured; a second process against ~/.freddie is correctly blocked by the single-writer session-store lock). A full process restart (losing no data, sessions persist to disk) is the most likely quick mitigation but was not attempted this session, pending the user''s own decision given this is their live, in-use Web UI.'
+  acceptance: 'Root cause found and fixed with a live debugger or process-level diagnostics attached to a freshly-restarted instance (reproduce the bug on a clean boot first to rule out any process-specific corruption/HMR staleness before deep debugging). Verified: sending a new message to any session in the real Web UI succeeds.'
+  route_family: state
