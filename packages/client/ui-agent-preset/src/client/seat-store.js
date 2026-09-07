@@ -10,7 +10,7 @@
  * deployment default again, matching the workspace picker beside it.
  */
 
-import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
+import { createSnapshotStore, singleFlight } from '@freddie/freddie-client-runtime/client'
 import { messageOf, presetOptions } from './settings-store.js'
 
 const INITIAL = {
@@ -51,24 +51,16 @@ export class AgentPresetSeatController {
     this.store.set({ ...this.store.getSnapshot(), ...patch })
   }
 
-  /** Set while a load() call is in flight, so a burst of near-simultaneous
-   * triggers (settings/document-updated, connection/reset, and every
-   * rosterReaders entry can each independently call load()) collapses into
-   * one real request instead of firing one per trigger -- live-witnessed:
-   * ~40 concurrent agentPreset.list calls in one short window from exactly
-   * this fan-out, none of them individually wrong, the missing guard was.
-   * Mirrors settings-store.js's beginRosterRead, which already has this same
-   * guard for the settings-row roster read; this controller's load() never
-   * got it. */
-  loading = false
-
   /**
    * Read the roster and open the chip on the deployment default.
+   *
+   * Single-flighted: several independent triggers (settings/document-updated,
+   * connection/reset, every rosterReaders entry) can each call load() in the
+   * same short window. Live-witnessed before this guard: ~40 concurrent
+   * agentPreset.list calls in one window from exactly that fan-out.
    * @returns once the snapshot reflects the host.
    */
-  async load() {
-    if (this.loading) return
-    this.loading = true
+  load = singleFlight(async () => {
     try {
       const response = await this.api.agentPresets.list({})
       if (!response.result.ok) {
@@ -90,10 +82,8 @@ export class AgentPresetSeatController {
       })
     } catch (error) {
       this.set({ error: messageOf(error) })
-    } finally {
-      this.loading = false
     }
-  }
+  })
 
   /**
    * Stage one preset for the next session, applying it immediately when a

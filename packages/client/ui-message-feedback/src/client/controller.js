@@ -7,6 +7,8 @@
  * @module @freddie/freddie-client-ui-message-feedback/client/controller
  */
 
+import { singleFlight } from '@freddie/freddie-client-runtime/client'
+
 /** Load state of the one list read that seeds every per-message control. */
 
 // `Object.freeze` does not protect a Map: `set`/`delete` write internal slots,
@@ -225,8 +227,8 @@ export class MessageFeedbackController {
     this.listeners.clear()
   }
 
-  /** Fetch the whole sidecar and publish it as the seeded view. */
-  async load() {
+  /** Fetch the whole sidecar and publish it as the seeded view. Single-flighted: a mount, a reconnect, and a caller-triggered refresh can each call load() independently. */
+  load = singleFlight(async () => {
     try {
       const carried = await this.remote.list({ sessionId: this.sessionId })
       if (this.disposed) return OK
@@ -249,7 +251,7 @@ export class MessageFeedbackController {
       this.publish({ status: 'error', items: this.view.items, error: message })
       return { ok: false, error: { code: 'transport', message } }
     }
-  }
+  })
 
   /**
    * Serialize one mutation behind this Session's prior mutation so queued

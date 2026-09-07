@@ -22,7 +22,7 @@ export { createScope } from './agents/scope.js'
 export { DirectoryBrowseError, WorkspaceCreateError, WorkspaceRuntime } from './workspaces/service.js'
 export { abbreviateHomePath, resolveWorkspacePath } from './workspaces/path.js'
 // Runtime owns the snapshot store; ui-renderer only binds it to React.
-export { createSnapshotStore, defineStore, shallowEqual } from './contract/store.js'
+export { createSnapshotStore, defineStore, shallowEqual, singleFlight } from './contract/store.js'
 export {
   EMPTY_CHAT_SNAPSHOT, EMPTY_CONVERSATION_VIEWS, toAssistantBlock, toAssistantBlocks,
 } from './sessions/conversation.js'

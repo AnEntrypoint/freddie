@@ -147,6 +147,41 @@ export function createSnapshotStore(init, opts) {
 }
 
 /**
+ * Wrap an async `load()`-shaped method so overlapping calls collapse into
+ * one in-flight request instead of each firing its own. A controller's
+ * `load()` typically has several independent triggers (mount, a settings/
+ * document-updated echo, a connection/reset, a broadcast fan-out set) that
+ * can each fire in the same short window — without this, N triggers means N
+ * concurrent identical wire calls. Live-witnessed: ~40 concurrent
+ * `agentPreset.list` calls in one window from exactly this fan-out, in a
+ * controller whose `load()` had no guard, right next to a sibling
+ * controller whose equivalent read already guarded itself by hand
+ * (`beginRosterRead` in `ui-agent-preset/settings-store.js`) — the same
+ * fix, reinvented once, missed once. This gives every controller the
+ * guarded shape by default instead of leaving each author to remember it.
+ *
+ * A call arriving while one is already in flight returns the SAME pending
+ * promise (not a fresh no-op) — every caller still gets the real settled
+ * result, they just share the one live request instead of issuing another.
+ * @param fn - the async function to guard; typically a controller's `load`.
+ * @returns a wrapped function with the identical signature, single-flighted.
+ */
+export function singleFlight(fn) {
+  let inFlight
+  return function singleFlighted(...args) {
+    if (inFlight !== undefined) return inFlight
+    inFlight = (async () => {
+      try {
+        return await fn.apply(this, args)
+      } finally {
+        inFlight = undefined
+      }
+    })()
+    return inFlight
+  }
+}
+
+/**
  * Whole-value JSON persistence to localStorage. Hand-rolled instead of the
  * zustand persist middleware: its write path spreads state into an object
  * (`partialize({ ...get() })`), exploding primitive state (a persisted string
