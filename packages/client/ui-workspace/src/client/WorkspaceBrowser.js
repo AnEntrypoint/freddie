@@ -1472,6 +1472,7 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
                   ref: (el) => { this.#searchInput = el },
                   class: css.searchInput ?? '',
                   type: 'text',
+                  name: 'workspace-search',
                   placeholder: t('search.placeholder'),
                   maxLength: String(SEARCH_QUERY_MAX_CODE_UNITS),
                   value: query,

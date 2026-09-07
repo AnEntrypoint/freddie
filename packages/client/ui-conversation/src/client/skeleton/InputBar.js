@@ -974,6 +974,7 @@ export class FreddieInputBar extends HTMLElement {
             h('textarea', {
               ref: (el) => { this.#inputEl = el },
               class: css.input ?? '',
+              name: 'agent-message',
               value: draft,
               disabled: textareaDisabled,
               readOnly: machineBusy || workspaceTrigger,
