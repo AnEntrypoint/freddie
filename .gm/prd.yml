@@ -1,9 +1,1 @@
-- id: complete-gates-blocked-no-origin
-  title: 'DECIDE->COMPLETE blocked: no origin, no residual-scan tool, no CI witness'
-  subject: 'git_finalize committed aebc5d7 and df3f2ed on main. COMPLETE denied three residuals: dirty/unpushed (remote is named freddie not origin; git_finalize always pushes origin), residual-scan not fired (this harness has no residual-scan tool), .ci-validated missing (no CI run against this SHA). This is environmental, not remaining YAML work.'
-  acceptance: Either COMPLETE is reached after residual-scan + a real CI witness + a reachable push remote, or this row is resolved with live evidence that those three gates cannot be cleared on this machine without fabricating origin/CI.
-  status: completed
-  route_family: boundary
-  session_id: freddie-4612-1788790819663
-  witness: 'git remotes: only ''freddie'' (https://github.com/AnEntrypoint/freddie.git), no origin. git_finalize push_result: fatal: ''origin'' does not appear to be a git repository (twice: sha aebc5d7 then df3f2ed). Worktree after second finalize: clean, HEAD df3f2ed77afb3b06cc9d1bc6af4b529ebe839a40. This harness has no residual-scan verb among gm_* tools. .gm/exec-spool/.ci-validated missing. Fabricating origin/CI would be a false witness.'
-  commit_comment: record that DECIDE->COMPLETE cannot clear origin/residual-scan/CI on this checkout
+[]
