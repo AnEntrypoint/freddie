@@ -257,20 +257,26 @@ export async function runProfile(options) {
   })
 
   const rootConfig = join(composed.profile.dir, PROFILE_ROOT_FILENAME)
-  // Recomposition for the live user layers: bundle layers below, overlays
-  // above, so a user edit can never displace them. Parsed app arguments are
-  // not in here at all — they live in app-provided services that survive a
-  // recomposition. BOTH
-  // user files are re-read per generation (the HMR watcher hands us only the
-  // changed file's patches, which one of the reads duplicates — fresh reads
-  // keep the two watchers from stitching in each other's stale copy).
+  // Recomposition for the live layers: bundle layers below, then the profile
+  // and home user layers, overlays on top, so a user edit can never displace
+  // them. Parsed app arguments are not in here at all — they live in
+  // app-provided services that survive a recomposition. EVERY layer
+  // (bundles included, not just the two user files) is re-read fresh per
+  // generation: the HMR watcher hands us only the changed file's own patches,
+  // which this full re-read duplicates deliberately — one shared recompute
+  // keeps every watcher (bundle, profile, home) from stitching in another
+  // watcher's stale copy of a layer it didn't itself change. Bundle layers
+  // were frozen at `composed.bundlePatches` (boot-time only) until this fix;
+  // live-witnessed: editing a bundle's own cordis.patch.yml (e.g. swapping
+  // which plugin a row mounts) never took effect on a running process, only
+  // a full restart did, because nothing re-read bundle files past boot.
   // Fresh clones per generation: the include pushes `insert` rows into the
   // mounted tree BY REFERENCE and later id-targeted patches mutate those
   // objects in place. Reusing one parsed patch object across applications
   // would bake a user override into the bundle's in-memory insert row, so
   // removing the override could never revert the row to the bundle default.
   const composeLive = () => structuredClone([
-    ...composed.bundlePatches,
+    ...composed.profile.layers.flatMap(layer => loadOptionalPatches(NAME, layer.patchPath) ?? []),
     ...loadOptionalPatches(NAME, composed.profile.patchPath) ?? [],
     ...loadOptionalPatches(NAME, homePatchPath()) ?? [],
     ...composed.overlays,
@@ -313,6 +319,13 @@ export async function runProfile(options) {
           await ctx.loader.create({ name: '@freddie/cordis-plugin-timer' })
         }
         await ctx.loader.create({ name: '@freddie/cordis-plugin-hmr', config: { root: [] } })
+      }
+      for (const layer of composed.profile.layers) {
+        await watchUserPatches(ctx, {
+          binName: NAME,
+          filename: layer.patchPath,
+          compose: composeLive,
+        })
       }
       await watchUserPatches(ctx, {
         binName: NAME,
