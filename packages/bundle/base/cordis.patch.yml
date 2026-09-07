@@ -458,15 +458,20 @@
     # HTTP 401 mid-turn, "Your api key: sk is invalid"). Replaced with a
     # browser-automation provider over ctx.gm's own `browser` verb (the shared
     # gm daemon's lightpanda/CDP engine, already wired into this process) --
-    # no credential, no new dependency. Fetch stays disabled and no fetch
-    # provider is mounted: that provider defers SSRF protection and the model
-    # would choose the request target. Search drives a real browser
-    # navigation+DOM-extraction round trip, so it keeps the same 60s route
-    # while the provider-neutral tool default remains 30s.
+    # no credential, no new dependency. Targets Google directly (tried and
+    # kept per explicit direction over DuckDuckGo): live-verified clean across
+    # several repeated searches, no CAPTCHA/consent wall; the provider still
+    # throws a distinct WEB_PROVIDER_BLOCKED error naming the interstitial if
+    # that ever changes, the documented signal to escalate this provider to a
+    # stealth engine (camoufox) rather than silently degrade. Fetch stays
+    # disabled and no fetch provider is mounted: that provider defers SSRF
+    # protection and the model would choose the request target. Search drives
+    # a real browser navigation+DOM-extraction round trip, so it keeps the
+    # same 60s route while the provider-neutral tool default remains 30s.
     - id: web
       name: '@freddie/freddie-web'
       config:
-        searchProvider: browser-duckduckgo
+        searchProvider: browser-google
 
     - id: web-search-browser
       name: '@freddie/freddie-web-search-browser'
