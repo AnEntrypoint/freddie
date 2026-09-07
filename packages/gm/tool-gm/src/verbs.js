@@ -195,9 +195,12 @@ export function buildGmTools(gm) {
     description: 'Dispatch gm\'s `mutable-resolve` verb: discharge one previously-recorded mutable (unresolved unknown or proof obligation) with its witness text.',
     parameters: {
       id: { type: 'string', required: true, description: 'Kebab-case mutable id to resolve.' },
-      witness_text: { type: 'string', description: 'How the obligation was discharged or the unknown resolved.' },
+      witness_text: { type: 'string', required: true, description: 'How the obligation was discharged or the unknown resolved. Mapped to the daemon\'s `witness_evidence` field.' },
     },
-    toBody: args => args,
+    toBody: args => ({
+      id: args.id,
+      witness_evidence: args.witness_text,
+    }),
     presentCall: args => presentGenericCall(`gm mutable-resolve: ${args.id}`),
   })
 

@@ -15,7 +15,7 @@ Session id is not a per-call argument. Every tool closes over the mounted `ctx.g
 | `gm_prd_add` | `prd-add` | `id`, optional fields | Add or rescope one PRD row. |
 | `gm_prd_resolve` | `prd-resolve` | `id`, `witness_evidence`, `commit_comment?` | Mark one PRD row resolved. Empty `witness_evidence` is rejected. |
 | `gm_mutable_add` | `mutable-add` | `id`, optional fields | Record one typed proof obligation. |
-| `gm_mutable_resolve` | `mutable-resolve` | `id`, `witness_text?` | Discharge one previously recorded mutable. |
+| `gm_mutable_resolve` | `mutable-resolve` | `id`, `witness_text` | Discharge one previously recorded mutable. `witness_text` is mapped to the daemon's `witness_evidence` field. |
 | `gm_transition` | `transition` | `to` | Advance phase when gates pass. |
 | `gm_exec_js` | `exec_js` | `code`, `timeoutMs?` | Plain-text-body sandbox execution. |
 | `gm_git_finalize` | `git_finalize` | `message`, `files?` | Add, commit, porcelain-gate, push, CI-watch. |

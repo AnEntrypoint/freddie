@@ -69,7 +69,9 @@ export async function readStatus(cwd) {
 export async function isDaemonAlive(cwd) {
   const status = await readStatus(cwd)
   if (status === undefined || typeof status.ts !== 'number') return false
-  if (Date.now() - status.ts >= STALE_MS) return false
+  const now = Date.now()
+  const busy = typeof status.busy_until === 'number' && status.busy_until > now
+  if (!busy && now - status.ts >= STALE_MS) return false
   if (typeof status.pid !== 'number') return true
   try {
     process.kill(status.pid, 0)
@@ -85,16 +87,63 @@ export async function isDaemonAlive(cwd) {
 }
 
 /**
+ * Machine-wide daemon heartbeat path: `AGENTPLUG_HOME/daemon-status.json`, else
+ * `~/.agentplug/daemon-status.json`. Distinct from the per-project
+ * `.gm/exec-spool/.status.json`.
+ * @returns the absolute path.
+ */
+export function daemonStatusPath() {
+  const home = process.env.AGENTPLUG_HOME
+  if (typeof home === 'string' && home.length > 0) return join(home, 'daemon-status.json')
+  return join(homedir(), '.agentplug', 'daemon-status.json')
+}
+
+/**
+ * Read the machine-wide heartbeat if present.
+ * @returns the parsed object, or undefined when absent/unreadable.
+ */
+export async function readDaemonStatus() {
+  try {
+    const text = await readFile(daemonStatusPath(), 'utf8')
+    return JSON.parse(text)
+  } catch (error) {
+    // ENOENT: no machine-wide heartbeat yet. SyntaxError: a partial write.
+    if (error !== null && typeof error === 'object' && error.code === 'ENOENT') return undefined
+    if (error instanceof SyntaxError) return undefined
+    throw error
+  }
+}
+
+/**
+ * Classify why a project `.status.json` looks stale while a pid may still exist.
+ * @param cwd - project root.
+ * @returns `'fresh'` | `'busy'` | `'project-heartbeat-stale'` | `'daemon-status-stale'` | `'dead'`
+ */
+export async function classifyDaemonHealth(cwd) {
+  const status = await readStatus(cwd)
+  if (status === undefined || typeof status.ts !== 'number') return 'dead'
+  const now = Date.now()
+  if (typeof status.busy_until === 'number' && status.busy_until > now) return 'busy'
+  if (now - status.ts < HUNG_MS) return 'fresh'
+  const alive = await isDaemonAlive(cwd)
+  if (!alive) return 'dead'
+  const machine = await readDaemonStatus()
+  if (machine !== undefined && typeof machine.ts === 'number' && now - machine.ts < STALE_MS) {
+    return 'project-heartbeat-stale'
+  }
+  return 'daemon-status-stale'
+}
+
+/**
  * Whether a still-running daemon has stopped writing `.status.json`.
  * Distinct from {@link isDaemonAlive}: a hung pid still answers `kill(pid, 0)`.
+ * A future `busy_until` licenses waiting even when `ts` is older than {@link HUNG_MS}.
  * @param cwd - project root.
- * @returns true when status exists, pid is alive, and `ts` is older than {@link HUNG_MS}.
+ * @returns true when the project ticker is stale, the pid is alive, and no future busy_until applies.
  */
 export async function isDaemonHung(cwd) {
-  const status = await readStatus(cwd)
-  if (status === undefined || typeof status.ts !== 'number') return false
-  if (Date.now() - status.ts < HUNG_MS) return false
-  return isDaemonAlive(cwd)
+  const kind = await classifyDaemonHealth(cwd)
+  return kind === 'project-heartbeat-stale' || kind === 'daemon-status-stale'
 }
 
 /**

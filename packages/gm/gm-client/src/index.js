@@ -10,6 +10,7 @@
 
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
+import { resolveConfig, resolveGraph, resolveProse } from '@freddie/freddie-gm-config'
 import { ensureDaemon } from './daemon.js'
 import { dispatch } from './spool.js'
 
@@ -96,6 +97,32 @@ export class Gm extends Service {
       throw new Error(`gm-client: embed_batch failed: ${result.error ?? 'unknown error'}`)
     }
     return result.embeddings
+  }
+
+  /**
+   * Read the project's resolved gm.config.json from already-materialized
+   * on-disk tiers. Never dispatches to the daemon.
+   * @returns `{ tier, why, rejected, version, config, cacheDir }`.
+   */
+  resolveConfig() {
+    return resolveConfig(this.config.cwd)
+  }
+
+  /**
+   * Read one instruction/gate/residual prose file from local override then cacheDir.
+   * @param key - stem without `.md`.
+   * @returns `{ tier, text }` or `{ tier: 'miss' }`.
+   */
+  resolveProse(key) {
+    return resolveProse(this.config.cwd, key)
+  }
+
+  /**
+   * Read the FSM graph JSON wholesale from local override then cacheDir.
+   * @returns `{ tier, graph }` or `{ tier: 'miss' }`.
+   */
+  resolveGraph() {
+    return resolveGraph(this.config.cwd)
   }
 }
 

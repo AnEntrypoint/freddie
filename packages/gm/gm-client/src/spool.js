@@ -8,7 +8,7 @@
 
 import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { isDaemonAlive, isDaemonHung } from './daemon.js'
+import { classifyDaemonHealth, isDaemonAlive, isDaemonHung } from './daemon.js'
 
 const DEFAULT_POLL_INTERVAL_MS = 200
 const DEFAULT_TIMEOUT_MS = 120_000
@@ -130,7 +130,11 @@ export async function dispatch({
       throw new Error(`gm spool: daemon died while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
     }
     if (await isDaemonHung(cwd)) {
-      throw new Error(`gm spool: daemon hung while waiting for "${verb}" (${dispatchKey}) — .status.json ts is stale while pid is still alive; in=${inPath} out=${outPath}`)
+      const kind = await classifyDaemonHealth(cwd)
+      const label = kind === 'project-heartbeat-stale'
+        ? 'project-heartbeat-stale (machine-wide daemon-status.json is still fresh; project .status.json ts froze)'
+        : 'daemon-status-stale (machine-wide daemon-status.json ts is also stale)'
+      throw new Error(`gm spool: daemon hung (${label}) while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
     }
     if (await exists(readyPath)) {
       const text = await readFile(outPath, 'utf8')

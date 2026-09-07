@@ -52,7 +52,7 @@ export function applyReadTool(ctx, caps) {
 
   ctx.tools.register(defineTool({
     name: 'read',
-    description: 'Read a UTF-8 text file and return line-numbered content.',
+    description: 'Read a UTF-8 text file and return line-numbered content. `file_path` naming a directory instead of a file returns that directory\'s listing (as an error result) rather than file content.',
     parameters: {
       file_path: { type: 'string', required: true, description: 'Path to read, resolved by the filesystem backend.' },
       offset: { type: 'number', description: '1-based first line to return. Defaults to 1.' },
