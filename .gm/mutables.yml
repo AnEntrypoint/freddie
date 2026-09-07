@@ -241,3 +241,83 @@
   session_id: freddie-harness-1
   status: witnessed
   witness_evidence: 'precondition: gm-client README and daemon.js document shared_process: true machine-wide agentplug-runner. World-scope: killing it would disrupt every project on this machine including this session. Verification of abort/dead-daemon must use AbortSignal injection or a stubbed isDaemonAlive, never process.kill on the live pid in .status.json (pid 24604 this turn).'
+- id: gm-checkouts-writable
+  prd_id: contribution-path-to-gm
+  obligation_kind: precondition
+  subject: Whether C:\dev\gm, agentplug, gm-config, rs-plugkit are writable git-tracked checkouts
+  text: Witness by writing a probe file then git rev-parse/remote/status in each tree.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'C:\dev\gm\agentplug is a writable git checkout; this session edited daemon.rs there. git status: M crates/agentplug-runner/src/daemon.rs on main...origin/main.'
+- id: heartbeat-writer-location
+  prd_id: upstream-project-heartbeat
+  obligation_kind: precondition
+  subject: Which source file writes project .status.json ts vs machine-wide daemon-status.json ts
+  text: Witness by reading agentplug-runner daemon.rs write_project_heartbeat, spawn_project_heartbeat_ticker, write_daemon_heartbeat.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: C:\dev\gm\agentplug\crates\agentplug-runner\src\daemon.rs write_project_heartbeat_with_queue_info L1063; spawn_project_heartbeat_ticker L1104; write_daemon_heartbeat L936. Live-read this session.
+- id: project-vs-machine-heartbeat-split
+  prd_id: heartbeat-root-cause
+  obligation_kind: invariant
+  subject: Project .status.json can freeze while ~/.agentplug/daemon-status.json ts keeps moving under the same pid
+  text: Witness by reading both files in the same turn during a hung codesearch wave.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'Project .status.json is per-root 3s ticker; ~/.agentplug/daemon-status.json is 10s machine-wide. classifyDaemonHealth names project-heartbeat-stale vs daemon-status-stale. Live: project ts froze while daemon-status.ts moved, same pid 19400.'
+- id: implicit-default-tier
+  prd_id: native-gm-config-read-only
+  obligation_kind: precondition
+  subject: This project has no .gm/gm.config.json and no .gm/config.source.json; cache lives at .gm/config-source-cache-default
+  text: Witness by failed reads of override files and successful read of cache gm.config.json.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'resolve() against this repo: tier implicit_default_repo version 1 cacheDir .../.gm/config-source-cache-default. No .gm/gm.config.json, no .gm/config.source.json.'
+- id: hooks-are-code-execution
+  prd_id: no-hook-execution
+  obligation_kind: invariant
+  subject: hooks/*.js run via host_exec_js with project authority; a native resolver must not execute them
+  text: Witness transitions.rs hook_outcome host_exec_js and gm-config README hook trust paragraph.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'packages/gm/gm-config/src/graph.js resolveHookPath returns {path,exists}. No Function/eval/vm of hook bodies. README: never evaluates hooks/*.js.'
+- id: clone-is-daemon-owned
+  prd_id: native-gm-config-read-only
+  obligation_kind: invariant
+  subject: Git clone/fetch of gm-config is GitRepoFetcher in config_sync.rs, wasm32 resolve() only; harness must not reimplement clone
+  text: Witness config.rs resolve cfg wasm32 and config_sync.rs git ls-remote/clone.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: gm-config never git clone/fetch. Missing cache is Absent/Rejected. config_sync.rs remains daemon-owned.
+- id: rs-plugkit-detached-not-heartbeat
+  prd_id: upstream-project-heartbeat
+  obligation_kind: type-shape
+  subject: Heartbeat writer is agentplug-runner not rs-plugkit; rs-plugkit is detached HEAD
+  text: Witness git status in rs-plugkit (HEAD no branch) vs agentplug (main...origin/main) and daemon.rs paths.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: Heartbeat fix landed in C:\dev\gm\agentplug daemon.rs on main, not rs-plugkit. rs-plugkit is detached HEAD; contribution-path note records that.
+- id: agentplug-home-override
+  prd_id: upstream-project-heartbeat
+  obligation_kind: precondition
+  subject: AGENTPLUG_HOME env overrides install_dir so a local runner can be live-verified without replacing the machine-wide daemon
+  text: Witness agentplug-host install.rs AGENTPLUG_HOME.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: daemonStatusPath uses AGENTPLUG_HOME then ~/.agentplug/daemon-status.json. packages/gm/README.md documents AGENTPLUG_HOME isolates a local runner.
+- id: cargo-build-available
+  prd_id: upstream-project-heartbeat
+  obligation_kind: precondition
+  subject: Whether cargo can build agentplug-runner on this machine for live verification
+  text: Witness by running cargo --version and a bounded cargo build in C:\dev\gm\agentplug.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'cargo --version -> ''cargo 1.98.1 (797e8a9bc 2026-08-05)'' via C:/Users/user/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin/cargo.exe. cargo build -p agentplug-runner in C:/dev/gm/agentplug completed: ''Finished dev profile [unoptimized + debuginfo] target(s) in 1m 11s'', producing C:/dev/gm/agentplug/target/debug/agentplug-runner.exe.'
+- id: busy-until-ignored
+  prd_id: harness-honor-busy-until
+  obligation_kind: invariant
+  subject: isDaemonHung ignores busy_until even though gm skill licenses waiting on a future busy_until
+  text: Witness daemon.js isDaemonHung reads only ts/pid; write_project_heartbeat can set busy_until.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'Temp spool ts=now-5min busy_until=now+60s: classifyDaemonHealth=busy isDaemonHung=false. isDaemonAlive treats future busy_until as alive past STALE_MS.'
