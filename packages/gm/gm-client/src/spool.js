@@ -6,7 +6,7 @@
  * @module @freddie/freddie-gm-client/spool
  */
 
-import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { classifyDaemonHealth, isDaemonAlive, isDaemonHung } from './daemon.js'
 
@@ -43,6 +43,37 @@ function nextDispatchNumber(sessionId) {
 
 function isMissingPathError(error) {
   return error !== null && typeof error === 'object' && error.code === 'ENOENT'
+}
+
+/**
+ * True when this project still has a claimed `.inflight` or unclaimed `.txt`
+ * spool in-file. A long codesearch holds `.inflight` for minutes; the 3s
+ * project ticker then rewrites `.status.json` without `busy_until`, so
+ * {@link isDaemonHung} fires while the daemon is still working. Queued
+ * work licenses waiting until `timeoutMs`/`signal`, never a hung throw.
+ * @param cwd - project root containing `.gm/exec-spool`.
+ */
+async function projectHasQueuedWork(cwd) {
+  const inRoot = join(cwd, '.gm', 'exec-spool', 'in')
+  let verbs
+  try {
+    verbs = await readdir(inRoot, { withFileTypes: true })
+  } catch (error) {
+    if (isMissingPathError(error)) return false
+    throw error
+  }
+  for (const verb of verbs) {
+    if (!verb.isDirectory()) continue
+    let files
+    try {
+      files = await readdir(join(inRoot, verb.name))
+    } catch (error) {
+      if (isMissingPathError(error)) continue
+      throw error
+    }
+    if (files.some(name => name.endsWith('.inflight') || name.endsWith('.txt'))) return true
+  }
+  return false
 }
 
 function throwIfAborted(signal) {
@@ -126,10 +157,10 @@ export async function dispatch({
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     throwIfAborted(signal)
-    if (!await isDaemonAlive(cwd)) {
+    if (!await isDaemonAlive(cwd) && !await projectHasQueuedWork(cwd)) {
       throw new Error(`gm spool: daemon died while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
     }
-    if (await isDaemonHung(cwd)) {
+    if (await isDaemonHung(cwd) && !await projectHasQueuedWork(cwd)) {
       const kind = await classifyDaemonHealth(cwd)
       const label = kind === 'project-heartbeat-stale'
         ? 'project-heartbeat-stale (machine-wide daemon-status.json is still fresh; project .status.json ts froze)'

@@ -69,21 +69,23 @@ export async function readStatus(cwd) {
 export async function isDaemonAlive(cwd) {
   const status = await readStatus(cwd)
   if (status === undefined || typeof status.ts !== 'number') return false
+  if (typeof status.pid === 'number') {
+    try {
+      process.kill(status.pid, 0)
+      return true
+    } catch (error) {
+      // ESRCH: pid is gone. EPERM: pid exists but this process cannot signal it
+      // — still alive. Windows Node often omits ESRCH for a missing pid.
+      if (error !== null && typeof error === 'object' && error.code === 'EPERM') return true
+      if (error !== null && typeof error === 'object' && error.code === 'ESRCH') return false
+      if (process.platform === 'win32') return false
+      throw error
+    }
+  }
   const now = Date.now()
   const busy = typeof status.busy_until === 'number' && status.busy_until > now
   if (!busy && now - status.ts >= STALE_MS) return false
-  if (typeof status.pid !== 'number') return true
-  try {
-    process.kill(status.pid, 0)
-    return true
-  } catch (error) {
-    // ESRCH: pid is gone. EPERM: pid exists but this process cannot signal it
-    // — still alive. Windows Node often omits ESRCH for a missing pid.
-    if (error !== null && typeof error === 'object' && error.code === 'EPERM') return true
-    if (error !== null && typeof error === 'object' && error.code === 'ESRCH') return false
-    if (process.platform === 'win32') return false
-    throw error
-  }
+  return true
 }
 
 /**

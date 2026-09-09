@@ -1,6 +1,6 @@
 # @freddie/freddie-tool-gm
 
-Model-facing typed tools over [`ctx.gm`](../gm-client/README.md): `gm_instruction`, `gm_phase_status`, `gm_codesearch`, `gm_recall`, `gm_prd_add`, `gm_prd_resolve`, `gm_mutable_add`, `gm_mutable_resolve`, `gm_transition`, `gm_exec_js`, `gm_git_finalize`. Each tool names the real spool-verb fields instead of the generic MCP bridge's opaque `(verb, body)` shape.
+Model-facing typed tools over [`ctx.gm`](../gm-client/README.md): `gm_instruction`, `gm_phase_status`, `gm_codesearch`, `gm_recall`, `gm_prd_add`, `gm_prd_resolve`, `gm_mutable_add`, `gm_mutable_resolve`, `gm_transition`, `gm_exec_js`, `gm_git_finalize`, `gm_scan_deps`. Each tool names the real spool-verb fields instead of the generic MCP bridge's opaque `(verb, body)` shape.
 
 Session id is not a per-call argument. Every tool closes over the mounted `ctx.gm` instance, whose `sessionId` is fixed at plugin config.
 
@@ -19,8 +19,9 @@ Session id is not a per-call argument. Every tool closes over the mounted `ctx.g
 | `gm_transition` | `transition` | `to` | Advance phase when gates pass. |
 | `gm_exec_js` | `exec_js` | `code`, `timeoutMs?` | Plain-text-body sandbox execution. |
 | `gm_git_finalize` | `git_finalize` | `message`, `files?` | Add, commit, porcelain-gate, push, CI-watch. |
+| `gm_scan_deps` | `scan_deps` | `root?`, `full?` | HiddenSpawn-class dependency scan of git-tracked source plus present `node_modules`. |
 
-Each tool declares `timeoutMs` equal to the spool default (120000) and forwards `exec.signal` into `Gm.call`, so a cancelled turn stops the poll instead of waiting the remaining timeout.
+Each tool declares `timeoutMs` equal to the spool default (120000) except `gm_codesearch` (360000, matching live dual-index duration on this machine) and forwards `exec.signal` into `Gm.call`, so a cancelled turn stops the poll instead of waiting the remaining timeout.
 
 `gm_codesearch` presents a search card from `bm25_hits.symbol.path`/`line_start`, `vector_hits.path`, or filename `hits.path`. `gm_recall` presents a generic summary of hit keys. `gm_instruction` and `gm_transition` present a compact title (verb, phase, PRD-pending count when those fields exist).
 
@@ -35,7 +36,7 @@ Each tool declares `timeoutMs` equal to the spool default (120000) and forwards 
 
 #### What the model sees
 
-Eleven tool schemas with per-verb JSON fields. Results are the parsed spool JSON as pretty-printed text.
+Twelve tool schemas with per-verb JSON fields. Results are the parsed spool JSON as pretty-printed text.
 
 #### Token effect
 
@@ -43,7 +44,7 @@ Fixed schema cost per request while the plugin is mounted. Result tokens follow 
 
 #### KV Cache effect
 
-Prefix-stable while the eight definitions stay mounted. Plugin lifecycle may invalidate reuse from the first changed schema token.
+Prefix-stable while the twelve definitions stay mounted. Plugin lifecycle may invalidate reuse from the first changed schema token.
 
 ## Known Limitations and Deferred Work
 

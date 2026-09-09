@@ -8,6 +8,9 @@
 /** Cooperative tool-call budget matching gm-client's spool default. */
 export const GM_TOOL_TIMEOUT_MS = 120_000
 
+/** `gm_codesearch` budget: live dual-index codesearch on this machine runs 4–5 minutes. */
+export const GM_CODESEARCH_TIMEOUT_MS = 360_000
+
 function asRecord(value) {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
   return value

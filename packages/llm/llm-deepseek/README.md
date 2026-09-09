@@ -135,6 +135,7 @@ Loop-retained response blocks append to the next request and preserve its earlie
 
 ## Known Limitations and Deferred Work
 
+- **Local acptoapi `:4800` `/v1/models` is a different catalog than chat completions.** This session: `GET http://127.0.0.1:4800/v1/models` listed only `chatjimmy/llama3.1-8B` while `POST /v1/chat/completions` with `xai-oauth/grok-4.6` returned 200 `grok-4.6`, and the 3080 `llm.models` RPC lists grok. `settings.yaml` `llm-deepseek.baseURL=http://localhost:4800/v1` is a chat proxy, not a models-catalog authority. Operators must not treat `/v1/models` as the set of models chat will serve.
 - **A settings `models` list replaces the composition list wholesale** — settings-layer merging is per-field, and arrays are one field; per-entry catalog merging would need a keyed shape.
 - **`tool_choice` is not mapped** — not part of the core vocabulary (MVP cut, shared with the pi-ai twin).
 - **Requests use raw `fetch`, not `@cordisjs/plugin-http`** — no shared proxy/interception configuration; adoption is deferred until a second adapter wants it (`TODO(http)`).

@@ -15,6 +15,7 @@
 
 import { defineTool } from '@freddie/freddie-tools'
 import {
+  GM_CODESEARCH_TIMEOUT_MS,
   GM_TOOL_TIMEOUT_MS,
   codesearchMetaFromValue,
   compactMetaFromValue,
@@ -61,17 +62,18 @@ export function buildGmTools(gm) {
     output = jsonOutput,
     presentCall,
     presentResult,
+    timeoutMs = GM_TOOL_TIMEOUT_MS,
   }) => {
     return defineTool({
       name,
       description,
       parameters,
       output,
-      timeoutMs: GM_TOOL_TIMEOUT_MS,
+      timeoutMs,
       presentCall,
       presentResult,
       async execute(args, exec) {
-        return gm.call(verb, toBody(args), { signal: exec.signal, timeoutMs: GM_TOOL_TIMEOUT_MS })
+        return gm.call(verb, toBody(args), { signal: exec.signal, timeoutMs })
       },
     })
   }
@@ -127,6 +129,7 @@ export function buildGmTools(gm) {
     },
     presentCall: presentCodesearchCall,
     presentResult: presentCodesearchResult,
+    timeoutMs: GM_CODESEARCH_TIMEOUT_MS,
   })
 
   const recallTool = jsonTool({
@@ -250,6 +253,21 @@ export function buildGmTools(gm) {
     presentCall: args => presentGenericCall(`gm git_finalize: ${args.message}`),
   })
 
+  const scanDepsTool = jsonTool({
+    name: 'gm_scan_deps',
+    verb: 'scan_deps',
+    description: 'Dispatch gm\'s `scan_deps` verb: scan git-tracked source plus present node_modules for HiddenSpawn-class obfuscated droppers (size-ratio + dense unicode-escape identifier). Body `{}` scans the whole project; `root` scopes the git-tracked half; `full: true` ignores the stamp.',
+    parameters: {
+      root: { type: 'string', description: 'Optional relative directory scoping the git-tracked-source half. node_modules is always resolved at the project root.' },
+      full: { type: 'boolean', description: 'Force a full re-walk ignoring .gm/scan-deps-stamp.json.' },
+    },
+    toBody: args => ({
+      ...args.root === undefined ? {} : { root: args.root },
+      ...args.full === undefined ? {} : { full: args.full },
+    }),
+    presentCall: () => presentGenericCall('gm scan_deps'),
+  })
+
   return [
     instructionTool,
     phaseStatusTool,
@@ -262,5 +280,6 @@ export function buildGmTools(gm) {
     transitionTool,
     execJsTool,
     gitFinalizeTool,
+    scanDepsTool,
   ]
 }

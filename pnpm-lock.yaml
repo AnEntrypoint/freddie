@@ -2513,12 +2513,6 @@ importers:
       '@freddie/cordis':
         specifier: workspace:^
         version: link:../../../framework/cordis
-      '@freddie/freddie-api-remotes':
-        specifier: workspace:^
-        version: link:../../api/remotes
-      '@freddie/freddie-client-connection':
-        specifier: workspace:^
-        version: link:../connection
       '@freddie/freddie-client-locale':
         specifier: workspace:^
         version: link:../locale
@@ -7515,40 +7509,6 @@ importers:
       '@freddie/freddie-gm-client':
         specifier: workspace:^
         version: link:../../gm/gm-client
-      '@freddie/freddie-web':
-        specifier: workspace:^
-        version: link:../web
-
-  packages/web/web-search-deepseek:
-    dependencies:
-      '@freddie/schemastery':
-        specifier: link:../../../framework/schemastery
-        version: link:../../../framework/schemastery
-    devDependencies:
-      '@freddie/cordis':
-        specifier: workspace:^
-        version: link:../../../framework/cordis
-      '@freddie/freddie-agent':
-        specifier: workspace:^
-        version: link:../../core/agent
-      '@freddie/freddie-credentials':
-        specifier: workspace:^
-        version: link:../../credentials/credentials
-      '@freddie/freddie-credentials-local':
-        specifier: workspace:^
-        version: link:../../credentials/credentials-local
-      '@freddie/freddie-invariants':
-        specifier: workspace:^
-        version: link:../../runtime-diagnostics/invariants
-      '@freddie/freddie-launch-environment':
-        specifier: workspace:^
-        version: link:../../util/launch-environment
-      '@freddie/freddie-session':
-        specifier: workspace:^
-        version: link:../../core/session
-      '@freddie/freddie-settings':
-        specifier: workspace:^
-        version: link:../../settings/settings
       '@freddie/freddie-web':
         specifier: workspace:^
         version: link:../web

@@ -1,2 +1,9 @@
-2026/09/05-17:43:49.870 3998 Creating DB \\?\C:\dev\deepseek-harness\.gm\browser-chrome-profile-default\Default\Local Storage\leveldb since it was missing.
-2026/09/05-17:43:49.897 3998 Reusing MANIFEST \\?\C:\dev\deepseek-harness\.gm\browser-chrome-profile-default\Default\Local Storage\leveldb/MANIFEST-000001
+2026/09/08-00:03:25.030 4bd0 Reusing MANIFEST \\?\C:\dev\deepseek-harness\.gm\browser-chrome-profile-default\Default\Local Storage\leveldb/MANIFEST-000001
+2026/09/08-00:03:25.041 4bd0 Recovering log #3
+2026/09/08-00:03:25.044 4bd0 Reusing old log \\?\C:\dev\deepseek-harness\.gm\browser-chrome-profile-default\Default\Local Storage\leveldb/000003.log 
+2026/09/08-00:04:25.067 2018 Level-0 table #5: started
+2026/09/08-00:04:25.075 2018 Level-0 table #5: 77350 bytes OK
+2026/09/08-00:04:25.083 2018 Delete type=0 #3
+2026/09/08-00:06:58.221 2018 Level-0 table #7: started
+2026/09/08-00:06:58.230 2018 Level-0 table #7: 59092 bytes OK
+2026/09/08-00:06:58.245 2018 Delete type=0 #4

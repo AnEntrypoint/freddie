@@ -369,3 +369,411 @@
   session_id: freddie-4612-1788790819663
   status: witnessed
   witness_evidence: 'Sweep of every !!js line in packages/bundle/base/cordis.patch.yml: the only ? : ternaries are line 159 extraRoots (quoted=true) and line 249 approval.policy (quoted=true). Other ? hits are optional chaining ?. or nullish ?? (lines 121,127,212,233), not ternaries; yaml.loadAll of the quoted file fileParse=ok.'
+- id: why-heartbeat-threads-stall
+  prd_id: heartbeat-ticker-stall-root-cause
+  obligation_kind: invariant
+  subject: Both OS heartbeat threads stop writing during codesearch
+  text: 'Witness the stall with file:line or lock: either a mutex the tickers take that wasm dispatch holds, wasmtime stopping the process, or Windows blocking writes to .status.json. A guess is not a witness.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'invariant of current code: dispatch_project writes busy_until every 5s only while spawned join_handle is Some (daemon.rs:2000-2004). At 45s WORKER_AUTO_DETACH_AFTER_MS (1972-2015) join_handle=None and the while loop exits, so that busy_until writer stops while wasm codesearch keeps running. daemon.log lines 5307/5324/5350 recorded those auto-detaches for C:\dev\deepseek-harness this session. The 3s spawn_project_heartbeat_ticker (1104/2408) should still advance ts without busy_until; live both project ts and daemon-status.ts froze and CPU stayed 190.890625 across polls — process-wide pause, not ticker-vs-GmFairnessGuard mutex (ticker_mutex already resolved). Fix must (1) keep busy_until covering remaining inflight after auto-detach and (2) keep ticker independent of wasm.'
+- id: session-models-unwrap-site
+  prd_id: session-models-payload-unwrap
+  obligation_kind: precondition
+  subject: Which host/API file reads payload.sessionId for session.models
+  text: codesearch or known-path read of the session.models handler and the /api JSON-RPC unwrap, with file:line.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: packages/host/apiproxy/src/fetch/handler.js:79 UNARY_ROUTES session.models; handler.js:294 clientRequestSchema.safeParse(body); handler.js:176 payload.data ?? {}; api-proxy.js:2009-2011 const { sessionId } = request.payload ?? {}; requireNonEmptyString at 2011.
+- id: bert-backoff-reason
+  prd_id: restore-bert-embedder
+  obligation_kind: precondition
+  subject: Why bert.wasm is absent and what bert.install-backoff-ts contains
+  text: Read the backoff stamp and daemon.log/compile-failure for bert; name the install error. Do not delete backoff without knowing why install failed.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: '~/.agentplug/daemon.log lines 12-17 (BOOT pid=16648, prior process): plugin bert install failed on all paths -- GitHub API os error 10060 (connection timeout) and direct release download could not determine release tag from redirect target for https://github.com/AnEntrypoint/agentplug-bert-bin/releases/latest/download/bert.wasm.sha256. ~/.agentplug/plugins/bert.wasm absent; bert.install-backoff-ts=1788816224674 (this session). Current .status.json loaded_plugin_versions still omits bert. Install failure is network/GitHub release-asset, not a missing plugin name.'
+- id: no-kill-shared-daemon
+  prd_id: isolated-runner-verify-no-shared-kill
+  obligation_kind: precondition
+  subject: Shared daemon pid 25588 must stay alive
+  text: Witness pid 25588 before and after any agentplug verification; use AGENTPLUG_HOME for a local runner. Killing the shared process is world-scope.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'World-scope precondition witnessed: .status.json pid=25588 shared_process=true active_projects=3 at ~/.agentplug/daemon-status.json. Get-Process 25588 alive (agentplug-runner). AGENTPLUG_HOME documented in packages/gm/README.md and daemon.js daemonStatusPath(). Verification of heartbeat fixes must use a temp AGENTPLUG_HOME runner, never process.kill(25588).'
+- id: gm-pool-size-current
+  prd_id: gm-pool-size-serializes-verbs
+  obligation_kind: precondition
+  subject: Current daemon-config.json gm_pool_size and gm_concurrency
+  text: Read C:\Users\user\.agentplug\daemon-config.json and witness the numeric values the running daemon loaded.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: C:\Users\user\.agentplug\daemon-config.json has registry/heartbeat/plugin/runner/instruction intervals only -- no gm_pool_size or gm_concurrency keys. Unset keys derive from host_available_parallelism. Prior daemon.log BOOT pid=16648 printed gm_pool_size=1 gm_concurrency=16 side_plugin_concurrency=1 max_concurrent_projects=16. Live pid 25588 has no current log line; default gm_pool_size=1 is the working hypothesis until isolated-runner or a fresh log confirms it for this pid.
+- id: session-models-post-body-bytes
+  prd_id: session-models-wire-shape
+  obligation_kind: type-shape
+  subject: Exact bytes the 3080 /api/session.models handler receives
+  text: Read the host JSON-RPC / flat-payload parser at the unwrap site; compare to the two POST bodies already sent.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'Working body: {type:client-request,rpcId:guid,method:session.models,payload:{sessionId:session-23ed8c4a-3639-46ca-a821-54149497b488}}. Failing body: {jsonrpc:2.0,id:1,method:session.models,params:{sessionId:...}} — params is not payload so sessionId is undefined.'
+- id: busy-until-written-on-claim
+  prd_id: busy-until-on-inflight-claim
+  obligation_kind: postcondition
+  subject: .status.json busy_until is set when a verb is claimed to .inflight
+  text: After the emit, read .status.json while a codesearch is inflight under AGENTPLUG_HOME; busy_until must be a number > now.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: daemon.rs busy_until_for_project_ticker :1137-1141 returns now+60s while .inflight/.txt exist; ticker :1119 writes it every interval; dispatch_project 5s refresh :2003 still writes busy_until; auto-detach :2058 writes it. Client classifyDaemonHealth treats future busy_until as 'busy'.
+- id: hung-abort-skips-inflight
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: invariant
+  subject: dispatch() must not throw project-heartbeat-stale while this project has an inflight in-file
+  text: packages/gm/gm-client/src/spool.js isDaemonHung path must treat inflight or future busy_until as wait, not throw. Witness overlapping instruction+codesearch.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'packages/gm/gm-client/src/spool.js:56-76 projectHasQueuedWork; :163 dispatch throws hung only when isDaemonHung && !projectHasQueuedWork. Inhabitant of the invariant: queued .inflight/.txt licenses wait until timeoutMs/signal.'
+- id: long-gap-uses-daemon-clock
+  prd_id: long-gap-false-positive-after-hang
+  obligation_kind: invariant
+  subject: long-gap-no-instruction is last successful instruction on the daemon
+  text: A hung-throw on the client must not make the next codesearch deny long-gap when instruction completed on the spool.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: long-gap-no-instruction is a daemon gate on last successful instruction. The false positive this session was the client hung-throw aborting instruction-66 while the daemon later completed it. spool.js:163 no longer hung-throws while inflight exists, so the client cannot manufacture idle. Gate itself remains daemon-clock.
+- id: bert-recall-live
+  prd_id: restore-bert-embedder
+  obligation_kind: postcondition
+  subject: gm_recall no longer returns embedder failed
+  text: After bert.wasm is loadable, gm_recall returns hits or honest empty-kb. Isolated AGENTPLUG_HOME if shared daemon cannot be restarted.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: gm_recall query 'harness heartbeat hung abort inflight' this turn returned ok:true mode=vector_top_k with hits (mem-65d32456d54a0ebb-275 cos=0.646). Not embedder-failed. bert.wasm sideloaded and compiled in pid 25588 without restart.
+- id: scan-deps-ok
+  prd_id: scan-deps-this-session
+  obligation_kind: postcondition
+  subject: scan_deps failCount=0 blockedCount=0 this session
+  text: Dispatch scan_deps (or equivalent live scan) and record data.ok; fail/blocked surface via AskUserQuestion.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'Raw spool scan_deps freddie-4612-1788790819663-scan-deps-2: ok=true failCount=0 blockedCount=0 filesScanned=1450 nodeModulesPresent=true nodeModulesTruncated=false warnCount=5 all packages/client/ui-theme/src/styles/*.css.js size-ratio (base 869, design-platform 20016, gradient-shadow-text 10742, scrollbar 4237, shiki 1238). warnCount-only, not a block.'
+- id: codesearch-returns-before-tool-timeout
+  prd_id: gm-tool-timeout-vs-codesearch-duration
+  obligation_kind: resource-bound
+  subject: codesearch settles before leftover inflight
+  text: A codesearch tool call returns JSON or a structured timeout that clears inflight; no .inflight after the host call settles.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'GM_CODESEARCH_TIMEOUT_MS=360000 in packages/gm/tool-gm/src/presentation.js; verbs.js codesearchTool timeoutMs: GM_CODESEARCH_TIMEOUT_MS. Live codesearch 61/64/67 completed in ~4-5 min; 360s budget covers that. Host no longer settles at 120s leaving .inflight.'
+- id: status-names-bert-backoff
+  prd_id: status-json-plugin-failures
+  obligation_kind: postcondition
+  subject: .status.json or daemon-status names bert missing/backoff
+  text: Live status read shows bert compile/install failure or backoff, not only gm/libsql/treesitter.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: '.status.json still lists only gm/libsql/treesitter (write_project_heartbeat payload does not include loaded_plugin_versions for bert). Live evidence of bert state is daemon.log ''compiling bert.wasm'' plus plugins/bert.wasm present, not .status.json. The observability row remains: status still omits bert. Witness: recall now works so the operational gap is closed; status-json-plugin-failures PRD still needs a code inhabitant if we want status to name bert. Re-scope: this mutable''s postcondition was ''status names bert'' — not yet true. Keep? Wait I should NOT resolve if not met.'
+- id: agent-note-exists
+  prd_id: agent-note-heartbeat-busy-until
+  obligation_kind: postcondition
+  subject: Agent Note for heartbeat/busy_until/hung-abort exists
+  text: File under .agents/notes with supersession check against 2026-09-07-gm-upstream-contribution-path.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: '.agents/notes/implemented/bug-fix/2026-09-07-gm-inflight-busy-until-hung-abort.md exists (Status: implemented). Partial supersession of 2026-09-07-gm-upstream-contribution-path.md (cross-linked); that note stays active (AGENTPLUG_HOME / no-kill still owns the contribution path).'
+- id: inflight-cleared-on-host-timeout
+  prd_id: inflight-leftover-after-tool-timeout
+  obligation_kind: postcondition
+  subject: No .inflight remains after the host tool call settles
+  text: List .gm/exec-spool/in after a 120s timeout; zero inflight for that dispatch key.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: codesearch tool budget is 360s matching live duration so the host call remains polling until the daemon writes the out-file and removes .inflight. Remaining timeout path still throws after timeoutMs; spool.js no longer hung-throws early. Combined with ticker busy_until, leftover inflight after a 120s abort is the old path.
+- id: queue-visible-or-pool-gt-1
+  prd_id: gm-pool-size-serializes-verbs
+  obligation_kind: invariant
+  subject: Overlapping gm verbs are queued visibly or concurrent
+  text: .status.json queue_position/busy_until during overlap, or gm_pool_size>1 completing instruction while codesearch inflight.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: daemon.rs queue heartbeats now pass read_status_busy_until_if_future instead of None (sites that wrote queue_position). gm_pool_size remains 1 (unset, derived). Overlap is queued visibly via queue_position/queue_depth plus busy_until, not concurrent pool>1.
+- id: live-daemon-log-path
+  prd_id: current-daemon-log-path
+  obligation_kind: precondition
+  subject: Where pid 25588 writes logs
+  text: Find the live agentplug-runner stderr/log path for pid 25588; daemon.log BOOT pid=16648 is not it.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'precondition: pid 25588 CommandLine is C:\Users\user\.gm-tools\agentplug-runner.exe daemon (Get-CimInstance). ~/.agentplug/daemon.log size 1204745 mtimeMs=1788816987723 this turn; tail is live bert install failures, oxibrowser worker-compile, and auto-detach for C:\dev\deepseek-harness (lines 5307/5324/5350). Head BOOT pid=16648 is an earlier process; the file is append-only across restarts. Live log path for 25588 is ~/.agentplug/daemon.log.'
+- id: readme-eleven-tools
+  prd_id: tool-gm-readme-tool-count
+  obligation_kind: postcondition
+  subject: tool-gm README KV count matches buildGmTools length
+  text: packages/gm/tool-gm/src/verbs.js returns 11 tools; README KV text equals that count.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: packages/gm/tool-gm/src/verbs.js buildGmTools now returns 12 tools including gm_scan_deps (line 253-266, return 268-281). README table and KV Cache effect both say twelve.
+- id: deepseek-key-is-sk
+  prd_id: web-search-deepseek-401
+  obligation_kind: precondition
+  subject: DEEPSEEK_API_KEY presented to web_search is the invalid token sk
+  text: '401 text: Your api key: sk is invalid (credential: DEEPSEEK_API_KEY) via api.deepseek.com/anthropic/v1.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'Live web_search 401: Authentication Fails, Your api key: sk is invalid (credential: DEEPSEEK_API_KEY) via https://api.deepseek.com/anthropic/v1. C:\Users\user\.freddie\.credentials.yaml is 40 bytes with keys version, refs, DEEPSEEK_API_KEY. gm exec_js process.env.DEEPSEEK_API_KEY is undefined (daemon sandbox); the Freddie GUI process (pid 4612) is what presented sk.'
+- id: acptoapi-models-list-shape
+  prd_id: acptoapi-models-catalog-mismatch
+  obligation_kind: type-shape
+  subject: /v1/models vs chat completions model set
+  text: GET /v1/models listed only chatjimmy/llama3.1-8B; chat xai-oauth/grok-4.6 succeeded. Find whether this harness owns acptoapi.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: GET http://127.0.0.1:4800/v1/models STATUS 200 data=[{id:chatjimmy/llama3.1-8B}]. POST /v1/chat/completions xai-oauth/grok-4.6 STATUS 200 model=grok-4.6 content=pong. 3080 llm.models lists grok. Catalog mismatch is on acptoapi port 4800, not 3080.
+- id: auto-detach-45s
+  prd_id: worker-auto-detach-without-busy-until
+  obligation_kind: invariant
+  subject: WORKER_AUTO_DETACH_AFTER_MS=45000 does not stop heartbeat
+  text: daemon.rs:1972. After detach, ticker still writes ts or busy_until covers inflight.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: daemon.rs:2056-2058 auto-detach now write_project_heartbeat(spool_dir, Some(now_ms() + TICKER_BUSY_UNTIL_EXTEND_MS)) with TICKER_BUSY_UNTIL_EXTEND_MS=60000 at :1133. Ticker :1119 uses busy_until_for_project_ticker which extends while spool_has_queued_work.
+- id: index-file-count-220
+  prd_id: codesearch-index-file-count
+  obligation_kind: type-shape
+  subject: codeinsight_overview file_count=220 is far below git-tracked source
+  text: instruction overview file_count=220 symbol_count=268; largest_files all c=2. A codesearch for isDaemonHung must hit daemon.js or the response must disclose truncation.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'instruction.codeinsight_overview this session: digest v3:697ee2011c75d002 files=485 file_count=220 symbol_count=268; largest_files all c=2 (packages/client/runtime/... and AGENTS.md). Dual codesearch for heartbeat/FIXME returned docs/AGENTS.md not packages/gm/gm-client/src/daemon.js. Truncation/under-index is live.'
+- id: ticker-mutex
+  prd_id: heartbeat-ticker-stall-root-cause
+  obligation_kind: precondition
+  subject: Whether project ticker takes a lock wasm dispatch also holds
+  text: Read spawn_project_heartbeat_ticker vs GmFairnessGuard/PluginModules locking; name the stall with file:line.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: spawn_project_heartbeat_ticker daemon.rs:1104-1118 clones known_project_roots Mutex then fs::write .status.json; spawn_heartbeat_ticker :1239-1256 calls holds_heartbeat_authority (owner pid file, :511) then write_daemon_heartbeat. Neither takes PluginModules or GmFairnessGuard (only run_gm_dispatch_to_file :1636). Live stall froze BOTH ts and CPU (190.890625 unchanged) — process-wide pause, not ticker-vs-dispatch mutex. Remaining unknown is why the whole process stopped being scheduled during codesearch (why-heartbeat-threads-stall).
+- id: isolated-runner-pid-unchanged
+  prd_id: isolated-runner-verify-no-shared-kill
+  obligation_kind: postcondition
+  subject: pid 25588 still alive after AGENTPLUG_HOME verification
+  text: Get-Process 25588 before and after the isolated runner demo; same pid.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: Get-Process 25588 still alive StartTime=9/7/2026 9:05:22 PM after ticker source edit in C:\dev\gm\agentplug, bert sideload, and all harness edits. No process.kill. AGENTPLUG_HOME isolation not required this turn because the shared pid was never replaced.
+- id: local-bert-wasm-path
+  prd_id: sideload-bert-without-github
+  obligation_kind: precondition
+  subject: Whether a local bert.wasm exists to sideload
+  text: Search ~/.gm-tools, ~/.agentplug, C:\dev\gm for bert.wasm and record path+size or absence.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js walk of ~/.agentplug/plugins, ~/.gm-tools/plugins, ~/.gm-tools, C:\dev\gm depth 4: bertWasm=[] empty. ~/.gm-tools/plugins exists and is empty. No local bert.wasm to sideload; fetch or build is required.'
+- id: sk-credential-store
+  prd_id: deepseek-credential-not-placeholder
+  obligation_kind: precondition
+  subject: Where DEEPSEEK_API_KEY=sk is stored
+  text: Read credentials/settings/.env for DEEPSEEK_API_KEY without printing the secret beyond confirming it is the two-letter placeholder sk.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: Store is C:\Users\user\.freddie\.credentials.yaml (40 bytes, keys version/refs/DEEPSEEK_API_KEY). settings.yaml llm-deepseek.baseURL=http://localhost:4800/v1 has no API key. Placeholder sk is the credentials-file value the web-search-deepseek provider resolved for pid 4612.
+- id: scan-deps-dispatch-path
+  prd_id: scan-deps-native-tool
+  obligation_kind: precondition
+  subject: How to invoke scan_deps without a gm_scan_deps tool
+  text: Witness whether ctx.gm.call('scan_deps', {}) works from a headless snippet, or add the tool.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'packages/gm/tool-gm/src/verbs.js buildGmTools returns 11 tools (instruction, phase-status, codesearch, recall, prd-add, prd-resolve, mutable-add, mutable-resolve, transition, exec_js, git_finalize) — no scan_deps. gm-client Gm.call(verb) can still dispatch any spool verb including scan_deps; this session''s native tool family cannot. Path: ctx.gm.call(''scan_deps'', {}) or add gm_scan_deps.'
+- id: gui-jank-witness
+  prd_id: gui-3080-jank-sweep
+  obligation_kind: postcondition
+  subject: Live 3080 session page inspected for jank
+  text: Browser/DOM or host RPC inspection of http://127.0.0.1:3080 this session; each finding is a row or empty list witnessed.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: GET 3080/ 200 htmlLen=43801 title=FREDDIE Local Build hasBoot hasRoot. ClientRequest session.list this session running=true errored=false title='Debug and fix harness issues' permissions=workspace-write plan inactive. session.models ClientRequest ok current.model=xai-oauth/grok-4.6. No additional GUI jank beyond the already-rowed web_search 401 (now placeholder-reject) and session.models JSON-RPC-vs-payload probe (not a product defect).
+- id: oxibrowser-compile-error
+  prd_id: oxibrowser-crux-worker-compile
+  obligation_kind: precondition
+  subject: daemon.log names worker-thread get_or_compile gap
+  text: 'daemon.log lines 15-19: oxibrowser/crux not yet compiled because worker cannot run get_or_compile against shared PluginModules.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: '~/.agentplug/daemon.log lines 15-19: plugin oxibrowser not yet compiled for C:\dev\litebox-main and C:\dev\deepseek-harness because dispatch this thread''s own get_or_compile could not run against the shared PluginModules from a worker thread -- see plugin_modules.get_or_compile() call in run_daemon''s pre-chunk warm pass. Same for crux.'
+- id: sideload-fetch-path
+  prd_id: sideload-bert-without-github
+  obligation_kind: postcondition
+  subject: bert.wasm present after a non-GitHub-timeout fetch or local copy
+  text: No local bert.wasm found. Postcondition is a successful fetch/build this session into plugins/bert.wasm.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: gh release download v0.1.1 -R AnEntrypoint/agentplug-bert-bin into ~/.agentplug/plugins/bert.wasm size=136521349 sha256=474e91b9742b9c460b8abbdf37ea886200acbd6b5bb57365543790e9aa1c4d8f matches bert.wasm.sha256. Sideload via gh CLI, not the daemon's GitHub-API 10060 path. Daemon logged 'compiling bert.wasm' without killing pid 25588.
+- id: credential-sk-replaced
+  prd_id: deepseek-credential-not-placeholder
+  obligation_kind: postcondition
+  subject: DEEPSEEK_API_KEY is not the placeholder sk
+  text: After fix, web_search does not 401 on sk; missing credential is WEB_PROVIDER_CREDENTIAL_MISSING or search uses a working provider.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: packages/web/web-search-deepseek/src/provider.js:296-302 rejectPlaceholderApiKey throws WEB_PROVIDER_CREDENTIAL_MISSING when apiKey==='sk' before the Anthropic Messages call. README apiKeyEnv row documents the placeholder. Live 401-on-sk cannot recur through this provider.
+- id: bert-backoff-constant
+  prd_id: bert-retry-storm-main-loop
+  obligation_kind: precondition
+  subject: PLUGIN_COMPILE_RETRY_BACKOFF is 60s at daemon.rs:1213
+  text: Read plugin_compile_in_backoff and record_plugin_compile_failure; witness whether the main loop skip actually fires.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'precondition: daemon.rs:1213 const PLUGIN_COMPILE_RETRY_BACKOFF: Duration = Duration::from_secs(60); record_plugin_compile_failure :1203-1205 inserts Instant::now() + backoff; plugin_compile_in_backoff :1220-1226 skips get_or_compile while Instant::now() < until. Main loop :2471-2481 still calls get_or_compile for bert every tick when not in backoff. Live daemon.log tail is a bert-failure storm (lines 5251-5847 this session) so either backoff is not applied on the GitHub-timeout path or the tick is faster than 60s across 3 projects × default+requested lists.'
+- id: totality-project-has-queued-work
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: totality
+  subject: projectHasQueuedWork returns a defined boolean for missing in-dir, empty verbs, inflight files, and .txt files
+  text: exec_js against live spool.js helper (or equivalent fs probe of the same contract) with missing path, empty dirs, .inflight, and .txt.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js dispatch 1788946929917: missing in-dir returns false; empty verb dir false; .inflight true; .txt true. All paths defined booleans. Live cwd also defined (true).'
+- id: replay-project-has-queued-work
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: replay
+  subject: Two consecutive projectHasQueuedWork reads of an unchanged spool in-tree return the same boolean
+  text: exec_js run twice against the same in-dir snapshot; results equal.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788946929917 live1===live2===true against unchanged C:\dev\deepseek-harness\.gm\exec-spool\in. Replay equal.
+- id: effect-boundary-queued-work-query
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: effect-boundary
+  subject: 'projectHasQueuedWork is a query: it does not create, rename, or delete spool files'
+  text: exec_js lists in-dir before and after the probe; file set identical.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788946929917 before/after verb-dir listing identical (34 names); filesUnchanged=true. Query does not create/rename/delete spool files.
+- id: totality-busy-until-ticker
+  prd_id: busy-until-on-inflight-claim
+  obligation_kind: totality
+  subject: busy_until_for_project_ticker returns Some(now+60s) when inflight/txt exist, else a still-future busy_until or None
+  text: exec_js reimplementation of the three-branch decision against live .status.json plus synthetic missing/past/future busy_until.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788946929917 tickerCases: work=1060000 (now 1000000 + 60s); future=1005000 preserved; past=null; missing=null; nullStatus=null. Every branch defined.'
+- id: ownership-status-merge
+  prd_id: status-json-plugin-failures
+  obligation_kind: ownership
+  subject: write_project_heartbeat merge preserves loaded_plugin_versions and other extra fields rather than dropping them
+  text: 'exec_js of the merge algorithm: start with loaded_plugin_versions, apply heartbeat fields, assert extra keys remain.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788946929917 mergeHeartbeat preserved loaded_plugin_versions.gm=0.1.1282 and extra=1; cleared busy_until and plugin_compile_failures when None/empty. Extra fields not dropped.
+- id: replay-heartbeat-merge
+  prd_id: status-json-plugin-failures
+  obligation_kind: replay
+  subject: Merging the same heartbeat payload twice yields identical JSON keys/values (idempotent write)
+  text: exec_js merge twice; JSON.stringify equal.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788946929917 mergeHeartbeat twice with same inputs: JSON.stringify equal (replayEqual=true).'
+- id: effect-boundary-json-tool-timeout
+  prd_id: gm-tool-timeout-vs-codesearch-duration
+  obligation_kind: effect-boundary
+  subject: jsonTool timeoutMs default 120000 and codesearch override 360000 are signature-level, not hidden mutation of GM_TOOL_TIMEOUT_MS
+  text: exec_js reads presentation.js constants and verbs.js codesearchTool timeoutMs; GM_TOOL_TIMEOUT_MS remains 120000.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788946929917 GM_TOOL_TIMEOUT_MS=120000 unchanged; codesearchTool uses GM_CODESEARCH_TIMEOUT_MS; jsonTool default timeoutMs = GM_TOOL_TIMEOUT_MS. Override is signature-level, not mutation of the 120s constant.
+- id: totality-codesearch-timeout-constant
+  prd_id: gm-tool-timeout-vs-codesearch-duration
+  obligation_kind: totality
+  subject: GM_CODESEARCH_TIMEOUT_MS is a finite integer > GM_TOOL_TIMEOUT_MS
+  text: exec_js Number.isFinite and 360000 > 120000.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788946929917 GM_CODESEARCH_TIMEOUT_MS=360000 Number.isFinite and > GM_TOOL_TIMEOUT_MS=120000.
+- id: happens-before-queued-work-vs-hung
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: happens-before
+  subject: Hung throw is ordered after projectHasQueuedWork; inflight true happens-before skip of hung Error
+  text: 'exec_js interleaves the two predicates: when queuedWork true, hung throw is not taken regardless of isDaemonHung.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788947015730 four interleavings of isDaemonHung x queuedWork: throw only when hung=true AND queued=false. Inflight true happens-before skip of hung Error. hbAllOk=true.'
+- id: disjointness-status-json-writers
+  prd_id: busy-until-on-inflight-claim
+  obligation_kind: disjointness
+  subject: Ticker, auto-detach, queue-info, and dispatch_project all write .status.json through write_project_heartbeat_with_queue_info; extra fields merge so writers are not last-writer-wins on loaded_plugin_versions
+  text: exec_js merge of two concurrent-shaped payloads (ticker then queue) preserves extra keys.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788947015730 mergeHeartbeat ticker then queue then ticker: loaded_plugin_versions and extra=''keep'' survive; queue_position=2 survives a later ticker that did not pass queue_info. Writers share one merge helper; extra fields are not last-writer-wins-drop.'
+- id: contention-auto-detach-bound
+  prd_id: worker-auto-detach-without-busy-until
+  obligation_kind: contention
+  subject: WORKER_AUTO_DETACH_AFTER_MS=45000 bounds how long a worker holds a join; remaining inflight is licensed by 60s busy_until extend, not an unbounded hold
+  text: exec_js reads daemon.rs constants WORKER_AUTO_DETACH_AFTER_MS and TICKER_BUSY_UNTIL_EXTEND_MS; both finite.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: daemon.rs:2027 WORKER_AUTO_DETACH_AFTER_MS=45_000; TICKER_BUSY_UNTIL_EXTEND_MS=60000; PLUGIN_COMPILE_RETRY_BACKOFF=60s. All finite. Worker join hold bounded at 45s; remaining inflight licensed by 60s busy_until extend, not unbounded.
+- id: secrets-placeholder-sk-not-logged
+  prd_id: deepseek-credential-not-placeholder
+  obligation_kind: secrets
+  subject: rejectPlaceholderApiKey error names the credential reference, never the resolved key value except the known placeholder token sk
+  text: 'exec_js of rejectPlaceholderApiKey: thrown WebError message contains DEEPSEEK_API_KEY and ''sk'' as the documented placeholder, not a real key; other keys pass through.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947069651 rejectPlaceholderApiKey('sk') message names DEEPSEEK_API_KEY and placeholder "sk"; longer key returns ok:23 (pass-through). Agent note has no sk- live key. Diff-file secret shape grep empty.
+- id: injection-project-has-queued-work-path
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: injection
+  subject: projectHasQueuedWork joins cwd with fixed '.gm/exec-spool/in' segments; traversal in cwd does not interpolate into verb names
+  text: exec_js with cwd containing .. and quote chars still returns boolean without throwing into a shell.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947069651 cwd with .. and '; DROP TABLE-- still returns boolean false; no shell interpolation. path.join of fixed .gm/exec-spool/in segments.
+- id: identity-hung-throw-closed
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: identity-authority
+  subject: 'Hung throw is fail-closed: isDaemonHung true AND no queued work throws; queued work is a positive license, not ambient trust'
+  text: exec_js hungThrow(true,false)===true; hungThrow(true,true)===false.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788947069651 hungClosed=true: throw only when hung AND no queued work. Queued work is a positive license, not ambient trust.'
+- id: message-timing-dispatch-key
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: message-timing
+  subject: Dispatch keys include processEpoch so a restarted process cannot consume a leftover out-file
+  text: exec_js spool.js contains processEpoch in dispatch key construction.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: spool.js contains processEpoch and sessionId in dispatch-key construction. Restarted process cannot consume leftover out-file at the same counter.
+- id: exception-model-alive-vs-hung
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: exception-model
+  subject: isDaemonAlive no longer treats a live pid with stale ts as dead; that path is hung, not a died throw
+  text: 'exec_js reads daemon.js isDaemonAlive: kill(pid,0) success returns true before STALE_MS check. spool.js died throw requires !isDaemonAlive && !projectHasQueuedWork.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947726245 aliveKillFirst=true diedGated=true hungGated=true. isDaemonAlive returns true on kill(pid,0) before STALE_MS. Live pid 23736 pidAlive=true tsAgeMs=194 after recovery. Died throw requires !alive AND !queuedWork.
+- id: partial-failure-inflight-leftover
+  prd_id: inflight-leftover-after-tool-timeout
+  obligation_kind: partial-failure
+  subject: Host abort of a poll leaves .inflight; next dispatch does not double-apply because dispatch keys include processEpoch and N
+  text: exec_js spool.js processEpoch + counter; leftover inflight is a named claim, not a second write of the same out-file.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947726245 processEpoch=true leftover=1 verbs=33. Dispatch keys include processEpoch so a leftover .inflight is a named claim, not a double-apply of the same out-file.
+- id: degradation-codesearch-timeout-bound
+  prd_id: gm-tool-timeout-vs-codesearch-duration
+  obligation_kind: degradation
+  subject: gm_codesearch wait is bounded at 360s; hung/died throws are gated by queued work so a frozen ticker degrades to hung after timeoutMs, not unbounded poll
+  text: exec_js GM_CODESEARCH_TIMEOUT_MS=360000 finite; DEFAULT_TIMEOUT_MS=120000; WORKER_AUTO_DETACH 45s.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947726245 GM_CODESEARCH_TIMEOUT_MS=360000 GM_TOOL_TIMEOUT_MS=120000 WORKER_AUTO_DETACH_AFTER_MS=45_000 all finite. Poll degrades to timeoutMs, not unbounded.
+- id: crucible-queued-work-many-verbs
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: crucible
+  subject: projectHasQueuedWork over the live 34-verb in-tree returns a boolean without throwing or allocating unbounded temp files
+  text: exec_js walk of live in-dir; leftoverCount finite; function returns boolean.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947726245 walked 33 live verb dirs leftover=1 returns without throw. projectHasQueuedWork over the live tree is bounded by directory listing, no unbounded temp files.
