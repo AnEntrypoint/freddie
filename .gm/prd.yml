@@ -1,1 +1,9 @@
-[]
+- id: complete-no-product-ci-on-freddie
+  title: AnEntrypoint/freddie has no product CI workflow
+  subject: 'After authorized push of HEAD dbb8656 to remote freddie, gh workflow list -R AnEntrypoint/freddie shows only Dependabot Updates. Three Dependabot runs on that SHA: npm_and_yarn success, uv python/sdk failure, github_actions failure. No test/lint/build pipeline exists to witness green. COMPLETE ci-validated-fresh cannot be honestly satisfied.'
+  acceptance: 'Pre: gh workflow list is only Dependabot Updates. Invariant: do not write a fake .ci-validated. Post: row records that COMPLETE stays gated until a product workflow exists and is green for HEAD, or the user names a different CI surface.'
+  status: completed
+  route_family: observability
+  session_id: freddie-20060-1788957034207
+  witness: 'gh workflow list -R AnEntrypoint/freddie: only Dependabot Updates. Runs on HEAD dbb86568988fe0be106225b0cb5e21dae441f625: npm_and_yarn success 34347656149; uv python/sdk failure 34347715881; github_actions failure 34347655661. No product test/lint/build workflow. .ci-validated not written.'
+  commit_comment: freddie remote has no product CI; COMPLETE ci-validated stays unsatisfied
