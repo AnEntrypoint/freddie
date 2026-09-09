@@ -64,7 +64,20 @@ export class ClientModuleSystem {
   constructor(options) {
     this.manifest = options.manifest
     this.seed = new Map(Object.entries(options.staticModules))
-    this.importModule = options.importModule ?? (url => import(/* @vite-ignore */ url))
+    // A graph row's url is origin-root-relative ("/plugins/<id>/client.js?rev=..."),
+    // which resolves against the origin regardless of what path the app is
+    // actually mounted under — fine when served from the origin root, but a
+    // reverse proxy serving the app from a path prefix (e.g. a tunnel) makes
+    // this resolve to a DIFFERENT URL than the same package's import-map
+    // entry (which correctly resolves relative to the document). Since ES
+    // module identity is keyed by the literal resolved URL, that mismatch
+    // silently creates two independent copies of a module rather than one
+    // shared instance. Stripping the leading slash and resolving against
+    // document.baseURI makes both paths agree: identical to today's origin
+    // URL when served from the root (baseURI carries no extra path), and
+    // correctly prefixed when mounted under a subpath.
+    this.importModule = options.importModule
+      ?? (url => import(/* @vite-ignore */ new URL(url.replace(/^\/+/, ''), document.baseURI).href))
 
     for (const row of options.manifest.modules) {
       if (this.graphRows.has(row.id)) throw new Error(`client-modules: duplicate graph entry "${row.id}"`)

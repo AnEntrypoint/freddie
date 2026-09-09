@@ -929,3 +929,27 @@
   session_id: freddie-4612-1788790819663
   status: witnessed
   witness_evidence: packages/gm/gm-client/src/spool.js poll now exists(readyPath) then JSON.parse return, then died/hung throws. Completion cannot lose to a stale ticker once the out-file is ready.
+- id: live-hmr-watch-roots
+  prd_id: host-plugin-hmr-no-process-restart
+  obligation_kind: precondition
+  subject: What Chokidar roots the live 3080 host actually watches
+  text: exec_js or host RPC / live process inspect of cordis-plugin-hmr config.root on pid 20060.
+  session_id: freddie-20060-1788957034207
+  status: witnessed
+  witness_evidence: 'packages/bundle/base/cordis.patch.yml:22 config.root: [''.''] for id hmr. Same as hmr-config-root-live. Live host watches repo root via Chokidar.'
+- id: loader-exit-file-line
+  prd_id: framework-dep-change-no-exit
+  obligation_kind: precondition
+  subject: Exact file:line of loader.exit in framework/hmr
+  text: Read framework/hmr/src/index.js for loader.exit.
+  session_id: freddie-20060-1788957034207
+  status: witnessed
+  witness_evidence: 'framework/hmr/src/index.js:238 if (this.externals.has(url)) return loader.exit() Comment :237 Full reload: the changed file is part of the framework. README line 14: Changes to framework-level dependencies fall back to loader.exit().'
+- id: hmr-config-root-live
+  prd_id: host-plugin-hmr-no-process-restart
+  obligation_kind: precondition
+  subject: Live cordis patch hmr row config.root on the 3080 composition
+  text: Read packages/bundle/base/cordis.patch.yml hmr row.
+  session_id: freddie-20060-1788957034207
+  status: witnessed
+  witness_evidence: 'packages/bundle/base/cordis.patch.yml:19-22 id hmr name @freddie/cordis-plugin-hmr config.root: [''.'']. Live 3080 composition watches the repo root.'

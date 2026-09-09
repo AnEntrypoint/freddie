@@ -8,12 +8,9 @@
  */
 import { ModelsSection } from './ModelsSection.js'
 import { DeepSeekOnboardingDialog } from './DeepSeekOnboardingDialog.js'
-import { WelcomeNotice } from './WelcomeNotice.js'
-import { decodeWelcomeSection, WelcomeNoticeStore } from './welcome-store.js'
 import { ModelsSettingsStore } from './store.js'
 import { createSettingsSchemaOperations } from './schema-operations.js'
 import { en, zh } from './locales.js'
-import { WELCOME_NOTICE_SETTINGS_NAMESPACE } from '../onboarding-copy.js'
 
 /** Dictionary namespace owned by this plugin. */
 const NS = 'settings.models'
@@ -64,23 +61,10 @@ export function apply(ctx) {
     schema,
     t,
   })
-  // The scope's own memory mode is what keeps a remote browser process-local,
-  // so the store needs no isLoopback branch of its own.
-  const welcomeController = new WelcomeNoticeStore(ctx.settingsScope.bind({
-    namespace: WELCOME_NOTICE_SETTINGS_NAMESPACE,
-    decode: decodeWelcomeSection,
-  }))
-  const welcomeInjected = () => ({
-    controller: welcomeController,
-    hooks: { welcome: welcomeController.store },
-    t,
-  })
-
   // Pushed invalidations converge every open surface without polling. The
   // settingsScope injection makes ui-settings activate first, and remote
   // dispatch preserves listener order; its listener therefore starts the
-  // mirror refresh before this store joins that refresh. The welcome notice
-  // follows its settings scope, so it needs no subscription here.
+  // mirror refresh before this store joins that refresh.
   ctx.effect(() => {
     const refreshModels = () => { refreshIfLoaded(controller) }
     const disposers = [
@@ -90,7 +74,6 @@ export function apply(ctx) {
       ctx.on('connection/reset', refreshModels),
     ]
     return () => {
-      welcomeController.dispose()
       for (const dispose of disposers) dispose()
     }
   }, 'ui-settings-models: pushed invalidations')
@@ -102,12 +85,6 @@ export function apply(ctx) {
     label: () => t('nav'),
     inject: injected,
   }, ModelsSection))
-  ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
-    name: 'settings.onboarding',
-    id: 'welcome-notice',
-    order: -100,
-    inject: welcomeInjected,
-  }, WelcomeNotice))
   ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
     name: 'settings.onboarding',
     id: 'deepseek-official',
