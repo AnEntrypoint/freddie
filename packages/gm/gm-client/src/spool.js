@@ -155,20 +155,35 @@ export async function dispatch({
   }
 
   const deadline = Date.now() + timeoutMs
+  const inflightPath = `${inPath}.inflight`
+  const dropClaim = async () => {
+    await unlink(inPath).catch((error) => {
+      if (!isMissingPathError(error)) throw error
+    })
+    await unlink(inflightPath).catch((error) => {
+      if (!isMissingPathError(error)) throw error
+    })
+  }
+  const takeReady = async () => {
+    const text = await readFile(outPath, 'utf8')
+    await unlink(readyPath).catch((error) => {
+      if (!isMissingPathError(error)) throw error
+    })
+    return JSON.parse(text)
+  }
   while (Date.now() < deadline) {
     throwIfAborted(signal)
-    if (await exists(readyPath)) {
-      const text = await readFile(outPath, 'utf8')
-      await unlink(readyPath).catch((error) => {
-        // ENOENT: the daemon already removed the sentinel. Any other syscall is unexpected.
-        if (!isMissingPathError(error)) throw error
-      })
-      return JSON.parse(text)
-    }
-    if (!await isDaemonAlive(cwd) && !await projectHasQueuedWork(cwd)) {
+    if (await exists(readyPath)) return takeReady()
+    const queued = await projectHasQueuedWork(cwd)
+    const died = !await isDaemonAlive(cwd) && !queued
+    const hung = await isDaemonHung(cwd) && !queued
+    if (await exists(readyPath)) return takeReady()
+    if (died) {
+      await dropClaim()
       throw new Error(`gm spool: daemon died while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
     }
-    if (await isDaemonHung(cwd) && !await projectHasQueuedWork(cwd)) {
+    if (hung) {
+      await dropClaim()
       const kind = await classifyDaemonHealth(cwd)
       const label = kind === 'project-heartbeat-stale'
         ? 'project-heartbeat-stale (machine-wide daemon-status.json is still fresh; project .status.json ts froze)'
@@ -177,6 +192,7 @@ export async function dispatch({
     }
     await sleep(pollIntervalMs, signal)
   }
+  await dropClaim()
   throw new Error(`gm spool: dispatch "${verb}" (${dispatchKey}) timed out after ${timeoutMs}ms — in=${inPath} out=${outPath}`)
 }
 

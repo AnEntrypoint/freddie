@@ -10,7 +10,7 @@ A dual-mode `codesearch` on this machine stays `.inflight` for four to five minu
 
 Two complementary waits, not a substitute for a live ticker.
 
-`packages/gm/gm-client/src/spool.js` `dispatch()` throws hung only when `isDaemonHung` is true **and** the project has no `.inflight` / unclaimed `.txt` under `.gm/exec-spool/in/`. The died throw is the same conjunction against `isDaemonAlive`. Queued work licenses polling until `timeoutMs` or `signal`. `isDaemonAlive` treats a `kill(pid, 0)` success as alive even when `.status.json` `ts` is older than five minutes — a frozen ticker is hung, not dead.
+`packages/gm/gm-client/src/spool.js` `dispatch()` observes `.ready` before hung/died, then re-checks `.ready` after those IO reads so a completion that lands in that window is taken, not aborted. Hung/died still require no `.inflight` / unclaimed `.txt`. Timeout, hung, and died unlink this dispatch's in-file and `.inflight` so a leftover claim cannot license later waiters. `isDaemonAlive` treats a `kill(pid, 0)` success as alive even when `.status.json` `ts` is older than five minutes — a frozen ticker is hung, not dead.
 
 `C:\dev\gm\agentplug` (local, not vendored here) `spawn_project_heartbeat_ticker` preserves a still-future `busy_until` and extends it by 60s while spool in-files exist. Auto-detach writes that same extension instead of dropping the wait-license. Queue-info heartbeats preserve a future `busy_until` rather than passing `None`. Verification of the runner change uses `AGENTPLUG_HOME`; the shared daemon pid is never killed. Push to AnEntrypoint still needs explicit go-ahead ([contribution path](../process/2026-09-07-gm-upstream-contribution-path.md)).
 

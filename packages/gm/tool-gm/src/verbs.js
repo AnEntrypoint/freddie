@@ -16,6 +16,7 @@
 import { defineTool } from '@freddie/freddie-tools'
 import {
   GM_CODESEARCH_TIMEOUT_MS,
+  GM_SCAN_DEPS_TIMEOUT_MS,
   GM_TOOL_TIMEOUT_MS,
   codesearchMetaFromValue,
   compactMetaFromValue,
@@ -236,8 +237,10 @@ export function buildGmTools(gm) {
     timeoutMs: GM_TOOL_TIMEOUT_MS,
     presentCall: () => presentGenericCall('gm exec_js'),
     async execute(args, exec) {
+      const requested = typeof args.timeoutMs === 'number' && Number.isFinite(args.timeoutMs) ? args.timeoutMs : 0
+      const budget = Math.max(GM_TOOL_TIMEOUT_MS, requested)
       const raw = args.timeoutMs === undefined ? args.code : `timeoutMs=${args.timeoutMs}\n${args.code}`
-      return gm.call('exec_js', {}, { rawBody: raw, signal: exec.signal, timeoutMs: GM_TOOL_TIMEOUT_MS })
+      return gm.call('exec_js', {}, { rawBody: raw, signal: exec.signal, timeoutMs: budget })
     },
   })
 
@@ -266,6 +269,7 @@ export function buildGmTools(gm) {
       ...args.full === undefined ? {} : { full: args.full },
     }),
     presentCall: () => presentGenericCall('gm scan_deps'),
+    timeoutMs: GM_SCAN_DEPS_TIMEOUT_MS,
   })
 
   return [

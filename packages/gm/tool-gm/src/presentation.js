@@ -11,6 +11,9 @@ export const GM_TOOL_TIMEOUT_MS = 120_000
 /** `gm_codesearch` budget: live dual-index codesearch on this machine runs 4–5 minutes. */
 export const GM_CODESEARCH_TIMEOUT_MS = 360_000
 
+/** `gm_scan_deps` budget: live walk of this repo's git-tracked source plus node_modules. */
+export const GM_SCAN_DEPS_TIMEOUT_MS = 180_000
+
 function asRecord(value) {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
   return value
@@ -46,7 +49,7 @@ function collectHits(value) {
   const root = nestedData(value)
   if (root === undefined) return []
   const hits = []
-  for (const key of ['bm25_hits', 'vector_hits', 'hits']) {
+  for (const key of ['bm25_hits', 'vector_hits', 'hits', 'commits']) {
     const list = root[key]
     if (!Array.isArray(list)) continue
     for (const hit of list) hits.push(hit)
@@ -71,8 +74,8 @@ function groupMatchesByFile(locations) {
 
 /**
  * Project a codesearch verb body into search-card meta with real file:line
- * locations from bm25 `symbol.path`/`line_start`, `vector_hits.path`, or
- * filename-mode `hits.path`.
+ * locations from bm25 `symbol.path`/`line_start`, `vector_hits.path`,
+ * filename-mode `hits.path`, or commit-vector `commits`.
  * @param value - parsed gm codesearch response.
  * @returns matches-shaped search metadata.
  */
@@ -85,7 +88,7 @@ export function codesearchMetaFromValue(value) {
   return {
     shape: 'matches',
     files: groupMatchesByFile(locations),
-    truncated: false,
+    truncated: nestedData(value)?.truncated === true,
     total: locations.length,
   }
 }
