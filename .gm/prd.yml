@@ -1,1 +1,9 @@
-[]
+- id: product-ci-publint
+  title: Add a product CI workflow that runs publint on push
+  subject: AnEntrypoint/freddie has only Dependabot Updates. COMPLETE ci-validated-fresh needs a product pipeline green for HEAD. This repo's existing verify-before-push command is pnpm run publint.
+  acceptance: 'Pre: .github/workflows/ has no product workflow. Invariant: the workflow runs real publint, not a no-op. Post: a GitHub Actions run for the pushed SHA concludes success and .ci-validated is written with that HEAD sha.'
+  status: completed
+  route_family: execution
+  session_id: freddie-20060-1788957034207
+  witness: gh run 34352859976 workflow publint conclusion=success headSha=7b4fbbb21375e88de3b472037b38a638ebc1106a. .github/workflows/publint.yml runs pnpm run publint on windows-latest. .ci-validated written with that HEAD sha.
+  commit_comment: publint workflow green for 7b4fbbb run 34352859976
