@@ -1,1 +1,18 @@
-[]
+- id: complete-no-origin-remote
+  title: This checkout has no origin remote so git_finalize cannot push
+  subject: git_finalize committed 7f82249 then 2b14bbbd22 locally; push failed fatal origin does not appear to be a git repository. git remote is named freddie. Unpushed delta is an unwitnessed slice for COMPLETE.
+  acceptance: 'Pre: git remote shows freddie not origin. Invariant: do not invent an origin. Post: either git_push {repo} against the real remote the user names, or COMPLETE remains blocked on unpushed and that is recorded.'
+  status: completed
+  route_family: boundary
+  session_id: freddie-4612-1788790819663
+  witness: 'git remote -v: freddie https://github.com/AnEntrypoint/freddie.git fetch+push. No origin. git_finalize push failed fatal origin does not appear to be a git repository. AnEntrypoint push needs explicit go-ahead; not dispatched. HEAD 2b14bbbd22 local.'
+  commit_comment: no origin remote; AnEntrypoint/freddie push not taken
+- id: complete-no-ci-validated
+  title: No .ci-validated for HEAD because this checkout has no CI pipeline
+  subject: COMPLETE requires .gm/exec-spool/.ci-validated matching HEAD sha. This deepseek-harness checkout is not a GitHub origin repo with CI. Fabricating the marker is a false completion.
+  acceptance: 'Pre: .ci-validated absent. Invariant: do not write a fake green. Post: row records that COMPLETE cannot fire without a real pipeline, or a real CI green is witnessed.'
+  status: completed
+  route_family: observability
+  session_id: freddie-4612-1788790819663
+  witness: .git/exec-spool/.ci-validated absent. No GitHub Actions run for HEAD 2b14bbbd22 on this checkout. Marker not fabricated. COMPLETE stays gated on real CI.
+  commit_comment: no CI green for HEAD; .ci-validated not faked
