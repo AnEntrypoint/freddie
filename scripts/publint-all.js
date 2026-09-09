@@ -207,4 +207,8 @@ console.log(`publint-all: linting ${packages.length} package(s) with ${concurren
 const results = await runAll(packages, concurrency)
 for (const result of results) printResult(result)
 
-if (results.some(result => result.status === 'failed')) process.exit(1)
+const failed = results.filter(result => result.status === 'failed')
+if (failed.length > 0) {
+  console.error(`publint-all: ${failed.length} package(s) failed: ${failed.map(result => result.path).join(', ')}`)
+  process.exit(1)
+}

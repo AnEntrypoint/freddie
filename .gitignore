@@ -2,6 +2,7 @@ CLAUDE.local.md
 .env
 node_modules/
 lib/
+!packages/client/vendor-modules/vendor/**/lib/
 *.tsbuildinfo
 pnpm-debug.log
 dsh-web*.log
