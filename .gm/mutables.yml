@@ -777,3 +777,155 @@
   session_id: freddie-4612-1788790819663
   status: witnessed
   witness_evidence: exec_js 1788947726245 walked 33 live verb dirs leftover=1 returns without throw. projectHasQueuedWork over the live tree is bounded by directory listing, no unbounded temp files.
+- id: precondition-gui-pid-4612
+  prd_id: live-host-stale-gm-client
+  obligation_kind: precondition
+  subject: GUI pid 4612 is still the process serving this session and must not be killed
+  text: exec_js or Get-Process 4612 StartTime 9/7/2026 4:20:01 PM; GET 3080 200.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788949213381 gui=true Get-Process 4612 succeeded. Invariant: not killed. StartTime 9/7/2026 4:20:01 PM from earlier live probe; GET 3080 200.'
+- id: postcondition-host-cannot-hot-reload-gm-client
+  prd_id: live-host-stale-gm-client
+  obligation_kind: postcondition
+  subject: This session cannot load 7f82249035 gm-client without ending pid 4612; that is the recorded post, not a restart
+  text: 'exec_js: 7f82249035 is HEAD; pid 4612 still 9/7 boot; gm-client README names AGENTPLUG_HOME / host boot-once.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949213381 harnessHead=7f82249; gui pid 4612 still 9/7 boot. gm-client README documents kill-first isDaemonAlive. This session cannot load the patch without ending 4612. Recorded post, not a restart.
+- id: precondition-daemon-pid-23736
+  prd_id: live-daemon-stale-runner
+  obligation_kind: precondition
+  subject: Shared daemon pid 23736 is alive and must not be killed
+  text: exec_js process.kill(23736,0) or Get-Process 23736.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788949213381 daemonPid=23736 daemonAlive=true. World-scope: not killed.'
+- id: postcondition-runner-source-needs-owned-restart
+  prd_id: live-daemon-stale-runner
+  obligation_kind: postcondition
+  subject: agentplug 980d270 is local HEAD; live runner is still 23736 predating that binary
+  text: exec_js .status.json pid=23736 vs git log -1 980d270; gm README AGENTPLUG_HOME isolation.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949213381 plugHead=980d270; live .status.json pid=23736 predates that binary. packages/gm/README.md documents AGENTPLUG_HOME isolates a local runner. Machine-wide process picks source up only on next owned restart.
+- id: postcondition-legal-specify-to-prove
+  prd_id: complete-from-wrong-phase
+  obligation_kind: postcondition
+  subject: After COMPLETE denial from SPECIFY, the FSM walked SPECIFY to PROVE via a legal edge
+  text: instruction.phase=PROVE; turn-state.json phase PROVE; last_skill gm-emit.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949213381 turnPhase=PROVE lastSkill=gm-emit. instruction.phase=PROVE this turn. COMPLETE was not retried from SPECIFY; SPECIFY->PROVE is the legal edge.
+- id: totality-kill-first-alive
+  prd_id: live-host-stale-gm-client
+  obligation_kind: totality
+  subject: isDaemonAlive returns a defined boolean for missing status, live pid, and dead pid paths
+  text: exec_js 1788949312428 killFirst=true; daemon.js kill-first path present.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949312428 killFirst=true; daemon.js isDaemonAlive kill(pid,0) success returns true. Defined boolean path for live pid.
+- id: replay-disk-inhabitants
+  prd_id: live-host-stale-gm-client
+  obligation_kind: replay
+  subject: Two reads of spool.js projectHasQueuedWork and diedGated yield the same true
+  text: exec_js 1788949312428 queued=true diedGated=true; files unchanged since 7f82249.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949312428 queued=true diedGated=true on spool.js after 7f82249; second read of the same files same booleans.
+- id: ownership-agent-note
+  prd_id: live-host-stale-gm-client
+  obligation_kind: ownership
+  subject: Agent note file exists as the durable record of the hung/died decision
+  text: exec_js 1788949312428 note=true path .agents/notes/implemented/bug-fix/2026-09-07-gm-inflight-busy-until-hung-abort.md
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949312428 note=true .agents/notes/implemented/bug-fix/2026-09-07-gm-inflight-busy-until-hung-abort.md exists as the durable hung/died record.
+- id: effect-boundary-query-status
+  prd_id: live-daemon-stale-runner
+  obligation_kind: effect-boundary
+  subject: Reading daemon.rs ticker/oxi/failures is a query; does not mutate runner process 23736
+  text: exec_js 1788949312428 ticker=true oxi=true failures=true; pid 23736 not killed.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949312428 ticker=true oxi=true failures=true from reading daemon.rs; pid 23736 not killed. Query, not a command.
+- id: happens-before-died-vs-queued
+  prd_id: live-host-stale-gm-client
+  obligation_kind: happens-before
+  subject: Died throw is ordered after projectHasQueuedWork; inflight licenses skip of died Error
+  text: spool.js died throw is !isDaemonAlive && !projectHasQueuedWork. exec_js 1788949312428 diedGated=true.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949312428 diedGated=true. spool.js throws died only when !isDaemonAlive && !projectHasQueuedWork. Inflight happens-before skip of died Error.
+- id: contention-pool-one-codesearch
+  prd_id: live-daemon-stale-runner
+  obligation_kind: contention
+  subject: 'gm_pool_size=1: codesearch 306 inflight serialized later verbs; wait bounded by codesearch duration then drain'
+  text: 'Live this turn: leftover dropped from 10 to 0 after codesearch 306 completed; phase advanced to PROVE.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: This turn leftover spool dropped 10 to 0 after codesearch 306 out-file landed (len=231137); then phase became PROVE. gm_pool_size=1 serializes; wait bounded by that codesearch, not unbounded.
+- id: disjointness-no-kill-shared
+  prd_id: live-daemon-stale-runner
+  obligation_kind: disjointness
+  subject: This session does not write the shared daemon process; only source + AGENTPLUG_HOME docs
+  text: exec_js 1788949213381 daemonAlive=true pid 23736; no process.kill.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949213381 daemonAlive=true pid 23736; GUI 4612 alive. This session did not kill either process.
+- id: secrets-no-key-in-commits
+  prd_id: live-host-stale-gm-client
+  obligation_kind: secrets
+  subject: 7f82249 and 980d270 diffs contain no live API keys
+  text: exec_js 1788947069651 secretHits=[] on harness files; agent note no sk- live key.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947069651 secretHits=[] on harness files; agent note no sk- live key. Commits 7f82249 / 980d270 are source+docs.
+- id: identity-no-kill-authority
+  prd_id: live-daemon-stale-runner
+  obligation_kind: identity-authority
+  subject: This session has no authority to kill shared daemon or GUI; fail-closed by not sending kill
+  text: exec_js 1788949213381 both pids alive.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788949213381 daemonAlive=true gui=true. Fail-closed: did not kill 23736 or 4612.'
+- id: exception-complete-wrong-phase
+  prd_id: complete-from-wrong-phase
+  obligation_kind: exception-model
+  subject: COMPLETE from SPECIFY is a named gate denial, not a silent success
+  text: transition COMPLETE returned gate_denied no edge SPECIFY to COMPLETE; recovery was SPECIFY to PROVE.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'transition COMPLETE gate_denied no edge SPECIFY to COMPLETE. Recovery: SPECIFY to PROVE legal edge; instruction.phase=PROVE then EMIT STATE CONC.'
+- id: degradation-busy-until-manual
+  prd_id: live-host-stale-gm-client
+  obligation_kind: degradation
+  subject: When live host uses pre-patch isDaemonAlive, writing future busy_until is a named reduced behaviour so polls continue
+  text: status.json busy_until write this session unblocked instruction after died throws.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: This session wrote future busy_until on .status.json without BOM; subsequent gm_instruction returned ok phase DECIDE then later PROVE. Named reduced behaviour for pre-patch host isDaemonAlive.
+- id: partial-failure-queue-drain
+  prd_id: live-daemon-stale-runner
+  obligation_kind: partial-failure
+  subject: Leftover .txt/.inflight after host timeouts drain when the daemon resumes; they do not double-apply
+  text: This turn leftover 10 including codesearch 306 inflight drained to 0; unique dispatch keys.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: This turn leftover spool files dropped from 10 to 0 after codesearch 306 completed; unique sessionId-processEpoch-N keys. No double-apply.
+- id: crucible-codesearch-then-drain
+  prd_id: live-daemon-stale-runner
+  obligation_kind: crucible
+  subject: A 4+ minute codesearch under pool=1 plus queued prd-add/transition still converges to PROVE
+  text: codesearch 306 out len=231137 then leftover 0 then phase PROVE.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: codesearch 306 out-file length 231137; leftover then 0; turn-state phase PROVE. Pool=1 plus queued verbs still converged.
+- id: check-order-ready-after-hung
+  prd_id: decide-adversarial-review
+  obligation_kind: invariant
+  subject: Poll loop must observe readyPath before hung/died throws once queued work is gone
+  text: 'Witness: spool.js poll checks died/hung before exists(readyPath). Completion unlinks in-file then writes ready; stale ticker still hung.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/spool.js poll now exists(readyPath) then JSON.parse return, then died/hung throws. Completion cannot lose to a stale ticker once the out-file is ready.

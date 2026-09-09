@@ -157,6 +157,14 @@ export async function dispatch({
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     throwIfAborted(signal)
+    if (await exists(readyPath)) {
+      const text = await readFile(outPath, 'utf8')
+      await unlink(readyPath).catch((error) => {
+        // ENOENT: the daemon already removed the sentinel. Any other syscall is unexpected.
+        if (!isMissingPathError(error)) throw error
+      })
+      return JSON.parse(text)
+    }
     if (!await isDaemonAlive(cwd) && !await projectHasQueuedWork(cwd)) {
       throw new Error(`gm spool: daemon died while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
     }
@@ -166,14 +174,6 @@ export async function dispatch({
         ? 'project-heartbeat-stale (machine-wide daemon-status.json is still fresh; project .status.json ts froze)'
         : 'daemon-status-stale (machine-wide daemon-status.json ts is also stale)'
       throw new Error(`gm spool: daemon hung (${label}) while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
-    }
-    if (await exists(readyPath)) {
-      const text = await readFile(outPath, 'utf8')
-      await unlink(readyPath).catch((error) => {
-        // ENOENT: the daemon already removed the sentinel. Any other syscall is unexpected.
-        if (!isMissingPathError(error)) throw error
-      })
-      return JSON.parse(text)
     }
     await sleep(pollIntervalMs, signal)
   }
