@@ -1,0 +1,28 @@
+/* Full-bleed, fixed-height host for the trajectory ledger. */
+.freddie-views__root {
+  --freddie-trajectory-toolbar-height: 32px;
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--freddie-alias-label-primary);
+  background: var(--freddie-alias-bg-layer-1);
+}
+
+.freddie-views__ledger {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+
+  /* ConversationRoot publishes the floating composer's live height. */
+  --freddie-trajectory-bottom-clearance: calc(var(--freddie-composer-height, 152px) + 16px);
+}

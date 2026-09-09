@@ -1,0 +1,189 @@
+/* Figma .FileContainerText 1:791: the wrapper uses the shared dock inset
+   inside the composer card around the inset panel. */
+
+.freddie-queueDock__dock {
+  box-sizing: border-box;
+  flex: none;
+  width: calc(
+    100% -
+    var(--freddie-composer-side-clearance) -
+    var(--freddie-composer-side-clearance) -
+    var(--freddie-composer-dock-inset) -
+    var(--freddie-composer-dock-inset)
+  );
+  max-width: calc(
+    var(--freddie-composer-card-max-width) -
+    var(--freddie-composer-dock-inset) -
+    var(--freddie-composer-dock-inset)
+  );
+  /* Cancel the stack gap after this item and tuck 3px under the input card
+     (square bottom), reading as one attached surface. */
+  margin: 0 auto calc(0px - var(--freddie-composer-stack-gap) - 3px);
+  /* Horizontal padding completes the shared dock inset (this wrapper only
+     subtracts two insets from its width); no vertical padding, so the visual
+     gap above the panel stays the uniform stack gap. */
+  padding: 0 var(--freddie-composer-dock-inset);
+}
+
+.freddie-queueDock__panel {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  padding: 2px 0;
+  border-radius: 12px 12px 0 0;
+  background: var(--dsw-specific-tip);
+  --freddie-scrollbar-thumb: var(--freddie-alias-scrollbar-bg-l2);
+  --freddie-scrollbar-thumb-hover: var(--freddie-alias-scrollbar-hover-l2);
+}
+
+.freddie-queueDock__panel::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--freddie-alias-border-l1);
+  /* The input card's own top border closes the shape below. */
+  border-bottom: none;
+  border-radius: inherit;
+  content: '';
+  pointer-events: none;
+}
+
+.freddie-queueDock__header {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 36px;
+  /* Right inset 12px puts the chevron on the same vertical line as the Todo
+     header's chevron (12px body padding there). */
+  padding: 4px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--freddie-alias-label-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.freddie-queueDock__header:focus-visible {
+  outline: 2px solid var(--freddie-alias-label-tertiary);
+  outline-offset: -2px;
+}
+
+.freddie-queueDock__header:disabled {
+  cursor: default;
+}
+
+.freddie-queueDock__lead {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-queueDock__count {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: Inter, var(--dsw-font-family);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+.freddie-queueDock__chevron {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-queueDock__list {
+  max-height: 180px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.freddie-queueDock__row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 36px;
+  padding: 4px 5px 4px 12px;
+  border-radius: 8px;
+}
+
+.freddie-queueDock__row + .freddie-queueDock__row {
+  box-shadow: inset 0 1px 0 var(--freddie-alias-border-l1);
+}
+
+.freddie-queueDock__preview,
+.freddie-queueDock__editor {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: var(--dsw-font-xs-13);
+  font-family: Inter, var(--dsw-font-family);
+}
+
+.freddie-queueDock__preview {
+  overflow: hidden;
+  color: var(--freddie-alias-label-primary-dimmed);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-word;
+}
+
+.freddie-queueDock__editor {
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 6px;
+  outline: none;
+  background: var(--freddie-alias-bg-base);
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-queueDock__editor:focus {
+  border-color: var(--freddie-alias-state-business-primary);
+}
+
+.freddie-queueDock__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+}
+
+.freddie-queueDock__action {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--freddie-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.freddie-queueDock__action:hover:not(:disabled) {
+  background: var(--freddie-alias-interactive-bg-hover);
+}
+
+.freddie-queueDock__action:focus-visible {
+  outline: 2px solid var(--freddie-alias-label-tertiary);
+  outline-offset: -2px;
+}
+
+.freddie-queueDock__action:disabled {
+  cursor: default;
+  opacity: 0.45;
+}

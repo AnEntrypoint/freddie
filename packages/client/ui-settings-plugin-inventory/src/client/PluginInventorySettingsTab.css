@@ -1,0 +1,279 @@
+.freddie-pluginInventorySettingsTab__section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 760px;
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-pluginInventorySettingsTab__catalogHeading h3,
+.freddie-pluginInventorySettingsTab__status,
+.freddie-pluginInventorySettingsTab__failure p {
+  margin: 0;
+}
+
+.freddie-pluginInventorySettingsTab__status,
+.freddie-pluginInventorySettingsTab__failure {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-pluginInventorySettingsTab__failure {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-pluginInventorySettingsTab__failure button {
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--freddie-alias-label-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.freddie-pluginInventorySettingsTab__catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.freddie-pluginInventorySettingsTab__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-pluginInventorySettingsTab__search > svg {
+  position: absolute;
+  left: 12px;
+  pointer-events: none;
+}
+
+.freddie-pluginInventorySettingsTab__search input {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 8px;
+  padding: 0 34px 0 36px;
+  outline: none;
+  background: var(--freddie-alias-bg-layer-1);
+  color: var(--freddie-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+}
+
+.freddie-pluginInventorySettingsTab__search input::placeholder {
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-pluginInventorySettingsTab__search input:focus-visible {
+  border-color: var(--freddie-alias-state-business-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--freddie-alias-state-business-primary) 18%, transparent);
+}
+
+.freddie-pluginInventorySettingsTab__catalogHeading {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 0 2px;
+}
+
+.freddie-pluginInventorySettingsTab__catalogHeading h3 {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.freddie-pluginInventorySettingsTab__catalogHeading span {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--freddie-alias-label-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.freddie-pluginInventorySettingsTab__cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.freddie-pluginInventorySettingsTab__card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 10px;
+  background: var(--freddie-alias-bg-layer-3);
+}
+
+.freddie-pluginInventorySettingsTab__card[data-open='true'] {
+  border-color: var(--freddie-alias-border-l1);
+  box-shadow: var(--dsw-shadow-lv1);
+}
+
+.freddie-pluginInventorySettingsTab__cardContent {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  padding: 12px 14px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.freddie-pluginInventorySettingsTab__cardContent:hover,
+.freddie-pluginInventorySettingsTab__card[data-open='true'] > .freddie-pluginInventorySettingsTab__cardContent {
+  background: var(--freddie-alias-interactive-bg-hover);
+}
+
+.freddie-pluginInventorySettingsTab__cardContent:focus-visible {
+  outline: 2px solid var(--freddie-alias-state-business-primary);
+  outline-offset: -2px;
+}
+
+.freddie-pluginInventorySettingsTab__cardTitle {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.freddie-pluginInventorySettingsTab__cardTrailing {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-pluginInventorySettingsTab__statusDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-pluginInventorySettingsTab__statusDot[data-phase='active'] {
+  background: var(--freddie-alias-state-success-primary);
+}
+
+.freddie-pluginInventorySettingsTab__statusDot[data-phase='failed'] {
+  background: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-pluginInventorySettingsTab__statusDot[data-phase='loading'] {
+  background: var(--freddie-alias-state-business-primary);
+}
+
+.freddie-pluginInventorySettingsTab__configTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  border-radius: 5px;
+  padding: 1px 6px;
+  background: var(--freddie-alias-bg-layer-1);
+  color: var(--freddie-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.freddie-pluginInventorySettingsTab__configTag[data-enabled='true'] {
+  background: color-mix(in srgb, var(--freddie-alias-state-success-primary) 10%, transparent);
+  color: var(--freddie-alias-state-success-primary);
+}
+
+.freddie-pluginInventorySettingsTab__chevron {
+  flex: none;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-pluginInventorySettingsTab__card[data-open='true'] .freddie-pluginInventorySettingsTab__chevron {
+  transform: rotate(180deg);
+}
+
+.freddie-pluginInventorySettingsTab__cardDetails {
+  border-top: 1px solid var(--freddie-alias-border-l2);
+  padding: 10px 14px 12px;
+  background: var(--freddie-alias-bg-module-platform);
+}
+
+.freddie-pluginInventorySettingsTab__entryValue {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--freddie-alias-label-primary);
+  font-family: var(--ds-font-family-code);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.freddie-pluginInventorySettingsTab__details {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 6px 10px;
+  margin: 8px 0 0;
+}
+
+.freddie-pluginInventorySettingsTab__details div {
+  display: contents;
+}
+
+.freddie-pluginInventorySettingsTab__details dt {
+  color: var(--freddie-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 17px;
+}
+
+.freddie-pluginInventorySettingsTab__details dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--freddie-alias-label-secondary);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.freddie-pluginInventorySettingsTab__visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .freddie-pluginInventorySettingsTab__chevron {
+    transition: transform 140ms var(--ds-ease-in-out);
+  }
+}
+
+@media (max-width: 680px) {
+  .freddie-pluginInventorySettingsTab__cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

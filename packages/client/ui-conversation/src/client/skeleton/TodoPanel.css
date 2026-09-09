@@ -1,0 +1,146 @@
+/* Todo strip in the composer context stack (Figma 1236:32276): tip surface,
+   status icons + secondary item labels. Its visible card aligns with the
+   GoalBar and the Queue panel inside their shared dock column: 12px radius,
+   36px collapsed row, 12px side padding, 14px tertiary leading glyph. */
+
+.freddie-todoPanel__root {
+  box-sizing: border-box;
+  flex: none;
+  overflow: hidden;
+  margin: 0 auto;
+  width: calc(
+    100% -
+    var(--freddie-composer-side-clearance) -
+    var(--freddie-composer-side-clearance) -
+    var(--freddie-composer-dock-inset) -
+    var(--freddie-composer-dock-inset) -
+    var(--freddie-composer-dock-inset) -
+    var(--freddie-composer-dock-inset)
+  );
+  max-width: calc(
+    var(--freddie-composer-card-max-width) -
+    var(--freddie-composer-dock-inset) -
+    var(--freddie-composer-dock-inset) -
+    var(--freddie-composer-dock-inset) -
+    var(--freddie-composer-dock-inset)
+  );
+  border: 1px solid var(--freddie-alias-border-l1);
+  border-radius: 12px;
+  background: var(--dsw-specific-tip);
+  /* Elevated surface: `--dsw-specific-tip` is the same dark rung as the menu
+     surface, and `.list` scrolls inside this card, so the thumb takes the l2
+     elevation tokens. Declared here because the elevation belongs to the
+     surface, and the custom properties inherit down to `.list` (see ui-theme
+     styles/scrollbar.css for the rebinding contract). */
+  --freddie-scrollbar-thumb: var(--freddie-alias-scrollbar-bg-l2);
+  --freddie-scrollbar-thumb-hover: var(--freddie-alias-scrollbar-hover-l2);
+}
+
+.freddie-todoPanel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 12px;
+}
+
+.freddie-todoPanel__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.freddie-todoPanel__lead {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-todoPanel__title {
+  flex: none;
+  font-size: 13px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-todoPanel__progress {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--freddie-alias-label-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.freddie-todoPanel__chevron {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-todoPanel__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.freddie-todoPanel__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-todoPanel__glyph {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+}
+
+.freddie-todoPanel__glyphCompleted {
+  color: var(--freddie-alias-state-success-primary);
+}
+
+.freddie-todoPanel__glyphPending {
+  color: var(--freddie-alias-label-caption);
+}
+
+.freddie-todoPanel__glyphProgress {
+  color: var(--freddie-alias-state-business-primary);
+  animation: freddie-todoPanel__todo-progress-spin 1s linear infinite;
+}
+
+@keyframes freddie-todoPanel__todo-progress-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Figma strip is single-line; long items ellipsize with no inline expand. */
+.freddie-todoPanel__content {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

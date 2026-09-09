@@ -1,0 +1,4 @@
+interface:
+  display_name: "FREDDIE Pre-Push Checks"
+  short_description: "Run the relevant Freddie checks before push"
+  default_prompt: "Use $freddie-pre-push-checks before pushing this Freddie branch."

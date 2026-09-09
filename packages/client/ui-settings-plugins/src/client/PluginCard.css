@@ -1,0 +1,157 @@
+/* Plugin card: a header that names the plugin, disclosing its controls in place. */
+
+.freddie-pluginCard__card {
+  list-style: none;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 12px;
+  background: var(--freddie-alias-bg-layer-3);
+  transition: border-color .16s, background .16s;
+}
+
+.freddie-pluginCard__card:hover {
+  border-color: var(--freddie-alias-label-dimmed);
+}
+
+/* An open card reads as the one being worked on, not merely taller. */
+.freddie-pluginCard__cardOpen {
+  background: var(--freddie-alias-bg-layer-2);
+  border-color: var(--freddie-alias-label-dimmed);
+}
+
+.freddie-pluginCard__header {
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+}
+
+.freddie-pluginCard__header:focus-visible {
+  outline: 2px solid var(--freddie-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+/* Name over description: the description is what tells two plugins apart, so
+   it gets its own line rather than trailing the name. */
+.freddie-pluginCard__headText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.freddie-pluginCard__name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-pluginCard__description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-pluginCard__chevron {
+  flex: none;
+  color: var(--freddie-alias-label-tertiary);
+  transition: transform .16s;
+}
+
+.freddie-pluginCard__chevronOpen {
+  transform: rotate(180deg);
+}
+
+.freddie-pluginCard__body {
+  border-top: 1px solid var(--freddie-alias-border-l2);
+  margin: 0 16px;
+  padding-bottom: 8px;
+}
+
+.freddie-pluginCard__readOnly {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+/* Carried on the header so a collapsed card still says it holds edits. */
+.freddie-pluginCard__pending {
+  flex: none;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 17px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: var(--freddie-alias-bg-module-platform);
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-pluginCard__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--freddie-alias-border-l2);
+}
+
+.freddie-pluginCard__failed {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--freddie-alias-label-error);
+}
+
+.freddie-pluginCard__discard,
+.freddie-pluginCard__save {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 5px 14px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.freddie-pluginCard__discard {
+  border-color: var(--freddie-alias-border-l2);
+  background: none;
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-pluginCard__discard:hover:not(:disabled) {
+  color: var(--freddie-alias-label-primary);
+  border-color: var(--freddie-alias-label-dimmed);
+}
+
+.freddie-pluginCard__save {
+  background: var(--freddie-alias-label-primary);
+  color: var(--freddie-alias-bg-layer-3);
+}
+
+.freddie-pluginCard__discard:disabled,
+.freddie-pluginCard__save:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.freddie-pluginCard__discard:focus-visible,
+.freddie-pluginCard__save:focus-visible {
+  outline: 2px solid var(--freddie-alias-brand-primary);
+  outline-offset: 1px;
+}

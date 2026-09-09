@@ -1,0 +1,218 @@
+diff --git a/dist/applyDiff.js b/dist/applyDiff.js
+index 62aeba89262af16790778d9723b6a670a3ced7c7..f8758f5597571d4418289efc8dbe20648c2cca15 100644
+--- a/dist/applyDiff.js
++++ b/dist/applyDiff.js
+@@ -33,13 +33,15 @@ function diffChildren(parent, newVNodes) {
+         const newVNode = newVNodes[i];
+         const oldVNode = oldVNodes[i];
+         const currentNode = originalChildNodes[i];
+-        const newKey = isVElement(newVNode) ? newVNode.props.key : undefined;
++        const newKey = isVElement(newVNode) && !(newVNode instanceof Node) ? newVNode.props.key : undefined;
+         if (newKey !== undefined) {
+             if (!keyedMap) {
+                 hasKeyedNodes = true;
+                 keyedMap = new Map();
+                 for (let j = 0; j < oldVNodes.length; j++) {
+                     const matchingVNode = oldVNodes[j];
++                    if (matchingVNode instanceof Node || !isVElement(matchingVNode))
++                        continue;
+                     const key = matchingVNode.props.key;
+                     if (key !== undefined) {
+                         const node = originalChildNodes[j];
+@@ -100,6 +102,22 @@ function canUpdateVNodes(newVNode, oldVNode) {
+         return true;
+     }
+     else {
++        // An already-real DOM node (returned by a "one-shot create/update"
++        // helper, e.g. `el.setProps(props); return el`) carries no `.props` —
++        // it always REPLACES the previous node in place (handled by
++        // applyChanges' own `newVNode instanceof Node` branch) rather than
++        // being diffed as a VElement. Critically this must still route
++        // through the "update" change type, not "create": "create" only
++        // inserts, it never removes whatever was already occupying that
++        // position, so treating this pairing as un-updatable orphans the old
++        // real node as an extra sibling instead of swapping it out — the
++        // observed duplicate composer / duplicate slot-outlet content bug.
++        if (newVNode instanceof Node) {
++            return true;
++        }
++        if (oldVNode instanceof Node) {
++            return false;
++        }
+         if (isVElement(oldVNode) && isVElement(newVNode)) {
+             const oldKey = oldVNode.props.key;
+             const newKey = newVNode.props.key;
+@@ -118,7 +136,10 @@ function applyChanges(parent, changes, originalNodes, nodeOrderUnchanged) {
+     for (const change of changes) {
+         if (change.type === "create") {
+             let node = undefined;
+-            if (isVElement(change.vnode)) {
++            if (change.vnode instanceof Node) {
++                node = change.vnode;
++            }
++            else if (isVElement(change.vnode)) {
+                 node = createDOMElement(change.vnode, getNamespaceURI(parent));
+             }
+             else {
+@@ -135,6 +156,14 @@ function applyChanges(parent, changes, originalNodes, nodeOrderUnchanged) {
+         }
+         else {
+             const { node, newVNode, oldVNode } = change;
++            if (newVNode instanceof Node) {
++                if (newVNode !== node) {
++                    parent.replaceChild(newVNode, node);
++                }
++                lastPlacedNode = newVNode;
++                nodes.push(newVNode);
++                continue;
++            }
+             if (isVElement(newVNode)) {
+                 const oldProps = oldVNode?.props || {};
+                 const newProps = newVNode.props;
+diff --git a/dist/attributes.js b/dist/attributes.js
+index c21f6261df1d4157e0fd2c4865de0bb42856ce28..cbaad135099dd1f058ddedfffe98d664f700b6e3 100644
+--- a/dist/attributes.js
++++ b/dist/attributes.js
+@@ -111,6 +111,14 @@ function updateAttributesCore(el, newProps, oldProps = {}) {
+                     delete el.__webjsx_listeners[eventName];
+                 }
+             }
++            else if (el.namespaceURI === "http://www.w3.org/2000/svg") {
++                // SVG attribute properties (e.g. `transform` on
++                // SVGGraphicsElement) are read-only accessors even when
++                // `key in el` is true -- assigning through them throws.
++                // SVG never has HTML-style settable DOM properties, so the
++                // attribute path is always correct here.
++                el.removeAttribute(key);
++            }
+             else if (key in el) {
+                 el[key] = undefined;
+             }
+diff --git a/dist/createDOMElement.js b/dist/createDOMElement.js
+index 4ddcf9a7d168ed65844d4112d8519f56c5d20cbe..5bad7efb6b6a18bbfeef34f4bb30c9a43293b1c6 100644
+--- a/dist/createDOMElement.js
++++ b/dist/createDOMElement.js
+@@ -38,9 +38,11 @@ export function createDOMElement(velement, parentNamespaceURI) {
+         const nodes = [];
+         for (let i = 0; i < children.length; i++) {
+             const child = children[i];
+-            const node = isVElement(child)
+-                ? createDOMElement(child, namespaceURI)
+-                : document.createTextNode(`${child}`);
++            const node = child instanceof Node
++                ? child
++                : isVElement(child)
++                    ? createDOMElement(child, namespaceURI)
++                    : document.createTextNode(`${child}`);
+             nodes.push(node);
+             el.appendChild(node);
+         }
+diff --git a/dist/createElement.js b/dist/createElement.js
+index 9a250e95f85b96e31e627799da17f2b68c29fd34..013924d63be17b994774fdad171f04e752cc836c 100644
+--- a/dist/createElement.js
++++ b/dist/createElement.js
+@@ -1,5 +1,6 @@
+ import { KNOWN_ELEMENTS } from "./elementTags.js";
+ import { flattenVNodes } from "./utils.js";
++import { Fragment } from "./types.js";
+ /**
+  * Creates a virtual element representing a DOM node or Fragment.
+  * @param type Element type (tag name) or Fragment
+@@ -21,9 +22,28 @@ export function createElement(type, props, ...children) {
+                 console.warn("WebJSX: Ignoring children since dangerouslySetInnerHTML is set.");
+             }
+         }
+-        else {
++        else if (children.length > 0) {
++            // Children were explicitly passed but flattened to nothing
++            // (e.g. all-null/false JSX children) -- an explicit empty list,
++            // still eligible for the "clear existing children" diff path.
+             normalizedProps.children = [];
+         }
++        // Else: no children argument was passed at all (self-closing JSX,
++        // e.g. `<dsh-slot-outlet ref={...} />`). Leave `children` UNSET
++        // rather than defaulting to `[]`. A self-closing custom element is
++        // frequently one that manages its own subtree imperatively (its own
++        // nested `applyDiff(this, ...)` call in `connectedCallback`/
++        // `setProps`, see DshSlotOutlet/DshRootOutlet) — `applyDiff`'s own
++        // diff pass on the PARENT only recurses into a node's children when
++        // `props.children != null` (applyDiff.js's update branch), so an
++        // explicit `[]` here previously made every ancestor re-render
++        // clobber the outlet's self-managed real DOM children on each pass
++        // (`diffChildren` sees newVNodes.length===0 against a non-empty
++        // cached oldVNodes and does `parent.innerHTML = ""`) even though the
++        // JSX itself never described any children to diff. Leaving
++        // `children` undefined here restores the "don't touch this node's
++        // children" default for every self-closing tag, matching the
++        // contract callers must already rely on for self-owned subtrees.
+         const result = {
+             type,
+             tagName: KNOWN_ELEMENTS.get(type) ?? type.toUpperCase(),
+@@ -31,14 +51,33 @@ export function createElement(type, props, ...children) {
+         };
+         return result;
+     }
+-    else {
++    else if (type === Fragment) {
+         return flattenVNodes(children);
+     }
++    else {
++        // Function component (e.g. `Button`, `Modal`, an icon): actually
++        // invoke it with its props, same as React's function-component
++        // contract. Previously this branch silently discarded `type` and
++        // returned only the flattened JSX children, which meant a
++        // function-typed tag's own props (including `children` consumed
++        // internally, like Modal's `open`/`title`/`footer`) were dropped
++        // entirely and the function itself was never called -- its JSX
++        // children resurfaced as bare siblings in the OUTER tree instead of
++        // being rendered by the component (the stray-rename-input bug: a
++        // closed <Modal> never gated its own <input> children because
++        // Modal() was never run to begin with).
++        const normalizedProps = props ? props : {};
++        if (children.length > 0) {
++            normalizedProps.children = flattenVNodes(children);
++        }
++        return type(normalizedProps);
++    }
+ }
+ // As called from jsx-runtime.jsx function.
+ export function createElementJSX(type, props, key) {
+     if (typeof type === "string") {
+         props = props || {};
++        const hadChildrenProp = Object.prototype.hasOwnProperty.call(props, "children");
+         const flatChildren = props
+             ? flattenVNodes(props.children)
+             : [];
+@@ -55,7 +94,12 @@ export function createElementJSX(type, props, key) {
+                 console.warn("WebJSX: Ignoring children since dangerouslySetInnerHTML is set.");
+             }
+         }
+-        else {
++        else if (hadChildrenProp) {
++            // See createElement's identical branch above: a `children` key
++            // was explicitly present on props (even if it flattened to
++            // nothing) vs. a self-closing tag that never had one at all --
++            // only the former should mark this node eligible for the
++            // "clear existing children" diff path.
+             props.children = [];
+         }
+         const result = {
+@@ -65,11 +109,17 @@ export function createElementJSX(type, props, key) {
+         };
+         return result;
+     }
+-    else {
++    else if (type === Fragment) {
+         const flatChildren = props
+             ? flattenVNodes(props.children)
+             : [];
+         return flatChildren;
+     }
++    else {
++        // See createElement's identical branch above: actually call the
++        // function component instead of discarding `type` and returning
++        // only its flattened children.
++        return type(props || {});
++    }
+ }
+ //# sourceMappingURL=createElement.js.map

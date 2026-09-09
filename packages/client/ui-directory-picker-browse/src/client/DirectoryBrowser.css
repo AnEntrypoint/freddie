@@ -1,0 +1,428 @@
+/* Directory-browser dialog (figma 813-23126 family). The shared Modal renders
+ * headless here — mask, card, Escape only — and this module owns the figma
+ * frame: 680×500 card (viewport-clamped; upsized from the figma 600×420),
+ * header (title + crumbs, l3 separator),
+ * the one-or-two-column Miller content, and the bordered footer. */
+
+/* Doubled class beats Modal's own .dialog regardless of stylesheet order. */
+/* Short viewports clamp the card: header/footer are flex-none and the
+ * columns scroll, so shrinking the height keeps Open/Cancel reachable
+ * instead of clipping them below a fixed overlay. */
+.freddie-directoryBrowser__dialog.freddie-directoryBrowser__dialog {
+  width: min(680px, 100%);
+  height: min(500px, calc(100dvh - 32px));
+  padding: 0;
+  gap: 0;
+  /* The Modal card is an l2 surface and the columns below scroll on it:
+   * rebind the scrollbar indirection to the elevation pair here, on the
+   * surface, so it inherits down to whichever descendant scrolls (the
+   * rebinding contract in ui-theme styles/scrollbar.css). */
+  --freddie-scrollbar-thumb: var(--freddie-alias-scrollbar-bg-l2);
+  --freddie-scrollbar-thumb-hover: var(--freddie-alias-scrollbar-hover-l2);
+}
+
+/* Card-scope wrapper hosting the path editor's Escape and focus-leave
+ * observers; display:contents keeps header/content/footer as direct flex
+ * children of the Modal card. */
+.freddie-directoryBrowser__editorScope {
+  display: contents;
+}
+
+/* Header block: pl24 pr14 pt16 pb8, 8px between title row and crumb row. */
+.freddie-directoryBrowser__header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: none;
+  padding: 16px 14px 8px 24px;
+  border-bottom: 1px solid var(--freddie-alias-border-l3);
+}
+
+.freddie-directoryBrowser__title {
+  display: flex;
+  align-items: flex-end;
+  min-height: 28px;
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 510;
+  color: var(--freddie-alias-label-primary);
+}
+
+/* The bar IS the editor's box in both modes: it carries the rounded outline
+ * and the inner padding, the crumbs and the input sit inside it, and hovering
+ * the edit zone lights the whole row rather than the remainder right of the
+ * crumbs. The negative left margin pays back the border and padding, so the
+ * crumb (and input) text keeps the column the title sits in. */
+.freddie-directoryBrowser__crumbBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  min-height: 24px;
+  margin-left: -9px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+/* Lit by the affordance the row belongs to, never by a crumb: a crumb's hover
+ * offers navigation, not path entry. Editing keeps the outline standing. */
+.freddie-directoryBrowser__crumbBar:has(.freddie-directoryBrowser__crumbEditZone:enabled:hover),
+.freddie-directoryBrowser__crumbBar:has(.freddie-directoryBrowser__crumbEditZone:focus-visible),
+.freddie-directoryBrowser__crumbBar:has(.freddie-directoryBrowser__pathInput) {
+  border-color: var(--freddie-alias-border-l2);
+}
+
+/* Deep chains scroll inside the trail (the effect pins the tail into view)
+ * so the edit zone to the right never leaves the bar. */
+/* The Miller columns keep their own row so a status/error line below never
+ * competes with the fixed column widths for horizontal space. */
+/* A narrow viewport shrinks the dialog below two fixed panes; the row
+ * scrolls horizontally (the effect pins the child pane into view) so
+ * descent never hides behind the Modal's clipping. */
+.freddie-directoryBrowser__millerRow {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 0;
+  min-height: 0;
+  /* 12px of row gap on each side of the divider; the left side reads wider
+   * by the column's trailing 8px scrollbar clearance, which is deliberate —
+   * the thumb needs that room, the right pane's rows do not. */
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.freddie-directoryBrowser__crumbTrail {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.freddie-directoryBrowser__crumbSeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  min-width: 0;
+}
+
+.freddie-directoryBrowser__crumb {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--freddie-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.freddie-directoryBrowser__crumb:hover {
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-directoryBrowser__crumbChevron {
+  flex: none;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+/* The empty remainder of the bar: a real click target that flips the bar into
+ * path-edit mode. The pencil glyph seated at its right edge is the standing
+ * affordance; the outline the gesture lights belongs to the bar, so the whole
+ * row reads as the box the input will occupy. */
+.freddie-directoryBrowser__crumbEditZone {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1 0 34px;
+  min-width: 34px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: text;
+  outline: none;
+}
+
+.freddie-directoryBrowser__crumbEditGlyph {
+  flex: none;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-directoryBrowser__crumbEditZone:enabled:hover .freddie-directoryBrowser__crumbEditGlyph,
+.freddie-directoryBrowser__crumbEditZone:focus-visible .freddie-directoryBrowser__crumbEditGlyph {
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-directoryBrowser__crumbEditZone:disabled {
+  cursor: default;
+}
+
+.freddie-directoryBrowser__crumbEditZone:disabled .freddie-directoryBrowser__crumbEditGlyph {
+  color: var(--freddie-alias-label-caption);
+}
+
+/* Chrome-free: the bar around it draws the box (border, radius, padding). */
+.freddie-directoryBrowser__pathInput {
+  box-sizing: border-box;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 22px;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--freddie-alias-label-primary);
+}
+
+/* Miller content: symmetric 16px vertical padding so the divider clears the
+ * header and footer rules evenly; each column scrolls alone (column widths
+ * live at .column). */
+.freddie-directoryBrowser__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  /* Anchors the floating loading pill (.loadingFloat). */
+  position: relative;
+  /* Right inset is slimmer than the left: the trailing column's own 8px
+   * scrollbar clearance makes up the optical difference. */
+  padding: 16px 16px 16px 24px;
+}
+
+/* Columns split the row evenly around the divider (a solo column takes the
+ * whole row); 256px is the floor below which the row scrolls (scrollbar
+ * hidden, the effect pins the child pane into view) instead of squeezing
+ * the panes. */
+.freddie-directoryBrowser__column {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 0;
+  min-width: 256px;
+  overflow-y: auto;
+  /* The themed scrollbar occupies the column's edge (styled scrollbars are
+   * classic, gutter-taking ones); the extra clearance keeps the row pills
+   * clear of the thumb. */
+  padding-right: 8px;
+}
+
+.freddie-directoryBrowser__divider {
+  flex: none;
+  width: 1px;
+  background: var(--freddie-alias-border-l3);
+}
+
+.freddie-directoryBrowser__rowSeat {
+  display: flex;
+  flex: none;
+}
+
+.freddie-directoryBrowser__row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  flex: none;
+  padding: 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.freddie-directoryBrowser__row:hover {
+  background: var(--freddie-alias-interactive-bg-hover);
+}
+
+/* Selection: pill fill + the open-folder glyph in the info accent. */
+.freddie-directoryBrowser__rowSelected,
+.freddie-directoryBrowser__rowSelected:hover {
+  background: var(--freddie-alias-interactive-bg-active, var(--freddie-alias-interactive-bg-hover));
+}
+
+.freddie-directoryBrowser__rowIcon {
+  flex: none;
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-directoryBrowser__rowIconSelected {
+  flex: none;
+  color: var(--freddie-alias-button-info-fill);
+}
+
+.freddie-directoryBrowser__rowName {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-directoryBrowser__rowChevron {
+  flex: none;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-directoryBrowser__status,
+.freddie-directoryBrowser__error {
+  padding: 4px;
+  /* The loading pill occupies the opposite corner while a stale status stays
+   * visible. Reserve its widest localized footprint so wrapped text cannot
+   * run underneath it on a narrow card. */
+  padding-right: 120px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.freddie-directoryBrowser__status {
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-directoryBrowser__error {
+  color: var(--freddie-alias-state-error-primary);
+}
+
+/* The slow-scan indicator floats over the content's bottom-RIGHT corner on
+ * the card background instead of occupying a row: a scan must never shift
+ * the columns' height, and the stale view keeps rendering beneath it (it
+ * only appears at all once a scan outlives SLOW_SCAN_DELAY_MS). Right,
+ * not left: the truncated/error status rows flow at the bottom LEFT and
+ * stay on screen through a scan, with their reserved right padding keeping
+ * both legible even on a narrow card. After .status in the cascade — the
+ * element carries both classes and this padding must win the
+ * same-specificity race. */
+.freddie-directoryBrowser__loadingFloat {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+  padding: 2px 8px;
+  background: var(--freddie-alias-bg-layer-2);
+}
+
+/* Footer: l3 separator on top, symmetric padding so the row sits vertically
+ * centered in the bar; New-folder and the show-hidden toggle pin left. */
+.freddie-directoryBrowser__footerBar {
+  display: flex;
+  align-items: center;
+  /* Narrow viewports wrap the confirm/cancel pair onto their own row
+   * instead of clipping Open past the card's hidden overflow. */
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: none;
+  padding: 16px 24px;
+  border-top: 1px solid var(--freddie-alias-border-l3);
+}
+
+/* Show-hidden toggle: a subtle fixed-label text button left of the gap;
+ * the pressed state seats a check glyph after the label (Menu's selected
+ * vocabulary; trailing so the label never shifts) instead of flipping the
+ * wording. */
+.freddie-directoryBrowser__showHiddenToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--freddie-alias-label-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.freddie-directoryBrowser__showHiddenToggle:hover {
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-directoryBrowser__showHiddenToggle:disabled {
+  color: var(--freddie-alias-label-caption);
+  cursor: default;
+}
+
+.freddie-directoryBrowser__showHiddenToggleActive {
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-directoryBrowser__footerGap {
+  flex: 1 1 0;
+}
+
+.freddie-directoryBrowser__footerAction {
+  min-width: 72px;
+}
+
+/* Nested create dialog (figma 813:23278): a small centered card. */
+.freddie-directoryBrowser__createDialog.freddie-directoryBrowser__createDialog {
+  width: min(380px, 100%);
+  padding: 0;
+  gap: 0;
+}
+
+.freddie-directoryBrowser__createBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 24px 20px;
+}
+
+.freddie-directoryBrowser__createTitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 510;
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-directoryBrowser__createIn {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-directoryBrowser__createInput {
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  padding: 7px 14px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 22px;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-directoryBrowser__createInput::placeholder {
+  color: var(--freddie-alias-label-caption);
+}
+
+.freddie-directoryBrowser__createActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}

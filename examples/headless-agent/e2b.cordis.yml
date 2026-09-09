@@ -1,0 +1,41 @@
+# POC overlay: keep the advanced headless agent and model-facing tools, but
+# place its filesystem and process substrate in one short-lived E2B sandbox;
+# the generic Bash, PTY, and LSP consumers compose above them.
+#
+# One-world invariant: e2b.cwd, sandbox-policy.workspaceRoot, and bash-local's
+# default workdir (implicit host process.cwd()) must all name the same remote
+# directory. Only e2b.cwd is created at sandbox open; dropping its !!js line
+# falls back to /home/user/workspace while Bash and PTY keep targeting the
+# host path, so every tool call fails with a remote spawn error.
+- id: base
+  name: '@freddie/cordis-plugin-include'
+  config:
+    path: ./advanced.cordis.yml
+    patches:
+      - id: subprocess
+        name: '@freddie/freddie-subprocess-local'
+        disabled: true
+      - id: fs-local
+        name: '@freddie/freddie-fs-local'
+        disabled: true
+      - insert:
+          - id: e2b
+            name: '@freddie/freddie-e2b'
+            config:
+              cwd: !!js process.cwd()
+              timeoutMs: 300000
+          - id: subprocess-e2b
+            name: '@freddie/freddie-subprocess-e2b'
+          - id: fs-e2b
+            name: '@freddie/freddie-fs-e2b'
+          - id: sandbox-policy
+            name: '@freddie/freddie-sandbox-policy'
+            config:
+              mode: danger-full-access
+              workspaceRoot: !!js process.cwd()
+          - id: pty
+            name: '@freddie/freddie-terminal'
+          - id: terminal-bash
+            name: '@freddie/freddie-terminal-bash'
+          - id: tool-terminal
+            name: '@freddie/freddie-tool-terminal'

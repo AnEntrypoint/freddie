@@ -1,0 +1,409 @@
+.freddie-agentPresetSection__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-agentPresetSection__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.freddie-agentPresetSection__intro {
+  margin: 0;
+  font-size: 13px;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+/* Cards, not rows: a preset is a thing you pick, and the description is the
+   part that tells them apart — a row would bury it beside the actions. */
+.freddie-agentPresetSection__group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Group-to-group breathing room: the section's 12px gap plus 20px reads the
+   two rosters as separate blocks (32px total). */
+.freddie-agentPresetSection__group + .freddie-agentPresetSection__group {
+  margin-top: 20px;
+}
+
+.freddie-agentPresetSection__groupHead {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-agentPresetSection__cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  /* Every row the same height, so a short description does not make its card
+     shorter than the one beside it. */
+  grid-auto-rows: 1fr;
+  gap: 12px;
+}
+
+.freddie-agentPresetSection__card {
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  background: var(--freddie-alias-bg-layer-3);
+  transition: border-color .16s, background .16s;
+}
+
+
+.freddie-agentPresetSection__card:hover:not(.freddie-agentPresetSection__cardActive) {
+  border-color: var(--freddie-alias-label-dimmed);
+}
+
+/* The default preset reads as selected, not merely badged. */
+.freddie-agentPresetSection__cardActive {
+  background: var(--freddie-alias-bg-layer-2);
+  border-color: var(--freddie-alias-label-primary);
+}
+
+/* A broken preset reads as damaged before anything else: the card cannot be
+   picked, so its border carries the warning the disabled body cannot. */
+.freddie-agentPresetSection__cardBroken {
+  border-color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-agentPresetSection__cardBroken:hover {
+  border-color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-agentPresetSection__brokenBadge {
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 17px;
+  white-space: nowrap;
+  font-weight: 500;
+  background: var(--freddie-alias-state-error-primary);
+  color: var(--freddie-alias-bg-layer-3);
+}
+
+/* The discovery-reported reason, verbatim: it names the file and the fix. */
+.freddie-agentPresetSection__cardBrokenReason {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--freddie-alias-state-error-primary);
+  overflow-wrap: anywhere;
+}
+
+/* The card body is the control that picks the preset. */
+.freddie-agentPresetSection__cardMain {
+  flex: 1;
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 12px;
+  border-radius: 12px 12px 0 0;
+}
+
+.freddie-agentPresetSection__cardMain:disabled {
+  cursor: default;
+}
+
+.freddie-agentPresetSection__cardMain:focus-visible {
+  outline: 2px solid var(--freddie-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+.freddie-agentPresetSection__cardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.freddie-agentPresetSection__cardName {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.freddie-agentPresetSection__badge,
+.freddie-agentPresetSection__inUse {
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 17px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.freddie-agentPresetSection__badge {
+  border: 1px solid var(--freddie-alias-border-l2);
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-agentPresetSection__inUse {
+  margin-left: auto;
+  background: var(--freddie-alias-label-primary);
+  color: var(--freddie-alias-bg-layer-3);
+}
+
+/* Bounded to four lines. A preset publishes its own description, so one long
+   one would otherwise stretch every card in its grid row (`.cards` sizes rows
+   1fr). Clamping is CSS alone: the whole text stays in the DOM for assistive
+   tech, and the card offers it on hover when it is actually cut off. The
+   description does not grow to fill the card — `-webkit-line-clamp` on a
+   flex-stretched box leaves the clamp height and the box height disagreeing,
+   so `.cardId` takes the free space with an auto margin instead. */
+.freddie-agentPresetSection__cardDesc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--freddie-alias-label-secondary);
+  min-height: 42px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  /* A user-authored description may carry an unbreakable path or URL. */
+  overflow-wrap: anywhere;
+}
+
+.freddie-agentPresetSection__cardId {
+  margin-top: auto;
+  font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  color: var(--freddie-alias-label-dimmed);
+}
+
+.freddie-agentPresetSection__cardFoot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--freddie-alias-border-l2);
+}
+
+/* Icon-only actions: the label rides `title` so the row stays quiet until
+   someone reaches for it. */
+.freddie-agentPresetSection__iconButton {
+  position: relative;
+  appearance: none;
+  border: 0;
+  border-radius: 7px;
+  padding: 6px;
+  background: none;
+  color: var(--freddie-alias-label-tertiary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.freddie-agentPresetSection__iconButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.freddie-agentPresetSection__iconButton:hover:not(:disabled) {
+  background: var(--freddie-alias-bg-layer-1);
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-agentPresetSection__iconButton:focus-visible {
+  outline: 2px solid var(--freddie-alias-brand-primary);
+  outline-offset: -1px;
+}
+
+.freddie-agentPresetSection__iconButton::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--freddie-alias-label-primary);
+  color: var(--freddie-alias-bg-layer-3);
+  font-size: 11px;
+  line-height: 17px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s;
+}
+
+.freddie-agentPresetSection__iconButton:hover::after,
+.freddie-agentPresetSection__iconButton:focus-visible::after {
+  opacity: 1;
+}
+
+.freddie-agentPresetSection__iconDanger:hover:not(:disabled) {
+  background: var(--freddie-alias-interactive-bg-hover-danger);
+  color: var(--freddie-alias-state-error-primary);
+}
+
+/* Where the host has no desktop opener, the row answers with the directory
+   itself — text to copy, not a control that would spawn into nothing. */
+.freddie-agentPresetSection__revealedPath {
+  margin: 0;
+  padding: 6px 16px 10px;
+  font-size: 11px;
+  color: var(--freddie-alias-label-tertiary);
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.freddie-agentPresetSection__revealedPath code {
+  font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: var(--freddie-alias-label-secondary);
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+
+.freddie-agentPresetSection__revealedPathLabel {
+  white-space: nowrap;
+}
+
+.freddie-agentPresetSection__secondaryButton {
+  border: none;
+  border-radius: 7px;
+  padding: 5px 8px;
+  background: none;
+  color: var(--freddie-alias-label-secondary);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+
+.freddie-agentPresetSection__secondaryButton:hover:not(:disabled) {
+  background: var(--freddie-alias-bg-layer-1);
+}
+
+.freddie-agentPresetSection__secondaryButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.freddie-agentPresetSection__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.freddie-agentPresetSection__fieldLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-agentPresetSection__input {
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  background: var(--freddie-alias-bg-layer-1);
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-agentPresetSection__input:focus {
+  outline: none;
+  border-color: var(--freddie-alias-brand-primary);
+}
+
+.freddie-agentPresetSection__input::placeholder {
+  color: var(--freddie-alias-label-dimmed);
+}
+
+.freddie-agentPresetSection__dialog {
+  width: min(560px, 100%);
+}
+
+.freddie-agentPresetSection__dialogFields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* A shipped composition can be long; the dialog scrolls it rather than grow. */
+.freddie-agentPresetSection__viewerCode {
+  margin: 0;
+  padding: 12px;
+  max-height: min(52vh, 480px);
+  overflow: auto;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 10px;
+  background: var(--freddie-alias-bg-layer-2);
+  color: var(--freddie-alias-label-secondary);
+  font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 2;
+  --freddie-scrollbar-thumb: var(--freddie-alias-scrollbar-bg-l2);
+  --freddie-scrollbar-thumb-hover: var(--freddie-alias-scrollbar-hover-l2);
+}
+
+.freddie-agentPresetSection__error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-agentPresetSection__deleteDialog {
+  width: min(480px, 100%);
+}
+
+.freddie-agentPresetSection__deleteConfirm:not(:disabled) {
+  border-color: var(--freddie-alias-state-error-primary);
+  color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-agentPresetSection__deleteConfirm:hover:not(:disabled) {
+  background: var(--freddie-alias-interactive-bg-hover-danger);
+}
+
+/* The conversational authoring entry, after the card grid in the spot the
+   create button vacated. Dashed like the Models page's add affordances: it
+   reads as a place a preset will appear, not a command. */
+.freddie-agentPresetSection__creatorButton {
+  box-sizing: border-box;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 44px;
+  border: 1px dashed var(--freddie-alias-border-l3);
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  background: transparent;
+  color: var(--freddie-alias-label-primary);
+  cursor: pointer;
+}
+
+.freddie-agentPresetSection__creatorButton:hover:not(:disabled) {
+  background: var(--freddie-alias-interactive-bg-hover);
+}
+
+.freddie-agentPresetSection__creatorButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

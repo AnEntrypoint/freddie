@@ -1,0 +1,32 @@
+.freddie-onboardingModal__dialog {
+  width: min(600px, 100%);
+  padding: 0;
+}
+
+.freddie-onboardingModal__content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
+  padding: 28px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.freddie-onboardingModal__title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 500;
+  color: var(--freddie-alias-label-primary);
+  outline: none;
+}
+
+.freddie-onboardingModal__body {
+  margin-top: 20px;
+}
+
+@media (max-width: 560px) {
+  .freddie-onboardingModal__content {
+    padding: 24px;
+  }
+}

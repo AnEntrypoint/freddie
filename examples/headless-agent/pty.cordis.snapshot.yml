@@ -1,0 +1,24 @@
+# Keyless opt-in PTY composition for the headless stream-json snapshot.
+- id: base
+  name: '@freddie/cordis-plugin-include'
+  config:
+    path: ./cordis.yml
+    patches:
+      - id: llm-deepseek
+        name: '@freddie/freddie-llm-deepseek'
+        disabled: true
+      - insert:
+          - id: sandbox-policy
+            name: '@freddie/freddie-sandbox-policy'
+            config:
+              mode: danger-full-access
+          - id: pty
+            name: '@freddie/freddie-terminal'
+          - id: pty-snapshot-backend
+            name: '../acp-agent/pty-snapshot-backend.mjs'
+          - id: tool-terminal
+            name: '@freddie/freddie-tool-terminal'
+            config:
+              maxResultBytes: 64
+          - id: llm-replay
+            name: '@freddie/freddie-llm-replay'

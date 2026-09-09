@@ -1,0 +1,168 @@
+/* freddie-app-frame (the custom-element tag hosting .freddie-appFrame__frame below,
+   and freddie-root-outlet/freddie-entry-host above it in the real ancestor chain)
+   has no CSS of its own, so the browser's `display: inline` tag default
+   applies -- an inline box ignores `height: 100%`, breaking every descendant
+   height chain that depends on it (witnessed live: the conversation
+   transcript's own scroll body never clipped/scrolled because this tag sat
+   between the 100%-height document root and .freddie-appFrame__frame's own
+   `height: 100%`, silently truncating the percentage chain to `auto`).
+   `display: contents` makes the tag transparent to layout; its one real
+   child box below participates in the ancestor's height/flex/grid directly. */
+freddie-app-frame,
+freddie-root-outlet {
+  display: contents;
+}
+
+.freddie-appFrame__frame {
+  position: relative; /* anchors the drag handles, which straddle column borders */
+  display: grid;
+  grid-template-rows: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--freddie-alias-bg-base);
+  /* Collapse/expand animates the tracks on the deepsuite sider curve
+     (--ds-ease-in-out / --ds-transition-duration-slow, ui-theme base.css). */
+  transition: grid-template-columns var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+}
+
+/* Dragging writes widths at pointer cadence; easing them would detach the
+   column from the handle. */
+.freddie-appFrame__frame[data-dragging] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .freddie-appFrame__frame {
+    transition: none;
+  }
+}
+
+.freddie-appFrame__sidebarCol {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--dsw-specific-sidebar-fill);
+  border-right: 1px solid var(--freddie-alias-border-l1);
+}
+
+.freddie-appFrame__centerCol {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* freddie-slot-outlet mounts here as centerCol's direct flex child, but the tag
+   itself has no CSS (only `display: block`, the browser default) -- an
+   ordinary block box with no explicit height doesn't participate in a flex
+   layout as a sizeable item, so it grows to fit its content instead of
+   filling+clipping centerCol's bounded height, breaking the conversation
+   transcript's own scroll clipping one level further down (same class of
+   bug as freddie-app-frame/freddie-root-outlet above; `display: contents` isn't
+   the fix here specifically because centerCol is a flex container and needs
+   a real flex item to size against, not a transparent pass-through). */
+.freddie-appFrame__centerCol > freddie-slot-outlet {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Two unclassed plain <div> wrappers sit between freddie-entry-host and
+   freddie-slot-outlet (scoped-slots.js's own render/injection wrapping -- they
+   carry no class to select by, and no layout purpose of their own). Same
+   fix as freddie-app-frame/freddie-root-outlet above: an ordinary `display: block`
+   box with no explicit height doesn't propagate a bounded height to its
+   `height: 100%` descendants, so the chain breaks here again, one level
+   lower than freddie-entry-host's own `display: contents` fix reaches.
+   `display: contents` is correct here too (these divs sit ABOVE
+   freddie-slot-outlet, which is the real flex item further down needing a real
+   box to size against -- these two are pure pass-throughs). Scoped to
+   centerCol's own descendant divs (not a global `freddie-entry-host > div`
+   rule) since other freddie-entry-host mount points elsewhere may have
+   legitimately block-level wrapper content this must not touch. */
+.freddie-appFrame__centerCol > freddie-slot-outlet > div > div,
+.freddie-appFrame__centerCol > freddie-slot-outlet > div > div > div {
+  display: contents;
+}
+
+.freddie-appFrame__detailsCol {
+  min-width: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--freddie-alias-border-l2);
+}
+
+/* The details subtree stays mounted at zero width, so its border must not paint
+   a 1px seam. The collapsed sidebar instead retains a bordered compact rail. */
+.freddie-appFrame__frame[data-details-collapsed] .freddie-appFrame__detailsCol {
+  border-left: none;
+}
+
+/* Drag handles are frame children (columns clip overflow): an 8px hit strip
+   centered on the column border via inline left, above column content. Details
+   adds a visible 12x32 pill at vertical center; sidebar keeps only the hit strip. */
+.freddie-appFrame__handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  margin-left: -4px;
+  cursor: col-resize;
+  z-index: 2;
+  touch-action: none;
+  /* Rides the same curve as the tracks so the pill stays on the moving
+     border during collapse/expand; paused while dragging (frame rule). */
+  transition: left var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+}
+
+.freddie-appFrame__frame[data-dragging] .freddie-appFrame__handle {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .freddie-appFrame__handle {
+    transition: none;
+  }
+}
+
+.freddie-appFrame__handle[data-side='details']::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 32px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  background: var(--freddie-alias-button-floating-fill);
+  border: 1px solid var(--freddie-alias-border-l2-darkmode-thin);
+  /* Hover affordance: the details pill hides until the pointer is over its
+     column, the strip itself, or a drag. */
+  opacity: 0;
+  transition:
+    opacity var(--ds-transition-duration-slow) var(--ds-ease-in-out),
+    background var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+}
+
+.freddie-appFrame__detailsCol:hover ~ .freddie-appFrame__handle[data-side='details']::after,
+.freddie-appFrame__handle[data-side='details']:hover::after,
+.freddie-appFrame__handle[data-side='details'][data-dragging='true']::after {
+  opacity: 1;
+}
+
+.freddie-appFrame__handle[data-side='details']:hover::after,
+.freddie-appFrame__handle[data-side='details'][data-dragging='true']::after {
+  background: var(--freddie-alias-button-floating-hover);
+  border-color: var(--freddie-alias-border-l3);
+}
+
+.freddie-appFrame__overlayLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.freddie-appFrame__overlayLayer > * {
+  pointer-events: auto;
+}

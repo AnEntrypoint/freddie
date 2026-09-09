@@ -1,0 +1,47 @@
+{
+  "name": "@freddie/freddie-tool-gm",
+  "description": "Model-facing typed tools over ctx.gm (instruction, phase-status, codesearch, recall, prd-add/resolve, mutable-add/resolve, transition, exec_js, git_finalize)",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "directory": "packages/gm/tool-gm"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/verbs.js",
+    "src/presentation.js",
+    "src/invariant.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@freddie/schemastery": "workspace:^"
+  },
+  "peerDependencies": {
+    "@freddie/cordis": "workspace:^",
+    "@freddie/freddie-gm-client": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "workspace:^",
+    "@freddie/freddie-gm-client": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^",
+    "@freddie/freddie-tools": "workspace:^"
+  }
+}

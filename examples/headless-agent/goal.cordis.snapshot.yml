@@ -1,0 +1,18 @@
+# Replay counterpart to goal.cordis.yml. It includes cordis.yml directly because
+# a config patch cannot target an entry behind a nested include, then restates
+# the goal overlay while replacing the live model with keyless replay.
+- id: base
+  name: '@freddie/cordis-plugin-include'
+  config:
+    path: ./cordis.yml
+    patches:
+      - id: llm-deepseek
+        name: '@freddie/freddie-llm-deepseek'
+        disabled: true
+      - insert:
+          - id: goal
+            name: '@freddie/freddie-goal'
+          - id: tool-goal
+            name: '@freddie/freddie-tool-goal'
+          - id: llm-replay
+            name: '@freddie/freddie-llm-replay'

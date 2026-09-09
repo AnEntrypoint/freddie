@@ -1,0 +1,31 @@
+# Keyless replay counterpart to web.cordis.yml: the web stack and loopback
+# fixture server stay real (the tool call re-executes the actual HTTP fetch and
+# markdown rendering); only the model adapter is replaced by replay.
+- id: base
+  name: '@freddie/cordis-plugin-include'
+  config:
+    path: ./cordis.yml
+    patches:
+      - id: llm-deepseek
+        name: '@freddie/freddie-llm-deepseek'
+        disabled: true
+      - insert:
+          - id: web
+            name: '@freddie/freddie-web'
+          - id: web-fetch-http
+            name: '@freddie/freddie-web-fetch-http'
+          - id: web-fetch-fixture
+            name: './web-fetch-fixture-server.mjs'
+          - id: tool-web
+            name: '@freddie/freddie-tool-web'
+            config:
+              search: false
+          - id: llm-replay
+            name: '@freddie/freddie-llm-replay'
+            config:
+              providers:
+                - id: deepseek-official
+                  name: DeepSeek
+                  models:
+                    - id: deepseek-v4-flash
+                    - id: deepseek-v4-pro

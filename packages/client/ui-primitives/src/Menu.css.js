@@ -1,0 +1,23 @@
+const css = {
+  root: 'freddie-menu__root',
+  list: 'freddie-menu__list',
+  submenu: 'freddie-menu__submenu',
+  portal: 'freddie-menu__portal',
+  sideTop: 'freddie-menu__sideTop',
+  alignEnd: 'freddie-menu__alignEnd',
+  scrollable: 'freddie-menu__scrollable',
+  viewport: 'freddie-menu__viewport',
+  footer: 'freddie-menu__footer',
+  itemWrap: 'freddie-menu__itemWrap',
+  item: 'freddie-menu__item',
+  denseList: 'freddie-menu__denseList',
+  compactList: 'freddie-menu__compactList',
+  itemIcon: 'freddie-menu__itemIcon',
+  itemLabel: 'freddie-menu__itemLabel',
+  check: 'freddie-menu__check',
+  selected: 'freddie-menu__selected',
+  danger: 'freddie-menu__danger',
+  label: 'freddie-menu__label',
+  separator: 'freddie-menu__separator',
+}
+export default css

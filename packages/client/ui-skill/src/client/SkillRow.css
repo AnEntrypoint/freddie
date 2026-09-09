@@ -1,0 +1,212 @@
+/* Skill toolview: Bash-matched summary row plus a bounded instructions disclosure. */
+
+.freddie-skillRow__card {
+  display: flex;
+  flex-direction: column;
+}
+
+.freddie-skillRow__row {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  height: 24px;
+  min-width: 0;
+}
+
+.freddie-skillRow__row[data-expandable] {
+  cursor: pointer;
+}
+
+.freddie-skillRow__card[data-state='running'] .freddie-skillRow__row::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 300px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--freddie-alias-bg-base) 60%, transparent) 55%,
+    transparent 100%
+  );
+  animation: freddie-skillRow__skill-row-sweep 2.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes freddie-skillRow__skill-row-sweep {
+  0% { left: -300px; }
+  90%, 100% { left: 100%; }
+}
+
+.freddie-skillRow__leading {
+  position: relative;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-skillRow__chevron {
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-skillRow__iconIdle {
+  display: inline-flex;
+  opacity: 1;
+  transition: opacity 100ms ease;
+}
+
+.freddie-skillRow__chevronHover {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.freddie-skillRow__row:hover .freddie-skillRow__iconIdle {
+  opacity: 0;
+}
+
+.freddie-skillRow__row:hover .freddie-skillRow__chevronHover {
+  opacity: 1;
+}
+
+.freddie-skillRow__title {
+  flex: none;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-skillRow__separator {
+  flex: none;
+  width: 2px;
+  height: 2px;
+  border-radius: 1px;
+  margin: 0 8px;
+  background: var(--freddie-alias-label-caption);
+}
+
+.freddie-skillRow__summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-skillRow__errorSummary {
+  color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-skillRow__bodyWrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.freddie-skillRow__instructionsCard {
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  margin: 4px 0 4px 4px;
+  overflow: hidden;
+  border: 1px solid var(--freddie-alias-border-l1);
+  border-radius: 12px;
+  background: var(--freddie-alias-markdown-code-block);
+}
+
+.freddie-skillRow__instructionsHeader {
+  flex: none;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--freddie-alias-border-l2);
+  background: var(--freddie-alias-markdown-code-block-banner);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--freddie-alias-label-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.freddie-skillRow__instructions {
+  min-height: 0;
+  margin: 0;
+  padding: 10px 12px 12px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: var(--dsw-font-markdown-code-block-small);
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-skillRow__instructions[data-error] {
+  color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-skillRow__instructions::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 6px;
+}
+
+.freddie-skillRow__instructions::-webkit-scrollbar-track {
+  margin: 6px 0;
+}
+
+.freddie-skillRow__inspectButton {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 2px 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 999px;
+  background: var(--freddie-alias-bg-base);
+  color: var(--freddie-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.freddie-skillRow__card:hover .freddie-skillRow__inspectButton,
+.freddie-skillRow__inspectButton:focus-visible {
+  opacity: 1;
+}
+
+.freddie-skillRow__inspectButton:hover {
+  background: var(--freddie-alias-interactive-bg-hover-solid);
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-skillRow__visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .freddie-skillRow__card[data-state='running'] .freddie-skillRow__row::after {
+    animation: none;
+    display: none;
+  }
+
+  .freddie-skillRow__iconIdle,
+  .freddie-skillRow__chevronHover,
+  .freddie-skillRow__inspectButton {
+    transition: none;
+  }
+}

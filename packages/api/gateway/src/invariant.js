@@ -1,0 +1,28 @@
+/**
+ * Package-owned invariant companion for `@freddie/freddie-api-gateway`.
+ * @module @freddie/freddie-api-gateway/invariant
+ */
+
+/* jscpd:ignore-start */
+const PACKAGE_NAME = '@freddie/freddie-api-gateway'
+
+/** Cordis companion plugin name. */
+export const name = 'api-gateway-invariant'
+/** Service required before the companion can reserve package ownership. */
+export const inject = ['invariants']
+
+/**
+ * No runtime invariant: Host calls re-read authoritative Cordis and Typert
+ * state, while Client methods, descriptors, and `$on` subscriptions mutate in
+ * one owned effect.
+ */
+const install = () => {}
+
+/**
+ * Register this package's invariant companion.
+ * @param ctx - Cordis context carrying the invariant service.
+ * @returns the installed registration's disposer after setup succeeds.
+ */
+export const apply = ctx =>
+  Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
+/* jscpd:ignore-end */

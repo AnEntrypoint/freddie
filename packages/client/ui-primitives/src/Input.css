@@ -1,0 +1,38 @@
+.freddie-input__wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 8px;
+  background: var(--freddie-alias-bg-layer-1);
+}
+
+.freddie-input__wrap:focus-within {
+  border-color: var(--freddie-alias-brand-primary);
+}
+
+.freddie-input__icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-input__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-input__input::placeholder {
+  color: var(--freddie-alias-label-dimmed);
+}

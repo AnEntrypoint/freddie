@@ -1,0 +1,37 @@
+{
+  "name": "@freddie/freddie-gm-config",
+  "description": "Read-only JS resolver for gm-config's four-tier gm.config.json / prose / FSM graph protocol over already-materialized files. Never clones, never executes hooks/*.js.",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "directory": "packages/gm/gm-config"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/**/*.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/cordis": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "workspace:^",
+    "@freddie/freddie-invariants": "workspace:^"
+  }
+}

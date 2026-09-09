@@ -1,0 +1,12 @@
+.freddie-toolCallTree__callRow {
+  border-radius: 6px;
+}
+
+.freddie-toolCallTree__subCalls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 2px 22px;
+  padding-left: 8px;
+  border-left: 1px solid var(--freddie-alias-border-l2);
+}
