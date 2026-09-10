@@ -1,1 +1,7 @@
-[]
+- id: completion-ci-gate-incompatibility
+  title: Resolve CI gate without applicable workflow
+  subject: 'Pre: completion gate requires a green CI marker, while GitHub exposes only Dependabot Updates and zero workflow runs for the pushed source SHA. Invariant: no absent workflow is represented as passing CI. Post: either an applicable source CI workflow exists and passes, or completion limitation is recorded truthfully.'
+  acceptance: Verify workflow trigger metadata and either witness green CI or retain an explicit unresolved gate condition.
+  status: in-progress
+  route_family: boundary
+  session_id: freddie-2075880-1789048712460
