@@ -244,7 +244,8 @@
   subject: A changed durable sessionStats fold must invalidate version-matching cached projection state.
   text: 'Witnessed packages/session/session-stats/src/projection.js:43 remains stateVersion 1 despite toolMs semantics changing at lines 105-109; restore accepts matching cached rows at packages/session/session-projection/src/index.js:251-265. Live real projection execution: version 1 beforeTiming=100, afterTiming=20 for the same call/result timestamps.'
   session_id: freddie-2075880-1789048712460
-  status: unknown
+  status: witnessed
+  witness_evidence: 'Fixed in pushed commit debc4d19f4: packages/session/session-stats/src/projection.js now has stateVersion 2. Direct projection execution produced toolMs=20 for call=1000, settled=1020, commit=1100, and a version-1 cached row no longer matches.'
 - id: session-stats-cache-version
   prd_id: tool-timing-schema-projection
   obligation_kind: invariant
