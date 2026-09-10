@@ -6,11 +6,13 @@
  * @module @freddie/freddie-gm-client/spool
  */
 
-import { mkdir, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { classifyDaemonHealth, isDaemonAlive, isDaemonHung } from './daemon.js'
 
 const DEFAULT_POLL_INTERVAL_MS = 200
+const INITIAL_POLL_INTERVAL_MS = 25
+const HEALTH_CHECK_AFTER_POLLS = 5
 const DEFAULT_TIMEOUT_MS = 120_000
 
 /**
@@ -147,11 +149,21 @@ export async function dispatch({
     // ENOENT: nothing leftover at this key. Any other syscall is unexpected.
     if (!isMissingPathError(error)) throw error
   })
-  if (rawBody === undefined) {
-    const payload = { ...body, session_id: body.session_id ?? sessionId }
-    await writeFile(inPath, JSON.stringify(payload), 'utf8')
-  } else {
-    await writeFile(inPath, rawBody, 'utf8')
+  const stagingPath = `${inPath}.tmp`
+  const content = rawBody === undefined
+    ? JSON.stringify({ ...body, session_id: body.session_id ?? sessionId })
+    : rawBody
+  await unlink(stagingPath).catch((error) => {
+    if (!isMissingPathError(error)) throw error
+  })
+  try {
+    await writeFile(stagingPath, content, 'utf8')
+    await rename(stagingPath, inPath)
+  } catch (error) {
+    await unlink(stagingPath).catch((cleanupError) => {
+      if (!isMissingPathError(cleanupError)) throw cleanupError
+    })
+    throw error
   }
 
   const deadline = Date.now() + timeoutMs
@@ -171,26 +183,30 @@ export async function dispatch({
     })
     return JSON.parse(text)
   }
+  let polls = 0
   while (Date.now() < deadline) {
     throwIfAborted(signal)
     if (await exists(readyPath)) return takeReady()
-    const queued = await projectHasQueuedWork(cwd)
-    const died = !await isDaemonAlive(cwd) && !queued
-    const hung = await isDaemonHung(cwd) && !queued
-    if (await exists(readyPath)) return takeReady()
-    if (died) {
-      await dropClaim()
-      throw new Error(`gm spool: daemon died while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
+    polls += 1
+    if (polls >= HEALTH_CHECK_AFTER_POLLS) {
+      const queued = await projectHasQueuedWork(cwd)
+      const died = !await isDaemonAlive(cwd) && !queued
+      const hung = await isDaemonHung(cwd) && !queued
+      if (await exists(readyPath)) return takeReady()
+      if (died) {
+        await dropClaim()
+        throw new Error(`gm spool: daemon died while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
+      }
+      if (hung) {
+        await dropClaim()
+        const kind = await classifyDaemonHealth(cwd)
+        const label = kind === 'project-heartbeat-stale'
+          ? 'project-heartbeat-stale (machine-wide daemon-status.json is still fresh; project .status.json ts froze)'
+          : 'daemon-status-stale (machine-wide daemon-status.json ts is also stale)'
+        throw new Error(`gm spool: daemon hung (${label}) while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
+      }
     }
-    if (hung) {
-      await dropClaim()
-      const kind = await classifyDaemonHealth(cwd)
-      const label = kind === 'project-heartbeat-stale'
-        ? 'project-heartbeat-stale (machine-wide daemon-status.json is still fresh; project .status.json ts froze)'
-        : 'daemon-status-stale (machine-wide daemon-status.json ts is also stale)'
-      throw new Error(`gm spool: daemon hung (${label}) while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
-    }
-    await sleep(pollIntervalMs, signal)
+    await sleep(polls < HEALTH_CHECK_AFTER_POLLS ? Math.min(pollIntervalMs, INITIAL_POLL_INTERVAL_MS) : pollIntervalMs, signal)
   }
   await dropClaim()
   throw new Error(`gm spool: dispatch "${verb}" (${dispatchKey}) timed out after ${timeoutMs}ms — in=${inPath} out=${outPath}`)

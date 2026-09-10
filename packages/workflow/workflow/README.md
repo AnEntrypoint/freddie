@@ -26,6 +26,8 @@ Workflow events are observe-only. They carry `WorkflowRunInfo` (`id` plus `meta`
 
 Same-process event payloads are borrowed immutable values. Every listener is independently contained: a synchronous throw or rejected returned promise is logged without starving peers or changing execution.
 
+`ctx.workflowEngine.graphs` is a native leaf-only tracker of those events: `workflow/start` opens a run graph, `phase`/`log`/`agent-start`/`agent-end` mutate owned nodes and edges, and `workflow/end` stamps the settlement. `list()` and `get(id)` return serializable snapshots with no live fibers or workers.
+
 ## Failure discipline
 
 `WorkflowError` carries a code and a `fatal` flag. Fatal errors always escape `parallel()` and `pipeline()` instead of becoming an ordinary per-item `null`:
@@ -54,6 +56,6 @@ No direct invalidation; the named consumer owns any request-prefix changes.
 - **No journaling or resume** — scripts, child progress, and intermediate values are not checkpointed, so a process restart cannot continue a run.
 - **No saved or nested workflows** — the seam starts caller-supplied scripts only, and a workflow script receives no `workflow()` hook for recursive orchestration.
 - **No token-budget vocabulary** — engines cap concurrency, items, and children, but neither the request nor result accounts for model tokens across children.
-- **Runs are holder-owned, not service-tracked** — unloading the engine does not discover independent live handles; every consumer must dispose the run it started.
+- **Runs are holder-owned, not service-tracked** — unloading the engine does not discover independent live handles; every consumer must dispose the run it started. `graphs` is an observe-only snapshot of lifecycle events, not a second owner.
 
 See the [dynamic-workflows Agent Note](../../../.agents/notes/implemented/feature/2026-07-05-dynamic-workflows.md) for the deferred workflow API.

@@ -2,9 +2,9 @@
  * Cordis-native gm access (`ctx.gm`): dispatches gm spool verbs directly
  * against `.gm/exec-spool/`, in-process — the same file-based cycle gm-mcp
  * wraps behind an MCP stdio server, driven here without that hop. Boots the
- * shared, machine-wide `agentplug-runner` daemon on first use if one isn't
- * already running; every session/project sharing one daemon is the intended
- * shape (stateless-per-call, per gm's own design).
+ * shared, machine-wide native `agentplug-runner` daemon (`spool`) on first
+ * use if one isn't already running; every session/project sharing one daemon
+ * is the intended shape (stateless-per-call, per gm's own design).
  * @module @freddie/freddie-gm-client
  */
 
@@ -48,6 +48,8 @@ export class Gm extends Service {
    */
   resolveProjectCwd(cwd) {
     if (typeof cwd === 'string' && cwd.length > 0) return cwd
+    const sessionCwd = this.ctx.get('session')?.header?.cwd
+    if (typeof sessionCwd === 'string' && sessionCwd.length > 0) return sessionCwd
     return this.config.cwd
   }
 

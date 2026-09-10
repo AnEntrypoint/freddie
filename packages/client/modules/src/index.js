@@ -386,6 +386,15 @@ export class ClientModuleRegistry extends Service {
   }
 
   /**
+   * Current wire row for one entry after graph composition.
+   * @param id - entry id (package name).
+   * @returns the current graph row, or undefined for an unknown id.
+   */
+  graphRow(id) {
+    return this.table.get(id)?.entry
+  }
+
+  /**
    * Re-hash one entry's whole served directory (the HMR watch's registration
    * hook — the only entry point through which content changes reach the
    * graph).

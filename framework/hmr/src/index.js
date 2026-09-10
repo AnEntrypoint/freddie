@@ -238,7 +238,7 @@ class Hmr extends Service {
         return
       }
 
-      if (kind !== 'change') return
+      if (kind === 'add' && !loader.internal.loadCache.has(pathToFileURL(filename).href)) return
       const url = pathToFileURL(filename).href
 
       // Partial reload, including the CLI entry's own dependency tree
@@ -333,6 +333,7 @@ class Hmr extends Service {
    */
   async analyzeChanges() {
     const pending = []
+    const queued = new Set()
 
     this.accepted = new Set(this.stashed)
     // Externals used to seed `declined` so a CLI-entry dependency forced
@@ -346,6 +347,7 @@ class Hmr extends Service {
       const children = await this.getLinked(url)
       for (const child of children) {
         if (this.accepted.has(child) || this.declined.has(child) || isExcluded(child)) continue
+        queued.add(child)
         pending.push(child)
       }
     }))
@@ -363,8 +365,9 @@ class Hmr extends Service {
             break
           } else {
             isDeclined = false
-            if (!pending.includes(child)) {
+            if (!queued.has(child)) {
               hasUpdate = true
+              queued.add(child)
               pending.push(child)
             }
           }
@@ -372,6 +375,7 @@ class Hmr extends Service {
         if (isAccepted || isDeclined) {
           hasUpdate = true
           pending.splice(index, 1)
+          queued.delete(url)
           if (isAccepted) {
             this.accepted.add(url)
           } else {

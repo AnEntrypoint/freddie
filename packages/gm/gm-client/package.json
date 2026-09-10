@@ -1,6 +1,6 @@
 {
   "name": "@freddie/freddie-gm-client",
-  "description": "Cordis-native ctx.gm: dispatches gm spool verbs directly against .gm/exec-spool/, in-process, no MCP hop, boot-if-needed against the shared machine-wide daemon",
+  "description": "Cordis-native ctx.gm: dispatches gm spool verbs directly against .gm/exec-spool/, in-process, no MCP hop, boot-if-needed against the shared machine-wide native agentplug-runner daemon",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"

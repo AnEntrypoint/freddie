@@ -176,10 +176,21 @@ export function apply(ctx) {
   }
   globalThis.__FREDDIE_HMR__ = { events: [] }
 
-  async function reload(id) {
+  async function reload(frame) {
+    const { id, entry: row, graphRev } = frame
     const entry = findEntry(loader, id)
     if (entry === undefined) {
       ctx.logger.warn(`client-hmr: rebuilt frame for unknown entry "${id}" (not in the loader tree)`)
+      return
+    }
+    if (row === undefined || row.id !== id || typeof row.url !== 'string' || typeof row.rev !== 'string' || typeof graphRev !== 'string') {
+      ctx.logger.warn(`client-hmr: rebuilt frame for "${id}" lacks a valid updated graph row, remounting shell`)
+      await remountShell(String(Date.now()))
+      return
+    }
+    if (!modLoader.updateGraphRow(row, graphRev)) {
+      ctx.logger.warn(`client-hmr: rebuilt frame for unknown graph row "${id}", remounting shell`)
+      await remountShell(String(Date.now()))
       return
     }
     // Invalidate first (drop stale factory + record — a live factory makes
@@ -238,7 +249,7 @@ export function apply(ctx) {
           break
         }
         record({ kind: 'plugin-rebuilt', id: frame.id, rev: frame.rev })
-        queue = queue.then(() => reload(frame.id)).catch((error) => {
+        queue = queue.then(() => reload(frame)).catch((error) => {
           // reload() tears down the OLD (working) fiber's effects/styles
           // BEFORE the new bundle's apply is known to succeed (see the
           // module comment's documented "no rollback" ordering) -- so a
@@ -266,10 +277,15 @@ export function apply(ctx) {
         })
         break
       case 'graph':
-        // Connect-time snapshot, unused. The loader's cached graph rev
-        // goes stale after rebuilds — harmless, since prefetch hits the
-        // network anyway (host serves bundles no-cache); graph rev refresh
-        // lands with the reconnect-handshake mechanism.
+        if (frame.graph?.rev !== undefined && frame.graph.rev !== modLoader.manifest.rev) {
+          ctx.logger.info('client-hmr: graph changed while disconnected, remounting shell')
+          record({ kind: 'graph-mismatch', rev: frame.graph.rev })
+          queue = queue.then(() => remountShell(frame.graph.rev)).catch((error) => {
+            ctx.logger.error('client-hmr: graph-mismatch remount failed')
+            ctx.logger.error(error)
+            record({ kind: 'graph-mismatch-remount-failed', rev: frame.graph.rev })
+          })
+        }
         break
       default:
         // Merge-extensible frame union: unknown frame types from newer hosts

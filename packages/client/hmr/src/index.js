@@ -182,6 +182,11 @@ export function apply(ctx, config) {
       const next = snapshot(watch.root, id)
       if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) continue
       watch.files = next.files
+      try {
+        definesElements.set(id, treeDefinesCustomElements(listTreeFiles(watch.root)))
+      } catch (error) {
+        if (error.code !== 'ENOENT') ctx.logger.warn(error)
+      }
       watch.dirty = rehash(id, watch.root) || next.dirty
     }
   }
@@ -312,10 +317,17 @@ export function apply(ctx, config) {
       // merge-extensible and the client treats it as "swap", the old
       // behavior.
       const defines = definesElements.get(id)
+      const entry = ctx.clientModules.graphRow(id)
+      if (entry === undefined) {
+        ctx.logger.warn(`client-hmr: rebuilt entry "${id}" is absent from the current graph`)
+        return
+      }
       const line = sseData({
         type: 'rebuilt',
         id,
         rev,
+        entry,
+        graphRev: ctx.clientModules.graph().rev,
         ...defines === true ? { definesCustomElements: true } : {},
       })
       for (const res of connections) res.write(line)
