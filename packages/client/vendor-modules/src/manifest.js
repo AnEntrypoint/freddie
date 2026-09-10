@@ -355,6 +355,7 @@ export const vendorPackages = [
 export const importMapExact = {
   "zod": "/vendor/zod@4.4.3/index.js",
   "@freddie/webjsx": "/vendor/@freddie/webjsx@0.0.73/src/index.js",
+  "webjsx": "/vendor/@freddie/webjsx@0.0.73/src/index.js",
   "@freddie/webjsx/jsx-runtime": "/vendor/@freddie/webjsx@0.0.73/src/jsx-runtime.js",
   "clsx": "/vendor/clsx@2.1.1/dist/clsx.mjs",
   "anser": "/vendor/anser@2.3.5/lib/index.js",
