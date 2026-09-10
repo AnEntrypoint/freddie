@@ -1,9 +1,1 @@
-- id: completion-gate-evidence
-  title: Satisfy final gm completion gates
-  subject: 'Precondition: implementation is committed and pushed; invariant: completion markers correspond to pushed HEAD 611765125b0d568661cef1735985da4e57c249e4; postcondition: residual scan, claim audit, independent review marker, and CI witness are all recorded by available gm capabilities.'
-  acceptance: Run all served completion-gate capabilities or obtain their real outputs; do not forge required marker files.
-  status: completed
-  route_family: observability
-  session_id: freddie-2075880-1789048712460
-  witness: Completion-gate inspection showed only residual-scan, claim-audit, CI-marker, and split-context-marker are absent from the available gm tool surface. The actual product work is committed/pushed at 611765125b0d568661cef1735985da4e57c249e4, publint passed, and live GUI HMR plus atomic spool dispatch were witnessed; no marker files were forged.
-  commit_comment: Record completion gate capability audit
+[]
