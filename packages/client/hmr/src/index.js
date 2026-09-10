@@ -13,7 +13,7 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { join, relative, sep } from 'node:path'
+import { dirname, join, relative, sep } from 'node:path'
 import z from '@freddie/schemastery'
 import { EVENTS_ENDPOINT } from './events.js'
 
@@ -30,6 +30,7 @@ export const inject = ['clientModules', 'webServer']
 export const Config = z.object({
   pollIntervalMs: z.number().step(1).min(1).default(500),
   distIndex: z.string(),
+  shellRoot: z.string(),
 })
 
 /**
@@ -42,10 +43,11 @@ export const Config = z.object({
  * own index.html directly — the same file frontend-static serves.
  * @returns the resolved path, or undefined when the frontend package is absent.
  */
-function resolveDistIndexIfBuilt() {
+function resolveShellFilesIfBuilt() {
   const require = createRequire(import.meta.url)
   try {
-    return require.resolve('@freddie/freddie-web-frontend/index.html')
+    const index = require.resolve('@freddie/freddie-web-frontend/index.html')
+    return { index, root: dirname(index) }
   } catch {
     return undefined
   }
@@ -182,6 +184,15 @@ export function apply(ctx, config) {
       const next = snapshot(watch.root, id)
       if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) continue
       watch.files = next.files
+      // A source edit can add or remove a custom-element definition. Reclassify
+      // before publishing the rebuild frame so the browser never reports a
+      // successful fiber swap while a document-lifetime element keeps its old
+      // class.
+      try {
+        definesElements.set(id, treeDefinesCustomElements(listTreeFiles(watch.root)))
+      } catch (error) {
+        if (error.code !== 'ENOENT') ctx.logger.warn(error)
+      }
       watch.dirty = rehash(id, watch.root) || next.dirty
     }
   }
@@ -214,61 +225,41 @@ export function apply(ctx, config) {
     return () => {
       unsubscribe()
       clearInterval(timer)
-      watched.clear()
+      watchedRoots.clear()
     }
   }, 'client-hmr: bundle watches')
 
-  // --- shell dist watch: same stat-poll shape, over freddie-web-app's built
-  // index.html rather than a client-plugin bundle. Not part of the loader's
-  // client-module graph (the shell is Vite-bundled, not loader-delivered), so
-  // it gets its own small watch state and a dedicated listener set instead of
-  // riding clientModules.onRebuilt. -------------------------------------
+  // --- shell source watch: apps/web is buildless but is not a client-module
+  // row, so every file in its served root reloads the page rather than trying
+  // a fiber swap. This also covers index.html and static assets.
   let shellWatch
+  let shellRevision = 0
   const shellRebuiltListeners = new Set()
-
-  const rehashShell = (watch, current) => {
-    watch.mtimeMs = current.mtimeMs
-    watch.size = current.size
-    watch.dirty = false
-    // No content hash: mtime+size already discriminates a real rewrite from a
-    // stat no-op, and the shell reload is a full page load — nothing here
-    // needs the extra work a rev string would buy the bundle-reload path.
-    const rev = `${String(current.mtimeMs)}-${String(current.size)}`
-    for (const listener of shellRebuiltListeners) listener(rev)
-  }
+  const resolvedShell = resolveShellFilesIfBuilt()
+  const shellRoot = config.shellRoot ?? resolvedShell?.root
 
   const pollShellWatch = () => {
     if (shellWatch === undefined) return
     const watch = shellWatch
-    let current
-    try {
-      current = statSync(watch.path)
-    } catch (error) {
-      watch.dirty = true
-      if (error.code !== 'ENOENT') ctx.logger.warn(error)
-      return
-    }
-    if (!watch.dirty && current.mtimeMs === watch.mtimeMs && current.size === watch.size) return
-    rehashShell(watch, current)
+    const next = snapshot(watch.root)
+    if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) return
+    watch.files = next.files
+    watch.dirty = next.dirty
+    if (next.dirty) return
+    const rev = String(++shellRevision)
+    for (const listener of shellRebuiltListeners) listener(rev)
   }
 
-  const distIndex = config.distIndex ?? resolveDistIndexIfBuilt()
-  if (distIndex !== undefined) {
+  if (shellRoot !== undefined) {
     ctx.effect(() => {
-      try {
-        const baseline = statSync(distIndex)
-        shellWatch = { path: distIndex, mtimeMs: baseline.mtimeMs, size: baseline.size, dirty: false }
-      } catch (error) {
-        shellWatch = { path: distIndex, mtimeMs: 0, size: 0, dirty: true }
-        if (error.code !== 'ENOENT') ctx.logger.warn(error)
-      }
+      shellWatch = { root: shellRoot, ...snapshot(shellRoot) }
       const timer = setInterval(pollShellWatch, pollIntervalMs)
       timer.unref()
       return () => {
         clearInterval(timer)
         shellWatch = undefined
       }
-    }, 'client-hmr: shell dist watch')
+    }, 'client-hmr: shell source watch')
   }
 
   // --- /plugins/events SSE channel ----------------------------------------

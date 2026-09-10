@@ -11,6 +11,8 @@ import { join } from 'node:path'
 import { classifyDaemonHealth, isDaemonAlive, isDaemonHung } from './daemon.js'
 
 const DEFAULT_POLL_INTERVAL_MS = 200
+const INITIAL_POLL_INTERVAL_MS = 25
+const HEALTH_CHECK_AFTER_POLLS = 5
 const DEFAULT_TIMEOUT_MS = 120_000
 
 /**
@@ -171,26 +173,33 @@ export async function dispatch({
     })
     return JSON.parse(text)
   }
+  let polls = 0
   while (Date.now() < deadline) {
     throwIfAborted(signal)
+    // The ready sentinel is the dispatch's authoritative completion signal.
+    // Avoid global spool and daemon probes until several missed fast polls so
+    // lightweight parallel verbs return promptly without metadata amplification.
     if (await exists(readyPath)) return takeReady()
-    const queued = await projectHasQueuedWork(cwd)
-    const died = !await isDaemonAlive(cwd) && !queued
-    const hung = await isDaemonHung(cwd) && !queued
-    if (await exists(readyPath)) return takeReady()
-    if (died) {
-      await dropClaim()
-      throw new Error(`gm spool: daemon died while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
+    polls += 1
+    if (polls >= HEALTH_CHECK_AFTER_POLLS) {
+      const queued = await projectHasQueuedWork(cwd)
+      const died = !await isDaemonAlive(cwd) && !queued
+      const hung = await isDaemonHung(cwd) && !queued
+      if (await exists(readyPath)) return takeReady()
+      if (died) {
+        await dropClaim()
+        return Promise.reject(new Error(`gm spool: daemon died while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`))
+      }
+      if (hung) {
+        await dropClaim()
+        const kind = await classifyDaemonHealth(cwd)
+        const label = kind === 'project-heartbeat-stale'
+          ? 'project-heartbeat-stale (machine-wide daemon-status.json is still fresh; project .status.json ts froze)'
+          : 'daemon-status-stale (machine-wide daemon-status.json ts is also stale)'
+        return Promise.reject(new Error(`gm spool: daemon hung (${label}) while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`))
+      }
     }
-    if (hung) {
-      await dropClaim()
-      const kind = await classifyDaemonHealth(cwd)
-      const label = kind === 'project-heartbeat-stale'
-        ? 'project-heartbeat-stale (machine-wide daemon-status.json is still fresh; project .status.json ts froze)'
-        : 'daemon-status-stale (machine-wide daemon-status.json ts is also stale)'
-      throw new Error(`gm spool: daemon hung (${label}) while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
-    }
-    await sleep(pollIntervalMs, signal)
+    await sleep(polls < HEALTH_CHECK_AFTER_POLLS ? Math.min(pollIntervalMs, INITIAL_POLL_INTERVAL_MS) : pollIntervalMs, signal)
   }
   await dropClaim()
   throw new Error(`gm spool: dispatch "${verb}" (${dispatchKey}) timed out after ${timeoutMs}ms — in=${inPath} out=${outPath}`)

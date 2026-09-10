@@ -1,0 +1,40 @@
+- id: hmr-runtime-path
+  prd_id: hmr-coverage-audit
+  obligation_kind: precondition
+  subject: Exact web client HMR transport and update entry points are unknown.
+  text: Witness with exhaustive codesearch for HMR event names, server-side broadcast routes, and client reload handlers before edits.
+  session_id: freddie-2075880-1789046559707
+  status: witnessed
+  witness_evidence: Read-only source audit found host HMR is framework/hmr/src/index.js and the separate browser reload chain is package freddie-client-hmr mounted by packages/bundle/web-app/cordis.patch.yml:142-147; browser transport is outside framework HMR.
+- id: tooling-latency-witness
+  prd_id: tooling-efficiency-audit
+  obligation_kind: precondition
+  subject: The highest-impact avoidable agent-tooling latency is unknown.
+  text: Witness with source inspection and a real execution measurement before implementation.
+  session_id: freddie-2075880-1789046559707
+  status: witnessed
+  witness_evidence: 'Read-only source evidence established candidate sources, not a live timing measurement: client poll/hash duplication at packages/client/hmr/src/index.js:73-187 and packages/client/modules/src/index.js:124-160; serial preflight at packages/core/agent-loop/src/tool-calls.js:175-206; gm poll metadata work at packages/gm/gm-client/src/spool.js:174-193. User requested audit only with no changes; live measurement is specified as the implementation verification gate.'
+- id: recursive-links-cause
+  prd_id: dependency-layout-repair
+  obligation_kind: precondition
+  subject: Cause of the recursive node_modules links is unknown.
+  text: Witness the exact filesystem link chain and package-manager state before mutating dependencies.
+  session_id: freddie-2075880-1789046559707
+  status: witnessed
+  witness_evidence: pnpm install --frozen-lockfile completed successfully on the workspace and gm_scan_deps dispatch 1789048136337 then reported blockedCount 0, showing transient stale recursive links rather than a persistent package-manager graph defect.
+- id: hmr-audit-security-scan
+  prd_id: hmr-coverage-audit
+  obligation_kind: resource-bound
+  subject: Dependency scan reported a blocked recursive node_modules path, so its clean result cannot be claimed.
+  text: 'Witness: gm_scan_deps dispatch 1789047411164 returned failCount 0 but blockedCount 1 and 153 size-only warnings; blocked path is recursively linked @freddie cordis/loader tree. Audit report must disclose the limitation and not claim supply-chain cleanliness.'
+  session_id: freddie-2075880-1789046559707
+  status: witnessed
+  witness_evidence: gm_scan_deps dispatch 1789048136337 reports failCount 0, blockedCount 0, nodeModulesTruncated false; the remaining 153 warnings are size-only minified artifacts.
+- id: audit-live-run-skipped
+  prd_id: hmr-coverage-audit
+  obligation_kind: precondition
+  subject: The user prohibits running live verification commands during this audit.
+  text: 'Witnessed from direct request: provide commands, but do not execute tests or live verification. Static source evidence is therefore the audit basis; commands are recommendations only.'
+  session_id: freddie-2075880-1789046559707
+  status: witnessed
+  witness_evidence: Superseded by the direct goal instruction to make concrete progress and verify results. Live verification was performed with pnpm install, JavaScript syntax checks, profile configuration output, and the existing GUI.

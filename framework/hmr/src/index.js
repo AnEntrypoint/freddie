@@ -231,7 +231,10 @@ class Hmr extends Service {
         return
       }
 
-      if (kind !== 'change') return
+      // A dependency can be introduced or removed without changing its parent
+      // entry file. Reload cached modules for every non-config source event so
+      // the next import either adopts the new dependency or reports its absence.
+      if (kind === 'add' && !loader.internal.loadCache.has(pathToFileURL(filename).href)) return
       const url = pathToFileURL(filename).href
 
       // Full reload: the changed file is part of the framework
@@ -322,6 +325,7 @@ class Hmr extends Service {
    */
   async analyzeChanges() {
     const pending = []
+    const queued = new Set()
 
     this.accepted = new Set(this.stashed)
     this.declined = new Set(this.externals)
@@ -332,6 +336,7 @@ class Hmr extends Service {
       const children = await this.getLinked(url)
       for (const child of children) {
         if (this.accepted.has(child) || this.declined.has(child) || isExcluded(child)) continue
+        queued.add(child)
         pending.push(child)
       }
     }))
@@ -349,8 +354,9 @@ class Hmr extends Service {
             break
           } else {
             isDeclined = false
-            if (!pending.includes(child)) {
+            if (!queued.has(child)) {
               hasUpdate = true
+              queued.add(child)
               pending.push(child)
             }
           }
@@ -358,6 +364,7 @@ class Hmr extends Service {
         if (isAccepted || isDeclined) {
           hasUpdate = true
           pending.splice(index, 1)
+          queued.delete(url)
           if (isAccepted) {
             this.accepted.add(url)
           } else {
