@@ -6,6 +6,7 @@
 
 import { Service } from '@freddie/cordis'
 import { HarnessError } from '@freddie/freddie-llm'
+import { WorkflowGraphTracker } from './graph.js'
 
 export { WorkflowRunId } from './types.js'
 export {

@@ -6,7 +6,7 @@
  * of truth with the tsdown client externals); values stay shell-static
  * imports so every bundle sees the same instance.
  */
-import * as Webjsx from '@freddie/webjsx'
+import * as Webjsx from 'webjsx'
 import * as Cordis from '@freddie/cordis'
 import * as UiSlots from '@freddie/freddie-client-ui-slots'
 import * as UiPrimitives from '@freddie/freddie-client-ui-primitives'

@@ -21,6 +21,9 @@ examples/*/.sessions/
 coverage/
 .humanize/
 tmp/
+
+# Locally vendored upstream tools; each retains its own Git history.
+vendor/gm/
 .claude/commands/
 .claude/launch.json
 .claude/settings.json

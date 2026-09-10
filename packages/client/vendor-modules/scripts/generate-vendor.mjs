@@ -316,6 +316,13 @@ function copyKatexAssets() {
 }
 copyKatexAssets()
 
+// The buildless shell uses the unscoped Webjsx identity as its shared module
+// table key. Source imports use the scoped workspace identity, so expose both
+// specifiers through the same in-tree module URL.
+if (importMapExact['@freddie/webjsx'] !== undefined) {
+  importMapExact.webjsx = importMapExact['@freddie/webjsx']
+}
+
 // node:module resolves to a browser stub this script writes directly (never
 // hand-maintained under vendor/, so a `rm -rf vendor` regenerate can't lose
 // it) — @freddie/cordis-plugin-loader's only Node import, unreachable in
