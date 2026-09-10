@@ -322,7 +322,9 @@ export class FreddieProviderEditor extends HTMLElement {
           required: props.credentialRequired === true,
           autofocus: props.autoFocusCredential === true,
           disabled: disabled || keyLocked,
-          onchange: (event) => { this.#keyDraft = event.target.value; this.#render() },
+          // API-key validity controls the submit button; update it as the user types.
+          // The change event fires only after blur, which loses the first click on Save.
+          oninput: (event) => { this.#keyDraft = event.target.value; this.#render() },
         }),
         shownKeyFailure === undefined ? null : h('p', { class: styles['error'] ?? '' }, t(shownKeyFailure)),
       ),
@@ -338,7 +340,7 @@ export class FreddieProviderEditor extends HTMLElement {
               placeholder: DEEPSEEK_PUBLIC_BASE_URL,
               'aria-label': t('baseUrl'),
               disabled,
-              onchange: (event) => {
+              oninput: (event) => {
                 const value = event.target.value
                 this.#setField('baseURL', value === '' ? undefined : value)
                 this.#render()

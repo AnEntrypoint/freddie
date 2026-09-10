@@ -76,12 +76,15 @@ export function DeepSeekOnboardingDialog(props) {
   }
 
   const finishCredential = (changed) => {
-    if (!changed) {
-      finishedControllers.add(controller)
-      complete()
-      return
-    }
-    void controller.load()
+    // The dialog is a body portal, rather than a child of the onboarding
+    // slot. complete() synchronously stops rendering that slot, so waiting
+    // for a subsequent Models-store update leaves the portal visible forever.
+    // Tear it down before completing in both the later and successful-save
+    // paths. A save still refreshes the model data in the background.
+    closeOnboardingModal()
+    finishedControllers.add(controller)
+    complete()
+    if (changed) void controller.load()
   }
 
   return h(OnboardingModal, { title: t('onboardingTitle') },
