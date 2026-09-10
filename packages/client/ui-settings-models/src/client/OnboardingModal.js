@@ -33,7 +33,7 @@ let cachedModalEl = null
  * @param props.title - accessible and visible dialog title.
  * @param props.focusTitle - focus the title when the step has no form control.
  * @param props.children - step-owned body and actions.
- * @returns the body-portaled modal.
+ * @returns null because the modal remains portaled to document.body.
  */
 export function OnboardingModal({
   title, focusTitle = false, children,
@@ -58,7 +58,10 @@ export function OnboardingModal({
       ),
     ],
   })
-  return cachedModalEl
+  // The application root is inert throughout onboarding. Returning this
+  // body-portaled element would let the parent renderer move it under #root,
+  // making every control inside the dialog inert too.
+  return null
 }
 
 /**
