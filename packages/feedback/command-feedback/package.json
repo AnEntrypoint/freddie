@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/feedback/command-feedback"
   },
   "type": "module",
@@ -28,23 +28,23 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-commands": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-telemetry": "workspace:^",
-    "@freddie/freddie-anonymous-user-id": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-commands": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-telemetry": "*",
+    "@freddie/freddie-anonymous-user-id": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/cordis-plugin-include": "workspace:^",
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-commands": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-telemetry": "workspace:^",
-    "@freddie/freddie-anonymous-user-id": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-include": "*",
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-commands": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-telemetry": "*",
+    "@freddie/freddie-anonymous-user-id": "*",
+    "@freddie/cordis": "*"
   }
 }

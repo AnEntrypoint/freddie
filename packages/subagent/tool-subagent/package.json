@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/subagent/tool-subagent"
   },
   "type": "module",
@@ -28,33 +28,33 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-subagent": "workspace:^",
-    "@freddie/freddie-system-prompt": "workspace:^",
-    "@freddie/freddie-jobs": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-subagent": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-jobs": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-persistence": "workspace:^",
-    "@freddie/freddie-session-persistence-jsonl": "workspace:^",
-    "@freddie/freddie-subagent": "workspace:^",
-    "@freddie/freddie-subagent-spawn-in-process": "workspace:^",
-    "@freddie/freddie-system-prompt": "workspace:^",
-    "@freddie/freddie-jobs": "workspace:^",
-    "@freddie/freddie-jobs-local": "workspace:^",
-    "@freddie/freddie-tool-jobs": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-persistence": "*",
+    "@freddie/freddie-session-persistence-jsonl": "*",
+    "@freddie/freddie-subagent": "*",
+    "@freddie/freddie-subagent-spawn-in-process": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-jobs": "*",
+    "@freddie/freddie-jobs-local": "*",
+    "@freddie/freddie-tool-jobs": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
   }
 }

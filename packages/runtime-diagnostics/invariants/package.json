@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/runtime-diagnostics/invariants"
   },
   "type": "module",
@@ -28,12 +28,12 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis": "*"
   }
 }

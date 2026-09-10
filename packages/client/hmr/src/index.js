@@ -28,24 +28,22 @@ export const inject = ['clientModules', 'webServer']
 export const Config = z.object({
   pollIntervalMs: z.number().step(1).min(1).default(500),
   distIndex: z.string(),
-  shellRoot: z.string(),
 })
 
 /**
  * Resolve the Web frontend's built `index.html`, the same workspace-known
- * path `freddie-web-app` resolves for `frontend-static` — duplicated here rather
+ * path `freddie-web-app` resolves for `frontend-static` â€” duplicated here rather
  * than threaded through the YAML composition (this row is declared
  * statically, not mounted imperatively) so a composition needs no config to
  * get shell reload; a checkout without the frontend package simply gets none.
  * apps/web is served buildless (no dist/ build output), so this watches its
- * own index.html directly — the same file frontend-static serves.
+ * own index.html directly â€” the same file frontend-static serves.
  * @returns the resolved path, or undefined when the frontend package is absent.
  */
-function resolveShellFilesIfBuilt() {
+function resolveDistIndexIfBuilt() {
   const require = createRequire(import.meta.url)
   try {
-    const index = require.resolve('@freddie/freddie-web-frontend/index.html')
-    return { index, root: dirname(index) }
+    return require.resolve('@freddie/freddie-web-frontend/index.html')
   } catch {
     return undefined
   }
@@ -82,7 +80,7 @@ export function apply(ctx, config) {
 
   // --- bundle watch: one HMR-owned stat poll over each row's whole served
   // tree (buildless serving mirrors src/client/ verbatim, so a change to any
-  // file under it — not just the entry file — must trigger a rebuild) ------
+  // file under it â€” not just the entry file â€” must trigger a rebuild) ------
   const watchedRoots = new Map()
 
   /** List every file under `root`, recursively, as absolute paths. */
@@ -215,14 +213,12 @@ export function apply(ctx, config) {
         const rev = String(++shellRevision)
         for (const listener of shellRebuiltListeners) listener(rev)
       }
-      // A source edit can add or remove a custom-element definition. Reclassify
-      // before publishing the rebuild frame so the browser never reports a
-      // successful fiber swap while a document-lifetime element keeps its old
-      // class.
-      try {
-        definesElements.set(id, treeDefinesCustomElements(listTreeFiles(watch.root)))
-      } catch (error) {
-        if (error.code !== 'ENOENT') ctx.logger.warn(error)
+      if (changed) {
+        try {
+          definesElements.set(id, treeDefinesCustomElements(listTreeFiles(watch.root)))
+        } catch (error) {
+          if (error.code !== 'ENOENT') ctx.logger.warn(error)
+        }
       }
       watch.dirty = rehash(id, watch.root) || next.dirty
     }
@@ -248,7 +244,7 @@ export function apply(ctx, config) {
   ctx.effect(() => {
     // Initial sync covers rows already in the graph; the subscription covers
     // rows arriving later (boot-window activations, including this plugin's
-    // own row — no self-exemption, a modules/hmr rebuild rides the same chain).
+    // own row â€” no self-exemption, a modules/hmr rebuild rides the same chain).
     syncWatches()
     const unsubscribe = ctx.clientModules.onGraphChanged(syncWatches)
     const timer = setInterval(pollWatches, pollIntervalMs)
@@ -259,14 +255,10 @@ export function apply(ctx, config) {
       watchedRoots.clear()
     }
   }, 'client-hmr: bundle watches')
-
-  // --- shell source watch: apps/web is buildless but is not a client-module
-  // row, so every file in its served root reloads the page rather than trying
-  // a fiber swap. This also covers index.html and static assets.
   let shellRevision = 0
   const shellRebuiltListeners = new Set()
-  const resolvedShell = resolveShellFilesIfBuilt()
-  const shellRoot = config.shellRoot ?? resolvedShell?.root
+  const distIndex = config.distIndex ?? resolveDistIndexIfBuilt()
+  const shellRoot = config.shellRoot ?? (distIndex === undefined ? undefined : dirname(distIndex))
   const staticRoots = new Map([
     ['@freddie/freddie-client-web', resolveStaticSourceRoot('web')],
     ['@freddie/freddie-client-ui-slots', resolveStaticSourceRoot('ui-slots')],

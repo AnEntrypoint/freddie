@@ -9,7 +9,7 @@
 // becomes an explicit sync call inside setProps, and re-render is an
 // explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconCheckOutline16, IconChevronDownOutline14, IconChevronUpOutline14, IconCloseOutline16,
   IconEditOutline16, IconQueueOutline14, IconSendOutline14, IconTrashOutline16, Tooltip,

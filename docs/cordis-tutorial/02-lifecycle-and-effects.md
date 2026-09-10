@@ -93,4 +93,4 @@ One ordering caveat: disposers start in reverse registration order, but multiple
 
 Next: [Services](03-services.md) — how plugins share capabilities.
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/AnEntrypoint/freddie)
+[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)

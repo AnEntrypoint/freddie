@@ -1,7 +1,146 @@
-- id: completion-ci-gate-incompatibility
-  title: Resolve CI gate without applicable workflow
-  subject: 'Pre: completion gate requires a green CI marker, while GitHub exposes only Dependabot Updates and zero workflow runs for the pushed source SHA. Invariant: no absent workflow is represented as passing CI. Post: either an applicable source CI workflow exists and passes, or completion limitation is recorded truthfully.'
-  acceptance: Verify workflow trigger metadata and either witness green CI or retain an explicit unresolved gate condition.
-  status: in-progress
+- id: product-ci-publint
+  title: Add a product CI workflow that runs publint on push
+  subject: AnEntrypoint/freddie has only Dependabot Updates. COMPLETE ci-validated-fresh needs a product pipeline green for HEAD. This repo's existing verify-before-push command is pnpm run publint.
+  acceptance: 'Pre: .github/workflows/ has no product workflow. Invariant: the workflow runs real publint, not a no-op. Post: a GitHub Actions run for the pushed SHA concludes success and .ci-validated is written with that HEAD sha.'
+  status: completed
+  route_family: execution
+  session_id: freddie-20060-1788957034207
+  witness: gh run 34352859976 workflow publint conclusion=success headSha=7b4fbbb21375e88de3b472037b38a638ebc1106a. .github/workflows/publint.yml runs pnpm run publint on windows-latest. .ci-validated written with that HEAD sha.
+  commit_comment: publint workflow green for 7b4fbbb run 34352859976
+- id: host-plugin-hmr-no-process-restart
+  title: Host Cordis plugins reload without killing the web process
+  subject: 'Live this session: gm-client and web-search provider mounts compose once at boot; pid 4612 could not pick 7f82249 without restart. User asked never to restart. framework/hmr currently loader.exit()s on framework-level dependency changes.'
+  acceptance: 'Pre: live GUI pid 20060 on 3080. Invariant: process pid unchanged across a host plugin source edit. Post: editing packages/gm/gm-client/src/spool.js (or another host plugin) is observed by a subsequent tool call in the same process without Stop-Process. Witness by live edit + dispatch.'
+  status: pending
+  route_family: execution
+  session_id: freddie-20060-1788957034207
+- id: shell-hmr-no-page-refresh
+  title: apps/web shell hot-swaps without a full page refresh
+  subject: 'Session instruction: apps/web is served buildless from source; a shell change still requires page refresh because the shell boots once. User asked never to restart, including no refresh.'
+  acceptance: 'Pre: GET 3080 serves the shell. Invariant: window session identity survives a shell source edit. Post: an apps/web shell file change applies in the open tab without location.reload. Witness via browser evaluate of a live marker.'
+  status: pending
+  route_family: execution
+  session_id: freddie-20060-1788957034207
+- id: cordis-composition-hmr
+  title: cordis.yml and bundle patch mounts/unmounts without process restart
+  subject: Host plugin graph is composed at boot. Switching web-search-deepseek to web-search-browser required a host restart. HMR of config entries by id exists in Cordis tutorial; the web host must use it for patch layers.
+  acceptance: 'Pre: packages/bundle/base/cordis.patch.yml is the live composition. Invariant: pid unchanged. Post: adding/removing/reconfiguring a host plugin row by id mounts or unmounts in the running process. Witness live.'
+  status: pending
+  route_family: state
+  session_id: freddie-20060-1788957034207
+- id: framework-dep-change-no-exit
+  title: Framework-level file changes must not call loader.exit
+  subject: 'framework/hmr README: changes to framework-level dependencies fall back to loader.exit() letting the host process restart. That is the opposite of never-restart.'
+  acceptance: 'Pre: framework/hmr/src/index.js loader.exit path is identified. Invariant: pid 20060 survives a framework/hmr or framework/loader edit. Post: those edits either hot-reload or fail loud without exiting the process.'
+  status: pending
+  route_family: execution
+  session_id: freddie-20060-1788957034207
+- id: client-plugin-hmr-already-works
+  title: Client plugin HMR stays idle-poll-free and covers all client packages
+  subject: 'packages/client/hmr already reloads one plugin per rebuilt SSE frame. Confirm live on 3080 and close gaps: no-rebuild-watcher idle, missing rollback, graph-rev stale.'
+  acceptance: 'Pre: client-hmr README is current. Invariant: data layer (connection/runtime) survives a client plugin reload. Post: a packages/client/* source change reloads in the open tab without refresh. Witness browser evaluate.'
+  status: pending
+  route_family: execution
+  session_id: freddie-20060-1788957034207
+- id: hmr-debug-inspection
+  title: Queryable HMR status on host and window
+  subject: 'observability family: operators must see last reload, failed reload, watched roots, and whether host vs client vs shell applied, without restarting.'
+  acceptance: 'Pre: no /debug HMR endpoint witnessed. Invariant: inspection does not mutate. Post: host RPC or window.__FREDDIE_HMR__ names last events; a live evaluate or RPC read after a reload shows the event.'
+  status: pending
+  route_family: observability
+  session_id: freddie-20060-1788957034207
+- id: boot-injection-survives-reload
+  title: window.__FREDDIE_BOOT__ remains valid across shell and plugin reloads
+  subject: apps/web is not standalone because only freddie web injects window.__FREDDIE_BOOT__. Hot-swapping the shell must not drop the boot payload.
+  acceptance: 'Pre: GET 3080 html contains the boot injection. Invariant: after HMR, window.__FREDDIE_BOOT__ is still defined. Post: browser evaluate after a reload.'
+  status: pending
+  route_family: state
+  session_id: freddie-20060-1788957034207
+- id: hmr-agent-note
+  title: Agent Note for never-restart HMR architecture
+  subject: Non-trivial cross-layer behavior change (framework hmr + client hmr + host boot). AGENTS.md requires an implemented Agent Note.
+  acceptance: 'Pre: existing HMR notes are read (2026-08-03 initial-scan deadlock, 2026-07-20 config-hot-reload). Invariant: new note states host/shell/client split and what beats loader.exit. Post: note exists under .agents/notes/implemented.'
+  status: pending
+  route_family: representation
+  session_id: freddie-20060-1788957034207
+- id: hmr-failed-reload-loud
+  title: Failed HMR fails loud without exiting or leaving a silent FAILED fiber
+  subject: 'client-hmr README: a reload that fails leaves the entry FAILED with no rollback. Host HMR must not loader.exit on failure either.'
+  acceptance: 'Pre: a syntax error is introduced in a watched plugin. Invariant: pid unchanged. Post: diagnostic is queryable; previous fiber still serves or a named FAILED state is on the HMR inspection point.'
+  status: pending
+  route_family: execution
+  session_id: freddie-20060-1788957034207
+- id: session-survives-host-hmr
+  title: In-flight agent session survives host plugin reload
+  subject: Reloading gm-client/tool-gm must not drop the writer.lock session or abort the current turn.
+  acceptance: 'Pre: this session is running on 3080. Invariant: FREDDIE_SESSION_ID / writer.lock pid stay the GUI pid. Post: after host plugin HMR, gm_phase_status still works in the same session.'
+  status: pending
+  route_family: state
+  session_id: freddie-20060-1788957034207
+- id: provider-swap-without-restart
+  title: web_search provider mount change applies without killing the GUI
+  subject: Prior session needed host restart to drop web-search-deepseek. Composition HMR must make that a config-id update.
+  acceptance: 'Pre: cordis.patch.yml names web-search-browser. Invariant: pid 20060 unchanged. Post: a live web_search after a provider-row edit uses the new provider without Stop-Process.'
+  status: pending
   route_family: boundary
-  session_id: freddie-2075880-1789048712460
+  session_id: freddie-20060-1788957034207
+- id: hmr-busy-defer-inflight-session
+  title: HMR defers while an agent turn is inflight then reloads once
+  subject: framework/hmr hmr/before-reload serial can defer. Reloading gm-client mid-tool-call must not abort the turn or lose the stashed files.
+  acceptance: 'Pre: hmr/before-reload exists at framework/hmr/src/index.js:394. Invariant: busy string defers; stashed files reload after. Post: an inflight gm verb survives a watched file change; after the verb settles, the plugin reloads.'
+  status: pending
+  route_family: concurrency
+  session_id: freddie-20060-1788957034207
+- id: scan-deps-hmr-session
+  title: Supply-chain scan this HMR session
+  subject: 'gm skill 1a. This session scan_deps already ran: ok failCount=0 blockedCount=0 filesScanned=13832 warnCount=164 css.js size-ratio plus nested js-yaml umd min.'
+  acceptance: 'Pre: scan_deps dispatched. Invariant: fail/blocked >0 surfaces via AskUserQuestion. Post: data.ok recorded.'
+  status: completed
+  route_family: grounding
+  session_id: freddie-20060-1788957034207
+  witness: scan_deps dispatch 1788958831061 ok=true failCount=0 blockedCount=0 filesScanned=13832 nodeModulesTruncated=false warnCount=164 css.js size-ratio plus nested js-yaml umd min. warnCount-only.
+  commit_comment: scan_deps ok this HMR session
+- id: live-pid-20060-inventory
+  title: Live 3080 process inventory for HMR work
+  subject: GUI pid 20060 StartTime 9/9 2:30 PM GET 3080 200 writer.lock pid 20060. Daemon 18232. Must stay those pids across HMR.
+  acceptance: 'Pre: Get-Process 20060 and 18232. Invariant: neither killed for HMR verification. Post: after each HMR witness those pids still alive.'
+  status: completed
+  route_family: grounding
+  session_id: freddie-20060-1788957034207
+  witness: exec_js 1788959034398 gui20060=true daemon=18232 daemonAlive=true http=200 tsAge=761. Writer.lock pid 20060 from earlier.
+  commit_comment: 'live HMR inventory: GUI 20060 GET 3080 200 daemon 18232'
+- id: esm-cache-bust-on-reload
+  title: Host plugin reload must drop Node ESM/CJS module cache for the changed URL
+  subject: Partial reload comment at framework/hmr/src/index.js:240 says file is in ESM loadCache. Never-restart requires that cache is cleared so the next import sees new bytes.
+  acceptance: 'Pre: loadCache clear path is identified in framework/hmr/src/index.js. Invariant: after reload, require/import of the plugin file returns the new source. Post: live edit of a log string in a host plugin is observed without process restart.'
+  status: pending
+  route_family: state
+  session_id: freddie-20060-1788957034207
+- id: debounce-burst-of-saves
+  title: Burst of file saves reloads once after debounce
+  subject: hmr config.debounce default 100ms. A save storm must not exit or thrash fibers.
+  acceptance: 'Pre: debounce field exists. Invariant: N saves within debounce produce one reload. Post: exec_js or log count of hmr/reload vs N writes.'
+  status: pending
+  route_family: concurrency
+  session_id: freddie-20060-1788957034207
+- id: windows-watch-path-canonical
+  title: Windows 8.3 and path aliases still watch one filesystem spelling
+  subject: framework/hmr README already canonicalizes watch paths. Never-restart on Windows 3080 must keep that so a save via 8.3 alias still reloads.
+  acceptance: 'Pre: canonicalization exists in framework/hmr. Invariant: one watch per real directory. Post: a save through the live path C:\\dev\\deepseek-harness triggers reload; no duplicate watches.'
+  status: pending
+  route_family: execution
+  session_id: freddie-20060-1788957034207
+- id: record-gm-host-plugin-call-linkerror
+  acceptance: 'Pre: C:\dev\freddie\.gm\exec-spool\.watcher.log repeats host_plugin_call LinkError after self-heal v0.1.1211. Invariant: no second agentplug-runner started for this diagnosis. Post: blocker recorded as PRD/mutable with exact log line and the cwd mismatch (tools vs workspace).'
+  route_family: observability
+  subject: 'gm-client tools spawn against C:\dev\freddie and hit plugkit-wasm LinkError: import function env:host_plugin_call must be callable. Live harness daemon on C:\dev\deepseek-harness pid from .status.json still serves spool. Do not start a second watcher.'
+  SESSION_ID: csweep-7cc18c8c-1
+  title: Record gm daemon host_plugin_call LinkError blocker
+  status: pending
+- id: comment-sweep-hmr-gm-agentic-partition
+  acceptance: 'Pre: comments located via codesearch (not grep/find). Invariant: no bulk comment deletion while gm-client spawn is broken. Post: verified partition with file:line witnesses and a C:\dev\gm repair prompt for host_plugin_call + cwd pinning.'
+  route_family: representation
+  subject: 'User requires a full comment sweep of HMR/gm/agentic tooling surfaces: obsolete vs self-explanatory-via-code vs factual contract docs. Broad destructive edits are forbidden while gm-client is unavailable.'
+  SESSION_ID: csweep-7cc18c8c-1
+  title: Partition HMR/gm/agentic comments without destructive edits
+  status: pending

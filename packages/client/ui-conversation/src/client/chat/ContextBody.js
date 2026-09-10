@@ -4,7 +4,7 @@
 // an absent, unknown, or malformed form — a resumed or foreign log must render
 // even when this UI version has never seen its producer.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import css from './ContextBody.css.js'
 
 /** Model-facing text stays bounded at the disclosure, not at the producer. */

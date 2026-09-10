@@ -3,7 +3,7 @@
  * and take {size, className}. Batch A mirrors the deepsuite icon library
  * (same figma source); batch B glyphs are harness-only figma extracts.
  */
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 
 /** ic_ds_new_chat_outline_16 */
 export const IconNewChatOutline16 = ({ size = 16, className }) => (

@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/client/ui-primitives"
   },
   "type": "module",
@@ -41,18 +41,18 @@
     "micromark-util-symbol": "^2.0.1",
     "micromark-util-types": "^2.0.2",
     "shiki": "^4.3.1",
-    "webjsx": "^0.0.73"
+    "@freddie/webjsx": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "files": [
     "src/**/*.js",
     "src/**/*.css"
   ],
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   }
 }

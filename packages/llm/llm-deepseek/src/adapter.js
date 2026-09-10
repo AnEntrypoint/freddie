@@ -364,7 +364,7 @@ export class DeepSeekAdapter extends LlmAdapter {
 
   async * request(options, signal, connection, apiKey, userId, attachments, onActivity) {
     const headers = {
-      ...apiKey === undefined ? {} : { 'authorization': 'Bearer ' + apiKey },
+      'authorization': `Bearer ${apiKey}`,
       'content-type': 'application/json',
       'accept': 'text/event-stream',
       ...attributionHeaders(),

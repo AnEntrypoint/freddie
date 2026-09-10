@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "framework/hmr"
   },
   "type": "module",
@@ -34,16 +34,16 @@
     }
   },
   "peerDependencies": {
-    "@freddie/cordis-plugin-timer": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-timer": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
     "@babel/code-frame": "^7.29.0",
     "chokidar": "^5.0.0",
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/cosmokit": "workspace:^",
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/cosmokit": "*",
     "picomatch": "^4.0.3",
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
     "esbuild": "^0.28.1"

@@ -62,12 +62,3 @@ worktrees/
 .gm/claim-audit-fired
 .gm/scan-deps-stamp.json
 .agentplug-kv/
-
-# claude-in-chrome's automation profile and ad hoc debug dumps -- never
-# durable content, and the profile can carry local browsing/session data.
-.gm/browser-chrome-profile-default/
-.gm/*.log
-.gm/rpc-*.json
-.gm/gui-*.json
-.gm/gui-*.txt
-.gm/gui-*.html

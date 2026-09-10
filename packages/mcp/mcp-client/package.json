@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/mcp/mcp-client"
   },
   "type": "module",
@@ -27,27 +27,27 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-attachment": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-subprocess": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-attachment": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@freddie/schemastery": "workspace:^",
+    "@freddie/schemastery": "*",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@freddie/freddie-attachment": "workspace:^",
-    "@freddie/freddie-attachment-local": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-subprocess": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-attachment": "*",
+    "@freddie/freddie-attachment-local": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
   }
 }

@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/session/session-telemetry-otel"
   },
   "type": "module",
@@ -32,25 +32,25 @@
     "@opentelemetry/exporter-logs-otlp-http": "^0.220.0",
     "@opentelemetry/resources": "^2.9.0",
     "@opentelemetry/sdk-logs": "^0.220.0",
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "peerDependencies": {
-    "@freddie/freddie-command-feedback": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-telemetry": "workspace:^",
-    "@freddie/freddie-anonymous-user-id": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-command-feedback": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-telemetry": "*",
+    "@freddie/freddie-anonymous-user-id": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-command-feedback": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-telemetry": "workspace:^",
-    "@freddie/freddie-anonymous-user-id": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-command-feedback": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-telemetry": "*",
+    "@freddie/freddie-anonymous-user-id": "*",
+    "@freddie/cordis": "*"
   }
 }

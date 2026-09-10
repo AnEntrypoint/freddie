@@ -7,7 +7,7 @@
 // useState/useEffect/useMemo for the retry countdown) to plain webjsx
 // functions plus one custom element for ModelRetryItem's timer state.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { MessageText, renderJsonBlock, StateDot } from '@freddie/freddie-client-ui-primitives'
 import { ReferenceIcon } from '../reference/ReferenceIcon.js'
 import { CompactionItem } from './CompactionItem.js'

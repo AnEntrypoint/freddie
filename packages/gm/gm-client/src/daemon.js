@@ -1,16 +1,19 @@
 /**
  * Shared gm daemon lifecycle: attach to the already-running, machine-wide
- * `agentplug-runner` if one is live, boot it via the canonical
- * `~/.gm-tools/bootstrap.js` logic otherwise. Never a second bespoke boot
- * implementation — this calls the exact function gm's own CLI calls, so a
- * `~/.gm-tools` update benefits every consumer, this plugin included.
+ * `agentplug-runner` if one is live, otherwise spawn
+ * `~/.gm-tools/agentplug-runner spool` — the same fire-and-forget
+ * registration gm-mcp and gm's own skill use. That native host loads
+ * `gm.wasm` with `host_plugin_call`. The retired JS wrapper at
+ * `~/.gm-tools/plugkit-wasm-wrapper.js` does not, so a boot that spawned it
+ * never wrote `.status.json`.
  * @module @freddie/freddie-gm-client/daemon
  */
 
-import { readFile } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
+import { constants as fsConstants } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { spawn } from 'node:child_process'
 
 /** Daemon considered dead if `.status.json`'s `ts` is older than this. */
 const STALE_MS = 5 * 60 * 1000
@@ -149,46 +152,32 @@ export async function isDaemonHung(cwd) {
 }
 
 /**
- * Ensure the shared gm daemon is running for `cwd`, booting it via
- * `~/.gm-tools/bootstrap.js`'s own `startSpoolDaemon` when it isn't already
- * alive. A no-op when the daemon (any project's, since it's
- * `shared_process: true`) already answers fresh.
- *
- * Deliberately does NOT call `bootstrap.js`'s `ensureReady()` — that
- * function does far more than "start the daemon if needed": it also
- * rewrites the calling project's own `CLAUDE.md`/`AGENTS.md` ("next-step
- * wiring", importing a cached copy of gm's current phase prose into the
- * project's own agent docs) and makes a network call to check for a newer
- * gm-plugkit release, both real side effects a lightweight per-activation
- * daemon-ping has no business triggering. `startSpoolDaemon()` alone (spawn
- * the wrapper/supervisor, no doc rewrite, no network call) is the correct
- * scope here — gm's own CLI is the right place for the heavier `ensureReady`
- * install/wiring flow, on first install or explicit update, not this plugin.
- *
- * `startSpoolDaemon` reads `CLAUDE_PROJECT_DIR` (falling back to
- * `process.cwd()`) internally rather than taking a project-dir argument —
- * this function sets `CLAUDE_PROJECT_DIR` for the duration of the call so a
- * boot triggered by a `cwd` that isn't the current process's own working
- * directory still targets the right `.gm/exec-spool`.
+ * Ensure the shared gm daemon is running for `cwd`, spawning
+ * `~/.gm-tools/agentplug-runner spool` when it isn't already alive. A no-op
+ * when the daemon already answers fresh. `spool` registers the project with
+ * the shared native daemon and starts that daemon if needed; it does not
+ * start the JS wasm wrapper.
  *
  * Two failure modes closed after live adversarial testing found them real:
- * (1) `startSpoolDaemon()`'s own `{ok:true}` only means `spawn()` handed
- * back a pid — it does NOT mean the runner actually came up (verified:
- * spawned a pid that had already exited by the time `.status.json` was
- * checked, and a caller trusting `{ok:true}` alone went on to wait out a
- * full 120s dispatch timeout instead of getting an honest boot-failure
- * error quickly). This function polls `isDaemonAlive` after spawn, up to
- * `BOOT_READY_TIMEOUT_MS`, and throws a clear error if the daemon never
- * comes up rather than reporting false success. (2) Concurrent callers
- * against a dead daemon each spawned their own process (verified: three
- * concurrent calls, three spawns, zero survivors) — `inFlightBoots` makes
- * every concurrent call for the same `cwd` await one shared boot attempt.
+ * (1) `spawn()` handing back a pid does not mean the runner came up. This
+ * function polls `isDaemonAlive` after spawn, up to `BOOT_READY_TIMEOUT_MS`,
+ * and throws if the daemon never writes a live `.status.json`. (2) Concurrent
+ * callers against a dead daemon each spawned their own process — `inFlightBoots`
+ * makes every concurrent call for the same `cwd` await one shared boot attempt.
  * @param cwd - project root that will own the `.gm/exec-spool` dispatch.
  * @returns `{ alreadyRunning }` after boot completes or is skipped.
- * @throws when `~/.gm-tools/bootstrap.js` is missing (gm has never been installed on this machine), its wrapper isn't present yet (first-ever install not finished — run gm's own CLI once to complete that), or the daemon fails to become ready within `BOOT_READY_TIMEOUT_MS` of a boot attempt.
+ * @throws when `~/.gm-tools/agentplug-runner` is missing, or the daemon fails to become ready within `BOOT_READY_TIMEOUT_MS` of a boot attempt.
  */
 export async function ensureDaemon(cwd) {
   if (await isDaemonAlive(cwd)) return { alreadyRunning: true }
+  const shared = await readDaemonStatus()
+  if (shared !== undefined && typeof shared.ts === 'number' && Date.now() - shared.ts < STALE_MS) {
+    const deadline = Date.now() + BOOT_READY_TIMEOUT_MS
+    while (Date.now() < deadline) {
+      if (await isDaemonAlive(cwd)) return { alreadyRunning: true }
+      await sleep(BOOT_READY_POLL_INTERVAL_MS)
+    }
+  }
 
   const existing = inFlightBoots.get(cwd)
   if (existing !== undefined) return existing
@@ -200,36 +189,33 @@ export async function ensureDaemon(cwd) {
   return attempt
 }
 
+function runnerPath() {
+  const name = process.platform === 'win32' ? 'agentplug-runner.exe' : 'agentplug-runner'
+  return join(homedir(), '.gm-tools', name)
+}
+
 async function bootAndAwaitReady(cwd) {
-  const bootstrapPath = join(homedir(), '.gm-tools', 'bootstrap.js')
-  let bootstrap
+  const binary = runnerPath()
   try {
-    // import() requires a file:// URL for an absolute path on Windows --
-    // a bare "C:\..." string is parsed as a URL with scheme "c", not a path.
-    bootstrap = await import(pathToFileURL(bootstrapPath).href)
+    await access(binary, fsConstants.F_OK)
   } catch (error) {
     throw new Error(
-      `gm-client: no gm installation found at ${bootstrapPath} — install gm first (see https://github.com/AnEntrypoint/gm)`,
+      `gm-client: no gm installation found at ${binary} — install gm first (see https://github.com/AnEntrypoint/gm)`,
       { cause: error },
     )
   }
-  const mod = bootstrap.default ?? bootstrap
-  if (!mod.isReady()) {
-    throw new Error(
-      `gm-client: ${bootstrapPath} is present but plugkit.wasm hasn't been fetched yet — run gm's own CLI once to finish the first-time install, then retry`,
-    )
-  }
-  const previousProjectDir = process.env.CLAUDE_PROJECT_DIR
-  process.env.CLAUDE_PROJECT_DIR = cwd
   let started
   try {
-    started = mod.startSpoolDaemon()
-  } finally {
-    if (previousProjectDir === undefined) delete process.env.CLAUDE_PROJECT_DIR
-    else process.env.CLAUDE_PROJECT_DIR = previousProjectDir
-  }
-  if (!started.ok) {
-    throw new Error(`gm-client: failed to start the gm daemon: ${started.error}`)
+    started = spawn(binary, ['spool'], {
+      cwd,
+      env: { ...process.env, CLAUDE_PROJECT_DIR: cwd },
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    })
+    started.unref()
+  } catch (error) {
+    throw new Error(`gm-client: failed to start the gm daemon: ${error.message}`, { cause: error })
   }
   const deadline = Date.now() + BOOT_READY_TIMEOUT_MS
   while (Date.now() < deadline) {
@@ -237,7 +223,7 @@ async function bootAndAwaitReady(cwd) {
     await sleep(BOOT_READY_POLL_INTERVAL_MS)
   }
   throw new Error(
-    `gm-client: spawned the gm daemon (pid ${started.pid}) but it never became ready within ${BOOT_READY_TIMEOUT_MS}ms — check ${join(cwd, '.gm', 'exec-spool', '.watcher.log')}`,
+    `gm-client: spawned the gm daemon (pid ${started.pid}) but it never became ready within ${BOOT_READY_TIMEOUT_MS}ms — check ${join(cwd, '.gm', 'exec-spool', '.watcher.log')} and ${join(homedir(), '.agentplug', 'daemon.log')}`,
   )
 }
 

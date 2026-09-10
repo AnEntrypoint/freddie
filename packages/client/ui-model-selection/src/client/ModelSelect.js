@@ -18,7 +18,7 @@
  * called from connectedCallback/disconnectedCallback, and re-render is an
  * explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
  */
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   IconCheckOutline16, IconChevronDownOutline14, IconChevronRightOutline14,

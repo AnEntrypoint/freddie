@@ -9,7 +9,7 @@
 // their branch action is enabled only when the node is also the completed
 // turn's transcript tail. Think / tool-head-only nodes stay chrome-free.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import { renderJsonBlock, renderMarkdownText } from '@freddie/freddie-client-ui-primitives'
 import { renderReasoningRow } from './ReasoningRow.js'
 import css from './AssistantMarkdown.css.js'

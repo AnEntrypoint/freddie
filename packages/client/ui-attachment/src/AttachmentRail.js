@@ -14,7 +14,7 @@
  * plain callbacks before handing items to the element.
  */
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   IconChevronLeftOutline14, IconChevronRightOutline14, IconCloseFill14,

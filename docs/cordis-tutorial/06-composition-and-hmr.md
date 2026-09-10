@@ -108,4 +108,4 @@ needs-timer is PENDING — a required service is missing
 
 Next: [Into the harness](07-into-the-harness.md) — the same patterns against real harness services.
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/AnEntrypoint/freddie)
+[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)

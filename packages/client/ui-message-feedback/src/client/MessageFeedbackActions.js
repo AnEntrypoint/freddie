@@ -18,7 +18,7 @@
  * @module @freddie/freddie-client-ui-message-feedback/client/MessageFeedbackActions
  */
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   createAnchoredPosition, IconDislikeOutline16, IconLikeOutline16, renderTooltip,
 } from '@freddie/freddie-client-ui-primitives'

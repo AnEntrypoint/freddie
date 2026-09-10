@@ -1,6 +1,6 @@
 // Pill: small rounded label chip (view switcher tabs, filters, badges).
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import css from './Pill.css.js'
 

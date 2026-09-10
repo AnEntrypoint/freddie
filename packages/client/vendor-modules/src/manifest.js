@@ -7,7 +7,7 @@ export const vendorPackages = [
     "version": "4.4.3"
   },
   {
-    "name": "webjsx",
+    "name": "@freddie/webjsx",
     "version": "0.0.73"
   },
   {
@@ -354,8 +354,8 @@ export const vendorPackages = [
 
 export const importMapExact = {
   "zod": "/vendor/zod@4.4.3/index.js",
-  "webjsx": "/vendor/webjsx@0.0.73/dist/index.js",
-  "webjsx/jsx-runtime": "/vendor/webjsx@0.0.73/dist/jsx-runtime.js",
+  "@freddie/webjsx": "/vendor/@freddie/webjsx@0.0.73/src/index.js",
+  "@freddie/webjsx/jsx-runtime": "/vendor/@freddie/webjsx@0.0.73/src/jsx-runtime.js",
   "clsx": "/vendor/clsx@2.1.1/dist/clsx.mjs",
   "anser": "/vendor/anser@2.3.5/lib/index.js",
   "diff": "/vendor/diff@9.0.0/libesm/index.js",

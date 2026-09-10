@@ -9,7 +9,7 @@
  * lifetime of the returned `Modal` element.
  */
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import { renderModal } from '@freddie/freddie-client-ui-primitives'
 import css from './OnboardingModal.css.js'
 

@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/client/modules"
   },
   "type": "module",
@@ -34,19 +34,19 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-host-webserver": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-host-webserver": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "files": [
     "src/*.js",
     "src/client/*.js"
   ],
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^",
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-host-webserver": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*",
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-host-webserver": "*"
   }
 }

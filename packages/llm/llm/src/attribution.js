@@ -24,7 +24,7 @@ const { version } = createRequire(import.meta.url)('../package.json')
 export const APP_IDENTITY = {
   product: 'freddie',
   version,
-  url: 'https://github.com/AnEntrypoint/freddie',
+  url: 'https://github.com/lanmower/freddie',
 }
 
 /**

@@ -7,7 +7,7 @@
 // pattern). The copy control's Menu is now the class-based FreddieMenu; it is
 // created once and updated via setProps rather than re-mounted every render.
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { IconCheckOutline16, IconCopyOutline16 } from './icons/index.js'
 import { renderMenu } from './Menu.js'

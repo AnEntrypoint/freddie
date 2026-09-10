@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/context/session-reference"
   },
   "type": "module",
@@ -44,29 +44,29 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@freddie/schemastery": "workspace:^",
+    "@freddie/schemastery": "*",
     "zod": "^4.4.3"
   },
   "peerDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-compaction": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-output-retention": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-query": "workspace:^",
-    "@freddie/freddie-typert-protocol": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-compaction": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-output-retention": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-query": "*",
+    "@freddie/freddie-typert-protocol": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-compaction": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-output-retention": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-query": "workspace:^",
-    "@freddie/freddie-typert-protocol": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-compaction": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-output-retention": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-query": "*",
+    "@freddie/freddie-typert-protocol": "*",
+    "@freddie/cordis": "*"
   }
 }

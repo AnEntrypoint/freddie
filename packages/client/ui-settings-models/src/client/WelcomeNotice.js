@@ -10,7 +10,7 @@
  * (`state.acknowledged`) rather than in an instance field.
  */
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import { Button } from '@freddie/freddie-client-ui-primitives'
 import { closeOnboardingModal, OnboardingModal } from './OnboardingModal.js'
 import css from './WelcomeNotice.css.js'

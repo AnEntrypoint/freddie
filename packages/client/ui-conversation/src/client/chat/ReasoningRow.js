@@ -5,7 +5,7 @@
  * useEffect becomes connectedCallback binding plus an explicit call after
  * each render, and re-render is an explicit applyDiff(this, vdom) call.
  */
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { DisclosureRow, IconThinkOutline14 } from '@freddie/freddie-client-ui-primitives'
 import { createThrottledVisualUpdate } from './use-throttled-visual-update.js'
 import a11yCss from './accessibility.css.js'

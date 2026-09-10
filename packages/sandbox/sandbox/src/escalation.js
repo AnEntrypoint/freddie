@@ -89,10 +89,8 @@ export function escalationHintMarker(subject) {
  * widening against the call's effective mode, then resolve the approval
  * channel, then map every outcome — the ordered fail-closed sequence both
  * enforcing families share. Returns the granted mode to stamp onto exactly
- * this call. A redundant request for the already-effective mode is a no-op,
- * so tool schemas shared by narrower and full-access sessions cannot turn an
- * otherwise-valid command into an error. Throws the distinct verbatim text
- * for every other path (a downgrading request, a missing approval service, an agent-less execution,
+ * this call; throws the distinct verbatim text for every other path (a
+ * non-widening request, a missing approval service, an agent-less execution,
  * a rejection, a cancellation, an unanswerable ask) — the tool registry turns
  * the throw into the call's isError result, and nothing has run. A
  * non-widening request never prompts a human.
@@ -102,10 +100,6 @@ export function escalationHintMarker(subject) {
  */
 export async function approveEscalation(request, approval) {
   const { requestedMode: mode, effectiveMode, justification, subject } = request
-  // Tool schemas are registry-global while the effective policy is per-call.
-  // A full-access session can therefore receive a stale/redundant request for
-  // danger-full-access; it grants no additional capability and needs no ask.
-  if (mode === effectiveMode) return effectiveMode
   // Strict widening is an EXECUTION check against the call's effective mode —
   // deliberately not a schema constraint (the enum is the closed target
   // vocabulary; the effective mode is per-call truth).

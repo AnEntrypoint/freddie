@@ -6,8 +6,10 @@
  * fiber in place. Every graph entry is a plugin bundle
  * — `immediately` rows differ only in stage-one prefetch (a boot
  * optimization), so all rostered plugin packages share these reload semantics;
- * normal packages (react family, cordis, shell, pure libs) are not entries
- * and shell changes still mean a page reload. Cascade is zero-touch:
+ * normal packages (react family, cordis, shell, pure libs) are not entries.
+ * Shell source changes remount AppWebEntry under `/__hmr/<rev>/` without
+ * `location.reload`, so `window` and the EventSource origin stay put.
+ * Cascade is zero-touch:
  * downstream fibers key their activation epoch on provider fiber uids
  * (vendor/cordis/src/fiber.ts `_refresh`), so replacing a provider fiber
  * re-cascades natively — reloading a data-layer plugin (connection/runtime)
@@ -87,6 +89,74 @@ function removeOwnedStyles(id) {
   }
 }
 
+const HMR_PREFIX = '/__hmr/'
+
+/**
+ * Point `<base href>` at `/__hmr/<rev>/` so the next native `import()` of
+ * the shell and every relative fetch lives in a new URL space. The host
+ * strips that prefix before matching routes, so the same files are served.
+ * @param rev - opaque cache-busting token from the `shell-rebuilt` frame.
+ */
+function installHmrBase(rev) {
+  const token = encodeURIComponent(String(rev))
+  let base = document.querySelector('base[data-freddie-hmr]')
+  if (base === null) {
+    base = document.createElement('base')
+    base.setAttribute('data-freddie-hmr', '')
+    document.head.prepend(base)
+  }
+  base.setAttribute('href', `${HMR_PREFIX}${token}/`)
+}
+
+/**
+ * Resolve a bare specifier through the page import map, then prefix it with
+ * `/__hmr/<rev>` so native import() cannot hit the previous module record.
+ * Import maps cannot be rewritten after the first module loads.
+ * @param specifier - import-map key.
+ * @param rev - cache-busting token.
+ * @returns the prefixed absolute URL.
+ */
+function prefixedImportUrl(specifier, rev) {
+  const script = document.querySelector('script[type="importmap"]')
+  if (script === null || script.textContent === null || script.textContent === '') {
+    throw new Error('client-hmr: no import map to prefix for shell remount')
+  }
+  const map = JSON.parse(script.textContent)
+  const url = map.imports?.[specifier]
+  if (typeof url !== 'string' || !url.startsWith('/')) {
+    throw new Error(`client-hmr: import map has no origin-absolute URL for "${specifier}"`)
+  }
+  return `${HMR_PREFIX}${encodeURIComponent(String(rev))}${url}`
+}
+
+const LIVE_SHELL_SPECIFIERS = [
+  '@freddie/freddie-client-web',
+  '@freddie/freddie-client-ui-slots',
+  '@freddie/freddie-client-ui-primitives',
+]
+
+async function transactRemount(rev) {
+  installHmrBase(rev)
+  const previous = globalThis.__FREDDIE_SHELL__
+  if (previous !== undefined && typeof previous.dispose === 'function') {
+    await previous.dispose()
+  }
+  const root = document.getElementById('root')
+  if (root === null) throw new Error('client-hmr: missing #root for shell remount')
+  const webUrl = prefixedImportUrl('@freddie/freddie-client-web', rev)
+  const { AppWebEntry } = await import(/* @vite-ignore */ webUrl)
+  const staticModules = {
+    'webjsx': (await import('webjsx')),
+    '@freddie/cordis': (await import('@freddie/cordis')),
+  }
+  await Promise.all(LIVE_SHELL_SPECIFIERS.slice(1).map(async (specifier) => {
+    staticModules[specifier] = await import(/* @vite-ignore */ prefixedImportUrl(specifier, rev))
+  }))
+  const next = new AppWebEntry(root, { staticModules })
+  globalThis.__FREDDIE_SHELL__ = next
+  await next.run()
+}
+
 /**
  * Mount the HMR driver: subscribe to the system SSE channel and hot-swap
  * rebuilt entries.
@@ -97,6 +167,14 @@ export function apply(ctx) {
   // client module loader package, `loader` from the vendored Loader).
   const modLoader = ctx.modules
   const loader = ctx.loader
+  const remountShell = transactRemount
+  const journal = []
+  const record = (event) => {
+    journal.push({ ts: Date.now(), ...event })
+    if (journal.length > 50) journal.shift()
+    globalThis.__FREDDIE_HMR__ = { events: journal.slice() }
+  }
+  globalThis.__FREDDIE_HMR__ = { events: [] }
 
   async function reload(frame) {
     const { id, entry: row, graphRev } = frame
@@ -106,15 +184,13 @@ export function apply(ctx) {
       return
     }
     if (row === undefined || row.id !== id || typeof row.url !== 'string' || typeof row.rev !== 'string' || typeof graphRev !== 'string') {
-      ctx.logger.warn(`client-hmr: rebuilt frame for "${id}" lacks a valid updated graph row, reloading`)
-      window.location.reload()
+      ctx.logger.warn(`client-hmr: rebuilt frame for "${id}" lacks a valid updated graph row, remounting shell`)
+      await remountShell(String(Date.now()))
       return
     }
-    // Replace the graph row before invalidating: prefetch() must import the
-    // new cache-keyed URL, not the boot-time row for this entry.
     if (!modLoader.updateGraphRow(row, graphRev)) {
-      ctx.logger.warn(`client-hmr: rebuilt frame for unknown graph row "${id}", reloading`)
-      window.location.reload()
+      ctx.logger.warn(`client-hmr: rebuilt frame for unknown graph row "${id}", remounting shell`)
+      await remountShell(String(Date.now()))
       return
     }
     // Invalidate first (drop stale factory + record — a live factory makes
@@ -164,43 +240,51 @@ export function apply(ctx) {
         // worse than reloading, since it looks like it worked. Take the
         // honest exit `shell-rebuilt` already takes.
         if (frame.definesCustomElements === true) {
+          // customElements.define binds a tag for the document's lifetime;
+          // remounting the shell cannot replace the class. A full reload is
+          // the only path that observes the edit.
           ctx.logger.info(`client-hmr: "${frame.id}" defines custom elements, reloading`)
+          record({ kind: 'custom-elements-reload', id: frame.id })
           window.location.reload()
           break
         }
+        record({ kind: 'plugin-rebuilt', id: frame.id, rev: frame.rev })
         queue = queue.then(() => reload(frame)).catch((error) => {
           // reload() tears down the OLD (working) fiber's effects/styles
           // BEFORE the new bundle's apply is known to succeed (see the
           // module comment's documented "no rollback" ordering) -- so a
           // failed reload does not leave the old UI in place, it leaves
           // NOTHING in place: the entry's slot output is gone and nothing
-          // ever replaced it, which renders as a blank/white screen with no
-          // visible error. Logging alone (the prior behavior) is invisible
-          // to the user and, worse, permanently stuck: this dev channel
-          // never retries a failed id on its own. A full reload re-runs the
-          // boot kernel's own try/catch (AppWebEntry.run -- see boot.js),
-          // which DOES render a visible failure page on a genuine bug,
-          // instead of leaving a torn-down DOM with only a console log.
-          ctx.logger.error(`client-hmr: reload of "${frame.id}" failed, reloading`)
+          // ever replaced it. Remount the shell under a fresh `/__hmr/<rev>/`
+          // prefix instead of location.reload: window identity survives and
+          // AppWebEntry.run still renders the visible failure page.
+          ctx.logger.error(`client-hmr: reload of "${frame.id}" failed, remounting shell`)
           ctx.logger.error(error)
-          window.location.reload()
+          record({ kind: 'plugin-reload-failed', id: frame.id })
+          return remountShell(String(Date.now()))
         })
         break
       case 'shell-rebuilt':
-        // Shell code (the boot kernel, ui-renderer, and everything else Vite
-        // bundles into apps/web/dist) has no fiber-level hot-swap path — it
-        // is not a loader entry, so there is nothing here to invalidate and
-        // re-materialize. A full reload is the correct, and only, response.
-        ctx.logger.info('client-hmr: shell rebuilt, reloading')
-        window.location.reload()
+        // Shell code (apps/web + packages/client/web) is not a loader entry.
+        // Remount AppWebEntry after rewriting document.baseURI via a
+        // `/__hmr/<rev>/` prefix so native import() sees a new URL space.
+        ctx.logger.info('client-hmr: shell rebuilt, remounting')
+        record({ kind: 'shell-rebuilt', rev: frame.rev })
+        queue = queue.then(() => remountShell(frame.rev)).catch((error) => {
+          ctx.logger.error('client-hmr: shell remount failed')
+          ctx.logger.error(error)
+          record({ kind: 'shell-remount-failed', rev: frame.rev })
+        })
         break
       case 'graph':
-        // The server sends this on every EventSource connection. A different
-        // graph revision means this page missed one or more rebuilt frames;
-        // a full reload restores boot and module-table state atomically.
         if (frame.graph?.rev !== undefined && frame.graph.rev !== modLoader.manifest.rev) {
-          ctx.logger.info('client-hmr: graph changed while disconnected, reloading')
-          window.location.reload()
+          ctx.logger.info('client-hmr: graph changed while disconnected, remounting shell')
+          record({ kind: 'graph-mismatch', rev: frame.graph.rev })
+          queue = queue.then(() => remountShell(frame.graph.rev)).catch((error) => {
+            ctx.logger.error('client-hmr: graph-mismatch remount failed')
+            ctx.logger.error(error)
+            record({ kind: 'graph-mismatch-remount-failed', rev: frame.graph.rev })
+          })
         }
         break
       default:

@@ -16,7 +16,7 @@
  * regardless of namespace.
  */
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import katex from 'katex'
 
 /**

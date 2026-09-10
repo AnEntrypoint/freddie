@@ -11,7 +11,7 @@
 // nested run_code sub-dispatch, a legacy generic result) surfaces its
 // model-facing text through ToolRow's Output section instead.
 
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconSearchOutline16 } from '@freddie/freddie-client-ui-primitives'
 import { searchCardModel } from '../models/search-card-model.js'
 import { toolRowModel } from '../models/tool-call-model.js'
@@ -56,7 +56,6 @@ export function SearchRow({ toolName, block, inspect, t }) {
       errorSummary: model.errorSummary,
       search: search,
       state: model.state,
-      timing: model.timing,
       inspect: inspect,
       }) } })
   )

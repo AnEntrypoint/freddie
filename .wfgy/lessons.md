@@ -33,13 +33,6 @@ What drifted / what went wrong: session.models failed for EVERY real session wit
 Fix / resolution: Restart the server and re-verify. Confirmed live: session.models returns the real provider/model groups, and the UI shows "Grok 4.6 (xAI, via acptoapi) · High" with To-dos and the Ongoing Goal intact.
 Generalizes to: This is the third stale-process trap this session (the earlier two: host plugins not hot-reloading, and a lockfile that only installed because of a warm local cache). Before bisecting ANY behavior against source, restart the process first and re-confirm the symptom still reproduces -- otherwise the bisect is measuring process age, not code. A bisect whose "fix" is a step that also restarts the system has proven nothing. Note the boot lock: `.litebox-cache/boot.lock` survives a killed process, and a stale one blocks the next boot with a message that reads like a live conflict; check whether the named pid is actually running before waiting on it.
 
-## 2026-09-05 -- per-history-item render work, not a leak, was the client's input-lag source
-
-Goal (G): Get the freddie web client's interactive latency as low as measurably achievable via repeated flamegraph/fix rounds.
-What drifted / what went wrong: Input lag scaled with SESSION HISTORY length rather than with visible content, which read like a leak or a slow function. It was neither: `ToolRow` built every collapsed row's full card body (ReadBlock/CodeBlock -> shiki TextMate tokenization) on every render regardless of open state, and `ProducedFiles` re-ran a write-then-read-width probe loop (forced reflow per candidate label) on every render regardless of whether its paths had changed. A CDP trace's own insight summary showed only a trivial ForcedReflow and hid a 33927ms shiki frame; a bottom-up self-time aggregation over the same ProfileChunk samples surfaced it immediately.
-Fix / resolution: Gated each expensive path on the state that actually determines it -- an `#everOpened` latch for ToolRow, a `pathsKey` identity check for ProducedFiles.
-Generalizes to: When a cost scales with history length instead of visible content, look for per-item work running unconditionally on every render. Prefer bottom-up self-time over a profiler's insight summary when the cost is spread across many small calls -- the summary view can hide exactly the frame that matters.
-
 ## 2026-09-06 -- host HMR was already working; I reported it broken from an unreliable probe
 
 Goal (G): Determine and finish any remaining work on host-plugin hot reload.

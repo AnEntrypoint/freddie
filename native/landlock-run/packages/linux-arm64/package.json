@@ -4,7 +4,7 @@
   "description": "Prebuilt landlock-run Landlock launcher binary for linux-arm64 (static musl) — resolved as a file path by @freddie/node-addon-landlock-run, never imported",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/freddie/freddie.git",
     "directory": "native/landlock-run/packages/linux-arm64"
   },
   "os": [

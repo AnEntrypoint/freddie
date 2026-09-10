@@ -9,7 +9,7 @@
  * a per-instance counter assigned in the constructor.
  */
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import css from './PluginsSettingsSection.css.js'
 
 /** Cast a renderSlot() RenderOutput result into a webjsx-embeddable child. */

@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/skill/skill-badge"
   },
   "type": "module",
@@ -28,13 +28,13 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-skill": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-skill": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-skill": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-skill": "*",
+    "@freddie/cordis": "*"
   }
 }

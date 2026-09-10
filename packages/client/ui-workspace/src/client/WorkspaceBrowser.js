@@ -23,7 +23,7 @@
  * bound by the framework's render machinery, not React hooks, so no manual
  * subscribe/unsubscribe wiring is needed here.
  */
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   Button, IconCloseFill14, IconPersonalizationOutline16,

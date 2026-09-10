@@ -19,7 +19,7 @@
  * webjsx custom element: instance fields replace state/refs,
  * connectedCallback/disconnectedCallback replace effect mount/cleanup.
  */
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   FishLogo, IconNewChatOutline16, IconPanelLeftOutline16, renderTooltip,

@@ -13,7 +13,7 @@ To write plugins for the harness itself — loaded from a `cordis.yml` and drive
 You need a clone of this repository with dependencies installed; the [development guide](../development.md#setup-tutorial) lists the prerequisites. No API key is needed for this tutorial; every example runs keylessly.
 
 ```sh
-git clone https://github.com/AnEntrypoint/freddie.git
+git clone https://github.com/lanmower/freddie.git
 cd freddie
 pnpm install
 ```
@@ -55,4 +55,4 @@ The examples use three TypeScript features beyond ordinary modern JavaScript:
 
 Chapter 5 also uses an `interface` to describe a configuration object's fields and a generic type such as `Schema<Config>` to say which object fields a schema validates. You can copy those declarations as shown; the surrounding text explains what each one connects.
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/AnEntrypoint/freddie)
+[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)

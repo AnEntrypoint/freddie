@@ -1,7 +1,7 @@
 // Button: token-styled button atom. Variants map to the --freddie-alias-button-*
 // fill families; no framework imports, all behavior via props.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import css from './Button.css.js'
 

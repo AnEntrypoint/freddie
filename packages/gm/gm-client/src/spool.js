@@ -149,8 +149,6 @@ export async function dispatch({
     // ENOENT: nothing leftover at this key. Any other syscall is unexpected.
     if (!isMissingPathError(error)) throw error
   })
-  // The daemon claims `.txt` files as soon as they appear. Publish a complete
-  // body with one same-directory rename so it never observes a torn request.
   const stagingPath = `${inPath}.tmp`
   const content = rawBody === undefined
     ? JSON.stringify({ ...body, session_id: body.session_id ?? sessionId })
@@ -188,9 +186,6 @@ export async function dispatch({
   let polls = 0
   while (Date.now() < deadline) {
     throwIfAborted(signal)
-    // The ready sentinel is the dispatch's authoritative completion signal.
-    // Avoid global spool and daemon probes until several missed fast polls so
-    // lightweight parallel verbs return promptly without metadata amplification.
     if (await exists(readyPath)) return takeReady()
     polls += 1
     if (polls >= HEALTH_CHECK_AFTER_POLLS) {
@@ -200,7 +195,7 @@ export async function dispatch({
       if (await exists(readyPath)) return takeReady()
       if (died) {
         await dropClaim()
-        return Promise.reject(new Error(`gm spool: daemon died while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`))
+        throw new Error(`gm spool: daemon died while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
       }
       if (hung) {
         await dropClaim()
@@ -208,7 +203,7 @@ export async function dispatch({
         const label = kind === 'project-heartbeat-stale'
           ? 'project-heartbeat-stale (machine-wide daemon-status.json is still fresh; project .status.json ts froze)'
           : 'daemon-status-stale (machine-wide daemon-status.json ts is also stale)'
-        return Promise.reject(new Error(`gm spool: daemon hung (${label}) while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`))
+        throw new Error(`gm spool: daemon hung (${label}) while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
       }
     }
     await sleep(polls < HEALTH_CHECK_AFTER_POLLS ? Math.min(pollIntervalMs, INITIAL_POLL_INTERVAL_MS) : pollIntervalMs, signal)

@@ -13,7 +13,6 @@ The package root exposes the Cordis plugin contract and `DeepSeekAdapter`; wire 
   name: '@freddie/freddie-llm-deepseek'
   config:
     apiKeyEnv: DEEPSEEK_API_KEY  # default; resolved per request via ctx.credentials, then the environment
-    allowUnauthenticated: false  # opt in only for a trusted gateway that authenticates upstream itself
     baseURL: https://api.deepseek.com # optional; $DEEPSEEK_BASE_URL then the public API when omitted
     thinking: enabled        # optional; provider default is enabled
     reasoningEffort: high    # optional; off | low | high | max — omitted ⇒ high

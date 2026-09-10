@@ -1,4 +1,4 @@
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   indexSubagentDescendants,
 } from '@freddie/freddie-client-runtime/client'

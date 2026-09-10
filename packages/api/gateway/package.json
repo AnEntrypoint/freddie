@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/api/gateway"
   },
   "type": "module",
@@ -41,19 +41,19 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@freddie/freddie-typert-protocol": "workspace:^"
+    "@freddie/freddie-typert-protocol": "*"
   },
   "peerDependencies": {
-    "@freddie/freddie-client-connection": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-typert-registry": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-client-connection": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-typert-registry": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-client-connection": "workspace:^",
-    "@freddie/freddie-host-webserver": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-typert-registry": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-client-connection": "*",
+    "@freddie/freddie-host-webserver": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-typert-registry": "*",
+    "@freddie/cordis": "*"
   }
 }

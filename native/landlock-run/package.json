@@ -17,6 +17,6 @@
     "release:verify-packed-install": "node ./scripts/verify-packed-install.mjs"
   },
   "devDependencies": {
-    "@freddie/node-addon-landlock-run": "workspace:*"
+    "@freddie/node-addon-landlock-run": "*"
   }
 }

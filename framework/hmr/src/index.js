@@ -60,8 +60,9 @@ class Hmr extends Service {
   refreshTasks = new Set()
 
   /**
-   * Changes from externals will always trigger a full reload.
-   * Externals are the dependency tree of the CLI worker entry point.
+   * Dependency tree of the CLI worker entry. These used to force
+   * `loader.exit()`; they now take the same in-process reload path as
+   * application modules (divergence log entry 21).
    */
   externals
 
@@ -72,8 +73,8 @@ class Hmr extends Service {
   accepted
 
   /**
-   * Files that should NOT be reloaded.
-   * Includes externals and files whose dependents are all declined.
+   * Files that should NOT be reloaded: residue of analyzeChanges (dependents
+   * all declined) plus plugin entry URLs already claimed for this pass.
    */
   declined
 
@@ -88,6 +89,12 @@ class Hmr extends Service {
    * pass reloads the same files once the work reports quiescent.
    */
   deferredReload = null
+
+  /**
+   * Bounded journal of reload decisions. Leaf fields only — never live
+   * fibers, registry entries, or module jobs.
+   */
+  journal = []
 
   config
 
@@ -231,24 +238,25 @@ class Hmr extends Service {
         return
       }
 
-      // A dependency can be introduced or removed without changing its parent
-      // entry file. Reload cached modules for every non-config source event so
-      // the next import either adopts the new dependency or reports its absence.
       if (kind === 'add' && !loader.internal.loadCache.has(pathToFileURL(filename).href)) return
       const url = pathToFileURL(filename).href
 
-      // Full reload: the changed file is part of the framework
-      if (this.externals.has(url)) return loader.exit()
-
-      // Partial reload: the file is in the ESM loadCache
-      // In Node 24, both CJS and ESM modules imported via import() end up
-      // in loadCache, so this check covers all module formats.
-      if (loader.internal.loadCache.has(url)) {
+      // Partial reload, including the CLI entry's own dependency tree
+      // (`externals`). A framework-level edit used to call `loader.exit()`
+      // and kill the web process; that is the opposite of in-process HMR.
+      // Externals stay eligible for cache-bust + plugin reload. The process
+      // does not exit. Divergence log entry 21.
+      if (this.externals.has(url) || loader.internal.loadCache.has(url)) {
         this.stashed.add(url)
+        this.recordJournal({
+          kind: this.externals.has(url) ? 'external-change' : 'module-change',
+          url,
+        })
         return partialReload()
       }
 
       this.ctx.emit('hmr/change', url)
+      this.recordJournal({ kind: 'unhandled-change', url })
     }
     this.watcher.on('add', path => onChange('add', path))
     this.watcher.on('change', path => onChange('change', path))
@@ -320,15 +328,18 @@ class Hmr extends Service {
    * Classify changed files into accepted (should reload) and declined (should not).
    *
    * A file is accepted if it's directly changed (stashed) or if any of its
-   * dependents are accepted. A file is declined if all its dependents are
-   * declined or if it's an external.
+   * dependents are accepted. A file is declined if all remaining dependents
+   * are declined.
    */
   async analyzeChanges() {
     const pending = []
     const queued = new Set()
 
     this.accepted = new Set(this.stashed)
-    this.declined = new Set(this.externals)
+    // Externals used to seed `declined` so a CLI-entry dependency forced
+    // `loader.exit()`. They now reload in-process like any other accepted
+    // module; declined is only the residue of analyzeChanges.
+    this.declined = new Set()
 
     const isExcluded = (url) => url.startsWith('node:') || url.includes('/node_modules/')
 
@@ -403,7 +414,9 @@ class Hmr extends Service {
       // Already waiting: the earlier subscription still covers these changes,
       // which accumulated in `stashed` behind it.
       if (this.deferredReload !== null) return
-      this.ctx.logger.info('reload deferred: %s', typeof busy === 'string' ? busy : 'work in flight')
+      const reason = typeof busy === 'string' ? busy : 'work in flight'
+      this.ctx.logger.info('reload deferred: %s', reason)
+      this.recordJournal({ kind: 'deferred', reason })
       const off = this.ctx.on('hmr/idle', () => {
         this.stopDeferring()
         void this.partialReload()
@@ -560,7 +573,32 @@ class Hmr extends Service {
     }
 
     this.ctx.emit('hmr/reload', reloads)
+    this.recordJournal({
+      kind: 'reload',
+      plugins: [...reloads.values()].map(entry => entry.filename),
+    })
     this.stashed = new Set()
+  }
+
+  /**
+   * Append one journal row, dropping the oldest when the bound is reached.
+   * @param event - leaf-only reload decision.
+   */
+  recordJournal(event) {
+    this.journal.push({ ts: Date.now(), ...event })
+    if (this.journal.length > 50) this.journal.shift()
+  }
+
+  /**
+   * Queryable HMR snapshot for inspect/debug. Owned leaf data only.
+   * @returns deferred flag, stashed URLs, and recent journal rows.
+   */
+  snapshot() {
+    return {
+      deferred: this.deferredReload !== null,
+      stashed: [...this.stashed],
+      events: this.journal.slice(),
+    }
   }
 
   // No `.i18n({ 'en-US': enUS, 'zh-CN': zhCN })` and no `./locales/*.yml`

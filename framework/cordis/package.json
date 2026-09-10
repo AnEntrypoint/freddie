@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "framework/cordis"
   },
   "sideEffects": false,
@@ -26,8 +26,8 @@
   "author": "Shigma <shigma10826@gmail.com>",
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/cordis-plugin-include": "workspace:^",
-    "@freddie/cordis-plugin-loader": "workspace:^"
+    "@freddie/cordis-plugin-include": "*",
+    "@freddie/cordis-plugin-loader": "*"
   },
   "peerDependenciesMeta": {
     "@freddie/cordis-plugin-include": {
@@ -39,6 +39,6 @@
   },
   "dependencies": {
     "@standard-schema/spec": "^1.1.0",
-    "@freddie/cosmokit": "workspace:^"
+    "@freddie/cosmokit": "*"
   }
 }

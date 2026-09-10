@@ -7,7 +7,7 @@
  * which keys to dispatch.
  */
 
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import css from './PluginsSettingsSection.css.js'
 
 /** Cast a renderSlot() RenderOutput result into a webjsx-embeddable child. */

@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/llm/llm-deepseek"
   },
   "type": "module",
@@ -27,35 +27,35 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-attachment": "workspace:^",
-    "@freddie/freddie-atomic-write": "workspace:^",
-    "@freddie/freddie-brand": "workspace:^",
-    "@freddie/freddie-credentials": "workspace:^",
-    "@freddie/freddie-launch-environment": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-home-paths": "workspace:^",
-    "@freddie/freddie-settings": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/freddie-anonymous-user-id": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-attachment": "*",
+    "@freddie/freddie-atomic-write": "*",
+    "@freddie/freddie-brand": "*",
+    "@freddie/freddie-credentials": "*",
+    "@freddie/freddie-launch-environment": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-home-paths": "*",
+    "@freddie/freddie-settings": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/freddie-anonymous-user-id": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
     "eventsource-parser": "^3.1.0",
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-attachment": "workspace:^",
-    "@freddie/freddie-atomic-write": "workspace:^",
-    "@freddie/freddie-brand": "workspace:^",
-    "@freddie/freddie-credentials": "workspace:^",
-    "@freddie/freddie-launch-environment": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-home-paths": "workspace:^",
-    "@freddie/freddie-settings": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/freddie-anonymous-user-id": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-attachment": "*",
+    "@freddie/freddie-atomic-write": "*",
+    "@freddie/freddie-brand": "*",
+    "@freddie/freddie-credentials": "*",
+    "@freddie/freddie-launch-environment": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-home-paths": "*",
+    "@freddie/freddie-settings": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/freddie-anonymous-user-id": "*",
+    "@freddie/cordis": "*"
   }
 }

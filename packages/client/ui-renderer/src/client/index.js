@@ -23,7 +23,7 @@
  * kernel output with no client-side state to preserve, so this is a pure
  * simplification with no behavioral loss for this composition.
  */
-import { applyDiff } from 'webjsx'
+import { applyDiff } from '@freddie/webjsx'
 import { createSlotRenderer } from './scoped-slots.js'
 import { buildRenderApp } from './app.js'
 

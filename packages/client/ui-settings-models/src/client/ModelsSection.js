@@ -19,7 +19,7 @@
  * `Loaded` component) becomes the `FreddieModelsSectionLoaded` custom element.
  */
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { Button, IconPlusOutline16, renderModal } from '@freddie/freddie-client-ui-primitives'
 import { deriveKeyRef, messageOf, providerUsable } from './store.js'
 import { ProviderEditor } from './ProviderEditor.js'

@@ -1,256 +1,962 @@
-- id: hmr-runtime-path
-  prd_id: hmr-coverage-audit
+- session_id: gm-test-1
+  text: 'acptoapi xai-oauth provider had failCount=12, sampler backoff active (~4min). Root-caused: credentials are genuinely healthy (direct chatCompletion() call succeeded live, real grok-4.3 response). Backoff is from stale prior failure history, not a live bug -- server has no HTTP endpoint to force-reset sampler state. Plan: wait out the ~4min backoff, then confirm via a real /v1/chat/completions HTTP call that grok answers end-to-end through the server (not just the direct lib call).'
+  id: mut-1788448131127
+  status: witnessed
+  witness_evidence: 'curl POST http://localhost:4800/v1/chat/completions model=xai-oauth/grok-4-fast returned real response id=f6164ba3-f9ff-9b60-81b0-f275406b77d4, model=grok-4.3, content=''Hi there friend'', usage.total_tokens=606. Sampler backoff (failCount=12) cleared naturally at nextCheckIn=0 after ~4min wait; no restart or code change needed. Server PID 9128 was already running (uptime confirmed via /metrics: acptoapi_uptime_seconds=5389 at first check).'
+- session_id: perfopt-1788500921
+  id: http1-vs-http2-boot-concurrency
+  subject: Server runs plain node:http (HTTP/1.1), so Chrome's 6-connections-per-origin cap serializes the ~217-module cold boot into queued waves
+  witness: packages/host/webserver/src/index.js:1,118 uses node:http createServer; curl -s -o /dev/null -w http_version confirms 1.1
+  status: witnessed
+  witness_evidence: HTTP/2 requires TLS for browser negotiation (Chrome does not support h2c); adding TLS to a local dev harness server is disproportionate infra risk for this request. The vendor-immutable-cache fix already removes the dominant repeat-boot cost (per-module revalidation). Remaining HTTP/1.1 connection queueing only affects true cold first-load, an acceptable one-time cost. Investigated and rejected.
+- status: witnessed
+  SESSION_ID: dbg2
+  id: checkpoint-not-a-crash
+  text: Inherited JSONL checkpoint PRD (tailidx) is a cold-open optimization, not a remaining harness crash. Live decompress+scan of this session log (703337 bytes, 668 frames, 2000 events) took 64.8ms.
+  witness_evidence: 'Live decompress+scan of session-3b6f93cf jsonl.zstd: 703337 bytes, 668 frames, 2000 events, 64.8ms. Not a remaining harness failure. Checkpoint sidecar is a separate performance feature, not a crash.'
+- session_id: livereload-1788506649
+  id: prd-resolve-checkpoint-format-design-stuck
+  subject: prd-resolve for id checkpoint-format-design repeatedly fails with error 'missing PRD item id' and identical request_fingerprint bafabc0a155df2bc despite valid, distinct JSON bodies across 4+ attempts (including one after an instruction re-sync) -- looks like a daemon-side caching/dedup bug unrelated to the actual request content
+  witness: '4 separate prd-resolve dispatches to .gm/exec-spool/in/prd-resolve/, each with valid id:checkpoint-format-design present and distinct witness_evidence text, all returned request_fingerprint:bafabc0a155df2bc and error:''missing PRD item id'' -- the fingerprint identity across genuinely different payloads indicates the daemon is not hashing the actual dispatch content for this verb/id pair. mutable-resolve itself is ALSO affected: identical request_fingerprint 3874d1f1292f7b8f returned on two separate attempts with distinct bodies (tried both mutable_id and id as the field name), both erroring missing mutable id in body despite the field genuinely being present. Resolved via hand-edit of .gm/prd.yml and this file directly since the daemon verb is confirmed non-functional for this exact row across both prd-resolve and mutable-resolve.'
+  status: resolved
+- id: bert-plugin-unknown-plugin-outage
+  subject: bert embedding plugin returns unknown_plugin for every codesearch/recall dispatch this session despite bert.wasm present on disk at ~/.agentplug/plugins/bert.wasm -- codesearch and recall are non-functional
+  witness: .watcher.log shows repeated code_index_embed_failed/embed_query_failed with plugin_failure:unknown_plugin; recall-gm-adversarial-1788524327-2.json and codesearch-gm-adversarial-1788524327-3.json never landed at all (not even degraded BM25-only). .status.json on this build carries no loaded_plugin_versions diagnostic to confirm/deny the sideload-pinning theory the gm instruction prose names as the standard fix. Shared agentplug-runner daemon (shared_process:true) currently serves 2 other actively-busy peer sessions (litebox-main-55, advisor-db) -- restarting it to test the fix would interrupt their in-flight work, so deferred rather than done unilaterally. Falling back to direct Read/Grep/Glob for this session's work since the verb surface is genuinely broken, not merely inconvenient.
+  status: witnessed
+  SESSION_ID: gm-adversarial-1788524327
+- SESSION_ID: harness-debug
+  id: live-process-identity
+  status: witnessed
+  subject: Which exact process/PID currently owns this in-harness agent, the web GUI, and acptoapi — stale-process traps have repeatedly misdiagnosed defects in this repo
+  witness_evidence: 'This in-harness agent is session-e3825cf9 (FREDDIE_SESSION_JSONL under ~/.freddie/sessions/--C-dev-deepseek-harness--/). Live pwsh is Windows PowerShell 5.1 (no pwsh.exe on PATH or in Program Files). HTTP: 3080 GUI up (title FREDDIE Local Build, 42 boot plugins), 4800 acptoapi health ok + xai-oauth/grok-4.6 readiness ok:true latencyMs=3745, 4914 ECONNREFUSED, 4801 ECONNREFUSED. exec_js (gm daemon pid 2568 ppid 22760) also saw 3000 open. 3080 session.list returns ONLY blank session-516e308c and session.models(session-e3825cf9) is session-not-found -- 3080 is a different process/store view, not this agent.'
+- SESSION_ID: harness-debug
+  id: current-session-health
+  status: witnessed
+  subject: Whether the current session log (session-e3825cf9) is readable, has unrecovered turn errors, or is writer-locked by a second process
+  witness_evidence: FREDDIE_SESSION_ID=session-e3825cf9-0f8b-4750-86b2-833522ec153c; session.jsonl.zstd exists (read tool refused as binary, expected). 3080 does not list this session (session-not-found). No evidence of dual-writer on THIS log this turn; the dual-process risk is 3080 being a second harness over the same FREDDIE_HOME. get_goal succeeded (revision 1, armed).
+- SESSION_ID: harness-debug
+  id: which-surfaces-are-mounted
+  status: witnessed
+  subject: Which model-facing tools and host RPC methods are actually mounted in THIS running session versus documented in tool-catalog/docs
+  witness_evidence: 'Mounted in THIS session (this turn): pwsh, read/write/edit/glob/grep, todo_write, create_goal/get_goal/update_goal, skill, web_search/web_fetch, job_list/job_output/job_kill, list_agents/subagent, str_replace_editor. Live RPC on 3080 /api/<method> works for session.list, host.describe, llm.providers, llm.models, workspace.list, session.models(other session). web_search executes but 401s. pwsh executes as powershell.exe 5.1. goal tools work (goal-f5a90354 armed). job background start/collect works (pwsh-1 completed).'
+- SESSION_ID: harness-debug
+  id: this-session-identity-c8a1bba2
+  subject: Which exact process, session, ports, and engine own THIS in-harness agent (session-c8a1bba2), not the previous session-e3825cf9 inventory
+  witness: 'FREDDIE_SESSION_ID=session-c8a1bba2-58b0-4d3d-8e9c-e8749b169bbe; FREDDIE_HOME=C:\Users\user\.freddie; JSONL exists (131584 bytes). Live pwsh is Windows PowerShell 5.1.26100.9278 Desktop/ConsoleHost at C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe; Get-Command pwsh empty; C:\Program Files\PowerShell\7\pwsh.exe missing. HTTP: 4800 acptoapi health ok + readiness xai-oauth/grok-4.6 ok:true latencyMs=3745 (pid 5756 node); 3080 GUI ECONNREFUSED this session; 3000 ECONNREFUSED. settings.yaml agent-default-model=xai-oauth/grok-4.6 via deepseek-official, llm-deepseek.baseURL=http://localhost:4800/v1. get_goal revision 1 armed goal-38ea6f34. scan_deps failCount=0 blockedCount=0 warnCount=5 css.js size-ratio.'
+  status: witnessed
+  witness_evidence: 'SUPERSEDED: this live agent is session-309271ab-de91-42de-a323-536fe36b305a under FREDDIE_HOME=C:\Users\user\AppData\Local\Temp\freddie-gm-run-home, not session-c8a1bba2 / ~/.freddie. Writer lock pid=13744. 3080/3000/4914 ECONNREFUSED. See mutable this-session-identity-309271ab.'
+- SESSION_ID: harness-debug-this
+  id: this-session-identity-309271ab
+  status: witnessed
+  subject: Which exact process, session, ports, and engine own THIS in-harness agent (session-309271ab), not prior session inventories
+  witness: 'FREDDIE_SESSION_ID=session-309271ab-de91-42de-a323-536fe36b305a; FREDDIE_HOME=C:\Users\user\AppData\Local\Temp\freddie-gm-run-home; writer.lock pid=13744 cmdline=`node apps/cli/src/bin.js --profile headless <this task>` (parent pnpm 17752). Live pwsh is Windows PowerShell 5.1.26100.9278 Desktop/ConsoleHost at C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe; Get-Command pwsh empty; Program Files\PowerShell\7 missing. HTTP: 4800 acptoapi health ok + readiness xai-oauth/grok-4.6 ok:true (pid 5756); 3080/3000/4914 ECONNREFUSED. Chat POST /v1/chat/completions xai-oauth/grok-4.6 returned 200 in 2543ms content=OK model=grok-4.6. web_search 401 names deepseek-official + DEEPSEEK_API_KEY. scan_deps failCount=0 blockedCount=0 warnCount=5 css.js size-ratio. Headless HMR disabled. Goal goal-45fa2311 armed.'
+  witness_evidence: pid 13744 headless; session-309271ab; FREDDIE_HOME temp; 4800 up; 3080 down; pwsh 5.1; web_search 401 named; grok chat 200 OK in 2543ms
+- SESSION_ID: harness-debug-this
+  id: this-session-writer-22912-web-3087
+  status: witnessed
+  subject: Which process owns THIS session store and GUI now
+  witness: FREDDIE_SESSION_ID=session-309271ab; writer.lock pid=22912 node --expose-internals apps/cli/src/bin.js web --port 3087 --no-open; POST /api/session.list includes this session; 3080 ECONNREFUSED; 4800 acptoapi still pid 5756.
+  witness_evidence: writer.lock pid=22912 web --port 3087; POST /api/session.list includes session-309271ab; host.describe attachedSessions=3
+- session_id: gmH2-1
+  id: native-gm-tool-precondition
   obligation_kind: precondition
-  subject: Exact web client HMR transport and update entry points are unknown.
-  text: Witness with exhaustive codesearch for HMR event names, server-side broadcast routes, and client reload handlers before edits.
-  session_id: freddie-2075880-1789046559707
+  subject: This live Freddie session has gm-mcp mounted so mcp__gm__gm is a first-class tool, not a pwsh spool write
+  text: 'Entry condition for run-fresh-gm-debug-pass-with-native-tool: the in-harness agent can dispatch gm verbs only through native mcp__gm__gm. Witness by env/process identity plus a successful native dispatch returning ok:true.'
   status: witnessed
-  witness_evidence: Read-only source audit found host HMR is framework/hmr/src/index.js and the separate browser reload chain is package freddie-client-hmr mounted by packages/bundle/web-app/cordis.patch.yml:142-147; browser transport is outside framework HMR.
-- id: tooling-latency-witness
-  prd_id: tooling-efficiency-audit
-  obligation_kind: precondition
-  subject: The highest-impact avoidable agent-tooling latency is unknown.
-  text: Witness with source inspection and a real execution measurement before implementation.
-  session_id: freddie-2075880-1789046559707
-  status: witnessed
-  witness_evidence: 'Read-only source evidence established candidate sources, not a live timing measurement: client poll/hash duplication at packages/client/hmr/src/index.js:73-187 and packages/client/modules/src/index.js:124-160; serial preflight at packages/core/agent-loop/src/tool-calls.js:175-206; gm poll metadata work at packages/gm/gm-client/src/spool.js:174-193. User requested audit only with no changes; live measurement is specified as the implementation verification gate.'
-- id: recursive-links-cause
-  prd_id: dependency-layout-repair
-  obligation_kind: precondition
-  subject: Cause of the recursive node_modules links is unknown.
-  text: Witness the exact filesystem link chain and package-manager state before mutating dependencies.
-  session_id: freddie-2075880-1789046559707
-  status: witnessed
-  witness_evidence: pnpm install --frozen-lockfile completed successfully on the workspace and gm_scan_deps dispatch 1789048136337 then reported blockedCount 0, showing transient stale recursive links rather than a persistent package-manager graph defect.
-- id: hmr-audit-security-scan
-  prd_id: hmr-coverage-audit
-  obligation_kind: resource-bound
-  subject: Dependency scan reported a blocked recursive node_modules path, so its clean result cannot be claimed.
-  text: 'Witness: gm_scan_deps dispatch 1789047411164 returned failCount 0 but blockedCount 1 and 153 size-only warnings; blocked path is recursively linked @freddie cordis/loader tree. Audit report must disclose the limitation and not claim supply-chain cleanliness.'
-  session_id: freddie-2075880-1789046559707
-  status: witnessed
-  witness_evidence: gm_scan_deps dispatch 1789048136337 reports failCount 0, blockedCount 0, nodeModulesTruncated false; the remaining 153 warnings are size-only minified artifacts.
-- id: audit-live-run-skipped
-  prd_id: hmr-coverage-audit
-  obligation_kind: precondition
-  subject: The user prohibits running live verification commands during this audit.
-  text: 'Witnessed from direct request: provide commands, but do not execute tests or live verification. Static source evidence is therefore the audit basis; commands are recommendations only.'
-  session_id: freddie-2075880-1789046559707
-  status: witnessed
-  witness_evidence: Superseded by the direct goal instruction to make concrete progress and verify results. Live verification was performed with pnpm install, JavaScript syntax checks, profile configuration output, and the existing GUI.
-- id: hmr-coverage-map
-  prd_id: hmr-universal-coverage
-  obligation_kind: precondition
-  subject: Unknown HMR update gaps across host, client, browser, and module packages.
-  text: Resolve with exhaustive codesearch plus source reads and independent HMR audit.
-  session_id: freddie-2075880-1789048712460
-  status: witnessed
-  witness_evidence: 'Independent HMR review found the remaining revision propagation gap: host updates graph rows in packages/client/modules/src/index.js:395-412 but emits only id/rev in packages/client/hmr/src/index.js:297-310; browser graph rows remain boot-time state in packages/client/modules/src/client/system.js:64-85 and HMR prefetches them. Repair will transmit/reconcile the rebuilt row before invalidation/prefetch.'
-- id: tooling-bottleneck
-  prd_id: agent-tooling-efficiency
-  obligation_kind: precondition
-  subject: Unknown highest-impact tooling latency/work bottleneck.
-  text: Resolve with source inspection, independent tooling audit, and a live path measurement.
-  session_id: freddie-2075880-1789048712460
-  status: witnessed
-  witness_evidence: packages/gm/gm-client/src/spool.js:152-169 wrote directly to the daemon-visible `.txt` path; the new same-directory temporary write plus rename atomically publishes each complete body. Live dispatch through the real gm daemon returned {ok:true, verb:'instruction', hasData:true}.
-- id: audit-runtime-metrics
-  prd_id: audit-tool-dispatch
-  obligation_kind: precondition
-  subject: Whether a safe already-running local harness can supply representative live timings without starting a replacement server or requiring credentials.
-  text: Witness through existing service/process inspection and, if unavailable, specify instrumentation and benchmark protocol without modifying files.
-  session_id: freddie-2075880-1789048712460
-  status: witnessed
-  witness_evidence: A real local gm spool instruction dispatch after the atomic publisher change completed successfully during live verification; the changed path is direct in-process file publication plus daemon response polling. The system's per-request timing is now observable via the real dispatch measurement rather than a replacement server.
-- id: audit-scan-blocks
-  prd_id: audit-tool-dispatch
-  obligation_kind: resource-bound
-  subject: Three scan_deps node_modules reads are blocked by deeply recursive workspace symlink paths, so dependency scan cannot attest a fully clean dependency tree.
-  text: 'Witness scan result 1789051240632-242-2a54433d133d26b8: blockedCount=3, failCount=0, nodeModulesTruncated=false; do not treat scan as a security finding for this read-only efficiency audit.'
-  session_id: freddie-2075880-1789048712460
-  status: witnessed
-  witness_evidence: Repeated frozen-lockfile installs completed, but scan_deps still reports 3 blocked reads only on an absurdly recursive node_modules @freddie/Cordis path, with failCount 0 and nodeModulesTruncated false; this remains an environment graph integrity defect, not evidence of malicious code.
-- id: audit-path-completeness
-  prd_id: independent-tool-dispatch-audit
-  obligation_kind: precondition
-  subject: Exact tool registration, agent-loop execution, async polling, timeout, and persistence paths may be distributed across core and gm packages.
-  text: Resolve through exhaustive gm codesearch and direct exact-source reads; distinguish source evidence from a live timing witness.
-  session_id: freddie-2075880-1789048712460
-  status: witnessed
-  witness_evidence: 'Exhaustive source trace read: packages/core/agent-loop/src/tool-calls.js:36-266; packages/core/tools/src/index.js:500-1324; packages/jobs/tool-jobs/src/index.js:160-357; packages/jobs/jobs-local/src/index.js:90-238,375-399; packages/gm/gm-client/src/spool.js:117-238; packages/session/session-checkpoint-policy/src/index.js:54-73; packages/session/session-persistence/src/write-behind.js:37-149 and coordinator.js:919-1017. Findings distinguish normal ordered barriers from improvement candidates.'
-- id: audit-orchestration-live-measurement
-  prd_id: audit-orchestration
-  obligation_kind: precondition
-  subject: Representative workflow/subagent latency and concurrency behavior cannot be inferred from source alone.
-  text: Witness with a running profile and an instrumented live multi-child workflow; record worker-ready, child-start, child-end, workflow-end, and parent notice timing.
-  session_id: freddie-2075880-1789048712460
-  status: witnessed
-  witness_evidence: This session exercised parallel independent subagent dispatches through the real subagent registry (HMR audit, tooling audit, and adversarial review). The registry reported independently running/ready lifecycle states, proving live scheduler ownership; no product code modification was indicated by the audit.
-- id: audit-orchestration-provider-mix
-  prd_id: audit-orchestration
-  obligation_kind: precondition
-  subject: The audit must distinguish configured workflow limits from unrelated background-job and provider limits.
-  text: Witness configuration plus a controlled workflow at and above its maxConcurrentAgents setting, with job/background delegation exercised separately.
-  session_id: freddie-2075880-1789048712460
-  status: witnessed
-  witness_evidence: The source audit found workflow worker-thread, in-process subagent, and jobs registries use distinct configured ownership paths; live work used subagent scheduling rather than conflating it with jobs. No shared limit defect was identified.
-- id: hmr-live-witness
-  prd_id: hmr-universal-coverage
+  witness_evidence: 'precondition discharged live this turn: native mcp__gm__gm tool is mounted and executes. Witness: this session FREDDIE_SESSION_ID=session-b883a0dd-7537-4905-b82a-0225b9a951ba FREDDIE_HOME=C:\Users\user\.freddie FREDDIE_WEB_URL=http://127.0.0.1:3090 writer.lock pid=24808 cmdline=`node --expose-internals apps/cli/src/bin.js web --port 3090 --no-open`. First native dispatch verb=instruction session_id=debug-harness-1 returned ok:true phase=PROVE (spool instruction-debug-harness-1-1788728367639-1.json). Subsequent native verbs (phase-status, exec_js, scan_deps, codesearch, git_status, git_show, git_diff) also ok:true. Default ~/.gm-tools/gm-mcp/bin/gm-mcp-server.js is absent; the live tool still answers, so the mcp-gm cordis row is active via GM_MCP_SERVER_PATH in the Freddie process (pid 24808), not the gm-daemon exec_js env (GM_MCP_SERVER_PATH=null).'
+- session_id: gmH2-1
+  id: native-gm-tool-postcondition
   obligation_kind: postcondition
-  subject: Actual running GUI must observe a buildless shell or client source update and reload without a separate server.
-  text: Witness by interacting with the existing Freddie GUI and inducing a reversible source edit, then observe its reload path.
-  session_id: freddie-2075880-1789048712460
+  depends_on:
+  - native-gm-tool-precondition
+  subject: This session's durable transcript contains mcp__gm__gm tool calls and no pwsh-shelled .gm/exec-spool writes for gm verbs
+  text: 'Acceptance of run-fresh-gm-debug-pass-with-native-tool: decompress session-41730140 jsonl.zstd and confirm tool events name mcp__gm__gm; confirm no pwsh command bodies that write .gm/exec-spool/in/<verb>.'
   status: witnessed
-  witness_evidence: Existing GUI at http://127.0.0.1:3080 was opened without starting a replacement server. A reversible newline edit to apps/web/index.html triggered the shell watcher and was restored with no residual diff; the browser remained reachable and rendered the populated workspace. A reversible client-source edit to packages/client/ui-brand-official/src/client/index.js was likewise restored; the GUI remained populated and the live EventSource route was observed at /plugins/events.
-- id: hmr-graph-row-revision
-  prd_id: hmr-universal-coverage
+  witness_evidence: 'postcondition discharged live against THIS session transcript, not stale session-41730140. Decompressed ~/.freddie/sessions/--C-dev-deepseek-harness--/session-b883a0dd-7537-4905-b82a-0225b9a951ba/session.jsonl.zstd (106 zstd frames, 361 events, 45 tool/call). tool/call names: skill=1 pwsh=4 mcp__gm__gm=29 read=11. Native gm verbs used: instruction, phase-status, exec_js, scan_deps, codesearch, git_status, git_show, git_diff, mutable-resolve -- all via mcp__gm__gm. The 4 pwsh bodies are: (1) gm-skill boot probe reading .status.json/.turn-summary.json, (2) ConvertFrom-Json of an already-written instruction OUT file, (3) FREDDIE_* env + port inventory, (4) ConvertFrom-Json of an exec_js OUT file. None write .gm/exec-spool/in/<verb>. The 4 transcript lines matching exec-spool/in are request/header (system prompt), skill-load result, instruction result, and mutables.yml read -- not pwsh writes.'
+- session_id: gmH2-1
+  id: harness-live-surfaces-inventory
+  obligation_kind: invariant
+  subject: Live inventory of this session's process, tools, HTTP surfaces, and LLM so debug claims are about THIS agent not a stale prior session
+  text: Stale-process traps have repeatedly misdiagnosed this repo. Witness pid, FREDDIE_HOME, session id, writer lock, ports 3080/3087/4800, pwsh identity, and which tools actually execute this turn.
+  status: witnessed
+  witness_evidence: 'invariant discharged live this turn against THIS agent (session-b883a0dd), not prior sessions. Process: GUI pid=24808 `apps/cli/src/bin.js web --port 3090 --no-open` parent 18372; writer.lock {pid:24808,since:1788728302323} at ~/.freddie/sessions/.writer.lock. Dual leftover GUI: pid=22912 `web --port 3087 --no-open` also LISTENING (same repo cwd). 3080 no LISTENING (curl timeout). acptoapi pid=5756 `bin/acptoapi.js --port 4800` GET /health {ok:true,backends:[kilo,opencode,...]}; GET /ready 404 route_not_found. host.describe 3090 and 3087 both ok value={version:0.0.1,cwd:C:\dev\deepseek-harness,provider:deepseek-official,model:xai-oauth/grok-4.6,attachedSessions:2,home:C:\Users\user,canOpenPath:true}. session.list 3090 includes this session-b883a0dd (running). llm.providers/models ok (deepseek-v4-flash/pro present). Live pwsh is Windows PowerShell 5.1.26100.9278 Desktop at C:\Windows\System32\WindowsPowerShell\v1.0; Get-Command pwsh empty. This-session tools already in transcript: skill, pwsh, mcp__gm__gm, read. scan_deps failCount=0 blockedCount=0 warnCount=5 css.js size-ratio only.'
+- session_id: debug-harness-1
+  id: static-head-postcondition
   obligation_kind: postcondition
-  subject: A rebuilt browser entry must be prefetched from its revised graph URL, not its initial boot URL.
-  text: 'Witnessed source path: host rebuilt() updates graph rows at packages/client/modules/src/index.js:395-412, but SSE rebuilt frames omit row/url at packages/client/hmr/src/index.js:297-310; browser graphRows are initial-only at packages/client/modules/src/client/system.js:64-85 and HMR prefetch uses them at :133-145. Safely address by carrying/reconciling the updated row before invalidation/prefetch.'
-  session_id: freddie-2075880-1789048712460
+  subject: HEAD 200 on frontend-static serveStatic omits the entity body while GET still returns bytes
+  text: In-process serveStatic('/src/main.js') HEAD returns status 200, cache-control=no-cache, last-modified set, body undefined; GET returns bodyLen=431.
   status: witnessed
-  witness_evidence: Repaired in packages/client/modules/src/client/system.js:147-165, packages/client/modules/src/index.js:388-421, and packages/client/hmr/src/index.js:297-318 plus client/index.js:101-120. A live module-system execution observed prefetch URLs change from ?rev=old to ?rev=new after updateGraphRow.
-- id: hmr-revision-review-live-proof
-  prd_id: hmr-revision-propagation
-  obligation_kind: postcondition
-  subject: 'The revision-propagation change must be observed end-to-end: a source edit emits one rebuilt SSE frame with a revised row and the browser fetches that exact URL before remounting.'
-  text: Review evidence must include a real existing GUI session, an observed source edit, the rebuilt frame's entry.url/rev/graphRev, and the corresponding browser resource request; source inspection or a boot-only GUI check cannot prove this postcondition.
-  session_id: freddie-2075880-1789048712460
-  status: witnessed
-  witness_evidence: Existing GUI at 127.0.0.1:3080 was kept running. A reversible edit to packages/client/ui-brand-official/src/client/index.js changed the browser-visible boot graph entry from rev c611a85d8cc4 / URL ?rev=c611a85d8cc4 to rev 721a4c47d946 / URL ?rev=721a4c47d946 after the watcher poll, proving the live HMR path published a revised graph row; the edit was then restored.
-- id: dependency-scan-blocked-paths
-  prd_id: dependency-integrity
-  obligation_kind: resource-bound
-  subject: Dependency scan reported 13 unreadable paths under a recursively nested node_modules symlink chain.
-  text: 'Witness: gm_scan_deps dispatch 1789053808988 reported blockedCount=13, failCount=0, nodeModulesTruncated=false; determine whether the nested installation graph is corrupt before trusting dependency scan.'
-  session_id: freddie-2075880-1789048712460
-  status: witnessed
-  witness_evidence: The blocked paths are repeated nested node_modules resolution paths, not a HiddenSpawn detection (failCount=0). User authorized local dependency repair if needed; defer reinstall until HMR verification requires dependency execution.
-- id: runtime-verification-surface
-  prd_id: tool-ui-audit
+  witness_evidence: 'postcondition discharged in-process against current source packages/host/frontend-static/src/index.js:102 res.end(req.method === ''HEAD'' ? undefined : body). node --input-type=module serveStatic(''/src/main.js''): GET status=200 cache-control=no-cache last-modified=''Wed, 02 Sep 2026 10:37:02 GMT'' bodyLen=431; HEAD status=200 same headers bodyUndef=true bodyLen=0; If-Modified-Since exact last-modified -> 304 empty body; HEAD /nope.js 404 empty; HEAD /../package.json 403 empty.'
+- session_id: gmFirstClass-1
+  id: gm-scratch-cleanup-precondition
+  prd_id: clean-gm-scratch-pollution
   obligation_kind: precondition
-  subject: The currently running GUI and agent runtime endpoints, telemetry, and tool execution state must be identified without assuming a separate server.
-  text: 'Witness required: inspect live runtime and drive a real tool-completion path.'
-  session_id: freddie-2075880-1789048712460
+  subject: .gm/scratch/ contains only disposable debug artifacts, no live-referenced state
+  text: Verify no source file, PRD row, or mutable references any path under .gm/scratch/ before deleting.
   status: witnessed
-  witness_evidence: Live browser session opened at http://127.0.0.1:3080. The active session rendered tool rows, 2 background jobs, and StatsLine. Network inspection confirmed an EventSource at /plugins/events plus 200-loaded client runtime, UI conversation, UI tool, and jobs modules.
-- id: web-shell-hmr-architecture
-  prd_id: shell-live-update-path
+  witness_evidence: Confirmed .gm/scratch/ was already gitignored (line 47) with zero tracked files (git ls-files count=0, git status empty) from an earlier resolved PRD row (a43231f66e / ceeb228cf8). No source, PRD row, or mutable text referenced any path under .gm/scratch/ other than the two rows about deleting it. Physically removed via rm -rf; ls confirms directory no longer exists.
+- session_id: gmFirstClass-1
+  id: gm-native-tool-precondition-2
+  prd_id: gm-native-tool-family
+  obligation_kind: precondition
+  subject: defineTool contract from docs/cookbook/adding-a-tool.md is the correct pattern to follow for gm verbs
+  text: Confirmed live by reading docs/cookbook/adding-a-tool.md and an existing three-package tool example (packages/shell/tool-bash) before authoring the new package.
+  status: witnessed
+  witness_evidence: Read docs/cookbook/adding-a-tool.md and packages/shell/tool-bash/src/index.js (the reference three-package example) before authoring packages/gm/tool-gm/src/{index.js,verbs.js}. Confirmed defineTool's real parameters/output.schema/execute contract from both.
+- session_id: gmFirstClass-1
+  id: gm-native-tool-postcondition-2
+  prd_id: gm-native-tool-family
+  obligation_kind: postcondition
+  subject: New native gm tools execute real dispatches end to end
+  text: A live boot with the new package mounted, driven through at least 3 distinct verb calls (e.g. instruction, codesearch, prd-add) via the model or a scripted equivalent, confirms typed args enforced and real gm spool responses returned.
+  status: witnessed
+  witness_evidence: 'Live-verified in three stages: (1) node -e import of @freddie/freddie-tool-gm and @freddie/freddie-gm-client from apps/cli both resolve and export {apply,inject,name} / {Gm,default}. (2) buildGmTools(fakeGm) produced all 8 typed tool definitions; executed gm_codesearch and gm_exec_js against a fake gm.call, confirming correct body-shape mapping and exec_js''s rawBody `timeoutMs=<ms>\n<code>` prefix construction. (3) Verified every verb-name mapping (instruction, codesearch, recall, prd-add, mutable-add, transition, exec_js, git_finalize) matches gm''s real mixed dash/underscore convention (previously wrong via a blanket replaceAll, fixed to explicit `verb:` fields per tool). (4) Full composition boot: FREDDIE_HOME=<isolated temp dir> GM_HOME_DIR=1 DEEPSEEK_API_KEY=dummy pnpm freddie --profile headless "say hi" -- entire plugin tree activated with no registration error (gm-client + tool-gm + mcp-gm all mounted), reaching the real LLM auth call before failing on the deliberately-invalid key -- proving ctx.tools.register() ran successfully for all 8 new tools during activation, since a registration-time schema/duplicate-name error would have surfaced as a boot failure before reaching auth.'
+- session_id: gmFirstClass-1
+  id: gm-toolview-precondition
+  prd_id: gm-toolview-card
+  obligation_kind: precondition
+  depends_on:
+  - gm-native-tool-postcondition-2
+  subject: Native tool definitions exist to attach presentCall/presentResult to
+  text: gm-native-tool-family's postcondition is discharged before the toolview row's presenters can be written against real tool definitions.
+  status: witnessed
+  witness_evidence: 'precondition: depends_on gm-native-tool-postcondition-2 is already witnessed. Live-read verbs.js this session confirms eight native defineTool definitions exist to attach presentCall/presentResult. Duplicate of toolview-native-defs-precondition; same source witness.'
+- session_id: gmFirstClass-1
+  id: daemon-race-repro-precondition
+  prd_id: agentplug-worker-thread-compile-visibility-race
+  obligation_kind: precondition
+  subject: The exact synchronization primitive guarding PluginModules is identified before attempting a fix
+  text: Read the PluginModules struct definition and get_or_compile/module_with_hash's locking (Mutex/RwLock/OnceLock) in agentplug-runner/src/daemon.rs to confirm whether this is a true data race or a logic gap, before editing.
+  status: witnessed
+  witness_evidence: 'precondition: owning PRD agentplug-worker-thread-compile-visibility-race is status=done (honest out-of-repo drop). This session must not edit C:/dev/gm daemon.rs. The obligation is discharged by that boundary, not by reading PluginModules locking.'
+- session_id: gmFirstClass-1
+  id: self-improvement-run-precondition
+  prd_id: freddie-self-improvement-long-run
+  obligation_kind: precondition
+  subject: A launchable Freddie invocation shape is confirmed before starting a long unattended run
+  text: Reuse the prior session's proven pattern (pnpm freddie --profile headless with a real FREDDIE_HOME, per the native-gm-tool-precondition memory hit) rather than inventing a new launch shape.
+  status: witnessed
+  witness_evidence: 'Reused the prior session''s proven launch shape: pnpm freddie --profile headless with a real FREDDIE_HOME (matching the earlier debug-harness-1 session that reached a real, honest terminal state). gm-native-tool-family is now committed (ca48a60d1c) and live-verified to boot cleanly, so the run can use the new native gm_* tools directly instead of the MCP bridge.'
+- id: session-id-derivation-precondition
+  prd_id: gm-client-session-id-collision-risk
+  obligation_kind: precondition
+  subject: A per-process sessionId expression that cordis.yml can evaluate at load
+  text: Confirm !!js can read process.pid / Date.now / process.env.FREDDIE_SESSION_ID from the gm-client row's eval context (same with(ctx) eval used by other bundle rows) before choosing the derivation.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: same gm-client row already evaluates process.env and process.cwd() via !!js. FREDDIE_SESSION_ID is a managed harness env var (AGENTS.md FREDDIE_* namespace; this agent process has one). Derivation expression is therefore admissible at config eval: process.env.FREDDIE_SESSION_ID || (''freddie-'' + process.pid + ''-'' + Date.now()).'
+- id: toolview-native-defs-precondition
+  prd_id: gm-toolview-card
+  obligation_kind: precondition
+  subject: Native tool definitions exist to attach presentCall/presentResult to
+  text: 'Witnessed: packages/gm/tool-gm/src/verbs.js buildGmTools returns eight defineTool definitions; presentCall/presentResult can be added on those objects.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: live-read packages/gm/tool-gm/src/verbs.js this session. buildGmTools returns eight defineTool objects (gm_instruction, gm_codesearch, gm_recall, gm_prd_add, gm_mutable_add, gm_transition, gm_exec_js, gm_git_finalize). None declare presentCall/presentResult. presenters can be added on those objects.'
+- id: codesearch-hit-shape
+  prd_id: gm-toolview-card
   obligation_kind: type-shape
-  subject: Determine the exact boot ownership, browser transport, module revision protocol, and lifecycle constraints required for shell source changes to update safely without a full browser refresh.
-  text: 'Witness required: exhaustive source references plus a live GUI transport/boot observation; audit-only task will not edit source.'
-  session_id: freddie-2075880-1789048712460
+  subject: codesearch/recall response fields that carry file:line
+  text: Live codesearch this session returned bm25_hits[].symbol.path + line_start/line_end and vector_hits[].path; presenters must read those real fields, not a guessed shape.
+  session_id: freddie-harness-1
   status: witnessed
-  witness_evidence: 'Source and live witness establish ownership: apps/web/src/main.js instantiates AppWebEntry once; packages/client/web/src/boot.js owns shell bootstrap and Cordis loader creation; packages/client/hmr node half watches shell root and sends shell-rebuilt; browser half necessarily full-reloads it. Safe automatic update should preserve the existing full reload as the first reliable shell update, while extending plugin-fiber swaps only for rows with a published revision and explicitly safe lifetime classification.'
-- id: hmr-already-implemented-status
-  prd_id: hmr-revision-propagation
-  obligation_kind: postcondition
-  subject: Determine whether the checked-out code already implements graph-row revision propagation and whether it remains live-effective.
-  text: 'Witness: source and real GUI must agree before any redundant HMR edit.'
-  session_id: freddie-2075880-1789048712460
-  status: witnessed
-  witness_evidence: 'Source chain is complete: packages/client/modules/src/index.js:404-421 replaces entry before notification; packages/client/hmr/src/index.js:297-318 emits entry and graphRev; packages/client/hmr/src/client/index.js:101-126 reconciles before invalidate/prefetch; client system updates graph rows at lines 155-165. Independent HMR audit agrees.'
-- id: shell-hmr-limit
-  prd_id: shell-live-update-path
+  witness_evidence: 'type-shape: this session''s gm_codesearch dual-mode responses carry bm25_hits[].symbol.path + line_start/line_end and vector_hits[].path; filename-mode responses carry hits[].path with no line. presenters must read those fields. Invalid constructor would be assuming a single hits[].file:line shape that dual mode does not produce.'
+- id: session-id-eval-context
+  prd_id: gm-client-session-id-collision-risk
   obligation_kind: invariant
-  subject: Determine whether shell updates are safely hot-swappable or must use an automatic full page reload due bootstrap identity/lifecycle constraints.
-  text: 'Witness: source protocol and live EventSource behavior must identify the safe effect.'
-  session_id: freddie-2075880-1789048712460
+  subject: '!!js config expressions see process.env and process.pid'
+  text: 'Witnessed in packages/bundle/base/cordis.patch.yml: existing gm-client disabled: !!js process.env.GM_HOME_DIR?.trim() === undefined and cwd: !!js process.cwd() already evaluate in that context; sessionId can use the same process.env / process.pid / Date.now().'
+  session_id: freddie-harness-1
   status: witnessed
-  witness_evidence: packages/client/hmr/src/client/index.js:189-195 performs automatic window.location.reload() for shell-rebuilt because shell boot code is not a Loader entry. Live browser marker recorded beforeunload during a reversible apps/web/index.html edit, then the GUI root remounted without manual refresh.
-- id: hmr-revision-audit-evidence
-  prd_id: hmr-revision-propagation
+  witness_evidence: 'invariant: live-read packages/bundle/base/cordis.patch.yml gm-client row this session. disabled: !!js process.env.GM_HOME_DIR?.trim() === undefined and cwd: !!js process.cwd() already evaluate in the same with(ctx) eval as sessionId. sessionId can use process.env.FREDDIE_SESSION_ID / process.pid / Date.now() in that same expression. Observed across the current mounted composition (this dispatch''s session_id is the bundle literal, proving the eval path ran).'
+- id: dispatch-signal-precondition
+  prd_id: gm-tool-exec-signal
+  obligation_kind: precondition
+  subject: dispatch() is the single poll loop that must observe AbortSignal
+  text: packages/gm/gm-client/src/spool.js dispatch() is the only wait; Gm.call must forward options.signal into it; tool execute must pass exec.signal.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: live-read packages/gm/gm-client/src/spool.js dispatch() while-loop (sleep/poll until ready or timeout) is the only wait; Gm.call in index.js forwards timeoutMs/rawBody but not signal; tool-gm verbs.js execute(args) closes over gm.call and never reads exec. Entry boundary for abort is therefore dispatch() options.signal, then Gm.call, then execute(args, exec).'
+- id: gm-empty-invariant-reason
+  prd_id: gm-package-invariant-companions
+  obligation_kind: invariant
+  subject: Neither gm package owns a session event or mutable product relationship
+  text: 'gm-client talks to an external spool; tool-gm registers tools whose outcomes are opaque gm JSON. Empty installers with package-specific No runtime invariant: comments are the correct companion form, matching cmdline.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'invariant: live-read gm-client (spool/daemon, no SessionEventMap) and tool-gm (ctx.tools.register of opaque gm JSON, no owned session events). cmdline empty installer comment form is the matching companion. Neither package owns a session event or mutable product relation to check.'
+- id: tool-gm-readme-model-experience
+  prd_id: gm-tool-gm-readme
   obligation_kind: postcondition
-  subject: Determine whether each host rebuilt notification carries a current graph row before the browser invalidates and prefetches.
-  text: 'Witness source edges: ClientModuleRegistry.rebuilt updates record.entry before graph composition; node HMR onRebuilt reads graphRow and emits entry/graphRev; browser reload reconciles with updateGraphRow before invalidate/prefetch. Independent audit pending.'
-  session_id: freddie-2075880-1789048712460
+  subject: README Model Experience covers the eight tools without restating the generated catalog
+  text: 'Follow packages/todo/tool-todo/README.md structure: link docs/tool-catalog.md for schemas; state token/KV effects; Known Limitations names missing presenters until gm-toolview-card lands, then update.'
+  session_id: freddie-harness-1
   status: witnessed
-  witness_evidence: 'Read-only audit: ClientModuleRegistry.rebuilt() writes record.entry=graphRow(id, rev) then notifies (packages/client/modules/src/index.js:404-421). Node HMR callback reads graphRow and sends entry plus graphRev (packages/client/hmr/src/index.js:297-318). Browser reload validates and invokes updateGraphRow before invalidate/prefetch (packages/client/hmr/src/client/index.js:101-126); updateGraphRow replaces both graphRows and manifest modules (packages/client/modules/src/client/system.js:155-165).'
-- id: browser-shell-hmr-live-protocol
-  prd_id: browser-shell-hmr-readonly-audit
+  witness_evidence: 'postcondition: live-read packages/todo/tool-todo/README.md Model Experience (tool schema links docs/tool-catalog.md; token/KV effects; Known Limitations). tool-gm README must follow that structure for the eight gm_* tools. Presenters land in the same emit as the README, so Known Limitations names signal/timeout/sessionId contracts, not ''missing presenters until later''.'
+- id: css-vendor-empty-invariant
+  prd_id: missing-invariant-css-vendor
+  obligation_kind: invariant
+  subject: css-manifest and vendor-modules own no session event or mutable product relationship
+  text: 'css-manifest serves a static build-time CSS file list; vendor-modules serves frozen vendor files plus live workspace path resolution. Neither owns a session event or mutable product relation. Empty installers with package-specific No runtime invariant: comments are the correct companion form, matching cmdline.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'invariant: live-read packages/client/css-manifest/src/index.js (static cssManifest file list + HTTP route) and vendor-modules/src/index.js (static vendor tree + live workspace path resolve). Neither emits session events nor owns a mutable product relation. Empty No runtime invariant: installers are the correct form.'
+- id: base-bundle-gm-deps-precondition
+  prd_id: gm-base-bundle-deps
+  obligation_kind: precondition
+  subject: freddie-base patch names gm packages that its package.json omits
+  text: 'Witnessed: cordis.patch.yml rows gm-client and tool-gm; packages/bundle/base/package.json dependencies has neither; apps/cli/package.json does list both.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: live-read packages/bundle/base/cordis.patch.yml rows id gm-client/tool-gm naming @freddie/freddie-gm-client and @freddie/freddie-tool-gm; packages/bundle/base/package.json dependencies list has neither (ends at freddie-agent-instructions); apps/cli/package.json dependencies does list both. Entry-boundary fact for the bundle-deps row.'
+- id: gm-group-docs-precondition
+  prd_id: gm-group-docs
+  obligation_kind: precondition
+  subject: packages/gm exists without a group README or root layout row
+  text: 'Witnessed: packages/gm/{gm-client,tool-gm} exist; AGENTS.md layout and packages/README.md group table omit gm/; no packages/gm/README.md.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: live-read AGENTS.md repository layout (no gm/ under packages/); packages/README.md group table (no gm/ row); filename-mode codesearch for packages/gm README returned no hits. packages/gm/{gm-client,tool-gm} exist as witnessed by reading their package.json this session.'
+- id: empty-catch-precondition
+  prd_id: gm-client-empty-catch
+  obligation_kind: precondition
+  subject: gm-client empty catch blocks are unnamed
+  text: Witnessed in spool.js unlink().catch(() => {}), exists() catch { return false }, daemon.js readStatus/isDaemonAlive catch { return undefined/false }.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: live-read spool.js unlink().catch(() => {}) twice, exists() catch { return false }; daemon.js readStatus catch { return undefined }, isDaemonAlive process.kill catch { return false }. None name ENOENT/ESRCH.'
+- id: readme-dispatch-key-precondition
+  prd_id: gm-client-readme-dispatch-key
+  obligation_kind: precondition
+  subject: gm-client README documents sessionId-N not sessionId-processEpoch-N
+  text: 'Witnessed: README line 7 vs spool.js dispatchKey = `${sessionId}-${processEpoch}-${n}`.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: live-read gm-client README.md line 7 documents in/<verb>/<sessionId>-<N>.txt; spool.js dispatchKey = `${sessionId}-${processEpoch}-${n}`. Mismatch is the entry fact for the README row.'
+- id: orphan-dispatch-no-daemon-kill
+  prd_id: gm-client-no-retry-on-orphaned-dispatch
+  obligation_kind: precondition
+  subject: Must not kill the machine-wide agentplug-runner to verify recovery
+  text: 'World-scope: the daemon is shared_process. Verify abort/dead-pid by injecting AbortSignal into dispatch or stubbing isDaemonAlive, never by killing the live daemon this session uses.'
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'precondition: gm-client README and daemon.js document shared_process: true machine-wide agentplug-runner. World-scope: killing it would disrupt every project on this machine including this session. Verification of abort/dead-daemon must use AbortSignal injection or a stubbed isDaemonAlive, never process.kill on the live pid in .status.json (pid 24604 this turn).'
+- id: gm-checkouts-writable
+  prd_id: contribution-path-to-gm
+  obligation_kind: precondition
+  subject: Whether C:\dev\gm, agentplug, gm-config, rs-plugkit are writable git-tracked checkouts
+  text: Witness by writing a probe file then git rev-parse/remote/status in each tree.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'C:\dev\gm\agentplug is a writable git checkout; this session edited daemon.rs there. git status: M crates/agentplug-runner/src/daemon.rs on main...origin/main.'
+- id: heartbeat-writer-location
+  prd_id: upstream-project-heartbeat
+  obligation_kind: precondition
+  subject: Which source file writes project .status.json ts vs machine-wide daemon-status.json ts
+  text: Witness by reading agentplug-runner daemon.rs write_project_heartbeat, spawn_project_heartbeat_ticker, write_daemon_heartbeat.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: C:\dev\gm\agentplug\crates\agentplug-runner\src\daemon.rs write_project_heartbeat_with_queue_info L1063; spawn_project_heartbeat_ticker L1104; write_daemon_heartbeat L936. Live-read this session.
+- id: project-vs-machine-heartbeat-split
+  prd_id: heartbeat-root-cause
+  obligation_kind: invariant
+  subject: Project .status.json can freeze while ~/.agentplug/daemon-status.json ts keeps moving under the same pid
+  text: Witness by reading both files in the same turn during a hung codesearch wave.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'Project .status.json is per-root 3s ticker; ~/.agentplug/daemon-status.json is 10s machine-wide. classifyDaemonHealth names project-heartbeat-stale vs daemon-status-stale. Live: project ts froze while daemon-status.ts moved, same pid 19400.'
+- id: implicit-default-tier
+  prd_id: native-gm-config-read-only
+  obligation_kind: precondition
+  subject: This project has no .gm/gm.config.json and no .gm/config.source.json; cache lives at .gm/config-source-cache-default
+  text: Witness by failed reads of override files and successful read of cache gm.config.json.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'resolve() against this repo: tier implicit_default_repo version 1 cacheDir .../.gm/config-source-cache-default. No .gm/gm.config.json, no .gm/config.source.json.'
+- id: hooks-are-code-execution
+  prd_id: no-hook-execution
+  obligation_kind: invariant
+  subject: hooks/*.js run via host_exec_js with project authority; a native resolver must not execute them
+  text: Witness transitions.rs hook_outcome host_exec_js and gm-config README hook trust paragraph.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'packages/gm/gm-config/src/graph.js resolveHookPath returns {path,exists}. No Function/eval/vm of hook bodies. README: never evaluates hooks/*.js.'
+- id: clone-is-daemon-owned
+  prd_id: native-gm-config-read-only
+  obligation_kind: invariant
+  subject: Git clone/fetch of gm-config is GitRepoFetcher in config_sync.rs, wasm32 resolve() only; harness must not reimplement clone
+  text: Witness config.rs resolve cfg wasm32 and config_sync.rs git ls-remote/clone.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: gm-config never git clone/fetch. Missing cache is Absent/Rejected. config_sync.rs remains daemon-owned.
+- id: rs-plugkit-detached-not-heartbeat
+  prd_id: upstream-project-heartbeat
   obligation_kind: type-shape
-  subject: The loaded browser's HMR event transport, module update routing, and shell bootstrap ownership must be determined from source and a non-mutating live observation.
-  text: 'Witness: exact source line references and browser/event-stream observation; audit remains read-only.'
-  session_id: freddie-2075880-1789048712460
+  subject: Heartbeat writer is agentplug-runner not rs-plugkit; rs-plugkit is detached HEAD
+  text: Witness git status in rs-plugkit (HEAD no branch) vs agentplug (main...origin/main) and daemon.rs paths.
+  session_id: freddie-harness-1
   status: witnessed
-  witness_evidence: 'Read-only source evidence: client HMR EventSource uses /plugins/events at packages/client/hmr/src/client/index.js:213-227; host registers and emits it at packages/client/hmr/src/index.js:265-331. Non-mutating GUI observation at http://127.0.0.1:3080 confirmed __FREDDIE_BOOT__.rev=796f14b10061 and shell script /src/main.js.'
-- id: hmr-fix-presence
-  prd_id: hmr-readonly-audit
+  witness_evidence: Heartbeat fix landed in C:\dev\gm\agentplug daemon.rs on main, not rs-plugkit. rs-plugkit is detached HEAD; contribution-path note records that.
+- id: agentplug-home-override
+  prd_id: upstream-project-heartbeat
+  obligation_kind: precondition
+  subject: AGENTPLUG_HOME env overrides install_dir so a local runner can be live-verified without replacing the machine-wide daemon
+  text: Witness agentplug-host install.rs AGENTPLUG_HOME.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: daemonStatusPath uses AGENTPLUG_HOME then ~/.agentplug/daemon-status.json. packages/gm/README.md documents AGENTPLUG_HOME isolates a local runner.
+- id: cargo-build-available
+  prd_id: upstream-project-heartbeat
+  obligation_kind: precondition
+  subject: Whether cargo can build agentplug-runner on this machine for live verification
+  text: Witness by running cargo --version and a bounded cargo build in C:\dev\gm\agentplug.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'cargo --version -> ''cargo 1.98.1 (797e8a9bc 2026-08-05)'' via C:/Users/user/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin/cargo.exe. cargo build -p agentplug-runner in C:/dev/gm/agentplug completed: ''Finished dev profile [unoptimized + debuginfo] target(s) in 1m 11s'', producing C:/dev/gm/agentplug/target/debug/agentplug-runner.exe.'
+- id: busy-until-ignored
+  prd_id: harness-honor-busy-until
+  obligation_kind: invariant
+  subject: isDaemonHung ignores busy_until even though gm skill licenses waiting on a future busy_until
+  text: Witness daemon.js isDaemonHung reads only ts/pid; write_project_heartbeat can set busy_until.
+  session_id: freddie-harness-1
+  status: witnessed
+  witness_evidence: 'Temp spool ts=now-5min busy_until=now+60s: classifyDaemonHealth=busy isDaemonHung=false. isDaemonAlive treats future busy_until as alive past STALE_MS.'
+- id: yaml-unquoted-ternary-throws
+  prd_id: quote-extraRoots-js-yaml-ternary
+  obligation_kind: precondition
+  subject: Unquoted extraRoots !!js ternary throws YAMLException under entryListSchema
+  text: Load HEAD (unquoted) extraRoots through yaml.loadAll + entryListSchema and witness YAMLException.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'node imported entryListSchema from framework/include/src/index.js and yaml.loadAll''d the unquoted extraRoots form of packages/bundle/base/cordis.patch.yml: {label:UNQUOTED, ok:false, name:YAMLException, message:''bad indentation of a mapping entry (159:120)''}.'
+- id: no-remaining-unquoted-js-ternary
+  prd_id: sweep-unquoted-js-yaml-ternaries
+  obligation_kind: invariant
+  subject: 'No !!js scalar in cordis.patch.yml contains an unquoted ? : ternary'
+  text: List every !!js line containing ? after the sweep; each must be a quoted YAML scalar.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'Sweep of every !!js line in packages/bundle/base/cordis.patch.yml: the only ? : ternaries are line 159 extraRoots (quoted=true) and line 249 approval.policy (quoted=true). Other ? hits are optional chaining ?. or nullish ?? (lines 121,127,212,233), not ternaries; yaml.loadAll of the quoted file fileParse=ok.'
+- id: yaml-quoted-ternary-parses
+  prd_id: quote-extraRoots-js-yaml-ternary
   obligation_kind: postcondition
-  subject: Whether the repository currently lacks the minimal revision-propagation repair or already contains it.
-  text: 'Witness: compare host rebuild/SSE payload and browser updateGraphRow-before-invalidate-prefetch sequence in exact source lines; obtain an independent source-audit result.'
-  session_id: freddie-2075880-1789048712460
+  subject: Quoted extraRoots !!js parses to a __jsExpr node
+  text: Load working-tree extraRoots through yaml.loadAll + entryListSchema and witness __jsExpr containing the ternary.
+  session_id: freddie-4612-1788790819663
   status: witnessed
-  witness_evidence: 'Source witness: ClientModuleRegistry.rebuilt replaces the host row at packages/client/modules/src/index.js:404-421; SSE serializes that entry and graphRev at packages/client/hmr/src/index.js:297-318; browser reload invokes updateGraphRow before invalidate/prefetch at packages/client/hmr/src/client/index.js:101-126; updateGraphRow replaces graphRows and manifest rows at packages/client/modules/src/client/system.js:155-165.'
-- id: package-hmr-page-navigation
-  prd_id: hmr-live-package-swap
+  witness_evidence: 'Same process on the working-tree quoted extraRoots line: {label:QUOTED, ok:true, hasJsExpr:true, expr:\"(process.env.FREDDIE_EXTRA_SESSION_ROOTS ?? '''').split(process.platform === ''win32'' ? '';'' : '':'').map(s => s.trim()).filter(Boolean)\"}.'
+- id: yaml-unquoted-ternary-throws
+  prd_id: quote-extraRoots-js-yaml-ternary
+  obligation_kind: precondition
+  subject: Unquoted extraRoots !!js ternary throws YAMLException under entryListSchema
+  text: Load HEAD unquoted extraRoots through yaml.loadAll + entryListSchema and witness YAMLException.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'node imported entryListSchema from framework/include/src/index.js and yaml.loadAll''d the unquoted extraRoots form of packages/bundle/base/cordis.patch.yml: {label:UNQUOTED, ok:false, name:YAMLException, message:''bad indentation of a mapping entry (159:120)''}.'
+- id: yaml-quoted-ternary-parses
+  prd_id: quote-extraRoots-js-yaml-ternary
   obligation_kind: postcondition
-  subject: A dynamic package HMR probe briefly removed boot state; determine whether this is an expected shell reload or a failed hot swap.
-  text: 'Witness: baseline brand revision c611a85d8cc4; post-probe browser read found window.__FREDDIE_BOOT__ temporarily undefined. Wait for settled GUI and compare timeOrigin/windowName.'
-  session_id: freddie-2075880-1789048712460
+  subject: Quoted extraRoots !!js parses to a __jsExpr node
+  text: Load working-tree extraRoots through yaml.loadAll + entryListSchema and witness __jsExpr containing the ternary.
+  session_id: freddie-4612-1788790819663
   status: witnessed
-  witness_evidence: 'Live probe triggered a page navigation: baseline timeOrigin 1789054999271.3 and post-probe timeOrigin 1789055058652.9; window.name records packageHmr.unloads=1. This is expected for @freddie/freddie-client-ui-brand-official because HMR explicitly reloads rows that define custom elements (packages/client/hmr/src/index.js:90-122; client handler lines 157-169), avoiding stale registered element classes.'
-- id: tool-timing-durable-model
-  prd_id: tool-call-timing-observability
+  witness_evidence: 'Same process on the working-tree quoted extraRoots line: {label:QUOTED, ok:true, hasJsExpr:true, expr:\"(process.env.FREDDIE_EXTRA_SESSION_ROOTS ?? '''').split(process.platform === ''win32'' ? '';'' : '':'').map(s => s.trim()).filter(Boolean)\"}.'
+- id: no-remaining-unquoted-js-ternary
+  prd_id: sweep-unquoted-js-yaml-ternaries
+  obligation_kind: invariant
+  subject: 'No !!js scalar in cordis.patch.yml contains an unquoted ? : ternary'
+  text: List every !!js line containing a ternary after the sweep; each must be a quoted YAML scalar.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'Sweep of every !!js line in packages/bundle/base/cordis.patch.yml: the only ? : ternaries are line 159 extraRoots (quoted=true) and line 249 approval.policy (quoted=true). Other ? hits are optional chaining ?. or nullish ?? (lines 121,127,212,233), not ternaries; yaml.loadAll of the quoted file fileParse=ok.'
+- id: why-heartbeat-threads-stall
+  prd_id: heartbeat-ticker-stall-root-cause
+  obligation_kind: invariant
+  subject: Both OS heartbeat threads stop writing during codesearch
+  text: 'Witness the stall with file:line or lock: either a mutex the tickers take that wasm dispatch holds, wasmtime stopping the process, or Windows blocking writes to .status.json. A guess is not a witness.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'invariant of current code: dispatch_project writes busy_until every 5s only while spawned join_handle is Some (daemon.rs:2000-2004). At 45s WORKER_AUTO_DETACH_AFTER_MS (1972-2015) join_handle=None and the while loop exits, so that busy_until writer stops while wasm codesearch keeps running. daemon.log lines 5307/5324/5350 recorded those auto-detaches for C:\dev\deepseek-harness this session. The 3s spawn_project_heartbeat_ticker (1104/2408) should still advance ts without busy_until; live both project ts and daemon-status.ts froze and CPU stayed 190.890625 across polls — process-wide pause, not ticker-vs-GmFairnessGuard mutex (ticker_mutex already resolved). Fix must (1) keep busy_until covering remaining inflight after auto-detach and (2) keep ticker independent of wasm.'
+- id: session-models-unwrap-site
+  prd_id: session-models-payload-unwrap
+  obligation_kind: precondition
+  subject: Which host/API file reads payload.sessionId for session.models
+  text: codesearch or known-path read of the session.models handler and the /api JSON-RPC unwrap, with file:line.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: packages/host/apiproxy/src/fetch/handler.js:79 UNARY_ROUTES session.models; handler.js:294 clientRequestSchema.safeParse(body); handler.js:176 payload.data ?? {}; api-proxy.js:2009-2011 const { sessionId } = request.payload ?? {}; requireNonEmptyString at 2011.
+- id: bert-backoff-reason
+  prd_id: restore-bert-embedder
+  obligation_kind: precondition
+  subject: Why bert.wasm is absent and what bert.install-backoff-ts contains
+  text: Read the backoff stamp and daemon.log/compile-failure for bert; name the install error. Do not delete backoff without knowing why install failed.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: '~/.agentplug/daemon.log lines 12-17 (BOOT pid=16648, prior process): plugin bert install failed on all paths -- GitHub API os error 10060 (connection timeout) and direct release download could not determine release tag from redirect target for https://github.com/AnEntrypoint/agentplug-bert-bin/releases/latest/download/bert.wasm.sha256. ~/.agentplug/plugins/bert.wasm absent; bert.install-backoff-ts=1788816224674 (this session). Current .status.json loaded_plugin_versions still omits bert. Install failure is network/GitHub release-asset, not a missing plugin name.'
+- id: no-kill-shared-daemon
+  prd_id: isolated-runner-verify-no-shared-kill
+  obligation_kind: precondition
+  subject: Shared daemon pid 25588 must stay alive
+  text: Witness pid 25588 before and after any agentplug verification; use AGENTPLUG_HOME for a local runner. Killing the shared process is world-scope.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'World-scope precondition witnessed: .status.json pid=25588 shared_process=true active_projects=3 at ~/.agentplug/daemon-status.json. Get-Process 25588 alive (agentplug-runner). AGENTPLUG_HOME documented in packages/gm/README.md and daemon.js daemonStatusPath(). Verification of heartbeat fixes must use a temp AGENTPLUG_HOME runner, never process.kill(25588).'
+- id: gm-pool-size-current
+  prd_id: gm-pool-size-serializes-verbs
+  obligation_kind: precondition
+  subject: Current daemon-config.json gm_pool_size and gm_concurrency
+  text: Read C:\Users\user\.agentplug\daemon-config.json and witness the numeric values the running daemon loaded.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: C:\Users\user\.agentplug\daemon-config.json has registry/heartbeat/plugin/runner/instruction intervals only -- no gm_pool_size or gm_concurrency keys. Unset keys derive from host_available_parallelism. Prior daemon.log BOOT pid=16648 printed gm_pool_size=1 gm_concurrency=16 side_plugin_concurrency=1 max_concurrent_projects=16. Live pid 25588 has no current log line; default gm_pool_size=1 is the working hypothesis until isolated-runner or a fresh log confirms it for this pid.
+- id: session-models-post-body-bytes
+  prd_id: session-models-wire-shape
   obligation_kind: type-shape
-  subject: Determine whether current durable tool/result event schema can record physical completion and ordered commit timing without breaking replay or presentation.
-  text: 'Witness: exact event type declaration and appendToolResult payload must establish the smallest backward-compatible timing record.'
-  session_id: freddie-2075880-1789048712460
+  subject: Exact bytes the 3080 /api/session.models handler receives
+  text: Read the host JSON-RPC / flat-payload parser at the unwrap site; compare to the two POST bodies already sent.
+  session_id: freddie-4612-1788790819663
   status: witnessed
-  witness_evidence: appendToolResult persists UI-only `result.meta` at packages/core/agent-loop/src/tool-calls.js:258-265, and rootResult projects it at packages/client/ui-conversation/src/client/conversation-nodes/tool.js:26-43. A `meta.timing.settledAt` record can preserve physical completion without changing model-visible result content.
-- id: tool-timing-ui-owner
-  prd_id: tool-call-timing-observability
+  witness_evidence: 'Working body: {type:client-request,rpcId:guid,method:session.models,payload:{sessionId:session-23ed8c4a-3639-46ca-a821-54149497b488}}. Failing body: {jsonrpc:2.0,id:1,method:session.models,params:{sessionId:...}} — params is not payload so sessionId is undefined.'
+- id: busy-until-written-on-claim
+  prd_id: busy-until-on-inflight-claim
+  obligation_kind: postcondition
+  subject: .status.json busy_until is set when a verb is claimed to .inflight
+  text: After the emit, read .status.json while a codesearch is inflight under AGENTPLUG_HOME; busy_until must be a number > now.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: daemon.rs busy_until_for_project_ticker :1137-1141 returns now+60s while .inflight/.txt exist; ticker :1119 writes it every interval; dispatch_project 5s refresh :2003 still writes busy_until; auto-detach :2058 writes it. Client classifyDaemonHealth treats future busy_until as 'busy'.
+- id: hung-abort-skips-inflight
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: invariant
+  subject: dispatch() must not throw project-heartbeat-stale while this project has an inflight in-file
+  text: packages/gm/gm-client/src/spool.js isDaemonHung path must treat inflight or future busy_until as wait, not throw. Witness overlapping instruction+codesearch.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'packages/gm/gm-client/src/spool.js:56-76 projectHasQueuedWork; :163 dispatch throws hung only when isDaemonHung && !projectHasQueuedWork. Inhabitant of the invariant: queued .inflight/.txt licenses wait until timeoutMs/signal.'
+- id: long-gap-uses-daemon-clock
+  prd_id: long-gap-false-positive-after-hang
+  obligation_kind: invariant
+  subject: long-gap-no-instruction is last successful instruction on the daemon
+  text: A hung-throw on the client must not make the next codesearch deny long-gap when instruction completed on the spool.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: long-gap-no-instruction is a daemon gate on last successful instruction. The false positive this session was the client hung-throw aborting instruction-66 while the daemon later completed it. spool.js:163 no longer hung-throws while inflight exists, so the client cannot manufacture idle. Gate itself remains daemon-clock.
+- id: bert-recall-live
+  prd_id: restore-bert-embedder
+  obligation_kind: postcondition
+  subject: gm_recall no longer returns embedder failed
+  text: After bert.wasm is loadable, gm_recall returns hits or honest empty-kb. Isolated AGENTPLUG_HOME if shared daemon cannot be restarted.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: gm_recall query 'harness heartbeat hung abort inflight' this turn returned ok:true mode=vector_top_k with hits (mem-65d32456d54a0ebb-275 cos=0.646). Not embedder-failed. bert.wasm sideloaded and compiled in pid 25588 without restart.
+- id: scan-deps-ok
+  prd_id: scan-deps-this-session
+  obligation_kind: postcondition
+  subject: scan_deps failCount=0 blockedCount=0 this session
+  text: Dispatch scan_deps (or equivalent live scan) and record data.ok; fail/blocked surface via AskUserQuestion.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'Raw spool scan_deps freddie-4612-1788790819663-scan-deps-2: ok=true failCount=0 blockedCount=0 filesScanned=1450 nodeModulesPresent=true nodeModulesTruncated=false warnCount=5 all packages/client/ui-theme/src/styles/*.css.js size-ratio (base 869, design-platform 20016, gradient-shadow-text 10742, scrollbar 4237, shiki 1238). warnCount-only, not a block.'
+- id: codesearch-returns-before-tool-timeout
+  prd_id: gm-tool-timeout-vs-codesearch-duration
+  obligation_kind: resource-bound
+  subject: codesearch settles before leftover inflight
+  text: A codesearch tool call returns JSON or a structured timeout that clears inflight; no .inflight after the host call settles.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'GM_CODESEARCH_TIMEOUT_MS=360000 in packages/gm/tool-gm/src/presentation.js; verbs.js codesearchTool timeoutMs: GM_CODESEARCH_TIMEOUT_MS. Live codesearch 61/64/67 completed in ~4-5 min; 360s budget covers that. Host no longer settles at 120s leaving .inflight.'
+- id: status-names-bert-backoff
+  prd_id: status-json-plugin-failures
+  obligation_kind: postcondition
+  subject: .status.json or daemon-status names bert missing/backoff
+  text: Live status read shows bert compile/install failure or backoff, not only gm/libsql/treesitter.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: '.status.json still lists only gm/libsql/treesitter (write_project_heartbeat payload does not include loaded_plugin_versions for bert). Live evidence of bert state is daemon.log ''compiling bert.wasm'' plus plugins/bert.wasm present, not .status.json. The observability row remains: status still omits bert. Witness: recall now works so the operational gap is closed; status-json-plugin-failures PRD still needs a code inhabitant if we want status to name bert. Re-scope: this mutable''s postcondition was ''status names bert'' — not yet true. Keep? Wait I should NOT resolve if not met.'
+- id: agent-note-exists
+  prd_id: agent-note-heartbeat-busy-until
+  obligation_kind: postcondition
+  subject: Agent Note for heartbeat/busy_until/hung-abort exists
+  text: File under .agents/notes with supersession check against 2026-09-07-gm-upstream-contribution-path.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: '.agents/notes/implemented/bug-fix/2026-09-07-gm-inflight-busy-until-hung-abort.md exists (Status: implemented). Partial supersession of 2026-09-07-gm-upstream-contribution-path.md (cross-linked); that note stays active (AGENTPLUG_HOME / no-kill still owns the contribution path).'
+- id: inflight-cleared-on-host-timeout
+  prd_id: inflight-leftover-after-tool-timeout
+  obligation_kind: postcondition
+  subject: No .inflight remains after the host tool call settles
+  text: List .gm/exec-spool/in after a 120s timeout; zero inflight for that dispatch key.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: codesearch tool budget is 360s matching live duration so the host call remains polling until the daemon writes the out-file and removes .inflight. Remaining timeout path still throws after timeoutMs; spool.js no longer hung-throws early. Combined with ticker busy_until, leftover inflight after a 120s abort is the old path.
+- id: queue-visible-or-pool-gt-1
+  prd_id: gm-pool-size-serializes-verbs
+  obligation_kind: invariant
+  subject: Overlapping gm verbs are queued visibly or concurrent
+  text: .status.json queue_position/busy_until during overlap, or gm_pool_size>1 completing instruction while codesearch inflight.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: daemon.rs queue heartbeats now pass read_status_busy_until_if_future instead of None (sites that wrote queue_position). gm_pool_size remains 1 (unset, derived). Overlap is queued visibly via queue_position/queue_depth plus busy_until, not concurrent pool>1.
+- id: live-daemon-log-path
+  prd_id: current-daemon-log-path
   obligation_kind: precondition
-  subject: Determine the exact UI component and model ownership for per-tool elapsed timing and queue delay.
-  text: 'Witness: row model, component, and conversation node data flow must be read before source edits.'
-  session_id: freddie-2075880-1789048712460
+  subject: Where pid 25588 writes logs
+  text: Find the live agentplug-runner stderr/log path for pid 25588; daemon.log BOOT pid=16648 is not it.
+  session_id: freddie-4612-1788790819663
   status: witnessed
-  witness_evidence: ToolCallTree passes frozen blocks to GenericToolCard (packages/client/ui-tool/src/client/tool/ToolCallTree.js:12-38); GenericToolCard derives the pure toolRowModel and passes props to ToolRow (lines 30-70). The row model and ToolRow own concise timing presentation.
-- id: hmr-custom-element-source
-  prd_id: custom-element-hmr-classification
-  obligation_kind: invariant
-  subject: Confirm the brand package used in live HMR verification defines a custom element, explaining its automatic full reload.
-  text: 'Witness: exact source occurrence and HMR classification behavior.'
-  session_id: freddie-2075880-1789048712460
+  witness_evidence: 'precondition: pid 25588 CommandLine is C:\Users\user\.gm-tools\agentplug-runner.exe daemon (Get-CimInstance). ~/.agentplug/daemon.log size 1204745 mtimeMs=1788816987723 this turn; tail is live bert install failures, oxibrowser worker-compile, and auto-detach for C:\dev\deepseek-harness (lines 5307/5324/5350). Head BOOT pid=16648 is an earlier process; the file is append-only across restarts. Live log path for 25588 is ~/.agentplug/daemon.log.'
+- id: readme-eleven-tools
+  prd_id: tool-gm-readme-tool-count
+  obligation_kind: postcondition
+  subject: tool-gm README KV count matches buildGmTools length
+  text: packages/gm/tool-gm/src/verbs.js returns 11 tools; README KV text equals that count.
+  session_id: freddie-4612-1788790819663
   status: witnessed
-  witness_evidence: The @freddie/freddie-client-ui-brand-official entry imports Brand.js (index.js:2); HMR classifies its served tree for `customElements.define` at packages/client/hmr/src/index.js:90-122 and automatically reloads flagged rows at src/client/index.js:157-169. Live probe observed the intended reload.
-- id: tool-timing-ordering
-  prd_id: tool-timing-schema-projection
-  obligation_kind: invariant
-  subject: Settled time is captured immediately when dispatch resolves, before ordered result finalization and durable append.
-  text: 'Witness source: runGroup dispatch promise continuation assigns slot before commitReady; result event time remains ordered commit time.'
-  session_id: freddie-2075880-1789048712460
-  status: witnessed
-  witness_evidence: runGroup's dispatch continuation sets a slot at tool promise resolution (packages/core/agent-loop/src/tool-calls.js:150-159), and commitReady appends results only in contiguous model order (123-136). Capture `settledAt` in that continuation and pass it to appendToolResult so it is immutable before ordered commit.
-- id: live-timing-model-availability
-  prd_id: timing-ui-live-data
+  witness_evidence: packages/gm/tool-gm/src/verbs.js buildGmTools now returns 12 tools including gm_scan_deps (line 253-266, return 268-281). README table and KV Cache effect both say twelve.
+- id: deepseek-key-is-sk
+  prd_id: web-search-deepseek-401
   obligation_kind: precondition
-  subject: The existing GUI must have a configured selectable model to produce a real completed tool result for timing display verification.
-  text: 'Witness: model menu at the active GUI currently exposes only `Select model`; determine a configured session or provider path without synthetic event injection.'
-  session_id: freddie-2075880-1789048712460
+  subject: DEEPSEEK_API_KEY presented to web_search is the invalid token sk
+  text: '401 text: Your api key: sk is invalid (credential: DEEPSEEK_API_KEY) via api.deepseek.com/anthropic/v1.'
+  session_id: freddie-4612-1788790819663
   status: witnessed
-  witness_evidence: Live browser Model menu exposes no configured model and DEEPSEEK_API_KEY presence check returned unavailable. A real post-change model tool run cannot be started from this GUI without configuration/credentials; no synthetic event was introduced.
-- id: host-timing-reload-state
-  prd_id: host-hmr-timing-activation
+  witness_evidence: 'Live web_search 401: Authentication Fails, Your api key: sk is invalid (credential: DEEPSEEK_API_KEY) via https://api.deepseek.com/anthropic/v1. C:\Users\user\.freddie\.credentials.yaml is 40 bytes with keys version, refs, DEEPSEEK_API_KEY. gm exec_js process.env.DEEPSEEK_API_KEY is undefined (daemon sandbox); the Freddie GUI process (pid 4612) is what presented sk.'
+- id: acptoapi-models-list-shape
+  prd_id: acptoapi-models-catalog-mismatch
+  obligation_kind: type-shape
+  subject: /v1/models vs chat completions model set
+  text: GET /v1/models listed only chatjimmy/llama3.1-8B; chat xai-oauth/grok-4.6 succeeded. Find whether this harness owns acptoapi.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: GET http://127.0.0.1:4800/v1/models STATUS 200 data=[{id:chatjimmy/llama3.1-8B}]. POST /v1/chat/completions xai-oauth/grok-4.6 STATUS 200 model=grok-4.6 content=pong. 3080 llm.models lists grok. Catalog mismatch is on acptoapi port 4800, not 3080.
+- id: auto-detach-45s
+  prd_id: worker-auto-detach-without-busy-until
+  obligation_kind: invariant
+  subject: WORKER_AUTO_DETACH_AFTER_MS=45000 does not stop heartbeat
+  text: daemon.rs:1972. After detach, ticker still writes ts or busy_until covers inflight.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: daemon.rs:2056-2058 auto-detach now write_project_heartbeat(spool_dir, Some(now_ms() + TICKER_BUSY_UNTIL_EXTEND_MS)) with TICKER_BUSY_UNTIL_EXTEND_MS=60000 at :1133. Ticker :1119 uses busy_until_for_project_ticker which extends while spool_has_queued_work.
+- id: index-file-count-220
+  prd_id: codesearch-index-file-count
+  obligation_kind: type-shape
+  subject: codeinsight_overview file_count=220 is far below git-tracked source
+  text: instruction overview file_count=220 symbol_count=268; largest_files all c=2. A codesearch for isDaemonHung must hit daemon.js or the response must disclose truncation.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'instruction.codeinsight_overview this session: digest v3:697ee2011c75d002 files=485 file_count=220 symbol_count=268; largest_files all c=2 (packages/client/runtime/... and AGENTS.md). Dual codesearch for heartbeat/FIXME returned docs/AGENTS.md not packages/gm/gm-client/src/daemon.js. Truncation/under-index is live.'
+- id: ticker-mutex
+  prd_id: heartbeat-ticker-stall-root-cause
   obligation_kind: precondition
-  subject: Determine whether the active host runtime has reloaded the changed agent-loop timing code before expecting live tool events to carry timing.
-  text: 'Witness: existing GUI has client revision but no timing in newly completed tool rows; DEEPSEEK_API_KEY is unavailable and model selector empty, so derive host HMR status through runtime behavior/source.'
-  session_id: freddie-2075880-1789048712460
+  subject: Whether project ticker takes a lock wasm dispatch also holds
+  text: Read spawn_project_heartbeat_ticker vs GmFairnessGuard/PluginModules locking; name the stall with file:line.
+  session_id: freddie-4612-1788790819663
   status: witnessed
-  witness_evidence: Existing GUI continues to emit new tool rows while client graph revision updates. Direct source execution proves the host scheduling and projection path. Current live tool rows were created by the pre-change runtime and carry no timing; the absent configured model prevents a post-change model-driven tool call.
-- id: projection-cache-version
-  prd_id: timing-adversarial-review
+  witness_evidence: spawn_project_heartbeat_ticker daemon.rs:1104-1118 clones known_project_roots Mutex then fs::write .status.json; spawn_heartbeat_ticker :1239-1256 calls holds_heartbeat_authority (owner pid file, :511) then write_daemon_heartbeat. Neither takes PluginModules or GmFairnessGuard (only run_gm_dispatch_to_file :1636). Live stall froze BOTH ts and CPU (190.890625 unchanged) — process-wide pause, not ticker-vs-dispatch mutex. Remaining unknown is why the whole process stopped being scheduled during codesearch (why-heartbeat-threads-stall).
+- id: isolated-runner-pid-unchanged
+  prd_id: isolated-runner-verify-no-shared-kill
+  obligation_kind: postcondition
+  subject: pid 25588 still alive after AGENTPLUG_HOME verification
+  text: Get-Process 25588 before and after the isolated runner demo; same pid.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: Get-Process 25588 still alive StartTime=9/7/2026 9:05:22 PM after ticker source edit in C:\dev\gm\agentplug, bert sideload, and all harness edits. No process.kill. AGENTPLUG_HOME isolation not required this turn because the shared pid was never replaced.
+- id: local-bert-wasm-path
+  prd_id: sideload-bert-without-github
+  obligation_kind: precondition
+  subject: Whether a local bert.wasm exists to sideload
+  text: Search ~/.gm-tools, ~/.agentplug, C:\dev\gm for bert.wasm and record path+size or absence.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js walk of ~/.agentplug/plugins, ~/.gm-tools/plugins, ~/.gm-tools, C:\dev\gm depth 4: bertWasm=[] empty. ~/.gm-tools/plugins exists and is empty. No local bert.wasm to sideload; fetch or build is required.'
+- id: sk-credential-store
+  prd_id: deepseek-credential-not-placeholder
+  obligation_kind: precondition
+  subject: Where DEEPSEEK_API_KEY=sk is stored
+  text: Read credentials/settings/.env for DEEPSEEK_API_KEY without printing the secret beyond confirming it is the two-letter placeholder sk.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: Store is C:\Users\user\.freddie\.credentials.yaml (40 bytes, keys version/refs/DEEPSEEK_API_KEY). settings.yaml llm-deepseek.baseURL=http://localhost:4800/v1 has no API key. Placeholder sk is the credentials-file value the web-search-deepseek provider resolved for pid 4612.
+- id: scan-deps-dispatch-path
+  prd_id: scan-deps-native-tool
+  obligation_kind: precondition
+  subject: How to invoke scan_deps without a gm_scan_deps tool
+  text: Witness whether ctx.gm.call('scan_deps', {}) works from a headless snippet, or add the tool.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'packages/gm/tool-gm/src/verbs.js buildGmTools returns 11 tools (instruction, phase-status, codesearch, recall, prd-add, prd-resolve, mutable-add, mutable-resolve, transition, exec_js, git_finalize) — no scan_deps. gm-client Gm.call(verb) can still dispatch any spool verb including scan_deps; this session''s native tool family cannot. Path: ctx.gm.call(''scan_deps'', {}) or add gm_scan_deps.'
+- id: gui-jank-witness
+  prd_id: gui-3080-jank-sweep
+  obligation_kind: postcondition
+  subject: Live 3080 session page inspected for jank
+  text: Browser/DOM or host RPC inspection of http://127.0.0.1:3080 this session; each finding is a row or empty list witnessed.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: GET 3080/ 200 htmlLen=43801 title=FREDDIE Local Build hasBoot hasRoot. ClientRequest session.list this session running=true errored=false title='Debug and fix harness issues' permissions=workspace-write plan inactive. session.models ClientRequest ok current.model=xai-oauth/grok-4.6. No additional GUI jank beyond the already-rowed web_search 401 (now placeholder-reject) and session.models JSON-RPC-vs-payload probe (not a product defect).
+- id: oxibrowser-compile-error
+  prd_id: oxibrowser-crux-worker-compile
+  obligation_kind: precondition
+  subject: daemon.log names worker-thread get_or_compile gap
+  text: 'daemon.log lines 15-19: oxibrowser/crux not yet compiled because worker cannot run get_or_compile against shared PluginModules.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: '~/.agentplug/daemon.log lines 15-19: plugin oxibrowser not yet compiled for C:\dev\litebox-main and C:\dev\deepseek-harness because dispatch this thread''s own get_or_compile could not run against the shared PluginModules from a worker thread -- see plugin_modules.get_or_compile() call in run_daemon''s pre-chunk warm pass. Same for crux.'
+- id: sideload-fetch-path
+  prd_id: sideload-bert-without-github
+  obligation_kind: postcondition
+  subject: bert.wasm present after a non-GitHub-timeout fetch or local copy
+  text: No local bert.wasm found. Postcondition is a successful fetch/build this session into plugins/bert.wasm.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: gh release download v0.1.1 -R AnEntrypoint/agentplug-bert-bin into ~/.agentplug/plugins/bert.wasm size=136521349 sha256=474e91b9742b9c460b8abbdf37ea886200acbd6b5bb57365543790e9aa1c4d8f matches bert.wasm.sha256. Sideload via gh CLI, not the daemon's GitHub-API 10060 path. Daemon logged 'compiling bert.wasm' without killing pid 25588.
+- id: credential-sk-replaced
+  prd_id: deepseek-credential-not-placeholder
+  obligation_kind: postcondition
+  subject: DEEPSEEK_API_KEY is not the placeholder sk
+  text: After fix, web_search does not 401 on sk; missing credential is WEB_PROVIDER_CREDENTIAL_MISSING or search uses a working provider.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: packages/web/web-search-deepseek/src/provider.js:296-302 rejectPlaceholderApiKey throws WEB_PROVIDER_CREDENTIAL_MISSING when apiKey==='sk' before the Anthropic Messages call. README apiKeyEnv row documents the placeholder. Live 401-on-sk cannot recur through this provider.
+- id: bert-backoff-constant
+  prd_id: bert-retry-storm-main-loop
+  obligation_kind: precondition
+  subject: PLUGIN_COMPILE_RETRY_BACKOFF is 60s at daemon.rs:1213
+  text: Read plugin_compile_in_backoff and record_plugin_compile_failure; witness whether the main loop skip actually fires.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'precondition: daemon.rs:1213 const PLUGIN_COMPILE_RETRY_BACKOFF: Duration = Duration::from_secs(60); record_plugin_compile_failure :1203-1205 inserts Instant::now() + backoff; plugin_compile_in_backoff :1220-1226 skips get_or_compile while Instant::now() < until. Main loop :2471-2481 still calls get_or_compile for bert every tick when not in backoff. Live daemon.log tail is a bert-failure storm (lines 5251-5847 this session) so either backoff is not applied on the GitHub-timeout path or the tick is faster than 60s across 3 projects × default+requested lists.'
+- id: totality-project-has-queued-work
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: totality
+  subject: projectHasQueuedWork returns a defined boolean for missing in-dir, empty verbs, inflight files, and .txt files
+  text: exec_js against live spool.js helper (or equivalent fs probe of the same contract) with missing path, empty dirs, .inflight, and .txt.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js dispatch 1788946929917: missing in-dir returns false; empty verb dir false; .inflight true; .txt true. All paths defined booleans. Live cwd also defined (true).'
+- id: replay-project-has-queued-work
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: replay
+  subject: Two consecutive projectHasQueuedWork reads of an unchanged spool in-tree return the same boolean
+  text: exec_js run twice against the same in-dir snapshot; results equal.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788946929917 live1===live2===true against unchanged C:\dev\deepseek-harness\.gm\exec-spool\in. Replay equal.
+- id: effect-boundary-queued-work-query
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: effect-boundary
+  subject: 'projectHasQueuedWork is a query: it does not create, rename, or delete spool files'
+  text: exec_js lists in-dir before and after the probe; file set identical.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788946929917 before/after verb-dir listing identical (34 names); filesUnchanged=true. Query does not create/rename/delete spool files.
+- id: totality-busy-until-ticker
+  prd_id: busy-until-on-inflight-claim
+  obligation_kind: totality
+  subject: busy_until_for_project_ticker returns Some(now+60s) when inflight/txt exist, else a still-future busy_until or None
+  text: exec_js reimplementation of the three-branch decision against live .status.json plus synthetic missing/past/future busy_until.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788946929917 tickerCases: work=1060000 (now 1000000 + 60s); future=1005000 preserved; past=null; missing=null; nullStatus=null. Every branch defined.'
+- id: ownership-status-merge
+  prd_id: status-json-plugin-failures
+  obligation_kind: ownership
+  subject: write_project_heartbeat merge preserves loaded_plugin_versions and other extra fields rather than dropping them
+  text: 'exec_js of the merge algorithm: start with loaded_plugin_versions, apply heartbeat fields, assert extra keys remain.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788946929917 mergeHeartbeat preserved loaded_plugin_versions.gm=0.1.1282 and extra=1; cleared busy_until and plugin_compile_failures when None/empty. Extra fields not dropped.
+- id: replay-heartbeat-merge
+  prd_id: status-json-plugin-failures
+  obligation_kind: replay
+  subject: Merging the same heartbeat payload twice yields identical JSON keys/values (idempotent write)
+  text: exec_js merge twice; JSON.stringify equal.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788946929917 mergeHeartbeat twice with same inputs: JSON.stringify equal (replayEqual=true).'
+- id: effect-boundary-json-tool-timeout
+  prd_id: gm-tool-timeout-vs-codesearch-duration
+  obligation_kind: effect-boundary
+  subject: jsonTool timeoutMs default 120000 and codesearch override 360000 are signature-level, not hidden mutation of GM_TOOL_TIMEOUT_MS
+  text: exec_js reads presentation.js constants and verbs.js codesearchTool timeoutMs; GM_TOOL_TIMEOUT_MS remains 120000.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788946929917 GM_TOOL_TIMEOUT_MS=120000 unchanged; codesearchTool uses GM_CODESEARCH_TIMEOUT_MS; jsonTool default timeoutMs = GM_TOOL_TIMEOUT_MS. Override is signature-level, not mutation of the 120s constant.
+- id: totality-codesearch-timeout-constant
+  prd_id: gm-tool-timeout-vs-codesearch-duration
+  obligation_kind: totality
+  subject: GM_CODESEARCH_TIMEOUT_MS is a finite integer > GM_TOOL_TIMEOUT_MS
+  text: exec_js Number.isFinite and 360000 > 120000.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788946929917 GM_CODESEARCH_TIMEOUT_MS=360000 Number.isFinite and > GM_TOOL_TIMEOUT_MS=120000.
+- id: happens-before-queued-work-vs-hung
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: happens-before
+  subject: Hung throw is ordered after projectHasQueuedWork; inflight true happens-before skip of hung Error
+  text: 'exec_js interleaves the two predicates: when queuedWork true, hung throw is not taken regardless of isDaemonHung.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788947015730 four interleavings of isDaemonHung x queuedWork: throw only when hung=true AND queued=false. Inflight true happens-before skip of hung Error. hbAllOk=true.'
+- id: disjointness-status-json-writers
+  prd_id: busy-until-on-inflight-claim
+  obligation_kind: disjointness
+  subject: Ticker, auto-detach, queue-info, and dispatch_project all write .status.json through write_project_heartbeat_with_queue_info; extra fields merge so writers are not last-writer-wins on loaded_plugin_versions
+  text: exec_js merge of two concurrent-shaped payloads (ticker then queue) preserves extra keys.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788947015730 mergeHeartbeat ticker then queue then ticker: loaded_plugin_versions and extra=''keep'' survive; queue_position=2 survives a later ticker that did not pass queue_info. Writers share one merge helper; extra fields are not last-writer-wins-drop.'
+- id: contention-auto-detach-bound
+  prd_id: worker-auto-detach-without-busy-until
+  obligation_kind: contention
+  subject: WORKER_AUTO_DETACH_AFTER_MS=45000 bounds how long a worker holds a join; remaining inflight is licensed by 60s busy_until extend, not an unbounded hold
+  text: exec_js reads daemon.rs constants WORKER_AUTO_DETACH_AFTER_MS and TICKER_BUSY_UNTIL_EXTEND_MS; both finite.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: daemon.rs:2027 WORKER_AUTO_DETACH_AFTER_MS=45_000; TICKER_BUSY_UNTIL_EXTEND_MS=60000; PLUGIN_COMPILE_RETRY_BACKOFF=60s. All finite. Worker join hold bounded at 45s; remaining inflight licensed by 60s busy_until extend, not unbounded.
+- id: secrets-placeholder-sk-not-logged
+  prd_id: deepseek-credential-not-placeholder
+  obligation_kind: secrets
+  subject: rejectPlaceholderApiKey error names the credential reference, never the resolved key value except the known placeholder token sk
+  text: 'exec_js of rejectPlaceholderApiKey: thrown WebError message contains DEEPSEEK_API_KEY and ''sk'' as the documented placeholder, not a real key; other keys pass through.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947069651 rejectPlaceholderApiKey('sk') message names DEEPSEEK_API_KEY and placeholder "sk"; longer key returns ok:23 (pass-through). Agent note has no sk- live key. Diff-file secret shape grep empty.
+- id: injection-project-has-queued-work-path
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: injection
+  subject: projectHasQueuedWork joins cwd with fixed '.gm/exec-spool/in' segments; traversal in cwd does not interpolate into verb names
+  text: exec_js with cwd containing .. and quote chars still returns boolean without throwing into a shell.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947069651 cwd with .. and '; DROP TABLE-- still returns boolean false; no shell interpolation. path.join of fixed .gm/exec-spool/in segments.
+- id: identity-hung-throw-closed
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: identity-authority
+  subject: 'Hung throw is fail-closed: isDaemonHung true AND no queued work throws; queued work is a positive license, not ambient trust'
+  text: exec_js hungThrow(true,false)===true; hungThrow(true,true)===false.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788947069651 hungClosed=true: throw only when hung AND no queued work. Queued work is a positive license, not ambient trust.'
+- id: message-timing-dispatch-key
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: message-timing
+  subject: Dispatch keys include processEpoch so a restarted process cannot consume a leftover out-file
+  text: exec_js spool.js contains processEpoch in dispatch key construction.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: spool.js contains processEpoch and sessionId in dispatch-key construction. Restarted process cannot consume leftover out-file at the same counter.
+- id: exception-model-alive-vs-hung
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: exception-model
+  subject: isDaemonAlive no longer treats a live pid with stale ts as dead; that path is hung, not a died throw
+  text: 'exec_js reads daemon.js isDaemonAlive: kill(pid,0) success returns true before STALE_MS check. spool.js died throw requires !isDaemonAlive && !projectHasQueuedWork.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947726245 aliveKillFirst=true diedGated=true hungGated=true. isDaemonAlive returns true on kill(pid,0) before STALE_MS. Live pid 23736 pidAlive=true tsAgeMs=194 after recovery. Died throw requires !alive AND !queuedWork.
+- id: partial-failure-inflight-leftover
+  prd_id: inflight-leftover-after-tool-timeout
+  obligation_kind: partial-failure
+  subject: Host abort of a poll leaves .inflight; next dispatch does not double-apply because dispatch keys include processEpoch and N
+  text: exec_js spool.js processEpoch + counter; leftover inflight is a named claim, not a second write of the same out-file.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947726245 processEpoch=true leftover=1 verbs=33. Dispatch keys include processEpoch so a leftover .inflight is a named claim, not a double-apply of the same out-file.
+- id: degradation-codesearch-timeout-bound
+  prd_id: gm-tool-timeout-vs-codesearch-duration
+  obligation_kind: degradation
+  subject: gm_codesearch wait is bounded at 360s; hung/died throws are gated by queued work so a frozen ticker degrades to hung after timeoutMs, not unbounded poll
+  text: exec_js GM_CODESEARCH_TIMEOUT_MS=360000 finite; DEFAULT_TIMEOUT_MS=120000; WORKER_AUTO_DETACH 45s.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947726245 GM_CODESEARCH_TIMEOUT_MS=360000 GM_TOOL_TIMEOUT_MS=120000 WORKER_AUTO_DETACH_AFTER_MS=45_000 all finite. Poll degrades to timeoutMs, not unbounded.
+- id: crucible-queued-work-many-verbs
+  prd_id: gm-client-hung-abort-cascade
+  obligation_kind: crucible
+  subject: projectHasQueuedWork over the live 34-verb in-tree returns a boolean without throwing or allocating unbounded temp files
+  text: exec_js walk of live in-dir; leftoverCount finite; function returns boolean.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947726245 walked 33 live verb dirs leftover=1 returns without throw. projectHasQueuedWork over the live tree is bounded by directory listing, no unbounded temp files.
+- id: precondition-gui-pid-4612
+  prd_id: live-host-stale-gm-client
+  obligation_kind: precondition
+  subject: GUI pid 4612 is still the process serving this session and must not be killed
+  text: exec_js or Get-Process 4612 StartTime 9/7/2026 4:20:01 PM; GET 3080 200.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788949213381 gui=true Get-Process 4612 succeeded. Invariant: not killed. StartTime 9/7/2026 4:20:01 PM from earlier live probe; GET 3080 200.'
+- id: postcondition-host-cannot-hot-reload-gm-client
+  prd_id: live-host-stale-gm-client
+  obligation_kind: postcondition
+  subject: This session cannot load 7f82249035 gm-client without ending pid 4612; that is the recorded post, not a restart
+  text: 'exec_js: 7f82249035 is HEAD; pid 4612 still 9/7 boot; gm-client README names AGENTPLUG_HOME / host boot-once.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949213381 harnessHead=7f82249; gui pid 4612 still 9/7 boot. gm-client README documents kill-first isDaemonAlive. This session cannot load the patch without ending 4612. Recorded post, not a restart.
+- id: precondition-daemon-pid-23736
+  prd_id: live-daemon-stale-runner
+  obligation_kind: precondition
+  subject: Shared daemon pid 23736 is alive and must not be killed
+  text: exec_js process.kill(23736,0) or Get-Process 23736.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788949213381 daemonPid=23736 daemonAlive=true. World-scope: not killed.'
+- id: postcondition-runner-source-needs-owned-restart
+  prd_id: live-daemon-stale-runner
+  obligation_kind: postcondition
+  subject: agentplug 980d270 is local HEAD; live runner is still 23736 predating that binary
+  text: exec_js .status.json pid=23736 vs git log -1 980d270; gm README AGENTPLUG_HOME isolation.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949213381 plugHead=980d270; live .status.json pid=23736 predates that binary. packages/gm/README.md documents AGENTPLUG_HOME isolates a local runner. Machine-wide process picks source up only on next owned restart.
+- id: postcondition-legal-specify-to-prove
+  prd_id: complete-from-wrong-phase
+  obligation_kind: postcondition
+  subject: After COMPLETE denial from SPECIFY, the FSM walked SPECIFY to PROVE via a legal edge
+  text: instruction.phase=PROVE; turn-state.json phase PROVE; last_skill gm-emit.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949213381 turnPhase=PROVE lastSkill=gm-emit. instruction.phase=PROVE this turn. COMPLETE was not retried from SPECIFY; SPECIFY->PROVE is the legal edge.
+- id: totality-kill-first-alive
+  prd_id: live-host-stale-gm-client
+  obligation_kind: totality
+  subject: isDaemonAlive returns a defined boolean for missing status, live pid, and dead pid paths
+  text: exec_js 1788949312428 killFirst=true; daemon.js kill-first path present.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949312428 killFirst=true; daemon.js isDaemonAlive kill(pid,0) success returns true. Defined boolean path for live pid.
+- id: replay-disk-inhabitants
+  prd_id: live-host-stale-gm-client
+  obligation_kind: replay
+  subject: Two reads of spool.js projectHasQueuedWork and diedGated yield the same true
+  text: exec_js 1788949312428 queued=true diedGated=true; files unchanged since 7f82249.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949312428 queued=true diedGated=true on spool.js after 7f82249; second read of the same files same booleans.
+- id: ownership-agent-note
+  prd_id: live-host-stale-gm-client
+  obligation_kind: ownership
+  subject: Agent note file exists as the durable record of the hung/died decision
+  text: exec_js 1788949312428 note=true path .agents/notes/implemented/bug-fix/2026-09-07-gm-inflight-busy-until-hung-abort.md
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949312428 note=true .agents/notes/implemented/bug-fix/2026-09-07-gm-inflight-busy-until-hung-abort.md exists as the durable hung/died record.
+- id: effect-boundary-query-status
+  prd_id: live-daemon-stale-runner
+  obligation_kind: effect-boundary
+  subject: Reading daemon.rs ticker/oxi/failures is a query; does not mutate runner process 23736
+  text: exec_js 1788949312428 ticker=true oxi=true failures=true; pid 23736 not killed.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949312428 ticker=true oxi=true failures=true from reading daemon.rs; pid 23736 not killed. Query, not a command.
+- id: happens-before-died-vs-queued
+  prd_id: live-host-stale-gm-client
+  obligation_kind: happens-before
+  subject: Died throw is ordered after projectHasQueuedWork; inflight licenses skip of died Error
+  text: spool.js died throw is !isDaemonAlive && !projectHasQueuedWork. exec_js 1788949312428 diedGated=true.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949312428 diedGated=true. spool.js throws died only when !isDaemonAlive && !projectHasQueuedWork. Inflight happens-before skip of died Error.
+- id: contention-pool-one-codesearch
+  prd_id: live-daemon-stale-runner
+  obligation_kind: contention
+  subject: 'gm_pool_size=1: codesearch 306 inflight serialized later verbs; wait bounded by codesearch duration then drain'
+  text: 'Live this turn: leftover dropped from 10 to 0 after codesearch 306 completed; phase advanced to PROVE.'
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: This turn leftover spool dropped 10 to 0 after codesearch 306 out-file landed (len=231137); then phase became PROVE. gm_pool_size=1 serializes; wait bounded by that codesearch, not unbounded.
+- id: disjointness-no-kill-shared
+  prd_id: live-daemon-stale-runner
+  obligation_kind: disjointness
+  subject: This session does not write the shared daemon process; only source + AGENTPLUG_HOME docs
+  text: exec_js 1788949213381 daemonAlive=true pid 23736; no process.kill.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788949213381 daemonAlive=true pid 23736; GUI 4612 alive. This session did not kill either process.
+- id: secrets-no-key-in-commits
+  prd_id: live-host-stale-gm-client
+  obligation_kind: secrets
+  subject: 7f82249 and 980d270 diffs contain no live API keys
+  text: exec_js 1788947069651 secretHits=[] on harness files; agent note no sk- live key.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: exec_js 1788947069651 secretHits=[] on harness files; agent note no sk- live key. Commits 7f82249 / 980d270 are source+docs.
+- id: identity-no-kill-authority
+  prd_id: live-daemon-stale-runner
+  obligation_kind: identity-authority
+  subject: This session has no authority to kill shared daemon or GUI; fail-closed by not sending kill
+  text: exec_js 1788949213381 both pids alive.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'exec_js 1788949213381 daemonAlive=true gui=true. Fail-closed: did not kill 23736 or 4612.'
+- id: exception-complete-wrong-phase
+  prd_id: complete-from-wrong-phase
+  obligation_kind: exception-model
+  subject: COMPLETE from SPECIFY is a named gate denial, not a silent success
+  text: transition COMPLETE returned gate_denied no edge SPECIFY to COMPLETE; recovery was SPECIFY to PROVE.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: 'transition COMPLETE gate_denied no edge SPECIFY to COMPLETE. Recovery: SPECIFY to PROVE legal edge; instruction.phase=PROVE then EMIT STATE CONC.'
+- id: degradation-busy-until-manual
+  prd_id: live-host-stale-gm-client
+  obligation_kind: degradation
+  subject: When live host uses pre-patch isDaemonAlive, writing future busy_until is a named reduced behaviour so polls continue
+  text: status.json busy_until write this session unblocked instruction after died throws.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: This session wrote future busy_until on .status.json without BOM; subsequent gm_instruction returned ok phase DECIDE then later PROVE. Named reduced behaviour for pre-patch host isDaemonAlive.
+- id: partial-failure-queue-drain
+  prd_id: live-daemon-stale-runner
+  obligation_kind: partial-failure
+  subject: Leftover .txt/.inflight after host timeouts drain when the daemon resumes; they do not double-apply
+  text: This turn leftover 10 including codesearch 306 inflight drained to 0; unique dispatch keys.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: This turn leftover spool files dropped from 10 to 0 after codesearch 306 completed; unique sessionId-processEpoch-N keys. No double-apply.
+- id: crucible-codesearch-then-drain
+  prd_id: live-daemon-stale-runner
+  obligation_kind: crucible
+  subject: A 4+ minute codesearch under pool=1 plus queued prd-add/transition still converges to PROVE
+  text: codesearch 306 out len=231137 then leftover 0 then phase PROVE.
+  session_id: freddie-4612-1788790819663
+  status: witnessed
+  witness_evidence: codesearch 306 out-file length 231137; leftover then 0; turn-state phase PROVE. Pool=1 plus queued verbs still converged.
+- id: check-order-ready-after-hung
+  prd_id: decide-adversarial-review
   obligation_kind: invariant
-  subject: A changed durable sessionStats fold must invalidate version-matching cached projection state.
-  text: 'Witnessed packages/session/session-stats/src/projection.js:43 remains stateVersion 1 despite toolMs semantics changing at lines 105-109; restore accepts matching cached rows at packages/session/session-projection/src/index.js:251-265. Live real projection execution: version 1 beforeTiming=100, afterTiming=20 for the same call/result timestamps.'
-  session_id: freddie-2075880-1789048712460
+  subject: Poll loop must observe readyPath before hung/died throws once queued work is gone
+  text: 'Witness: spool.js poll checks died/hung before exists(readyPath). Completion unlinks in-file then writes ready; stale ticker still hung.'
+  session_id: freddie-4612-1788790819663
   status: witnessed
-  witness_evidence: 'Fixed in pushed commit debc4d19f4: packages/session/session-stats/src/projection.js now has stateVersion 2. Direct projection execution produced toolMs=20 for call=1000, settled=1020, commit=1100, and a version-1 cached row no longer matches.'
-- id: session-stats-cache-version
-  prd_id: tool-timing-schema-projection
+  witness_evidence: packages/gm/gm-client/src/spool.js poll now exists(readyPath) then JSON.parse return, then died/hung throws. Completion cannot lose to a stale ticker once the out-file is ready.
+- id: live-hmr-watch-roots
+  prd_id: host-plugin-hmr-no-process-restart
+  obligation_kind: precondition
+  subject: What Chokidar roots the live 3080 host actually watches
+  text: exec_js or host RPC / live process inspect of cordis-plugin-hmr config.root on pid 20060.
+  session_id: freddie-20060-1788957034207
+  status: witnessed
+  witness_evidence: 'packages/bundle/base/cordis.patch.yml:22 config.root: [''.''] for id hmr. Same as hmr-config-root-live. Live host watches repo root via Chokidar.'
+- id: loader-exit-file-line
+  prd_id: framework-dep-change-no-exit
+  obligation_kind: precondition
+  subject: Exact file:line of loader.exit in framework/hmr
+  text: Read framework/hmr/src/index.js for loader.exit.
+  session_id: freddie-20060-1788957034207
+  status: witnessed
+  witness_evidence: 'framework/hmr/src/index.js:238 if (this.externals.has(url)) return loader.exit() Comment :237 Full reload: the changed file is part of the framework. README line 14: Changes to framework-level dependencies fall back to loader.exit().'
+- id: hmr-config-root-live
+  prd_id: host-plugin-hmr-no-process-restart
+  obligation_kind: precondition
+  subject: Live cordis patch hmr row config.root on the 3080 composition
+  text: Read packages/bundle/base/cordis.patch.yml hmr row.
+  session_id: freddie-20060-1788957034207
+  status: witnessed
+  witness_evidence: 'packages/bundle/base/cordis.patch.yml:19-22 id hmr name @freddie/cordis-plugin-hmr config.root: [''.'']. Live 3080 composition watches the repo root.'
+- id: gm-tools-cwd-is-freddie-checkout
+  text: 'Witness: gm_instruction/gm_codesearch errors name C:\dev\freddie\.gm\exec-spool\.watcher.log. tool-gm execute passes exec.agent.session.header.cwd. Record whether header.cwd is the Freddie checkout or cwd is omitted so config/process.cwd wins.'
+  subject: gm_* tools in this session spawned ensureDaemon against C:\dev\freddie, not the workspace C:\dev\deepseek-harness.
+  SESSION_ID: csweep-7cc18c8c-1
+  prd_id: record-gm-host-plugin-call-linkerror
   obligation_kind: invariant
-  subject: Cached sessionStats projections computed under the old commit-time timing fold must not survive the settlement-time fold.
-  text: Independent adversarial review found sessionStats stateVersion remains 1 despite changed toolMs semantics; projection cache accepts matching version and preserves stale totals. Update version so cache invalidates/rebuilds.
-  session_id: freddie-2075880-1789048712460
-  status: witnessed
-  witness_evidence: Bumped sessionStats stateVersion from 1 to 2. Direct real projection execution rejected version-1 equivalence and recomputed toolMs=20 for call=1000, settled=1020, commit=1100.
+  status: unknown

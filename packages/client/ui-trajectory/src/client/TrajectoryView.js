@@ -1,6 +1,6 @@
 /** Trajectory view: compact summary over a turn-aware event ledger. */
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   TrajectoryTable,
 } from './TrajectoryTable.js'

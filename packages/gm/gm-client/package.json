@@ -1,13 +1,13 @@
 {
   "name": "@freddie/freddie-gm-client",
-  "description": "Cordis-native ctx.gm: dispatches gm spool verbs directly against .gm/exec-spool/, in-process, no MCP hop, boot-if-needed against the shared machine-wide daemon",
+  "description": "Cordis-native ctx.gm: dispatches gm spool verbs directly against .gm/exec-spool/, in-process, no MCP hop, boot-if-needed against the shared machine-wide native agentplug-runner daemon",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/gm/gm-client"
   },
   "type": "module",
@@ -27,17 +27,17 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@freddie/freddie-gm-config": "workspace:^",
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/freddie-gm-config": "*",
+    "@freddie/schemastery": "*"
   },
   "peerDependencies": {
-    "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-gm-config": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^"
+    "@freddie/cordis": "*",
+    "@freddie/freddie-gm-config": "*",
+    "@freddie/freddie-invariants": "*"
   },
   "devDependencies": {
-    "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-gm-config": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^"
+    "@freddie/cordis": "*",
+    "@freddie/freddie-gm-config": "*",
+    "@freddie/freddie-invariants": "*"
   }
 }

@@ -14,7 +14,7 @@
  * bookkeeping, and re-render is an explicit applyDiff(this, vdom) call
  * (Toast.tsx's pattern) instead of implicit re-render on state change.
  */
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { createAnchoredMaxHeight } from '@freddie/freddie-client-ui-primitives'
 import css from './MenuView.css.js'

@@ -1,4 +1,4 @@
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconChevronDownOutline14, StateDot, createDismissOnOutsidePointer } from '@freddie/freddie-client-ui-primitives'
 import { NS } from './locales.js'
 import css from './JobListAction.css.js'

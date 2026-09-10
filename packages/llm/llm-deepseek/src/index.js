@@ -99,7 +99,6 @@ const catalogModel = z.object({
 
 export const Config = z.object({
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV),
-  allowUnauthenticated: z.boolean().default(false),
   baseURL: z.string(),
   thinking: z.union(['enabled', 'disabled']),
   reasoningEffort: z.union(['off', 'low', 'high', 'max']),
@@ -290,7 +289,6 @@ export function resolveAdapterOptions(config, environment) {
   }
   return {
     apiKeyEnv: credentialRef(config.apiKeyEnv ?? DEFAULT_API_KEY_ENV),
-    allowUnauthenticated: config.allowUnauthenticated === true,
     baseURL: config.baseURL
       ?? environment?.get(BASE_URL_ENV)?.value
       ?? PUBLIC_BASE_URL,
@@ -359,7 +357,6 @@ export function apply(ctx, config) {
         return assertUsableApiKey(ambient.value, 'llm-deepseek', ref)
       }
     }
-    if (connection.allowUnauthenticated) return undefined
     throw new LlmError(
       `llm-deepseek: no API key for provider route "${PROVIDER}"; store ${ref} through the credentials`
       + ` service (the web Models page writes it), or export ${ref} in the launching environment`,
@@ -396,7 +393,7 @@ export function apply(ctx, config) {
         method: 'GET',
         headers: {
           ...attributionHeaders(),
-          ...apiKey === undefined ? {} : { authorization: 'Bearer ' + apiKey },
+          authorization: `Bearer ${apiKey}`,
           accept: 'application/json',
         },
         ...request.signal === undefined ? {} : { signal: request.signal },

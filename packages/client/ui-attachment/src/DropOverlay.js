@@ -2,7 +2,7 @@
 // component using createPortal to a webjsx custom element that self-mounts
 // to document.body (Toast.tsx/Modal.tsx's pattern) instead of portaling.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './DropOverlay.css.js'
 
 /**

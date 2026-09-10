@@ -10,7 +10,7 @@
  * the inline `style={anchor}` object becomes a CSS string.
  */
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   IconCheckOutline16, IconCloseOutline16, IconCordisPluginOutline14, IconPlayOutline16,
   IconStopFill16, IconTrashOutline16, Tooltip, createDismissOnOutsidePointer,

@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/host/directory-picker-browse"
   },
   "type": "module",
@@ -28,15 +28,15 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@freddie/freddie-host-directory-picker": "workspace:^",
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/freddie-host-directory-picker": "*",
+    "@freddie/schemastery": "*"
   },
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   }
 }

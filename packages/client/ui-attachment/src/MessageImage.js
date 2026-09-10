@@ -5,7 +5,7 @@
 // liveness epoch (mirrors the original useEffect's cleanup flag), and
 // re-render is an explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { renderImageLightbox } from './ImageLightbox.js'
 import css from './MessageImage.css.js'
 

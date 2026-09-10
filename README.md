@@ -1,10 +1,12 @@
 # Freddie
 
-Freddie (`freddie`) is an open-source agent harness in development by [anentrypoint](https://github.com/AnEntrypoint).
+Freddie (`freddie`) is an open-source agent harness developed by [DeepSeek AI](https://deepseek.com).
 
 It uses an architecture where **everything is a plugin**, and is powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://github.com/cordiverse/paper).
 
-Freddie's design and JavaScript implementation are a rewrite based on background material and design work originated by DeepSeek.
+## Developer preview
+
+Freddie is currently in _developer preview_ and is iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
 
 ## Run
 
@@ -23,7 +25,7 @@ The command starts the Web UI at `http://127.0.0.1:3080` by default and opens it
 To run from a repository checkout:
 
 ```sh
-git clone https://github.com/AnEntrypoint/freddie.git
+git clone https://github.com/lanmower/freddie.git
 cd freddie
 pnpm install
 pnpm freddie web
@@ -33,7 +35,7 @@ The workspace is buildless: packages ship plain `src/**/*.js` and run directly u
 
 ## Community and support
 
-- Feel free to submit feedback or bug reports through [GitHub Discussions](https://github.com/AnEntrypoint/freddie/discussions).
+- Feel free to submit feedback or bug reports through [GitHub Discussions](https://github.com/lanmower/freddie/discussions).
 - Add the [`freddie-plugin`](https://github.com/topics/freddie-plugin) topic to your plugin repository for discoverability.
 - Join <a href="https://discord.gg/Ycq5dCaS4">Freddie Discord community</a>.
 

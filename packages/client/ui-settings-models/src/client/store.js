@@ -39,7 +39,6 @@ function apiKeyEnvOf(
   if (namespace === undefined) return undefined
   const profile = schema.getPath(namespace.value, path)
   if (typeof profile !== 'object' || profile === null) return undefined
-  if (profile.allowUnauthenticated === true) return undefined
   const ref = profile.apiKeyEnv
   return typeof ref === 'string' && ref.length > 0 ? ref : undefined
 }

@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/sandbox/sandbox-local"
   },
   "type": "module",
@@ -29,22 +29,22 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-sandbox": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-sandbox": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/freddie-sandbox-windows-acl": "workspace:^",
-    "@freddie/node-addon-landlock-run": "workspace:^",
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/freddie-sandbox-windows-acl": "*",
+    "@freddie/node-addon-landlock-run": "*",
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-sandbox": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-sandbox": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/cordis": "*"
   }
 }

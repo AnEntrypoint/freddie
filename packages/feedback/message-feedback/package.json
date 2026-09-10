@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/feedback/message-feedback"
   },
   "type": "module",
@@ -41,32 +41,32 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-brand": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-persistence": "workspace:^",
-    "@freddie/freddie-storage-domain": "workspace:^",
-    "@freddie/freddie-typert-protocol": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-brand": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-persistence": "*",
+    "@freddie/freddie-storage-domain": "*",
+    "@freddie/freddie-typert-protocol": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/schemastery": "workspace:^",
+    "@freddie/schemastery": "*",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@freddie/cordis-plugin-include": "workspace:^",
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-brand": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-persistence": "workspace:^",
-    "@freddie/freddie-session-persistence-jsonl": "workspace:^",
-    "@freddie/freddie-storage": "workspace:^",
-    "@freddie/freddie-storage-domain": "workspace:^",
-    "@freddie/freddie-storage-json": "workspace:^",
-    "@freddie/freddie-typert-protocol": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-include": "*",
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-brand": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-persistence": "*",
+    "@freddie/freddie-session-persistence-jsonl": "*",
+    "@freddie/freddie-storage": "*",
+    "@freddie/freddie-storage-domain": "*",
+    "@freddie/freddie-storage-json": "*",
+    "@freddie/freddie-typert-protocol": "*",
+    "@freddie/cordis": "*"
   }
 }

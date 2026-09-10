@@ -2,7 +2,7 @@
 // CSS color (not baked into SVG paths) so it follows the theme and any
 // locale/font substitution automatically; the mark rides currentColor.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import { FishLogo } from './FishLogo.js'
 
 /**

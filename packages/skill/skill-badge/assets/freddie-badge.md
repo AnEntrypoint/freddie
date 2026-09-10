@@ -6,14 +6,14 @@ Add the official “powered by dsh” badge without recreating or restyling it.
 
 - Local PNG: [`freddie-badge.png`](freddie-badge.png), 726×120 source image; render at 121×20
 - Shields.io image URL: `https://img.shields.io/badge/powered_by-freddie-4D6BFE?style=flat-square&logo=deepseek&logoColor=white`
-- Project URL: `https://github.com/AnEntrypoint/freddie`
+- Project URL: `https://github.com/lanmower/freddie`
 
 ## Markdown
 
 Use this linked badge in Markdown:
 
 ```markdown
-[![](https://img.shields.io/badge/powered_by-freddie-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/AnEntrypoint/freddie)
+[![](https://img.shields.io/badge/powered_by-freddie-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)
 ```
 
 If attribution should not be linked, use:

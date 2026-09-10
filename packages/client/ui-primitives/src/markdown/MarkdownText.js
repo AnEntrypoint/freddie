@@ -19,7 +19,7 @@
  * applyDiff(this, vdom) call.
  */
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IncrementalMarkdownParser } from './incremental.js'
 import { parseGfm, parseGfmWithMath } from './parse.js'
 import {

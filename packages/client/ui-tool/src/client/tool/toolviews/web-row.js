@@ -9,7 +9,7 @@
 // no web card (the tools keep a generic pending view), so a running row is the
 // summary line alone.
 
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconBrowseOutline16, IconGlobeOutline14 } from '@freddie/freddie-client-ui-primitives'
 import { webCardModel } from '../models/web-card-model.js'
 import { toolRowModel } from '../models/tool-call-model.js'
@@ -46,7 +46,6 @@ export function WebRow({ toolName, block, inspect, t }) {
       errorSummary: model.errorSummary,
       web: web,
       state: model.state,
-      timing: model.timing,
       inspect: inspect,
       }) } })
   )

@@ -12,7 +12,7 @@
 // after a click and the panel leaves (the InputBar returns) on the broadcast
 // resolved frame.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { Button } from '@freddie/freddie-client-ui-primitives'
 import { PendingApproval } from '../contract/slots.js'
 import { rootToolCall } from '../chat/tool-node-reader.js'

@@ -5,7 +5,7 @@
 // connectedCallback/disconnectedCallback replace effect mount/cleanup, and a
 // module-level counter replaces useId (stable per element instance).
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14,
   IconSearchOutline16,

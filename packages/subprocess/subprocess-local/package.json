@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/subprocess/subprocess-local"
   },
   "type": "module",
@@ -31,19 +31,19 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-subprocess": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
     "koffi": "^3.1.0",
     "node-pty": "1.2.0-beta.15"
   },
   "devDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-subprocess": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/cordis": "*"
   }
 }

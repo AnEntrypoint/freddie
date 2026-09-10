@@ -4,7 +4,7 @@
 // listener and focus-restore effect become connectedCallback/
 // disconnectedCallback.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconCloseOutline16 } from '@freddie/freddie-client-ui-primitives'
 import css from './ImageLightbox.css.js'
 

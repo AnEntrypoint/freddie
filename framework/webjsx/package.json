@@ -1,0 +1,27 @@
+{
+  "name": "@freddie/webjsx",
+  "description": "A library for building web applications with JSX and Web Components",
+  "version": "0.0.73",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "framework/webjsx"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./jsx-runtime": "./src/jsx-runtime.js",
+    "./jsx-dev-runtime": "./src/jsx-dev-runtime.js",
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src"
+  ],
+  "author": "Jeswin Kumar <jeswinpk@agilehead.com>",
+  "license": "MIT"
+}

@@ -1,4 +1,4 @@
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import css from './SubagentReadOnlyComposer.css.js'
 
 /**

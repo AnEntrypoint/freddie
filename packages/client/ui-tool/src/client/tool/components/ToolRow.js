@@ -17,7 +17,7 @@
 // independent); an error row's collapsed summary is the failure's first line in
 // the error color.
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   DisclosureRow, IconInspectOutline12, renderCodeBlock, renderDiffBlock, renderMarkdownText,
@@ -110,7 +110,7 @@ export class FreddieToolRow extends HTMLElement {
     if (props === null) return
     const {
       t, variant, toolName, icon, title, summary, summarySuffix, body, output, errorSummary,
-      terminal, diff, read, search, web, state, timing, filePath, onOpenFile, inspect,
+      terminal, diff, read, search, web, state, filePath, onOpenFile, inspect,
     } = props
     const terminalBody = terminal ?? null
     const diffBody = diff ?? null
@@ -194,7 +194,6 @@ export class FreddieToolRow extends HTMLElement {
                   )
                 ),
                 suffix !== null ? h('span', {class: css.summarySuffix ?? ''}, suffix) : null,
-                timing !== undefined ? h('span', {class: css.timing ?? '', title: timing.committed === undefined ? undefined : `Committed after ${timing.committed}`}, timing.execution) : null,
               ]
             ) : null,
           },

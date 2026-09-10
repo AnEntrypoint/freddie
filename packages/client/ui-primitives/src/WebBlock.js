@@ -19,7 +19,7 @@
 // replacing an oversized result's text while leaving its presentationMeta whole —
 // can still narrow what the model reads below this list.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { MarkdownText } from './markdown/MarkdownText.js'
 import css from './WebBlock.css.js'

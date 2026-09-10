@@ -5,7 +5,7 @@
 // (webjsx's documented Counter-component pattern) instead of implicit
 // re-render on setState.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { writeClipboard } from './clipboard.js'
 import css from './Toast.css.js'
 

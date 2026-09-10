@@ -1,6 +1,6 @@
 /** The shell plugin's card: the limits every command the agent runs is bound by. */
 
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import { ValueField } from './fields.js'
 import { PluginCard } from './PluginCard.js'
 

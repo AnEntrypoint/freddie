@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/shell/tool-bash-persistent"
   },
   "type": "module",
@@ -27,31 +27,31 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-terminal": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-terminal": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/cordis-plugin-include": "workspace:^",
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-terminal": "workspace:^",
-    "@freddie/freddie-terminal-bash": "workspace:^",
-    "@freddie/freddie-sandbox": "workspace:^",
-    "@freddie/freddie-sandbox-policy": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-subprocess-local": "workspace:^",
-    "@freddie/freddie-system-prompt": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-include": "*",
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-terminal": "*",
+    "@freddie/freddie-terminal-bash": "*",
+    "@freddie/freddie-sandbox": "*",
+    "@freddie/freddie-sandbox-policy": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-subprocess-local": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
   }
 }

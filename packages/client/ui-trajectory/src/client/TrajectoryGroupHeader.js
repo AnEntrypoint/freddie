@@ -1,6 +1,6 @@
 // TrajectoryGroupHeader: "Message" or "Step N" row with optional description.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import css from './TrajectoryGroupHeader.css.js'
 
 /**

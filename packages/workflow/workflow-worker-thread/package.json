@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/workflow/workflow-worker-thread"
   },
   "type": "module",
@@ -27,31 +27,31 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-brand": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-subagent": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/freddie-workflow": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-brand": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-subagent": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/freddie-workflow": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-agent-loop": "workspace:^",
-    "@freddie/freddie-brand": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-subagent": "workspace:^",
-    "@freddie/freddie-subagent-spawn-in-process": "workspace:^",
-    "@freddie/freddie-system-prompt": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/freddie-workflow": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-agent-loop": "*",
+    "@freddie/freddie-brand": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-subagent": "*",
+    "@freddie/freddie-subagent-spawn-in-process": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/freddie-workflow": "*",
+    "@freddie/cordis": "*"
   }
 }

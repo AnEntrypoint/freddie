@@ -18,7 +18,7 @@
 // #render(), and the layout/scroll/resize effects become bind/unbind methods
 // driven from connectedCallback/disconnectedCallback (Toast.tsx's pattern).
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { Button, IconChevronDownOutline14, renderModal } from '@freddie/freddie-client-ui-primitives'
 import { PendingSteeringBubble } from './MessageItem.js'
 import { ChatNodeSeat } from './ChatNodeSeat.js'

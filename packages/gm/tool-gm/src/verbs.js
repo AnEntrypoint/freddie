@@ -9,7 +9,9 @@
  * `sessionId` fixed on its own plugin instance (`@freddie/freddie-gm-client`'s
  * own documented contract — a distinct `ctx.gm` instance per session, never
  * a per-call override), so every tool here shares whichever `gm` instance
- * the mounting composition wired.
+ * the mounting composition wired. Project cwd IS per-call: each execute
+ * passes `exec.agent.session.header.cwd` so the spool is the session
+ * workspace, not the GUI host's `process.cwd()`.
  * @module @freddie/freddie-tool-gm/verbs
  */
 
@@ -74,7 +76,12 @@ export function buildGmTools(gm) {
       presentCall,
       presentResult,
       async execute(args, exec) {
-        return gm.call(verb, toBody(args), { signal: exec.signal, timeoutMs })
+        const cwd = exec.agent?.session.header.cwd
+        return gm.call(verb, toBody(args), {
+          signal: exec.signal,
+          timeoutMs,
+          ...cwd === undefined ? {} : { cwd },
+        })
       },
     })
   }
@@ -240,7 +247,13 @@ export function buildGmTools(gm) {
       const requested = typeof args.timeoutMs === 'number' && Number.isFinite(args.timeoutMs) ? args.timeoutMs : 0
       const budget = Math.max(GM_TOOL_TIMEOUT_MS, requested)
       const raw = args.timeoutMs === undefined ? args.code : `timeoutMs=${args.timeoutMs}\n${args.code}`
-      return gm.call('exec_js', {}, { rawBody: raw, signal: exec.signal, timeoutMs: budget })
+      const cwd = exec.agent?.session.header.cwd
+      return gm.call('exec_js', {}, {
+        rawBody: raw,
+        signal: exec.signal,
+        timeoutMs: budget,
+        ...cwd === undefined ? {} : { cwd },
+      })
     },
   })
 

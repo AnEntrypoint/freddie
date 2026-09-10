@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "apps/web"
   },
   "type": "module",
@@ -22,14 +22,14 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@freddie/cordis-plugin-group": "workspace:^",
-    "@freddie/freddie-client-modules": "workspace:^",
-    "@freddie/freddie-client-ui-primitives": "workspace:^",
-    "@freddie/freddie-client-ui-slots": "workspace:^",
-    "@freddie/freddie-client-web": "workspace:^",
-    "@freddie/freddie-cmdline": "workspace:^",
-    "@freddie/freddie-pwsh-local": "workspace:^",
-    "webjsx": "^0.0.73",
+    "@freddie/cordis-plugin-group": "*",
+    "@freddie/freddie-client-modules": "*",
+    "@freddie/freddie-client-ui-primitives": "*",
+    "@freddie/freddie-client-ui-slots": "*",
+    "@freddie/freddie-client-web": "*",
+    "@freddie/freddie-cmdline": "*",
+    "@freddie/freddie-pwsh-local": "*",
+    "@freddie/webjsx": "*",
     "fflate": "^0.8.2"
   }
 }

@@ -44,7 +44,7 @@
  * window, the draft-preview debounce) is preserved verbatim as plain fields
  * and timers.
  */
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   Button, IconCheckOutline16, IconChevronRightOutline14, IconEditOutline16, IconFolderClose16, IconFolderOpen16,

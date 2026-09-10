@@ -6,7 +6,7 @@
  * card's save is the single point where a draft becomes a document mutation.
  */
 
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import css from './fields.css.js'
 
 /**

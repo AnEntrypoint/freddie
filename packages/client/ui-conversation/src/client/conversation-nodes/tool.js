@@ -37,7 +37,6 @@ function rootResult(match, previous) {
     isError: result.isError === true,
     ...match.event.data.error === undefined ? {} : { error: match.event.data.error },
     meta: match.event.data.meta,
-    timing: match.event.data.timing,
     callView: previous?.callView ?? null,
     resultView: match.view?.for === 'result' ? match.view.view : null,
     subCalls: [],

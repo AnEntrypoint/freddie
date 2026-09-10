@@ -98,15 +98,6 @@
   color: var(--freddie-alias-label-tertiary);
 }
 
-.freddie-toolRow__timing {
-  flex: none;
-  margin-left: 8px;
-  white-space: nowrap;
-  font-size: 12px;
-  line-height: 24px;
-  color: var(--freddie-alias-label-caption);
-}
-
 /* File-tool path: same geometry as .summary, with a persistent link affordance. */
 .freddie-toolRow__fileLink {
   flex: 1 1 auto;

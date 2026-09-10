@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/extensions/cordis-client-runner"
   },
   "type": "module",
@@ -42,24 +42,24 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-api-remotes": "workspace:^",
-    "@freddie/freddie-client-connection": "workspace:^",
-    "@freddie/freddie-client-modules": "workspace:^",
-    "@freddie/freddie-client-runtime": "workspace:^",
-    "@freddie/freddie-client-ui-theme": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-api-remotes": "*",
+    "@freddie/freddie-client-connection": "*",
+    "@freddie/freddie-client-modules": "*",
+    "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-client-ui-theme": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-api-remotes": "workspace:^",
-    "@freddie/freddie-client-connection": "workspace:^",
-    "@freddie/freddie-client-modules": "workspace:^",
-    "@freddie/freddie-client-runtime": "workspace:^",
-    "@freddie/freddie-client-ui-theme": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-api-remotes": "*",
+    "@freddie/freddie-client-connection": "*",
+    "@freddie/freddie-client-modules": "*",
+    "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-client-ui-theme": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "files": [
     "src/*.js",

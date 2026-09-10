@@ -2,7 +2,7 @@
 // `open` useState becomes a private field, re-render is an explicit
 // applyDiff(this, vdom) call.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { DisclosureRow, IconBrowseOutline16, renderJsonBlock } from '@freddie/freddie-client-ui-primitives'
 import { ReferenceIcon } from '../reference/ReferenceIcon.js'
 import { contextBody } from './ContextBody.js'

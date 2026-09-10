@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/client/vendor-modules"
   },
   "type": "module",
@@ -31,20 +31,20 @@
     "generate-vendor": "node scripts/generate-vendor.mjs"
   },
   "peerDependencies": {
-    "@freddie/freddie-host-webserver": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-host-webserver": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-host-webserver": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-host-webserver": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/freddie-client-web": "workspace:^",
-    "@freddie/freddie-client-ui-slots": "workspace:^",
-    "@freddie/freddie-client-ui-primitives": "workspace:^",
-    "webjsx": "^0.0.73",
+    "@freddie/freddie-client-web": "*",
+    "@freddie/freddie-client-ui-slots": "*",
+    "@freddie/freddie-client-ui-primitives": "*",
+    "@freddie/webjsx": "*",
     "clsx": "^2.1.1",
     "anser": "^2.3.5",
     "diff": "^9.0.0",

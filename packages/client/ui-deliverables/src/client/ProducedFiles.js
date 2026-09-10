@@ -9,7 +9,7 @@
 // measurement effect becomes connectedCallback + a ResizeObserver kept as an
 // instance field, and re-render is an explicit #render() -> applyDiff call.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { basename } from './turn-deliverables.js'
 import css from './ProducedFiles.css.js'
 

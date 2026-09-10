@@ -6,7 +6,7 @@
 // share the store seat exists for) and derives the call material from the
 // session snapshot — no data of its own.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import { renderCodeBlock } from '@freddie/freddie-client-ui-primitives'
 import { shallowEqual } from '@freddie/freddie-client-runtime/client'
 import { findToolCall } from '../chat/tool-node-reader.js'

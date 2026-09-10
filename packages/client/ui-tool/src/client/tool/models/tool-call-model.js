@@ -182,27 +182,6 @@ function deriveFilePath(variant, argsRaw) {
   return picked === undefined ? undefined : firstLine(picked)
 }
 
-function deriveDuration(ms) {
-  if (!Number.isSafeInteger(ms) || ms < 0) return undefined
-  if (ms < 1_000) return `${ms}ms`
-  if (ms < 60_000) return `${(ms / 1_000).toFixed(ms < 10_000 ? 1 : 0)}s`
-  const minutes = Math.floor(ms / 60_000)
-  const seconds = Math.floor((ms % 60_000) / 1_000)
-  return `${minutes}m ${seconds}s`
-}
-
-function deriveTiming(block) {
-  if (!('kind' in block) || block.callTime === null) return undefined
-  const settledAt = block.timing?.settledAt
-  if (!Number.isSafeInteger(settledAt) || settledAt < block.callTime || settledAt > block.time) return undefined
-  const execution = deriveDuration(settledAt - block.callTime)
-  if (execution === undefined) return undefined
-  const committed = deriveDuration(block.time - settledAt)
-  return committed === undefined || committed === '0ms'
-    ? { execution }
-    : { execution, committed }
-}
-
 function deriveBody(variant, argsRaw) {
   if (argsRaw === '') return null
   const parsed = parseArgs(argsRaw)
@@ -253,7 +232,6 @@ export function toolRowModel(toolName, block, cwd, home) {
     body: deriveBody(variant, argsRaw),
     output,
     errorSummary,
-    timing: deriveTiming(block),
     state,
   }
 }

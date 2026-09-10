@@ -12,7 +12,7 @@
  * Picking stages; the choice reaches a session when one becomes current.
  */
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { IconAgentPresetOutline16, IconChevronDownOutline14, renderMenu } from '@freddie/freddie-client-ui-primitives'
 import { presetDisplayText } from './locales.js'
 import css from './AgentPresetSeat.css.js'

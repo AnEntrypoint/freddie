@@ -14,7 +14,7 @@
 // events are wired independently instead of riding React's enter/leave
 // tree traversal.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { writeClipboard } from './clipboard.js'
 import css from './HoverCard.css.js'
 

@@ -1,6 +1,6 @@
 /** Optional settings-header action for opening a file-backed Host document. */
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { Button } from '@freddie/freddie-client-ui-primitives'
 import css from './SettingsDocumentAction.css.js'
 

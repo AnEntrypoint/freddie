@@ -42,7 +42,7 @@ Every group uses a rolling pool bounded by `maxParallelToolCalls`: the loop star
 
 Only dispatch and the tool body overlap. `tools/pre-execute` and `tools/post-execute` run in model order because middleware may maintain ordering-sensitive state. `tools/execute` wrappers run around concurrent dispatches and therefore must be reentrant across distinct executions.
 
-Each started call appends `tool/call` immediately before its pre-execute gate. Completed dispatches occupy model-order slots and record their settlement time before the commit cursor appends `tool/result` and collects `additionalContexts` when the next slot is ready. Live surfaces may show several pending calls, while result order and post-tool context remain model-ordered. The result timing lets projections and rows distinguish execution duration from the delay before ordered commit. The sessionStats projection advances to state version 2 so cached totals from the earlier commit-time fold are rebuilt.
+Each started call appends `tool/call` immediately before its pre-execute gate. Completed dispatches occupy model-order slots, and a commit cursor appends `tool/result` and collects `additionalContexts` only when the next slot is ready. Live surfaces may show several pending calls, but results and post-tool context remain model-ordered.
 
 An abort before a group starts records no calls from that group. An abort during a group stops replenishment, waits for already-started calls, commits their results in order, drains accepted batch context after those results, and then ends the step through the existing abort path. Calls that never start have no audit event. An unexpected scheduler failure stops new dispatches, waits for every already-started dispatch to settle, and rethrows the first failure. Because that failure is terminal internal state rather than a tool outcome, the loop does not invent tool results for rejected or uncommitted calls.
 
@@ -96,7 +96,7 @@ The design is fail-closed and simple for tool authors, but it cannot exploit con
 
 Parallel calls may begin in cases where serial execution would have aborted before reaching them. The scheduler therefore records only started calls, drains them on abort, and never starts replacements after cancellation.
 
-Ordered commits may hold a fast result behind a slow earlier sibling. This preserves replay and model-history order while each result retains its physical settlement time for execution-duration reporting.
+Ordered commits may hold a fast result behind a slow earlier sibling. This preserves replay and model-history order while live surfaces still show pending progress.
 
 Concurrent external calls can compete for quota or process capacity. Providers own their capacity controls; the loop cap only limits calls from one agent step.
 

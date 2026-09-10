@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/e2b/subprocess-e2b"
   },
   "type": "module",
@@ -27,20 +27,20 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-e2b": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-subprocess": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-e2b": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-e2b": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-subprocess": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-e2b": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/cordis": "*"
   }
 }

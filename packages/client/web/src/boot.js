@@ -22,7 +22,7 @@ export class AppWebEntry {
   /**
    * Draw the boot page; {@link run} starts the loader.
    * @param container - Application mount point.
-   * @param seams - Optional module transport replacement.
+   * @param seams - Optional module transport replacement. `staticModules` replaces the shell-seeded table (used by a `/__hmr/<rev>/` remount to hand in cache-busted live workspace packages).
    */
   constructor(container, seams) {
     this.container = container
@@ -50,9 +50,9 @@ export class AppWebEntry {
       const { createClientModuleSystem } = await import('@freddie/freddie-client-modules/client')
       this.modules = createClientModuleSystem({
         boot: win.__FREDDIE_BOOT__,
-        staticModules: getStaticModules(),
+        staticModules: this.seams?.staticModules ?? getStaticModules(),
         ...transport?.importModule === undefined ? {} : { importModule: transport.importModule },
-        ...this.seams,
+        ...this.seams?.importModule === undefined ? {} : { importModule: this.seams.importModule },
       })
       this.manifest = this.modules.manifest
 
@@ -67,12 +67,17 @@ export class AppWebEntry {
     }
   }
 
-  /** Dispose the client plugin tree and whichever page owns the mount point. */
+  /**
+   * Dispose the client plugin tree and whichever page owns the mount point.
+   * The container element itself is left in place so a later AppWebEntry can
+   * remount into the same #root after a shell-rebuilt frame.
+   */
   async dispose() {
     const ctx = this.ctx
     this.ctx = undefined
     if (ctx !== undefined) await ctx.fiber.dispose()
     this.page.dispose()
+    this.container.replaceChildren()
   }
 
   /** Mount through a dependency fiber so replacing uiRenderer remounts the application. */

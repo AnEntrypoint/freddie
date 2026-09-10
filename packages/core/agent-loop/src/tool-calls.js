@@ -129,7 +129,7 @@ async function runGroup(
         ? await ctx.tools[TOOL_RUNTIME_SCHEDULER].finalize(slot.exec, slot.result)
         : ctx.tools[TOOL_RUNTIME_SCHEDULER].finish(slot.exec, slot.result)
       // oxlint-disable-next-line typescript/no-non-null-assertion -- bounded index
-      appendToolResult(session, turn, step, call.block, result, callSeqs[committed], slot.settledAt)
+      appendToolResult(session, turn, step, call.block, result, callSeqs[committed])
       for (const context of result.additionalContexts ?? []) acceptContext(context)
       concluded ||= result.concludesTurn === true
       committed++
@@ -149,7 +149,7 @@ async function runGroup(
       case 'dispatch': {
         const promise = ctx.tools[TOOL_RUNTIME_SCHEDULER].dispatch(prepared.exec).then(
           (outcome) => {
-            slots[index] = { exec: prepared.exec, result: outcome.result, needsPost: outcome.kind === 'post-result', settledAt: Date.now() }
+            slots[index] = { exec: prepared.exec, result: outcome.result, needsPost: outcome.kind === 'post-result' }
             return index
           },
           (error) => {
@@ -161,10 +161,10 @@ async function runGroup(
         break
       }
       case 'post-result':
-        slots[index] = { exec: prepared.exec, result: prepared.result, needsPost: true, settledAt: Date.now() }
+        slots[index] = { exec: prepared.exec, result: prepared.result, needsPost: true }
         break
       case 'final-result':
-        slots[index] = { exec: prepared.exec, result: prepared.result, needsPost: false, settledAt: Date.now() }
+        slots[index] = { exec: prepared.exec, result: prepared.result, needsPost: false }
         break
       /* v8 ignore next -- closed-union exhaustiveness guard */
       default:
@@ -249,7 +249,6 @@ function appendToolResult(
   block,
   result,
   callSeq,
-  settledAt,
 ) {
   const message = createToolResultMessage({
     callId: block.id,
@@ -263,6 +262,5 @@ function appendToolResult(
     // The tool's private presentation payload (e.g. a result-time diff),
     // persisted so a UI bridge reproduces the card on replay.
     ...result.meta !== undefined ? { meta: result.meta } : {},
-    ...typeof settledAt === 'number' ? { timing: { settledAt } } : {},
   }, { surfaceOp: 'append', sourceEventSeqs: [callSeq] })
 }

@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/client/ui-tool"
   },
   "type": "module",
@@ -43,27 +43,27 @@
   "license": "MIT",
   "dependencies": {
     "clsx": "^2.1.1",
-    "webjsx": "^0.0.73"
+    "@freddie/webjsx": "*"
   },
   "peerDependencies": {
-    "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-api-remotes": "workspace:^",
-    "@freddie/freddie-client-connection": "workspace:^",
-    "@freddie/freddie-client-locale": "workspace:^",
-    "@freddie/freddie-client-runtime": "workspace:^",
-    "@freddie/freddie-client-ui-conversation": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^"
+    "@freddie/cordis": "*",
+    "@freddie/freddie-api-remotes": "*",
+    "@freddie/freddie-client-connection": "*",
+    "@freddie/freddie-client-locale": "*",
+    "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-client-ui-conversation": "*",
+    "@freddie/freddie-invariants": "*"
   },
   "devDependencies": {
-    "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-api-remotes": "workspace:^",
-    "@freddie/freddie-client-connection": "workspace:^",
-    "@freddie/freddie-client-locale": "workspace:^",
-    "@freddie/freddie-client-runtime": "workspace:^",
-    "@freddie/freddie-client-ui-conversation": "workspace:^",
-    "@freddie/freddie-client-ui-primitives": "workspace:^",
-    "@freddie/freddie-client-ui-slots": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^"
+    "@freddie/cordis": "*",
+    "@freddie/freddie-api-remotes": "*",
+    "@freddie/freddie-client-connection": "*",
+    "@freddie/freddie-client-locale": "*",
+    "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-client-ui-conversation": "*",
+    "@freddie/freddie-client-ui-primitives": "*",
+    "@freddie/freddie-client-ui-slots": "*",
+    "@freddie/freddie-invariants": "*"
   },
   "files": [
     "src/**/*.js"

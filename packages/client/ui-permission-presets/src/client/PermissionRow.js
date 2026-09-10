@@ -8,7 +8,7 @@
  * settings-status-driven effect becomes logic inside `#derive`/`#render`, and
  * re-render is an explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
  */
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14, renderMenu, renderRiskConfirmation,
 } from '@freddie/freddie-client-ui-primitives'

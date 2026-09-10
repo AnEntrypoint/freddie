@@ -16,7 +16,7 @@
  * disconnectedCallback bookkeeping tied to the panel's own open/close
  * transitions; re-render is an explicit applyDiff(this, vdom) call.
  */
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   IconAgentPresetOutline16, IconCloseOutline16, IconDataOutline16,

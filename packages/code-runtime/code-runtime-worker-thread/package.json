@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/code-runtime/code-runtime-worker-thread"
   },
   "type": "module",
@@ -27,20 +27,20 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-code-runtime": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-code-runtime": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-code-runtime": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-code-runtime": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/cordis": "*"
   }
 }

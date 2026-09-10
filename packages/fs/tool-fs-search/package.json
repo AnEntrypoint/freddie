@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/fs/tool-fs-search"
   },
   "type": "module",
@@ -34,32 +34,32 @@
   "license": "MIT",
   "dependencies": {
     "@vscode/ripgrep": "^1.18.0",
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-output-retention": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-spill": "workspace:^",
-    "@freddie/freddie-subprocess": "workspace:^",
-    "@freddie/freddie-system-prompt": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-output-retention": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-spill": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-subprocess": "workspace:^",
-    "@freddie/freddie-subprocess-local": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-output-retention": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-spill": "workspace:^",
-    "@freddie/freddie-system-prompt": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-subprocess-local": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-output-retention": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-spill": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
   }
 }

@@ -8,7 +8,7 @@
 // disconnectedCallback, and re-render is an explicit applyDiff(this, vdom)
 // call (Toast.tsx's pattern) instead of implicit re-render on state change.
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { IconCloseOutline16 } from './icons/index.js'
 import css from './Modal.css.js'

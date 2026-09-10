@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AnEntrypoint/freddie.git",
+    "url": "git+https://github.com/lanmower/freddie.git",
     "directory": "packages/subagent/subagent-fork-in-process"
   },
   "type": "module",
@@ -28,26 +28,26 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-subagent": "workspace:^",
-    "@freddie/freddie-subagent-in-process-driver": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-subagent": "*",
+    "@freddie/freddie-subagent-in-process-driver": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-agent-loop": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-subagent": "workspace:^",
-    "@freddie/freddie-subagent-in-process-driver": "workspace:^",
-    "@freddie/freddie-subagent-spawn-in-process": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-agent-loop": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-subagent": "*",
+    "@freddie/freddie-subagent-in-process-driver": "*",
+    "@freddie/freddie-subagent-spawn-in-process": "*",
+    "@freddie/cordis": "*"
   }
 }

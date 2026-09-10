@@ -9,7 +9,7 @@
 // re-render is an explicit applyDiff(this, vdom) call. Avoid <Fragment> JSX
 // tags — the group list uses a plain array instead.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { renderTooltip } from '@freddie/freddie-client-ui-primitives'
 import { formatTokensPerSecond } from './message-chrome.js'
 import { assistantStepReading } from './turn-metrics.js'

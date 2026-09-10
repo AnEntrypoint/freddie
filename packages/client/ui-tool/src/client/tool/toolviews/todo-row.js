@@ -7,7 +7,7 @@
 // narrow row never clips it; the durable list itself renders in the TodoPanel
 // above the composer, so the row stays one line until expanded.
 
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconChecklistOutline14 } from '@freddie/freddie-client-ui-primitives'
 import { toolRowModel } from '../models/tool-call-model.js'
 import { renderToolRow } from '../components/ToolRow.js'
@@ -61,7 +61,6 @@ export function TodoRow({ toolName, block, inspect, t }) {
       output: model.output,
       errorSummary: model.errorSummary,
       state: model.state,
-      timing: model.timing,
       inspect: inspect,
       }) } })
   )

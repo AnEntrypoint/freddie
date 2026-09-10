@@ -7,7 +7,7 @@
  * change guard, since there is no dependency-array primitive here).
  */
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconCodeOutline16, IconInspectOutline12, StateDot,
 } from '@freddie/freddie-client-ui-primitives'

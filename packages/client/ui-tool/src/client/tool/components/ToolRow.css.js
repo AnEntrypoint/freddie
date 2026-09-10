@@ -7,7 +7,6 @@ const css = {
   sep: 'freddie-toolRow__sep',
   summary: 'freddie-toolRow__summary',
   summarySuffix: 'freddie-toolRow__summarySuffix',
-  timing: 'freddie-toolRow__timing',
   fileLink: 'freddie-toolRow__fileLink',
   errorSummary: 'freddie-toolRow__errorSummary',
   bodyWrap: 'freddie-toolRow__bodyWrap',

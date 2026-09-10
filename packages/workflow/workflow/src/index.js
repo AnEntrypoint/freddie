@@ -8,6 +8,17 @@ import { Service } from '@freddie/cordis'
 import { HarnessError } from '@freddie/freddie-llm'
 
 export { WorkflowRunId } from './types.js'
+export {
+  WorkflowGraphTracker,
+  createWorkflowGraph,
+  recordPhase,
+  recordLog,
+  recordAgentStart,
+  recordAgentEnd,
+  recordEnd,
+  agentNodeId,
+  agentStopReason,
+} from './graph.js'
 
 /** The full set of `workflow/*` event names {@link WorkflowEngine.emitWorkflowEvent} dispatches. */
 
@@ -55,6 +66,7 @@ export function isFatalWorkflowError(error) {
 export class WorkflowEngine extends Service {
   constructor(ctx) {
     super(ctx, 'workflowEngine')
+    this.graphs = new WorkflowGraphTracker()
   }
 
   /**
@@ -73,6 +85,29 @@ export class WorkflowEngine extends Service {
    * @param args - the event's payload, matching its declared signature.
    */
   emitWorkflowEvent(name, ...args) {
+    const [info, payload] = args
+    switch (name) {
+      case 'workflow/start':
+        this.graphs.onStart(info)
+        break
+      case 'workflow/phase':
+        this.graphs.onPhase(info, payload)
+        break
+      case 'workflow/log':
+        this.graphs.onLog(info, payload)
+        break
+      case 'workflow/agent-start':
+        this.graphs.onAgentStart(info, payload)
+        break
+      case 'workflow/agent-end':
+        this.graphs.onAgentEnd(info, payload)
+        break
+      case 'workflow/end':
+        this.graphs.onEnd(info, payload)
+        break
+      default:
+        break
+    }
     for (const callback of this.ctx.events.dispatch('emit', [name, ...args])) {
       try {
         const returned = callback(...args)

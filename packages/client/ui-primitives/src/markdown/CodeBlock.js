@@ -11,7 +11,7 @@
 // plain recompute inside #render (cheap relative to the DOM diff), and the
 // rootRef becomes `this` itself (the element IS the root).
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { writeClipboard } from '../clipboard.js'
 import css from './CodeBlock.css.js'
