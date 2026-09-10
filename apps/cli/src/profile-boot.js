@@ -43,6 +43,7 @@ const SHIPPED_PRESET_ROOT = fileURLToPath(new URL('../config/agent-presets/', im
 // nothing ever writes to.
 const WORKSPACE_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 const WORKSPACE_PACKAGES_DIR = join(WORKSPACE_ROOT, 'packages')
+const WORKSPACE_FRAMEWORK_DIR = join(WORKSPACE_ROOT, 'framework')
 
 /**
  * Every `src/` directory under `root`, skipping `node_modules` entirely.
@@ -148,6 +149,18 @@ function allPatches(composed) {
   ]
 }
 
+/** Find a row by id, including rows inserted into a composition patch. */
+function findComposedRow(entries, id) {
+  for (const entry of entries) {
+    if (entry?.id === id) return entry
+    const inserted = entry?.insert
+    if (inserted !== undefined) {
+      const nested = findComposedRow(Array.isArray(inserted) ? inserted : [inserted], id)
+      if (nested !== undefined) return nested
+    }
+  }
+}
+
 /**
  * Load `name` and compose its effective patch stack: bundle layers in
  * `freddie.profile.bundles` order (the base bundle gates the shell stacks by
@@ -187,29 +200,33 @@ function composeProfile(name, patchFiles) {
   // Point the shared `hmr` row (when present and not disabled) at the actual
   // workspace source instead of its config-relative default: see
   // WORKSPACE_ROOT's own doc comment for why the default watches nothing a
-  // developer edits.
-  const hmrRow = rows.get('hmr')
+  // developer edits. The base bundle nests its rows under one `insert`, while
+  // a later overlay may expose a top-level replacement, so inspect both forms.
+  const hmrRow = rows.get('hmr') ?? findComposedRow(bundlePatches, 'hmr')
   if (hmrRow !== undefined && hmrRow.disabled !== true && existsSync(WORKSPACE_PACKAGES_DIR)) {
     const srcDirs = [
       ...findSrcDirs(WORKSPACE_PACKAGES_DIR),
       ...findSrcDirs(join(WORKSPACE_ROOT, 'apps')),
+      ...existsSync(WORKSPACE_FRAMEWORK_DIR) ? findSrcDirs(WORKSPACE_FRAMEWORK_DIR) : [],
     ].map(dir => relative(WORKSPACE_ROOT, dir).split('\\').join('/'))
-    composedOverlays.push({
-      id: 'hmr',
-      config: {
-        ...(hmrRow.config ?? {}),
-        // `base` resolves as `new URL(config.base, ctx.baseUrl)` inside the
-        // hmr plugin -- a bare filesystem path there throws
-        // ERR_INVALID_URL_SCHEME (only a URL or a same-scheme relative
-        // reference is valid), so this must be the file:// form, not the raw
-        // path WORKSPACE_ROOT holds.
-        base: pathToFileURL(WORKSPACE_ROOT).href,
-        // Explicit src/ roots, not the whole packages/+apps/ tree: see
-        // findSrcDirs' own doc comment for the measured 30s+ hang a glob
-        // ignore over this checkout's 224+ nested node_modules produces.
-        root: srcDirs,
-      },
-    })
+    const config = {
+      ...(hmrRow.config ?? {}),
+      // `base` resolves as `new URL(config.base, ctx.baseUrl)` inside the
+      // hmr plugin -- a bare filesystem path there throws
+      // ERR_INVALID_URL_SCHEME (only a URL or a same-scheme relative
+      // reference is valid), so this must be the file:// form, not the raw
+      // path WORKSPACE_ROOT holds.
+      base: pathToFileURL(WORKSPACE_ROOT).href,
+      // Explicit src/ roots, not the whole packages/+apps/ tree: see
+      // findSrcDirs' own doc comment for the measured 30s+ hang a glob
+      // ignore over this checkout's 224+ nested node_modules produces.
+      root: srcDirs,
+    }
+    // A base-bundle row is nested in `insert`, so an id patch cannot address it
+    // until composition applies that insert. Extend the same bundle layer with
+    // an ordered second patch; later profile and user layers still win.
+    if (rows.has('hmr')) composedOverlays.push({ id: 'hmr', config })
+    else bundlePatches.push({ id: 'hmr', config })
   }
   return { profile, bundlePatches, homePatches, overlays: composedOverlays, rows }
 }
@@ -296,6 +313,11 @@ export async function runProfile(options) {
     })
   })
   app.current = ctx
+  // Framework HMR delegates its full-reload branch to Loader.exit(). The CLI
+  // owns process lifetime, so dispose the complete tree and exit with the
+  // conventional temporary-failure code a development supervisor restarts.
+  // A plain source launch still exits loudly instead of retaining stale code.
+  ctx.loader.exit = () => { void shutdown.interrupt(75) }
   // A surface can dispose the whole tree while boot or this post-boot watcher
   // setup is still in flight — a signal, or a fast one-shot's appExit. Loader
   // presence and fiber state own liveness; the initial check skips a tree

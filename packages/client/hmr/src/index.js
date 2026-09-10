@@ -1,19 +1,17 @@
 /**
  * HMR plugin, node half: the host end of the dev reload chain. One interval
- * stat-polls every graph row's whole served src/client/ tree (polling by
- * design: network mounts deliver no inotify events; the whole tree, not
- * just the entry file, since buildless serving mirrors it verbatim and a
- * change to any file under it — including one only reachable through a
- * relative import — must trigger a rebuild), reports content changes through
- * `clientModuleHost.rebuilt(id)`, and serves the `/plugins/events` SSE channel
- * broadcasting graph/rebuilt frames to the browser half (src/client/).
- * The web bundle mounts this row unconditionally: without a rebuild
- * watcher noticing edits, the poll observes no changes and the chain stays
- * idle.
+ * stat-polls every graph row's whole served src/client/ tree plus buildless
+ * shell and statically seeded workspace package roots (polling by design:
+ * network mounts deliver no inotify events). Dynamic rows publish revised
+ * graph rows through `clientModuleHost.rebuilt(id)` for fiber replacement;
+ * static and stylesheet changes publish page reloads through `/plugins/events`.
+ * The web bundle mounts this row unconditionally, so served source changes
+ * need no separate watcher or rebuild process.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, relative, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import z from '@freddie/schemastery'
 import { EVENTS_ENDPOINT } from './events.js'
 
@@ -51,6 +49,21 @@ function resolveShellFilesIfBuilt() {
   } catch {
     return undefined
   }
+}
+
+/**
+ * Find the source package root for a buildless static browser dependency.
+ * The HMR package does not depend on the seeded packages it watches, so their
+ * package exports cannot be resolved from this package's dependency graph.
+ * Source execution has the workspace layout directly; packaged deployments
+ * simply omit these development-only watches.
+ * @param packageDirectory - workspace directory under packages/client.
+ * @returns absolute package directory, or undefined outside a source checkout.
+ */
+function resolveStaticSourceRoot(packageDirectory) {
+  const workspaceRoot = fileURLToPath(new URL('../../../../', import.meta.url))
+  const root = join(workspaceRoot, 'packages', 'client', packageDirectory)
+  return existsSync(join(root, 'package.json')) ? root : undefined
 }
 
 /** Serialize one frame as an SSE data line. */
@@ -179,11 +192,29 @@ export function apply(ctx, config) {
     return false
   }
 
+  /** CSS is linked globally by css-manifest, so a changed source stylesheet needs a page reload. */
+  const cssSnapshotsDiffer = (before, after) => {
+    const names = new Set([...before.keys(), ...after.keys()])
+    for (const name of names) {
+      if (!name.endsWith('.css')) continue
+      const prior = before.get(name)
+      const current = after.get(name)
+      if (prior === undefined || current === undefined || prior.mtimeMs !== current.mtimeMs || prior.size !== current.size) return true
+    }
+    return false
+  }
+
   const pollWatches = () => {
     for (const [id, watch] of watchedRoots) {
       const next = snapshot(watch.root, id)
-      if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) continue
+      const changed = watch.dirty || snapshotsDiffer(watch.files, next.files)
+      if (!changed) continue
+      const cssChanged = cssSnapshotsDiffer(watch.files, next.files)
       watch.files = next.files
+      if (cssChanged && !next.dirty) {
+        const rev = String(++shellRevision)
+        for (const listener of shellRebuiltListeners) listener(rev)
+      }
       // A source edit can add or remove a custom-element definition. Reclassify
       // before publishing the rebuild frame so the browser never reports a
       // successful fiber swap while a document-lifetime element keeps its old
@@ -232,34 +263,41 @@ export function apply(ctx, config) {
   // --- shell source watch: apps/web is buildless but is not a client-module
   // row, so every file in its served root reloads the page rather than trying
   // a fiber swap. This also covers index.html and static assets.
-  let shellWatch
   let shellRevision = 0
   const shellRebuiltListeners = new Set()
   const resolvedShell = resolveShellFilesIfBuilt()
   const shellRoot = config.shellRoot ?? resolvedShell?.root
+  const staticRoots = new Map([
+    ['@freddie/freddie-client-web', resolveStaticSourceRoot('web')],
+    ['@freddie/freddie-client-ui-slots', resolveStaticSourceRoot('ui-slots')],
+    ['@freddie/freddie-client-ui-primitives', resolveStaticSourceRoot('ui-primitives')],
+  ].filter(([, root]) => root !== undefined))
 
-  const pollShellWatch = () => {
-    if (shellWatch === undefined) return
-    const watch = shellWatch
-    const next = snapshot(watch.root)
-    if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) return
-    watch.files = next.files
-    watch.dirty = next.dirty
-    if (next.dirty) return
-    const rev = String(++shellRevision)
-    for (const listener of shellRebuiltListeners) listener(rev)
+  const staticWatches = new Map()
+  if (shellRoot !== undefined) staticWatches.set('apps/web', { root: shellRoot, ...snapshot(shellRoot) })
+  for (const [id, root] of staticRoots) staticWatches.set(id, { root, ...snapshot(root) })
+
+  const pollStaticWatches = () => {
+    for (const watch of staticWatches.values()) {
+      const next = snapshot(watch.root)
+      if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) continue
+      watch.files = next.files
+      watch.dirty = next.dirty
+      if (next.dirty) continue
+      const rev = String(++shellRevision)
+      for (const listener of shellRebuiltListeners) listener(rev)
+    }
   }
 
-  if (shellRoot !== undefined) {
+  if (staticWatches.size > 0) {
     ctx.effect(() => {
-      shellWatch = { root: shellRoot, ...snapshot(shellRoot) }
-      const timer = setInterval(pollShellWatch, pollIntervalMs)
+      const timer = setInterval(pollStaticWatches, pollIntervalMs)
       timer.unref()
       return () => {
         clearInterval(timer)
-        shellWatch = undefined
+        staticWatches.clear()
       }
-    }, 'client-hmr: shell source watch')
+    }, 'client-hmr: static source watches')
   }
 
   // --- /plugins/events SSE channel ----------------------------------------

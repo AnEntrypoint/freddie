@@ -10,8 +10,8 @@ plugin carries. It is a workspace package resolved through
 
 The HMR plugin watches source files, traces Node's module graph, clears affected
 module caches, and reloads only the plugin entries that depend on changed
-application files. Changes to framework-level dependencies fall back to
-`loader.exit()`, letting the host process restart.
+application files. Changes to framework-level dependencies call `loader.exit()`;
+the hosting entry point owns the resulting restart or shutdown action.
 
 Module watches canonicalize their existing base directory before opening
 Chokidar. Exact config watches likewise canonicalize the deepest existing
