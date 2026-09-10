@@ -8,68 +8,11 @@ Freddie is a plugin-based agent harness built on our own Cordis framework layer 
 
 ## Repository layout
 
-```
-framework/   Our Cordis framework layer: kernel + loader/include/group/timer/hmr
-             plugins + cosmokit/schemastery. First-party, edit directly; see
-             framework/README.md for what diverged from the upstream ancestor.
-packages/    @freddie/freddie-<pkg> workspaces at packages/<group>/<pkg>/
-  core/        product API spine: session, system-prompt, tools, agent, agent-loop
-  api/         Remote BFF assembly and Typert RPC gateway
-  typert/      type graph generator, loader, and runtime registry
-  llm/         LLM capability: Service Definition/Consumer + DeepSeek providers
-  e2b/         E2B POC: sandbox + FS/subprocess adapters
-  shell/        bash capability: Service Definition + local/pwsh providers + shell Consumers
-  subprocess/  subprocess capability + local process-tree provider
-  terminal/         persistent sessions
-  fs/          filesystem capability + policy
-  lsp/         language-server capability
-  skill/       skill provider registry + local impl + catalog/loader tool
-  web/         web capability: Service Definition + search/fetch providers + tool Consumer
-  compaction/     compaction capability + basic provider
-  context/     request-context plugins
-  subagent/    subagent capability: Service Definition + providers + delegation Consumers
-  bundle/      installable freddie --profile patch-layer bundles
-  workflow/    workflow capability + worker-thread provider + tool Consumer
-  todo/        todo_write tool
-  plan/        plan mode as logged state
-  preset/      per-session agent composition from preset cordis.yml files
-  gm/          first-class gm spool client (`ctx.gm`) + model-facing `gm_*` tools
-  guard/       loop-hygiene + tool-timeout plugins
-  self-modification/  the agent inspects/mounts its own plugins
-  hooks/       Claude Code/Codex hook bridges + wire-protocol library
-  session/     durable session data: persistence, projection, titles, telemetry
-  identity/    anonymous identity
-  settings/    user-settings capability + file provider
-  credentials/ credential/authorization capabilities + env/.env provider
-  acp/         automation-only Agent Client Protocol server
-  interaction/ approval/interaction capabilities, permission, commands, ask-user
-  boot/        shared app-bin glue
-  sdk/         JSON-RPC protocol, server, and client
-  examples/    demo bundles (agent-spine + CLI/ACP/JSON-RPC bins)
-  experimental/ private prototypes excluded from official releases
-  support/     dev/test infrastructure
-  util/        zero-dependency utilities
-native/      @freddie/node-addon-landlock-run source of record (see native/README.md)
-examples/    Runnable cordis.yml leaves over packages/examples bundles (see examples/AGENTS.md)
-.agents/     Agent workflows and Agent Notes (`notes/`)
-docs/        architecture, generated catalogs, postmortems, cookbook (see docs/AGENTS.md)
-scripts/     repo gates and generators
-```
-
-Package groups: [packages/README.md](packages/README.md).
+`framework/` is the first-party Cordis layer ([divergence log](framework/README.md)). `packages/` holds `@freddie/freddie-*` workspaces grouped under `packages/<group>/<pkg>/` ([package map](packages/README.md)). `native/`, `examples/`, `.agents/`, `docs/`, and `scripts/` keep the landlock addon, runnable leaves, Agent Notes, catalogs, and gates.
 
 ## Commands
 
-```sh
-pnpm install            # pnpm workspaces, node ^22.19 || >=24
-pnpm run publint         # package.json publish-shape lint (validates files/exports against real imports)
-pnpm run gen-third-party-notices  # regenerate THIRD_PARTY_NOTICES.md
-pnpm freddie --profile headless "task"  # run one task from source (needs DEEPSEEK_API_KEY)
-pnpm run demo:cordis    # the agent modifies its own runtime (needs key)
-pnpm run demo:acp       # ACP automation server (needs DEEPSEEK_API_KEY)
-```
-
-The workspace is buildless: there is no `build`, `clean`, or `typecheck` script. Packages ship plain `src/**/*.js` and are consumed directly under Node with no compile step.
+`pnpm install` (node `^22.19 || >=24`). `pnpm run publint` for publish-shape. `pnpm freddie --profile headless "task"` and `pnpm run demo:cordis` / `demo:acp` need `DEEPSEEK_API_KEY`. The workspace is buildless: packages ship `src/**/*.js` with no `build`/`clean`/`typecheck` step. Details: [development.md](docs/development.md).
 
 ### Host sandbox failures
 
