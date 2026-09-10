@@ -953,3 +953,10 @@
   session_id: freddie-20060-1788957034207
   status: witnessed
   witness_evidence: 'packages/bundle/base/cordis.patch.yml:19-22 id hmr name @freddie/cordis-plugin-hmr config.root: [''.'']. Live 3080 composition watches the repo root.'
+- id: gm-tools-cwd-is-freddie-checkout
+  text: 'Witness: gm_instruction/gm_codesearch errors name C:\dev\freddie\.gm\exec-spool\.watcher.log. tool-gm execute passes exec.agent.session.header.cwd. Record whether header.cwd is the Freddie checkout or cwd is omitted so config/process.cwd wins.'
+  subject: gm_* tools in this session spawned ensureDaemon against C:\dev\freddie, not the workspace C:\dev\deepseek-harness.
+  SESSION_ID: csweep-7cc18c8c-1
+  prd_id: record-gm-host-plugin-call-linkerror
+  obligation_kind: invariant
+  status: unknown

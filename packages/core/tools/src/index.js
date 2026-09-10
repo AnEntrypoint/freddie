@@ -6,7 +6,7 @@
 
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
-import { AnonymousEntries, NamedEntries, ScopedLayers, scopeOf, scopeTarget } from '@freddie/freddie-scope'
+import { AnonymousEntries, NamedEntries, ScopedLayers, scopeChainOf, scopeOf, scopeTarget } from '@freddie/freddie-scope'
 import { assertNever, deepFreeze, HarnessError } from '@freddie/freddie-llm'
 import { snapshotJsonValue } from '@freddie/freddie-session'
 import { assertSupportedJsonSchema, validateJsonSchemaValue } from './json-schema.js'
@@ -276,9 +276,20 @@ export class ToolRuntime extends Service {
   cancellationStates = new WeakMap()
   /** Definition-owned final content transform snapshotted before policy begins. */
   contentFinalizers = new WeakMap()
+  /** Bumps when a scoped tool contribution changes the model-facing projection. */
+  presentationRevision = 0
+  /** Cached global Code Mode SDK projection. */
+  globalSdkCache
+  /** Cached Code Mode SDK projections for agent scopes. */
+  scopedSdkCaches = new WeakMap()
   layers = new ScopedLayers(
     scope => new ToolLayer(scope),
-    () => { this.ctx.emit('tools/change') },
+    () => {
+      this.presentationRevision += 1
+      this.globalSdkCache = undefined
+      this.scopedSdkCaches = new WeakMap()
+      this.ctx.emit('tools/change')
+    },
   )
   /** Presentation for scopes that declare none; {@link presentAs} shadows it per scope. */
   defaultMode
@@ -354,9 +365,41 @@ export class ToolRuntime extends Service {
         const render = SDK_RENDERERS[runtime.language]
         /* v8 ignore next -- requireCodeRuntime rejects an unknown language before this runs. */
         if (render === undefined) throw new Error(`freddie-tools: no SDK renderer for ${runtime.language}`)
-        return render(this.sdkSchemas(context.scope))
+        return this.renderSdk(context.scope, runtime.language, render)
       },
     }
+  }
+
+  /**
+   * Render one scope's generated SDK once per tool-visibility revision and
+   * scope ancestry. A preset recompose retains the agent key but changes its
+   * parent chain, which can change visible tools without a registry mutation.
+   * @param scope - the model-facing scope, or undefined for the global view.
+   * @param language - the loaded code runtime language.
+   * @param render - the corresponding SDK renderer.
+   * @returns the byte-stable SDK text for the current visible tool view.
+   */
+  renderSdk(scope, language, render) {
+    let cache
+    if (scope === undefined) {
+      cache = this.globalSdkCache
+    } else {
+      cache = this.scopedSdkCaches.get(scope)
+    }
+    const ancestry = scope === undefined ? undefined : scopeChainOf(scope)
+    if (cache?.revision === this.presentationRevision
+      && cache.language === language
+      && cache.ancestry?.length === ancestry?.length
+      && cache.ancestry?.every((key, index) => key === ancestry[index])) return cache.text
+    const next = {
+      revision: this.presentationRevision,
+      language,
+      ancestry,
+      text: render(this.sdkSchemas(scope)),
+    }
+    if (scope === undefined) this.globalSdkCache = next
+    else this.scopedSdkCaches.set(scope, next)
+    return next.text
   }
 
   /**

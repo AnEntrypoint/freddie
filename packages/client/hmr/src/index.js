@@ -1,19 +1,17 @@
-/**
+﻿/**
  * HMR plugin, node half: the host end of the dev reload chain. One interval
- * stat-polls every graph row's whole served src/client/ tree (polling by
- * design: network mounts deliver no inotify events; the whole tree, not
- * just the entry file, since buildless serving mirrors it verbatim and a
- * change to any file under it — including one only reachable through a
- * relative import — must trigger a rebuild), reports content changes through
- * `clientModuleHost.rebuilt(id)`, and serves the `/plugins/events` SSE channel
- * broadcasting graph/rebuilt frames to the browser half (src/client/).
- * The web bundle mounts this row unconditionally: without a rebuild
- * watcher noticing edits, the poll observes no changes and the chain stays
- * idle.
+ * stat-polls every graph row's whole served src/client/ tree plus buildless
+ * shell and statically seeded workspace package roots (polling by design:
+ * network mounts deliver no inotify events). Dynamic rows publish revised
+ * graph rows through `clientModuleHost.rebuilt(id)` for fiber replacement;
+ * static and stylesheet changes publish page reloads through `/plugins/events`.
+ * The web bundle mounts this row unconditionally, so served source changes
+ * need no separate watcher or rebuild process.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, relative, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import z from '@freddie/schemastery'
 import { EVENTS_ENDPOINT } from './events.js'
 
@@ -34,12 +32,12 @@ export const Config = z.object({
 
 /**
  * Resolve the Web frontend's built `index.html`, the same workspace-known
- * path `freddie-web-app` resolves for `frontend-static` — duplicated here rather
+ * path `freddie-web-app` resolves for `frontend-static` â€” duplicated here rather
  * than threaded through the YAML composition (this row is declared
  * statically, not mounted imperatively) so a composition needs no config to
  * get shell reload; a checkout without the frontend package simply gets none.
  * apps/web is served buildless (no dist/ build output), so this watches its
- * own index.html directly — the same file frontend-static serves.
+ * own index.html directly â€” the same file frontend-static serves.
  * @returns the resolved path, or undefined when the frontend package is absent.
  */
 function resolveDistIndexIfBuilt() {
@@ -49,6 +47,21 @@ function resolveDistIndexIfBuilt() {
   } catch {
     return undefined
   }
+}
+
+/**
+ * Find the source package root for a buildless static browser dependency.
+ * The HMR package does not depend on the seeded packages it watches, so their
+ * package exports cannot be resolved from this package's dependency graph.
+ * Source execution has the workspace layout directly; packaged deployments
+ * simply omit these development-only watches.
+ * @param packageDirectory - workspace directory under packages/client.
+ * @returns absolute package directory, or undefined outside a source checkout.
+ */
+function resolveStaticSourceRoot(packageDirectory) {
+  const workspaceRoot = fileURLToPath(new URL('../../../../', import.meta.url))
+  const root = join(workspaceRoot, 'packages', 'client', packageDirectory)
+  return existsSync(join(root, 'package.json')) ? root : undefined
 }
 
 /** Serialize one frame as an SSE data line. */
@@ -67,7 +80,7 @@ export function apply(ctx, config) {
 
   // --- bundle watch: one HMR-owned stat poll over each row's whole served
   // tree (buildless serving mirrors src/client/ verbatim, so a change to any
-  // file under it — not just the entry file — must trigger a rebuild) ------
+  // file under it â€” not just the entry file â€” must trigger a rebuild) ------
   const watchedRoots = new Map()
 
   /** List every file under `root`, recursively, as absolute paths. */
@@ -177,11 +190,29 @@ export function apply(ctx, config) {
     return false
   }
 
+  /** CSS is linked globally by css-manifest, so a changed source stylesheet needs a page reload. */
+  const cssSnapshotsDiffer = (before, after) => {
+    const names = new Set([...before.keys(), ...after.keys()])
+    for (const name of names) {
+      if (!name.endsWith('.css')) continue
+      const prior = before.get(name)
+      const current = after.get(name)
+      if (prior === undefined || current === undefined || prior.mtimeMs !== current.mtimeMs || prior.size !== current.size) return true
+    }
+    return false
+  }
+
   const pollWatches = () => {
     for (const [id, watch] of watchedRoots) {
       const next = snapshot(watch.root, id)
-      if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) continue
+      const changed = watch.dirty || snapshotsDiffer(watch.files, next.files)
+      if (!changed) continue
+      const cssChanged = cssSnapshotsDiffer(watch.files, next.files)
       watch.files = next.files
+      if (cssChanged && !next.dirty) {
+        const rev = String(++shellRevision)
+        for (const listener of shellRebuiltListeners) listener(rev)
+      }
       try {
         definesElements.set(id, treeDefinesCustomElements(listTreeFiles(watch.root)))
       } catch (error) {
@@ -211,7 +242,7 @@ export function apply(ctx, config) {
   ctx.effect(() => {
     // Initial sync covers rows already in the graph; the subscription covers
     // rows arriving later (boot-window activations, including this plugin's
-    // own row — no self-exemption, a modules/hmr rebuild rides the same chain).
+    // own row â€” no self-exemption, a modules/hmr rebuild rides the same chain).
     syncWatches()
     const unsubscribe = ctx.clientModules.onGraphChanged(syncWatches)
     const timer = setInterval(pollWatches, pollIntervalMs)
@@ -222,60 +253,41 @@ export function apply(ctx, config) {
       watchedRoots.clear()
     }
   }, 'client-hmr: bundle watches')
-
-  // --- shell source watch: same tree-snapshot poll as plugin rows, over
-  // apps/web plus packages/client/web (the boot kernel). A change anywhere
-  // under those trees is a `shell-rebuilt` frame; the browser half then
-  // remounts AppWebEntry under `/__hmr/<rev>/` without location.reload.
-  let shellWatch
+  let shellRevision = 0
   const shellRebuiltListeners = new Set()
+  const distIndex = config.distIndex ?? resolveDistIndexIfBuilt()
+  const shellRoot = config.shellRoot ?? (distIndex === undefined ? undefined : dirname(distIndex))
+  const staticRoots = new Map([
+    ['@freddie/freddie-client-web', resolveStaticSourceRoot('web')],
+    ['@freddie/freddie-client-ui-slots', resolveStaticSourceRoot('ui-slots')],
+    ['@freddie/freddie-client-ui-primitives', resolveStaticSourceRoot('ui-primitives')],
+  ].filter(([, root]) => root !== undefined))
 
-  const rehashShell = (watch, next) => {
-    watch.files = next.files
-    watch.dirty = next.dirty
-    const rev = `${String(Date.now())}`
-    for (const listener of shellRebuiltListeners) listener(rev)
+  const staticWatches = new Map()
+  if (shellRoot !== undefined) staticWatches.set('apps/web', { root: shellRoot, ...snapshot(shellRoot) })
+  for (const [id, root] of staticRoots) staticWatches.set(id, { root, ...snapshot(root) })
+
+  const pollStaticWatches = () => {
+    for (const watch of staticWatches.values()) {
+      const next = snapshot(watch.root)
+      if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) continue
+      watch.files = next.files
+      watch.dirty = next.dirty
+      if (next.dirty) continue
+      const rev = String(++shellRevision)
+      for (const listener of shellRebuiltListeners) listener(rev)
+    }
   }
 
-  const distIndex = config.distIndex ?? resolveDistIndexIfBuilt()
-  if (distIndex !== undefined) {
-    const shellRoot = dirname(distIndex)
+  if (staticWatches.size > 0) {
     ctx.effect(() => {
-      const roots = [shellRoot]
-      try {
-        const webPkg = createRequire(import.meta.url).resolve('@freddie/freddie-client-web/package.json')
-        const webSrc = join(dirname(webPkg), 'src')
-        statSync(webSrc)
-        roots.push(webSrc)
-      } catch (error) {
-        if (error.code !== 'ENOENT' && error.code !== 'MODULE_NOT_FOUND') ctx.logger.warn(error)
-      }
-      const files = new Map()
-      let dirty = false
-      for (const root of roots) {
-        const part = snapshot(root)
-        dirty = dirty || part.dirty
-        for (const [rel, info] of part.files) files.set(`${root}\0${rel}`, info)
-      }
-      shellWatch = { root: shellRoot, roots, files, dirty }
-      const timer = setInterval(() => {
-        if (shellWatch === undefined) return
-        const combined = new Map()
-        let nextDirty = false
-        for (const root of shellWatch.roots) {
-          const part = snapshot(root)
-          nextDirty = nextDirty || part.dirty
-          for (const [rel, info] of part.files) combined.set(`${root}\0${rel}`, info)
-        }
-        if (!shellWatch.dirty && !snapshotsDiffer(shellWatch.files, combined) && !nextDirty) return
-        rehashShell(shellWatch, { files: combined, dirty: nextDirty })
-      }, pollIntervalMs)
+      const timer = setInterval(pollStaticWatches, pollIntervalMs)
       timer.unref()
       return () => {
         clearInterval(timer)
-        shellWatch = undefined
+        staticWatches.clear()
       }
-    }, 'client-hmr: shell source watch')
+    }, 'client-hmr: static source watches')
   }
 
   // --- /plugins/events SSE channel ----------------------------------------

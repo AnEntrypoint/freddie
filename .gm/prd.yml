@@ -130,3 +130,17 @@
   status: pending
   route_family: execution
   session_id: freddie-20060-1788957034207
+- id: record-gm-host-plugin-call-linkerror
+  acceptance: 'Pre: C:\dev\freddie\.gm\exec-spool\.watcher.log repeats host_plugin_call LinkError after self-heal v0.1.1211. Invariant: no second agentplug-runner started for this diagnosis. Post: blocker recorded as PRD/mutable with exact log line and the cwd mismatch (tools vs workspace).'
+  route_family: observability
+  subject: 'gm-client tools spawn against C:\dev\freddie and hit plugkit-wasm LinkError: import function env:host_plugin_call must be callable. Live harness daemon on C:\dev\deepseek-harness pid from .status.json still serves spool. Do not start a second watcher.'
+  SESSION_ID: csweep-7cc18c8c-1
+  title: Record gm daemon host_plugin_call LinkError blocker
+  status: pending
+- id: comment-sweep-hmr-gm-agentic-partition
+  acceptance: 'Pre: comments located via codesearch (not grep/find). Invariant: no bulk comment deletion while gm-client spawn is broken. Post: verified partition with file:line witnesses and a C:\dev\gm repair prompt for host_plugin_call + cwd pinning.'
+  route_family: representation
+  subject: 'User requires a full comment sweep of HMR/gm/agentic tooling surfaces: obsolete vs self-explanatory-via-code vs factual contract docs. Broad destructive edits are forbidden while gm-client is unavailable.'
+  SESSION_ID: csweep-7cc18c8c-1
+  title: Partition HMR/gm/agentic comments without destructive edits
+  status: pending

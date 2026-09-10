@@ -18,7 +18,7 @@ This note owns the return and failure contract layered on the original [Code Mod
 
 ### Generated SDK
 
-At each prompt assembly the registry projects every visible tool's parameter schema and detached canonical output schema into one deterministic declaration:
+For each effective scope, ancestry, and tool-visibility revision, the registry projects every visible tool's parameter schema and detached canonical output schema into one deterministic declaration, then reuses that text until a tool registration, disposal, restriction, presentation, or preset recomposition changes it:
 
 ```ts ignore-check
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
