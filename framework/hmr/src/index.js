@@ -60,9 +60,8 @@ class Hmr extends Service {
   refreshTasks = new Set()
 
   /**
-   * Dependency tree of the CLI worker entry. These used to force
-   * `loader.exit()`; they now take the same in-process reload path as
-   * application modules (divergence log entry 21).
+   * Dependency tree of the CLI worker entry. Reloads in-process like any
+   * other accepted module; the process does not exit (divergence log 21).
    */
   externals
 
@@ -242,10 +241,8 @@ class Hmr extends Service {
       const url = pathToFileURL(filename).href
 
       // Partial reload, including the CLI entry's own dependency tree
-      // (`externals`). A framework-level edit used to call `loader.exit()`
-      // and kill the web process; that is the opposite of in-process HMR.
-      // Externals stay eligible for cache-bust + plugin reload. The process
-      // does not exit. Divergence log entry 21.
+      // (`externals`). Externals stay eligible for cache-bust + plugin reload.
+      // The process does not exit. Divergence log entry 21.
       if (this.externals.has(url) || loader.internal.loadCache.has(url)) {
         this.stashed.add(url)
         this.recordJournal({
@@ -336,9 +333,8 @@ class Hmr extends Service {
     const queued = new Set()
 
     this.accepted = new Set(this.stashed)
-    // Externals used to seed `declined` so a CLI-entry dependency forced
-    // `loader.exit()`. They now reload in-process like any other accepted
-    // module; declined is only the residue of analyzeChanges.
+    // Externals reload in-process like any other accepted module; declined is
+    // only the residue of analyzeChanges.
     this.declined = new Set()
 
     const isExcluded = (url) => url.startsWith('node:') || url.includes('/node_modules/')
