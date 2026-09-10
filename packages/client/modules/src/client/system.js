@@ -145,6 +145,26 @@ export class ClientModuleSystem {
   }
 
   /**
+   * Replace one graph row before a hot-reload prefetch. The new URL carries the
+   * revision that makes native import() fetch fresh bytes rather than its old
+   * cache-keyed module.
+   * @param row - updated graph row from the HMR transport.
+   * @param graphRev - host graph revision containing the row.
+   * @returns whether the row belonged to the current graph.
+   */
+  updateGraphRow(row, graphRev) {
+    const id = stripClientSuffix(row.id)
+    if (!this.graphRows.has(id)) return false
+    this.graphRows.set(id, { ...row, id })
+    this.manifest = {
+      ...this.manifest,
+      rev: graphRev,
+      modules: this.manifest.modules.map((current) => current.id === id ? { ...row, id } : current),
+    }
+    return true
+  }
+
+  /**
    * Directly seat an already-materialized module — the escape hatch for a
    * module with no URL to `import()` from (e.g. cordis-client-runner's
    * dynamically evaluated packages, whose exports are a live in-memory

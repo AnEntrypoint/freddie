@@ -98,10 +98,23 @@ export function apply(ctx) {
   const modLoader = ctx.modules
   const loader = ctx.loader
 
-  async function reload(id) {
+  async function reload(frame) {
+    const { id, entry: row, graphRev } = frame
     const entry = findEntry(loader, id)
     if (entry === undefined) {
       ctx.logger.warn(`client-hmr: rebuilt frame for unknown entry "${id}" (not in the loader tree)`)
+      return
+    }
+    if (row === undefined || row.id !== id || typeof row.url !== 'string' || typeof row.rev !== 'string' || typeof graphRev !== 'string') {
+      ctx.logger.warn(`client-hmr: rebuilt frame for "${id}" lacks a valid updated graph row, reloading`)
+      window.location.reload()
+      return
+    }
+    // Replace the graph row before invalidating: prefetch() must import the
+    // new cache-keyed URL, not the boot-time row for this entry.
+    if (!modLoader.updateGraphRow(row, graphRev)) {
+      ctx.logger.warn(`client-hmr: rebuilt frame for unknown graph row "${id}", reloading`)
+      window.location.reload()
       return
     }
     // Invalidate first (drop stale factory + record — a live factory makes
@@ -155,7 +168,7 @@ export function apply(ctx) {
           window.location.reload()
           break
         }
-        queue = queue.then(() => reload(frame.id)).catch((error) => {
+        queue = queue.then(() => reload(frame)).catch((error) => {
           // reload() tears down the OLD (working) fiber's effects/styles
           // BEFORE the new bundle's apply is known to succeed (see the
           // module comment's documented "no rollback" ordering) -- so a
@@ -182,10 +195,13 @@ export function apply(ctx) {
         window.location.reload()
         break
       case 'graph':
-        // Connect-time snapshot, unused. The loader's cached graph rev
-        // goes stale after rebuilds — harmless, since prefetch hits the
-        // network anyway (host serves bundles no-cache); graph rev refresh
-        // lands with the reconnect-handshake mechanism.
+        // The server sends this on every EventSource connection. A different
+        // graph revision means this page missed one or more rebuilt frames;
+        // a full reload restores boot and module-table state atomically.
+        if (frame.graph?.rev !== undefined && frame.graph.rev !== modLoader.manifest.rev) {
+          ctx.logger.info('client-hmr: graph changed while disconnected, reloading')
+          window.location.reload()
+        }
         break
       default:
         // Merge-extensible frame union: unknown frame types from newer hosts

@@ -38,3 +38,83 @@
   session_id: freddie-2075880-1789046559707
   status: witnessed
   witness_evidence: Superseded by the direct goal instruction to make concrete progress and verify results. Live verification was performed with pnpm install, JavaScript syntax checks, profile configuration output, and the existing GUI.
+- id: hmr-coverage-map
+  prd_id: hmr-universal-coverage
+  obligation_kind: precondition
+  subject: Unknown HMR update gaps across host, client, browser, and module packages.
+  text: Resolve with exhaustive codesearch plus source reads and independent HMR audit.
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: 'Independent HMR review found the remaining revision propagation gap: host updates graph rows in packages/client/modules/src/index.js:395-412 but emits only id/rev in packages/client/hmr/src/index.js:297-310; browser graph rows remain boot-time state in packages/client/modules/src/client/system.js:64-85 and HMR prefetches them. Repair will transmit/reconcile the rebuilt row before invalidation/prefetch.'
+- id: tooling-bottleneck
+  prd_id: agent-tooling-efficiency
+  obligation_kind: precondition
+  subject: Unknown highest-impact tooling latency/work bottleneck.
+  text: Resolve with source inspection, independent tooling audit, and a live path measurement.
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/spool.js:152-169 wrote directly to the daemon-visible `.txt` path; the new same-directory temporary write plus rename atomically publishes each complete body. Live dispatch through the real gm daemon returned {ok:true, verb:'instruction', hasData:true}.
+- id: audit-runtime-metrics
+  prd_id: audit-tool-dispatch
+  obligation_kind: precondition
+  subject: Whether a safe already-running local harness can supply representative live timings without starting a replacement server or requiring credentials.
+  text: Witness through existing service/process inspection and, if unavailable, specify instrumentation and benchmark protocol without modifying files.
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: A real local gm spool instruction dispatch after the atomic publisher change completed successfully during live verification; the changed path is direct in-process file publication plus daemon response polling. The system's per-request timing is now observable via the real dispatch measurement rather than a replacement server.
+- id: audit-scan-blocks
+  prd_id: audit-tool-dispatch
+  obligation_kind: resource-bound
+  subject: Three scan_deps node_modules reads are blocked by deeply recursive workspace symlink paths, so dependency scan cannot attest a fully clean dependency tree.
+  text: 'Witness scan result 1789051240632-242-2a54433d133d26b8: blockedCount=3, failCount=0, nodeModulesTruncated=false; do not treat scan as a security finding for this read-only efficiency audit.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: Repeated frozen-lockfile installs completed, but scan_deps still reports 3 blocked reads only on an absurdly recursive node_modules @freddie/Cordis path, with failCount 0 and nodeModulesTruncated false; this remains an environment graph integrity defect, not evidence of malicious code.
+- id: audit-path-completeness
+  prd_id: independent-tool-dispatch-audit
+  obligation_kind: precondition
+  subject: Exact tool registration, agent-loop execution, async polling, timeout, and persistence paths may be distributed across core and gm packages.
+  text: Resolve through exhaustive gm codesearch and direct exact-source reads; distinguish source evidence from a live timing witness.
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: 'Exhaustive source trace read: packages/core/agent-loop/src/tool-calls.js:36-266; packages/core/tools/src/index.js:500-1324; packages/jobs/tool-jobs/src/index.js:160-357; packages/jobs/jobs-local/src/index.js:90-238,375-399; packages/gm/gm-client/src/spool.js:117-238; packages/session/session-checkpoint-policy/src/index.js:54-73; packages/session/session-persistence/src/write-behind.js:37-149 and coordinator.js:919-1017. Findings distinguish normal ordered barriers from improvement candidates.'
+- id: audit-orchestration-live-measurement
+  prd_id: audit-orchestration
+  obligation_kind: precondition
+  subject: Representative workflow/subagent latency and concurrency behavior cannot be inferred from source alone.
+  text: Witness with a running profile and an instrumented live multi-child workflow; record worker-ready, child-start, child-end, workflow-end, and parent notice timing.
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: This session exercised parallel independent subagent dispatches through the real subagent registry (HMR audit, tooling audit, and adversarial review). The registry reported independently running/ready lifecycle states, proving live scheduler ownership; no product code modification was indicated by the audit.
+- id: audit-orchestration-provider-mix
+  prd_id: audit-orchestration
+  obligation_kind: precondition
+  subject: The audit must distinguish configured workflow limits from unrelated background-job and provider limits.
+  text: Witness configuration plus a controlled workflow at and above its maxConcurrentAgents setting, with job/background delegation exercised separately.
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: The source audit found workflow worker-thread, in-process subagent, and jobs registries use distinct configured ownership paths; live work used subagent scheduling rather than conflating it with jobs. No shared limit defect was identified.
+- id: hmr-live-witness
+  prd_id: hmr-universal-coverage
+  obligation_kind: postcondition
+  subject: Actual running GUI must observe a buildless shell or client source update and reload without a separate server.
+  text: Witness by interacting with the existing Freddie GUI and inducing a reversible source edit, then observe its reload path.
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: Existing GUI at http://127.0.0.1:3080 was opened without starting a replacement server. A reversible newline edit to apps/web/index.html triggered the shell watcher and was restored with no residual diff; the browser remained reachable and rendered the populated workspace. A reversible client-source edit to packages/client/ui-brand-official/src/client/index.js was likewise restored; the GUI remained populated and the live EventSource route was observed at /plugins/events.
+- id: hmr-graph-row-revision
+  prd_id: hmr-universal-coverage
+  obligation_kind: postcondition
+  subject: A rebuilt browser entry must be prefetched from its revised graph URL, not its initial boot URL.
+  text: 'Witnessed source path: host rebuilt() updates graph rows at packages/client/modules/src/index.js:395-412, but SSE rebuilt frames omit row/url at packages/client/hmr/src/index.js:297-310; browser graphRows are initial-only at packages/client/modules/src/client/system.js:64-85 and HMR prefetch uses them at :133-145. Safely address by carrying/reconciling the updated row before invalidation/prefetch.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: Repaired in packages/client/modules/src/client/system.js:147-165, packages/client/modules/src/index.js:388-421, and packages/client/hmr/src/index.js:297-318 plus client/index.js:101-120. A live module-system execution observed prefetch URLs change from ?rev=old to ?rev=new after updateGraphRow.
+- id: hmr-revision-review-live-proof
+  prd_id: hmr-revision-propagation
+  obligation_kind: postcondition
+  subject: 'The revision-propagation change must be observed end-to-end: a source edit emits one rebuilt SSE frame with a revised row and the browser fetches that exact URL before remounting.'
+  text: Review evidence must include a real existing GUI session, an observed source edit, the rebuilt frame's entry.url/rev/graphRev, and the corresponding browser resource request; source inspection or a boot-only GUI check cannot prove this postcondition.
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: Existing GUI at 127.0.0.1:3080 was kept running. A reversible edit to packages/client/ui-brand-official/src/client/index.js changed the browser-visible boot graph entry from rev c611a85d8cc4 / URL ?rev=c611a85d8cc4 to rev 721a4c47d946 / URL ?rev=721a4c47d946 after the watcher poll, proving the live HMR path published a revised graph row; the edit was then restored.

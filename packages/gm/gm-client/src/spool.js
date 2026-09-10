@@ -6,7 +6,7 @@
  * @module @freddie/freddie-gm-client/spool
  */
 
-import { mkdir, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { classifyDaemonHealth, isDaemonAlive, isDaemonHung } from './daemon.js'
 
@@ -149,11 +149,23 @@ export async function dispatch({
     // ENOENT: nothing leftover at this key. Any other syscall is unexpected.
     if (!isMissingPathError(error)) throw error
   })
-  if (rawBody === undefined) {
-    const payload = { ...body, session_id: body.session_id ?? sessionId }
-    await writeFile(inPath, JSON.stringify(payload), 'utf8')
-  } else {
-    await writeFile(inPath, rawBody, 'utf8')
+  // The daemon claims `.txt` files as soon as they appear. Publish a complete
+  // body with one same-directory rename so it never observes a torn request.
+  const stagingPath = `${inPath}.tmp`
+  const content = rawBody === undefined
+    ? JSON.stringify({ ...body, session_id: body.session_id ?? sessionId })
+    : rawBody
+  await unlink(stagingPath).catch((error) => {
+    if (!isMissingPathError(error)) throw error
+  })
+  try {
+    await writeFile(stagingPath, content, 'utf8')
+    await rename(stagingPath, inPath)
+  } catch (error) {
+    await unlink(stagingPath).catch((cleanupError) => {
+      if (!isMissingPathError(cleanupError)) throw cleanupError
+    })
+    throw error
   }
 
   const deadline = Date.now() + timeoutMs

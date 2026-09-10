@@ -8,7 +8,7 @@ The web HMR chain refreshed dynamic client-plugin packages but watched only the 
 
 ## Decision
 
-`@freddie/freddie-client-hmr` owns one polling baseline for every served dynamic client package and another for the resolved buildless web-shell root. A changed package publishes its content revision through the existing SSE channel and refreshes its Loader entry unless its tree defines custom elements; custom-element packages publish a rebuild frame that reloads the browser page. A changed shell file publishes `shell-rebuilt`, which also reloads the browser page. The HMR disposer clears the owned client watch registry.
+`@freddie/freddie-client-hmr` owns one polling baseline for every served dynamic client package and another for the resolved buildless web-shell root. A changed package publishes its complete revised graph row through the existing SSE channel; the browser replaces that row before prefetching and refreshing its Loader entry unless its tree defines custom elements. A reconnect whose graph revision differs reloads the page, recovering frames the EventSource missed. Custom-element packages publish a rebuild frame that reloads the browser page. A changed shell file publishes `shell-rebuilt`, which also reloads the browser page. The HMR disposer clears the owned client watch registry.
 
 Framework HMR uses a set-backed dependency frontier and treats changed, removed, and newly cached source modules as reload candidates. Active-work deferral and the ordered rollback/reload sequence remain unchanged.
 
