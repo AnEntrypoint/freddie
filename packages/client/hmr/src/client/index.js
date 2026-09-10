@@ -39,14 +39,14 @@
  * rebuilt frame self-heals.
  *
  * Why not the naive `entry.fiber.dispose()` → `entry.refresh()` path:
- * 1. `Entry.fiber` is never cleared on dispose (vendor/loader/src/config/
- *    entry.ts assigns it only in `_init`), so `refresh()` hits its
- *    `if (this.fiber) return` guard and no-ops.
+ * 1. `Entry.fiber` is never cleared on dispose (`framework/loader` assigns it
+ *    only in `_init`), so `refresh()` hits its `if (this.fiber) return` guard
+ *    and no-ops.
  * 2. A bare `fiber.dispose()` lands in Loader's self-dispose branch
- *    (vendor/loader/src/index.ts `internal/plugin` case 4: the registry
- *    still holds the runtime at emit time), which flags the entry
- *    `disabled: true` — permanently.
- * vendor/hmr's reload skeleton documents the fix: delete the runtime record
+ *    (`framework/loader` `internal/plugin` case 4: the registry still holds
+ *    the runtime at emit time), which flags the entry `disabled: true` —
+ *    permanently.
+ * framework/hmr's reload skeleton documents the fix: delete the runtime record
  * FIRST (`registry.delete` → case 4 returns early, the entry stays enabled),
  * then rebuild. `entry.fiber` is additionally cleared so
  * `entry.refresh()` re-imports and re-plugins through the Loader's own
@@ -60,9 +60,9 @@
  * apply opens a fresh channel. Frames arriving during the gap are lost —
  * acceptable for the dev channel, the next rebuild renotifies.
  *
- * Failure policy: no rollback. An import failure leaves the entry
- * fiberless (the next rebuilt frame retries from scratch); an apply failure
- * leaves a FAILED fiber for the shell's status projection. Both log loudly.
+ * Failure policy: no rollback. A failed plugin reload or graph-rev mismatch
+ * remounts AppWebEntry under `/__hmr/<rev>/`; the previous fiber is not
+ * restored. Custom-element rows still force a full page reload.
  */
 import { EVENTS_ENDPOINT } from '../events.js'
 
