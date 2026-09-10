@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HMR plugin, node half: the host end of the dev reload chain. One interval
  * stat-polls every graph row's whole served src/client/ tree plus buildless
  * shell and statically seeded workspace package roots (polling by design:
@@ -213,10 +213,12 @@ export function apply(ctx, config) {
         const rev = String(++shellRevision)
         for (const listener of shellRebuiltListeners) listener(rev)
       }
-      try {
-        definesElements.set(id, treeDefinesCustomElements(listTreeFiles(watch.root)))
-      } catch (error) {
-        if (error.code !== 'ENOENT') ctx.logger.warn(error)
+      if (changed) {
+        try {
+          definesElements.set(id, treeDefinesCustomElements(listTreeFiles(watch.root)))
+        } catch (error) {
+          if (error.code !== 'ENOENT') ctx.logger.warn(error)
+        }
       }
       watch.dirty = rehash(id, watch.root) || next.dirty
     }

@@ -60,25 +60,65 @@ export function recordLog(graph, message) {
 }
 
 /**
+ * Stable node id for one `agent()` call. The worker emits `childId`/`seq`;
+ * older payloads used `id`.
+ * @param agent - identifying or settlement payload.
+ */
+export function agentNodeId(agent) {
+  if (typeof agent.childId === 'string' && agent.childId.length > 0) return agent.childId
+  if (typeof agent.id === 'string' && agent.id.length > 0) return agent.id
+  if (typeof agent.seq === 'number' && Number.isFinite(agent.seq)) return `seq:${agent.seq}`
+  return undefined
+}
+
+/**
+ * Map a live `outcome` or legacy `stopReason` onto a graph node status.
+ * @param agent - settlement payload.
+ */
+export function agentStopReason(agent) {
+  if (agent.outcome === 'failed') return 'failed'
+  if (agent.outcome === 'cancelled') return 'cancelled'
+  if (agent.outcome === 'completed') return 'completed'
+  if (typeof agent.stopReason === 'string' && agent.stopReason.length > 0) return agent.stopReason
+  return 'completed'
+}
+
+function findNode(graph, agent) {
+  const id = agentNodeId(agent)
+  if (id !== undefined) {
+    const byId = graph.nodes.find((entry) => entry.id === id)
+    if (byId !== undefined) return byId
+  }
+  if (typeof agent.seq === 'number') {
+    return graph.nodes.find((entry) => entry.seq === agent.seq)
+  }
+  return undefined
+}
+
+/**
  * Record a `workflow/agent-start` event as a graph node.
  * @param graph - owned graph for this run.
  * @param agent - identifying child payload.
  */
 export function recordAgentStart(graph, agent) {
   graph.agentsStarted += 1
+  const id = agentNodeId(agent)
+  const phase = agent.phase ?? graph.currentPhase
   graph.nodes.push({
-    id: agent.id,
-    label: agent.label ?? agent.id,
-    phase: agent.phase ?? graph.currentPhase,
+    id,
+    seq: agent.seq,
+    label: agent.label ?? id,
+    phase,
     status: 'running',
     startedAt: Date.now(),
     endedAt: undefined,
     stopReason: undefined,
   })
+  if (id === undefined) return
   if (agent.parentId !== undefined) {
-    graph.edges.push({ from: agent.parentId, to: agent.id, kind: 'agent' })
-  } else if (graph.currentPhase !== undefined) {
-    graph.edges.push({ from: `phase:${graph.currentPhase}`, to: agent.id, kind: 'phase' })
+    graph.edges.push({ from: agent.parentId, to: id, kind: 'agent' })
+  } else if (phase !== undefined) {
+    graph.edges.push({ from: `phase:${phase}`, to: id, kind: 'phase' })
   }
 }
 
@@ -88,12 +128,14 @@ export function recordAgentStart(graph, agent) {
  * @param agent - settlement payload.
  */
 export function recordAgentEnd(graph, agent) {
-  const node = graph.nodes.find((entry) => entry.id === agent.id)
-  const stopReason = agent.stopReason ?? 'completed'
+  const id = agentNodeId(agent)
+  const stopReason = agentStopReason(agent)
+  const node = findNode(graph, agent)
   if (node === undefined) {
     graph.nodes.push({
-      id: agent.id,
-      label: agent.label ?? agent.id,
+      id,
+      seq: agent.seq,
+      label: agent.label ?? id,
       phase: agent.phase ?? graph.currentPhase,
       status: stopReason === 'completed' ? 'completed' : stopReason,
       startedAt: Date.now(),
@@ -102,6 +144,7 @@ export function recordAgentEnd(graph, agent) {
     })
     return
   }
+  if (node.id === undefined) node.id = id
   node.status = stopReason === 'completed' ? 'completed' : stopReason
   node.endedAt = Date.now()
   node.stopReason = stopReason

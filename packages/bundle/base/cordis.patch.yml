@@ -441,6 +441,7 @@
 
     - id: tool-str-replace-editor
       name: '@freddie/freddie-tool-str-replace-editor'
+      disabled: true
       config:
         maxOutputChars: 16000
 
@@ -497,6 +498,21 @@
       name: '@freddie/freddie-system-prompt'
       config:
         persona: ''
+        toolOrder:
+          - read
+          - edit
+          - write
+          - grep
+          - glob
+          - pwsh
+          - skill
+          - todo_write
+          - workflow
+          - ralph
+          - gm_instruction
+          - gm_codesearch
+          - gm_phase_status
+          - '<unlisted-tools>'
 
     # Agents created at startup. The base stays empty; raw overlays may create
     # agents, while Web creates sessions on client request.

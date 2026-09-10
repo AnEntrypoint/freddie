@@ -16,6 +16,8 @@ export {
   recordAgentStart,
   recordAgentEnd,
   recordEnd,
+  agentNodeId,
+  agentStopReason,
 } from './graph.js'
 
 /** The full set of `workflow/*` event names {@link WorkflowEngine.emitWorkflowEvent} dispatches. */
