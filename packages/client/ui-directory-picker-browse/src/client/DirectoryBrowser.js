@@ -650,7 +650,15 @@ export class FreddieDirectoryBrowser extends HTMLElement {
       this.#onOpenEdge(open)
     }
 
-    if (!open) { applyDiff(this, h('span', {style: 'display:none'})); return }
+    if (!open) {
+      // The browser itself is only the owner of the body-portaled dialogs.
+      // Hiding this custom element does not affect those portal siblings, so
+      // close both before returning or their masks keep intercepting clicks.
+      if (this.#outerModal !== null) this.#outerModal = renderModal(this.#outerModal, {open: false})
+      if (this.#createModal !== null) this.#createModal = renderModal(this.#createModal, {open: false})
+      applyDiff(this, h('span', {style: 'display:none'}))
+      return
+    }
 
     const parent = this.#parent
     const selected = this.#selected
