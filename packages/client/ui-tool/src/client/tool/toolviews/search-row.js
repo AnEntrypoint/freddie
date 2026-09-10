@@ -56,6 +56,7 @@ export function SearchRow({ toolName, block, inspect, t }) {
       errorSummary: model.errorSummary,
       search: search,
       state: model.state,
+      timing: model.timing,
       inspect: inspect,
       }) } })
   )

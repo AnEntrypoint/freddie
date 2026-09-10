@@ -40,7 +40,7 @@ function usageOutputTokens(usage) {
 /** The `sessionStats` unit registered on `ctx.sessionProjections` (exported for the unit spec). */
 export const sessionStatsProjectionDefinition = {
   key: 'sessionStats',
-  stateVersion: 1,
+  stateVersion: 2,
   init: () => ({
     turns: 0,
     steps: 0,
@@ -102,7 +102,11 @@ export const sessionStatsProjectionDefinition = {
         const pendingCalls = Object.fromEntries(
           Object.entries(state.pendingCalls).filter(([id]) => id !== callId),
         )
-        return { ...state, toolMs: state.toolMs + Math.max(0, event.time - dispatched), pendingCalls }
+        const settledAt = event.data.timing?.settledAt
+        const completedAt = Number.isSafeInteger(settledAt) && settledAt >= dispatched && settledAt <= event.time
+          ? settledAt
+          : event.time
+        return { ...state, toolMs: state.toolMs + completedAt - dispatched, pendingCalls }
       }
       case 'step/end':
         return {

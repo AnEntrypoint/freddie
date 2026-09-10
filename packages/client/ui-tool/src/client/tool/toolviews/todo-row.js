@@ -61,6 +61,7 @@ export function TodoRow({ toolName, block, inspect, t }) {
       output: model.output,
       errorSummary: model.errorSummary,
       state: model.state,
+      timing: model.timing,
       inspect: inspect,
       }) } })
   )

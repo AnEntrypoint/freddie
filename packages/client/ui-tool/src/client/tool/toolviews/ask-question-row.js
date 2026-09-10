@@ -70,6 +70,7 @@ export function AskQuestionRow({ toolName, block, inspect, t }) {
       body: model.body,
       output: model.output,
       state: state,
+      timing: model.timing,
       inspect: inspect,
       }) } })
   )

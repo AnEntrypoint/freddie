@@ -1,6 +1,6 @@
 # @freddie/freddie-session-stats
 
-Function plugin registering the `sessionStats` projection unit: whole-log conversation figures — turn/step counts and the LLM, tool, first-token, and decode wall times — folded from step boundaries, stream chunks, tool pairs, and assembled assistant messages, and served through the session-projection seam (registry snapshot, change feed, and every projection carrier: history tail page, `session/projection` push frames, session list rows). Clients render full-session figures that paging and compaction cannot change; the reference consumer is the web chat stats strip, whose window fold mirrors these field names as its no-unit fallback.
+Function plugin registering the `sessionStats` projection unit: whole-log conversation figures — turn/step counts and the LLM, tool, first-token, and decode wall times — folded from step boundaries, stream chunks, tool pairs, and assembled assistant messages, and served through the session-projection seam (registry snapshot, change feed, and every projection carrier: history tail page, `session/projection` push frames, session list rows). State version 2 invalidates cached totals from the earlier commit-time tool fold. Clients render full-session figures that paging and compaction cannot change; the reference consumer is the web chat stats strip, whose window fold mirrors these field names as its no-unit fallback.
 
 ## Fold semantics
 
@@ -9,7 +9,7 @@ Function plugin registering the `sessionStats` projection unit: whole-log conver
 - `llmMs` sums `step/start` → `assistant/message` per step that assembled a message (retry waits inside the step are model time, as in the window fold).
 - `ttftMs`/`ttftSteps` sum and count `step/start` → first non-empty delta chunk; the first attempt's boundary survives an in-step `llm/retry` (window `resetForRetry` parity).
 - `decodeMs`/`decodeTokens` sum first token → assembled message and the provider-reported output tokens, only over steps carrying both.
-- `toolMs` sums `tool/call` → `tool/result` pairs matched by callId; unresolved calls are dropped at `turn/end` (results land within their turn).
+- `toolMs` sums each `tool/call` through its physical result settlement matched by callId when the result records a settlement timestamp, otherwise it falls back to `tool/result` commit time; unresolved calls are dropped at `turn/end` (results land within their turn).
 - Every field is 0 until its first contributing event. A composed registry always serves the key, so clients read the value, never key presence.
 
 ## Composition

@@ -46,6 +46,7 @@ export function WebRow({ toolName, block, inspect, t }) {
       errorSummary: model.errorSummary,
       web: web,
       state: model.state,
+      timing: model.timing,
       inspect: inspect,
       }) } })
   )

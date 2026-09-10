@@ -36,6 +36,7 @@ export function ReadRow({ toolName, block, cwd, home, openFile, inspect, t }) {
       errorSummary: model.errorSummary,
       read: read,
       state: model.state,
+      timing: model.timing,
       filePath: model.filePath,
       onOpenFile: openFile,
       inspect: inspect,

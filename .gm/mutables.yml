@@ -118,3 +118,138 @@
   session_id: freddie-2075880-1789048712460
   status: witnessed
   witness_evidence: Existing GUI at 127.0.0.1:3080 was kept running. A reversible edit to packages/client/ui-brand-official/src/client/index.js changed the browser-visible boot graph entry from rev c611a85d8cc4 / URL ?rev=c611a85d8cc4 to rev 721a4c47d946 / URL ?rev=721a4c47d946 after the watcher poll, proving the live HMR path published a revised graph row; the edit was then restored.
+- id: dependency-scan-blocked-paths
+  prd_id: dependency-integrity
+  obligation_kind: resource-bound
+  subject: Dependency scan reported 13 unreadable paths under a recursively nested node_modules symlink chain.
+  text: 'Witness: gm_scan_deps dispatch 1789053808988 reported blockedCount=13, failCount=0, nodeModulesTruncated=false; determine whether the nested installation graph is corrupt before trusting dependency scan.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: The blocked paths are repeated nested node_modules resolution paths, not a HiddenSpawn detection (failCount=0). User authorized local dependency repair if needed; defer reinstall until HMR verification requires dependency execution.
+- id: runtime-verification-surface
+  prd_id: tool-ui-audit
+  obligation_kind: precondition
+  subject: The currently running GUI and agent runtime endpoints, telemetry, and tool execution state must be identified without assuming a separate server.
+  text: 'Witness required: inspect live runtime and drive a real tool-completion path.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: Live browser session opened at http://127.0.0.1:3080. The active session rendered tool rows, 2 background jobs, and StatsLine. Network inspection confirmed an EventSource at /plugins/events plus 200-loaded client runtime, UI conversation, UI tool, and jobs modules.
+- id: web-shell-hmr-architecture
+  prd_id: shell-live-update-path
+  obligation_kind: type-shape
+  subject: Determine the exact boot ownership, browser transport, module revision protocol, and lifecycle constraints required for shell source changes to update safely without a full browser refresh.
+  text: 'Witness required: exhaustive source references plus a live GUI transport/boot observation; audit-only task will not edit source.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: 'Source and live witness establish ownership: apps/web/src/main.js instantiates AppWebEntry once; packages/client/web/src/boot.js owns shell bootstrap and Cordis loader creation; packages/client/hmr node half watches shell root and sends shell-rebuilt; browser half necessarily full-reloads it. Safe automatic update should preserve the existing full reload as the first reliable shell update, while extending plugin-fiber swaps only for rows with a published revision and explicitly safe lifetime classification.'
+- id: hmr-already-implemented-status
+  prd_id: hmr-revision-propagation
+  obligation_kind: postcondition
+  subject: Determine whether the checked-out code already implements graph-row revision propagation and whether it remains live-effective.
+  text: 'Witness: source and real GUI must agree before any redundant HMR edit.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: 'Source chain is complete: packages/client/modules/src/index.js:404-421 replaces entry before notification; packages/client/hmr/src/index.js:297-318 emits entry and graphRev; packages/client/hmr/src/client/index.js:101-126 reconciles before invalidate/prefetch; client system updates graph rows at lines 155-165. Independent HMR audit agrees.'
+- id: shell-hmr-limit
+  prd_id: shell-live-update-path
+  obligation_kind: invariant
+  subject: Determine whether shell updates are safely hot-swappable or must use an automatic full page reload due bootstrap identity/lifecycle constraints.
+  text: 'Witness: source protocol and live EventSource behavior must identify the safe effect.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: packages/client/hmr/src/client/index.js:189-195 performs automatic window.location.reload() for shell-rebuilt because shell boot code is not a Loader entry. Live browser marker recorded beforeunload during a reversible apps/web/index.html edit, then the GUI root remounted without manual refresh.
+- id: hmr-revision-audit-evidence
+  prd_id: hmr-revision-propagation
+  obligation_kind: postcondition
+  subject: Determine whether each host rebuilt notification carries a current graph row before the browser invalidates and prefetches.
+  text: 'Witness source edges: ClientModuleRegistry.rebuilt updates record.entry before graph composition; node HMR onRebuilt reads graphRow and emits entry/graphRev; browser reload reconciles with updateGraphRow before invalidate/prefetch. Independent audit pending.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: 'Read-only audit: ClientModuleRegistry.rebuilt() writes record.entry=graphRow(id, rev) then notifies (packages/client/modules/src/index.js:404-421). Node HMR callback reads graphRow and sends entry plus graphRev (packages/client/hmr/src/index.js:297-318). Browser reload validates and invokes updateGraphRow before invalidate/prefetch (packages/client/hmr/src/client/index.js:101-126); updateGraphRow replaces both graphRows and manifest modules (packages/client/modules/src/client/system.js:155-165).'
+- id: browser-shell-hmr-live-protocol
+  prd_id: browser-shell-hmr-readonly-audit
+  obligation_kind: type-shape
+  subject: The loaded browser's HMR event transport, module update routing, and shell bootstrap ownership must be determined from source and a non-mutating live observation.
+  text: 'Witness: exact source line references and browser/event-stream observation; audit remains read-only.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: 'Read-only source evidence: client HMR EventSource uses /plugins/events at packages/client/hmr/src/client/index.js:213-227; host registers and emits it at packages/client/hmr/src/index.js:265-331. Non-mutating GUI observation at http://127.0.0.1:3080 confirmed __FREDDIE_BOOT__.rev=796f14b10061 and shell script /src/main.js.'
+- id: hmr-fix-presence
+  prd_id: hmr-readonly-audit
+  obligation_kind: postcondition
+  subject: Whether the repository currently lacks the minimal revision-propagation repair or already contains it.
+  text: 'Witness: compare host rebuild/SSE payload and browser updateGraphRow-before-invalidate-prefetch sequence in exact source lines; obtain an independent source-audit result.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: 'Source witness: ClientModuleRegistry.rebuilt replaces the host row at packages/client/modules/src/index.js:404-421; SSE serializes that entry and graphRev at packages/client/hmr/src/index.js:297-318; browser reload invokes updateGraphRow before invalidate/prefetch at packages/client/hmr/src/client/index.js:101-126; updateGraphRow replaces graphRows and manifest rows at packages/client/modules/src/client/system.js:155-165.'
+- id: package-hmr-page-navigation
+  prd_id: hmr-live-package-swap
+  obligation_kind: postcondition
+  subject: A dynamic package HMR probe briefly removed boot state; determine whether this is an expected shell reload or a failed hot swap.
+  text: 'Witness: baseline brand revision c611a85d8cc4; post-probe browser read found window.__FREDDIE_BOOT__ temporarily undefined. Wait for settled GUI and compare timeOrigin/windowName.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: 'Live probe triggered a page navigation: baseline timeOrigin 1789054999271.3 and post-probe timeOrigin 1789055058652.9; window.name records packageHmr.unloads=1. This is expected for @freddie/freddie-client-ui-brand-official because HMR explicitly reloads rows that define custom elements (packages/client/hmr/src/index.js:90-122; client handler lines 157-169), avoiding stale registered element classes.'
+- id: tool-timing-durable-model
+  prd_id: tool-call-timing-observability
+  obligation_kind: type-shape
+  subject: Determine whether current durable tool/result event schema can record physical completion and ordered commit timing without breaking replay or presentation.
+  text: 'Witness: exact event type declaration and appendToolResult payload must establish the smallest backward-compatible timing record.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: appendToolResult persists UI-only `result.meta` at packages/core/agent-loop/src/tool-calls.js:258-265, and rootResult projects it at packages/client/ui-conversation/src/client/conversation-nodes/tool.js:26-43. A `meta.timing.settledAt` record can preserve physical completion without changing model-visible result content.
+- id: tool-timing-ui-owner
+  prd_id: tool-call-timing-observability
+  obligation_kind: precondition
+  subject: Determine the exact UI component and model ownership for per-tool elapsed timing and queue delay.
+  text: 'Witness: row model, component, and conversation node data flow must be read before source edits.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: ToolCallTree passes frozen blocks to GenericToolCard (packages/client/ui-tool/src/client/tool/ToolCallTree.js:12-38); GenericToolCard derives the pure toolRowModel and passes props to ToolRow (lines 30-70). The row model and ToolRow own concise timing presentation.
+- id: hmr-custom-element-source
+  prd_id: custom-element-hmr-classification
+  obligation_kind: invariant
+  subject: Confirm the brand package used in live HMR verification defines a custom element, explaining its automatic full reload.
+  text: 'Witness: exact source occurrence and HMR classification behavior.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: The @freddie/freddie-client-ui-brand-official entry imports Brand.js (index.js:2); HMR classifies its served tree for `customElements.define` at packages/client/hmr/src/index.js:90-122 and automatically reloads flagged rows at src/client/index.js:157-169. Live probe observed the intended reload.
+- id: tool-timing-ordering
+  prd_id: tool-timing-schema-projection
+  obligation_kind: invariant
+  subject: Settled time is captured immediately when dispatch resolves, before ordered result finalization and durable append.
+  text: 'Witness source: runGroup dispatch promise continuation assigns slot before commitReady; result event time remains ordered commit time.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: runGroup's dispatch continuation sets a slot at tool promise resolution (packages/core/agent-loop/src/tool-calls.js:150-159), and commitReady appends results only in contiguous model order (123-136). Capture `settledAt` in that continuation and pass it to appendToolResult so it is immutable before ordered commit.
+- id: live-timing-model-availability
+  prd_id: timing-ui-live-data
+  obligation_kind: precondition
+  subject: The existing GUI must have a configured selectable model to produce a real completed tool result for timing display verification.
+  text: 'Witness: model menu at the active GUI currently exposes only `Select model`; determine a configured session or provider path without synthetic event injection.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: Live browser Model menu exposes no configured model and DEEPSEEK_API_KEY presence check returned unavailable. A real post-change model tool run cannot be started from this GUI without configuration/credentials; no synthetic event was introduced.
+- id: host-timing-reload-state
+  prd_id: host-hmr-timing-activation
+  obligation_kind: precondition
+  subject: Determine whether the active host runtime has reloaded the changed agent-loop timing code before expecting live tool events to carry timing.
+  text: 'Witness: existing GUI has client revision but no timing in newly completed tool rows; DEEPSEEK_API_KEY is unavailable and model selector empty, so derive host HMR status through runtime behavior/source.'
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: Existing GUI continues to emit new tool rows while client graph revision updates. Direct source execution proves the host scheduling and projection path. Current live tool rows were created by the pre-change runtime and carry no timing; the absent configured model prevents a post-change model-driven tool call.
+- id: projection-cache-version
+  prd_id: timing-adversarial-review
+  obligation_kind: invariant
+  subject: A changed durable sessionStats fold must invalidate version-matching cached projection state.
+  text: 'Witnessed packages/session/session-stats/src/projection.js:43 remains stateVersion 1 despite toolMs semantics changing at lines 105-109; restore accepts matching cached rows at packages/session/session-projection/src/index.js:251-265. Live real projection execution: version 1 beforeTiming=100, afterTiming=20 for the same call/result timestamps.'
+  session_id: freddie-2075880-1789048712460
+  status: unknown
+- id: session-stats-cache-version
+  prd_id: tool-timing-schema-projection
+  obligation_kind: invariant
+  subject: Cached sessionStats projections computed under the old commit-time timing fold must not survive the settlement-time fold.
+  text: Independent adversarial review found sessionStats stateVersion remains 1 despite changed toolMs semantics; projection cache accepts matching version and preserves stale totals. Update version so cache invalidates/rebuilds.
+  session_id: freddie-2075880-1789048712460
+  status: witnessed
+  witness_evidence: Bumped sessionStats stateVersion from 1 to 2. Direct real projection execution rejected version-1 equivalence and recomputed toolMs=20 for call=1000, settled=1020, commit=1100.
