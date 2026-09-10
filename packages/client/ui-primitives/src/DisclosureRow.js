@@ -1,4 +1,4 @@
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { IconChevronDownOutline14 } from './icons/index.js'
 import css from './DisclosureRow.css.js'

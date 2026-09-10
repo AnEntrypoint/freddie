@@ -2,7 +2,7 @@
 // default (ratio-locked to the source artwork). Color rides currentColor
 // so it stays legible in both light and dark themes.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 
 /**
  * Render the mustache logo.

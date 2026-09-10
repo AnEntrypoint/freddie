@@ -11,7 +11,7 @@
 // disconnectedCallback, and re-render is an explicit applyDiff(this, vdom)
 // call (Toast.tsx's pattern).
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './OnboardingSurface.css.js'
 
 /**

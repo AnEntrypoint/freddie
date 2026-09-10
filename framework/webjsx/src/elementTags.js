@@ -112,4 +112,3 @@ export const KNOWN_ELEMENTS = new Map(Object.entries({
     video: "VIDEO",
     wbr: "WBR",
 }));
-//# sourceMappingURL=elementTags.js.map

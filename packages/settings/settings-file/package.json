@@ -28,22 +28,22 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-atomic-write": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-home-paths": "workspace:^",
-    "@freddie/freddie-settings": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-atomic-write": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-home-paths": "*",
+    "@freddie/freddie-settings": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
     "chokidar": "^5.0.0",
-    "@freddie/schemastery": "workspace:^",
+    "@freddie/schemastery": "*",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@freddie/freddie-atomic-write": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-home-paths": "workspace:^",
-    "@freddie/freddie-settings": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-atomic-write": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-home-paths": "*",
+    "@freddie/freddie-settings": "*",
+    "@freddie/cordis": "*"
   }
 }

@@ -31,28 +31,28 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-terminal": "workspace:^",
-    "@freddie/freddie-sandbox": "workspace:^",
-    "@freddie/freddie-sandbox-policy": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-subprocess": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-terminal": "*",
+    "@freddie/freddie-sandbox": "*",
+    "@freddie/freddie-sandbox-policy": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/freddie-pwsh-local": "workspace:^",
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/freddie-pwsh-local": "*",
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-terminal": "workspace:^",
-    "@freddie/freddie-sandbox": "workspace:^",
-    "@freddie/freddie-sandbox-policy": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-subprocess": "workspace:^",
-    "@freddie/freddie-subprocess-local": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-terminal": "*",
+    "@freddie/freddie-sandbox": "*",
+    "@freddie/freddie-sandbox-policy": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-subprocess-local": "*",
+    "@freddie/cordis": "*"
   }
 }

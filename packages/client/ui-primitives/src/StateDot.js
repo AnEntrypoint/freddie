@@ -3,7 +3,7 @@
 // core. ongoing: a pixel-art chase — the 8 outer cells of a 3x3 matrix light
 // up clockwise with a stepped trail. Colors resolve through --dsw-* tokens only.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import css from './StateDot.css.js'
 

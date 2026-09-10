@@ -22,4 +22,3 @@ export function withRenderSuspension(el, callback) {
         }
     }
 }
-//# sourceMappingURL=renderSuspension.js.map

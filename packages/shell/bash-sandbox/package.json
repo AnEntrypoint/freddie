@@ -29,22 +29,22 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-shell": "workspace:^",
-    "@freddie/freddie-bash-local": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-sandbox": "workspace:^",
-    "@freddie/freddie-sandbox-policy": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-shell": "*",
+    "@freddie/freddie-bash-local": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-sandbox": "*",
+    "@freddie/freddie-sandbox-policy": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-shell": "workspace:^",
-    "@freddie/freddie-bash-local": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-subprocess-local": "workspace:^",
-    "@freddie/freddie-sandbox": "workspace:^",
-    "@freddie/freddie-sandbox-local": "workspace:^",
-    "@freddie/freddie-sandbox-policy": "workspace:^",
-    "@freddie/cordis": "workspace:^",
-    "@freddie/node-addon-landlock-run": "workspace:^"
+    "@freddie/freddie-shell": "*",
+    "@freddie/freddie-bash-local": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-subprocess-local": "*",
+    "@freddie/freddie-sandbox": "*",
+    "@freddie/freddie-sandbox-local": "*",
+    "@freddie/freddie-sandbox-policy": "*",
+    "@freddie/cordis": "*",
+    "@freddie/node-addon-landlock-run": "*"
   }
 }

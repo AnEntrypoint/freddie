@@ -13,7 +13,7 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { join, relative, sep } from 'node:path'
+import { dirname, join, relative, sep } from 'node:path'
 import z from '@freddie/schemastery'
 import { EVENTS_ENDPOINT } from './events.js'
 
@@ -214,61 +214,63 @@ export function apply(ctx, config) {
     return () => {
       unsubscribe()
       clearInterval(timer)
-      watched.clear()
+      watchedRoots.clear()
     }
   }, 'client-hmr: bundle watches')
 
-  // --- shell dist watch: same stat-poll shape, over freddie-web-app's built
-  // index.html rather than a client-plugin bundle. Not part of the loader's
-  // client-module graph (the shell is Vite-bundled, not loader-delivered), so
-  // it gets its own small watch state and a dedicated listener set instead of
-  // riding clientModules.onRebuilt. -------------------------------------
+  // --- shell source watch: same tree-snapshot poll as plugin rows, over
+  // apps/web plus packages/client/web (the boot kernel). A change anywhere
+  // under those trees is a `shell-rebuilt` frame; the browser half then
+  // remounts AppWebEntry under `/__hmr/<rev>/` without location.reload.
   let shellWatch
   const shellRebuiltListeners = new Set()
 
-  const rehashShell = (watch, current) => {
-    watch.mtimeMs = current.mtimeMs
-    watch.size = current.size
-    watch.dirty = false
-    // No content hash: mtime+size already discriminates a real rewrite from a
-    // stat no-op, and the shell reload is a full page load — nothing here
-    // needs the extra work a rev string would buy the bundle-reload path.
-    const rev = `${String(current.mtimeMs)}-${String(current.size)}`
+  const rehashShell = (watch, next) => {
+    watch.files = next.files
+    watch.dirty = next.dirty
+    const rev = `${String(Date.now())}`
     for (const listener of shellRebuiltListeners) listener(rev)
-  }
-
-  const pollShellWatch = () => {
-    if (shellWatch === undefined) return
-    const watch = shellWatch
-    let current
-    try {
-      current = statSync(watch.path)
-    } catch (error) {
-      watch.dirty = true
-      if (error.code !== 'ENOENT') ctx.logger.warn(error)
-      return
-    }
-    if (!watch.dirty && current.mtimeMs === watch.mtimeMs && current.size === watch.size) return
-    rehashShell(watch, current)
   }
 
   const distIndex = config.distIndex ?? resolveDistIndexIfBuilt()
   if (distIndex !== undefined) {
+    const shellRoot = dirname(distIndex)
     ctx.effect(() => {
+      const roots = [shellRoot]
       try {
-        const baseline = statSync(distIndex)
-        shellWatch = { path: distIndex, mtimeMs: baseline.mtimeMs, size: baseline.size, dirty: false }
+        const webPkg = createRequire(import.meta.url).resolve('@freddie/freddie-client-web/package.json')
+        const webSrc = join(dirname(webPkg), 'src')
+        statSync(webSrc)
+        roots.push(webSrc)
       } catch (error) {
-        shellWatch = { path: distIndex, mtimeMs: 0, size: 0, dirty: true }
-        if (error.code !== 'ENOENT') ctx.logger.warn(error)
+        if (error.code !== 'ENOENT' && error.code !== 'MODULE_NOT_FOUND') ctx.logger.warn(error)
       }
-      const timer = setInterval(pollShellWatch, pollIntervalMs)
+      const files = new Map()
+      let dirty = false
+      for (const root of roots) {
+        const part = snapshot(root)
+        dirty = dirty || part.dirty
+        for (const [rel, info] of part.files) files.set(`${root}\0${rel}`, info)
+      }
+      shellWatch = { root: shellRoot, roots, files, dirty }
+      const timer = setInterval(() => {
+        if (shellWatch === undefined) return
+        const combined = new Map()
+        let nextDirty = false
+        for (const root of shellWatch.roots) {
+          const part = snapshot(root)
+          nextDirty = nextDirty || part.dirty
+          for (const [rel, info] of part.files) combined.set(`${root}\0${rel}`, info)
+        }
+        if (!shellWatch.dirty && !snapshotsDiffer(shellWatch.files, combined) && !nextDirty) return
+        rehashShell(shellWatch, { files: combined, dirty: nextDirty })
+      }, pollIntervalMs)
       timer.unref()
       return () => {
         clearInterval(timer)
         shellWatch = undefined
       }
-    }, 'client-hmr: shell dist watch')
+    }, 'client-hmr: shell source watch')
   }
 
   // --- /plugins/events SSE channel ----------------------------------------

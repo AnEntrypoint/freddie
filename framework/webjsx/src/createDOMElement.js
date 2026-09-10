@@ -51,4 +51,3 @@ export function createDOMElement(velement, parentNamespaceURI) {
     }
     return el;
 }
-//# sourceMappingURL=createDOMElement.js.map

@@ -28,7 +28,7 @@
     "access": "public"
   },
   "optionalDependencies": {
-    "@freddie/node-addon-landlock-run-linux-arm64": "workspace:*",
-    "@freddie/node-addon-landlock-run-linux-x64": "workspace:*"
+    "@freddie/node-addon-landlock-run-linux-arm64": "*",
+    "@freddie/node-addon-landlock-run-linux-x64": "*"
   }
 }

@@ -28,15 +28,15 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-brand": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-home-paths": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-brand": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-home-paths": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-brand": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-home-paths": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-brand": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-home-paths": "*",
+    "@freddie/cordis": "*"
   }
 }

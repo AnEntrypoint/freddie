@@ -30,11 +30,11 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-persistence": "workspace:^",
-    "@freddie/freddie-session-query": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-persistence": "*",
+    "@freddie/freddie-session-query": "*",
+    "@freddie/cordis": "*"
   },
   "peerDependenciesMeta": {
     "@freddie/freddie-session-persistence": {
@@ -42,16 +42,16 @@
     }
   },
   "dependencies": {
-    "@freddie/schemastery": "workspace:^",
+    "@freddie/schemastery": "*",
     "libsql-plugkit-client": "github:AnEntrypoint/libsql-plugkit-client"
   },
   "devDependencies": {
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-persistence": "workspace:^",
-    "@freddie/freddie-session-persistence-sqlite": "workspace:^",
-    "@freddie/freddie-session-query": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-persistence": "*",
+    "@freddie/freddie-session-persistence-sqlite": "*",
+    "@freddie/freddie-session-query": "*",
+    "@freddie/cordis": "*"
   }
 }

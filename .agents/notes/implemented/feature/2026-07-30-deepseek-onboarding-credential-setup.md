@@ -2,6 +2,8 @@
 
 Status: implemented
 
+**Superseded in part:** the onboarding modal this note describes was removed; see [remove the official-DeepSeek first-run credential modal](2026-09-09-remove-deepseek-onboarding-credential-modal.md). The readiness-projection store, `ProviderEditor`, and the Models page setup-card posture this note also describes remain current.
+
 ## Problem
 
 The [web configuration plane](../architecture/2026-07-30-web-config-plane.md) makes provider settings and credentials live-editable, but a first-time user still lands on the empty conversation Hero without an actionable explanation when the shipped `deepseek-official` route has no credential. The Models page can repair that state, yet requiring the user to discover it weakens onboarding. A prompt must not confuse a missing credential with a missing adapter: the browser can store a value for an existing credential reference, but it cannot dynamically mount the `llm-deepseek` Cordis plugin.

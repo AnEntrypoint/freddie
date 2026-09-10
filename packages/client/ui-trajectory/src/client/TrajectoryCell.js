@@ -1,6 +1,6 @@
 // Legacy standalone trajectory cell retained for direct consumers and specs.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import {
   formatElapsedSeconds,
 } from './trajectory-record.js'

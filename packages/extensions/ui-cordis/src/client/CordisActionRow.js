@@ -1,6 +1,6 @@
 /** Localized cards for `cordis_stop` and `cordis_undefine`. */
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import {
   IconInspectOutline12, IconStopFill16, IconTrashOutline16, StateDot,
 } from '@freddie/freddie-client-ui-primitives'

@@ -1,13 +1,9 @@
 /**
- * Models settings and product-onboarding plugin, browser half. It registers
- * the Models page plus the ordered internal-testing and official-DeepSeek
- * onboarding dialogs, whose UI shares this package's modal wrapper. The Host
- * settings and credential contracts stay behind their existing wire APIs.
- * Export discipline:
- * packages/client/AGENTS.md.
+ * Models settings plugin, browser half. It registers the Models page. The
+ * Host settings and credential contracts stay behind their existing wire
+ * APIs. Export discipline: packages/client/AGENTS.md.
  */
 import { ModelsSection } from './ModelsSection.js'
-import { DeepSeekOnboardingDialog } from './DeepSeekOnboardingDialog.js'
 import { ModelsSettingsStore } from './store.js'
 import { createSettingsSchemaOperations } from './schema-operations.js'
 import { en, zh } from './locales.js'
@@ -54,13 +50,6 @@ export function apply(ctx) {
     schema,
     t,
   })
-  const deepSeekOnboardingInjected = () => ({
-    controller,
-    hooks: { models: controller.store },
-    api: connection.api,
-    schema,
-    t,
-  })
   // Pushed invalidations converge every open surface without polling. The
   // settingsScope injection makes ui-settings activate first, and remote
   // dispatch preserves listener order; its listener therefore starts the
@@ -85,10 +74,4 @@ export function apply(ctx) {
     label: () => t('nav'),
     inject: injected,
   }, ModelsSection))
-  ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
-    name: 'settings.onboarding',
-    id: 'deepseek-official',
-    order: 0,
-    inject: deepSeekOnboardingInjected,
-  }, DeepSeekOnboardingDialog))
 }

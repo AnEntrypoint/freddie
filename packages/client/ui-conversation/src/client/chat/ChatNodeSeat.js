@@ -1,4 +1,4 @@
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import { renderJsonBlock } from '@freddie/freddie-client-ui-primitives'
 import css from './ChatView.css.js'
 

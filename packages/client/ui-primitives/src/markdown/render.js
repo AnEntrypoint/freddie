@@ -16,7 +16,7 @@
  * may add node types this renderer has no mapping for.
  */
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { normalizeUri } from 'micromark-util-sanitize-uri'
 import { renderCodeBlock } from './CodeBlock.js'

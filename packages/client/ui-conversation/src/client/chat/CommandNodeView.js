@@ -1,4 +1,4 @@
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import { CompactionCommandCard } from './CompactionCommandCard.js'
 import { GenericCommandCard } from './GenericCommandCard.js'
 import css from './ChatView.css.js'

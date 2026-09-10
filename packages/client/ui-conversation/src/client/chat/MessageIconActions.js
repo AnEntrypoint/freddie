@@ -7,7 +7,7 @@
 // become plain methods plus connectedCallback/disconnectedCallback, and
 // re-render is an explicit applyDiff(this, vdom) call.
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   IconBranchOutline16, IconCheckOutline16, IconCopyOutline16, renderTooltip, writeClipboard,
 } from '@freddie/freddie-client-ui-primitives'

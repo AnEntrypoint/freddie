@@ -6,7 +6,7 @@
 // when the user dismissed the whole set — because the questions themselves
 // render in the composer takeover.
 
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconQuestionOutline14 } from '@freddie/freddie-client-ui-primitives'
 import { toolRowModel } from '../models/tool-call-model.js'
 import { renderToolRow } from '../components/ToolRow.js'

@@ -13,7 +13,7 @@
  * re-render is an explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
  */
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconCheckOutline16, IconCloseOutline16, IconEditOutline16, IconGoalOutline16,
   IconPauseOutline16, IconPlayOutline16, IconTrashOutline16, renderTooltip,

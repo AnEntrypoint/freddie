@@ -4,7 +4,7 @@
  * disturbs work in progress.
  */
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { presetDisplayText } from './locales.js'
 import { renderPresetMenu } from './PresetMenu.js'
 import css from './AgentPresetRow.css.js'

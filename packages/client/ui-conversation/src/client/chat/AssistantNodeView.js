@@ -1,4 +1,4 @@
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import { AssistantMarkdown } from './AssistantMarkdown.js'
 
 // The mentions resolver, memoized per chat node. MarkdownText compares

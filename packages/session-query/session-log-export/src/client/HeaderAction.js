@@ -1,4 +1,4 @@
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconDownloadOutline16, renderModal } from '@freddie/freddie-client-ui-primitives'
 import { dialogProps } from './Dialog.js'
 import css from './HeaderAction.css.js'

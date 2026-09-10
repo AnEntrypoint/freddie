@@ -3,7 +3,7 @@
 // lock-reset effect becomes an explicit sync call inside setProps, and
 // re-render is an explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { IconChevronDownOutline14, renderMenu, renderRiskConfirmation } from '@freddie/freddie-client-ui-primitives'
 import css from './PermissionSelect.css.js'

@@ -10,7 +10,7 @@
  * disconnectedCallback plus explicit bind/unbind pairs, and re-render is an
  * explicit applyDiff(this, vdom) call (Toast.tsx's pattern). */
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { renderTooltip } from '@freddie/freddie-client-ui-primitives'
 import { contextOccupancy, formatTokens } from '../chat/StatsLine.js'
 import css from './ContextMeter.css.js'

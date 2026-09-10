@@ -1,6 +1,6 @@
 // MessageText is the literal-text primitive for user and steering content; assistant output uses MarkdownText.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import css from './MessageText.css.js'
 
 export function MessageText({ text }) {

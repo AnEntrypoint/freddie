@@ -12,7 +12,7 @@
  * methods driven from connectedCallback/disconnectedCallback (Toast.tsx's
  * pattern, ChatView.tsx's application of it). */
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   IconPlusOutline16, IconWarningOutline16, mountToast, renderTooltip,

@@ -30,17 +30,17 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-subprocess": "workspace:^",
-    "@freddie/freddie-sandbox": "workspace:^",
-    "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-settings": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-sandbox": "*",
+    "@freddie/cordis": "*",
+    "@freddie/freddie-settings": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-subprocess": "workspace:^",
-    "@freddie/freddie-sandbox": "workspace:^",
-    "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-settings": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-sandbox": "*",
+    "@freddie/cordis": "*",
+    "@freddie/freddie-settings": "*"
   }
 }

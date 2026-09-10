@@ -4,7 +4,7 @@
  * menu. Registered by this package — the locale feature owns its own
  * settings surface.
  */
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconChevronDownOutline14, renderMenu } from '@freddie/freddie-client-ui-primitives'
 import css from './LanguageRow.css.js'
 

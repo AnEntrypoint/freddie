@@ -14,7 +14,7 @@
  * `renderModal(this.#modal, ...)` (Modal.tsx's own pattern, mirrored here)
  * fixes that at the source for every caller at once.
  */
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import { renderModal } from './Modal.js'
 import { Button } from './Button.js'
 import { IconWarningOutline16 } from './icons/index.js'

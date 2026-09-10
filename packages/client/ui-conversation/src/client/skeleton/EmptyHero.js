@@ -4,7 +4,7 @@
 // ConversationRoot so the textarea survives the hero → composer flip); CSS
 // positions it over this shell's glow area during the hero phase.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14, IconFolderClose16, IconFolderOpen16,
 } from '@freddie/freddie-client-ui-primitives'

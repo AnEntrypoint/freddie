@@ -29,23 +29,23 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-persistence": "workspace:^",
-    "@freddie/freddie-session-projection": "workspace:^",
-    "@freddie/freddie-storage-domain": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-persistence": "*",
+    "@freddie/freddie-session-projection": "*",
+    "@freddie/freddie-storage-domain": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-persistence": "workspace:^",
-    "@freddie/freddie-session-projection": "workspace:^",
-    "@freddie/freddie-storage": "workspace:^",
-    "@freddie/freddie-storage-domain": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-persistence": "*",
+    "@freddie/freddie-session-projection": "*",
+    "@freddie/freddie-storage": "*",
+    "@freddie/freddie-storage-domain": "*",
+    "@freddie/cordis": "*"
   }
 }

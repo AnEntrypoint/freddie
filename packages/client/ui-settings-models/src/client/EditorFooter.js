@@ -13,7 +13,7 @@
  * @module freddie-client-ui-settings-models/client/EditorFooter
  */
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import styles from './ModelsSection.css.js'
 
 /**

@@ -1,5 +1,5 @@
 /** Root/subcall Tool composition with one keyed atomic dispatch path. */
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import { GenericToolCard } from './toolviews/GenericToolCard.js'
 import css from './ToolCallTree.css.js'
 

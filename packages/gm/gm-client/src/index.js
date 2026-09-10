@@ -40,6 +40,18 @@ export class Gm extends Service {
   }
 
   /**
+   * Project root containing `.gm/exec-spool` for one dispatch. A per-call
+   * `cwd` (the session workspace) wins over the plugin config default, which
+   * is `process.cwd()` — the GUI host's checkout, not the open workspace.
+   * @param cwd - optional per-call override.
+   * @returns an absolute project directory.
+   */
+  resolveProjectCwd(cwd) {
+    if (typeof cwd === 'string' && cwd.length > 0) return cwd
+    return this.config.cwd
+  }
+
+  /**
    * Dispatch one gm spool verb and wait for its response. Boots the shared
    * daemon on first call if it isn't already running.
    * @param verb - gm spool verb name (e.g. `instruction`, `codesearch`, `recall`).
@@ -47,15 +59,15 @@ export class Gm extends Service {
    * @param options.rawBody - literal text body for a plain-text-body verb (exec_js and its language stems, serp, browser, cdp) -- these reject a JSON-wrapped body outright. Mutually exclusive with `body`.
    * @param options.timeoutMs - per-dispatch timeout (default 120000, matching gm's own default).
    * @param options.signal - abort stops the spool poll without waiting the remaining timeout.
+   * @param options.cwd - project root for this dispatch; defaults to config `cwd`.
    * @returns the parsed response body.
    */
-  async call(verb, body = {}, { timeoutMs, rawBody, signal } = {}) {
-    if (!this.booted) {
-      await ensureDaemon(this.config.cwd)
-      this.booted = true
-    }
+  async call(verb, body = {}, { timeoutMs, rawBody, signal, cwd } = {}) {
+    const projectCwd = this.resolveProjectCwd(cwd)
+    await ensureDaemon(projectCwd)
+    this.booted = true
     return dispatch({
-      cwd: this.config.cwd,
+      cwd: projectCwd,
       verb,
       sessionId: this.config.sessionId,
       body,

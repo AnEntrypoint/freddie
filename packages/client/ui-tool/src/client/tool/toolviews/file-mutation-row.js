@@ -8,7 +8,7 @@
 // `result.isError`) keeps the model-facing error text on ToolRow's Output
 // section, its first line in the collapsed summary.
 
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconEditOutline16 } from '@freddie/freddie-client-ui-primitives'
 import { diffCardModel } from '../models/diff-card-model.js'
 import { toolRowModel } from '../models/tool-call-model.js'

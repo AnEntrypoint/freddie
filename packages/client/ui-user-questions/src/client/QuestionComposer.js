@@ -2,7 +2,7 @@
 // that was useState/useRef becomes instance fields; explicit applyDiff(this,
 // vdom) replaces implicit re-render on setState.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   Button, IconCheckOutline14, IconChevronDownOutline14, IconChevronLeftOutline14,

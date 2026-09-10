@@ -27,13 +27,13 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-brand": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-title": "workspace:^",
-    "@freddie/freddie-session-persistence": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-brand": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-title": "*",
+    "@freddie/freddie-session-persistence": "*",
+    "@freddie/cordis": "*"
   },
   "peerDependenciesMeta": {
     "@freddie/freddie-session-persistence": {
@@ -41,12 +41,12 @@
     }
   },
   "devDependencies": {
-    "@freddie/freddie-brand": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-title": "workspace:^",
-    "@freddie/freddie-session-persistence": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-brand": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-title": "*",
+    "@freddie/freddie-session-persistence": "*",
+    "@freddie/cordis": "*"
   }
 }

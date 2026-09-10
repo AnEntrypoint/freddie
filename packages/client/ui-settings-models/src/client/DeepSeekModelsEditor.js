@@ -9,7 +9,7 @@
  * is an explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
  */
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14, IconChevronRightOutline14, IconPlusOutline16, IconTrashOutline16,
 } from '@freddie/freddie-client-ui-primitives'

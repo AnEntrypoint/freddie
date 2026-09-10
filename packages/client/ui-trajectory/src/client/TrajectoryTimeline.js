@@ -1,6 +1,6 @@
 /** Chrome-Network-style overview timeline for focusing the trajectory ledger. */
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { renderTooltip } from '@freddie/freddie-client-ui-primitives'
 import {
   deriveTrajectoryTimeline,

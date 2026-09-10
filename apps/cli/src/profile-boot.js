@@ -193,6 +193,7 @@ function composeProfile(name, patchFiles) {
     const srcDirs = [
       ...findSrcDirs(WORKSPACE_PACKAGES_DIR),
       ...findSrcDirs(join(WORKSPACE_ROOT, 'apps')),
+      ...findSrcDirs(join(WORKSPACE_ROOT, 'framework')),
     ].map(dir => relative(WORKSPACE_ROOT, dir).split('\\').join('/'))
     composedOverlays.push({
       id: 'hmr',

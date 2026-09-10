@@ -24,18 +24,18 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-client-modules": "workspace:^",
-    "@freddie/freddie-client-ui-renderer": "workspace:^",
-    "@freddie/freddie-client-ui-primitives": "workspace:^",
-    "@freddie/freddie-client-ui-slots": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^",
-    "webjsx": "^0.0.73"
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-client-modules": "*",
+    "@freddie/freddie-client-ui-renderer": "*",
+    "@freddie/freddie-client-ui-primitives": "*",
+    "@freddie/freddie-client-ui-slots": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*",
+    "@freddie/webjsx": "*"
   },
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "files": [
     "src/**/*.js",

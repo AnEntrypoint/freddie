@@ -4,7 +4,7 @@
 // unregistered tool name lands here); registrants may also compose it as a
 // base, feeding the same owner payload through.
 
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import {
   IconApiOutline14, IconBrowseOutline16, IconCodeOutline16, IconEditOutline16, IconSearchOutline16, IconSparkle16,
 } from '@freddie/freddie-client-ui-primitives'

@@ -27,11 +27,11 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^"
+    "@freddie/cordis": "*",
+    "@freddie/freddie-invariants": "*"
   },
   "devDependencies": {
-    "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^"
+    "@freddie/cordis": "*",
+    "@freddie/freddie-invariants": "*"
   }
 }

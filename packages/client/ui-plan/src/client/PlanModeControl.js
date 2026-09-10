@@ -1,4 +1,4 @@
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconCloseFill14 } from '@freddie/freddie-client-ui-primitives'
 import css from './PlanModeControl.css.js'
 

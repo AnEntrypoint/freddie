@@ -36,30 +36,30 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-shell": "workspace:^",
-    "@freddie/freddie-commands": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-sandbox": "workspace:^",
-    "@freddie/freddie-sandbox-policy": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-projection": "workspace:^",
-    "@freddie/freddie-settings": "workspace:^",
-    "@freddie/freddie-user-approval": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-shell": "*",
+    "@freddie/freddie-commands": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-sandbox": "*",
+    "@freddie/freddie-sandbox-policy": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-projection": "*",
+    "@freddie/freddie-settings": "*",
+    "@freddie/freddie-user-approval": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-shell": "workspace:^",
-    "@freddie/freddie-commands": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-sandbox": "workspace:^",
-    "@freddie/freddie-sandbox-policy": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-projection": "workspace:^",
-    "@freddie/freddie-settings": "workspace:^",
-    "@freddie/freddie-user-approval": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-shell": "*",
+    "@freddie/freddie-commands": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-sandbox": "*",
+    "@freddie/freddie-sandbox-policy": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-projection": "*",
+    "@freddie/freddie-settings": "*",
+    "@freddie/freddie-user-approval": "*",
+    "@freddie/cordis": "*"
   }
 }

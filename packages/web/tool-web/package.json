@@ -30,31 +30,31 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-system-prompt": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/freddie-web": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/freddie-web": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
     "@joplin/turndown-plugin-gfm": "^1.0.67",
-    "@freddie/schemastery": "workspace:^",
+    "@freddie/schemastery": "*",
     "turndown": "^7.2.4"
   },
   "devDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-spill-local": "workspace:^",
-    "@freddie/freddie-spill-policy": "workspace:^",
-    "@freddie/freddie-system-prompt": "workspace:^",
-    "@freddie/freddie-tool-call-timeout-policy": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/freddie-web": "workspace:^",
-    "@freddie/freddie-web-fetch-http": "workspace:^",
-    "@freddie/freddie-web-search-exa": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-spill-local": "*",
+    "@freddie/freddie-spill-policy": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-tool-call-timeout-policy": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/freddie-web": "*",
+    "@freddie/freddie-web-fetch-http": "*",
+    "@freddie/freddie-web-search-exa": "*",
+    "@freddie/cordis": "*"
   }
 }

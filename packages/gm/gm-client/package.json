@@ -27,17 +27,17 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@freddie/freddie-gm-config": "workspace:^",
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/freddie-gm-config": "*",
+    "@freddie/schemastery": "*"
   },
   "peerDependencies": {
-    "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-gm-config": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^"
+    "@freddie/cordis": "*",
+    "@freddie/freddie-gm-config": "*",
+    "@freddie/freddie-invariants": "*"
   },
   "devDependencies": {
-    "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-gm-config": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^"
+    "@freddie/cordis": "*",
+    "@freddie/freddie-gm-config": "*",
+    "@freddie/freddie-invariants": "*"
   }
 }

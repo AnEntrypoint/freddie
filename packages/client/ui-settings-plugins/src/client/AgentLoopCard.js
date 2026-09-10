@@ -1,6 +1,6 @@
 /** The agent loop's card: how many tool calls one step may run at once. */
 
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import { ValueField } from './fields.js'
 import { PluginCard } from './PluginCard.js'
 

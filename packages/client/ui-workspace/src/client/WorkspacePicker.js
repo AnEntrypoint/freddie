@@ -8,7 +8,7 @@
  * exactly one route — pick a host directory, new or existing — because the
  * occupant's own create-folder affordance already covers creating one.
  */
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   Button, IconFolderClose16, IconPlusOutline16, renderMenu,
   renderModal,

@@ -28,15 +28,15 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@freddie/freddie-host-directory-picker": "workspace:^",
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/freddie-host-directory-picker": "*",
+    "@freddie/schemastery": "*"
   },
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   }
 }

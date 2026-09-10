@@ -17,7 +17,7 @@
 // guarantee without needing cloneElement. pos/placement state become
 // instance fields; re-render is an explicit applyDiff(this, vdom) call.
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import css from './Tooltip.css.js'
 
 const DEFAULT_PROPS = { label: '', children: '' }

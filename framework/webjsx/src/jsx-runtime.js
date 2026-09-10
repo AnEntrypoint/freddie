@@ -27,4 +27,3 @@ export function jsxDEV(type, props, key) {
     return jsx(type, props, key);
 }
 export const JSXFragment = Fragment;
-//# sourceMappingURL=jsx-runtime.js.map

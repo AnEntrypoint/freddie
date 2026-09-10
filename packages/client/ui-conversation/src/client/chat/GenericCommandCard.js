@@ -8,7 +8,7 @@
 // `expanded` useState becomes a private field, re-render is an explicit
 // applyDiff(this, vdom) call.
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { DisclosureRow, IconApiOutline14, StateDot } from '@freddie/freddie-client-ui-primitives'
 import a11yCss from './accessibility.css.js'
 import css from './GenericCommandCard.css.js'

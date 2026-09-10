@@ -158,23 +158,7 @@ function applyChanges(parent, changes, originalNodes, nodeOrderUnchanged) {
             const { node, newVNode, oldVNode } = change;
             if (newVNode instanceof Node) {
                 if (newVNode !== node) {
-                    // `node` was captured from the pre-diff child snapshot and
-                    // may already have been detached/relocated earlier in this
-                    // same pass (a keyed reorder, or a nested diffChildren call
-                    // on a sibling subtree) -- replaceChild throws NotFoundError
-                    // when its second argument is no longer parent's child.
-                    // Insert in place instead of replacing when that happened,
-                    // mirroring the insertBefore fallback already used below
-                    // for the ordinary VElement/text branches.
-                    if (node.parentNode === parent) {
-                        parent.replaceChild(newVNode, node);
-                    }
-                    else if (!lastPlacedNode) {
-                        parent.prepend(newVNode);
-                    }
-                    else {
-                        parent.insertBefore(newVNode, lastPlacedNode.nextSibling ?? null);
-                    }
+                    parent.replaceChild(newVNode, node);
                 }
                 lastPlacedNode = newVNode;
                 nodes.push(newVNode);
@@ -224,4 +208,3 @@ function applyChanges(parent, changes, originalNodes, nodeOrderUnchanged) {
     }
     return { nodes, lastNode: lastPlacedNode };
 }
-//# sourceMappingURL=applyDiff.js.map

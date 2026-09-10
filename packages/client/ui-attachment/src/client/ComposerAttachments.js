@@ -5,7 +5,7 @@
 // connectedCallback/disconnectedCallback, and re-render is an explicit
 // applyDiff(this, vdom) call (Toast.tsx's pattern).
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { renderAttachmentRail } from '../AttachmentRail.js'
 import { renderDropOverlay } from '../DropOverlay.js'
 import { renderImageLightbox } from '../ImageLightbox.js'

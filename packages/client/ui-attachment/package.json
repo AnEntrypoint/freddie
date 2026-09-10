@@ -36,16 +36,16 @@
   "license": "MIT",
   "dependencies": {
     "clsx": "^2.1.1",
-    "webjsx": "^0.0.73"
+    "@freddie/webjsx": "*"
   },
   "devDependencies": {
-    "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-client-runtime": "workspace:^",
-    "@freddie/freddie-client-ui-conversation": "workspace:^",
-    "@freddie/freddie-client-ui-primitives": "workspace:^",
-    "@freddie/freddie-client-ui-slots": "workspace:^",
-    "@freddie/freddie-attachment": "workspace:^"
+    "@freddie/cordis": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-client-ui-conversation": "*",
+    "@freddie/freddie-client-ui-primitives": "*",
+    "@freddie/freddie-client-ui-slots": "*",
+    "@freddie/freddie-attachment": "*"
   },
   "files": [
     "src/index.js",
@@ -65,10 +65,10 @@
     "src/client/ComposerAttachments.css.js"
   ],
   "peerDependencies": {
-    "@freddie/cordis": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-client-runtime": "workspace:^",
-    "@freddie/freddie-client-ui-conversation": "workspace:^",
-    "@freddie/freddie-attachment": "workspace:^"
+    "@freddie/cordis": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-client-ui-conversation": "*",
+    "@freddie/freddie-attachment": "*"
   }
 }

@@ -20,7 +20,7 @@
 // highlight useMemo's become plain recomputes inside #render guarded by a
 // last-props identity check.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { createCopyFeedback } from './use-copy-feedback.js'
 import css from './ReadBlock.css.js'

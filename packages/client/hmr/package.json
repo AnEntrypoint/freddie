@@ -34,24 +34,25 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "optionalDependencies": {
-    "@freddie/freddie-web-frontend": "workspace:^"
+    "@freddie/freddie-client-web": "*",
+    "@freddie/freddie-web-frontend": "*"
   },
   "peerDependencies": {
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-client-modules": "workspace:^",
-    "@freddie/freddie-host-webserver": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-client-modules": "*",
+    "@freddie/freddie-host-webserver": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-client-modules": "workspace:^",
-    "@freddie/freddie-host-webserver": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-client-modules": "*",
+    "@freddie/freddie-host-webserver": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "files": [
     "src/index.js",

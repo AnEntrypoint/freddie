@@ -18,7 +18,7 @@
  * applyDiff(this, vdom) call (Toast.tsx's pattern).
  */
 
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { IconChevronDownOutline14 } from '@freddie/freddie-client-ui-primitives'
 import css from './PluginCard.css.js'

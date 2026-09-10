@@ -7,7 +7,7 @@
 // yet) and a non-read result render the summary row alone: the read intent is
 // result-side only, so there is no running-state read card to draw.
 
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconBrowseOutline16 } from '@freddie/freddie-client-ui-primitives'
 import { readCardModel } from '../models/read-card-model.js'
 import { toolRowModel } from '../models/tool-call-model.js'

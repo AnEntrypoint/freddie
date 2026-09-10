@@ -1,5 +1,5 @@
 import { BrandWordmark, FishLogo } from '@freddie/freddie-client-ui-primitives'
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 
 /**
  * Render the official mark with the presentation requested by its host surface.

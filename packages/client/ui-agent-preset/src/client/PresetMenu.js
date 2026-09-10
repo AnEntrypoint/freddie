@@ -11,7 +11,7 @@
 
 import { IconChevronDownOutline14, renderMenu } from '@freddie/freddie-client-ui-primitives'
 import { presetDisplayText } from './locales.js'
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 
 /**
  * Build or update the preset picker: a menu of presets over a button naming

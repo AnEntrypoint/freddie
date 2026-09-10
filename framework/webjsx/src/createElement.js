@@ -122,4 +122,3 @@ export function createElementJSX(type, props, key) {
         return type(props || {});
     }
 }
-//# sourceMappingURL=createElement.js.map

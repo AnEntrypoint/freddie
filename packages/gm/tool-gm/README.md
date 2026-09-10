@@ -2,7 +2,7 @@
 
 Model-facing typed tools over [`ctx.gm`](../gm-client/README.md): `gm_instruction`, `gm_phase_status`, `gm_codesearch`, `gm_recall`, `gm_prd_add`, `gm_prd_resolve`, `gm_mutable_add`, `gm_mutable_resolve`, `gm_transition`, `gm_exec_js`, `gm_git_finalize`, `gm_scan_deps`. Each tool names the real spool-verb fields instead of the generic MCP bridge's opaque `(verb, body)` shape.
 
-Session id is not a per-call argument. Every tool closes over the mounted `ctx.gm` instance, whose `sessionId` is fixed at plugin config.
+Session id is not a per-call argument. Every tool closes over the mounted `ctx.gm` instance, whose `sessionId` is fixed at plugin config. Each execute passes `exec.agent.session.header.cwd` as `options.cwd` so the spool is the session workspace, not the GUI host's `process.cwd()`.
 
 ## Tools
 

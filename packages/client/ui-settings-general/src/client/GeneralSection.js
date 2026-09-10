@@ -1,5 +1,5 @@
 /** The General section: one column rendering feature-owned item contributions. */
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import css from './GeneralSection.css.js'
 
 /** Cast a renderSlot() RenderOutput result into a webjsx-embeddable child. */

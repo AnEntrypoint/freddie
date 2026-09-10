@@ -159,4 +159,3 @@ export function updateAttributes(el, newProps, oldProps) {
         updateAttributesCore(el, newProps, oldProps);
     }
 }
-//# sourceMappingURL=attributes.js.map

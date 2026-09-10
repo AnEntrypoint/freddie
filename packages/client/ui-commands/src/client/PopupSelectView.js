@@ -16,7 +16,7 @@
  * focus, anchored max-height) becomes plain instance bookkeeping recomputed
  * inside #render().
  */
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   createAnchoredMaxHeight, IconCheckOutline16, renderRiskConfirmation,

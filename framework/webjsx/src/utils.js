@@ -81,4 +81,3 @@ export function setWebJSXChildNodeCache(element, childNodes) {
 export function getWebJSXChildNodeCache(element) {
     return element.__webjsx_childNodes;
 }
-//# sourceMappingURL=utils.js.map

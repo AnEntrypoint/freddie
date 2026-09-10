@@ -12,10 +12,12 @@
     "framework/*",
     "packages/*/*",
     "native/landlock-run",
-    "native/landlock-run/packages/*",
-    "apps/*"
+    "native/landlock-run/packages/entry",
+    "apps/*",
+    "examples"
   ],
   "scripts": {
+    "postinstall": "node scripts/patch-if-npm.mjs",
     "change-scope": "node scripts/change-scope.js",
     "migrate:packed-session-fixtures": "node scripts/migrate-packed-session-fixtures.js",
     "publint": "node scripts/publint-all.js",
@@ -37,10 +39,22 @@
   },
   "devDependencies": {
     "@agentclientprotocol/sdk": "1.4.0",
-    "@freddie/freddie-tool-session-query": "workspace:^",
+    "@freddie/freddie-tool-session-query": "*",
     "js-yaml": "^5.4.1",
+    "patch-package": "^8.0.1",
     "publint": "^0.3.24",
     "spdx-expression-parse": "^5.0.0",
     "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "dompurify": ">=3.4.12",
+    "hono": ">=4.12.34",
+    "brace-expansion": ">=5.0.7",
+    "protobufjs": ">=7.6.5",
+    "fast-uri": ">=4.1.4",
+    "qs": ">=6.16.0",
+    "undici": ">=7.29.0",
+    "ip-address": ">=10.3.1",
+    "@hono/node-server": ">=1.19.15"
   }
 }

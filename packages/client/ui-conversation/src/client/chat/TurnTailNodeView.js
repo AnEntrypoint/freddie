@@ -1,4 +1,4 @@
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import { renderMessageIconActions } from './MessageIconActions.js'
 import { assistantText } from './turn-assistant.js'
 import css from './TurnTailNodeView.css.js'

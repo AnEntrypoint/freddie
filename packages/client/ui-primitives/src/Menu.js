@@ -15,7 +15,7 @@
 // applyDiff(this, vdom) call (Toast.tsx's pattern). Portal mode appends the
 // list element to document.body directly (createPortal's webjsx equivalent).
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { IconCheckOutline16 } from './icons/index.js'
 import css from './Menu.css.js'

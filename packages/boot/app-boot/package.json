@@ -30,15 +30,15 @@
     "js-yaml": "^5.4.1"
   },
   "peerDependencies": {
-    "@freddie/cordis-plugin-group": "workspace:^",
-    "@freddie/cordis-plugin-hmr": "workspace:^",
-    "@freddie/cordis-plugin-include": "workspace:^",
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-launch-environment": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-home-paths": "workspace:^",
-    "@freddie/freddie-system-prompt": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-group": "*",
+    "@freddie/cordis-plugin-hmr": "*",
+    "@freddie/cordis-plugin-include": "*",
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-launch-environment": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-home-paths": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/cordis": "*"
   },
   "peerDependenciesMeta": {
     "@freddie/cordis-plugin-hmr": {
@@ -46,15 +46,15 @@
     }
   },
   "devDependencies": {
-    "@freddie/cordis-plugin-group": "workspace:^",
-    "@freddie/cordis-plugin-hmr": "workspace:^",
-    "@freddie/cordis-plugin-include": "workspace:^",
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/cordis-plugin-timer": "workspace:^",
-    "@freddie/freddie-launch-environment": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-home-paths": "workspace:^",
-    "@freddie/freddie-system-prompt": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-group": "*",
+    "@freddie/cordis-plugin-hmr": "*",
+    "@freddie/cordis-plugin-include": "*",
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/cordis-plugin-timer": "*",
+    "@freddie/freddie-launch-environment": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-home-paths": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/cordis": "*"
   }
 }

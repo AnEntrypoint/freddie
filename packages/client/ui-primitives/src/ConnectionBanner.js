@@ -3,7 +3,7 @@
 // A null/connecting state upstream should stay quiet too — only an actual
 // outage (reconnect backoff in progress) shows the strip.
 
-import { createElement as h } from 'webjsx'
+import { createElement as h } from '@freddie/webjsx'
 import css from './ConnectionBanner.css.js'
 
 /**

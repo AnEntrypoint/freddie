@@ -27,31 +27,31 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "peerDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-llm-deepseek": "workspace:^",
-    "@freddie/freddie-scope": "workspace:^",
-    "@freddie/freddie-sdk-protocol": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-subagent": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-llm-deepseek": "*",
+    "@freddie/freddie-scope": "*",
+    "@freddie/freddie-sdk-protocol": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-subagent": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-agent-spine-demo": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-llm-deepseek": "workspace:^",
-    "@freddie/freddie-scope": "workspace:^",
-    "@freddie/freddie-sdk-protocol": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-persistence-jsonl": "workspace:^",
-    "@freddie/freddie-subagent": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-agent-spine-demo": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-llm-deepseek": "*",
+    "@freddie/freddie-scope": "*",
+    "@freddie/freddie-sdk-protocol": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-persistence-jsonl": "*",
+    "@freddie/freddie-subagent": "*",
+    "@freddie/cordis": "*"
   }
 }

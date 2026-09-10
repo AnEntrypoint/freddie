@@ -33,32 +33,32 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-query": "workspace:^",
-    "@freddie/freddie-system-prompt": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-query": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-session-persistence": "workspace:^",
-    "@freddie/freddie-session-persistence-jsonl": "workspace:^",
-    "@freddie/freddie-session-query": "workspace:^",
-    "@freddie/freddie-session-query-sqlite": "workspace:^",
-    "@freddie/freddie-session-title": "workspace:^",
-    "@freddie/freddie-system-prompt": "workspace:^",
-    "@freddie/freddie-timeout": "workspace:^",
-    "@freddie/freddie-tool-call-timeout-policy": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-persistence": "*",
+    "@freddie/freddie-session-persistence-jsonl": "*",
+    "@freddie/freddie-session-query": "*",
+    "@freddie/freddie-session-query-sqlite": "*",
+    "@freddie/freddie-session-title": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-timeout": "*",
+    "@freddie/freddie-tool-call-timeout-policy": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
   }
 }

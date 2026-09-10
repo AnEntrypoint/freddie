@@ -32,15 +32,15 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-compaction": "workspace:^",
-    "@freddie/freddie-commands": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-token-meter": "workspace:^",
-    "@freddie/freddie-compaction-tool-result-pruner": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-compaction": "*",
+    "@freddie/freddie-commands": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-token-meter": "*",
+    "@freddie/freddie-compaction-tool-result-pruner": "*",
+    "@freddie/cordis": "*"
   },
   "peerDependenciesMeta": {
     "@freddie/freddie-compaction-tool-result-pruner": {
@@ -48,22 +48,22 @@
     }
   },
   "dependencies": {
-    "@freddie/schemastery": "workspace:^"
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/cordis-plugin-include": "workspace:^",
-    "@freddie/cordis-plugin-loader": "workspace:^",
-    "@freddie/freddie-agent": "workspace:^",
-    "@freddie/freddie-agent-loop": "workspace:^",
-    "@freddie/freddie-compaction": "workspace:^",
-    "@freddie/freddie-commands": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/freddie-llm": "workspace:^",
-    "@freddie/freddie-llm-retry": "workspace:^",
-    "@freddie/freddie-session": "workspace:^",
-    "@freddie/freddie-token-meter": "workspace:^",
-    "@freddie/freddie-compaction-tool-result-pruner": "workspace:^",
-    "@freddie/freddie-tools": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/cordis-plugin-include": "*",
+    "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-agent-loop": "*",
+    "@freddie/freddie-compaction": "*",
+    "@freddie/freddie-commands": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-llm-retry": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-token-meter": "*",
+    "@freddie/freddie-compaction-tool-result-pruner": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
   }
 }

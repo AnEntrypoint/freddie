@@ -26,7 +26,7 @@
  * via its `setProps` (or plain field assignment), uniformly with how
  * ui-primitives' own registrants already work.
  */
-import { createElement as h, Fragment, applyDiff } from 'webjsx'
+import { createElement as h, Fragment, applyDiff } from '@freddie/webjsx'
 import {
   SlotOwnershipError, StaleAuthorizationError, webjsxSlotTagOf,
 } from '@freddie/freddie-client-ui-slots'

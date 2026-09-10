@@ -3,7 +3,7 @@
 // `open` useState becomes a private field, re-render is an explicit
 // applyDiff(this, vdom) call after each toggle.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './JsonBlock.css.js'
 
 const MAX_CHARS = 20_000

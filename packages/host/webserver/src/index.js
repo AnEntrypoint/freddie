@@ -6,6 +6,21 @@ import { renderIndexInjections } from './injections.js'
 export { renderIndexInjections } from './injections.js'
 
 /**
+ * Strip a shell-HMR cache-busting prefix. `/__hmr/<rev>/plugins/x` is the
+ * same route as `/plugins/x`; the prefix exists only so the browser's module
+ * cache treats the tree as a new URL space after a shell remount.
+ * @param pathname - decoded request pathname.
+ * @returns the pathname with a leading `/__hmr/<rev>` removed, or unchanged.
+ */
+export function stripHmrPrefix(pathname) {
+  if (!pathname.startsWith('/__hmr/')) return pathname
+  const rest = pathname.slice('/__hmr/'.length)
+  const slash = rest.indexOf('/')
+  if (slash === -1) return '/'
+  return rest.slice(slash) || '/'
+}
+
+/**
  * The browser HTTP carrier service. Activation listens immediately. Route
  * registration order does not affect requests because configured named routes
  * must be distinct, and the fallback handler answers anything not yet claimed
@@ -96,8 +111,13 @@ export class WebServer extends Service {
   async [Service.init]() {
     const handle = async (req, res) => {
       // node:http always sets url on server requests; `?? '/'` guards the
-      // client-side IncomingMessage type only.
-      const rawPath = new URL(req.url ?? '/', 'http://x').pathname
+      // client-side IncomingMessage type only. Rewrite `/__hmr/<rev>/...` to
+      // the unprefixed path so named routes AND the fallback owner see the
+      // same tree — the prefix exists only as a browser module-cache key.
+      const incoming = req.url ?? '/'
+      const parsed = new URL(incoming, 'http://x')
+      const rawPath = stripHmrPrefix(parsed.pathname)
+      if (rawPath !== parsed.pathname) req.url = `${rawPath}${parsed.search}`
       const route = this.match(rawPath)
       if (route !== undefined) {
         await route.handler(req, res)
@@ -138,7 +158,7 @@ export class WebServer extends Service {
       })
       let route
       try {
-        route = this.upgrades.get(new URL(req.url ?? '/', 'http://x').pathname)
+        route = this.upgrades.get(stripHmrPrefix(new URL(req.url ?? '/', 'http://x').pathname))
       } catch (error) {
         this.ctx.logger.warn(error instanceof Error ? error : new Error(String(error)))
         socket.destroy()

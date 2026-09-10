@@ -1,5 +1,5 @@
 /** Card-aware output body for the selected Tool call in details. */
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import {
   renderDiffBlock, renderMarkdownText, renderReadBlock, renderSearchBlock, renderTerminalBlock, WebBlock,
 } from '@freddie/freddie-client-ui-primitives'

@@ -16,7 +16,7 @@
 // useMemo becomes a plain recompute inside #render guarded by a last-diffs
 // identity check.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { createCopyFeedback } from './use-copy-feedback.js'
 import css from './DiffBlock.css.js'

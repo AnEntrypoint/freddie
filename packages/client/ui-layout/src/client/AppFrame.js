@@ -17,7 +17,7 @@
  * state becomes its own FreddieDragHandle custom element (dragging/origin/
  * latest/frame as instance fields, rAF-throttled pointer events unchanged).
  */
-import { applyDiff, createElement as h, Fragment } from 'webjsx'
+import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { computeColumns, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns.js'
 import css from './AppFrame.css.js'
 

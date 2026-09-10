@@ -11,7 +11,7 @@
 // to capture the current selected value for `#render()`; the bridge
 // (ui-renderer's WebjsxBridge) re-invokes `setProps` whenever its own props
 // object changes identity.
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconDarkOutline16, IconFollowsystemOutline16, IconLightOutline16,
 } from '@freddie/freddie-client-ui-primitives'

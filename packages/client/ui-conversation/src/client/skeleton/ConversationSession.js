@@ -8,7 +8,7 @@
  * connectedCallback/disconnectedCallback bodies.
  */
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import css from './ConversationRoot.css.js'
 

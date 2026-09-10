@@ -5,7 +5,7 @@
 // Converted from a React function component (useState) to a webjsx custom
 // element: `#expanded` replaces useState, `#render()` calls applyDiff.
 
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14, IconInspectOutline12, IconSkillOutline16, StateDot,
 } from '@freddie/freddie-client-ui-primitives'

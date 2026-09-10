@@ -11,7 +11,7 @@
  * FreddieDirectoryBrowser), created once and updated via its own setProps —
  * mirrors ui-primitives' Toast/Modal single-child-element pattern.
  */
-import { applyDiff, createElement as h } from 'webjsx'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
 import './DirectoryBrowser.js'
 
 /**

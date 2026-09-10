@@ -40,18 +40,18 @@
   },
   "license": "MIT",
   "dependencies": {
-    "webjsx": "^0.0.73"
+    "@freddie/webjsx": "*"
   },
   "peerDependencies": {
-    "@freddie/freddie-client-runtime": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-client-runtime": "workspace:^",
-    "@freddie/freddie-client-ui-slots": "workspace:^",
-    "@freddie/freddie-invariants": "workspace:^",
-    "@freddie/cordis": "workspace:^"
+    "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-client-ui-slots": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
   },
   "files": [
     "src/*.js",

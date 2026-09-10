@@ -4,7 +4,7 @@
  * The shell renders the surrounding chrome (button, nav heading row) and
  * reads each entry's `label` option for aria text.
  */
-import { createElement as h, Fragment } from 'webjsx'
+import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconSettingsOutline14, IconSettingsOutline16 } from '@freddie/freddie-client-ui-primitives'
 import css from './chrome.css.js'
 
