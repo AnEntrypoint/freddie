@@ -169,12 +169,14 @@ export function apply(ctx) {
   const loader = ctx.loader
   const remountShell = transactRemount
   const journal = []
+  const status = { connected: false, lastSequence: undefined, reconnects: 0, lastError: undefined }
+  const publishDebug = () => { globalThis.__FREDDIE_HMR__ = { events: journal.slice(), status: { ...status } } }
   const record = (event) => {
     journal.push({ ts: Date.now(), ...event })
     if (journal.length > 50) journal.shift()
-    globalThis.__FREDDIE_HMR__ = { events: journal.slice() }
+    publishDebug()
   }
-  globalThis.__FREDDIE_HMR__ = { events: [] }
+  publishDebug()
 
   async function reload(frame) {
     const { id, entry: row, graphRev } = frame
@@ -228,7 +230,50 @@ export function apply(ctx) {
   // Serialize reloads: frames can arrive faster than a swap completes, and
   // interleaved dispose/execute chains would corrupt the single-slot handoff.
   let queue = Promise.resolve()
+  const remountForGap = (frame, expected) => {
+    ctx.logger.warn(`client-hmr: lost frame sequence ${expected} before ${frame.sequence}; remounting shell`)
+    record({ kind: 'sequence-gap', expected, received: frame.sequence })
+    queue = queue.then(() => remountShell(String(frame.sequence))).catch((error) => {
+      ctx.logger.error('client-hmr: sequence-gap remount failed')
+      ctx.logger.error(error)
+      record({ kind: 'sequence-gap-remount-failed', received: frame.sequence })
+    })
+  }
   const handle = (frame) => {
+    if (!Number.isSafeInteger(frame.sequence) || frame.sequence < 0) {
+      if (frame.type === 'graph' && status.lastSequence === undefined) {
+        record({ kind: 'legacy-graph-frame' })
+      } else {
+        ctx.logger.warn('client-hmr: frame has no valid sequence')
+        record({ kind: 'invalid-sequence-frame' })
+        return
+      }
+    }
+    const previous = status.lastSequence
+    if (!Number.isSafeInteger(frame.sequence)) {
+      switch (frame.type) {
+        case 'graph':
+          if (frame.graph?.rev !== undefined && frame.graph.rev !== modLoader.manifest.rev) {
+            record({ kind: 'legacy-graph-mismatch', rev: frame.graph.rev })
+            queue = queue.then(() => remountShell(frame.graph.rev)).catch((error) => {
+              ctx.logger.error('client-hmr: legacy-graph remount failed')
+              ctx.logger.error(error)
+            })
+          }
+          return
+        default:
+          return
+      }
+    }
+    if (previous !== undefined && frame.sequence > previous + 1) {
+      status.lastSequence = frame.sequence
+      publishDebug()
+      remountForGap(frame, previous + 1)
+      return
+    }
+    if (previous !== undefined && frame.sequence < previous) return
+    if (frame.sequence > (previous ?? -1)) status.lastSequence = frame.sequence
+    publishDebug()
     switch (frame.type) {
       case 'rebuilt':
         // A row that registers custom elements cannot be hot-swapped: the
@@ -296,6 +341,17 @@ export function apply(ctx) {
 
   ctx.effect(() => {
     const source = new EventSource(EVENTS_ENDPOINT)
+    source.addEventListener('open', () => {
+      if (status.connected) status.reconnects += 1
+      status.connected = true
+      status.lastError = undefined
+      record({ kind: 'event-source-open', reconnects: status.reconnects })
+    })
+    source.addEventListener('error', () => {
+      status.connected = false
+      status.lastError = 'event-source-error'
+      record({ kind: 'event-source-error' })
+    })
     source.addEventListener('message', (event) => {
       let frame
       try {
@@ -303,10 +359,15 @@ export function apply(ctx) {
       } catch {
         // Wire boundary: a malformed dev-channel frame is dropped loudly.
         ctx.logger.warn(`client-hmr: unparseable event frame: ${event.data}`)
+        record({ kind: 'unparseable-frame' })
         return
       }
       handle(frame)
     })
-    return () => { source.close() }
+    return () => {
+      status.connected = false
+      publishDebug()
+      source.close()
+    }
   }, 'client-hmr: event source')
 }

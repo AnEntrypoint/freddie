@@ -168,54 +168,91 @@ export function recordEnd(graph, outcome) {
  */
 export class WorkflowGraphTracker {
   graphs = new Map()
+  listeners = new Set()
 
   /**
    * Snapshot of every currently tracked run.
-   * @returns owned graphs, newest first.
+   * @returns independent serializable graphs, newest first.
    */
   list() {
-    return [...this.graphs.values()].reverse()
+    return [...this.graphs.values()].reverse().map(snapshotGraph)
   }
 
   /**
    * Snapshot of one run, or undefined when unknown.
    * @param id - workflow run id.
+   * @returns an independent serializable graph.
    */
   get(id) {
-    return this.graphs.get(id)
+    const graph = this.graphs.get(id)
+    return graph === undefined ? undefined : snapshotGraph(graph)
+  }
+
+  /**
+   * Subscribe to immutable graph snapshots after each accepted lifecycle event.
+   * @param listener - receives an independent graph snapshot.
+   * @returns disposer.
+   */
+  subscribe(listener) {
+    this.listeners.add(listener)
+    return () => { this.listeners.delete(listener) }
+  }
+
+  publish(id) {
+    const graph = this.graphs.get(id)
+    if (graph === undefined) return
+    const snapshot = snapshotGraph(graph)
+    for (const listener of this.listeners) listener(snapshot)
   }
 
   onStart(info) {
     this.graphs.set(info.id, createWorkflowGraph(info))
+    this.publish(info.id)
   }
 
   onPhase(info, title) {
     const graph = this.graphs.get(info.id)
     if (graph === undefined) return
     recordPhase(graph, title)
+    this.publish(info.id)
   }
 
   onLog(info, message) {
     const graph = this.graphs.get(info.id)
     if (graph === undefined) return
     recordLog(graph, message)
+    this.publish(info.id)
   }
 
   onAgentStart(info, agent) {
     const graph = this.graphs.get(info.id)
     if (graph === undefined) return
     recordAgentStart(graph, agent)
+    this.publish(info.id)
   }
 
   onAgentEnd(info, agent) {
     const graph = this.graphs.get(info.id)
     if (graph === undefined) return
     recordAgentEnd(graph, agent)
+    this.publish(info.id)
   }
 
   onEnd(info, outcome) {
     const graph = this.graphs.get(info.id)
     if (graph === undefined) return
     recordEnd(graph, outcome)
+    this.publish(info.id)
+  }
+}
+
+/** Create the smallest independent graph snapshot observers may retain. */
+function snapshotGraph(graph) {
+  return {
+    ...graph,
+    phases: graph.phases.map(phase => ({ ...phase })),
+    nodes: graph.nodes.map(node => ({ ...node })),
+    edges: graph.edges.map(edge => ({ ...edge })),
+    logs: graph.logs.map(log => ({ ...log })),
   }
 }

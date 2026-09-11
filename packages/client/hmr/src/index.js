@@ -294,6 +294,13 @@ export function apply(ctx, config) {
 
   // --- /plugins/events SSE channel ----------------------------------------
   const connections = new Set()
+  let frameSequence = 0
+
+  /** Publish one ordered frame to every connected browser. */
+  const publish = (frame) => {
+    const line = sseData({ ...frame, sequence: ++frameSequence })
+    for (const res of connections) res.write(line)
+  }
 
   const connect = (res) => {
     res.writeHead(200, {
@@ -304,7 +311,7 @@ export function apply(ctx, config) {
     // Comment line on open so clients/proxies see a live channel even when
     // no rebuild ever happens; EventSource frame parsing skips it naturally.
     res.write(': connected\n\n')
-    res.write(sseData({ type: 'graph', graph: ctx.clientModules.graph() }))
+    res.write(sseData({ type: 'graph', graph: ctx.clientModules.graph(), sequence: frameSequence }))
     connections.add(res)
     res.on('close', () => { connections.delete(res) })
   }
@@ -336,7 +343,7 @@ export function apply(ctx, config) {
         ctx.logger.warn(`client-hmr: rebuilt entry "${id}" is absent from the current graph`)
         return
       }
-      const line = sseData({
+      publish({
         type: 'rebuilt',
         id,
         rev,
@@ -344,12 +351,8 @@ export function apply(ctx, config) {
         graphRev: ctx.clientModules.graph().rev,
         ...defines === true ? { definesCustomElements: true } : {},
       })
-      for (const res of connections) res.write(line)
     })
-    const shellListener = (rev) => {
-      const line = sseData({ type: 'shell-rebuilt', rev })
-      for (const res of connections) res.write(line)
-    }
+    const shellListener = (rev) => { publish({ type: 'shell-rebuilt', rev }) }
     shellRebuiltListeners.add(shellListener)
     return () => {
       unsubscribe()

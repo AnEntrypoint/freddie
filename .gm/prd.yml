@@ -5,13 +5,6 @@
   status: in-progress
   route_family: execution
   session_id: freddie-24860-1789086308555
-- id: remote-sync
-  title: Synchronize remote changes first
-  subject: 'Fetch and merge the configured upstream before auditing or emitting any improvements. Precondition: repository state is inspected and incomplete dependency scan repaired. Invariant: no local changes are lost; postcondition: HEAD incorporates remote upstream changes or a real merge conflict is diagnosed.'
-  acceptance: Live repository state shows the selected upstream was fetched and merged without losing local work, with evidence of resulting branch and status.
-  status: in-progress
-  route_family: boundary
-  session_id: freddie-2796907-1789090297792
 - session_id: freddie-monitor-20260911-01
   id: gm-codeinsight-observability
   title: Restore GM code-insight observability
@@ -54,10 +47,10 @@
   status: in-progress
   route_family: execution
   session_id: freddie-2796907-1789090297792
-- id: native-graph-audit
-  title: Audit native workflow graph tracking
-  subject: Read-only independent audit of workflow graph/dependency tracking, coordination, persistence, and UI observability.
-  acceptance: Cited source evidence distinguishes existing native graph capabilities from dependency-tracking gaps and proposes exact architecture candidates.
+- id: hmr-ordered-frame-recovery
+  title: Recover browser HMR from frame gaps
+  subject: 'Add a host-issued ordered SSE frame sequence, browser connection diagnostics, and safe remount recovery for gaps. Precondition: every HMR update frame carries a monotonic sequence. Invariant: no out-of-order or missing update proceeds as a fiber swap. Postcondition: the browser exposes connection/sequence health and remounts after a detected gap.'
+  acceptance: Live HMR diagnostics expose EventSource status and sequence; node source routes rebuilt and shell frames through one ordered publisher; package source syntax and publish-shape validation pass.
   status: in-progress
   route_family: observability
-  session_id: freddie-2796907-1789090297792
+  session_id: freddie-3609107-1789132895325
