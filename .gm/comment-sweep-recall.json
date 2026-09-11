@@ -1,0 +1,160 @@
+﻿{
+    "data":  {
+                 "derived_query":  "HMR gm-client comments obsolete contract documentation host_plugin_call LinkError",
+                 "hits":  [
+                              {
+                                  "cos":  0.6565269231796265,
+                                  "key":  "mem-7b0b984bd759fe96-191",
+                                  "namespace":  "default",
+                                  "recency":  0.974896027034476,
+                                  "score":  0.6400454890489865,
+                                  "text":  "## Resolved mutable: hmr-config-root-live\n\npackages/bundle/base/cordis.patch.yml:19-22 id hmr name @freddie/cordis-plugin-hmr config.root: [\u0027.\u0027]. Live 3080 composition watches the repo root.\n"
+                              },
+                              {
+                                  "cos":  0.6547213494777679,
+                                  "key":  "mem-1b9819db47604547-280",
+                                  "namespace":  "default",
+                                  "recency":  0.9727340368985136,
+                                  "score":  0.6368697413211517,
+                                  "text":  "## Resolved mutable: postcondition-host-cannot-hot-reload-gm-client\n\nexec_js 1788949213381 harnessHead=7f82249; gui pid 4612 still 9/7 boot. gm-client README documents kill-first isDaemonAlive. This session cannot load the patch without ending 4612. Recorded post, not a restart.\n"
+                              },
+                              {
+                                  "cos":  0.6195437908172607,
+                                  "key":  "mem-6abe87c722ae55da-187",
+                                  "namespace":  "default",
+                                  "recency":  0.9748995214459086,
+                                  "score":  0.6039929451825317,
+                                  "text":  "## Resolved mutable: live-hmr-watch-roots\n\npackages/bundle/base/cordis.patch.yml:22 config.root: [\u0027.\u0027] for id hmr. Same as hmr-config-root-live. Live host watches repo root via Chokidar.\n"
+                              },
+                              {
+                                  "cos":  0.6344438195228577,
+                                  "key":  "mem-aee3f3b6473ed33c-330",
+                                  "namespace":  "default",
+                                  "recency":  0.9329455565598146,
+                                  "score":  0.591901542310687,
+                                  "text":  "## Resolved mutable: gm-empty-invariant-reason\n\ninvariant: live-read gm-client (spool/daemon, no SessionEventMap) and tool-gm (ctx.tools.register of opaque gm JSON, no owned session events). cmdline empty installer comment form is the matching companion. Neither package owns a session event or mutable product relation to check.\n"
+                              },
+                              {
+                                  "cos":  0.6331409215927124,
+                                  "key":  "mem-fb4886529fe47b57-1257",
+                                  "namespace":  "default",
+                                  "recency":  0.9324176054481982,
+                                  "score":  0.5903517420227423,
+                                  "text":  "## Resolved mutable: gm-native-tool-postcondition-2\n\nLive-verified in three stages: (1) node -e import of @freddie/freddie-tool-gm and @freddie/freddie-gm-client from apps/cli both resolve and export {apply,inject,name} / {Gm,default}. (2) buildGmTools(fakeGm) produced all 8 typed tool definitions; executed gm_codesearch and gm_exec_js against a fake gm.call, confirming correct body-shape mapping and exec_js\u0027s rawBody `timeoutMs=\u003cms\u003e\\n\u003ccode\u003e` prefix construction. (3) Verified every verb-name mapping (instruction, codesearch, recall, prd-add, mutable-add, transition, exec_js, git_finalize) matches gm\u0027s real mixed dash/underscore convention (previously wrong via a blanket replaceAll, fixed to explicit `verb:` fields per tool). (4) Full composition boot: FREDDIE_HOME=\u003cisolated temp dir\u003e GM_HOME_DIR=1 DEEPSEEK_API_KEY=dummy pnpm freddie --profile headless \"say hi\" -- entire plugin tree activated with no registration error (gm-client + tool-gm + mcp-gm all mounted), reaching the real LLM auth call before failing on the deliberately-invalid key -- proving ctx.tools.register() ran successfully for all 8 new tools during activation, since a registration-time schema/duplicate-name error would have surfaced as a boot failure before reaching auth.\n"
+                              },
+                              {
+                                  "cos":  0.616547167301178,
+                                  "key":  "mem-326a6f62a4f79cc4-311",
+                                  "namespace":  "default",
+                                  "recency":  0.9324165426681282,
+                                  "score":  0.5748787781267924,
+                                  "text":  "## Resolved mutable: gm-native-tool-precondition-2\n\nRead docs/cookbook/adding-a-tool.md and packages/shell/tool-bash/src/index.js (the reference three-package example) before authoring packages/gm/tool-gm/src/{index.js,verbs.js}. Confirmed defineTool\u0027s real parameters/output.schema/execute contract from both.\n"
+                              },
+                              {
+                                  "cos":  0.6202763319015503,
+                                  "key":  "mem-4c5407243a232042-954",
+                                  "namespace":  "default",
+                                  "recency":  0.9261760287849512,
+                                  "score":  0.5744850698298742,
+                                  "text":  "## Resolved mutable: native-gm-tool-postcondition\n\npostcondition discharged live against THIS session transcript, not stale session-41730140. Decompressed ~/.freddie/sessions/--C-dev-deepseek-harness--/session-b883a0dd-7537-4905-b82a-0225b9a951ba/session.jsonl.zstd (106 zstd frames, 361 events, 45 tool/call). tool/call names: skill=1 pwsh=4 mcp__gm__gm=29 read=11. Native gm verbs used: instruction, phase-status, exec_js, scan_deps, codesearch, git_status, git_show, git_diff, mutable-resolve -- all via mcp__gm__gm. The 4 pwsh bodies are: (1) gm-skill boot probe reading .status.json/.turn-summary.json, (2) ConvertFrom-Json of an already-written instruction OUT file, (3) FREDDIE_* env + port inventory, (4) ConvertFrom-Json of an exec_js OUT file. None write .gm/exec-spool/in/\u003cverb\u003e. The 4 transcript lines matching exec-spool/in are request/header (system prompt), skill-load result, instruction result, and mutables.yml read -- not pwsh writes.\n"
+                              },
+                              {
+                                  "cos":  0.5881191194057465,
+                                  "key":  "mem-1656477035a3693f-297",
+                                  "namespace":  "default",
+                                  "recency":  0.9727380559941728,
+                                  "score":  0.5720858489037506,
+                                  "text":  "## Resolved mutable: postcondition-runner-source-needs-owned-restart\n\nexec_js 1788949213381 plugHead=980d270; live .status.json pid=23736 predates that binary. packages/gm/README.md documents AGENTPLUG_HOME isolates a local runner. Machine-wide process picks source up only on next owned restart.\n"
+                              }
+                          ],
+                 "mode":  "vector_top_k",
+                 "namespace":  "default",
+                 "vector_hits":  [
+                                     {
+                                         "cos":  0.6565269231796265,
+                                         "distance":  0.34347307682037354,
+                                         "key":  "mem-7b0b984bd759fe96-191",
+                                         "namespace":  "default",
+                                         "recency":  0.974896056755182,
+                                         "score":  0.6400455085614302,
+                                         "text":  "## Resolved mutable: hmr-config-root-live\n\npackages/bundle/base/cordis.patch.yml:19-22 id hmr name @freddie/cordis-plugin-hmr config.root: [\u0027.\u0027]. Live 3080 composition watches the repo root.\n",
+                                         "updated_at":  1788958997371
+                                     },
+                                     {
+                                         "cos":  0.6547213494777679,
+                                         "distance":  0.34527865052223206,
+                                         "key":  "mem-1b9819db47604547-280",
+                                         "namespace":  "default",
+                                         "recency":  0.97273406650745,
+                                         "score":  0.6368697607067545,
+                                         "text":  "## Resolved mutable: postcondition-host-cannot-hot-reload-gm-client\n\nexec_js 1788949213381 harnessHead=7f82249; gui pid 4612 still 9/7 boot. gm-client README documents kill-first isDaemonAlive. This session cannot load the patch without ending 4612. Recorded post, not a restart.\n",
+                                         "updated_at":  1788949231358
+                                     },
+                                     {
+                                         "cos":  0.6195437908172607,
+                                         "distance":  0.38045620918273926,
+                                         "key":  "mem-6abe87c722ae55da-187",
+                                         "namespace":  "default",
+                                         "recency":  0.9748995511667952,
+                                         "score":  0.6039929635959224,
+                                         "text":  "## Resolved mutable: live-hmr-watch-roots\n\npackages/bundle/base/cordis.patch.yml:22 config.root: [\u0027.\u0027] for id hmr. Same as hmr-config-root-live. Live host watches repo root via Chokidar.\n",
+                                         "updated_at":  1788959013126
+                                     },
+                                     {
+                                         "cos":  0.6344438195228577,
+                                         "distance":  0.36555618047714233,
+                                         "key":  "mem-aee3f3b6473ed33c-330",
+                                         "namespace":  "default",
+                                         "recency":  0.9329455841117846,
+                                         "score":  0.5919015597908641,
+                                         "text":  "## Resolved mutable: gm-empty-invariant-reason\n\ninvariant: live-read gm-client (spool/daemon, no SessionEventMap) and tool-gm (ctx.tools.register of opaque gm JSON, no owned session events). cmdline empty installer comment form is the matching companion. Neither package owns a session event or mutable product relation to check.\n",
+                                         "updated_at":  1788762601717
+                                     },
+                                     {
+                                         "cos":  0.6331409215927124,
+                                         "distance":  0.3668590784072876,
+                                         "key":  "mem-fb4886529fe47b57-1257",
+                                         "namespace":  "default",
+                                         "recency":  0.9324176329728744,
+                                         "score":  0.5903517594497413,
+                                         "text":  "## Resolved mutable: gm-native-tool-postcondition-2\n\nLive-verified in three stages: (1) node -e import of @freddie/freddie-tool-gm and @freddie/freddie-gm-client from apps/cli both resolve and export {apply,inject,name} / {Gm,default}. (2) buildGmTools(fakeGm) produced all 8 typed tool definitions; executed gm_codesearch and gm_exec_js against a fake gm.call, confirming correct body-shape mapping and exec_js\u0027s rawBody `timeoutMs=\u003cms\u003e\\n\u003ccode\u003e` prefix construction. (3) Verified every verb-name mapping (instruction, codesearch, recall, prd-add, mutable-add, transition, exec_js, git_finalize) matches gm\u0027s real mixed dash/underscore convention (previously wrong via a blanket replaceAll, fixed to explicit `verb:` fields per tool). (4) Full composition boot: FREDDIE_HOME=\u003cisolated temp dir\u003e GM_HOME_DIR=1 DEEPSEEK_API_KEY=dummy pnpm freddie --profile headless \"say hi\" -- entire plugin tree activated with no registration error (gm-client + tool-gm + mcp-gm all mounted), reaching the real LLM auth call before failing on the deliberately-invalid key -- proving ctx.tools.register() ran successfully for all 8 new tools during activation, since a registration-time schema/duplicate-name error would have surfaced as a boot failure before reaching auth.\n",
+                                         "updated_at":  1788760032735
+                                     },
+                                     {
+                                         "cos":  0.616547167301178,
+                                         "distance":  0.383452832698822,
+                                         "key":  "mem-326a6f62a4f79cc4-311",
+                                         "namespace":  "default",
+                                         "recency":  0.9324165701927496,
+                                         "score":  0.5748787950970198,
+                                         "text":  "## Resolved mutable: gm-native-tool-precondition-2\n\nRead docs/cookbook/adding-a-tool.md and packages/shell/tool-bash/src/index.js (the reference three-package example) before authoring packages/gm/tool-gm/src/{index.js,verbs.js}. Confirmed defineTool\u0027s real parameters/output.schema/execute contract from both.\n",
+                                         "updated_at":  1788760027561
+                                     },
+                                     {
+                                         "cos":  0.6202763319015503,
+                                         "distance":  0.3797236680984497,
+                                         "key":  "mem-4c5407243a232042-954",
+                                         "namespace":  "default",
+                                         "recency":  0.9261760559869534,
+                                         "score":  0.5744850867026323,
+                                         "text":  "## Resolved mutable: native-gm-tool-postcondition\n\npostcondition discharged live against THIS session transcript, not stale session-41730140. Decompressed ~/.freddie/sessions/--C-dev-deepseek-harness--/session-b883a0dd-7537-4905-b82a-0225b9a951ba/session.jsonl.zstd (106 zstd frames, 361 events, 45 tool/call). tool/call names: skill=1 pwsh=4 mcp__gm__gm=29 read=11. Native gm verbs used: instruction, phase-status, exec_js, scan_deps, codesearch, git_status, git_show, git_diff, mutable-resolve -- all via mcp__gm__gm. The 4 pwsh bodies are: (1) gm-skill boot probe reading .status.json/.turn-summary.json, (2) ConvertFrom-Json of an already-written instruction OUT file, (3) FREDDIE_* env + port inventory, (4) ConvertFrom-Json of an exec_js OUT file. None write .gm/exec-spool/in/\u003cverb\u003e. The 4 transcript lines matching exec-spool/in are request/header (system prompt), skill-load result, instruction result, and mutables.yml read -- not pwsh writes.\n",
+                                         "updated_at":  1788729466985
+                                     },
+                                     {
+                                         "cos":  0.5881191194057465,
+                                         "distance":  0.41188088059425354,
+                                         "key":  "mem-1656477035a3693f-297",
+                                         "namespace":  "default",
+                                         "recency":  0.972738085603317,
+                                         "score":  0.5720858663174544,
+                                         "text":  "## Resolved mutable: postcondition-runner-source-needs-owned-restart\n\nexec_js 1788949213381 plugHead=980d270; live .status.json pid=23736 predates that binary. packages/gm/README.md documents AGENTPLUG_HOME isolates a local runner. Machine-wide process picks source up only on next owned restart.\n",
+                                         "updated_at":  1788949249547
+                                     }
+                                 ]
+             },
+    "dispatch_id":  "1789069780733-500-cb8e00d7328fba30",
+    "next_dispatch_hint":  "instruction",
+    "ok":  true,
+    "request_fingerprint":  "d2cef8982b619c9d",
+    "verb":  "recall"
+}
