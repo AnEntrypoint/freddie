@@ -12,15 +12,6 @@
   status: in-progress
   route_family: boundary
   session_id: freddie-2796907-1789090297792
-- id: audit-orchestration
-  title: Audit agent orchestration efficiency
-  subject: Read-only audit of subagents, jobs, workflows, goals, observability, and graph tracking with exact evidence and improvement proposals.
-  acceptance: Identify current mechanisms, observed bottlenecks, native graph capabilities, and low-maintenance improvements with verification paths.
-  status: completed
-  route_family: observability
-  session_id: freddie-2796907-1789090297792
-  witness: docs/subsystems/workflow.md:116-128; packages/workflow/workflow/src/graph.js:12-220; docs/subsystems/jobs.md:153-155; docs/subsystems/goal.md:70-99; docs/subsystems/agent-team.md:53-75; packages/session/session-telemetry/src/coordinator.js:77-111.
-  commit_comment: Audit orchestration paths and graph observability without repository modifications.
 - session_id: freddie-monitor-20260911-01
   id: gm-codeinsight-observability
   title: Restore GM code-insight observability
