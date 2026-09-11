@@ -1,31 +1,3 @@
-- id: hmr-integration-audit
-  title: Trace framework HMR integrations
-  subject: Read-only repository audit of framework HMR, watcher, loader, and hot-reload consumers and their runtime flow.
-  acceptance: Evidence identifies the framework mechanisms, known application integration paths, coverage gaps, proposed edits, and a live verification route without source modification.
-  status: in-progress
-  route_family: observability
-  session_id: freddie-2075880-1789048712460
-- id: agent-tool-efficiency
-  title: Improve agent tooling efficiency
-  subject: Find and remove a measured agent-tooling source of avoidable latency, context, or repeated work.
-  acceptance: The selected improvement has a current consumer, preserves tool semantics, and has live execution evidence.
-  status: in-progress
-  route_family: execution
-  session_id: freddie-2075880-1789048712460
-- id: hmr-architecture-audit
-  title: Audit HMR architecture and gaps
-  subject: Read-only review of framework and apps/web HMR architecture
-  acceptance: Exact paths and symbols establish current flow, concrete coverage gaps, proposed changes, and live verification.
-  status: in-progress
-  route_family: observability
-  session_id: freddie-2075880-1789048712460
-- id: hmr-all-surfaces
-  title: Extend HMR coverage
-  subject: Identify every runtime source surface that currently bypasses hot update and implement a lifecycle-safe universal update path.
-  acceptance: All supported runtime source surfaces publish updates through the HMR service and a live composition witnesses an update without a process restart.
-  status: in-progress
-  route_family: execution
-  session_id: freddie-2075880-1789048712460
 - session_id: freddie-root-1789086550000
   id: gm-pwsh-routing-release-verification
   title: Verify the gm pwsh routing correction through its published artifact
@@ -36,10 +8,5 @@
   invariant: The instruction never names a tool absent from the active runner manifest.
   postcondition: A live spool instruction response is observed after the rebuilt artifact is loaded.
   status: pending
-- id: stuck-residual-scan-gate
-  title: DECIDE COMPLETE blocked without residual-scan verb
-  subject: DECIDE to COMPLETE denies because residual-scan was not fired in this stop window. Native gm implements residual-scan; tool-gm now mounts gm_residual_scan so this session can fire it.
-  acceptance: 'Pre: phase DECIDE. Invariant: do not invent residual-scan. Post: residual-scan dispatches and writes .gm/residual-check-fired for this session.'
-  status: in-progress
-  route_family: observability
-  session_id: freddie-24860-1789086308555
+  blockedBy:
+  - external
