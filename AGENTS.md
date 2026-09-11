@@ -77,4 +77,4 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 
 ## Framework layer
 
-`framework/` packages are ours, not third-party copies. Edit them directly, like any package under `packages/` — there is no upstream to sync from and no sync procedure to follow. They descend from Cordis and friends, but every one was rewritten to plain JS and carries this project's own lifecycle, config-reconciliation, and watching behavior; [framework/README.md](framework/README.md) records each divergence and why. Record a new one there when the code's shape would otherwise be surprising, and verify live per the [verification policy](#verify-before-pushing) above.
+`framework/` is first-party; edit it like `packages/`. Record surprising departures in [framework/README.md](framework/README.md) and verify live ([verification policy](#verify-before-pushing)).
