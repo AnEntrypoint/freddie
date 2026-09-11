@@ -755,9 +755,9 @@ export const HARNESS_SOURCE_SECTION = 'harness:source'
  * checkout. Call once on the settled boot context ({@link boot}); the section
  * orders just after the harness identity opener (`-100`) and before the deployment
  * persona (`0`). A booted tree with no `systemPrompt` service has no prompt to
- * augment, so this is then a no-op that returns `undefined`. The section is
- * registered against the `systemPrompt` service's fiber, so a dev HMR reload of
- * that plugin drops it until the next boot.
+ * augment, so this is then a no-op that returns `undefined`. Registration lives
+ * on the boot root and re-applies when `systemPrompt` is provided again after
+ * that plugin reloads.
  * @param ctx - the settled boot context whose global system prompt to augment.
  * @param sourceRoot - the absolute path to the harness checkout root.
  * @returns the section disposer, or `undefined` when no `systemPrompt` service is mounted.

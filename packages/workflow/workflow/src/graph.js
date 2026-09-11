@@ -84,13 +84,13 @@ export function agentStopReason(agent) {
 }
 
 function findNode(graph, agent) {
+  if (typeof agent.seq === 'number' && Number.isFinite(agent.seq)) {
+    const bySeq = graph.nodes.find((entry) => entry.seq === agent.seq)
+    if (bySeq !== undefined) return bySeq
+  }
   const id = agentNodeId(agent)
   if (id !== undefined) {
-    const byId = graph.nodes.find((entry) => entry.id === id)
-    if (byId !== undefined) return byId
-  }
-  if (typeof agent.seq === 'number') {
-    return graph.nodes.find((entry) => entry.seq === agent.seq)
+    return graph.nodes.find((entry) => entry.id === id)
   }
   return undefined
 }

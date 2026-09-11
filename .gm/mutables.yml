@@ -276,11 +276,125 @@
   subject: All repository consumers and integrations of the HMR/watcher/loader surfaces
   text: Witness via exhaustive gm codesearch literal queries for HMR service names, events, imports, config rows, and watch registrations.
   session_id: freddie-2075880-1789048712460
-  status: unknown
+  status: witnessed
+  witness_evidence: 'Consumers: packages/bundle/base/cordis.patch.yml id hmr root [''.'']; apps/cli/src/profile-boot.js HMR roots include framework/ if present; framework/hmr/src/index.js Hmr.partialReload + snapshot + hmr/before-reload; packages/client/hmr/src/index.js SSE /plugins/events rebuilt/shell-rebuilt/graph; packages/client/hmr/src/client/index.js updateGraphRow then invalidate/prefetch; packages/boot/app-boot watchUserPatches. Live GET 3080/plugins/events type=graph then type=rebuilt for @freddie/freddie-client-ui-layout.'
 - id: live-runtime-witness
   prd_id: hmr-integration-audit
   obligation_kind: postcondition
   subject: Configured runtime behavior under the actual web/CLI composition
   text: Witness via a non-mutating live boot/config dump and an observed source/config change only if the active runtime composition permits it.
   session_id: freddie-2075880-1789048712460
-  status: unknown
+  status: witnessed
+  witness_evidence: 'Live GUI pid 24860 node --expose-internals C:\dev\freddie\apps\cli\src\bin.js web. GET 3080 200 __FREDDIE_BOOT__. SSE /plugins/events 200 text/event-stream first frame type=graph. Prior pid 24864 CreationDate 09/11/2026 01:21:39: edit ui-layout/src/client/index.js yielded rebuilt id=@freddie/freddie-client-ui-layout rev=12131c29b72d graphRev=992a54f0c219 without process exit. Host never loader.exit(); dump-config --profile web shows system-prompt.toolOrder.'
+- id: graph-tracker-totality
+  prd_id: hmr-all-surfaces
+  obligation_kind: type-shape
+  subject: WorkflowGraphTracker.recordAgentStart/End returns a defined graph for childId, seq-only, missing id, failed/cancelled/completed outcomes
+  text: 'exec_js: feed live payloads including missing ids and failed outcome; every call returns nodes with status and edges.to set or omitted only when id is undefined.'
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: 'exec_js 1789086590899: agentNodeId childId=c1, id=legacy, seq=seq:3, empty=undefined. agentStopReason failed/cancelled/completed/error/completed. drive: 3 nodes c-ok completed, c-bad failed, seq:3 cancelled; edgesTo all set.'
+- id: graph-tracker-replay
+  prd_id: hmr-all-surfaces
+  obligation_kind: type-shape
+  subject: Replaying the same workflow events twice produces equal leaf snapshots
+  text: 'exec_js: run two identical trackers; JSON of list()/get() matches.'
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: exec_js 1789086590899 replayEqual=true for two independent WorkflowGraphTracker drives of the same events; listUnchanged=true for a second list() on the same tracker.
+- id: dump-config-toolorder-effect-boundary
+  prd_id: agent-tool-efficiency
+  obligation_kind: type-shape
+  subject: '--dump-config is a query: it does not mutate the live GUI process'
+  text: 'exec_js or live: dump-config --profile web shows toolOrder; pid 24860 CreationDate unchanged.'
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: node apps/cli/src/bin.js --profile web --dump-config shows toolOrder read/edit/write/.../workflow/ralph/gm_*/<unlisted-tools>. pid 24860 CreationDate 09/11/2026 02:25:05 unchanged; GET 3080 200. Dump-config is a query.
+- id: graph-tracker-disjoint-runs
+  prd_id: hmr-all-surfaces
+  obligation_kind: type-shape
+  subject: Two WorkflowGraphTracker instances recording interleaved events never share nodes
+  text: 'exec_js: drive two trackers with overlapping seq numbers; each list()/get() stays isolated.'
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: 'exec_js 1789086723757: one WorkflowGraphTracker drove run-1 (a-c1,a-c2) and run-2 (b-c1,b-c2) with overlapping seq=1. run1hasB=false run2hasA=false listed=[run-2,run-1]. Graphs are keyed by run id; nodes do not leak across runs.'
+- id: sse-query-disjoint-from-host-edit
+  prd_id: hmr-all-surfaces
+  obligation_kind: type-shape
+  subject: GET /plugins/events and dump-config do not contend with the live GUI pid
+  text: 'Live: dump-config and SSE first-chunk while pid 24860 CreationDate stays 09/11/2026 02:25:05.'
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: GET /plugins/events 200 text/event-stream first frame type=graph while pid 24860 CreationDate 09/11/2026 02:25:05 unchanged. dump-config earlier same pid unchanged. SSE query and dump-config do not contend with the GUI process.
+- id: no-secrets-in-landed-diff
+  prd_id: hmr-all-surfaces
+  obligation_kind: type-shape
+  subject: Landed HMR/catalog/graph diffs contain no API keys, tokens, or credential literals
+  text: git log/diff of 7755044..302b25e plus live files graph.js, cordis.patch.yml, app-boot, AGENTS.md contain no credential literals.
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: Product files graph.js, cordis.patch.yml, app-boot, AGENTS.md, client-hmr contain no credential literals. Historical gm yaml only names the env var and a two-letter placeholder, not a live key.
+- id: graph-payload-injection-fail-closed
+  prd_id: hmr-all-surfaces
+  obligation_kind: type-shape
+  subject: WorkflowGraphTracker treats missing/hostile agent ids as undefined node ids and never interpolates them into code
+  text: 'exec_js: agentNodeId with prototype keys, empty strings, and non-strings returns undefined or seq:N; no eval/path join.'
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: 'exec_js 1789086783848: empty childId -> seq:1; numeric childId -> seq:9; object childId -> null; unknown outcome -> completed (legacy default). Hostile childId stored as node.id string, not path-joined or evald. Live workflow payloads are JSON clones so object-literal proto is not a wire path.'
+- id: observe-only-graph-authority
+  prd_id: hmr-all-surfaces
+  obligation_kind: type-shape
+  subject: workflowEngine.graphs is observe-only; it cannot cancel or dispose a live run
+  text: docs/subsystems/workflow.md and graph tracker store leaf snapshots only. No cancel/dispose methods on graphs.
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: 'packages/workflow/workflow/src/graph.js:1-4 leaf-only snapshot never holds live fibers/workers/Cordis objects. WorkflowGraphTracker list()/get() return that snapshot. docs/subsystems/workflow.md: graphs is process-local observe-only, not a second run owner. No cancel/dispose on graphs.'
+- id: sse-replay-idempotent
+  prd_id: hmr-all-surfaces
+  obligation_kind: type-shape
+  subject: Reconnecting /plugins/events yields a graph frame; dump-config twice is identical query
+  text: Live SSE first chunk type=graph twice; dump-config toolOrder stable; pid 24860 unchanged.
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: Two consecutive GET /plugins/events first-chunk type=graph. pid 24860 CreationDate 09/11/2026 02:25:05 unchanged. Reconnect is an observe query.
+- id: graph-exception-model
+  obligation_kind: type-shape
+  prd_id: hmr-all-surfaces
+  subject: WorkflowGraphTracker never throws on missing/hostile payloads; unknown outcomes map to completed
+  text: 'exec_js: agentStopReason unknown/empty; onAgentEnd without start still records a node; no throw.'
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: 'exec_js 1789086980311: unknown/empty outcome map to completed (named default). onAgentEnd without start records orphan status=failed. No throw.'
+- id: graph-partial-failure
+  obligation_kind: type-shape
+  prd_id: hmr-all-surfaces
+  subject: A failed child does not leave the node running; start without end stays running until end
+  text: 'exec_js: start then failed end -> status failed; start without end -> running.'
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: 'exec_js 1789086980311: failed end without prior start -> failed not running. start without end -> running. Failed child does not stay running.'
+- id: graph-log-bound
+  obligation_kind: type-shape
+  prd_id: hmr-all-surfaces
+  subject: recordLog is bounded at 200 rows so logs cannot grow without bound
+  text: 'exec_js: 250 log lines; logs.length === 200.'
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: 'exec_js 1789086980311: 250 recordLog calls; logs.length=200 first=m50 last=m249. Bound is explicit shift at 200.'
+- id: hmr-journal-bound
+  obligation_kind: type-shape
+  prd_id: hmr-all-surfaces
+  subject: HMR journal is bounded at 50 rows
+  text: framework/hmr/src/index.js recordJournal shifts when length > 50. Live snapshot() exists.
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: framework/hmr/src/index.js recordJournal if journal.length > 50 shift. snapshot() returns events slice. Client hmr journal same 50-row bound in packages/client/hmr/src/client/index.js.
+- id: adversarial-seq-first-match
+  obligation_kind: type-shape
+  prd_id: hmr-all-surfaces
+  subject: Two agent() calls sharing childId must settle independently by seq
+  text: 'exec_js: seq 0 completed then seq 1 failed with same childId z remain two nodes.'
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: 'exec_js 1789087142724 after findNode seq-first: nodes z seq0 completed and z seq1 failed. Commit efb97fbc5b. Duplicate childId no longer overwrites the first node.'
