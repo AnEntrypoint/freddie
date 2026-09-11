@@ -8,7 +8,7 @@
 
 import { mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { classifyDaemonHealth, isDaemonAlive, isDaemonHung } from './daemon.js'
+import { classifyDaemonHealth, isDaemonAlive, readDaemonStatus, readStatus } from './daemon.js'
 
 const DEFAULT_POLL_INTERVAL_MS = 200
 const INITIAL_POLL_INTERVAL_MS = 25
@@ -35,6 +35,16 @@ const dispatchCounters = new Map()
  * condition.
  */
 const processEpoch = Date.now()
+
+/** Machine-routable loss of the shared GM daemon while one request is unresolved. */
+export class GmDaemonUnavailableError extends Error {
+  constructor(message, code, details) {
+    super(message)
+    this.name = 'GmDaemonUnavailableError'
+    this.code = code
+    Object.assign(this, details)
+  }
+}
 
 function nextDispatchNumber(sessionId) {
   const current = dispatchCounters.get(sessionId) ?? 0
@@ -183,6 +193,26 @@ export async function dispatch({
     })
     return JSON.parse(text)
   }
+  const unavailable = async (code, health, queued) => {
+    const [project, machine] = await Promise.all([readStatus(cwd), readDaemonStatus()])
+    const machineAgeMs = typeof machine?.ts === 'number' ? Date.now() - machine.ts : undefined
+    return new GmDaemonUnavailableError(
+      `gm spool: daemon ${code === 'GM_DAEMON_DIED' ? 'died' : 'hung'} while waiting for "${verb}" (${dispatchKey})`,
+      code,
+      {
+        health,
+        queued,
+        verb,
+        dispatchKey,
+        projectStatus: project === undefined ? undefined : {
+          pid: project.pid,
+          ts: project.ts,
+          busyUntil: project.busy_until,
+        },
+        ...machineAgeMs === undefined ? {} : { machineHeartbeatAgeMs: machineAgeMs },
+      },
+    )
+  }
   let polls = 0
   while (Date.now() < deadline) {
     throwIfAborted(signal)
@@ -190,20 +220,18 @@ export async function dispatch({
     polls += 1
     if (polls >= HEALTH_CHECK_AFTER_POLLS) {
       const queued = await projectHasQueuedWork(cwd)
-      const died = !await isDaemonAlive(cwd) && !queued
-      const hung = await isDaemonHung(cwd) && !queued
+      const alive = await isDaemonAlive(cwd)
+      const health = await classifyDaemonHealth(cwd)
+      const died = !alive && !queued
+      const hung = health === 'project-heartbeat-stale' || health === 'daemon-status-stale'
       if (await exists(readyPath)) return takeReady()
       if (died) {
         await dropClaim()
-        throw new Error(`gm spool: daemon died while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
+        throw await unavailable('GM_DAEMON_DIED', health, queued)
       }
-      if (hung) {
+      if (hung && !queued) {
         await dropClaim()
-        const kind = await classifyDaemonHealth(cwd)
-        const label = kind === 'project-heartbeat-stale'
-          ? 'project-heartbeat-stale (machine-wide daemon-status.json is still fresh; project .status.json ts froze)'
-          : 'daemon-status-stale (machine-wide daemon-status.json ts is also stale)'
-        throw new Error(`gm spool: daemon hung (${label}) while waiting for "${verb}" (${dispatchKey}) — in=${inPath} out=${outPath}`)
+        throw await unavailable('GM_DAEMON_HUNG', health, queued)
       }
     }
     await sleep(polls < HEALTH_CHECK_AFTER_POLLS ? Math.min(pollIntervalMs, INITIAL_POLL_INTERVAL_MS) : pollIntervalMs, signal)

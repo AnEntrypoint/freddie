@@ -12,7 +12,7 @@ import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { resolveConfig, resolveGraph, resolveProse } from '@freddie/freddie-gm-config'
 import { ensureDaemon } from './daemon.js'
-import { dispatch } from './spool.js'
+import { dispatch, GmDaemonUnavailableError } from './spool.js'
 
 /**
  * `ctx.gm`: one dispatch method per gm spool verb call, boot-on-first-use.
@@ -68,15 +68,27 @@ export class Gm extends Service {
     const projectCwd = this.resolveProjectCwd(cwd)
     await ensureDaemon(projectCwd)
     this.booted = true
-    return dispatch({
-      cwd: projectCwd,
-      verb,
-      sessionId: this.config.sessionId,
-      body,
-      ...rawBody === undefined ? {} : { rawBody },
-      ...timeoutMs === undefined ? {} : { timeoutMs },
-      ...signal === undefined ? {} : { signal },
-    })
+    try {
+      return await dispatch({
+        cwd: projectCwd,
+        verb,
+        sessionId: this.config.sessionId,
+        body,
+        ...rawBody === undefined ? {} : { rawBody },
+        ...timeoutMs === undefined ? {} : { timeoutMs },
+        ...signal === undefined ? {} : { signal },
+      })
+    } catch (error) {
+      if (!(error instanceof GmDaemonUnavailableError)) throw error
+      try {
+        await ensureDaemon(projectCwd)
+        error.recovered = true
+      } catch (recoveryError) {
+        error.recovered = false
+        error.recoveryError = recoveryError instanceof Error ? recoveryError.message : String(recoveryError)
+      }
+      throw error
+    }
   }
 
   /**
