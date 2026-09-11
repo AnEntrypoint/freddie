@@ -140,10 +140,11 @@
         surfaceContext: true
         trustedHosts: !!js ctx.webStartup.trustedHosts
 
-    # The client-plugin reload chain, always mounted: it is idle until a
-    # rebuild watcher (pnpm run dev:web) actually rewrites client bundles. It
-    # is a row rather than a child of web-runtime because its node half is a
-    # client-side package, which a host-side bundle cannot import.
+    # The client-plugin reload chain is always mounted and stat-polls served
+    # source trees itself; buildless source edits need neither a watcher nor a
+    # bundle rewrite. It is a row rather than a child of web-runtime because
+    # its node half is a client-side package, which a host-side bundle cannot
+    # import.
     - id: client-hmr
       name: '@freddie/freddie-client-hmr'
 
