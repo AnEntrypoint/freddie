@@ -390,3 +390,11 @@
   session_id: freddie-24860-1789086308555
   status: witnessed
   witness_evidence: framework/hmr/src/index.js recordJournal if journal.length > 50 shift. snapshot() returns events slice. Client hmr journal same 50-row bound in packages/client/hmr/src/client/index.js.
+- id: adversarial-seq-first-match
+  obligation_kind: type-shape
+  prd_id: hmr-all-surfaces
+  subject: Two agent() calls sharing childId must settle independently by seq
+  text: 'exec_js: seq 0 completed then seq 1 failed with same childId z remain two nodes.'
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: 'exec_js 1789087142724 after findNode seq-first: nodes z seq0 completed and z seq1 failed. Commit efb97fbc5b. Duplicate childId no longer overwrites the first node.'
