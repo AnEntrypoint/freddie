@@ -17,21 +17,7 @@
   config:
     persona: >-
       You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
-    toolOrder:
-      - read
-      - edit
-      - write
-      - grep
-      - glob
-      - pwsh
-      - skill
-      - todo_write
-      - workflow
-      - ralph
-      - gm_instruction
-      - gm_codesearch
-      - gm_phase_status
-      - '<unlisted-tools>'
+    toolOrder: !!js "process.platform === 'win32' ? ['read', 'edit', 'write', 'grep', 'glob', 'pwsh', 'skill', 'todo_write', 'workflow', 'ralph', 'gm_instruction', 'gm_codesearch', 'gm_phase_status', '<unlisted-tools>'] : ['read', 'edit', 'write', 'grep', 'glob', 'bash', 'skill', 'todo_write', 'workflow', 'ralph', 'gm_instruction', 'gm_codesearch', 'gm_phase_status', '<unlisted-tools>']"
 
 # Full-text session search is opt-in (the base row's `openAt: never`). This
 # restatement keeps the Web values on one ephemeral in-memory index; a

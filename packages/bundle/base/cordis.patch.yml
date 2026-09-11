@@ -498,21 +498,7 @@
       name: '@freddie/freddie-system-prompt'
       config:
         persona: ''
-        toolOrder:
-          - read
-          - edit
-          - write
-          - grep
-          - glob
-          - pwsh
-          - skill
-          - todo_write
-          - workflow
-          - ralph
-          - gm_instruction
-          - gm_codesearch
-          - gm_phase_status
-          - '<unlisted-tools>'
+        toolOrder: !!js "process.platform === 'win32' ? ['read', 'edit', 'write', 'grep', 'glob', 'pwsh', 'skill', 'todo_write', 'workflow', 'ralph', 'gm_instruction', 'gm_codesearch', 'gm_phase_status', '<unlisted-tools>'] : ['read', 'edit', 'write', 'grep', 'glob', 'bash', 'skill', 'todo_write', 'workflow', 'ralph', 'gm_instruction', 'gm_codesearch', 'gm_phase_status', '<unlisted-tools>']"
 
     # Agents created at startup. The base stays empty; raw overlays may create
     # agents, while Web creates sessions on client request.

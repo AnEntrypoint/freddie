@@ -8,4 +8,4 @@ gm spool publishes each request with a same-directory rename and delays health w
 
 `ctx.workflowEngine.graphs` records leaf-only run graphs from `workflow/*` events so parallel dynamic workflows have native tracking without dumping live Cordis objects. Node ids prefer the worker's `childId` then `seq`; settlement matches `seq` first so two `agent()` calls that share a `childId` do not overwrite each other, then maps `outcome` (`completed`/`failed`/`cancelled`) so a failed child is not left `running`.
 
-A later bundle patch replaces a row's whole `config`. `packages/bundle/web-app/cordis.patch.yml` and `packages/bundle/headless/cordis.patch.yml` therefore restate `system-prompt.toolOrder` beside the persona they own. The web overlay still disables host-plane `tool-workflow`/`tool-ralph`; the `standard` preset mounts them per session.
+A later bundle patch replaces a row's whole `config`. The base, web, and headless bundles therefore each select `bash` on POSIX and `pwsh` on Windows in `system-prompt.toolOrder` beside the persona they own. The web overlay still disables host-plane `tool-workflow`/`tool-ralph`; the `standard` preset mounts them per session.
