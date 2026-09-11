@@ -68,23 +68,23 @@ export class Gm extends Service {
     const projectCwd = this.resolveProjectCwd(cwd)
     await ensureDaemon(projectCwd)
     this.booted = true
+    const request = {
+      cwd: projectCwd,
+      verb,
+      sessionId: this.config.sessionId,
+      body,
+      ...rawBody === undefined ? {} : { rawBody },
+      ...timeoutMs === undefined ? {} : { timeoutMs },
+      ...signal === undefined ? {} : { signal },
+    }
     try {
-      return await dispatch({
-        cwd: projectCwd,
-        verb,
-        sessionId: this.config.sessionId,
-        body,
-        ...rawBody === undefined ? {} : { rawBody },
-        ...timeoutMs === undefined ? {} : { timeoutMs },
-        ...signal === undefined ? {} : { signal },
-      })
+      return await dispatch(request)
     } catch (error) {
-      if (!(error instanceof GmDaemonUnavailableError)) throw error
+      if (!(error instanceof GmDaemonUnavailableError) || error.code !== 'GM_DAEMON_DIED') throw error
       try {
         await ensureDaemon(projectCwd)
-        error.recovered = true
+        return await dispatch(request)
       } catch (recoveryError) {
-        error.recovered = false
         error.recoveryError = recoveryError instanceof Error ? recoveryError.message : String(recoveryError)
       }
       throw error

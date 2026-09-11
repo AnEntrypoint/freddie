@@ -186,12 +186,25 @@ export async function dispatch({
       if (!isMissingPathError(error)) throw error
     })
   }
-  const takeReady = async () => {
-    const text = await readFile(outPath, 'utf8')
+  const takeResponse = async () => {
+    let text
+    try {
+      text = await readFile(outPath, 'utf8')
+    } catch (error) {
+      if (isMissingPathError(error)) return undefined
+      throw error
+    }
+    let response
+    try {
+      response = JSON.parse(text)
+    } catch (error) {
+      if (error instanceof SyntaxError) return undefined
+      throw error
+    }
     await unlink(readyPath).catch((error) => {
       if (!isMissingPathError(error)) throw error
     })
-    return JSON.parse(text)
+    return { response }
   }
   const unavailable = async (code, health, queued) => {
     const [project, machine] = await Promise.all([readStatus(cwd), readDaemonStatus()])
@@ -216,7 +229,8 @@ export async function dispatch({
   let polls = 0
   while (Date.now() < deadline) {
     throwIfAborted(signal)
-    if (await exists(readyPath)) return takeReady()
+    const landed = await takeResponse()
+    if (landed !== undefined) return landed.response
     polls += 1
     if (polls >= HEALTH_CHECK_AFTER_POLLS) {
       const queued = await projectHasQueuedWork(cwd)
@@ -224,7 +238,8 @@ export async function dispatch({
       const health = await classifyDaemonHealth(cwd)
       const died = !alive && !queued
       const hung = health === 'project-heartbeat-stale' || health === 'daemon-status-stale'
-      if (await exists(readyPath)) return takeReady()
+      const completedWhileChecking = await takeResponse()
+      if (completedWhileChecking !== undefined) return completedWhileChecking.response
       if (died) {
         await dropClaim()
         throw await unavailable('GM_DAEMON_DIED', health, queued)

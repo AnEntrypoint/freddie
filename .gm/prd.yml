@@ -51,6 +51,8 @@
   title: Recover browser HMR from frame gaps
   subject: 'Add a host-issued ordered SSE frame sequence, browser connection diagnostics, and safe remount recovery for gaps. Precondition: every HMR update frame carries a monotonic sequence. Invariant: no out-of-order or missing update proceeds as a fiber swap. Postcondition: the browser exposes connection/sequence health and remounts after a detected gap.'
   acceptance: Live HMR diagnostics expose EventSource status and sequence; node source routes rebuilt and shell frames through one ordered publisher; package source syntax and publish-shape validation pass.
-  status: in-progress
+  status: completed
   route_family: observability
   session_id: freddie-3609107-1789132895325
+  witness: 'Live GUI browser witness at http://127.0.0.1:3080: window.__FREDDIE_HMR__ returned connected:true, lastSequence:0, reconnects:0 with only event-source-open; package source syntax, git diff --check, and pnpm run publint all passed before commit 2f8ac54.'
+  commit_comment: Observe HMR connection continuity and recover frame gaps

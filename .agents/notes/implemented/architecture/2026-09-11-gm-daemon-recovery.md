@@ -8,11 +8,11 @@ A shared GM daemon can stop while a spool request has an unresolved claim. A str
 
 ## Decision
 
-`@freddie/freddie-gm-client` throws `GmDaemonUnavailableError` with a stable code, daemon-health classification, bounded project heartbeat facts, machine heartbeat age, dispatch verb, dispatch key, and queue state. `Gm.call()` performs one readiness recovery attempt after this error and records whether the daemon became available for a later explicit call. It rethrows the original error and never resubmits the unresolved request.
+`@freddie/freddie-gm-client` throws `GmDaemonUnavailableError` with a stable code, daemon-health classification, bounded project heartbeat facts, machine heartbeat age, dispatch verb, dispatch key, and queue state. [GM response-file completion and dead-daemon replay](../bug-fix/2026-09-11-gm-response-file-completion-and-dead-daemon-replay.md) owns the current recovery behavior after `GM_DAEMON_DIED`.
 
 ## Alternatives considered
 
-**Automatically replay the request.** The spool protocol cannot prove that the daemon did not execute the claimed body before failing. Replaying can duplicate side effects.
+**Automatically replay every unavailable request.** The spool protocol cannot prove that a hung daemon did not execute the claimed body. Replaying a hung request can duplicate side effects.
 
 **Leave the original string error.** Consumers cannot reliably choose a recovery path or surface useful diagnostics without parsing an unstable sentence.
 
@@ -20,6 +20,6 @@ A shared GM daemon can stop while a spool request has an unresolved claim. A str
 
 ## Consequences
 
-Consumers receive machine-routable availability failures and can make an explicit retry decision after a readiness attempt. A failed operation remains failed; recovery improves only the next caller-owned request.
+Consumers receive machine-routable availability failures. A hung operation remains failed; the dead-daemon replay boundary is defined by the owning bug-fix note.
 
 Live verification constructs the exported typed error, validates its code and bounded facts, and checks the package source with Node syntax validation.
