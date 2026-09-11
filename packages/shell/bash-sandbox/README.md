@@ -40,7 +40,7 @@ Deny-only at the seam: a denial is a reported fact, and this executor never nego
 
 #### What the model sees
 
-The generated [`freddie-tool-bash` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-bash) are the baseline. By advertising a confining `sandboxMode`, this backend augments `bash` with `sandbox_permissions` using enum `workspace-write` | `danger-full-access` and with `justification`. The policy owner separately contributes the current capability-neutral `sandbox:policy` context.
+The generated [`freddie-tool-bash` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-bash) are the baseline. When its configured `sandboxMode` has a strictly wider mode, this backend augments `bash` with the available `sandbox_permissions` values and `justification`. `danger-full-access` exposes neither field because no wider mode exists. The policy owner separately contributes the current capability-neutral `sandbox:policy` context.
 
 #### Token effect
 

@@ -12,7 +12,7 @@ import z from '@freddie/schemastery'
 import { isAbsolute, resolve as resolvePath } from 'node:path'
 import { defineTool, TOOL_ABORTED } from '@freddie/freddie-tools'
 import { HarnessError } from '@freddie/freddie-llm'
-import { ESCALATION_TARGETS, approveEscalation, canonicalPath, validateEscalationArgs } from '@freddie/freddie-sandbox'
+import { WIDER_MODES, approveEscalation, canonicalPath, validateEscalationArgs } from '@freddie/freddie-sandbox'
 import { FREDDIE_ENV_PREFIX } from '@freddie/freddie-shell'
 import { processOutcome } from './background.js'
 import { parseExitStatus, renderProcessRead, renderResult } from './render.js'
@@ -161,7 +161,7 @@ const BACKGROUND_OUTPUT_PROPERTIES = {
 export function apply(ctx, config = {}) {
   const backgroundEnabled = config.enableRunInBackground ?? true
   const defaultMode = ctx.shell.sandboxMode
-  const escalationModes = defaultMode === undefined ? [] : ESCALATION_TARGETS
+  const escalationModes = defaultMode === undefined ? [] : (WIDER_MODES[defaultMode] ?? [])
   const sandboxPolicy = defaultMode === undefined ? undefined : ctx.get('sandboxPolicy')
   if (defaultMode !== undefined && sandboxPolicy === undefined) {
     throw new Error('tool-bash: the mounted bash executor confines but ctx.sandboxPolicy is missing')

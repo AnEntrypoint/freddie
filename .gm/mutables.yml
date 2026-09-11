@@ -429,3 +429,18 @@
   session_id: freddie-24860-1789086308555
   status: witnessed
   witness_evidence: 'packages/client/hmr/src/client/index.js:242-248 location.reload when frame.definesCustomElements === true. customElements.define binds a tag for the document lifetime; remounting the shell cannot replace the class. WFGY lesson 2026-09-05: a swap would report success while the original class stays. Honest bound: full reload is the only path that observes the edit.'
+- id: dependency-scan-complete
+  prd_id: remote-sync
+  obligation_kind: precondition
+  subject: Dependency scan must complete after repairing cyclic local dependency links
+  text: User authorized dependency repair. Witness with scan_deps reporting blockedCount 0 before trusting dependency content.
+  session_id: freddie-2796907-1789090297792
+  status: unknown
+- id: audit-quantification
+  prd_id: audit-orchestration
+  obligation_kind: resource-bound
+  subject: Actual workload timings and production volume are not observable from this static read-only checkout.
+  text: Use code-level caps, retention bounds, synchronous paths, and tool timeout evidence as observable bottleneck witnesses; propose runtime telemetry verification for workload-dependent claims.
+  session_id: freddie-2796907-1789090297792
+  status: witnessed
+  witness_evidence: Static evidence establishes configured bounds and synchronous paths; live workload timing remains intentionally unclaimed and is included as a verification requirement for each proposal.
