@@ -285,6 +285,15 @@ export function buildGmTools(gm) {
     timeoutMs: GM_SCAN_DEPS_TIMEOUT_MS,
   })
 
+  const residualScanTool = jsonTool({
+    name: 'gm_residual_scan',
+    verb: 'residual-scan',
+    description: 'Dispatch gm\'s `residual-scan` verb: the DECIDE→COMPLETE stop-window scan. Writes `.gm/residual-check-fired` for this session so COMPLETE can see the scan ran. Body is empty.',
+    parameters: {},
+    toBody: () => ({}),
+    presentCall: () => presentGenericCall('gm residual-scan'),
+  })
+
   return [
     instructionTool,
     phaseStatusTool,
@@ -298,5 +307,6 @@ export function buildGmTools(gm) {
     execJsTool,
     gitFinalizeTool,
     scanDepsTool,
+    residualScanTool,
   ]
 }

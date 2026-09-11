@@ -36,3 +36,10 @@
   invariant: The instruction never names a tool absent from the active runner manifest.
   postcondition: A live spool instruction response is observed after the rebuilt artifact is loaded.
   status: pending
+- id: stuck-residual-scan-gate
+  title: DECIDE COMPLETE blocked without residual-scan verb
+  subject: DECIDE to COMPLETE denies because residual-scan was not fired in this stop window. Native gm implements residual-scan; tool-gm now mounts gm_residual_scan so this session can fire it.
+  acceptance: 'Pre: phase DECIDE. Invariant: do not invent residual-scan. Post: residual-scan dispatches and writes .gm/residual-check-fired for this session.'
+  status: in-progress
+  route_family: observability
+  session_id: freddie-24860-1789086308555

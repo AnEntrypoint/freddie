@@ -81,3 +81,10 @@ Goal (G): Land the quoted extraRoots !!js YAML ternary boot-crash fix and drive 
 What drifted / what went wrong: git_finalize committed aebc5d7 (the real fix) then kept failing push because this checkout has remote `freddie`, not `origin`. COMPLETE also requires residual-scan (no such tool on this harness) and `.ci-validated` matching HEAD (no CI). Retrying git_finalize and COMPLETE reproduced the same three residuals; a concurrent writer also emptied `.gm/prd.yml` after each resolve, so porcelain flickered dirty.
 Fix / resolution: Stopped retrying COMPLETE. Recorded the environmental blockers as a PRD row with live remote/CI evidence, committed the empty PRD as 9ddb88d, did not fabricate origin or `.ci-validated`.
 Generalizes to: git_finalize always pushes `origin`. A checkout whose only remote is another name will never satisfy the unpushed-delta COMPLETE gate. Do not write `.ci-validated` without a real pipeline; that is a false witness. After 2-3 identical gate denials, surface rather than loop.
+
+## 2026-09-11 -- DECIDE-COMPLETE residual-scan is not a Freddie tool
+
+Goal (G): Close the HMR/graph/tooling gm walk at COMPLETE after product work landed on 78fa0e32.
+What drifted / what went wrong: COMPLETE denied three times with "residual-scan not fired in this stop window". This Freddie session has gm_scan_deps (failCount=0, blockedCount=0) but no residual-scan verb. Retrying COMPLETE after rewriting .ci-validated to the live publint run 34547758768 still reproduced the same residual. A concurrent SPECIFY reset also made COMPLETE illegal until SPECIFY->PROVE recovery.
+Fix / resolution: Stopped retrying COMPLETE. Recorded stuck-residual-scan-gate. Next repair belongs in gm: either expose residual-scan or accept scan_deps as the stop-window residual scan.
+Generalizes to: A gate that names a verb the strapped harness cannot dispatch is environmental, not product. After 3 identical denials, fix the gate or surface; do not loop COMPLETE.

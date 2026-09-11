@@ -1,6 +1,6 @@
 {
   "name": "@freddie/freddie-tool-gm",
-  "description": "Model-facing typed tools over ctx.gm (instruction, phase-status, codesearch, recall, prd-add/resolve, mutable-add/resolve, transition, exec_js, git_finalize)",
+  "description": "Model-facing typed tools over ctx.gm (instruction, phase-status, codesearch, recall, prd-add/resolve, mutable-add/resolve, transition, exec_js, git_finalize, scan_deps, residual-scan)",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
