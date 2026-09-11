@@ -398,3 +398,34 @@
   session_id: freddie-24860-1789086308555
   status: witnessed
   witness_evidence: 'exec_js 1789087142724 after findNode seq-first: nodes z seq0 completed and z seq1 failed. Commit efb97fbc5b. Duplicate childId no longer overwrites the first node.'
+- id: rustc-available
+  obligation_kind: precondition
+  prd_id: gm-pwsh-routing-release-verification
+  subject: Rustc 1.98.1 is present so the sibling gm plugkit can be built this session
+  text: Witness rustc --version and cargo --version, then cargo build the gm plugkit artifact.
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: 'pwsh rustc --version: rustc 1.98.1 (48a229cea 2026-09-01); cargo 1.98.1 (797e8a9bc 2026-08-05). Toolchain is present on this host.'
+- id: bash-only-manifest
+  obligation_kind: postcondition
+  prd_id: gm-pwsh-routing-release-verification
+  subject: A Bash-only runner instruction dispatch does not emit unregistered pwsh tool-order
+  text: After building the artifact, dispatch instruction on a Bash-only tool manifest and read the response for pwsh tool-order.
+  session_id: freddie-24860-1789086308555
+  status: unknown
+- id: shell-remount-bound
+  obligation_kind: type-shape
+  prd_id: hmr-shell-hot-swap
+  subject: Whether apps/web can hot-swap on graph-rev without /__hmr remount
+  text: Read packages/client/hmr client remount path and apps/web boot; witness live or document the honest bound.
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: 'packages/client/hmr/src/client/index.js:92-158 transactRemount installs /__hmr/<rev>/ base because import maps cannot be rewritten after first module load (line 114). Shell apps/web + packages/client/web is not a loader entry (line 268). graph-mismatch and shell-rebuilt both remountShell. Honest bound: window and EventSource origin stay put; a fiber swap of the shell is unreachable without a rewriteable import map.'
+- id: custom-element-define-bound
+  obligation_kind: type-shape
+  prd_id: hmr-custom-element-swap
+  subject: customElements.define is document-lifetime so a fiber swap cannot replace the class
+  text: Read packages/client/hmr client location.reload on definesCustomElements; witness live or document the honest bound.
+  session_id: freddie-24860-1789086308555
+  status: witnessed
+  witness_evidence: 'packages/client/hmr/src/client/index.js:242-248 location.reload when frame.definesCustomElements === true. customElements.define binds a tag for the document lifetime; remounting the shell cannot replace the class. WFGY lesson 2026-09-05: a swap would report success while the original class stays. Honest bound: full reload is the only path that observes the edit.'

@@ -1,12 +1,7 @@
-- session_id: freddie-root-1789086550000
-  id: gm-pwsh-routing-release-verification
+- id: gm-pwsh-routing-release-verification
   title: Verify the gm pwsh routing correction through its published artifact
-  subject: Build and run the gm plugkit artifact after a Rust toolchain is available, then witness an instruction dispatch on a Bash-only tool manifest without any pwsh tool-order emission.
+  subject: Rustc 1.98.1 is available. Build and run the sibling gm plugkit artifact, then witness an instruction dispatch on a Bash-only tool manifest without any pwsh tool-order emission. Previously marked blockedBy external; that blocker is gone.
   acceptance: The published artifact serves only registered Bash routing and a real Bash-only runner completes an instruction dispatch without an unregistered pwsh tool-order error.
+  status: in-progress
   route_family: execution
-  precondition: A Rust toolchain is available to build the sibling gm rs-plugkit artifact.
-  invariant: The instruction never names a tool absent from the active runner manifest.
-  postcondition: A live spool instruction response is observed after the rebuilt artifact is loaded.
-  status: pending
-  blockedBy:
-  - external
+  session_id: freddie-24860-1789086308555
