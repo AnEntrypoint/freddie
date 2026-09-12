@@ -32,6 +32,7 @@
     "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-projection": "*",
     "@freddie/freddie-system-prompt": "*",
     "@freddie/freddie-tools": "*",
     "@freddie/freddie-workflow": "*",

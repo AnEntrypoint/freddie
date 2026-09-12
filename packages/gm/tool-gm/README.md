@@ -4,6 +4,10 @@ Model-facing typed tools over [`ctx.gm`](../gm-client/README.md): `gm_instructio
 
 Session id is not a per-call argument. Every tool closes over the mounted `ctx.gm` instance, whose `sessionId` is fixed at plugin config. Each execute passes `exec.agent.session.header.cwd` as `options.cwd` so the spool is the session workspace, not the GUI host's `process.cwd()`.
 
+## Durable progress event
+
+After every successful model-facing GM dispatch, the tool appends a log-only, `ignorable` `gm/progress` session event. Its complete JSON payload is `{ phase, prdPendingCount, mutablesPendingCount, sessionId, active }`; unavailable counts and phase are `null`, while `sessionId` falls back to the mounted GM session. The event is appended only after `Gm.call()` returns, does not enter model history, and leaves all GM tool schemas and results unchanged. It supplies an owned durable source for a later projection or UI without adding client or terminal behavior.
+
 ## Tools
 
 | Tool | Verb | Args | Behavior |

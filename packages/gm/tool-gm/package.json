@@ -36,12 +36,14 @@
     "@freddie/cordis": "*",
     "@freddie/freddie-gm-client": "*",
     "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-session": "*",
     "@freddie/freddie-tools": "*"
   },
   "devDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-gm-client": "*",
     "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-session": "*",
     "@freddie/freddie-tools": "*"
   }
 }

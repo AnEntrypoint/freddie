@@ -10,9 +10,9 @@ export const name = 'tool-gm-invariant'
 /** Service required before the companion can register. */
 export const inject = ['invariants']
 
-// No runtime invariant: tool-gm registers model-facing tools over `ctx.gm` and
-// emits no session events of its own; gm spool state lives on disk under
-// `.gm/`, outside the session log.
+// No runtime invariant: each successful model-tool dispatch appends exactly one
+// log-only `gm/progress` snapshot after the daemon response commits; the session
+// append boundary is authoritative and contains malformed durable payloads.
 const install = () => {}
 
 /**

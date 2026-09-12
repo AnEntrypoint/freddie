@@ -55,6 +55,7 @@
     "@freddie/freddie-settings": "*",
     "@freddie/freddie-skill": "*",
     "@freddie/freddie-subagent": "*",
+    "@freddie/freddie-terminal": "*",
     "@freddie/freddie-jobs": "*",
     "@freddie/freddie-tools": "*",
     "@freddie/freddie-user-approval": "*",

@@ -189,6 +189,33 @@ function RunHeader({ children, count, name, onToggle, open, status, t }) {
   )
 }
 
+function WorkflowProgress({ currentPhase, declaredPhases, logs, t }) {
+  const declared = declaredPhases ?? []
+  const hasProgress = currentPhase !== undefined || declared.length > 0 || logs.length > 0
+  if (!hasProgress) return null
+  return h('div', { class: css.progress ?? '', 'data-workflow-progress': '' },
+    currentPhase === undefined ? null : h('div', { class: css.currentPhase ?? '' },
+      h('span', { class: css.progressLabel ?? '' }, t('progress.currentPhase')),
+      h('span', { class: css.currentPhaseName ?? '' }, currentPhase),
+    ),
+    declared.length === 0 ? null : h('div', { class: css.declaredPhases ?? '' },
+      h('span', { class: css.progressLabel ?? '' }, t('progress.phases')),
+      declared.map((phase) => h('span', {
+        key: phase.title,
+        class: css.declaredPhase ?? '',
+        'data-current': phase.title === currentPhase ? '' : undefined,
+        title: phase.detail,
+      }, phase.title)),
+    ),
+    logs.length === 0 ? null : h('details', { class: css.logDetails ?? '' },
+      h('summary', { class: css.logSummary ?? '' }, t('progress.logs', { count: logs.length })),
+      h('ol', { class: css.logs ?? '', 'aria-label': t('progress.logs', { count: logs.length }) },
+        logs.map((log) => h('li', { key: log.seq, class: css.logLine ?? '' }, log.message)),
+      ),
+    ),
+  )
+}
+
 function MemberRow({ member, navigable, openSession, t }) {
   const name = readableMember(member.label, t)
 
@@ -412,6 +439,12 @@ export class FreddieWorkflowRunPanel extends HTMLElement {
             class: css.phaseList ?? '',
             onblur: (event) => { this.#settleRunBlur(event) },
           },
+            h(WorkflowProgress, {
+              currentPhase: node.data.currentPhase,
+              declaredPhases: node.data.declaredPhases,
+              logs: node.data.logs,
+              t: t,
+            }),
             node.data.phases.length === 0
               ? h('span', { class: css.empty ?? '' }, t('run.empty'))
               : node.data.phases.map((phase) => {

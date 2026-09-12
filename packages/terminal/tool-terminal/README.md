@@ -1,6 +1,6 @@
 # @freddie/freddie-tool-terminal
 
-Six model-facing tools over `ctx.terminals`: `terminal_open`, `terminal_send`, `terminal_read`, `terminal_signal`, `terminal_close`, and `terminal_list`. Every operation requires the exact initiating `Agent`, so a model cannot address another agent's terminal even if it learns the id.
+Seven model-facing tools over `ctx.terminals`: `terminal_open`, `terminal_send`, `terminal_read`, `terminal_resize`, `terminal_signal`, `terminal_close`, and `terminal_list`. Every operation requires the exact initiating `Agent`, so a model cannot address another agent's terminal even if it learns the id.
 
 `terminal_send(run_in_background: true)` reuses `ctx.jobs`; job preflight and the PTY service's exclusive per-session send reservation occur before the job id is returned, completion is collected with `job_output`, and `job_kill` delivers `SIGINT` to the foreground process group. Foreground sends use terminal call/result cards. Background sends use a generic execute card; open, read, signal, close, and list use generic `execute`, `read`, `execute`, `delete`, and `read` cards respectively. None declares source locations.
 
@@ -39,7 +39,7 @@ Prefix-stable while the registration scope and guidance text are unchanged.
 
 #### What the model sees
 
-The six generated schemas are listed in the [`freddie-tool-terminal` catalog section](../../../docs/tool-catalog.md#deepseek-aidsh-tool-terminal). Their fixed schema tokens are present whenever this plugin is active; agent-scoped tool filtering may hide them.
+The seven generated schemas are listed in the [`freddie-tool-terminal` catalog section](../../../docs/tool-catalog.md#deepseek-aidsh-tool-terminal). Their fixed schema tokens are present whenever this plugin is active; agent-scoped tool filtering may hide them.
 
 #### Token effect
 
@@ -65,5 +65,5 @@ Append-only; new results follow the reusable request prefix.
 
 ## Known Limitations and Deferred Work
 
-- No named key sequence, TUI, BEL, resize, auto-start, or cross-agent sharing schema is exposed.
+- Raw named key-sequence, mouse-reporting, full VT screen snapshots, auto-start, and cross-agent sharing schemas are not yet exposed; `terminal_resize` synchronizes the native PTY viewport for visual TUI redraws.
 - Background mode requires both `@freddie/freddie-jobs` and its model-facing controller.

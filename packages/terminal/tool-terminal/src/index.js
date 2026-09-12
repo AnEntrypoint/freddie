@@ -1,5 +1,5 @@
 /**
- * Six model-facing persistent terminal tools. Owner identity comes from the exact
+ * Seven model-facing persistent terminal tools. Owner identity comes from the exact
  * tool execution Agent; generic `ctx.jobs` owns background ids and collection.
  * @module @freddie/freddie-tool-terminal
  */
@@ -51,6 +51,14 @@ const SESSION_SNAPSHOT_PROPERTIES = {
   name: { type: 'string' },
   type: { type: 'string', required: true },
   pid: { type: 'integer' },
+  dimensions: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      cols: { type: 'integer', required: true },
+      rows: { type: 'integer', required: true },
+    },
+  },
   status: { ...SESSION_STATUS_SCHEMA, required: true },
 }
 
@@ -279,6 +287,32 @@ export function apply(ctx, config = {}) {
       return Promise.resolve(result)
     },
     presentCall: args => ({ card: 'generic', title: `Read terminal ${(args).sessionId}`, kind: 'read', rawInput: args }),
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'terminal_resize',
+    description: 'Resize a persistent terminal viewport. Use the actual visible columns and rows so full-screen TUIs can redraw correctly.',
+    parameters: {
+      sessionId: { type: 'string', required: true, description: 'Terminal session id.' },
+      cols: { type: 'integer', required: true, description: 'Visible terminal columns (positive integer).' },
+      rows: { type: 'integer', required: true, description: 'Visible terminal rows (positive integer).' },
+    },
+    finalizeContent,
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          cols: { type: 'integer', required: true },
+          rows: { type: 'integer', required: true },
+        },
+      },
+      render: (_args, value) => [{ type: 'text', text: `resized terminal to ${value.cols} columns × ${value.rows} rows` }],
+    },
+    async execute(args, exec) {
+      return ctx.terminals.resize(requireAgent(exec.agent), sessionId(args), args.cols, args.rows)
+    },
+    presentCall: args => ({ card: 'generic', title: `Resize terminal ${(args).sessionId}`, kind: 'execute', rawInput: args }),
   }))
 
   ctx.tools.register(defineTool({

@@ -61,6 +61,10 @@ import {
   subagentListValueSchema,
   subagentPromptValueSchema,
 } from '../api/subagents.schema.js'
+import {
+  terminalCloseValueSchema, terminalInputValueSchema, terminalListValueSchema,
+  terminalOpenValueSchema, terminalResizeValueSchema, terminalSnapshotValueSchema,
+} from '../api/terminals.schema.js'
 
 /**
  * S→C second-level parse table: value schema by method (the response-path
@@ -83,6 +87,12 @@ const UNARY_VALUE_SCHEMAS = {
   'subagent.history': subagentHistoryValueSchema,
   'subagent.prompt': subagentPromptValueSchema,
   'subagent.interrupt': subagentInterruptValueSchema,
+  'terminal.list': terminalListValueSchema,
+  'terminal.open': terminalOpenValueSchema,
+  'terminal.snapshot': terminalSnapshotValueSchema,
+  'terminal.input': terminalInputValueSchema,
+  'terminal.resize': terminalResizeValueSchema,
+  'terminal.close': terminalCloseValueSchema,
   'host.describe': hostDescribeValueSchema,
   'host.pickDirectory': hostPickDirectoryValueSchema,
   'host.listDirectory': hostListDirectoryValueSchema,
@@ -303,6 +313,15 @@ export class AbstractApiClient {
     history: (payload, signal) => this.callUnary('subagent.history', payload, signal),
     prompt: (payload, signal) => this.callUnary('subagent.prompt', payload, signal),
     interrupt: (payload, signal) => this.callUnary('subagent.interrupt', payload, signal),
+  }
+
+  terminal = {
+    list: (payload, signal) => this.callUnary('terminal.list', payload, signal),
+    open: (payload, signal) => this.callUnary('terminal.open', payload, signal),
+    snapshot: (payload, signal) => this.callUnary('terminal.snapshot', payload, signal),
+    input: (payload, signal) => this.callUnary('terminal.input', payload, signal),
+    resize: (payload, signal) => this.callUnary('terminal.resize', payload, signal),
+    close: (payload, signal) => this.callUnary('terminal.close', payload, signal),
   }
 
   host = {

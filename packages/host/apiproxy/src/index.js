@@ -33,7 +33,7 @@ export { createApiProxy } from './api-proxy.js'
 export class ApiProxyService extends Service {
   static inject = [
     'agentDefaultModel', 'agents', 'attachments', 'directoryPicker', 'llm', 'sessions', 'subagents', 'sessionQuery',
-    'tools', 'userQuestions', 'workspaceRegistry',
+    'terminals', 'tools', 'userQuestions', 'workspaceRegistry',
   ]
 
   static Config = z.object({
@@ -73,6 +73,7 @@ export class ApiProxyService extends Service {
     })
     this.sessions = api.sessions
     this.subagents = api.subagents
+    this.terminal = api.terminal
     this.workspace = api.workspace
     this.host = api.host
     this.goals = api.goals

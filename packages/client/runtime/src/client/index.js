@@ -15,6 +15,7 @@ export { ConversationLocationIndex } from './sessions/conversation-location-inde
 export { conversationContextKey } from './contract/conversation.js'
 export { SessionCreateError, SessionRuntime, scopeOf, workspaceTitleOf } from './sessions/service.js'
 export { indexSubagentDescendants } from './sessions/subagent-lineage.js'
+export { TerminalActivityStore } from './sessions/terminal-activity.js'
 // The provide channel is shared with the client test runtime (one
 // materialization/projection implementation; no test-side mirror to drift).
 export { SessionProvideChannel } from './sessions/provide.js'

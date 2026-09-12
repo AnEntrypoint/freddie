@@ -14,7 +14,7 @@ import z from '@freddie/schemastery'
 import { defineTool } from '@freddie/freddie-tools'
 
 export const name = 'tool-workflow'
-export const inject = ['tools', 'workflowEngine', 'systemPrompt']
+export const inject = ['sessionProjections', 'tools', 'workflowEngine', 'systemPrompt']
 
 export const Config = z.object({
   toolName: z.string().default('workflow'),
@@ -34,6 +34,56 @@ function renderRecordingError(error) {
  * Project active top-level workflow runs into their parent Sessions without
  * letting recording failure affect tool execution.
  */
+const EMPTY_WORKFLOW = Object.freeze({ runs: [] })
+const MAX_WORKFLOW_LOGS = 200
+
+function runStatus(stopReason) {
+  if (stopReason === undefined) return 'running'
+  if (stopReason === 'completed') return 'completed'
+  if (stopReason === 'cancelled') return 'cancelled'
+  return 'failed'
+}
+
+function workflowRun(state, runId) {
+  return state.runs.find(run => run.id === runId)
+}
+
+function replaceRun(state, run) {
+  const index = state.runs.findIndex(candidate => candidate.id === run.id)
+  const runs = index === -1 ? [...state.runs, run] : state.runs.map(candidate => candidate.id === run.id ? run : candidate)
+  return { runs: runs.length > 20 ? runs.slice(-20) : runs }
+}
+
+const workflowProjectionDefinition = {
+  key: 'workflow',
+  stateVersion: 1,
+  init: () => EMPTY_WORKFLOW,
+  apply: (state, event) => {
+    const data = event.data
+    if (event.type === 'tool-workflow/run-start') {
+      return replaceRun(state, { id: data.runId, name: data.name, phases: data.phases ?? [], logs: [], members: [], status: 'running' })
+    }
+    const run = workflowRun(state, data.runId)
+    if (run === undefined) return state
+    if (event.type === 'tool-workflow/phase') return replaceRun(state, { ...run, currentPhase: data.title })
+    if (event.type === 'tool-workflow/log') {
+      const logs = [...run.logs, { seq: event.seq, message: data.message }]
+      return replaceRun(state, { ...run, logs: logs.length > MAX_WORKFLOW_LOGS ? logs.slice(-MAX_WORKFLOW_LOGS) : logs })
+    }
+    if (event.type === 'tool-workflow/agent-start') {
+      return replaceRun(state, { ...run, members: [...run.members, { seq: data.seq, label: data.label, childId: data.childId, ...data.phase === undefined ? {} : { phase: data.phase }, status: 'running' }] })
+    }
+    if (event.type === 'tool-workflow/agent-end') {
+      return replaceRun(state, { ...run, members: run.members.map(member => member.seq === data.seq ? { ...member, status: data.outcome } : member) })
+    }
+    if (event.type === 'tool-workflow/run-end') {
+      return replaceRun(state, { ...run, stopReason: data.stopReason, status: runStatus(data.stopReason) })
+    }
+    return state
+  },
+  wire: { view: state => state },
+}
+
 function createWorkflowRecorder(ctx) {
   const active = new Map()
   const append = (session, type, data) => {
@@ -49,6 +99,16 @@ function createWorkflowRecorder(ctx) {
     }
   }
 
+  ctx.on('workflow/phase', (info, title) => {
+    const session = active.get(info.id)
+    if (session === undefined) return
+    if (!append(session, 'tool-workflow/phase', { runId: info.id, title })) active.delete(info.id)
+  })
+  ctx.on('workflow/log', (info, message) => {
+    const session = active.get(info.id)
+    if (session === undefined) return
+    if (!append(session, 'tool-workflow/log', { runId: info.id, message: String(message) })) active.delete(info.id)
+  })
   ctx.on('workflow/agent-start', (info, agent) => {
     const session = active.get(info.id)
     if (session === undefined) return
@@ -74,7 +134,14 @@ function createWorkflowRecorder(ctx) {
 
   return {
     start(session, run) {
-      if (append(session, 'tool-workflow/run-start', { runId: run.id, name: run.meta.name })) {
+      if (append(session, 'tool-workflow/run-start', {
+        runId: run.id,
+        name: run.meta.name,
+        ...Array.isArray(run.meta.phases) ? { phases: run.meta.phases.map((phase) => ({
+          title: phase.title,
+          ...phase.detail === undefined ? {} : { detail: phase.detail },
+        })) } : {},
+      })) {
         active.set(run.id, session)
       }
     },
@@ -149,6 +216,7 @@ function renderResult(name, agentsStarted, value, maxChars) {
 }
 
 export function apply(ctx, config) {
+  ctx.sessionProjections.register(workflowProjectionDefinition)
   // schemastery (the exported Config schema) has already filled the defaulted
   // fields; this reads that resolution, not a hidden fallback.
   const { toolName, maxResultChars } = config

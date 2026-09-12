@@ -72,6 +72,17 @@ export class LocalTerminalHandle {
     this.terminal.write(data)
   }
 
+  // node-pty resize is synchronous; preserve the provider's async seam for
+  // remote terminal implementations and reject invalid viewports consistently.
+  // oxlint-disable-next-line typescript/require-await -- Preserve promise rejection semantics at the async provider contract.
+  async resize(cols, rows) {
+    if (this.exited) throw new Error('terminal process has exited')
+    if (!Number.isSafeInteger(cols) || cols <= 0 || !Number.isSafeInteger(rows) || rows <= 0) {
+      throw new Error('terminal dimensions must be positive safe integers')
+    }
+    this.terminal.resize(cols, rows)
+  }
+
   // Local inspection is synchronous; the seam returns a promise for remote transports.
   // oxlint-disable-next-line typescript/require-await -- Preserve promise rejection semantics at the async provider contract.
   async inspectForeground() {

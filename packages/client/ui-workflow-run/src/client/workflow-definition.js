@@ -66,8 +66,20 @@ function projectWorkflow(context, location) {
     status: state.stopReason === undefined
       ? interrupted ? 'interrupted' : 'running'
       : statusFromStopReason(state.stopReason),
+    currentPhase: state.currentPhase,
+    declaredPhases: state.declaredPhases,
+    logs: state.logs,
     phases: projectedPhases,
   }
+}
+
+function updatePhase(state, data) {
+  return { ...state, currentPhase: data.title }
+}
+
+function updateLog(state, data) {
+  const logs = [...state.logs, { seq: data.seq, message: data.message }]
+  return { ...state, logs: logs.length > 200 ? logs.slice(-200) : logs }
 }
 
 function updateAgentStart(state, data) {
@@ -95,7 +107,9 @@ export const workflowRunDefinition = {
   target: 'chat',
   match: (event) => {
     if (event.type === 'tool-workflow/run-start') return { id: String(event.data.runId), role: 'start' }
-    if (event.type === 'tool-workflow/agent-start'
+    if (event.type === 'tool-workflow/phase'
+      || event.type === 'tool-workflow/log'
+      || event.type === 'tool-workflow/agent-start'
       || event.type === 'tool-workflow/agent-end'
       || event.type === 'tool-workflow/run-end') {
       return { id: String(event.data.runId), role: 'update' }
@@ -106,9 +120,20 @@ export const workflowRunDefinition = {
     if (match.event.type !== 'tool-workflow/run-start') {
       throw new Error('workflow-run start requires tool-workflow/run-start')
     }
-    return { name: match.event.data.name, members: [] }
+    return {
+      name: match.event.data.name,
+      declaredPhases: match.event.data.phases ?? [],
+      logs: [],
+      members: [],
+    }
   },
   update: (context, match) => {
+    if (match.event.type === 'tool-workflow/phase') {
+      return updatePhase(context.state, match.event.data)
+    }
+    if (match.event.type === 'tool-workflow/log') {
+      return updateLog(context.state, { ...match.event.data, seq: match.event.seq })
+    }
     if (match.event.type === 'tool-workflow/agent-start') {
       return updateAgentStart(context.state, match.event.data)
     }

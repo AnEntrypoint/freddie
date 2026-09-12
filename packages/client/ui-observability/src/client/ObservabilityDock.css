@@ -1,0 +1,175 @@
+.freddie-observability__root {
+  box-sizing: border-box;
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 28px clamp(16px, 4vw, 44px) calc(var(--freddie-composer-height, 180px) + 44px);
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-observability__bluf {
+  padding: 22px;
+  border: 1px solid var(--freddie-alias-border-l1);
+  border-radius: 16px;
+  background: var(--freddie-alias-bg-base);
+}
+
+.freddie-observability__eyebrow,
+.freddie-observability__label,
+.freddie-observability__detail,
+.freddie-observability__panelCopy,
+.freddie-observability__empty {
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-observability__eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.freddie-observability__bluf h1 {
+  max-width: 780px;
+  margin: 0;
+  font-size: clamp(20px, 3vw, 30px);
+  line-height: 1.2;
+}
+
+.freddie-observability__bluf p {
+  max-width: 720px;
+  margin: 10px 0 0;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-observability__tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 18px 0;
+  padding-bottom: 2px;
+}
+
+.freddie-observability__tab,
+.freddie-observability__tabActive,
+.freddie-observability__action {
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 8px;
+  background: var(--freddie-alias-bg-base);
+  color: var(--freddie-alias-label-primary);
+  cursor: pointer;
+}
+
+.freddie-observability__tab,
+.freddie-observability__tabActive {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+}
+
+.freddie-observability__tabActive {
+  border-color: var(--freddie-alias-state-business-primary);
+  background: var(--freddie-alias-interactive-bg-hover);
+  font-weight: 700;
+}
+
+.freddie-observability__panel {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--freddie-alias-border-l1);
+  border-radius: 14px;
+  background: var(--freddie-alias-bg-base);
+}
+
+.freddie-observability__panel h2 { margin: 0; font-size: 16px; }
+
+.freddie-observability__panelHeader,
+.freddie-observability__terminalHeader,
+.freddie-observability__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.freddie-observability__panelHeader .freddie-observability__action,
+.freddie-observability__terminalStatus { margin-left: auto; }
+
+.freddie-observability__terminalOwner {
+  color: var(--freddie-alias-label-tertiary);
+  font-size: 12px;
+}
+
+.freddie-observability__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.freddie-observability__metric {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--freddie-alias-interactive-bg-hover);
+}
+
+.freddie-observability__label,
+.freddie-observability__detail { font-size: 12px; line-height: 18px; }
+.freddie-observability__value { font-size: 16px; overflow-wrap: anywhere; }
+
+.freddie-observability__action { padding: 6px 10px; }
+
+.freddie-observability__terminal,
+.freddie-observability__activity,
+.freddie-observability__memberGroup,
+.freddie-observability__treeActivity {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 10px;
+}
+
+.freddie-observability__logList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.freddie-observability__logList li {
+  display: grid;
+  gap: 3px;
+  overflow-wrap: anywhere;
+}
+
+.freddie-observability__memberGroup p { margin: 0; }
+
+.freddie-observability__output,
+.freddie-observability__snapshot {
+  max-height: 260px;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 8px;
+  background: var(--freddie-alias-interactive-bg-hover);
+  color: var(--freddie-alias-label-primary);
+  font: 12px/18px monospace;
+  white-space: pre-wrap;
+}
+
+.freddie-observability__input {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 8px;
+  background: var(--freddie-alias-bg-base);
+  color: var(--freddie-alias-label-primary);
+}
+
+@media (max-width: 720px) {
+  .freddie-observability__root { padding: 18px 12px 30px; }
+  .freddie-observability__metrics { grid-template-columns: 1fr; }
+}

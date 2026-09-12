@@ -67,7 +67,31 @@ function applyEvent(trace, event, fail) {
         fail('tool-workflow/run-start name must be a non-empty string')
       }
       if (trace.has(runId)) fail(`tool-workflow/run-start repeats run ${runId}`)
+      if (data.phases !== undefined) {
+        if (!Array.isArray(data.phases)) fail('tool-workflow/run-start phases must be an array when present')
+        for (const phase of data.phases) {
+          if (phase === null || typeof phase !== 'object' || Array.isArray(phase)
+            || typeof phase.title !== 'string' || phase.title.length === 0
+            || (phase.detail !== undefined && typeof phase.detail !== 'string')) {
+            fail('tool-workflow/run-start phases must contain title and optional detail strings')
+          }
+        }
+      }
       trace.set(runId, { ended: false, members: new Map() })
+      return
+    }
+    case 'tool-workflow/phase': {
+      const run = openRun(trace, runId, event.type, fail)
+      void run
+      if (typeof data.title !== 'string' || data.title.length === 0) {
+        fail('tool-workflow/phase title must be a non-empty string')
+      }
+      return
+    }
+    case 'tool-workflow/log': {
+      const run = openRun(trace, runId, event.type, fail)
+      void run
+      if (typeof data.message !== 'string') fail('tool-workflow/log message must be a string')
       return
     }
     case 'tool-workflow/agent-start': {

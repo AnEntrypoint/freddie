@@ -37,6 +37,7 @@ export class TerminalSessionService extends Service {
   reservedNames = new Map()
   pendingSpawns = new Map()
   ownerCleanups = new Map()
+  listeners = new Map()
   disposedOwners = new WeakSet()
   nextId = 0
   disposing = false
@@ -119,9 +120,13 @@ export class TerminalSessionService extends Service {
         session,
         active: undefined,
         closing: undefined,
+        unobserve: undefined,
       }
       this.sessions.set(sessionId, record)
-      return this.snapshot(record, session.motd)
+      this.observe(record)
+      const snapshot = this.snapshot(record, session.motd)
+      this.notify(owner, { type: 'snapshot', snapshot })
+      return snapshot
     } catch (error) {
       if (error instanceof TerminalBackendCleanupError) {
         cleanupFailure = { error: error.cleanupError }
@@ -182,6 +187,42 @@ export class TerminalSessionService extends Service {
     return operation
   }
 
+  /** Write immediate UTF-8 input without starting a terminal send lifecycle. */
+  write(owner, id, data) {
+    const record = this.expectOwned(owner, id)
+    if (record.closing !== undefined) throw new Error(`PTY session ${id} is closing`)
+    if (typeof record.session.write !== 'function') throw new Error(`PTY session ${id} does not support direct input`)
+    return record.session.write(data)
+  }
+
+  /**
+   * Subscribe one owner to its terminal snapshots and output activity.
+   * The listener receives a fresh snapshot for each already-published owned
+   * session before later activity. It never receives another owner's sessions,
+   * and its disposer stops future delivery immediately.
+   * @param owner - exact owner whose sessions are observable.
+   * @param listener - synchronous activity receiver.
+   * @returns disposer that removes exactly this listener.
+   */
+  subscribe(owner, listener) {
+    if (!this.isLiveOwner(owner)) {
+      throw new TerminalError(`agent "${owner.id}" is not the registered PTY owner`, 'OWNER_NOT_LIVE')
+    }
+    const dispose = owner.ctx.effect(() => {
+      const listeners = this.listeners.get(owner) ?? new Set()
+      listeners.add(listener)
+      this.listeners.set(owner, listeners)
+      for (const record of this.sessions.values()) {
+        if (record.owner === owner) this.deliver(listener, { type: 'snapshot', snapshot: this.snapshot(record) })
+      }
+      return () => {
+        listeners.delete(listener)
+        if (listeners.size === 0) this.listeners.delete(owner)
+      }
+    }, 'pty.subscribe()')
+    return () => void dispose()
+  }
+
   /**
    * Read one bounded scrollback page from an owned session.
    * @param owner - exact session owner.
@@ -205,6 +246,19 @@ export class TerminalSessionService extends Service {
   }
 
   /**
+   * Resize one owned PTY viewport. Backends retain the most recently accepted
+   * dimensions so reconnecting visual clients can synchronize their view.
+   * @param owner - exact session owner.
+   * @param id - target PTY identity.
+   * @param cols - visible column count.
+   * @param rows - visible row count.
+   * @returns accepted dimensions.
+   */
+  resize(owner, id, cols, rows) {
+    return this.expectOwned(owner, id).session.resize(cols, rows)
+  }
+
+  /**
    * Close one owned session and remove it only after quiescent backend cleanup.
    * @param owner - exact session owner.
    * @param id - target PTY identity.
@@ -221,7 +275,8 @@ export class TerminalSessionService extends Service {
     record.closing = closing
     try {
       await closing
-      this.sessions.delete(id)
+      this.unpublish(record)
+      this.notify(owner, { type: 'closed', snapshot: this.snapshot(record) })
       return true
     } catch (error) {
       record.closing = undefined
@@ -256,6 +311,7 @@ export class TerminalSessionService extends Service {
     const detach = owner.ctx.effect(() => async () => {
       this.disposedOwners.add(owner)
       this.ownerCleanups.delete(owner)
+      this.listeners.delete(owner)
       await this.disposeOwned(owner)
     }, 'pty.ownerCleanup()')
     this.ownerCleanups.set(owner, detach)
@@ -320,12 +376,42 @@ export class TerminalSessionService extends Service {
     return record
   }
 
+  observe(record) {
+    if (typeof record.session.subscribe !== 'function') return
+    record.unobserve = record.session.subscribe((activity) => {
+      if (this.sessions.get(record.id) !== record || record.closing !== undefined) return
+      this.notify(record.owner, { ...activity, snapshot: this.snapshot(record) })
+    })
+  }
+
+  unpublish(record) {
+    if (this.sessions.get(record.id) !== record) return
+    record.unobserve?.()
+    record.unobserve = undefined
+    this.sessions.delete(record.id)
+  }
+
+  notify(owner, activity) {
+    const listeners = this.listeners.get(owner)
+    if (listeners === undefined) return
+    for (const listener of [...listeners]) this.deliver(listener, activity)
+  }
+
+  deliver(listener, activity) {
+    try {
+      listener(activity)
+    } catch {
+      // Observers cannot interrupt registry lifecycle or terminal mechanics.
+    }
+  }
+
   snapshot(record, motd) {
     return {
       sessionId: record.id,
       ...record.name !== undefined ? { name: record.name } : {},
       type: record.type,
       ...record.session.pid !== undefined ? { pid: record.session.pid } : {},
+      ...record.session.dimensions !== undefined ? { dimensions: { ...record.session.dimensions } } : {},
       status: record.session.status(),
       ...motd !== undefined ? { motd } : {},
     }
@@ -374,6 +460,7 @@ export class TerminalSessionService extends Service {
       this.backends.clear()
       this.reservedNames.clear()
       this.pendingSpawns.clear()
+      this.listeners.clear()
       const cleanups = [...this.ownerCleanups.values()]
       this.ownerCleanups.clear()
       await Promise.all(cleanups.map(cleanup => Promise.resolve(cleanup())))
@@ -386,7 +473,8 @@ export class TerminalSessionService extends Service {
       record.closing = closing
       try {
         await closing
-        this.sessions.delete(record.id)
+        this.unpublish(record)
+        this.notify(record.owner, { type: 'closed', snapshot: this.snapshot(record) })
       } catch (error) {
         // A concurrent retry may already own a newer fence; never clear it.
         if (record.closing === closing) record.closing = undefined

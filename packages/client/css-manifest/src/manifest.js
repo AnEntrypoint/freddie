@@ -41,6 +41,7 @@ export const cssManifest = [
   { id: "client-ui-jobs-src-client-JobListAction", path: "packages/client/ui-jobs/src/client/JobListAction.css" },
   { id: "client-ui-layout-src-client-AppFrame", path: "packages/client/ui-layout/src/client/AppFrame.css" },
   { id: "client-ui-message-feedback-src-client-MessageFeedbackActions", path: "packages/client/ui-message-feedback/src/client/MessageFeedbackActions.css" },
+  { id: "client-ui-observability-src-client-ObservabilityDock", path: "packages/client/ui-observability/src/client/ObservabilityDock.css" },
   { id: "client-ui-model-selection-src-client-ModelSelect", path: "packages/client/ui-model-selection/src/client/ModelSelect.css" },
   { id: "client-ui-permission-presets-src-client-PermissionRow", path: "packages/client/ui-permission-presets/src/client/PermissionRow.css" },
   { id: "client-ui-plan-src-client-PlanModeControl", path: "packages/client/ui-plan/src/client/PlanModeControl.css" },

@@ -1,0 +1,31 @@
+{
+  "name": "@freddie/freddie-gm-progress",
+  "description": "Session projection of committed GM progress snapshots",
+  "version": "0.1.1-rc.2",
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/gm/gm-progress"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": { "default": "./src/index.js" },
+    "./invariant": { "default": "./src/invariant.js" },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": ["src/*.js"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-session-projection": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-session-projection": "*"
+  }
+}

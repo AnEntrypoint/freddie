@@ -22,6 +22,7 @@ import { errorChain } from '@freddie/freddie-llm'
 import { isAppendSurfaceEvent, isJsonValue } from '@freddie/freddie-session'
 import { SessionQueryError } from '@freddie/freddie-session-query'
 import { SubagentError } from '@freddie/freddie-subagent'
+import { TerminalError, TerminalSessionId } from '@freddie/freddie-terminal'
 import { isUserInvocable } from '@freddie/freddie-skill'
 import {
   workspaceDomainState, workspaceRecord, WorkspaceId as brandWorkspaceId,
@@ -896,6 +897,7 @@ export function createApiProxy(ctx, defaults) {
   const pendingApprovals = new Map()
   const muxQueues = new Set()
   const imageAdmissionChains = new WeakMap()
+  const terminalSubscriptions = new WeakMap()
 
   /** Serialize image admission with model selection for one agent. */
   function serializeImageAdmission(agent, operation) {
@@ -1018,6 +1020,31 @@ export function createApiProxy(ctx, defaults) {
   function broadcast(payload) {
     const envelope = frame(payload)
     for (const queue of muxQueues) queue.push(envelope)
+  }
+
+  function terminalError(request, error) {
+    if (!(error instanceof TerminalError)) {
+      return err(request, { code: 'terminal-unavailable', message: error instanceof Error ? error.message : String(error), details: {} })
+    }
+    const code = error.code === 'NO_SESSION' ? 'terminal-not-found'
+      : error.code === 'FOREIGN_SESSION' ? 'terminal-unauthorized'
+        : 'terminal-unavailable'
+    return err(request, { code, message: error.message, details: {} })
+  }
+
+  async function terminalOwner(request) {
+    const sessionId = request.payload?.sessionId
+    const refused = requireNonEmptyString(request, sessionId, 'terminal request requires payload.sessionId as a non-empty string')
+    if (refused !== undefined) return { response: refused }
+    const found = await agentFor(sessionId)
+    return 'error' in found ? { response: err(request, found.error) } : { agent: found.agent }
+  }
+
+  function subscribeTerminal(agent) {
+    if (terminalSubscriptions.has(agent)) return
+    terminalSubscriptions.set(agent, ctx.terminals.subscribe(agent, activity => {
+      broadcast({ type: 'terminal/activity', sessionId: agent.id, activity })
+    }))
   }
 
   // Projection change feed → session/projection push frames. The carrier
@@ -3242,6 +3269,94 @@ export function createApiProxy(ctx, defaults) {
       },
     },
 
+    terminal: {
+      async list(request) {
+        const owner = await terminalOwner(request)
+        if (owner.response !== undefined) return owner.response
+        try {
+          return ok(request, { terminals: ctx.terminals.list(owner.agent) })
+        } catch (error) {
+          return terminalError(request, error)
+        }
+      },
+
+      async open(request, signal) {
+        const owner = await terminalOwner(request)
+        if (owner.response !== undefined) return owner.response
+        const type = request.payload?.type
+        if (typeof type !== 'string' || type.length === 0) return badRequest(request, 'terminal.open requires payload.type as a non-empty string')
+        try {
+          const terminal = await ctx.terminals.spawn(owner.agent, {
+            type,
+            ...typeof request.payload?.name === 'string' ? { name: request.payload.name } : {},
+            ...typeof request.payload?.cwd === 'string' ? { cwd: request.payload.cwd } : {},
+          }, signal)
+          subscribeTerminal(owner.agent)
+          return ok(request, { terminal })
+        } catch (error) {
+          return terminalError(request, error)
+        }
+      },
+
+      async snapshot(request) {
+        const owner = await terminalOwner(request)
+        if (owner.response !== undefined) return owner.response
+        const terminalId = request.payload?.terminalId
+        if (typeof terminalId !== 'string' || terminalId.length === 0) return badRequest(request, 'terminal.snapshot requires payload.terminalId as a non-empty string')
+        try {
+          const terminal = ctx.terminals.list(owner.agent).find(item => item.sessionId === terminalId)
+          if (terminal === undefined) return err(request, { code: 'terminal-not-found', message: `terminal ${terminalId} is not owned by this session`, details: {} })
+          return ok(request, { terminal, output: ctx.terminals.read(owner.agent, TerminalSessionId(terminalId), { count: 1000 }) })
+        } catch (error) {
+          return terminalError(request, error)
+        }
+      },
+
+      async input(request) {
+        const owner = await terminalOwner(request)
+        if (owner.response !== undefined) return owner.response
+        const { terminalId, data } = request.payload ?? {}
+        if (typeof terminalId !== 'string' || terminalId.length === 0 || typeof data !== 'string') {
+          return badRequest(request, 'terminal.input requires payload.terminalId and payload.data strings')
+        }
+        if (Buffer.byteLength(data, 'utf8') > 64 * 1024) {
+          return badRequest(request, 'terminal.input payload.data must not exceed 65536 UTF-8 bytes')
+        }
+        try {
+          await ctx.terminals.write(owner.agent, TerminalSessionId(terminalId), data)
+          return ok(request, { accepted: true })
+        } catch (error) {
+          return terminalError(request, error)
+        }
+      },
+
+      async resize(request) {
+        const owner = await terminalOwner(request)
+        if (owner.response !== undefined) return owner.response
+        const { terminalId, cols, rows } = request.payload ?? {}
+        if (typeof terminalId !== 'string' || !Number.isSafeInteger(cols) || !Number.isSafeInteger(rows)) {
+          return badRequest(request, 'terminal.resize requires terminalId and positive integer cols/rows')
+        }
+        try {
+          return ok(request, { dimensions: await ctx.terminals.resize(owner.agent, TerminalSessionId(terminalId), cols, rows) })
+        } catch (error) {
+          return terminalError(request, error)
+        }
+      },
+
+      async close(request) {
+        const owner = await terminalOwner(request)
+        if (owner.response !== undefined) return owner.response
+        const terminalId = request.payload?.terminalId
+        if (typeof terminalId !== 'string' || terminalId.length === 0) return badRequest(request, 'terminal.close requires payload.terminalId as a non-empty string')
+        try {
+          return ok(request, { closed: await ctx.terminals.kill(owner.agent, TerminalSessionId(terminalId), 'browser request') })
+        } catch (error) {
+          return terminalError(request, error)
+        }
+      },
+    },
+
     llm: {
       providers(request) {
         const registered = ctx.llm.listProviders()
@@ -3348,6 +3463,14 @@ export function createApiProxy(ctx, defaults) {
         // per-turn call count: entries clear on turn/end; a table miss (stream
         // opened mid-turn) backscans the session's in-memory events instead.
         const openCalls = new Map()
+        for (const session of ctx.sessions.list()) {
+          const agent = ctx.agents.get(session.id)
+          if (agent?.session !== session) continue
+          subscribeTerminal(agent)
+          for (const terminal of ctx.terminals.list(agent)) {
+            queue.push(frame({ type: 'terminal/activity', sessionId: session.id, activity: { type: 'snapshot', snapshot: terminal } }))
+          }
+        }
         const disposers = [
           ctx.on('session/event', (session, event) => {
             if (event.type === 'tool/call') {
@@ -3371,6 +3494,8 @@ export function createApiProxy(ctx, defaults) {
           }),
           ctx.on('session/created', (session) => {
             subscribeSession(queue, session)
+            const agent = ctx.agents.get(session.id)
+            if (agent?.session === session) subscribeTerminal(agent)
             // The subscribe frame clears the client's task mirror, and a
             // session born after the stream opened missed the baseline loop.
             // Unowned tasks are visible to it from birth, so without this it

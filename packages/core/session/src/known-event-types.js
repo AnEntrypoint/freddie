@@ -55,6 +55,8 @@ export const KNOWN_SESSION_EVENT_TYPES = new Set([
   'todo/write',
   'tool-workflow/agent-end',
   'tool-workflow/agent-start',
+  'tool-workflow/log',
+  'tool-workflow/phase',
   'tool-workflow/run-end',
   'tool-workflow/run-start',
   'tool/call',

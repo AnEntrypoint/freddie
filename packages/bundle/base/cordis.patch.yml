@@ -184,6 +184,9 @@
     - id: session-projection
       name: '@freddie/freddie-session-projection'
 
+    - id: gm-progress
+      name: '@freddie/freddie-gm-progress'
+
     # Session telemetry is mounted but disabled by default. FREDDIE_TELEMETRY_MODE
     # explicitly opts into FULL or FEEDBACK_ONLY reporting; uploading mirrors
     # session-log records onto OTLP/HTTP logs with no session-telemetry/record redaction
@@ -220,6 +223,14 @@
 
     - id: subprocess
       name: '@freddie/freddie-subprocess-local'
+
+    - id: terminal
+      name: '@freddie/freddie-terminal'
+
+    - id: terminal-bash
+      name: '@freddie/freddie-terminal-bash'
+      config:
+        shellDialect: !!js "process.platform === 'win32' ? 'pwsh' : 'bash'"
 
     # Every shipped CLI mode starts with the same file-effect boundary.
     # The environment remains an explicit deployment override; otherwise fresh

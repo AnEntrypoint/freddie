@@ -277,6 +277,26 @@ export class SessionRuntime {
     return this.manager.subagentAddress(id)
   }
 
+  /** Read the owner-scoped terminal activity source for one session. */
+  terminalActivity(sessionId) {
+    return this.manager.terminalStore(sessionId)
+  }
+
+  /** Apply an authoritative terminal unary-response snapshot before its mux echo arrives. */
+  noteTerminalActivity(sessionId, activity) {
+    this.manager.terminalStore(sessionId).apply(activity)
+  }
+
+  /** Read recent live durable activity for non-selected sessions without changing selection. */
+  treeActivity() {
+    return this.manager.treeActivitySource()
+  }
+
+  /** Read mux-fed terminal snapshots for every live session without changing selection. */
+  treeTerminals() {
+    return this.manager.treeTerminalSource()
+  }
+
   /**
    * Inform the runtime whether a catalog menu is consuming membership updates.
    * @param parentSessionId - selected parent.

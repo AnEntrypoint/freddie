@@ -151,6 +151,74 @@
   min-width: 0;
 }
 
+.freddie-workflowRunPanel__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 0;
+  color: var(--freddie-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.freddie-workflowRunPanel__currentPhase,
+.freddie-workflowRunPanel__declaredPhases {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.freddie-workflowRunPanel__progressLabel {
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-workflowRunPanel__currentPhaseName {
+  font-weight: 510;
+}
+
+.freddie-workflowRunPanel__declaredPhase {
+  max-width: 180px;
+  overflow: hidden;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--freddie-alias-bg-module-platform);
+  color: var(--freddie-alias-label-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.freddie-workflowRunPanel__declaredPhase[data-current] {
+  background: var(--freddie-alias-state-business-primary);
+  color: var(--freddie-alias-label-inverse);
+}
+
+.freddie-workflowRunPanel__logDetails {
+  min-width: 0;
+}
+
+.freddie-workflowRunPanel__logSummary {
+  cursor: pointer;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-workflowRunPanel__logs {
+  max-height: 180px;
+  margin: 4px 0 0;
+  padding: 6px 8px 6px 24px;
+  overflow: auto;
+  border-radius: 4px;
+  background: var(--freddie-alias-bg-module-platform);
+  color: var(--freddie-alias-label-secondary);
+  font-family: var(--freddie-font-family-mono, ui-monospace, monospace);
+  white-space: pre-wrap;
+}
+
+.freddie-workflowRunPanel__logLine + .freddie-workflowRunPanel__logLine {
+  margin-top: 2px;
+}
+
 .freddie-workflowRunPanel__members {
   display: flex;
   flex-direction: column;

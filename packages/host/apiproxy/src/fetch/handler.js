@@ -65,6 +65,10 @@ import {
   subagentListRequestSchema,
   subagentPromptRequestSchema,
 } from '../api/subagents.schema.js'
+import {
+  terminalCloseRequestSchema, terminalInputRequestSchema, terminalListRequestSchema,
+  terminalOpenRequestSchema, terminalResizeRequestSchema, terminalSnapshotRequestSchema,
+} from '../api/terminals.schema.js'
 
 /**
  * Unary dispatch table. Every invoke receives the carrier Request's signal;
@@ -88,6 +92,12 @@ const UNARY_ROUTES = {
   'subagent.history': { schema: subagentHistoryRequestSchema, invoke: (api, r, signal) => api.subagents.history(r, signal) },
   'subagent.prompt': { schema: subagentPromptRequestSchema, invoke: (api, r, signal) => api.subagents.prompt(r, signal) },
   'subagent.interrupt': { schema: subagentInterruptRequestSchema, invoke: (api, r) => api.subagents.interrupt(r) },
+  'terminal.list': { schema: terminalListRequestSchema, invoke: (api, r) => api.terminal.list(r) },
+  'terminal.open': { schema: terminalOpenRequestSchema, invoke: (api, r, signal) => api.terminal.open(r, signal) },
+  'terminal.snapshot': { schema: terminalSnapshotRequestSchema, invoke: (api, r) => api.terminal.snapshot(r) },
+  'terminal.input': { schema: terminalInputRequestSchema, invoke: (api, r) => api.terminal.input(r) },
+  'terminal.resize': { schema: terminalResizeRequestSchema, invoke: (api, r) => api.terminal.resize(r) },
+  'terminal.close': { schema: terminalCloseRequestSchema, invoke: (api, r) => api.terminal.close(r) },
   'host.describe': { schema: hostDescribeRequestSchema, invoke: (api, r) => api.host.describe(r) },
   'host.pickDirectory': { schema: hostPickDirectoryRequestSchema, invoke: (api, r, signal) => api.host.pickDirectory(r, signal) },
   'host.listDirectory': { schema: hostListDirectoryRequestSchema, invoke: (api, r, signal) => api.host.listDirectory(r, signal) },

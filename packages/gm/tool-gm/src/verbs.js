@@ -46,9 +46,10 @@ const jsonOutput = {
  * `Gm` service instance from `@freddie/freddie-gm-client`) is closed over
  * from the owning plugin's `apply(ctx)` instead.
  * @param gm - the `Gm` service instance this composition mounted.
+ * @param onSuccess - receives a successful daemon result and the model-tool execution context after each GM dispatch.
  * @returns the tool definitions, ready for `ctx.tools.register()`.
  */
-export function buildGmTools(gm) {
+export function buildGmTools(gm, onSuccess = () => {}) {
   /**
    * One JSON-body gm-verb tool. `verb` is the real gm spool verb name (never
    * derived from `name` -- gm's own verb naming mixes dashes and underscores
@@ -77,11 +78,13 @@ export function buildGmTools(gm) {
       presentResult,
       async execute(args, exec) {
         const cwd = exec.agent?.session.header.cwd
-        return gm.call(verb, toBody(args), {
+        const value = await gm.call(verb, toBody(args), {
           signal: exec.signal,
           timeoutMs,
           ...cwd === undefined ? {} : { cwd },
         })
+        onSuccess(value, exec)
+        return value
       },
     })
   }
@@ -248,12 +251,14 @@ export function buildGmTools(gm) {
       const budget = Math.max(GM_TOOL_TIMEOUT_MS, requested)
       const raw = args.timeoutMs === undefined ? args.code : `timeoutMs=${args.timeoutMs}\n${args.code}`
       const cwd = exec.agent?.session.header.cwd
-      return gm.call('exec_js', {}, {
+      const value = await gm.call('exec_js', {}, {
         rawBody: raw,
         signal: exec.signal,
         timeoutMs: budget,
         ...cwd === undefined ? {} : { cwd },
       })
+      onSuccess(value, exec)
+      return value
     },
   })
 

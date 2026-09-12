@@ -162,11 +162,14 @@ export class LocalPtySession {
   closing = false
   closePromise
   transportFailure
+  dimensions
+  listeners = new Set()
 
   constructor(terminal, config) {
     this.terminal = terminal
     this.config = config
     this.pid = terminal.pid
+    this.dimensions = { cols: config.cols, rows: config.rows }
     this.sanitizer = new TerminalSanitizer(config.maxReadBytes)
     this.scrollback = new BoundedTextBuffer(config.scrollbackMaxBytes, config.scrollbackLines)
     terminal.output.on('data', this.onTerminalData)
@@ -290,6 +293,22 @@ export class LocalPtySession {
     this.promptTail = ''
   }
 
+  /**
+   * Subscribe to local PTY output and lifecycle activity.
+   * @param listener - synchronous receiver for sanitized activity.
+   * @returns disposer that prevents future delivery to this listener.
+   */
+  subscribe(listener) {
+    this.listeners.add(listener)
+    return () => { this.listeners.delete(listener) }
+  }
+
+  async write(data) {
+    if (this.closing) throw new Error('PTY session is closing')
+    if (this.statusValue.kind === 'exited') throw new Error('PTY session has exited')
+    await this.terminal.write(data)
+  }
+
   read(request) {
     const snapshot = this.scrollback.snapshot()
     const lines = snapshot.text.split('\n')
@@ -315,6 +334,14 @@ export class LocalPtySession {
     }
   }
 
+  async resize(cols, rows) {
+    if (this.closing) throw new Error('PTY session is closing')
+    await this.terminal.resize(cols, rows)
+    this.dimensions = { cols, rows }
+    this.emit({ type: 'resized', dimensions: { ...this.dimensions } })
+    return this.dimensions
+  }
+
   async signal(signal) {
     if (this.closing) throw new Error('PTY session is closing')
     const targetPgid = await this.terminal.signalForeground(signal)
@@ -323,6 +350,17 @@ export class LocalPtySession {
 
   status() {
     return this.statusValue
+  }
+
+  emit(activity) {
+    for (const listener of [...this.listeners]) {
+      try {
+        listener(activity)
+      } catch {
+        // Local listeners are an optional observation path; output processing and
+        // terminal teardown continue when an observer fails.
+      }
+    }
   }
 
   close(reason) {
@@ -378,6 +416,7 @@ export class LocalPtySession {
     await this.outputEnded.promise
     if (this.transportFailure !== undefined) return
     this.statusValue = { kind: 'exited', exitCode: outcome.exitCode, signal: outcome.signal }
+    this.emit({ type: 'exited', status: this.status() })
     this.settleActive('session_exit')
   }
 
@@ -385,6 +424,7 @@ export class LocalPtySession {
     const failure = error instanceof Error ? error : new Error(String(error))
     this.transportFailure ??= failure
     this.statusValue = { kind: 'exited', exitCode: null, signal: null }
+    this.emit({ type: 'exited', status: this.status() })
     this.failActive(failure)
     void this.terminal.terminate().catch(() => {})
   }
@@ -394,6 +434,7 @@ export class LocalPtySession {
     this.lastOutputAt = Date.now()
     this.scrollback.append(text)
     this.active?.append(text)
+    this.emit({ type: 'output', text })
   }
 
   schedulePoll(operation, delayMs = this.config.pollIntervalMs) {
@@ -535,6 +576,7 @@ export class LocalPtySession {
     this.terminal.output.off('data', this.onTerminalData)
     this.terminal.output.off('end', this.onTerminalEnd)
     this.terminal.output.off('error', this.onTerminalError)
+    this.listeners.clear()
     if (this.transportFailure !== undefined) throw this.transportFailure
   }
 }

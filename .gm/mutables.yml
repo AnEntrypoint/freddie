@@ -446,3 +446,210 @@
   session_id: freddie-2796907-1789090297792
   status: witnessed
   witness_evidence: Static evidence establishes configured bounds and synchronous paths; live workload timing remains intentionally unclaimed and is included as a verification requirement for each proposal.
+- id: gui-workflow-feature-boundary
+  prd_id: freddie-gui-harness-architecture-assessment
+  obligation_kind: precondition
+  subject: Desired workflow-state UI and its exact user-facing scope are not specified beyond architectural inspection.
+  text: Witness by distinguishing existing capability seams from prospective extension points, and mark any feature-specific choices as product decisions rather than established facts.
+  session_id: freddie-37249-1789201746935
+  status: witnessed
+  witness_evidence: 'Existing UI state channels establish the applicable boundary: durable workflow events feed ui-workflow-run, generic session projections feed ui-goal and ui-plan, and subagent catalogs are remote-refreshed. The requested specific future feature remains unspecified, so the route keeps feature policy decisions explicit.'
+- id: sharesies-upstream-availability
+  prd_id: sharesies-tty-evidence
+  obligation_kind: precondition
+  subject: Exact upstream sources and repository default branch contents must be accessible via GitHub.
+  text: Witness with GitHub repository and raw source URLs, then distinguish direct source facts from unverified claims.
+  session_id: freddie-37249-1789201746935
+  status: witnessed
+  witness_evidence: 'GitHub repository page and default-main recursive tree were read directly: https://github.com/AnEntrypoint/sharesies and https://api.github.com/repos/AnEntrypoint/sharesies/git/trees/main?recursive=1; relevant raw sources were then retrieved.'
+- id: sharesies-snapshot-semantics
+  prd_id: sharesies-architecture-research
+  obligation_kind: type-shape
+  subject: Determine whether upstream snapshot means durable terminal-state snapshots or testing-only visual buffer inspection.
+  text: 'Witnessed upstream at commit dba45d6e: SharedSession explicitly has no replay/history (src/session.js); browser makes window.__sharesiesTerm available for browser E2E buffer reads (web/src/client.js). Therefore upstream does not provide durable session snapshots.'
+  session_id: freddie-37249-1789201746935
+  status: witnessed
+  witness_evidence: 'Resolved: sharesies uses no durable terminal history or snapshots. src/session.js comments and addClient() behavior establish live-only streams plus a SIGWINCH redraw nudge; web/src/client.js exposes xterm only for rendered-buffer E2E observation.'
+- id: terminal-contract-location
+  prd_id: observability-contract
+  obligation_kind: precondition
+  subject: Exact existing terminal service/API/client protocol and authorized client-control path
+  text: Witness by reading the terminal service, tool, API proxy schema, client terminal UI, and web composition contracts before emitting a new seam.
+  session_id: freddie-37249-1789201746935
+  status: witnessed
+  witness_evidence: packages/terminal/terminal/src/index.js:83-254 establishes owner-scoped spawn/send/read/resize/signal/close/list; packages/terminal/terminal-bash/src/session.js:295-406 owns bounded scrollback and decoded PTY output; packages/host/apiproxy/src/index.js:33-89 exposes no terminal remote; packages/client/ui-tool/src/client/tool/toolviews/bash-sample.js:54-214 is transcript-only. The current terminal contract has no browser control plane.
+- id: gm-dispatch-integration
+  prd_id: observability-gm-bridge
+  obligation_kind: precondition
+  subject: Exact package or runtime boundary where GM tool results can safely publish session events
+  text: Witness through source search and direct inspection of the active GM tool integration rather than assuming a global hook.
+  session_id: freddie-37249-1789201746935
+  status: witnessed
+  witness_evidence: packages/gm/tool-gm/src/verbs.js:79-87 is the committed successful model-tool result boundary, with exec.agent.session available; packages/gm/tool-gm/src/index.js:46-56 appends the compact GM snapshot after that result.
+- id: interactive-terminal-carrier
+  prd_id: observability-terminal-plane
+  obligation_kind: type-shape
+  subject: Browser-to-host terminal remote protocol and live downlink carrier
+  text: The API proxy currently exposes no terminal domain (packages/host/apiproxy/src/index.js:33-89). Establish exact caller/session authorization, snapshot, input, resize, and stream message schemas before implementation.
+  session_id: freddie-37249-1789201746935
+  status: witnessed
+  witness_evidence: packages/terminal/terminal/src/index.js:190-250 already supplies exact-owner subscription, bounded reads, resize, and control; packages/api/remotes/src/client/index.js:19-36 is the existing typed browser-to-host carrier. The bridge will use a new terminal Remote for caller-to-Agent resolution and low-rate `terminalSummary` projection, while high-rate screen/output remains an explicitly bounded live client stream.
+- id: gm-source-adapter
+  prd_id: observability-gm-bridge
+  obligation_kind: type-shape
+  subject: Host adapter translating actual GM disk/runtime state to a session-owned durable projection
+  text: No Freddie source hit owns gm_instruction/PRD/mutable state. Establish a generic host adapter around structured GM files/notifications with an explicit workspace-to-session association; client code must not poll .gm.
+  session_id: freddie-37249-1789201746935
+  status: witnessed
+  witness_evidence: packages/gm/tool-gm/src/index.js:47-59 appends a complete ignorable `gm/progress` session event after every successful GM tool response, using the configured GM session id and response counts; session projections/carriers already consume committed events.
+- id: gm-progress-session-log-api
+  prd_id: gm-progress-bridge
+  obligation_kind: type-shape
+  subject: Exact session event declaration and append API available to the model-tool plugin
+  text: Inspect the session package and mounted GM composition, then use the documented event envelope and session append call.
+  session_id: freddie-37249-1789201746935
+  status: witnessed
+  witness_evidence: 'packages/core/session/README.md documents Session.append; packages/gm/tool-gm/src/index.js:47-56 uses exec.agent.session.append(''gm/progress'', snapshot, { ignorable: true }) only after gm.call resolves successfully.'
+- id: dependency-scan-workspace-cycle
+  prd_id: observability-dependency-scan
+  obligation_kind: invariant
+  subject: Canonical node_modules directories require once-only traversal
+  text: User authorized repairing the scan prerequisite in-pass. The first scan reports blockedCount 9 from repeated pnpm workspace aliases, so scanner traversal must identify canonical visited directories without excluding source/dependency content.
+  session_id: freddie-192180-1789217365634
+  status: witnessed
+  witness_evidence: The authoritative scanner source already deduplicates traversal by host_stat canonicalPath at /config/workspace/gm/rs-plugkit/crates/plugkit-core/src/scan_deps.rs:353-368 and applies it across packages at lines 409-460. The blocked live result came from an older loaded artifact; the current source establishes the required invariant and must be rebuilt/published before the final scan.
+- id: gm-progress-replay
+  prd_id: observability-gm-bridge
+  obligation_kind: invariant
+  subject: GM projection updates only from complete committed snapshots
+  text: Witness the pure fold preserves identity on unrelated events and replaces state only for the complete gm/progress payload.
+  session_id: freddie-192180-1789217365634
+  status: witnessed
+  witness_evidence: gm_exec_js dispatch 1789218691694 returned sameOnIrrelevant:true and a detached complete gm/progress snapshot from packages/gm/gm-progress/src/projection.js.
+- id: observability-client-render
+  prd_id: observability-gui
+  obligation_kind: effect-boundary
+  subject: Observability dock has no browser filesystem or standalone subscription side effect
+  text: Witness the browser plugin only registers a slot and reads projections through the renderer-provided hook.
+  session_id: freddie-192180-1789217365634
+  status: witnessed
+  witness_evidence: gm_exec_js dispatch 1789218691893 returned registersSlot:true, projectionOnly:true, and noFilesystem:true for packages/client/ui-observability/src/client/index.js and ObservabilityDock.js.
+- id: observability-live-browser-activation
+  prd_id: observability-gui
+  obligation_kind: precondition
+  subject: Running Web composition must activate new host and client plugin rows
+  text: The current GUI process was booted before the new composition rows existed. A fresh real Web boot or permitted shell refresh is required to witness the registered projection and HMR dock; do not claim the existing process loaded them.
+  session_id: freddie-192180-1789217365634
+  status: witnessed
+  witness_evidence: Fresh Web process on http://127.0.0.1:3091 loaded @freddie/freddie-client-ui-observability in window.__FREDDIE_BOOT__.entries and rendered [data-observability-dock] with GM, Workflows, Subagents, and Terminal cards; agent-browser page evaluation recorded the dock text.
+- id: terminal-browser-command-transport
+  prd_id: observability-terminal-plane
+  obligation_kind: type-shape
+  subject: Browser terminal input and snapshot RPC must preserve exact-Agent terminal authority
+  text: ApiProxy's unary fetch carrier provides a routed public path, but no terminal domain exists. Define a terminal namespace with sessionId/terminalId validation that resolves the live agent and calls ctx.terminals only through the existing exact-owner methods; determine high-rate output delivery via mux frame extension.
+  session_id: freddie-192180-1789217365634
+  status: witnessed
+  witness_evidence: packages/host/apiproxy/src/api-proxy.js now resolves every terminal request through `agentFor(sessionId)` and calls `ctx.terminals` exact-owner methods; packages/host/apiproxy/src/fetch/handler.js routes terminal.*, and events.mux subscribes through ctx.terminals.subscribe with mux-scoped cleanup.
+- id: observability-source-of-truth
+  prd_id: gui-unified-observability
+  obligation_kind: invariant
+  subject: The event/source model and its existing ownership boundaries are unknown.
+  text: Witness the current host event sources, client data provider, and live GUI subscription path before selecting an implementation; verify every rendered unit derives from the same authoritative projection used by agent operations.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Observed host `gmProgress` projection at packages/gm/gm-progress/src/projection.js:12, durable workflow fold at packages/client/ui-workflow-run/src/client/workflow-definition.js:104, client session projection store at packages/client/runtime/src/client/sessions/projection-store.js:23, and existing terminal mux intake at packages/client/ui-observability/src/client/index.js:27. The current dock duplicates terminal state in globals, so the shared projection store is the correct ownership target.
+- id: hmr-runtime-reload-failure
+  prd_id: gui-unified-observability
+  obligation_kind: postcondition
+  subject: Live HMR activation produced a client-modules bootstrap failure after editing the preloaded runtime package.
+  text: Reproduce and distinguish expected shell/runtime reload behavior from a client-HMR defect; the final live verification must show the Web GUI survives source updates and reports HMR state without a bootstrap failure.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: The initial client-HMR replacement of preloaded runtime code failed with `createClientModuleSystem must run before plugin boot`; a normal page reload remounted successfully and rendered the updated dock. This is expected shell-reload behavior for static runtime changes; feature client package changes continue to HMR.
+- id: observation-panel-runtime-sources
+  prd_id: workflow-observability
+  obligation_kind: precondition
+  subject: Identify the existing Web component files and runtime event payloads that own workflow progress/logs and subagent lifecycle before extending their renderers.
+  text: Witness with source reads of the component and event provider registrations.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Source reads identify workflow renderer/registration at packages/client/ui-workflow-run/src/client/{index.js,workflow-definition.js,WorkflowRunPanel.js}; GM durable projection at packages/gm/{tool-gm/src/index.js,gm-progress/src/projection.js}; subagent UI/runtime at packages/client/ui-subagent/src/client/{index.js,SubagentHeaderLineage.js} and packages/client/runtime/src/client/sessions/subagent-lineage.js; terminal runtime and transport foundations at packages/client/runtime/src/client/sessions/{service.js,terminal-activity.js}, packages/terminal/terminal/src/index.js, and packages/host/apiproxy/src/api/terminals.schema.js.
+- id: scan-deps-live-binary-source
+  prd_id: gm-scan-deps-workspace-symlink-cycle
+  obligation_kind: precondition
+  subject: The active runner artifact must be rebuilt or otherwise pointed at the edited rs-plugkit/agentplug source before a scan_deps dispatch can witness the correction.
+  text: Witness using a real built artifact and a full scan_deps dispatch rooted at /config/workspace/freddie.
+  session_id: freddie-422260-1789231886668
+  status: unknown
+- id: gui-runtime-data-contract
+  prd_id: workflow-observability
+  obligation_kind: type-shape
+  subject: The existing web transport contract and the UI node renderers must provide durable workflow, GM, subagent, and terminal data needed by the proposed tabs.
+  text: Witness with live app and source reads before changing UI state.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Live GUI exposes session projections through useProjection and terminal snapshots through useTerminals; source reads confirmed their UI bridge and active tab contract.
+- id: codesearch-empty-observability-map
+  prd_id: workflow-observability
+  obligation_kind: precondition
+  subject: GM codesearch returned no hits for known Freddie frontend and terminal terms, so exact source locations for the requested observation map cannot yet be derived through the mandated discovery mechanism.
+  text: 'Witness: eight root-scoped gm_codesearch queries at dispatches 1789240581088 through 1789240587161 all returned vector_hits: [] with no file locations.'
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Direct source reads and live runtime inspection established the frontend and terminal map after GM codesearch returned no locations; the failure remains recorded by the GM code-insight PRD row.
+- id: agent-activity-timeline-shape
+  prd_id: agent-activity-observability
+  obligation_kind: type-shape
+  subject: The observability tabs need a concrete session snapshot or projection history source for agent activity entries, rather than a fabricated timeline.
+  text: Witness live session snapshot keys and source fold contracts before adding activity list rendering.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Live view rendered snapshot.chat.nodes as an agent activity ledger and retained session summary lineage as an agent-tree panel.
+- id: session-projection-selection-arrival
+  prd_id: trace-session-browser-projection
+  obligation_kind: precondition
+  subject: Whether browser receives session/projected data before a user selection is established.
+  text: Witness through exhaustive source trace of snapshot, subscription, projection, and navigation wiring.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'Source trace: SessionManager accepts `session/projection` before Session instantiation at packages/client/runtime/src/client/sessions/manager.js:647-654; session event frames are deliberately dropped uninstantiated at :707-742. Initial history/projection baseline is only requested after selection stages a Session at packages/client/runtime/src/client/sessions/service.js:498-515 and Session.doOpen() at session.js:590-609.'
+- id: descendant-overview-client-resolution
+  prd_id: descendant-live-activity-observation
+  obligation_kind: precondition
+  subject: A focused client-only overview needs a supported way to retain/open child Session windows and render their current data without changing SessionRuntime selection.
+  text: 'Witness: SessionRuntime stages and opens only current selection (packages/client/runtime/src/client/sessions/service.js:491-515); SessionManager drops non-instantiated mux session/event frames (manager.js:626-745), so the client needs explicit background observation/resolution.'
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Implemented a bounded non-navigating manager background activity mirror instead of resolving/opening child Session windows; it observes live mux events without changing selection.
+- id: descendant-terminal-stream-scope
+  prd_id: descendant-live-activity-observation
+  obligation_kind: precondition
+  subject: A client-only descendant Overview requires terminal/activity mux frames for every active descendant, not merely selected sessions.
+  text: 'Witness: TerminalActivityStore is owner-scoped and fed only by mux frames (packages/client/runtime/src/client/sessions/terminal-activity.js:1-55); manager routes terminal frames when received (manager.js:665-667), but subscription scope remains to be confirmed.'
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Implemented treeTerminals from mux-fed terminal stores and filtered them to selected descendant ids; terminal controls remain parent-only.
+- id: descendant-gm-activity-projection
+  prd_id: descendant-live-activity-observation
+  obligation_kind: type-shape
+  subject: The exact host projection key/value needed to summarize GM state for arbitrary active descendants must be identified.
+  text: 'Witness: selected Overview reads props.useProjection(''gmProgress'') (packages/client/ui-observability/src/client/ObservabilityDock.js:180-191), but live GM codesearch does not currently return implementation hits; projection transport behavior is documented in docs/subsystems/session-projection.md:1-99.'
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Child GM progress is read from retained list projectionValues.gmProgress when present, and live gm/progress durable events enter the bounded child activity ledger.
+- id: descendant-delivery-unselected
+  prd_id: trace-descendant-observation-protocol
+  obligation_kind: precondition
+  subject: Determine whether active descendant event and activity frames are retained or discarded when the browser has not selected that child.
+  text: Witness in host mux subscription and client SessionManager frame dispatch source with exact line references.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Host publishes every attached session through mux baseline `packages/host/apiproxy/src/api-proxy.js:3422-3493` and host lifecycle frames `3548-3572`; client retains list/projection/job/terminal state without instantiating child at `packages/client/runtime/src/client/sessions/manager.js:626-745`, but drops ordinary session/event payloads when the child Session is uninstantiated (`707-742`).
+- id: descendant-mux-subscription-scope
+  prd_id: descendant-live-activity-observation
+  obligation_kind: precondition
+  subject: The Host mux subscription scope for child session IDs must be established before rendering their terminal activity as live parent-overview data.
+  text: Witness the host mux subscription code and browser frame routing; do not represent absent child frames as live observation.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Subagent investigation and live UI confirm host mux routes terminal/activity and session events by sessionId; client runtime now retains non-selected session events and terminal stores in a bounded tree observer.

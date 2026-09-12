@@ -10,6 +10,7 @@ import { flattenLineage } from './lineage.js'
 import { Notifier } from './notifier.js'
 import { ProjectionValueStore } from './projection-store.js'
 import { Session } from './session.js'
+import { TerminalActivityStore } from './terminal-activity.js'
 
 /** Stable identity of a frame retained until an uninstantiated Session can consume it. */
 function bufferedRequestKey(envelope) {
@@ -82,6 +83,19 @@ export class SessionManager {
    * is stored as an absent key, so absence and `[]` are one representation.
    */
   jobsBySession = new Map()
+  /** Owner-scoped PTY snapshots and bounded output, fed solely by terminal/activity mux frames. */
+  terminalsBySession = new Map()
+  /** Latest non-instantiated durable event per session, retained for parent activity observers. */
+  backgroundActivity = new Map()
+  /** Coarse observer notification channel for tree activity and session membership changes. */
+  treeActivitySnapshot = Object.freeze([])
+  treeTerminalSnapshot = Object.freeze([])
+  treeActivityNotifier = new Notifier(() => {
+    this.treeActivitySnapshot = Object.freeze([...this.backgroundActivity].flatMap(([sessionId, events]) => events.map(event => Object.freeze({ sessionId, event }))))
+    this.treeTerminalSnapshot = Object.freeze([...this.terminalsBySession].flatMap(([sessionId, store]) => store.getSnapshot().map(terminal => Object.freeze({ sessionId, terminal }))))
+  })
+  treeActivitySourceCache
+  treeTerminalSourceCache
 
   selected
 
@@ -276,6 +290,52 @@ export class SessionManager {
       this.projectionStores.set(sessionId, store)
     }
     return store
+  }
+
+  /** Resident per-session terminal activity store (create-on-demand; mux-fed only). */
+  terminalStore(sessionId) {
+    let store = this.terminalsBySession.get(sessionId)
+    if (store === undefined) {
+      store = new TerminalActivityStore()
+      this.terminalsBySession.set(sessionId, store)
+    }
+    return store
+  }
+
+  /** Bounded durable activity mirror for a session that has no rendered conversation instance. */
+  noteBackgroundActivity(sessionId, event) {
+    const prior = this.backgroundActivity.get(sessionId) ?? []
+    const next = [...prior, event]
+    this.backgroundActivity.set(sessionId, next.length <= 80 ? next : next.slice(-80))
+    this.treeActivityNotifier.markDirty()
+  }
+
+  /** Stable observable snapshot of terminal activity for every mux-fed session. */
+  treeTerminalSource() {
+    if (this.treeTerminalSourceCache === undefined) {
+      this.treeTerminalSourceCache = {
+        getSnapshot: () => {
+          this.treeActivityNotifier.ensureFresh()
+          return this.treeTerminalSnapshot
+        },
+        subscribe: listener => this.treeActivityNotifier.subscribe(listener),
+      }
+    }
+    return this.treeTerminalSourceCache
+  }
+
+  /** Stable observable snapshot of all unselected-session activity; consumers filter their tree locally. */
+  treeActivitySource() {
+    if (this.treeActivitySourceCache === undefined) {
+      this.treeActivitySourceCache = {
+        getSnapshot: () => {
+          this.treeActivityNotifier.ensureFresh()
+          return this.treeActivitySnapshot
+        },
+        subscribe: listener => this.treeActivityNotifier.subscribe(listener),
+      }
+    }
+    return this.treeActivitySourceCache
   }
 
   /**
@@ -631,6 +691,9 @@ export class SessionManager {
       // repaired older user messages from moving the row backwards.
       this.recordMutation({ kind: 'activity', sessionId: frame.sessionId, updatedAt: frame.event.time })
     }
+    if (frame.type === 'session/event' && !this.sessions.has(frame.sessionId)) {
+      this.noteBackgroundActivity(frame.sessionId, frame.event)
+    }
     if (frame.type === 'session/projection') {
       // Finished host-computed value: land it in the resident store whether or
       // not the Session is instantiated (list rows read the 'title' key). The
@@ -649,6 +712,11 @@ export class SessionManager {
       this.notifier.markDirty()
       return
     }
+    if (frame.type === 'terminal/activity') {
+      this.terminalStore(frame.sessionId).apply(frame.activity)
+      this.treeActivityNotifier.markDirty()
+      return
+    }
     if (frame.type === 'session/subscribed') {
       // Rows past the host's durable baseline rode state a restart lost; drop
       // them so last-wins cannot pin a phantom value over recomputed truth.
@@ -657,6 +725,7 @@ export class SessionManager {
       // task baseline only when the set is non-empty, so a mirror kept from the
       // previous generation would survive as a phantom list.
       this.jobsBySession.delete(frame.sessionId)
+      this.terminalsBySession.get(frame.sessionId)?.reset()
       this.notifier.markDirty()
       // New mux-generation baseline: discard the previous queue snapshot.
       // The host omits session/queue when the live queue is empty, so retaining
@@ -772,6 +841,7 @@ export class SessionManager {
         // no relative order. Clearing here makes a detached Activation's rows
         // disappear whichever arrives first.
         this.jobsBySession.delete(frame.sessionId)
+        this.terminalsBySession.delete(frame.sessionId)
         if (!durableSubagent) this.projectionStores.delete(frame.sessionId)
         // A pull already in flight was requested before this removal and can
         // carry the pre-removal parentAvailable:true, which would resurrect

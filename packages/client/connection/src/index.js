@@ -90,6 +90,12 @@ const PRIVILEGED_METHODS = new Set([
   'credentials.set',
   'credentials.unset',
   'llm.discoverModels',
+  'terminal.list',
+  'terminal.open',
+  'terminal.snapshot',
+  'terminal.input',
+  'terminal.resize',
+  'terminal.close',
 ])
 
 /**
