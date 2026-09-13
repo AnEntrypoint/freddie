@@ -725,3 +725,10 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: Live boot manifest includes ui-conversation and ui-trajectory. Their registered Definitions fold assistant chunks in ui-conversation/src/client/conversation-nodes/assistant.js:47-99 and ui-trajectory/src/client/trajectory-assistant-definition.js:70-128; both concatenate visible text/reasoning/tool argument fields per delta. Real Node execution through assistantDefinition with 4,096 × 64-char deltas produced 262,144 chars in 423.4 ms. This is live/reachable independent of unused PartialAccumulator.
+- id: gm-plugin-build-weights
+  prd_id: gm-scan-deps-workspace-symlink-cycle
+  obligation_kind: precondition
+  subject: The GM wasm build includes embedded BGE model weights absent from the source checkout, preventing deployment and live verification of the scanner, codesearch, and Bash parser repairs.
+  text: Witness the documented model-weight provisioning path, provision the real artifacts through it, rebuild wasm32-wasip1, install the resulting plugin artifact, then run live scan_deps and literal codesearch.
+  session_id: freddie-422260-1789231886668
+  status: unknown
