@@ -72,9 +72,9 @@ function selectedActivities(nodes) {
       activities.push({ key: node.key, label: `Workflow · ${node.data.name}`, detail: `${node.data.status} · ${node.data.currentPhase ?? 'no active phase'}` })
     } else if (node.kind === 'tool-call') {
       const root = node.data?.root
-      const name = root?.callView?.title ?? root?.resultView?.title ?? root?.call?.name ?? root?.name
+      const name = root?.call?.name ?? root?.name ?? root?.callView?.title ?? root?.resultView?.title
       const title = compactText(name)
-      if (title !== undefined) activities.push({ key: node.key, label: `Tool · ${title}`, detail: compactText(root?.callView?.description) ?? 'Tool operation completed.' })
+      if (title !== undefined) activities.push({ key: node.key, label: `Tool · ${title}`, detail: compactText(root?.callView?.description) ?? (root?.status === 'running' ? 'Running now.' : 'Tool operation completed.') })
     } else if (node.kind === 'assistant' || node.kind === 'assistant-step') {
       const text = textFromBlocks(node.data?.blocks)
       if (text !== undefined) activities.push({ key: node.key, label: 'Agent response', detail: text.slice(0, 180) })
