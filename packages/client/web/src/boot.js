@@ -111,7 +111,9 @@ export class AppWebEntry {
     ctx.on('internal/status', (fiber) => {
       const entry = fiber.entry
       if (entry === undefined || entry.fiber === undefined) return
-      this.page.setState(entry.options.name, STATE_LABELS[entry.fiber.state])
+      const state = STATE_LABELS[entry.fiber.state]
+      this.page.setState(entry.options.name, state)
+      this.page.setCurrent(state === 'active' || state === 'failed' ? undefined : entry.options.name)
     })
 
     const rows = this.manifest.plugins.map(row => row.id)
@@ -119,6 +121,7 @@ export class AppWebEntry {
     await prefetching
     await Promise.all(rows.map(async (name) => {
       this.page.setState(name, 'loading')
+      this.page.setCurrent(name)
       const id = await loader.create({ name })
       if (loader.resolve(id).fiber === undefined) this.page.setState(name, 'failed')
     }))

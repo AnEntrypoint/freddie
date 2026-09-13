@@ -750,3 +750,27 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: Live GUI at http://127.0.0.1:3080 rendered only “FREDDIE” and “0/43 services ready,” exposing no Overview surface or agent activity; therefore busy-state coverage cannot be observed in the present runtime.
+- id: gui-active-runtime-surface
+  prd_id: gui-live-baseline
+  obligation_kind: precondition
+  subject: Which app source and runtime services own the currently sparse GUI at :3080?
+  text: Witness via live browser DOM/network/console and exact source definitions before selecting implementation files.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Live browser at :3080 mounted the full workspace after the initial boot page. Boot graph identifies @freddie/freddie-client-web as the shell; packages/client/web/src/boot.js owns the framework-free loader projection. window.__FREDDIE_HMR__.status reports an open connected EventSource.
+- id: dependency-scan-recursive-chain
+  prd_id: dependency-layout-diagnosis
+  obligation_kind: precondition
+  subject: Whether scan-deps blocked reads stem from a local recursive symlink installation defect, and whether it affects runtime correctness.
+  text: Inspect link ownership and package manager metadata; re-run the scan after any supported repair.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: gm_scan_deps reported failCount 0 and its 8 blocks were only repeated nested node_modules paths. GM recall records the same pattern as a transient stale recursive link layout resolved by a frozen-lockfile reinstall in a prior pass; no runtime failure appeared in the live GUI. No dependency mutation was justified during this GUI change.
+- id: boot-progress-source
+  prd_id: boot-progress-clarity
+  obligation_kind: type-shape
+  subject: Whether the client loader exposes a stable ready/total progress event suitable for the boot page.
+  text: Read loader-status and boot-page implementation, then connect only to existing lifecycle state or add a small explicit bridge.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: packages/client/web/src/boot.js:111-115 listens to Loader internal/status and projects STATE_LABELS into BootPage; the new setCurrent bridge uses the same authoritative event.

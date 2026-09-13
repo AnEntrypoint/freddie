@@ -40,14 +40,48 @@ body[data-ds-dark-theme] .freddie-bootPage__boot {
 
 .freddie-bootPage__hint {
   font-size: 12px;
+  font-weight: 600;
   line-height: 18px;
-  color: var(--freddie-alias-label-tertiary, var(--freddie-boot-label-tertiary));
+  color: var(--freddie-alias-label-primary, var(--freddie-boot-label-primary));
+}
+
+.freddie-bootPage__progress {
+  width: min(240px, 100%);
+  height: 4px;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--freddie-alias-border-l2, var(--freddie-boot-border));
+}
+
+.freddie-bootPage__progress::-webkit-progress-bar {
+  background: var(--freddie-alias-border-l2, var(--freddie-boot-border));
+}
+
+.freddie-bootPage__progress::-webkit-progress-value {
+  background: var(--freddie-alias-brand-primary, var(--freddie-boot-brand));
+}
+
+.freddie-bootPage__progress::-moz-progress-bar {
+  background: var(--freddie-alias-brand-primary, var(--freddie-boot-brand));
 }
 
 .freddie-bootPage__loadingDetail {
   max-width: 360px;
   color: var(--freddie-alias-label-secondary, var(--freddie-boot-label-secondary));
   font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.freddie-bootPage__current {
+  max-width: 420px;
+  min-height: 18px;
+  color: var(--freddie-alias-label-tertiary, var(--freddie-boot-label-tertiary));
+  font-family: var(--ds-font-family-code, 'SF Mono', Consolas, monospace);
+  font-size: 11px;
   line-height: 18px;
   overflow-wrap: anywhere;
   text-align: center;
