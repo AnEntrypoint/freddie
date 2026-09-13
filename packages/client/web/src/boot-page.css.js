@@ -7,5 +7,7 @@ const css = {
   failed: 'freddie-bootPage__failed',
   failedTitle: 'freddie-bootPage__failedTitle',
   failedItem: 'freddie-bootPage__failedItem',
+  actions: 'freddie-bootPage__actions',
+  action: 'freddie-bootPage__action',
 }
 export default css

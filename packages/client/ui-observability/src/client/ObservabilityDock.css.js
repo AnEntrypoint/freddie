@@ -27,5 +27,8 @@ const css = {
   memberGroup: 'freddie-observability__memberGroup',
   treeActivity: 'freddie-observability__treeActivity',
   terminalOwner: 'freddie-observability__terminalOwner',
+  connection: 'freddie-observability__connection',
+  connectionDot: 'freddie-observability__connectionDot',
+  status: 'freddie-observability__status',
 }
 export default css

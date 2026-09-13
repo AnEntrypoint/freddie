@@ -102,3 +102,17 @@ body[data-ds-dark-theme] .freddie-bootPage__boot {
   color: var(--freddie-alias-label-secondary, var(--freddie-boot-label-secondary));
   white-space: pre-wrap;
 }
+
+.freddie-bootPage__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.freddie-bootPage__action {
+  border: 1px solid var(--freddie-alias-border-l2, var(--freddie-boot-border));
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--freddie-alias-label-primary, var(--freddie-boot-label-primary));
+  background: transparent;
+  cursor: pointer;
+}

@@ -523,6 +523,7 @@ export class FreddieSessionTree extends HTMLElement {
             // (WorkspaceBrowser.module.css).
               h('div', {
                 key: group.key,
+                role: 'presentation',
                 class: clsx(
                   css.groupSection,
                   workspaceMarker === 'before' && css.workspaceDropBefore,
@@ -622,11 +623,18 @@ export class FreddieSessionTree extends HTMLElement {
                   )
                 }),
                 group.sessions.length > COLLAPSED_SESSION_LIMIT && (
-                  h('button', {
-                    type: 'button',
+                  h('div', {
+                    role: 'treeitem',
+                    tabIndex: '0',
                     class: css.sessionOverflowButton ?? '',
                     'aria-expanded': String(this.#expandedSessionGroups.includes(group.key)),
                     onclick: () => { this.#expandedSessionGroups = toggled(this.#expandedSessionGroups, group.key); this.#render() },
+                    onkeydown: (event) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') return
+                      event.preventDefault()
+                      this.#expandedSessionGroups = toggled(this.#expandedSessionGroups, group.key)
+                      this.#render()
+                    },
                   },
                     this.#expandedSessionGroups.includes(group.key)
                       ? t('sessions.collapse')
@@ -843,7 +851,7 @@ export class FreddieSearchResults extends HTMLElement {
   #render() {
     const props = this.#props
     if (props === null) return
-    const { useSessions, open, workspaces, archivedSessionIds, query, remote, resultLimit, t } = props
+    const { useSessions, open, workspaces, archivedSessionIds, query, remote, resultLimit, activeId, t } = props
     const list = useSessions(s => s)
     const currentRemote = remote.query === query
       ? remote
@@ -861,6 +869,7 @@ export class FreddieSearchResults extends HTMLElement {
                 key: result.id,
                 result,
                 currentId: list.current,
+                active: result.id === activeId,
                 onOpen: open,
                 t,
               })
@@ -926,6 +935,8 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
   #query = ''
   #searchExpanded = false
   #remoteSearch = { query: '', status: 'idle', items: [], hasMore: false }
+  #searchResultIds = []
+  #activeSearchResultId = null
   #searchRoot = null
   #searchInput = null
 
@@ -1030,6 +1041,25 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
       ? (delta > 0 ? 0 : items.length - 1)
       : (current + delta + items.length) % items.length
     items[next].focus()
+  }
+
+  #moveSearchResult(delta) {
+    const ids = this.#searchResultIds
+    if (ids.length === 0) return false
+    const current = this.#activeSearchResultId === null ? -1 : ids.indexOf(this.#activeSearchResultId)
+    const next = current === -1
+      ? (delta > 0 ? 0 : ids.length - 1)
+      : (current + delta + ids.length) % ids.length
+    this.#activeSearchResultId = ids[next]
+    this.#render()
+    return true
+  }
+
+  #openActiveSearchResult(open) {
+    const id = this.#activeSearchResultId ?? this.#searchResultIds[0]
+    if (id === undefined) return false
+    open(id)
+    return true
   }
 
   #unbindOutsideClick() {
@@ -1397,6 +1427,17 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
     const normalizedQuery = sanitizeSearchQuery(query).trim()
     const remoteSearch = this.#remoteSearch
     const wsPickerOpen = this.#wsPickerOpen
+    const searchRemote = remoteSearch.query === normalizedQuery
+      ? remoteSearch
+      : { query: normalizedQuery, status: 'loading', items: [], hasMore: false }
+    const searchResults = normalizedQuery === ''
+      ? { items: [], hasMore: false }
+      : deriveSearchResults(useSessions(state => state), workspaces, normalizedQuery, archivedSessionIds, searchRemote, searchResultLimit)
+    const searchResultIds = searchResults.items.map(result => result.id)
+    this.#searchResultIds = searchResultIds
+    if (this.#activeSearchResultId !== null && !searchResultIds.includes(this.#activeSearchResultId)) {
+      this.#activeSearchResultId = null
+    }
 
     this.#syncExpandFocus(wide)
     this.#syncSearchExpandedFocus(wide, searchExpanded)
@@ -1477,12 +1518,31 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
                   maxLength: String(SEARCH_QUERY_MAX_CODE_UNITS),
                   value: query,
                   tabIndex: String(searchExpanded ? 0 : -1),
-                  oninput: (e) => { this.#query = sanitizeSearchQuery((e.target).value); this.#render() },
-                  onkeydown: (e) => {
-                    if (e.key !== 'Escape') return
-                    this.#query = ''
-                    this.#searchExpanded = false
+                  oninput: (e) => {
+                    this.#query = sanitizeSearchQuery((e.target).value)
+                    this.#activeSearchResultId = null
                     this.#render()
+                  },
+                  onkeydown: (e) => {
+                    switch (e.key) {
+                      case 'ArrowDown':
+                        if (this.#moveSearchResult(1)) e.preventDefault()
+                        return
+                      case 'ArrowUp':
+                        if (this.#moveSearchResult(-1)) e.preventDefault()
+                        return
+                      case 'Enter':
+                        if (this.#openActiveSearchResult(open)) e.preventDefault()
+                        return
+                      case 'Escape':
+                        this.#query = ''
+                        this.#activeSearchResultId = null
+                        this.#searchExpanded = false
+                        this.#render()
+                        return
+                      default:
+                        return
+                    }
                   },
                 }),
                 searchExpanded && (
@@ -1584,6 +1644,7 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
               query: normalizedQuery,
               remote: remoteSearch,
               resultLimit: searchResultLimit,
+              activeId: this.#activeSearchResultId,
               t,
             })
             : this.#renderSessionList({

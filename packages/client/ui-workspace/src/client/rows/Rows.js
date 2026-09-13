@@ -299,12 +299,13 @@ function SessionHoverContent({ node, now, t }) {
  * event inside the conversation.
  * @param props.result - merged local/content search row.
  * @param props.currentId - selected session id.
+ * @param props.active - keyboard-selected result id.
  * @param props.onOpen - open the selected session.
  * @param props.t - Workspace-browser translation seat.
  * @returns the result button.
  */
-export function SearchResultItem({ result, currentId, onOpen, t }) {
-  const selected = result.id === currentId
+export function SearchResultItem({ result, currentId, active, onOpen, t }) {
+  const selected = result.id === currentId || active
   const statuses = sessionStatuses(result, t)
   const primaryStatus = statuses[0]
   return (

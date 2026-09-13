@@ -87,27 +87,35 @@ export class ConnectionController {
         new Promise((resolve) => { hostOpened = resolve }),
       ])
 
+      let finishGeneration = () => {}
       const failed = new Promise((resolve) => {
-        const settle = () => {
+        let finished = false
+        finishGeneration = () => {
+          if (finished) return
+          finished = true
           if (gen === this.generation && !ac.signal.aborted) ac.abort()
           resolve()
         }
-        void this.pumpStream(this.api.events.mux({}, ac.signal, muxOpened), this.sinks.onMuxEnvelope, settle)
-        void this.pumpStream(this.api.events.host({}, ac.signal, hostOpened), this.sinks.onHostEnvelope, settle)
+        void this.pumpStream(this.api.events.mux({}, ac.signal, muxOpened), this.sinks.onMuxEnvelope, finishGeneration)
+        void this.pumpStream(this.api.events.host({}, ac.signal, hostOpened), this.sinks.onHostEnvelope, finishGeneration)
       })
 
       try {
         // Strict readiness handshake: describe proves unary reachability, onOpen
         // proves each physical stream is established before any frame —
         // only then may onConnected fire, so the resync it triggers cannot outrun the
-        // subscribed baseline. The timeout guards against a carrier that never fires onOpen
-        // (see ConnectionConfig.streamOpenTimeoutMs).
+        // subscribed baseline. A failed readiness handshake finishes this generation
+        // itself; reconnect must not depend on an aborted carrier eventually ending.
         const timeout = new AbortController()
-        const [description] = await Promise.all([
+        const [description, streamsReady] = await Promise.all([
           this.api.host.describe({}),
-          Promise.race([streamsOpen, sleep(this.config.streamOpenTimeoutMs, timeout.signal)]),
+          Promise.race([
+            streamsOpen.then(() => true),
+            sleep(this.config.streamOpenTimeoutMs, timeout.signal).then(() => false),
+          ]),
         ])
         timeout.abort()
+        if (!streamsReady) throw new Error('stream readiness timed out')
         const descriptionResult = description.result
         if (!descriptionResult.ok) {
           throw new Error(`host.describe failed: ${descriptionResult.error.code}: ${descriptionResult.error.message}`)
@@ -121,8 +129,9 @@ export class ConnectionController {
           this.callSink(() => { this.sinks.onConnected?.(descriptionResult.value) })
         }
       } catch {
-        // Transport failure: treat as generation failure, fall through to the shared backoff.
-        if (!ac.signal.aborted) ac.abort()
+        // Transport failure: readiness owns its terminal transition, so an
+        // uncooperative stream cannot stall the reconnect loop after abort.
+        finishGeneration()
       }
 
       await failed

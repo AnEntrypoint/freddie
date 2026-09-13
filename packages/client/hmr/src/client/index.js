@@ -7,8 +7,8 @@
  * — `immediately` rows differ only in stage-one prefetch (a boot
  * optimization), so all rostered plugin packages share these reload semantics;
  * normal packages (react family, cordis, shell, pure libs) are not entries.
- * Shell source changes remount AppWebEntry under `/__hmr/<rev>/` without
- * `location.reload`, so `window` and the EventSource origin stay put.
+ * Shell source changes reload the document, preserving one shared bootstrap
+ * module instance for client module enrollment.
  * Cascade is zero-touch:
  * downstream fibers key their activation epoch on provider fiber uids
  * (vendor/cordis/src/fiber.ts `_refresh`), so replacing a provider fiber
@@ -57,8 +57,8 @@
  * Self-reload: this plugin is itself a graph entry, so a rebuilt frame may
  * name it. The in-flight reload keeps running in the old bundle's closure
  * (its EventSource closes with the old fiber's effects); the new bundle's
- * apply opens a fresh channel. Frames arriving during the gap are lost —
- * acceptable for the dev channel, the next rebuild renotifies.
+ * apply opens a fresh channel. The host sends its current graph to each
+ * channel, so a later graph mismatch heals a missed rebuild.
  *
  * Failure policy: no rollback. A failed plugin reload or graph-rev mismatch
  * remounts AppWebEntry under `/__hmr/<rev>/`; the previous fiber is not
@@ -89,72 +89,11 @@ function removeOwnedStyles(id) {
   }
 }
 
-const HMR_PREFIX = '/__hmr/'
-
-/**
- * Point `<base href>` at `/__hmr/<rev>/` so the next native `import()` of
- * the shell and every relative fetch lives in a new URL space. The host
- * strips that prefix before matching routes, so the same files are served.
- * @param rev - opaque cache-busting token from the `shell-rebuilt` frame.
- */
-function installHmrBase(rev) {
-  const token = encodeURIComponent(String(rev))
-  let base = document.querySelector('base[data-freddie-hmr]')
-  if (base === null) {
-    base = document.createElement('base')
-    base.setAttribute('data-freddie-hmr', '')
-    document.head.prepend(base)
-  }
-  base.setAttribute('href', `${HMR_PREFIX}${token}/`)
-}
-
-/**
- * Resolve a bare specifier through the page import map, then prefix it with
- * `/__hmr/<rev>` so native import() cannot hit the previous module record.
- * Import maps cannot be rewritten after the first module loads.
- * @param specifier - import-map key.
- * @param rev - cache-busting token.
- * @returns the prefixed absolute URL.
- */
-function prefixedImportUrl(specifier, rev) {
-  const script = document.querySelector('script[type="importmap"]')
-  if (script === null || script.textContent === null || script.textContent === '') {
-    throw new Error('client-hmr: no import map to prefix for shell remount')
-  }
-  const map = JSON.parse(script.textContent)
-  const url = map.imports?.[specifier]
-  if (typeof url !== 'string' || !url.startsWith('/')) {
-    throw new Error(`client-hmr: import map has no origin-absolute URL for "${specifier}"`)
-  }
-  return `${HMR_PREFIX}${encodeURIComponent(String(rev))}${url}`
-}
-
-const LIVE_SHELL_SPECIFIERS = [
-  '@freddie/freddie-client-web',
-  '@freddie/freddie-client-ui-slots',
-  '@freddie/freddie-client-ui-primitives',
-]
-
-async function transactRemount(rev) {
-  installHmrBase(rev)
-  const previous = globalThis.__FREDDIE_SHELL__
-  if (previous !== undefined && typeof previous.dispose === 'function') {
-    await previous.dispose()
-  }
-  const root = document.getElementById('root')
-  if (root === null) throw new Error('client-hmr: missing #root for shell remount')
-  const webUrl = prefixedImportUrl('@freddie/freddie-client-web', rev)
-  const { AppWebEntry } = await import(/* @vite-ignore */ webUrl)
-  const staticModules = {
-    'webjsx': (await import('webjsx')),
-    '@freddie/cordis': (await import('@freddie/cordis')),
-  }
-  await Promise.all(LIVE_SHELL_SPECIFIERS.slice(1).map(async (specifier) => {
-    staticModules[specifier] = await import(/* @vite-ignore */ prefixedImportUrl(specifier, rev))
-  }))
-  const next = new AppWebEntry(root, { staticModules })
-  globalThis.__FREDDIE_SHELL__ = next
-  await next.run()
+async function transactRemount() {
+  // The module-system enrollment plugin holds a module-private bootstrap
+  // singleton. A shell imported in another URL space cannot enroll it, so a
+  // document reload is the only coherent recovery after shell-level changes.
+  globalThis.location.reload()
 }
 
 /**

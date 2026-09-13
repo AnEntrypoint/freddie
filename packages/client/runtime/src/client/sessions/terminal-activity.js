@@ -5,8 +5,11 @@ const MAX_OUTPUT_CHARS = 256 * 1024
 const EMPTY_TERMINALS = Object.freeze([])
 
 function boundedAppend(output, text) {
-  const next = `${output}${text}`
-  return next.length <= MAX_OUTPUT_CHARS ? next : next.slice(-MAX_OUTPUT_CHARS)
+  if (text.length >= MAX_OUTPUT_CHARS) return text.slice(-MAX_OUTPUT_CHARS)
+  const retained = output.length > MAX_OUTPUT_CHARS - text.length
+    ? output.slice(-(MAX_OUTPUT_CHARS - text.length))
+    : output
+  return retained + text
 }
 
 /** Immutable terminal snapshots for one session's current PTY ownership. */

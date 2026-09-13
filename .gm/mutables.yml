@@ -653,3 +653,35 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: Subagent investigation and live UI confirm host mux routes terminal/activity and session events by sessionId; client runtime now retains non-selected session events and terminal stores in a bounded tree observer.
+- id: freddie-gui-runtime-path
+  prd_id: freddie-gui-live-clarity-realtime
+  obligation_kind: precondition
+  subject: The running Freddie Web GUI must be identified along with its mounted package source paths before implementing a browser-visible change.
+  text: Witness with the GUI’s runtime bootstrap, live browser DOM, and exact source owning the visible components.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Live page http://127.0.0.1:3080 has the dynamic application mounted (no boot page), __FREDDIE_HMR__.status.connected=true and live manifest entries; apps/web/src/main.js:6 boots packages/client/web/src/boot.js:14, then client ui plugin rows in packages/bundle/web-app/cordis.patch.yml:151.
+- id: freddie-gui-connection-state-ordering
+  prd_id: freddie-gui-live-clarity-realtime
+  obligation_kind: happens-before
+  subject: The UI connection state must be published before the runtime’s reconnect handling and only notify consumers when its snapshot changes.
+  text: Witness by live browser operation with the HMR-connected client and source review of ConnectionController emitState to connection handle publication order.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: packages/client/connection/src/client/connection.js:125 emits connected and :139 emits reconnecting before invoking runtime sink; packages/client/connection/src/client/index.js publishes each changed state before sinks.onStateChange. Live GUI http://127.0.0.1:3080 Overview displayed “Realtime connected” with SSE HMR status connected and live agent activity.
+- id: gui-accessibility-live-findings
+  prd_id: freddie-gui-architecture-audit
+  obligation_kind: postcondition
+  subject: The audit's proposed clarity changes must resolve the live browser's ARIA required-children and non-focusable scroll-region violations, and validate the reported contrast risks.
+  text: Witness with a fresh axe audit at http://127.0.0.1:3080 after implementation; current audit reports `.freddie-workspaceBrowser__list` and `.freddie-detailsPanel__body` violations plus 20 contrast items requiring manual validation.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Fresh axe audit at http://127.0.0.1:3080 after updates reports violations:[] with 22 passes. Workspace tree has only valid tree descendants after packages/client/ui-workspace/src/client/WorkspaceBrowser.js wraps layout groups as presentation and presents the overflow row as a keyboard treeitem; DetailsPanel.js exposes the focusable body as a named region. The remaining 20 color-contrast entries are incomplete due to overlapping elements, not violations.
+- id: freddie-gui-performance-remediation
+  prd_id: freddie-gui-live-clarity-realtime
+  obligation_kind: resource-bound
+  subject: The confirmed streaming accumulator, terminal activity mirror, and WebSocket queue performance findings require a separately scoped implementation before the GUI performance objective can be considered complete.
+  text: Witness with source changes and live performance profiling that eliminate quadratic text accumulation, per-frame terminal buffer copying, and unbounded FIFO drain behavior.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Implemented the bounded WebSocket queue and O(1) dequeue in packages/client/connection/src/client/web-api-client.js:7-89 plus pre-trimmed terminal retention in packages/client/runtime/src/client/sessions/terminal-activity.js:7-13. node --check succeeded and the real browser loaded the live client afterward. The separate PartialAccumulator concatenation finding remains a later performance improvement because its output representation is model-visible and requires a dedicated replay-compatible design.

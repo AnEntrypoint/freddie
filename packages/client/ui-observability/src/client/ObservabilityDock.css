@@ -36,6 +36,45 @@
   line-height: 1.2;
 }
 
+.freddie-observability__connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: var(--freddie-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.freddie-observability__connectionDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-observability__connection[data-state='connected'] .freddie-observability__connectionDot {
+  background: var(--freddie-alias-state-success);
+}
+
+.freddie-observability__connection[data-state='reconnecting'],
+.freddie-observability__connection[data-state='connecting'] {
+  color: var(--freddie-alias-state-warning);
+}
+
+.freddie-observability__connection[data-state='reconnecting'] .freddie-observability__connectionDot,
+.freddie-observability__connection[data-state='connecting'] .freddie-observability__connectionDot {
+  background: currentColor;
+}
+
+.freddie-observability__connection[data-state='offline'] {
+  color: var(--freddie-alias-state-danger);
+}
+
+.freddie-observability__connection[data-state='offline'] .freddie-observability__connectionDot {
+  background: currentColor;
+}
+
 .freddie-observability__bluf p {
   max-width: 720px;
   margin: 10px 0 0;

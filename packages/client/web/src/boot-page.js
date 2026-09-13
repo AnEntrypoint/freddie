@@ -64,6 +64,16 @@ export class BootPage {
     this.render()
   }
 
+  /** Run one recovery action from the failure report. */
+  action(label, onClick) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = css.action
+    button.textContent = label
+    button.addEventListener('click', onClick)
+    return button
+  }
+
   /**
    * Display the boot failure report.
    * @param message - Failure report text.
@@ -88,9 +98,15 @@ export class BootPage {
       return
     }
     const report = div(css.failed)
-    report.append(div(css.failedTitle, 'Failed to load plugins'))
+    report.append(div(css.failedTitle, 'Could not start Freddie'))
     for (const id of failed) report.append(div(css.failedItem, id))
     if (this.failure !== undefined) report.append(div(css.failedItem, this.failure))
+    const actions = div(css.actions)
+    actions.append(
+      this.action('Retry', () => { globalThis.location.reload() }),
+      this.action('Copy details', () => { void globalThis.navigator.clipboard?.writeText(this.failure ?? failed.join('\n')) }),
+    )
+    report.append(actions)
     this.card.replaceChildren(this.wordmark, report)
   }
 
@@ -98,5 +114,8 @@ export class BootPage {
   updateProgress() {
     const ratio = this.total === 0 ? 0 : Math.min(this.active.size / this.total, 1)
     this.spinner.style.setProperty('--freddie-boot-arc', `${String(Math.round(72 + ratio * 216))}deg`)
+    this.hint.textContent = this.total === 0
+      ? 'Starting Freddie…'
+      : `${String(this.active.size)}/${String(this.total)} services ready`
   }
 }

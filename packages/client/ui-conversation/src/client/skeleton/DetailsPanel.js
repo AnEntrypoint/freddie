@@ -90,7 +90,7 @@ export function DetailsPanel(
     ),
     h(
       'div',
-      { class: css.body ?? '' },
+      { class: css.body ?? '', tabIndex: '0', role: 'region', 'aria-label': t('details.title') },
       selection === null || callId === undefined
         ? h('div', { class: css.empty ?? '' }, t('details.empty'))
         : material === null

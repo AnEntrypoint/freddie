@@ -15,6 +15,7 @@ export function apply(ctx) {
     inject: (sessionId) => ({
       sessionId,
       hooks: {
+        connection: ctx.connection.state,
         terminals: ctx.sessions.terminalActivity(sessionId),
         treeActivity: ctx.sessions.treeActivity(),
         treeTerminals: ctx.sessions.treeTerminals(),

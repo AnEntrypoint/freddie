@@ -32,7 +32,9 @@ export function apply(ctx) {
   const rpc = fixtureClient?.rpc ?? createWebConnectionRpc(transport?.fetch)
   let started = false
   let description
+  let state = 'connecting'
   const descriptionListeners = new Set()
+  const stateListeners = new Set()
   const publishDescription = (next) => {
     if (Object.is(description, next)) return
     description = next
@@ -44,6 +46,17 @@ export function apply(ctx) {
       }
     }
   }
+  const publishState = (next) => {
+    if (Object.is(state, next)) return
+    state = next
+    for (const listener of [...stateListeners]) {
+      try {
+        listener()
+      } catch (error) {
+        console.error('[web-runtime] connection-state listener threw:', error)
+      }
+    }
+  }
   const handle = {
     api,
     isLoopback: pageLocation === undefined || isLoopbackHostname(pageLocation.hostname),
@@ -52,6 +65,13 @@ export function apply(ctx) {
       subscribe: (listener) => {
         descriptionListeners.add(listener)
         return () => { descriptionListeners.delete(listener) }
+      },
+    },
+    state: {
+      getSnapshot: () => state,
+      subscribe: (listener) => {
+        stateListeners.add(listener)
+        return () => { stateListeners.delete(listener) }
       },
     },
     rpc,
@@ -69,15 +89,17 @@ export function apply(ctx) {
           if (!Object.is(description, next)) return
           sinks.onConnected?.(next)
         },
-        onStateChange: (state) => {
-          if (state === 'reconnecting') publishDescription(undefined)
-          sinks.onStateChange?.(state)
+        onStateChange: (next) => {
+          publishState(next)
+          if (next === 'reconnecting') publishDescription(undefined)
+          sinks.onStateChange?.(next)
         },
       }, config ?? {})
       controller.start()
       return {
         stop: () => {
           controller.stop()
+          publishState('offline')
           publishDescription(undefined)
         },
       }

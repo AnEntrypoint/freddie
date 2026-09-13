@@ -27,6 +27,7 @@ export const inject = ['clientModules', 'webServer']
 
 export const Config = z.object({
   pollIntervalMs: z.number().step(1).min(1).default(500),
+  heartbeatIntervalMs: z.number().step(1).min(1).default(15_000),
   distIndex: z.string(),
 })
 
@@ -296,10 +297,24 @@ export function apply(ctx, config) {
   const connections = new Set()
   let frameSequence = 0
 
+  /** Write one SSE line or remove a response that cannot receive it. */
+  const write = (res, line) => {
+    if (res.destroyed || res.writableEnded) {
+      connections.delete(res)
+      return
+    }
+    try {
+      res.write(line)
+    } catch (error) {
+      connections.delete(res)
+      if (error.code !== 'ERR_STREAM_DESTROYED') ctx.logger.warn(error)
+    }
+  }
+
   /** Publish one ordered frame to every connected browser. */
   const publish = (frame) => {
     const line = sseData({ ...frame, sequence: ++frameSequence })
-    for (const res of connections) res.write(line)
+    for (const res of connections) write(res, line)
   }
 
   const connect = (res) => {
@@ -310,10 +325,11 @@ export function apply(ctx, config) {
     })
     // Comment line on open so clients/proxies see a live channel even when
     // no rebuild ever happens; EventSource frame parsing skips it naturally.
-    res.write(': connected\n\n')
-    res.write(sseData({ type: 'graph', graph: ctx.clientModules.graph(), sequence: frameSequence }))
     connections.add(res)
+    write(res, ': connected\n\n')
+    write(res, sseData({ type: 'graph', graph: ctx.clientModules.graph(), sequence: frameSequence }))
     res.on('close', () => { connections.delete(res) })
+    res.on('error', () => { connections.delete(res) })
   }
 
   ctx.effect(() => {
@@ -354,9 +370,14 @@ export function apply(ctx, config) {
     })
     const shellListener = (rev) => { publish({ type: 'shell-rebuilt', rev }) }
     shellRebuiltListeners.add(shellListener)
+    const heartbeat = setInterval(() => {
+      for (const res of connections) write(res, ': heartbeat\n\n')
+    }, config.heartbeatIntervalMs)
+    heartbeat.unref()
     return () => {
       unsubscribe()
       shellRebuiltListeners.delete(shellListener)
+      clearInterval(heartbeat)
       disposeRoute()
       for (const res of connections) res.destroy()
       connections.clear()

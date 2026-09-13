@@ -19,6 +19,15 @@ function phase(value) {
   return value?.active ? value.phase ?? 'Active' : 'Waiting for GM activity'
 }
 
+function connectionLabel(state) {
+  switch (state) {
+    case 'connected': return 'Realtime connected'
+    case 'reconnecting': return 'Reconnecting live updates'
+    case 'offline': return 'Realtime updates offline'
+    default: return 'Connecting live updates'
+  }
+}
+
 function terminalStatus(terminal) {
   return terminal.status?.kind === 'exited'
     ? `Exited ${terminal.status.exitCode ?? terminal.status.signal ?? ''}`.trim()
@@ -191,6 +200,7 @@ export class FreddieObservabilityDock extends HTMLElement {
     if (props === null) return
     const gm = props.useProjection('gmProgress')
     const workflow = latestWorkflow(props.useProjection('workflow'))
+    const connection = props.useConnection(state => state)
     const terminals = props.useTerminals(state => state)
     const nodes = props.useSession(snapshot => [...snapshot.chat.nodes.values()])
     const summaries = props.useSessions(state => state)
@@ -249,6 +259,7 @@ export class FreddieObservabilityDock extends HTMLElement {
             ? subagentPanel
             : h('section', { class: css.panel ?? '', 'data-observability-overview': '' },
               h('div', { class: css.metrics ?? '' },
+                this.#metric('Connection', connectionLabel(connection), connection === 'connected' ? 'Live events are flowing from the agent and server.' : 'The client will reconnect automatically when the stream is available.'),
                 this.#metric('GM', phase(gm), `PRD ${count(gm?.prdPendingCount)} · obligations ${count(gm?.mutablesPendingCount)}`),
                 this.#metric('Workflow', workflow?.status ?? 'No active run', workflow?.currentPhase ?? workflow?.name ?? 'No current workflow phase.'),
                 this.#metric('Subagents', `${descendants.total} total · ${descendants.running} running`, 'The selected agent and all known descendants.'),
@@ -260,6 +271,10 @@ export class FreddieObservabilityDock extends HTMLElement {
     applyDiff(this, h('section', { class: css.root ?? '', 'data-observability-view': '' },
       h('header', { class: css.bluf ?? '' },
         h('span', { class: css.eyebrow ?? '' }, 'BLUF · LIVE OPERATIONS'),
+        h('div', { class: css.connection ?? '', 'data-state': connection, role: 'status', 'aria-live': 'polite' },
+          h('span', { class: css.connectionDot ?? '', 'aria-hidden': true }),
+          connectionLabel(connection),
+        ),
         h('h1', null, bluf(gm, workflow, descendants, terminals)),
         h('p', null, 'Choose a focused view for operational detail; the conversation and Trajectory preserve the durable event record.'),
       ),
