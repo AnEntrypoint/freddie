@@ -1,18 +1,1 @@
-- id: overview-busy-live-witness
-  title: Verify Overview during active busy work
-  subject: The currently selected page is a blank session, so final Overview behavior must be witnessed against the running parent session and any active child without relying on previous captures.
-  acceptance: A live running session Overview displays its current Attention state, latest activity, activity trail, direct/nested counts, and any active child cards; the result is recorded or any live mismatch is repaired.
-  status: completed
-  route_family: observability
-  session_id: freddie-422260-1789231886668
-  witness: Live running-session Overview at http://127.0.0.1:3080 rendered Attention Working, Realtime connected, Latest activity, two Earlier activities, GM state, workflow state, direct subagent count, and terminal state. Fresh Axe audit reported violations:[]. The live snapshot correctly reported 0 active children after the review child settled.
-  commit_comment: Witness Overview during a real busy session
-- id: overview-boot-readiness-transient
-  title: Verify boot readiness discrepancy
-  subject: A review browser saw a transient 0/43 boot projection while an independent fresh browser loaded the full application; determine whether the boot state is persistent or an expected startup transition before treating it as an Overview defect.
-  acceptance: A fresh live browser witnesses either a persistent blocked boot with actionable diagnostic requirements or a mounted application with no boot root; the result is recorded.
-  status: completed
-  route_family: observability
-  session_id: freddie-422260-1789231886668
-  witness: Independent fresh browser overview-final-check loaded the full interactive application at http://127.0.0.1:3080, document root contains sidebar/session content, data-freddie-boot is absent, and __FREDDIE_HMR__.status.connected=true at sequence 90. The review’s 0/43 state was transient startup timing, not a persistent Overview outage.
-  commit_comment: Classify transient boot readiness observation
+[]
