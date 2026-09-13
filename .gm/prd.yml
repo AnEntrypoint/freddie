@@ -12,13 +12,6 @@
   acceptance: 'A live GM instruction response against Freddie provides usable code-insight counts or a documented supported capability state and does not report `counts_error: unknown_plugin`.'
   route_family: observability
   status: pending
-- id: gm-scan-deps-workspace-symlink-cycle
-  title: Make GM dependency scanning terminate safely on valid workspace symlink graphs
-  subject: 'Repair GM scan_deps so valid pnpm workspace symlinks are traversed or deduplicated by canonical directory identity instead of recursively following dependency edges. Precondition: a full Freddie scan reports repeated @freddie workspace paths despite individually valid relative links. Invariant: each canonical directory is scanned at most once while source and dependency coverage remains complete. Postcondition: full scan reports blockedCount 0 on the valid Freddie workspace without excluding paths.'
-  acceptance: A full GM scan_deps against Freddie completes with blockedCount 0 and does not suppress valid workspace dependency paths.
-  route_family: observability
-  session_id: remote-sync-1789114548729
-  status: pending
 - id: gm-bash-bare-command-contract
   title: Align GM bare Bash command contract with live execution
   subject: 'Repair the mismatch between GM prose that accepts bare Bash commands and live dispatch that rejects a bare multiline script for missing timeoutMs. Precondition: the published command contract promises bare-command support. Invariant: accepted body grammar and executable parser remain aligned. Postcondition: a bare multiline Bash script succeeds without a timeout prefix, or served documentation explicitly requires the prefix and a live witness confirms it.'
