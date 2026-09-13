@@ -44,6 +44,15 @@ body[data-ds-dark-theme] .freddie-bootPage__boot {
   color: var(--freddie-alias-label-tertiary, var(--freddie-boot-label-tertiary));
 }
 
+.freddie-bootPage__loadingDetail {
+  max-width: 360px;
+  color: var(--freddie-alias-label-secondary, var(--freddie-boot-label-secondary));
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
 .freddie-bootPage__spinner {
   position: relative;
   width: 20px;

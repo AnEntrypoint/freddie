@@ -20,6 +20,7 @@ export class BootPage {
   wordmark
   spinner
   hint
+  loadingDetail
   states = new Map()
   active = new Set()
   total = 0
@@ -37,7 +38,9 @@ export class BootPage {
     this.spinner = div(css.spinner)
     this.spinner.dataset.freddieBootSpinner = ''
     this.hint = div(css.hint, 'Loading plugins…')
-    this.card.append(this.wordmark, this.spinner, this.hint)
+    this.loadingDetail = div(css.loadingDetail)
+    this.loadingDetail.setAttribute('aria-live', 'polite')
+    this.card.append(this.wordmark, this.spinner, this.hint, this.loadingDetail)
     this.root.append(this.card)
     container.append(this.root)
     this.updateProgress()
@@ -93,7 +96,7 @@ export class BootPage {
     const failed = [...this.states].filter(([, state]) => state === 'failed').map(([id]) => id)
     if (this.failure === undefined && failed.length === 0) {
       if (this.spinner.parentElement !== this.card) {
-        this.card.replaceChildren(this.wordmark, this.spinner, this.hint)
+        this.card.replaceChildren(this.wordmark, this.spinner, this.hint, this.loadingDetail)
       }
       return
     }
@@ -114,8 +117,17 @@ export class BootPage {
   updateProgress() {
     const ratio = this.total === 0 ? 0 : Math.min(this.active.size / this.total, 1)
     this.spinner.style.setProperty('--freddie-boot-arc', `${String(Math.round(72 + ratio * 216))}deg`)
+    const pending = [...this.states].filter(([, state]) => state === 'pending').map(([id]) => id)
+    const failed = [...this.states].filter(([, state]) => state === 'failed').map(([id]) => id)
     this.hint.textContent = this.total === 0
       ? 'Starting Freddie…'
       : `${String(this.active.size)}/${String(this.total)} services ready`
+    this.loadingDetail.textContent = failed.length > 0
+      ? `Blocked by: ${failed.join(', ')}`
+      : pending.length > 0
+        ? `Waiting for: ${pending.join(', ')}`
+        : this.active.size === 0 && this.total > 0
+          ? 'Loading service graph…'
+          : ''
   }
 }

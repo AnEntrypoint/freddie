@@ -9,5 +9,6 @@ const css = {
   failedItem: 'freddie-bootPage__failedItem',
   actions: 'freddie-bootPage__actions',
   action: 'freddie-bootPage__action',
+  loadingDetail: 'freddie-bootPage__loadingDetail',
 }
 export default css
