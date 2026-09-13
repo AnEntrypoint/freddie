@@ -54,27 +54,34 @@ function workflowRuns(nodes) {
   return nodes.filter(node => node.kind === 'workflow-run').map(node => node.data)
 }
 
-function textFromBlocks(blocks) {
-  if (!Array.isArray(blocks)) return undefined
-  return blocks.find(block => typeof block?.text === 'string' && block.text.trim() !== '')?.text
+function compactText(value) {
+  if (typeof value !== 'string') return undefined
+  const text = value.replace(/\s+/g, ' ').trim()
+  return text.length <= 160 ? text : `${text.slice(0, 157)}…`
 }
 
-function selectedActivity(nodes) {
+function textFromBlocks(blocks) {
+  if (!Array.isArray(blocks)) return undefined
+  return compactText(blocks.find(block => typeof block?.text === 'string' && block.text.trim() !== '')?.text)
+}
+
+function selectedActivities(nodes) {
+  const activities = []
   for (const node of [...nodes].reverse()) {
     if (node.kind === 'workflow-run') {
-      return { label: `Workflow · ${node.data.name}`, detail: `${node.data.status} · ${node.data.currentPhase ?? 'no active phase'}` }
-    }
-    if (node.kind === 'tool-call') {
+      activities.push({ key: node.key, label: `Workflow · ${node.data.name}`, detail: `${node.data.status} · ${node.data.currentPhase ?? 'no active phase'}` })
+    } else if (node.kind === 'tool-call') {
       const root = node.data?.root
       const name = root?.callView?.title ?? root?.resultView?.title ?? root?.call?.name ?? root?.name
-      if (typeof name === 'string') return { label: `Tool · ${name}`, detail: typeof root?.callView?.description === 'string' ? root.callView.description : 'Latest tool operation in this session.' }
-    }
-    if (node.kind === 'assistant' || node.kind === 'assistant-step') {
+      const title = compactText(name)
+      if (title !== undefined) activities.push({ key: node.key, label: `Tool · ${title}`, detail: compactText(root?.callView?.description) ?? 'Tool operation completed.' })
+    } else if (node.kind === 'assistant' || node.kind === 'assistant-step') {
       const text = textFromBlocks(node.data?.blocks)
-      if (text !== undefined) return { label: 'Agent response', detail: text.slice(0, 180) }
+      if (text !== undefined) activities.push({ key: node.key, label: 'Agent response', detail: text.slice(0, 180) })
     }
+    if (activities.length === 3) break
   }
-  return undefined
+  return activities
 }
 
 function observedEvent(entry, labels) {
@@ -239,7 +246,8 @@ export class FreddieObservabilityDock extends HTMLElement {
     const latestChildActivity = latestActivityBySession(childActivityEntries)
     const childTerminals = treeTerminals.filter(entry => descendantIds.has(entry.sessionId)).map(entry => ({ ...entry.terminal, observerLabel: descendantLabels.get(entry.sessionId) ?? entry.sessionId }))
     const runs = workflowRuns(nodes)
-    const currentActivity = selectedActivity(nodes)
+    const currentActivities = selectedActivities(nodes)
+    const currentActivity = currentActivities[0]
     const active = this.#section
     const terminalPanel = h('section', { class: css.panel ?? '', 'data-observability-terminals': '' },
       h('div', { class: css.panelHeader ?? '' }, h('h2', null, 'Interactive terminals'), h('button', { type: 'button', class: css.action ?? '', onclick: () => { this.#openTerminal() } }, 'Open terminal')),
@@ -283,6 +291,10 @@ export class FreddieObservabilityDock extends HTMLElement {
                 this.#metric('Direct subagents', `${descendants.directRows.length} total · ${descendants.directRunning} running`, 'Work started by this session; open Subagents for the full tree and current action.'),
                 this.#metric('Terminals', terminals.length === 0 ? 'PTY-ready' : `${terminals.length} observed`, 'Live agent command output and lifecycle state.'),
               ),
+              currentActivities.slice(1).map(activity => h('article', { key: activity.key, class: css.metric ?? '' },
+                h('span', { class: css.label ?? '' }, `Recent · ${activity.label}`),
+                h('span', { class: css.detail ?? '' }, activity.detail),
+              )),
               descendantRows.filter(row => row.running).slice(0, 5).map(row => h('article', { class: css.metric ?? '' },
                 h('span', { class: css.label ?? '' }, row.label),
                 h('strong', { class: css.value ?? '' }, row.gm?.active ? `GM ${phase(row.gm)}` : row.workflow?.status ?? 'Running'),
