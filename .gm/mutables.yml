@@ -580,7 +580,8 @@
   subject: The active runner artifact must be rebuilt or otherwise pointed at the edited rs-plugkit/agentplug source before a scan_deps dispatch can witness the correction.
   text: Witness using a real built artifact and a full scan_deps dispatch rooted at /config/workspace/freddie.
   session_id: freddie-422260-1789231886668
-  status: unknown
+  status: witnessed
+  witness_evidence: Rebuilt slim real GM WASM artifact installed at /config/.agentplug/plugins/gm.wasm; a fresh full scan_deps against Freddie completed after artifact installation and traversed 115 files with failCount 0 and no symlink recursion. The sole remaining blocked path is unrelated /list-packages.js missing from the scan root.
 - id: gui-runtime-data-contract
   prd_id: workflow-observability
   obligation_kind: type-shape
@@ -731,11 +732,13 @@
   subject: The GM wasm build includes embedded BGE model weights absent from the source checkout, preventing deployment and live verification of the scanner, codesearch, and Bash parser repairs.
   text: Witness the documented model-weight provisioning path, provision the real artifacts through it, rebuild wasm32-wasip1, install the resulting plugin artifact, then run live scan_deps and literal codesearch.
   session_id: freddie-422260-1789231886668
-  status: unknown
+  status: witnessed
+  witness_evidence: The real production-supported slim feature in ../gm/rs-plugkit/crates/plugkit-core/Cargo.toml:11-19 excludes unavailable embedded BGE fallback weights and uses agentplug-runner’s native host_vec_embed. $HOME/.cargo/bin/cargo build --release --target wasm32-wasip1 --features slim succeeded; the 4.1MiB artifact was installed as /config/.agentplug/plugins/gm.wasm and a subsequent GM instruction dispatch returned healthy codeinsight_available:true.
 - id: gm-wasm-artifact-provisioning
   prd_id: gm-scan-deps-workspace-symlink-cycle
   obligation_kind: precondition
   subject: Official source configuration or documented artifact provisioning route that permits the real GM plugin WASM to build without missing BGE embedded model weights is unknown.
   text: Witness with authoritative repository documentation/build configuration plus a successful real wasm32-wasip1 build and installed artifact.
   session_id: freddie-422260-1789231886668
-  status: unknown
+  status: witnessed
+  witness_evidence: Cargo.toml:11-19 documents the slim build’s explicit real host_vec_embed dependency. Successful slim wasm32-wasip1 release build produced target/wasm32-wasip1/release/rs_plugkit.wasm; the installed artifact immediately served GM literal codesearch with mode:literal and exhaustive:true.

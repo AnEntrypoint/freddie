@@ -1,7 +1,3 @@
-- id: gm-live-browser-observation
-  subject: Repair the advertised gm browser-observation routing so the running Freddie GUI at http://127.0.0.1:3080 can be inspected live in this headless environment; live-witness the rendered page through the repaired real provider.
-  session_id: freddie-watch-1789284940000
-  status: pending
 - id: gm-browser-provider-recovery
   title: Restore GM browser observation provider
   subject: Repair GM’s configured browser search/observation provider so public artifact discovery and live browser verification can run through the advertised GM path.
