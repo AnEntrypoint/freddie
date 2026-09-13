@@ -1,1 +1,7 @@
-[]
+- id: gm-completion-ci-claim-audit
+  title: Satisfy CI and claim-audit completion gates
+  subject: GM COMPLETE remains blocked after repeated legal residual scans because the required fresh CI marker and claim-audit marker are not exposed through this session’s tool surface.
+  acceptance: A fresh CI status and claim audit are recorded for head f748e18764113d01bbe26e4a09b4017accfeaabf, producing the required GM completion markers or exposing a concrete unavailable capability contract.
+  status: in-progress
+  route_family: observability
+  session_id: freddie-422260-1789231886668

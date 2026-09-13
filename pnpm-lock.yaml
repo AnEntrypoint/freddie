@@ -7651,6 +7651,9 @@ importers:
 
   packages/workflow/tool-workflow:
     dependencies:
+      '@freddie/freddie-session-projection':
+        specifier: '*'
+        version: link:../../session/session-projection
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
