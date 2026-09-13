@@ -47,8 +47,7 @@ function latestWorkflow(workflow) {
 }
 
 function sessionLabel(row) {
-  const label = row.displayTitle ?? row.title
-  return label === undefined || /^use the gm skill for/i.test(label) ? `GM session ${row.id.slice(0, 8)}` : label
+  return `GM session ${row.id.slice(0, 8)}`
 }
 
 function workflowRuns(nodes) {
@@ -73,8 +72,8 @@ function latestActivityBySession(entries) {
 }
 
 function activityDetail(entry) {
-  if (entry === undefined) return 'Awaiting the first observed action.'
-  return observedEvent(entry, new Map()).detail
+  if (entry === undefined) return 'No action reported for this connection.'
+  return `Last observed: ${observedEvent(entry, new Map()).detail}`
 }
 
 function descendantsOf(summaries, sessionId) {
@@ -243,15 +242,10 @@ export class FreddieObservabilityDock extends HTMLElement {
         h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
       ))),
     )
-    const ledgerEntries = childActivity
-    const ledgerPanel = h('section', { class: css.panel ?? '', 'data-observability-ledger': '' },
-      h('h2', null, 'Agent activity ledger'),
-      ledgerEntries.length === 0 ? h('p', { class: css.empty ?? '' }, 'No durable activity is loaded yet.') : h('ol', { class: css.logList ?? '' }, ledgerEntries.map(item => h('li', { key: item.key }, h('strong', null, item.label), h('span', null, item.detail)))),
-    )
     const content = active === 'terminals'
       ? terminalPanel
       : active === 'gm'
-        ? h('section', { class: css.panel ?? '', 'data-observability-gm': '' }, h('h2', null, 'GM sessions'), this.#metric('Current session', phase(gm), gmProgressDetail(gm)), descendantRows.filter(row => row.running).map(row => this.#metric(row.label, row.gm?.active ? phase(row.gm) : 'Running', gmProgressDetail(row.gm))))
+        ? h('section', { class: css.panel ?? '', 'data-observability-gm': '' }, h('h2', null, 'GM sessions'), this.#metric('Current session', phase(gm), gmProgressDetail(gm)), descendantRows.filter(row => row.running && row.gm?.active).map(row => this.#metric(row.label, phase(row.gm), gmProgressDetail(row.gm))))
         : active === 'workflows'
           ? workflowPanel
           : active === 'subagents'

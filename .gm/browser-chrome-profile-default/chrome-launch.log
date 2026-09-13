@@ -1,4 +1,0 @@
-[898494:898520:0913/074041.828598:ERROR:base/files/file_path_watcher_inotify.cc:338] inotify_init() failed: Too many open files (24)
-[898494:898494:0913/074041.832339:ERROR:ui/ozone/platform/x11/ozone_platform_x11.cc:257] Missing X server or $DISPLAY
-[898494:898494:0913/074041.832355:ERROR:ui/aura/env.cc:246] The platform failed to initialize.  Exiting.
-[898494:898521:0913/074041.833240:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")

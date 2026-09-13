@@ -49,6 +49,7 @@ worktrees/
 # are real, durable, repo-tracked content and are NOT covered by these
 # patterns -- gm's own design keeps memory following the codebase.
 .gm/scratch/
+.gm/browser-chrome-profile-default/
 .gm/exec-spool/
 .gm/gm.db
 .gm/last-dispatch-ts

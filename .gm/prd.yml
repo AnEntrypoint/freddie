@@ -1,7 +1,1 @@
-- id: gm-browser-profile-worktree-hygiene
-  title: Restore generated browser profile worktree state
-  subject: GM Chrome browser observation mutated tracked .gm browser-profile runtime artifacts, leaving 1,785 generated changes that prevent the managed git completion gate.
-  acceptance: Generated browser-profile artifacts are restored to the committed repository snapshot without affecting source changes, leaving the worktree clean enough to commit the Operations projection.
-  status: in-progress
-  route_family: state
-  session_id: freddie-422260-1789231886668
+[]

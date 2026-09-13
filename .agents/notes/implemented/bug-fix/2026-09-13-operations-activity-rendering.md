@@ -10,9 +10,9 @@ The sidebar counted every nested subagent as work directly started by the select
 
 `indexSubagentDescendants()` indexes only immediate subagent children. `FreddieObservabilityDock` separately traverses the full descendant tree for Operations, labels direct and nested totals independently, and opens a selected child session through the runtime session owner.
 
-Operations derives ledger text from the conversation-node contracts: tool nodes keep their root call or result, assistant nodes keep block arrays, and message nodes keep content blocks. The renderer selects text blocks only; structured durable values stay out of the WebJSX child list. When no unselected-child event arrived during the current connection generation, the row reports that the first observed action is pending while retaining its projected GM state.
+Operations retains the latest semantic workflow, GM-progress, or tool-call event for each child as last-observed detail. Structured durable values stay out of the WebJSX child list. When no semantic event is available, the row reports that no action is available for the connection while retaining its projected GM state.
 
-Overview projects current state instead of conversation transport. It shows the selected GM session, explicit planning and obligation counts when reported, and running descendants only. Prompt-derived titles use a stable session identifier; assistant chunks, completion notices, generic event classes, raw tool payloads, and inactive GM projections stay out of the overview.
+Overview projects current state instead of conversation transport. It shows the selected GM session, explicit planning and obligation counts when reported, and running descendants only. Child labels use stable session identifiers; assistant chunks, completion notices, generic event classes, raw tool payloads, and inactive GM projections stay out of the overview.
 
 ## Alternatives considered
 
@@ -28,4 +28,4 @@ Overview projects current state instead of conversation transport. It shows the 
 
 ## Consequences
 
-The sidebar remains an immediate-parent summary, while Operations retains the complete tree and session drill-down. The ledger presents durable text that is safe for WebJSX and leaves absent live-event detail explicit. Overview stays concise and factual while focused views retain semantic activity. Live HMR at the Freddie Web app renders the Overview, Subagents, ledger, direct/nested counts, and child-session navigation.
+The sidebar remains an immediate-parent summary, while Operations retains the complete tree and session drill-down. Its child detail is explicitly last observed rather than claimed current state. Overview stays concise and factual while focused views retain session status. Live HMR at the Freddie Web app renders the Overview, Subagents, direct/nested counts, and child-session navigation.
