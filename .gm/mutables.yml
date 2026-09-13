@@ -732,3 +732,10 @@
   text: Witness the documented model-weight provisioning path, provision the real artifacts through it, rebuild wasm32-wasip1, install the resulting plugin artifact, then run live scan_deps and literal codesearch.
   session_id: freddie-422260-1789231886668
   status: unknown
+- id: gm-wasm-artifact-provisioning
+  prd_id: gm-scan-deps-workspace-symlink-cycle
+  obligation_kind: precondition
+  subject: Official source configuration or documented artifact provisioning route that permits the real GM plugin WASM to build without missing BGE embedded model weights is unknown.
+  text: Witness with authoritative repository documentation/build configuration plus a successful real wasm32-wasip1 build and installed artifact.
+  session_id: freddie-422260-1789231886668
+  status: unknown
