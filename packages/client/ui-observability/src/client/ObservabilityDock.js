@@ -1,5 +1,3 @@
-/** Session-projection and mux-backed operational activity view. */
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './ObservabilityDock.css.js'
 
@@ -12,7 +10,7 @@ const SECTIONS = [
 ]
 
 function count(value) {
-  return value === null || value === undefined ? '—' : String(value)
+  return Number.isInteger(value) ? String(value) : undefined
 }
 
 function phase(value) {
@@ -21,12 +19,11 @@ function phase(value) {
 }
 
 function gmProgressDetail(value) {
-  if (!value?.active) return 'No active GM session has published progress yet.'
+  if (!value?.active) return 'No current GM state reported.'
   const planned = count(value.prdPendingCount)
   const obligations = count(value.mutablesPendingCount)
-  return planned === '—' && obligations === '—'
-    ? 'The GM session is active; it has not published planning counts yet.'
-    : `PRD ${planned} · obligations ${obligations}`
+  if (planned === undefined && obligations === undefined) return 'Work counts not reported.'
+  return [planned === undefined ? undefined : `${planned} planned`, obligations === undefined ? undefined : `${obligations} obligations`].filter(Boolean).join(' · ')
 }
 
 function connectionLabel(state) {
@@ -49,52 +46,13 @@ function latestWorkflow(workflow) {
   return workflow.runs?.at(-1) ?? workflow
 }
 
-function bluf(gm, workflow, descendants, terminals) {
-  if (gm?.active) {
-    const planned = count(gm.prdPendingCount)
-    return planned === '—'
-      ? `GM is ${phase(gm)} and publishing live progress.`
-      : `GM is ${phase(gm)} with ${planned} planned item${gm.prdPendingCount === 1 ? '' : 's'} remaining.`
-  }
-  if (workflow?.status !== undefined) return `Latest workflow is ${workflow.status}. Its phase, members, and durable log are visible below.`
-  if (descendants.running > 0) return `${descendants.running} subagent${descendants.running === 1 ? '' : 's'} are active in this agent tree.`
-  if (terminals.length > 0) return `${terminals.length} terminal${terminals.length === 1 ? '' : 's'} are producing observed agent activity.`
-  return 'No operation is active. Start a task to observe its live agent activity.'
+function sessionLabel(row) {
+  const label = row.displayTitle ?? row.title
+  return label === undefined || /^use the gm skill for/i.test(label) ? `GM session ${row.id.slice(0, 8)}` : label
 }
 
 function workflowRuns(nodes) {
   return nodes.filter(node => node.kind === 'workflow-run').map(node => node.data)
-}
-
-function contentText(content) {
-  if (!Array.isArray(content)) return undefined
-  return content.find(block => typeof block?.text === 'string' && block.text.trim() !== '')?.text
-}
-
-function activityNodes(nodes) {
-  return nodes.slice(-40).reverse().map(node => {
-    const root = node.data?.root
-    const toolTitle = root?.callView?.title ?? root?.resultView?.title ?? root?.call?.name ?? root?.name
-    const toolDetail = root?.callView?.description ?? root?.resultView?.description ?? contentText(root?.content)
-    const content = contentText(node.data?.blocks) ?? contentText(node.data?.content)
-    return {
-      key: node.key,
-      label: node.kind === 'workflow-run'
-        ? `Workflow · ${node.data.name}`
-        : node.kind === 'tool-call'
-          ? `Tool · ${toolTitle ?? 'agent operation'}`
-          : node.kind === 'assistant' || node.kind === 'assistant-step'
-            ? 'Agent response'
-            : node.kind === 'message'
-              ? 'Agent message'
-              : node.kind === 'context'
-                ? 'Agent context'
-                : 'Agent activity',
-      detail: node.kind === 'workflow-run'
-        ? `${node.data.status} · ${node.data.currentPhase ?? 'no active phase'}`
-        : toolDetail ?? content ?? node.data?.description ?? node.data?.title ?? 'Recorded in the durable conversation ledger.',
-    }
-  })
 }
 
 function observedEvent(entry, labels) {
@@ -103,12 +61,14 @@ function observedEvent(entry, labels) {
   if (event.type === 'tool-workflow/phase') return { key: `${entry.sessionId}:${event.seq}`, label: `Child workflow · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: `Phase: ${event.data.title}` }
   if (event.type === 'gm/progress') return { key: `${entry.sessionId}:${event.seq}`, label: `Child GM · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.data.phase ?? 'Progress recorded' }
   if (event.type === 'tool/call') return { key: `${entry.sessionId}:${event.seq}`, label: `Child tool · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.data.name ?? 'Agent operation' }
-  return { key: `${entry.sessionId}:${event.seq}`, label: `Child activity · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.type }
+  return undefined
 }
 
 function latestActivityBySession(entries) {
   const latest = new Map()
-  for (const entry of entries) latest.set(entry.sessionId, entry)
+  for (const entry of entries) {
+    if (observedEvent(entry, new Map()) !== undefined) latest.set(entry.sessionId, entry)
+  }
   return latest
 }
 
@@ -139,7 +99,6 @@ function descendantsOf(summaries, sessionId) {
   return { total, running, rows, directRows, directRunning }
 }
 
-/** Projected GM and process observability view custom element. */
 export class FreddieObservabilityDock extends HTMLElement {
   #props = null
   #snapshots = new Map()
@@ -246,7 +205,7 @@ export class FreddieObservabilityDock extends HTMLElement {
     const treeTerminals = props.useTreeTerminals(state => state)
     const descendantRows = descendants.rows.map(row => ({
       id: row.id,
-      label: row.displayTitle ?? row.title ?? row.id,
+      label: sessionLabel(row),
       running: row.running,
       gm: row.projectionValues?.gmProgress,
       workflow: row.projectionValues?.workflow,
@@ -254,11 +213,10 @@ export class FreddieObservabilityDock extends HTMLElement {
     const descendantIds = new Set(descendantRows.map(row => row.id))
     const descendantLabels = new Map(descendantRows.map(row => [row.id, row.label]))
     const childActivityEntries = treeActivity.filter(entry => descendantIds.has(entry.sessionId))
-    const childActivity = childActivityEntries.slice(-40).reverse().map(entry => observedEvent(entry, descendantLabels))
+    const childActivity = childActivityEntries.slice(-40).reverse().map(entry => observedEvent(entry, descendantLabels)).filter(Boolean)
     const latestChildActivity = latestActivityBySession(childActivityEntries)
     const childTerminals = treeTerminals.filter(entry => descendantIds.has(entry.sessionId)).map(entry => ({ ...entry.terminal, observerLabel: descendantLabels.get(entry.sessionId) ?? entry.sessionId }))
     const runs = workflowRuns(nodes)
-    const activity = activityNodes(nodes)
     const active = this.#section
     const terminalPanel = h('section', { class: css.panel ?? '', 'data-observability-terminals': '' },
       h('div', { class: css.panelHeader ?? '' }, h('h2', null, 'Interactive terminals'), h('button', { type: 'button', class: css.action ?? '', onclick: () => { this.#openTerminal() } }, 'Open terminal')),
@@ -285,7 +243,7 @@ export class FreddieObservabilityDock extends HTMLElement {
         h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
       ))),
     )
-    const ledgerEntries = [...childActivity, ...activity]
+    const ledgerEntries = childActivity
     const ledgerPanel = h('section', { class: css.panel ?? '', 'data-observability-ledger': '' },
       h('h2', null, 'Agent activity ledger'),
       ledgerEntries.length === 0 ? h('p', { class: css.empty ?? '' }, 'No durable activity is loaded yet.') : h('ol', { class: css.logList ?? '' }, ledgerEntries.map(item => h('li', { key: item.key }, h('strong', null, item.label), h('span', null, item.detail)))),
@@ -293,7 +251,7 @@ export class FreddieObservabilityDock extends HTMLElement {
     const content = active === 'terminals'
       ? terminalPanel
       : active === 'gm'
-        ? h('section', { class: css.panel ?? '', 'data-observability-gm': '' }, h('h2', null, 'GM progress'), this.#metric('Current phase', phase(gm), gmProgressDetail(gm)), descendantRows.filter(row => row.gm !== undefined).map(row => this.#metric(`Child GM · ${row.label}`, phase(row.gm), gmProgressDetail(row.gm))), ledgerPanel)
+        ? h('section', { class: css.panel ?? '', 'data-observability-gm': '' }, h('h2', null, 'GM sessions'), this.#metric('Current session', phase(gm), gmProgressDetail(gm)), descendantRows.filter(row => row.running).map(row => this.#metric(row.label, row.gm?.active ? phase(row.gm) : 'Running', gmProgressDetail(row.gm))))
         : active === 'workflows'
           ? workflowPanel
           : active === 'subagents'
@@ -306,23 +264,21 @@ export class FreddieObservabilityDock extends HTMLElement {
                 this.#metric('Direct subagents', `${descendants.directRows.length} total · ${descendants.directRunning} running`, 'Work started by this session; open Subagents for the full tree and current action.'),
                 this.#metric('Terminals', terminals.length === 0 ? 'PTY-ready' : `${terminals.length} observed`, 'Live agent command output and lifecycle state.'),
               ),
-              descendantRows.filter(row => row.running).map(row => h('article', { class: css.metric ?? '' },
-                h('span', { class: css.label ?? '' }, `Active child · ${row.label}`),
-                h('strong', { class: css.value ?? '' }, row.gm?.active ? `GM ${phase(row.gm)}` : row.workflow?.status ?? 'running'),
+              descendantRows.filter(row => row.running).slice(0, 5).map(row => h('article', { class: css.metric ?? '' },
+                h('span', { class: css.label ?? '' }, row.label),
+                h('strong', { class: css.value ?? '' }, row.gm?.active ? `GM ${phase(row.gm)}` : row.workflow?.status ?? 'Running'),
                 h('span', { class: css.detail ?? '' }, activityDetail(latestChildActivity.get(row.id))),
                 h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
               )),
-              ledgerPanel,
             )
     applyDiff(this, h('section', { class: css.root ?? '', 'data-observability-view': '' },
       h('header', { class: css.bluf ?? '' },
-        h('span', { class: css.eyebrow ?? '' }, 'BLUF · LIVE OPERATIONS'),
         h('div', { class: css.connection ?? '', 'data-state': connection, role: 'status', 'aria-live': 'polite' },
           h('span', { class: css.connectionDot ?? '', 'aria-hidden': true }),
           connectionLabel(connection),
         ),
-        h('h1', null, bluf(gm, workflow, descendants, terminals)),
-        h('p', null, 'Choose a focused view for operational detail; the conversation and Trajectory preserve the durable event record.'),
+        h('h1', null, 'Live operations'),
+        h('p', null, `${descendants.directRunning} direct and ${descendants.running - descendants.directRunning} nested subagents running.`),
       ),
       h('nav', { class: css.tabs ?? '', role: 'tablist', 'aria-label': 'Operational views' },
         SECTIONS.map(section => h('button', { key: section.id, type: 'button', role: 'tab', 'aria-selected': active === section.id, class: active === section.id ? css.tabActive ?? '' : css.tab ?? '', onclick: () => { this.#select(section.id) } }, section.label)),
