@@ -1,9 +1,1 @@
-- id: gm-completion-evidence-refresh
-  title: Refresh completion evidence for latest head
-  subject: The contrast fix created a new pushed head, so CI and final completion evidence must be refreshed against cf191f2d1cafd9ec8a4c8dfe8aed4eb5ebf6d950.
-  acceptance: Fresh browser and independent review evidence are recorded for the latest pushed head, and GM COMPLETE evidence gates are satisfied or a concrete CI status is recorded.
-  status: completed
-  route_family: observability
-  session_id: freddie-422260-1789231886668
-  witness: For latest pushed head cf191f2d1cafd9ec8a4c8dfe8aed4eb5ebf6d950, a fresh isolated live page measured FCP 696ms, TTFB 2.2ms, CLS 0; Axe reported violations:[]; HMR remained connected and no boot failure occurred. Independent refute-only review found no HMR/realtime defect and the found boot contrast defect is repaired in this head.
-  commit_comment: Refresh final GUI evidence for contrast fix
+[]
