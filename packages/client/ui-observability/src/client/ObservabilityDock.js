@@ -69,12 +69,13 @@ function workflowRuns(nodes) {
 function activityNodes(nodes) {
   return nodes.slice(-40).reverse().map(node => {
     const toolTitle = node.data?.callView?.title ?? node.data?.resultView?.title ?? node.data?.name
+    const toolDetail = node.data?.callView?.description ?? node.data?.resultView?.description ?? node.data?.description
     return {
       key: node.key,
       label: node.kind === 'workflow-run'
         ? `Workflow · ${node.data.name}`
         : node.kind === 'tool-call'
-          ? `Tool · ${toolTitle ?? 'agent operation'}`
+          ? `Tool · ${toolTitle ?? 'unnamed tool'}`
           : node.kind === 'assistant' || node.kind === 'assistant-step'
             ? 'Agent response'
             : node.kind === 'message'
@@ -84,18 +85,26 @@ function activityNodes(nodes) {
                 : 'Agent activity',
       detail: node.kind === 'workflow-run'
         ? `${node.data.status} · ${node.data.currentPhase ?? 'no active phase'}`
-        : node.data?.description ?? node.data?.title ?? 'Recorded in the durable conversation ledger.',
+        : toolDetail ?? node.data?.title ?? node.data?.content ?? 'No additional activity detail was recorded.',
     }
   })
 }
 
 function observedEvent(entry, labels) {
   const event = entry.event
-  if (event.type === 'tool-workflow/log') return { key: `${entry.sessionId}:${event.seq}`, label: `Child workflow · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.data.message }
-  if (event.type === 'tool-workflow/phase') return { key: `${entry.sessionId}:${event.seq}`, label: `Child workflow · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: `Phase: ${event.data.title}` }
-  if (event.type === 'gm/progress') return { key: `${entry.sessionId}:${event.seq}`, label: `Child GM · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.data.phase ?? 'Progress recorded' }
-  if (event.type === 'tool/call') return { key: `${entry.sessionId}:${event.seq}`, label: `Child tool · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.data.name ?? 'Agent operation' }
-  return { key: `${entry.sessionId}:${event.seq}`, label: `Child activity · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.type }
+  const owner = labels.get(entry.sessionId) ?? entry.sessionId
+  if (event.type === 'tool-workflow/log') return { key: `${entry.sessionId}:${event.seq}`, label: `Child workflow · ${owner}`, detail: event.data.message }
+  if (event.type === 'tool-workflow/phase') return { key: `${entry.sessionId}:${event.seq}`, label: `Child workflow · ${owner}`, detail: `Phase: ${event.data.title}` }
+  if (event.type === 'gm/progress') {
+    const progress = event.data
+    const detail = progress.prdPendingCount === null && progress.mutablesPendingCount === null
+      ? `${progress.phase ?? 'Active'} · progress counts have not been published`
+      : `${progress.phase ?? 'Active'} · PRD ${count(progress.prdPendingCount)} · obligations ${count(progress.mutablesPendingCount)}`
+    return { key: `${entry.sessionId}:${event.seq}`, label: `Child GM · ${owner}`, detail }
+  }
+  if (event.type === 'tool/call') return { key: `${entry.sessionId}:${event.seq}`, label: `Child tool · ${owner}`, detail: event.data.name ?? 'Unnamed tool call' }
+  if (event.type === 'assistant/message') return { key: `${entry.sessionId}:${event.seq}`, label: `Child response · ${owner}`, detail: 'Agent completed a response.' }
+  return { key: `${entry.sessionId}:${event.seq}`, label: `Child activity · ${owner}`, detail: event.type }
 }
 
 function latestActivityBySession(entries) {
