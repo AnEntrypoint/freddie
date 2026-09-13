@@ -20,6 +20,7 @@ export function apply(ctx) {
         treeActivity: ctx.sessions.treeActivity(),
         treeTerminals: ctx.sessions.treeTerminals(),
       },
+      openSession: (targetSessionId) => { ctx.sessions.open(targetSessionId) },
       openTerminal: async () => {
         const response = await ctx.connection.api.terminal.open({ sessionId, type: 'shell' })
         if (response.result?.ok) ctx.sessions.noteTerminalActivity(sessionId, { type: 'snapshot', snapshot: response.result.value.terminal })

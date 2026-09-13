@@ -6,34 +6,27 @@
  */
 
 /**
- * Index every subagent descendant under each ancestor it reaches through an
- * uninterrupted subagent-origin chain. Cycles fail soft and orphan owners
- * remain harmless map keys until their summaries arrive.
+ * Index direct subagents by their immediate parent. Sidebar status describes
+ * work the selected session started directly; nested work remains visible in
+ * the Operations tree instead of inflating the parent’s running count.
  * @param summaries - retained session summaries keyed by id.
- * @returns descendant totals and running totals keyed by possible parent id.
+ * @returns direct-child totals and running totals keyed by possible parent id.
  */
 export function indexSubagentDescendants(
   summaries,
 ) {
   const indexed = new Map()
   for (const descendant of Object.values(summaries)) {
-    if (descendant.origin !== 'subagent') continue
-    const seen = new Set()
-    let current = descendant
-    while (current?.origin === 'subagent' && current.parentId !== undefined
-      && !seen.has(current.id)) {
-      seen.add(current.id)
-      const aggregate = indexed.get(current.parentId)
-      if (aggregate === undefined) {
-        indexed.set(current.parentId, {
-          count: 1,
-          runningCount: descendant.running ? 1 : 0,
-        })
-      } else {
-        aggregate.count += 1
-        if (descendant.running) aggregate.runningCount += 1
-      }
-      current = summaries[current.parentId]
+    if (descendant.origin !== 'subagent' || descendant.parentId === undefined) continue
+    const direct = indexed.get(descendant.parentId)
+    if (direct === undefined) {
+      indexed.set(descendant.parentId, {
+        count: 1,
+        runningCount: descendant.running ? 1 : 0,
+      })
+    } else {
+      direct.count += 1
+      if (descendant.running) direct.runningCount += 1
     }
   }
   return indexed
