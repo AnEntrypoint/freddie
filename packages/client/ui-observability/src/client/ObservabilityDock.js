@@ -165,7 +165,15 @@ function jobDetail(jobs) {
 function attentionState(snapshot) {
   if (snapshot.promptError !== null) return { label: 'Action needed', detail: snapshot.promptError.error?.message ?? 'The latest agent action failed.' }
   const pending = snapshot.pending ?? []
-  if (pending.length > 0) return { label: 'Waiting for you', detail: `${pending.length} response${pending.length === 1 ? '' : 's'} needed to continue.` }
+  if (pending.length > 0) {
+    const approvals = pending.filter(wait => wait.kind === 'approval').length
+    const questions = pending.filter(wait => wait.kind === 'question').length
+    const needs = [
+      approvals > 0 ? `${approvals} approval${approvals === 1 ? '' : 's'}` : undefined,
+      questions > 0 ? `${questions} question${questions === 1 ? '' : 's'}` : undefined,
+    ].filter(Boolean)
+    return { label: 'Waiting for you', detail: `${needs.join(' · ') || `${pending.length} response${pending.length === 1 ? '' : 's'}`} needed to continue.` }
+  }
   const queue = snapshot.queue ?? []
   if (queue.length > 0) return { label: 'Queued work', detail: `${queue.length} message${queue.length === 1 ? '' : 's'} waiting for the next turn.` }
   if (snapshot.running) return { label: 'Working', detail: 'The agent is processing the current turn.' }
