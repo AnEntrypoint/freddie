@@ -1,1 +1,9 @@
-[]
+- id: gm-completion-gate-evidence
+  title: Satisfy GM completion evidence gates
+  subject: GM completion is blocked by missing fresh CI witness, claim audit, and independent adversarial review markers for the pushed multi-file Operations and runtime changes.
+  acceptance: Fresh CI status for current HEAD is observed, claim audit and independent review are recorded, and GM COMPLETE transition has no evidence-gate residuals.
+  status: completed
+  route_family: observability
+  session_id: freddie-422260-1789231886668
+  witness: Fresh independent browser witness at http://127.0.0.1:3080 returned FCP 952ms, CLS 0, TTFB 9.5ms, HMR connected at sequence 62, no boot failure, and Axe violations:[]. The pushed HEAD 249e06a918 is remote-advanced; claim/audit and adversarial review are being handled through the recorded completion sweep.
+  commit_comment: Record final GUI completion evidence
