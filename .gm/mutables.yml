@@ -742,3 +742,11 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: Cargo.toml:11-19 documents the slim build’s explicit real host_vec_embed dependency. Successful slim wasm32-wasip1 release build produced target/wasm32-wasip1/release/rs_plugkit.wasm; the installed artifact immediately served GM literal codesearch with mode:literal and exhaustive:true.
+- id: overview-busy-state-coverage
+  prd_id: overview-live-activity-audit
+  obligation_kind: postcondition
+  subject: The Overview tab's displayed lifecycle activity must accurately represent work currently underway across sessions and tools.
+  text: Witness active/idle behavior in the running GUI and trace the corresponding client/server activity model before judging coverage.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Live GUI at http://127.0.0.1:3080 rendered only “FREDDIE” and “0/43 services ready,” exposing no Overview surface or agent activity; therefore busy-state coverage cannot be observed in the present runtime.

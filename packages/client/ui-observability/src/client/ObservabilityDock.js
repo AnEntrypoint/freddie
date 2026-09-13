@@ -98,12 +98,19 @@ function selectedActivities(nodes) {
   return activities
 }
 
+function operationLabel(name) {
+  if (typeof name !== 'string' || name === '') return 'Agent operation'
+  const words = name.split('_').filter(Boolean)
+  if (words.length === 0) return name
+  return words.map(word => word === 'gm' ? 'GM' : `${word[0].toUpperCase()}${word.slice(1)}`).join(' · ')
+}
+
 function observedEvent(entry, labels) {
   const event = entry.event
   if (event.type === 'tool-workflow/log') return { key: `${entry.sessionId}:${event.seq}`, label: `Child workflow · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.data.message }
   if (event.type === 'tool-workflow/phase') return { key: `${entry.sessionId}:${event.seq}`, label: `Child workflow · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: `Phase: ${event.data.title}` }
   if (event.type === 'gm/progress') return { key: `${entry.sessionId}:${event.seq}`, label: `Child GM · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.data.phase ?? 'Progress recorded' }
-  if (event.type === 'tool/call') return { key: `${entry.sessionId}:${event.seq}`, label: `Child tool · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.data.name ?? 'Agent operation' }
+  if (event.type === 'tool/call') return { key: `${entry.sessionId}:${event.seq}`, label: `Child tool · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: operationLabel(event.data.name) }
   return undefined
 }
 
