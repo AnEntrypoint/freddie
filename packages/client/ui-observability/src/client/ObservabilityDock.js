@@ -144,6 +144,24 @@ function sessionWorkDetail(stats) {
   return parts.join(' · ')
 }
 
+function todoDetail(todos) {
+  if (!Array.isArray(todos) || todos.length === 0) return undefined
+  const done = todos.filter(item => item.status === 'completed').length
+  const active = todos.filter(item => item.status === 'in_progress')
+  const pending = todos.length - done - active.length
+  const detail = [`${done}/${todos.length} completed`]
+  if (active.length > 0) detail.push(`${active.length} active`)
+  if (pending > 0) detail.push(`${pending} pending`)
+  return { value: active[0]?.content ?? `${active.length} active`, detail: detail.join(' · ') }
+}
+
+function jobDetail(jobs) {
+  if (!Array.isArray(jobs) || jobs.length === 0) return undefined
+  const live = jobs.filter(job => job.status === 'running' || job.status === 'queued')
+  const names = live.map(job => compactText(job.title ?? job.name ?? job.kind)).filter(Boolean)
+  return { value: live.length > 0 ? `${live.length} active` : `${jobs.length} retained`, detail: names.length > 0 ? names.slice(0, 2).join(' · ') : 'Background work is retained for this session.' }
+}
+
 function attentionState(snapshot) {
   if (snapshot.promptError !== null) return { label: 'Action needed', detail: snapshot.promptError.error?.message ?? 'The latest agent action failed.' }
   const pending = snapshot.pending ?? []
@@ -272,6 +290,8 @@ export class FreddieObservabilityDock extends HTMLElement {
     const props = this.#props
     if (props === null) return
     const gm = props.useProjection('gmProgress')
+    const todos = props.useProjection('todos')
+    const todo = todoDetail(todos)
     const sessionStats = props.useProjection('sessionStats')
     const workflow = latestWorkflow(props.useProjection('workflow'))
     const connection = props.useConnection(state => state)
@@ -280,6 +300,8 @@ export class FreddieObservabilityDock extends HTMLElement {
     const nodes = [...sessionSnapshot.chat.nodes.values()]
     const attention = attentionState(sessionSnapshot)
     const summaries = props.useSessions(state => state)
+    const jobs = summaries.jobsBySession?.[props.sessionId] ?? []
+    const job = jobDetail(jobs)
     const descendants = descendantsOf(summaries, props.sessionId)
     const treeActivity = props.useTreeActivity(state => state)
     const treeTerminals = props.useTreeTerminals(state => state)
@@ -339,8 +361,10 @@ export class FreddieObservabilityDock extends HTMLElement {
                 this.#metric('Connection', connectionLabel(connection), connection === 'connected' ? 'Live events are flowing from the agent and server.' : 'The client will reconnect automatically when the stream is available.'),
                 this.#metric('Latest activity', currentActivity?.label ?? (gm?.active ? `GM ${phase(gm)}` : 'Waiting'), currentActivity?.detail ?? gmProgressDetail(gm)),
                 this.#metric('GM', phase(gm), gmProgressDetail(gm)),
+                todo === undefined ? null : this.#metric('Plan', todo.value, todo.detail),
                 this.#metric('Workflow', workflow?.status ?? 'No active run', workflow?.currentPhase ?? workflow?.name ?? 'No current workflow phase.'),
                 sessionWorkDetail(sessionStats) === undefined ? null : this.#metric('Session work', `${sessionStats.turns} turn${sessionStats.turns === 1 ? '' : 's'}`, sessionWorkDetail(sessionStats)),
+                job === undefined ? null : this.#metric('Background jobs', job.value, job.detail),
                 this.#metric('Direct subagents', `${descendants.directRows.length} total · ${descendants.directRunning} running`, 'Work started by this session; open Subagents for the full tree and current action.'),
                 this.#metric('Terminals', terminals.length === 0 ? 'PTY-ready' : `${terminals.length} observed`, 'Live agent command output and lifecycle state.'),
               ),

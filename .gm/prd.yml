@@ -1,1 +1,7 @@
-[]
+- id: overview-plan-progress
+  title: Show durable plan progress
+  subject: Overview lacks the current active todo and overall plan completion despite the durable todos projection already driving the visible Todo panel.
+  acceptance: Overview renders active todo content plus completed/active/pending counts when a todos projection exists.
+  status: in-progress
+  route_family: execution
+  session_id: freddie-422260-1789231886668
