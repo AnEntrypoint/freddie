@@ -65,6 +65,20 @@ function textFromBlocks(blocks) {
   return compactText(blocks.find(block => typeof block?.text === 'string' && block.text.trim() !== '')?.text)
 }
 
+function toolSummary(root) {
+  const description = compactText(root?.callView?.description)
+  if (description !== undefined) return description
+  if (typeof root?.call?.argsRaw !== 'string') return root?.status === 'running' ? 'Running now.' : 'Tool operation completed.'
+  try {
+    const args = JSON.parse(root.call.argsRaw)
+    for (const key of ['description', 'command', 'query', 'path']) {
+      const value = compactText(args?.[key])
+      if (value !== undefined) return value
+    }
+  } catch {}
+  return root?.status === 'running' ? 'Running now.' : 'Tool operation completed.'
+}
+
 function selectedActivities(nodes) {
   const activities = []
   for (const node of [...nodes].reverse()) {
@@ -74,7 +88,7 @@ function selectedActivities(nodes) {
       const root = node.data?.root
       const name = root?.call?.name ?? root?.name ?? root?.callView?.title ?? root?.resultView?.title
       const title = compactText(name)
-      if (title !== undefined) activities.push({ key: node.key, label: `Tool · ${title}`, detail: compactText(root?.callView?.description) ?? (root?.status === 'running' ? 'Running now.' : 'Tool operation completed.') })
+      if (title !== undefined) activities.push({ key: node.key, label: `Tool · ${title}`, detail: toolSummary(root) })
     } else if (node.kind === 'assistant' || node.kind === 'assistant-step') {
       const text = textFromBlocks(node.data?.blocks)
       if (text !== undefined) activities.push({ key: node.key, label: 'Agent response', detail: text.slice(0, 180) })
