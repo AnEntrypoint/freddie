@@ -1,7 +1,1 @@
-- id: gm-browser-provider-recovery
-  title: Restore GM browser observation provider
-  subject: Repair GM’s configured browser search/observation provider so public artifact discovery and live browser verification can run through the advertised GM path.
-  acceptance: GM browser search or equivalent configured provider runs a public query successfully without a missing lightpanda binary error, and the live Freddie page is observable through that provider.
-  status: in-progress
-  route_family: execution
-  session_id: freddie-422260-1789231886668
+[]
