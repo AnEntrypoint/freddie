@@ -120,6 +120,16 @@ function activityDetail(entry) {
   return `Last observed: ${observedEvent(entry, new Map()).detail}`
 }
 
+function attentionState(snapshot) {
+  if (snapshot.promptError !== null) return { label: 'Action needed', detail: snapshot.promptError.error?.message ?? 'The latest agent action failed.' }
+  const pending = snapshot.pending ?? []
+  if (pending.length > 0) return { label: 'Waiting for you', detail: `${pending.length} response${pending.length === 1 ? '' : 's'} needed to continue.` }
+  const queue = snapshot.queue ?? []
+  if (queue.length > 0) return { label: 'Queued work', detail: `${queue.length} message${queue.length === 1 ? '' : 's'} waiting for the next turn.` }
+  if (snapshot.running) return { label: 'Working', detail: 'The agent is processing the current turn.' }
+  return { label: 'Ready', detail: 'No action is waiting in this session.' }
+}
+
 function descendantsOf(summaries, sessionId) {
   const byId = summaries.byId ?? {}
   const queue = [sessionId]
@@ -241,7 +251,9 @@ export class FreddieObservabilityDock extends HTMLElement {
     const workflow = latestWorkflow(props.useProjection('workflow'))
     const connection = props.useConnection(state => state)
     const terminals = props.useTerminals(state => state)
-    const nodes = props.useSession(snapshot => [...snapshot.chat.nodes.values()])
+    const sessionSnapshot = props.useSession(snapshot => snapshot)
+    const nodes = [...sessionSnapshot.chat.nodes.values()]
+    const attention = attentionState(sessionSnapshot)
     const summaries = props.useSessions(state => state)
     const descendants = descendantsOf(summaries, props.sessionId)
     const treeActivity = props.useTreeActivity(state => state)
@@ -298,6 +310,7 @@ export class FreddieObservabilityDock extends HTMLElement {
             ? subagentPanel
             : h('section', { class: css.panel ?? '', 'data-observability-overview': '' },
               h('div', { class: css.metrics ?? '' },
+                this.#metric('Attention', attention.label, attention.detail),
                 this.#metric('Connection', connectionLabel(connection), connection === 'connected' ? 'Live events are flowing from the agent and server.' : 'The client will reconnect automatically when the stream is available.'),
                 this.#metric('This agent', currentActivity?.label ?? (gm?.active ? `GM ${phase(gm)}` : 'Waiting'), currentActivity?.detail ?? gmProgressDetail(gm)),
                 this.#metric('GM', phase(gm), gmProgressDetail(gm)),
