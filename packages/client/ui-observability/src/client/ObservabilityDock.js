@@ -54,6 +54,29 @@ function workflowRuns(nodes) {
   return nodes.filter(node => node.kind === 'workflow-run').map(node => node.data)
 }
 
+function textFromBlocks(blocks) {
+  if (!Array.isArray(blocks)) return undefined
+  return blocks.find(block => typeof block?.text === 'string' && block.text.trim() !== '')?.text
+}
+
+function selectedActivity(nodes) {
+  for (const node of [...nodes].reverse()) {
+    if (node.kind === 'workflow-run') {
+      return { label: `Workflow · ${node.data.name}`, detail: `${node.data.status} · ${node.data.currentPhase ?? 'no active phase'}` }
+    }
+    if (node.kind === 'tool-call') {
+      const root = node.data?.root
+      const name = root?.callView?.title ?? root?.resultView?.title ?? root?.call?.name ?? root?.name
+      if (typeof name === 'string') return { label: `Tool · ${name}`, detail: typeof root?.callView?.description === 'string' ? root.callView.description : 'Latest tool operation in this session.' }
+    }
+    if (node.kind === 'assistant' || node.kind === 'assistant-step') {
+      const text = textFromBlocks(node.data?.blocks)
+      if (text !== undefined) return { label: 'Agent response', detail: text.slice(0, 180) }
+    }
+  }
+  return undefined
+}
+
 function observedEvent(entry, labels) {
   const event = entry.event
   if (event.type === 'tool-workflow/log') return { key: `${entry.sessionId}:${event.seq}`, label: `Child workflow · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.data.message }
@@ -216,6 +239,7 @@ export class FreddieObservabilityDock extends HTMLElement {
     const latestChildActivity = latestActivityBySession(childActivityEntries)
     const childTerminals = treeTerminals.filter(entry => descendantIds.has(entry.sessionId)).map(entry => ({ ...entry.terminal, observerLabel: descendantLabels.get(entry.sessionId) ?? entry.sessionId }))
     const runs = workflowRuns(nodes)
+    const currentActivity = selectedActivity(nodes)
     const active = this.#section
     const terminalPanel = h('section', { class: css.panel ?? '', 'data-observability-terminals': '' },
       h('div', { class: css.panelHeader ?? '' }, h('h2', null, 'Interactive terminals'), h('button', { type: 'button', class: css.action ?? '', onclick: () => { this.#openTerminal() } }, 'Open terminal')),
@@ -253,6 +277,7 @@ export class FreddieObservabilityDock extends HTMLElement {
             : h('section', { class: css.panel ?? '', 'data-observability-overview': '' },
               h('div', { class: css.metrics ?? '' },
                 this.#metric('Connection', connectionLabel(connection), connection === 'connected' ? 'Live events are flowing from the agent and server.' : 'The client will reconnect automatically when the stream is available.'),
+                this.#metric('This agent', currentActivity?.label ?? (gm?.active ? `GM ${phase(gm)}` : 'Waiting'), currentActivity?.detail ?? gmProgressDetail(gm)),
                 this.#metric('GM', phase(gm), gmProgressDetail(gm)),
                 this.#metric('Workflow', workflow?.status ?? 'No active run', workflow?.currentPhase ?? workflow?.name ?? 'No current workflow phase.'),
                 this.#metric('Direct subagents', `${descendants.directRows.length} total · ${descendants.directRunning} running`, 'Work started by this session; open Subagents for the full tree and current action.'),
@@ -261,6 +286,12 @@ export class FreddieObservabilityDock extends HTMLElement {
               descendantRows.filter(row => row.running).slice(0, 5).map(row => h('article', { class: css.metric ?? '' },
                 h('span', { class: css.label ?? '' }, row.label),
                 h('strong', { class: css.value ?? '' }, row.gm?.active ? `GM ${phase(row.gm)}` : row.workflow?.status ?? 'Running'),
+                h('span', { class: css.detail ?? '' }, activityDetail(latestChildActivity.get(row.id))),
+                h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
+              )),
+              descendantRows.filter(row => !row.running && latestChildActivity.has(row.id)).slice(0, 3).map(row => h('article', { class: css.metric ?? '' },
+                h('span', { class: css.label ?? '' }, `Recent child · ${row.label}`),
+                h('strong', { class: css.value ?? '' }, row.gm?.active ? `GM ${phase(row.gm)}` : 'Idle'),
                 h('span', { class: css.detail ?? '' }, activityDetail(latestChildActivity.get(row.id))),
                 h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
               )),

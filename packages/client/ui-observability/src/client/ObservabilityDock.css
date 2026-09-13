@@ -14,11 +14,14 @@
 }
 
 .freddie-observability__eyebrow,
-.freddie-observability__label,
-.freddie-observability__detail,
 .freddie-observability__panelCopy,
 .freddie-observability__empty {
   color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-observability__label,
+.freddie-observability__detail {
+  color: var(--freddie-alias-label-secondary);
 }
 
 .freddie-observability__eyebrow {
