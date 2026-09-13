@@ -1,9 +1,1 @@
-- id: overview-busy-state-audit
-  title: Audit Overview live busy-state coverage
-  subject: Inspect current Overview architecture and the live GUI for an implementable busy/status communication gap using already exposed action or session state.
-  acceptance: Read source ownership and observe http://127.0.0.1:3080; return exactly one prioritized, evidence-backed recommendation or an explicit no-safe-gap conclusion without edits.
-  status: completed
-  route_family: observability
-  session_id: freddie-422260-1789231886668
-  witness: Live app audit at http://127.0.0.1:3080 loaded the full application with data-freddie-boot absent, no boot failure, and HMR status connected:true lastSequence:100 reconnects:0. Source review confirms Overview already projects attention, connection, latest/earlier semantic activity, GM, workflow, subagents, terminals, boot diagnostics, and drill-down. No additional safe high-value input was identified.
-  commit_comment: Complete maximal Overview busy-state audit
+[]
