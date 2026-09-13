@@ -127,6 +127,23 @@ function activityDetail(entry) {
   return `Last observed: ${observedEvent(entry, new Map()).detail}`
 }
 
+function formatDuration(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return undefined
+  if (ms < 1_000) return `${Math.round(ms)}ms`
+  if (ms < 60_000) return `${(ms / 1_000).toFixed(ms < 10_000 ? 1 : 0)}s`
+  return `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1_000)}s`
+}
+
+function sessionWorkDetail(stats) {
+  if (stats === undefined || stats.steps <= 0) return undefined
+  const parts = [`${stats.turns} turn${stats.turns === 1 ? '' : 's'} · ${stats.steps} step${stats.steps === 1 ? '' : 's'}`]
+  const llm = formatDuration(stats.llmMs)
+  const tools = formatDuration(stats.toolMs)
+  if (llm !== undefined) parts.push(`LLM ${llm}`)
+  if (tools !== undefined) parts.push(`tools ${tools}`)
+  return parts.join(' · ')
+}
+
 function attentionState(snapshot) {
   if (snapshot.promptError !== null) return { label: 'Action needed', detail: snapshot.promptError.error?.message ?? 'The latest agent action failed.' }
   const pending = snapshot.pending ?? []
@@ -255,6 +272,7 @@ export class FreddieObservabilityDock extends HTMLElement {
     const props = this.#props
     if (props === null) return
     const gm = props.useProjection('gmProgress')
+    const sessionStats = props.useProjection('sessionStats')
     const workflow = latestWorkflow(props.useProjection('workflow'))
     const connection = props.useConnection(state => state)
     const terminals = props.useTerminals(state => state)
@@ -322,6 +340,7 @@ export class FreddieObservabilityDock extends HTMLElement {
                 this.#metric('Latest activity', currentActivity?.label ?? (gm?.active ? `GM ${phase(gm)}` : 'Waiting'), currentActivity?.detail ?? gmProgressDetail(gm)),
                 this.#metric('GM', phase(gm), gmProgressDetail(gm)),
                 this.#metric('Workflow', workflow?.status ?? 'No active run', workflow?.currentPhase ?? workflow?.name ?? 'No current workflow phase.'),
+                sessionWorkDetail(sessionStats) === undefined ? null : this.#metric('Session work', `${sessionStats.turns} turn${sessionStats.turns === 1 ? '' : 's'}`, sessionWorkDetail(sessionStats)),
                 this.#metric('Direct subagents', `${descendants.directRows.length} total · ${descendants.directRunning} running`, 'Work started by this session; open Subagents for the full tree and current action.'),
                 this.#metric('Terminals', terminals.length === 0 ? 'PTY-ready' : `${terminals.length} observed`, 'Live agent command output and lifecycle state.'),
               ),
