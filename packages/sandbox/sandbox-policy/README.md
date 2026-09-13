@@ -49,7 +49,7 @@ Current FREDDIE file policy: workspace-write. Any available operation enforced b
 ##### Danger-full-access
 
 ```markdown
-Current FREDDIE file policy: danger-full-access. The FREDDIE file sandbox does not restrict file modifications by available operations.
+Current FREDDIE file policy: danger-full-access. The FREDDIE file sandbox does not restrict file modifications by available operations. Do not set sandbox_permissions: no wider mode exists.
 ```
 
 #### Token effect

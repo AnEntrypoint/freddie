@@ -5,34 +5,6 @@
   status: in-progress
   route_family: execution
   session_id: freddie-24860-1789086308555
-- session_id: freddie-monitor-20260911-01
-  id: gm-codeinsight-observability
-  title: Restore GM code-insight observability
-  subject: 'Diagnose and repair the `codeinsight_overview.counts_error: unknown_plugin` failure reported by a live GM instruction dispatch. Precondition: reproduce against the running published GM path. Invariant: unavailable insight never appears as successful coverage. Postcondition: live instruction responses either report accurate source counts or an explicit supported capability state, without `unknown_plugin`.'
-  acceptance: 'A live GM instruction response against Freddie provides usable code-insight counts or a documented supported capability state and does not report `counts_error: unknown_plugin`.'
-  route_family: observability
-  status: pending
-- id: gm-bash-bare-command-contract
-  title: Align GM bare Bash command contract with live execution
-  subject: 'Repair the mismatch between GM prose that accepts bare Bash commands and live dispatch that rejects a bare multiline script for missing timeoutMs. Precondition: the published command contract promises bare-command support. Invariant: accepted body grammar and executable parser remain aligned. Postcondition: a bare multiline Bash script succeeds without a timeout prefix, or served documentation explicitly requires the prefix and a live witness confirms it.'
-  acceptance: A live GM Bash dispatch and its served contract agree on whether a bare multiline script needs timeoutMs.
-  route_family: observability
-  session_id: remote-sync-1789114548729
-  status: pending
-- id: gm-codesearch-literal-contract
-  title: Make GM literal code search honor its exhaustive contract
-  subject: 'Repair the confirmed GM codesearch defect where a `{mode:"literal"}` request returns `mode:"dual"` and omits `exhaustive:true`. Precondition: the served GM contract promises literal tree-read exhaustive results. Invariant: a requested search mode is never silently downgraded. Postcondition: literal mode returns every tree match with `exhaustive:true`, or a truthful explicit bounded/error state.'
-  acceptance: A live GM literal codesearch response retains mode literal and declares exhaustive true or a named bound/error.
-  route_family: observability
-  session_id: remote-sync-1789114548729
-  status: pending
-- session_id: freddie-fullaccess-fix-20260911-02
-  id: full-access-bash-escalation
-  title: Omit redundant Bash sandbox escalation in full-access Freddie sessions
-  subject: 'Trace and repair Freddie’s Bash invocation policy that sends `sandbox_permissions: danger-full-access` or `workspace-write` while the current session already has danger-full-access. Precondition: the call runs in full-access mode and reports a non-wider escalation rejection. Invariant: emitted sandbox escalation is strictly wider than the current mode whenever present. Postcondition: full-access executions omit sandbox escalation and the affected real Freddie path no longer produces the rejection.'
-  acceptance: A real Freddie Bash invocation in danger-full-access mode completes without requesting sandbox escalation, while narrower modes retain only valid strictly-wider escalation behavior.
-  route_family: execution
-  status: pending
 - id: remote-integration
   title: Integrate remote state
   subject: Fetch every configured remote and merge its upstream mainline before local implementation.

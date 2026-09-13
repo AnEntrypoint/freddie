@@ -685,3 +685,43 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: Implemented the bounded WebSocket queue and O(1) dequeue in packages/client/connection/src/client/web-api-client.js:7-89 plus pre-trimmed terminal retention in packages/client/runtime/src/client/sessions/terminal-activity.js:7-13. node --check succeeded and the real browser loaded the live client afterward. The separate PartialAccumulator concatenation finding remains a later performance improvement because its output representation is model-visible and requires a dedicated replay-compatible design.
+- id: freddie-gui-hmr-observability-live
+  prd_id: freddie-gui-streaming-performance
+  obligation_kind: postcondition
+  subject: The real browser must retain a connected HMR channel and the operational overview must render its new realtime connection status after the streaming performance changes.
+  text: Witness by navigating the existing local Freddie GUI, entering Overview, and reading both window.__FREDDIE_HMR__.status and its visible connection indicator.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: At http://127.0.0.1:3080, the active Overview displayed “Realtime connected” and live subagent activity. Browser evaluation returned __FREDDIE_HMR__.status={connected:true,lastSequence:31,reconnects:0}; after subsequent source updates it advanced to lastSequence:35, proving HMR delivery. The connection state projection is independent of HMR and is sourced by packages/client/connection/src/client/index.js.
+- id: gm-codesearch-live-artifact
+  prd_id: gm-codesearch-literal-repair
+  obligation_kind: precondition
+  subject: The currently served GM codesearch path may use an installed artifact distinct from the source checkout.
+  text: Witness the source-to-live execution relationship by locating the active handler and driving it manually after any safe source correction.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Live spool request freddie-422260-1789231886668-manual-literal-1789284650 returned data.mode=root_scoped for {mode:literal,root:/config/workspace/gm}; source code_index.rs routes literal before root at verbs.rs:1601-1603. The active artifact is stale relative to source. A release build failed because wasm32-wasip1 target is not installed (cargo E0463).
+- id: gm-bash-timeout-parser-location
+  prd_id: gm-bash-timeout-contract
+  obligation_kind: precondition
+  subject: The exact source modules that serve Bash guidance and parse runtime Bash bodies are unknown.
+  text: Witness with exhaustive literal source search and read the identified grammar/parser implementations.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'Read source: `skills/gm/SKILL.md:42-47` documents raw plain-text verbs; `rs-plugkit/.../verbs.rs:1925-1958` serves/executes Bash; `agentplug/.../exec_js.rs:13-28,305-307` enforces timeout and launches bash. The contradiction was shell_exec wording accepting bare commands while its None branch rejected them.'
+- id: partial-accumulator-live-path
+  prd_id: partial-accumulator-reachability
+  obligation_kind: precondition
+  subject: PartialAccumulator must have a reachable construction site in the mounted browser module graph before its local concatenation behavior can be treated as a live GUI hot path.
+  text: Witness with exhaustive literal source references, the current client boot graph, and actual streamed session behavior.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Exhaustive literal source search found only the PartialAccumulator declaration in packages/client/runtime/src/client/sessions/partial.js and no `new PartialAccumulator` construction. The live boot graph mounted client-runtime, ui-conversation, and ui-trajectory, but neither active streaming Definition imports or constructs PartialAccumulator. It is unreachable dead code, not a live GUI path.
+- id: assistant-definitions-concat-path
+  prd_id: partial-accumulator-reachability
+  obligation_kind: resource-bound
+  subject: The actively registered assistant Definitions concatenate text, reasoning, and tool argument delta strings on each streamed chunk and must be evaluated independently from the unused PartialAccumulator.
+  text: Witness with registered Definition source, live manifest entries, and a representative event-stream session.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Live boot manifest includes ui-conversation and ui-trajectory. Their registered Definitions fold assistant chunks in ui-conversation/src/client/conversation-nodes/assistant.js:47-99 and ui-trajectory/src/client/trajectory-assistant-definition.js:70-128; both concatenate visible text/reasoning/tool argument fields per delta. Real Node execution through assistantDefinition with 4,096 × 64-char deltas produced 262,144 chars in 423.4 ms. This is live/reachable independent of unused PartialAccumulator.

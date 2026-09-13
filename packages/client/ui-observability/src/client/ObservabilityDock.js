@@ -16,7 +16,17 @@ function count(value) {
 }
 
 function phase(value) {
-  return value?.active ? value.phase ?? 'Active' : 'Waiting for GM activity'
+  if (!value?.active) return 'Waiting for GM activity'
+  return value.phase ?? 'Active'
+}
+
+function gmProgressDetail(value) {
+  if (!value?.active) return 'No active GM session has published progress yet.'
+  const planned = count(value.prdPendingCount)
+  const obligations = count(value.mutablesPendingCount)
+  return planned === '—' && obligations === '—'
+    ? 'The GM session is active; it has not published planning counts yet.'
+    : `PRD ${planned} · obligations ${obligations}`
 }
 
 function connectionLabel(state) {
@@ -40,7 +50,12 @@ function latestWorkflow(workflow) {
 }
 
 function bluf(gm, workflow, descendants, terminals) {
-  if (gm?.active) return `GM is ${phase(gm)} with ${count(gm.prdPendingCount)} planned item${gm.prdPendingCount === 1 ? '' : 's'} remaining.`
+  if (gm?.active) {
+    const planned = count(gm.prdPendingCount)
+    return planned === '—'
+      ? `GM is ${phase(gm)} and publishing live progress.`
+      : `GM is ${phase(gm)} with ${planned} planned item${gm.prdPendingCount === 1 ? '' : 's'} remaining.`
+  }
   if (workflow?.status !== undefined) return `Latest workflow is ${workflow.status}. Its phase, members, and durable log are visible below.`
   if (descendants.running > 0) return `${descendants.running} subagent${descendants.running === 1 ? '' : 's'} are active in this agent tree.`
   if (terminals.length > 0) return `${terminals.length} terminal${terminals.length === 1 ? '' : 's'} are producing observed agent activity.`
@@ -252,7 +267,7 @@ export class FreddieObservabilityDock extends HTMLElement {
     const content = active === 'terminals'
       ? terminalPanel
       : active === 'gm'
-        ? h('section', { class: css.panel ?? '', 'data-observability-gm': '' }, h('h2', null, 'GM progress'), this.#metric('Current phase', phase(gm), `PRD ${count(gm?.prdPendingCount)} · obligations ${count(gm?.mutablesPendingCount)}`), descendantRows.filter(row => row.gm !== undefined).map(row => this.#metric(`Child GM · ${row.label}`, phase(row.gm), `PRD ${count(row.gm.prdPendingCount)} · obligations ${count(row.gm.mutablesPendingCount)}`)), ledgerPanel)
+        ? h('section', { class: css.panel ?? '', 'data-observability-gm': '' }, h('h2', null, 'GM progress'), this.#metric('Current phase', phase(gm), gmProgressDetail(gm)), descendantRows.filter(row => row.gm !== undefined).map(row => this.#metric(`Child GM · ${row.label}`, phase(row.gm), gmProgressDetail(row.gm))), ledgerPanel)
         : active === 'workflows'
           ? workflowPanel
           : active === 'subagents'
@@ -260,12 +275,12 @@ export class FreddieObservabilityDock extends HTMLElement {
             : h('section', { class: css.panel ?? '', 'data-observability-overview': '' },
               h('div', { class: css.metrics ?? '' },
                 this.#metric('Connection', connectionLabel(connection), connection === 'connected' ? 'Live events are flowing from the agent and server.' : 'The client will reconnect automatically when the stream is available.'),
-                this.#metric('GM', phase(gm), `PRD ${count(gm?.prdPendingCount)} · obligations ${count(gm?.mutablesPendingCount)}`),
+                this.#metric('GM', phase(gm), gmProgressDetail(gm)),
                 this.#metric('Workflow', workflow?.status ?? 'No active run', workflow?.currentPhase ?? workflow?.name ?? 'No current workflow phase.'),
                 this.#metric('Subagents', `${descendants.total} total · ${descendants.running} running`, 'The selected agent and all known descendants.'),
                 this.#metric('Terminals', terminals.length === 0 ? 'PTY-ready' : `${terminals.length} observed`, 'Live agent command output and lifecycle state.'),
               ),
-              descendantRows.filter(row => row.running).map(row => this.#metric(`Active child · ${row.label}`, row.gm?.active ? `GM ${phase(row.gm)}` : row.workflow?.status ?? 'running', 'Retained lifecycle summary.')),
+              descendantRows.filter(row => row.running).map(row => this.#metric(`Active child · ${row.label}`, row.gm?.active ? `GM ${phase(row.gm)}` : row.workflow?.status ?? 'running', row.gm?.active ? gmProgressDetail(row.gm) : 'Retained lifecycle summary.')),
               ledgerPanel,
             )
     applyDiff(this, h('section', { class: css.root ?? '', 'data-observability-view': '' },
