@@ -169,14 +169,14 @@ export class FreddieToolRow extends HTMLElement {
             title: title,
             open: open,
             expandable: expandable,
-            expandOnRowClick: true,
+            expandOnRowClick: !fileLink,
             keepContentWhenOpen: true,
             onToggle: this.#toggleExpand,
             collapsedContent: summaryText !== '' ? (
               /* An empty summary drops the separator with it (a row that is only
                  its title shows no trailing dot). */
               [
-                h('span', {class: css.sep ?? '', 'aria-hidden': ''}),
+                h('span', {class: css.sep ?? '', 'aria-hidden': 'true'}),
                 fileLink ? (
                   h('button',
                     {
@@ -247,7 +247,7 @@ export class FreddieToolRow extends HTMLElement {
                               )
                             ),
                             cardBody !== null && outputText !== null && (
-                              h('span', {class: css.ioDivider ?? '', 'aria-hidden': ''})
+                              h('span', {class: css.ioDivider ?? '', 'aria-hidden': 'true'})
                             ),
                             outputText !== null && (
                               h('div', {class: css.ioSection ?? ''},

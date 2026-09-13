@@ -130,7 +130,7 @@ export class FreddieBashRow extends HTMLElement {
           h('span', {class: css.leading ?? ''}, leading),
           status !== null && h('span', {class: css.visuallyHidden ?? ''}, status),
           h('span', {class: css.title ?? ''}, model.title),
-          h('span', {class: css.sep ?? '', 'aria-hidden': ''}),
+          h('span', {class: css.sep ?? '', 'aria-hidden': 'true'}),
           /* The terminal presenter's description is the contractual
               above-card summary; a failure's first line outranks both. */
           h('span', {class: clsx(css.summary, failureLine !== null && css.errorSummary)},
@@ -159,7 +159,7 @@ export class FreddieBashRow extends HTMLElement {
                     )
                   ),
                   model.body !== null && model.output !== null && (
-                    h('span', {class: css.ioDivider ?? '', 'aria-hidden': ''})
+                    h('span', {class: css.ioDivider ?? '', 'aria-hidden': 'true'})
                   ),
                   model.output !== null && (
                     h('div', {class: css.ioSection ?? ''},
