@@ -2092,6 +2092,9 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
+      '@freddie/freddie-client-connection':
+        specifier: '*'
+        version: link:../connection
       '@freddie/freddie-client-locale':
         specifier: '*'
         version: link:../locale
