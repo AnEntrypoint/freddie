@@ -782,3 +782,11 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: User approved continued work while this is investigated. The blocks are missing/unreadable paths in an anomalously deep nested node_modules chain; no HiddenSpawn structural hit was found. Dependency integrity remains a reported installation issue rather than a blocker for GUI code changes.
+- id: dependency-scan-blocked-paths
+  prd_id: gui-live-audit
+  obligation_kind: precondition
+  subject: Dependency scan reported four unreadable/missing paths in the local dependency tree.
+  text: Determine whether the scan findings are stale/broken symlink artifacts or indicate a compromised dependency before trusting installed dependencies.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Source review at ../gm/rs-plugkit/crates/plugkit-core/src/scan_deps.rs:353-401 shows package-root identity/canonical directory dedup plus node_modules pruning. The active scanner response was produced by an older installed artifact; current gm memory records a rebuilt slim artifact scan with failCount 0 and no recursive symlink traversal. The only remaining /list-packages.js report is a scanner-root path issue, not a dependency payload.

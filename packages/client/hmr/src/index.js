@@ -24,7 +24,9 @@ export const inject = ['clientModules', 'webServer']
 
 export const Config = z.object({
   pollIntervalMs: z.number().step(1).min(1).default(500),
+  scanDebounceMs: z.number().step(1).min(1).default(50),
   heartbeatIntervalMs: z.number().step(1).min(1).default(15_000),
+  maxBufferedSseBytes: z.number().step(1).min(1).default(1_048_576),
   distIndex: z.string(),
 })
 
@@ -74,9 +76,11 @@ function sseData(frame) {
  */
 export function apply(ctx, config) {
   const pollIntervalMs = config.pollIntervalMs
+  const scanDebounceMs = config.scanDebounceMs
   // --- bundle watch: buildless serving mirrors each complete src/client/
   // tree, so a dirty root is scanned before its graph row is rebuilt. --------
   const watchedRoots = new Map()
+  let dynamicPollTimer
   let dynamicPollQueued = false
 
   /** List every file under `root`, recursively, as absolute paths. */
@@ -181,7 +185,7 @@ export function apply(ctx, config) {
   const scheduleDynamicPoll = () => {
     if (dynamicPollQueued) return
     dynamicPollQueued = true
-    queueMicrotask(() => pollWatches())
+    dynamicPollTimer = setTimeout(() => pollWatches(), scanDebounceMs)
   }
 
   const watchRow = (id, root) => {
@@ -221,6 +225,7 @@ export function apply(ctx, config) {
 
   const pollWatches = (fallback = false) => {
     dynamicPollQueued = false
+    dynamicPollTimer = undefined
     for (const [id, watch] of watchedRoots) {
       if (!watch.dirty && (!fallback || watch.watcher !== undefined)) continue
       const next = snapshot(watch.root, id)
@@ -272,6 +277,7 @@ export function apply(ctx, config) {
     return () => {
       unsubscribe()
       clearInterval(fallbackTimer)
+      if (dynamicPollTimer !== undefined) clearTimeout(dynamicPollTimer)
       for (const watch of watchedRoots.values()) watch.watcher?.close()
       watchedRoots.clear()
     }
@@ -287,11 +293,12 @@ export function apply(ctx, config) {
   ].filter(([, root]) => root !== undefined))
 
   const staticWatches = new Map()
+  let staticPollTimer
   let staticPollQueued = false
   const scheduleStaticPoll = () => {
     if (staticPollQueued) return
     staticPollQueued = true
-    queueMicrotask(() => pollStaticWatches())
+    staticPollTimer = setTimeout(() => pollStaticWatches(), scanDebounceMs)
   }
   const watchStaticRoot = (id, root) => {
     const watch = { root, ...snapshot(root), watcher: undefined }
@@ -306,6 +313,7 @@ export function apply(ctx, config) {
 
   const pollStaticWatches = (fallback = false) => {
     staticPollQueued = false
+    staticPollTimer = undefined
     for (const watch of staticWatches.values()) {
       if (!watch.dirty && (!fallback || watch.watcher !== undefined)) continue
       const next = snapshot(watch.root)
@@ -324,6 +332,7 @@ export function apply(ctx, config) {
       fallbackTimer.unref()
       return () => {
         clearInterval(fallbackTimer)
+        if (staticPollTimer !== undefined) clearTimeout(staticPollTimer)
         for (const watch of staticWatches.values()) watch.watcher?.close()
         staticWatches.clear()
       }
@@ -334,14 +343,23 @@ export function apply(ctx, config) {
   const connections = new Set()
   let frameSequence = 0
 
-  /** Write one SSE line or remove a response that cannot receive it. */
+  /** Write one SSE line or drop a client whose socket buffer cannot keep up. */
   const write = (res, line) => {
     if (res.destroyed || res.writableEnded) {
       connections.delete(res)
       return
     }
+    if (res.writableLength > config.maxBufferedSseBytes) {
+      connections.delete(res)
+      res.destroy()
+      return
+    }
     try {
       res.write(line)
+      if (res.writableLength > config.maxBufferedSseBytes) {
+        connections.delete(res)
+        res.destroy()
+      }
     } catch (error) {
       connections.delete(res)
       if (error.code !== 'ERR_STREAM_DESTROYED') ctx.logger.warn(error)
