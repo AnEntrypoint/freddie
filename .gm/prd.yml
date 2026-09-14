@@ -5,3 +5,10 @@
   status: in-progress
   route_family: boundary
   session_id: freddie-422260-1789231886668
+- id: consolidate-remote-main
+  title: Consolidate GUI repair with remote main
+  subject: 'Pre: local GUI commits are ahead while origin/main moved and automatic rebase conflicts. Invariant: preserve intended local and remote changes, resolve every overlap from source and live behavior, and publish one consolidated mainline history without force rewrite. Post: main contains both worksets and a fresh live GUI witness.'
+  acceptance: Fetch/integrate remote main with conflict-by-conflict reconciliation, preserve the GUI repairs and remote changes, live-verify critical GUI paths, and push a clean main.
+  status: in-progress
+  route_family: boundary
+  session_id: freddie-422260-1789231886668

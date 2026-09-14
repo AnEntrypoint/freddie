@@ -1044,4 +1044,5 @@
   subject: Only one dock tabpanel mounts at a time, so inactive tab aria-controls references must not target missing ids.
   text: 'Render aria-controls only for active tab, keep tabpanel id/aria-labelledby synchronized with #section, and verify axe has no invalid tab references.'
   session_id: freddie-422260-1789231886668
-  status: unknown
+  status: witnessed
+  witness_evidence: 'invariant: live axe audit no longer reports aria-valid-attr-value; active Overview tab controls only freddie-observability-panel-overview, which is mounted with matching aria-labelledby.'
