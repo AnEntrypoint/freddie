@@ -814,3 +814,11 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: exec_js git status/diff at 1789365003261 shows the only pending target is crates/agentplug-runner/src/daemon.rs and precisely identifies the HashSet, completion channel, completion drain, guarded admission, and worker send lines.
+- id: daemon-diff-scope
+  prd_id: daemon-concurrency-change
+  obligation_kind: precondition
+  subject: Current daemon.rs modification must be the requested change and no other tracked path may be included.
+  text: Witness with target-repository git diff and post-check status.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Target-repository validation showed `git diff --name-only` emits only crates/agentplug-runner/src/daemon.rs; diff adds per-root in-flight synchronization with completion cleanup; `git diff --check` passed.

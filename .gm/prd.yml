@@ -1,7 +1,7 @@
-- id: review-instruction-source-dedup
-  title: Adversarially review root deduplication
-  subject: 'Inspect the committed daemon change and refute its HashSet plus mpsc synchronization invariant if an interleaving can lose a needed source sync. Preconditions: identify the actual committed patch and relevant callers; invariant: a root remains deduplicated only while a worker''s execution covers every needed sync; postcondition: report only reproducible source-line findings.'
-  acceptance: Current committed change and its surrounding source have been inspected; every plausible lost-wakeup, panic, cancellation, and path-identity interleaving is assessed with cited lines; findings are reported without changing files.
+- id: daemon-concurrency-change
+  title: Complete daemon change
+  subject: Verify and preserve the existing sole daemon.rs change, then validate, commit, and push it only from /config/workspace/gm/agentplug.
+  acceptance: Only crates/agentplug-runner/src/daemon.rs is committed and pushed to agentplug origin/main after cargo check passes.
   status: in-progress
-  route_family: reasoning
+  route_family: execution
   session_id: freddie-422260-1789231886668
