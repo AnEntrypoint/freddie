@@ -1,1 +1,7 @@
-[]
+- id: review-instruction-source-dedup
+  title: Adversarially review root deduplication
+  subject: 'Inspect the committed daemon change and refute its HashSet plus mpsc synchronization invariant if an interleaving can lose a needed source sync. Preconditions: identify the actual committed patch and relevant callers; invariant: a root remains deduplicated only while a worker''s execution covers every needed sync; postcondition: report only reproducible source-line findings.'
+  acceptance: Current committed change and its surrounding source have been inspected; every plausible lost-wakeup, panic, cancellation, and path-identity interleaving is assessed with cited lines; findings are reported without changing files.
+  status: in-progress
+  route_family: reasoning
+  session_id: freddie-422260-1789231886668

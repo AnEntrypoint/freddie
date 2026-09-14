@@ -798,3 +798,10 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: 'daemon.rs:2550-2552 owns the per-root HashSet and completion channel; 2589-2591 drains every finished worker root; 2614-2628 admits only a due root not already present, timestamps it, and sends completion after both success and error. Cargo check was attempted but shell reports `cargo: command not found` (exit 127).'
+- id: committed-diff-identification
+  prd_id: review-instruction-source-dedup
+  obligation_kind: precondition
+  subject: The exact committed diff under review is not yet identified.
+  text: Witness by inspecting repository history/diff and matching the changed daemon lines.
+  session_id: freddie-422260-1789231886668
+  status: unknown
