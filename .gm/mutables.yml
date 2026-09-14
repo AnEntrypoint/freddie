@@ -774,3 +774,11 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: packages/client/web/src/boot.js:111-115 listens to Loader internal/status and projects STATE_LABELS into BootPage; the new setCurrent bridge uses the same authoritative event.
+- id: dependency-scan-blocks
+  prd_id: gui-realtime-productivity
+  obligation_kind: resource-bound
+  subject: The dependency supply-chain scan could not read eight deeply nested dependency paths.
+  text: Investigate the reported blocks and establish whether they are benign broken symlink/path-loop artifacts or an actionable dependency integrity issue before trusting the dependency tree.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: User approved continued work while this is investigated. The blocks are missing/unreadable paths in an anomalously deep nested node_modules chain; no HiddenSpawn structural hit was found. Dependency integrity remains a reported installation issue rather than a blocker for GUI code changes.

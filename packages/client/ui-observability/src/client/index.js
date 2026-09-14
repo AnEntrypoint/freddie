@@ -2,11 +2,21 @@
 
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import './ObservabilityDock.js'
+import './OperationsStrip.js'
 
 export const inject = ['connection', 'sessions', 'slots']
 
 /** Mount operational activity as a dedicated session view rather than crowding the composer. */
 export function apply(ctx) {
+  ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
+    name: 'conversation.session.header.utilities',
+    id: 'operations',
+    order: -100,
+    inject: (sessionId) => ({
+      sessionId,
+      hooks: { connection: ctx.connection.state },
+    }),
+  }, webjsxSlot('freddie-operations-strip')))
   ctx.slots.inject('conversation.view', () => ctx.slots.register({
     name: 'conversation.view',
     id: 'observability',

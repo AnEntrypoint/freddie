@@ -1,14 +1,11 @@
 /**
- * HMR plugin, node half: the host end of the dev reload chain. One interval
- * stat-polls every graph row's whole served src/client/ tree plus buildless
- * shell and statically seeded workspace package roots (polling by design:
- * network mounts deliver no inotify events). Dynamic rows publish revised
- * graph rows through `clientModuleHost.rebuilt(id)` for fiber replacement;
- * static and stylesheet changes publish page reloads through `/plugins/events`.
- * The web bundle mounts this row unconditionally, so served source changes
- * need no separate watcher or rebuild process.
+ * HMR plugin, node half: watches served source roots and emits ordered rebuild
+ * frames. Native filesystem events mark roots dirty and trigger a coalesced
+ * scan; polling remains the fallback for mounts without native watch support.
+ * Dynamic rows publish revised graph rows for fiber replacement; static and
+ * stylesheet changes publish page reloads through `/plugins/events`.
  */
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync, watch as watchFs } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -76,13 +73,11 @@ function sseData(frame) {
  * @param config - validated {@link Config}.
  */
 export function apply(ctx, config) {
-  // schemastery's .default() guarantees the field is set after validation.
   const pollIntervalMs = config.pollIntervalMs
-
-  // --- bundle watch: one HMR-owned stat poll over each row's whole served
-  // tree (buildless serving mirrors src/client/ verbatim, so a change to any
-  // file under it â€” not just the entry file â€” must trigger a rebuild) ------
+  // --- bundle watch: buildless serving mirrors each complete src/client/
+  // tree, so a dirty root is scanned before its graph row is rebuilt. --------
   const watchedRoots = new Map()
+  let dynamicPollQueued = false
 
   /** List every file under `root`, recursively, as absolute paths. */
   function listTreeFiles(root) {
@@ -112,10 +107,9 @@ export function apply(ctx, config) {
    * elements takes the same honest exit `shell-rebuilt` already takes -- a
    * full reload.
    *
-   * Read off the walk the poll already performs, so this costs no extra
-   * directory traversal; only the file reads, and only for rows not yet
-   * classified (the result is cached per row for the process's life, since a
-   * package does not start or stop defining elements without a restart).
+   * Read during the dirty-root scan, so classification adds no directory
+   * traversal. The result is cached per row until a later dirty scan refreshes
+   * it, which keeps a newly added element definition on the safe reload path.
    * @param files - absolute paths of every file under the row's served tree.
    * @returns whether any file calls `customElements.define`.
    */
@@ -172,8 +166,30 @@ export function apply(ctx, config) {
     return { files, dirty }
   }
 
+  const nativeWatch = (root, markDirty) => {
+    try {
+      const watcher = watchFs(root, { recursive: true }, markDirty)
+      watcher.on('error', (error) => ctx.logger.warn(error))
+      return watcher
+    } catch (error) {
+      ctx.logger.warn(`client-hmr: native watch unavailable for ${root}; using fallback polling`)
+      ctx.logger.warn(error)
+      return undefined
+    }
+  }
+
+  const scheduleDynamicPoll = () => {
+    if (dynamicPollQueued) return
+    dynamicPollQueued = true
+    queueMicrotask(() => pollWatches())
+  }
+
   const watchRow = (id, root) => {
-    const watch = { root, ...snapshot(root, id) }
+    const watch = { root, ...snapshot(root, id), watcher: undefined }
+    watch.watcher = nativeWatch(root, () => {
+      watch.dirty = true
+      scheduleDynamicPoll()
+    })
     watchedRoots.set(id, watch)
     // The module host hashed before publishing the graph. Re-hash immediately
     // after capturing this baseline so a write in between cannot become an
@@ -203,8 +219,10 @@ export function apply(ctx, config) {
     return false
   }
 
-  const pollWatches = () => {
+  const pollWatches = (fallback = false) => {
+    dynamicPollQueued = false
     for (const [id, watch] of watchedRoots) {
+      if (!watch.dirty && (!fallback || watch.watcher !== undefined)) continue
       const next = snapshot(watch.root, id)
       const changed = watch.dirty || snapshotsDiffer(watch.files, next.files)
       if (!changed) continue
@@ -235,6 +253,7 @@ export function apply(ctx, config) {
     }
     for (const [id, watch] of watchedRoots) {
       if (rows.get(id) === watch.root) continue
+      watch.watcher?.close()
       watchedRoots.delete(id)
     }
     for (const [id, root] of rows) {
@@ -248,11 +267,12 @@ export function apply(ctx, config) {
     // own row â€” no self-exemption, a modules/hmr rebuild rides the same chain).
     syncWatches()
     const unsubscribe = ctx.clientModules.onGraphChanged(syncWatches)
-    const timer = setInterval(pollWatches, pollIntervalMs)
-    timer.unref()
+    const fallbackTimer = setInterval(() => pollWatches(true), pollIntervalMs)
+    fallbackTimer.unref()
     return () => {
       unsubscribe()
-      clearInterval(timer)
+      clearInterval(fallbackTimer)
+      for (const watch of watchedRoots.values()) watch.watcher?.close()
       watchedRoots.clear()
     }
   }, 'client-hmr: bundle watches')
@@ -267,11 +287,27 @@ export function apply(ctx, config) {
   ].filter(([, root]) => root !== undefined))
 
   const staticWatches = new Map()
-  if (shellRoot !== undefined) staticWatches.set('apps/web', { root: shellRoot, ...snapshot(shellRoot) })
-  for (const [id, root] of staticRoots) staticWatches.set(id, { root, ...snapshot(root) })
+  let staticPollQueued = false
+  const scheduleStaticPoll = () => {
+    if (staticPollQueued) return
+    staticPollQueued = true
+    queueMicrotask(() => pollStaticWatches())
+  }
+  const watchStaticRoot = (id, root) => {
+    const watch = { root, ...snapshot(root), watcher: undefined }
+    watch.watcher = nativeWatch(root, () => {
+      watch.dirty = true
+      scheduleStaticPoll()
+    })
+    staticWatches.set(id, watch)
+  }
+  if (shellRoot !== undefined) watchStaticRoot('apps/web', shellRoot)
+  for (const [id, root] of staticRoots) watchStaticRoot(id, root)
 
-  const pollStaticWatches = () => {
+  const pollStaticWatches = (fallback = false) => {
+    staticPollQueued = false
     for (const watch of staticWatches.values()) {
+      if (!watch.dirty && (!fallback || watch.watcher !== undefined)) continue
       const next = snapshot(watch.root)
       if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) continue
       watch.files = next.files
@@ -284,10 +320,11 @@ export function apply(ctx, config) {
 
   if (staticWatches.size > 0) {
     ctx.effect(() => {
-      const timer = setInterval(pollStaticWatches, pollIntervalMs)
-      timer.unref()
+      const fallbackTimer = setInterval(() => pollStaticWatches(true), pollIntervalMs)
+      fallbackTimer.unref()
       return () => {
-        clearInterval(timer)
+        clearInterval(fallbackTimer)
+        for (const watch of staticWatches.values()) watch.watcher?.close()
         staticWatches.clear()
       }
     }, 'client-hmr: static source watches')

@@ -28,6 +28,7 @@ export class ConnectionController {
   generation = 0
   attempt = 0
   current = null
+  backoff = null
   running = false
   lastState = null
 
@@ -48,11 +49,13 @@ export class ConnectionController {
     void this.loop()
   }
 
-  /** Stop the loop and abort the current generation's streams. */
+  /** Stop the loop and abort the current generation's streams and reconnect delay. */
   stop() {
     this.running = false
     this.current?.abort()
     this.current = null
+    this.backoff?.abort()
+    this.backoff = null
   }
 
   backoffDelay(attempt) {
@@ -139,8 +142,10 @@ export class ConnectionController {
       this.emitState('reconnecting')
       this.attempt += 1
       console.warn(`[web-runtime] connection lost, retry #${this.attempt}`)
-      const idle = new AbortController()
-      await sleep(this.backoffDelay(this.attempt), idle.signal)
+      const backoff = new AbortController()
+      this.backoff = backoff
+      await sleep(this.backoffDelay(this.attempt), backoff.signal)
+      if (this.backoff === backoff) this.backoff = null
     }
   }
 
