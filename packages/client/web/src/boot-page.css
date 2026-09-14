@@ -1,5 +1,6 @@
 /* The framework-free boot page cannot depend on theme delivery succeeding. */
 
+
 .freddie-bootPage__boot {
   --freddie-boot-bg: #fff;
   --freddie-boot-label-primary: #0f1115;
@@ -74,6 +75,59 @@ body[data-ds-dark-theme] .freddie-bootPage__boot {
   line-height: 18px;
   overflow-wrap: anywhere;
   text-align: center;
+}
+
+.freddie-bootPage__statusGrid {
+  width: min(420px, calc(100vw - 48px));
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.freddie-bootPage__statusItem {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--freddie-alias-border-l2, var(--freddie-boot-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--freddie-alias-bg-base, var(--freddie-boot-bg)) 92%, var(--freddie-alias-border-l2, var(--freddie-boot-border)));
+}
+
+.freddie-bootPage__statusValue {
+  color: var(--freddie-alias-label-primary, var(--freddie-boot-label-primary));
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 20px;
+}
+
+.freddie-bootPage__statusLabel {
+  margin-top: 2px;
+  color: var(--freddie-alias-label-primary, var(--freddie-boot-label-primary));
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.freddie-bootPage__statusMeta {
+  min-height: 28px;
+  margin-top: 2px;
+  color: var(--freddie-alias-label-secondary, var(--freddie-boot-label-secondary));
+  font-size: 11px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+.freddie-bootPage__statusItem[data-state='ready'] .freddie-bootPage__statusValue {
+  color: var(--freddie-alias-label-primary, var(--freddie-boot-label-primary));
+}
+
+.freddie-bootPage__statusItem[data-state='failed'] .freddie-bootPage__statusValue {
+  color: var(--freddie-alias-state-error-primary, var(--freddie-boot-label-primary));
+}
+
+@media (max-width: 480px) {
+  .freddie-bootPage__statusGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .freddie-bootPage__current {

@@ -1,1 +1,7 @@
-[]
+- id: completion-gate-verification
+  title: Satisfy completion verification gates
+  subject: 'Pre: completion gate requires committed clean tree, fresh CI, residual scan, and independent adversarial diff review. Invariant: no completion claim outruns repository evidence. Post: the changed GUI and framework slice is committed, pushed, independently reviewed, and residual-scanned.'
+  acceptance: Run independent refutation review, finalize the exact changed files, collect CI result, and execute residual scan after the clean commit.
+  status: in-progress
+  route_family: boundary
+  session_id: freddie-422260-1789231886668

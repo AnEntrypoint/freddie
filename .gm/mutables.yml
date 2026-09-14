@@ -822,3 +822,195 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: Target-repository validation showed `git diff --name-only` emits only crates/agentplug-runner/src/daemon.rs; diff adds per-root in-flight synchronization with completion cleanup; `git diff --check` passed.
+- id: nested-layout-cause
+  prd_id: nested-node-modules-diagnosis
+  obligation_kind: precondition
+  subject: Whether the repeated physical nested chain is intended pnpm linking or an anomalous stale npm-style materialization must be determined from live filesystem/package-manager metadata.
+  text: Witness via exec_js filesystem lstat/realpath and package manager configuration/lockfile metadata; do not change state.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'gm_scan_deps full result: failCount=0, nodeModulesTruncated=false; only five heuristic size warnings. exec_js lstat/realpath shows every reported nested link is a symlink to a workspace package or .pnpm store. node_modules/.modules.yaml:958-960 declares pnpm isolated layout (layoutVersion 5, pnpm 11.7.0); lockfile uses link: workspace importers. Thus the paths are intended pnpm peer-dependency resolution links, not recursive physical copies.'
+- id: gui-runtime-impact
+  prd_id: nested-node-modules-diagnosis
+  obligation_kind: postcondition
+  subject: Whether the currently live GUI at 127.0.0.1:3080 resolves modules through the anomalous dependency chain must be witnessed from its boot/runtime state.
+  text: Witness via connected browser and source/runtime inspection; no mutation.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: Browser session to http://127.0.0.1:3080 returned title 'FREDDIE Local Build', window.__FREDDIE_BOOT__=true, and loaded successfully. Its performance resource entries contain no node_modules URL. Source search locates client boot at packages/client/web/src/boot.js:41-52, which consumes Host-provided __FREDDIE_BOOT__; therefore browser delivery is served module graph, not the nested Node-resolution path. No current live GUI impact observed.
+- id: live-gui-render-state
+  prd_id: gui-runtime-audit
+  obligation_kind: precondition
+  subject: The connected browser must retain a single live Freddie page instead of a transient blank tab.
+  text: Witness with fixed named browser session, exact origin, live document state, and shell/HMR runtime facts before interpreting UI behavior.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'precondition: agent-browser fixed session reached http://127.0.0.1:3080 with title "FREDDIE Local Build"; subagent live probe confirmed window.__FREDDIE_BOOT__ true and no browser resource resolves from node_modules.'
+- id: boot-surface-ownership
+  prd_id: gui-productivity-realtime
+  obligation_kind: type-shape
+  subject: The improvement must attach to the framework-free BootPage when the client plugin tree cannot activate.
+  text: Witness the exact AppWebEntry-to-BootPage mount path and use a standalone DOM presentation that has no React/slot dependency.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'type-shape: packages/client/web/src/boot.js:30 constructs BootPage before loader creation; lines 59-67 retain it as the failure renderer, and BootPage imports only DOM/CSS helpers (boot-page.js:6-151).'
+- id: audit-current-view-default
+  prd_id: gui-audit-findings
+  obligation_kind: precondition
+  subject: Whether opening an active session defaults to Chat rather than Overview
+  text: Witnessed browser DOM after opening the active session shows the Chat tab selected and the operations strip supplies only compact status; source must establish which package owns default active view before proposing routing.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: packages/client/ui-conversation/src/client/stores.js:16 initializes view:null; packages/client/ui-conversation/src/client/skeleton/ConversationSession.js:15-22 resolves null to DEFAULT_VIEW_ID 'chat'. Live active session browser snapshot showed Chat selected while the active workload was only summarized by the compact strip.
+- id: boot-render-coalescing
+  prd_id: gui-live-performance
+  obligation_kind: resource-bound
+  subject: Boot loader can emit one state transition per client entry, so presentation must not perform a full DOM reconciliation for each synchronous burst.
+  text: Profile/live-witness the loading update burst and ensure BootPage schedules at most one DOM render per animation frame while preserving the latest aggregated state.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'resource-bound: packages/client/web/src/boot.js:111-129 invokes setState for each graph entry while boot-page.js:73-78 calls render synchronously; one animation-frame scheduler bounds DOM reconciliation to one per visual frame while state map writes remain immediate.'
+- id: boot-progress-truthfulness
+  prd_id: gui-runtime-readiness
+  obligation_kind: invariant
+  subject: Boot readiness must derive from Loader state only and failure UI must retain the exact diagnostics and recovery controls.
+  text: Implement a DOM-only summary that derives active/pending/failed counts from the existing state map; execute a failure/ready mutation sequence in the real browser surface.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'invariant: BootPage.setState stores Loader labels in states (boot-page.js:73-78); existing fail() retains diagnostics and Retry/Copy details controls (boot-page.js:99-129). Summary can be derived only from active/total/pending/failed maps.'
+- id: hmr-reload-visibility
+  prd_id: gui-live-verification
+  obligation_kind: postcondition
+  subject: Editing the web shell must replace the served page through HMR without a second development server or stale boot view.
+  text: Use existing client-hmr EventSource contract and a real shell source edit to witness the live page remains reachable with the revised boot presentation.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'postcondition: packages/client/hmr/src/client/index.js:251-261 subscribes to shell-rebuilt frames and reloads the document; existing HMR ownership supports a real source-edit witness without starting another server.'
+- id: boot-scheduled-render-lifecycle
+  prd_id: gui-productivity-realtime
+  obligation_kind: postcondition
+  subject: A pending animation-frame callback must not outlive the boot page when the UI mounts or HMR remounts.
+  text: Live-drive initial startup and shell HMR after the scheduler change; confirm disposal cancels the callback and no stale boot page survives.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'postcondition: live reload reached settled client state with boot=false, shell ctx=true, 43 graph entries, HMR connected=true lastSequence=31; BootPage.dispose cancels renderFrame at packages/client/web/src/boot-page.js:118-122.'
+- id: boot-readiness-accessibility
+  prd_id: gui-accessibility-landmarks
+  obligation_kind: invariant
+  subject: The framework-free boot page must describe progress and readiness to assistive technology even before the React UI exists.
+  text: Inspect live boot DOM for labeled progress and readiness status region; verify failure controls retain discernible labels.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'invariant: live boot DOM exposes one main landmark, h1 "FREDDIE", labeled progress, and region "Freddie startup readiness"; axe returned 0 violations, while Retry and Copy details retain explicit button text.'
+- id: boot-readiness-a11y-repair
+  prd_id: gui-accessibility-landmarks
+  obligation_kind: postcondition
+  subject: The initial audit found the new readiness grid was not a semantic region and its detail text failed contrast.
+  text: Convert the grid to a labeled semantic region, add boot main/H1 landmarks, raise detail contrast, then rerun axe against the real boot page.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'postcondition: live boot axe audit returned violations: 0 after BootPage renders main/H1 and labeled readiness section; readiness detail contrast now passes.'
+- id: webjsx-attribute-contract
+  prd_id: webjsx-attribute-semantics
+  obligation_kind: invariant
+  subject: DOM attributes used for data selectors and ARIA semantics must serialize non-null non-property values and remove absent values.
+  text: Witness exact attribute writer behavior and the live trajectory table's missing data-scroll-ready/aria-rowindex attributes before changing the framework.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'invariant: framework/webjsx/src/attributes.js:27-60 assigns non-string unknown HTMLElement props as expandos; TrajectoryTable.js:1897-1901 passes boolean data-scroll-ready and numeric aria-rowcount, and live report confirms selectors/ARIA attributes are absent.'
+- id: trajectory-layout-contract
+  prd_id: trajectory-host-layout
+  obligation_kind: resource-bound
+  subject: Trajectory custom element hosts must contribute non-zero bounded flex geometry to their ledger pane.
+  text: Witness live dimensions and exact owning custom element/CSS paths before adding host layout rules.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'resource-bound: TrajectoryView.js:431-455 places freddie-trajectory-table directly in .freddie-views__ledger (views.css:16-24 flex pane); TrajectoryTable.js:2776-2784 defines an unstyled custom-element host, so its default inline geometry cannot fill the pane.'
+- id: trajectory-live-page
+  prd_id: trajectory-live-verification
+  obligation_kind: precondition
+  subject: The fixed browser session must reach a settled client GUI with the Trajectory tab registered before ledger assertions run.
+  text: Recover the local browser page if HMR reload clears it, then inspect actual selected tab, table attributes, dimensions and visible rows without injected styles.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'precondition: agent-browser recovered a settled Freddie GUI after the initial wait timeout; live HMR status was connected at sequence 38 and the active session exposes the Trajectory tab.'
+- id: webjsx-removal-semantics
+  prd_id: webjsx-attribute-semantics
+  obligation_kind: postcondition
+  subject: An absent data or ARIA value must remove the serialized DOM attribute without assigning an expando.
+  text: After the framework change, live trajectory state must present true/number attributes and omit false/undefined values through the same update path.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'postcondition: the intended branch preserves real HTMLElement property assignments (for example disabled) but attributes non-property data/ARIA values; null/undefined/false remove only the attribute, matching TrajectoryTable''s undefined absence contract.'
+- id: trajectory-host-style-lifecycle
+  prd_id: trajectory-host-layout
+  obligation_kind: invariant
+  subject: Host layout must belong to the trajectory stylesheet that HMR removes and reapplies with the package.
+  text: Add host selectors to ui-trajectory views.css, already listed in the CSS manifest; verify HMR preserves the visible ledger after reload.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'invariant: packages/client/css-manifest/src/manifest.js:104 loads ui-trajectory views.css, so host selectors there share the package CSS HMR lifecycle and target freddie-trajectory-view/table.'
+- id: trajectory-render-failure
+  prd_id: trajectory-live-verification
+  obligation_kind: postcondition
+  subject: After the foundation edit, the selected trajectory slot mounted an error boundary rather than a ledger.
+  text: Extract the real browser error and repair the framework incompatibility before claiming the trajectory ledger works.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'postcondition: browser console identified Virtualizer onChange recursion; TrajectoryTable now schedules callback renders and publishes the instance before measurement.'
+- id: trajectory-virtualizer-reentrancy
+  prd_id: trajectory-live-verification
+  obligation_kind: invariant
+  subject: The now-measurable trajectory host lets Virtualizer onChange re-enter TrajectoryTable rendering before the current render completes.
+  text: Repair the real synchronous Virtualizer measure/onChange recursion so visibility fixes do not expose a slot crash.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'invariant: TrajectoryTable now assigns #virtual.virtualizer and cleanup before Virtualizer.measure(); synchronous onChange re-render observes the same instance instead of recursively constructing a new one.'
+- id: trajectory-scroll-readiness
+  prd_id: trajectory-live-verification
+  obligation_kind: postcondition
+  subject: The ledger mounts and has rows but its scroll-ready state never commits, leaving the table hidden.
+  text: Trace the post-render scroll initialization path and repair readiness publication without forcing CSS visibility.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'postcondition: #syncScrollInit now waits only when history is loading and no tbody row exists; the rendered ledger can publish #tableScrollReady instead of remaining hidden behind a background history request.'
+- id: trajectory-virtualizer-callback-scheduling
+  prd_id: trajectory-live-verification
+  obligation_kind: invariant
+  subject: Publishing the virtualizer before measure was insufficient because its onChange callback still synchronously re-entered the active render stack.
+  text: Schedule and deduplicate Virtualizer-triggered renders into a microtask so measurement and render cannot recurse, then drive the real trajectory tab again.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'invariant: Virtualizer onChange now calls #scheduleVirtualRender(), which uses one microtask and an isConnected guard; measure cannot recursively enter #render on the same stack.'
+- id: webjsx-static-delivery
+  prd_id: webjsx-attribute-semantics
+  obligation_kind: precondition
+  subject: The fresh browser still omitted numeric/boolean attributes after editing framework source, so the shell may load a static served webjsx projection with a separate owner.
+  text: Identify the exact browser-loaded webjsx source identity and update its owning buildless static module path rather than claiming a framework source change reached the page.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'precondition: browser read of /vendor/@freddie/webjsx@0.0.73/src/attributes.js still contains the old HTMLElement expando fallback, while framework/webjsx/src/attributes.js is fixed. Vendor module delivery is the missing deployment edge.'
+- id: webjsx-vendor-byte-parity
+  prd_id: webjsx-attribute-semantics
+  obligation_kind: postcondition
+  subject: The browser import map resolves webjsx to a static vendor path, which must contain the same fixed attribute writer as framework source.
+  text: Synchronize the vendored webjsx attributes module with the framework source, reload the page, and read the served URL to verify its fixed serialization logic.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'postcondition: browser read of /vendor/@freddie/webjsx@0.0.73/src/attributes.js now shows setAttribute(String(value)) and removeAttribute for false/null/undefined.'
+- id: trajectory-aria-contract
+  prd_id: trajectory-aria-semantics
+  obligation_kind: invariant
+  subject: Trajectory labels must reach assistive technology through permitted element roles rather than previously dropped attributes.
+  text: Identify exact turn-label and timeline elements from live audit, choose semantic role/element ownership, then rerun axe after the repair.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'invariant: TrajectoryTable.js:2077-2094 labels a span whose children are aria-hidden, so the owner needs a permitted named role; TrajectoryTimeline.js:602-622 has interactive keyboard/pointer behavior and accepts role="group" with the existing label.'
+- id: trajectory-render-scheduling
+  prd_id: trajectory-live-verification
+  obligation_kind: happens-before
+  subject: Virtualizer change callbacks must publish after the initiating TrajectoryTable render finishes, and teardown must prevent a queued callback from reviving a disposed host.
+  text: Witness the queued-render guard with the real visible trajectory table and HMR lifecycle; ensure no reentrant slot failure appears.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'happens-before: fresh real page selected Trajectory with table visible, data-scroll-ready=true, record index=1, no slot errors, and HMR connected at sequence 44 after deferred Virtualizer callbacks.'

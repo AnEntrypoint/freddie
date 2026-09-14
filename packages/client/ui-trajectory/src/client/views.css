@@ -1,4 +1,14 @@
 /* Full-bleed, fixed-height host for the trajectory ledger. */
+
+freddie-trajectory-view,
+freddie-trajectory-table,
+freddie-trajectory-timeline {
+  display: flex;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+}
+
 .freddie-views__root {
   --freddie-trajectory-toolbar-height: 32px;
 

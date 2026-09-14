@@ -1,4 +1,5 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
+import css from './OperationsStrip.css.js'
 
 function attentionState(snapshot) {
   if (snapshot.promptError !== null) return 'Action needed'
@@ -20,7 +21,7 @@ function todoLabel(todos) {
   if (!Array.isArray(todos) || todos.length === 0) return undefined
   const done = todos.filter(item => item.status === 'completed').length
   const active = todos.filter(item => item.status === 'in_progress').length
-  return `Plan ${done}/${todos.length}${active > 0 ? ` · ${active} active` : ''}`
+  return `Plan ${done}/${todos.length}${active > 0 ? ` / ${active} active` : ''}`
 }
 
 function directSubagents(summaries, sessionId) {
@@ -50,18 +51,22 @@ export class FreddieOperationsStrip extends HTMLElement {
     const summaries = props.useSessions(state => state)
     const subagents = directSubagents(summaries, props.sessionId)
     const plan = todoLabel(todos)
+    const attention = attentionState(session)
+    const work = subagents === 0 ? 'No direct subagents running' : `${subagents} direct subagent${subagents === 1 ? '' : 's'} running`
     applyDiff(this, h('section', {
+      class: css.root ?? '',
       role: 'status',
       'aria-live': 'polite',
-      'aria-label': 'Live operation status',
+      'aria-label': 'Working now',
       'data-operations-strip': '',
-      'data-attention': attentionState(session).toLowerCase().replaceAll(' ', '-'),
+      'data-attention': attention.toLowerCase().replaceAll(' ', '-'),
       'data-connection': connection,
     },
-    h('strong', null, attentionState(session)),
-    h('span', null, connectionLabel(connection)),
-    plan === undefined ? null : h('span', null, plan),
-    subagents === 0 ? null : h('span', null, `${subagents} subagent${subagents === 1 ? '' : 's'} running`),
+    h('strong', { class: css.title ?? '' }, 'Working now'),
+    h('span', { class: css.metric ?? '' }, attention),
+    h('span', { class: css.metric ?? '' }, connectionLabel(connection)),
+    h('span', { class: css.metric ?? '' }, plan ?? 'No active plan'),
+    h('span', { class: css.metric ?? '' }, work),
     ))
   }
 }

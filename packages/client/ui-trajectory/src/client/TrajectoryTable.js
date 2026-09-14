@@ -1459,6 +1459,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
 
   #tablePaneEl = null
   #virtual = { virtualizer: null, cleanup: null, structureCache: { rows: [], structure: [] } }
+  #virtualRenderQueued = false
   #resizeObserver = null
 
   setProps(props) {
@@ -1483,6 +1484,16 @@ export class FreddieTrajectoryTable extends HTMLElement {
     this.#virtual.cleanup?.()
     this.#virtual.cleanup = null
     this.#virtual.virtualizer = null
+    this.#virtualRenderQueued = false
+  }
+
+  #scheduleVirtualRender() {
+    if (this.#virtualRenderQueued) return
+    this.#virtualRenderQueued = true
+    queueMicrotask(() => {
+      this.#virtualRenderQueued = false
+      if (this.isConnected) this.#render()
+    })
   }
 
   #allRecords() {
@@ -1677,18 +1688,18 @@ export class FreddieTrajectoryTable extends HTMLElement {
     if (this.#virtual.virtualizer === null) {
       const virtualizer = new Virtualizer(options)
       const cleanup = virtualizer._didMount()
+      this.#virtual.virtualizer = virtualizer
+      this.#virtual.cleanup = cleanup
       virtualizer.setOptions({
         ...options,
-        onChange: () => { this.#render() },
+        onChange: () => { this.#scheduleVirtualRender() },
       })
       virtualizer._willUpdate()
       virtualizer.measure()
-      this.#virtual.virtualizer = virtualizer
-      this.#virtual.cleanup = cleanup
     } else {
       this.#virtual.virtualizer.setOptions({
         ...options,
-        onChange: () => { this.#render() },
+        onChange: () => { this.#scheduleVirtualRender() },
       })
       this.#virtual.virtualizer._willUpdate()
     }
@@ -2068,6 +2079,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
                           class: (sectionActive
                             ? `${css.turnLabel ?? ''} ${css.turnLabelActive ?? ''}`
                             : css.turnLabel) ?? '',
+                          role: 'img',
                           'aria-label': sectionLabel(record.turn),
                         },
                           record.turn === null
@@ -2758,7 +2770,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
       return
     }
     if (!this.#tableScrollInitialized) {
-      if (historyLoading) return
+      if (historyLoading && pane.querySelector('tbody tr') === null) return
       this.#tableScrollInitialized = true
       this.#followsTableTail = true
       if (virtualizationEnabled) rowVirtualizer?.scrollToEnd({ behavior: 'auto' })

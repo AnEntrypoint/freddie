@@ -25,37 +25,24 @@ function updateEventListener(el, eventName, newHandler, oldHandler) {
  * @param value New value to set
  */
 function updatePropOrAttr(el, key, value) {
-    if (el instanceof HTMLElement) {
-        if (key in el) {
-            // Fast path: property exists on HTMLElement
-            el[key] = value;
-            return;
-        }
-        if (typeof value === "string") {
-            el.setAttribute(key, value);
-            return;
-        }
-        // Fallback for non-string values on HTMLElement
-        el[key] = value;
-        return;
-    }
-    // SVG/Other namespace elements
-    const isSVG = el.namespaceURI === "http://www.w3.org/2000/svg";
-    if (isSVG) {
-        if (value !== undefined && value !== null) {
-            el.setAttribute(key, `${value}`);
-        }
-        else {
+    if (el.namespaceURI === "http://www.w3.org/2000/svg") {
+        if (value === false || value === undefined || value === null) {
             el.removeAttribute(key);
         }
+        else {
+            el.setAttribute(key, String(value));
+        }
         return;
     }
-    // Fallback for other element types
-    if (typeof value === "string") {
-        el.setAttribute(key, value);
+    if (key in el) {
+        el[key] = value;
+        return;
+    }
+    if (value === false || value === undefined || value === null) {
+        el.removeAttribute(key);
     }
     else {
-        el[key] = value;
+        el.setAttribute(key, String(value));
     }
 }
 /**

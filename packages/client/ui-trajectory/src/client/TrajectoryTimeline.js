@@ -602,6 +602,7 @@ export class FreddieTrajectoryTimeline extends HTMLElement {
           h('div', {
             class: css.track ?? '',
             'data-panning': panning || undefined,
+            role: 'group',
             'aria-label': 'Timeline overview; drag horizontally to focus events',
             tabIndex: 0,
             onkeydown: onKeyDown,
