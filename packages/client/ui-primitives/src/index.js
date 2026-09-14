@@ -2,6 +2,7 @@
  * Cordis-free React primitives styled only through `--dsw-*` tokens.
  */
 
+export { defineElement, resolveElementTag } from './define-element.js'
 export { StateDot } from './StateDot.js'
 export { DisclosureRow } from './DisclosureRow.js'
 export { Button } from './Button.js'

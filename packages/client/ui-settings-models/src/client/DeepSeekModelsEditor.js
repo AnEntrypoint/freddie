@@ -12,6 +12,7 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14, IconChevronRightOutline14, IconPlusOutline16, IconTrashOutline16,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import styles from './ModelsSection.css.js'
 
@@ -318,9 +319,7 @@ export class FreddieDeepSeekModelsEditor extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-deepseek-models-editor') === undefined) {
-  customElements.define('freddie-deepseek-models-editor', FreddieDeepSeekModelsEditor)
-}
+defineElement('freddie-deepseek-models-editor', FreddieDeepSeekModelsEditor)
 
 /**
  * Create (if needed) or update a DeepSeekModelsEditor element in place.

@@ -20,7 +20,7 @@
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
-import { IconChevronDownOutline14 } from '@freddie/freddie-client-ui-primitives'
+import { IconChevronDownOutline14, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './PluginCard.css.js'
 
 /** One plugin card custom element. See {@link PluginCardProps} for the field-by-field docs. */
@@ -96,9 +96,7 @@ export class FreddiePluginCard extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-plugin-card') === undefined) {
-  customElements.define('freddie-plugin-card', FreddiePluginCard)
-}
+defineElement('freddie-plugin-card', FreddiePluginCard)
 
 /**
  * Render one plugin card.

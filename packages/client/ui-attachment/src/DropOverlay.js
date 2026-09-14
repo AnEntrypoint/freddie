@@ -4,6 +4,7 @@
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './DropOverlay.css.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 /**
  * Full-viewport invitation shown while a file drag is over the page
@@ -42,9 +43,7 @@ export class FreddieDropOverlay extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-drop-overlay') === undefined) {
-  customElements.define('freddie-drop-overlay', FreddieDropOverlay)
-}
+defineElement('freddie-drop-overlay', FreddieDropOverlay)
 
 /** Create (if needed) and update a DropOverlay mounted on `document.body`.
  * @param el - an existing mounted overlay (from a prior call), or null to create one.

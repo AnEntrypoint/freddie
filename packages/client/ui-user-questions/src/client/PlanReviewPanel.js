@@ -18,7 +18,7 @@
 // applyDiff(this, vdom) call instead of implicit re-render on setState.
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { Button, IconEditOutline16, renderMarkdownText } from '@freddie/freddie-client-ui-primitives'
+import { Button, IconEditOutline16, renderMarkdownText, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './PlanReviewPanel.css.js'
 
 /**
@@ -121,6 +121,4 @@ export class FreddiePlanReviewPanel extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-plan-review-panel') === undefined) {
-  customElements.define('freddie-plan-review-panel', FreddiePlanReviewPanel)
-}
+defineElement('freddie-plan-review-panel', FreddiePlanReviewPanel)

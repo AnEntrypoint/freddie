@@ -4,6 +4,7 @@ import z from '@freddie/schemastery'
 import { renderIndexInjections } from './injections.js'
 
 export { renderIndexInjections } from './injections.js'
+export { etagOf, sendFile } from './static-file.js'
 
 /**
  * Strip a shell-HMR cache-busting prefix. `/__hmr/<rev>/plugins/x` is the

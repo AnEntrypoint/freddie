@@ -24,6 +24,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { createCopyFeedback } from './use-copy-feedback.js'
 import css from './ReadBlock.css.js'
+import { defineElement } from './define-element.js'
 
 // highlight.js's own module graph (shiki core + the boot grammars + their
 // full mdast/hast-util-to-html transitive tree) was previously a static
@@ -249,9 +250,7 @@ export class FreddieReadBlock extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-read-block') === undefined) {
-  customElements.define('freddie-read-block', FreddieReadBlock)
-}
+defineElement('freddie-read-block', FreddieReadBlock)
 
 /**
  * Create (if needed) or update a ReadBlock element in place.

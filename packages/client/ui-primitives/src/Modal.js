@@ -12,6 +12,7 @@ import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { IconCloseOutline16 } from './icons/index.js'
 import css from './Modal.css.js'
+import { defineElement } from './define-element.js'
 
 /**
  * Centered modal over a blurred page mask, as a custom element. Attaches
@@ -169,9 +170,7 @@ export class FreddieModal extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-modal') === undefined) {
-  customElements.define('freddie-modal', FreddieModal)
-}
+defineElement('freddie-modal', FreddieModal)
 
 /**
  * Create (if needed) and update a Modal mounted on `document.body`.

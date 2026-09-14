@@ -17,6 +17,7 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { writeClipboard } from './clipboard.js'
 import css from './HoverCard.css.js'
+import { defineElement } from './define-element.js'
 
 const DEFAULT_PROPS = { anchor: '', content: '' }
 
@@ -223,9 +224,7 @@ export class FreddieHoverCard extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-hover-card') === undefined) {
-  customElements.define('freddie-hover-card', FreddieHoverCard)
-}
+defineElement('freddie-hover-card', FreddieHoverCard)
 
 /**
  * Create (if needed) or update a HoverCard element in place.

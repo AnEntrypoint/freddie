@@ -317,7 +317,10 @@ export async function runProfile(options) {
   // owns process lifetime, so dispose the complete tree and exit with the
   // conventional temporary-failure code a development supervisor restarts.
   // A plain source launch still exits loudly instead of retaining stale code.
-  ctx.loader.exit = () => { void shutdown.interrupt(75) }
+  // `--help` boots no loader: the startup plugin prints and requests exit
+  // before any config tree mounts, so there is nothing to hook.
+  const loader = ctx.get('loader')
+  if (loader !== undefined) loader.exit = () => { void shutdown.interrupt(75) }
   // A surface can dispose the whole tree while boot or this post-boot watcher
   // setup is still in flight — a signal, or a fast one-shot's appExit. Loader
   // presence and fiber state own liveness; the initial check skips a tree

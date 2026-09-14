@@ -19,6 +19,7 @@ import { createCopyFeedback } from './use-copy-feedback.js'
 import { Pill } from './Pill.js'
 import { StateDot } from './StateDot.js'
 import css from './TerminalBlock.css.js'
+import { defineElement } from './define-element.js'
 
 /**
  * Output lines shown before the height cap collapses the middle. Matches the
@@ -191,9 +192,7 @@ export class FreddieTerminalBlock extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-terminal-block') === undefined) {
-  customElements.define('freddie-terminal-block', FreddieTerminalBlock)
-}
+defineElement('freddie-terminal-block', FreddieTerminalBlock)
 
 /**
  * Create (if needed) or update a TerminalBlock element in place.

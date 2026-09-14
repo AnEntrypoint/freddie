@@ -5,7 +5,7 @@
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
-import { IconChevronDownOutline14, renderMenu, renderRiskConfirmation } from '@freddie/freddie-client-ui-primitives'
+import { IconChevronDownOutline14, renderMenu, renderRiskConfirmation, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './PermissionSelect.css.js'
 
 const FULL_ACCESS = 'danger-full-access'
@@ -230,9 +230,7 @@ export class FreddiePermissionSelect extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-permission-select') === undefined) {
-  customElements.define('freddie-permission-select', FreddiePermissionSelect)
-}
+defineElement('freddie-permission-select', FreddiePermissionSelect)
 
 /**
  * Update (or create) the underlying `freddie-permission-select` in place.

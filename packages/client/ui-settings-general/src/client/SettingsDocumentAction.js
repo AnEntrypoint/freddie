@@ -1,7 +1,7 @@
 /** Optional settings-header action for opening a file-backed Host document. */
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
-import { Button } from '@freddie/freddie-client-ui-primitives'
+import { Button, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './SettingsDocumentAction.css.js'
 
 /** Header-action custom element: renders only after Host metadata confirms document availability. */
@@ -49,9 +49,7 @@ export class FreddieSettingsDocumentAction extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-settings-document-action') === undefined) {
-  customElements.define('freddie-settings-document-action', FreddieSettingsDocumentAction)
-}
+defineElement('freddie-settings-document-action', FreddieSettingsDocumentAction)
 
 /**
  * Render the open-document action only after Host metadata confirms document availability.

@@ -27,6 +27,7 @@ import {
   wrapBlockChildren,
 } from './render.js'
 import css from './MarkdownText.css.js'
+import { defineElement } from '../define-element.js'
 
 /** One settled full render: parse with math, resolve references, append the footnote section. */
 function renderSettled(text, codeLabels, fileMentions) {
@@ -209,9 +210,7 @@ export class FreddieMarkdownText extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-markdown-text') === undefined) {
-  customElements.define('freddie-markdown-text', FreddieMarkdownText)
-}
+defineElement('freddie-markdown-text', FreddieMarkdownText)
 
 /**
  * Create (if needed) or update a MarkdownText element in place.

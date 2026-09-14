@@ -12,6 +12,7 @@
 
 import {
   CodeBlock, DisclosureRow, IconCodeOutline16, IconInspectOutline12, StateDot,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { cordisDefineCard } from './card-model.js'
@@ -202,6 +203,4 @@ export class FreddieCordisDefineRow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-cordis-define-row') === undefined) {
-  customElements.define('freddie-cordis-define-row', FreddieCordisDefineRow)
-}
+defineElement('freddie-cordis-define-row', FreddieCordisDefineRow)

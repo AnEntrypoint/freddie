@@ -1,7 +1,7 @@
 /** Chrome-Network-style overview timeline for focusing the trajectory ledger. */
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { renderTooltip } from '@freddie/freddie-client-ui-primitives'
+import { renderTooltip, defineElement } from '@freddie/freddie-client-ui-primitives'
 import {
   deriveTrajectoryTimeline,
   formatTimelineOffset,
@@ -751,9 +751,7 @@ export class FreddieTrajectoryTimeline extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-trajectory-timeline') === undefined) {
-  customElements.define('freddie-trajectory-timeline', FreddieTrajectoryTimeline)
-}
+defineElement('freddie-trajectory-timeline', FreddieTrajectoryTimeline)
 
 /** Create and mount a TrajectoryTimeline element in place of the old function-component call. */
 export function TrajectoryTimeline(props) {

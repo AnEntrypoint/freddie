@@ -23,6 +23,7 @@ import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   FishLogo, IconNewChatOutline16, IconPanelLeftOutline16, renderTooltip,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './SidebarRoot.css.js'
 
@@ -303,6 +304,4 @@ export class FreddieSidebarRoot extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-sidebar-root') === undefined) {
-  customElements.define('freddie-sidebar-root', FreddieSidebarRoot)
-}
+defineElement('freddie-sidebar-root', FreddieSidebarRoot)

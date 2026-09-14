@@ -20,6 +20,7 @@ import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   createAnchoredMaxHeight, IconCheckOutline16, renderRiskConfirmation,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { filterOptions } from './popup.js'
 import css from './PopupSelectView.css.js'
@@ -231,6 +232,4 @@ export class FreddiePopupSelectView extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-popup-select-view') === undefined) {
-  customElements.define('freddie-popup-select-view', FreddiePopupSelectView)
-}
+defineElement('freddie-popup-select-view', FreddiePopupSelectView)

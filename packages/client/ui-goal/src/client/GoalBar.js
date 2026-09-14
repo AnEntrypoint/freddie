@@ -17,6 +17,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconCheckOutline16, IconCloseOutline16, IconEditOutline16, IconGoalOutline16,
   IconPauseOutline16, IconPlayOutline16, IconTrashOutline16, renderTooltip,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './GoalBar.css.js'
 
@@ -215,9 +216,7 @@ export class FreddieGoalBar extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-goal-bar') === undefined) {
-  customElements.define('freddie-goal-bar', FreddieGoalBar)
-}
+defineElement('freddie-goal-bar', FreddieGoalBar)
 
 /**
  * Dock adapter custom element: reads the host-computed 'goal' projection
@@ -260,9 +259,7 @@ export class FreddieGoalDock extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-goal-dock') === undefined) {
-  customElements.define('freddie-goal-dock', FreddieGoalDock)
-}
+defineElement('freddie-goal-dock', FreddieGoalDock)
 
 /**
  * Create and mount (or update) a GoalBar element for a given goal snapshot.

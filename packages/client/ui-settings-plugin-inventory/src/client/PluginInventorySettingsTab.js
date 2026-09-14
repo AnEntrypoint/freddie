@@ -9,6 +9,7 @@ import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14,
   IconSearchOutline16,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './PluginInventorySettingsTab.css.js'
 
@@ -219,6 +220,4 @@ export class FreddiePluginInventorySettingsTab extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-plugin-inventory-settings-tab') === undefined) {
-  customElements.define('freddie-plugin-inventory-settings-tab', FreddiePluginInventorySettingsTab)
-}
+defineElement('freddie-plugin-inventory-settings-tab', FreddiePluginInventorySettingsTab)

@@ -21,6 +21,7 @@
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   createAnchoredPosition, IconDislikeOutline16, IconLikeOutline16, renderTooltip,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './MessageFeedbackActions.css.js'
 
@@ -384,9 +385,7 @@ export class FreddieMessageFeedbackActions extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-message-feedback-actions') === undefined) {
-  customElements.define('freddie-message-feedback-actions', FreddieMessageFeedbackActions)
-}
+defineElement('freddie-message-feedback-actions', FreddieMessageFeedbackActions)
 
 /** One-shot creation helper preserving the original function-component call shape. */
 export function MessageFeedbackActions(props) {

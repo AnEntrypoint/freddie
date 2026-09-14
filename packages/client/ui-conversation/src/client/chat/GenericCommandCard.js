@@ -9,7 +9,7 @@
 // applyDiff(this, vdom) call.
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
-import { DisclosureRow, IconApiOutline14, StateDot } from '@freddie/freddie-client-ui-primitives'
+import { DisclosureRow, IconApiOutline14, StateDot, defineElement } from '@freddie/freddie-client-ui-primitives'
 import a11yCss from './accessibility.css.js'
 import css from './GenericCommandCard.css.js'
 
@@ -95,9 +95,7 @@ export class FreddieGenericCommandCard extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-generic-command-card') === undefined) {
-  customElements.define('freddie-generic-command-card', FreddieGenericCommandCard)
-}
+defineElement('freddie-generic-command-card', FreddieGenericCommandCard)
 
 /**
  * Create (if needed) or update a GenericCommandCard element in place.

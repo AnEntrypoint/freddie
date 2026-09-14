@@ -29,6 +29,7 @@ import {
   Button, IconCloseFill14, IconPersonalizationOutline16,
   IconProjectAddOutline16, IconSearchOutline16, renderMenu,
   renderModal, renderTooltip,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { deriveFlat, deriveGroups, deriveSearchResults, UNGROUPED_KEY } from './tree.js'
 import {
@@ -284,9 +285,7 @@ export class FreddieViewOptionsMenu extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-view-options-menu') === undefined) {
-  customElements.define('freddie-view-options-menu', FreddieViewOptionsMenu)
-}
+defineElement('freddie-view-options-menu', FreddieViewOptionsMenu)
 
 /** One-shot creation/update helper preserving the original function-component call shape. */
 function ViewOptionsMenu(props) {
@@ -654,9 +653,7 @@ export class FreddieSessionTree extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-session-tree') === undefined) {
-  customElements.define('freddie-session-tree', FreddieSessionTree)
-}
+defineElement('freddie-session-tree', FreddieSessionTree)
 
 /**
  * Create (if needed) or update a `freddie-session-tree` element in place --
@@ -814,9 +811,7 @@ export class FreddieFlatList extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-flat-list') === undefined) {
-  customElements.define('freddie-flat-list', FreddieFlatList)
-}
+defineElement('freddie-flat-list', FreddieFlatList)
 
 /**
  * Create (if needed) or update a `freddie-flat-list` element in place --
@@ -899,9 +894,7 @@ export class FreddieSearchResults extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-search-results') === undefined) {
-  customElements.define('freddie-search-results', FreddieSearchResults)
-}
+defineElement('freddie-search-results', FreddieSearchResults)
 
 /** One-shot creation/update helper preserving the original function-component call shape. */
 function SearchResults(props) {
@@ -1765,9 +1758,7 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-workspace-browser') === undefined) {
-  customElements.define('freddie-workspace-browser', FreddieWorkspaceBrowser)
-}
+defineElement('freddie-workspace-browser', FreddieWorkspaceBrowser)
 
 /**
  * Render the browsing region.

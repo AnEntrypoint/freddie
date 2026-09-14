@@ -21,6 +21,7 @@ import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   Button, IconBrowseOutline16, IconCopyOutline16, IconFolderOpenOutline16, IconPlusOutline16, IconTrashOutline16,
   renderModal, renderTooltip,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { draftBlocker } from './section-store.js'
 import { presetDisplayText } from './locales.js'
@@ -457,9 +458,7 @@ export class FreddieAgentPresetSection extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-agent-preset-section') === undefined) {
-  customElements.define('freddie-agent-preset-section', FreddieAgentPresetSection)
-}
+defineElement('freddie-agent-preset-section', FreddieAgentPresetSection)
 
 /**
  * Render the Agent presets section content column.

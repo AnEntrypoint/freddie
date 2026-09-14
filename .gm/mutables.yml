@@ -1046,3 +1046,44 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: 'invariant: live axe audit no longer reports aria-valid-attr-value; active Overview tab controls only freddie-observability-panel-overview, which is mounted with matching aria-labelledby.'
+- SESSION_ID: gm-serving-3845994-1789372428
+  id: modulepreload-tier-winner
+  subject: Whether modulepreload hints for immediately rows only, or for all rows, win on app-mounted at emulated 40ms RTT; baseline cold rtt40 app-mounted 11455ms, FCP 5124ms.
+  status: witnessed
+  route: execution
+  witness_evidence: 'rtt40 app-mounted ms: none 8231/10448/10811, immediately 8320/8521/8882, all rows 16139 + one never-mounted run (438 responses in 16s). Shipped PRELOAD_EVERY_ROW=false.'
+- SESSION_ID: gm-serving-3845994-1789372428
+  id: shell-remount-scope
+  subject: 'Which static roots can be remounted in-document: apps/web + packages/client/web resolve through relative imports under a /__hmr/<rev>/ prefix (fresh bytes), while ui-slots/ui-primitives are seeded via frozen import-map absolute URLs so a remount cannot refresh them (document reload stays the only path). To witness: shell edit remount keeps window marker; ui-primitives edit must reload.'
+  status: witnessed
+  route: grounding
+  witness_evidence: 'scratchpad/w-shell.json: touch apps/web/src/main.js -> window.__probe survived, navigations 1->1, /__hmr/1/vendor/@freddie/freddie-client-web@0.1.1-rc.2/src/*.js fetched, new AppWebEntry mounted 59 custom elements. scratchpad/w-prim.json: touch ui-primitives/src/Pill.js -> navigations 1->2 (document reload), 845 responses.'
+- SESSION_ID: gm-ce-3847245-1789372444
+  id: ce-vendor-serves-live-ui-primitives
+  subject: Does /vendor/@freddie/freddie-client-ui-primitives@0.1.1-rc.2/src/define-element.js serve the workspace file (vendor-modules resolveLiveWorkspaceFile) rather than the frozen vendor/ snapshot, which lacks it?
+  status: witnessed
+  witness: packages/client/vendor-modules/src/index.js:42-61 LIVE_WORKSPACE_PACKAGES; unversioned URL answered 404; to be witnessed by curl after the file exists
+  witness_evidence: curl http://127.0.0.1:3080/vendor/@freddie/freddie-client-ui-primitives@0.1.1-rc.2/src/define-element.js answered 200 text/javascript content-length 3366 last-modified 08:07:34 seconds after the file was created; the frozen vendor/ snapshot has no such file, so the route resolves the live workspace package.
+- SESSION_ID: gm-ce-3847245-1789372444
+  id: ce-webjsx-no-edit-needed
+  subject: Does webjsx need any change for aliasing? createDOMElement calls document.createElement (createDOMElement.js:21-26) and canUpdateVNodes compares vnode.tagName derived from the type string (createElement.js:49), never the DOM node's tagName.
+  status: witnessed
+  witness: 'source lines cited; to be witnessed live: h(''freddie-operations-strip'') after a swap yields an element whose tagName is FREDDIE-OPERATIONS-STRIP--V2'
+  witness_evidence: 'Live Chrome eval on http://127.0.0.1:3080: after defineElement(''x-probe'', A/B/C) the unmodified /vendor webjsx applyDiff(host, h(''x-probe'', ...)) produced localName x-probe--v3, instanceof C true, data-ce x-probe, and a second applyDiff with the same tag reused the node (hReused true, text updated); createDOMElement.js:21-26 reaches the patched Document.prototype.createElement and canUpdateVNodes compares vnode.tagName (createElement.js:49).'
+- SESSION_ID: gm-ce-3847245-1789372444
+  id: ce-hmr-flag-clears-after-sweep
+  subject: Does removing the literal customElements.define from a plugin tree make the hmr node half stop sending definesCustomElements, so the fiber swap runs without the sibling's client change?
+  status: witnessed
+  witness: packages/client/hmr/src/index.js:120-133 substring test, refreshed on dirty scan at :240-246; to be witnessed on the live /plugins/events frame
+  witness_evidence: 'After the sweep the ui-layout rebuilt frame arrived without definesCustomElements: the browser journal recorded kind plugin-rebuilt (the client records plugin-rebuilt-custom-elements when the flag is true) and the ordinary reload(frame) fiber swap ran, producing freddie-app-frame--v2 in the same document. The node half''s substring classification (hmr/src/index.js:120-133, refreshed at :240-246) therefore flips on its own once the literal is gone from the row''s tree.'
+- SESSION_ID: gm-ce-3847245-1789372444
+  id: ce-sibling-reload-exit-state
+  subject: At witness time, does packages/client/hmr/src/client/index.js still reload the document on definesCustomElements (line 232 window.location.reload())?
+  status: witnessed
+  witness: file read at 1789372444 shows the reload at :232; re-read before the hot-swap witness
+  witness_evidence: 'Re-read packages/client/hmr/src/client/index.js at 1789374400: the definesCustomElements branch no longer calls window.location.reload(); it records kind plugin-rebuilt-custom-elements and queues the ordinary reload(frame) fiber swap (comment: the shared element registry re-binds re-defined tags). The sibling change has landed, so the hot-swap witness needs no scratch page logic.'
+- SESSION_ID: gm-ce-3847245-1789372444
+  id: ce-git-diff-verb-hangs
+  subject: 'The gm git_diff verb hangs indefinitely on this working tree (child ''git diff --no-color'' ran 151 s and blocked the plugin FIFO for every other verb; the reviewer''s dispatch hung the same way): the daemon does not drain the child''s stdout on a 120-file diff, so the pipe fills. Killing the git child unblocks the queue; use exec_js-side comparisons or scoped diffs until the verb is fixed.'
+  status: witnessed
+  witness: 'ps: pid 3890348 ''git diff --no-color'' ppid 3805549 etimes 151; .status.json queued_step_count 4 claimed 1 until kill; out-file answered ok:false afterwards'

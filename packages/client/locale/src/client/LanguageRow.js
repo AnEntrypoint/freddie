@@ -5,7 +5,7 @@
  * settings surface.
  */
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { IconChevronDownOutline14, renderMenu } from '@freddie/freddie-client-ui-primitives'
+import { IconChevronDownOutline14, renderMenu, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './LanguageRow.css.js'
 
 /** Language preference row, as a custom element (owns the menu open state). */
@@ -68,9 +68,7 @@ export class FreddieLanguageRow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-language-row') === undefined) {
-  customElements.define('freddie-language-row', FreddieLanguageRow)
-}
+defineElement('freddie-language-row', FreddieLanguageRow)
 
 /**
  * Render the Language row.

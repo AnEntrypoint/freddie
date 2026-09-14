@@ -21,6 +21,7 @@ import clsx from 'clsx'
 import {
   IconAgentPresetOutline16, IconCloseOutline16, IconDataOutline16,
   IconPersonalizationOutline16, IconSettingsOutline16,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './SettingsRoot.css.js'
 
@@ -218,9 +219,7 @@ export class FreddieSettingsRoot extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-settings-root') === undefined) {
-  customElements.define('freddie-settings-root', FreddieSettingsRoot)
-}
+defineElement('freddie-settings-root', FreddieSettingsRoot)
 
 /**
  * Render the settings trigger and panel.

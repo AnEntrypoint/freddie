@@ -19,6 +19,7 @@ import clsx from 'clsx'
 import { headTailCap } from './head-tail-cap.js'
 import { createCopyFeedback } from './use-copy-feedback.js'
 import css from './SearchBlock.css.js'
+import { defineElement } from './define-element.js'
 
 /**
  * Result rows shown before the height cap collapses the middle. Matches
@@ -193,9 +194,7 @@ export class FreddieSearchBlock extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-search-block') === undefined) {
-  customElements.define('freddie-search-block', FreddieSearchBlock)
-}
+defineElement('freddie-search-block', FreddieSearchBlock)
 
 /**
  * Create (if needed) or update a SearchBlock element in place.

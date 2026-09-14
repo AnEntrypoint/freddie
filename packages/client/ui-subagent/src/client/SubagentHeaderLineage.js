@@ -4,6 +4,7 @@ import {
 } from '@freddie/freddie-client-runtime/client'
 import {
   IconChevronDownOutline14, IconChevronRightOutline14, IconRefreshOutline14, StateDot,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './SubagentHeaderLineage.css.js'
 
@@ -803,9 +804,7 @@ export class FreddieCatalogDropdown extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-catalog-dropdown') === undefined) {
-  customElements.define('freddie-catalog-dropdown', FreddieCatalogDropdown)
-}
+defineElement('freddie-catalog-dropdown', FreddieCatalogDropdown)
 
 /**
  * Create (if needed) or update a CatalogDropdown element in place.
@@ -916,9 +915,7 @@ export class FreddieSubagentHeaderLineage extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-subagent-header-lineage') === undefined) {
-  customElements.define('freddie-subagent-header-lineage', FreddieSubagentHeaderLineage)
-}
+defineElement('freddie-subagent-header-lineage', FreddieSubagentHeaderLineage)
 
 /**
  * Create (if needed) or update a SubagentHeaderLineage element in place.

@@ -82,6 +82,12 @@ export function apply(ctx) {
   provideClientTimer(ctx)
   const inspect = new ClientCordisInspectRegistry({
     sync: async (providers) => {
+      // Tree teardown (a shell remount) disposes the connection, then the
+      // provider effects' cleanup and the connection/reset listener both
+      // publish a final manifest — through a connection the API layer would
+      // reject as absent. A dead connection is a no-op here; a live reconnect
+      // still republishes because `connection` is present then.
+      if (ctx.get('connection') === undefined) return
       const answered = await ctx.remote.dynamicCordisRunner.syncInspectManifest(providers)
       if (!answered.ok) throw new Error(`${answered.error.code}: ${answered.error.message}`)
     },

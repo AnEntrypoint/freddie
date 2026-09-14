@@ -10,6 +10,7 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconCodeOutline16, IconInspectOutline12, StateDot,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { cordisRunCard } from './card-model.js'
 import { cordisToolViewKey } from './run-card-index.js'
@@ -150,6 +151,4 @@ export class FreddieCordisRunRow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-cordis-run-row') === undefined) {
-  customElements.define('freddie-cordis-run-row', FreddieCordisRunRow)
-}
+defineElement('freddie-cordis-run-row', FreddieCordisRunRow)

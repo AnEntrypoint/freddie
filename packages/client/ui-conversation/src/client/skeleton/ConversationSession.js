@@ -11,6 +11,7 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import css from './ConversationRoot.css.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 const DEFAULT_VIEW_ID = 'chat'
 
@@ -185,9 +186,7 @@ export class FreddieConversationSessionHeader extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-conversation-session-header') === undefined) {
-  customElements.define('freddie-conversation-session-header', FreddieConversationSessionHeader)
-}
+defineElement('freddie-conversation-session-header', FreddieConversationSessionHeader)
 
 /**
  * Renders Session header chrome above the resident conversation scrollport.
@@ -282,9 +281,7 @@ export class FreddieConversationSession extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-conversation-session') === undefined) {
-  customElements.define('freddie-conversation-session', FreddieConversationSession)
-}
+defineElement('freddie-conversation-session', FreddieConversationSession)
 
 /**
  * Renders the active Session view inside the resident scrollport and keeps

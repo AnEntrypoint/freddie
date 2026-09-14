@@ -12,6 +12,7 @@ import clsx from 'clsx'
 import { IconCheckOutline16, IconCopyOutline16 } from './icons/index.js'
 import { renderMenu } from './Menu.js'
 import css from './JsonTree.css.js'
+import { defineElement } from './define-element.js'
 
 const OBJECT_PREVIEW_LIMIT = 4
 const ARRAY_PREVIEW_LIMIT = 5
@@ -640,9 +641,7 @@ export class FreddieJsonTree extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-json-tree') === undefined) {
-  customElements.define('freddie-json-tree', FreddieJsonTree)
-}
+defineElement('freddie-json-tree', FreddieJsonTree)
 
 /**
  * Create (if needed) or update a JsonTree element in place.

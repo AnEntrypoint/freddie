@@ -11,6 +11,7 @@
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import css from './PluginsSettingsSection.css.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 /** Cast a renderSlot() RenderOutput result into a webjsx-embeddable child. */
 function asChild(node) {
@@ -119,9 +120,7 @@ export class FreddiePluginsSettingsSection extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-plugins-settings-section') === undefined) {
-  customElements.define('freddie-plugins-settings-section', FreddiePluginsSettingsSection)
-}
+defineElement('freddie-plugins-settings-section', FreddiePluginsSettingsSection)
 
 /** Render one Plugins page whose contents arrive from feature-owned tabs. */
 export function PluginsSettingsSection(props) {

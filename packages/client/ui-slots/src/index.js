@@ -22,9 +22,9 @@ export const WEBJSX_SLOT_TAG = Symbol('webjsxSlotTag')
  * their own. The returned function is never actually invoked as a React
  * component: the installed renderer recognizes the {@link WEBJSX_SLOT_TAG}
  * marker on `entry.component` and hosts the named custom element (already
- * `customElements.define`-registered by the webjsx package, e.g.
- * `ui-primitives`' `freddie-toast`) inside a small React bridge instead of
- * calling this function. The function body is therefore only a fallback for
+ * registered through `ui-primitives`' `defineElement` by the package that owns
+ * it, e.g. `freddie-toast`) inside ui-renderer's `freddie-entry-host` instead
+ * of calling this function. The function body is therefore only a fallback for
  * a caller that invokes it directly outside the slot machinery (returns
  * `null`, never throws) — dispatch always goes through the tag.
  * @param tag - the custom element's registered tag name (e.g. `'freddie-toast'`).

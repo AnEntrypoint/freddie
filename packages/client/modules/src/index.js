@@ -2,11 +2,12 @@
  * Node half of the client module system (`freddie.client` dual-face package): scans
  * the host Loader's entries for packages declaring `freddie.client`, composes the
  * `window.__FREDDIE_BOOT__` entry graph (wire single source: {@link WebBootEntry}
- * in `./client/manifest.js`) in module-graph order, serves
- * `/plugins/<id>/client.js` and its source map, contributes the boot manifest
- * plus the parser-blocking bootstrap preloads to the webserver's index
- * injection table, and provides the `clientModuleHost` service (the HMR node
- * half's registration/notification face).
+ * in `./client/manifest.js`) in module-graph order, serves every file of a
+ * row's tree under `/plugins/<id>/~<rev>/<path>` (the rev segment is the
+ * cache key: the current rev answers immutable, any other rev revalidates),
+ * contributes the boot manifest plus modulepreload hints to the webserver's
+ * index injection table, and provides the `clientModuleHost` service (the
+ * HMR node half's registration/notification face).
  *
  * Scanning is incremental per package — there is no full-rescan code path.
  * Every cordis `internal/plugin` emission (fiber construction/disposal) marks
@@ -22,11 +23,11 @@
  */
 
 import { createHash } from 'node:crypto'
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { readdirSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, normalize, relative, resolve, sep } from 'node:path'
 import { Service } from '@freddie/cordis'
+import { sendFile } from '@freddie/freddie-host-webserver'
 import { optionalStringArray, stripClientSuffix } from './client/manifest.js'
 
 export { stripClientSuffix } from './client/manifest.js'
@@ -145,9 +146,9 @@ function listClientFiles(root) {
  * when the directory itself is missing, same contract as the old single-file
  * `readFileSync`.
  * @param root - absolute directory to hash.
- * @returns the tree's short hash.
+ * @returns the tree's short hash and its `.js` files' root-relative paths.
  */
-function hashClientTree(root) {
+function scanClientTree(root) {
   const files = listClientFiles(root).sort((a, b) => a.relPath.localeCompare(b.relPath))
   const hash = createHash('sha1')
   for (const file of files) {
@@ -156,14 +157,22 @@ function hashClientTree(root) {
     hash.update(readFileSync(file.absPath))
     hash.update('\0')
   }
-  return hash.digest('hex').slice(0, 12)
+  return {
+    rev: hash.digest('hex').slice(0, 12),
+    scripts: files.filter(file => file.relPath.endsWith('.js')).map(file => file.relPath),
+  }
 }
 
-/** Graph row for one bundle rev (url carries the rev as its cache-busting query). */
+/** Served URL of one file of a row's tree under its rev segment. */
+function bundleUrl(id, rev, relPath) {
+  return `/plugins/${id}/~${rev}/${relPath}`
+}
+
+/** Graph row for one bundle rev (url carries the rev as a path segment, so every sibling import shares the cache key). */
 function graphRow(id, rev, fields) {
   return {
     id,
-    url: `/plugins/${id}/client.js?rev=${rev}`,
+    url: bundleUrl(id, rev, fields.entryRelPath),
     rev,
     ...(fields.inject !== undefined ? { inject: fields.inject } : {}),
     ...(fields.immediately ? { immediately: true } : {}),
@@ -215,14 +224,19 @@ export function orderByModuleGraph(entries) {
   return ordered
 }
 
-/** Bootstrap package whose ordinary client bundle supplies the module-system implementation. */
-const CLIENT_MODULES_ID = '@freddie/freddie-client-modules'
+/**
+ * Whether modulepreload hints cover every row's tree or only the
+ * `immediately` tier. Measured in headless Chrome at an emulated 40ms RTT
+ * (Network.emulateNetworkConditions latency 40, 200Mbit, HTTP/1.1, three
+ * cold runs each), app-mounted ms: no hints 8231/10448/10811, the
+ * `immediately` tier (64 hints) 8320/8521/8882, every row (422 hints)
+ * 16139 and one run that never mounted — the flood saturates the six
+ * connections ahead of the shell's own critical chain.
+ */
+const PRELOAD_EVERY_ROW = false
 
-/** Dynamic package the boot kernel imports early, worth a modulepreload hint. */
-const CLIENT_RUNTIME_ID = '@freddie/freddie-client-runtime'
-
-/** Ordinary dynamic bundles the HTML parser hints the browser to fetch early. */
-const MODULEPRELOAD_IDS = [CLIENT_MODULES_ID, CLIENT_RUNTIME_ID]
+/** Cache policy for a URL whose rev segment names the row's current tree. */
+const IMMUTABLE = 'public, max-age=31536000, immutable'
 
 /**
  * Build this package's contribution to the runtime import map: every graph
@@ -241,9 +255,11 @@ const MODULEPRELOAD_IDS = [CLIENT_MODULES_ID, CLIENT_RUNTIME_ID]
  * resolution at import() time exactly where the old build-time resolveId
  * check used to fail it at bundle time.
  * @param graph - the composed entry graph.
+ * @param workspaceUrl - maps a workspace specifier to its served URL (the
+ * real file path, so the map never points at a redirect).
  * @returns bare specifier → served URL.
  */
-export function buildImportMapEntries(graph) {
+export function buildImportMapEntries(graph, workspaceUrl = specifier => `/workspace/${specifier}`) {
   const imports = {}
   for (const entry of graph.entries) {
     imports[entry.id] = entry.url
@@ -253,7 +269,7 @@ export function buildImportMapEntries(graph) {
     for (const specifier of entry.external ?? []) {
       const id = stripClientSuffix(specifier)
       if (imports[specifier] !== undefined || imports[id] !== undefined) continue
-      imports[specifier] = `/workspace/${specifier}`
+      imports[specifier] = workspaceUrl(specifier)
     }
   }
   return imports
@@ -262,19 +278,19 @@ export function buildImportMapEntries(graph) {
 /**
  * The boot protocol as index injection rows: this package's import-map
  * entries (merged with every other contributor into the page's one map),
- * modulepreload hints for the bootstrap/runtime bundles, and the graph global
- * the boot kernel's `<script type="module">` reads to build the module
- * system before starting the plugin loader.
+ * one modulepreload hint per served script of the hinted rows (so the
+ * buildless import waterfall is fetched in one round trip instead of level
+ * by level), and the graph global the boot kernel's `<script type="module">`
+ * reads to build the module system before starting the plugin loader.
  * @param graph - the composed entry graph.
+ * @param preloadHrefs - served URLs to hint, in fetch priority order.
+ * @param workspaceUrl - see {@link buildImportMapEntries}.
  * @returns head rows: import-map entries, preload hints, graph global.
  */
-export function bootInjections(graph) {
-  const preload = MODULEPRELOAD_IDS.map(id => graph.entries.find(entry => entry.id === id))
-    .filter(entry => entry !== undefined)
-    .map(entry => ({ kind: 'link', placement: 'head', rel: 'modulepreload', href: entry.url }))
+export function bootInjections(graph, preloadHrefs, workspaceUrl) {
   return [
-    { kind: 'importmap-entries', imports: buildImportMapEntries(graph) },
-    ...preload,
+    { kind: 'importmap-entries', imports: buildImportMapEntries(graph, workspaceUrl) },
+    ...preloadHrefs.map(href => ({ kind: 'link', placement: 'head', rel: 'modulepreload', href })),
     { kind: 'global', name: '__FREDDIE_BOOT__', value: graph },
   ]
 }
@@ -354,8 +370,51 @@ export class ClientModuleRegistry extends Service {
       'client-modules: workspace file route',
     )
     ctx.on('webserver/index-inject', (table) => {
-      table.push(...bootInjections(this.composed))
+      table.push(...bootInjections(this.composed, this.preloadHrefs(), specifier => this.workspaceUrl(specifier)))
     })
+  }
+
+  /**
+   * Served URL for a workspace wire-layer specifier: the real file's path
+   * when the package's `exports` map publishes it elsewhere (one round trip
+   * fewer than the 301 the route would answer), the specifier itself when
+   * it does not resolve (the route answers the 404 loudly at import time).
+   * @param specifier - a `freddie.client.external` request that is not a graph row.
+   * @returns the `/workspace/...` URL.
+   */
+  workspaceUrl(specifier) {
+    let resolved
+    try {
+      resolved = this.resolveWorkspaceSpecifier(specifier)
+    } catch {
+      return `/workspace/${specifier}`
+    }
+    return `/workspace/${resolved.kind === 'redirect' ? resolved.specifier : specifier}`
+  }
+
+  /**
+   * Served URLs the index hints with `<link rel="modulepreload">`: every
+   * script under the entry file's own directory (the browser-facing half of
+   * a row's `src/` tree; the node half beside it is never imported by the
+   * page), `immediately` rows first. The URLs are the exact ones the rows'
+   * relative imports resolve to, so a hint never names a URL the server
+   * would not serve.
+   * @returns hint hrefs in fetch priority order.
+   */
+  preloadHrefs() {
+    const hrefs = []
+    const rows = [...this.composed.entries]
+    rows.sort((a, b) => Number(b.immediately === true) - Number(a.immediately === true))
+    for (const row of rows) {
+      if (!PRELOAD_EVERY_ROW && row.immediately !== true) continue
+      const record = this.table.get(row.id)
+      if (record === undefined) continue
+      const clientDir = `${dirname(record.meta.entryRelPath)}/`
+      for (const relPath of record.scripts) {
+        if (relPath.startsWith(clientDir)) hrefs.push(bundleUrl(row.id, row.rev, relPath))
+      }
+    }
+    return hrefs
   }
 
   /**
@@ -404,9 +463,10 @@ export class ClientModuleRegistry extends Service {
   rebuilt(id) {
     const record = this.table.get(id)
     if (record === undefined) return undefined
-    const rev = hashClientTree(record.meta.clientRoot)
+    const { rev, scripts } = scanClientTree(record.meta.clientRoot)
     if (rev === record.entry.rev) return rev
     record.entry = graphRow(id, rev, record.meta)
+    record.scripts = scripts
     this.composed = this.compose()
     for (const notify of this.rebuildListeners) {
       // Containment: rebuilt() runs inside the HMR watch callback — a
@@ -552,9 +612,15 @@ export class ClientModuleRegistry extends Service {
     // a workspace with deeply nested @freddie/* dependency trees).
     const packageRoot = dirname(pkgPath)
     const clientPath = join(packageRoot, clientRel)
+    const clientRoot = join(packageRoot, 'src')
+    const entryRelPath = relative(clientRoot, clientPath).split(sep).join('/')
+    if (entryRelPath.startsWith('../') || entryRelPath === '..') {
+      throw new Error(`client-modules: ${pkgName} exports["./client"] (${clientRel}) must live under the package's src/ tree`)
+    }
     const meta = {
       clientPath,
-      clientRoot: join(packageRoot, 'src'),
+      clientRoot,
+      entryRelPath,
       ...(decl.inject !== undefined ? { inject: decl.inject } : {}),
       external: decl.external ?? [],
       immediately: decl.immediately === true,
@@ -570,12 +636,12 @@ export class ClientModuleRegistry extends Service {
    * cache-busting URL.
    * @param pkgName - package that declares the client entry.
    * @param clientRoot - absolute directory served verbatim for this package.
-   * @returns the tree content's short hash for use as its revision.
+   * @returns the tree content's short hash for use as its revision, with its served scripts.
    * @throws {MissingClientBundleError} when the directory or entry file is missing.
    */
   initialBundleRevision(pkgName, clientRoot) {
     try {
-      return hashClientTree(clientRoot)
+      return scanClientTree(clientRoot)
     } catch (error) {
       if (error.code !== 'ENOENT') throw error
       throw new MissingClientBundleError(pkgName, clientRoot, error)
@@ -597,8 +663,8 @@ export class ClientModuleRegistry extends Service {
     if (meta === null) return false
     // The rev rides the row from here on: a fiber restart reuses the row (and
     // its rev) untouched; only rebuilt() re-reads the bundle.
-    const rev = this.initialBundleRevision(entryName, meta.clientRoot)
-    this.table.set(entryName, { entry: graphRow(entryName, rev, meta), meta })
+    const { rev, scripts } = this.initialBundleRevision(entryName, meta.clientRoot)
+    this.table.set(entryName, { entry: graphRow(entryName, rev, meta), meta, scripts })
     return true
   }
 
@@ -631,32 +697,20 @@ export class ClientModuleRegistry extends Service {
   }
 
   /**
-   * Resolve a request path under `/plugins/` to an on-disk file or a
-   * same-origin redirect: `<id>` may itself contain a scope slash
-   * (`@scope/name`), so the split point is found by matching the longest
-   * registered id that prefixes the pathname.
+   * Resolve a request path under `/plugins/` to an on-disk file: `<id>` may
+   * itself contain a scope slash (`@scope/name`), so the split point is
+   * found by matching the longest registered id that prefixes the pathname.
    *
-   * The graph's own URL names the entry file `client.js` regardless of its
-   * real on-disk basename/location (e.g. `src/client/index.js`) -- that
-   * fixed name is a REDIRECT to the entry's real nested path, not content
-   * served directly at the alias URL. Serving alias content directly
-   * (the previous behavior) broke every entry file with a same-directory
-   * sibling import (`./system.js`, `./manifest.js`, etc.): `import()`'s
-   * relative-URL resolution runs against the FETCHED url, not the real file
-   * location, so `./system.js` resolved to `/plugins/<id>/system.js`
-   * (package root) instead of the real `/plugins/<id>/client/system.js`,
-   * 404ing (witnessed live: freddie-client-modules' own client entry, the
-   * first real package whose client/ directory has same-directory
-   * siblings -- every other package only had `../`-escaping siblings,
-   * fixed separately by widening clientRoot to the package's src/). A
-   * redirect fixes both shapes at once: `import()` follows a redirect and
-   * re-bases module resolution to the FINAL url, standard browser
-   * behavior, so every relative import then resolves correctly with zero
-   * content rewriting -- preserving the graph's stable `client.js` URL as
-   * what callers request, while the real nested path is what the browser
-   * actually loads and resolves siblings against.
+   * The graph's URL is the entry's REAL path under the row's `src/` tree
+   * (`/plugins/<id>/~<rev>/client/index.js`), never an alias: `import()`
+   * resolves a module's relative imports against the fetched URL, so an
+   * alias at the package root would send `./system.js` to
+   * `/plugins/<id>/system.js` and 404. The optional leading `~<rev>` segment
+   * is the cache key — stripped before the file lookup, and only the row's
+   * CURRENT rev earns an immutable answer (an old rev names bytes that no
+   * longer exist at that URL, so it revalidates like an unrevved request).
    * @param pathname - decoded request pathname (still carrying the `/plugins/` prefix).
-   * @returns `{kind: 'file', path}`, `{kind: 'redirect', url}`, or undefined when no registered id prefixes it.
+   * @returns `{path, immutable}`, or undefined when no registered id prefixes it or the path escapes the tree.
    */
   resolveBundlePath(pathname) {
     const prefix = '/plugins/'
@@ -669,20 +723,21 @@ export class ClientModuleRegistry extends Service {
       if (best === undefined || id.length > best.id.length) best = { id, record }
     }
     if (best === undefined) return undefined
-    const relPath = rest.slice(best.id.length + 1)
-    const clientRoot = best.record.meta.clientRoot
-    const clientPath = best.record.meta.clientPath
-    if (relPath === 'client.js' || relPath === 'client.js.map') {
-      const entryRelPath = relative(clientRoot, clientPath).split(sep).join('/')
-      const suffix = relPath === 'client.js.map' ? '.map' : ''
-      return { kind: 'redirect', url: `${prefix}${best.id}/${entryRelPath}${suffix}` }
+    let relPath = rest.slice(best.id.length + 1)
+    let immutable = false
+    if (relPath.startsWith('~')) {
+      const slash = relPath.indexOf('/')
+      if (slash === -1) return undefined
+      immutable = relPath.slice(1, slash) === best.record.entry.rev
+      relPath = relPath.slice(slash + 1)
     }
+    const clientRoot = best.record.meta.clientRoot
     const target = resolve(normalize(join(clientRoot, ...relPath.split('/'))))
     // Traversal rejection, same shape as frontend-static's: the target must
     // stay under clientRoot (never equal to it — that's a directory, not a
     // servable file).
     if (!target.startsWith(clientRoot + sep)) return undefined
-    return { kind: 'file', path: target }
+    return { path: target, immutable }
   }
 
   /**
@@ -724,15 +779,11 @@ export class ClientModuleRegistry extends Service {
       res.end()
       return
     }
-    const path = resolved.path
-    try {
-      const body = await readFile(path)
-      res.writeHead(200, {
-        'content-type': path.endsWith('.map') ? 'application/json; charset=utf-8' : 'text/javascript; charset=utf-8',
-        'cache-control': 'no-cache',
-      })
-      res.end(req.method === 'HEAD' ? undefined : body)
-    } catch {
+    const served = await sendFile(req, res, resolved.path, {
+      'content-type': contentTypeOf(resolved.path),
+      'cache-control': 'no-cache',
+    })
+    if (!served) {
       res.writeHead(404)
       res.end()
     }
@@ -752,29 +803,21 @@ export class ClientModuleRegistry extends Service {
       res.end()
       return
     }
-    if (resolved.kind === 'redirect') {
-      // Preserve the caller's own query string (the `?rev=` cache-buster) on
-      // the redirect target -- the graph's URL and the real file's URL name
-      // the same content, so they share one cache-busting identity.
-      const query = new URL(req.url ?? '/', 'http://x').search
-      res.writeHead(301, { location: `${resolved.url}${query}` })
-      res.end()
-      return
-    }
-    const path = resolved.path
-    try {
-      const body = await readFile(path)
-      res.writeHead(200, {
-        'content-type': path.endsWith('.map') ? 'application/json; charset=utf-8' : 'text/javascript; charset=utf-8',
-        'cache-control': 'no-cache',
-      })
-      res.end(req.method === 'HEAD' ? undefined : body)
-    } catch {
+    const served = await sendFile(req, res, resolved.path, {
+      'content-type': contentTypeOf(resolved.path),
+      'cache-control': resolved.immutable ? IMMUTABLE : 'no-cache',
+    })
+    if (!served) {
       // Registered but unreadable: loud 404 beats a silent SPA-fallback HTML page.
       res.writeHead(404)
       res.end()
     }
   }
+}
+
+/** MIME type of a served `.js` / `.js.map` file. */
+function contentTypeOf(path) {
+  return path.endsWith('.map') ? 'application/json; charset=utf-8' : 'text/javascript; charset=utf-8'
 }
 
 export default ClientModuleRegistry

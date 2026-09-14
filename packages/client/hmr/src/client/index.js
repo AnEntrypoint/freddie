@@ -7,8 +7,13 @@
  * — `immediately` rows differ only in stage-one prefetch (a boot
  * optimization), so all rostered plugin packages share these reload semantics;
  * normal packages (react family, cordis, shell, pure libs) are not entries.
- * Shell source changes reload the document, preserving one shared bootstrap
- * module instance for client module enrollment.
+ * A `css-rebuilt` frame swaps the one css-manifest stylesheet link in place.
+ * A `shell-rebuilt` frame for the shell's own roots (apps/web and
+ * packages/client/web) remounts AppWebEntry in this document under a
+ * `/__hmr/<rev>/` import prefix; the seeded platform packages (ui-slots,
+ * ui-primitives) resolve through the frozen import map and can only be
+ * refreshed by a document reload. A `host-reloaded` frame is journaled and
+ * announced on `window` for the GUI notice.
  * Cascade is zero-touch:
  * downstream fibers key their activation epoch on provider fiber uids
  * (vendor/cordis/src/fiber.ts `_refresh`), so replacing a provider fiber
@@ -16,8 +21,8 @@
  * cascades into its UI dependents with no HMR-side bookkeeping.
  *
  * Reload order (native ESM import()): invalidate (drop the stale record —
- * the module graph carries the rebuilt entry's new `?rev=` URL already, so
- * the next import() is a genuinely fresh module, never a stale browser
+ * the module graph carries the rebuilt entry's new `/~<rev>/` URL already,
+ * so the next import() is a genuinely fresh module, never a stale browser
  * module-cache hit) → prefetch (import() the fresh URL) → registry-first
  * teardown → drain old fiber unload → remove owned `<style data-plugin>`
  * tags → `entry.refresh()` re-imports and re-applies the new module.
@@ -61,8 +66,9 @@
  * channel, so a later graph mismatch heals a missed rebuild.
  *
  * Failure policy: no rollback. A failed plugin reload or graph-rev mismatch
- * remounts AppWebEntry under `/__hmr/<rev>/`; the previous fiber is not
- * restored. Custom-element rows still force a full page reload.
+ * remounts AppWebEntry in this document; the previous fiber is not restored.
+ * A lost frame sequence reloads the document, since the graph the host
+ * published in the gap is unknown.
  */
 import { EVENTS_ENDPOINT } from '../events.js'
 
@@ -73,6 +79,15 @@ export const name = 'client-hmr'
 
 /** Required services: the vendored Loader (entry governance) and the client module system (boot provide, service name `modules`). */
 export const inject = ['loader', 'modules']
+
+/** Shell package the remount re-imports under the `/__hmr/<rev>/` prefix. */
+const SHELL_PACKAGE = '@freddie/freddie-client-web'
+
+/** Static watch ids whose files the shell's own relative imports reach, so a prefixed re-import refreshes them. */
+const REMOUNTABLE_ROOTS = new Set(['apps/web', SHELL_PACKAGE])
+
+/** `window` event carrying every journal row (the GUI notice listens; no other subscription surface). */
+export const JOURNAL_EVENT = 'freddie:hmr'
 
 /** Find the loader entry whose module specifier is `id` (entry tree ids are random; the package name lives in `options.name`). */
 function findEntry(loader, id) {
@@ -89,11 +104,62 @@ function removeOwnedStyles(id) {
   }
 }
 
-async function transactRemount() {
-  // The module-system enrollment plugin holds a module-private bootstrap
-  // singleton. A shell imported in another URL space cannot enroll it, so a
-  // document reload is the only coherent recovery after shell-level changes.
-  globalThis.location.reload()
+/** The shell's import-map URL, read from the page's one `<script type="importmap">`. */
+function shellImportUrl() {
+  const script = document.querySelector('script[type="importmap"]')
+  if (script === null) return undefined
+  const url = JSON.parse(script.textContent).imports?.[SHELL_PACKAGE]
+  return typeof url === 'string' ? url : undefined
+}
+
+/**
+ * Remount AppWebEntry in this document: import the shell under a fresh
+ * `/__hmr/<rev>/` prefix (its relative imports fetch fresh bytes; bare
+ * specifiers still resolve through the import map, so plugin, cordis and
+ * seed module identities are shared with the disposed tree), dispose the
+ * live entry into the same #root, construct and run the new one. Falls back
+ * to a document reload when the live entry is not reachable.
+ * @param rev - cache-busting token for the prefix.
+ */
+async function remountInDocument(rev) {
+  const shell = globalThis.__FREDDIE_SHELL__
+  const shellUrl = shellImportUrl()
+  if (shell === undefined || typeof shell.dispose !== 'function' || shellUrl === undefined) {
+    globalThis.location.reload()
+    return
+  }
+  const { AppWebEntry } = await import(/* @vite-ignore */ new URL(`/__hmr/${encodeURIComponent(rev)}${shellUrl}`, globalThis.location.origin).href)
+  await shell.dispose()
+  const next = new AppWebEntry(shell.container)
+  globalThis.__FREDDIE_SHELL__ = next
+  await next.run()
+}
+
+/**
+ * Swap the css-manifest stylesheet link: insert the new href, wait for it
+ * to load, then drop the old link — no navigation, no fiber swap.
+ * @param href - the new `/styles/app.css?rev=` URL.
+ */
+async function swapStylesheet(href) {
+  const old = document.querySelector('link[rel="stylesheet"][data-css-manifest]')
+  if (old === null) throw new Error('client-hmr: css-rebuilt frame but the page carries no css-manifest link')
+  if (old.getAttribute('href') === href) return
+  const next = document.createElement('link')
+  next.rel = 'stylesheet'
+  next.setAttribute('data-css-manifest', '')
+  const loaded = new Promise((resolve, reject) => {
+    next.addEventListener('load', () => resolve(), { once: true })
+    next.addEventListener('error', () => reject(new Error(`client-hmr: stylesheet ${href} failed to load`)), { once: true })
+  })
+  next.href = href
+  old.after(next)
+  try {
+    await loaded
+  } catch (error) {
+    next.remove()
+    throw error
+  }
+  old.remove()
 }
 
 /**
@@ -106,16 +172,37 @@ export function apply(ctx) {
   // client module loader package, `loader` from the vendored Loader).
   const modLoader = ctx.modules
   const loader = ctx.loader
-  const remountShell = transactRemount
-  const journal = []
+  // The journal outlives this fiber: a self-reload or an in-document shell
+  // remount constructs a new driver in the same window, and the rows that
+  // led there are exactly what a developer reads afterwards.
+  const journal = [...(globalThis.__FREDDIE_HMR__?.events ?? [])]
   const status = { connected: false, lastSequence: undefined, reconnects: 0, lastError: undefined }
   const publishDebug = () => { globalThis.__FREDDIE_HMR__ = { events: journal.slice(), status: { ...status } } }
   const record = (event) => {
-    journal.push({ ts: Date.now(), ...event })
+    const row = { ts: Date.now(), ...event }
+    journal.push(row)
     if (journal.length > 50) journal.shift()
     publishDebug()
+    globalThis.dispatchEvent(new CustomEvent(JOURNAL_EVENT, { detail: row }))
   }
   publishDebug()
+
+  // The wire graph the remounted shell boots from: the host's authoritative
+  // copy on connect, patched per rebuilt row, written back to the boot
+  // global before a remount so the new AppWebEntry never boots a stale rev.
+  let wireGraph = globalThis.__FREDDIE_BOOT__
+  const patchWireGraph = (row, graphRev) => {
+    if (wireGraph === undefined) return
+    wireGraph = {
+      ...wireGraph,
+      rev: graphRev,
+      entries: wireGraph.entries.map(entry => entry.id === row.id ? row : entry),
+    }
+  }
+  const remountShell = async (rev) => {
+    if (wireGraph !== undefined) globalThis.__FREDDIE_BOOT__ = wireGraph
+    await remountInDocument(rev)
+  }
 
   async function reload(frame) {
     const { id, entry: row, graphRev } = frame
@@ -134,6 +221,7 @@ export function apply(ctx) {
       await remountShell(String(Date.now()))
       return
     }
+    patchWireGraph(row, graphRev)
     // Invalidate first (drop stale factory + record — a live factory makes
     // prefetch a no-op and re-registration a loud duplicate), then run the
     // async half while the old fiber still serves: script loading registers
@@ -169,14 +257,17 @@ export function apply(ctx) {
   // Serialize reloads: frames can arrive faster than a swap completes, and
   // interleaved dispose/execute chains would corrupt the single-slot handoff.
   let queue = Promise.resolve()
-  const remountForGap = (frame, expected) => {
-    ctx.logger.warn(`client-hmr: lost frame sequence ${expected} before ${frame.sequence}; remounting shell`)
-    record({ kind: 'sequence-gap', expected, received: frame.sequence })
-    queue = queue.then(() => remountShell(String(frame.sequence))).catch((error) => {
-      ctx.logger.error('client-hmr: sequence-gap remount failed')
+  const enqueue = (task, failure) => {
+    queue = queue.then(task).catch((error) => {
+      ctx.logger.error(`client-hmr: ${failure.kind}`)
       ctx.logger.error(error)
-      record({ kind: 'sequence-gap-remount-failed', received: frame.sequence })
+      record(failure)
     })
+  }
+  const remountForGap = (frame, expected) => {
+    ctx.logger.warn(`client-hmr: lost frame sequence ${expected} before ${frame.sequence}; reloading`)
+    record({ kind: 'sequence-gap', expected, received: frame.sequence })
+    globalThis.location.reload()
   }
   const handle = (frame) => {
     if (!Number.isSafeInteger(frame.sequence) || frame.sequence < 0) {
@@ -193,11 +284,9 @@ export function apply(ctx) {
       switch (frame.type) {
         case 'graph':
           if (frame.graph?.rev !== undefined && frame.graph.rev !== modLoader.manifest.rev) {
+            wireGraph = frame.graph
             record({ kind: 'legacy-graph-mismatch', rev: frame.graph.rev })
-            queue = queue.then(() => remountShell(frame.graph.rev)).catch((error) => {
-              ctx.logger.error('client-hmr: legacy-graph remount failed')
-              ctx.logger.error(error)
-            })
+            enqueue(() => remountShell(frame.graph.rev), { kind: 'legacy-graph-remount-failed', rev: frame.graph.rev })
           }
           return
         default:
@@ -215,61 +304,56 @@ export function apply(ctx) {
     publishDebug()
     switch (frame.type) {
       case 'rebuilt':
-        // A row that registers custom elements cannot be hot-swapped: the
-        // host flags it (see the node half's treeDefinesCustomElements)
-        // because `customElements.define` binds a tag for the document's
-        // lifetime, so the re-imported module's guarded define is a silent
-        // no-op and every live element keeps the ORIGINAL class. The swap
-        // would report success while the edit never appears -- strictly
-        // worse than reloading, since it looks like it worked. Take the
-        // honest exit `shell-rebuilt` already takes.
-        if (frame.definesCustomElements === true) {
-          // customElements.define binds a tag for the document's lifetime;
-          // remounting the shell cannot replace the class. A full reload is
-          // the only path that observes the edit.
-          ctx.logger.info(`client-hmr: "${frame.id}" defines custom elements, reloading`)
-          record({ kind: 'custom-elements-reload', id: frame.id })
-          window.location.reload()
-          break
-        }
         record({ kind: 'plugin-rebuilt', id: frame.id, rev: frame.rev })
+        // reload() tears down the OLD (working) fiber's effects/styles
+        // BEFORE the new bundle's apply is known to succeed (see the module
+        // comment's documented "no rollback" ordering) -- so a failed reload
+        // leaves NOTHING in place. Remount the shell in this document so
+        // AppWebEntry.run renders the visible failure page.
         queue = queue.then(() => reload(frame)).catch((error) => {
-          // reload() tears down the OLD (working) fiber's effects/styles
-          // BEFORE the new bundle's apply is known to succeed (see the
-          // module comment's documented "no rollback" ordering) -- so a
-          // failed reload does not leave the old UI in place, it leaves
-          // NOTHING in place: the entry's slot output is gone and nothing
-          // ever replaced it. Remount the shell under a fresh `/__hmr/<rev>/`
-          // prefix instead of location.reload: window identity survives and
-          // AppWebEntry.run still renders the visible failure page.
           ctx.logger.error(`client-hmr: reload of "${frame.id}" failed, remounting shell`)
           ctx.logger.error(error)
           record({ kind: 'plugin-reload-failed', id: frame.id })
           return remountShell(String(Date.now()))
+        }).catch((error) => {
+          ctx.logger.error('client-hmr: shell remount after failed reload failed')
+          ctx.logger.error(error)
+          record({ kind: 'shell-remount-failed', id: frame.id })
         })
+        break
+      case 'css-rebuilt':
+        record({ kind: 'css-rebuilt', rev: frame.rev })
+        enqueue(() => swapStylesheet(frame.href), { kind: 'css-swap-failed', rev: frame.rev })
         break
       case 'shell-rebuilt':
-        // Shell code (apps/web + packages/client/web) is not a loader entry.
-        // Remount AppWebEntry after rewriting document.baseURI via a
-        // `/__hmr/<rev>/` prefix so native import() sees a new URL space.
+        // Shell code is not a loader entry. The shell's own roots remount in
+        // this document (window identity, boot payload and sockets survive);
+        // a seeded platform package can only be refreshed by a reload.
+        if (!REMOUNTABLE_ROOTS.has(frame.root)) {
+          ctx.logger.info(`client-hmr: ${frame.root} rebuilt, reloading (seeded through the frozen import map)`)
+          record({ kind: 'shell-rebuilt-reload', rev: frame.rev, root: frame.root })
+          globalThis.location.reload()
+          break
+        }
         ctx.logger.info('client-hmr: shell rebuilt, remounting')
-        record({ kind: 'shell-rebuilt', rev: frame.rev })
-        queue = queue.then(() => remountShell(frame.rev)).catch((error) => {
-          ctx.logger.error('client-hmr: shell remount failed')
-          ctx.logger.error(error)
-          record({ kind: 'shell-remount-failed', rev: frame.rev })
-        })
+        record({ kind: 'shell-rebuilt', rev: frame.rev, root: frame.root })
+        enqueue(() => remountShell(frame.rev), { kind: 'shell-remount-failed', rev: frame.rev })
         break
       case 'graph':
+        if (frame.graph?.rev !== undefined) wireGraph = frame.graph
         if (frame.graph?.rev !== undefined && frame.graph.rev !== modLoader.manifest.rev) {
           ctx.logger.info('client-hmr: graph changed while disconnected, remounting shell')
           record({ kind: 'graph-mismatch', rev: frame.graph.rev })
-          queue = queue.then(() => remountShell(frame.graph.rev)).catch((error) => {
-            ctx.logger.error('client-hmr: graph-mismatch remount failed')
-            ctx.logger.error(error)
-            record({ kind: 'graph-mismatch-remount-failed', rev: frame.graph.rev })
-          })
+          enqueue(() => remountShell(frame.graph.rev), { kind: 'graph-mismatch-remount-failed', rev: frame.graph.rev })
         }
+        break
+      case 'host-reloaded':
+        record({
+          kind: 'host-reloaded',
+          hostKind: frame.kind,
+          plugins: Array.isArray(frame.plugins) ? frame.plugins : [],
+          ...frame.reason === undefined ? {} : { reason: frame.reason },
+        })
         break
       default:
         // Merge-extensible frame union: unknown frame types from newer hosts

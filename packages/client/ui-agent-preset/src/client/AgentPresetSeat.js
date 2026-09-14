@@ -13,7 +13,7 @@
  */
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
-import { IconAgentPresetOutline16, IconChevronDownOutline14, renderMenu } from '@freddie/freddie-client-ui-primitives'
+import { IconAgentPresetOutline16, IconChevronDownOutline14, renderMenu, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { presetDisplayText } from './locales.js'
 import css from './AgentPresetSeat.css.js'
 
@@ -181,9 +181,7 @@ export class FreddieAgentPresetSeat extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-agent-preset-seat') === undefined) {
-  customElements.define('freddie-agent-preset-seat', FreddieAgentPresetSeat)
-}
+defineElement('freddie-agent-preset-seat', FreddieAgentPresetSeat)
 
 /**
  * Render the new-session agent-preset chip.

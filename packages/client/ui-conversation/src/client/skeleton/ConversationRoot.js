@@ -14,6 +14,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { HeroShell, WorkspaceChip, workspaceLabel } from './EmptyHero.js'
 import css from './ConversationRoot.css.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 export class FreddieConversationRoot extends HTMLElement {
   #props = null
@@ -255,9 +256,7 @@ export class FreddieConversationRoot extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-conversation-root') === undefined) {
-  customElements.define('freddie-conversation-root', FreddieConversationRoot)
-}
+defineElement('freddie-conversation-root', FreddieConversationRoot)
 
 /** One-shot creation/update helper preserving the original function-component call shape. */
 export function ConversationRoot(props) {

@@ -85,6 +85,39 @@ export function shallowEqual(a, b) {
   return true
 }
 
+/**
+ * Structural equality over the plain data a store holds (primitives, arrays,
+ * objects, Map, Set — the shapes structuredClone reproduces).
+ * @param a - left value.
+ * @param b - right value.
+ * @returns whether the values are structurally equal.
+ */
+export function deepEqual(a, b) {
+  if (Object.is(a, b)) return true
+  if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return false
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false
+    return a.every((value, index) => deepEqual(value, b[index]))
+  }
+  if (a instanceof Map || b instanceof Map) {
+    if (!(a instanceof Map) || !(b instanceof Map) || a.size !== b.size) return false
+    for (const [key, value] of a) {
+      if (!b.has(key) || !deepEqual(value, b.get(key))) return false
+    }
+    return true
+  }
+  if (a instanceof Set || b instanceof Set) {
+    if (!(a instanceof Set) || !(b instanceof Set) || a.size !== b.size) return false
+    for (const value of a) {
+      if (!b.has(value)) return false
+    }
+    return true
+  }
+  const keysA = Object.keys(a)
+  if (keysA.length !== Object.keys(b).length) return false
+  return keysA.every(key => Object.prototype.hasOwnProperty.call(b, key) && deepEqual(a[key], b[key]))
+}
+
 /** Batches subscriber notification into one flush per animation frame. */
 function rafBatch(notify) {
   // Fall back to microtask batching where rAF is absent (node unit tests);
@@ -137,8 +170,15 @@ export function createSnapshotStore(init, opts) {
     subscribe: fn => subscribe(fn),
     update: (mutator) => {
       // Immer's produce (not setState's partial-merge path) so scalar and
-      // array roots replace correctly; produce also freezes in dev.
-      api.setState(produce(api.getState(), (draft) => { mutator(draft) }), true)
+      // array roots replace correctly; produce also freezes in dev. A draft
+      // that mutated nothing is dropped: entries write their own store during
+      // render (AppFrame's setNarrow, the session tree's order sync), and an
+      // outlet subscribed to what it reads would otherwise loop on the fresh
+      // but identical clone.
+      const previous = api.getState()
+      const next = produce(previous, (draft) => { mutator(draft) })
+      if (deepEqual(previous, next)) return
+      api.setState(next, true)
     },
     set: (next) => {
       api.setState(devFreeze(next), true)

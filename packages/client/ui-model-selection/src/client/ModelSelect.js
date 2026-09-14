@@ -23,6 +23,7 @@ import clsx from 'clsx'
 import {
   IconCheckOutline16, IconChevronDownOutline14, IconChevronRightOutline14,
   IconWarningOutline16, mountToast,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './ModelSelect.css.js'
 
@@ -428,9 +429,7 @@ export class FreddieModelSelect extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-model-select') === undefined) {
-  customElements.define('freddie-model-select', FreddieModelSelect)
-}
+defineElement('freddie-model-select', FreddieModelSelect)
 
 /** One-shot creation helper preserving the original function-component call shape. */
 export function ModelSelect(props) {

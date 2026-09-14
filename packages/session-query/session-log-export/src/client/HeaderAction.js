@@ -1,5 +1,5 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { IconDownloadOutline16, renderModal } from '@freddie/freddie-client-ui-primitives'
+import { IconDownloadOutline16, renderModal, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { dialogProps } from './Dialog.js'
 import css from './HeaderAction.css.js'
 
@@ -53,9 +53,7 @@ export class FreddieSessionLogDownloadHeaderAction extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-session-log-download-header-action') === undefined) {
-  customElements.define('freddie-session-log-download-header-action', FreddieSessionLogDownloadHeaderAction)
-}
+defineElement('freddie-session-log-download-header-action', FreddieSessionLogDownloadHeaderAction)
 
 /** One-shot creation/update helper preserving the original function-component call shape. */
 export function SessionLogDownloadHeaderAction(props) {

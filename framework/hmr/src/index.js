@@ -514,12 +514,14 @@ class Hmr extends Service {
 
     // Attempt to re-import all plugin entry files
     const attempts = {}
+    const plugins = [...reloads.values()].map(entry => entry.filename)
     try {
       for (const [, { filename }] of reloads) {
         attempts[filename] = this.ctx.loader.unwrapExports(await this.ctx.loader.import(filename, this.getOuterStack))
       }
     } catch (e) {
       handleError(this.ctx, e)
+      this.recordJournal({ kind: 'failed', plugins, reason: e instanceof Error ? e.message : String(e) })
       return rollback()
     }
 
@@ -553,7 +555,7 @@ class Hmr extends Service {
           throw err
         }
       }
-    } catch {
+    } catch (e) {
       // Rollback: restore caches and re-register old plugins
       rollback()
       for (const [plugin, { filename, runtime }] of reloads) {
@@ -565,24 +567,26 @@ class Hmr extends Service {
           this.ctx.logger.warn(err)
         }
       }
+      this.recordJournal({ kind: 'failed', plugins, reason: e instanceof Error ? e.message : String(e) })
       return
     }
 
     this.ctx.emit('hmr/reload', reloads)
-    this.recordJournal({
-      kind: 'reload',
-      plugins: [...reloads.values()].map(entry => entry.filename),
-    })
+    this.recordJournal({ kind: 'reload', plugins })
     this.stashed = new Set()
   }
 
   /**
-   * Append one journal row, dropping the oldest when the bound is reached.
+   * Append one journal row, dropping the oldest when the bound is reached,
+   * and emit it as `hmr/journal` so a forwarder (the client-hmr node half's
+   * SSE channel) can relay reload decisions without reading this service.
    * @param event - leaf-only reload decision.
    */
   recordJournal(event) {
-    this.journal.push({ ts: Date.now(), ...event })
+    const row = { ts: Date.now(), ...event }
+    this.journal.push(row)
     if (this.journal.length > 50) this.journal.shift()
+    this.ctx.emit('hmr/journal', row)
   }
 
   /**

@@ -8,6 +8,7 @@ import {
   Button, IconCheckOutline14, IconChevronDownOutline14, IconChevronLeftOutline14,
   IconChevronRightOutline14, IconChevronUpOutline14, IconCloseOutline16,
   IconEditOutline16, renderMarkdownText,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { PendingQuestion, planReviewOf } from './contract/slots.js'
 import { FreddiePlanReviewPanel } from './PlanReviewPanel.js'
@@ -131,9 +132,7 @@ export class FreddieQuestionComposer extends HTMLElement {
   #childHost = null
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-question-composer') === undefined) {
-  customElements.define('freddie-question-composer', FreddieQuestionComposer)
-}
+defineElement('freddie-question-composer', FreddieQuestionComposer)
 
 /**
  * The generic question flow custom element: pager, numbered options, skip and
@@ -517,6 +516,4 @@ export class FreddieQuestionFlow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-question-flow') === undefined) {
-  customElements.define('freddie-question-flow', FreddieQuestionFlow)
-}
+defineElement('freddie-question-flow', FreddieQuestionFlow)

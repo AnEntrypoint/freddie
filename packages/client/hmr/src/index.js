@@ -2,10 +2,13 @@
  * HMR plugin, node half: watches served source roots and emits ordered rebuild
  * frames. Native filesystem events mark roots dirty and trigger a coalesced
  * scan; polling remains the fallback for mounts without native watch support.
- * Dynamic rows publish revised graph rows for fiber replacement; static and
- * stylesheet changes publish page reloads through `/plugins/events`.
+ * Dynamic rows publish revised graph rows for fiber replacement, a stylesheet
+ * change publishes the css-manifest's new bundle rev for an in-place link
+ * swap, a shell change publishes `shell-rebuilt` naming its root, and every
+ * host HMR journal row (reload / deferred / failed) is relayed as
+ * `host-reloaded` — all through `/plugins/events`.
  */
-import { existsSync, readdirSync, readFileSync, statSync, watch as watchFs } from 'node:fs'
+import { existsSync, readdirSync, statSync, watch as watchFs } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -59,9 +62,19 @@ function resolveDistIndexIfBuilt() {
  * @returns absolute package directory, or undefined outside a source checkout.
  */
 function resolveStaticSourceRoot(packageDirectory) {
-  const workspaceRoot = fileURLToPath(new URL('../../../../', import.meta.url))
   const root = join(workspaceRoot, 'packages', 'client', packageDirectory)
   return existsSync(join(root, 'package.json')) ? root : undefined
+}
+
+const workspaceRoot = fileURLToPath(new URL('../../../../', import.meta.url))
+
+/** Host HMR journal kinds relayed to the browser; module/external/unhandled change rows are watch noise. */
+const HOST_JOURNAL_KINDS = new Set(['reload', 'deferred', 'failed'])
+
+/** Workspace-relative form of a host plugin file URL (a non-file URL passes through). */
+function workspacePath(url) {
+  if (!url.startsWith('file:')) return url
+  return relative(workspaceRoot, fileURLToPath(url)).split(sep).join('/')
 }
 
 /** Serialize one frame as an SSE data line. */
@@ -97,44 +110,6 @@ export function apply(ctx, config) {
     return files
   }
 
-  /**
-   * Whether a row's served tree registers any custom element.
-   *
-   * `customElements.define(tag, Class)` binds a tag name for the document's
-   * lifetime -- a second define for the same tag throws, which is why every
-   * definition site in this repo guards on `customElements.get(tag) ===
-   * undefined`. That guard makes a re-imported module's define a silent
-   * no-op, so the fiber swap below completes "successfully" while every live
-   * element keeps running the ORIGINAL class: the row re-renders, the log
-   * stays clean, and the edit simply does not appear. Silently serving stale
-   * code is worse than not hot-swapping at all, so a row that defines
-   * elements takes the same honest exit `shell-rebuilt` already takes -- a
-   * full reload.
-   *
-   * Read during the dirty-root scan, so classification adds no directory
-   * traversal. The result is cached per row until a later dirty scan refreshes
-   * it, which keeps a newly added element definition on the safe reload path.
-   * @param files - absolute paths of every file under the row's served tree.
-   * @returns whether any file calls `customElements.define`.
-   */
-  function treeDefinesCustomElements(files) {
-    for (const absPath of files) {
-      if (!absPath.endsWith('.js')) continue
-      try {
-        if (readFileSync(absPath, 'utf8').includes('customElements.define')) return true
-      } catch (error) {
-        // A file that vanished mid-walk cannot be classified; treat it as
-        // element-free rather than failing the poll. A real define in a file
-        // that exists is found on the next pass.
-        if (error.code !== 'ENOENT') ctx.logger.warn(error)
-      }
-    }
-    return false
-  }
-
-  /** Row id -> whether its tree defines custom elements (see {@link treeDefinesCustomElements}). */
-  const definesElements = new Map()
-
   const rehash = (id, root) => {
     try {
       // rebuilt() re-hashes the whole tree; an unchanged hash stays silent
@@ -148,18 +123,11 @@ export function apply(ctx, config) {
   }
 
   /** Snapshot every file's mtime/size under `root`, keyed by relative path. */
-  const snapshot = (root, id) => {
+  const snapshot = (root) => {
     const files = new Map()
     let dirty = false
     try {
-      const treeFiles = listTreeFiles(root)
-      // Classify once per row, off the walk already in hand (see
-      // treeDefinesCustomElements): the answer cannot change without a
-      // restart, and every later poll reuses it.
-      if (id !== undefined && !definesElements.has(id)) {
-        definesElements.set(id, treeDefinesCustomElements(treeFiles))
-      }
-      for (const absPath of treeFiles) {
+      for (const absPath of listTreeFiles(root)) {
         const stat = statSync(absPath)
         files.set(relative(root, absPath).split(sep).join('/'), { mtimeMs: stat.mtimeMs, size: stat.size })
       }
@@ -170,15 +138,77 @@ export function apply(ctx, config) {
     return { files, dirty }
   }
 
+  /** Every directory under `root`, root first. */
+  function listTreeDirs(root) {
+    const dirs = [root]
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue
+        const absPath = join(dir, entry.name)
+        dirs.push(absPath)
+        walk(absPath)
+      }
+    }
+    walk(root)
+    return dirs
+  }
+
+  /**
+   * Native watch over a served tree: one non-recursive `fs.watch` per
+   * directory, re-armed on every rename so a directory that appears later
+   * is covered. Node's own `recursive: true` on Linux tracks file inodes and
+   * goes silent for a file after an atomic write replaces it (sed -i, mv,
+   * editors that write-then-rename): the rename itself is reported, every
+   * later in-place modification of the new inode is not, and the fallback
+   * poll skips roots that hold a watcher — so an edited row silently
+   * stopped rebuilding until its next rename. A directory watch reports its
+   * children by name, whichever inode currently carries the name.
+   * @returns a handle with `close()`, or undefined when no directory could be watched (polling covers the root).
+   */
   const nativeWatch = (root, markDirty) => {
-    try {
-      const watcher = watchFs(root, { recursive: true }, markDirty)
-      watcher.on('error', (error) => ctx.logger.warn(error))
-      return watcher
-    } catch (error) {
+    const watchers = new Map()
+    const armTree = () => {
+      let dirs
+      try {
+        dirs = listTreeDirs(root)
+      } catch (error) {
+        if (error.code !== 'ENOENT') ctx.logger.warn(error)
+        return
+      }
+      const live = new Set(dirs)
+      for (const [dir, watcher] of watchers) {
+        if (live.has(dir)) continue
+        watcher.close()
+        watchers.delete(dir)
+      }
+      for (const dir of dirs) {
+        if (watchers.has(dir)) continue
+        try {
+          const watcher = watchFs(dir, (event) => {
+            markDirty()
+            if (event === 'rename') armTree()
+          })
+          watcher.on('error', (error) => {
+            ctx.logger.warn(error)
+            watcher.close()
+            watchers.delete(dir)
+          })
+          watchers.set(dir, watcher)
+        } catch (error) {
+          ctx.logger.warn(error)
+        }
+      }
+    }
+    armTree()
+    if (watchers.size === 0) {
       ctx.logger.warn(`client-hmr: native watch unavailable for ${root}; using fallback polling`)
-      ctx.logger.warn(error)
       return undefined
+    }
+    return {
+      close() {
+        for (const watcher of watchers.values()) watcher.close()
+        watchers.clear()
+      },
     }
   }
 
@@ -189,7 +219,7 @@ export function apply(ctx, config) {
   }
 
   const watchRow = (id, root) => {
-    const watch = { root, ...snapshot(root, id), watcher: undefined }
+    const watch = { root, ...snapshot(root), watcher: undefined }
     watch.watcher = nativeWatch(root, () => {
       watch.dirty = true
       scheduleDynamicPoll()
@@ -211,16 +241,21 @@ export function apply(ctx, config) {
     return false
   }
 
-  /** CSS is linked globally by css-manifest, so a changed source stylesheet needs a page reload. */
-  const cssSnapshotsDiffer = (before, after) => {
+  /**
+   * Which file kinds moved between two snapshots: `.css` files ride the
+   * css-manifest link swap, anything else is script or shell content.
+   */
+  const changeKinds = (before, after) => {
+    const kinds = { css: false, other: false }
     const names = new Set([...before.keys(), ...after.keys()])
     for (const name of names) {
-      if (!name.endsWith('.css')) continue
       const prior = before.get(name)
       const current = after.get(name)
-      if (prior === undefined || current === undefined || prior.mtimeMs !== current.mtimeMs || prior.size !== current.size) return true
+      if (prior !== undefined && current !== undefined && prior.mtimeMs === current.mtimeMs && prior.size === current.size) continue
+      if (name.endsWith('.css')) kinds.css = true
+      else kinds.other = true
     }
-    return false
+    return kinds
   }
 
   const pollWatches = (fallback = false) => {
@@ -228,21 +263,12 @@ export function apply(ctx, config) {
     dynamicPollTimer = undefined
     for (const [id, watch] of watchedRoots) {
       if (!watch.dirty && (!fallback || watch.watcher !== undefined)) continue
-      const next = snapshot(watch.root, id)
-      const changed = watch.dirty || snapshotsDiffer(watch.files, next.files)
-      if (!changed) continue
-      const cssChanged = cssSnapshotsDiffer(watch.files, next.files)
+      const next = snapshot(watch.root)
+      if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) continue
+      const kinds = changeKinds(watch.files, next.files)
       watch.files = next.files
-      if (cssChanged && !next.dirty) {
-        const rev = String(++shellRevision)
-        for (const listener of shellRebuiltListeners) listener(rev)
-      }
-      if (changed) {
-        try {
-          definesElements.set(id, treeDefinesCustomElements(listTreeFiles(watch.root)))
-        } catch (error) {
-          if (error.code !== 'ENOENT') ctx.logger.warn(error)
-        }
+      if (kinds.css && !next.dirty) {
+        for (const listener of cssRebuiltListeners) listener()
       }
       watch.dirty = rehash(id, watch.root) || next.dirty
     }
@@ -284,6 +310,7 @@ export function apply(ctx, config) {
   }, 'client-hmr: bundle watches')
   let shellRevision = 0
   const shellRebuiltListeners = new Set()
+  const cssRebuiltListeners = new Set()
   const distIndex = config.distIndex ?? resolveDistIndexIfBuilt()
   const shellRoot = config.shellRoot ?? (distIndex === undefined ? undefined : dirname(distIndex))
   const staticRoots = new Map([
@@ -314,15 +341,20 @@ export function apply(ctx, config) {
   const pollStaticWatches = (fallback = false) => {
     staticPollQueued = false
     staticPollTimer = undefined
-    for (const watch of staticWatches.values()) {
+    for (const [id, watch] of staticWatches) {
       if (!watch.dirty && (!fallback || watch.watcher !== undefined)) continue
       const next = snapshot(watch.root)
       if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) continue
+      const kinds = changeKinds(watch.files, next.files)
       watch.files = next.files
       watch.dirty = next.dirty
       if (next.dirty) continue
+      if (kinds.css) {
+        for (const listener of cssRebuiltListeners) listener()
+      }
+      if (!kinds.other) continue
       const rev = String(++shellRevision)
-      for (const listener of shellRebuiltListeners) listener(rev)
+      for (const listener of shellRebuiltListeners) listener(rev, id)
     }
   }
 
@@ -403,12 +435,6 @@ export function apply(ctx, config) {
       },
     })
     const unsubscribe = ctx.clientModules.onRebuilt((id, rev) => {
-      // `definesCustomElements` tells the browser half a fiber swap cannot
-      // carry this row's edit (see treeDefinesCustomElements) so it reloads
-      // instead. Absent for a row never classified -- an unknown flag is
-      // merge-extensible and the client treats it as "swap", the old
-      // behavior.
-      const defines = definesElements.get(id)
       const entry = ctx.clientModules.graphRow(id)
       if (entry === undefined) {
         ctx.logger.warn(`client-hmr: rebuilt entry "${id}" is absent from the current graph`)
@@ -420,18 +446,43 @@ export function apply(ctx, config) {
         rev,
         entry,
         graphRev: ctx.clientModules.graph().rev,
-        ...defines === true ? { definesCustomElements: true } : {},
       })
     })
-    const shellListener = (rev) => { publish({ type: 'shell-rebuilt', rev }) }
+    const shellListener = (rev, root) => { publish({ type: 'shell-rebuilt', rev, root }) }
     shellRebuiltListeners.add(shellListener)
+    // The css-manifest service owns the one stylesheet link's rev; a
+    // composition without it (no `/styles/app.css` to swap) keeps the shell
+    // reload the stylesheet change used to take.
+    const cssListener = () => {
+      const manifest = ctx.get('cssManifest')
+      if (manifest === undefined) {
+        publish({ type: 'shell-rebuilt', rev: String(++shellRevision), root: 'styles' })
+        return
+      }
+      publish({ type: 'css-rebuilt', rev: manifest.revision(), href: manifest.href() })
+    }
+    cssRebuiltListeners.add(cssListener)
+    // Host HMR journal relay: `hmr/journal` is emitted by framework/hmr for
+    // every reload decision; only the decisions a developer acts on are
+    // forwarded, with workspace-relative plugin paths.
+    const offJournal = ctx.on('hmr/journal', (row) => {
+      if (!HOST_JOURNAL_KINDS.has(row.kind)) return
+      publish({
+        type: 'host-reloaded',
+        kind: row.kind,
+        plugins: (row.plugins ?? []).map(workspacePath),
+        ...row.reason === undefined ? {} : { reason: row.reason },
+      })
+    })
     const heartbeat = setInterval(() => {
       for (const res of connections) write(res, ': heartbeat\n\n')
     }, config.heartbeatIntervalMs)
     heartbeat.unref()
     return () => {
       unsubscribe()
+      offJournal()
       shellRebuiltListeners.delete(shellListener)
+      cssRebuiltListeners.delete(cssListener)
       clearInterval(heartbeat)
       disposeRoute()
       for (const res of connections) res.destroy()

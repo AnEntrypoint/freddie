@@ -1,0 +1,10 @@
+---
+key: mem-003c3c2eddaeb0f4-268
+ns: default
+created: 1788947076463
+updated: 1788947076463
+---
+
+## Resolved mutable: secrets-placeholder-sk-not-logged
+
+exec_js 1788947069651 rejectPlaceholderApiKey('sk') message names DEEPSEEK_API_KEY and placeholder "sk"; longer key returns ok:23 (pass-through). Agent note has no sk- live key. Diff-file secret shape grep empty.

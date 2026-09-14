@@ -12,6 +12,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   Button, IconFolderClose16, IconPlusOutline16, renderMenu,
   renderModal,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './WorkspacePicker.css.js'
 
@@ -228,9 +229,7 @@ export class FreddieWorkspacePickFlow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-workspace-pick-flow') === undefined) {
-  customElements.define('freddie-workspace-pick-flow', FreddieWorkspacePickFlow)
-}
+defineElement('freddie-workspace-pick-flow', FreddieWorkspacePickFlow)
 
 /**
  * Create (if needed) or update a WorkspacePickFlow element in place.
@@ -292,9 +291,7 @@ export class FreddieWorkspacePicker extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-workspace-picker') === undefined) {
-  customElements.define('freddie-workspace-picker', FreddieWorkspacePicker)
-}
+defineElement('freddie-workspace-picker', FreddieWorkspacePicker)
 
 /**
  * Create (if needed) or update a WorkspacePicker element in place.

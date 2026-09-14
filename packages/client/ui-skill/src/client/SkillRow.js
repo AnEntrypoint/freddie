@@ -8,6 +8,7 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14, IconInspectOutline12, IconSkillOutline16, StateDot,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './SkillRow.css.js'
 
@@ -172,6 +173,4 @@ export class FreddieSkillRow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-skill-row') === undefined) {
-  customElements.define('freddie-skill-row', FreddieSkillRow)
-}
+defineElement('freddie-skill-row', FreddieSkillRow)
