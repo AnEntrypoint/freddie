@@ -790,3 +790,11 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: Source review at ../gm/rs-plugkit/crates/plugkit-core/src/scan_deps.rs:353-401 shows package-root identity/canonical directory dedup plus node_modules pruning. The active scanner response was produced by an older installed artifact; current gm memory records a rebuilt slim artifact scan with failCount 0 and no recursive symlink traversal. The only remaining /list-packages.js report is a scanner-root path issue, not a dependency payload.
+- id: instruction-sync-concurrency-contract
+  prd_id: review-instruction-sync
+  obligation_kind: invariant
+  subject: Concurrent sync requests for one project root must coalesce while every completed or failed worker removes that root.
+  text: Witness through complete source/call-site review and actual cargo check.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'daemon.rs:2550-2552 owns the per-root HashSet and completion channel; 2589-2591 drains every finished worker root; 2614-2628 admits only a due root not already present, timestamps it, and sends completion after both success and error. Cargo check was attempted but shell reports `cargo: command not found` (exit 127).'
