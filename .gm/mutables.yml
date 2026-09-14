@@ -1087,3 +1087,11 @@
   subject: 'The gm git_diff verb hangs indefinitely on this working tree (child ''git diff --no-color'' ran 151 s and blocked the plugin FIFO for every other verb; the reviewer''s dispatch hung the same way): the daemon does not drain the child''s stdout on a 120-file diff, so the pipe fills. Killing the git child unblocks the queue; use exec_js-side comparisons or scoped diffs until the verb is fixed.'
   status: witnessed
   witness: 'ps: pid 3890348 ''git diff --no-color'' ppid 3805549 etimes 151; .status.json queued_step_count 4 claimed 1 until kill; out-file answered ok:false afterwards'
+- id: remote-merge-preservation
+  prd_id: consolidate-remote-main
+  obligation_kind: invariant
+  subject: Resolved merge conflicts must retain both local GUI completion records and remote main's in-flight HMR/realtime PRD/memory state, while OperationsStrip keeps both local presentation styling and remote custom-element registration.
+  text: Validate no conflict markers/unmerged paths remain, parse GM YAML state, and live boot the merged working tree before committing the merge.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'invariant: merge commit 4e9c8ea resolved all conflicts; cached diff check and Node syntax checks passed. Live browser after merge showed Overview current-work priority and strip, plus Trajectory data-scroll-ready=true with 117 visible rows and no slot errors.'
