@@ -5,5 +5,6 @@ const css = {
   detailsCol: 'freddie-appFrame__detailsCol',
   handle: 'freddie-appFrame__handle',
   overlayLayer: 'freddie-appFrame__overlayLayer',
+  connectionState: 'freddie-appFrame__connectionState',
 }
 export default css

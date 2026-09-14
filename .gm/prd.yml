@@ -1,7 +1,1 @@
-- id: daemon-concurrency-change
-  title: Complete daemon change
-  subject: Verify and preserve the existing sole daemon.rs change, then validate, commit, and push it only from /config/workspace/gm/agentplug.
-  acceptance: Only crates/agentplug-runner/src/daemon.rs is committed and pushed to agentplug origin/main after cargo check passes.
-  status: in-progress
-  route_family: execution
-  session_id: freddie-422260-1789231886668
+[]

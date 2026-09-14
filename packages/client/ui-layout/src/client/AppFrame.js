@@ -26,6 +26,16 @@ function asChild(node) {
   return node
 }
 
+function connectionLabel(state) {
+  switch (state) {
+    case 'connected': return 'Live'
+    case 'reconnecting': return 'Reconnecting'
+    case 'offline': return 'Offline'
+    case 'connecting': return 'Connecting'
+    default: return 'Connecting'
+  }
+}
+
 /**
  * One drag handle custom element: pointer capture, rAF-throttled dx reports
  * against the drag-start origin. `side` keys the hover-reveal CSS to the
@@ -176,9 +186,10 @@ export class FreddieAppFrame extends HTMLElement {
   #render() {
     const props = this.#props
     if (props === null) return
-    const { useStore, useSessions, actions, renderSlot } = props
+    const { useStore, useSessions, useConnectionState, actions, renderSlot } = props
 
     const panels = useStore(s => s)
+    const connectionState = useConnectionState(state => state)
     const detailsSession = useSessions((s) => {
       const current = s.current
       return current !== undefined && s.byId[current]?.blank === false ? current : undefined
@@ -207,6 +218,12 @@ export class FreddieAppFrame extends HTMLElement {
         'data-details-collapsed': cols.details === 0 ? 'true' : null,
         'data-dragging': this.#dragging ? 'true' : null,
       },
+      h('div', {
+        class: css.connectionState ?? '',
+        role: 'status',
+        'aria-live': 'polite',
+        'data-connection-state': connectionState,
+      }, `Connection: ${connectionLabel(connectionState)}`),
       h('div', { class: css.sidebarCol ?? '', 'data-sidebar-col': '' },
         /* Render-site slot call with live concession output: a closed
            sidebar keeps the mounted slot at the compact-rail width, and the

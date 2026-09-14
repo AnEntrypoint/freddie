@@ -37,6 +37,29 @@ freddie-root-outlet {
   }
 }
 
+.freddie-appFrame__connectionState {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  padding: 3px 8px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 999px;
+  background: var(--freddie-alias-bg-base);
+  color: var(--freddie-alias-label-secondary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.freddie-appFrame__connectionState[data-connection-state='connected'] {
+  color: var(--freddie-alias-state-success-primary);
+}
+
+.freddie-appFrame__connectionState[data-connection-state='reconnecting'],
+.freddie-appFrame__connectionState[data-connection-state='offline'] {
+  color: var(--freddie-alias-state-error-primary);
+}
+
 .freddie-appFrame__sidebarCol {
   min-width: 0;
   overflow: hidden;

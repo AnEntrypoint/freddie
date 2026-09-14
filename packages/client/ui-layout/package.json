@@ -28,6 +28,7 @@
   "freddie": {
     "client": {
       "inject": [
+        "@freddie/freddie-client-connection",
         "@freddie/freddie-client-runtime",
         "@freddie/freddie-client-ui-theme"
       ],
@@ -43,12 +44,14 @@
     "@freddie/webjsx": "*"
   },
   "peerDependencies": {
+    "@freddie/freddie-client-connection": "*",
     "@freddie/freddie-client-runtime": "*",
     "@freddie/freddie-client-ui-theme": "*",
     "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
   },
   "devDependencies": {
+    "@freddie/freddie-client-connection": "*",
     "@freddie/freddie-client-locale": "*",
     "@freddie/freddie-client-runtime": "*",
     "@freddie/freddie-client-ui-slots": "*",

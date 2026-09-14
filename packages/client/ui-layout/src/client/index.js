@@ -21,7 +21,7 @@ import { ThemePresenter } from './theme-presenter.js'
 export { LayoutController } from './service.js'
 
 /** Required services (cordis fiber inject — the loader passes all module exports as an object plugin). */
-export const inject = ['slots', 'theme']
+export const inject = ['connection', 'slots', 'theme']
 
 /**
  * Client plugin body: provide ctx.layout, then one register() call — AppFrame
@@ -48,7 +48,7 @@ export function apply(ctx) {
       // conversation business actions belong to their registrants.
       inject: (actions) => {
         layout.attachPanels(actions)
-        return {}
+        return { hooks: { connectionState: ctx.connection.state } }
       },
       // The webjsxSlot() stub is a bare (props) => null function: it cannot
       // structurally prove it consumes renderSlot the way RendersCheck wants
