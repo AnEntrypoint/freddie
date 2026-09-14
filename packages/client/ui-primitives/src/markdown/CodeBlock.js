@@ -15,6 +15,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { writeClipboard } from '../clipboard.js'
 import css from './CodeBlock.css.js'
+import { defineElement } from '../define-element.js'
 
 // See ReadBlock.js's identical comment: highlight.js's module graph (shiki
 // core + boot grammars + their full mdast/hast-util-to-html transitive
@@ -153,9 +154,7 @@ export class FreddieCodeBlock extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-code-block') === undefined) {
-  customElements.define('freddie-code-block', FreddieCodeBlock)
-}
+defineElement('freddie-code-block', FreddieCodeBlock)
 
 /**
  * Create (if needed) or update a CodeBlock element in place.

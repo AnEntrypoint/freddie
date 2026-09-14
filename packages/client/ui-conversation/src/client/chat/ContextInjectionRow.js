@@ -3,7 +3,7 @@
 // applyDiff(this, vdom) call.
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { DisclosureRow, IconBrowseOutline16, renderJsonBlock } from '@freddie/freddie-client-ui-primitives'
+import { DisclosureRow, IconBrowseOutline16, renderJsonBlock, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { ReferenceIcon } from '../reference/ReferenceIcon.js'
 import { contextBody } from './ContextBody.js'
 import css from './ContextInjectionRow.css.js'
@@ -100,9 +100,7 @@ export class FreddieContextInjectionRow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-context-injection-row') === undefined) {
-  customElements.define('freddie-context-injection-row', FreddieContextInjectionRow)
-}
+defineElement('freddie-context-injection-row', FreddieContextInjectionRow)
 
 /**
  * Create (if needed) or update a ContextInjectionRow element in place.

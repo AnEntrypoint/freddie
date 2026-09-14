@@ -1,5 +1,6 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './ObservabilityDock.css.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 const SECTIONS = [
   { id: 'overview', label: 'Overview' },
@@ -410,6 +411,4 @@ export class FreddieObservabilityDock extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-observability-dock') === undefined) {
-  customElements.define('freddie-observability-dock', FreddieObservabilityDock)
-}
+defineElement('freddie-observability-dock', FreddieObservabilityDock)

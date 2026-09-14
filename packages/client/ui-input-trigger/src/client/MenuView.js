@@ -16,7 +16,7 @@
  */
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
-import { createAnchoredMaxHeight } from '@freddie/freddie-client-ui-primitives'
+import { createAnchoredMaxHeight, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './MenuView.css.js'
 
 /** Design cap on the list height (figma SLASH 39:26572 MenuDropdown). */
@@ -199,6 +199,4 @@ export class FreddieMenuView extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-menu-view') === undefined) {
-  customElements.define('freddie-menu-view', FreddieMenuView)
-}
+defineElement('freddie-menu-view', FreddieMenuView)

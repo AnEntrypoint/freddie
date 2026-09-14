@@ -20,6 +20,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { createCopyFeedback } from './use-copy-feedback.js'
 import css from './DiffBlock.css.js'
+import { defineElement } from './define-element.js'
 
 /**
  * Output lines shown before the height cap collapses the middle. Matches
@@ -201,9 +202,7 @@ export class FreddieDiffBlock extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-diff-block') === undefined) {
-  customElements.define('freddie-diff-block', FreddieDiffBlock)
-}
+defineElement('freddie-diff-block', FreddieDiffBlock)
 
 /**
  * Create (if needed) or update a DiffBlock element in place.

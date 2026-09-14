@@ -12,6 +12,7 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { basename } from './turn-deliverables.js'
 import css from './ProducedFiles.css.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 /** At most six chips compete for the one-line summary; every other path stays counted. */
 const SHOWN_LIMIT = 6
@@ -232,6 +233,4 @@ export class FreddieProducedFiles extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-produced-files') === undefined) {
-  customElements.define('freddie-produced-files', FreddieProducedFiles)
-}
+defineElement('freddie-produced-files', FreddieProducedFiles)

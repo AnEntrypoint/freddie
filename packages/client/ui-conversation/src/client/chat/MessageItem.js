@@ -8,7 +8,7 @@
 // functions plus one custom element for ModelRetryItem's timer state.
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { MessageText, renderJsonBlock, StateDot } from '@freddie/freddie-client-ui-primitives'
+import { MessageText, renderJsonBlock, StateDot, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { ReferenceIcon } from '../reference/ReferenceIcon.js'
 import { CompactionItem } from './CompactionItem.js'
 import { renderContextInjectionRow } from './ContextInjectionRow.js'
@@ -166,9 +166,7 @@ export class FreddieModelRetryItem extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-model-retry-item') === undefined) {
-  customElements.define('freddie-model-retry-item', FreddieModelRetryItem)
-}
+defineElement('freddie-model-retry-item', FreddieModelRetryItem)
 
 function renderModelRetryItem(el, props) {
   const target = el ?? document.createElement('freddie-model-retry-item')

@@ -13,6 +13,7 @@
  */
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import './DirectoryBrowser.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 /**
  * Flow occupant custom element: adapts the hole's owner conversation onto the
@@ -56,6 +57,4 @@ export class FreddieBrowseDirectoryFlow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-browse-directory-flow') === undefined) {
-  customElements.define('freddie-browse-directory-flow', FreddieBrowseDirectoryFlow)
-}
+defineElement('freddie-browse-directory-flow', FreddieBrowseDirectoryFlow)

@@ -31,6 +31,7 @@ import { apiKeyFailure } from './apiKey.js'
 import { EditorFooter } from './EditorFooter.js'
 import { deriveKeyRef, messageOf } from './store.js'
 import styles from './ModelsSection.css.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 /** The public DeepSeek endpoint shown as the deepseek base-URL placeholder. */
 const DEEPSEEK_PUBLIC_BASE_URL = 'https://api.deepseek.com'
@@ -422,9 +423,7 @@ export class FreddieProviderEditor extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-provider-editor') === undefined) {
-  customElements.define('freddie-provider-editor', FreddieProviderEditor)
-}
+defineElement('freddie-provider-editor', FreddieProviderEditor)
 
 /**
  * Create (if needed) or update a ProviderEditor element in place.

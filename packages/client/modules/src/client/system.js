@@ -16,10 +16,11 @@
  * correctly relative to its static imports.
  *
  * HMR reload without a native "invalidate a cached module" primitive: a
- * changed bundle gets a NEW url (`?rev=<hash>` from the graph row), so
- * `prefetch()` importing the fresh URL is a genuinely new module in the
- * browser's cache, never a stale hit — {@link invalidate} only needs to
- * drop this system's own row/record bookkeeping, not touch import()'s cache.
+ * changed bundle gets a NEW url (the `/~<rev>/` path segment of the graph
+ * row, shared by every sibling import), so `prefetch()` importing the fresh
+ * URL is a genuinely new module graph in the browser's cache, never a stale
+ * hit — {@link invalidate} only needs to drop this system's own row/record
+ * bookkeeping, not touch import()'s cache.
  */
 import { stripClientSuffix } from './manifest.js'
 
@@ -64,7 +65,7 @@ export class ClientModuleSystem {
   constructor(options) {
     this.manifest = options.manifest
     this.seed = new Map(Object.entries(options.staticModules))
-    // A graph row's url is origin-root-relative ("/plugins/<id>/client.js?rev=..."),
+    // A graph row's url is origin-root-relative ("/plugins/<id>/~<rev>/client/index.js"),
     // which resolves against the origin regardless of what path the app is
     // actually mounted under — fine when served from the origin root, but a
     // reverse proxy serving the app from a path prefix (e.g. a tunnel) makes

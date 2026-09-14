@@ -11,7 +11,7 @@
  * explicit applyDiff(this, vdom) call (Toast.tsx's pattern). */
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { renderTooltip } from '@freddie/freddie-client-ui-primitives'
+import { renderTooltip, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { contextOccupancy, formatTokens } from '../chat/StatsLine.js'
 import css from './ContextMeter.css.js'
 
@@ -200,9 +200,7 @@ export class FreddieContextMeter extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-context-meter') === undefined) {
-  customElements.define('freddie-context-meter', FreddieContextMeter)
-}
+defineElement('freddie-context-meter', FreddieContextMeter)
 
 /** One-shot creation/update helper preserving the original function-component call shape. */
 export function ContextMeter(props) {

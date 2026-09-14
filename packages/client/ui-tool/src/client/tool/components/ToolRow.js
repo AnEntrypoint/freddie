@@ -22,6 +22,7 @@ import clsx from 'clsx'
 import {
   DisclosureRow, IconInspectOutline12, renderCodeBlock, renderDiffBlock, renderMarkdownText,
   renderReadBlock, renderSearchBlock, renderTerminalBlock, StateDot, WebBlock,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { CHAT_DIFF_MAX_LINES } from '../models/diff-card-model.js'
 import { CHAT_READ_MAX_LINES } from '../models/read-card-model.js'
@@ -279,9 +280,7 @@ export class FreddieToolRow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-tool-row') === undefined) {
-  customElements.define('freddie-tool-row', FreddieToolRow)
-}
+defineElement('freddie-tool-row', FreddieToolRow)
 
 /**
  * Create (if needed) or update a ToolRow element in place -- the same

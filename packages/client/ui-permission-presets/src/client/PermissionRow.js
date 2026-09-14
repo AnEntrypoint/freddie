@@ -11,6 +11,7 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14, renderMenu, renderRiskConfirmation,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { FULL_ACCESS_PRESET } from './presentation.js'
 import css from './PermissionRow.css.js'
@@ -150,9 +151,7 @@ export class FreddiePermissionRow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-permission-row') === undefined) {
-  customElements.define('freddie-permission-row', FreddiePermissionRow)
-}
+defineElement('freddie-permission-row', FreddiePermissionRow)
 
 /** One-shot creation helper preserving the original function-component call shape. */
 export function PermissionRow(props) {

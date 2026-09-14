@@ -13,9 +13,12 @@
    0 overflow), so the conversation transcript is never scrollable. `display:
    contents` makes both wrapper tags transparent to layout -- their real
    child box (.freddie-conversationRoot__root) participates directly in the
-   ancestor flex chain as if the wrapper tags were not there at all. */
-freddie-conversation-root,
-freddie-entry-host {
+   ancestor flex chain as if the wrapper tags were not there at all.
+   Selected by data-ce, not tag name: a hot-reloaded class is registered under
+   a versioned tag (freddie-conversation-root--v2) and every instance carries
+   data-ce="<logical tag>" (ui-primitives defineElement). */
+[data-ce='freddie-conversation-root'],
+[data-ce='freddie-entry-host'] {
   display: contents;
 }
 
@@ -151,6 +154,12 @@ freddie-entry-host {
 
 .freddie-conversationRoot__headerUtilities:empty {
   display: none;
+}
+
+/* The utilities list slot mounts as one outlet; its entries (status strip,
+   notices, actions) must be the row's flex items, not a stacked column. */
+.freddie-conversationRoot__headerUtilities > [data-ce='freddie-slot-outlet'] {
+  display: contents;
 }
 
 /* figma Tab_Group 34:11441: 35px strip, gap 36, pad-left 8, tabs bottom-aligned. */

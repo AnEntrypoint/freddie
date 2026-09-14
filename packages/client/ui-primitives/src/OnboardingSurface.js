@@ -13,6 +13,7 @@
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './OnboardingSurface.css.js'
+import { defineElement } from './define-element.js'
 
 /**
  * Onboarding takeover chrome (mask + opaque stage) around one step's content,
@@ -51,9 +52,7 @@ export class FreddieOnboardingSurface extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-onboarding-surface') === undefined) {
-  customElements.define('freddie-onboarding-surface', FreddieOnboardingSurface)
-}
+defineElement('freddie-onboarding-surface', FreddieOnboardingSurface)
 
 /**
  * Create and mount an OnboardingSurface onto `document.body`.

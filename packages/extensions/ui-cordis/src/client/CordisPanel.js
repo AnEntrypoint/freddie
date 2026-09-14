@@ -14,6 +14,7 @@ import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   IconCheckOutline16, IconCloseOutline16, IconCordisPluginOutline14, IconPlayOutline16,
   IconStopFill16, IconTrashOutline16, Tooltip, createDismissOnOutsidePointer,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { cordisVisibleStatus, packageOf } from './status.js'
 import css from './CordisPanel.css.js'
@@ -545,6 +546,4 @@ export class FreddieCordisPanel extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-cordis-panel') === undefined) {
-  customElements.define('freddie-cordis-panel', FreddieCordisPanel)
-}
+defineElement('freddie-cordis-panel', FreddieCordisPanel)

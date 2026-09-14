@@ -6,7 +6,7 @@
  * each render, and re-render is an explicit applyDiff(this, vdom) call.
  */
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
-import { DisclosureRow, IconThinkOutline14 } from '@freddie/freddie-client-ui-primitives'
+import { DisclosureRow, IconThinkOutline14, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { createThrottledVisualUpdate } from './use-throttled-visual-update.js'
 import a11yCss from './accessibility.css.js'
 import css from './ReasoningRow.css.js'
@@ -89,9 +89,7 @@ export class FreddieReasoningRow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-reasoning-row') === undefined) {
-  customElements.define('freddie-reasoning-row', FreddieReasoningRow)
-}
+defineElement('freddie-reasoning-row', FreddieReasoningRow)
 
 /**
  * Create (if needed) or update a ReasoningRow element in place.

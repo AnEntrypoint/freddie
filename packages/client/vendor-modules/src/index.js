@@ -10,9 +10,9 @@
  */
 
 import { createRequire } from 'node:module'
-import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { sendFile } from '@freddie/freddie-host-webserver'
 import { cssLinks, importMapExact, importMapPrefix, vendorPackages } from './manifest.js'
 
 export { cssLinks, importMapExact, importMapPrefix, vendorPackages } from './manifest.js'
@@ -101,27 +101,24 @@ const serveVendor = async (req, res) => {
     res.end()
     return
   }
-  try {
-    const body = await readFile(filePath)
-    // Versioned URLs make long-lived caching safe for published npm
-    // packages -- the version segment IS the whole cache key. Three
-    // classes of path are not a published pin and stay on `no-cache`
-    // (revalidate every request, matching `/plugins/` and `/workspace/`):
-    // `@freddie/` workspace packages (no publish step bumps the version
-    // on a local edit), `webjsx@` (this repo's pnpm patch edits the
-    // vendored copy under an unchanged 0.0.73 URL), and unversioned
-    // stubs such as `node-module-stub.js`. Everything else is a real
-    // pinned release and gets `immutable`, so a cold boot does not
-    // revalidate ~200 third-party modules.
-    const revalidate = relPath.startsWith('@freddie/')
-      || relPath.startsWith('webjsx@')
-      || !relPath.includes('@')
-    res.writeHead(200, {
-      'content-type': contentTypeFor(relPath),
-      'cache-control': revalidate ? 'no-cache' : 'public, max-age=31536000, immutable',
-    })
-    res.end(req.method === 'HEAD' ? undefined : body)
-  } catch {
+  // Versioned URLs make long-lived caching safe for published npm
+  // packages -- the version segment IS the whole cache key. Three
+  // classes of path are not a published pin and stay on `no-cache`
+  // (revalidate every request through the shared ETag/304 path, matching
+  // `/plugins/` and `/workspace/`): `@freddie/` workspace packages (no
+  // publish step bumps the version on a local edit), `webjsx@` (this
+  // repo's pnpm patch edits the vendored copy under an unchanged 0.0.73
+  // URL), and unversioned stubs such as `node-module-stub.js`. Everything
+  // else is a real pinned release and gets `immutable`, so a cold boot
+  // does not revalidate ~200 third-party modules.
+  const revalidate = relPath.startsWith('@freddie/')
+    || relPath.startsWith('webjsx@')
+    || !relPath.includes('@')
+  const served = await sendFile(req, res, filePath, {
+    'content-type': contentTypeFor(relPath),
+    'cache-control': revalidate ? 'no-cache' : 'public, max-age=31536000, immutable',
+  })
+  if (!served) {
     res.writeHead(404)
     res.end()
   }

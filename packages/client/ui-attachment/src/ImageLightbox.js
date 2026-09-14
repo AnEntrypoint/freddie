@@ -5,7 +5,7 @@
 // disconnectedCallback.
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { IconCloseOutline16 } from '@freddie/freddie-client-ui-primitives'
+import { IconCloseOutline16, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './ImageLightbox.css.js'
 
 /**
@@ -55,9 +55,7 @@ export class FreddieImageLightbox extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-image-lightbox') === undefined) {
-  customElements.define('freddie-image-lightbox', FreddieImageLightbox)
-}
+defineElement('freddie-image-lightbox', FreddieImageLightbox)
 
 /** Create (if needed) and update an ImageLightbox mounted on `document.body`.
  * @param el - an existing mounted lightbox (from a prior call), or null to create one.

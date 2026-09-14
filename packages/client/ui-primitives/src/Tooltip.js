@@ -19,6 +19,7 @@
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import css from './Tooltip.css.js'
+import { defineElement } from './define-element.js'
 
 const DEFAULT_PROPS = { label: '', children: '' }
 
@@ -174,9 +175,7 @@ export class FreddieTooltip extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-tooltip') === undefined) {
-  customElements.define('freddie-tooltip', FreddieTooltip)
-}
+defineElement('freddie-tooltip', FreddieTooltip)
 
 /**
  * Create (if needed) or update a Tooltip element in place.

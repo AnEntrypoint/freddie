@@ -4,7 +4,7 @@
  * becomes an instance field and re-render is an explicit applyDiff(this,
  * vdom) call (Toast.tsx's pattern). */
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { IconChevronDownOutline14, Menu } from '@freddie/freddie-client-ui-primitives'
+import { IconChevronDownOutline14, Menu, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './EnterBehaviorRow.css.js'
 
 const OPTIONS = [
@@ -70,9 +70,7 @@ export class FreddieEnterBehaviorRow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-enter-behavior-row') === undefined) {
-  customElements.define('freddie-enter-behavior-row', FreddieEnterBehaviorRow)
-}
+defineElement('freddie-enter-behavior-row', FreddieEnterBehaviorRow)
 
 /** One-shot creation/update helper preserving the original function-component call shape. */
 export function EnterBehaviorRow(props) {

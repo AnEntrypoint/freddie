@@ -8,6 +8,7 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { renderImageLightbox } from './ImageLightbox.js'
 import css from './MessageImage.css.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 /** Display box for a lone image (DeepSeek Chat rule): long edge 240px with
  * the rendered aspect ratio clamped to [0.25, 4] — the overflow is cropped by
@@ -121,9 +122,7 @@ export class FreddieMessageImage extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-message-image') === undefined) {
-  customElements.define('freddie-message-image', FreddieMessageImage)
-}
+defineElement('freddie-message-image', FreddieMessageImage)
 
 /** Create (if needed) and update a MessageImage element in place.
  * @param el - an existing `freddie-message-image` element to update, or null to create one.

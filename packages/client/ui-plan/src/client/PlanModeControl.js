@@ -1,5 +1,5 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { IconCloseFill14 } from '@freddie/freddie-client-ui-primitives'
+import { IconCloseFill14, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './PlanModeControl.css.js'
 
 /**
@@ -87,9 +87,7 @@ export class FreddiePlanChip extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-plan-chip') === undefined) {
-  customElements.define('freddie-plan-chip', FreddiePlanChip)
-}
+defineElement('freddie-plan-chip', FreddiePlanChip)
 
 /** One-shot creation helper preserving the original function-component call shape. */
 export function PlanChip(props) {

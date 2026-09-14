@@ -31,12 +31,40 @@ export class SlotAssemblyError extends Error {}
 export function observableHook(source) {
   let hook = hookCache.get(source)
   if (hook === undefined) {
-    hook = bindSnapshotSelector(source)
+    const read = bindSnapshotSelector(source)
+    hook = (selector, equal) => {
+      readTracker?.add(source)
+      return read(selector, equal)
+    }
     hookCache.set(source, hook)
   }
   return hook
 }
 const hookCache = new WeakMap()
+
+/** Sources read through {@link observableHook} by the render currently inside {@link trackReads}. */
+let readTracker = null
+
+/**
+ * Run one outlet render while recording every observable its hook readers
+ * touch, so the outlet can subscribe to exactly that set afterwards. A
+ * reader without a subscription is a stale-view bug: a root-scope entry
+ * that reads `useSessions` re-rendered only when some other trigger fired,
+ * so a host-side rename never reached the sidebar. Nested outlets render
+ * synchronously inside their parent; each sees only its own reads.
+ * @param render - the synchronous render body.
+ * @returns the render result and the set of sources it read.
+ */
+export function trackReads(render) {
+  const reads = new Set()
+  const previous = readTracker
+  readTracker = reads
+  try {
+    return { result: render(), reads }
+  } finally {
+    readTracker = previous
+  }
+}
 
 const absentSource = {
   getSnapshot: () => undefined,

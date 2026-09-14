@@ -10,6 +10,7 @@
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   IconBranchOutline16, IconCheckOutline16, IconCopyOutline16, renderTooltip, writeClipboard,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { formatLatencySeconds, formatMessageClock, formatRunDuration, formatTokensPerSecond } from './message-chrome.js'
 import { createCalendarDay } from './use-calendar-day.js'
@@ -160,9 +161,7 @@ export class FreddieMessageIconActions extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-message-icon-actions') === undefined) {
-  customElements.define('freddie-message-icon-actions', FreddieMessageIconActions)
-}
+defineElement('freddie-message-icon-actions', FreddieMessageIconActions)
 
 /**
  * Create (if needed) or update a MessageIconActions element in place.

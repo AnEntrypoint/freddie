@@ -20,6 +20,7 @@
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { computeColumns, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns.js'
 import css from './AppFrame.css.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 /** Cast a renderSlot() ReactNode result into a webjsx-embeddable child (matches ui-conversation's FreddieConversationRoot). */
 function asChild(node) {
@@ -113,9 +114,7 @@ export class FreddieDragHandle extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-drag-handle') === undefined) {
-  customElements.define('freddie-drag-handle', FreddieDragHandle)
-}
+defineElement('freddie-drag-handle', FreddieDragHandle)
 
 /**
  * Create or update a drag handle element in place.
@@ -218,12 +217,17 @@ export class FreddieAppFrame extends HTMLElement {
         'data-details-collapsed': cols.details === 0 ? 'true' : null,
         'data-dragging': this.#dragging ? 'true' : null,
       },
-      h('div', {
-        class: css.connectionState ?? '',
-        role: 'status',
-        'aria-live': 'polite',
-        'data-connection-state': connectionState,
-      }, `Connection: ${connectionLabel(connectionState)}`),
+      /* A healthy link is reported by the session header's operations strip;
+         the frame only interrupts for a lost link, as a full-width banner
+         that pushes content instead of covering the header utilities. */
+      connectionState === 'reconnecting' || connectionState === 'offline'
+        ? h('div', {
+          class: css.connectionState ?? '',
+          role: 'status',
+          'aria-live': 'assertive',
+          'data-connection-state': connectionState,
+        }, `Connection: ${connectionLabel(connectionState)}`)
+        : null,
       h('div', { class: css.sidebarCol ?? '', 'data-sidebar-col': '' },
         /* Render-site slot call with live concession output: a closed
            sidebar keeps the mounted slot at the compact-rail width, and the
@@ -278,9 +282,7 @@ export class FreddieAppFrame extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-app-frame') === undefined) {
-  customElements.define('freddie-app-frame', FreddieAppFrame)
-}
+defineElement('freddie-app-frame', FreddieAppFrame)
 
 /**
  * Render the three-column frame.

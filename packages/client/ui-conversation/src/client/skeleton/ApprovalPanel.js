@@ -13,7 +13,7 @@
 // resolved frame.
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { Button } from '@freddie/freddie-client-ui-primitives'
+import { Button, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { PendingApproval } from '../contract/slots.js'
 import { rootToolCall } from '../chat/tool-node-reader.js'
 import css from './ApprovalPanel.css.js'
@@ -96,9 +96,7 @@ export class FreddieApprovalFlow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-approval-flow') === undefined) {
-  customElements.define('freddie-approval-flow', FreddieApprovalFlow)
-}
+defineElement('freddie-approval-flow', FreddieApprovalFlow)
 
 /** Registry of the mounted flow element per approval key, so remount happens only when the key changes. */
 const approvalFlowByKey = new Map()

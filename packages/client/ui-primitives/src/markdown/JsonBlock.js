@@ -5,6 +5,7 @@
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './JsonBlock.css.js'
+import { defineElement } from '../define-element.js'
 
 const MAX_CHARS = 20_000
 
@@ -69,9 +70,7 @@ export class FreddieJsonBlock extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-json-block') === undefined) {
-  customElements.define('freddie-json-block', FreddieJsonBlock)
-}
+defineElement('freddie-json-block', FreddieJsonBlock)
 
 /**
  * Create (if needed) or update a JsonBlock element in place.

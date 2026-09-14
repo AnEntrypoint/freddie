@@ -16,6 +16,7 @@ import { trajectoryRecordId } from './trajectory-record.js'
 import { TrajectorySearchIndex } from './trajectory-search-index.js'
 import { EMPTY_TRAJECTORY_SNAPSHOT } from './trajectory-snapshot-builder.js'
 import css from './views.css.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 const EMPTY_TURN_IDS = new Set()
 const EMPTY_RECORD_IDS = new Set()
@@ -459,9 +460,7 @@ export class FreddieTrajectoryView extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-trajectory-view') === undefined) {
-  customElements.define('freddie-trajectory-view', FreddieTrajectoryView)
-}
+defineElement('freddie-trajectory-view', FreddieTrajectoryView)
 
 /** Create and mount a TrajectoryView element in place of the old function-component call. */
 export function TrajectoryView(props) {

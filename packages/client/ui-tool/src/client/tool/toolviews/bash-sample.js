@@ -17,6 +17,7 @@ import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   IconApiOutline14, IconChevronDownOutline14, IconInspectOutline12, renderTerminalBlock, StateDot,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { terminalBlockLabels, terminalCardModel, terminalFailed } from '../models/terminal-card-model.js'
 import { toolRowModel } from '../models/tool-call-model.js'
@@ -185,9 +186,7 @@ export class FreddieBashRow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-bash-row') === undefined) {
-  customElements.define('freddie-bash-row', FreddieBashRow)
-}
+defineElement('freddie-bash-row', FreddieBashRow)
 
 /** One-shot creation helper preserving the original function-component call shape. */
 export function BashRow(props) {

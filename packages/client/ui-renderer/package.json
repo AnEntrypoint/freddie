@@ -49,6 +49,7 @@
   },
   "devDependencies": {
     "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-client-ui-primitives": "*",
     "@freddie/freddie-client-ui-slots": "*",
     "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"

@@ -10,6 +10,8 @@
  * the arm-once-per-open-edge logic is unchanged.
  */
 
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
+
 /**
  * Renderless flow occupant custom element: each rising `open` edge runs
  * exactly one pick and reports exactly one outcome; `#armed` arms once per
@@ -72,6 +74,4 @@ export class FreddieNativeDirectoryFlow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-native-directory-flow') === undefined) {
-  customElements.define('freddie-native-directory-flow', FreddieNativeDirectoryFlow)
-}
+defineElement('freddie-native-directory-flow', FreddieNativeDirectoryFlow)

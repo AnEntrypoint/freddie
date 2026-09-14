@@ -20,7 +20,7 @@
  */
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { Button, IconPlusOutline16, renderModal } from '@freddie/freddie-client-ui-primitives'
+import { Button, IconPlusOutline16, renderModal, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { deriveKeyRef, messageOf, providerUsable } from './store.js'
 import { ProviderEditor } from './ProviderEditor.js'
 import styles from './ModelsSection.css.js'
@@ -455,9 +455,7 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-models-section-loaded') === undefined) {
-  customElements.define('freddie-models-section-loaded', FreddieModelsSectionLoaded)
-}
+defineElement('freddie-models-section-loaded', FreddieModelsSectionLoaded)
 
 /**
  * Create (if needed) or update the Models-section stateful body in place.

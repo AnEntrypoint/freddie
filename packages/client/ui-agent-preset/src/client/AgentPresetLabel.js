@@ -9,14 +9,13 @@
  */
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
-import { IconAgentPresetOutline16 } from '@freddie/freddie-client-ui-primitives'
+import { IconAgentPresetOutline16, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { presetDisplayText } from './locales.js'
 import css from './AgentPresetLabel.css.js'
 
 /** Session-header agent-preset label custom element. */
 export class FreddieAgentPresetLabel extends HTMLElement {
   #props = null
-  #loadedFor
 
   /** Set/replace props and re-render; the owning renderer calls this on every update. */
   setProps(props) {
@@ -28,15 +27,16 @@ export class FreddieAgentPresetLabel extends HTMLElement {
     this.#render()
   }
 
-  #maybeLoad(preset) {
+  #maybeLoad(preset, status) {
     const props = this.#props
     if (props === null) return
     // Deployments that compose no presets never label anything, so the roster
-    // is only worth a request once a session reports one.
-    if (preset !== undefined && preset !== this.#loadedFor) {
-      this.#loadedFor = preset
-      void props.load()
-    }
+    // is only worth a request once a session reports one. Gated on the shared
+    // roster status rather than a per-element flag: this label is a bare
+    // factory the outlet recreates every render, so a per-instance
+    // once-guard would refetch on each re-render — the roster load fires only
+    // while the shared store is still idle.
+    if (preset !== undefined && status === 'idle') void props.load()
   }
 
   #render() {
@@ -46,7 +46,7 @@ export class FreddieAgentPresetLabel extends HTMLElement {
     const preset = useSessions(state => state.byId[sessionId]?.agentPreset)
     const options = useAgentPresets(state => state.options)
 
-    this.#maybeLoad(preset)
+    this.#maybeLoad(preset, useAgentPresets(state => state.status))
 
     if (preset === undefined) {
       applyDiff(this, h('span', {style: 'display:none'}))
@@ -65,9 +65,7 @@ export class FreddieAgentPresetLabel extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-agent-preset-label') === undefined) {
-  customElements.define('freddie-agent-preset-label', FreddieAgentPresetLabel)
-}
+defineElement('freddie-agent-preset-label', FreddieAgentPresetLabel)
 
 /**
  * Render this session's agent-preset name beside its title.

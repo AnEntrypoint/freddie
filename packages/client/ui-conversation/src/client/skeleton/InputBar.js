@@ -16,6 +16,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   IconPlusOutline16, IconWarningOutline16, mountToast, renderTooltip,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { deriveDecorations } from '../input/decorations.js'
 import { attachmentErrorText, imageSizeText } from '../image-labels.js'
@@ -1106,9 +1107,7 @@ export class FreddieInputBar extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-input-bar') === undefined) {
-  customElements.define('freddie-input-bar', FreddieInputBar)
-}
+defineElement('freddie-input-bar', FreddieInputBar)
 
 /**
  * The default composer body: the 'conversation.composer.bar' slot entry.

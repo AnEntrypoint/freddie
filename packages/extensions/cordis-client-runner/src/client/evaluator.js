@@ -11,8 +11,8 @@
  * a dynamic package reaching for `React.createElement`/`React.useState` gets
  * a redirect toward the tool.view.cordis business slot's own webjsx contract
  * (a plain function returning JSX, or an HTMLElement subclass registered via
- * `customElements.define` for stateful views — see ui-primitives' Button.tsx/
- * Toast.tsx for the two shapes) instead of a runtime crash reading `useState`
+ * ui-primitives' `defineElement` for stateful views — see ui-primitives'
+ * Button.js/Toast.js for the two shapes) instead of a runtime crash reading `useState`
  * off `undefined`.
  */
 
@@ -39,7 +39,7 @@ export const DYNAMIC_CLIENT_REDIRECTS = {
     'modules cannot be imported here. Everything goes through ctx services or host.call.',
   React:
     'there is no React runtime in this app — the whole GUI is webjsx. Return a plain object/array JSX tree from a '
-    + 'function (stateless) or an HTMLElement subclass registered with customElements.define (stateful, exposing '
+    + 'function (stateless) or an HTMLElement subclass registered with defineElement from @freddie/freddie-client-ui-primitives (stateful, exposing '
     + 'setProps); see the tool.view.cordis business-view contract for the expected shape.',
 }
 

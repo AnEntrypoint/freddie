@@ -19,6 +19,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { IconCheckOutline16 } from './icons/index.js'
 import css from './Menu.css.js'
+import { defineElement } from './define-element.js'
 
 function isSeparator(entry) {
   return 'type' in entry && entry.type === 'separator'
@@ -335,9 +336,7 @@ export class FreddieMenu extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-menu') === undefined) {
-  customElements.define('freddie-menu', FreddieMenu)
-}
+defineElement('freddie-menu', FreddieMenu)
 
 /**
  * Create (if needed) or update a Menu element in place.

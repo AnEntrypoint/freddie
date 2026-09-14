@@ -31,9 +31,10 @@ import {
   SlotOwnershipError, StaleAuthorizationError, webjsxSlotTagOf,
 } from '@freddie/freddie-client-ui-slots'
 import {
-  SlotAssemblyError, currentSessionMaybeProvideInfo, maybeObservableHook, observableHook, projectionHook,
+  SlotAssemblyError, currentSessionMaybeProvideInfo, maybeObservableHook, observableHook, projectionHook, trackReads,
   sessionProviderFor,
 } from './session-provider.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 /**
  * Per-entry renderSlot / renderSlotChain bindings, called from inside a
@@ -412,9 +413,7 @@ class FreddieEntryHost extends HTMLElement {
     }
   }
 }
-if (typeof customElements !== 'undefined' && customElements.get('freddie-entry-host') === undefined) {
-  customElements.define('freddie-entry-host', FreddieEntryHost)
-}
+defineElement('freddie-entry-host', FreddieEntryHost)
 
 /**
  * Per-entry crash boundary: wraps `render()` in try/catch. On crash it
@@ -650,10 +649,11 @@ export class FreddieSlotOutlet extends HTMLElement {
    * every source's identity (compared by reference against the last-bound
    * set, so a same-session re-render is a no-op resubscribe, not a churn).
    */
-  #bindHookSources(sessionInfo) {
-    const sources = Object.values(sessionInfo.hooks).filter(
-      (s) => s !== undefined,
-    )
+  #bindHookSources(sessionInfo, reads) {
+    const sources = [...new Set([
+      ...Object.values(sessionInfo.hooks).filter((s) => s !== undefined),
+      ...reads,
+    ])]
     const unchanged = sources.length === this.#boundHookSources.length
       && sources.every((s, i) => s === this.#boundHookSources[i])
     if (unchanged) return
@@ -678,21 +678,20 @@ export class FreddieSlotOutlet extends HTMLElement {
     // correct baseline regardless of how many renders raced before it.
     resyncOutletDiffCache(this)
     const sessionInfo = currentSessionMaybeProvideInfo(host)
-    this.#bindHookSources(sessionInfo)
-    const content = renderOutletContent(host, this.#slotKey, this.#ownerProps, this.#opts, sessionInfo, this.#maybeIncarnation, (next) => {
-      this.#maybeIncarnation = next
+    // Entry elements read their hooks inside applyDiff (setProps runs from
+    // webjsx's ref callback), so the diff is part of the tracked render.
+    const { reads } = trackReads(() => {
+      const content = renderOutletContent(host, this.#slotKey, this.#ownerProps, this.#opts, sessionInfo, this.#maybeIncarnation, (next) => {
+        this.#maybeIncarnation = next
+      })
+      applyDiff(this, h('div', { 'data-slot': this.#slotKey, style: ANCHOR_STYLE }, content))
     })
-    const vdom = h('div', { 'data-slot': this.#slotKey, style: ANCHOR_STYLE },
-      content,
-    )
-    applyDiff(this, vdom)
+    this.#bindHookSources(sessionInfo, reads)
     pruneStaleOutletChildren(this)
     this.#renderedOnce = true
   }
 }
-if (typeof customElements !== 'undefined' && customElements.get('freddie-slot-outlet') === undefined) {
-  customElements.define('freddie-slot-outlet', FreddieSlotOutlet)
-}
+defineElement('freddie-slot-outlet', FreddieSlotOutlet)
 
 /**
  * Build a `<freddie-slot-outlet>` VNode for one renderSlot/renderSlotChain call
@@ -756,7 +755,7 @@ function renderOutletContent(
         const injected = cachedSessionInject(entry, info, actions)
         const props = composeEntryProps(kit, standard, injected, slotInjected,
           matched === undefined ? owner : { ...owner, matched }, hookContext, hasHookContext, slotKey)
-        return h('div', { key: info.sessionId },
+        return h('div', { key: info.sessionId, style: ANCHOR_STYLE },
           renderEntryVNode(entry, props, entryKeyOf(entry)),
         )
       }
@@ -768,7 +767,7 @@ function renderOutletContent(
         const injected = cachedSessionMaybeInject(entry, infoForRender, actions)
         const props = composeEntryProps(kit, standard, injected, slotInjected,
           matched === undefined ? owner : { ...owner, matched }, hookContext, hasHookContext, slotKey)
-        return h('div', { key: next.epoch },
+        return h('div', { key: next.epoch, style: ANCHOR_STYLE },
           renderEntryVNode(entry, props, entryKeyOf(entry)),
         )
       }
@@ -778,7 +777,9 @@ function renderOutletContent(
         matched === undefined ? owner : { ...owner, matched }, hookContext, hasHookContext, slotKey)
       return renderEntryVNode(entry, props, entryKeyOf(entry))
     })
-    return h('div', { key: entryKeyValue }, inner)
+    // Keyed identity wrappers only; `display: contents` keeps them out of
+    // layout so an entry is its slot container's direct flex/grid item.
+    return h('div', { key: entryKeyValue, style: ANCHOR_STYLE }, inner)
   }
 
   const deadCell = () => h('div', { 'data-slot-error': slotKey })
@@ -855,6 +856,8 @@ export class FreddieRootOutlet extends HTMLElement {
   #host = null
   #ownerProps = {}
   #subscriptions = new OutletSubscriptions()
+  #readUnsubscribes = []
+  #boundReads = []
   // See FreddieSlotOutlet's #renderedOnce: setProps() renders synchronously
   // pre-connection (webjsx's ref callback fires inside createDOMElement,
   // before insertion); connectedCallback firing #render() again right after
@@ -870,6 +873,17 @@ export class FreddieRootOutlet extends HTMLElement {
     this.#render()
   }
 
+  /** Subscribe to the sources the last render read (same contract as FreddieSlotOutlet's #bindHookSources). */
+  #bindReads(reads) {
+    const sources = [...reads]
+    const unchanged = sources.length === this.#boundReads.length
+      && sources.every((s, i) => s === this.#boundReads[i])
+    if (unchanged) return
+    for (const unsubscribe of this.#readUnsubscribes) unsubscribe()
+    this.#boundReads = sources
+    this.#readUnsubscribes = sources.map(source => source.subscribe(() => { this.#render() }))
+  }
+
   // Required HTMLElement lifecycle hook name; body is unavoidably the same
   // shape as FreddieSlotOutlet's (both delegate to the shared OutletSubscriptions
   // helper above) since custom-element lifecycle methods cannot be inherited
@@ -883,7 +897,12 @@ export class FreddieRootOutlet extends HTMLElement {
     )
   }
 
-  disconnectedCallback() { this.#subscriptions.disconnect() }
+  disconnectedCallback() {
+    this.#subscriptions.disconnect()
+    for (const unsubscribe of this.#readUnsubscribes) unsubscribe()
+    this.#readUnsubscribes = []
+    this.#boundReads = []
+  }
 
   #bindVersion() {
     const host = this.#host
@@ -899,6 +918,11 @@ export class FreddieRootOutlet extends HTMLElement {
     if (!entry) {
       if (host.entriesOf('root').length > 0) {
         content = h('div', { 'data-slot-error': 'root' })
+      } else if (this.#renderedOnce) {
+        // The root registrant is between unregister and re-register (a hot
+        // swap of the plugin that owns 'root'); the next registration
+        // re-renders, so an empty anchor is the honest interim state.
+        content = null
       } else {
         throw new SlotAssemblyError("renderSlot('root') before any 'root' registration (boot order)")
       }
@@ -914,18 +938,18 @@ export class FreddieRootOutlet extends HTMLElement {
         return renderEntryVNode(entry, props, entryKeyOf(entry))
       })
     }
-    const vdom = h('div', { 'data-slot': 'root', style: ANCHOR_STYLE },
-      content,
-    )
-    applyDiff(this, vdom)
+    // The root entry element reads its hooks inside applyDiff (setProps from
+    // webjsx's ref callback), so the diff is the tracked render.
+    const { reads } = trackReads(() => {
+      applyDiff(this, h('div', { 'data-slot': 'root', style: ANCHOR_STYLE }, content))
+    })
+    this.#bindReads(reads)
     // See FreddieSlotOutlet's identical call for why this is needed.
     pruneStaleOutletChildren(this)
     this.#renderedOnce = true
   }
 }
-if (typeof customElements !== 'undefined' && customElements.get('freddie-root-outlet') === undefined) {
-  customElements.define('freddie-root-outlet', FreddieRootOutlet)
-}
+defineElement('freddie-root-outlet', FreddieRootOutlet)
 
 /**
  * Build the renderer the shell installs into the runtime SlotRegistry

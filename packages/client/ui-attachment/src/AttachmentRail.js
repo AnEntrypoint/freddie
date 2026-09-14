@@ -18,6 +18,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
   IconChevronLeftOutline14, IconChevronRightOutline14, IconCloseFill14,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './AttachmentRail.css.js'
 
@@ -216,9 +217,7 @@ export class FreddieAttachmentRail extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-attachment-rail') === undefined) {
-  customElements.define('freddie-attachment-rail', FreddieAttachmentRail)
-}
+defineElement('freddie-attachment-rail', FreddieAttachmentRail)
 
 /** Create (if needed) and update an AttachmentRail mounted in place.
  * @param el - an existing rail element (from a prior call), or null to create one.

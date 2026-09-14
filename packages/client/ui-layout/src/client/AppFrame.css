@@ -7,9 +7,13 @@
    between the 100%-height document root and .freddie-appFrame__frame's own
    `height: 100%`, silently truncating the percentage chain to `auto`).
    `display: contents` makes the tag transparent to layout; its one real
-   child box below participates in the ancestor's height/flex/grid directly. */
-freddie-app-frame,
-freddie-root-outlet {
+   child box below participates in the ancestor's height/flex/grid directly.
+   Selected by data-ce, not tag name: ui-primitives' defineElement registers a
+   hot-reloaded class under a versioned tag (freddie-app-frame--v2) and stamps
+   every instance with data-ce="<logical tag>", so only the attribute is
+   stable across a plugin swap. */
+[data-ce='freddie-app-frame'],
+[data-ce='freddie-root-outlet'] {
   display: contents;
 }
 
@@ -38,26 +42,14 @@ freddie-root-outlet {
 }
 
 .freddie-appFrame__connectionState {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 3;
-  padding: 3px 8px;
-  border: 1px solid var(--freddie-alias-border-l2);
-  border-radius: 999px;
+  grid-column: 1 / -1;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--freddie-alias-border-l2);
   background: var(--freddie-alias-bg-base);
-  color: var(--freddie-alias-label-secondary);
+  color: var(--freddie-alias-state-error-primary);
   font-size: 12px;
   line-height: 16px;
-}
-
-.freddie-appFrame__connectionState[data-connection-state='connected'] {
-  color: var(--freddie-alias-state-success-primary);
-}
-
-.freddie-appFrame__connectionState[data-connection-state='reconnecting'],
-.freddie-appFrame__connectionState[data-connection-state='offline'] {
-  color: var(--freddie-alias-state-error-primary);
+  text-align: center;
 }
 
 .freddie-appFrame__sidebarCol {
@@ -83,7 +75,7 @@ freddie-root-outlet {
    bug as freddie-app-frame/freddie-root-outlet above; `display: contents` isn't
    the fix here specifically because centerCol is a flex container and needs
    a real flex item to size against, not a transparent pass-through). */
-.freddie-appFrame__centerCol > freddie-slot-outlet {
+.freddie-appFrame__centerCol > [data-ce='freddie-slot-outlet'] {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -103,8 +95,8 @@ freddie-root-outlet {
    centerCol's own descendant divs (not a global `freddie-entry-host > div`
    rule) since other freddie-entry-host mount points elsewhere may have
    legitimately block-level wrapper content this must not touch. */
-.freddie-appFrame__centerCol > freddie-slot-outlet > div > div,
-.freddie-appFrame__centerCol > freddie-slot-outlet > div > div > div {
+.freddie-appFrame__centerCol > [data-ce='freddie-slot-outlet'] > div > div,
+.freddie-appFrame__centerCol > [data-ce='freddie-slot-outlet'] > div > div > div {
   display: contents;
 }
 

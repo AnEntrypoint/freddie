@@ -11,6 +11,7 @@ import { renderDropOverlay } from '../DropOverlay.js'
 import { renderImageLightbox } from '../ImageLightbox.js'
 import { attachmentRailLabels, dropOverlayLabels, lightboxLabels } from './labels.js'
 import css from './ComposerAttachments.css.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 /** Draft-image rail, document drop target, and original-image preview slot entry. */
 export class FreddieComposerAttachments extends HTMLElement {
@@ -158,9 +159,7 @@ export class FreddieComposerAttachments extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-composer-attachments') === undefined) {
-  customElements.define('freddie-composer-attachments', FreddieComposerAttachments)
-}
+defineElement('freddie-composer-attachments', FreddieComposerAttachments)
 
 /** Create (if needed) and update a ComposerAttachments element in place.
  * @param el - an existing `freddie-composer-attachments` element to update, or null to create one.

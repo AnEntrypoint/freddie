@@ -8,6 +8,7 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { writeClipboard } from './clipboard.js'
 import css from './Toast.css.js'
+import { defineElement } from './define-element.js'
 
 /** Full-opacity hold before the fade starts. Must agree with the stylesheet's
  * toast-fade delay (Toast.module.css) or the banner unmounts mid-fade. */
@@ -168,9 +169,7 @@ export class FreddieToast extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-toast') === undefined) {
-  customElements.define('freddie-toast', FreddieToast)
-}
+defineElement('freddie-toast', FreddieToast)
 
 /**
  * Create and mount a Toast onto `document.body`.

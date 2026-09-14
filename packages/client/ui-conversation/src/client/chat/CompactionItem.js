@@ -16,6 +16,7 @@ import {
   IconChevronDownOutline14,
   IconChevronRightOutline14,
   renderMarkdownText,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './MessageItem.css.js'
 
@@ -91,9 +92,7 @@ export class FreddieCompactionItem extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-compaction-item') === undefined) {
-  customElements.define('freddie-compaction-item', FreddieCompactionItem)
-}
+defineElement('freddie-compaction-item', FreddieCompactionItem)
 
 /**
  * Create (if needed) or update a CompactionItem element in place.

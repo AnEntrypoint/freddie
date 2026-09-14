@@ -1,4 +1,5 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 function attentionState(snapshot) {
   if (snapshot.promptError !== null) return 'Action needed'
@@ -66,6 +67,4 @@ export class FreddieOperationsStrip extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-operations-strip') === undefined) {
-  customElements.define('freddie-operations-strip', FreddieOperationsStrip)
-}
+defineElement('freddie-operations-strip', FreddieOperationsStrip)

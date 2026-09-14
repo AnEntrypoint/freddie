@@ -8,6 +8,7 @@ import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { presetDisplayText } from './locales.js'
 import { renderPresetMenu } from './PresetMenu.js'
 import css from './AgentPresetRow.css.js'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 /** New-session agent-preset selector row, as a custom element. */
 export class FreddieAgentPresetRow extends HTMLElement {
@@ -86,9 +87,7 @@ export class FreddieAgentPresetRow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-agent-preset-row') === undefined) {
-  customElements.define('freddie-agent-preset-row', FreddieAgentPresetRow)
-}
+defineElement('freddie-agent-preset-row', FreddieAgentPresetRow)
 
 /**
  * Render the new-session agent-preset selector.

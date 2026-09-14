@@ -10,7 +10,7 @@
 // tags — the group list uses a plain array instead.
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { renderTooltip } from '@freddie/freddie-client-ui-primitives'
+import { renderTooltip, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { formatTokensPerSecond } from './message-chrome.js'
 import { assistantStepReading } from './turn-metrics.js'
 import css from './StatsLine.css.js'
@@ -325,9 +325,7 @@ export class FreddieStatsLine extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-stats-line') === undefined) {
-  customElements.define('freddie-stats-line', FreddieStatsLine)
-}
+defineElement('freddie-stats-line', FreddieStatsLine)
 
 /**
  * Create (if needed) or update a StatsLine element in place.

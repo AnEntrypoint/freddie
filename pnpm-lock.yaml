@@ -1971,6 +1971,9 @@ importers:
       '@freddie/freddie-client-runtime':
         specifier: '*'
         version: link:../runtime
+      '@freddie/freddie-client-ui-primitives':
+        specifier: '*'
+        version: link:../ui-primitives
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
@@ -2101,6 +2104,9 @@ importers:
       '@freddie/freddie-client-runtime':
         specifier: '*'
         version: link:../runtime
+      '@freddie/freddie-client-ui-primitives':
+        specifier: '*'
+        version: link:../ui-primitives
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
@@ -2215,6 +2221,9 @@ importers:
       '@freddie/freddie-client-ui-conversation':
         specifier: '*'
         version: link:../ui-conversation
+      '@freddie/freddie-client-ui-primitives':
+        specifier: '*'
+        version: link:../ui-primitives
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
@@ -2408,6 +2417,9 @@ importers:
       '@freddie/freddie-client-runtime':
         specifier: '*'
         version: link:../runtime
+      '@freddie/freddie-client-ui-primitives':
+        specifier: '*'
+        version: link:../ui-primitives
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots

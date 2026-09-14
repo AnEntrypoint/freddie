@@ -14,6 +14,7 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconDarkOutline16, IconFollowsystemOutline16, IconLightOutline16,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './AppearanceRow.css.js'
 
@@ -72,6 +73,4 @@ export class FreddieAppearanceRow extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-theme-appearance-row') === undefined) {
-  customElements.define('freddie-theme-appearance-row', FreddieAppearanceRow)
-}
+defineElement('freddie-theme-appearance-row', FreddieAppearanceRow)

@@ -49,7 +49,8 @@ worktrees/
 # are real, durable, repo-tracked content and are NOT covered by these
 # patterns -- gm's own design keeps memory following the codebase.
 .gm/scratch/
-.gm/browser-chrome-profile-default/
+.gm/browser-chrome-profile-*/
+.gm/witness/
 .gm/exec-spool/
 .gm/gm.db
 .gm/last-dispatch-ts
@@ -66,3 +67,14 @@ worktrees/
 .gm/claim-audit-fired
 .gm/scan-deps-stamp.json
 .agentplug-kv/
+
+# A gm dispatch whose cwd is a package directory writes that package's own
+# .gm/ (codesearch index, digest). Only the repository root .gm/ is content.
+apps/*/.gm/
+framework/*/.gm/
+packages/*/*/.gm/
+examples/*/.gm/
+native/*/.gm/
+
+# Local harness homes used for live verification runs.
+.freddie-home*/

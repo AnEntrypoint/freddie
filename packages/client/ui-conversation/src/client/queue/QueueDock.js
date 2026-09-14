@@ -13,6 +13,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconCheckOutline16, IconChevronDownOutline14, IconChevronUpOutline14, IconCloseOutline16,
   IconEditOutline16, IconQueueOutline14, IconSendOutline14, IconTrashOutline16, Tooltip,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { NS } from '../locales.js'
 import css from './QueueDock.css.js'
@@ -264,9 +265,7 @@ export class FreddieQueueDock extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-queue-dock') === undefined) {
-  customElements.define('freddie-queue-dock', FreddieQueueDock)
-}
+defineElement('freddie-queue-dock', FreddieQueueDock)
 
 /** One-shot creation/update helper preserving the original function-component call shape. */
 export function QueueDock(props) {

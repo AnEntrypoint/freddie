@@ -1,6 +1,7 @@
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   DisclosureRow, IconChevronRightOutline14, StateDot,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { shallowEqual } from '@freddie/freddie-client-runtime/client'
 import css from './WorkflowRunPanel.css.js'
@@ -476,9 +477,7 @@ export class FreddieWorkflowRunPanel extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-workflow-run-panel') === undefined) {
-  customElements.define('freddie-workflow-run-panel', FreddieWorkflowRunPanel)
-}
+defineElement('freddie-workflow-run-panel', FreddieWorkflowRunPanel)
 
 /**
  * Create (if needed) or update a WorkflowRunPanel element in place.

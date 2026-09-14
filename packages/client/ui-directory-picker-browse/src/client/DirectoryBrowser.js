@@ -49,6 +49,7 @@ import clsx from 'clsx'
 import {
   Button, IconCheckOutline16, IconChevronRightOutline14, IconEditOutline16, IconFolderClose16, IconFolderOpen16,
   IconPlusOutline16, renderModal,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { DirectoryBrowseError } from '@freddie/freddie-client-runtime/client'
 import css from './DirectoryBrowser.css.js'
@@ -1048,9 +1049,7 @@ export class FreddieDirectoryBrowser extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-directory-browser') === undefined) {
-  customElements.define('freddie-directory-browser', FreddieDirectoryBrowser)
-}
+defineElement('freddie-directory-browser', FreddieDirectoryBrowser)
 
 /**
  * Convenience wrapper preserving the original function-component call shape:

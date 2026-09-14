@@ -19,7 +19,7 @@
 // driven from connectedCallback/disconnectedCallback (Toast.tsx's pattern).
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { Button, IconChevronDownOutline14, renderModal } from '@freddie/freddie-client-ui-primitives'
+import { Button, IconChevronDownOutline14, renderModal, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { PendingSteeringBubble } from './MessageItem.js'
 import { ChatNodeSeat } from './ChatNodeSeat.js'
 import { formatRunDuration } from './message-chrome.js'
@@ -171,9 +171,7 @@ class FreddieTurnStatus extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-turn-status') === undefined) {
-  customElements.define('freddie-turn-status', FreddieTurnStatus)
-}
+defineElement('freddie-turn-status', FreddieTurnStatus)
 
 /** In-page Host open-path refusal: the wire reason plus a retry of the same path. */
 function fileOpenErrorModalProps({
@@ -570,7 +568,7 @@ export class FreddieChatView extends HTMLElement {
             class: css.column ?? '',
             'data-chat-flow': '',
           },
-          openState === 'loading' && h('div', { class: css.hint ?? '' }, t('chat.loadingHistory')),
+          openState === 'loading' && order.length === 0 && h('div', { class: css.hint ?? '' }, t('chat.loadingHistory')),
           openState === 'error' && openError !== null && (
             h('div', { class: css.openError ?? '' },
               t('chat.loadError', { message: openError.message, code: openError.code }))
@@ -699,9 +697,7 @@ export class FreddieChatView extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-chat-view') === undefined) {
-  customElements.define('freddie-chat-view', FreddieChatView)
-}
+defineElement('freddie-chat-view', FreddieChatView)
 
 /**
  * The chat view slot entry: pure component over the composed props; each

@@ -12,8 +12,9 @@
  * @module @freddie/freddie-host-frontend-static
  */
 
-import { readFile, stat } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
+import { sendFile } from '@freddie/freddie-host-webserver'
 import z from '@freddie/schemastery'
 
 /** Stable Cordis plugin name. */
@@ -64,41 +65,32 @@ export async function serveStatic(pathname, req, res, distRoot, distIndex, rende
     res.end()
     return
   }
-  let body
-  let type
-  let lastModified
-  try {
-    if (target === distRoot || target === distIndex) {
-      body = await renderIndex()
-      type = HTML_MIME
-    } else {
-      body = await readFile(target)
-      type = MIME[extname(target)] ?? 'application/octet-stream'
-      lastModified = (await stat(target)).mtime.toUTCString()
+  if (target !== distRoot && target !== distIndex) {
+    // Asset filenames carry no content hash, so no-cache plus the shared
+    // ETag/Last-Modified validators: a warm load revalidates with a 304
+    // instead of re-downloading.
+    const served = await sendFile(req, res, target, {
+      'content-type': MIME[extname(target)] ?? 'application/octet-stream',
+      'cache-control': 'no-cache',
+    })
+    if (!served) {
+      res.writeHead(404)
+      res.end()
     }
+    return
+  }
+  let body
+  try {
+    body = await renderIndex()
   } catch (error) {
-    // Only absent or non-file targets are 404; other filesystem failures reach
+    // Only an absent or non-file index is 404; other filesystem failures reach
     // the webserver's request-failure handling.
     if (!STATIC_MISS_CODES.has(error.code)) throw error
     res.writeHead(404)
     res.end()
     return
   }
-  // Chunk filenames carry no content hash (stable per source file), so an
-  // asset can change without its URL changing -- no-cache (not no-store)
-  // lets the browser skip re-downloading unchanged bytes via a 304 while
-  // still revalidating every load, instead of the current TTL-0 refetch.
-  const headers = { 'content-type': type }
-  if (lastModified) {
-    headers['cache-control'] = 'no-cache'
-    headers['last-modified'] = lastModified
-    if (req.headers['if-modified-since'] === lastModified) {
-      res.writeHead(304, headers)
-      res.end()
-      return
-    }
-  }
-  res.writeHead(200, headers)
+  res.writeHead(200, { 'content-type': HTML_MIME })
   res.end(req.method === 'HEAD' ? undefined : body)
 }
 

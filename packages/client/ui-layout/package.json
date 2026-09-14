@@ -54,6 +54,7 @@
     "@freddie/freddie-client-connection": "*",
     "@freddie/freddie-client-locale": "*",
     "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-client-ui-primitives": "*",
     "@freddie/freddie-client-ui-slots": "*",
     "@freddie/freddie-client-ui-theme": "*",
     "@freddie/freddie-invariants": "*",

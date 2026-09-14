@@ -47,19 +47,21 @@ function validateToolOrder(toolOrder) {
 
 /**
  * Apply configured tool order, inserting unlisted tools lexicographically at
- * {@link TOOL_ORDER_REST}. Unknown configured names fail; known but restricted
- * names may be absent.
+ * {@link TOOL_ORDER_REST}. A configured name no provider registered is skipped
+ * (reported through `onUnknown`) rather than fatal: a host hot reload can
+ * transiently drop a tool's registration, and killing the whole turn over a
+ * name a fresh boot has breaks the invariant that a reload never leaves the
+ * agent unable to run a turn it otherwise could. Known but restricted names
+ * may also be absent.
  */
-function orderTools(tools, toolOrder, knownNames) {
+function orderTools(tools, toolOrder, knownNames, onUnknown) {
   const reserved = tools.find(tool => tool.name === TOOL_ORDER_REST)
   if (reserved !== undefined) {
     throw new Error(`tool provider returned reserved tool name "${TOOL_ORDER_REST}" (reserved for toolOrder's rest entry)`)
   }
   if (toolOrder === undefined) return tools.sort(compareToolNames)
   const unknown = toolOrder.filter(name => name !== TOOL_ORDER_REST && !knownNames.has(name))
-  if (unknown.length > 0) {
-    throw new Error(`toolOrder lists unregistered tool${unknown.length > 1 ? 's' : ''} ${unknown.map(name => `"${name}"`).join(', ')}; known tools: ${[...knownNames].sort().join(', ') || '(none)'}`)
-  }
+  if (unknown.length > 0) onUnknown(unknown, knownNames)
   const listed = new Set(toolOrder)
   const rest = tools.filter(tool => !listed.has(tool.name)).sort(compareToolNames)
   return toolOrder.flatMap(name =>
@@ -386,7 +388,9 @@ export class SystemPrompt extends Service {
             name: entry.name,
             text: typeof entry.text === 'function' ? entry.text(context) : entry.text,
           })),
-      tools: orderTools(collected, this.toolOrder, knownNames),
+      tools: orderTools(collected, this.toolOrder, knownNames, (unknown, known) => {
+        this.ctx.logger?.warn?.(`toolOrder names unregistered tool${unknown.length > 1 ? 's' : ''} ${unknown.map(name => `"${name}"`).join(', ')}; skipping this assembly (a hot reload may have dropped a registration). Known tools: ${[...known].sort().join(', ') || '(none)'}`)
+      }),
       variables,
     }
     const transformed = await this.ctx.waterfall(

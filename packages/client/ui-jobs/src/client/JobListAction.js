@@ -1,5 +1,5 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { IconChevronDownOutline14, StateDot, createDismissOnOutsidePointer } from '@freddie/freddie-client-ui-primitives'
+import { IconChevronDownOutline14, StateDot, createDismissOnOutsidePointer, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { NS } from './locales.js'
 import css from './JobListAction.css.js'
 
@@ -230,6 +230,4 @@ export class FreddieJobListAction extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-job-list-action') === undefined) {
-  customElements.define('freddie-job-list-action', FreddieJobListAction)
-}
+defineElement('freddie-job-list-action', FreddieJobListAction)

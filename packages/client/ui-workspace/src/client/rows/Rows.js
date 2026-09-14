@@ -11,6 +11,7 @@ import {
   IconArchiveOutline20, IconBranchOutline16, IconEditOutline16,
   IconEllipsisOutline16, IconFolderClose16, IconFolderOpen16, IconPlusOutline16,
   IconTrashOutline16, IconTriangleRightFill14, StateDot, renderHoverCard, renderMenu,
+  defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { abbreviateHomePath } from '@freddie/freddie-client-runtime/client'
 import { relativeTime } from '../tree.js'
@@ -209,9 +210,7 @@ export class FreddieProjectRowItem extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-project-row-item') === undefined) {
-  customElements.define('freddie-project-row-item', FreddieProjectRowItem)
-}
+defineElement('freddie-project-row-item', FreddieProjectRowItem)
 
 /* v8 ignore next 3 -- closed-union backstop; only reached if the status is forged */
 function assertNever(value) {
@@ -499,6 +498,4 @@ export class FreddieSessionNodeItem extends HTMLElement {
   }
 }
 
-if (typeof customElements !== 'undefined' && customElements.get('freddie-session-node-item') === undefined) {
-  customElements.define('freddie-session-node-item', FreddieSessionNodeItem)
-}
+defineElement('freddie-session-node-item', FreddieSessionNodeItem)
