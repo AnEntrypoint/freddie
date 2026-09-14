@@ -30,5 +30,8 @@ const css = {
   connection: 'freddie-observability__connection',
   connectionDot: 'freddie-observability__connectionDot',
   status: 'freddie-observability__status',
+  priority: 'freddie-observability__priority',
+  priorityState: 'freddie-observability__priorityState',
+  priorityAction: 'freddie-observability__priorityAction',
 }
 export default css

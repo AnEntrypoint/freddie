@@ -272,7 +272,9 @@ export class FreddieObservabilityDock extends HTMLElement {
       h('pre', { class: css.output ?? '', 'aria-label': `Terminal output for ${terminal.name ?? terminal.sessionId}` }, terminal.output || terminal.motd || ''),
       this.#snapshots.get(terminal.sessionId) === undefined ? null : h('pre', { class: css.snapshot ?? '', 'aria-label': 'Terminal snapshot' }, this.#snapshots.get(terminal.sessionId)),
       !interactive ? null : h('input', {
-        class: css.input ?? '', placeholder: 'Command or terminal input',
+        class: css.input ?? '',
+        'aria-label': `Input for terminal ${terminal.name ?? terminal.sessionId}`,
+        placeholder: 'Command or terminal input',
         onkeydown: (event) => {
           if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault()
@@ -329,6 +331,11 @@ export class FreddieObservabilityDock extends HTMLElement {
     const runs = workflowRuns(nodes)
     const currentActivities = selectedActivities(nodes)
     const currentActivity = currentActivities[0]
+    const now = todo === undefined
+      ? currentActivity === undefined
+        ? { label: gm?.active ? `GM ${phase(gm)}` : 'Waiting', detail: gmProgressDetail(gm) }
+        : currentActivity
+      : { label: todo.value, detail: todo.detail }
     const active = this.#section
     const terminalPanel = h('section', { class: css.panel ?? '', 'data-observability-terminals': '' },
       h('div', { class: css.panelHeader ?? '' }, h('h2', null, 'Interactive terminals'), h('button', { type: 'button', class: css.action ?? '', onclick: () => { this.#openTerminal() } }, 'Open terminal')),
@@ -355,6 +362,25 @@ export class FreddieObservabilityDock extends HTMLElement {
         h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
       ))),
     )
+    const priority = h('section', { class: css.priority ?? '', 'aria-label': 'Current work' },
+      h('div', { class: css.priorityState ?? '', 'data-attention': attention.label.toLowerCase().replaceAll(' ', '-') },
+        h('span', { class: css.label ?? '' }, 'Current work'),
+        h('strong', { class: css.value ?? '' }, attention.label),
+        h('span', { class: css.detail ?? '' }, attention.detail),
+      ),
+      h('div', { class: css.priorityState ?? '' },
+        h('span', { class: css.label ?? '' }, 'Now'),
+        h('strong', { class: css.value ?? '' }, now.label),
+        h('span', { class: css.detail ?? '' }, now.detail),
+      ),
+      todo === undefined ? null : h('div', { class: css.priorityState ?? '' },
+        h('span', { class: css.label ?? '' }, 'Plan'),
+        h('strong', { class: css.value ?? '' }, todo.value),
+        h('span', { class: css.detail ?? '' }, todo.detail),
+      ),
+      descendants.running === 0 ? null : h('button', { type: 'button', class: css.priorityAction ?? '', onclick: () => { this.#select('subagents') } }, `${descendants.running} subagent${descendants.running === 1 ? '' : 's'} running`),
+      gm?.active !== true ? null : h('button', { type: 'button', class: css.priorityAction ?? '', onclick: () => { this.#select('gm') } }, `Open GM ${phase(gm)}`),
+    )
     const content = active === 'terminals'
       ? terminalPanel
       : active === 'gm'
@@ -367,7 +393,7 @@ export class FreddieObservabilityDock extends HTMLElement {
               h('div', { class: css.metrics ?? '' },
                 this.#metric('Attention', attention.label, attention.detail),
                 this.#metric('Connection', connectionLabel(connection), connection === 'connected' ? 'Live events are flowing from the agent and server.' : 'The client will reconnect automatically when the stream is available.'),
-                this.#metric('Latest activity', currentActivity?.label ?? (gm?.active ? `GM ${phase(gm)}` : 'Waiting'), currentActivity?.detail ?? gmProgressDetail(gm)),
+                this.#metric('Latest activity', now.label, now.detail),
                 this.#metric('GM', phase(gm), gmProgressDetail(gm)),
                 todo === undefined ? null : this.#metric('Plan', todo.value, todo.detail),
                 this.#metric('Workflow', workflow?.status ?? 'No active run', workflow?.currentPhase ?? workflow?.name ?? 'No current workflow phase.'),
@@ -393,19 +419,38 @@ export class FreddieObservabilityDock extends HTMLElement {
                 h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
               )),
             )
-    applyDiff(this, h('section', { class: css.root ?? '', 'data-observability-view': '' },
+    applyDiff(this, h('section', {
+      class: css.root ?? '',
+      'data-observability-view': '',
+      role: 'region',
+      'aria-labelledby': 'freddie-observability-title',
+    },
       h('header', { class: css.bluf ?? '' },
         h('div', { class: css.connection ?? '', 'data-state': connection, role: 'status', 'aria-live': 'polite' },
           h('span', { class: css.connectionDot ?? '', 'aria-hidden': true }),
           connectionLabel(connection),
         ),
-        h('h1', null, 'Live operations'),
+        h('h1', { id: 'freddie-observability-title' }, 'Live operations'),
         h('p', null, `${descendants.directRunning} direct and ${descendants.running - descendants.directRunning} nested subagents running.`),
       ),
       h('nav', { class: css.tabs ?? '', role: 'tablist', 'aria-label': 'Operational views' },
-        SECTIONS.map(section => h('button', { key: section.id, type: 'button', role: 'tab', 'aria-selected': active === section.id, class: active === section.id ? css.tabActive ?? '' : css.tab ?? '', onclick: () => { this.#select(section.id) } }, section.label)),
+        SECTIONS.map(section => h('button', {
+          key: section.id,
+          id: `freddie-observability-tab-${section.id}`,
+          type: 'button',
+          role: 'tab',
+          ...active === section.id ? { 'aria-controls': `freddie-observability-panel-${section.id}` } : {},
+          'aria-selected': active === section.id,
+          class: active === section.id ? css.tabActive ?? '' : css.tab ?? '',
+          onclick: () => { this.#select(section.id) },
+        }, section.label)),
       ),
-      content,
+      active === 'overview' ? priority : null,
+      h('div', {
+        id: `freddie-observability-panel-${active}`,
+        role: 'tabpanel',
+        'aria-labelledby': `freddie-observability-tab-${active}`,
+      }, content),
     ))
   }
 }

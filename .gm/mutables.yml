@@ -1014,3 +1014,34 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: 'happens-before: fresh real page selected Trajectory with table visible, data-scroll-ready=true, record index=1, no slot errors, and HMR connected at sequence 44 after deferred Virtualizer callbacks.'
+- id: overview-data-ownership
+  prd_id: overview-priority-summary
+  obligation_kind: invariant
+  subject: The Overview summary must derive from the same session, projection, connection, and tree snapshots already bound by ui-observability.
+  text: Witness ObservabilityDock current activity, attention, todo, descendant, and GM data are already produced from framework hooks before adding a presentation-only summary.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'invariant: ObservabilityDock.js:300-331 reads gm/todos/sessionStats/workflow/connection/session/tree snapshots through existing framework hooks; no new host API or subscription is needed.'
+- id: overview-action-boundary
+  prd_id: overview-priority-summary
+  obligation_kind: postcondition
+  subject: Overview actions must change only its local section selection and never invoke an agent, server, or polling operation.
+  text: 'Use the existing #select method through presentation callbacks; live-witness section switch interactions.'
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'postcondition: ObservabilityDock.js:252-255 #select mutates only private #section and re-renders; Overview navigation buttons can use this exact local action without agent/server calls.'
+- id: overview-tab-accessibility
+  prd_id: overview-priority-summary
+  obligation_kind: postcondition
+  subject: Overview tabs must expose stable tab-to-panel relationships, and terminal input must have an accessible purpose.
+  text: 'Bind ids/aria-controls/aria-labelledby to existing #section selection and label terminal input, then run the live Overview audit.'
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'postcondition: Overview tab buttons now get stable id/aria-controls and the active panel gets role=tabpanel/aria-labelledby; terminal input receives an explicit aria-label.'
+- id: overview-mounted-tab-references
+  prd_id: overview-priority-summary
+  obligation_kind: invariant
+  subject: Only one dock tabpanel mounts at a time, so inactive tab aria-controls references must not target missing ids.
+  text: 'Render aria-controls only for active tab, keep tabpanel id/aria-labelledby synchronized with #section, and verify axe has no invalid tab references.'
+  session_id: freddie-422260-1789231886668
+  status: unknown
