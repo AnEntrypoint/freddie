@@ -1199,3 +1199,35 @@
   session_id: freddie-3513999-1789467163370
   status: witnessed
   witness_evidence: transitions.rs:208-234 requests only `git diff --unified=0 HEAD` from the current local project and formats changed path/line/text; no remote request, credential, or secret-bearing environment access is used. The exact local requester receives ordinary gate denial text.
+- id: mux-overflow-wire-contract
+  prd_id: mux-baseline-overflow-recovery
+  obligation_kind: type-shape
+  subject: Need identify the existing mux wire frame vocabulary and client reconnect semantics appropriate for an initial-baseline overflow without inventing an incompatible error frame.
+  text: Witness api-proxy events.mux producer, frame schemas, and client consumer switch before implementation.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: The existing wire frame `stream/error` is defined by packages/client/connection/src/websocket-downlink.js:29-37 and ConnectionController treats it as stream loss/reconnect at connection.js:159-172. Reusing it with code mux-baseline-overflow preserves the client contract.
+- id: tree-activity-owner-lifecycle
+  prd_id: tree-activity-retention-bound
+  obligation_kind: ownership
+  subject: Need establish authoritative event/lifecycle that indicates a session has left the retained tree and which service owns its activity cleanup.
+  text: Witness SessionManager session removal/summary update paths and current tree activity store ownership before implementation.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: SessionManager owns activityBySession and terminalsBySession at manager.js:86-98. Host session removal reaches handleHostEnvelope at :821-867, which distinguishes durable child detachment from non-durable removal. Cleanup belongs on the non-durable removal branch.
+- id: hmr-listener-remount-reentrancy
+  prd_id: ui-hmr-adversarial-audit
+  obligation_kind: invariant
+  subject: Whether shell remount or plugin swap can invoke ObservabilityDock connectedCallback repeatedly without matched disconnect cleanup.
+  text: Witness through HMR driver source, custom-element lifecycle behavior, and affected dock lines.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: packages/client/ui-observability/src/client/ObservabilityDock.js:244 creates one stable handler; :251-254 installs it only on connection; :256-258 removes exactly that handler on disconnection. packages/client/hmr/src/client/index.js:238-259 drains the old fiber before refresh and :417-422 closes the old EventSource during driver effect disposal, so neither a plugin swap nor shell remount retains the old dock listener.
+- id: tree-activity-cleanup-live
+  prd_id: tree-activity-retention-bound
+  obligation_kind: postcondition
+  subject: Removed non-durable sessions release activity and terminal entries without affecting durable subagent lineage.
+  text: Witness source branch and live GUI HMR state after client runtime reload; validate cleanup operation only touches the removed session key.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: manager.js:828-850 invokes clearTreeActivity only under !durableSubagent, preserving detached durable child lineage. Fresh browser boot saw window.__FREDDIE_BOOT__ and __FREDDIE_SHELL__ true after the runtime source reload.
