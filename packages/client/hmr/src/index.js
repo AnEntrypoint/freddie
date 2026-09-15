@@ -77,6 +77,13 @@ function workspacePath(url) {
   return relative(workspaceRoot, fileURLToPath(url)).split(sep).join('/')
 }
 
+/** Headers shared by finite endpoint metadata and live SSE responses. */
+const SSE_HEADERS = {
+  'content-type': 'text/event-stream',
+  'cache-control': 'no-cache',
+  'connection': 'keep-alive',
+}
+
 /** Serialize one frame as an SSE data line. */
 function sseData(frame) {
   return `data: ${JSON.stringify(frame)}\n\n`
@@ -129,7 +136,7 @@ export function apply(ctx, config) {
     try {
       for (const absPath of listTreeFiles(root)) {
         const stat = statSync(absPath)
-        files.set(relative(root, absPath).split(sep).join('/'), { mtimeMs: stat.mtimeMs, size: stat.size })
+        files.set(relative(root, absPath).split(sep).join('/'), { ctimeMs: stat.ctimeMs, mtimeMs: stat.mtimeMs, size: stat.size })
       }
     } catch (error) {
       if (error.code !== 'ENOENT') ctx.logger.warn(error)
@@ -167,12 +174,15 @@ export function apply(ctx, config) {
    */
   const nativeWatch = (root, markDirty) => {
     const watchers = new Map()
+    let complete = true
     const armTree = () => {
       let dirs
       try {
         dirs = listTreeDirs(root)
       } catch (error) {
+        complete = false
         if (error.code !== 'ENOENT') ctx.logger.warn(error)
+        markDirty()
         return
       }
       const live = new Set(dirs)
@@ -189,15 +199,20 @@ export function apply(ctx, config) {
             if (event === 'rename') armTree()
           })
           watcher.on('error', (error) => {
+            complete = false
             ctx.logger.warn(error)
             watcher.close()
             watchers.delete(dir)
+            markDirty()
+            armTree()
           })
           watchers.set(dir, watcher)
         } catch (error) {
+          complete = false
           ctx.logger.warn(error)
         }
       }
+      complete = watchers.size === dirs.length
     }
     armTree()
     if (watchers.size === 0) {
@@ -205,6 +220,7 @@ export function apply(ctx, config) {
       return undefined
     }
     return {
+      get complete() { return complete },
       close() {
         for (const watcher of watchers.values()) watcher.close()
         watchers.clear()
@@ -236,7 +252,7 @@ export function apply(ctx, config) {
     if (before.size !== after.size) return true
     for (const [relPath, prior] of before) {
       const current = after.get(relPath)
-      if (current === undefined || current.mtimeMs !== prior.mtimeMs || current.size !== prior.size) return true
+      if (current === undefined || current.ctimeMs !== prior.ctimeMs || current.mtimeMs !== prior.mtimeMs || current.size !== prior.size) return true
     }
     return false
   }
@@ -251,7 +267,7 @@ export function apply(ctx, config) {
     for (const name of names) {
       const prior = before.get(name)
       const current = after.get(name)
-      if (prior !== undefined && current !== undefined && prior.mtimeMs === current.mtimeMs && prior.size === current.size) continue
+      if (prior !== undefined && current !== undefined && prior.ctimeMs === current.ctimeMs && prior.mtimeMs === current.mtimeMs && prior.size === current.size) continue
       if (name.endsWith('.css')) kinds.css = true
       else kinds.other = true
     }
@@ -262,7 +278,7 @@ export function apply(ctx, config) {
     dynamicPollQueued = false
     dynamicPollTimer = undefined
     for (const [id, watch] of watchedRoots) {
-      if (!watch.dirty && (!fallback || watch.watcher !== undefined)) continue
+      if (!watch.dirty && (!fallback || watch.watcher?.complete === true)) continue
       const next = snapshot(watch.root)
       if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) continue
       const kinds = changeKinds(watch.files, next.files)
@@ -342,7 +358,7 @@ export function apply(ctx, config) {
     staticPollQueued = false
     staticPollTimer = undefined
     for (const [id, watch] of staticWatches) {
-      if (!watch.dirty && (!fallback || watch.watcher !== undefined)) continue
+      if (!watch.dirty && (!fallback || watch.watcher?.complete === true)) continue
       const next = snapshot(watch.root)
       if (!watch.dirty && !snapshotsDiffer(watch.files, next.files)) continue
       const kinds = changeKinds(watch.files, next.files)
@@ -405,16 +421,9 @@ export function apply(ctx, config) {
   }
 
   const connect = (res) => {
-    res.writeHead(200, {
-      'content-type': 'text/event-stream',
-      'cache-control': 'no-cache',
-      'connection': 'keep-alive',
-    })
-    // Comment line on open so clients/proxies see a live channel even when
-    // no rebuild ever happens; EventSource frame parsing skips it naturally.
+    res.writeHead(200, SSE_HEADERS)
     connections.add(res)
-    write(res, ': connected\n\n')
-    write(res, sseData({ type: 'graph', graph: ctx.clientModules.graph(), sequence: frameSequence }))
+    write(res, sseData({ type: 'graph', graph: ctx.clientModules.graph(), sequence: frameSequence, heartbeatIntervalMs: config.heartbeatIntervalMs }))
     res.on('close', () => { connections.delete(res) })
     res.on('error', () => { connections.delete(res) })
   }
@@ -426,7 +435,12 @@ export function apply(ctx, config) {
       handler: (req, res) => {
         // Named routes match ahead of the carrier's method gate; keep the old
         // global 405 semantics for non-GET hits on this endpoint.
-        if (req.method !== 'GET' && req.method !== 'HEAD') {
+        if (req.method === 'HEAD') {
+          res.writeHead(200, SSE_HEADERS)
+          res.end()
+          return
+        }
+        if (req.method !== 'GET') {
           res.writeHead(405)
           res.end()
           return
@@ -475,7 +489,7 @@ export function apply(ctx, config) {
       })
     })
     const heartbeat = setInterval(() => {
-      for (const res of connections) write(res, ': heartbeat\n\n')
+      publish({ type: 'heartbeat' })
     }, config.heartbeatIntervalMs)
     heartbeat.unref()
     return () => {

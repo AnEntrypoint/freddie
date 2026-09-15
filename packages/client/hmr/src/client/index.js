@@ -89,6 +89,9 @@ const REMOUNTABLE_ROOTS = new Set(['apps/web', SHELL_PACKAGE])
 /** `window` event carrying every journal row (the GUI notice listens; no other subscription surface). */
 export const JOURNAL_EVENT = 'freddie:hmr'
 
+/** The server emits an observable heartbeat every 15 seconds; three missed beats mean the stream is stale. */
+const STALL_TIMEOUT_MS = 45_000
+
 /** Find the loader entry whose module specifier is `id` (entry tree ids are random; the package name lives in `options.name`). */
 function findEntry(loader, id) {
   for (const entry of loader.entries()) {
@@ -177,6 +180,8 @@ export function apply(ctx) {
   // led there are exactly what a developer reads afterwards.
   const journal = [...(globalThis.__FREDDIE_HMR__?.events ?? [])]
   const status = { connected: false, lastSequence: undefined, reconnects: 0, lastError: undefined }
+  let terminalRecovery = false
+  let livenessTimer
   const publishDebug = () => { globalThis.__FREDDIE_HMR__ = { events: journal.slice(), status: { ...status } } }
   const record = (event) => {
     const row = { ts: Date.now(), ...event }
@@ -264,12 +269,23 @@ export function apply(ctx) {
       record(failure)
     })
   }
+  const terminalReload = (event) => {
+    if (terminalRecovery) return
+    terminalRecovery = true
+    status.connected = false
+    publishDebug()
+    record(event)
+    queue = queue.then(() => { globalThis.location.reload() }).catch((error) => {
+      ctx.logger.error('client-hmr: terminal recovery failed')
+      ctx.logger.error(error)
+    })
+  }
   const remountForGap = (frame, expected) => {
     ctx.logger.warn(`client-hmr: lost frame sequence ${expected} before ${frame.sequence}; reloading`)
-    record({ kind: 'sequence-gap', expected, received: frame.sequence })
-    globalThis.location.reload()
+    terminalReload({ kind: 'sequence-gap', expected, received: frame.sequence })
   }
   const handle = (frame) => {
+    if (terminalRecovery) return
     if (!Number.isSafeInteger(frame.sequence) || frame.sequence < 0) {
       if (frame.type === 'graph' && status.lastSequence === undefined) {
         record({ kind: 'legacy-graph-frame' })
@@ -331,8 +347,7 @@ export function apply(ctx) {
         // a seeded platform package can only be refreshed by a reload.
         if (!REMOUNTABLE_ROOTS.has(frame.root)) {
           ctx.logger.info(`client-hmr: ${frame.root} rebuilt, reloading (seeded through the frozen import map)`)
-          record({ kind: 'shell-rebuilt-reload', rev: frame.rev, root: frame.root })
-          globalThis.location.reload()
+          terminalReload({ kind: 'shell-rebuilt-reload', rev: frame.rev, root: frame.root })
           break
         }
         ctx.logger.info('client-hmr: shell rebuilt, remounting')
@@ -364,18 +379,30 @@ export function apply(ctx) {
 
   ctx.effect(() => {
     const source = new EventSource(EVENTS_ENDPOINT)
+    const armLiveness = () => {
+      clearTimeout(livenessTimer)
+      livenessTimer = setTimeout(() => {
+        if (terminalRecovery) return
+        ctx.logger.warn('client-hmr: event source heartbeat timed out')
+        terminalReload({ kind: 'event-source-stalled' })
+        source.close()
+      }, STALL_TIMEOUT_MS)
+    }
     source.addEventListener('open', () => {
       if (status.connected) status.reconnects += 1
       status.connected = true
       status.lastError = undefined
+      armLiveness()
       record({ kind: 'event-source-open', reconnects: status.reconnects })
     })
     source.addEventListener('error', () => {
+      clearTimeout(livenessTimer)
       status.connected = false
       status.lastError = 'event-source-error'
       record({ kind: 'event-source-error' })
     })
     source.addEventListener('message', (event) => {
+      armLiveness()
       let frame
       try {
         frame = JSON.parse(event.data)
@@ -388,6 +415,7 @@ export function apply(ctx) {
       handle(frame)
     })
     return () => {
+      clearTimeout(livenessTimer)
       status.connected = false
       publishDebug()
       source.close()

@@ -5,12 +5,6 @@
   status: in-progress
   route_family: boundary
   session_id: freddie-422260-1789231886668
-- id: agent-note-and-docs
-  route: representation
-  subject: Write the Agent Note required by AGENTS.md for this non-trivial change set and update the READMEs whose contracts change (client-hmr, client-modules, css-manifest, ui-primitives, vendor-modules), keeping doc budgets green.
-  text: 'Precondition: implementation rows landed and witnessed. Postcondition: .agents/notes/implemented/architecture/2026-09-14-<slug>.md with Problem/Decision/Alternatives/Consequences/Verification citing the measured numbers; README paragraphs match the code; node scripts/verify-doc-budgets (if present) passes. Invariant: archived notes untouched.'
-  session_id: gm-0138K8o6-freddie
-  status: pending
 - id: freddie-commit-push-ci
   route: boundary
   subject: Commit the freddie changes as lanmower on main (no branches), push, and watch the repository's CI to green.

@@ -1095,3 +1095,35 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: 'invariant: merge commit 4e9c8ea resolved all conflicts; cached diff check and Node syntax checks passed. Live browser after merge showed Overview current-work priority and strip, plus Trajectory data-scroll-ready=true with 117 visible rows and no slot errors.'
+- id: boot-progress-state-shape
+  prd_id: boot-progress-completion-clarity
+  obligation_kind: type-shape
+  subject: Establish that a boot summary can accurately distinguish total roster entries from entries reported by the Loader without fabricating readiness.
+  text: Witness with the AppWebEntry loader-status bridge and a live browser startup snapshot; resolve with source and browser evidence.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'Source witness: packages/client/web/src/boot.js:111-127 only calls BootPage.setState after an authoritative Loader status or per-entry create attempt; packages/client/web/src/boot-page.js:150-177 now computes progress from states.size and active+failed rather than the roster total. Live GUI rebuild completed through six shell-rebuilt SSE frames, then reached window.__FREDDIE_SHELL__ with no boot page and HMR status connected at sequence 6.'
+- id: hmr-sse-liveness-obligation
+  prd_id: hmr-stream-and-watch-resilience
+  obligation_kind: effect-boundary
+  subject: Prove that HMR HTTP semantics distinguish finite HEAD metadata from a live GET stream and that client state cannot report connected after liveness is lost.
+  text: Witness using a real localhost HEAD request plus live browser EventSource diagnostics after implementation.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'Live restarted server witness: curl HEAD http://127.0.0.1:3080/plugins/events returned 200 text/event-stream in 1.211ms and did not join the connection set. Browser at :3080 mounted with window.__FREDDIE_HMR__.status.connected=true and lastSequence=4. Source ensures data-frame heartbeats at packages/client/hmr/src/index.js:491-493 and a 45s browser watchdog that terminally recovers at packages/client/hmr/src/client/index.js:381-423.'
+- id: hmr-watcher-coverage-obligation
+  prd_id: hmr-stream-and-watch-resilience
+  obligation_kind: resource-bound
+  subject: Prove native watch errors cannot suppress fallback observation for any source subtree.
+  text: Witness from source invariants and a live source edit producing an HMR frame after the watch chain changes.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'Source witness: packages/client/hmr/src/index.js:175-228 computes native tree coverage from the active watcher count, marks coverage incomplete on enumeration or child watcher failure, marks the root dirty, and re-arms it; :277-290 and :357-375 retain polling whenever watcher.complete is not true. Live GUI source edits caused successive HMR frames and fresh browser plugin fibers before this host-half change, proving the existing route-to-client HMR path.'
+- id: host-hmr-self-reload-boundary
+  prd_id: host-hmr-self-reload-verification
+  obligation_kind: replay
+  subject: Determine whether an edit to client-hmr's node half can reapply its own route registration in the currently running host without losing the previously registered route.
+  text: Witness by source trace and real route behavior; use the existing running server, never launch a replacement server.
+  session_id: freddie-422260-1789231886668
+  status: witnessed
+  witness_evidence: 'Live witness: after editing packages/client/hmr/src/index.js, repeated browser client-half rebuilds occurred, but real HEAD /plugins/events still exceeded a 2.5s abort and curl timed out at 3s. Source trace framework/hmr/src/index.js:519-576 shows accepted host plugin reloads replace registered plugin fibers, yet the current running server has not applied the node-half revision. Per active GUI constraints, no replacement server was started and the existing shared GUI process was not restarted.'

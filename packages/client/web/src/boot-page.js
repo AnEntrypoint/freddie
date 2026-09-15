@@ -25,6 +25,9 @@ export class BootPage {
   progress
   statusGrid
   renderFrame
+  elapsedTimer
+  startedAt = performance.now()
+  currentId
   states = new Map()
   active = new Set()
   total = 0
@@ -57,6 +60,7 @@ export class BootPage {
     this.card.append(this.wordmark, this.spinner, this.hint, this.progress, this.statusGrid, this.loadingDetail, this.current)
     this.root.append(this.card)
     container.append(this.root)
+    this.elapsedTimer = setInterval(() => { this.scheduleRender() }, 1000)
     this.render()
   }
 
@@ -83,7 +87,8 @@ export class BootPage {
 
   /** Name the entry currently being prepared by the loader. */
   setCurrent(id) {
-    this.current.textContent = id === undefined ? '' : `Preparing ${id}`
+    this.currentId = id
+    this.scheduleRender()
   }
 
   /** Coalesce synchronous Loader status bursts into one visual update. */
@@ -117,6 +122,7 @@ export class BootPage {
   /** Detach the page before or after the UI renderer takes the mount point. */
   dispose() {
     if (this.renderFrame !== undefined) cancelAnimationFrame(this.renderFrame)
+    clearInterval(this.elapsedTimer)
     this.root.remove()
   }
 
@@ -145,26 +151,36 @@ export class BootPage {
 
   /** Grow the rotating arc and derive readiness from the Loader state map. */
   updateProgress() {
-    const ratio = this.total === 0 ? 0 : Math.min(this.active.size / this.total, 1)
     const pending = [...this.states].filter(([, state]) => state === 'pending').map(([id]) => id)
     const failed = [...this.states].filter(([, state]) => state === 'failed').map(([id]) => id)
     const loading = [...this.states].filter(([, state]) => state === 'loading').map(([id]) => id)
+    const reported = this.states.size
+    const settled = this.active.size + failed.length
+    const ratio = reported === 0 ? 0 : Math.min(settled / reported, 1)
+    const elapsed = Math.floor((performance.now() - this.startedAt) / 1000)
     this.spinner.style.setProperty('--freddie-boot-arc', `${String(Math.round(72 + ratio * 216))}deg`)
     this.progress.value = ratio
     this.hint.textContent = this.total === 0
       ? 'Starting Freddie...'
-      : `${String(this.active.size)} of ${String(this.total)} services ready`
+      : reported === 0
+        ? `Discovering ${String(this.total)} client services...`
+        : `${String(settled)} of ${String(reported)} discovered services ready${reported < this.total ? ` · ${String(this.total - reported)} still registering` : ''}`
+    this.current.textContent = this.currentId === undefined
+      ? elapsed === 0 ? '' : `Startup time ${String(elapsed)}s`
+      : `Preparing ${this.currentId} · ${String(elapsed)}s`
     this.loadingDetail.textContent = failed.length > 0
       ? `Startup is blocked by ${String(failed.length)} service${failed.length === 1 ? '' : 's'}: ${failed.join(', ')}`
-      : pending.length > 0
-        ? `Waiting for ${String(pending.length)} ${pending.length === 1 ? 'dependency' : 'dependencies'} to become available`
-        : this.active.size === 0 && this.total > 0
-          ? 'Building the service graph...'
-          : this.active.size === this.total && this.total > 0
-            ? 'Preparing your workspace...'
-            : ''
+      : loading.length > 0
+        ? `Loading ${String(loading.length)} service${loading.length === 1 ? '' : 's'}${this.currentId === undefined ? '' : `, including ${this.currentId}`}`
+        : pending.length > 0
+          ? `Waiting for ${String(pending.length)} ${pending.length === 1 ? 'dependency' : 'dependencies'} to become available`
+          : reported < this.total
+            ? `Discovering the remaining ${String(this.total - reported)} services...`
+            : settled === this.total
+              ? 'Preparing your workspace...'
+              : ''
     this.statusGrid.replaceChildren(
-      this.statusItem('Ready', this.active.size, this.total === 0 ? 'Discovering services' : `${String(this.total)} total`, 'ready'),
+      this.statusItem('Ready', settled, reported === 0 ? `${String(this.total)} expected` : `${String(reported)} discovered`, 'ready'),
       this.statusItem('Loading', loading.length, loading.length === 0 ? 'No active imports' : 'Importing client capability', 'loading'),
       this.statusItem('Waiting', pending.length, pending.length === 0 ? 'Dependencies available' : 'Needs a provider', 'waiting'),
       this.statusItem('Issues', failed.length, failed.length === 0 ? 'No startup failures' : 'Review details below', failed.length === 0 ? 'ready' : 'failed'),

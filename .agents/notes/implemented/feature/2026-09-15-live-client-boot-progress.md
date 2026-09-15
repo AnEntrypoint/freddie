@@ -8,7 +8,7 @@ The framework-free startup page could remain visible while the client plugin tre
 
 ## Decision
 
-`AppWebEntry` projects existing Loader `internal/status` events into `BootPage`. The boot page presents ready services as a native progress value, names the entry being prepared, and summarizes graph construction, dependency waiting, blocked entries, and handoff to the workspace. The page retains the single loader-owned DOM tree and clears when `uiRenderer` mounts.
+`AppWebEntry` projects existing Loader `internal/status` events into `BootPage`. The boot page presents settled services as a native progress value over entries the Loader has actually reported, names the entry being prepared, shows elapsed startup time, and summarizes graph discovery, active loading, dependency waiting, blocked entries, and handoff to the workspace. The complete roster remains visible as an expected count until each entry reports; unregistered rows never dilute the ready fraction. The page retains the single loader-owned DOM tree and clears when `uiRenderer` mounts.
 
 The progress page remains framework-free and uses only local CSS so it can report startup failures when the dynamic renderer is unavailable. Its status text is announced through polite live regions, and the primary status uses the boot page's primary label token to meet contrast requirements.
 
