@@ -14,7 +14,10 @@
 
 import { Context, Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
-import { createApiProxy, DEFAULT_COLD_BLANK_PROBE_MAX_BYTES } from './api-proxy.js'
+import {
+  createApiProxy, DEFAULT_COLD_BLANK_PROBE_MAX_BYTES,
+  DEFAULT_MAX_MUX_BUFFERED_BYTES, DEFAULT_MAX_MUX_BUFFERED_FRAMES,
+} from './api-proxy.js'
 import {
   DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
 } from './session-export.js'
@@ -41,6 +44,8 @@ export class ApiProxyService extends Service {
     sessionExportCompressionLevel: z.number().step(1).min(0).max(9)
       .default(DEFAULT_SESSION_LOG_COMPRESSION_LEVEL),
     coldBlankProbeMaxBytes: z.natural().default(DEFAULT_COLD_BLANK_PROBE_MAX_BYTES),
+    maxMuxBufferedFrames: z.natural().min(1).default(DEFAULT_MAX_MUX_BUFFERED_FRAMES),
+    maxMuxBufferedBytes: z.natural().min(1).default(DEFAULT_MAX_MUX_BUFFERED_BYTES),
   })
 
   sessions
@@ -70,6 +75,12 @@ export class ApiProxyService extends Service {
       ...(config.coldBlankProbeMaxBytes === undefined
         ? {}
         : { coldBlankProbeMaxBytes: config.coldBlankProbeMaxBytes }),
+      ...(config.maxMuxBufferedFrames === undefined
+        ? {}
+        : { maxMuxBufferedFrames: config.maxMuxBufferedFrames }),
+      ...(config.maxMuxBufferedBytes === undefined
+        ? {}
+        : { maxMuxBufferedBytes: config.maxMuxBufferedBytes }),
     })
     this.sessions = api.sessions
     this.subagents = api.subagents

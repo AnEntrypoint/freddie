@@ -36,6 +36,14 @@ function connectionLabel(state) {
   }
 }
 
+function hmrHealth() {
+  const status = globalThis.__FREDDIE_HMR__?.status
+  if (status?.connected !== true) return { value: 'HMR unavailable', detail: 'Hot reload will recover when its event stream is available.' }
+  const sequence = Number.isSafeInteger(status.lastSequence) ? `Frame ${status.lastSequence}` : 'Awaiting first frame'
+  const reconnects = Number.isSafeInteger(status.reconnects) ? status.reconnects : 0
+  return { value: 'HMR healthy', detail: `${sequence} - ${reconnects === 0 ? 'no reconnects' : `${reconnects} reconnect${reconnects === 1 ? '' : 's'}`}` }
+}
+
 function terminalStatus(terminal) {
   return terminal.status?.kind === 'exited'
     ? `Exited ${terminal.status.exitCode ?? terminal.status.signal ?? ''}`.trim()
@@ -48,7 +56,8 @@ function latestWorkflow(workflow) {
 }
 
 function sessionLabel(row) {
-  return `GM session ${row.id.slice(0, 8)}`
+  const title = compactText(row.displayTitle ?? row.title)
+  return title === undefined ? `GM session ${row.id.slice(0, 8)}` : `${title} (${row.id.slice(0, 8)})`
 }
 
 function workflowRuns(nodes) {
@@ -123,9 +132,33 @@ function latestActivityBySession(entries) {
   return latest
 }
 
+function relativeAge(time, now = Date.now()) {
+  if (!Number.isFinite(time)) return 'time unavailable'
+  const elapsed = Math.max(0, now - time)
+  if (elapsed < 1_000) return 'just now'
+  if (elapsed < 60_000) return `${Math.floor(elapsed / 1_000)}s ago`
+  if (elapsed < 3_600_000) return `${Math.floor(elapsed / 60_000)}m ago`
+  return `${Math.floor(elapsed / 3_600_000)}h ago`
+}
+
 function activityDetail(entry) {
   if (entry === undefined) return 'No action reported for this connection.'
-  return `Last observed: ${observedEvent(entry, new Map()).detail}`
+  return `Last observed ${relativeAge(entry.event.time)}: ${observedEvent(entry, new Map()).detail}`
+}
+
+function activityRows(entries, rows, labels) {
+  const latest = latestActivityBySession(entries)
+  return rows.map((row) => {
+    const entry = latest.get(row.id)
+    const activity = entry === undefined ? undefined : observedEvent(entry, labels)
+    const running = row.running === true
+    const state = running ? 'Working now' : row.gm?.active ? 'GM state retained' : 'Last observed'
+    const detail = activity === undefined
+      ? running ? 'Running; no semantic operation has arrived yet.' : 'No recent semantic operation reported.'
+      : `${activity.detail} · ${relativeAge(entry.event.time)}`
+    return { ...row, activity, state, detail, running }
+  }).sort((left, right) => Number(right.running) - Number(left.running)
+    || (right.activity?.key ?? '').localeCompare(left.activity?.key ?? ''))
 }
 
 function formatDuration(ms) {
@@ -208,6 +241,7 @@ export class FreddieObservabilityDock extends HTMLElement {
   #snapshots = new Map()
   #terminalError = null
   #section = 'overview'
+  #onHmr = () => { this.#render() }
 
   setProps(props) {
     this.#props = props
@@ -215,7 +249,12 @@ export class FreddieObservabilityDock extends HTMLElement {
   }
 
   connectedCallback() {
+    globalThis.addEventListener('freddie:hmr', this.#onHmr)
     this.#render()
+  }
+
+  disconnectedCallback() {
+    globalThis.removeEventListener('freddie:hmr', this.#onHmr)
   }
 
   #captureSnapshot(terminal) {
@@ -306,6 +345,7 @@ export class FreddieObservabilityDock extends HTMLElement {
     const sessionStats = props.useProjection('sessionStats')
     const workflow = latestWorkflow(props.useProjection('workflow'))
     const connection = props.useConnection(state => state)
+    const realtime = hmrHealth()
     const terminals = props.useTerminals(state => state)
     const sessionSnapshot = props.useSession(snapshot => snapshot)
     const nodes = [...sessionSnapshot.chat.nodes.values()]
@@ -318,6 +358,8 @@ export class FreddieObservabilityDock extends HTMLElement {
     const treeTerminals = props.useTreeTerminals(state => state)
     const descendantRows = descendants.rows.map(row => ({
       id: row.id,
+      displayTitle: row.displayTitle,
+      title: row.title,
       label: sessionLabel(row),
       running: row.running,
       gm: row.projectionValues?.gmProgress,
@@ -328,6 +370,7 @@ export class FreddieObservabilityDock extends HTMLElement {
     const childActivityEntries = treeActivity.filter(entry => descendantIds.has(entry.sessionId))
     const childActivity = childActivityEntries.slice(-40).reverse().map(entry => observedEvent(entry, descendantLabels)).filter(Boolean)
     const latestChildActivity = latestActivityBySession(childActivityEntries)
+    const boardRows = activityRows(childActivityEntries, descendantRows, descendantLabels)
     const childTerminals = treeTerminals.filter(entry => descendantIds.has(entry.sessionId)).map(entry => ({ ...entry.terminal, observerLabel: descendantLabels.get(entry.sessionId) ?? entry.sessionId }))
     const runs = workflowRuns(nodes)
     const currentActivities = selectedActivities(nodes)
@@ -357,9 +400,9 @@ export class FreddieObservabilityDock extends HTMLElement {
       h('h2', null, 'Agent tree'),
       this.#metric('Direct subagents', `${descendants.directRows.length} total · ${descendants.directRunning} running`, 'Work this session started directly; the full descendant tree remains listed below.'),
       this.#metric('Nested descendants', `${descendants.total - descendants.directRows.length} total · ${descendants.running - descendants.directRunning} running`, 'Subagents started by a direct child.'),
-      descendants.rows.length === 0 ? h('p', { class: css.empty ?? '' }, 'No subagent descendants are recorded.') : h('ol', { class: css.logList ?? '' }, descendantRows.map(row => h('li', { key: row.id },
-        h('strong', null, `${row.label} · ${row.running ? 'running' : 'idle'}`),
-        h('span', null, `${row.gm?.active ? `GM ${phase(row.gm)} · ` : ''}${activityDetail(latestChildActivity.get(row.id))}`),
+      descendants.rows.length === 0 ? h('p', { class: css.empty ?? '' }, 'No subagent descendants are recorded.') : h('ol', { class: css.logList ?? '' }, boardRows.map(row => h('li', { key: row.id },
+        h('strong', null, `${row.label} · ${row.state}`),
+        h('span', null, `${row.gm?.active ? `GM ${phase(row.gm)} · ` : ''}${row.detail}`),
         h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
       ))),
     )
@@ -393,7 +436,8 @@ export class FreddieObservabilityDock extends HTMLElement {
             : h('section', { class: css.panel ?? '', 'data-observability-overview': '' },
               h('div', { class: css.metrics ?? '' },
                 this.#metric('Attention', attention.label, attention.detail),
-                this.#metric('Connection', connectionLabel(connection), connection === 'connected' ? 'Live events are flowing from the agent and server.' : 'The client will reconnect automatically when the stream is available.'),
+                this.#metric('Connection', connectionLabel(connection), connection === 'connected' ? 'Live agent and server events are flowing.' : 'The client will reconnect automatically when the stream is available.'),
+                this.#metric('Hot reload', realtime.value, realtime.detail),
                 this.#metric('Latest activity', now.label, now.detail),
                 this.#metric('GM', phase(gm), gmProgressDetail(gm)),
                 todo === undefined ? null : this.#metric('Plan', todo.value, todo.detail),
@@ -407,18 +451,20 @@ export class FreddieObservabilityDock extends HTMLElement {
                 h('span', { class: css.label ?? '' }, `Earlier · ${activity.label}`),
                 h('span', { class: css.detail ?? '' }, activity.detail),
               )),
-              descendantRows.filter(row => row.running).slice(0, 5).map(row => h('article', { class: css.metric ?? '' },
-                h('span', { class: css.label ?? '' }, row.label),
-                h('strong', { class: css.value ?? '' }, row.gm?.active ? `GM ${phase(row.gm)}` : row.workflow?.status ?? 'Running'),
-                h('span', { class: css.detail ?? '' }, activityDetail(latestChildActivity.get(row.id))),
-                h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
-              )),
-              descendantRows.filter(row => !row.running && latestChildActivity.has(row.id)).slice(0, 3).map(row => h('article', { class: css.metric ?? '' },
-                h('span', { class: css.label ?? '' }, `Recent child · ${row.label}`),
-                h('strong', { class: css.value ?? '' }, row.gm?.active ? `GM ${phase(row.gm)}` : 'Idle'),
-                h('span', { class: css.detail ?? '' }, activityDetail(latestChildActivity.get(row.id))),
-                h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
-              )),
+              h('section', { class: css.activityBoard ?? '', 'aria-label': 'Board-wide agent activity' },
+                h('div', { class: css.panelHeader ?? '' },
+                  h('h2', null, 'Across the board'),
+                  h('span', { class: css.panelCopy ?? '' }, `${boardRows.filter(row => row.running).length} working · ${boardRows.length - boardRows.filter(row => row.running).length} last observed`),
+                ),
+                boardRows.length === 0 ? h('p', { class: css.empty ?? '' }, 'No subagent activity is available yet. New work appears here as it reaches the realtime stream.') : h('ol', { class: css.logList ?? '' }, boardRows.map(row => h('li', { key: row.id, class: css.boardRow ?? '', 'data-state': row.running ? 'working' : 'observed' },
+                  h('div', null,
+                    h('strong', null, row.label),
+                    h('span', { class: css.boardState ?? '' }, row.gm?.active ? `GM ${phase(row.gm)} · ${row.state}` : row.state),
+                    h('span', { class: css.detail ?? '' }, row.detail),
+                  ),
+                  h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
+                ))),
+              ),
             )
     applyDiff(this, h('section', {
       class: css.root ?? '',
@@ -432,7 +478,7 @@ export class FreddieObservabilityDock extends HTMLElement {
           connectionLabel(connection),
         ),
         h('h1', { id: 'freddie-observability-title' }, 'Live operations'),
-        h('p', null, `${descendants.directRunning} direct and ${descendants.running - descendants.directRunning} nested subagents running.`),
+        h('p', null, `${realtime.detail} - ${descendants.directRunning} direct and ${descendants.running - descendants.directRunning} nested subagents running.`),
       ),
       h('nav', { class: css.tabs ?? '', role: 'tablist', 'aria-label': 'Operational views' },
         SECTIONS.map(section => h('button', {

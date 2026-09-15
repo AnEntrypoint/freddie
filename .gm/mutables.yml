@@ -782,14 +782,6 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: User approved continued work while this is investigated. The blocks are missing/unreadable paths in an anomalously deep nested node_modules chain; no HiddenSpawn structural hit was found. Dependency integrity remains a reported installation issue rather than a blocker for GUI code changes.
-- id: dependency-scan-blocked-paths
-  prd_id: gui-live-audit
-  obligation_kind: precondition
-  subject: Dependency scan reported four unreadable/missing paths in the local dependency tree.
-  text: Determine whether the scan findings are stale/broken symlink artifacts or indicate a compromised dependency before trusting installed dependencies.
-  session_id: freddie-422260-1789231886668
-  status: witnessed
-  witness_evidence: Source review at ../gm/rs-plugkit/crates/plugkit-core/src/scan_deps.rs:353-401 shows package-root identity/canonical directory dedup plus node_modules pruning. The active scanner response was produced by an older installed artifact; current gm memory records a rebuilt slim artifact scan with failCount 0 and no recursive symlink traversal. The only remaining /list-packages.js report is a scanner-root path issue, not a dependency payload.
 - id: instruction-sync-concurrency-contract
   prd_id: review-instruction-sync
   obligation_kind: invariant
@@ -803,14 +795,6 @@
   obligation_kind: precondition
   subject: The exact committed diff under review is not yet identified.
   text: Witness by inspecting repository history/diff and matching the changed daemon lines.
-  session_id: freddie-422260-1789231886668
-  status: witnessed
-  witness_evidence: exec_js git status/diff at 1789365003261 shows the only pending target is crates/agentplug-runner/src/daemon.rs and precisely identifies the HashSet, completion channel, completion drain, guarded admission, and worker send lines.
-- id: committed-diff-identification
-  prd_id: review-instruction-source-dedup
-  obligation_kind: precondition
-  subject: The exact committed daemon diff must be identified before adversarial review can conclude.
-  text: Witness by git history/diff matching the pending HashSet and completion-channel daemon lines.
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: exec_js git status/diff at 1789365003261 shows the only pending target is crates/agentplug-runner/src/daemon.rs and precisely identifies the HashSet, completion channel, completion drain, guarded admission, and worker send lines.
@@ -1127,3 +1111,91 @@
   session_id: freddie-422260-1789231886668
   status: witnessed
   witness_evidence: 'Live witness: after editing packages/client/hmr/src/index.js, repeated browser client-half rebuilds occurred, but real HEAD /plugins/events still exceeded a 2.5s abort and curl timed out at 3s. Source trace framework/hmr/src/index.js:519-576 shows accepted host plugin reloads replace registered plugin fibers, yet the current running server has not applied the node-half revision. Per active GUI constraints, no replacement server was started and the existing shared GUI process was not restarted.'
+- id: board-frame-coverage
+  prd_id: activity-board-runtime-feed
+  obligation_kind: invariant
+  subject: Every mux frame relevant to agent/CLI activity reaches the board even if its Session is instantiated.
+  text: 'Witness required: manager frame routing source and live browser observation showing a selected or instantiated child operation remains visible in the board.'
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: packages/client/runtime/src/client/sessions/manager.js:681-715 calls noteActivity for every session/event before the uninstantiated-session return path; :305-311 retains 80 events per session and marks the shared tree source dirty; :327-338 exposes the stable observable source. Live Overview at :3080 rendered two uninstantiated child sessions as board rows, proving retained child activity/state is visible without opening each child.
+- id: overview-freshness-semantics
+  prd_id: overview-now-board
+  obligation_kind: invariant
+  subject: Overview never presents last-observed durable activity as current work without a lifecycle/freshness marker.
+  text: 'Witness required: source records lifecycle/timestamp and browser-visible text distinguishes working, waiting, failed, idle, and last observed.'
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: packages/client/ui-observability/src/client/ObservabilityDock.js:126-153 computes relative age from the durable event timestamp and labels rows Working now, GM state retained, or Last observed; :385-388 and :435-447 render that state and detail. Live Overview at :3080 displayed working versus last-observed board rows, with HMR connected at sequence 701.
+- id: gui-owner-map
+  prd_id: live-gui-baseline
+  obligation_kind: precondition
+  subject: Unknown which package owns the currently rendered realtime dashboard and its server event projection.
+  text: Witness with exhaustive codesearch plus a live browser document inspection.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Live browser opened active session and exposed Chat, Overview, and Trajectory tabs; exact owner is packages/client/ui-observability/src/client/ObservabilityDock.js:324-482 with injection in index.js:29-53. SSE endpoint returned 200 text/event-stream via exec_js.
+- id: gui-performance-baseline
+  prd_id: gui-performance-witness
+  obligation_kind: resource-bound
+  subject: Unknown browser-derived baseline for current GUI load and realtime update work.
+  text: Witness via browser Performance APIs on the actual :3080 page before choosing optimization.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Live browser navigation reported DOMContentLoaded 2892.3ms, load 2896.3ms, 42,658 transfer bytes, and 250 resource entries. HMR journal was connected at sequence 782 with zero reconnects; baseline establishes transport and boot measure.
+- id: immediate-fanout-cause
+  prd_id: critical-script-fanout
+  obligation_kind: precondition
+  subject: Need establish whether critical script preload output is duplicate, over-broad, or needed to preserve mount order.
+  text: Witness source path packages/client/modules/src/index.js and a fresh browser resource timeline before changing preload behavior.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: packages/client/modules/src/index.js:404-417 emits a modulepreload for every script in each immediate row. Live cold baseline showed 109 network scripts. Existing measured comment at :227-236 proves preloading every row worsens mount, so no safe transport change is admitted without a narrower measured experiment.
+- id: gm-event-channel-shape
+  prd_id: gm-gate-detail-propagation
+  obligation_kind: type-shape
+  subject: Need determine how a predicate-produced diagnostic event can be attached to the synchronous gate rejection response without stale cross-dispatch leakage.
+  text: Witness wasm_dispatch events source and transition evaluation flow before changing event propagation.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: wasm_dispatch/events.rs:40-57 emits diagnostics only to host logs, while transitions.rs:629-651 constructs the synchronous denial. The safe design recomputes the same pure offending-line snapshot inside gate_rejection; no shared event buffer or cross-dispatch state is introduced.
+- id: gm-local-rust-toolchain
+  prd_id: gm-gate-detail-propagation
+  obligation_kind: precondition
+  subject: The first real build attempt failed because cargo was not on PATH.
+  text: Witness local Rust toolchain availability and use the actual available toolchain path to build the modified WASM artifact.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: The local toolchain exists at /config/.cargo/bin/cargo, confirmed by direct executable check; build is dispatched through that path.
+- id: observability-hmr-listener-lifecycle
+  prd_id: realtime-productivity-surface
+  obligation_kind: invariant
+  subject: The observability custom element owns one freddie:hmr listener while connected and removes it on disconnect.
+  text: Witness source lifecycle at ObservabilityDock.js:240-253 and a live HMR-updated Overview with current frame state.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: ObservabilityDock.js:240-253 installs freddie:hmr listener only in connectedCallback and removes the same bound listener in disconnectedCallback. Fresh live GUI prior to state sweep showed Overview `Hot reload HMR healthy` at frame 854 with zero reconnects; HEAD endpoint remains 200 text/event-stream.
+- id: gm-gate-diagnostic-totality
+  prd_id: gm-gate-detail-propagation
+  obligation_kind: postcondition
+  subject: Graphical-symbol gate diagnostics have defined results both with and without matching lines and do not retain cross-dispatch mutable state.
+  text: 'Witness rebuilt GM artifact live: a known retained glyph yields an exact line in watcher evidence; removing it allows state transition.'
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Live diagnostic event from .gm/exec-spool/.watcher.log:38267 identified .gm/prd.yml:3 as the exact retained arrow line. After its ASCII replacement, the real transition dispatch 1789480400217 advanced EMIT to STATE, showing no retained gate state.
+- id: gm-gate-diagnostic-concurrency
+  prd_id: gm-gate-detail-propagation
+  obligation_kind: happens-before
+  subject: Gate rejection recomputes only immutable diff output and never shares diagnostic state between dispatches.
+  text: 'Witness transitions.rs recomputation and two sequential live transitions: first names line, second succeeds after the line is removed.'
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: transitions.rs:635-646 recomputes local Vec<String> from the current git diff per rejection, with no shared buffer. Live first transition emitted .gm/prd.yml:3 then subsequent corrected transition advanced to STATE; two concurrent SSE HEAD requests both returned 200 independently.
+- id: gm-gate-diagnostic-security
+  prd_id: gm-gate-detail-propagation
+  obligation_kind: authority
+  subject: Gate diagnostic lines derive only from the local git diff and are returned to the requesting local agent.
+  text: Witness added_lines_in_diff uses local git diff and the diagnostic carries no secret or external authority.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: transitions.rs:208-234 requests only `git diff --unified=0 HEAD` from the current local project and formats changed path/line/text; no remote request, credential, or secret-bearing environment access is used. The exact local requester receives ordinary gate denial text.

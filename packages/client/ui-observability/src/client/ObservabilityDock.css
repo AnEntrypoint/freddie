@@ -228,6 +228,36 @@
 
 .freddie-observability__memberGroup p { margin: 0; }
 
+.freddie-observability__activityBoard {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--freddie-alias-border-l1);
+  border-radius: 12px;
+  background: var(--freddie-alias-bg-base);
+}
+
+.freddie-observability__boardRow {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--freddie-alias-border-l2);
+  border-radius: 8px;
+  background: var(--freddie-alias-interactive-bg-hover);
+}
+
+.freddie-observability__boardRow[data-state='working'] {
+  border-left-color: var(--freddie-alias-label-success);
+}
+
+.freddie-observability__boardState {
+  display: block;
+  color: var(--freddie-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .freddie-observability__output,
 .freddie-observability__snapshot {
   max-height: 260px;

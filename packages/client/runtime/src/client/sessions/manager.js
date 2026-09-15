@@ -85,13 +85,13 @@ export class SessionManager {
   jobsBySession = new Map()
   /** Owner-scoped PTY snapshots and bounded output, fed solely by terminal/activity mux frames. */
   terminalsBySession = new Map()
-  /** Latest non-instantiated durable event per session, retained for parent activity observers. */
-  backgroundActivity = new Map()
+  /** Bounded durable activity ledger for every mux-fed session, including rendered sessions. */
+  activityBySession = new Map()
   /** Coarse observer notification channel for tree activity and session membership changes. */
   treeActivitySnapshot = Object.freeze([])
   treeTerminalSnapshot = Object.freeze([])
   treeActivityNotifier = new Notifier(() => {
-    this.treeActivitySnapshot = Object.freeze([...this.backgroundActivity].flatMap(([sessionId, events]) => events.map(event => Object.freeze({ sessionId, event }))))
+    this.treeActivitySnapshot = Object.freeze([...this.activityBySession].flatMap(([sessionId, events]) => events.map(event => Object.freeze({ sessionId, event }))))
     this.treeTerminalSnapshot = Object.freeze([...this.terminalsBySession].flatMap(([sessionId, store]) => store.getSnapshot().map(terminal => Object.freeze({ sessionId, terminal }))))
   })
   treeActivitySourceCache
@@ -302,11 +302,11 @@ export class SessionManager {
     return store
   }
 
-  /** Bounded durable activity mirror for a session that has no rendered conversation instance. */
-  noteBackgroundActivity(sessionId, event) {
-    const prior = this.backgroundActivity.get(sessionId) ?? []
+  /** Retain bounded durable activity for the board whether or not a conversation is rendered. */
+  noteActivity(sessionId, event) {
+    const prior = this.activityBySession.get(sessionId) ?? []
     const next = [...prior, event]
-    this.backgroundActivity.set(sessionId, next.length <= 80 ? next : next.slice(-80))
+    this.activityBySession.set(sessionId, next.length <= 80 ? next : next.slice(-80))
     this.treeActivityNotifier.markDirty()
   }
 
@@ -324,7 +324,7 @@ export class SessionManager {
     return this.treeTerminalSourceCache
   }
 
-  /** Stable observable snapshot of all unselected-session activity; consumers filter their tree locally. */
+  /** Stable observable snapshot of all mux-fed session activity; consumers filter their tree locally. */
   treeActivitySource() {
     if (this.treeActivitySourceCache === undefined) {
       this.treeActivitySourceCache = {
@@ -691,9 +691,7 @@ export class SessionManager {
       // repaired older user messages from moving the row backwards.
       this.recordMutation({ kind: 'activity', sessionId: frame.sessionId, updatedAt: frame.event.time })
     }
-    if (frame.type === 'session/event' && !this.sessions.has(frame.sessionId)) {
-      this.noteBackgroundActivity(frame.sessionId, frame.event)
-    }
+    if (frame.type === 'session/event') this.noteActivity(frame.sessionId, frame.event)
     if (frame.type === 'session/projection') {
       // Finished host-computed value: land it in the resident store whether or
       // not the Session is instantiated (list rows read the 'title' key). The

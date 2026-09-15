@@ -78,6 +78,10 @@ const SESSION_SEARCH_PROVIDER_CALL_LIMIT = 100
 const COLD_SUMMARY_BATCH_SIZE = 16
 /** Default maximum artifact size eligible for one cold blankness read. */
 export const DEFAULT_COLD_BLANK_PROBE_MAX_BYTES = 1024
+/** Maximum retained frames for one stalled realtime stream before reconnect recovery. */
+export const DEFAULT_MAX_MUX_BUFFERED_FRAMES = 1_000
+/** Maximum retained JSON payload bytes for one stalled realtime stream before reconnect recovery. */
+export const DEFAULT_MAX_MUX_BUFFERED_BYTES = 1_048_576
 
 /** Conversation message event types (the pagination counting unit). */
 const MESSAGE_TYPES = new Set(['user/message', 'assistant/message'])
@@ -303,16 +307,51 @@ function presetFailure(request, error) {
   return undefined
 }
 
-/** Simple async queue: core callbacks push, the AsyncIterable pulls; abort/return cleans up. */
+/** Cached UTF-8 JSON costs keep broadcast accounting linear in frames, not clients. */
+const frameByteSizes = new WeakMap()
+
+/** UTF-8 JSON cost of one queued narrow ServerRequest before carrier framing. */
+function frameBytes(item) {
+  const cached = frameByteSizes.get(item)
+  if (cached !== undefined) return cached
+  const bytes = Buffer.byteLength(JSON.stringify(item), 'utf8')
+  frameByteSizes.set(item, bytes)
+  return bytes
+}
+
+/**
+ * Bounded async queue for one realtime stream. A slow client closes and
+ * reconnects for authoritative baselines instead of retaining stale frames
+ * without bound; ordered session data is never silently dropped.
+ */
 class FrameQueue {
   buffer = []
+  bufferedBytes = 0
   waiter
   done = false
+  overflowed = false
+  maxFrames
+  maxBytes
+
+  constructor({ maxFrames, maxBytes }) {
+    this.maxFrames = maxFrames
+    this.maxBytes = maxBytes
+  }
 
   push(item) {
-    if (this.done) return
-    this.buffer.push(item)
+    if (this.done) return false
+    const bytes = frameBytes(item)
+    if (this.buffer.length >= this.maxFrames || this.bufferedBytes + bytes > this.maxBytes) {
+      this.overflowed = true
+      this.buffer.length = 0
+      this.bufferedBytes = 0
+      this.end()
+      return false
+    }
+    this.buffer.push({ item, bytes })
+    this.bufferedBytes += bytes
     this.waiter?.()
+    return true
   }
 
   end() {
@@ -325,7 +364,11 @@ class FrameQueue {
     signal.addEventListener('abort', onAbort, { once: true })
     try {
       while (true) {
-        while (this.buffer.length > 0) yield this.buffer.shift()
+        while (this.buffer.length > 0) {
+          const next = this.buffer.shift()
+          this.bufferedBytes -= next.bytes
+          yield next.item
+        }
         if (this.done || signal.aborted) return
         await new Promise((resolve) => { this.waiter = resolve })
         this.waiter = undefined
@@ -875,6 +918,10 @@ export function createApiProxy(ctx, defaults) {
     ?? DEFAULT_SESSION_LOG_COMPRESSION_LEVEL
   const coldBlankProbeMaxBytes = defaults.coldBlankProbeMaxBytes
     ?? DEFAULT_COLD_BLANK_PROBE_MAX_BYTES
+  const maxMuxBufferedFrames = defaults.maxMuxBufferedFrames
+    ?? DEFAULT_MAX_MUX_BUFFERED_FRAMES
+  const maxMuxBufferedBytes = defaults.maxMuxBufferedBytes
+    ?? DEFAULT_MAX_MUX_BUFFERED_BYTES
   /** The seed model each create/resume declares; re-read so it never goes stale. */
   const agentOptions = () => {
     const { provider, model } = defaults.defaultModelSelection()
@@ -3420,7 +3467,7 @@ export function createApiProxy(ctx, defaults) {
 
     events: {
       mux(_request, signal) {
-        const queue = new FrameQueue()
+        const queue = new FrameQueue({ maxFrames: maxMuxBufferedFrames, maxBytes: maxMuxBufferedBytes })
         muxQueues.add(queue)
         for (const session of ctx.sessions.list()) {
           subscribeSession(queue, session)
@@ -3534,7 +3581,7 @@ export function createApiProxy(ctx, defaults) {
       },
 
       host(_request, signal) {
-        const queue = new FrameQueue()
+        const queue = new FrameQueue({ maxFrames: maxMuxBufferedFrames, maxBytes: maxMuxBufferedBytes })
         const committedWorkspaces = ctx.workspaceRegistry.list()
         const committedWorkspaceIds = new Set(
           committedWorkspaces.map(workspace => String(workspace.id)),

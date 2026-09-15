@@ -33,5 +33,8 @@ const css = {
   priority: 'freddie-observability__priority',
   priorityState: 'freddie-observability__priorityState',
   priorityAction: 'freddie-observability__priorityAction',
+  activityBoard: 'freddie-observability__activityBoard',
+  boardRow: 'freddie-observability__boardRow',
+  boardState: 'freddie-observability__boardState',
 }
 export default css
