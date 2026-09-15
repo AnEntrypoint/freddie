@@ -391,10 +391,9 @@ export class Session {
     this.events = []
     this.views = []
     this.baseSeq = 0
-    // Superseded, not settled: the baseline replay re-sends still-pending requested frames verbatim
-    // (same rpcId), re-minting fresh waits; a stale reference's respond() still reaches the host.
-    this.pending.clear()
-    this.pendingRev++
+    // Answerable waits re-baseline on session/subscribed, before that stream's
+    // replayed requests arrive. Leaving them intact here avoids deleting a new
+    // replay that reaches this Session before connection readiness completes.
     this.subscribedLastSeq = null
     this.liveBuffer = []
     this.notifier.markDirty()
@@ -453,11 +452,19 @@ export class Session {
       }
       case 'session/subscribed': {
         this.subscribedLastSeq = frame.lastSeq
+        // The host sends every answerable wait after this same-stream baseline.
+        // Clear only here so a replayed question cannot be erased by the later
+        // history resync that follows connection readiness.
+        const pendingReset = this.pending.size > 0
+        if (pendingReset) {
+          this.pending.clear()
+          this.pendingRev++
+        }
         // New mux-generation baseline: the host pushes this session's queue
         // snapshot AFTER the subscribed frame on the same stream, so the
         // stale mirror clears here — race-free against onConnected/resync
         // timing (clearing there could wipe a baseline that already landed).
-        if (this.queueMirror.reset()) this.notifier.markDirty()
+        if (pendingReset || this.queueMirror.reset()) this.notifier.markDirty()
         return
       }
       case 'approval/requested': {

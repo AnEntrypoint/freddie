@@ -378,6 +378,7 @@ export function apply(ctx) {
   }
 
   ctx.effect(() => {
+    let opened = false
     const source = new EventSource(EVENTS_ENDPOINT)
     const armLiveness = () => {
       clearTimeout(livenessTimer)
@@ -389,7 +390,8 @@ export function apply(ctx) {
       }, STALL_TIMEOUT_MS)
     }
     source.addEventListener('open', () => {
-      if (status.connected) status.reconnects += 1
+      if (opened) status.reconnects += 1
+      opened = true
       status.connected = true
       status.lastError = undefined
       armLiveness()

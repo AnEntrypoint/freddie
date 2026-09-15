@@ -1185,6 +1185,10 @@ export function createApiProxy(ctx, defaults) {
 
   const disposeProvider = ctx.userQuestions.registerProvider({
     ask(request) {
+      if (request.signal?.aborted === true) {
+        return Promise.reject(new UserQuestionError(
+          'ask_user_question was aborted before the user answered', 'ASK_ABORTED'))
+      }
       const sessionId = request.agent?.id
       if (sessionId === undefined) {
         return Promise.reject(new UserQuestionError(

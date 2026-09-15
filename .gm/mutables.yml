@@ -1231,3 +1231,19 @@
   session_id: freddie-3513999-1789467163370
   status: witnessed
   witness_evidence: manager.js:828-850 invokes clearTreeActivity only under !durableSubagent, preserving detached durable child lineage. Fresh browser boot saw window.__FREDDIE_BOOT__ and __FREDDIE_SHELL__ true after the runtime source reload.
+- id: question-lifecycle-owner
+  prd_id: map-client-realtime-flow
+  obligation_kind: type-shape
+  subject: The authoritative event/API shape that represents pending user questions and their settlement.
+  text: Witness exact definitions and client consumers via source locations plus a live transport observation.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Live browser session rendered a host-originated pending question through the real model tool; source chain is tool-ask-user/src/index.js:79-97 -> apiproxy/src/api-proxy.js:1186-1212 -> runtime sessions/session.js:476-485 -> ui-user-questions QuestionComposer. The reconnect ordering risk is evidenced by session resync clearing pending at session.js:394-397 after mux frames may arrive.
+- id: overview-current-sections
+  prd_id: audit-overview-utility
+  obligation_kind: precondition
+  subject: The exact set of active Overview sections in the actual served GUI.
+  text: Witness from the live DOM and the known Overview component source.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Live browser at http://127.0.0.1:3080 rendered Overview, Workflows, GM, Subagents, and Terminals; source owner packages/client/ui-observability/src/client/ObservabilityDock.js:5-11 and :428-500.
