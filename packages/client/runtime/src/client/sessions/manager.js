@@ -310,6 +310,13 @@ export class SessionManager {
     this.treeActivityNotifier.markDirty()
   }
 
+  /** Remove live-only retention for a session that left the visible workspace. */
+  clearTreeActivity(sessionId) {
+    const activity = this.activityBySession.delete(sessionId)
+    const terminals = this.terminalsBySession.delete(sessionId)
+    if (activity || terminals) this.treeActivityNotifier.markDirty()
+  }
+
   /** Stable observable snapshot of terminal activity for every mux-fed session. */
   treeTerminalSource() {
     if (this.treeTerminalSourceCache === undefined) {
@@ -839,7 +846,7 @@ export class SessionManager {
         // no relative order. Clearing here makes a detached Activation's rows
         // disappear whichever arrives first.
         this.jobsBySession.delete(frame.sessionId)
-        this.terminalsBySession.delete(frame.sessionId)
+        if (!durableSubagent) this.clearTreeActivity(frame.sessionId)
         if (!durableSubagent) this.projectionStores.delete(frame.sessionId)
         // A pull already in flight was requested before this removal and can
         // carry the pre-removal parentAvailable:true, which would resurrect
