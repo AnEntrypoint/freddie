@@ -16,27 +16,41 @@ export const name = 'tool-gm'
 export const inject = ['tools', 'gm']
 
 /**
- * Reduce one successful GM response to the complete durable progress snapshot.
- * Missing GM fields are represented by `null`; the event remains log-only and
- * is safe for older readers to skip.
- * @param value - parsed response returned by the GM daemon.
- * @param sessionId - the configured GM session id used when the response omits one.
- * @param active - whether the source response identifies the configured GM session as active.
+ * Reduce one GM dispatch lifecycle event to complete durable state.
+ * @param dispatch - the verb, lifecycle status, timing, value, or error.
+ * @param sessionId - configured GM session id used when the response omits one.
+ * @param previous - prior whole snapshot for retaining semantic state on errors.
  * @returns a losslessly JSON-serializable GM progress record.
  */
-export function gmProgressSnapshot(value, sessionId, active) {
-  const data = value !== null && typeof value === 'object' ? value.data : undefined
-  const source = data !== null && typeof data === 'object' ? data : {}
+export function gmProgressSnapshot(dispatch, sessionId, previous) {
+  const value = dispatch.value
+  const response = value !== null && typeof value === 'object' ? value : {}
+  const data = response.data !== null && typeof response.data === 'object' ? response.data : {}
+  const failedResponse = response.ok === false
+  const error = dispatch.error === undefined
+    ? typeof response.error === 'string' ? response.error : null
+    : dispatch.error instanceof Error ? dispatch.error.message : String(dispatch.error)
+  const status = dispatch.status === 'running'
+    ? 'running'
+    : dispatch.status === 'failed' || failedResponse ? 'failed' : 'completed'
+  const startedAt = Number.isSafeInteger(dispatch.startedAt) ? dispatch.startedAt : Date.now()
+  const finishedAt = Number.isSafeInteger(dispatch.finishedAt) ? dispatch.finishedAt : null
   return {
-    phase: typeof source.phase === 'string' ? source.phase : null,
-    prdPendingCount: typeof source.prd_pending_count === 'number'
-      ? source.prd_pending_count
-      : typeof source.prd_pending === 'number' ? source.prd_pending : null,
-    mutablesPendingCount: typeof source.mutables_pending_count === 'number'
-      ? source.mutables_pending_count
-      : null,
-    sessionId: typeof source.session_id === 'string' ? source.session_id : sessionId,
-    active,
+    verb: dispatch.verb,
+    status,
+    phase: typeof data.phase === 'string' ? data.phase : previous?.phase ?? null,
+    prdPendingCount: typeof data.prd_pending_count === 'number'
+      ? data.prd_pending_count
+      : typeof data.prd_pending === 'number' ? data.prd_pending : previous?.prdPendingCount ?? null,
+    mutablesPendingCount: typeof data.mutables_pending_count === 'number'
+      ? data.mutables_pending_count
+      : previous?.mutablesPendingCount ?? null,
+    sessionId: typeof data.session_id === 'string' ? data.session_id : sessionId,
+    belongsToConfiguredSession: typeof data.session_id !== 'string' || data.session_id === sessionId,
+    startedAt,
+    finishedAt,
+    durationMs: finishedAt === null ? null : Math.max(0, finishedAt - startedAt),
+    error,
   }
 }
 
@@ -45,15 +59,13 @@ export function gmProgressSnapshot(value, sessionId, active) {
  * @param ctx - plugin context carrying the tool registry and `ctx.gm`.
  */
 export function apply(ctx) {
-  for (const tool of buildGmTools(ctx.gm, (value, exec) => {
+  const latestBySession = new WeakMap()
+  for (const tool of buildGmTools(ctx.gm, (dispatch, exec) => {
     const session = exec.agent?.session
     if (session === undefined) return
-    const responseSessionId = value?.data?.session_id
-    const snapshot = gmProgressSnapshot(
-      value,
-      ctx.gm.config.sessionId,
-      responseSessionId === undefined || responseSessionId === ctx.gm.config.sessionId,
-    )
+    const previous = latestBySession.get(session)
+    const snapshot = gmProgressSnapshot(dispatch, ctx.gm.config.sessionId, previous)
+    latestBySession.set(session, snapshot)
     session.append('gm/progress', snapshot, { ignorable: true })
   })) {
     ctx.tools.register(tool)

@@ -2,30 +2,11 @@
 
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import './ObservabilityDock.js'
-import './OperationsStrip.js'
-import './HmrNotice.js'
 
 export const inject = ['connection', 'sessions', 'slots']
 
-/** Mount operational activity as a dedicated session view rather than crowding the composer. */
+/** Mount operational activity as a dedicated session view. */
 export function apply(ctx) {
-  ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
-    name: 'conversation.session.header.utilities',
-    id: 'operations',
-    order: -100,
-    inject: (sessionId) => ({
-      sessionId,
-      hooks: { connection: ctx.connection.state },
-    }),
-  }, webjsxSlot('freddie-operations-strip')))
-  // Transient dev notice for host/client hot reloads, fed by the client-hmr
-  // journal event on window; it shares the operations strip's utilities area.
-  ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
-    name: 'conversation.session.header.utilities',
-    id: 'hmr-notice',
-    order: -90,
-    inject: (sessionId) => ({ sessionId }),
-  }, webjsxSlot('freddie-hmr-notice')))
   ctx.slots.inject('conversation.view', () => ctx.slots.register({
     name: 'conversation.view',
     id: 'observability',

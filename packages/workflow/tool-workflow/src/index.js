@@ -19,6 +19,7 @@ export const inject = ['sessionProjections', 'tools', 'workflowEngine', 'systemP
 export const Config = z.object({
   toolName: z.string().default('workflow'),
   maxResultChars: z.natural().min(1).default(50_000),
+  enableRunInBackground: z.boolean().default(true),
 })
 
 /** Render a contained recording failure without trusting the thrown value. */
@@ -28,6 +29,10 @@ function renderRecordingError(error) {
   } catch {
     return '[unrenderable thrown value]'
   }
+}
+
+function backgroundWorkflowUnavailable() {
+  return new Error('background workflows require @freddie/freddie-jobs and @freddie/freddie-tool-jobs')
 }
 
 /**
@@ -171,7 +176,7 @@ Script-body hooks:
 
 Misused hooks (bad arguments, unknown options, unsupported schemas, tripped caps) throw errors that ALWAYS kill the script — they never dissolve into a per-item \`null\`.
 
-Constraints: concurrency and total-agent caps apply; no filesystem, network, timers, or Node.js APIs are provided — the agents do the work, the script only coordinates them. The run executes in the foreground: this call returns when the whole script finishes.`
+Constraints: concurrency and total-agent caps apply; no filesystem, network, timers, or Node.js APIs are provided — the agents do the work, the script only coordinates them. The run executes in the foreground unless \`run_in_background: true\`, which returns an owner-controlled job id immediately; use \`job_output\` to observe it and \`job_kill\` to cancel it.`
 
 /** The pending-state card: a generic card titled by the workflow's meta name. */
 function presentWorkflowCall(args) {
@@ -219,7 +224,7 @@ export function apply(ctx, config) {
   ctx.sessionProjections.register(workflowProjectionDefinition)
   // schemastery (the exported Config schema) has already filled the defaulted
   // fields; this reads that resolution, not a hidden fallback.
-  const { toolName, maxResultChars } = config
+  const { toolName, maxResultChars, enableRunInBackground } = config
   const recorder = createWorkflowRecorder(ctx)
   // Usage policy ships with the tool (the master convention: tool guidance
   // lives in tool plugins as prompt sections, not in the deployment persona).
@@ -267,20 +272,41 @@ export function apply(ctx, config) {
         additionalProperties: true,
         description: 'Optional JSON input exposed to the script as the `args` global (wrap a bare list as a field, e.g. {"files": [...]}).',
       },
+      ...enableRunInBackground ? {
+        run_in_background: {
+          type: 'boolean',
+          description: 'Whether to start an owner-controlled background workflow and return its job id. Defaults to false.',
+        },
+      } : {},
     },
     output: {
       schema: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          runId: { type: 'string', required: true },
-          agentsStarted: { type: 'integer', required: true },
-          result: { type: 'json', required: true },
-        },
+        oneOf: [
+          {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              kind: { type: 'string', required: true, const: 'foreground' },
+              runId: { type: 'string', required: true },
+              agentsStarted: { type: 'integer', required: true },
+              result: { type: 'json', required: true },
+            },
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              kind: { type: 'string', required: true, const: 'background' },
+              jobId: { type: 'string', required: true },
+            },
+          },
+        ],
       },
       render: (args, value) => [{
         type: 'text',
-        text: renderResult(args.meta.name, value.agentsStarted, value.result, maxResultChars),
+        text: value.kind === 'background'
+          ? `started background workflow ${args.meta.name} (${value.jobId})`
+          : renderResult(args.meta.name, value.agentsStarted, value.result, maxResultChars),
       }],
     },
     async execute(args, exec) {
@@ -292,24 +318,56 @@ export function apply(ctx, config) {
         throw new Error('workflow tool requires a calling agent (exec.agent was undefined)')
       }
 
-      // Meta/body validation failures (META_INVALID/SCRIPT_PARSE) throw
-      // synchronously here and become isError results via the registry — the
-      // model sees the violation list and can correct the call.
-      const run = ctx.workflowEngine.start({
+      const startRun = signal => ctx.workflowEngine.start({
         script: args.script,
         meta: args.meta,
         ...args.args !== undefined ? { args: args.args } : {},
         parent,
-        signal: exec.signal,
+        signal,
       })
       const recordsRun = exec.parent === undefined
-      // The shipped worker-thread engine publishes member events from later
-      // worker messages, after start() returns and this run record is active.
-      if (recordsRun) recorder.start(parent.session, run)
+      if (args.run_in_background === true) {
+        if (!enableRunInBackground) return Promise.reject(new Error('background workflow execution is disabled by tool-workflow configuration'))
+        const jobs = ctx.get('jobs')
+        if (jobs === undefined) return Promise.reject(backgroundWorkflowUnavailable())
+        const jobId = jobs.start({
+          kind: 'workflow',
+          label: args.meta.name,
+          owner: parent,
+          run: () => {
+            const controller = new AbortController()
+            const run = startRun(controller.signal)
+            if (recordsRun) recorder.start(parent.session, run)
+            let result
+            const done = run.result.then(async settled => {
+              result = settled
+              try {
+                await run.dispose()
+              } catch (error) {
+                if (recordsRun) recorder.finish(run.id, 'error')
+                return { status: 'failed', detail: `workflow cleanup failed: ${renderRecordingError(error)}` }
+              }
+              if (recordsRun) recorder.finish(run.id, settled.stopReason)
+              const error = stopReasonError(settled)
+              return {
+                status: error === undefined ? 'completed' : settled.stopReason === 'cancelled' ? 'killed' : 'failed',
+                detail: error ?? `workflow ${run.meta.name} completed (${settled.agentsStarted} agents)`,
+              }
+            }).finally(() => {
+              if (recordsRun) recorder.abandon(run.id)
+              void result
+            })
+            return {
+              cancel: reason => { run.cancel(reason ?? 'background workflow killed') },
+              done,
+            }
+          },
+        })
+        return { kind: 'background', jobId }
+      }
 
-      // Bridge the tool's abort signal to the run: if the parent step is aborted while the
-      // script is in flight, cancel the whole run. The signal also enters the engine directly, but
-      // this local bridge preserves the tool contract even if an implementation ignores it.
+      const run = startRun(exec.signal)
+      if (recordsRun) recorder.start(parent.session, run)
       const onAbort = () => { run.cancel('parent step aborted') }
       exec.signal.addEventListener('abort', onAbort, { once: true })
 
@@ -317,12 +375,9 @@ export function apply(ctx, config) {
       try {
         result = await run.result
         const error = stopReasonError(result)
-        if (error !== undefined) {
-          // Map a non-clean finish to an isError result (the registry turns a
-          // throw into an isError). Report the reason, not partial output.
-          throw new Error(error)
-        }
+        if (error !== undefined) throw new Error(error)
         return {
+          kind: 'foreground',
           runId: run.id,
           agentsStarted: result.agentsStarted,
           result: result.value,
@@ -330,11 +385,8 @@ export function apply(ctx, config) {
       } finally {
         exec.signal.removeEventListener('abort', onAbort)
         try {
-          // Keep member listeners alive through disposal: an engine may
-          // synthesize cancelled member endings while reaching quiescence.
           await run.dispose()
           if (recordsRun) {
-            /* v8 ignore next -- WorkflowRun.result never rejects by contract, so result is assigned before finally. */
             if (result === undefined) throw new Error('workflow run settled without a result')
             recorder.finish(run.id, result.stopReason)
           }

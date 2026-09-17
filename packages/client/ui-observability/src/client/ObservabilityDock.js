@@ -15,16 +15,19 @@ function count(value) {
 }
 
 function phase(value) {
-  if (!value?.active) return 'Waiting for GM activity'
-  return value.phase ?? 'Active'
+  if (value?.status === 'running') return value.phase === null ? `Running ${value.verb ?? 'GM'}` : value.phase
+  if (value?.phase !== null && value?.phase !== undefined) return value.phase
+  return 'No GM checkpoint'
 }
 
 function gmProgressDetail(value) {
-  if (!value?.active) return 'No current GM state reported.'
-  const planned = count(value.prdPendingCount)
-  const obligations = count(value.mutablesPendingCount)
-  if (planned === undefined && obligations === undefined) return 'Work counts not reported.'
-  return [planned === undefined ? undefined : `${planned} planned`, obligations === undefined ? undefined : `${obligations} obligations`].filter(Boolean).join(' · ')
+  if (value?.status === 'running') return `${value.verb ?? 'GM dispatch'} running since ${relativeAge(value.startedAt)}`
+  const planned = count(value?.prdPendingCount)
+  const obligations = count(value?.mutablesPendingCount)
+  const state = [planned === undefined ? undefined : `${planned} planned`, obligations === undefined ? undefined : `${obligations} obligations`].filter(Boolean)
+  if (value?.status === 'failed') state.unshift(`Failed ${value.verb ?? 'GM dispatch'}${value.error === null || value.error === undefined ? '' : `: ${value.error}`}`)
+  if (value?.durationMs !== null && value?.durationMs !== undefined) state.push(`last dispatch ${formatDuration(value.durationMs)}`)
+  return state.length === 0 ? 'No GM dispatch has completed in this session.' : state.join(' · ')
 }
 
 function connectionLabel(state) {
@@ -34,14 +37,6 @@ function connectionLabel(state) {
     case 'offline': return 'Realtime updates offline'
     default: return 'Connecting live updates'
   }
-}
-
-function hmrHealth() {
-  const status = globalThis.__FREDDIE_HMR__?.status
-  if (status?.connected !== true) return { value: 'HMR unavailable', detail: 'Hot reload will recover when its event stream is available.' }
-  const sequence = Number.isSafeInteger(status.lastSequence) ? `Frame ${status.lastSequence}` : 'Awaiting first frame'
-  const reconnects = Number.isSafeInteger(status.reconnects) ? status.reconnects : 0
-  return { value: 'HMR healthy', detail: `${sequence} - ${reconnects === 0 ? 'no reconnects' : `${reconnects} reconnect${reconnects === 1 ? '' : 's'}`}` }
 }
 
 function terminalStatus(terminal) {
@@ -119,7 +114,7 @@ function observedEvent(entry, labels) {
   const event = entry.event
   if (event.type === 'tool-workflow/log') return { key: `${entry.sessionId}:${event.seq}`, label: `Child workflow · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.data.message }
   if (event.type === 'tool-workflow/phase') return { key: `${entry.sessionId}:${event.seq}`, label: `Child workflow · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: `Phase: ${event.data.title}` }
-  if (event.type === 'gm/progress') return { key: `${entry.sessionId}:${event.seq}`, label: `Child GM · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.data.phase ?? 'Progress recorded' }
+  if (event.type === 'gm/progress') return { key: `${entry.sessionId}:${event.seq}`, label: `Child GM · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: event.data.status === 'running' ? `Running ${event.data.verb ?? 'GM dispatch'}` : event.data.status === 'failed' ? `Failed ${event.data.verb ?? 'GM dispatch'}` : event.data.phase ?? `Completed ${event.data.verb ?? 'GM dispatch'}` }
   if (event.type === 'tool/call') return { key: `${entry.sessionId}:${event.seq}`, label: `Child tool · ${labels.get(entry.sessionId) ?? entry.sessionId}`, detail: operationLabel(event.data.name) }
   return undefined
 }
@@ -152,7 +147,7 @@ function activityRows(entries, rows, labels) {
     const entry = latest.get(row.id)
     const activity = entry === undefined ? undefined : observedEvent(entry, labels)
     const running = row.running === true
-    const state = running ? 'Working now' : row.gm?.active ? 'GM state retained' : 'Last observed'
+    const state = running ? 'Working now' : row.gm?.status === 'failed' ? 'GM needs attention' : row.gm?.phase !== null && row.gm?.phase !== undefined ? 'GM checkpoint retained' : 'Last observed'
     const detail = activity === undefined
       ? running ? 'Running; no semantic operation has arrived yet.' : 'No recent semantic operation reported.'
       : `${activity.detail} · ${relativeAge(entry.event.time)}`
@@ -241,7 +236,6 @@ export class FreddieObservabilityDock extends HTMLElement {
   #snapshots = new Map()
   #terminalError = null
   #section = 'overview'
-  #onHmr = () => { this.#render() }
 
   setProps(props) {
     this.#props = props
@@ -249,12 +243,7 @@ export class FreddieObservabilityDock extends HTMLElement {
   }
 
   connectedCallback() {
-    globalThis.addEventListener('freddie:hmr', this.#onHmr)
     this.#render()
-  }
-
-  disconnectedCallback() {
-    globalThis.removeEventListener('freddie:hmr', this.#onHmr)
   }
 
   #captureSnapshot(terminal) {
@@ -271,10 +260,8 @@ export class FreddieObservabilityDock extends HTMLElement {
     const props = this.#props
     if (props === null || data.length === 0) return
     void props.inputTerminal(terminal.sessionId, data).then((response) => {
-      if (response.result?.ok !== true) {
-        this.#terminalError = response.result?.error?.message ?? 'Terminal input was rejected'
-        this.#render()
-      }
+      this.#terminalError = response.result?.ok === true ? null : response.result?.error?.message ?? 'Terminal input was rejected'
+      this.#render()
     })
   }
 
@@ -282,10 +269,8 @@ export class FreddieObservabilityDock extends HTMLElement {
     const props = this.#props
     if (props === null) return
     void props.openTerminal().then((response) => {
-      if (response.result?.ok !== true) {
-        this.#terminalError = response.result?.error?.message ?? 'Terminal creation was rejected'
-        this.#render()
-      }
+      this.#terminalError = response.result?.ok === true ? null : response.result?.error?.message ?? 'Terminal creation was rejected'
+      this.#render()
     })
   }
 
@@ -303,6 +288,7 @@ export class FreddieObservabilityDock extends HTMLElement {
   }
 
   #terminal(terminal, interactive) {
+    const running = terminal.status?.kind !== 'exited'
     return h('article', { key: `${terminal.sessionId}:${terminal.name ?? ''}`, class: css.terminal ?? '', 'data-terminal-id': terminal.sessionId },
       h('div', { class: css.terminalHeader ?? '' },
         h('code', null, terminal.name ?? terminal.sessionId),
@@ -311,7 +297,7 @@ export class FreddieObservabilityDock extends HTMLElement {
       ),
       h('pre', { class: css.output ?? '', 'aria-label': `Terminal output for ${terminal.name ?? terminal.sessionId}` }, terminal.output || terminal.motd || ''),
       this.#snapshots.get(terminal.sessionId) === undefined ? null : h('pre', { class: css.snapshot ?? '', 'aria-label': 'Terminal snapshot' }, this.#snapshots.get(terminal.sessionId)),
-      !interactive ? null : h('input', {
+      !interactive || !running ? null : h('input', {
         class: css.input ?? '',
         'aria-label': `Input for terminal ${terminal.name ?? terminal.sessionId}`,
         placeholder: 'Command or terminal input',
@@ -329,9 +315,8 @@ export class FreddieObservabilityDock extends HTMLElement {
       }),
       !interactive ? null : h('div', { class: css.controls ?? '' },
         h('button', { type: 'button', class: css.action ?? '', onclick: () => { this.#captureSnapshot(terminal) } }, 'Snapshot'),
-        h('button', { type: 'button', class: css.action ?? '', onclick: () => { void this.#props.resizeTerminal(terminal.sessionId, 100, 30) } }, '100×30'),
-        h('button', { type: 'button', class: css.action ?? '', onclick: () => { this.#send(terminal, '\u0003') } }, 'Interrupt'),
-        h('button', { type: 'button', class: css.action ?? '', onclick: () => { void this.#props.closeTerminal(terminal.sessionId) } }, 'Close'),
+        !running ? null : h('button', { type: 'button', class: css.action ?? '', onclick: () => { this.#send(terminal, '\u0003') } }, 'Interrupt'),
+        !running ? null : h('button', { type: 'button', class: css.action ?? '', onclick: () => { void this.#props.closeTerminal(terminal.sessionId) } }, 'Close'),
       ),
     )
   }
@@ -345,7 +330,6 @@ export class FreddieObservabilityDock extends HTMLElement {
     const sessionStats = props.useProjection('sessionStats')
     const workflow = latestWorkflow(props.useProjection('workflow'))
     const connection = props.useConnection(state => state)
-    const realtime = hmrHealth()
     const terminals = props.useTerminals(state => state)
     const sessionSnapshot = props.useSession(snapshot => snapshot)
     const nodes = [...sessionSnapshot.chat.nodes.values()]
@@ -377,7 +361,7 @@ export class FreddieObservabilityDock extends HTMLElement {
     const currentActivity = currentActivities[0]
     const now = todo === undefined
       ? currentActivity === undefined
-        ? { label: gm?.active ? `GM ${phase(gm)}` : 'Waiting', detail: gmProgressDetail(gm) }
+        ? { label: gm?.status === 'running' ? `GM ${phase(gm)}` : 'Waiting', detail: gmProgressDetail(gm) }
         : currentActivity
       : { label: todo.value, detail: todo.detail }
     const active = this.#section
@@ -402,7 +386,7 @@ export class FreddieObservabilityDock extends HTMLElement {
       this.#metric('Nested descendants', `${descendants.total - descendants.directRows.length} total · ${descendants.running - descendants.directRunning} running`, 'Subagents started by a direct child.'),
       descendants.rows.length === 0 ? h('p', { class: css.empty ?? '' }, 'No subagent descendants are recorded.') : h('ol', { class: css.logList ?? '' }, boardRows.map(row => h('li', { key: row.id },
         h('strong', null, `${row.label} · ${row.state}`),
-        h('span', null, `${row.gm?.active ? `GM ${phase(row.gm)} · ` : ''}${row.detail}`),
+        h('span', null, `${row.gm?.status === 'running' ? `GM ${phase(row.gm)} · ` : ''}${row.detail}`),
         h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
       ))),
     )
@@ -423,12 +407,21 @@ export class FreddieObservabilityDock extends HTMLElement {
         h('span', { class: css.detail ?? '' }, todo.detail),
       ),
       descendants.running === 0 ? null : h('button', { type: 'button', class: css.priorityAction ?? '', onclick: () => { this.#select('subagents') } }, `${descendants.running} subagent${descendants.running === 1 ? '' : 's'} running`),
-      gm?.active !== true ? null : h('button', { type: 'button', class: css.priorityAction ?? '', onclick: () => { this.#select('gm') } }, `Open GM ${phase(gm)}`),
+      gm?.status === 'idle' || gm === undefined ? null : h('button', { type: 'button', class: css.priorityAction ?? '', onclick: () => { this.#select('gm') } }, gm.status === 'running' ? `Open GM ${phase(gm)}` : 'Open GM history'),
     )
     const content = active === 'terminals'
       ? terminalPanel
       : active === 'gm'
-        ? h('section', { class: css.panel ?? '', 'data-observability-gm': '' }, h('h2', null, 'GM sessions'), this.#metric('Current session', phase(gm), gmProgressDetail(gm)), descendantRows.filter(row => row.running && row.gm?.active).map(row => this.#metric(row.label, phase(row.gm), gmProgressDetail(row.gm))))
+        ? h('section', { class: css.panel ?? '', 'data-observability-gm': '' },
+          h('h2', null, 'GM sessions'),
+          this.#metric('Current session', phase(gm), gmProgressDetail(gm)),
+          descendantRows.filter(row => row.gm?.status !== undefined && (row.running || row.gm.status !== 'idle')).map(row => h('article', { key: row.id, class: css.metric ?? '' },
+            h('span', { class: css.label ?? '' }, row.label),
+            h('strong', { class: css.value ?? '' }, phase(row.gm)),
+            h('span', { class: css.detail ?? '' }, gmProgressDetail(row.gm)),
+            h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
+          )),
+        )
         : active === 'workflows'
           ? workflowPanel
           : active === 'subagents'
@@ -437,7 +430,6 @@ export class FreddieObservabilityDock extends HTMLElement {
               h('div', { class: css.metrics ?? '' },
                 this.#metric('Attention', attention.label, attention.detail),
                 this.#metric('Connection', connectionLabel(connection), connection === 'connected' ? 'Live agent and server events are flowing.' : 'The client will reconnect automatically when the stream is available.'),
-                this.#metric('Hot reload', realtime.value, realtime.detail),
                 this.#metric('Latest activity', now.label, now.detail),
                 this.#metric('GM', phase(gm), gmProgressDetail(gm)),
                 todo === undefined ? null : this.#metric('Plan', todo.value, todo.detail),
@@ -459,7 +451,7 @@ export class FreddieObservabilityDock extends HTMLElement {
                 boardRows.length === 0 ? h('p', { class: css.empty ?? '' }, 'No subagent activity is available yet. New work appears here as it reaches the realtime stream.') : h('ol', { class: css.logList ?? '' }, boardRows.map(row => h('li', { key: row.id, class: css.boardRow ?? '', 'data-state': row.running ? 'working' : 'observed' },
                   h('div', null,
                     h('strong', null, row.label),
-                    h('span', { class: css.boardState ?? '' }, row.gm?.active ? `GM ${phase(row.gm)} · ${row.state}` : row.state),
+                    h('span', { class: css.boardState ?? '' }, row.gm?.status === 'running' ? `GM ${phase(row.gm)} · ${row.state}` : row.state),
                     h('span', { class: css.detail ?? '' }, row.detail),
                   ),
                   h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(row.id) } }, 'Inspect session'),
@@ -478,7 +470,7 @@ export class FreddieObservabilityDock extends HTMLElement {
           connectionLabel(connection),
         ),
         h('h1', { id: 'freddie-observability-title' }, 'Live operations'),
-        h('p', null, `${realtime.detail} - ${descendants.directRunning} direct and ${descendants.running - descendants.directRunning} nested subagents running.`),
+        h('p', null, `${descendants.directRunning} direct and ${descendants.running - descendants.directRunning} nested subagents running.`),
       ),
       h('nav', { class: css.tabs ?? '', role: 'tablist', 'aria-label': 'Operational views' },
         SECTIONS.map(section => h('button', {

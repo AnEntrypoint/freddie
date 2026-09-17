@@ -4,11 +4,11 @@ The model-facing **`workflow` tool**: run a JavaScript orchestration script that
 
 ## What the model sees
 
-Three parameters: `meta` (required identity data: `name`, `description`, and optional progress annotations), `script` (required plain JavaScript body — no `export const meta` statement; the tool description carries the complete authoring contract), and `args` (optional JSON object exposed to the script as the `args` global; wrap a bare list in a field so the wire schema stays honest). The plugin also contributes a `tool:<toolName>` system-prompt section carrying the usage policy — use the tool only on an explicit user ask for a workflow / large orchestration; prefer plain subagent calls for one or two delegations — per the convention that tool guidance ships with the tool plugin, never in the deployment persona.
+The tool accepts `meta` (required identity data: `name`, `description`, and optional progress annotations), `script` (required plain JavaScript body — no `export const meta` statement; the tool description carries the complete authoring contract), `args` (optional JSON object exposed to the script as the `args` global; wrap a bare list in a field so the wire schema stays honest), and when enabled `run_in_background`. The plugin also contributes a `tool:<toolName>` system-prompt section carrying the usage policy — use the tool only on an explicit user ask for a workflow / large orchestration; prefer plain subagent calls for one or two delegations — per the convention that tool guidance ships with the tool plugin, never in the deployment persona.
 
 ## Lifecycle
 
-Collection is synchronous (like [`freddie-tool-subagent`](../../subagent/tool-subagent/README.md)): `execute` starts a run and awaits `run.result` inside a `try/finally` that always disposes the run, so the script and its children reach quiescence on every path. `exec.signal` is bridged to `run.cancel()` (including the already-aborted-before-start case). A non-`completed` stop reason maps to an `isError` result reporting the reason—never partial output as success; a parse/meta failure thrown synchronously by `start()` becomes an `isError` the model can correct from. Completion returns canonical `{ runId, agentsStarted, result }`; the Native renderer preserves the meta name, agent count, and JSON value, truncating only that projection at `maxResultChars`.
+Foreground collection starts a run, awaits `run.result`, and disposes it in `finally`, so the script and children reach quiescence on every path. `exec.signal` is bridged to `run.cancel()`. A non-`completed` stop reason maps to an `isError` result; a parse/meta failure thrown by `start()` becomes an `isError` the model can correct. Foreground completion returns `{ kind: 'foreground', runId, agentsStarted, result }` and its Native renderer preserves the meta name, agent count, and bounded JSON value. When `run_in_background` is enabled and true, `ctx.jobs` owns the live run and returns `{ kind: 'background', jobId }`; `job_output` observes settlement and `job_kill` calls the held run's cancellation path.
 
 For a root transport execution (`exec.parent` absent), the tool also projects the run into the calling Agent's Session: run-start after `start()` returns, matching member starts and endings filtered by `run.id`, then run-end only after `run.result` is available and `dispose()` has reached quiescence. Nested transport calls execute normally but write no workflow record. The first failed Session append disables later recording for that run, emits one warning, and leaves either no record or a legal continuous prefix without changing the tool result or cleanup.
 
@@ -24,6 +24,7 @@ Decided up front (per the [render-intent Agent Note](../../../.agents/notes/impl
 |---|---|---|
 | `toolName` | `workflow` | The model-facing tool name to register. |
 | `maxResultChars` | `50000` | Rendered-result ceiling; longer JSON is truncated with a notice. |
+| `enableRunInBackground` | `true` | Exposes the `run_in_background` argument and owner-controlled job path. |
 
 ## Model Experience
 
@@ -77,7 +78,7 @@ Append-only; newly visible content follows the reusable request prefix and does 
 
 ## Known Limitations and Deferred Work
 
-- **The parent turn blocks until the whole workflow settles** — there is no background start/poll API, and cancellation discards partial output as an error.
+- **Background runs are process-local** — job ownership and lifecycle survive the parent tool result but not a process restart; workflow journaling and resume remain separate work.
 - **`args` must be an object and Native result text is bounded** — callers wrap top-level arrays/scalars in a field; the canonical workflow result remains complete, while JSON beyond `maxResultChars` is truncated in the model-facing projection rather than stored behind a retrieval handle.
 - **Workflow policy is fixed per tool registration** — provider selection, caps, and tool name are deployment config, not model-call arguments.
 - **Durable records are top-level and observational** — nested Code Mode dispatches are not recorded, and a recording failure intentionally degrades to an incomplete prefix rather than changing execution.

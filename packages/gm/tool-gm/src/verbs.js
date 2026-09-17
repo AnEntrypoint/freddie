@@ -46,10 +46,10 @@ const jsonOutput = {
  * `Gm` service instance from `@freddie/freddie-gm-client`) is closed over
  * from the owning plugin's `apply(ctx)` instead.
  * @param gm - the `Gm` service instance this composition mounted.
- * @param onSuccess - receives a successful daemon result and the model-tool execution context after each GM dispatch.
+ * @param onProgress - receives one settled daemon result or error with dispatch facts after each GM dispatch.
  * @returns the tool definitions, ready for `ctx.tools.register()`.
  */
-export function buildGmTools(gm, onSuccess = () => {}) {
+export function buildGmTools(gm, onProgress = () => {}) {
   /**
    * One JSON-body gm-verb tool. `verb` is the real gm spool verb name (never
    * derived from `name` -- gm's own verb naming mixes dashes and underscores
@@ -78,13 +78,20 @@ export function buildGmTools(gm, onSuccess = () => {}) {
       presentResult,
       async execute(args, exec) {
         const cwd = exec.agent?.session.header.cwd
-        const value = await gm.call(verb, toBody(args), {
-          signal: exec.signal,
-          timeoutMs,
-          ...cwd === undefined ? {} : { cwd },
-        })
-        onSuccess(value, exec)
-        return value
+        const startedAt = Date.now()
+        onProgress({ verb, status: 'running', startedAt }, exec)
+        try {
+          const value = await gm.call(verb, toBody(args), {
+            signal: exec.signal,
+            timeoutMs,
+            ...cwd === undefined ? {} : { cwd },
+          })
+          onProgress({ verb, status: 'completed', startedAt, finishedAt: Date.now(), value }, exec)
+          return value
+        } catch (error) {
+          onProgress({ verb, status: 'failed', startedAt, finishedAt: Date.now(), error }, exec)
+          throw error
+        }
       },
     })
   }
@@ -251,14 +258,21 @@ export function buildGmTools(gm, onSuccess = () => {}) {
       const budget = Math.max(GM_TOOL_TIMEOUT_MS, requested)
       const raw = args.timeoutMs === undefined ? args.code : `timeoutMs=${args.timeoutMs}\n${args.code}`
       const cwd = exec.agent?.session.header.cwd
-      const value = await gm.call('exec_js', {}, {
-        rawBody: raw,
-        signal: exec.signal,
-        timeoutMs: budget,
-        ...cwd === undefined ? {} : { cwd },
-      })
-      onSuccess(value, exec)
-      return value
+      const startedAt = Date.now()
+      onProgress({ verb: 'exec_js', status: 'running', startedAt }, exec)
+      try {
+        const value = await gm.call('exec_js', {}, {
+          rawBody: raw,
+          signal: exec.signal,
+          timeoutMs: budget,
+          ...cwd === undefined ? {} : { cwd },
+        })
+        onProgress({ verb: 'exec_js', status: 'completed', startedAt, finishedAt: Date.now(), value }, exec)
+        return value
+      } catch (error) {
+        onProgress({ verb: 'exec_js', status: 'failed', startedAt, finishedAt: Date.now(), error }, exec)
+        throw error
+      }
     },
   })
 

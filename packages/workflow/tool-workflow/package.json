@@ -30,6 +30,7 @@
   "peerDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-jobs": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-projection": "*",
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-jobs": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-subagent": "*",

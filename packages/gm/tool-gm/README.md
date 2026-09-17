@@ -6,7 +6,7 @@ Session id is not a per-call argument. Every tool closes over the mounted `ctx.g
 
 ## Durable progress event
 
-After every successful model-facing GM dispatch, the tool appends a log-only, `ignorable` `gm/progress` session event. Its complete JSON payload is `{ phase, prdPendingCount, mutablesPendingCount, sessionId, active }`; unavailable counts and phase are `null`, while `sessionId` falls back to the mounted GM session. The event is appended only after `Gm.call()` returns, does not enter model history, and leaves all GM tool schemas and results unchanged. It supplies an owned durable source for a later projection or UI without adding client or terminal behavior.
+The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start and settlement. Its complete payload carries `{ verb, status, phase, prdPendingCount, mutablesPendingCount, sessionId, belongsToConfiguredSession, startedAt, finishedAt, durationMs, error }`; running events retain the preceding semantic checkpoint, while failed settlement records its bounded error text. These records never enter model history or change tool schemas/results. They provide later projections and UI an owned causal account of GM work.
 
 ## Tools
 

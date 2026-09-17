@@ -7682,6 +7682,9 @@ importers:
       '@freddie/freddie-invariants':
         specifier: '*'
         version: link:../../runtime-diagnostics/invariants
+      '@freddie/freddie-jobs':
+        specifier: '*'
+        version: link:../../jobs/jobs
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
