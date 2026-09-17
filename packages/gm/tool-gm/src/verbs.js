@@ -343,7 +343,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     description: 'Dispatch gm\'s `dream-discovery-record` verb: record one successful GM discovery action with its target, policy, evaluator score, measured cost, and completed dispatch receipt before sealing a replay world.',
     parameters: {
       id: { type: 'string', required: true, description: 'Opaque discovery record ID.' },
-      evaluator_receipt: { type: 'object', required: true, description: 'Authenticated receipt returned by gm_dream_evaluator_receipt.' },
+      evaluator_receipt: { type: 'object', required: true, additionalProperties: true, description: 'Authenticated receipt returned by gm_dream_evaluator_receipt.' },
     },
     toBody: args => args,
     presentCall: args => presentGenericCall(`gm dream-discovery-record: ${args.id}`),
