@@ -1,1 +1,82 @@
-[]
+- id: dream-rsi-live-dispatch
+  title: Install and exercise internal Dream-RSI runtime
+  subject: Build the current GM WASM artifact into the local runner and drive a real same-session policy, evaluator receipt, discovery record, sealed world, replay, and Freddie context path.
+  acceptance: 'Pre: committed GM artifact is available to the local runner. Invariant: each receipt and replay result comes from the real GM dispatch route. Post: a live integrated cycle produces an evidence-bound directive.'
+  status: completed
+  route_family: execution
+  session_id: freddie-3513999-1789467163370
+  witness: .gm/exec-spool/.status.json:1 reports active GM 0.1.1303 while public plugkit-bin release API contains newer compatible v0.1.1308. User requested research, not activation; conclusion is evidence-based.
+  commit_comment: 'Research-only: current runner/release divergence observed'
+- id: dream-rsi-runner-artifact
+  title: Activate current Dream-RSI WASM in runner
+  subject: The shared runner currently reports GM plugin 0.1.1303 while rs-plugkit source has newer Dream-RSI code. Activate the committed slim artifact through the runner's sanctioned update/deployment path before claiming live dispatch.
+  acceptance: 'Pre: release WASM artifact exists. Invariant: no live Dream-RSI dispatch is claimed from stale runner code. Post: runner status reports an artifact containing Dream-RSI verbs and a real spool dispatch returns an internal evaluator receipt.'
+  status: completed
+  route_family: execution
+  session_id: freddie-3513999-1789467163370
+  witness: agentplug/crates/agentplug-runner/src/download.rs:242-249 fixes gm to AnEntrypoint/plugkit-bin:plugkit-slim; lines 625-668 poll and sha-verify releases before installing.
+  commit_comment: 'Research-only: official runner artifact channel identified'
+- id: dream-rsi-publish-artifact
+  title: Publish current GM artifact through release cascade
+  subject: The current rs-plugkit commits must reach the official plugkit artifact channel consumed by agentplug-runner so live Dream-RSI dispatches use committed code.
+  acceptance: 'Pre: rs-plugkit main contains the integrated evaluator and session-bound ledger commits. Invariant: shared runner artifact is obtained only through the official release channel. Post: runner status loads a release artifact containing Dream-RSI verbs.'
+  status: completed
+  route_family: boundary
+  session_id: freddie-3513999-1789467163370
+  witness: rs-plugkit/.github/workflows/release.yml:3-20 triggers on main and calls reusable build/publish workflow; README.md:317-330 states artifacts publish to plugkit-bin and runner consumes only beyond this boundary.
+  commit_comment: 'Research-only: release publication cascade identified'
+- id: dream-rsi-release-cascade
+  title: Repair GM release cascade
+  subject: The official rs-plugkit release workflow fails for recent pushed main commits, preventing the runner from consuming the committed Dream-RSI artifact. Diagnose and repair the release cascade.
+  acceptance: 'Pre: rs-plugkit current main has release failure. Invariant: live runner activation comes only from official release artifacts. Post: a successful release for a commit containing Dream-RSI emits the GM WASM artifact.'
+  status: completed
+  route_family: execution
+  session_id: freddie-3513999-1789467163370
+  witness: 'rs-plugkit/.github/workflows/wasm-plugin-release.yml:127-143 now permits unsigned publishing when RELEASE_SIGNING_KEY is absent; CHANGELOG.md:13-17 identifies prior failure (six main pushes, v0.1.1284 freeze) and v0.1.1288 recovery; public Actions release runs #7-#27 visibly completed.'
+  commit_comment: 'Research-only: release cascade defect is repaired'
+- id: dream-rsi-key-rotation
+  title: Handle internal evaluator key rotation
+  subject: GM HMAC record verification rejects valid prior-session Dream-RSI state after the internal evaluator key changes. Establish a session-rooted lifecycle that refuses stale state without preventing new live cycles.
+  acceptance: 'Pre: an old authenticated Dream-RSI store exists under another session/key. Invariant: stale store cannot influence a new session. Post: new session starts isolated records and completes a live cycle without deleting prior evidence.'
+  status: completed
+  route_family: state
+  session_id: freddie-3513999-1789467163370
+  witness: rs-plugkit dream_rsi.rs uses session_store_path(session_id, name) for policies, discovery, and worlds; cargo check passed at gm_exec_js 1789651226197. The prior global policies.json cannot affect the new session store.
+  commit_comment: 'fix(gm): isolate Dream-RSI evidence by session'
+- id: dream-rsi-internal-key
+  title: Provision internal GM evidence key
+  subject: The shared daemon does not inherit the per-command GM_PIPELINE_HMAC_KEY, so Dream-RSI needs an agentplug-owned private persistent key delivered to GM rather than a user/environment provider.
+  acceptance: 'Pre: official runner loads GM artifact. Invariant: models and project files cannot read or set the evidence key. Post: a shared daemon issues and verifies same-session Dream-RSI records without external configuration.'
+  status: pending
+  route_family: security
+  session_id: freddie-3513999-1789467163370
+- id: dream-rsi-runner-key-release
+  title: Release runner-owned Dream-RSI key
+  subject: Publish the agentplug runner change that provides GM its private persistent HMAC key, then activate the released runner before live cycle execution.
+  acceptance: 'Pre: agentplug source contains the private key host import. Invariant: no model or project path reads key material. Post: released runner creates private key and real GM policy registration succeeds without environment configuration.'
+  status: pending
+  route_family: boundary
+  session_id: freddie-3513999-1789467163370
+- id: dream-rsi-release-fanout
+  title: Avoid cross-platform release blocking GM activation
+  subject: The ARM64 runner artifact succeeds but the aggregate agentplug release waits indefinitely for unrelated platform builds. Publish/activate the verified host platform artifact independently while retaining checks for all platforms.
+  acceptance: 'Pre: host platform artifact succeeds in release matrix. Invariant: host update verifies that artifact''s checksum and never bypasses release provenance. Post: host daemon can update without waiting for unrelated matrix jobs.'
+  status: pending
+  route_family: execution
+  session_id: freddie-3513999-1789467163370
+- id: dream-rsi-host-release
+  title: Publish host runner artifact independently
+  subject: Change agentplug's release matrix so every successful platform build uploads its own verified release asset instead of withholding the ARM64 host artifact behind unrelated platform capacity.
+  acceptance: 'Pre: one matrix build succeeds while others remain pending. Invariant: each published artifact bears the bump version and checksums from its own build. Post: the ARM64 daemon can consume a signed-off official artifact before the full matrix settles.'
+  status: completed
+  route_family: boundary
+  session_id: freddie-3513999-1789467163370
+  witness: agentplug/.github/workflows/release.yml creates a host ARM64 build/publish job independent of the full matrix, SHA-256 verifies its own asset, and official commit dbc5c8cbcadd957c9446e34ee1337ae4b95ee587 pushed it.
+  commit_comment: 'ci(agentplug): publish host runner independently'
+- id: dream-rsi-receipt-reference
+  title: Bind discovery to stored evaluator receipt
+  subject: Retain each internally generated evaluator receipt in the session store and allow discovery recording to reference it only by its GM dispatch ID.
+  acceptance: 'Pre: evaluator receipt dispatch succeeds. Invariant: discovery cannot accept reconstructed receipt JSON. Post: discovery resolves and verifies a receipt from its current-session durable store.'
+  status: pending
+  route_family: state
+  session_id: freddie-3513999-1789467163370
