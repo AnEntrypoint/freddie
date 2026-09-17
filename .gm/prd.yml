@@ -80,3 +80,10 @@
   status: pending
   route_family: state
   session_id: freddie-3513999-1789467163370
+- id: dream-rsi-runner-version-mismatch
+  title: Correct runner release handoff
+  subject: The official v0.1.140 release claims the private GM key commit but the shared daemon reports runner 0.1.138 and lacks the host key. Diagnose and correct the official takeover/version handoff before trusting runtime behavior.
+  acceptance: 'Pre: official v0.1.140 artifact is checksum-verified. Invariant: status runner version and loaded host behavior agree with the official artifact. Post: shared daemon reports 0.1.140 and GM policy registration succeeds without an environment key.'
+  status: in-progress
+  route_family: boundary
+  session_id: freddie-3513999-1789467163370

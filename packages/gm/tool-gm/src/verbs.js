@@ -329,6 +329,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     verb: 'dream-evaluator-receipt',
     description: 'Dispatch gm\'s `dream-evaluator-receipt` verb: authenticate an evaluator result for a successful discovery dispatch before a discovery record may consume it.',
     parameters: {
+      receipt_id: { type: 'string', required: true, description: 'Opaque ID for the internally stored evaluator receipt.' },
       policy_id: { type: 'string', required: true, description: 'Registered GM policy ID.' },
       dispatch_id: { type: 'string', required: true, description: 'Completed GM dispatch receipt ID.' },
       parent_id: { type: 'string', description: 'Optional parent discovery record ID.' },
@@ -343,7 +344,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     description: 'Dispatch gm\'s `dream-discovery-record` verb: record one successful GM discovery action with its target, policy, evaluator score, measured cost, and completed dispatch receipt before sealing a replay world.',
     parameters: {
       id: { type: 'string', required: true, description: 'Opaque discovery record ID.' },
-      evaluator_receipt_dispatch_id: { type: 'string', required: true, description: 'Dispatch ID returned by gm_dream_evaluator_receipt.' },
+      evaluator_receipt_id: { type: 'string', required: true, description: 'Opaque receipt ID passed to gm_dream_evaluator_receipt.' },
     },
     toBody: args => args,
     presentCall: args => presentGenericCall(`gm dream-discovery-record: ${args.id}`),
