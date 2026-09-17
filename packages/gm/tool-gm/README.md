@@ -24,7 +24,8 @@ The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start an
 | `gm_exec_js` | `exec_js` | `code`, `timeoutMs?` | Plain-text-body sandbox execution. |
 | `gm_git_finalize` | `git_finalize` | `message`, `files?` | Add, commit, porcelain-gate, push, CI-watch. |
 | `gm_scan_deps` | `scan_deps` | `root?`, `full?` | HiddenSpawn-class dependency scan of git-tracked source plus present `node_modules`. |
-| `gm_dream_replay` | `dream-replay` | `baseline_policy_id`, `policies`, `worlds` | Replays candidate exploration policies over supplied recorded worlds without execution. The baseline remains a candidate; output retains per-world score, cost, and observed-node evidence. |
+| `gm_dream_world_seal` | `dream-world-seal` | `world_id`, `dispatch_ids` | Builds a sealed world from completed GM dispatch receipts and GM-derived outcome/cost values. |
+| `gm_dream_replay` | `dream-replay` | `baseline_policy_id`, `policies`, `world_ids` | Replays candidate exploration policies over GM-sealed recorded worlds without execution. The baseline remains a candidate; output retains per-world score, cost, and observed-node evidence. |
 | `gm_residual_scan` | `residual-scan` | none | DECIDE→COMPLETE stop-window scan. Writes `.gm/residual-check-fired` for this session. |
 
 Each tool declares `timeoutMs` equal to the spool default (120000) except `gm_codesearch` (360000, matching live dual-index duration on this machine) and `gm_scan_deps` (180000). `gm_exec_js` polls for `max(120000, args.timeoutMs)` so a larger snippet budget is not truncated by the host tool timeout. Each tool forwards `exec.signal` into `Gm.call`, so a cancelled turn stops the poll instead of waiting the remaining timeout.

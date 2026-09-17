@@ -312,6 +312,18 @@ export function buildGmTools(gm, onProgress = () => {}) {
     timeoutMs: GM_SCAN_DEPS_TIMEOUT_MS,
   })
 
+  const dreamWorldSealTool = jsonTool({
+    name: 'gm_dream_world_seal',
+    verb: 'dream-world-seal',
+    description: 'Dispatch gm\'s `dream-world-seal` verb: construct one sealed replay world from completed GM dispatch receipts. The caller supplies only an opaque world ID and prior dispatch IDs; GM derives node outcomes and costs from its ledger.',
+    parameters: {
+      world_id: { type: 'string', required: true, description: 'Opaque ID for the new sealed world.' },
+      dispatch_ids: { type: 'array', required: true, description: 'Completed GM dispatch receipt IDs to include in order.', items: { type: 'string' } },
+    },
+    toBody: args => args,
+    presentCall: args => presentGenericCall(`gm dream-world-seal: ${args.world_id}`),
+  })
+
   const dreamReplayTool = jsonTool({
     name: 'gm_dream_replay',
     verb: 'dream-replay',
@@ -319,9 +331,13 @@ export function buildGmTools(gm, onProgress = () => {}) {
     parameters: {
       baseline_policy_id: { type: 'string', required: true, description: 'ID of the deployed baseline policy. It must also appear in policies.' },
       policies: { type: 'array', required: true, description: 'Recorded-world traversal policies with id, roots, and max_nodes.', items: { type: 'object', additionalProperties: true } },
-      worlds: { type: 'array', required: true, description: 'Recorded discovery worlds containing realized nodes, scores, costs, and child links.', items: { type: 'object', additionalProperties: true } },
+      world_ids: { type: 'array', required: true, description: 'Opaque identifiers of sealed GM discovery worlds.', items: { type: 'string' } },
     },
-    toBody: args => args,
+    toBody: args => ({
+      baseline_policy_id: args.baseline_policy_id,
+      policies: args.policies,
+      world_ids: args.world_ids,
+    }),
     presentCall: args => presentGenericCall(`gm dream-replay: ${args.baseline_policy_id}`),
   })
 
@@ -347,6 +363,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     execJsTool,
     gitFinalizeTool,
     scanDepsTool,
+    dreamWorldSealTool,
     dreamReplayTool,
     residualScanTool,
   ]

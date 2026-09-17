@@ -1375,3 +1375,35 @@
   session_id: freddie-3513999-1789467163370
   status: witnessed
   witness_evidence: gm_exec_js 1789639740246 completed RUSTC=$HOME/.rustup/toolchains/stable-aarch64-unknown-linux-gnu/bin/rustc cargo check --target wasm32-wasip1 after restoring scan-universe/code-index visibility; dream-replay is compiled in the wasm target.
+- id: dream-rsi-plugkit-commit-state
+  prd_id: review-rs-plugkit-dream-rsi
+  obligation_kind: precondition
+  subject: Whether Dream-RSI handler is actually landed in rs-plugkit history rather than only present as local worktree state.
+  text: Witness via sanctioned git history/status plus exact current source path.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: 'gm_exec_js 1789640528028: rs-plugkit status reports `?? crates/plugkit-core/src/orchestrator/dream_rsi.rs`; `git log --all -- .../dream_rsi.rs` has no commits. The current handler is untracked, while HEAD''s mod.rs dispatcher does not contain it.'
+- id: dream-rsi-grounding-authority
+  prd_id: review-freddie-dream-rsi
+  obligation_kind: invariant
+  subject: Whether replay inputs asserted as recorded discovery evidence are authority-bound to a durable recorded source rather than model-provided arbitrary JSON.
+  text: Witness by tracing typed tool body to evaluator input and context admission.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Freddie `packages/gm/tool-gm/src/verbs.js:319-324` accepts model-supplied unrestricted object arrays and forwards them unchanged; rs-plugkit `dream_rsi.rs:116-154` evaluates only that JSON and has no session/provenance input; context `index.js:15-29` accepts its successful result. No durable discovery relation is checked.
+- id: dream-rsi-directive-injection
+  prd_id: review-freddie-dream-rsi
+  obligation_kind: postcondition
+  subject: Rendered replay fields must not allow recorded policy or node identifiers to terminate the directive wrapper or inject instructions.
+  text: 'Witness: packages/context/dream-rsi-context/src/index.js:52 interpolates selected/baseline policy IDs and observed node IDs without escaping; gm_exec_js 1789640571285 rendered a selected policy ID containing </dream-rsi-directive> and attacker instruction, closing the wrapper before the fixed grounding text.'
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Freddie `packages/gm/tool-gm/src/verbs.js:319-324` permits arbitrary policy/root/node string fields; rs-plugkit `dream_rsi.rs:24-28,36-50,53-83` preserves them; context `index.js:50-52` interpolates selected_policy_id, baseline_policy_id, and observed_node_ids into a user message without escaping or character restrictions.
+- id: dream-rsi-world-authority
+  prd_id: dream-rsi-world-capture
+  obligation_kind: precondition
+  subject: Worlds must derive from gm-owned immutable completed-dispatch evidence rather than any caller-supplied scores, costs, or child outcomes.
+  text: Witness source linkage to an existing GM dispatch ledger or evidence receipt and a live rejection of arbitrary world JSON.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: rs-plugkit/crates/plugkit-core/src/orchestrator/dream_rsi.rs:163-180 derives sealed node outcomes and cost from dispatch_ledger lookup only, while :189-200 rejects caller-supplied worlds and loads stored world_ids; wasm build completed at gm_exec_js 1789641258980.

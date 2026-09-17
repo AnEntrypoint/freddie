@@ -15,7 +15,7 @@ Opt-in context for a grounded [Dream-RSI](https://www.dream-rsi.com/) replay sel
 
 ## Grounding boundary
 
-The plugin reuses the durable `tool/call` to `tool/result` relation to identify `gm_dream_replay`, parses the result, and validates the selected and baseline rankings before it injects context. It does not read `.gm` files, invoke `ctx.gm`, execute a candidate policy, or treat an unobserved branch as replayed. Invalid, failed, or incomplete results add nothing.
+The plugin reuses the durable `tool/call` to `tool/result` relation to identify `gm_dream_replay`, parses the result, and validates opaque identifiers plus the selected and baseline rankings before it injects context. GM accepts replay only by sealed world IDs; `gm_dream_world_seal` derives a sealed world from completed GM dispatch receipts. The plugin does not read `.gm` files, invoke `ctx.gm`, execute a candidate policy, or treat an unobserved branch as replayed. Invalid, failed, or incomplete results add nothing.
 
 ## Model Experience
 
