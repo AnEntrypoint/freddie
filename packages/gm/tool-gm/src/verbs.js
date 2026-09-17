@@ -94,7 +94,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
             timeoutMs,
             ...cwd === undefined ? {} : { cwd },
           })
-          reportProgress({ verb, status: 'completed', startedAt, finishedAt: Date.now(), value }, exec)
+          reportProgress({ verb, status: 'completed', startedAt, finishedAt: Date.now(), value, body: toBody(args) }, exec)
           return value
         } catch (error) {
           reportProgress({ verb, status: 'failed', startedAt, finishedAt: Date.now(), error }, exec)
@@ -312,6 +312,35 @@ export function buildGmTools(gm, onProgress = () => {}) {
     timeoutMs: GM_SCAN_DEPS_TIMEOUT_MS,
   })
 
+  const dreamPolicyRegisterTool = jsonTool({
+    name: 'gm_dream_policy_register',
+    verb: 'dream-policy-register',
+    description: 'Dispatch gm\'s `dream-policy-register` verb: register a session-owned exploration policy. Set deployed true only for the incumbent policy; replay later accepts its ID rather than caller-supplied policy definitions.',
+    parameters: {
+      policy: { type: 'object', required: true, description: 'Policy definition containing an opaque id, roots, and max_nodes.', additionalProperties: true },
+      deployed: { type: 'boolean', description: 'Whether this policy becomes the session-owned deployed incumbent.' },
+    },
+    toBody: args => args,
+    presentCall: args => presentGenericCall(`gm dream-policy-register: ${args.policy.id}`),
+  })
+
+  const dreamDiscoveryRecordTool = jsonTool({
+    name: 'gm_dream_discovery_record',
+    verb: 'dream-discovery-record',
+    description: 'Dispatch gm\'s `dream-discovery-record` verb: record one successful GM discovery action with its target, policy, evaluator score, measured cost, and completed dispatch receipt before sealing a replay world.',
+    parameters: {
+      id: { type: 'string', required: true, description: 'Opaque discovery record ID.' },
+      target: { type: 'string', required: true, description: 'Opaque target ID evaluated by the discovery action.' },
+      policy_id: { type: 'string', required: true, description: 'Registered GM policy ID that made the discovery decision.' },
+      dispatch_id: { type: 'string', required: true, description: 'Successful completed GM dispatch receipt ID.' },
+      evaluator_score: { type: 'number', required: true, description: 'Finite evaluator score for the completed discovery outcome.' },
+      cost: { type: 'number', required: true, description: 'Non-negative measured discovery cost.' },
+      parent_id: { type: 'string', description: 'Optional parent discovery record ID.' },
+    },
+    toBody: args => args,
+    presentCall: args => presentGenericCall(`gm dream-discovery-record: ${args.id}`),
+  })
+
   const dreamWorldSealTool = jsonTool({
     name: 'gm_dream_world_seal',
     verb: 'dream-world-seal',
@@ -330,14 +359,26 @@ export function buildGmTools(gm, onProgress = () => {}) {
     description: 'Dispatch gm\'s `dream-replay` verb: evaluate exploration policies only against recorded discovery worlds. Replay executes no tools or evaluators; the incumbent baseline is retained as a candidate and the result includes per-world observed-node, score, and cost evidence.',
     parameters: {
       baseline_policy_id: { type: 'string', required: true, description: 'ID of the deployed baseline policy. It must also appear in policies.' },
-      policies: { type: 'array', required: true, description: 'Recorded-world traversal policies with id, roots, and max_nodes.', items: { type: 'object', additionalProperties: true } },
+      policy_ids: { type: 'array', required: true, description: 'Opaque identifiers of GM-registered candidate policies.', items: { type: 'string' } },
       world_ids: { type: 'array', required: true, description: 'Opaque identifiers of sealed GM discovery worlds.', items: { type: 'string' } },
     },
     toBody: args => ({
       baseline_policy_id: args.baseline_policy_id,
-      policies: args.policies,
+      policy_ids: args.policy_ids,
       world_ids: args.world_ids,
     }),
+    output: {
+      ...jsonOutput,
+      presentationMeta: (args, value) => ({
+        dreamReplay: {
+          baselinePolicyId: args.baseline_policy_id,
+          policyIds: args.policy_ids,
+          worldIds: args.world_ids,
+          selectedPolicyId: value?.data?.selected_policy_id,
+          replayWorldIds: value?.data?.rankings?.flatMap(ranking => ranking.replays ?? []).map(replay => replay.world_id),
+        },
+      }),
+    },
     presentCall: args => presentGenericCall(`gm dream-replay: ${args.baseline_policy_id}`),
   })
 
@@ -363,6 +404,8 @@ export function buildGmTools(gm, onProgress = () => {}) {
     execJsTool,
     gitFinalizeTool,
     scanDepsTool,
+    dreamPolicyRegisterTool,
+    dreamDiscoveryRecordTool,
     dreamWorldSealTool,
     dreamReplayTool,
     residualScanTool,

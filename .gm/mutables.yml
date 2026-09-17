@@ -1407,3 +1407,19 @@
   session_id: freddie-3513999-1789467163370
   status: witnessed
   witness_evidence: rs-plugkit/crates/plugkit-core/src/orchestrator/dream_rsi.rs:163-180 derives sealed node outcomes and cost from dispatch_ledger lookup only, while :189-200 rejects caller-supplied worlds and loads stored world_ids; wasm build completed at gm_exec_js 1789641258980.
+- id: dream-rsi-policy-authority
+  prd_id: dream-rsi-discovery-provenance
+  obligation_kind: invariant
+  subject: The deployed incumbent and candidate policy revisions must come from a gm-owned policy registry rather than model-supplied arbitrary objects.
+  text: Witness by an authoritative policy version record and a live refusal of unknown or altered policy definitions.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: rs-plugkit/crates/plugkit-core/src/orchestrator/dream_rsi.rs:164-180 registers session-owned deployed policies; :242-260 resolves replay policy_ids and requires baseline deployed in same session. cargo wasm check passed at gm_exec_js 1789643060109.
+- id: dream-rsi-discovery-relation
+  prd_id: dream-rsi-discovery-provenance
+  obligation_kind: type-shape
+  subject: A sealed discovery node needs a durable relation among target, candidate decision, evaluator result, cost, parent node, and policy revision; an exit code alone is not a discovery outcome.
+  text: Witness a new gm-owned append-only discovery record schema and a seal operation that rejects ledger-only unrelated dispatches.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: rs-plugkit/crates/plugkit-core/src/orchestrator/dream_rsi.rs:185-208 persists a session-owned discovery record with target, policy, successful dispatch, evaluator score, cost, and parent relation; seal consumes only discovery_ids at :213-233.

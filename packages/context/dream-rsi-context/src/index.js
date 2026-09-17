@@ -41,11 +41,21 @@ function latestReplay(agent) {
     if (event.type !== 'tool/result') continue
     const call = agent.session.events.find(candidate => candidate.seq === event.sourceEventSeqs?.[0])
     if (call?.type !== 'tool/call' || call.data.name !== 'gm_dream_replay') continue
+    const receipt = record(event.data.meta)?.dreamReplay
+    if (!Array.isArray(receipt?.worldIds) || !Array.isArray(receipt?.policyIds)
+      || receipt.baselinePolicyId !== call.data.arguments?.baseline_policy_id
+      || JSON.stringify(receipt.worldIds) !== JSON.stringify(call.data.arguments?.world_ids)
+      || JSON.stringify(receipt.policyIds) !== JSON.stringify(call.data.arguments?.policy_ids)) continue
     const block = event.data.message.content.find(candidate => candidate.type === 'tool-result')
     const text = block?.content.find(candidate => candidate.type === 'text')?.text
     if (typeof text !== 'string') continue
     try {
-      return validSelection(JSON.parse(text))
+      const selection = validSelection(JSON.parse(text))
+      const replayWorldIds = selection?.selected.replays.map(replay => replay.world_id)
+      if (selection === undefined || selection.result.baseline_policy_id !== receipt.baselinePolicyId
+        || selection.result.selected_policy_id !== receipt.selectedPolicyId
+        || JSON.stringify(replayWorldIds) !== JSON.stringify(receipt.worldIds)) continue
+      return selection
     } catch {
       return undefined
     }

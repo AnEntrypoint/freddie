@@ -15,10 +15,16 @@ const install = (ctx, fail) => {
       fail('dream-rsi-context must append one sourced grounded replay text message')
     }
     const position = session.events.findIndex(candidate => candidate === event)
-    const prior = session.events.slice(0, position).findLast(candidate => candidate.type === 'tool/result'
-      && session.events.find(call => call.seq === candidate.sourceEventSeqs?.[0] && call.type === 'tool/call'
-        && call.data.name === 'gm_dream_replay') !== undefined)
-    if (prior === undefined) fail('dream-rsi-context requires a preceding durable gm_dream_replay result')
+    const prior = session.events.slice(0, position).findLast(candidate => {
+      if (candidate.type !== 'tool/result') return false
+      const call = session.events.find(entry => entry.seq === candidate.sourceEventSeqs?.[0])
+      const receipt = candidate.data.meta?.dreamReplay
+      return call?.type === 'tool/call' && call.data.name === 'gm_dream_replay'
+        && receipt?.baselinePolicyId === call.data.arguments?.baseline_policy_id
+        && JSON.stringify(receipt?.worldIds) === JSON.stringify(call.data.arguments?.world_ids)
+        && JSON.stringify(receipt?.policyIds) === JSON.stringify(call.data.arguments?.policy_ids)
+    })
+    if (prior === undefined) fail('dream-rsi-context requires a preceding receipt-bound gm_dream_replay result')
   })
 }
 
