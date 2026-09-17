@@ -75,6 +75,13 @@ What drifted / what went wrong: The live pwsh tool spawned Windows PowerShell 5.
 Fix / resolution: tool-pwsh description now names ctx.shell.pwshPath via describePwshInvocation. Live node import: resolvePwshPath -> powershell.exe; describePwshInvocation of that path names the 5.1 last-resort; a pwsh.exe path names `pwsh.exe -Command`. Keep the 5.1 fallback. Headless HMR is disabled, so this process's already-registered schema stays the old text until restart.
 Generalizes to: A last-resort executable is not a silent bug if the docs own it; a tool description that names a different engine than argv[0] is. Verify the live spawn ($PSVersionTable / MainModule) against the advertised clause, not against the package name.
 
+## 2026-09-17 -- Ground replay inputs before model-visible use
+
+Goal (G): Integrate Dream-RSI into gm and Freddie without allowing hallucinated exploration outcomes.
+What drifted / what went wrong: The first replay interface accepted caller-supplied worlds, which allowed fabricated outcomes to be framed as replay evidence; identifiers were also interpolated into a model-visible directive.
+Fix / resolution: GM now derives sealed worlds from completed dispatch ledger entries, replay takes only sealed world IDs, and Freddie validates opaque identifiers before context rendering.
+Generalizes to: Any optimization or simulation result that reaches a model must be bound to an authoritative recorded artifact rather than self-reported caller data.
+
 ## 2026-09-07 -- DECIDE-COMPLETE origin/CI/residual-scan cannot be cleared by retrying git_finalize
 
 Goal (G): Land the quoted extraRoots !!js YAML ternary boot-crash fix and drive gm to prd_pending_count=0 / COMPLETE.
