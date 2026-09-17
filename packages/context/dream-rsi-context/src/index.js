@@ -5,7 +5,7 @@ export const name = 'dream-rsi-context'
 export const inject = ['agents']
 
 export const Config = z.object({
-  enabled: z.boolean().default(false),
+  enabled: z.boolean().default(true),
   maxObservedNodes: z.number().step(1).min(1).default(16),
 })
 

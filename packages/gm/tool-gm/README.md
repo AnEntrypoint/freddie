@@ -53,6 +53,6 @@ Prefix-stable while the thirteen definitions stay mounted. Plugin lifecycle may 
 
 ## Known Limitations and Deferred Work
 
-- Dream-RSI policy registration, discovery recording, world sealing, and replay remain GM host capabilities until a deployment-owned evaluator provider can issue target-bound outcome receipts. They are not exposed as model tools because model-supplied metrics would defeat the grounding contract.
+- Dream-RSI metrics are derived by GM from completed dispatch evidence: target comes from the recorded verb/fingerprint, score from its exit code, and cost from the recorded operation count. A domain-specific evaluator may later replace this metric without widening model authority.
 - `gm_exec_js` `timeoutMs` is the sandbox's own prefix, independent of the tool-call budget (`GM_TOOL_TIMEOUT_MS`). A sandbox timeout shorter than the tool budget still returns through the spool; a cancelled turn still aborts the poll.
 - Presentation is display-only. Malformed replayed meta falls back to the generic card and never throws.

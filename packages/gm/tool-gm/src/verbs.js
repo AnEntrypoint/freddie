@@ -312,7 +312,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     timeoutMs: GM_SCAN_DEPS_TIMEOUT_MS,
   })
 
-  const hostOnlyDreamPolicyRegisterTool = jsonTool({
+  const dreamPolicyRegisterTool = jsonTool({
     name: 'gm_dream_policy_register',
     verb: 'dream-policy-register',
     description: 'Dispatch gm\'s `dream-policy-register` verb: register a session-owned exploration policy. Set deployed true only for the incumbent policy; replay later accepts its ID rather than caller-supplied policy definitions.',
@@ -324,52 +324,44 @@ export function buildGmTools(gm, onProgress = () => {}) {
     presentCall: args => presentGenericCall(`gm dream-policy-register: ${args.policy.id}`),
   })
 
-  const hostOnlyDreamEvaluatorReceiptTool = jsonTool({
+  const dreamEvaluatorReceiptTool = jsonTool({
     name: 'gm_dream_evaluator_receipt',
     verb: 'dream-evaluator-receipt',
     description: 'Dispatch gm\'s `dream-evaluator-receipt` verb: authenticate an evaluator result for a successful discovery dispatch before a discovery record may consume it.',
     parameters: {
-      target: { type: 'string', required: true, description: 'Opaque evaluated target ID.' },
       policy_id: { type: 'string', required: true, description: 'Registered GM policy ID.' },
-      dispatch_id: { type: 'string', required: true, description: 'Successful completed GM dispatch receipt ID.' },
-      evaluator_score: { type: 'number', required: true, description: 'Finite evaluator score.' },
-      cost: { type: 'number', required: true, description: 'Non-negative measured discovery cost.' },
+      dispatch_id: { type: 'string', required: true, description: 'Completed GM dispatch receipt ID.' },
       parent_id: { type: 'string', description: 'Optional parent discovery record ID.' },
     },
     toBody: args => args,
-    presentCall: args => presentGenericCall(`gm dream-evaluator-receipt: ${args.target}`),
+    presentCall: args => presentGenericCall(`gm dream-evaluator-receipt: ${args.dispatch_id}`),
   })
 
-  const hostOnlyDreamDiscoveryRecordTool = jsonTool({
+  const dreamDiscoveryRecordTool = jsonTool({
     name: 'gm_dream_discovery_record',
     verb: 'dream-discovery-record',
     description: 'Dispatch gm\'s `dream-discovery-record` verb: record one successful GM discovery action with its target, policy, evaluator score, measured cost, and completed dispatch receipt before sealing a replay world.',
     parameters: {
       id: { type: 'string', required: true, description: 'Opaque discovery record ID.' },
-      target: { type: 'string', required: true, description: 'Opaque target ID evaluated by the discovery action.' },
-      policy_id: { type: 'string', required: true, description: 'Registered GM policy ID that made the discovery decision.' },
-      dispatch_id: { type: 'string', required: true, description: 'Successful completed GM dispatch receipt ID.' },
-      evaluator_score: { type: 'number', required: true, description: 'Finite evaluator score for the completed discovery outcome.' },
-      cost: { type: 'number', required: true, description: 'Non-negative measured discovery cost.' },
-      parent_id: { type: 'string', description: 'Optional parent discovery record ID.' },
+      evaluator_receipt: { type: 'object', required: true, description: 'Authenticated receipt returned by gm_dream_evaluator_receipt.' },
     },
     toBody: args => args,
     presentCall: args => presentGenericCall(`gm dream-discovery-record: ${args.id}`),
   })
 
-  const hostOnlyDreamWorldSealTool = jsonTool({
+  const dreamWorldSealTool = jsonTool({
     name: 'gm_dream_world_seal',
     verb: 'dream-world-seal',
     description: 'Dispatch gm\'s `dream-world-seal` verb: construct one sealed replay world from completed GM dispatch receipts. The caller supplies only an opaque world ID and prior dispatch IDs; GM derives node outcomes and costs from its ledger.',
     parameters: {
       world_id: { type: 'string', required: true, description: 'Opaque ID for the new sealed world.' },
-      dispatch_ids: { type: 'array', required: true, description: 'Completed GM dispatch receipt IDs to include in order.', items: { type: 'string' } },
+      discovery_ids: { type: 'array', required: true, description: 'GM discovery record IDs to include in order.', items: { type: 'string' } },
     },
     toBody: args => args,
     presentCall: args => presentGenericCall(`gm dream-world-seal: ${args.world_id}`),
   })
 
-  const hostOnlyDreamReplayTool = jsonTool({
+  const dreamReplayTool = jsonTool({
     name: 'gm_dream_replay',
     verb: 'dream-replay',
     description: 'Dispatch gm\'s `dream-replay` verb: evaluate exploration policies only against recorded discovery worlds. Replay executes no tools or evaluators; the incumbent baseline is retained as a candidate and the result includes per-world observed-node, score, and cost evidence.',
@@ -420,6 +412,11 @@ export function buildGmTools(gm, onProgress = () => {}) {
     execJsTool,
     gitFinalizeTool,
     scanDepsTool,
+    dreamPolicyRegisterTool,
+    dreamEvaluatorReceiptTool,
+    dreamDiscoveryRecordTool,
+    dreamWorldSealTool,
+    dreamReplayTool,
     residualScanTool,
   ]
 }

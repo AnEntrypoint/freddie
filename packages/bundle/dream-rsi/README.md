@@ -8,7 +8,7 @@ bundles:
   - '@freddie/freddie-dream-rsi'
 ```
 
-The bundle mounts the context plugin and its invariant with `enabled: false` and `maxObservedNodes: 16`. A profile patch may enable the row only with a deployment-owned GM evaluator provider that produces authenticated discovery receipts. Without that provider the bundle has no model-visible effect.
+The bundle mounts the context plugin and its invariant with `enabled: true` and `maxObservedNodes: 16`. GM's internal evaluator derives target, score, and cost from completed dispatch evidence before a replay result can reach the context plugin.
 
 ## Model Experience
 
