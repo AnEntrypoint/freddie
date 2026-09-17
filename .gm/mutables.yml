@@ -1247,3 +1247,75 @@
   session_id: freddie-3513999-1789467163370
   status: witnessed
   witness_evidence: Live browser at http://127.0.0.1:3080 rendered Overview, Workflows, GM, Subagents, and Terminals; source owner packages/client/ui-observability/src/client/ObservabilityDock.js:5-11 and :428-500.
+- id: gm-runtime-source-alignment
+  prd_id: gm-runtime-repair-and-release
+  obligation_kind: precondition
+  subject: The live agentplug gm plugin and ../gm source tree version/provenance may differ.
+  text: Witness with runtime status, installed plugin metadata, and source artifact/build evidence before changing or claiming runtime behavior.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: The exact slim artifact was built successfully twice with /config/.cargo/bin/cargo, installed to /config/.agentplug/plugins/gm.wasm, version file set to 0.1.1287, runner restarted, and live dispatches after restart exposed the new fields.
+- id: gm-search-current-contract
+  prd_id: gm-search-separate-ranked-channels
+  obligation_kind: type-shape
+  subject: The exact codesearch result contract and query mode semantics are not yet fully established.
+  text: Witness with handler definitions and a real dual-mode dispatch that returns exact response fields.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: rs-plugkit/crates/plugkit-core/src/wasm_dispatch/verbs.rs:1452-1481 and :1660-1749 plus live root-scoped dual response established the prior contract gap; repair now adds independently labeled BM25/vector/commit channels.
+- id: gm-codeinsight-start-path
+  prd_id: gm-job-start-codeinsight
+  obligation_kind: invariant
+  subject: Job-start may be served through more than one instruction/dispatch entry point.
+  text: Witness every authoritative entry path and prove no eligible job begins without code-insight gating or a surfaced failure.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Subagent audit traced runner -> dispatch_gated_verb -> orchestrator::dispatch -> instructions/task; rs-plugkit/crates/plugkit-core/src/orchestrator/task.rs:60-93 now enforces fresh code insight before host_task spawn, while instructions/mod.rs exports job-start evidence.
+- id: gm-commit-index-coverage
+  prd_id: gm-commit-relevance-search
+  obligation_kind: postcondition
+  subject: Commit relevance may currently index messages but not diffs, or may conflate ranked evidence.
+  text: Witness index population and response construction using actual message and code-diff evidence for returned commit hashes.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: git_commit_vectors.rs:109-143 and :225-230 proved default embeddings include bounded diff content; code_index.rs git_commit_rank_at now returns explicit log/diff scoring provenance for root-scoped commits.
+- id: dirty-path-inventory
+  prd_id: audit-dirty-parent-submodules
+  obligation_kind: precondition
+  subject: Exact repository and submodule dirty inventory is unknown until obtained through the sanctioned Git/runtime inspection surface.
+  text: Witness with a live status/diff inspection that reports each repository scope, untracked paths, tracked modifications, and submodule pointer/worktree state.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: 'gm_exec_js dispatch 1789543216103-500-4154c49381df53bc: parent porcelain v2 reports exactly four dirty gitlinks—agentplug, gm-config, obrowser (.M SC..), rs-plugkit (.M S..U)—and no parent ordinary paths; recursive submodule status lists only those three with ''+'' heads and rs-plugkit unchanged at its recorded HEAD. gm_exec_js dispatch 1789543458217-500-dd51c90cd891ca1d: each of the four submodule worktrees has empty `git status --short --untracked-files=all`.'
+- id: runtime-dirt-causality
+  prd_id: audit-dirty-parent-submodules
+  obligation_kind: postcondition
+  subject: The origin and preventive tooling change for any generated-runtime classification are unknown until the relevant code/config/tooling is inspected.
+  text: Witness with exact source/config references and, where available, Git ignore/status evidence that connects each generated path to its producer and prevention mechanism.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: 'No generated-runtime dirty path exists in the current inventory: all four dirty superproject entries are submodule gitlink states, while their nested worktrees are clean (gm_exec_js 1789543458217-500-dd51c90cd891ca1d). Exact preventing mechanism for future runtime outputs is already present: rs-plugkit/.gitignore:4-11 ignores `.gm/exec-spool/`, `.gm/gm.db`, config caches/timestamps, `.agentplug-kv/`, and core `.gm/`; obrowser/.gitignore:1-2 ignores `.gm/` and `/target`; rs-plugkit commit a39a609 is `fix(dev): ignore code insight runtime caches`; obrowser HEAD 4153074 is `chore: gitignore transient runtime and build emission`.'
+- id: gm-search-route-closure
+  prd_id: gm-search-insight
+  obligation_kind: invariant
+  subject: Every model-accessible code-discovery mechanism must resolve to GM while exact known-path retrieval remains available.
+  text: Map all tool/prompt registrations and verify the retained capability route through actual tool schemas and runtime dispatches.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: invariant witnessed by packages/gm/tool-gm/src/verbs.js:128-151 exposing gm_codesearch over the incremental index and the loaded gm instruction requiring codesearch as the only discovery surface; known paths remain retrieved with Read.
+- id: gm-remote-authority
+  prd_id: gm-consolidate-remotes
+  obligation_kind: precondition
+  subject: The sibling GM repository contains independently-owned repositories and upstream push semantics.
+  text: Witness repository topology and remote state before staging or finalizing; preserve unrelated work and use the authorized non-destructive integration path.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: 'precondition witnessed by /config/workspace/gm/agentplug/AGENTS.md:3: direct main pushes publish releases; AgentPlug, rs-plugkit, and gm are separately rooted repositories, so owned paths must be committed independently.'
+- id: gm-live-gui-baseline
+  prd_id: gm-observability-gui
+  obligation_kind: precondition
+  subject: The actual Freddie GUI baseline and its active GM projections are not yet verified in this live browser session.
+  text: Inspect http://127.0.0.1:3080 through the agent-browser workflow and capture runtime state before modifying visual behavior.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: 'precondition witnessed by agent-browser at http://127.0.0.1:3080: page title FREDDIE Local Build and interactive snapshot showed the live FREDDIE readiness surface before edits.'
