@@ -151,9 +151,10 @@ function activityRows(entries, rows, labels) {
     const detail = activity === undefined
       ? running ? 'Running; no semantic operation has arrived yet.' : 'No recent semantic operation reported.'
       : `${activity.detail} · ${relativeAge(entry.event.time)}`
-    return { ...row, activity, state, detail, running }
+    return { ...row, activity, state, detail, running, observedAt: entry?.event.time ?? 0 }
   }).sort((left, right) => Number(right.running) - Number(left.running)
-    || (right.activity?.key ?? '').localeCompare(left.activity?.key ?? ''))
+    || right.observedAt - left.observedAt
+    || left.id.localeCompare(right.id))
 }
 
 function formatDuration(ms) {
@@ -352,7 +353,7 @@ export class FreddieObservabilityDock extends HTMLElement {
     const descendantIds = new Set(descendantRows.map(row => row.id))
     const descendantLabels = new Map(descendantRows.map(row => [row.id, row.label]))
     const childActivityEntries = treeActivity.filter(entry => descendantIds.has(entry.sessionId))
-    const childActivity = childActivityEntries.slice(-40).reverse().map(entry => observedEvent(entry, descendantLabels)).filter(Boolean)
+    const childActivity = childActivityEntries.slice(-40).sort((left, right) => right.event.time - left.event.time).map(entry => observedEvent(entry, descendantLabels)).filter(Boolean)
     const latestChildActivity = latestActivityBySession(childActivityEntries)
     const boardRows = activityRows(childActivityEntries, descendantRows, descendantLabels)
     const childTerminals = treeTerminals.filter(entry => descendantIds.has(entry.sessionId)).map(entry => ({ ...entry.terminal, observerLabel: descendantLabels.get(entry.sessionId) ?? entry.sessionId }))
@@ -376,7 +377,10 @@ export class FreddieObservabilityDock extends HTMLElement {
       runs.length === 0 ? h('p', { class: css.empty ?? '' }, 'No workflow run is recorded in this session.') : runs.map(run => h('article', { key: `${run.name}:${run.currentPhase ?? ''}`, class: css.activity ?? '' },
         this.#metric(run.name, run.status, run.currentPhase ?? 'No active phase.'),
         run.logs.length === 0 ? null : h('ol', { class: css.logList ?? '', 'aria-label': `${run.name} logs` }, run.logs.map(log => h('li', { key: log.seq }, log.message))),
-        run.phases.map(group => h('div', { key: group.key, class: css.memberGroup ?? '' }, h('strong', null, group.phase ?? 'Unassigned'), group.members.map(member => h('p', { key: member.seq }, `${member.label} · ${member.status}`)))),
+        run.phases.map(group => h('div', { key: group.key, class: css.memberGroup ?? '' }, h('strong', null, group.phase ?? 'Unassigned'), group.members.map(member => h('p', { key: member.seq },
+          `${member.label} · ${member.status}`,
+          member.childId === undefined ? null : h('button', { type: 'button', class: css.action ?? '', onclick: () => { props.openSession(member.childId) } }, 'Inspect session'),
+        )))),
       )),
       descendantRows.filter(row => row.workflow !== undefined).map(row => this.#metric(`Child workflow · ${row.label}`, row.workflow.status ?? 'active', row.workflow.currentPhase ?? row.workflow.name ?? 'Live child workflow projection.')),
     )
@@ -446,7 +450,7 @@ export class FreddieObservabilityDock extends HTMLElement {
               h('section', { class: css.activityBoard ?? '', 'aria-label': 'Board-wide agent activity' },
                 h('div', { class: css.panelHeader ?? '' },
                   h('h2', null, 'Across the board'),
-                  h('span', { class: css.panelCopy ?? '' }, `${boardRows.filter(row => row.running).length} working · ${boardRows.length - boardRows.filter(row => row.running).length} last observed`),
+                  h('span', { class: css.panelCopy ?? '' }, `${boardRows.filter(row => row.running).length} working · ${boardRows.length - boardRows.filter(row => row.running).length} last observed · last 40 retained events per tree`),
                 ),
                 boardRows.length === 0 ? h('p', { class: css.empty ?? '' }, 'No subagent activity is available yet. New work appears here as it reaches the realtime stream.') : h('ol', { class: css.logList ?? '' }, boardRows.map(row => h('li', { key: row.id, class: css.boardRow ?? '', 'data-state': row.running ? 'working' : 'observed' },
                   h('div', null,
