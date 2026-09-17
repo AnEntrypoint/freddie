@@ -12,12 +12,18 @@ function record(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value) ? value : undefined
 }
 
+function opaqueId(value) {
+  return typeof value === 'string' && /^[A-Za-z0-9._:-]+$/.test(value) ? value : undefined
+}
+
 function validSelection(value) {
   const result = record(value)?.data ?? record(value)
-  if (result?.ok !== true || typeof result.baseline_policy_id !== 'string'
-    || typeof result.selected_policy_id !== 'string' || !Array.isArray(result.rankings)) return undefined
-  const selected = result.rankings.find(entry => record(entry)?.policy_id === result.selected_policy_id)
-  const baseline = result.rankings.find(entry => record(entry)?.policy_id === result.baseline_policy_id)
+  const baselinePolicyId = opaqueId(result?.baseline_policy_id)
+  const selectedPolicyId = opaqueId(result?.selected_policy_id)
+  if (result?.ok !== true || baselinePolicyId === undefined
+    || selectedPolicyId === undefined || !Array.isArray(result.rankings)) return undefined
+  const selected = result.rankings.find(entry => opaqueId(record(entry)?.policy_id) === selectedPolicyId)
+  const baseline = result.rankings.find(entry => opaqueId(record(entry)?.policy_id) === baselinePolicyId)
   if (record(selected) === undefined || record(baseline) === undefined) return undefined
   const selectedScore = selected.score
   const baselineScore = baseline.score
@@ -25,7 +31,8 @@ function validSelection(value) {
     || typeof baselineScore !== 'number' || !Number.isFinite(baselineScore)
     || selectedScore < baselineScore) return undefined
   const replays = selected.replays
-  if (!Array.isArray(replays) || replays.length === 0 || replays.some(replay => !Array.isArray(record(replay)?.observed_node_ids))) return undefined
+  if (!Array.isArray(replays) || replays.length === 0 || replays.some(replay => !Array.isArray(record(replay)?.observed_node_ids)
+    || record(replay).observed_node_ids.some(node => opaqueId(node) === undefined))) return undefined
   return { result, selected, baseline }
 }
 
