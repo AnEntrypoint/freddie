@@ -24,10 +24,6 @@ The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start an
 | `gm_exec_js` | `exec_js` | `code`, `timeoutMs?` | Plain-text-body sandbox execution. |
 | `gm_git_finalize` | `git_finalize` | `message`, `files?` | Add, commit, porcelain-gate, push, CI-watch. |
 | `gm_scan_deps` | `scan_deps` | `root?`, `full?` | HiddenSpawn-class dependency scan of git-tracked source plus present `node_modules`. |
-| `gm_dream_policy_register` | `dream-policy-register` | `policy`, `deployed?` | Registers a session-owned policy; only a registered deployed policy is eligible as replay baseline. |
-| `gm_dream_discovery_record` | `dream-discovery-record` | `id`, `target`, `policy_id`, `dispatch_id`, `evaluator_score`, `cost`, `parent_id?` | Records a successful completed discovery action and evaluator result under the GM session. |
-| `gm_dream_world_seal` | `dream-world-seal` | `world_id`, `discovery_ids` | Builds a same-session sealed world from GM discovery records. |
-| `gm_dream_replay` | `dream-replay` | `baseline_policy_id`, `policy_ids`, `world_ids` | Replays GM-registered candidate policies over GM-sealed recorded worlds without execution. The deployed baseline remains a candidate; output retains per-world score, cost, and observed-node evidence. |
 | `gm_residual_scan` | `residual-scan` | none | DECIDE→COMPLETE stop-window scan. Writes `.gm/residual-check-fired` for this session. |
 
 Each tool declares `timeoutMs` equal to the spool default (120000) except `gm_codesearch` (360000, matching live dual-index duration on this machine) and `gm_scan_deps` (180000). `gm_exec_js` polls for `max(120000, args.timeoutMs)` so a larger snippet budget is not truncated by the host tool timeout. Each tool forwards `exec.signal` into `Gm.call`, so a cancelled turn stops the poll instead of waiting the remaining timeout.
@@ -57,5 +53,6 @@ Prefix-stable while the thirteen definitions stay mounted. Plugin lifecycle may 
 
 ## Known Limitations and Deferred Work
 
+- Dream-RSI policy registration, discovery recording, world sealing, and replay remain GM host capabilities until a deployment-owned evaluator provider can issue target-bound outcome receipts. They are not exposed as model tools because model-supplied metrics would defeat the grounding contract.
 - `gm_exec_js` `timeoutMs` is the sandbox's own prefix, independent of the tool-call budget (`GM_TOOL_TIMEOUT_MS`). A sandbox timeout shorter than the tool budget still returns through the spool; a cancelled turn still aborts the poll.
 - Presentation is display-only. Malformed replayed meta falls back to the generic card and never throws.

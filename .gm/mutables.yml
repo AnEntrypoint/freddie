@@ -1423,3 +1423,19 @@
   session_id: freddie-3513999-1789467163370
   status: witnessed
   witness_evidence: rs-plugkit/crates/plugkit-core/src/orchestrator/dream_rsi.rs:185-208 persists a session-owned discovery record with target, policy, successful dispatch, evaluator score, cost, and parent relation; seal consumes only discovery_ids at :213-233.
+- id: dream-rsi-policy-discovery-binding
+  prd_id: dream-rsi-policy-discovery-binding
+  obligation_kind: invariant
+  subject: Discovery records must resolve policy IDs to GM-registered same-session policies before sealed-world admission.
+  text: Witness a live wasm build and source path refusing an unknown or cross-session policy ID.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: dream_rsi.rs:212-214 loads and verifies signed same-session policy records before record_discovery accepts policy_id; unknown or cross-session policy IDs reject. wasm cargo check passed at gm_exec_js 1789643864014.
+- id: dream-rsi-evaluator-contract
+  prd_id: dream-rsi-fixed-evaluator
+  obligation_kind: precondition
+  subject: No target-domain evaluator provider or fixed evaluator output contract exists in gm, so a universal trustworthy score/cost cannot be derived from generic successful dispatches.
+  text: Witness exhaustive rs-plugkit evaluator search and a concrete configured evaluator provider contract or explicitly scoped domain evaluator before recording discovery metrics.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Exhaustive rs-plugkit evaluator search at gm_codesearch 1789644066437 found no target-domain evaluator provider; config.rs:61-63 exposes arbitrary config values, not a current evaluator contract. The fixed evaluator seam remains an unresolved design/build requirement.

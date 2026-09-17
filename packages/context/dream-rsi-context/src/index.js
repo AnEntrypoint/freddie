@@ -5,6 +5,7 @@ export const name = 'dream-rsi-context'
 export const inject = ['agents']
 
 export const Config = z.object({
+  enabled: z.boolean().default(false),
   maxObservedNodes: z.number().step(1).min(1).default(16),
 })
 
@@ -71,6 +72,7 @@ function renderDirective(selection, maxObservedNodes) {
 
 export function apply(ctx, config) {
   const maxObservedNodes = config.maxObservedNodes
+  if (!config.enabled) return
   ctx.on('agent/pre-step', async ({ agent, signal }, next) => {
     const decision = await next()
     if (decision.kind === 'reject' || signal.aborted) return decision

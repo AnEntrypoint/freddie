@@ -8,7 +8,7 @@ bundles:
   - '@freddie/freddie-dream-rsi'
 ```
 
-The bundle mounts the context plugin and its invariant with `maxObservedNodes: 16`. Profile patches can replace that row with another positive limit. It has no effect until the session records a validated replay result from the existing `gm_dream_replay` tool.
+The bundle mounts the context plugin and its invariant with `enabled: false` and `maxObservedNodes: 16`. A profile patch may enable the row only with a deployment-owned GM evaluator provider that produces authenticated discovery receipts. Without that provider the bundle has no model-visible effect.
 
 ## Model Experience
 

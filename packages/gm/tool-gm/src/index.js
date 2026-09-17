@@ -3,8 +3,7 @@
  * `gm_instruction`, `gm_phase_status`, `gm_codesearch`, `gm_recall`,
  * `gm_prd_add`, `gm_prd_resolve`, `gm_mutable_add`, `gm_mutable_resolve`,
  * `gm_transition`, `gm_exec_js`, `gm_git_finalize`, `gm_scan_deps`,
- * `gm_dream_policy_register`, `gm_dream_discovery_record`, `gm_dream_world_seal`,
- * `gm_dream_replay`, `gm_residual_scan` - a
+ * `gm_residual_scan` - a
  * first-class replacement for the generic MCP bridge's single opaque
  * `mcp__gm__gm(verb, body: any)` tool, each with real typed parameters and
  * output schema.

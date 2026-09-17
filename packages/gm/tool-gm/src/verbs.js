@@ -324,6 +324,22 @@ export function buildGmTools(gm, onProgress = () => {}) {
     presentCall: args => presentGenericCall(`gm dream-policy-register: ${args.policy.id}`),
   })
 
+  const dreamEvaluatorReceiptTool = jsonTool({
+    name: 'gm_dream_evaluator_receipt',
+    verb: 'dream-evaluator-receipt',
+    description: 'Dispatch gm\'s `dream-evaluator-receipt` verb: authenticate an evaluator result for a successful discovery dispatch before a discovery record may consume it.',
+    parameters: {
+      target: { type: 'string', required: true, description: 'Opaque evaluated target ID.' },
+      policy_id: { type: 'string', required: true, description: 'Registered GM policy ID.' },
+      dispatch_id: { type: 'string', required: true, description: 'Successful completed GM dispatch receipt ID.' },
+      evaluator_score: { type: 'number', required: true, description: 'Finite evaluator score.' },
+      cost: { type: 'number', required: true, description: 'Non-negative measured discovery cost.' },
+      parent_id: { type: 'string', description: 'Optional parent discovery record ID.' },
+    },
+    toBody: args => args,
+    presentCall: args => presentGenericCall(`gm dream-evaluator-receipt: ${args.target}`),
+  })
+
   const dreamDiscoveryRecordTool = jsonTool({
     name: 'gm_dream_discovery_record',
     verb: 'dream-discovery-record',
@@ -404,10 +420,6 @@ export function buildGmTools(gm, onProgress = () => {}) {
     execJsTool,
     gitFinalizeTool,
     scanDepsTool,
-    dreamPolicyRegisterTool,
-    dreamDiscoveryRecordTool,
-    dreamWorldSealTool,
-    dreamReplayTool,
     residualScanTool,
   ]
 }

@@ -1,6 +1,6 @@
 # @freddie/freddie-dream-rsi-context
 
-Opt-in context for a grounded [Dream-RSI](https://www.dream-rsi.com/) replay selection. It adds a replay directive only after the same Session records a successful `gm_dream_replay` tool result whose candidate ranking includes the deployed baseline and whose selected score is not lower than that baseline.
+Context for a grounded [Dream-RSI](https://www.dream-rsi.com/) replay selection. It is disabled by default and adds a replay directive only after an enabled deployment records a successful `gm_dream_replay` tool result whose candidate ranking includes the deployed baseline and whose selected score is not lower than that baseline.
 
 ## Config
 
@@ -11,7 +11,7 @@ Opt-in context for a grounded [Dream-RSI](https://www.dream-rsi.com/) replay sel
     maxObservedNodes: 16
 ```
 
-`maxObservedNodes` is a positive integer limiting node identifiers rendered in each directive. The package is intentionally absent from base composition; add it through an explicit profile or bundle overlay.
+`enabled` defaults to `false`. Set it to `true` only in a deployment that also installs a trusted GM evaluator provider. `maxObservedNodes` is a positive integer limiting node identifiers rendered in each directive. The package is intentionally absent from base composition; add it through an explicit profile or bundle overlay.
 
 ## Grounding boundary
 

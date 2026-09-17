@@ -12,3 +12,10 @@
   status: pending
   route_family: boundary
   session_id: freddie-3513999-1789467163370
+- id: dream-rsi-trusted-evaluator-provider
+  title: Implement trusted evaluator provider
+  subject: Implement a deployment-owned evaluator provider or artifact-verification protocol that can independently issue Dream-RSI target, score, cost, and outcome-digest receipts; until then model-facing replay remains disabled.
+  acceptance: 'Pre: evaluator executable/service/config is available. Invariant: all discovery metrics derive from provider output, not model JSON. Post: evaluator receipt issuance is live-witnessed with real target execution and rejects caller-provided metrics.'
+  status: pending
+  route_family: execution
+  session_id: freddie-3513999-1789467163370
