@@ -50,6 +50,14 @@ const jsonOutput = {
  * @returns the tool definitions, ready for `ctx.tools.register()`.
  */
 export function buildGmTools(gm, onProgress = () => {}) {
+  const reportProgress = (dispatch, exec) => {
+    try {
+      onProgress(dispatch, exec)
+    } catch (error) {
+      void error
+    }
+  }
+
   /**
    * One JSON-body gm-verb tool. `verb` is the real gm spool verb name (never
    * derived from `name` -- gm's own verb naming mixes dashes and underscores
@@ -79,17 +87,17 @@ export function buildGmTools(gm, onProgress = () => {}) {
       async execute(args, exec) {
         const cwd = exec.agent?.session.header.cwd
         const startedAt = Date.now()
-        onProgress({ verb, status: 'running', startedAt }, exec)
+        reportProgress({ verb, status: 'running', startedAt }, exec)
         try {
           const value = await gm.call(verb, toBody(args), {
             signal: exec.signal,
             timeoutMs,
             ...cwd === undefined ? {} : { cwd },
           })
-          onProgress({ verb, status: 'completed', startedAt, finishedAt: Date.now(), value }, exec)
+          reportProgress({ verb, status: 'completed', startedAt, finishedAt: Date.now(), value }, exec)
           return value
         } catch (error) {
-          onProgress({ verb, status: 'failed', startedAt, finishedAt: Date.now(), error }, exec)
+          reportProgress({ verb, status: 'failed', startedAt, finishedAt: Date.now(), error }, exec)
           throw error
         }
       },
@@ -259,7 +267,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
       const raw = args.timeoutMs === undefined ? args.code : `timeoutMs=${args.timeoutMs}\n${args.code}`
       const cwd = exec.agent?.session.header.cwd
       const startedAt = Date.now()
-      onProgress({ verb: 'exec_js', status: 'running', startedAt }, exec)
+      reportProgress({ verb: 'exec_js', status: 'running', startedAt }, exec)
       try {
         const value = await gm.call('exec_js', {}, {
           rawBody: raw,
@@ -267,10 +275,10 @@ export function buildGmTools(gm, onProgress = () => {}) {
           timeoutMs: budget,
           ...cwd === undefined ? {} : { cwd },
         })
-        onProgress({ verb: 'exec_js', status: 'completed', startedAt, finishedAt: Date.now(), value }, exec)
+        reportProgress({ verb: 'exec_js', status: 'completed', startedAt, finishedAt: Date.now(), value }, exec)
         return value
       } catch (error) {
-        onProgress({ verb: 'exec_js', status: 'failed', startedAt, finishedAt: Date.now(), error }, exec)
+        reportProgress({ verb: 'exec_js', status: 'failed', startedAt, finishedAt: Date.now(), error }, exec)
         throw error
       }
     },

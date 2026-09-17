@@ -6,7 +6,7 @@ Session id is not a per-call argument. Every tool closes over the mounted `ctx.g
 
 ## Durable progress event
 
-The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start and settlement. Its complete payload carries `{ verb, status, phase, prdPendingCount, mutablesPendingCount, sessionId, belongsToConfiguredSession, startedAt, finishedAt, durationMs, error }`; running events retain the preceding semantic checkpoint, while failed settlement records its bounded error text. These records never enter model history or change tool schemas/results. They provide later projections and UI an owned causal account of GM work.
+The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start and settlement. Its complete payload carries `{ verb, status, phase, prdPendingCount, mutablesPendingCount, sessionId, belongsToConfiguredSession, startedAt, finishedAt, durationMs, error }`; running events retain the preceding semantic checkpoint, including one restored from the session projection after plugin reload, while failed settlement records its bounded error text. Progress-recording failures are contained and never alter the GM tool result. These records never enter model history or change tool schemas/results.
 
 ## Tools
 

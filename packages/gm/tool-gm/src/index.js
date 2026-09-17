@@ -60,13 +60,18 @@ export function gmProgressSnapshot(dispatch, sessionId, previous) {
  */
 export function apply(ctx) {
   const latestBySession = new WeakMap()
+  const checkpointOf = (session) => latestBySession.get(session)
+    ?? ctx.get('sessionProjections')?.snapshot(session).values.gmProgress
   for (const tool of buildGmTools(ctx.gm, (dispatch, exec) => {
     const session = exec.agent?.session
     if (session === undefined) return
-    const previous = latestBySession.get(session)
-    const snapshot = gmProgressSnapshot(dispatch, ctx.gm.config.sessionId, previous)
-    latestBySession.set(session, snapshot)
-    session.append('gm/progress', snapshot, { ignorable: true })
+    const snapshot = gmProgressSnapshot(dispatch, ctx.gm.config.sessionId, checkpointOf(session))
+    try {
+      session.append('gm/progress', snapshot, { ignorable: true })
+      latestBySession.set(session, snapshot)
+    } catch (error) {
+      void error
+    }
   })) {
     ctx.tools.register(tool)
   }

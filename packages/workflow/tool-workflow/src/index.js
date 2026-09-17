@@ -352,6 +352,9 @@ export function apply(ctx, config) {
               return {
                 status: error === undefined ? 'completed' : settled.stopReason === 'cancelled' ? 'killed' : 'failed',
                 detail: error ?? `workflow ${run.meta.name} completed (${settled.agentsStarted} agents)`,
+                ...error === undefined ? {
+                  output: JSON.stringify({ runId: run.id, agentsStarted: settled.agentsStarted, result: settled.value }),
+                } : {},
               }
             }).finally(() => {
               if (recordsRun) recorder.abandon(run.id)
