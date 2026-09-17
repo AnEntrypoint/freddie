@@ -1,1 +1,14 @@
-[]
+- id: dream-rsi-completion-gates
+  title: Satisfy CI and independent-review completion evidence
+  subject: The current pushed Dream-RSI commits require fresh CI evidence and an independent adversarial sweep before gm can close.
+  acceptance: 'Pre: pushed HEAD exists. Invariant: no completion claim outruns CI or independent review. Post: completion markers attest to current HEAD with witnessed green CI and reviewed diff.'
+  status: pending
+  route_family: boundary
+  session_id: freddie-3513999-1789467163370
+- id: dream-rsi-ci-head
+  title: Update CI marker for current Dream-RSI head
+  subject: The fresh CI check applies to b26dd62869 but completion will require a clean committed PRD and a matching final-head marker.
+  acceptance: 'Pre: current pushed HEAD has a successful CI check. Invariant: CI marker names exactly the current HEAD. Post: final clean HEAD has an evidence-backed CI marker.'
+  status: pending
+  route_family: boundary
+  session_id: freddie-3513999-1789467163370
