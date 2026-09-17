@@ -52,7 +52,6 @@ function updatePropOrAttr(el, key, value) {
  * @param oldProps Previous properties for comparison (default empty object)
  */
 function updateAttributesCore(el, newProps, oldProps = {}) {
-    // Handle new/updated props
     for (const key of Object.keys(newProps)) {
         const value = newProps[key];
         if (key === "children" ||
@@ -68,7 +67,6 @@ function updateAttributesCore(el, newProps, oldProps = {}) {
             updatePropOrAttr(el, key, value);
         }
     }
-    // Handle dangerouslySetInnerHTML
     if (newProps.dangerouslySetInnerHTML) {
         if (!oldProps.dangerouslySetInnerHTML ||
             newProps.dangerouslySetInnerHTML.__html !==
@@ -82,7 +80,6 @@ function updateAttributesCore(el, newProps, oldProps = {}) {
             el.innerHTML = "";
         }
     }
-    // Remove old props/attributes
     for (const key of Object.keys(oldProps)) {
         if (!(key in newProps) &&
             key !== "children" &&

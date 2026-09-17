@@ -85,7 +85,6 @@ function diffChildren(parent, newVNodes) {
     }
     if (changes.length) {
         const { nodes, lastNode: lastPlacedNode } = applyChanges(parent, changes, originalChildNodes, nodeOrderUnchanged);
-        // Remove any remaining nodes
         while (lastPlacedNode?.nextSibling) {
             parent.removeChild(lastPlacedNode.nextSibling);
         }

@@ -200,7 +200,6 @@ export class RegistryService {
    * @returns the fiber; awaiting it settles once loading finished.
    */
   plugin(plugin, config, getOuterStack = buildOuterStack()) {
-    // check if it's a valid plugin
     const callback = this.resolve(plugin)
     if (!callback) throw new Error('invalid plugin, expect function or object with an "apply" method, received ' + typeof plugin)
     this.ctx.fiber.assertActive()
