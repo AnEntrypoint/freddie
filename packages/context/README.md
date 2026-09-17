@@ -8,6 +8,7 @@ Product plugins that add model-visible request context without defining a tool. 
 | [`file-reference/`](file-reference/README.md) | File-reference discovery seam and `@file` grammar | `ctx.fileReferences` |
 | [`file-reference-local/`](file-reference-local/README.md) | Local-filesystem file-reference provider | — |
 | [`time-context/`](time-context/README.md) | Current-time and elapsed-time context | — |
+| [`dream-rsi-context/`](dream-rsi-context/README.md) | Grounded Dream-RSI replay context | - |
 | [`tmux-context/`](tmux-context/README.md) | tmux location context | — |
 | [`agent-instructions/`](agent-instructions/README.md) | Workspace-instruction context | — |
 

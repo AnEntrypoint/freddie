@@ -312,6 +312,19 @@ export function buildGmTools(gm, onProgress = () => {}) {
     timeoutMs: GM_SCAN_DEPS_TIMEOUT_MS,
   })
 
+  const dreamReplayTool = jsonTool({
+    name: 'gm_dream_replay',
+    verb: 'dream-replay',
+    description: 'Dispatch gm\'s `dream-replay` verb: evaluate exploration policies only against recorded discovery worlds. Replay executes no tools or evaluators; the incumbent baseline is retained as a candidate and the result includes per-world observed-node, score, and cost evidence.',
+    parameters: {
+      baseline_policy_id: { type: 'string', required: true, description: 'ID of the deployed baseline policy. It must also appear in policies.' },
+      policies: { type: 'array', required: true, description: 'Recorded-world traversal policies with id, roots, and max_nodes.', items: { type: 'object', additionalProperties: true } },
+      worlds: { type: 'array', required: true, description: 'Recorded discovery worlds containing realized nodes, scores, costs, and child links.', items: { type: 'object', additionalProperties: true } },
+    },
+    toBody: args => args,
+    presentCall: args => presentGenericCall(`gm dream-replay: ${args.baseline_policy_id}`),
+  })
+
   const residualScanTool = jsonTool({
     name: 'gm_residual_scan',
     verb: 'residual-scan',
@@ -334,6 +347,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     execJsTool,
     gitFinalizeTool,
     scanDepsTool,
+    dreamReplayTool,
     residualScanTool,
   ]
 }

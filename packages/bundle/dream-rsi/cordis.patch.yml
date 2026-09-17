@@ -1,0 +1,8 @@
+entries:
+  $insert:
+    - id: dream-rsi-context
+      name: '@freddie/freddie-dream-rsi-context'
+      config:
+        maxObservedNodes: 16
+    - id: dream-rsi-context-invariant
+      name: '@freddie/freddie-dream-rsi-context/invariant'

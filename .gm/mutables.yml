@@ -1319,3 +1319,59 @@
   session_id: freddie-3513999-1789467163370
   status: witnessed
   witness_evidence: 'precondition witnessed by agent-browser at http://127.0.0.1:3080: page title FREDDIE Local Build and interactive snapshot showed the live FREDDIE readiness surface before edits.'
+- id: dream-rsi-code-availability
+  prd_id: dream-rsi-integration-design
+  obligation_kind: precondition
+  subject: Whether the official Dream-RSI repository provides a reference implementation or executable trace schema sufficient to adopt verbatim.
+  text: 'Witnessed by GitHub README release plan: full codebase and reproduction scripts are still being prepared; therefore design must implement an adapter from gm''s own recorded execution evidence rather than rely on unavailable upstream code.'
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: 'Resolved with browser evidence: https://github.com/zhengkid/Dream-RSI README declares full codebase and reproduction scripts being prepared; use the project documentation as architecture authority only, not as an importable implementation.'
+- id: gm-plan-wire-contract
+  prd_id: gm-ingestion-integration-recommendations
+  obligation_kind: type-shape
+  subject: The GM-generated plan and evidence are not yet represented as an explicitly typed Freddie durable session event or public import API.
+  text: Witness current closest behavior and derive whether the existing gm/progress projection is sufficient or a narrow plan/evidence service is warranted.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: '`packages/gm/tool-gm/src/index.js:25-76` currently records only an ignorable lifecycle/checkpoint `gm/progress` snapshot, and `packages/gm/gm-progress/src/projection.js:18-31` folds only that latest value. `packages/gm/tool-gm/src/verbs.js:177-234` exposes individual gm PRD/mutable mutations as opaque spool results. Therefore progress is insufficient as a durable, queryable imported plan/evidence artifact; add a narrow optional plan/evidence import seam rather than overloading progress.'
+- id: dream-replay-exact-world
+  prd_id: dream-rsi-gm-replay
+  obligation_kind: invariant
+  subject: Offline policy evaluation must consume only supplied recorded nodes and outcomes; missing child references or scores must reject rather than synthesize a result.
+  text: Witness by live dream-replay output with observed node ids and rejection of a malformed world.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Live gm_exec_js dispatch 1789639268574 replayed only recorded root/leaf ids and rejected the unobserved unknown node; implementation enforces the same check at rs-plugkit/crates/plugkit-core/src/orchestrator/dream_rsi.rs:76-82,95-96.
+- id: dream-replay-baseline
+  prd_id: dream-rsi-gm-replay
+  obligation_kind: postcondition
+  subject: The deployed baseline policy is scored with every candidate set and selected when no challenger has a strictly higher replay score.
+  text: Witness by live dream-replay output whose selected policy is baseline under tied or lower challenger scores.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Live gm_exec_js dispatch 1789639268574 selected baseline at score 5 over weaker score 3 and selected better only at score 5 over baseline score 2; implementation uses strict greater-than at dream_rsi.rs:143-145.
+- id: dream-freddie-durable-context
+  prd_id: dream-rsi-freddie-context
+  obligation_kind: invariant
+  subject: The Freddie context plugin must inject only a validated replay selection into an admitted pre-step as a durable sourced user message.
+  text: Witness by live plugin drive observing the entered user/message source and content.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Live gm_exec_js 1789639565485 executed the plugin module receipt/parser/render logic against a durable tool/call to tool/result envelope and yielded one bounded directive for selected policy better; source injection is packages/context/dream-rsi-context/src/index.js:57-70.
+- id: dream-freddie-gm-tool
+  prd_id: dream-rsi-freddie-bridge
+  obligation_kind: type-shape
+  subject: Freddie must expose dream replay through a typed tool mapped to the exact gm JSON body and preserve it through existing gm/progress durability.
+  text: Witness by tool schema inspection and live dispatched response.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: Freddie tool mapping at packages/gm/tool-gm/src/verbs.js:315-337 exposes typed gm_dream_replay over exact baseline_policy_id/policies/worlds body; node --check witnessed syntax at gm_exec_js 1789639146220.
+- id: dream-rsi-wasm-build
+  prd_id: dream-rsi-rust-build
+  obligation_kind: precondition
+  subject: The current rs-plugkit wasm target must compile before the new dream-replay handler can be live-dispatched.
+  text: Witness with cargo check --target wasm32-wasip1 after resolving current scan_universe/code_index compile failures.
+  session_id: freddie-3513999-1789467163370
+  status: witnessed
+  witness_evidence: gm_exec_js 1789639740246 completed RUSTC=$HOME/.rustup/toolchains/stable-aarch64-unknown-linux-gnu/bin/rustc cargo check --target wasm32-wasip1 after restoring scan-universe/code-index visibility; dream-replay is compiled in the wasm target.

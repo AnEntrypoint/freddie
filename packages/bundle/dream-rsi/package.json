@@ -1,0 +1,16 @@
+{
+  "name": "@freddie/freddie-dream-rsi",
+  "description": "Opt-in grounded Dream-RSI context bundle",
+  "version": "0.1.1-rc.2",
+  "publishConfig": { "access": "public" },
+  "repository": { "type": "git", "url": "git+https://github.com/lanmower/freddie.git", "directory": "packages/bundle/dream-rsi" },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": { ".": { "default": "./src/index.js" }, "./cordis.patch.yml": "./cordis.patch.yml", "./package.json": "./package.json" },
+  "files": ["src/index.js", "cordis.patch.yml"],
+  "license": "MIT",
+  "freddie": { "bundle": { "patch": "./cordis.patch.yml" } },
+  "dependencies": { "@freddie/freddie-dream-rsi-context": "*" },
+  "peerDependencies": { "@freddie/cordis": "*", "@freddie/freddie-invariants": "*" },
+  "devDependencies": { "@freddie/cordis": "*", "@freddie/freddie-invariants": "*" }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "@freddie/freddie-dream-rsi-context",
+  "description": "Opt-in durable context for grounded Dream-RSI replay selections",
+  "version": "0.1.1-rc.2",
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/context/dream-rsi-context"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": { "default": "./src/index.js" },
+    "./invariant": { "default": "./src/invariant.js" },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": ["src/*.js"],
+  "license": "MIT",
+  "dependencies": {
+    "@freddie/schemastery": "*"
+  },
+  "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-agent-loop": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*"
+  }
+}

@@ -1,6 +1,6 @@
 # @freddie/freddie-tool-gm
 
-Model-facing typed tools over [`ctx.gm`](../gm-client/README.md): `gm_instruction`, `gm_phase_status`, `gm_codesearch`, `gm_recall`, `gm_prd_add`, `gm_prd_resolve`, `gm_mutable_add`, `gm_mutable_resolve`, `gm_transition`, `gm_exec_js`, `gm_git_finalize`, `gm_scan_deps`, `gm_residual_scan`. Each tool names the real spool-verb fields instead of the generic MCP bridge's opaque `(verb, body)` shape.
+Model-facing typed tools over [`ctx.gm`](../gm-client/README.md): `gm_instruction`, `gm_phase_status`, `gm_codesearch`, `gm_recall`, `gm_prd_add`, `gm_prd_resolve`, `gm_mutable_add`, `gm_mutable_resolve`, `gm_transition`, `gm_exec_js`, `gm_git_finalize`, `gm_scan_deps`, `gm_dream_replay`, `gm_residual_scan`. Each tool names the real spool-verb fields instead of the generic MCP bridge's opaque `(verb, body)` shape.
 
 Session id is not a per-call argument. Every tool closes over the mounted `ctx.gm` instance, whose `sessionId` is fixed at plugin config. Each execute passes `exec.agent.session.header.cwd` as `options.cwd` so the spool is the session workspace, not the GUI host's `process.cwd()`.
 
@@ -24,6 +24,7 @@ The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start an
 | `gm_exec_js` | `exec_js` | `code`, `timeoutMs?` | Plain-text-body sandbox execution. |
 | `gm_git_finalize` | `git_finalize` | `message`, `files?` | Add, commit, porcelain-gate, push, CI-watch. |
 | `gm_scan_deps` | `scan_deps` | `root?`, `full?` | HiddenSpawn-class dependency scan of git-tracked source plus present `node_modules`. |
+| `gm_dream_replay` | `dream-replay` | `baseline_policy_id`, `policies`, `worlds` | Replays candidate exploration policies over supplied recorded worlds without execution. The baseline remains a candidate; output retains per-world score, cost, and observed-node evidence. |
 | `gm_residual_scan` | `residual-scan` | none | DECIDE→COMPLETE stop-window scan. Writes `.gm/residual-check-fired` for this session. |
 
 Each tool declares `timeoutMs` equal to the spool default (120000) except `gm_codesearch` (360000, matching live dual-index duration on this machine) and `gm_scan_deps` (180000). `gm_exec_js` polls for `max(120000, args.timeoutMs)` so a larger snippet budget is not truncated by the host tool timeout. Each tool forwards `exec.signal` into `Gm.call`, so a cancelled turn stops the poll instead of waiting the remaining timeout.

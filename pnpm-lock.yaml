@@ -1205,6 +1205,19 @@ importers:
         specifier: '*'
         version: link:../../runtime-diagnostics/invariants
 
+  packages/bundle/dream-rsi:
+    dependencies:
+      '@freddie/freddie-dream-rsi-context':
+        specifier: '*'
+        version: link:../../context/dream-rsi-context
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-invariants':
+        specifier: '*'
+        version: link:../../runtime-diagnostics/invariants
+
   packages/bundle/headless:
     dependencies:
       '@freddie/freddie-cmdline':
@@ -3279,6 +3292,31 @@ importers:
       '@freddie/freddie-tools':
         specifier: '*'
         version: link:../../core/tools
+
+  packages/context/dream-rsi-context:
+    dependencies:
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-agent-loop':
+        specifier: '*'
+        version: link:../../core/agent-loop
+      '@freddie/freddie-invariants':
+        specifier: '*'
+        version: link:../../runtime-diagnostics/invariants
+      '@freddie/freddie-llm':
+        specifier: '*'
+        version: link:../../llm/llm
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
 
   packages/context/file-reference:
     dependencies:
