@@ -61,6 +61,8 @@ export class Session {
   liveBuffer = []
   /** Gap repair in flight; live events detour to the buffer until the tail page lands. */
   stitching = false
+  gapRepairRetry = null
+  gapRepairDelay = 250
   /** subscribed.lastSeq baseline (gap detection; null when no subscribed frame arrived — degrade to the liveBuffer dedup path). */
   subscribedLastSeq = null
 
@@ -385,6 +387,7 @@ export class Session {
     // that follows it, so ordering is guaranteed).
     if (this.openState === 'cold') return // never opened: no window to rebuild (doOpen flips to 'loading' synchronously, so cold implies no in-flight open)
     this.openGeneration++
+    this.clearGapRepairRetry()
     this.openPromise = null
     this.openState = 'cold'
     this.openError = null
@@ -557,6 +560,7 @@ export class Session {
   /** host/session-removed relay: flag the snapshot (instance survives — resident-instance rule). */
   handleRemoved() {
     this.removed = true
+    this.clearGapRepairRetry()
     this.notifier.markDirty()
   }
 
@@ -644,6 +648,7 @@ export class Session {
     const buffered = this.liveBuffer
     this.liveBuffer = []
     for (const item of buffered) this.appendLive(item.event, item.view)
+    this.gapRepairDelay = 250
     this.notifier.markDirty()
   }
 
@@ -691,6 +696,7 @@ export class Session {
   async repairGap() {
     /* v8 ignore next -- re-entry guard: acceptLiveEvent already detours to liveBuffer while stitching, so no second call reaches here. */
     if (this.stitching) return
+    this.clearGapRepairRetry(false)
     this.stitching = true
     const generation = this.openGeneration
     try {
@@ -703,7 +709,27 @@ export class Session {
       console.error('[web-runtime] gap repair failed:', error)
     } finally {
       this.stitching = false
+      if (generation === this.openGeneration && this.openState === 'open' && !this.removed && this.liveBuffer.length > 0) {
+        this.scheduleGapRepair()
+      }
     }
+  }
+
+  scheduleGapRepair() {
+    if (this.gapRepairRetry !== null) return
+    const delay = this.gapRepairDelay
+    this.gapRepairDelay = Math.min(this.gapRepairDelay * 2, 10_000)
+    this.gapRepairRetry = setTimeout(() => {
+      this.gapRepairRetry = null
+      void this.repairGap()
+    }, delay)
+    this.notifier.markDirty()
+  }
+
+  clearGapRepairRetry(resetDelay = true) {
+    if (this.gapRepairRetry !== null) clearTimeout(this.gapRepairRetry)
+    this.gapRepairRetry = null
+    if (resetDelay) this.gapRepairDelay = 250
   }
 
   windowTailSeq() {
@@ -747,6 +773,7 @@ export class Session {
       promptError: this.promptError,
       blank: this.blankBit,
       lastAgentError: this.lastAgentError,
+      gapRepair: { bufferedEvents: this.liveBuffer.length, retrying: this.gapRepairRetry !== null },
     }
   }
 

@@ -133,9 +133,12 @@ export class AgentPresetSeatController {
     const staged = this.staged
     const session = this.currentSession()
     if (staged === undefined || session === undefined || this.applyingSessionId !== undefined) return
-    // A started session's history was produced under its own composition; the
-    // host refuses the swap, so the stage is no longer meaningful.
-    if (!session.blank || session.agentPreset === staged) {
+    // The current session may change more than once while a staged selection
+    // waits for its blank receiver. A nonblank session cannot consume it, but
+    // does not invalidate it: it may be the session that was current when the
+    // creator flow opened.
+    if (!session.blank) return
+    if (session.agentPreset === staged) {
       this.staged = undefined
       return
     }

@@ -305,7 +305,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
       full: { type: 'boolean', description: 'Force a full re-walk ignoring .gm/scan-deps-stamp.json.' },
     },
     toBody: args => ({
-      ...args.root === undefined ? {} : { root: args.root },
+      ...typeof args.root === 'string' && args.root.trim().length > 0 ? { root: args.root } : {},
       ...args.full === undefined ? {} : { full: args.full },
     }),
     presentCall: () => presentGenericCall('gm scan_deps'),
@@ -317,7 +317,17 @@ export function buildGmTools(gm, onProgress = () => {}) {
     verb: 'dream-policy-register',
     description: 'Dispatch gm\'s `dream-policy-register` verb: register a session-owned exploration policy. Set deployed true only for the incumbent policy; replay later accepts its ID rather than caller-supplied policy definitions.',
     parameters: {
-      policy: { type: 'object', required: true, description: 'Policy definition containing an opaque id, roots, and max_nodes.', additionalProperties: true },
+      policy: {
+        type: 'object',
+        required: true,
+        description: 'Policy definition containing an opaque id, roots, and positive max_nodes.',
+        additionalProperties: false,
+        properties: {
+          id: { type: 'string', required: true },
+          roots: { type: 'array', required: true, items: { type: 'string' } },
+          max_nodes: { type: 'number', required: true },
+        },
+      },
       deployed: { type: 'boolean', description: 'Whether this policy becomes the session-owned deployed incumbent.' },
     },
     toBody: args => args,
@@ -327,14 +337,19 @@ export function buildGmTools(gm, onProgress = () => {}) {
   const dreamEvaluatorReceiptTool = jsonTool({
     name: 'gm_dream_evaluator_receipt',
     verb: 'dream-evaluator-receipt',
-    description: 'Dispatch gm\'s `dream-evaluator-receipt` verb: authenticate an evaluator result for a successful discovery dispatch before a discovery record may consume it.',
+    description: 'Dispatch gm\'s `dream-evaluator-receipt` verb: bind a completed same-session GM dispatch to a registered exploration policy before a discovery record consumes it.',
     parameters: {
       receipt_id: { type: 'string', required: true, description: 'Opaque ID for the internally stored evaluator receipt.' },
       policy_id: { type: 'string', required: true, description: 'Registered GM policy ID.' },
       dispatch_id: { type: 'string', required: true, description: 'Completed GM dispatch receipt ID.' },
       parent_id: { type: 'string', description: 'Optional parent discovery record ID.' },
     },
-    toBody: args => args,
+    toBody: args => ({
+      receipt_id: args.receipt_id,
+      policy_id: args.policy_id,
+      dispatch_id: args.dispatch_id,
+      ...typeof args.parent_id === 'string' && args.parent_id.length > 0 ? { parent_id: args.parent_id } : {},
+    }),
     presentCall: args => presentGenericCall(`gm dream-evaluator-receipt: ${args.dispatch_id}`),
   })
 
@@ -353,7 +368,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
   const dreamWorldSealTool = jsonTool({
     name: 'gm_dream_world_seal',
     verb: 'dream-world-seal',
-    description: 'Dispatch gm\'s `dream-world-seal` verb: construct one sealed replay world from completed GM dispatch receipts. The caller supplies only an opaque world ID and prior dispatch IDs; GM derives node outcomes and costs from its ledger.',
+    description: 'Dispatch gm\'s `dream-world-seal` verb: construct one sealed replay world from prior discovery record IDs. The caller supplies only an opaque world ID and recorded discovery IDs; GM derives node outcomes and costs from their ledger-bound receipts.',
     parameters: {
       world_id: { type: 'string', required: true, description: 'Opaque ID for the new sealed world.' },
       discovery_ids: { type: 'array', required: true, description: 'GM discovery record IDs to include in order.', items: { type: 'string' } },
@@ -383,8 +398,12 @@ export function buildGmTools(gm, onProgress = () => {}) {
           baselinePolicyId: args.baseline_policy_id,
           policyIds: args.policy_ids,
           worldIds: args.world_ids,
-          selectedPolicyId: value?.data?.selected_policy_id,
-          replayWorldIds: value?.data?.rankings?.flatMap(ranking => ranking.replays ?? []).map(replay => replay.world_id),
+          selectedPolicyId: value?.data?.selected_policy_id ?? null,
+          replayWorldIds: Array.isArray(value?.data?.rankings)
+            ? value.data.rankings.flatMap(ranking => Array.isArray(ranking?.replays) ? ranking.replays : [])
+              .map(replay => replay?.world_id)
+              .filter(worldId => typeof worldId === 'string')
+            : [],
         },
       }),
     },

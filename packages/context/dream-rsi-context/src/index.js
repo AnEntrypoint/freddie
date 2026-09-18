@@ -75,17 +75,34 @@ function latestAutomaticStrategy(agent) {
     if (event.type !== 'gm/dream-rsi') continue
     const strategy = record(event.data.strategy)
     const replay = record(event.data.replay)
-    if (strategy === undefined || replay === undefined
+    const sessionId = opaqueId(event.data.sessionId)
+    if (strategy === undefined || replay === undefined || sessionId === undefined
       || !Array.isArray(strategy.evidence) || !Array.isArray(replay.replays)
-      || typeof strategy.selection !== 'string') continue
-    return { strategy, replay }
+      || !['continue-current-exploration', 'replay-recorded-successes-first'].includes(strategy.selection)) continue
+    const evidence = strategy.evidence.map(record)
+    const replays = replay.replays.map(record)
+    if (evidence.some(entry => opaqueId(entry?.dispatch_id) === undefined || opaqueId(entry?.verb) === undefined
+      || typeof entry?.fingerprint !== 'string' || !Number.isSafeInteger(entry?.exit_code)
+      || !Number.isSafeInteger(entry?.prd_open_count) || entry.prd_open_count < 0
+      || !Number.isSafeInteger(entry?.mutable_open_count) || entry.mutable_open_count < 0)
+      || replays.some(entry => opaqueId(entry?.dispatch_id) === undefined || opaqueId(entry?.verb) === undefined
+        || typeof entry?.fingerprint !== 'string' || typeof entry?.score !== 'number' || !Number.isFinite(entry.score)
+        || typeof entry?.cost !== 'number' || !Number.isSafeInteger(entry.cost) || entry.cost < 0)) continue
+    const evidenceById = new Map(evidence.map(entry => [entry.dispatch_id, entry]))
+    if (replays.some(entry => {
+      const observed = evidenceById.get(entry.dispatch_id)
+      return observed === undefined || observed.verb !== entry.verb || observed.fingerprint !== entry.fingerprint
+    })) continue
+    if (!agent.session.events.some(candidate => candidate.type === 'gm/progress'
+      && candidate.data.sessionId === sessionId && candidate.data.belongsToConfiguredSession === true)) continue
+    return { strategy: { ...strategy, evidence }, replay: { ...replay, replays }, sessionId }
   }
   return undefined
 }
 
 function renderAutomaticStrategy(automatic, maxObservedNodes) {
   const evidence = automatic.strategy.evidence.slice(0, maxObservedNodes)
-  const nodes = evidence.map(entry => opaqueId(record(entry)?.dispatch_id)).filter(Boolean)
+  const nodes = evidence.map(entry => entry.dispatch_id)
   return `<dream-rsi-strategy>\nGM automatic exploration strategy: ${automatic.strategy.selection}.\nObserved dispatches: ${nodes.join(', ')}.\nGrounding boundary: this strategy summarizes GM ledger evidence; it does not prove an unobserved target outcome.\n</dream-rsi-strategy>`
 }
 

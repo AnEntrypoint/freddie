@@ -141,7 +141,7 @@ export function apply(ctx) {
 
   // The per-session input machine registry (SessionInputResolver face; published as
   // ctx.conversation.input by the service below sharing this one instance).
-  const inputHub = new InputHub(ctx, t)
+  const inputHub = new InputHub(sessions, ctx, t)
 
   // The composer-block registry: a plugin that knows a session cannot send —
   // ui-model-selection, when no adapter serves the session's route — raises a block

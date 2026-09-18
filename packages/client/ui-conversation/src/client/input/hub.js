@@ -14,10 +14,12 @@ import { SessionInputShell } from './facade.js'
 /** Session-addressed input facade registry (SessionInputResolver face + composer-layer extras). */
 export class InputHub {
   /**
-   * @param ctx - client root context (services resolved lazily per call — boot order stays free).
+   * @param sessions - injected root sessions service, retained across slot rendering.
+   * @param rootCtx - client root context for optional conversation-adjacent services.
    * @param t - conversation-namespace translate thunk (reads the active locale at call time).
    */
-  constructor(rootCtx, t) {
+  constructor(sessions, rootCtx, t) {
+    this.sessionService = sessions
     this.rootCtx = rootCtx
     this.t = t
     this.shells = new Map()
@@ -177,9 +179,7 @@ export class InputHub {
   }
 
   sessions() {
-    const sessions = this.rootCtx.get('sessions')
-    if (sessions === undefined) throw new Error('conversation.input: sessions service unavailable')
-    return sessions
+    return this.sessionService
   }
 
   conversation() {

@@ -1,1 +1,35 @@
-[]
+- id: gm-rsi-live-contract
+  title: Live-drive RSI discovery-to-replay contract
+  subject: 'Establish whether the current gm RSI APIs enforce provenance, grounding, and safe rendering through Freddie’s exposed tools. Pre: live tool and sibling source reachable. Invariant: only authenticated recorded discovery evidence can form replay worlds. Post: live valid and invalid flows are witnessed, and every defect is assigned to its owning repo.'
+  acceptance: Run the complete valid discovery/evaluator/world/replay flow and adversarial invalid inputs through the real gm tool surface; reconcile live behavior with source ownership and record repair rows.
+  status: in-progress
+  route_family: execution
+  session_id: freddie-2260524-1789740208025
+- id: gm-fluidity-boundaries
+  title: Validate gm operational fluidity
+  subject: 'Measure gm’s end-to-end dispatch, search, scan, and Freddie bridge paths for friction. Pre: tool bridge responding. Invariant: failures report actionable, correctly scoped causes. Post: observed friction has either a verified repair or an owning repair row.'
+  acceptance: Live-drive the relevant gm verbs and sibling-repository paths; verify results are complete, low-noise, and actionable; repair evidenced defect(s).
+  status: in-progress
+  route_family: observability
+  session_id: freddie-2260524-1789740208025
+- id: gm-rsi-admission-integrity
+  title: Enforce policy admission at evaluator receipt
+  subject: 'Reject evaluator receipts whose policy is not registered to the active GM session before persistence. Pre: a valid current-session completed dispatch exists. Invariant: every receipt is bound to a registered same-session policy. Post: later discovery cannot be the first point that detects an invalid policy.'
+  acceptance: gm rejects an evaluator receipt with an unknown or cross-session policy ID, accepts a registered one, and preserves valid discovery/seal/replay flow.
+  status: in-progress
+  route_family: security
+  session_id: freddie-2260524-1789740208025
+- id: freddie-rsi-contract-alignment
+  title: Align Freddie Dream-RSI tool contracts
+  subject: 'Make optional parent handling and tool schemas/descriptions exactly match gm’s real RSI protocol. Pre: gm tool bridge mounted. Invariant: absent optional fields are omitted and model-visible contracts describe only accepted body fields. Post: a root receipt flows through the bridge and invalid inputs fail at their owning operation.'
+  acceptance: Live-drive body mappings with the real bridge and verify root receipt, invalid policy, discovery, seal, replay and metadata behavior.
+  status: in-progress
+  route_family: representation
+  session_id: freddie-2260524-1789740208025
+- id: freddie-rsi-automatic-event-validation
+  title: Validate automatic Dream-RSI event evidence
+  subject: 'Ensure context injection only accepts automatic-strategy events tied to the active session and structurally valid ledger evidence. Pre: gm/dream-rsi event exists. Invariant: malformed or foreign event data never becomes a model message. Post: event acceptance applies total structural validation before directive rendering.'
+  acceptance: Live-drive well-formed and malformed event shapes through the actual package behavior and repair any unsafe injection path.
+  status: in-progress
+  route_family: security
+  session_id: freddie-2260524-1789740208025

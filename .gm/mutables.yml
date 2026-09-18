@@ -1444,3 +1444,58 @@
   SESSION_ID: root-creator-mode-1789717436574
   status: witnessed
   witness_evidence: packages/client/ui-agent-preset/src/client/seat-store.js:129-157 showed concurrent session-list subscriptions could re-enter apply() before the first select RPC settled; line 142 cleared the shared stage in both attempts, allowing the later response/fallback to overwrite the explicit Creator choice. The applyingSessionId owner guard serializes that boundary.
+- id: creator-selection-current-cause
+  subject: Identify the current Creator reset cause in the freshly restarted server, distinguishing stale-process behavior from selection-race behavior.
+  SESSION_ID: root-ui-liveness
+  status: witnessed
+  witness_evidence: Live POST /api/agentPreset.select for agentPreset cordis returned ok:true after restarting stale PID 3513999; selection remained Creator after four seconds and browser reload.
+- id: live-progress-render-cause
+  subject: Identify why work after early context or skill-loading steps is not rendered until refresh.
+  SESSION_ID: root-ui-liveness
+  status: witnessed
+  witness_evidence: The same single-attempt repair applies to any durable progress/context/tool event after a sequence gap; a transient history failure retained the buffer without autonomous recovery.
+- id: live-text-render-cause
+  subject: Identify the event, projection, or render boundary that delays assistant text until refresh.
+  SESSION_ID: root-ui-liveness
+  status: witnessed
+  witness_evidence: packages/client/runtime/src/client/sessions/session.js repairGap performed one history pull; its catch retained liveBuffer and no later event was required to retry, leaving a final assistant event invisible until page reload.
+- id: composer-hmr-session-cause
+  subject: Identify why conversation composer InputHub cannot resolve the sessions service during a fresh browser reload and establish whether this can strand live UI updates
+  status: witnessed
+  witness_evidence: 'Before the repair, a clean browser reload logged conversation.input: sessions service unavailable from InputHub.sessions during conversation.composer.bar injection. InputHub was resolving sessions lazily with rootCtx.get. After binding the injected sessions service in the InputHub constructor, a new browser session had no console errors and a live prompt streamed its response to completion.'
+- id: scan-deps-blocked-path
+  prd_id: gm-scan-blocked-read
+  obligation_kind: precondition
+  subject: The scan_deps response reported blocked `/list-packages.js`, but its relation to the Freddie root is unknown.
+  text: 'Witness: gm_scan_deps dispatch 1789767444820 reported blockedCount=1, path=/list-packages.js, reason=stat failed or file missing; trace source and live resolution before treating the scan as clean.'
+  session_id: freddie-2260524-1789740208025
+  status: witnessed
+  witness_evidence: 'Root cause witnessed by subagent: explicit root:"" became `/list-packages.js`; source now normalizes blank root to `.` at scanner and wasm verb boundaries; gm_exec_js 1789767910219 compiled the repair.'
+- id: rsi-provenance-current-state
+  prd_id: gm-rsi-live-contract
+  obligation_kind: invariant
+  subject: Replay worlds must only use authenticated recorded discovery receipts, not model-supplied arbitrary observations.
+  text: 'Witness: gm_recall hit mem-cde1f1a909b9c179-376 identifies a prior source-level gap; revalidate source and live contracts before repair.'
+  session_id: freddie-2260524-1789740208025
+  status: unknown
+- id: dream-replay-lossless-meta
+  prd_id: freddie-dream-replay-metadata-totality
+  obligation_kind: postcondition
+  subject: The presentation metadata must be losslessly JSON serializable for every replay result shape.
+  text: 'Witness: live gm_dream_replay calls at 178976755* and 178976756* failed before dispatch result delivery with `output.presentationMeta returned non-lossless JSON`; source projection at packages/gm/tool-gm/src/verbs.js:386-387 reads missing optional fields as undefined.'
+  session_id: freddie-2260524-1789740208025
+  status: unknown
+- id: rsi-evaluator-policy-admission
+  prd_id: gm-rsi-admission-integrity
+  obligation_kind: invariant
+  subject: Evaluator receipts must never persist arbitrary policy IDs.
+  text: 'Witness: subagent live dispatch 1789767566829 accepted policy_id=not-registered-a91f; dream_rsi.rs:296-316 stores it without registered-policy lookup, while discovery rejects it later.'
+  session_id: freddie-2260524-1789740208025
+  status: unknown
+- id: rsi-automatic-event-binding
+  prd_id: freddie-rsi-automatic-event-validation
+  obligation_kind: precondition
+  subject: Automatic strategy event evidence must be structurally and session bound before injection.
+  text: 'Witness: audit reports packages/context/dream-rsi-context/src/index.js:73-90 injects automatic strategy based on shape/prefix without active session/evidence validation.'
+  session_id: freddie-2260524-1789740208025
+  status: unknown
