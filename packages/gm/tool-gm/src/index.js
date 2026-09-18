@@ -68,6 +68,15 @@ export function apply(ctx) {
     const snapshot = gmProgressSnapshot(dispatch, ctx.gm.config.sessionId, checkpointOf(session))
     try {
       session.append('gm/progress', snapshot, { ignorable: true })
+      const data = dispatch.value?.data
+      if (dispatch.verb === 'instruction' && data?.session_id === ctx.gm.config.sessionId
+        && data.dream_rsi_strategy !== null && data.dream_rsi_replay !== null) {
+        session.append('gm/dream-rsi', {
+          strategy: data.dream_rsi_strategy,
+          replay: data.dream_rsi_replay,
+          sessionId: data.session_id,
+        }, { ignorable: true })
+      }
       latestBySession.set(session, snapshot)
     } catch (error) {
       void error

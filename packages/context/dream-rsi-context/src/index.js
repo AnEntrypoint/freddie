@@ -70,6 +70,25 @@ function renderDirective(selection, maxObservedNodes) {
   return `<dream-rsi-directive>\nReplay-selected exploration policy: ${selection.result.selected_policy_id}.\nBaseline policy: ${selection.result.baseline_policy_id}; replay score: ${selection.selected.score}; baseline score: ${selection.baseline.score}.\nGrounding boundary: choose only from the recorded replay evidence; do not claim that unobserved branches, tool results, or evaluator outcomes were simulated.\nObserved replay nodes: ${limited.join(', ')}.\n</dream-rsi-directive>`
 }
 
+function latestAutomaticStrategy(agent) {
+  for (const event of [...agent.session.events].reverse()) {
+    if (event.type !== 'gm/dream-rsi') continue
+    const strategy = record(event.data.strategy)
+    const replay = record(event.data.replay)
+    if (strategy === undefined || replay === undefined
+      || !Array.isArray(strategy.evidence) || !Array.isArray(replay.replays)
+      || typeof strategy.selection !== 'string') continue
+    return { strategy, replay }
+  }
+  return undefined
+}
+
+function renderAutomaticStrategy(automatic, maxObservedNodes) {
+  const evidence = automatic.strategy.evidence.slice(0, maxObservedNodes)
+  const nodes = evidence.map(entry => opaqueId(record(entry)?.dispatch_id)).filter(Boolean)
+  return `<dream-rsi-strategy>\nGM automatic exploration strategy: ${automatic.strategy.selection}.\nObserved dispatches: ${nodes.join(', ')}.\nGrounding boundary: this strategy summarizes GM ledger evidence; it does not prove an unobserved target outcome.\n</dream-rsi-strategy>`
+}
+
 export function apply(ctx, config) {
   const maxObservedNodes = config.maxObservedNodes
   if (!config.enabled) return
@@ -77,13 +96,24 @@ export function apply(ctx, config) {
     const decision = await next()
     if (decision.kind === 'reject' || signal.aborted) return decision
     const selection = latestReplay(agent)
-    if (selection === undefined) return decision
-    const text = renderDirective(selection, maxObservedNodes)
+    if (selection !== undefined) {
+      const text = renderDirective(selection, maxObservedNodes)
+      return {
+        kind: 'enter',
+        messages: [...decision.messages, createUserMessage({
+          content: [{ type: 'text', text }],
+          source: { kind: 'plugin', plugin: name, form: 'grounded-replay', sections: [{ name, text }] },
+        })],
+      }
+    }
+    const automatic = latestAutomaticStrategy(agent)
+    if (automatic === undefined) return decision
+    const text = renderAutomaticStrategy(automatic, maxObservedNodes)
     return {
       kind: 'enter',
       messages: [...decision.messages, createUserMessage({
         content: [{ type: 'text', text }],
-        source: { kind: 'plugin', plugin: name, form: 'grounded-replay', sections: [{ name, text }] },
+        source: { kind: 'plugin', plugin: name, form: 'automatic-strategy', sections: [{ name, text }] },
       })],
     }
   }, { prepend: true })

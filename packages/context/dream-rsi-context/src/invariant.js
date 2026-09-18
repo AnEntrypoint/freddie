@@ -11,8 +11,13 @@ const install = (ctx, fail) => {
     const source = event.data.source
     const block = event.data.content[0]
     if (event.data.content.length !== 1 || block?.type !== 'text'
-      || source.form !== 'grounded-replay' || source.sections?.[0]?.text !== block.text) {
-      fail('dream-rsi-context must append one sourced grounded replay text message')
+      || source.sections?.[0]?.text !== block.text
+      || !['grounded-replay', 'automatic-strategy'].includes(source.form)) {
+      fail('dream-rsi-context must append one sourced Dream-RSI text message')
+    }
+    if (source.form === 'automatic-strategy') {
+      if (!block.text.startsWith('<dream-rsi-strategy>')) fail('automatic Dream-RSI strategy must retain its grounded strategy boundary')
+      return
     }
     const position = session.events.findIndex(candidate => candidate === event)
     const prior = session.events.slice(0, position).findLast(candidate => {
