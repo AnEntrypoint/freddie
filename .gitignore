@@ -1,5 +1,4 @@
 CLAUDE.local.md
-.env
 node_modules/
 lib/
 !packages/client/vendor-modules/vendor/**/lib/
@@ -27,7 +26,6 @@ vendor/gm/
 .claude/commands/
 .claude/launch.json
 .claude/settings.json
-.vscode/
 .DS_Store
 .idea
 *.stackdump
@@ -79,3 +77,4 @@ native/*/.gm/
 
 # Local harness homes used for live verification runs.
 .freddie-home*/
+config.bat
