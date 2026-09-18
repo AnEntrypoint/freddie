@@ -1,14 +1,1 @@
-- id: gm-rsi-live-contract
-  title: Live-drive RSI discovery-to-replay contract
-  subject: 'Establish whether the current gm RSI APIs enforce provenance, grounding, and safe rendering through Freddie’s exposed tools. Pre: live tool and sibling source reachable. Invariant: only authenticated recorded discovery evidence can form replay worlds. Post: live valid and invalid flows are witnessed, and every defect is assigned to its owning repo.'
-  acceptance: Run the complete valid discovery/evaluator/world/replay flow and adversarial invalid inputs through the real gm tool surface; reconcile live behavior with source ownership and record repair rows.
-  status: in-progress
-  route_family: execution
-  session_id: freddie-2260524-1789740208025
-- id: gm-fluidity-boundaries
-  title: Validate gm operational fluidity
-  subject: 'Measure gm’s end-to-end dispatch, search, scan, and Freddie bridge paths for friction. Pre: tool bridge responding. Invariant: failures report actionable, correctly scoped causes. Post: observed friction has either a verified repair or an owning repair row.'
-  acceptance: Live-drive the relevant gm verbs and sibling-repository paths; verify results are complete, low-noise, and actionable; repair evidenced defect(s).
-  status: in-progress
-  route_family: observability
-  session_id: freddie-2260524-1789740208025
+[]
