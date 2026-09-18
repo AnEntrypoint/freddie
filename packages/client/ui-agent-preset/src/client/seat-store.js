@@ -31,6 +31,9 @@ export class AgentPresetSeatController {
   /** Set while a pick is waiting for a session; cleared once applied. */
   staged
 
+  /** The session receiving the in-flight selection, if any. */
+  applyingSessionId
+
   constructor(
     api,
     /** The session the hero is about to hand over to, when there is one. */
@@ -129,17 +132,18 @@ export class AgentPresetSeatController {
   async apply() {
     const staged = this.staged
     const session = this.currentSession()
-    if (staged === undefined || session === undefined) return
+    if (staged === undefined || session === undefined || this.applyingSessionId !== undefined) return
     // A started session's history was produced under its own composition; the
     // host refuses the swap, so the stage is no longer meaningful.
     if (!session.blank || session.agentPreset === staged) {
       this.staged = undefined
       return
     }
+    this.applyingSessionId = session.id
     this.set({ busy: true, error: null })
     try {
       const response = await this.api.agentPresets.select({ sessionId: session.id, agentPreset: staged })
-      this.staged = undefined
+      if (this.staged === staged) this.staged = undefined
       if (!response.result.ok) {
         this.set({ busy: false, error: response.result.error.message, current: this.fallback })
         return
@@ -148,8 +152,10 @@ export class AgentPresetSeatController {
       this.set({ busy: false, current: response.result.value.agentPreset })
       this.onApplied?.(session.id, response.result.value.agentPreset)
     } catch (error) {
-      this.staged = undefined
+      if (this.staged === staged) this.staged = undefined
       this.set({ busy: false, error: messageOf(error), current: this.fallback })
+    } finally {
+      this.applyingSessionId = undefined
     }
   }
 }

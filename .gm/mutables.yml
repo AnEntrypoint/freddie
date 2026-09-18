@@ -1439,3 +1439,8 @@
   session_id: freddie-3513999-1789467163370
   status: witnessed
   witness_evidence: Exhaustive rs-plugkit evaluator search at gm_codesearch 1789644066437 found no target-domain evaluator provider; config.rs:61-63 exposes arbitrary config values, not a current evaluator contract. The fixed evaluator seam remains an unresolved design/build requirement.
+- id: creator-mode-reset-cause
+  subject: Identify the authoritative mode state and the later update that resets an explicit Creator selection to Standard, with file-and-line evidence.
+  SESSION_ID: root-creator-mode-1789717436574
+  status: witnessed
+  witness_evidence: packages/client/ui-agent-preset/src/client/seat-store.js:129-157 showed concurrent session-list subscriptions could re-enter apply() before the first select RPC settled; line 142 cleared the shared stage in both attempts, allowing the later response/fallback to overwrite the explicit Creator choice. The applyingSessionId owner guard serializes that boundary.

@@ -1,0 +1,1 @@
+{"evidence":[{"dispatch_id":"1789718468393-500-9acf7f86eaafd9d","exit_code":0,"fingerprint":"e13fd821e307c9bf","verb":"instruction"},{"dispatch_id":"1789718433876-500-d912089bf670efea","exit_code":0,"fingerprint":"9cfffb87152a6fcd","verb":"codesearch"}],"failed_dispatch_count":0,"observation_count":2,"selection":"continue-current-exploration","successful_dispatch_count":2}

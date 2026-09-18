@@ -16,11 +16,10 @@ const EVENT_OUTPUT = {
 const HOST_EVENTS = EVENT_API.filter(event => !event.name.startsWith('cordis/'))
 
 /**
- * Construct Host providers over generated Catalogs, evaluator declarations, and live Tool scope.
- * @param ctx - Host context used for Agent-scoped live Tool queries.
+ * Construct Host providers over generated catalogs and the requesting Agent tool scope.
  * @returns registrations for static catalogs and live Host capabilities.
  */
-export function hostInspectProviders(ctx) {
+export function hostInspectProviders() {
   return [
     registration(
       'Service',
@@ -55,7 +54,7 @@ export function hostInspectProviders(ctx) {
       },
       query(method, _input, context) {
         if (method !== 'listTools') throw new Error(`unknown Tool inspect method "${method}"`)
-        return Promise.resolve({ tools: ctx.tools.schemas(context.agent) })
+        return Promise.resolve({ tools: context.agent.ctx.tools.schemas(context.agent) })
       },
     },
   ]

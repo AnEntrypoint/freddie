@@ -7,6 +7,7 @@ import { assertSupportedJsonSchema, validateJsonSchemaValue } from '@freddie/fre
 /** Registry and cross-page router behind the two model-facing inspect tools. */
 export class CordisInspectRegistryService extends Service {
   providers = new Map()
+  sharedProviders = new Map()
   pending = new Map()
   clientManifest
   nextRequest = 1
@@ -29,6 +30,40 @@ export class CordisInspectRegistryService extends Service {
     return () => {
       if (this.providers.get(manifest.id) === stored) this.providers.delete(manifest.id)
     }
+  }
+
+  /**
+   * Retain one process-wide provider shared by every equivalent caller.
+   * @param registration - manifest and local query handler.
+   * @returns disposer that releases this caller's retention.
+   */
+  registerShared(registration) {
+    const manifest = validateManifest(registration.manifest)
+    const existing = this.providers.get(manifest.id)
+    if (existing === undefined) {
+      const release = this.register(registration)
+      this.sharedProviders.set(manifest.id, { manifest, count: 1, release })
+      return () => { this.releaseShared(manifest.id) }
+    }
+    const shared = this.sharedProviders.get(manifest.id)
+    if (shared === undefined || !sameManifest(shared.manifest, manifest)) {
+      throw new Error(`Host Cordis inspect provider "${manifest.id}" is already registered`)
+    }
+    shared.count += 1
+    return () => { this.releaseShared(manifest.id) }
+  }
+
+  /**
+   * Release one shared-provider retention.
+   * @param id - provider identifier retained through {@link registerShared}.
+   */
+  releaseShared(id) {
+    const shared = this.sharedProviders.get(id)
+    if (shared === undefined) return
+    shared.count -= 1
+    if (shared.count > 0) return
+    this.sharedProviders.delete(id)
+    shared.release()
   }
 
   /**
@@ -141,6 +176,10 @@ export class CordisInspectRegistryService extends Service {
       signal.removeEventListener('abort', onAbort)
     }
   }
+}
+
+function sameManifest(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right)
 }
 
 function view(platform, manifest) {

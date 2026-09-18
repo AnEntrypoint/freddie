@@ -27,8 +27,8 @@ function requireAgent(exec) {
 /** Register the Cordis tools and explicit `@pluginId` context injection. */
 export function apply(ctx) {
   ctx.systemPrompt.section({ name: 'tool:cordis', order: 115, text: CORDIS_SYSTEM_PROMPT })
-  for (const provider of hostInspectProviders(ctx)) {
-    ctx.effect(() => ctx.cordisInspect.register(provider), `tool-cordis: inspect ${provider.manifest.id}`)
+  for (const provider of hostInspectProviders()) {
+    ctx.effect(() => ctx.cordisInspect.registerShared(provider), `tool-cordis: inspect ${provider.manifest.id}`)
   }
 
   ctx.tools.register(defineTool({
