@@ -1477,25 +1477,29 @@
   subject: Replay worlds must only use authenticated recorded discovery receipts, not model-supplied arbitrary observations.
   text: 'Witness: gm_recall hit mem-cde1f1a909b9c179-376 identifies a prior source-level gap; revalidate source and live contracts before repair.'
   session_id: freddie-2260524-1789740208025
-  status: unknown
+  status: witnessed
+  witness_evidence: Current dream_rsi.rs persists only session-owned registered policies, evaluator receipts tied to ledger dispatches, discovery records, and sealed worlds; replay reads only stored world_ids. gm_exec_js 1789768301781 confirmed receipt admission now checks policy registration before persistence.
 - id: dream-replay-lossless-meta
   prd_id: freddie-dream-replay-metadata-totality
   obligation_kind: postcondition
   subject: The presentation metadata must be losslessly JSON serializable for every replay result shape.
   text: 'Witness: live gm_dream_replay calls at 178976755* and 178976756* failed before dispatch result delivery with `output.presentationMeta returned non-lossless JSON`; source projection at packages/gm/tool-gm/src/verbs.js:386-387 reads missing optional fields as undefined.'
   session_id: freddie-2260524-1789740208025
-  status: unknown
+  status: witnessed
+  witness_evidence: 'gm_exec_js 1789768301318 built the current tool definitions and returned JSON-safe Dream-RSI metadata for a failed replay: selectedPolicyId:null and replayWorldIds:[]; packages/gm/tool-gm/src/verbs.js totalizes the projection.'
 - id: rsi-evaluator-policy-admission
   prd_id: gm-rsi-admission-integrity
   obligation_kind: invariant
   subject: Evaluator receipts must never persist arbitrary policy IDs.
   text: 'Witness: subagent live dispatch 1789767566829 accepted policy_id=not-registered-a91f; dream_rsi.rs:296-316 stores it without registered-policy lookup, while discovery rejects it later.'
   session_id: freddie-2260524-1789740208025
-  status: unknown
+  status: witnessed
+  witness_evidence: rs-plugkit dream_rsi.rs now loads the same-session policy store before dispatch-ledger lookup; gm_exec_js 1789768301781 verified unregistered-policy rejection precedes ledger read; the rebuilt 0.1.1326 artifact is installed.
 - id: rsi-automatic-event-binding
   prd_id: freddie-rsi-automatic-event-validation
   obligation_kind: precondition
   subject: Automatic strategy event evidence must be structurally and session bound before injection.
   text: 'Witness: audit reports packages/context/dream-rsi-context/src/index.js:73-90 injects automatic strategy based on shape/prefix without active session/evidence validation.'
   session_id: freddie-2260524-1789740208025
-  status: unknown
+  status: witnessed
+  witness_evidence: packages/context/dream-rsi-context/src/index.js requires structurally valid evidence/replays, matching dispatch IDs/verb/fingerprint, and a same-session configured gm/progress event before automatic context injection.

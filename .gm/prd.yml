@@ -12,24 +12,3 @@
   status: in-progress
   route_family: observability
   session_id: freddie-2260524-1789740208025
-- id: gm-rsi-admission-integrity
-  title: Enforce policy admission at evaluator receipt
-  subject: 'Reject evaluator receipts whose policy is not registered to the active GM session before persistence. Pre: a valid current-session completed dispatch exists. Invariant: every receipt is bound to a registered same-session policy. Post: later discovery cannot be the first point that detects an invalid policy.'
-  acceptance: gm rejects an evaluator receipt with an unknown or cross-session policy ID, accepts a registered one, and preserves valid discovery/seal/replay flow.
-  status: in-progress
-  route_family: security
-  session_id: freddie-2260524-1789740208025
-- id: freddie-rsi-contract-alignment
-  title: Align Freddie Dream-RSI tool contracts
-  subject: 'Make optional parent handling and tool schemas/descriptions exactly match gm’s real RSI protocol. Pre: gm tool bridge mounted. Invariant: absent optional fields are omitted and model-visible contracts describe only accepted body fields. Post: a root receipt flows through the bridge and invalid inputs fail at their owning operation.'
-  acceptance: Live-drive body mappings with the real bridge and verify root receipt, invalid policy, discovery, seal, replay and metadata behavior.
-  status: in-progress
-  route_family: representation
-  session_id: freddie-2260524-1789740208025
-- id: freddie-rsi-automatic-event-validation
-  title: Validate automatic Dream-RSI event evidence
-  subject: 'Ensure context injection only accepts automatic-strategy events tied to the active session and structurally valid ledger evidence. Pre: gm/dream-rsi event exists. Invariant: malformed or foreign event data never becomes a model message. Post: event acceptance applies total structural validation before directive rendering.'
-  acceptance: Live-drive well-formed and malformed event shapes through the actual package behavior and repair any unsafe injection path.
-  status: in-progress
-  route_family: security
-  session_id: freddie-2260524-1789740208025
