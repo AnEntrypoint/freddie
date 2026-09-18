@@ -11,7 +11,7 @@ Context for a grounded [Dream-RSI](https://www.dream-rsi.com/) replay selection.
     maxObservedNodes: 16
 ```
 
-`enabled` defaults to `true` within the opt-in bundle because GM derives evaluator metrics from completed dispatch evidence. `maxObservedNodes` is a positive integer limiting node identifiers rendered in each directive. The package is intentionally absent from base composition; add it through an explicit profile or bundle overlay.
+`enabled` defaults to `true` within the opt-in bundle because GM derives evaluator metrics from completed dispatch evidence and revalidates them against the session-bound dispatch ledger. `maxObservedNodes` is a positive integer limiting node identifiers rendered in each directive. The package is intentionally absent from base composition; add it through an explicit profile or bundle overlay.
 
 ## Grounding boundary
 

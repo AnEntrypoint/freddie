@@ -47,23 +47,29 @@
   title: Provision internal GM evidence key
   subject: The shared daemon does not inherit the per-command GM_PIPELINE_HMAC_KEY, so Dream-RSI needs an agentplug-owned private persistent key delivered to GM rather than a user/environment provider.
   acceptance: 'Pre: official runner loads GM artifact. Invariant: models and project files cannot read or set the evidence key. Post: a shared daemon issues and verifies same-session Dream-RSI records without external configuration.'
-  status: pending
+  status: completed
   route_family: security
   session_id: freddie-3513999-1789467163370
+  witness: Keyless Dream-RSI evidence is implemented in rs-plugkit dream_rsi.rs and verified by gm_exec_js 1789654941849. Agentplug host key generation is removed and agentplug-host check passed at gm_exec_js 1789655042630.
+  commit_comment: 'fix: remove Dream-RSI key dependency'
 - id: dream-rsi-runner-key-release
   title: Release runner-owned Dream-RSI key
   subject: Publish the agentplug runner change that provides GM its private persistent HMAC key, then activate the released runner before live cycle execution.
   acceptance: 'Pre: agentplug source contains the private key host import. Invariant: no model or project path reads key material. Post: released runner creates private key and real GM policy registration succeeds without environment configuration.'
-  status: pending
+  status: completed
   route_family: boundary
   session_id: freddie-3513999-1789467163370
+  witness: The runner-owned key feature was superseded by the user-required keyless evidence design. Agentplug commit bfb15f05422c3fe4910f31777f337e2145a8f877 removes it; agentplug-host check passed at gm_exec_js 1789655042630.
+  commit_comment: 'fix: remove Dream-RSI key dependency'
 - id: dream-rsi-release-fanout
   title: Avoid cross-platform release blocking GM activation
   subject: The ARM64 runner artifact succeeds but the aggregate agentplug release waits indefinitely for unrelated platform builds. Publish/activate the verified host platform artifact independently while retaining checks for all platforms.
   acceptance: 'Pre: host platform artifact succeeds in release matrix. Invariant: host update verifies that artifact''s checksum and never bypasses release provenance. Post: host daemon can update without waiting for unrelated matrix jobs.'
-  status: pending
+  status: completed
   route_family: execution
   session_id: freddie-3513999-1789467163370
+  witness: Official agentplug v0.1.140 host artifact was checksum-verified at gm_exec_js 1789652947245 and the shared runner reached 0.1.140 at 1789654261727 before the live cycle; host activation no longer waits for unrelated platform builds.
+  commit_comment: 'verify(agentplug): publish host runner independently'
 - id: dream-rsi-host-release
   title: Publish host runner artifact independently
   subject: Change agentplug's release matrix so every successful platform build uploads its own verified release asset instead of withholding the ARM64 host artifact behind unrelated platform capacity.
@@ -77,13 +83,44 @@
   title: Bind discovery to stored evaluator receipt
   subject: Retain each internally generated evaluator receipt in the session store and allow discovery recording to reference it only by its GM dispatch ID.
   acceptance: 'Pre: evaluator receipt dispatch succeeds. Invariant: discovery cannot accept reconstructed receipt JSON. Post: discovery resolves and verifies a receipt from its current-session durable store.'
-  status: pending
+  status: completed
   route_family: state
   session_id: freddie-3513999-1789467163370
+  witness: rs-plugkit dream_rsi.rs now persists signed evaluator records under a session store and discovery resolves only evaluator_receipt_id from that store; cargo check passed at gm_exec_js 1789654122742. Freddie typed schema exposes only opaque receipt ID.
+  commit_comment: 'fix(gm): identify stored Dream-RSI receipts'
 - id: dream-rsi-runner-version-mismatch
   title: Correct runner release handoff
   subject: The official v0.1.140 release claims the private GM key commit but the shared daemon reports runner 0.1.138 and lacks the host key. Diagnose and correct the official takeover/version handoff before trusting runtime behavior.
   acceptance: 'Pre: official v0.1.140 artifact is checksum-verified. Invariant: status runner version and loaded host behavior agree with the official artifact. Post: shared daemon reports 0.1.140 and GM policy registration succeeds without an environment key.'
-  status: in-progress
+  status: completed
   route_family: boundary
   session_id: freddie-3513999-1789467163370
+  witness: Live gm_exec_js 1789654261727 shows status runner_version 0.1.140, loaded GM 0.1.1310, and official runner binary reports agentplug-runner 0.1.140; the release handoff is now consistent.
+  commit_comment: 'verify(agentplug): activate runner release'
+- id: dream-rsi-key-identity
+  title: Recognize GM evidence-key identities
+  subject: Live runner key requests may use gm, plugkit, or plugkit-slim host identities; provision the private key for all official GM identities while excluding unrelated plugins.
+  acceptance: 'Pre: official GM plugin invokes host_env_get for its evidence key. Invariant: only official GM identities receive the private key. Post: policy registration succeeds with the shared runner and no environment key.'
+  status: completed
+  route_family: security
+  session_id: freddie-3513999-1789467163370
+  witness: Key identity routing is obsolete after user correction removed all Dream-RSI key usage. Agentplug bfb15f05422c3fe4910f31777f337e2145a8f877 deletes the private-key host branch; agentplug-host check passed at gm_exec_js 1789655042630.
+  commit_comment: 'fix: remove Dream-RSI key dependency'
+- id: dream-rsi-keyless-grounding
+  title: Remove Dream-RSI key dependency
+  subject: Replace HMAC-sealed Dream-RSI state with keyless deterministic revalidation against session-bound dispatch ledger records and current session-owned stores.
+  acceptance: 'Pre: no GM key is configured. Invariant: target, score, cost, and world nodes are re-derived from session-bound completed dispatch records at every use. Post: real policy, evaluator, discovery, world, and replay operations succeed without a key or external provider.'
+  status: completed
+  route_family: grounding
+  session_id: freddie-3513999-1789467163370
+  witness: dream_rsi.rs:173-198 removes HMAC key use and re-derives evaluator target, score, cost, and session ownership from dispatch ledger on every use. gm_exec_js 1789654941849 compiled the keyless wasm implementation.
+  commit_comment: 'fix(gm): remove Dream-RSI key dependency'
+- id: dream-rsi-live-cycle
+  title: Verify live internal Dream-RSI cycle
+  subject: Run policy registration, internal evaluator receipt, discovery record, world sealing, baseline-preserving replay, and Freddie receipt-bound directive against official live GM and runner artifacts.
+  acceptance: 'Pre: official runner and GM artifacts are loaded. Invariant: all values come from session-bound GM records and a tied candidate preserves baseline. Post: live output proves full internal cycle and Freddie directive injection.'
+  status: completed
+  route_family: execution
+  session_id: freddie-3513999-1789467163370
+  witness: Official live GM v0.1.1318 ran policy registration, evaluator receipt, discovery, world seal, and replay under session dream-live-keyless-178970. gm_exec_js 1789707254229 shows tie preserves baseline-node with observed node-a/world-a; gm_exec_js 1789707289217 rendered the matching receipt-bound Freddie directive.
+  commit_comment: 'verify: live internal Dream-RSI cycle'
