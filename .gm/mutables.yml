@@ -2109,4 +2109,5 @@
   subject: .split-context-swept head_sha equals current HEAD
   text: Write after a blind reviewer verdict; sha faf05715c33e5da3f8b27b9f7b8756f62bbddbab.
   session_id: freddie-12560-1789843658515
-  status: unknown
+  status: witnessed
+  witness_evidence: .split-context-swept and .ci-validated both head_sha 9ac102b3cd405ff532d2a7e8ddb92b61a262fb88 matching git rev-parse HEAD after 9ac102b3cd.
