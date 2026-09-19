@@ -12,7 +12,6 @@ import { join } from 'node:path'
 import { classifyDaemonHealth, isDaemonAlive, readDaemonStatus, readStatus } from './daemon.js'
 
 const DEFAULT_POLL_INTERVAL_MS = 25
-const INITIAL_POLL_INTERVAL_MS = 25
 const HEALTH_CHECK_AFTER_POLLS = 5
 const DEFAULT_TIMEOUT_MS = 120_000
 
@@ -251,11 +250,7 @@ export async function dispatch({
         throw await unavailable('GM_DAEMON_HUNG', health, queued)
       }
     }
-    await waitForOutOrTimeout(
-      outDir,
-      polls < HEALTH_CHECK_AFTER_POLLS ? Math.min(pollIntervalMs, INITIAL_POLL_INTERVAL_MS) : pollIntervalMs,
-      signal,
-    )
+    await waitForOutOrTimeout(outDir, pollIntervalMs, signal)
   }
   await dropClaim()
   throw new Error(`gm spool: dispatch "${verb}" (${dispatchKey}) timed out after ${timeoutMs}ms — in=${inPath} out=${outPath}`)

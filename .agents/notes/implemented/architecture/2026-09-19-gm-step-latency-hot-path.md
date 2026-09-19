@@ -10,7 +10,7 @@ Live baseline this session (daemon pid 23100, `queue_wait_ms` 16, `claimed_step_
 
 ## Decision
 
-Freddie spool wait uses a non-recursive `fs.watch` on `.gm/exec-spool/out/` with a 25ms poll fallback. After a successful boot, `Gm.call` skips `ensureDaemon` until a `GM_DAEMON_DIED` recovery. `gm_codesearch` forwards `mode: 'literal'` when omitted and passes `path`/`glob`. The agentplug daemon idle tick and nested plugin-dispatch poll are 25ms. acptoapi `waitForLeadLinkPrecheck` remains a single `preCheck` plus last-link `sampler_backoff` force-through; the unreachable wait loop is gone.
+Freddie spool wait uses a non-recursive `fs.watch` on `.gm/exec-spool/out/` with a 25ms poll fallback. After a successful boot, `Gm.call` skips `ensureDaemon` for that project cwd until a `GM_DAEMON_DIED` recovery. `gm_codesearch` forwards `mode: 'literal'` when omitted and passes `path`/`glob`. The agentplug daemon idle tick is 25ms. Claim accepts a non-empty in-file immediately (empty torn writes still refused). Nested plugin-dispatch poll is 25ms and is not the Freddie exec-spool path. acptoapi `waitForLeadLinkPrecheck` is one `preCheck` plus lead `sampler_backoff` force-through; the unreachable wait loop is gone.
 
 `session/flush` already cancels `writeBatchMaxDelayMs` before model requests; that path is unchanged.
 
@@ -24,8 +24,8 @@ Freddie spool wait uses a non-recursive `fs.watch` on `.gm/exec-spool/out/` with
 
 ## Consequences
 
-Cheap verbs after idle can land in one 25ms quantum plus watch wake instead of 200ms. Unspecified codesearch is a tree walk, not an embed pass. Dual remains available when requested. The running agentplug binary still sleeps 200ms until rebuilt and self-updated; source is the cut. Hung/died detection still runs after five polls; queued `.inflight` still licenses waiting.
+Cheap verbs after idle can land in one 25ms quantum plus watch wake instead of 200ms, once the runner binary is rebuilt. Unspecified `gm_codesearch` is a tree walk, not an embed pass. Direct `ctx.gm.call('codesearch', {query})` still omits `mode` and the daemon may default to dual. Hung/died detection still runs after five polls; queued `.inflight` still licenses waiting.
 
 ## Verification
 
-`packages/gm/gm-client/src/spool.js` `DEFAULT_POLL_INTERVAL_MS` 25 and `waitForOutOrTimeout`. `packages/gm/gm-client/src/index.js` skips `ensureDaemon` when `this.booted`. `packages/gm/tool-gm/src/verbs.js` `toBody` sets `mode: args.mode ?? 'literal'`. `C:\dev\gm\agentplug\crates\agentplug-runner\src\daemon.rs` idle sleep 25 and `PLUGIN_DISPATCH_POLL_MS` 25. `C:\dev\acptoapi\lib\chain-machine.js` `waitForLeadLinkPrecheck` returns after one `preCheck`.
+`packages/gm/gm-client/src/spool.js` `DEFAULT_POLL_INTERVAL_MS` 25 and `waitForOutOrTimeout`. `packages/gm/gm-client/src/index.js` skips `ensureDaemon` per cwd in `bootedCwds`. `packages/gm/tool-gm/src/verbs.js` `toBody` sets `mode: args.mode ?? 'literal'`. `C:\dev\gm\agentplug\crates\agentplug-runner\src\daemon.rs` idle sleep 25, claim non-empty in-files immediately, `PLUGIN_DISPATCH_POLL_MS` 25. `C:\dev\acptoapi\lib\chain-machine.js` `waitForLeadLinkPrecheck` returns after one `preCheck`.

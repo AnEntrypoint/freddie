@@ -2103,3 +2103,10 @@
   session_id: freddie-12560-1789843658515
   status: witnessed
   witness_evidence: packages/gm/gm-client/src/spool.js:16 HEALTH_CHECK_AFTER_POLLS=5; died/hung only after takeResponse miss and !queued (lines 237-251).
+- id: sweep-sha-matches-head
+  prd_id: independent-sweep-marker
+  obligation_kind: postcondition
+  subject: .split-context-swept head_sha equals current HEAD
+  text: Write after a blind reviewer verdict; sha faf05715c33e5da3f8b27b9f7b8756f62bbddbab.
+  session_id: freddie-12560-1789843658515
+  status: unknown

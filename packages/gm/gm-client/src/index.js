@@ -33,7 +33,7 @@ export class Gm extends Service {
   })
 
   config
-  booted = false
+  bootedCwds = new Set()
 
   constructor(ctx, config) {
     super(ctx, 'gm')
@@ -152,9 +152,9 @@ export class Gm extends Service {
    */
   async call(verb, body = {}, { timeoutMs, rawBody, signal, cwd } = {}) {
     const projectCwd = this.resolveProjectCwd(cwd)
-    if (this.booted !== true) {
+    if (!this.bootedCwds.has(projectCwd)) {
       await ensureDaemon(projectCwd)
-      this.booted = true
+      this.bootedCwds.add(projectCwd)
     }
     const request = {
       cwd: projectCwd,
@@ -169,10 +169,10 @@ export class Gm extends Service {
       return await dispatch(request)
     } catch (error) {
       if (!(error instanceof GmDaemonUnavailableError) || error.code !== 'GM_DAEMON_DIED') throw error
-      this.booted = false
+      this.bootedCwds.delete(projectCwd)
       try {
         await ensureDaemon(projectCwd)
-        this.booted = true
+        this.bootedCwds.add(projectCwd)
         return await dispatch(request)
       } catch (recoveryError) {
         error.recoveryError = recoveryError instanceof Error ? recoveryError.message : String(recoveryError)
