@@ -1743,3 +1743,35 @@
   session_id: freddie-6364-1789774010516
   status: witnessed
   witness_evidence: exec_js 1789796898901 sameRef true for replayed gm/progress; ignoredSame true for todo/write. Last-wins whole-value, malformed type ignored.
+- id: gm-progress-exception-model
+  prd_id: gm-graph-progress-fold
+  obligation_kind: exception-model
+  subject: gm.call failures rethrow after reportProgress failed; append errors are contained and never alter the tool result
+  text: 'Read jsonTool catch: reportProgress failed then throw. apply try/catch around append.'
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789797026225 rethrowAfterFailed true; appendContained true. jsonTool reports failed then throws; apply swallows append errors.
+- id: gm-progress-partial-failure
+  prd_id: gm-graph-progress-fold
+  obligation_kind: partial-failure
+  subject: 'Daemon death: Gm.call restores daemon once then rethrows GmDaemonUnavailableError; progress snapshot records error text without tearing nodes'
+  text: Read gm-client call recovery; exec_js failed snapshot keeps previous nodes.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789797026225 daemonReplay true; failedKeepsNodes [keep]; failedError daemon died; failedWalking null. Gm.call restores daemon once on GM_DAEMON_DIED then rethrows.
+- id: gm-graph-degradation
+  prd_id: gm-graph-progress-fold
+  obligation_kind: degradation
+  subject: foldGmGraph caps at 80 nodes; inspectGraph is bounded JSON; empty graph is named copy not a hang
+  text: exec_js 81-node input yields 80; empty layout does not throw.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789797026225 cap 80 from 90-node input. Empty graph is named copy in ObservabilityDock. inspectGraph is bounded JSON.
+- id: gm-graph-crucible
+  prd_id: gm-graph-ui
+  obligation_kind: crucible
+  subject: Malformed overlay roots, missing terminals.status, and huge titles do not throw in overlayWalk/layoutGraph/inspectGraph
+  text: exec_js adversarial inputs.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789797105974 overlayOk/layoutOk/inspectOk true after hardening Array.isArray guards. inspectMissingOverlay empty jit/cli/nodes.

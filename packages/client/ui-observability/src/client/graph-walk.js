@@ -87,15 +87,15 @@ export function overlayWalk(chatNodes, terminals, walkingId) {
     list.push(item)
     byNode.set(nodeId, list)
   }
-  for (const node of chatNodes) {
-    if (node.kind !== 'tool-call') continue
+  for (const node of Array.isArray(chatNodes) ? chatNodes : []) {
+    if (node == null || node.kind !== 'tool-call') continue
     const root = node.data?.root
     if (!isRunningTool(root)) continue
     const item = { kind: 'jit', key: node.key, label: toolLabel(root), detail: toolDetail(root) }
     push(parseToolId(root) ?? walkingId, item)
   }
-  for (const terminal of terminals) {
-    if (terminal.status?.kind === 'exited') continue
+  for (const terminal of Array.isArray(terminals) ? terminals : []) {
+    if (terminal == null || terminal.status?.kind === 'exited') continue
     const last = typeof terminal.output === 'string' ? compactText(terminal.output.split('\n').at(-1)) : undefined
     push(walkingId, {
       kind: 'cli',
@@ -117,8 +117,9 @@ function isOpen(status) {
  * @returns columns `{ id, prd, mutables }[]` plus `orphans`.
  */
 export function layoutGraph(nodes) {
-  const prds = nodes.filter(node => node.kind === 'prd')
-  const mutables = nodes.filter(node => node.kind !== 'prd')
+  const list = Array.isArray(nodes) ? nodes.filter(node => node != null && typeof node.id === 'string') : []
+  const prds = list.filter(node => node.kind === 'prd')
+  const mutables = list.filter(node => node.kind !== 'prd')
   const used = new Set()
   const columns = prds.map(prd => {
     const children = mutables.filter(node => node.prdId === prd.id)
@@ -146,10 +147,14 @@ export function inspectGraph(gm, overlay) {
     if (item.kind === 'cli') cli.push({ label: item.label })
     else jit.push({ label: item.label })
   }
-  for (const list of overlay.byNode.values()) {
-    for (const item of list) collect(item)
+  const byNode = overlay?.byNode
+  const unmatched = Array.isArray(overlay?.unmatched) ? overlay.unmatched : []
+  if (byNode != null && typeof byNode.values === 'function') {
+    for (const list of byNode.values()) {
+      for (const item of Array.isArray(list) ? list : []) collect(item)
+    }
   }
-  for (const item of overlay.unmatched) collect(item)
+  for (const item of unmatched) collect(item)
   return {
     nodes: graphNodes(gm).map(node => ({ id: node.id, kind: node.kind, status: node.status })),
     edges: graphEdges(gm).map(edge => ({ from: edge.from, to: edge.to, kind: edge.kind })),
