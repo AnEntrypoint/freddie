@@ -100,6 +100,18 @@ export class FreddieObservabilityDock extends HTMLElement {
     }
   }
 
+  #edit(kind, request) {
+    const props = this.#props
+    const method = props?.[kind]
+    if (typeof method !== 'function') {
+      return Promise.resolve({
+        ok: false,
+        error: { message: 'GM edit Remote is not mounted' },
+      })
+    }
+    return method(request)
+  }
+
   #nodeCard(node, walking, overlay) {
     const walkingHere = walking?.nodeId === node.id
     const items = overlayItems(overlay, node.id)
@@ -161,14 +173,14 @@ export class FreddieObservabilityDock extends HTMLElement {
           disabled: this.#busy,
           onclick: () => {
             void this.#run(() => node.kind === 'prd'
-              ? props.prdAdd({
+              ? this.#edit('prdAdd', {
                 id: node.id,
                 title: draft.title,
                 subject: draft.subject,
                 status: draft.status,
                 route_family: draft.routeFamily,
               })
-              : props.mutableAdd({
+              : this.#edit('mutableAdd', {
                 id: node.id,
                 prd_id: draft.prdId,
                 obligation_kind: draft.obligationKind,
@@ -191,8 +203,8 @@ export class FreddieObservabilityDock extends HTMLElement {
           disabled: this.#busy || draft.witness.trim() === '',
           onclick: () => {
             void this.#run(() => node.kind === 'prd'
-              ? props.prdResolve({ id: node.id, witness_evidence: draft.witness.trim() })
-              : props.mutableResolve({ id: node.id, witness_text: draft.witness.trim() }))
+              ? this.#edit('prdResolve', { id: node.id, witness_evidence: draft.witness.trim() })
+              : this.#edit('mutableResolve', { id: node.id, witness_text: draft.witness.trim() }))
           },
         }, 'Resolve'),
       ) : null,
