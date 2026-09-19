@@ -19,6 +19,12 @@
     "./invariant": {
       "default": "./src/invariant.js"
     },
+    "./typert": {
+      "default": "./src/typert.host.js"
+    },
+    "./remote": {
+      "default": "./src/typert.remote-client.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -28,16 +34,19 @@
   "license": "MIT",
   "dependencies": {
     "@freddie/freddie-gm-config": "*",
-    "@freddie/schemastery": "*"
+    "@freddie/schemastery": "*",
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-gm-config": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-typert-protocol": "*"
   },
   "devDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-gm-config": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-typert-protocol": "*"
   }
 }

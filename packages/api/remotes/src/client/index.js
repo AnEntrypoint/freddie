@@ -7,6 +7,7 @@ import fileReferencesRemote from '@freddie/freddie-file-reference/remote'
 import pluginInventoryRemote from '@freddie/freddie-host-plugin-inventory/remote'
 import messageFeedbackRemote from '@freddie/freddie-message-feedback/remote'
 import sessionReferencesRemote from '@freddie/freddie-session-reference/remote'
+import gmRemote from '@freddie/freddie-gm-client/remote'
 
 /** Required service: the typed Client Remote contribution mount. */
 export const inject = ['remote']
@@ -22,6 +23,7 @@ export async function apply(ctx) {
     for (const contribution of [
       commandsRemote, goalsRemote, dynamicRemote, fileReferencesRemote,
       pluginInventoryRemote, messageFeedbackRemote, sessionReferencesRemote,
+      gmRemote,
     ]) {
       disposers.push(await ctx.remote.$mount(contribution))
     }

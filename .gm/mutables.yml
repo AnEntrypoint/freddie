@@ -1503,3 +1503,243 @@
   session_id: freddie-2260524-1789740208025
   status: witnessed
   witness_evidence: packages/context/dream-rsi-context/src/index.js requires structurally valid evidence/replays, matching dispatch IDs/verb/fingerprint, and a same-session configured gm/progress event before automatic context injection.
+- id: gm-progress-running-body
+  prd_id: gm-graph-progress-fold
+  obligation_kind: precondition
+  subject: gmProgressSnapshot running path does not currently pass dispatch.body so foldGmGraph cannot set walking.nodeId from the in-flight args
+  text: 'Witness: tool-gm/src/index.js reportProgress running call and foldGmGraph walking assignment after wiring.'
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: packages/gm/tool-gm/src/verbs.js jsonTool running report is reportProgress({ verb, status: ''running'', startedAt }, exec) with no body. exec_js 1789794928351 snapHasGraph false; foldGmGraph walking.nodeId is ''a'' only when dispatch.body.id is passed (runningWalking.verb prd-add). EMIT must pass toBody(args) on running and settled reports.'
+- id: gm-progress-state-version
+  prd_id: gm-graph-progress-fold
+  obligation_kind: invariant
+  subject: gm-progress stateVersion is 2 without nodes/edges; graph fields require a bump so persisted cache rows are discarded
+  text: Witness projection.js stateVersion after EMIT.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'invariant: exec_js 1789794928351 gmProgressProjectionDefinition.stateVersion is 2; initKeys are verb/status/phase/prdPendingCount/mutablesPendingCount/sessionId/belongsToConfiguredSession/startedAt/finishedAt/durationMs/error with no nodes/edges/walking. Graph fields require stateVersion 3 so cache rows at 2 are discarded.'
+- id: gm-graph-walk-unimported
+  prd_id: gm-graph-ui
+  obligation_kind: precondition
+  subject: graph-walk.js is never imported by ObservabilityDock.js so layoutGraph/overlayWalk/inspectGraph cannot render
+  text: Witness ObservabilityDock import of graph-walk after EMIT.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: exec_js 1789794928351 dockImportsGraphWalk false. codesearch layoutGraph only definition at graph-walk.js:119. ObservabilityDock.js does not import graph-walk.'
+- id: gm-remote-vs-apiproxy
+  prd_id: gm-node-edit-remote
+  obligation_kind: type-shape
+  subject: Whether Gm should extend TypertRemoteService, bindTypertRemote, or expose a sibling gm-remote plugin; ApiProxyService has no gm namespace today
+  text: Witness chosen shape against docs/api-gateway.md and a live client call.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'type-shape: Gm already extends Service (gm-client/src/index.js:28). docs/api-gateway.md:13 bindTypertRemote when another base class owns inheritance. api-remotes/src/client/index.js mounts goalsRemote etc, no gm. Chosen representation: bindTypertRemote(this, ''gm'') on Gm; @Remote methods prdAdd/prdResolve/mutableAdd/mutableResolve/transition taking Agent so session.header.cwd is available; ./remote export mounted in api-remotes. Invalid: ApiProxy namespace (createApiProxy has no gm) or a second ctx key.'
+- id: gm-git-verb-set
+  prd_id: gm-tool-verb-coverage
+  obligation_kind: precondition
+  subject: Exact remaining skill-required verbs beyond the git family that tool-gm still omits
+  text: Witness a live instruction/skill verb list vs buildGmTools return array.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: exec_js 1789794928351 toolNames has only gm_git_finalize in the git family. Skill-required remaining verbs: git_status, git_log, git_diff, git_show, git_push, git_pull, git_stash, git_stash_pop. serp/browser/cdp/fetch/memorize-fire stay daemon-only; Freddie already has web_search and host tools.'
+- id: gm-instruction-truncation
+  prd_id: gm-upstream-graph-export
+  obligation_kind: precondition
+  subject: Whether live instruction prd_items/mutables_pending plus add/resolve fold is enough without a C:\dev\gm graph verb
+  text: Witness a live instruction JSON truncation flags and node count after fold.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: this session instruction 1789794767538 prd_items_truncated null (14 PRDs inlined); mutables_pending_truncated inlined 5 of 18. Open graph is 14 PRD + 18 mutables = 32 < 80 cap. Fold from add/resolve bodies plus non-truncated instruction lists is sufficient. No C:\dev\gm graph verb.'
+- id: gm-tab-delete-scope
+  prd_id: gm-gui-delete-noise
+  obligation_kind: invariant
+  subject: Workflows/Subagents/Terminals tabs must leave the GM view; workflow chat nodes and subagent header remain elsewhere
+  text: Witness live conversation.view observability has no those panels; ui-workflow-run and ui-subagent still mounted.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'invariant: ObservabilityDock.js:5-11 SECTIONS overview/workflows/gm/subagents/terminals. ui-workflow-run and ui-subagent remain web-app cordis.patch.yml:260-276. Delete dock tabs only; do not unmount those plugins.'
+- id: gm-progress-append-containment
+  prd_id: gm-graph-progress-fold
+  obligation_kind: postcondition
+  subject: Graph snapshot append failures must not alter the GM tool result
+  text: Witness existing try/catch around session.append still contains graph-field serialization errors.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'postcondition: packages/gm/tool-gm/src/index.js:69-83 try/catch around session.append swallows append errors (void error) and never rethrows into execute. Graph fields stay inside that same try so serialization failure cannot change the GM tool result.'
+- id: gm-edit-session-cwd
+  prd_id: gm-node-edit-remote
+  obligation_kind: precondition
+  subject: Host remotes must dispatch against the selected session workspace cwd, not the GUI host process.cwd
+  text: Witness remote handler passes session.header.cwd into Gm.call.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: verbs.js execute already passes cwd: exec.agent.session.header.cwd into gm.call. Remote methods take Agent and use agent.session.header.cwd the same way; never process.cwd() of the GUI host.'
+- id: gm-no-secrets-in-graph
+  prd_id: gm-graph-ui
+  obligation_kind: invariant
+  subject: data-gm-graph and inspector must not include argsRaw, terminal buffers, or env
+  text: Witness inspectGraph payload keys on the live page.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'invariant: exec_js 1789794928351 inspectGraph keys are nodes/edges/walking/jit/cli; inspectHasArgsRaw false; inspectHasOutput false. overlayWalk CLI detail is compact last line only. Renderer must call inspectGraph for data-gm-graph.'
+- id: gm-inspector-local-state
+  prd_id: gm-client-graph-inspector
+  obligation_kind: type-shape
+  subject: Inspector selection is component-local state, not a session projection or store
+  text: Witness ObservabilityDock local selectedNodeId and no new projection key.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'type-shape: ui-observability ObservabilityDock already uses instance fields #section/#snapshots (ObservabilityDock.js:237-239). selectedNodeId is the same local field, not a session projection. Client AGENTS.md: live data known only to the component stays local state. No new projection key.'
+- id: gm-mcp-env-only
+  prd_id: gm-mcp-remove
+  obligation_kind: precondition
+  subject: mcp-gm is already disabled unless GM_MCP_SERVER_PATH is set; removal still required as the leftover MCP flow
+  text: Witness cordis.patch.yml has no mcp-gm row after EMIT.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: packages/bundle/base/cordis.patch.yml:119-137 mcp-gm row disabled when GM_MCP_SERVER_PATH unset. Removal still required as leftover MCP flow. Witness after EMIT: no mcp-gm id in that file.'
+- id: gm-progress-event-jsdoc
+  prd_id: gm-session-event-map
+  obligation_kind: type-shape
+  subject: SessionEventMap merge for gm/progress needs @mode and payload @param JSDoc; ignorable true
+  text: Witness tool-gm types or session types declaration plus known-event-types after catalog regen.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'type-shape: AGENTS.md typed events use declaration merging; JSDoc needs @mode and payload @param. gm/progress is ignorable so unknown readers skip it. EMIT adds a JSDoc SessionEventMap merge on tool-gm (JSDoc-only; workspace is buildless JS). known-event-types.js is generated; ignorable events may stay off that set. Invalid constructor: required-on-read without ignorable.'
+- id: gm-note-supersede
+  prd_id: gm-agent-note
+  obligation_kind: postcondition
+  subject: 2026-04-15-gm-overview-mutable-graph.md claims Overview already renders the DAG; rewrite to shipped reality or supersede
+  text: Witness the note matches live UI after EMIT.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'postcondition: .agents/notes/implemented/feature/2026-04-15-gm-overview-mutable-graph.md currently claims Overview already renders the DAG; live ObservabilityDock.js:433-464 still paints metric tiles. EMIT rewrites that note to shipped graph-first GUI plus MCP removal.'
+- id: gm-css-no-library
+  prd_id: gm-graph-css
+  obligation_kind: invariant
+  subject: No dagre/mermaid/vis or SVG path library in ui-observability
+  text: Witness package.json dependencies remain webjsx only plus peers.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'invariant: exec_js 1789794928351 ui-observability package.json dependencies are only @freddie/webjsx. No dagre/mermaid/vis. Keep that set.'
+- id: gm-empty-no-throw
+  prd_id: gm-empty-graph-copy
+  obligation_kind: precondition
+  subject: graphNodes already treats missing nodes as []; renderer must use that helper
+  text: Witness ObservabilityDock calls graphNodes(gm) and shows empty copy when length 0.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: exec_js 1789794928351 graphNodes(undefined).length is 0. Renderer must call graphNodes(gm) and show empty copy when length 0.'
+- id: gm-inject-no-ctx
+  prd_id: gm-host-plugin-mount
+  obligation_kind: invariant
+  subject: Client components never see ctx; remotes close over apply inject
+  text: Witness ui-observability src/client has no ctx.remote or ctx.gm.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'invariant: exec_js 1789794928351 clientHasCtxRemote false for ObservabilityDock.js and client/index.js. Remotes close over apply inject callbacks. Keep that.'
+- id: gm-files-graph-js
+  prd_id: gm-progress-package-files
+  obligation_kind: postcondition
+  subject: files array currently lists index/verbs/presentation/invariant only
+  text: Witness package.json files after EMIT includes graph.js.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'postcondition: exec_js 1789794928351 tool-gm package.json files is index/verbs/presentation/invariant only. EMIT must add src/graph.js.'
+- id: gm-fold-totality
+  prd_id: gm-graph-progress-fold
+  obligation_kind: totality
+  subject: foldGmGraph and gmProgressSnapshot return defined snapshots for undefined previous, empty data, truncated lists, missing body.id, and non-object value
+  text: exec_js feeds those edges and asserts nodes/edges/walking always exist.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796744481 edges all true for undefinedPrev/emptyData/truncated/missingBodyId/nonObjectValue/nullValue. truncatedKept [keep,n]. graphNodesUndef 0.
+- id: gm-progress-last-wins
+  prd_id: gm-graph-progress-fold
+  obligation_kind: replay
+  subject: gm-progress apply is last-wins whole-value; a second identical event keeps the same reference; a later event replaces nodes
+  text: exec_js apply eventA then eventA then eventB and witness Object.is plus node ids.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796744481 sameRefReplay true; afterAIds [a]; afterBIds [a,b]; ignoredSame true for non-gm/progress event.
+- id: gm-progress-append-ownership
+  prd_id: gm-graph-progress-fold
+  obligation_kind: ownership
+  subject: session.append of gm/progress is contained; fold failure cannot leak into the GM tool result
+  text: Read tool-gm apply try/catch around append; exec_js cannot throw from foldGmGraph on empty previous.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: packages/gm/tool-gm/src/index.js:80-90 try/catch around session.append swallows errors (void error). exec_js 1789796744481 foldGmGraph never threw on empty previous.
+- id: gm-inspect-effect-boundary
+  prd_id: gm-graph-ui
+  obligation_kind: effect-boundary
+  subject: 'inspectGraph and layoutGraph are queries: they do not mutate gm or overlay maps'
+  text: 'exec_js freeze-ish: call inspectGraph twice and compare JSON; overlayWalk byNode is a new Map.'
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796744481 inspectEqual true across two inspectGraph calls; overlayMapsDistinct true; gmUnchanged true. layoutGraph/inspectGraph are queries.
+- id: gm-layout-totality
+  prd_id: gm-graph-ui
+  obligation_kind: totality
+  subject: layoutGraph accepts empty, orphans-only, and PRD-only graphs without throw
+  text: exec_js those three inputs.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796744481 layoutEmpty true; layoutOrphans [o]; layoutPrd true.
+- id: gm-progress-happens-before
+  prd_id: gm-graph-progress-fold
+  obligation_kind: happens-before
+  subject: running gm/progress with walking is appended before gm.call awaits; settled snapshot with walking null is appended after the daemon result
+  text: 'Read jsonTool execute: reportProgress running then await gm.call then reportProgress completed. exec_js 1789796608185 runningWalking set, settledWalking null.'
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796823909 runningBeforeAwait true; settledAfterAwait true. jsonTool reports running then awaits gm.call then reports completed.
+- id: gm-inspect-disjoint
+  prd_id: gm-graph-ui
+  obligation_kind: disjointness
+  subject: inspectGraph payload is ids/status/verb/names only; overlay CLI is compact last line; inspector selectedNodeId is local and never written to gmProgress
+  text: 'exec_js inspectHasArgsRaw false; ObservabilityDock.js #selectedNodeId is an instance field; projection apply never reads selectedNodeId.'
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796823909 inspectHasArgsRaw false; inspectKeys nodes/edges/walking/jit/cli; cliLastLineOnly [{label:term}] with no output buffer; selectedLocal true (#selectedNodeId not in projection).
+- id: gm-progress-contention
+  prd_id: gm-graph-progress-fold
+  obligation_kind: contention
+  subject: foldGmGraph copies previous.nodes into a new Map and does not mutate the prior snapshot; last-wins append is the only shared write
+  text: exec_js freeze previous.nodes, fold, assert previous unchanged; two sequential applies last-wins.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796823909 previousUnchanged true after freeze; nextIsNewArray true; nextIds [keep,n]. Fold copies into a new Map; last-wins apply is the only shared write.
+- id: gm-graph-secrets
+  prd_id: gm-graph-ui
+  obligation_kind: secrets
+  subject: inspectGraph and gm/progress snapshots omit argsRaw, terminal buffers, tokens, and secret-shaped strings
+  text: exec_js inspectGraph JSON against a planted sk-SECRET / argsRaw / TOKEN= payload and assert omission.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'exec_js 1789796919099 inspectGraph JSON omits sk-SECRET/hunter2/argsRaw/TOKEN=/apiKey after titles dropped from inspect payload. Remaining fields: id/kind/status, walking verb/nodeId, jit/cli labels. Overlay CLI still compact last-line for display, not inspect.'
+- id: gm-remote-identity
+  prd_id: gm-node-edit-remote
+  obligation_kind: identity-authority
+  subject: GM remotes take Agent lookup; cwd is session.header.cwd; no ambient process.cwd for edits
+  text: Read Gm.prdAdd/dispatchFor; Typert descriptors use agent lookup.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796898901 agentLookup true; cwdOfSession true; dispatchForCwd true. Typert descriptors lookup agent; Gm.dispatchFor uses agent.session.header.cwd.
+- id: gm-progress-injection
+  prd_id: gm-graph-ui
+  obligation_kind: injection
+  subject: Overview labels are webjsx text children; data-gm-graph is JSON.stringify of inspectGraph; no innerHTML of node titles
+  text: 'Read ObservabilityDock.js: no innerHTML; titles pass as text children.'
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796898901 innerHTML false; textChildren true; stringifyInspect true. Node titles are webjsx text children; data-gm-graph is JSON.stringify(inspectGraph).
+- id: gm-progress-message-timing
+  prd_id: gm-graph-progress-fold
+  obligation_kind: message-timing
+  subject: 'gm/progress last-wins: replay of the same event is idempotent; malformed type is ignored'
+  text: exec_js apply same event twice Object.is; non-gm/progress event returns prior state.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796898901 sameRef true for replayed gm/progress; ignoredSame true for todo/write. Last-wins whole-value, malformed type ignored.

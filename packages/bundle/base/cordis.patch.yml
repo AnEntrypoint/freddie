@@ -100,42 +100,6 @@
     - id: tool-gm
       name: '@freddie/freddie-tool-gm'
 
-    # gm as a first-class harness capability, MCP-bridge path: gm-mcp
-    # (github.com/AnEntrypoint/gm-mcp) is a real MCP server exposing gm's
-    # spool write-then-poll-then-clean-YAML dispatch cycle as one tool
-    # (verb/body/session_id/...). Wiring it through the existing
-    # freddie-mcp-client bridge (the same mechanism examples/mcp-memory
-    # already demonstrates for third-party MCP servers) gives every
-    # in-harness agent a native mcp__gm__gm tool call instead of shelling out
-    # via pwsh to hand-write/poll .gm/exec-spool files. Kept alongside the
-    # native gm-client/tool-gm rows above (not replaced) as a fallback path:
-    # it covers every gm verb (the native tool-gm row above only wraps the
-    # highest-traffic ones) and needs a separately-installed gm-mcp rather
-    # than gm's own base install, so its own disabled guard differs.
-    # Disabled by default, gated on GM_MCP_SERVER_PATH alone -- same `require`
-    # constraint as the rows above; the on-disk default-path fallback this
-    # row used to auto-detect via `require('node:fs').existsSync(...)` never
-    # actually ran (ReferenceError at boot), so it is now opt-in only.
-    - id: mcp-gm
-      name: '@freddie/freddie-mcp-client'
-      disabled: !!js process.env.GM_MCP_SERVER_PATH?.trim() === undefined
-      config:
-        serverName: gm
-        transport: stdio
-        command: node
-        args:
-          - !!js process.env.GM_MCP_SERVER_PATH?.trim()
-        cwd: !!js process.cwd()
-        # gm-mcp's own gmDispatch polls its spool for up to 120s by default
-        # (timeout_seconds) before returning timed_out -- the shared,
-        # machine-wide agentplug-runner daemon backing every gm verb can carry
-        # a 100+-deep cross-project queue (witnessed live), so a slow verb can
-        # legitimately take longer than the client bridge's own 60s default
-        # tool-call timeout, cutting the MCP call off before gm's own timeout
-        # fires. 180s gives gm's internal 120s poll room to actually finish
-        # (or return its own timed_out response) before the transport gives up.
-        toolCallTimeoutMs: 180000
-
     - id: llm-retry
       name: '@freddie/freddie-llm-retry'
 

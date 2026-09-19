@@ -10,6 +10,7 @@
 
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
+import { bindTypertRemote, Remote } from '@freddie/freddie-typert-protocol'
 import { resolveConfig, resolveGraph, resolveProse } from '@freddie/freddie-gm-config'
 import { ensureDaemon } from './daemon.js'
 import { dispatch, GmDaemonUnavailableError } from './spool.js'
@@ -37,6 +38,91 @@ export class Gm extends Service {
   constructor(ctx, config) {
     super(ctx, 'gm')
     this.config = config
+    this.typertRemote = bindTypertRemote(this, this.name)
+  }
+
+  /**
+   * Session workspace for one Agent-scoped Remote, never the GUI host cwd.
+   * @param agent - live agent whose session owns the open workspace.
+   * @returns an absolute project directory, or undefined.
+   */
+  cwdOf(agent) {
+    const cwd = agent?.session?.header?.cwd
+    return typeof cwd === 'string' && cwd.length > 0 ? cwd : undefined
+  }
+
+  /**
+   * Dispatch one verb with the Agent session cwd and optional cancellation.
+   * @param agent - live agent.
+   * @param verb - gm spool verb.
+   * @param body - JSON body.
+   * @param signal - optional abort.
+   * @returns the parsed response body.
+   */
+  dispatchFor(agent, verb, body, signal) {
+    const cwd = this.cwdOf(agent)
+    return this.call(verb, body, {
+      ...cwd === undefined ? {} : { cwd },
+      ...signal === undefined ? {} : { signal },
+    })
+  }
+
+  /**
+   * Add or rescope one PRD row in the Agent session workspace.
+   * @param agent - live agent.
+   * @param request - kebab-case id plus optional PRD fields.
+   * @param signal - optional abort.
+   * @returns the parsed spool response.
+   */
+  prdAdd(agent, request, signal) {
+    return this.dispatchFor(agent, 'prd-add', request, signal)
+  }
+
+  /**
+   * Resolve one PRD row with non-empty witness evidence.
+   * @param agent - live agent.
+   * @param request - id and witness_evidence.
+   * @param signal - optional abort.
+   * @returns the parsed spool response.
+   */
+  prdResolve(agent, request, signal) {
+    return this.dispatchFor(agent, 'prd-resolve', request, signal)
+  }
+
+  /**
+   * Record one typed mutable against a PRD row.
+   * @param agent - live agent.
+   * @param request - kebab-case id plus optional mutable fields.
+   * @param signal - optional abort.
+   * @returns the parsed spool response.
+   */
+  mutableAdd(agent, request, signal) {
+    return this.dispatchFor(agent, 'mutable-add', request, signal)
+  }
+
+  /**
+   * Discharge one mutable. `witness_text` maps to the daemon `witness_evidence` field.
+   * @param agent - live agent.
+   * @param request - id and witness_text.
+   * @param signal - optional abort.
+   * @returns the parsed spool response.
+   */
+  mutableResolve(agent, request, signal) {
+    return this.dispatchFor(agent, 'mutable-resolve', {
+      id: request.id,
+      witness_evidence: request.witness_text,
+    }, signal)
+  }
+
+  /**
+   * Advance the gm session phase when gates pass.
+   * @param agent - live agent.
+   * @param request - target phase name.
+   * @param signal - optional abort.
+   * @returns the parsed spool response.
+   */
+  transition(agent, request, signal) {
+    return this.dispatchFor(agent, 'transition', { to: request.to }, signal)
   }
 
   /**
@@ -151,5 +237,36 @@ export class Gm extends Service {
     return resolveGraph(this.config.cwd)
   }
 }
+
+Remote('prdAdd')(Gm.prototype.prdAdd, {
+  name: 'prdAdd',
+  private: false,
+  static: false,
+  addInitializer: (fn) => { fn.call(Object.create(Gm.prototype)) },
+})
+Remote('prdResolve')(Gm.prototype.prdResolve, {
+  name: 'prdResolve',
+  private: false,
+  static: false,
+  addInitializer: (fn) => { fn.call(Object.create(Gm.prototype)) },
+})
+Remote('mutableAdd')(Gm.prototype.mutableAdd, {
+  name: 'mutableAdd',
+  private: false,
+  static: false,
+  addInitializer: (fn) => { fn.call(Object.create(Gm.prototype)) },
+})
+Remote('mutableResolve')(Gm.prototype.mutableResolve, {
+  name: 'mutableResolve',
+  private: false,
+  static: false,
+  addInitializer: (fn) => { fn.call(Object.create(Gm.prototype)) },
+})
+Remote('transition')(Gm.prototype.transition, {
+  name: 'transition',
+  private: false,
+  static: false,
+  addInitializer: (fn) => { fn.call(Object.create(Gm.prototype)) },
+})
 
 export default Gm
