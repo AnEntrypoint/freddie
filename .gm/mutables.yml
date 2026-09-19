@@ -1648,13 +1648,13 @@
   status: witnessed
   witness_evidence: 'postcondition: exec_js 1789794928351 tool-gm package.json files is index/verbs/presentation/invariant only. EMIT must add src/graph.js.'
 - id: gm-fold-totality
-  prd_id: gm-graph-progress-fold
+  prd_id: gm-overview-served-graph
   obligation_kind: totality
-  subject: foldGmGraph and gmProgressSnapshot return defined snapshots for undefined previous, empty data, truncated lists, missing body.id, and non-object value
-  text: exec_js feeds those edges and asserts nodes/edges/walking always exist.
-  session_id: freddie-6364-1789774010516
+  subject: foldGmGraph and inspectGraph/overlayWalk return defined results on undefined, empty, and oversized inputs
+  text: exec_js fold/inspect/overlay on undefined, empty, 90-node, malformed chat.
+  session_id: freddie-7564-1789830375891
   status: witnessed
-  witness_evidence: exec_js 1789796744481 edges all true for undefinedPrev/emptyData/truncated/missingBodyId/nonObjectValue/nullValue. truncatedKept [keep,n]. graphNodesUndef 0.
+  witness_evidence: exec_js 1789841010771 emptyNodes 0; previousUnchanged true; nextNew true; nextIds [keep,n]; cap 80; overlayOk/overlay2Ok true; layoutEmpty columns/orphans [].
 - id: gm-progress-last-wins
   prd_id: gm-graph-progress-fold
   obligation_kind: replay
@@ -1775,3 +1775,179 @@
   session_id: freddie-6364-1789774010516
   status: witnessed
   witness_evidence: exec_js 1789797105974 overlayOk/layoutOk/inspectOk true after hardening Array.isArray guards. inspectMissingOverlay empty jit/cli/nodes.
+- id: npm-null-matches-cause
+  prd_id: npm-install-null-matches
+  obligation_kind: precondition
+  subject: The npm version, exact stack trace, and dependency graph element that produced null.matches are unknown.
+  text: 'Witness: user reports remote Windows command `C:\dev\freddie>npm install` failed with `Cannot read properties of null (reading ''matches'')`; reproduce with verbose diagnostics.'
+  session_id: freddie-2260524-1789740208025
+  status: witnessed
+  witness_evidence: 'gm_exec_js dispatch 1789772901343 reproduced on Linux with real npm 11.19.0 and no writes: `npm install --dry-run --ignore-scripts --package-lock=false --workspaces=false` exits 1 in Arborist `link.js:150` (`resolved.edgesOut` where a Link target resolves to null). gm_exec_js 1789772896382 found root declares `packageManager: pnpm@11.7.0`, Node `^22.19.0 || >=24.0.0`, has no root package-lock/shrinkwrap, and every manifest/lockfile parsed with no JSON null. gm_exec_js 1789772917807 found pnpm-only overrides and Linux-only optional native packages; the crash is npm Arborist traversing pnpm-workspace links, not a malformed lockfile.'
+- id: gm-remote-isolation-pre
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: precondition
+  subject: Core remotes mount before GM; GM import is dynamic
+  text: 'Read packages/api/remotes/src/client/index.js: first loop excludes gmRemote; second try imports @freddie/freddie-gm-client/remote.'
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: 'exec_js 1789840868832 coreFirst true: remotes.js mounts commands/goals first; GM is import(''@freddie/freddie-gm-client/remote''); no static import gmRemote from.'
+- id: gm-remote-isolation-post
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: postcondition
+  subject: GM $mount failure does not throw from apply or dispose prior remotes
+  text: Read catch console.error without rethrow; HTTP served remotes JS matches.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: 'exec_js 1789840868832 noRethrow true: catch console.error without rethrow. HTTP served remotes JS REM_DYNAMIC true.'
+- id: gm-overview-inject-shape
+  prd_id: gm-overview-optional-remote
+  obligation_kind: type-shape
+  subject: Overview inject array is connection/sessions/slots only; remote.gm is ctx.get
+  text: Read packages/client/ui-observability/src/client/index.js export const inject.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789840868832 inject true export const inject = ['connection', 'sessions', 'slots']. Source uses ctx.get('remote.gm').
+- id: gm-http-witness-bound
+  prd_id: gm-http-witness-no-client-inspect
+  obligation_kind: resource-bound
+  subject: GUI witness uses HTTP GET with TimeoutSec 5, never Client inspect
+  text: This session used Invoke-WebRequest TimeoutSec 5; no cordis_inspect_query platform client after hang.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: HTTP GET TimeoutSec 5 STATUS=200; no Client inspect this cover after hang. loggerClean true.
+- id: gm-remote-apply-totality
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: totality
+  subject: apply always returns a disposer covering every successful $mount including optional GM
+  text: 'Read remotes apply: disposers array; GM success pushes; catch does not throw; return disposes all.'
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: 'exec_js 1789840947521 disposerReturn true: GM $mount push plus return async disposer over disposers.'
+- id: gm-remote-replay
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: replay
+  subject: Re-reading remotes source is identical to served HTTP body isolation markers
+  text: exec_js plus HTTP REM_DYNAMIC true.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: Source remotes isolation matches HTTP served body REM_DYNAMIC true at 3080 /plugins/@freddie/freddie-api-remotes/~7ac66a0cc951/client/index.js.
+- id: gm-overview-effect-boundary
+  prd_id: gm-overview-optional-remote
+  obligation_kind: effect-boundary
+  subject: Overview apply only registers conversation.view; missing remote.gm does not throw at apply time
+  text: 'Read apply: ctx.get inside inject callbacks, not at apply top.'
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789840947521 getInCallbacks true. ctx.get('remote.gm') is inside gmRemote closure used only by edit callbacks, not as inject hard wait.
+- id: gm-progress-ownership
+  prd_id: gm-overview-served-graph
+  obligation_kind: ownership
+  subject: 'gmProgress is host projection; dock reads useProjection; inspector is local #selectedNodeId'
+  text: 'Read ObservabilityDock #selectedNodeId and useProjection(''gmProgress'').'
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: 'exec_js 1789840947521 selectedLocal true: #selectedNodeId local; useProjection(''gmProgress'') for graph.'
+- id: gm-projection-replay
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: replay
+  subject: gm/progress last-wins apply of the same event is Object.is; non-gm/progress ignored
+  text: exec_js projection apply twice.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841010771 sameRef true; ignoredSame true; stateVersion 3. Last-wins Object.is; todo/write ignored.
+- id: gm-inspect-query
+  prd_id: gm-overview-served-graph
+  obligation_kind: effect-boundary
+  subject: inspectGraph does not mutate overlay.byNode; titles omitted from inspect payload
+  text: exec_js overlay size unchanged; inspect JSON has no title/argsRaw.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841010771 inspectKeys nodes/edges/walking/jit/cli; hasSk false; hasTitle false. inspectGraph omits titles/secrets. dockLocal true.
+- id: gm-remote-happens-before
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: happens-before
+  subject: Core remotes $mount complete before GM dynamic import; GM failure cannot dispose them
+  text: 'Read remotes apply: first loop awaits all core mounts; GM try is after that loop.'
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841051410 coreThenGm true; catchAfter true. Core remotes mount loop precedes GM dynamic import; GM catch cannot dispose prior remotes.
+- id: gm-inspect-overview-disjoint
+  prd_id: gm-overview-optional-remote
+  obligation_kind: disjointness
+  subject: 'Overview inject callbacks and inspectGraph payload are disjoint: edits never serialize live ctx; inspect has id/kind/status only'
+  text: 'exec_js inspect keys vs dock #selectedNodeId not in projection.'
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841051410 overlayUnchanged true; inspectKeys nodes/edges/walking/jit/cli; inspectHasTitle false; selectedLocal true.
+- id: gm-progress-fold-contention
+  prd_id: gm-overview-served-graph
+  obligation_kind: contention
+  subject: foldGmGraph copies previous.nodes into a new array; frozen previous is unchanged
+  text: exec_js freeze previous then fold.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841051410 previousUnchanged true; nextNew true. Fold copies into a new array; frozen previous intact.
+- id: gm-inspect-secrets
+  prd_id: gm-overview-served-graph
+  obligation_kind: secrets
+  subject: inspectGraph JSON omits argsRaw, titles, sk-SECRET, hunter2, TOKEN=
+  text: exec_js inspectGraph against planted secret title and argsRaw.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841097284 hasSk/hasHunter/hasArgsRaw/hasApiKey/hasTokenAssign all false. inspectKeys nodes/edges/walking/jit/cli.
+- id: gm-dock-injection
+  prd_id: gm-overview-served-graph
+  obligation_kind: injection
+  subject: ObservabilityDock never uses innerHTML; titles are text children; data-gm-graph is JSON.stringify(inspectGraph)
+  text: Read ObservabilityDock.js innerHTML and stringifyInspect.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841097284 innerHTML false; textChildren true; stringifyInspect true.
+- id: gm-remote-agent-identity
+  prd_id: gm-overview-optional-remote
+  obligation_kind: identity-authority
+  subject: GM remotes look up Agent; cwd is session.header.cwd
+  text: Read typert.remote-client.js lookup agent; gm-client cwdOf.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841097284 agentLookup true; cwdOfSession true. Typert lookup agent; Gm uses session.header.cwd.
+- id: gm-progress-timing
+  prd_id: gm-http-witness-no-client-inspect
+  obligation_kind: message-timing
+  subject: gm/progress last-wins replay Object.is; malformed type ignored
+  text: exec_js projection apply twice plus todo/write.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841097284 sameRef true; ignoredSame true. Last-wins replay; malformed type ignored.
+- id: gm-remote-exception
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: exception-model
+  subject: GM $mount throw is caught, logged, and does not rethrow; core remotes stay mounted
+  text: Read remotes apply catch console.error without throw.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841131913 noRethrow true. GM $mount catch logs and does not throw.
+- id: gm-overview-partial
+  prd_id: gm-overview-optional-remote
+  obligation_kind: partial-failure
+  subject: Missing remote.gm returns gm-remote-unavailable JSON; Overview still registers
+  text: Read index.js missing() and inject without remote.gm.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: 'exec_js 1789841131913 missingCode true: gm-remote-unavailable and inject connection/sessions/slots.'
+- id: gm-graph-degrade
+  prd_id: gm-overview-served-graph
+  obligation_kind: degradation
+  subject: foldGmGraph caps at 80; empty layout is named copy
+  text: exec_js cap 80; layoutGraph(undefined) columns/orphans empty.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841131913 cap 80; layoutEmpty columns/orphans [].
+- id: gm-walk-crucible
+  prd_id: gm-overview-served-graph
+  obligation_kind: crucible
+  subject: Malformed overlay/inspect/layout inputs do not throw
+  text: exec_js overlayWalk/layoutGraph/inspectGraph on undefined and null roots.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841131913 overlayOk/layoutOk/inspectOk true on malformed inputs.

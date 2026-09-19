@@ -29,7 +29,7 @@ function isOpen(status) {
 }
 
 function overlayItems(overlay, nodeId) {
-  return overlay.byNode.get(nodeId) ?? []
+  return overlay?.byNode?.get?.(nodeId) ?? []
 }
 
 export class FreddieObservabilityDock extends HTMLElement {
@@ -202,11 +202,11 @@ export class FreddieObservabilityDock extends HTMLElement {
   #render() {
     const props = this.#props
     if (props === null) return
-    const gm = props.useProjection('gmProgress')
-    const connection = props.useConnection(state => state)
-    const terminals = props.useTerminals(state => state)
-    const sessionSnapshot = props.useSession(snapshot => snapshot)
-    const chatNodes = [...sessionSnapshot.chat.nodes.values()]
+    const gm = typeof props.useProjection === 'function' ? props.useProjection('gmProgress') : undefined
+    const connection = typeof props.useConnection === 'function' ? props.useConnection(state => state) : 'offline'
+    const terminals = typeof props.useTerminals === 'function' ? props.useTerminals(state => state) : []
+    const chatStore = typeof props.useSession === 'function' ? props.useSession(snapshot => snapshot?.chat?.nodes) : undefined
+    const chatNodes = chatStore === undefined || typeof chatStore.values !== 'function' ? [] : [...chatStore.values()]
     const walking = walkingOf(gm)
     const overlay = overlayWalk(chatNodes, terminals, walking?.nodeId ?? null)
     const nodes = graphNodes(gm)
