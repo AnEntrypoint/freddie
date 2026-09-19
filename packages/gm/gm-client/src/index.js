@@ -152,8 +152,10 @@ export class Gm extends Service {
    */
   async call(verb, body = {}, { timeoutMs, rawBody, signal, cwd } = {}) {
     const projectCwd = this.resolveProjectCwd(cwd)
-    await ensureDaemon(projectCwd)
-    this.booted = true
+    if (this.booted !== true) {
+      await ensureDaemon(projectCwd)
+      this.booted = true
+    }
     const request = {
       cwd: projectCwd,
       verb,
@@ -167,8 +169,10 @@ export class Gm extends Service {
       return await dispatch(request)
     } catch (error) {
       if (!(error instanceof GmDaemonUnavailableError) || error.code !== 'GM_DAEMON_DIED') throw error
+      this.booted = false
       try {
         await ensureDaemon(projectCwd)
+        this.booted = true
         return await dispatch(request)
       } catch (recoveryError) {
         error.recoveryError = recoveryError instanceof Error ? recoveryError.message : String(recoveryError)

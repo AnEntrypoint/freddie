@@ -14,7 +14,7 @@ The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start an
 |---|---|---|---|
 | `gm_instruction` | `instruction` | `prompt?` | Current phase prose and PRD/mutables. First call of a session must include `prompt`; later calls take none. |
 | `gm_phase_status` | `phase-status` | none | Phase, transition history, pending PRD/mutable counts without instruction prose. |
-| `gm_codesearch` | `codesearch` | `query`, `k?`, `mode?`, `root?` | Ranked file:line hits from gm's incremental index. |
+| `gm_codesearch` | `codesearch` | `query`, `k?`, `mode?` (default `literal`), `root?`, `path?`, `glob?` | File:line hits. Omitted `mode` is `literal` (~1s tree walk). Pass `dual` only for ranked BM25+vector. `path`/`glob` bound the walk. |
 | `gm_recall` | `recall` | `query` | Semantic hits from gm's memory store (keys, not file:line). |
 | `gm_prd_add` | `prd-add` | `id`, optional fields | Add or rescope one PRD row. |
 | `gm_prd_resolve` | `prd-resolve` | `id`, `witness_evidence`, `commit_comment?` | Mark one PRD row resolved. Empty `witness_evidence` is rejected. |

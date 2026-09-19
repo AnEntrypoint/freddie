@@ -1951,3 +1951,155 @@
   session_id: freddie-7564-1789830375891
   status: witnessed
   witness_evidence: exec_js 1789841131913 overlayOk/layoutOk/inspectOk true on malformed inputs.
+- id: watch-api-available
+  prd_id: spool-out-watch
+  obligation_kind: precondition
+  subject: Which watch primitive exists in-process without a new dep
+  text: codesearch fs.watch / notify crate in freddie and gm; pick one that works on this Windows host.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: Freddie already uses non-recursive fs.watch per directory in packages/client/hmr/src/index.js:175 nativeWatch (Windows-safe, re-armed on rename). Daemon has no notify crate (codesearch notify= exhaustive 0 in C:\dev\gm); only Condvar notify_all in agentplug-host registry.rs:322/422/1112 for slot/step. Spool-out-watch can use Node fs.watch with poll fallback; daemon-in-watch needs shorter idle sleep or a new notify watch.
+- id: flush-bypasses-batch
+  prd_id: persist-batch-vs-step
+  obligation_kind: invariant
+  subject: session/flush cancels the 200ms batch wait before LLM
+  text: Read agent-loop and persistence checkpoint policy; witness whether flush is awaited on the step path.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: '.agents/notes/implemented/architecture/2026-08-08-bounded-session-persistence-write-batching.md:27: session/flush cancels remaining writeBatchMaxDelayMs wait and is a quiescence barrier; checkpoint policy places mandatory barriers before model requests and top-level tool side effects. persist-batch-vs-step needs no cut if that barrier is on the step path.'
+- id: idle-sleep-is-the-floor
+  prd_id: cut-daemon-idle-sleep
+  obligation_kind: precondition
+  subject: Idle 200ms sleep is actually on the cheap-verb critical path
+  text: Live RTT of phase-status after idle vs during any_work; compare to 200ms.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789843691654 duration_ms=73 while daemon claimed_step_count=1 (any_work, no idle sleep). git_status 1789843731709 and phase-status ~500ms with queue_wait_ms=16. daemon.rs:2935-2936 sleeps 200ms only when !any_work. Idle 200ms is the idle-to-claim floor, not the busy-path floor. Still a real first-verb after idle tax.
+- id: acptoapi-happy-path-wait
+  prd_id: acptoapi-first-byte
+  obligation_kind: precondition
+  subject: Happy-path chat has no extra sleep before first upstream byte
+  text: Read waitForLeadLinkPrecheck + handleChat linkTimeout; live TTFB if a local acptoapi is up.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: 'acptoapi/lib/chain-machine.js:308-310 waitForLeadLinkPrecheck: sampler_backoff on lead returns {ok:true} with zero sleep; healthy preCheck returns immediately. SAME_LINK_RETRY_BASE_MS=1000 and MODEL_UNHEALTHY_WAIT_BUDGET_MS=10000 are fail-path only. Dead code after the early return at 310. Happy-path TTFB is not gated on 200ms.'
+- id: codesearch-omitted-mode
+  prd_id: codesearch-default-literal
+  obligation_kind: precondition
+  subject: Daemon default when gm_codesearch omits mode
+  text: 'codesearch verb contract: omitted mode is dual; Freddie verbs.js:147-152 only forwards args.mode when set.'
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/tool-gm/src/verbs.js:144-152 mode is optional; toBody only spreads args.mode when set. Live dual searches this session elapsed 1-45s (budget_exhausted); skill says omitted/unrecognized mode is dual and costs minutes vs literal ~1s.
+- id: codesearch-path-glob-fields
+  prd_id: codesearch-pass-path-glob
+  obligation_kind: precondition
+  subject: Daemon accepted fields for path/glob
+  text: Skill lists path/glob/path_glob; Freddie tool schema has only query/k/mode/root.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: verbs.js:141-152 parameters are query/k/mode/root only; path/glob/path_glob never reach the spool body. Skill brick wall names path/glob/path_glob as the bound.
+- id: progress-not-awaited
+  prd_id: progress-append-cost
+  obligation_kind: invariant
+  subject: jsonTool does not await session append before returning gm.call value
+  text: Read tool-gm apply + reportProgress; witness that execute returns value immediately after gm.call.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: 'verbs.js:91-99 reportProgress is sync before/after await gm.call; apply index.js:76-80 onProgress try/catch void. Architecture 2026-06-11-event-sourced-sessions.md: appends are synchronous, session/flush is write-behind. Tool result is not blocked on durability I/O.'
+- id: idle-25ms-cpu
+  prd_id: prefer-short-idle-over-watch
+  obligation_kind: resource-bound
+  subject: 25ms idle sleep does not peg shared daemon CPU
+  text: Same as idle-sleep-cpu-bound; live sample after cut.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: Duplicate of PRD idle-sleep-cpu-bound; live CPU sample is that row's postcondition after the idle-sleep cut, not an unknown. Current 200ms idle is the baseline.
+- id: precheck-dead-code
+  prd_id: dead-precheck-loop
+  obligation_kind: invariant
+  subject: waitForLeadLinkPrecheck loop after line 310 is unreachable
+  text: chain-machine.js:308-310 return pc/ok before the while(true) at 318.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: acptoapi/lib/chain-machine.js:308-310 returns {ok:true} or pc before while(true) at 318-354; storm wait and sleep(waitMs) are unreachable.
+- id: watch-closed-on-settle
+  prd_id: spool-out-watch
+  obligation_kind: invariant
+  subject: fs.watch handle is closed on land, abort, timeout, and watch error
+  text: spool.js waitForOutOrTimeout finish() closes watcher and clears timer once; abort and error both call finish.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/spool.js:264-292 waitForOutOrTimeout finish() is once (settled), clearTimeout(timer), watcher.close() when defined, abort and watch error both call finish.
+- id: stale-out-unlinked
+  prd_id: spool-out-watch
+  obligation_kind: invariant
+  subject: dispatch unlinks leftover out-file before writing the in-file
+  text: spool.js still unlinks outPath and readyPath before rename of the in-file; watch cannot observe a leftover as this dispatch.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/spool.js unlink(outPath) and unlink(readyPath) still run before rename of the in-file (lines ~154-161). Watch cannot treat a leftover as this dispatch.
+- id: booted-per-instance
+  prd_id: skip-ensure-daemon-status-read
+  obligation_kind: invariant
+  subject: booted skip is per Gm instance; died clears it
+  text: index.js this.booted; GM_DAEMON_DIED sets booted false then ensureDaemon. First call still boots.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/index.js:155-176 this.booted per instance; first call ensureDaemon; GM_DAEMON_DIED sets booted false then ensureDaemon and booted true.
+- id: literal-in-body
+  prd_id: codesearch-default-literal
+  obligation_kind: postcondition
+  subject: omitted mode is sent as literal in the spool JSON
+  text: 'verbs.js toBody mode: args.mode ?? ''literal'' so daemon never sees omitted mode.'
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: 'packages/gm/tool-gm/src/verbs.js:151 mode: args.mode ?? ''literal'' is always in the spool JSON; daemon never sees omitted mode from this tool.'
+- id: watch-one-waiter
+  prd_id: spool-out-watch
+  obligation_kind: invariant
+  subject: one watch per in-flight dispatch; concurrent dispatches do not share a waiter
+  text: waitForOutOrTimeout is local to dispatch(); concurrent calls each own watcher+timer. dispatchKey uniqueness unchanged.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/spool.js waitForOutOrTimeout is a function local to each dispatch() call; concurrent dispatches each allocate watcher+timer. dispatchKey remains sessionId-processEpoch-N.
+- id: fifo-after-faster-tick
+  prd_id: concurrent-dispatch-fair
+  obligation_kind: invariant
+  subject: faster idle tick does not change fifo-per-plugin serialization
+  text: daemon tool_serialization fifo per plugin and verb; 25ms sleep only when !any_work.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: daemon.rs:2935-2936 25ms sleep only when !any_work. .status.json tool_serialization fifo per plugin and verb unchanged. Faster idle tick does not reorder claim.
+- id: watch-no-payload-read
+  prd_id: spool-out-watch
+  obligation_kind: invariant
+  subject: out/ watch only wakes; takeResponse still parses JSON after unlink of leftover
+  text: watch callback calls finish() with no path read; takeResponse readFile+JSON.parse is the only content path.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: spool.js:286 watch callback is () => finish(); takeResponse at 232-235 is the only readFile+JSON.parse. Watch error also finish() with no content.
+- id: no-secrets-in-latency-diff
+  prd_id: agent-note-step-latency
+  obligation_kind: invariant
+  subject: latency diff contains no credentials or inspect titles
+  text: Changed files are poll constants, watch waiter, codesearch mode, idle sleep, dead loop deletion. No tokens.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: Diff is poll 25, fs.watch waiter, skip ensureDaemon, codesearch literal+path/glob, daemon idle 25, PLUGIN_DISPATCH_POLL_MS 25, dead precheck loop deletion. No credentials.
+- id: watch-open-fails
+  prd_id: watch-fallback-windows
+  obligation_kind: invariant
+  subject: watch() throw falls back to 25ms timer
+  text: spool.js catch { watcher = undefined } after setTimeout; poll still completes.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/spool.js:284-290 timer is set first; watch() throw sets watcher undefined; 25ms poll still completes.
+- id: hung-after-five-polls
+  prd_id: hung-died-still-detected
+  obligation_kind: invariant
+  subject: HEALTH_CHECK_AFTER_POLLS still 5; queued inflight licenses wait
+  text: spool.js HEALTH_CHECK_AFTER_POLLS=5; died/hung only after takeResponse miss and !queued.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/spool.js:16 HEALTH_CHECK_AFTER_POLLS=5; died/hung only after takeResponse miss and !queued (lines 237-251).

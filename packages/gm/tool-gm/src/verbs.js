@@ -137,18 +137,22 @@ export function buildGmTools(gm, onProgress = () => {}) {
   const codesearchTool = jsonTool({
     name: 'gm_codesearch',
     verb: 'codesearch',
-    description: 'Dispatch gm\'s `codesearch` verb: the harness\'s own cached/incremental code index (never raw grep/glob/find for discovery). Returns ranked file:line hits.',
+    description: 'Dispatch gm\'s `codesearch` verb: the harness\'s own cached/incremental code index (never raw grep/glob/find for discovery). Default mode is `literal` (tree walk). Pass `mode: "dual"` only when ranked BM25+vector hits are required.',
     parameters: {
       query: { type: 'string', required: true, description: 'Natural-language or symbol-level search query.' },
       k: { type: 'number', description: 'Max hits to return.' },
-      mode: { type: 'string', description: 'Optional mode override, e.g. "filename" or "dual".' },
+      mode: { type: 'string', description: 'Search mode. Default `literal` (tree walk, ~1s). Pass `dual` only when ranked BM25+vector hits are required (minutes on a large tree).' },
       root: { type: 'string', description: 'Absolute path to search a sibling/submodule repo instead of the current project.' },
+      path: { type: 'string', description: 'Subdirectory or file relative to the search root; bounds the walk.' },
+      glob: { type: 'string', description: 'Glob matched against paths relative to the root or to `path`.' },
     },
     toBody: args => ({
       query: args.query,
+      mode: args.mode ?? 'literal',
       ...args.k === undefined ? {} : { k: args.k },
-      ...args.mode === undefined ? {} : { mode: args.mode },
       ...args.root === undefined ? {} : { root: args.root },
+      ...args.path === undefined ? {} : { path: args.path },
+      ...args.glob === undefined ? {} : { glob: args.glob },
     }),
     output: {
       ...jsonOutput,
