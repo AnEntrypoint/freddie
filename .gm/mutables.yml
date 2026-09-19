@@ -2111,3 +2111,43 @@
   session_id: freddie-12560-1789843658515
   status: witnessed
   witness_evidence: .split-context-swept and .ci-validated both head_sha 9ac102b3cd405ff532d2a7e8ddb92b61a262fb88 matching git rev-parse HEAD after 9ac102b3cd.
+- id: settle-empty-still-refused
+  prd_id: spool-write-settle-cut
+  obligation_kind: invariant
+  subject: empty in-file is still not claimed
+  text: spool_in_file_write_has_settled returns false when metadata.len()==0. Torn > redirects stay unclaimed.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: daemon.rs:1612-1614 spool_in_file_write_has_settled returns metadata.len()>0. Empty write still false. selfcheck_spool_claim asserts !empty_claimed.
+- id: booted-cwd-set
+  prd_id: booted-per-cwd
+  obligation_kind: invariant
+  subject: bootedCwds is a Set of project cwd strings
+  text: index.js bootedCwds.has/add/delete keyed by resolveProjectCwd. Died deletes that cwd only.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/index.js:36 Set; :155 has(projectCwd); :172 delete that cwd on GM_DAEMON_DIED. Other cwds stay booted.
+- id: claim-race-rename
+  prd_id: spool-write-settle-cut
+  obligation_kind: invariant
+  subject: claim is still rename of the in-file
+  text: claim_spool_request_in_place still fs::rename txt to .inflight. Two sweepers cannot both claim the same file.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: daemon.rs:1617-1622 claim_spool_request_in_place still rename to .inflight. Empty skip happens before rename. Two sweepers still serialize on rename.
+- id: booted-set-per-instance
+  prd_id: booted-per-cwd
+  obligation_kind: invariant
+  subject: bootedCwds is per Gm instance not process-global
+  text: index.js field on the instance. Concurrent sessions with distinct Gm instances do not share the Set.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/index.js:36 bootedCwds = new Set() on the class instance, not a module global.
+- id: empty-not-claimed-injection
+  prd_id: spool-write-settle-cut
+  obligation_kind: invariant
+  subject: empty in-file cannot inject a torn body
+  text: len==0 still unclaimed. Atomic rename publishers still the complete-body path.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: daemon.rs:1612-1614 len==0 unclaimed. Publishers rename complete sibling (spool.js:164-173). Torn > redirect still refused.
