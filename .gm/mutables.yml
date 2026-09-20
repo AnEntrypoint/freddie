@@ -2151,3 +2151,171 @@
   session_id: freddie-12560-1789843658515
   status: witnessed
   witness_evidence: daemon.rs:1612-1614 len==0 unclaimed. Publishers rename complete sibling (spool.js:164-173). Torn > redirect still refused.
+- id: gm-tools-marker-unused
+  prd_id: gm-tools-version-marker
+  obligation_kind: precondition
+  subject: Whether ~/.gm-tools/agentplug-runner.version is read by stage_runner_self_update
+  text: Witness install_dir and runner_version_path against live files. If only ~/.agentplug is read, rescope the row to leftover-file observability, not a skip-update bug.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: install.rs:3-11 install_dir is ~/.agentplug (or AGENTPLUG_HOME). download.rs:357-363 runner_version_path is install_dir()/agentplug-runner.version. Live ~/.agentplug/agentplug-runner.version=0.1.143; ~/.gm-tools/agentplug-runner.version leftover v0.1.142 is not read by stage_runner_self_update.
+- id: staged-cache-sticky
+  prd_id: heartbeat-clear-update-flag
+  obligation_kind: precondition
+  subject: Whether write_project_heartbeat removes runner_update_* keys when cached_staged_runner is None
+  text: Read daemon.rs write_project_heartbeat around the cached_staged_runner branch. Witness live .status.json still carrying the keys after staged_runner_awaiting_handoff false.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: daemon.rs:1059-1062 sets runner_update_in_progress only when cached_staged_runner is Some; no m.remove unlike busy_until at 1043. Live .status.json after 0.1.143 swap still has runner_update_in_progress true while daemon-status.json staged_runner_awaiting_handoff false.
+- id: poll-interval-live
+  prd_id: runner-poll-after-publish
+  obligation_kind: precondition
+  subject: Live runner_update_poll_interval_secs and when 0.1.143 actually staged
+  text: Witness daemon-config.json, last_runner_update_poll_ts vs last_completed_runner_swap, and code default unwrap_or(3600).
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: daemon-config.json runner_update_poll_interval_secs=3600; daemon.rs:221 unwrap_or(3600); seed_poll_timer_from_persisted_ts:1294-1298 backdates from last-runner-update-poll-ts so a recycle inside the hour skips GitHub. Live last_completed_runner_swap 0.1.143 at 1789887057877 after idle self-recycle, not a mid-hour poll.
+- id: heartbeat-else-remove
+  prd_id: heartbeat-clear-update-flag
+  obligation_kind: postcondition
+  subject: write_project_heartbeat must remove runner_update_in_progress and runner_update_waiting_ms when cached_staged_runner is None
+  text: After the else-remove patch, a live exec_js status JSON omits both keys while runner_version is 0.1.143+ and staged_runner_awaiting_handoff is false.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition spec: daemon.rs:1059-1062 must else-remove runner_update_in_progress and runner_update_waiting_ms like busy_until at 1043. Live exec_js 1789887645215 still has update_in_progress true waiting_ms 7505 with staged_runner_awaiting_handoff false. EMIT writes the else-remove.'
+- id: first-tick-poll
+  prd_id: boot-poll-if-behind
+  obligation_kind: postcondition
+  subject: First daemon loop tick must call stage_runner_self_update even if persisted poll ts is recent
+  text: 'Witness by source: last_runner_update_poll is Instant::now() minus interval or an explicit first-tick poll; a boot after CI publish stages without waiting 3600s.'
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition spec: daemon.rs:2634 seeds last_runner_update_poll from persisted ts so a boot inside 3600s skips GitHub. EMIT sets last_runner_update_poll due on first tick (Instant::now minus interval) so stage_runner_self_update runs regardless of last-runner-update-poll-ts.'
+- id: windows-in-watch
+  prd_id: idle-in-dir-wake
+  obligation_kind: type-shape
+  subject: Idle wait uses an existing Windows directory-change API already in windows-sys, not a new notify crate
+  text: Cargo.toml windows-sys features include the wait/notification APIs used; Unix keeps a short sleep cap. No notify dependency.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'type-shape: crates/agentplug-runner/Cargo.toml:25 already depends on windows-sys 0.59. Idle wait will use FindFirstChangeNotificationW + WaitForSingleObject timeout 25ms via extra Win32_Storage_FileSystem and Win32_System_Threading features. No notify crate. Unix keeps sleep cap after in-dir re-scan.'
+- id: idle-143-witness
+  prd_id: live-idle-claim-143
+  obligation_kind: postcondition
+  subject: Live first-verb after idle on runner 0.1.143
+  text: exec_js duration_ms and queue_wait_ms with runner_version 0.1.143 after a quiet claimed_step_count=0 tick.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition: exec_js 1789887645215 duration_ms=84 queue_wait_ms=10 runner_version=0.1.143 claimed=1 queued=0. Idle 200ms floor is gone on live 0.1.143; queue wait is 10ms.'
+- id: poll-boot-or-interval
+  prd_id: runner-poll-after-publish
+  obligation_kind: postcondition
+  subject: A running daemon behind GitHub latest stages without waiting 3600s
+  text: Boot first-tick poll when CARGO_PKG_VERSION or marker != latest, or a shorter runner_update_poll_interval. Live last_runner_update_poll_ts advances on that boot.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition spec: first-tick due poll satisfies a daemon behind latest staging without waiting 3600s. Persisted ts remains for heartbeat display only. Default interval can stay 3600 once boot always polls.'
+- id: idle-wake-existing-in
+  prd_id: idle-in-dir-wake
+  obligation_kind: invariant
+  subject: If an in-file already exists when the idle wait starts, the daemon must not sleep the full quantum
+  text: Idle wait re-scans in/ before blocking. A file published during the previous tick is claimed on the next tick without waiting 25ms.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'invariant spec: before any idle sleep, re-check project_has_pending_dispatch_work on known_roots; if any in-file exists return immediately. Windows wait also times out at 25ms. File published during previous tick is claimed without the full quantum.'
+- id: heartbeat-idempotent
+  prd_id: heartbeat-clear-update-flag
+  obligation_kind: invariant
+  subject: Heartbeat rewrite is last-wins and must not resurrect runner_update keys from a previous payload after they were removed
+  text: write_project_heartbeat reads existing JSON then writes; the else branch removes keys every time cached_staged_runner is None, so a later tick cannot reintroduce them without a staged binary.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'invariant: write_project_heartbeat reads existing JSON then overwrites. Else-remove every tick when cached_staged_runner is None prevents resurrecting keys from the previous payload. Same last-wins rewrite as busy_until removal at 1043.'
+- id: no-secrets-update-cut
+  prd_id: boot-poll-if-behind
+  obligation_kind: precondition
+  subject: The runner-poll and heartbeat diffs carry no credentials
+  text: Diff is first-tick poll, heartbeat key removal, optional idle wait. No tokens, no GH_TOKEN in source.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'precondition: planned diff is write_project_heartbeat else-remove of runner_update_* keys, first-tick runner poll instead of persisted 3600s seed, idle wait recheck. No GH_TOKEN, no credentials in daemon.rs/download.rs edits.'
+- id: heartbeat-last-wins
+  prd_id: heartbeat-clear-update-flag
+  obligation_kind: invariant
+  subject: Heartbeat rewrite last-wins; removed runner_update keys stay gone without a staged binary
+  text: write_project_heartbeat else-remove at daemon.rs:1062-1064 runs every tick when cached_staged_runner is None.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'invariant: daemon.rs:1059-1064 else-remove runner_update keys every heartbeat when cached_staged_runner is None. Last-wins overwrite of existing JSON.'
+- id: idle-watch-disjoint
+  prd_id: idle-in-dir-wake
+  obligation_kind: invariant
+  subject: Idle FindFirstChangeNotification wait only runs on the daemon loop thread when !any_work
+  text: IdleInDirWatch lives in run_daemon_body; wait is after the dispatch scope joins. No other thread waits on those handles.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'invariant: IdleInDirWatch is a local in run_daemon_body; wait is after thread::scope joins at the !any_work tail. No other thread waits on those HANDLEs.'
+- id: watch-handle-drop
+  prd_id: idle-in-dir-wake
+  obligation_kind: postcondition
+  subject: Idle watch handles close on Drop and on sync replacement
+  text: IdleInDirWatch::close_all calls FindCloseChangeNotification; Drop calls close_all. Failed FindFirstChangeNotificationW is skipped.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition: IdleInDirWatch::close_all FindCloseChangeNotification; Drop calls close_all; sync replaces after close_all. INVALID_HANDLE_VALUE skipped.'
+- id: no-secrets-followup-diff
+  prd_id: boot-poll-if-behind
+  obligation_kind: precondition
+  subject: Follow-up diff has no credentials
+  text: daemon.rs heartbeat else-remove, first_runner_poll_pending, IdleInDirWatch, Cargo.toml windows-sys features. No tokens.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'precondition: git show 9554a6e daemon.rs/Cargo.toml only. No tokens.'
+- id: idle-wait-after-join
+  prd_id: idle-in-dir-wake
+  obligation_kind: invariant
+  subject: Idle in-dir wait happens after dispatch workers join, never overlapping claim
+  text: 'run_daemon_body: thread::scope joins before any_work is computed; IdleInDirWatch::wait is only in the !any_work tail. A wake starts the next tick''s claim, not a concurrent claim.'
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'invariant: daemon.rs idle wait is after thread::scope joins and any_work fold. WaitForMultipleObjects only when !any_work. Next tick claims.'
+- id: first-poll-before-idle
+  prd_id: boot-poll-if-behind
+  obligation_kind: invariant
+  subject: First-tick runner poll runs in the same loop as dispatch, before the idle wait
+  text: first_runner_poll_pending is consumed in the poll block above the idle wait. Boot stages without waiting 25ms idle.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'invariant: first_runner_poll_pending consumed at daemon.rs:2924 before the !any_work wait at the loop tail. Boot GitHub poll does not wait on in-dir.'
+- id: watch-no-injection
+  prd_id: idle-in-dir-wake
+  obligation_kind: precondition
+  subject: FindFirstChangeNotificationW path is a project-root join, not attacker-controlled input
+  text: IdleInDirWatch::sync builds root.join(.gm/exec-spool/in) from known_roots registry. No user string is passed as the watch path.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'precondition: IdleInDirWatch::sync maps known_roots to root.join(.gm/exec-spool/in). Registry paths only. No request body in the watch path.'
+- id: status-json-no-secret
+  prd_id: heartbeat-clear-update-flag
+  obligation_kind: precondition
+  subject: Clearing runner_update keys does not leak credentials into .status.json
+  text: Removed keys are booleans/numbers. Heartbeat payload has pid/ts/versions only.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'precondition: runner_update_in_progress bool and waiting_ms number. Heartbeat else-remove drops them. No credentials in payload.'
+- id: watch-fail-sleep
+  prd_id: idle-in-dir-wake
+  obligation_kind: postcondition
+  subject: If FindFirstChangeNotificationW fails or entries is empty, idle wait still sleeps 25ms
+  text: IdleInDirWatch::wait sleeps cap when entries empty. INVALID_HANDLE_VALUE skipped at sync. Unix cfg keeps sleep. No busy-spin.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition: IdleInDirWatch::wait sleeps cap when entries empty. FindFirstChangeNotificationW INVALID_HANDLE_VALUE skipped. Unix cfg sleep 25ms. No busy-spin.'
+- id: poll-error-logged
+  prd_id: boot-poll-if-behind
+  obligation_kind: postcondition
+  subject: stage_runner_self_update Err is logged and does not abort the daemon loop
+  text: match at daemon.rs:2930 Err branch eprintln and record_runner_poll_error. Loop continues to idle wait.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition: daemon.rs:2930 match Err eprintln + record_runner_poll_error. Loop continues. cargo check agentplug-runner finished 1.96s.'
