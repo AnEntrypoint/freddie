@@ -2503,3 +2503,19 @@
   session_id: freddie-12560-1789889089950
   status: witnessed
   witness_evidence: 'postcondition: !ok and catch both rememberChatJimmyModels([DEFAULT_MODEL], CHATJIMMY_NEGATIVE_TTL_MS). Live aMs=1630 bMs=0 no throw.'
+- id: rewrite-preserves-latency
+  prd_id: rewrite-strip-hiddenspawn
+  obligation_kind: invariant
+  subject: filter-repo must strip only HiddenSpawn bytes; latency commits cfded9c/9a8cc1b content must survive
+  text: After rewrite, lib/auto-chain.js still has pinned skip; chatjimmy still has negative cache.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: Rewritten acptoapi HEAD:index.js still has runClaude and module.exports; lib/auto-chain.js still has targetModel && targetModel !== 'auto'; lib/providers/chatjimmy.js still has CHATJIMMY_NEGATIVE_TTL. Live --scan-deps after rewrite exit 0.
+- id: detector-catches-index-and-woff2
+  prd_id: goofedup-early-warning
+  obligation_kind: postcondition
+  subject: scan_deps flags acptoapi index.js IIFE and JS-magic woff2 before those files are stripped
+  text: cargo run -- --scan-deps C:\dev\acptoapi exits 1 and names both shapes.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: After last-line-any-line fix, cargo run --release --scan-deps C:\dev\acptoapi flagged index.js line 224 (39234 bytes) and fa-solid-400.woff2 before strip. Planted fixture also flagged both. Post-rewrite both trees exit 0.
