@@ -156,11 +156,14 @@ export class Gm extends Service {
       await ensureDaemon(projectCwd)
       this.bootedCwds.add(projectCwd)
     }
+    const dispatchBody = verb === 'codesearch' && (body === null || typeof body !== 'object' || body.mode === undefined)
+      ? { ...body ?? {}, mode: 'literal' }
+      : body
     const request = {
       cwd: projectCwd,
       verb,
       sessionId: this.config.sessionId,
-      body,
+      body: dispatchBody,
       ...rawBody === undefined ? {} : { rawBody },
       ...timeoutMs === undefined ? {} : { timeoutMs },
       ...signal === undefined ? {} : { signal },

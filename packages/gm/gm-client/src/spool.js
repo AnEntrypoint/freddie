@@ -230,8 +230,20 @@ export async function dispatch({
   let polls = 0
   while (Date.now() < deadline) {
     throwIfAborted(signal)
+    const cancelWait = new AbortController()
+    const onUserAbort = () => { cancelWait.abort() }
+    if (signal !== undefined) signal.addEventListener('abort', onUserAbort, { once: true })
+    const wait = waitForOutOrTimeout(outDir, pollIntervalMs, cancelWait.signal)
+    const stopWait = async () => {
+      if (signal !== undefined) signal.removeEventListener('abort', onUserAbort)
+      cancelWait.abort()
+      await wait.catch(() => {})
+    }
     const landed = await takeResponse()
-    if (landed !== undefined) return landed.response
+    if (landed !== undefined) {
+      await stopWait()
+      return landed.response
+    }
     polls += 1
     if (polls >= HEALTH_CHECK_AFTER_POLLS) {
       const queued = await projectHasQueuedWork(cwd)
@@ -240,17 +252,26 @@ export async function dispatch({
       const died = !alive && !queued
       const hung = health === 'project-heartbeat-stale' || health === 'daemon-status-stale'
       const completedWhileChecking = await takeResponse()
-      if (completedWhileChecking !== undefined) return completedWhileChecking.response
+      if (completedWhileChecking !== undefined) {
+        await stopWait()
+        return completedWhileChecking.response
+      }
       if (died) {
+        await stopWait()
         await dropClaim()
         throw await unavailable('GM_DAEMON_DIED', health, queued)
       }
       if (hung && !queued) {
+        await stopWait()
         await dropClaim()
         throw await unavailable('GM_DAEMON_HUNG', health, queued)
       }
     }
-    await waitForOutOrTimeout(outDir, pollIntervalMs, signal)
+    try {
+      await wait
+    } finally {
+      if (signal !== undefined) signal.removeEventListener('abort', onUserAbort)
+    }
   }
   await dropClaim()
   throw new Error(`gm spool: dispatch "${verb}" (${dispatchKey}) timed out after ${timeoutMs}ms — in=${inPath} out=${outPath}`)
@@ -276,13 +297,15 @@ function waitForOutOrTimeout(dir, ms, signal) {
     const onAbort = () => {
       finish(signal.reason ?? new Error('This operation was aborted'))
     }
-    timer = setTimeout(() => finish(), ms)
     try {
       watcher = watch(dir, { persistent: false }, () => finish())
       watcher.on('error', () => finish())
-    } catch {
+    } catch (error) {
+      // EMFILE / Windows watch failure: poll remains the waiter.
+      void error
       watcher = undefined
     }
+    timer = setTimeout(() => finish(), ms)
     if (signal !== undefined) signal.addEventListener('abort', onAbort, { once: true })
   })
 }

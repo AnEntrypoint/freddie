@@ -10,7 +10,7 @@ Live baseline this session (daemon pid 23100, `queue_wait_ms` 16, `claimed_step_
 
 ## Decision
 
-Freddie spool wait uses a non-recursive `fs.watch` on `.gm/exec-spool/out/` with a 25ms poll fallback. After a successful boot, `Gm.call` skips `ensureDaemon` for that project cwd until a `GM_DAEMON_DIED` recovery. `gm_codesearch` forwards `mode: 'literal'` when omitted and passes `path`/`glob`. The agentplug daemon idle tick is 25ms. Claim accepts a non-empty in-file immediately (empty torn writes still refused). Nested plugin-dispatch poll is 25ms and is not the Freddie exec-spool path. acptoapi `waitForLeadLinkPrecheck` is one `preCheck` plus lead `sampler_backoff` force-through; the unreachable wait loop is gone.
+Freddie spool wait arms `fs.watch` on `.gm/exec-spool/out/` before the next `takeResponse`, then falls back to a 25ms timer. After a successful boot, `Gm.call` skips `ensureDaemon` for that project cwd until a `GM_DAEMON_DIED` recovery. A `codesearch` body that omits `mode` is sent as `literal`. The agentplug daemon idle tick is 25ms. Claim accepts a non-empty in-file immediately (empty torn writes still refused). Nested plugin-dispatch poll is 25ms and is not the Freddie exec-spool path. acptoapi `waitForLeadLinkPrecheck` is one `preCheck` plus lead `sampler_backoff` force-through; the unreachable wait loop is gone.
 
 `session/flush` already cancels `writeBatchMaxDelayMs` before model requests; that path is unchanged.
 
@@ -24,7 +24,7 @@ Freddie spool wait uses a non-recursive `fs.watch` on `.gm/exec-spool/out/` with
 
 ## Consequences
 
-Cheap verbs after idle can land in one 25ms quantum plus watch wake instead of 200ms, once the runner binary is rebuilt. Unspecified `gm_codesearch` is a tree walk, not an embed pass. Direct `ctx.gm.call('codesearch', {query})` still omits `mode` and the daemon may default to dual. Hung/died detection still runs after five polls; queued `.inflight` still licenses waiting.
+Cheap verbs after idle can land in one 25ms quantum plus watch wake instead of 200ms, once the runner binary is rebuilt. Unspecified codesearch from `Gm.call` or `gm_codesearch` is a tree walk. Hung/died detection still runs after five polls; queued `.inflight` still licenses waiting.
 
 ## Verification
 
