@@ -2080,13 +2080,13 @@
   status: witnessed
   witness_evidence: spool.js:286 watch callback is () => finish(); takeResponse at 232-235 is the only readFile+JSON.parse. Watch error also finish() with no content.
 - id: no-secrets-in-latency-diff
-  prd_id: agent-note-step-latency
-  obligation_kind: invariant
-  subject: latency diff contains no credentials or inspect titles
-  text: Changed files are poll constants, watch waiter, codesearch mode, idle sleep, dead loop deletion. No tokens.
-  session_id: freddie-12560-1789843658515
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: precondition
+  subject: latency diff contains no credentials, tokens, or env key values
+  text: Witness CHANGELOG/AGENTS/auto-chain/server.js edits name env var names only, never values.
+  session_id: freddie-12560-1789889089950
   status: witnessed
-  witness_evidence: Diff is poll 25, fs.watch waiter, skip ensureDaemon, codesearch literal+path/glob, daemon idle 25, PLUGIN_DISPATCH_POLL_MS 25, dead precheck loop deletion. No credentials.
+  witness_evidence: 'precondition: auto-chain.js skip, server.js OLLAMA_LIST_TTL_MS, CHANGELOG 1.0.248, AGENTS.md catalog-probe note. Env names only. No key values. tmp-live-latency.js is a live driver to delete before commit.'
 - id: watch-open-fails
   prd_id: watch-fallback-windows
   obligation_kind: invariant
@@ -2319,3 +2319,107 @@
   session_id: freddie-12560-1789847277758
   status: witnessed
   witness_evidence: 'postcondition: daemon.rs:2930 match Err eprintln + record_runner_poll_error. Loop continues. cargo check agentplug-runner finished 1.96s.'
+- id: pinned-refresh-scope
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: precondition
+  subject: handleChat only needs live refresh when the chain is auto/unknown, not when body.model is a single directly-routable id
+  text: Witness by reading handleChat autoLinks construction vs buildAutoChain early return for targetModel !== auto.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: handleChat server.js:850-851 awaits buildAutoChainLive for every directlyRoutable pinned model. auto-chain.js:397-404 then addLink(targetModel) and return that single link. refreshAll+refreshAcpModels at 738-741 therefore run on Freddie xai-oauth/grok-4.6 TTFB and throw their results away.
+- id: listmodels-on-step
+  prd_id: listmodels-serial-probes
+  obligation_kind: precondition
+  subject: Whether GET /v1/models sits on the Freddie agent step path or only boot/UI catalog
+  text: Witness by whether llm-deepseek adapter or settings fetch /v1/models per request vs once.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: packages/llm/llm-deepseek/src/adapter.js:453 POSTs `${connection.baseURL}/chat/completions` only. /v1/models is catalog (README line 138; live GET 1264ms cold then 28-41ms). Not on the per-step chat path; still a work-slowing catalog wait.
+- id: pinned-skip-refresh
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: postcondition
+  subject: buildAutoChainLive with a pinned targetModel must not await refreshAll or refreshAcpModels
+  text: Witness by reading auto-chain.js after the cut and by timing buildAutoChainLive('xai-oauth/grok-4.6') vs buildAutoChain of the same id.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'postcondition spec: buildAutoChainLive(targetModel) with a specific non-auto id returns buildAutoChain without awaiting refreshAll or refreshAcpModels. Live baseline 710.7ms vs 3.4ms sync.'
+- id: auto-still-refreshes
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: invariant
+  subject: auto and unknown-model chain builds still call refreshAll and refreshAcpModels
+  text: Witness that the no-target / auto branch still awaits Promise.all([refreshAll, refreshAcpModels]).
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant spec: buildAutoChainLive(undefined) and targetModel===''auto'' still await Promise.all([refreshAll(available), refreshAcpModels(acp daemons)]) before buildAutoChain.'
+- id: listmodels-parallel
+  prd_id: listmodels-serial-probes
+  obligation_kind: postcondition
+  subject: ollama fetch and listChatJimmyModels run concurrently; a dead ollama does not serialize 1500ms before chatjimmy
+  text: 'Witness listModels source: both awaits start together. Re-measure GET /v1/models after process restart or cache miss.'
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'postcondition spec: listModels starts ollama /api/tags and listChatJimmyModels in the same Promise.all. Negative ollama TTL so a dead localhost:11434 does not serialize AbortSignal.timeout(1500) ahead of chatjimmy. Cached GET stays ~40ms.'
+- id: ollama-cache-idempotent
+  prd_id: listmodels-serial-probes
+  obligation_kind: invariant
+  subject: _ollamaListCache is process-local; a miss fetches once then both success and failure store {models, ts}; concurrent listModels last-write-wins
+  text: Witness server.js OLLAMA_LIST_TTL_MS and catch path writing empty models with ts.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: server.js:26-27 OLLAMA_LIST_TTL_MS default 30000 and _ollamaListCache. Miss fetches once; success and catch both store {models, ts}. Concurrent listModels last-write-wins same empty-or-list shape.'
+- id: pinned-skip-no-shared-mut
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: invariant
+  subject: pinned buildAutoChainLive early return is a pure sync call of buildAutoChain; no shared cache write
+  text: Witness auto-chain.js early return before refreshAll.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: auto-chain.js:739 early return is buildAutoChain(targetModel, opts) before refreshAll. No cache write on the pinned path.'
+- id: listmodels-degrade-empty
+  prd_id: listmodels-serial-probes
+  obligation_kind: postcondition
+  subject: dead ollama or chatjimmy failure yields empty arrays, never throws out of listModels
+  text: Witness catch return [] on both listOllama and listChatJimmy.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'postcondition: listOllama catch stores [] and returns []; listChatJimmy catch returns []. listModels never throws from those probes.'
+- id: listmodels-probes-disjoint
+  prd_id: listmodels-serial-probes
+  obligation_kind: invariant
+  subject: ollama, chatjimmy, and ACP probes in listModels start together and do not wait on each other
+  text: Witness Promise.all([listOllama, listChatJimmy, listAcp]) at server.js:244.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: server.js:211-244 starts listOllama, listChatJimmy, listAcp as concurrent IIFEs then Promise.all. Dead ollama no longer serializes 1500ms before chatjimmy.'
+- id: pinned-no-refresh-contention
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: invariant
+  subject: pinned chat TTFB does not contend with refreshAll/refreshAcpModels network
+  text: Witness auto-chain.js:739 return before Promise.all refresh. Live pinned 57-64ms; auto still pending at 50ms.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: auto-chain.js:739 returns buildAutoChain before refresh Promise.all. Live pinned 57-64ms vs 710.7ms baseline; auto still pending at 50ms so refresh remains on auto only.'
+- id: listmodels-no-auth-bypass
+  prd_id: listmodels-serial-probes
+  obligation_kind: invariant
+  subject: listModels still sits behind createServer auth for /v1/models; probe parallelism does not skip requireAuth
+  text: Witness createServer pathname /v1/models after the requireAuth check.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: createServer requireAuth runs before pathname /v1/models at server.js ~1680. listModels parallelism is inside the handler, not a new public route.'
+- id: probe-fail-empty
+  prd_id: listmodels-serial-probes
+  obligation_kind: postcondition
+  subject: probe failure degrades to empty catalog entries, not 500
+  text: Witness listOllama/listChatJimmy/listAcp catch paths.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'postcondition: listOllama catch stores [] and returns []; listChatJimmy catch returns []; listAcp ACPTOAPI_ENABLE_ACP!==1 returns []. listModels continues with empty slices, no throw.'
+- id: pinned-fail-unchanged
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: invariant
+  subject: pinned skip does not change same-link retry or fail-path sleeps
+  text: Witness sleep(delay) still only in chain-machine same-link retry.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: chain-machine.js sleep(delay) at 625/639/775/792 remains same-link retry only. auto-chain.js pinned skip does not touch those paths.'
