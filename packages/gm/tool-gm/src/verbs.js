@@ -87,17 +87,18 @@ export function buildGmTools(gm, onProgress = () => {}) {
       async execute(args, exec) {
         const cwd = exec.agent?.session.header.cwd
         const startedAt = Date.now()
-        reportProgress({ verb, status: 'running', startedAt }, exec)
+        const body = toBody(args)
+        reportProgress({ verb, status: 'running', startedAt, body }, exec)
         try {
-          const value = await gm.call(verb, toBody(args), {
+          const value = await gm.call(verb, body, {
             signal: exec.signal,
             timeoutMs,
             ...cwd === undefined ? {} : { cwd },
           })
-          reportProgress({ verb, status: 'completed', startedAt, finishedAt: Date.now(), value, body: toBody(args) }, exec)
+          reportProgress({ verb, status: 'completed', startedAt, finishedAt: Date.now(), value, body }, exec)
           return value
         } catch (error) {
-          reportProgress({ verb, status: 'failed', startedAt, finishedAt: Date.now(), error }, exec)
+          reportProgress({ verb, status: 'failed', startedAt, finishedAt: Date.now(), error, body }, exec)
           throw error
         }
       },
@@ -136,18 +137,22 @@ export function buildGmTools(gm, onProgress = () => {}) {
   const codesearchTool = jsonTool({
     name: 'gm_codesearch',
     verb: 'codesearch',
-    description: 'Dispatch gm\'s `codesearch` verb: the harness\'s own cached/incremental code index (never raw grep/glob/find for discovery). Returns ranked file:line hits.',
+    description: 'Dispatch gm\'s `codesearch` verb: the harness\'s own cached/incremental code index (never raw grep/glob/find for discovery). Default mode is `literal` (tree walk). Pass `mode: "dual"` only when ranked BM25+vector hits are required.',
     parameters: {
       query: { type: 'string', required: true, description: 'Natural-language or symbol-level search query.' },
       k: { type: 'number', description: 'Max hits to return.' },
-      mode: { type: 'string', description: 'Optional mode override, e.g. "filename" or "dual".' },
+      mode: { type: 'string', description: 'Search mode. Default `literal` (tree walk, ~1s). Pass `dual` only when ranked BM25+vector hits are required (minutes on a large tree).' },
       root: { type: 'string', description: 'Absolute path to search a sibling/submodule repo instead of the current project.' },
+      path: { type: 'string', description: 'Subdirectory or file relative to the search root; bounds the walk.' },
+      glob: { type: 'string', description: 'Glob matched against paths relative to the root or to `path`.' },
     },
     toBody: args => ({
       query: args.query,
+      mode: args.mode ?? 'literal',
       ...args.k === undefined ? {} : { k: args.k },
-      ...args.mode === undefined ? {} : { mode: args.mode },
       ...args.root === undefined ? {} : { root: args.root },
+      ...args.path === undefined ? {} : { path: args.path },
+      ...args.glob === undefined ? {} : { glob: args.glob },
     }),
     output: {
       ...jsonOutput,
@@ -267,7 +272,8 @@ export function buildGmTools(gm, onProgress = () => {}) {
       const raw = args.timeoutMs === undefined ? args.code : `timeoutMs=${args.timeoutMs}\n${args.code}`
       const cwd = exec.agent?.session.header.cwd
       const startedAt = Date.now()
-      reportProgress({ verb: 'exec_js', status: 'running', startedAt }, exec)
+      const body = {}
+      reportProgress({ verb: 'exec_js', status: 'running', startedAt, body }, exec)
       try {
         const value = await gm.call('exec_js', {}, {
           rawBody: raw,
@@ -275,10 +281,10 @@ export function buildGmTools(gm, onProgress = () => {}) {
           timeoutMs: budget,
           ...cwd === undefined ? {} : { cwd },
         })
-        reportProgress({ verb: 'exec_js', status: 'completed', startedAt, finishedAt: Date.now(), value }, exec)
+        reportProgress({ verb: 'exec_js', status: 'completed', startedAt, finishedAt: Date.now(), value, body }, exec)
         return value
       } catch (error) {
-        reportProgress({ verb: 'exec_js', status: 'failed', startedAt, finishedAt: Date.now(), error }, exec)
+        reportProgress({ verb: 'exec_js', status: 'failed', startedAt, finishedAt: Date.now(), error, body }, exec)
         throw error
       }
     },
@@ -294,6 +300,86 @@ export function buildGmTools(gm, onProgress = () => {}) {
     },
     toBody: args => args,
     presentCall: args => presentGenericCall(`gm git_finalize: ${args.message}`),
+  })
+
+  const gitStatusTool = jsonTool({
+    name: 'gm_git_status',
+    verb: 'git_status',
+    description: 'Dispatch gm\'s `git_status` verb: working-tree porcelain status for the session workspace.',
+    parameters: {},
+    toBody: () => ({}),
+    presentCall: () => presentGenericCall('gm git_status'),
+  })
+
+  const gitLogTool = jsonTool({
+    name: 'gm_git_log',
+    verb: 'git_log',
+    description: 'Dispatch gm\'s `git_log` verb: recent commit history for the session workspace.',
+    parameters: {
+      max_count: { type: 'number', description: 'Optional commit cap.' },
+    },
+    toBody: args => (args.max_count === undefined ? {} : { max_count: args.max_count }),
+    presentCall: () => presentGenericCall('gm git_log'),
+  })
+
+  const gitDiffTool = jsonTool({
+    name: 'gm_git_diff',
+    verb: 'git_diff',
+    description: 'Dispatch gm\'s `git_diff` verb: unstaged/staged diff for the session workspace.',
+    parameters: {
+      path: { type: 'string', description: 'Optional pathspec.' },
+    },
+    toBody: args => (typeof args.path === 'string' && args.path.trim().length > 0 ? { path: args.path } : {}),
+    presentCall: () => presentGenericCall('gm git_diff'),
+  })
+
+  const gitShowTool = jsonTool({
+    name: 'gm_git_show',
+    verb: 'git_show',
+    description: 'Dispatch gm\'s `git_show` verb: show one commit or object.',
+    parameters: {
+      object: { type: 'string', description: 'Commit or object name; omit for HEAD.' },
+    },
+    toBody: args => (typeof args.object === 'string' && args.object.trim().length > 0 ? { object: args.object } : {}),
+    presentCall: args => presentGenericCall(args.object === undefined ? 'gm git_show' : `gm git_show: ${args.object}`),
+  })
+
+  const gitPushTool = jsonTool({
+    name: 'gm_git_push',
+    verb: 'git_push',
+    description: 'Dispatch gm\'s `git_push` verb: push the current branch.',
+    parameters: {},
+    toBody: () => ({}),
+    presentCall: () => presentGenericCall('gm git_push'),
+  })
+
+  const gitPullTool = jsonTool({
+    name: 'gm_git_pull',
+    verb: 'git_pull',
+    description: 'Dispatch gm\'s `git_pull` verb: pull the current branch.',
+    parameters: {},
+    toBody: () => ({}),
+    presentCall: () => presentGenericCall('gm git_pull'),
+  })
+
+  const gitStashTool = jsonTool({
+    name: 'gm_git_stash',
+    verb: 'git_stash',
+    description: 'Dispatch gm\'s `git_stash` verb: stash working-tree changes.',
+    parameters: {
+      message: { type: 'string', description: 'Optional stash message.' },
+    },
+    toBody: args => (typeof args.message === 'string' && args.message.trim().length > 0 ? { message: args.message } : {}),
+    presentCall: () => presentGenericCall('gm git_stash'),
+  })
+
+  const gitStashPopTool = jsonTool({
+    name: 'gm_git_stash_pop',
+    verb: 'git_stash_pop',
+    description: 'Dispatch gm\'s `git_stash_pop` verb: pop the latest stash.',
+    parameters: {},
+    toBody: () => ({}),
+    presentCall: () => presentGenericCall('gm git_stash_pop'),
   })
 
   const scanDepsTool = jsonTool({
@@ -431,6 +517,14 @@ export function buildGmTools(gm, onProgress = () => {}) {
     transitionTool,
     execJsTool,
     gitFinalizeTool,
+    gitStatusTool,
+    gitLogTool,
+    gitDiffTool,
+    gitShowTool,
+    gitPushTool,
+    gitPullTool,
+    gitStashTool,
+    gitStashPopTool,
     scanDepsTool,
     dreamPolicyRegisterTool,
     dreamEvaluatorReceiptTool,

@@ -1,12 +1,12 @@
 # @freddie/freddie-tool-gm
 
-Model-facing typed tools over [`ctx.gm`](../gm-client/README.md): `gm_instruction`, `gm_phase_status`, `gm_codesearch`, `gm_recall`, `gm_prd_add`, `gm_prd_resolve`, `gm_mutable_add`, `gm_mutable_resolve`, `gm_transition`, `gm_exec_js`, `gm_git_finalize`, `gm_scan_deps`, the five `gm_dream_*` record/replay tools, and `gm_residual_scan`. Each tool names the real spool-verb fields instead of the generic MCP bridge's opaque `(verb, body)` shape.
+Model-facing typed tools over [`ctx.gm`](../gm-client/README.md): `gm_instruction`, `gm_phase_status`, `gm_codesearch`, `gm_recall`, `gm_prd_add`, `gm_prd_resolve`, `gm_mutable_add`, `gm_mutable_resolve`, `gm_transition`, `gm_exec_js`, `gm_git_finalize`, the git-family verbs (`gm_git_status`, `gm_git_log`, `gm_git_diff`, `gm_git_show`, `gm_git_push`, `gm_git_pull`, `gm_git_stash`, `gm_git_stash_pop`), `gm_scan_deps`, the five `gm_dream_*` record/replay tools, and `gm_residual_scan`. Each tool names the real spool-verb fields.
 
 Session id is not a per-call argument. Every tool closes over the mounted `ctx.gm` instance, whose `sessionId` is fixed at plugin config. Each execute passes `exec.agent.session.header.cwd` as `options.cwd` so the spool is the session workspace, not the GUI host's `process.cwd()`.
 
 ## Durable progress event
 
-The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start and settlement. Its complete payload carries `{ verb, status, phase, prdPendingCount, mutablesPendingCount, sessionId, belongsToConfiguredSession, startedAt, finishedAt, durationMs, error }`; running events retain the preceding semantic checkpoint, including one restored from the session projection after plugin reload, while failed settlement records its bounded error text. Progress-recording failures are contained and never alter the GM tool result. These records never enter model history or change tool schemas/results.
+The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start and settlement. Its complete payload carries lifecycle fields plus `nodes`, `edges`, and `walking` from [`foldGmGraph`](./src/graph.js). Running reports include the request `body` so walking can attach to a PRD or mutable id. Running events retain the preceding semantic checkpoint, including one restored from the session projection after plugin reload, while failed settlement records its bounded error text. Progress-recording failures are contained and never alter the GM tool result. These records never enter model history or change tool schemas/results.
 
 ## Tools
 
@@ -14,7 +14,7 @@ The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start an
 |---|---|---|---|
 | `gm_instruction` | `instruction` | `prompt?` | Current phase prose and PRD/mutables. First call of a session must include `prompt`; later calls take none. |
 | `gm_phase_status` | `phase-status` | none | Phase, transition history, pending PRD/mutable counts without instruction prose. |
-| `gm_codesearch` | `codesearch` | `query`, `k?`, `mode?`, `root?` | Ranked file:line hits from gm's incremental index. |
+| `gm_codesearch` | `codesearch` | `query`, `k?`, `mode?` (default `literal`), `root?`, `path?`, `glob?` | File:line hits. Omitted `mode` is `literal` (~1s tree walk). Pass `dual` only for ranked BM25+vector. `path`/`glob` bound the walk. |
 | `gm_recall` | `recall` | `query` | Semantic hits from gm's memory store (keys, not file:line). |
 | `gm_prd_add` | `prd-add` | `id`, optional fields | Add or rescope one PRD row. |
 | `gm_prd_resolve` | `prd-resolve` | `id`, `witness_evidence`, `commit_comment?` | Mark one PRD row resolved. Empty `witness_evidence` is rejected. |
@@ -23,6 +23,14 @@ The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start an
 | `gm_transition` | `transition` | `to` | Advance phase when gates pass. |
 | `gm_exec_js` | `exec_js` | `code`, `timeoutMs?` | Plain-text-body sandbox execution. |
 | `gm_git_finalize` | `git_finalize` | `message`, `files?` | Add, commit, porcelain-gate, push, CI-watch. |
+| `gm_git_status` | `git_status` | none | Working-tree porcelain status. |
+| `gm_git_log` | `git_log` | `max_count?` | Recent commit history. |
+| `gm_git_diff` | `git_diff` | `path?` | Unstaged/staged diff. |
+| `gm_git_show` | `git_show` | `object?` | Show one commit or object. |
+| `gm_git_push` | `git_push` | none | Push the current branch. |
+| `gm_git_pull` | `git_pull` | none | Pull the current branch. |
+| `gm_git_stash` | `git_stash` | `message?` | Stash working-tree changes. |
+| `gm_git_stash_pop` | `git_stash_pop` | none | Pop the latest stash. |
 | `gm_scan_deps` | `scan_deps` | `root?`, `full?` | HiddenSpawn-class dependency scan of git-tracked source plus present `node_modules`; a blank root means project root. |
 | `gm_dream_policy_register` | `dream-policy-register` | `policy`, `deployed?` | Register a session-owned policy with `id`, `roots`, and positive `max_nodes`. |
 | `gm_dream_evaluator_receipt` | `dream-evaluator-receipt` | `receipt_id`, `policy_id`, `dispatch_id`, `parent_id?` | Bind a completed same-session dispatch to a registered policy. |
@@ -46,7 +54,7 @@ Each tool declares `timeoutMs` equal to the spool default (120000) except `gm_co
 
 #### What the model sees
 
-Eighteen tool schemas with per-verb JSON fields. Results are the parsed spool JSON as pretty-printed text.
+Twenty-six tool schemas with per-verb JSON fields. Results are the parsed spool JSON as pretty-printed text.
 
 #### Token effect
 
@@ -54,7 +62,7 @@ Fixed schema cost per request while the plugin is mounted. Result tokens follow 
 
 #### KV Cache effect
 
-Prefix-stable while the thirteen definitions stay mounted. Plugin lifecycle may invalidate reuse from the first changed schema token.
+Prefix-stable while the mounted definitions stay unchanged. Plugin lifecycle may invalidate reuse from the first changed schema token.
 
 ## Known Limitations and Deferred Work
 

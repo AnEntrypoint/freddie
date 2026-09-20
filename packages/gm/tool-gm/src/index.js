@@ -2,14 +2,24 @@
  * Model-facing typed tools over `ctx.gm` (`@freddie/freddie-gm-client`):
  * `gm_instruction`, `gm_phase_status`, `gm_codesearch`, `gm_recall`,
  * `gm_prd_add`, `gm_prd_resolve`, `gm_mutable_add`, `gm_mutable_resolve`,
- * `gm_transition`, `gm_exec_js`, `gm_git_finalize`, `gm_scan_deps`,
- * `gm_residual_scan` - a
- * first-class replacement for the generic MCP bridge's single opaque
- * `mcp__gm__gm(verb, body: any)` tool, each with real typed parameters and
- * output schema.
+ * `gm_transition`, `gm_exec_js`, `gm_git_finalize`, the git-family verbs,
+ * `gm_scan_deps`, `gm_residual_scan`. Each tool names real spool-verb fields.
+ *
+ * `gm/progress` is an ignorable last-wins whole-value session event. Unknown
+ * readers skip it. Payload includes lifecycle fields plus `nodes`, `edges`,
+ * and `walking` from {@link foldGmGraph}.
+ *
+ * SessionEventMap member (JSDoc-only in this buildless package):
+ * `'gm/progress'`: `{ verb, status, phase, prdPendingCount, mutablesPendingCount,
+ * sessionId, belongsToConfiguredSession, startedAt, finishedAt, durationMs, error,
+ * nodes, edges, walking }`.
+ * @mode ignorable
+ * @param data - complete last-wins GM progress snapshot including the folded graph.
+ *
  * @module @freddie/freddie-tool-gm
  */
 
+import { foldGmGraph } from './graph.js'
 import { buildGmTools } from './verbs.js'
 
 export const name = 'tool-gm'
@@ -51,6 +61,7 @@ export function gmProgressSnapshot(dispatch, sessionId, previous) {
     finishedAt,
     durationMs: finishedAt === null ? null : Math.max(0, finishedAt - startedAt),
     error,
+    ...foldGmGraph(previous, dispatch, data),
   }
 }
 

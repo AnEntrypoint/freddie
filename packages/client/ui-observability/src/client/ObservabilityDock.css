@@ -317,8 +317,70 @@
 
 [data-hmr-notice][data-tone="wait"] { color: var(--freddie-alias-label-tertiary); }
 
+.freddie-observability__workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  gap: 16px;
+  align-items: start;
+}
+
+.freddie-observability__graph {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 1fr);
+  gap: 16px;
+  overflow-x: auto;
+}
+
+.freddie-observability__column {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.freddie-observability__node,
+.freddie-observability__inspector,
+.freddie-observability__running {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 10px;
+  background: var(--freddie-alias-interactive-bg-hover);
+}
+
+.freddie-observability__node {
+  cursor: pointer;
+  text-align: left;
+}
+
+.freddie-observability__node[data-walking] {
+  border-color: var(--freddie-alias-state-business-primary);
+}
+
+.freddie-observability__node[data-selected] {
+  outline: 2px solid var(--freddie-alias-state-business-primary);
+}
+
+.freddie-observability__overlay {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-observability__field {
+  display: grid;
+  gap: 4px;
+}
+
+.freddie-observability__inspector .freddie-observability__input,
+.freddie-observability__inspector textarea {
+  min-height: 36px;
+}
+
 @media (max-width: 720px) {
   .freddie-observability__root { padding: 18px 12px 30px; }
   .freddie-observability__metrics,
-  .freddie-observability__priority { grid-template-columns: 1fr; }
+  .freddie-observability__priority,
+  .freddie-observability__workspace { grid-template-columns: 1fr; }
 }

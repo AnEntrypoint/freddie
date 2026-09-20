@@ -29,6 +29,14 @@ export async function apply(ctx) {
     for (const dispose of disposers.reverse()) await dispose()
     throw error
   }
+  // Graph-edit Remotes are optional: a missing module or mount error must not
+  // unwind commands/goals or blank the shell. Overview reads ctx.get('remote.gm').
+  try {
+    const gmRemote = (await import('@freddie/freddie-gm-client/remote')).default
+    disposers.push(await ctx.remote.$mount(gmRemote))
+  } catch (error) {
+    console.error('client api: GM Remote contribution failed to mount', error)
+  }
   // Unwound in reverse mount order, so a namespace never outlives one mounted
   // after it.
   return async () => {

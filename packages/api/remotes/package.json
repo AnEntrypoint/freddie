@@ -39,7 +39,8 @@
         "@freddie/freddie-file-reference/remote",
         "@freddie/freddie-host-plugin-inventory/remote",
         "@freddie/freddie-message-feedback/remote",
-        "@freddie/freddie-session-reference/remote"
+        "@freddie/freddie-session-reference/remote",
+        "@freddie/freddie-gm-client/remote"
       ]
     }
   },
@@ -59,6 +60,7 @@
     "@freddie/freddie-cordis-host-runner": "*",
     "@freddie/freddie-credentials": "*",
     "@freddie/freddie-file-reference": "*",
+    "@freddie/freddie-gm-client": "*",
     "@freddie/freddie-goal": "*",
     "@freddie/freddie-host-plugin-inventory": "*",
     "@freddie/freddie-invariants": "*",
@@ -79,6 +81,7 @@
     "@freddie/freddie-cordis-host-runner": "*",
     "@freddie/freddie-credentials": "*",
     "@freddie/freddie-file-reference": "*",
+    "@freddie/freddie-gm-client": "*",
     "@freddie/freddie-goal": "*",
     "@freddie/freddie-host-plugin-inventory": "*",
     "@freddie/freddie-invariants": "*",

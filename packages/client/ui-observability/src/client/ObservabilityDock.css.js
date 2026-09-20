@@ -36,5 +36,13 @@ const css = {
   activityBoard: 'freddie-observability__activityBoard',
   boardRow: 'freddie-observability__boardRow',
   boardState: 'freddie-observability__boardState',
+  workspace: 'freddie-observability__workspace',
+  graph: 'freddie-observability__graph',
+  column: 'freddie-observability__column',
+  node: 'freddie-observability__node',
+  overlay: 'freddie-observability__overlay',
+  inspector: 'freddie-observability__inspector',
+  field: 'freddie-observability__field',
+  running: 'freddie-observability__running',
 }
 export default css

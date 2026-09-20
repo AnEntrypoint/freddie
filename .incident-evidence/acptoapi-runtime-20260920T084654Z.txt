@@ -1,0 +1,139 @@
+captured_utc=20260920T084654Z
+== process ==
+2612303 2612302 abc      Thu Sep 10 23:43:03 2026  810229 node bin/acptoapi.js
+== executable ==
+/config/nvm/versions/node/v24.20.0/bin/node
+== cwd ==
+/config/workspace/acptoapi
+== command line ==
+node bin/acptoapi.js 
+== network sockets ==
+== file descriptors ==
+total 0
+lrwx------ 1 abc abc 64 Sep 18 23:11 0 -> /dev/pts/35
+lrwx------ 1 abc abc 64 Sep 18 23:11 1 -> /dev/pts/35
+lr-x------ 1 abc abc 64 Sep 18 23:11 10 -> pipe:[86705588]
+l-wx------ 1 abc abc 64 Sep 18 23:11 11 -> pipe:[86705588]
+lrwx------ 1 abc abc 64 Sep 18 23:11 12 -> anon_inode:[eventfd]
+lrwx------ 1 abc abc 64 Sep 18 23:11 13 -> anon_inode:[eventpoll]
+lr-x------ 1 abc abc 64 Sep 18 23:11 14 -> pipe:[86706405]
+l-wx------ 1 abc abc 64 Sep 18 23:11 15 -> pipe:[86706405]
+lrwx------ 1 abc abc 64 Sep 18 23:11 16 -> anon_inode:[eventfd]
+lrwx------ 1 abc abc 64 Sep 18 23:11 17 -> /dev/pts/35
+lr-x------ 1 abc abc 64 Sep 18 23:11 18 -> /dev/null
+lrwx------+1 abc abc 64 Sep 18 23:11 19 -> socket:[86706412]
+lrwx------ 1 abc abc 64 Sep 18 23:11 2 -> /dev/pts/35
+lrwx------ 1 abc abc 64 Sep 18 23:11 20 -> /dev/pts/35
+lrwx------ 1 abc abc 64 Sep 18 23:11 3 -> anon_inode:[eventpoll]
+lr-x------ 1 abc abc 64 Sep 18 23:11 4 -> pipe:[86706403]
+l-wx------ 1 abc abc 64 Sep 18 23:11 5 -> pipe:[86706403]
+lr-x------ 1 abc abc 64 Sep 18 23:11 6 -> pipe:[86706404]
+l-wx------ 1 abc abc 64 Sep 18 23:11 7 -> pipe:[86706404]
+lrwx------ 1 abc abc 64 Sep 18 23:11 8 -> anon_inode:[eventfd]
+lrwx------ 1 abc abc 64 Sep 18 23:11 9 -> anon_inode:[eventpoll]
+== parent process ==
+2612302 2612287 abc      Thu Sep 10 23:43:03 2026  810229 sh -c node bin/acptoapi.js
+== environment variable names only ==
+AGENT_BROWSER_EXECUTABLE_PATH
+BUN_INSTALL
+CHROME_PATH
+CHROMIUM_PATH
+COLOR
+COLORTERM
+COOLIFY_BRANCH
+COOLIFY_CONTAINER_NAME
+COOLIFY_FQDN
+COOLIFY_RESOURCE_UUID
+COOLIFY_URL
+CUSTOM_WS_PORT
+DBUS_SESSION_BUS_ADDRESS
+DISABLE_DRI3
+DISABLE_ZINK
+DISPLAY
+DOCKER_CONFIG
+EDITOR
+FILE_MANAGER_PATH
+GMWEB_DIR
+HISTCONTROL
+HISTFILESIZE
+HISTSIZE
+HOME
+HOST
+HOSTNAME
+INIT_CWD
+LANG
+LANGUAGE
+LD_PRELOAD
+LSIO_FIRST_PARTY
+NODE
+NODE_OPTIONS
+NPM_CONFIG_CACHE
+NPM_CONFIG_PREFIX
+NVIDIA_DRIVER_CAPABILITIES
+NVM_BIN
+NVM_CD_FLAGS
+NVM_DIR
+NVM_INC
+OLDPWD
+PANEL_GDK_CORE_DEVICE_EVENTS
+PASSWORD
+PATH
+PERL5LIB
+PGID
+PS1
+PUID
+PULSE_RUNTIME_PATH
+PUPPETEER_CACHE_DIR
+PUPPETEER_EXECUTABLE_PATH
+PUPPETEER_SKIP_DOWNLOAD
+PWD
+S6_CMD_WAIT_FOR_SERVICES_MAXTIME
+S6_STAGE2_HOOK
+S6_VERBOSITY
+SELKIES_ENCODER
+SELKIES_INTERPOSER
+SERVICE_FQDN_GMWEB
+SERVICE_NAME_GMWEB
+SERVICE_URL_GMWEB
+SESSION_MANAGER
+SHLVL
+SOURCE_COMMIT
+SSH_AGENT_PID
+SSH_AUTH_SOCK
+START_DOCKER
+TEMP
+TERM
+TITLE
+TMP
+TMPDIR
+TZ
+VIRTUAL_ENV
+VTE_VERSION
+WINDOWID
+XDG_CACHE_HOME
+XDG_CONFIG_HOME
+XDG_DATA_HOME
+XDG_RUNTIME_DIR
+_
+npm_command
+npm_config_allow_scripts
+npm_config_cache
+npm_config_global_prefix
+npm_config_globalconfig
+npm_config_init_module
+npm_config_local_prefix
+npm_config_node_gyp
+npm_config_noproxy
+npm_config_npm_version
+npm_config_prefix
+npm_config_user_agent
+npm_config_userconfig
+npm_execpath
+npm_lifecycle_event
+npm_lifecycle_script
+npm_node_execpath
+npm_package_bin_acptoapi
+npm_package_engines_node
+npm_package_json
+npm_package_name
+npm_package_version

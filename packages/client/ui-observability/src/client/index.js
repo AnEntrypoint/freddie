@@ -5,8 +5,14 @@ import './ObservabilityDock.js'
 
 export const inject = ['connection', 'sessions', 'slots']
 
-/** Mount operational activity as a dedicated session view. */
+/** Mount GM graph traversal as the session Overview. */
 export function apply(ctx) {
+  const gmRemote = () => ctx.get('remote.gm')
+  const missing = async () => ({
+    ok: false,
+    error: { code: 'gm-remote-unavailable', message: 'GM edit Remote is not mounted', details: {} },
+  })
+
   ctx.slots.inject('conversation.view', () => ctx.slots.register({
     name: 'conversation.view',
     id: 'observability',
@@ -17,19 +23,32 @@ export function apply(ctx) {
       hooks: {
         connection: ctx.connection.state,
         terminals: ctx.sessions.terminalActivity(sessionId),
-        treeActivity: ctx.sessions.treeActivity(),
-        treeTerminals: ctx.sessions.treeTerminals(),
       },
-      openSession: (targetSessionId) => { ctx.sessions.open(targetSessionId) },
-      openTerminal: async () => {
-        const response = await ctx.connection.api.terminal.open({ sessionId, type: 'shell' })
-        if (response.result?.ok) ctx.sessions.noteTerminalActivity(sessionId, { type: 'snapshot', snapshot: response.result.value.terminal })
-        return response
+      prdAdd: (request) => {
+        const gm = gmRemote()
+        if (gm === undefined || typeof gm.prdAdd !== 'function') return missing()
+        return gm.prdAdd(sessionId, request)
       },
-      inputTerminal: async (terminalId, data) => await ctx.connection.api.terminal.input({ sessionId, terminalId, data }),
-      snapshotTerminal: async (terminalId) => await ctx.connection.api.terminal.snapshot({ sessionId, terminalId }),
-      resizeTerminal: async (terminalId, cols, rows) => await ctx.connection.api.terminal.resize({ sessionId, terminalId, cols, rows }),
-      closeTerminal: async (terminalId) => await ctx.connection.api.terminal.close({ sessionId, terminalId }),
+      prdResolve: (request) => {
+        const gm = gmRemote()
+        if (gm === undefined || typeof gm.prdResolve !== 'function') return missing()
+        return gm.prdResolve(sessionId, request)
+      },
+      mutableAdd: (request) => {
+        const gm = gmRemote()
+        if (gm === undefined || typeof gm.mutableAdd !== 'function') return missing()
+        return gm.mutableAdd(sessionId, request)
+      },
+      mutableResolve: (request) => {
+        const gm = gmRemote()
+        if (gm === undefined || typeof gm.mutableResolve !== 'function') return missing()
+        return gm.mutableResolve(sessionId, request)
+      },
+      transition: (request) => {
+        const gm = gmRemote()
+        if (gm === undefined || typeof gm.transition !== 'function') return missing()
+        return gm.transition(sessionId, request)
+      },
     }),
   }, webjsxSlot('freddie-observability-dock')))
 }

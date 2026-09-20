@@ -1,6 +1,6 @@
 # @freddie/freddie-gm-progress
 
-Registers the `gmProgress` session projection over complete ignorable `gm/progress` events written by [`@freddie/freddie-tool-gm`](../tool-gm/README.md). The whole value exposes lifecycle (`verb`, `status`, timestamps, duration, error), the latest GM checkpoint (`phase`, pending counts), and session attribution through history and `session/projection` carriers.
+Registers the `gmProgress` session projection over complete ignorable `gm/progress` events written by [`@freddie/freddie-tool-gm`](../tool-gm/README.md). The whole value exposes lifecycle (`verb`, `status`, timestamps, duration, error), the latest GM checkpoint (`phase`, pending counts), session attribution, and the folded PRD/mutable graph (`nodes`, `edges`, `walking`) at `stateVersion` 3.
 
 The browser receives host-computed whole values and never reads or polls `.gm`.
 

@@ -6,12 +6,12 @@
  * @module @freddie/freddie-gm-client/spool
  */
 
-import { mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
+import { watch } from 'node:fs'
+import { mkdir, readdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { classifyDaemonHealth, isDaemonAlive, readDaemonStatus, readStatus } from './daemon.js'
 
-const DEFAULT_POLL_INTERVAL_MS = 200
-const INITIAL_POLL_INTERVAL_MS = 25
+const DEFAULT_POLL_INTERVAL_MS = 25
 const HEALTH_CHECK_AFTER_POLLS = 5
 const DEFAULT_TIMEOUT_MS = 120_000
 
@@ -118,7 +118,7 @@ function throwIfAborted(signal) {
  * @param options.body - JSON body (session_id is added if not already present). Ignored when `rawBody` is given.
  * @param options.rawBody - literal text body for a plain-text-body verb (exec_js and its language stems, serp, browser, cdp) -- these verbs reject a JSON-wrapped body outright, per gm's own AGENTS.md. Mutually exclusive with `body`.
  * @param options.timeoutMs - give up and throw after this many ms (default 120000).
- * @param options.pollIntervalMs - poll cadence while waiting (default 200).
+ * @param options.pollIntervalMs - poll cadence while waiting (default 25). An `out/` directory watch wakes the waiter earlier when the OS delivers create events.
  * @param options.signal - abort stops polling without waiting the remaining timeout.
  * @returns the parsed response body.
  * @throws when the spool directory is missing, the dispatch times out, the
@@ -145,6 +145,7 @@ export async function dispatch({
   const readyPath = `${outPath}.ready`
 
   await mkdir(inDir, { recursive: true })
+  await mkdir(outDir, { recursive: true })
   // Defense in depth against a stale response at this exact key -- the
   // processEpoch already makes a genuine collision implausible, but a
   // leftover file (e.g. from an aborted prior run using the SAME epoch,
@@ -229,8 +230,20 @@ export async function dispatch({
   let polls = 0
   while (Date.now() < deadline) {
     throwIfAborted(signal)
+    const cancelWait = new AbortController()
+    const onUserAbort = () => { cancelWait.abort() }
+    if (signal !== undefined) signal.addEventListener('abort', onUserAbort, { once: true })
+    const wait = waitForOutOrTimeout(outDir, pollIntervalMs, cancelWait.signal)
+    const stopWait = async () => {
+      if (signal !== undefined) signal.removeEventListener('abort', onUserAbort)
+      cancelWait.abort()
+      await wait.catch(() => {})
+    }
     const landed = await takeResponse()
-    if (landed !== undefined) return landed.response
+    if (landed !== undefined) {
+      await stopWait()
+      return landed.response
+    }
     polls += 1
     if (polls >= HEALTH_CHECK_AFTER_POLLS) {
       const queued = await projectHasQueuedWork(cwd)
@@ -239,50 +252,60 @@ export async function dispatch({
       const died = !alive && !queued
       const hung = health === 'project-heartbeat-stale' || health === 'daemon-status-stale'
       const completedWhileChecking = await takeResponse()
-      if (completedWhileChecking !== undefined) return completedWhileChecking.response
+      if (completedWhileChecking !== undefined) {
+        await stopWait()
+        return completedWhileChecking.response
+      }
       if (died) {
+        await stopWait()
         await dropClaim()
         throw await unavailable('GM_DAEMON_DIED', health, queued)
       }
       if (hung && !queued) {
+        await stopWait()
         await dropClaim()
         throw await unavailable('GM_DAEMON_HUNG', health, queued)
       }
     }
-    await sleep(polls < HEALTH_CHECK_AFTER_POLLS ? Math.min(pollIntervalMs, INITIAL_POLL_INTERVAL_MS) : pollIntervalMs, signal)
+    try {
+      await wait
+    } finally {
+      if (signal !== undefined) signal.removeEventListener('abort', onUserAbort)
+    }
   }
   await dropClaim()
   throw new Error(`gm spool: dispatch "${verb}" (${dispatchKey}) timed out after ${timeoutMs}ms — in=${inPath} out=${outPath}`)
 }
 
-async function exists(path) {
-  try {
-    await stat(path)
-    return true
-  } catch (error) {
-    // ENOENT: the path is not present yet. Any other syscall is unexpected.
-    if (isMissingPathError(error)) return false
-    throw error
-  }
-}
-
-function sleep(ms, signal) {
-  if (signal === undefined) {
-    return new Promise(resolve => setTimeout(resolve, ms))
-  }
-  if (signal.aborted) {
+function waitForOutOrTimeout(dir, ms, signal) {
+  if (signal !== undefined && signal.aborted) {
     return Promise.reject(signal.reason ?? new Error('This operation was aborted'))
   }
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(done, ms)
-    function onAbort() {
+    let watcher
+    let timer
+    let settled = false
+    const finish = (error) => {
+      if (settled) return
+      settled = true
       clearTimeout(timer)
-      reject(signal.reason ?? new Error('This operation was aborted'))
+      if (watcher !== undefined) watcher.close()
+      if (signal !== undefined) signal.removeEventListener('abort', onAbort)
+      if (error === undefined) resolve()
+      else reject(error)
     }
-    function done() {
-      signal.removeEventListener('abort', onAbort)
-      resolve()
+    const onAbort = () => {
+      finish(signal.reason ?? new Error('This operation was aborted'))
     }
-    signal.addEventListener('abort', onAbort, { once: true })
+    try {
+      watcher = watch(dir, { persistent: false }, () => finish())
+      watcher.on('error', () => finish())
+    } catch (error) {
+      // EMFILE / Windows watch failure: poll remains the waiter.
+      void error
+      watcher = undefined
+    }
+    timer = setTimeout(() => finish(), ms)
+    if (signal !== undefined) signal.addEventListener('abort', onAbort, { once: true })
   })
 }

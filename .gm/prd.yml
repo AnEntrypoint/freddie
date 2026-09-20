@@ -1,1 +1,70 @@
-[]
+- id: inventory-local-hits
+  title: Inventory every local 9-8926-1 carrier
+  subject: Every git-tracked file under C:\dev that contains the HiddenSpawn marker, plus introducing commit SHA/author/date.
+  acceptance: Exhaustive per-repo git grep of 9-8926-1 with introducing commit. Submodules included.
+  status: completed
+  route_family: grounding
+  session_id: freddie-12560-1789889089950
+  witness: 'git grep 9-8926-1: C:\dev\acptoapi index.js + fa-solid-400.woff2 (ea7f448 2026-09-11 lanmower); C:\dev\gm flatspace.config.mjs + gm-plugkit font (a18f352 2026-09-18); C:\dev\gm\agentplug crates/agentplug-host font (77fdb41 2026-09-19 agentplug-bot). Freddie grep 0.'
+- id: github-org-ground-zero
+  title: Find first AnEntrypoint commit with the marker
+  subject: GitHub org code search plus per-repo -S log to name the earliest dirty commit and whether it is org-wide vs this machine.
+  acceptance: Earliest SHA, author, date, repo. Last clean SHA named.
+  status: completed
+  route_family: boundary
+  session_id: freddie-12560-1789889089950
+  witness: 'gh search 9-8926-1 --owner AnEntrypoint: goofedup, gm-skill, acptoapi, thatcher, semiosis. Oldest indexed path commit: AnEntrypoint/semiosis 7faeb96 2026-07-30T12:50:09Z lanmower chore: remove vendored .gm/ state. acptoapi IIFE ea7f448 2026-09-11 is later. Code search is not exhaustive.'
+- id: static-c2-decode
+  title: Static-extract C2 without eval
+  subject: Regex-extract URLs, spawn/eval/child_process from the appended IIFE. Never require or eval the payload.
+  acceptance: Named C2 host/path or explicit none-found. No process spawned from the dropper.
+  status: completed
+  route_family: grounding
+  session_id: freddie-12560-1789889089950
+  witness: 'exec_js on index.js IIFE: payloadLen 40304, eval 0, child_process 2, spawn 4, require 4, no plaintext https C2. Decoder is y7/s8/v8 packed strings; 1125 literals decoded to 0 interesting URLs. Did not eval.'
+- id: live-process-load
+  title: Did a live process already load index.js
+  subject: :4800 and other node processes whose command line is C:\dev\acptoapi. Loading index.js would have already run the IIFE.
+  acceptance: PID, command line, whether it required index.js. Do not kill unless user asks.
+  status: completed
+  route_family: observability
+  session_id: freddie-12560-1789889089950
+  witness: :4800 PID 13536 node bin/acptoapi.js since 2026-09-19 21:53 parent npm run start. bin/acptoapi.js:75 require('../lib/server') not index.js. index.js required only for claude subcommand line 256. IIFE did not run in this server process.
+- id: rewrite-strip-hiddenspawn
+  title: Rewrite history to strip HiddenSpawn from dirty remotes
+  subject: 'User authorized history rewrite: no dirty SHAs remain. Strip 9-8926-1 IIFE from JS/mjs and delete fake fa-solid-400.woff2 blobs from acptoapi, gm, agentplug, goofedup, gm-skill, thatcher, semiosis. Force-with-lease push.'
+  acceptance: git grep 9-8926-1 empty on rewritten HEADs; git log -S 9-8926-1 empty; origin/main matches. Unrelated dirty files not mixed.
+  status: completed
+  route_family: execution
+  session_id: freddie-12560-1789889089950
+  witness: 'filter-repo --file-info-callback line-only strip + drop JS-magic assets. force-with-lease: acptoapi e593e2c, gm 72d0a18, agentplug 01c6df0, goofedup 3b366ac then de41df7, thatcher 7831100, semiosis 2f25a32, gm-skill 3865739. log -S 9-8926-1 empty. Contents API 404 on every fake fa-solid-400.woff2. index.js runClaude survived; pinned skip + CHATJIMMY_NEGATIVE_TTL survived.'
+- id: goofedup-early-warning
+  title: Wire goofedup as earliest HiddenSpawn detector
+  subject: C:\dev\goofedup is the org early-warning. Detect 9-8926-1, global['!'], whitespace-padded IIFE after real source, fake woff2 whose first bytes are JS. Run as early as possible in local/CI work.
+  acceptance: Detector exists, runs, catches a planted fixture or the known marker shape, is live on origin.
+  status: completed
+  route_family: observability
+  session_id: freddie-12560-1789889089950
+  witness: 'Live: planted fixture flagged js-masquerading-as-asset + appended-packed-payload exit 1. After last-line fix, acptoapi index.js line 224 (39234 bytes) + fa-solid-400.woff2 flagged. Post-rewrite --scan-deps acptoapi/gm/goofedup exit 0. CI plants both shapes at runtime. Pushed de41df7 then auto-bump 86550f9 0.1.45.'
+- id: machine-not-ground-zero
+  title: Confirm this machine is not HiddenSpawn ground zero
+  subject: Live :4800 did not load index.js. gh login is lanmower keyring gho_. No PAT to rotate unless local secret theft is witnessed.
+  acceptance: Document process evidence. Rotate gh login only if a local steal is witnessed.
+  status: completed
+  route_family: boundary
+  session_id: freddie-12560-1789889089950
+  witness: :4800 PID 13536 node bin/acptoapi.js require lib/server not index.js. gh auth lanmower keyring gho_ scopes repo/workflow. No local steal witnessed; dirty SHAs were already on origin (lanmower + agentplug-bot). No gh login rotation.
+- id: freddie-premature-stop
+  title: Find and fix Freddie stopping a walk too early
+  subject: 'User: also fix the stopping in freddie, you shouldnt have stopped there. The latency goal was auto-completed with a goal_complete injection that forbade further tools, cutting HiddenSpawn cleanup mid-flight. Find the harness path that ends an autonomous run / completes a goal while in-spirit work remains, and stop it from doing that.'
+  acceptance: Named file:line of the stop. Live path no longer injects a hard stop while the user request's closure is unfinished. Witnessed against the real loop, not a recollection.
+  status: pending
+  route_family: execution
+  session_id: freddie-12560-1789889089950
+- id: continue-hiddenspawn-leftovers
+  title: Finish work the premature stop dropped
+  subject: 'After the stop: goofedup Windows CI still in-flight, GitHub code-search index still stale, :4800 not recycled, gm agentplug submodule pointer, remaining org clones. Drive remaining in-spirit items rather than leaving them as a recap.'
+  acceptance: Each leftover is either done with a live witness or a PRD row with a real next dispatch, never a prose-only deferral.
+  status: pending
+  route_family: boundary
+  session_id: freddie-12560-1789889089950

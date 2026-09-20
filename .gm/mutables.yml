@@ -1503,6 +1503,278 @@
   session_id: freddie-2260524-1789740208025
   status: witnessed
   witness_evidence: packages/context/dream-rsi-context/src/index.js requires structurally valid evidence/replays, matching dispatch IDs/verb/fingerprint, and a same-session configured gm/progress event before automatic context injection.
+- id: gm-progress-running-body
+  prd_id: gm-graph-progress-fold
+  obligation_kind: precondition
+  subject: gmProgressSnapshot running path does not currently pass dispatch.body so foldGmGraph cannot set walking.nodeId from the in-flight args
+  text: 'Witness: tool-gm/src/index.js reportProgress running call and foldGmGraph walking assignment after wiring.'
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: packages/gm/tool-gm/src/verbs.js jsonTool running report is reportProgress({ verb, status: ''running'', startedAt }, exec) with no body. exec_js 1789794928351 snapHasGraph false; foldGmGraph walking.nodeId is ''a'' only when dispatch.body.id is passed (runningWalking.verb prd-add). EMIT must pass toBody(args) on running and settled reports.'
+- id: gm-progress-state-version
+  prd_id: gm-graph-progress-fold
+  obligation_kind: invariant
+  subject: gm-progress stateVersion is 2 without nodes/edges; graph fields require a bump so persisted cache rows are discarded
+  text: Witness projection.js stateVersion after EMIT.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'invariant: exec_js 1789794928351 gmProgressProjectionDefinition.stateVersion is 2; initKeys are verb/status/phase/prdPendingCount/mutablesPendingCount/sessionId/belongsToConfiguredSession/startedAt/finishedAt/durationMs/error with no nodes/edges/walking. Graph fields require stateVersion 3 so cache rows at 2 are discarded.'
+- id: gm-graph-walk-unimported
+  prd_id: gm-graph-ui
+  obligation_kind: precondition
+  subject: graph-walk.js is never imported by ObservabilityDock.js so layoutGraph/overlayWalk/inspectGraph cannot render
+  text: Witness ObservabilityDock import of graph-walk after EMIT.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: exec_js 1789794928351 dockImportsGraphWalk false. codesearch layoutGraph only definition at graph-walk.js:119. ObservabilityDock.js does not import graph-walk.'
+- id: gm-remote-vs-apiproxy
+  prd_id: gm-node-edit-remote
+  obligation_kind: type-shape
+  subject: Whether Gm should extend TypertRemoteService, bindTypertRemote, or expose a sibling gm-remote plugin; ApiProxyService has no gm namespace today
+  text: Witness chosen shape against docs/api-gateway.md and a live client call.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'type-shape: Gm already extends Service (gm-client/src/index.js:28). docs/api-gateway.md:13 bindTypertRemote when another base class owns inheritance. api-remotes/src/client/index.js mounts goalsRemote etc, no gm. Chosen representation: bindTypertRemote(this, ''gm'') on Gm; @Remote methods prdAdd/prdResolve/mutableAdd/mutableResolve/transition taking Agent so session.header.cwd is available; ./remote export mounted in api-remotes. Invalid: ApiProxy namespace (createApiProxy has no gm) or a second ctx key.'
+- id: gm-git-verb-set
+  prd_id: gm-tool-verb-coverage
+  obligation_kind: precondition
+  subject: Exact remaining skill-required verbs beyond the git family that tool-gm still omits
+  text: Witness a live instruction/skill verb list vs buildGmTools return array.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: exec_js 1789794928351 toolNames has only gm_git_finalize in the git family. Skill-required remaining verbs: git_status, git_log, git_diff, git_show, git_push, git_pull, git_stash, git_stash_pop. serp/browser/cdp/fetch/memorize-fire stay daemon-only; Freddie already has web_search and host tools.'
+- id: gm-instruction-truncation
+  prd_id: gm-upstream-graph-export
+  obligation_kind: precondition
+  subject: Whether live instruction prd_items/mutables_pending plus add/resolve fold is enough without a C:\dev\gm graph verb
+  text: Witness a live instruction JSON truncation flags and node count after fold.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: this session instruction 1789794767538 prd_items_truncated null (14 PRDs inlined); mutables_pending_truncated inlined 5 of 18. Open graph is 14 PRD + 18 mutables = 32 < 80 cap. Fold from add/resolve bodies plus non-truncated instruction lists is sufficient. No C:\dev\gm graph verb.'
+- id: gm-tab-delete-scope
+  prd_id: gm-gui-delete-noise
+  obligation_kind: invariant
+  subject: Workflows/Subagents/Terminals tabs must leave the GM view; workflow chat nodes and subagent header remain elsewhere
+  text: Witness live conversation.view observability has no those panels; ui-workflow-run and ui-subagent still mounted.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'invariant: ObservabilityDock.js:5-11 SECTIONS overview/workflows/gm/subagents/terminals. ui-workflow-run and ui-subagent remain web-app cordis.patch.yml:260-276. Delete dock tabs only; do not unmount those plugins.'
+- id: gm-progress-append-containment
+  prd_id: gm-graph-progress-fold
+  obligation_kind: postcondition
+  subject: Graph snapshot append failures must not alter the GM tool result
+  text: Witness existing try/catch around session.append still contains graph-field serialization errors.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'postcondition: packages/gm/tool-gm/src/index.js:69-83 try/catch around session.append swallows append errors (void error) and never rethrows into execute. Graph fields stay inside that same try so serialization failure cannot change the GM tool result.'
+- id: gm-edit-session-cwd
+  prd_id: gm-node-edit-remote
+  obligation_kind: precondition
+  subject: Host remotes must dispatch against the selected session workspace cwd, not the GUI host process.cwd
+  text: Witness remote handler passes session.header.cwd into Gm.call.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: verbs.js execute already passes cwd: exec.agent.session.header.cwd into gm.call. Remote methods take Agent and use agent.session.header.cwd the same way; never process.cwd() of the GUI host.'
+- id: gm-no-secrets-in-graph
+  prd_id: gm-graph-ui
+  obligation_kind: invariant
+  subject: data-gm-graph and inspector must not include argsRaw, terminal buffers, or env
+  text: Witness inspectGraph payload keys on the live page.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'invariant: exec_js 1789794928351 inspectGraph keys are nodes/edges/walking/jit/cli; inspectHasArgsRaw false; inspectHasOutput false. overlayWalk CLI detail is compact last line only. Renderer must call inspectGraph for data-gm-graph.'
+- id: gm-inspector-local-state
+  prd_id: gm-client-graph-inspector
+  obligation_kind: type-shape
+  subject: Inspector selection is component-local state, not a session projection or store
+  text: Witness ObservabilityDock local selectedNodeId and no new projection key.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'type-shape: ui-observability ObservabilityDock already uses instance fields #section/#snapshots (ObservabilityDock.js:237-239). selectedNodeId is the same local field, not a session projection. Client AGENTS.md: live data known only to the component stays local state. No new projection key.'
+- id: gm-mcp-env-only
+  prd_id: gm-mcp-remove
+  obligation_kind: precondition
+  subject: mcp-gm is already disabled unless GM_MCP_SERVER_PATH is set; removal still required as the leftover MCP flow
+  text: Witness cordis.patch.yml has no mcp-gm row after EMIT.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: packages/bundle/base/cordis.patch.yml:119-137 mcp-gm row disabled when GM_MCP_SERVER_PATH unset. Removal still required as leftover MCP flow. Witness after EMIT: no mcp-gm id in that file.'
+- id: gm-progress-event-jsdoc
+  prd_id: gm-session-event-map
+  obligation_kind: type-shape
+  subject: SessionEventMap merge for gm/progress needs @mode and payload @param JSDoc; ignorable true
+  text: Witness tool-gm types or session types declaration plus known-event-types after catalog regen.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'type-shape: AGENTS.md typed events use declaration merging; JSDoc needs @mode and payload @param. gm/progress is ignorable so unknown readers skip it. EMIT adds a JSDoc SessionEventMap merge on tool-gm (JSDoc-only; workspace is buildless JS). known-event-types.js is generated; ignorable events may stay off that set. Invalid constructor: required-on-read without ignorable.'
+- id: gm-note-supersede
+  prd_id: gm-agent-note
+  obligation_kind: postcondition
+  subject: 2026-04-15-gm-overview-mutable-graph.md claims Overview already renders the DAG; rewrite to shipped reality or supersede
+  text: Witness the note matches live UI after EMIT.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'postcondition: .agents/notes/implemented/feature/2026-04-15-gm-overview-mutable-graph.md currently claims Overview already renders the DAG; live ObservabilityDock.js:433-464 still paints metric tiles. EMIT rewrites that note to shipped graph-first GUI plus MCP removal.'
+- id: gm-css-no-library
+  prd_id: gm-graph-css
+  obligation_kind: invariant
+  subject: No dagre/mermaid/vis or SVG path library in ui-observability
+  text: Witness package.json dependencies remain webjsx only plus peers.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'invariant: exec_js 1789794928351 ui-observability package.json dependencies are only @freddie/webjsx. No dagre/mermaid/vis. Keep that set.'
+- id: gm-empty-no-throw
+  prd_id: gm-empty-graph-copy
+  obligation_kind: precondition
+  subject: graphNodes already treats missing nodes as []; renderer must use that helper
+  text: Witness ObservabilityDock calls graphNodes(gm) and shows empty copy when length 0.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'precondition: exec_js 1789794928351 graphNodes(undefined).length is 0. Renderer must call graphNodes(gm) and show empty copy when length 0.'
+- id: gm-inject-no-ctx
+  prd_id: gm-host-plugin-mount
+  obligation_kind: invariant
+  subject: Client components never see ctx; remotes close over apply inject
+  text: Witness ui-observability src/client has no ctx.remote or ctx.gm.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'invariant: exec_js 1789794928351 clientHasCtxRemote false for ObservabilityDock.js and client/index.js. Remotes close over apply inject callbacks. Keep that.'
+- id: gm-files-graph-js
+  prd_id: gm-progress-package-files
+  obligation_kind: postcondition
+  subject: files array currently lists index/verbs/presentation/invariant only
+  text: Witness package.json files after EMIT includes graph.js.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'postcondition: exec_js 1789794928351 tool-gm package.json files is index/verbs/presentation/invariant only. EMIT must add src/graph.js.'
+- id: gm-fold-totality
+  prd_id: gm-overview-served-graph
+  obligation_kind: totality
+  subject: foldGmGraph and inspectGraph/overlayWalk return defined results on undefined, empty, and oversized inputs
+  text: exec_js fold/inspect/overlay on undefined, empty, 90-node, malformed chat.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841010771 emptyNodes 0; previousUnchanged true; nextNew true; nextIds [keep,n]; cap 80; overlayOk/overlay2Ok true; layoutEmpty columns/orphans [].
+- id: gm-progress-last-wins
+  prd_id: gm-graph-progress-fold
+  obligation_kind: replay
+  subject: gm-progress apply is last-wins whole-value; a second identical event keeps the same reference; a later event replaces nodes
+  text: exec_js apply eventA then eventA then eventB and witness Object.is plus node ids.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796744481 sameRefReplay true; afterAIds [a]; afterBIds [a,b]; ignoredSame true for non-gm/progress event.
+- id: gm-progress-append-ownership
+  prd_id: gm-graph-progress-fold
+  obligation_kind: ownership
+  subject: session.append of gm/progress is contained; fold failure cannot leak into the GM tool result
+  text: Read tool-gm apply try/catch around append; exec_js cannot throw from foldGmGraph on empty previous.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: packages/gm/tool-gm/src/index.js:80-90 try/catch around session.append swallows errors (void error). exec_js 1789796744481 foldGmGraph never threw on empty previous.
+- id: gm-inspect-effect-boundary
+  prd_id: gm-graph-ui
+  obligation_kind: effect-boundary
+  subject: 'inspectGraph and layoutGraph are queries: they do not mutate gm or overlay maps'
+  text: 'exec_js freeze-ish: call inspectGraph twice and compare JSON; overlayWalk byNode is a new Map.'
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796744481 inspectEqual true across two inspectGraph calls; overlayMapsDistinct true; gmUnchanged true. layoutGraph/inspectGraph are queries.
+- id: gm-layout-totality
+  prd_id: gm-graph-ui
+  obligation_kind: totality
+  subject: layoutGraph accepts empty, orphans-only, and PRD-only graphs without throw
+  text: exec_js those three inputs.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796744481 layoutEmpty true; layoutOrphans [o]; layoutPrd true.
+- id: gm-progress-happens-before
+  prd_id: gm-graph-progress-fold
+  obligation_kind: happens-before
+  subject: running gm/progress with walking is appended before gm.call awaits; settled snapshot with walking null is appended after the daemon result
+  text: 'Read jsonTool execute: reportProgress running then await gm.call then reportProgress completed. exec_js 1789796608185 runningWalking set, settledWalking null.'
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796823909 runningBeforeAwait true; settledAfterAwait true. jsonTool reports running then awaits gm.call then reports completed.
+- id: gm-inspect-disjoint
+  prd_id: gm-graph-ui
+  obligation_kind: disjointness
+  subject: inspectGraph payload is ids/status/verb/names only; overlay CLI is compact last line; inspector selectedNodeId is local and never written to gmProgress
+  text: 'exec_js inspectHasArgsRaw false; ObservabilityDock.js #selectedNodeId is an instance field; projection apply never reads selectedNodeId.'
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796823909 inspectHasArgsRaw false; inspectKeys nodes/edges/walking/jit/cli; cliLastLineOnly [{label:term}] with no output buffer; selectedLocal true (#selectedNodeId not in projection).
+- id: gm-progress-contention
+  prd_id: gm-graph-progress-fold
+  obligation_kind: contention
+  subject: foldGmGraph copies previous.nodes into a new Map and does not mutate the prior snapshot; last-wins append is the only shared write
+  text: exec_js freeze previous.nodes, fold, assert previous unchanged; two sequential applies last-wins.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796823909 previousUnchanged true after freeze; nextIsNewArray true; nextIds [keep,n]. Fold copies into a new Map; last-wins apply is the only shared write.
+- id: gm-graph-secrets
+  prd_id: gm-graph-ui
+  obligation_kind: secrets
+  subject: inspectGraph and gm/progress snapshots omit argsRaw, terminal buffers, tokens, and secret-shaped strings
+  text: exec_js inspectGraph JSON against a planted sk-SECRET / argsRaw / TOKEN= payload and assert omission.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: 'exec_js 1789796919099 inspectGraph JSON omits sk-SECRET/hunter2/argsRaw/TOKEN=/apiKey after titles dropped from inspect payload. Remaining fields: id/kind/status, walking verb/nodeId, jit/cli labels. Overlay CLI still compact last-line for display, not inspect.'
+- id: gm-remote-identity
+  prd_id: gm-node-edit-remote
+  obligation_kind: identity-authority
+  subject: GM remotes take Agent lookup; cwd is session.header.cwd; no ambient process.cwd for edits
+  text: Read Gm.prdAdd/dispatchFor; Typert descriptors use agent lookup.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796898901 agentLookup true; cwdOfSession true; dispatchForCwd true. Typert descriptors lookup agent; Gm.dispatchFor uses agent.session.header.cwd.
+- id: gm-progress-injection
+  prd_id: gm-graph-ui
+  obligation_kind: injection
+  subject: Overview labels are webjsx text children; data-gm-graph is JSON.stringify of inspectGraph; no innerHTML of node titles
+  text: 'Read ObservabilityDock.js: no innerHTML; titles pass as text children.'
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796898901 innerHTML false; textChildren true; stringifyInspect true. Node titles are webjsx text children; data-gm-graph is JSON.stringify(inspectGraph).
+- id: gm-progress-message-timing
+  prd_id: gm-graph-progress-fold
+  obligation_kind: message-timing
+  subject: 'gm/progress last-wins: replay of the same event is idempotent; malformed type is ignored'
+  text: exec_js apply same event twice Object.is; non-gm/progress event returns prior state.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789796898901 sameRef true for replayed gm/progress; ignoredSame true for todo/write. Last-wins whole-value, malformed type ignored.
+- id: gm-progress-exception-model
+  prd_id: gm-graph-progress-fold
+  obligation_kind: exception-model
+  subject: gm.call failures rethrow after reportProgress failed; append errors are contained and never alter the tool result
+  text: 'Read jsonTool catch: reportProgress failed then throw. apply try/catch around append.'
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789797026225 rethrowAfterFailed true; appendContained true. jsonTool reports failed then throws; apply swallows append errors.
+- id: gm-progress-partial-failure
+  prd_id: gm-graph-progress-fold
+  obligation_kind: partial-failure
+  subject: 'Daemon death: Gm.call restores daemon once then rethrows GmDaemonUnavailableError; progress snapshot records error text without tearing nodes'
+  text: Read gm-client call recovery; exec_js failed snapshot keeps previous nodes.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789797026225 daemonReplay true; failedKeepsNodes [keep]; failedError daemon died; failedWalking null. Gm.call restores daemon once on GM_DAEMON_DIED then rethrows.
+- id: gm-graph-degradation
+  prd_id: gm-graph-progress-fold
+  obligation_kind: degradation
+  subject: foldGmGraph caps at 80 nodes; inspectGraph is bounded JSON; empty graph is named copy not a hang
+  text: exec_js 81-node input yields 80; empty layout does not throw.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789797026225 cap 80 from 90-node input. Empty graph is named copy in ObservabilityDock. inspectGraph is bounded JSON.
+- id: gm-graph-crucible
+  prd_id: gm-graph-ui
+  obligation_kind: crucible
+  subject: Malformed overlay roots, missing terminals.status, and huge titles do not throw in overlayWalk/layoutGraph/inspectGraph
+  text: exec_js adversarial inputs.
+  session_id: freddie-6364-1789774010516
+  status: witnessed
+  witness_evidence: exec_js 1789797105974 overlayOk/layoutOk/inspectOk true after hardening Array.isArray guards. inspectMissingOverlay empty jit/cli/nodes.
 - id: npm-null-matches-cause
   prd_id: npm-install-null-matches
   obligation_kind: precondition
@@ -1511,3 +1783,739 @@
   session_id: freddie-2260524-1789740208025
   status: witnessed
   witness_evidence: 'gm_exec_js dispatch 1789772901343 reproduced on Linux with real npm 11.19.0 and no writes: `npm install --dry-run --ignore-scripts --package-lock=false --workspaces=false` exits 1 in Arborist `link.js:150` (`resolved.edgesOut` where a Link target resolves to null). gm_exec_js 1789772896382 found root declares `packageManager: pnpm@11.7.0`, Node `^22.19.0 || >=24.0.0`, has no root package-lock/shrinkwrap, and every manifest/lockfile parsed with no JSON null. gm_exec_js 1789772917807 found pnpm-only overrides and Linux-only optional native packages; the crash is npm Arborist traversing pnpm-workspace links, not a malformed lockfile.'
+- id: gm-remote-isolation-pre
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: precondition
+  subject: Core remotes mount before GM; GM import is dynamic
+  text: 'Read packages/api/remotes/src/client/index.js: first loop excludes gmRemote; second try imports @freddie/freddie-gm-client/remote.'
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: 'exec_js 1789840868832 coreFirst true: remotes.js mounts commands/goals first; GM is import(''@freddie/freddie-gm-client/remote''); no static import gmRemote from.'
+- id: gm-remote-isolation-post
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: postcondition
+  subject: GM $mount failure does not throw from apply or dispose prior remotes
+  text: Read catch console.error without rethrow; HTTP served remotes JS matches.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: 'exec_js 1789840868832 noRethrow true: catch console.error without rethrow. HTTP served remotes JS REM_DYNAMIC true.'
+- id: gm-overview-inject-shape
+  prd_id: gm-overview-optional-remote
+  obligation_kind: type-shape
+  subject: Overview inject array is connection/sessions/slots only; remote.gm is ctx.get
+  text: Read packages/client/ui-observability/src/client/index.js export const inject.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789840868832 inject true export const inject = ['connection', 'sessions', 'slots']. Source uses ctx.get('remote.gm').
+- id: gm-http-witness-bound
+  prd_id: gm-http-witness-no-client-inspect
+  obligation_kind: resource-bound
+  subject: GUI witness uses HTTP GET with TimeoutSec 5, never Client inspect
+  text: This session used Invoke-WebRequest TimeoutSec 5; no cordis_inspect_query platform client after hang.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: HTTP GET TimeoutSec 5 STATUS=200; no Client inspect this cover after hang. loggerClean true.
+- id: gm-remote-apply-totality
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: totality
+  subject: apply always returns a disposer covering every successful $mount including optional GM
+  text: 'Read remotes apply: disposers array; GM success pushes; catch does not throw; return disposes all.'
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: 'exec_js 1789840947521 disposerReturn true: GM $mount push plus return async disposer over disposers.'
+- id: gm-remote-replay
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: replay
+  subject: Re-reading remotes source is identical to served HTTP body isolation markers
+  text: exec_js plus HTTP REM_DYNAMIC true.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: Source remotes isolation matches HTTP served body REM_DYNAMIC true at 3080 /plugins/@freddie/freddie-api-remotes/~7ac66a0cc951/client/index.js.
+- id: gm-overview-effect-boundary
+  prd_id: gm-overview-optional-remote
+  obligation_kind: effect-boundary
+  subject: Overview apply only registers conversation.view; missing remote.gm does not throw at apply time
+  text: 'Read apply: ctx.get inside inject callbacks, not at apply top.'
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789840947521 getInCallbacks true. ctx.get('remote.gm') is inside gmRemote closure used only by edit callbacks, not as inject hard wait.
+- id: gm-progress-ownership
+  prd_id: gm-overview-served-graph
+  obligation_kind: ownership
+  subject: 'gmProgress is host projection; dock reads useProjection; inspector is local #selectedNodeId'
+  text: 'Read ObservabilityDock #selectedNodeId and useProjection(''gmProgress'').'
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: 'exec_js 1789840947521 selectedLocal true: #selectedNodeId local; useProjection(''gmProgress'') for graph.'
+- id: gm-projection-replay
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: replay
+  subject: gm/progress last-wins apply of the same event is Object.is; non-gm/progress ignored
+  text: exec_js projection apply twice.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841010771 sameRef true; ignoredSame true; stateVersion 3. Last-wins Object.is; todo/write ignored.
+- id: gm-inspect-query
+  prd_id: gm-overview-served-graph
+  obligation_kind: effect-boundary
+  subject: inspectGraph does not mutate overlay.byNode; titles omitted from inspect payload
+  text: exec_js overlay size unchanged; inspect JSON has no title/argsRaw.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841010771 inspectKeys nodes/edges/walking/jit/cli; hasSk false; hasTitle false. inspectGraph omits titles/secrets. dockLocal true.
+- id: gm-remote-happens-before
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: happens-before
+  subject: Core remotes $mount complete before GM dynamic import; GM failure cannot dispose them
+  text: 'Read remotes apply: first loop awaits all core mounts; GM try is after that loop.'
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841051410 coreThenGm true; catchAfter true. Core remotes mount loop precedes GM dynamic import; GM catch cannot dispose prior remotes.
+- id: gm-inspect-overview-disjoint
+  prd_id: gm-overview-optional-remote
+  obligation_kind: disjointness
+  subject: 'Overview inject callbacks and inspectGraph payload are disjoint: edits never serialize live ctx; inspect has id/kind/status only'
+  text: 'exec_js inspect keys vs dock #selectedNodeId not in projection.'
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841051410 overlayUnchanged true; inspectKeys nodes/edges/walking/jit/cli; inspectHasTitle false; selectedLocal true.
+- id: gm-progress-fold-contention
+  prd_id: gm-overview-served-graph
+  obligation_kind: contention
+  subject: foldGmGraph copies previous.nodes into a new array; frozen previous is unchanged
+  text: exec_js freeze previous then fold.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841051410 previousUnchanged true; nextNew true. Fold copies into a new array; frozen previous intact.
+- id: gm-inspect-secrets
+  prd_id: gm-overview-served-graph
+  obligation_kind: secrets
+  subject: inspectGraph JSON omits argsRaw, titles, sk-SECRET, hunter2, TOKEN=
+  text: exec_js inspectGraph against planted secret title and argsRaw.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841097284 hasSk/hasHunter/hasArgsRaw/hasApiKey/hasTokenAssign all false. inspectKeys nodes/edges/walking/jit/cli.
+- id: gm-dock-injection
+  prd_id: gm-overview-served-graph
+  obligation_kind: injection
+  subject: ObservabilityDock never uses innerHTML; titles are text children; data-gm-graph is JSON.stringify(inspectGraph)
+  text: Read ObservabilityDock.js innerHTML and stringifyInspect.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841097284 innerHTML false; textChildren true; stringifyInspect true.
+- id: gm-remote-agent-identity
+  prd_id: gm-overview-optional-remote
+  obligation_kind: identity-authority
+  subject: GM remotes look up Agent; cwd is session.header.cwd
+  text: Read typert.remote-client.js lookup agent; gm-client cwdOf.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841097284 agentLookup true; cwdOfSession true. Typert lookup agent; Gm uses session.header.cwd.
+- id: gm-progress-timing
+  prd_id: gm-http-witness-no-client-inspect
+  obligation_kind: message-timing
+  subject: gm/progress last-wins replay Object.is; malformed type ignored
+  text: exec_js projection apply twice plus todo/write.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841097284 sameRef true; ignoredSame true. Last-wins replay; malformed type ignored.
+- id: gm-remote-exception
+  prd_id: gm-remote-boot-isolation
+  obligation_kind: exception-model
+  subject: GM $mount throw is caught, logged, and does not rethrow; core remotes stay mounted
+  text: Read remotes apply catch console.error without throw.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841131913 noRethrow true. GM $mount catch logs and does not throw.
+- id: gm-overview-partial
+  prd_id: gm-overview-optional-remote
+  obligation_kind: partial-failure
+  subject: Missing remote.gm returns gm-remote-unavailable JSON; Overview still registers
+  text: Read index.js missing() and inject without remote.gm.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: 'exec_js 1789841131913 missingCode true: gm-remote-unavailable and inject connection/sessions/slots.'
+- id: gm-graph-degrade
+  prd_id: gm-overview-served-graph
+  obligation_kind: degradation
+  subject: foldGmGraph caps at 80; empty layout is named copy
+  text: exec_js cap 80; layoutGraph(undefined) columns/orphans empty.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841131913 cap 80; layoutEmpty columns/orphans [].
+- id: gm-walk-crucible
+  prd_id: gm-overview-served-graph
+  obligation_kind: crucible
+  subject: Malformed overlay/inspect/layout inputs do not throw
+  text: exec_js overlayWalk/layoutGraph/inspectGraph on undefined and null roots.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789841131913 overlayOk/layoutOk/inspectOk true on malformed inputs.
+- id: watch-api-available
+  prd_id: spool-out-watch
+  obligation_kind: precondition
+  subject: Which watch primitive exists in-process without a new dep
+  text: codesearch fs.watch / notify crate in freddie and gm; pick one that works on this Windows host.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: Freddie already uses non-recursive fs.watch per directory in packages/client/hmr/src/index.js:175 nativeWatch (Windows-safe, re-armed on rename). Daemon has no notify crate (codesearch notify= exhaustive 0 in C:\dev\gm); only Condvar notify_all in agentplug-host registry.rs:322/422/1112 for slot/step. Spool-out-watch can use Node fs.watch with poll fallback; daemon-in-watch needs shorter idle sleep or a new notify watch.
+- id: flush-bypasses-batch
+  prd_id: persist-batch-vs-step
+  obligation_kind: invariant
+  subject: session/flush cancels the 200ms batch wait before LLM
+  text: Read agent-loop and persistence checkpoint policy; witness whether flush is awaited on the step path.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: '.agents/notes/implemented/architecture/2026-08-08-bounded-session-persistence-write-batching.md:27: session/flush cancels remaining writeBatchMaxDelayMs wait and is a quiescence barrier; checkpoint policy places mandatory barriers before model requests and top-level tool side effects. persist-batch-vs-step needs no cut if that barrier is on the step path.'
+- id: idle-sleep-is-the-floor
+  prd_id: cut-daemon-idle-sleep
+  obligation_kind: precondition
+  subject: Idle 200ms sleep is actually on the cheap-verb critical path
+  text: Live RTT of phase-status after idle vs during any_work; compare to 200ms.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: exec_js 1789843691654 duration_ms=73 while daemon claimed_step_count=1 (any_work, no idle sleep). git_status 1789843731709 and phase-status ~500ms with queue_wait_ms=16. daemon.rs:2935-2936 sleeps 200ms only when !any_work. Idle 200ms is the idle-to-claim floor, not the busy-path floor. Still a real first-verb after idle tax.
+- id: acptoapi-happy-path-wait
+  prd_id: acptoapi-first-byte
+  obligation_kind: precondition
+  subject: Happy-path chat has no extra sleep before first upstream byte
+  text: Read waitForLeadLinkPrecheck + handleChat linkTimeout; live TTFB if a local acptoapi is up.
+  session_id: freddie-7564-1789830375891
+  status: witnessed
+  witness_evidence: 'acptoapi/lib/chain-machine.js:308-310 waitForLeadLinkPrecheck: sampler_backoff on lead returns {ok:true} with zero sleep; healthy preCheck returns immediately. SAME_LINK_RETRY_BASE_MS=1000 and MODEL_UNHEALTHY_WAIT_BUDGET_MS=10000 are fail-path only. Dead code after the early return at 310. Happy-path TTFB is not gated on 200ms.'
+- id: codesearch-omitted-mode
+  prd_id: codesearch-default-literal
+  obligation_kind: precondition
+  subject: Daemon default when gm_codesearch omits mode
+  text: 'codesearch verb contract: omitted mode is dual; Freddie verbs.js:147-152 only forwards args.mode when set.'
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/tool-gm/src/verbs.js:144-152 mode is optional; toBody only spreads args.mode when set. Live dual searches this session elapsed 1-45s (budget_exhausted); skill says omitted/unrecognized mode is dual and costs minutes vs literal ~1s.
+- id: codesearch-path-glob-fields
+  prd_id: codesearch-pass-path-glob
+  obligation_kind: precondition
+  subject: Daemon accepted fields for path/glob
+  text: Skill lists path/glob/path_glob; Freddie tool schema has only query/k/mode/root.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: verbs.js:141-152 parameters are query/k/mode/root only; path/glob/path_glob never reach the spool body. Skill brick wall names path/glob/path_glob as the bound.
+- id: progress-not-awaited
+  prd_id: progress-append-cost
+  obligation_kind: invariant
+  subject: jsonTool does not await session append before returning gm.call value
+  text: Read tool-gm apply + reportProgress; witness that execute returns value immediately after gm.call.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: 'verbs.js:91-99 reportProgress is sync before/after await gm.call; apply index.js:76-80 onProgress try/catch void. Architecture 2026-06-11-event-sourced-sessions.md: appends are synchronous, session/flush is write-behind. Tool result is not blocked on durability I/O.'
+- id: idle-25ms-cpu
+  prd_id: prefer-short-idle-over-watch
+  obligation_kind: resource-bound
+  subject: 25ms idle sleep does not peg shared daemon CPU
+  text: Same as idle-sleep-cpu-bound; live sample after cut.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: Duplicate of PRD idle-sleep-cpu-bound; live CPU sample is that row's postcondition after the idle-sleep cut, not an unknown. Current 200ms idle is the baseline.
+- id: precheck-dead-code
+  prd_id: dead-precheck-loop
+  obligation_kind: invariant
+  subject: waitForLeadLinkPrecheck loop after line 310 is unreachable
+  text: chain-machine.js:308-310 return pc/ok before the while(true) at 318.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: acptoapi/lib/chain-machine.js:308-310 returns {ok:true} or pc before while(true) at 318-354; storm wait and sleep(waitMs) are unreachable.
+- id: watch-closed-on-settle
+  prd_id: spool-out-watch
+  obligation_kind: invariant
+  subject: fs.watch handle is closed on land, abort, timeout, and watch error
+  text: spool.js waitForOutOrTimeout finish() closes watcher and clears timer once; abort and error both call finish.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/spool.js:264-292 waitForOutOrTimeout finish() is once (settled), clearTimeout(timer), watcher.close() when defined, abort and watch error both call finish.
+- id: stale-out-unlinked
+  prd_id: spool-out-watch
+  obligation_kind: invariant
+  subject: dispatch unlinks leftover out-file before writing the in-file
+  text: spool.js still unlinks outPath and readyPath before rename of the in-file; watch cannot observe a leftover as this dispatch.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/spool.js unlink(outPath) and unlink(readyPath) still run before rename of the in-file (lines ~154-161). Watch cannot treat a leftover as this dispatch.
+- id: booted-per-instance
+  prd_id: skip-ensure-daemon-status-read
+  obligation_kind: invariant
+  subject: booted skip is per Gm instance; died clears it
+  text: index.js this.booted; GM_DAEMON_DIED sets booted false then ensureDaemon. First call still boots.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/index.js:155-176 this.booted per instance; first call ensureDaemon; GM_DAEMON_DIED sets booted false then ensureDaemon and booted true.
+- id: literal-in-body
+  prd_id: codesearch-default-literal
+  obligation_kind: postcondition
+  subject: omitted mode is sent as literal in the spool JSON
+  text: 'verbs.js toBody mode: args.mode ?? ''literal'' so daemon never sees omitted mode.'
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: 'packages/gm/tool-gm/src/verbs.js:151 mode: args.mode ?? ''literal'' is always in the spool JSON; daemon never sees omitted mode from this tool.'
+- id: watch-one-waiter
+  prd_id: spool-out-watch
+  obligation_kind: invariant
+  subject: one watch per in-flight dispatch; concurrent dispatches do not share a waiter
+  text: waitForOutOrTimeout is local to dispatch(); concurrent calls each own watcher+timer. dispatchKey uniqueness unchanged.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/spool.js waitForOutOrTimeout is a function local to each dispatch() call; concurrent dispatches each allocate watcher+timer. dispatchKey remains sessionId-processEpoch-N.
+- id: fifo-after-faster-tick
+  prd_id: concurrent-dispatch-fair
+  obligation_kind: invariant
+  subject: faster idle tick does not change fifo-per-plugin serialization
+  text: daemon tool_serialization fifo per plugin and verb; 25ms sleep only when !any_work.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: daemon.rs:2935-2936 25ms sleep only when !any_work. .status.json tool_serialization fifo per plugin and verb unchanged. Faster idle tick does not reorder claim.
+- id: watch-no-payload-read
+  prd_id: spool-out-watch
+  obligation_kind: invariant
+  subject: out/ watch only wakes; takeResponse still parses JSON after unlink of leftover
+  text: watch callback calls finish() with no path read; takeResponse readFile+JSON.parse is the only content path.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: spool.js:286 watch callback is () => finish(); takeResponse at 232-235 is the only readFile+JSON.parse. Watch error also finish() with no content.
+- id: no-secrets-in-latency-diff
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: precondition
+  subject: latency diff contains no credentials, tokens, or env key values
+  text: Witness CHANGELOG/AGENTS/auto-chain/server.js edits name env var names only, never values.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'precondition: auto-chain.js skip, server.js OLLAMA_LIST_TTL_MS, CHANGELOG 1.0.248, AGENTS.md catalog-probe note. Env names only. No key values. tmp-live-latency.js is a live driver to delete before commit.'
+- id: watch-open-fails
+  prd_id: watch-fallback-windows
+  obligation_kind: invariant
+  subject: watch() throw falls back to 25ms timer
+  text: spool.js catch { watcher = undefined } after setTimeout; poll still completes.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/spool.js:284-290 timer is set first; watch() throw sets watcher undefined; 25ms poll still completes.
+- id: hung-after-five-polls
+  prd_id: hung-died-still-detected
+  obligation_kind: invariant
+  subject: HEALTH_CHECK_AFTER_POLLS still 5; queued inflight licenses wait
+  text: spool.js HEALTH_CHECK_AFTER_POLLS=5; died/hung only after takeResponse miss and !queued.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/spool.js:16 HEALTH_CHECK_AFTER_POLLS=5; died/hung only after takeResponse miss and !queued (lines 237-251).
+- id: sweep-sha-matches-head
+  prd_id: independent-sweep-marker
+  obligation_kind: postcondition
+  subject: .split-context-swept head_sha equals current HEAD
+  text: Write after a blind reviewer verdict; sha faf05715c33e5da3f8b27b9f7b8756f62bbddbab.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: .split-context-swept and .ci-validated both head_sha 9ac102b3cd405ff532d2a7e8ddb92b61a262fb88 matching git rev-parse HEAD after 9ac102b3cd.
+- id: settle-empty-still-refused
+  prd_id: spool-write-settle-cut
+  obligation_kind: invariant
+  subject: empty in-file is still not claimed
+  text: spool_in_file_write_has_settled returns false when metadata.len()==0. Torn > redirects stay unclaimed.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: daemon.rs:1612-1614 spool_in_file_write_has_settled returns metadata.len()>0. Empty write still false. selfcheck_spool_claim asserts !empty_claimed.
+- id: booted-cwd-set
+  prd_id: booted-per-cwd
+  obligation_kind: invariant
+  subject: bootedCwds is a Set of project cwd strings
+  text: index.js bootedCwds.has/add/delete keyed by resolveProjectCwd. Died deletes that cwd only.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/index.js:36 Set; :155 has(projectCwd); :172 delete that cwd on GM_DAEMON_DIED. Other cwds stay booted.
+- id: claim-race-rename
+  prd_id: spool-write-settle-cut
+  obligation_kind: invariant
+  subject: claim is still rename of the in-file
+  text: claim_spool_request_in_place still fs::rename txt to .inflight. Two sweepers cannot both claim the same file.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: daemon.rs:1617-1622 claim_spool_request_in_place still rename to .inflight. Empty skip happens before rename. Two sweepers still serialize on rename.
+- id: booted-set-per-instance
+  prd_id: booted-per-cwd
+  obligation_kind: invariant
+  subject: bootedCwds is per Gm instance not process-global
+  text: index.js field on the instance. Concurrent sessions with distinct Gm instances do not share the Set.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: packages/gm/gm-client/src/index.js:36 bootedCwds = new Set() on the class instance, not a module global.
+- id: empty-not-claimed-injection
+  prd_id: spool-write-settle-cut
+  obligation_kind: invariant
+  subject: empty in-file cannot inject a torn body
+  text: len==0 still unclaimed. Atomic rename publishers still the complete-body path.
+  session_id: freddie-12560-1789843658515
+  status: witnessed
+  witness_evidence: daemon.rs:1612-1614 len==0 unclaimed. Publishers rename complete sibling (spool.js:164-173). Torn > redirect still refused.
+- id: gm-tools-marker-unused
+  prd_id: gm-tools-version-marker
+  obligation_kind: precondition
+  subject: Whether ~/.gm-tools/agentplug-runner.version is read by stage_runner_self_update
+  text: Witness install_dir and runner_version_path against live files. If only ~/.agentplug is read, rescope the row to leftover-file observability, not a skip-update bug.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: install.rs:3-11 install_dir is ~/.agentplug (or AGENTPLUG_HOME). download.rs:357-363 runner_version_path is install_dir()/agentplug-runner.version. Live ~/.agentplug/agentplug-runner.version=0.1.143; ~/.gm-tools/agentplug-runner.version leftover v0.1.142 is not read by stage_runner_self_update.
+- id: staged-cache-sticky
+  prd_id: heartbeat-clear-update-flag
+  obligation_kind: precondition
+  subject: Whether write_project_heartbeat removes runner_update_* keys when cached_staged_runner is None
+  text: Read daemon.rs write_project_heartbeat around the cached_staged_runner branch. Witness live .status.json still carrying the keys after staged_runner_awaiting_handoff false.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: daemon.rs:1059-1062 sets runner_update_in_progress only when cached_staged_runner is Some; no m.remove unlike busy_until at 1043. Live .status.json after 0.1.143 swap still has runner_update_in_progress true while daemon-status.json staged_runner_awaiting_handoff false.
+- id: poll-interval-live
+  prd_id: runner-poll-after-publish
+  obligation_kind: precondition
+  subject: Live runner_update_poll_interval_secs and when 0.1.143 actually staged
+  text: Witness daemon-config.json, last_runner_update_poll_ts vs last_completed_runner_swap, and code default unwrap_or(3600).
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: daemon-config.json runner_update_poll_interval_secs=3600; daemon.rs:221 unwrap_or(3600); seed_poll_timer_from_persisted_ts:1294-1298 backdates from last-runner-update-poll-ts so a recycle inside the hour skips GitHub. Live last_completed_runner_swap 0.1.143 at 1789887057877 after idle self-recycle, not a mid-hour poll.
+- id: heartbeat-else-remove
+  prd_id: heartbeat-clear-update-flag
+  obligation_kind: postcondition
+  subject: write_project_heartbeat must remove runner_update_in_progress and runner_update_waiting_ms when cached_staged_runner is None
+  text: After the else-remove patch, a live exec_js status JSON omits both keys while runner_version is 0.1.143+ and staged_runner_awaiting_handoff is false.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition spec: daemon.rs:1059-1062 must else-remove runner_update_in_progress and runner_update_waiting_ms like busy_until at 1043. Live exec_js 1789887645215 still has update_in_progress true waiting_ms 7505 with staged_runner_awaiting_handoff false. EMIT writes the else-remove.'
+- id: first-tick-poll
+  prd_id: boot-poll-if-behind
+  obligation_kind: postcondition
+  subject: First daemon loop tick must call stage_runner_self_update even if persisted poll ts is recent
+  text: 'Witness by source: last_runner_update_poll is Instant::now() minus interval or an explicit first-tick poll; a boot after CI publish stages without waiting 3600s.'
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition spec: daemon.rs:2634 seeds last_runner_update_poll from persisted ts so a boot inside 3600s skips GitHub. EMIT sets last_runner_update_poll due on first tick (Instant::now minus interval) so stage_runner_self_update runs regardless of last-runner-update-poll-ts.'
+- id: windows-in-watch
+  prd_id: idle-in-dir-wake
+  obligation_kind: type-shape
+  subject: Idle wait uses an existing Windows directory-change API already in windows-sys, not a new notify crate
+  text: Cargo.toml windows-sys features include the wait/notification APIs used; Unix keeps a short sleep cap. No notify dependency.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'type-shape: crates/agentplug-runner/Cargo.toml:25 already depends on windows-sys 0.59. Idle wait will use FindFirstChangeNotificationW + WaitForSingleObject timeout 25ms via extra Win32_Storage_FileSystem and Win32_System_Threading features. No notify crate. Unix keeps sleep cap after in-dir re-scan.'
+- id: idle-143-witness
+  prd_id: live-idle-claim-143
+  obligation_kind: postcondition
+  subject: Live first-verb after idle on runner 0.1.143
+  text: exec_js duration_ms and queue_wait_ms with runner_version 0.1.143 after a quiet claimed_step_count=0 tick.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition: exec_js 1789887645215 duration_ms=84 queue_wait_ms=10 runner_version=0.1.143 claimed=1 queued=0. Idle 200ms floor is gone on live 0.1.143; queue wait is 10ms.'
+- id: poll-boot-or-interval
+  prd_id: runner-poll-after-publish
+  obligation_kind: postcondition
+  subject: A running daemon behind GitHub latest stages without waiting 3600s
+  text: Boot first-tick poll when CARGO_PKG_VERSION or marker != latest, or a shorter runner_update_poll_interval. Live last_runner_update_poll_ts advances on that boot.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition spec: first-tick due poll satisfies a daemon behind latest staging without waiting 3600s. Persisted ts remains for heartbeat display only. Default interval can stay 3600 once boot always polls.'
+- id: idle-wake-existing-in
+  prd_id: idle-in-dir-wake
+  obligation_kind: invariant
+  subject: If an in-file already exists when the idle wait starts, the daemon must not sleep the full quantum
+  text: Idle wait re-scans in/ before blocking. A file published during the previous tick is claimed on the next tick without waiting 25ms.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'invariant spec: before any idle sleep, re-check project_has_pending_dispatch_work on known_roots; if any in-file exists return immediately. Windows wait also times out at 25ms. File published during previous tick is claimed without the full quantum.'
+- id: heartbeat-idempotent
+  prd_id: heartbeat-clear-update-flag
+  obligation_kind: invariant
+  subject: Heartbeat rewrite is last-wins and must not resurrect runner_update keys from a previous payload after they were removed
+  text: write_project_heartbeat reads existing JSON then writes; the else branch removes keys every time cached_staged_runner is None, so a later tick cannot reintroduce them without a staged binary.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'invariant: write_project_heartbeat reads existing JSON then overwrites. Else-remove every tick when cached_staged_runner is None prevents resurrecting keys from the previous payload. Same last-wins rewrite as busy_until removal at 1043.'
+- id: no-secrets-update-cut
+  prd_id: boot-poll-if-behind
+  obligation_kind: precondition
+  subject: The runner-poll and heartbeat diffs carry no credentials
+  text: Diff is first-tick poll, heartbeat key removal, optional idle wait. No tokens, no GH_TOKEN in source.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'precondition: planned diff is write_project_heartbeat else-remove of runner_update_* keys, first-tick runner poll instead of persisted 3600s seed, idle wait recheck. No GH_TOKEN, no credentials in daemon.rs/download.rs edits.'
+- id: heartbeat-last-wins
+  prd_id: heartbeat-clear-update-flag
+  obligation_kind: invariant
+  subject: Heartbeat rewrite last-wins; removed runner_update keys stay gone without a staged binary
+  text: write_project_heartbeat else-remove at daemon.rs:1062-1064 runs every tick when cached_staged_runner is None.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'invariant: daemon.rs:1059-1064 else-remove runner_update keys every heartbeat when cached_staged_runner is None. Last-wins overwrite of existing JSON.'
+- id: idle-watch-disjoint
+  prd_id: idle-in-dir-wake
+  obligation_kind: invariant
+  subject: Idle FindFirstChangeNotification wait only runs on the daemon loop thread when !any_work
+  text: IdleInDirWatch lives in run_daemon_body; wait is after the dispatch scope joins. No other thread waits on those handles.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'invariant: IdleInDirWatch is a local in run_daemon_body; wait is after thread::scope joins at the !any_work tail. No other thread waits on those HANDLEs.'
+- id: watch-handle-drop
+  prd_id: idle-in-dir-wake
+  obligation_kind: postcondition
+  subject: Idle watch handles close on Drop and on sync replacement
+  text: IdleInDirWatch::close_all calls FindCloseChangeNotification; Drop calls close_all. Failed FindFirstChangeNotificationW is skipped.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition: IdleInDirWatch::close_all FindCloseChangeNotification; Drop calls close_all; sync replaces after close_all. INVALID_HANDLE_VALUE skipped.'
+- id: no-secrets-followup-diff
+  prd_id: boot-poll-if-behind
+  obligation_kind: precondition
+  subject: Follow-up diff has no credentials
+  text: daemon.rs heartbeat else-remove, first_runner_poll_pending, IdleInDirWatch, Cargo.toml windows-sys features. No tokens.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'precondition: git show 9554a6e daemon.rs/Cargo.toml only. No tokens.'
+- id: idle-wait-after-join
+  prd_id: idle-in-dir-wake
+  obligation_kind: invariant
+  subject: Idle in-dir wait happens after dispatch workers join, never overlapping claim
+  text: 'run_daemon_body: thread::scope joins before any_work is computed; IdleInDirWatch::wait is only in the !any_work tail. A wake starts the next tick''s claim, not a concurrent claim.'
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'invariant: daemon.rs idle wait is after thread::scope joins and any_work fold. WaitForMultipleObjects only when !any_work. Next tick claims.'
+- id: first-poll-before-idle
+  prd_id: boot-poll-if-behind
+  obligation_kind: invariant
+  subject: First-tick runner poll runs in the same loop as dispatch, before the idle wait
+  text: first_runner_poll_pending is consumed in the poll block above the idle wait. Boot stages without waiting 25ms idle.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'invariant: first_runner_poll_pending consumed at daemon.rs:2924 before the !any_work wait at the loop tail. Boot GitHub poll does not wait on in-dir.'
+- id: watch-no-injection
+  prd_id: idle-in-dir-wake
+  obligation_kind: precondition
+  subject: FindFirstChangeNotificationW path is a project-root join, not attacker-controlled input
+  text: IdleInDirWatch::sync builds root.join(.gm/exec-spool/in) from known_roots registry. No user string is passed as the watch path.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'precondition: IdleInDirWatch::sync maps known_roots to root.join(.gm/exec-spool/in). Registry paths only. No request body in the watch path.'
+- id: status-json-no-secret
+  prd_id: heartbeat-clear-update-flag
+  obligation_kind: precondition
+  subject: Clearing runner_update keys does not leak credentials into .status.json
+  text: Removed keys are booleans/numbers. Heartbeat payload has pid/ts/versions only.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'precondition: runner_update_in_progress bool and waiting_ms number. Heartbeat else-remove drops them. No credentials in payload.'
+- id: watch-fail-sleep
+  prd_id: idle-in-dir-wake
+  obligation_kind: postcondition
+  subject: If FindFirstChangeNotificationW fails or entries is empty, idle wait still sleeps 25ms
+  text: IdleInDirWatch::wait sleeps cap when entries empty. INVALID_HANDLE_VALUE skipped at sync. Unix cfg keeps sleep. No busy-spin.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition: IdleInDirWatch::wait sleeps cap when entries empty. FindFirstChangeNotificationW INVALID_HANDLE_VALUE skipped. Unix cfg sleep 25ms. No busy-spin.'
+- id: poll-error-logged
+  prd_id: boot-poll-if-behind
+  obligation_kind: postcondition
+  subject: stage_runner_self_update Err is logged and does not abort the daemon loop
+  text: match at daemon.rs:2930 Err branch eprintln and record_runner_poll_error. Loop continues to idle wait.
+  session_id: freddie-12560-1789847277758
+  status: witnessed
+  witness_evidence: 'postcondition: daemon.rs:2930 match Err eprintln + record_runner_poll_error. Loop continues. cargo check agentplug-runner finished 1.96s.'
+- id: pinned-refresh-scope
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: precondition
+  subject: handleChat only needs live refresh when the chain is auto/unknown, not when body.model is a single directly-routable id
+  text: Witness by reading handleChat autoLinks construction vs buildAutoChain early return for targetModel !== auto.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: handleChat server.js:850-851 awaits buildAutoChainLive for every directlyRoutable pinned model. auto-chain.js:397-404 then addLink(targetModel) and return that single link. refreshAll+refreshAcpModels at 738-741 therefore run on Freddie xai-oauth/grok-4.6 TTFB and throw their results away.
+- id: listmodels-on-step
+  prd_id: listmodels-serial-probes
+  obligation_kind: precondition
+  subject: Whether GET /v1/models sits on the Freddie agent step path or only boot/UI catalog
+  text: Witness by whether llm-deepseek adapter or settings fetch /v1/models per request vs once.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: packages/llm/llm-deepseek/src/adapter.js:453 POSTs `${connection.baseURL}/chat/completions` only. /v1/models is catalog (README line 138; live GET 1264ms cold then 28-41ms). Not on the per-step chat path; still a work-slowing catalog wait.
+- id: pinned-skip-refresh
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: postcondition
+  subject: buildAutoChainLive with a pinned targetModel must not await refreshAll or refreshAcpModels
+  text: Witness by reading auto-chain.js after the cut and by timing buildAutoChainLive('xai-oauth/grok-4.6') vs buildAutoChain of the same id.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'postcondition spec: buildAutoChainLive(targetModel) with a specific non-auto id returns buildAutoChain without awaiting refreshAll or refreshAcpModels. Live baseline 710.7ms vs 3.4ms sync.'
+- id: auto-still-refreshes
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: invariant
+  subject: auto and unknown-model chain builds still call refreshAll and refreshAcpModels
+  text: Witness that the no-target / auto branch still awaits Promise.all([refreshAll, refreshAcpModels]).
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant spec: buildAutoChainLive(undefined) and targetModel===''auto'' still await Promise.all([refreshAll(available), refreshAcpModels(acp daemons)]) before buildAutoChain.'
+- id: listmodels-parallel
+  prd_id: listmodels-serial-probes
+  obligation_kind: postcondition
+  subject: ollama fetch and listChatJimmyModels run concurrently; a dead ollama does not serialize 1500ms before chatjimmy
+  text: 'Witness listModels source: both awaits start together. Re-measure GET /v1/models after process restart or cache miss.'
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'postcondition spec: listModels starts ollama /api/tags and listChatJimmyModels in the same Promise.all. Negative ollama TTL so a dead localhost:11434 does not serialize AbortSignal.timeout(1500) ahead of chatjimmy. Cached GET stays ~40ms.'
+- id: ollama-cache-idempotent
+  prd_id: listmodels-serial-probes
+  obligation_kind: invariant
+  subject: _ollamaListCache is process-local; a miss fetches once then both success and failure store {models, ts}; concurrent listModels last-write-wins
+  text: Witness server.js OLLAMA_LIST_TTL_MS and catch path writing empty models with ts.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: server.js:26-27 OLLAMA_LIST_TTL_MS default 30000 and _ollamaListCache. Miss fetches once; success and catch both store {models, ts}. Concurrent listModels last-write-wins same empty-or-list shape.'
+- id: pinned-skip-no-shared-mut
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: invariant
+  subject: pinned buildAutoChainLive early return is a pure sync call of buildAutoChain; no shared cache write
+  text: Witness auto-chain.js early return before refreshAll.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: auto-chain.js:739 early return is buildAutoChain(targetModel, opts) before refreshAll. No cache write on the pinned path.'
+- id: listmodels-degrade-empty
+  prd_id: listmodels-serial-probes
+  obligation_kind: postcondition
+  subject: dead ollama or chatjimmy failure yields empty arrays, never throws out of listModels
+  text: Witness catch return [] on both listOllama and listChatJimmy.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'postcondition: listOllama catch stores [] and returns []; listChatJimmy catch returns []. listModels never throws from those probes.'
+- id: listmodels-probes-disjoint
+  prd_id: listmodels-serial-probes
+  obligation_kind: invariant
+  subject: ollama, chatjimmy, and ACP probes in listModels start together and do not wait on each other
+  text: Witness Promise.all([listOllama, listChatJimmy, listAcp]) at server.js:244.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: server.js:211-244 starts listOllama, listChatJimmy, listAcp as concurrent IIFEs then Promise.all. Dead ollama no longer serializes 1500ms before chatjimmy.'
+- id: pinned-no-refresh-contention
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: invariant
+  subject: pinned chat TTFB does not contend with refreshAll/refreshAcpModels network
+  text: Witness auto-chain.js:739 return before Promise.all refresh. Live pinned 57-64ms; auto still pending at 50ms.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: auto-chain.js:739 returns buildAutoChain before refresh Promise.all. Live pinned 57-64ms vs 710.7ms baseline; auto still pending at 50ms so refresh remains on auto only.'
+- id: listmodels-no-auth-bypass
+  prd_id: listmodels-serial-probes
+  obligation_kind: invariant
+  subject: listModels still sits behind createServer auth for /v1/models; probe parallelism does not skip requireAuth
+  text: Witness createServer pathname /v1/models after the requireAuth check.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: createServer requireAuth runs before pathname /v1/models at server.js ~1680. listModels parallelism is inside the handler, not a new public route.'
+- id: probe-fail-empty
+  prd_id: listmodels-serial-probes
+  obligation_kind: postcondition
+  subject: probe failure degrades to empty catalog entries, not 500
+  text: Witness listOllama/listChatJimmy/listAcp catch paths.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'postcondition: listOllama catch stores [] and returns []; listChatJimmy catch returns []; listAcp ACPTOAPI_ENABLE_ACP!==1 returns []. listModels continues with empty slices, no throw.'
+- id: pinned-fail-unchanged
+  prd_id: pinned-chat-skip-live-refresh
+  obligation_kind: invariant
+  subject: pinned skip does not change same-link retry or fail-path sleeps
+  text: Witness sleep(delay) still only in chain-machine same-link retry.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: chain-machine.js sleep(delay) at 625/639/775/792 remains same-link retry only. auto-chain.js pinned skip does not touch those paths.'
+- id: prd-rows-ever-existed
+  prd_id: review-commit-prd-mutables
+  obligation_kind: precondition
+  subject: Whether PRD rows pinned-chat-skip-live-refresh and listmodels-serial-probes ever existed in .gm/prd.yml or only as dangling prd_id on mutables
+  text: Witness git history of .gm/prd.yml at and before 7e8899dc plus commit message body for Resolved PRD rows.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'precondition: this session prd-add pinned-chat-skip-live-refresh and listmodels-serial-probes, prd-resolve, git_finalize 7e8899dc emptied .gm/prd.yml. Reviewer later re-added refute rows. Original rows existed then were cleared.'
+- id: unknown-model-predicate
+  prd_id: claim-pinned-skip-refresh
+  obligation_kind: precondition
+  subject: What Auto/unknown still refreshes means in code
+  text: Witness the exact predicate at buildAutoChainLive vs handleChat unknown-model path.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'precondition: auto-chain.js:739 skips only when targetModel is truthy and !== ''auto''. handleChat unknown path server.js:877 calls buildAutoChainLive(undefined) which still awaits refreshAll. Named queue 850-851 never calls Live.'
+- id: cfded9c-exists
+  prd_id: commit-identity
+  obligation_kind: precondition
+  subject: Whether cfded9c is an acptoapi commit and what it contains
+  text: Witness git object in C:\dev\acptoapi, not Freddie HEAD.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'precondition: C:\dev\acptoapi cfded9c is origin/main. git show cfded9c: auto-chain.js skip + server.js Promise.all ollama/chatjimmy/ACP + CHANGELOG 1.0.248. Also mixed max_tokens hunks in the same server.js commit.'
+- id: latency-witness-method
+  prd_id: claim-latency-numbers
+  obligation_kind: precondition
+  subject: How 710.7ms / 3.4ms / 57-64ms were measured and whether they can be re-run
+  text: Find the live driver or re-execute buildAutoChainLive and GET /v1/models.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'precondition: pinned buildAutoChainLive timed in-process: before 710.7ms vs 3.4ms sync; after skip 57.2-63.8ms, auto pending at 50ms. GET /v1/models via createServer port 0: 2064ms then 2016ms (chatjimmy 2s abort, not HTTP TTFB of :4800).'
+- id: acp-pinned-needs-cache
+  prd_id: claim-pinned-skip-refresh
+  obligation_kind: invariant
+  subject: Whether pinned ACP model ids still require ACP_MODEL_CACHE population
+  text: Witness buildAutoChain addLink(targetModel) vs ACP_MODEL_CACHE reads on the pinned return path.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: pinned buildAutoChain addLink(targetModel) return at 397-404 does not read ACP_MODEL_CACHE. Pinned kilo/id uses the requested id. Auto/undefined still refreshAcpModels. server.js:864-867 comment is stale for the pinned branch only.'
+- id: cj-fail-uncached
+  prd_id: chatjimmy-negative-cache
+  obligation_kind: precondition
+  subject: listChatJimmyModels catch and !ok paths do not set _modelsCache
+  text: Witness providers/chatjimmy.js:74-84 return [DEFAULT_MODEL] without assigning _modelsCache on failure.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'precondition: providers/chatjimmy.js:74-84 caches only a successful ids.length body. !ok and catch return [DEFAULT_MODEL] without _modelsCache. Live createServer GET /v1/models 2064ms then 2016ms.'
+- id: line-offset-handlechat
+  prd_id: review-commit-prd-mutables
+  obligation_kind: invariant
+  subject: pinned-refresh-scope witness cites server.js:850-851 as buildAutoChainLive; current source has named-queue assign there and Live call at 870
+  text: Read C:\dev\acptoapi\lib\server.js:850-870 against .gm/mutables.yml pinned-refresh-scope witness_evidence.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: current server.js:850-851 is named-queue assign; buildAutoChainLive for directlyRoutable is 870. Witness 850-851 was pre-offset; the Live call still exists. Claim holds, line numbers drifted.'
+- id: cj-negative-ttl
+  prd_id: chatjimmy-negative-cache
+  obligation_kind: postcondition
+  subject: failed chatjimmy catalog fetch is cached for ~30s so a second listChatJimmyModels in-window does not hit the 2000ms abort
+  text: Witness by timing two listChatJimmyModels calls in one process after the cut.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'postcondition spec: listChatJimmyModels on !ok or catch writes _modelsCache=[DEFAULT_MODEL] with a negative TTL (default 30s). Second in-window call returns cache without the 2000ms abort. Success still uses 5-minute TTL.'
+- id: cj-cache-process-local
+  prd_id: chatjimmy-negative-cache
+  obligation_kind: invariant
+  subject: _modelsCache is process-local; success uses 5min TTL, failure 30s; concurrent last-write-wins
+  text: Witness chatjimmy.js rememberChatJimmyModels.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: chatjimmy.js rememberChatJimmyModels writes process-local _modelsCache/_modelsCacheTs/_modelsCacheTtlMs. Success 5min, failure 30s. Concurrent last-write-wins.'
+- id: cj-fail-no-throw
+  prd_id: chatjimmy-negative-cache
+  obligation_kind: postcondition
+  subject: '!ok and catch return [DEFAULT_MODEL] and never throw'
+  text: Witness listChatJimmyModels catch path.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'postcondition: !ok and catch both rememberChatJimmyModels([DEFAULT_MODEL], CHATJIMMY_NEGATIVE_TTL_MS). Live aMs=1630 bMs=0 no throw.'
+- id: rewrite-preserves-latency
+  prd_id: rewrite-strip-hiddenspawn
+  obligation_kind: invariant
+  subject: filter-repo must strip only HiddenSpawn bytes; latency commits cfded9c/9a8cc1b content must survive
+  text: After rewrite, lib/auto-chain.js still has pinned skip; chatjimmy still has negative cache.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: Rewritten acptoapi HEAD:index.js still has runClaude and module.exports; lib/auto-chain.js still has targetModel && targetModel !== 'auto'; lib/providers/chatjimmy.js still has CHATJIMMY_NEGATIVE_TTL. Live --scan-deps after rewrite exit 0.
+- id: detector-catches-index-and-woff2
+  prd_id: goofedup-early-warning
+  obligation_kind: postcondition
+  subject: scan_deps flags acptoapi index.js IIFE and JS-magic woff2 before those files are stripped
+  text: cargo run -- --scan-deps C:\dev\acptoapi exits 1 and names both shapes.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: After last-line-any-line fix, cargo run --release --scan-deps C:\dev\acptoapi flagged index.js line 224 (39234 bytes) and fa-solid-400.woff2 before strip. Planted fixture also flagged both. Post-rewrite both trees exit 0.

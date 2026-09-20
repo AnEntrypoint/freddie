@@ -1,6 +1,6 @@
 # @freddie/freddie-client-ui-observability
 
-A selected-session operations view focused on actionable work. Its overview and GM tab combine host-computed lifecycle/checkpoint projections with direct session navigation; workflow and subagent views retain their detailed conversation locations. Terminal activity uses the client runtime's mux-fed owner-scoped mirror. Build-reload diagnostics stay outside this user-work view.
+Selected-session Overview of the live GM PRD/mutable graph. The dock reads the host `gmProgress` projection, lays out one CSS-grid column per PRD, overlays in-flight JIT tools and compact CLI last-lines on walking nodes, and edits selected nodes through `ctx.remote.gm` inject callbacks. Workflow, subagent, and terminal plugins stay mounted elsewhere; this view does not duplicate their tabs or a PTY emulator.
 
 ## Model Experience
 

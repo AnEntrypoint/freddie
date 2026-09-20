@@ -832,6 +832,9 @@ importers:
       '@freddie/freddie-file-reference':
         specifier: '*'
         version: link:../../context/file-reference
+      '@freddie/freddie-gm-client':
+        specifier: '*'
+        version: link:../../gm/gm-client
       '@freddie/freddie-goal':
         specifier: '*'
         version: link:../../goal/goal
@@ -2222,6 +2225,9 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
+      '@freddie/freddie-api-remotes':
+        specifier: '*'
+        version: link:../../api/remotes
       '@freddie/freddie-client-connection':
         specifier: '*'
         version: link:../connection
@@ -4480,6 +4486,9 @@ importers:
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -4487,6 +4496,9 @@ importers:
       '@freddie/freddie-invariants':
         specifier: '*'
         version: link:../../runtime-diagnostics/invariants
+      '@freddie/freddie-typert-protocol':
+        specifier: '*'
+        version: link:../../typert/protocol
 
   packages/gm/gm-config:
     devDependencies:
