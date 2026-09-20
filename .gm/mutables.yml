@@ -2423,3 +2423,83 @@
   session_id: freddie-12560-1789889089950
   status: witnessed
   witness_evidence: 'invariant: chain-machine.js sleep(delay) at 625/639/775/792 remains same-link retry only. auto-chain.js pinned skip does not touch those paths.'
+- id: prd-rows-ever-existed
+  prd_id: review-commit-prd-mutables
+  obligation_kind: precondition
+  subject: Whether PRD rows pinned-chat-skip-live-refresh and listmodels-serial-probes ever existed in .gm/prd.yml or only as dangling prd_id on mutables
+  text: Witness git history of .gm/prd.yml at and before 7e8899dc plus commit message body for Resolved PRD rows.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'precondition: this session prd-add pinned-chat-skip-live-refresh and listmodels-serial-probes, prd-resolve, git_finalize 7e8899dc emptied .gm/prd.yml. Reviewer later re-added refute rows. Original rows existed then were cleared.'
+- id: unknown-model-predicate
+  prd_id: claim-pinned-skip-refresh
+  obligation_kind: precondition
+  subject: What Auto/unknown still refreshes means in code
+  text: Witness the exact predicate at buildAutoChainLive vs handleChat unknown-model path.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'precondition: auto-chain.js:739 skips only when targetModel is truthy and !== ''auto''. handleChat unknown path server.js:877 calls buildAutoChainLive(undefined) which still awaits refreshAll. Named queue 850-851 never calls Live.'
+- id: cfded9c-exists
+  prd_id: commit-identity
+  obligation_kind: precondition
+  subject: Whether cfded9c is an acptoapi commit and what it contains
+  text: Witness git object in C:\dev\acptoapi, not Freddie HEAD.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'precondition: C:\dev\acptoapi cfded9c is origin/main. git show cfded9c: auto-chain.js skip + server.js Promise.all ollama/chatjimmy/ACP + CHANGELOG 1.0.248. Also mixed max_tokens hunks in the same server.js commit.'
+- id: latency-witness-method
+  prd_id: claim-latency-numbers
+  obligation_kind: precondition
+  subject: How 710.7ms / 3.4ms / 57-64ms were measured and whether they can be re-run
+  text: Find the live driver or re-execute buildAutoChainLive and GET /v1/models.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'precondition: pinned buildAutoChainLive timed in-process: before 710.7ms vs 3.4ms sync; after skip 57.2-63.8ms, auto pending at 50ms. GET /v1/models via createServer port 0: 2064ms then 2016ms (chatjimmy 2s abort, not HTTP TTFB of :4800).'
+- id: acp-pinned-needs-cache
+  prd_id: claim-pinned-skip-refresh
+  obligation_kind: invariant
+  subject: Whether pinned ACP model ids still require ACP_MODEL_CACHE population
+  text: Witness buildAutoChain addLink(targetModel) vs ACP_MODEL_CACHE reads on the pinned return path.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: pinned buildAutoChain addLink(targetModel) return at 397-404 does not read ACP_MODEL_CACHE. Pinned kilo/id uses the requested id. Auto/undefined still refreshAcpModels. server.js:864-867 comment is stale for the pinned branch only.'
+- id: cj-fail-uncached
+  prd_id: chatjimmy-negative-cache
+  obligation_kind: precondition
+  subject: listChatJimmyModels catch and !ok paths do not set _modelsCache
+  text: Witness providers/chatjimmy.js:74-84 return [DEFAULT_MODEL] without assigning _modelsCache on failure.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'precondition: providers/chatjimmy.js:74-84 caches only a successful ids.length body. !ok and catch return [DEFAULT_MODEL] without _modelsCache. Live createServer GET /v1/models 2064ms then 2016ms.'
+- id: line-offset-handlechat
+  prd_id: review-commit-prd-mutables
+  obligation_kind: invariant
+  subject: pinned-refresh-scope witness cites server.js:850-851 as buildAutoChainLive; current source has named-queue assign there and Live call at 870
+  text: Read C:\dev\acptoapi\lib\server.js:850-870 against .gm/mutables.yml pinned-refresh-scope witness_evidence.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: current server.js:850-851 is named-queue assign; buildAutoChainLive for directlyRoutable is 870. Witness 850-851 was pre-offset; the Live call still exists. Claim holds, line numbers drifted.'
+- id: cj-negative-ttl
+  prd_id: chatjimmy-negative-cache
+  obligation_kind: postcondition
+  subject: failed chatjimmy catalog fetch is cached for ~30s so a second listChatJimmyModels in-window does not hit the 2000ms abort
+  text: Witness by timing two listChatJimmyModels calls in one process after the cut.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'postcondition spec: listChatJimmyModels on !ok or catch writes _modelsCache=[DEFAULT_MODEL] with a negative TTL (default 30s). Second in-window call returns cache without the 2000ms abort. Success still uses 5-minute TTL.'
+- id: cj-cache-process-local
+  prd_id: chatjimmy-negative-cache
+  obligation_kind: invariant
+  subject: _modelsCache is process-local; success uses 5min TTL, failure 30s; concurrent last-write-wins
+  text: Witness chatjimmy.js rememberChatJimmyModels.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'invariant: chatjimmy.js rememberChatJimmyModels writes process-local _modelsCache/_modelsCacheTs/_modelsCacheTtlMs. Success 5min, failure 30s. Concurrent last-write-wins.'
+- id: cj-fail-no-throw
+  prd_id: chatjimmy-negative-cache
+  obligation_kind: postcondition
+  subject: '!ok and catch return [DEFAULT_MODEL] and never throw'
+  text: Witness listChatJimmyModels catch path.
+  session_id: freddie-12560-1789889089950
+  status: witnessed
+  witness_evidence: 'postcondition: !ok and catch both rememberChatJimmyModels([DEFAULT_MODEL], CHATJIMMY_NEGATIVE_TTL_MS). Live aMs=1630 bMs=0 no throw.'
