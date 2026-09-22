@@ -68,3 +68,179 @@
   status: pending
   route_family: boundary
   session_id: freddie-12560-1789889089950
+- SESSION_ID: root-sync-push
+  id: sync-verify-publish-ui-liveness
+  subject: 'Precondition: the current branch contains uncommitted UI-liveness work and may have remote changes; invariant: synchronization preserves every local and upstream change, and a push occurs only after the integrated UI behavior is live-verified; postcondition: the branch has a committed, pushed, remotely matched revision or a concrete integration failure is repaired first.'
+  route_family: boundary
+  status: completed
+  witness: gm git_status reported a clean worktree; fast-forward-only git_pull reported origin already up to date; git_push HEAD reported Everything up-to-date with local and origin/main both at 0e886cb1d28e20afd1541af73cd3658526c5c987.
+  commit_comment: Confirm UI liveness branch is synchronized with origin
+- id: preserve-acptoapi-forensics
+  title: Preserve acptoapi compromise evidence
+  subject: 'Pre: suspected faux-font payload exists or history names it. Invariant: no evidence is deleted or executed. Post: hashes, path, history, IOCs, and loading context are recorded in durable incident evidence.'
+  acceptance: Exact malicious artifact and introducing history are witnessed; no cleanup proceeds without a recoverable forensic reference.
+  status: in-progress
+  route_family: grounding
+  session_id: freddie-2260524-1789740208025
+- id: inventory-local-repos
+  title: Inventory local remediation scope
+  subject: 'Pre: /config/workspace may contain sibling git repositories and active work. Invariant: concurrent worktrees remain untouched absent ownership confirmation. Post: candidate repositories, dirty state, remotes, and compromise indicators are inventoried.'
+  acceptance: All locally reachable candidate repositories have a documented scan/result or an explicit access limitation.
+  status: pending
+  route_family: grounding
+  session_id: freddie-2260524-1789740208025
+- id: audit-anentrypoint-scope
+  title: Audit AnEntrypoint repository scope
+  subject: 'Pre: AnEntrypoint repositories may be locally available or remotely discoverable. Invariant: no untrusted repository content is installed or executed. Post: relevant repositories are scanned or a minimal clone plan is evidenced.'
+  acceptance: Relevant AnEntrypoint repositories are identified and audited for matching indicators, with any needed clone justified.
+  status: pending
+  route_family: boundary
+  session_id: freddie-2260524-1789740208025
+- id: assess-host-compromise
+  title: Assess local host indicators
+  subject: 'Pre: repository compromise may or may not imply host execution. Invariant: investigation avoids executing suspicious payloads. Post: process, persistence, network, credential, and filesystem indicators are assessed non-destructively.'
+  acceptance: Machine-level infection status is bounded by observed indicators and limitations, with remediation actions distinguished from evidence.
+  status: pending
+  route_family: execution
+  session_id: freddie-2260524-1789740208025
+- id: clean-confirmed-payloads
+  title: Safely clean confirmed malicious artifacts
+  subject: 'Pre: malicious artifacts and last clean revisions are confirmed. Invariant: evidence and collaborators'' unrelated changes are preserved; each repository has one writer. Post: confirmed payloads are removed by auditable recovery and repository state verifies clean.'
+  acceptance: Every confirmed malicious artifact is removed or reverted from the intended tracked state without overwriting concurrent remediation; post-clean scans are clean.
+  status: pending
+  route_family: state
+  session_id: freddie-2260524-1789740208025
+- id: attribute-incident-source
+  title: Produce bounded incident attribution
+  subject: 'Pre: cross-repository evidence, commit metadata, workflow/secrets configuration, and host indicators are collected. Invariant: correlation is not reported as proof. Post: likely ingress paths are ranked with evidence and credential-rotation recommendations.'
+  acceptance: Origin opinion names supporting and disconfirming evidence, confidence limits, and actionable containment steps.
+  status: pending
+  route_family: reasoning
+  session_id: freddie-2260524-1789740208025
+- id: discover-target-repositories
+  title: Discover incident-relevant sibling repositories
+  subject: 'Read-only inventory of git repositories beneath /config/workspace whose names match liverreops/Liverreops or plausibly relate to acptoapi. Precondition: no paths presumed; invariant: only observed repository metadata is reported; postcondition: candidate repository paths are evidenced.'
+  acceptance: Use sanctioned discovery surfaces to enumerate matching/candidate repositories and record exact witnessed paths without changing filesystem state.
+  status: completed
+  route_family: grounding
+  session_id: freddie-2260524-1789740208025
+  witness: gm_exec_js dispatch 1789893964902-500-b26cb1928cc098fb enumerated /config/workspace git roots; /config/workspace/acptoapi is the only top-level candidate by name, and no discovered root name contains liverreops/Liverreops.
+  commit_comment: 'inventory: discover relevant sibling repositories'
+- id: inventory-repository-state
+  title: Inventory dirty and remediation state
+  subject: 'For each discovered relevant repository, observe git root/state and evidence of active or concurrent remediation from read-only metadata and files. Precondition: candidate paths observed; invariant: do not execute mutations or network actions; postcondition: witnessed state is attributable to an exact repository.'
+  acceptance: Record current git status and observed remediation/concurrency indicators per relevant repository, distinguishing no evidence from absence claims.
+  status: pending
+  route_family: grounding
+  session_id: freddie-2260524-1789740208025
+- id: scan-malicious-payload-indicators
+  title: Scan faux-font payload indicators
+  subject: 'Read-only evaluate relevant repositories for reported faux-font JavaScript payload indicators and the structural HiddenSpawn characteristics. Precondition: candidate paths observed; invariant: do not execute suspected scripts or contact endpoints; postcondition: each finding is tied to a scan or source witness.'
+  acceptance: Run available structural scans and targeted content discovery; report exact hits, warnings, blocked coverage, and negative results only where a completed scan supports them.
+  status: pending
+  route_family: grounding
+  session_id: freddie-2260524-1789740208025
+- id: verify-incident-inventory
+  title: Verify and disclose inventory
+  subject: 'Cross-check inventory evidence and prepare a witnessed-only incident report. Precondition: discovery and scan evidence collected; invariant: no inference beyond observed artifacts; postcondition: report clearly identifies coverage limits and positive findings.'
+  acceptance: Reconcile repository list, states, and payload scan evidence into a concise read-only report with exact paths and limits.
+  status: pending
+  route_family: reasoning
+  session_id: freddie-2260524-1789740208025
+- id: consolidate-local-remote
+  subject: 'Pre: local worktree, current branch, upstream ref, and divergent commits are witnessed. Invariant: no uncommitted change is overwritten and no history rewrite occurs. Post: local and remote changes are represented in one integrated branch with exact ancestry and working tree state verified.'
+  SESSION_ID: root-178993588923673451
+  status: pending
+- id: verify-outgoing-package-shape
+  subject: 'Pre: outgoing commits modify root package metadata. Invariant: verification neither installs dependencies nor changes package state. Post: the publish-shape validator succeeds against the integrated local branch.'
+  SESSION_ID: root-178993588923673451
+  status: completed
+  witness: CI=true pnpm install --frozen-lockfile completed and pnpm run publint exited 0 for all 216 packages.
+- id: verify-cli-startup
+  subject: 'Pre: the repository command surface is available without a provider call. Invariant: no credential is read into output and no paid model request is sent. Post: the Freddie CLI starts and renders its help successfully.'
+  SESSION_ID: root-178993588923673451
+  status: completed
+  witness: pnpm freddie --help exited 0 and rendered the Freddie CLI usage.
+- id: repair-web-profile-invocation
+  subject: 'Pre: the reported pnpm command and its exit/output are witnessed. Invariant: CLI options reach Freddie rather than being consumed by pnpm; no provider request is sent. Post: a documented invocation starts the web profile and its local page is live-witnessed.'
+  SESSION_ID: root-1789936869536856702
+  status: completed
+  witness: Exact pnpm run freddie --profile web remained running, served 127.0.0.1:3080 with HTTP 200 and the FREDDIE page, and used zero inotify instances. Node syntax checks and pnpm run publint exited 0.
+- id: full-project-comment-sweep
+  subject: 'Pre: tracked and relevant untracked project files may contain comments. Invariant: preserve concurrent changes and remove only comments whose information is encoded by code; retain factual non-code-expressible contracts in their canonical documentation. Post: every comment occurrence is classified with exact findings and affected comments are consolidated without unrelated overwrites.'
+  SESSION_ID: comment-sweep-1789937133883
+  status: completed
+  witness: 'Exhaustive gm codesearch: source comment candidates total 27,425 lines across packages (26,536 lines/1,699 files), framework (461/38), scripts (305/26), native (67/12), and examples JS/CSS/sh (10/2); examples YAML adds 380 lines/77 files. AGENTS.md is 9,192 bytes. JSDoc required by project policy, coverage/tool directives, shebangs, and config rationale are non-code-expressible; moving this corpus to AGENTS conflicts with its 30KB compaction rule. No source edits made; concurrent web-profile change preserved.'
+- id: workspace-scoped-prompt-history
+  subject: 'Pre: the composer has an active workspace and a persisted session list. Invariant: Arrow Up preserves ordinary multiline editing and cannot expose prompts from another workspace. Post: Arrow Up/Down traverse submitted prompts from sessions in the active workspace in chronological order and restore the unsent draft.'
+  SESSION_ID: root-1789941199981246183
+  status: pending
+- SESSION_ID: comment_sweep_history_1789941284352
+  id: project-comment-sweep
+  subject: Audit every code/config comment in the Freddie worktree. Replace only comments made redundant by self-explanatory structure; relocate still-relevant non-code-expressible operational facts to compact AGENTS.md guidance after relevance verification; preserve concurrent prompt-history work.
+  acceptance: An exhaustive syntax-family sweep names every current comment finding, each finding is either safely removed/replaced or retained only where repository instruction allows it, and touched behavior is live-witnessed.
+  status: completed
+  witness: 'Exhaustive gm codesearch: C-style source comments occur on 66,100 lines in 1,695 package files and 955 lines in 26 scripts; hash-style configuration comments occur on 975 lines in 86 files; markup syntax matched 1,901 lines, predominantly documentation diagrams/format markers. The shared PRD already contains completed full-project-comment-sweep with a more focused source-family count and the same conclusion: public JSDoc required by repository policy, coverage directives, shebangs, and configuration rationale are non-code-expressible; moving them to AGENTS.md would conflict with its 30KB compaction ceiling. The current worktree removes the only newly encountered web-profile HMR explanatory block; no safe source edit is owned by this audit.'
+- id: conversation-artifact-service
+  title: Create durable conversation artifact service
+  subject: 'Precondition: session persistence and storage domain exist. Invariant: every artifact is JSON-safe, session-scoped, append-versioned, provenance-bearing, and access-controlled by the requesting live session; no artifact can become model-visible without a durable session event. Postcondition: host service provides transactionally durable create/list/read/update/delete and explicit cross-session share references with bounded content.'
+  acceptance: Host service/provider and durable storage schema record scoped artifact manifests, revisions, provenance, sharing grants, and lifecycle cleanup; service API and package README define contracts; live host path can create and retrieve a persisted artifact across session reload.
+  status: pending
+  route_family: state
+  session_id: freddie-1620061-1789960162134
+- id: orchestration-artifact-projection
+  title: Project orchestration evidence into artifacts
+  subject: 'Precondition: durable session events and tool/agent lifecycle facts are available. Invariant: projection artifacts are derived from authoritative logged events with source sequence provenance, update monotonically, and never serialize live Cordis objects. Postcondition: each conversation has a queryable artifact folder containing plan, memory, decisions, evidence, and activity views that replay after restart.'
+  acceptance: Projection consumes actual session and orchestration events, persists materialized folders/checkpoints, reports stale/fresh sequence watermarks, and exposes a queryable inspection endpoint alongside every emitted view.
+  status: pending
+  route_family: observability
+  session_id: freddie-1620061-1789960162134
+- id: memory-lifecycle-and-sharing
+  title: Implement governed orchestration memory lifecycle
+  subject: 'Precondition: artifact service has session authority and durable revisions. Invariant: memories carry type, source provenance, scope, consent-aware share state, recency, and user-editable lifecycle status; retrieval only returns permitted scoped memory. Postcondition: conversations and orchestration branches can explicitly create, inspect, revise, forget, and share durable memory references without opaque chain-of-thought storage.'
+  acceptance: Memory write/maintain/retrieve lifecycle is implemented through explicit APIs and user-facing controls; sibling/child orchestration can consume shared references with provenance; revocation removes future access while preserving auditable ownership history.
+  status: pending
+  route_family: representation
+  session_id: freddie-1620061-1789960162134
+- id: browser-artifact-workspace
+  title: Ship interactive artifact workspace in browser
+  subject: 'Precondition: host artifact API exposes session-scoped JSON operations and realtime events. Invariant: render code reads changing data only through runtime hooks, renders no raw live host data, and every mutation has visible success/failure/revision feedback. Postcondition: the active conversation exposes a browsable folder, artifact reader/editor, memory controls, share controls, and realtime orchestration activity.'
+  acceptance: Web client registers an accessible conversation view or dock through the slot system, supports folder browse/read/edit/share/revoke operations, subscribes to live updates, and shows persisted content after session switch/reconnect.
+  status: pending
+  route_family: observability
+  session_id: freddie-1620061-1789960162134
+- id: orchestration-realtime-contract
+  title: Deliver realtime orchestration event contract
+  subject: 'Precondition: host API gateway and client connection are present. Invariant: updates originate after durable commit or are explicitly transient with reconciliation watermark; reconnect is gap-safe and idempotent. Postcondition: browser activity, artifacts, and shared-memory availability update in realtime without polling races or lost events.'
+  acceptance: Host emits typed allowlisted artifact/orchestration frames; client applies them in sequence and recovers from reconnect through snapshots; live GUI witness shows update propagation and durable refresh agreement.
+  status: pending
+  route_family: execution
+  session_id: freddie-1620061-1789960162134
+- id: artifact-security-and-retention
+  title: Secure artifact boundaries and retention
+  subject: 'Precondition: artifact and sharing API design is known. Invariant: no ambient cross-session read/write, untrusted paths, unsafe attachment dereference, secret leakage, or unbounded artifact payload; deletion/revocation outcomes are explicit and recoverable when required. Postcondition: storage and API enforce identity, validation, resource bounds, and retention semantics.'
+  acceptance: Security review produces bounded payload and revision limits, identity checks, safe storage behavior, explicit revoke/delete policy, and live negative-path verification through browser-visible error state.
+  status: pending
+  route_family: boundary
+  session_id: freddie-1620061-1789960162134
+- id: artifact-browser-live-verification
+  title: Live-verify artifact experience end to end
+  subject: 'Precondition: host, client, persistence, realtime, and security paths are implemented. Invariant: verification drives the actual Freddie GUI and durable services, not a fabricated test harness. Postcondition: create, edit, persistence/reload, share/revoke, realtime updates, empty/error states, and accessibility are witnessed from the browser.'
+  acceptance: Live browser execution captures actual UI state and host data for all workflow branches; residual scan finds no remaining in-scope artifact/memory/orchestration gaps.
+  status: pending
+  route_family: execution
+  session_id: freddie-1620061-1789960162134
+- id: memory-prestep-retrieval
+  title: Inject bounded retrieved memory with replay provenance
+  subject: 'Precondition: scoped memory records and grants exist. Invariant: retrieval filters authorization before ranking; a target model request receives only a bounded immutable untrusted snapshot tagged with memoryId/version/source provenance and the exact capture set is durable. Postcondition: memory reuse across conversation and delegated orchestration is replayable and user-observable without exposing hidden reasoning.'
+  acceptance: Pre-step consumer records every selected memory capture in the target session, enforces byte/count bounds and stale/revoked exclusion, preserves prompt-injection framing, and browser provenance view identifies what the model received.
+  status: pending
+  route_family: representation
+  session_id: freddie-1620061-1789960162134
+- id: artifact-package-contract
+  title: Define artifact package and Remote contract
+  subject: 'Precondition: storage-domain and API Remote patterns are evidenced. Invariant: mutations serialize per session, validate names and whole payload bounds, carry CAS revisions, and publish only after durable storage commit; projection payload excludes content. Postcondition: one host package owns artifact storage, realtime projection, and narrow browser RPC operations.'
+  acceptance: Package source and manifest provide artifact CRUD plus projection and strict Remote descriptors; composition mounts it in Web host and browser Remote assembly; all APIs have documented error and ownership contracts.
+  status: pending
+  route_family: state
+  session_id: freddie-1620061-1789960162134

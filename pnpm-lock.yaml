@@ -853,6 +853,9 @@ importers:
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
+      '@freddie/freddie-session-artifacts':
+        specifier: '*'
+        version: link:../../session/session-artifacts
       '@freddie/freddie-session-persistence':
         specifier: '*'
         version: link:../../session/session-persistence
@@ -1290,6 +1293,9 @@ importers:
       '@freddie/freddie-client-ui-agent-preset':
         specifier: '*'
         version: link:../../client/ui-agent-preset
+      '@freddie/freddie-client-ui-artifacts':
+        specifier: '*'
+        version: link:../../client/ui-artifacts
       '@freddie/freddie-client-ui-attachment':
         specifier: '*'
         version: link:../../client/ui-attachment
@@ -1440,6 +1446,9 @@ importers:
       '@freddie/freddie-message-feedback':
         specifier: '*'
         version: link:../../feedback/message-feedback
+      '@freddie/freddie-session-artifacts':
+        specifier: '*'
+        version: link:../../session/session-artifacts
       '@freddie/freddie-session-log-export':
         specifier: '*'
         version: link:../../session-query/session-log-export
@@ -1713,6 +1722,34 @@ importers:
       '@freddie/freddie-client-ui-settings':
         specifier: '*'
         version: link:../ui-settings
+      '@freddie/freddie-client-ui-slots':
+        specifier: '*'
+        version: link:../ui-slots
+      '@freddie/freddie-invariants':
+        specifier: '*'
+        version: link:../../runtime-diagnostics/invariants
+
+  packages/client/ui-artifacts:
+    dependencies:
+      '@freddie/webjsx':
+        specifier: '*'
+        version: link:../../../framework/webjsx
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-api-remotes':
+        specifier: '*'
+        version: link:../../api/remotes
+      '@freddie/freddie-client-runtime':
+        specifier: '*'
+        version: link:../runtime
+      '@freddie/freddie-client-ui-conversation':
+        specifier: '*'
+        version: link:../ui-conversation
+      '@freddie/freddie-client-ui-primitives':
+        specifier: '*'
+        version: link:../ui-primitives
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
@@ -5927,6 +5964,37 @@ importers:
       '@freddie/freddie-tools':
         specifier: '*'
         version: link:../../core/tools
+
+  packages/session/session-artifacts:
+    dependencies:
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-invariants':
+        specifier: '*'
+        version: link:../../runtime-diagnostics/invariants
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
+      '@freddie/freddie-session-persistence':
+        specifier: '*'
+        version: link:../session-persistence
+      '@freddie/freddie-session-projection':
+        specifier: '*'
+        version: link:../session-projection
+      '@freddie/freddie-storage-domain':
+        specifier: '*'
+        version: link:../../storage/storage-domain
+      '@freddie/freddie-typert-protocol':
+        specifier: '*'
+        version: link:../../typert/protocol
 
   packages/session/session-checkpoint-policy:
     devDependencies:

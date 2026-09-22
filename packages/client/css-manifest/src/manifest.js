@@ -2,6 +2,7 @@
 // Regenerate after adding/removing a converted CSS file.
 export const cssManifest = [
   { id: "client-locale-src-client-LanguageRow", path: "packages/client/locale/src/client/LanguageRow.css" },
+  { id: "client-ui-artifacts-src-client-ArtifactsView", path: "packages/client/ui-artifacts/src/client/ArtifactsView.css" },
   { id: "client-ui-agent-preset-src-client-AgentPresetLabel", path: "packages/client/ui-agent-preset/src/client/AgentPresetLabel.css" },
   { id: "client-ui-agent-preset-src-client-AgentPresetRow", path: "packages/client/ui-agent-preset/src/client/AgentPresetRow.css" },
   { id: "client-ui-agent-preset-src-client-AgentPresetSeat", path: "packages/client/ui-agent-preset/src/client/AgentPresetSeat.css" },

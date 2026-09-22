@@ -50,6 +50,7 @@ spelling even when Windows supplied an 8.3 alias.
 | `base` | Optional base directory resolved from `ctx.baseUrl`. |
 | `root` | Chokidar roots to watch. Defaults to `['.']`. |
 | `ignored` | Picomatch patterns excluded from watch and reload analysis. |
+| `usePolling` | Use Chokidar polling instead of native file watchers. Defaults to `false`. |
 | `debounce` | Milliseconds to wait before processing a burst of changes. |
 
 ## Events

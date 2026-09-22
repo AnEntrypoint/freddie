@@ -40,6 +40,7 @@
         "@freddie/freddie-host-plugin-inventory/remote",
         "@freddie/freddie-message-feedback/remote",
         "@freddie/freddie-session-reference/remote",
+        "@freddie/freddie-session-artifacts/remote",
         "@freddie/freddie-gm-client/remote"
       ]
     }
@@ -69,6 +70,7 @@
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-session-reference": "*",
+    "@freddie/freddie-session-artifacts": "*",
     "@freddie/freddie-settings": "*",
     "@freddie/freddie-typert-registry": "*",
     "@freddie/cordis": "*"
@@ -90,6 +92,7 @@
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-session-reference": "*",
+    "@freddie/freddie-session-artifacts": "*",
     "@freddie/freddie-settings": "*",
     "@freddie/freddie-typert-registry": "*",
     "@freddie/cordis": "*"

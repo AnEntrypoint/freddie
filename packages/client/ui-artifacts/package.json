@@ -1,0 +1,35 @@
+{
+  "name": "@freddie/freddie-client-ui-artifacts",
+  "description": "Interactive durable artifacts and memory workspace for a conversation",
+  "version": "0.1.1-rc.2",
+  "publishConfig": { "access": "public" },
+  "repository": { "type": "git", "url": "git+https://github.com/lanmower/freddie.git", "directory": "packages/client/ui-artifacts" },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": { "default": "./src/index.js" },
+    "./invariant": { "default": "./src/invariant.js" },
+    "./client": { "default": "./src/client/index.js" },
+    "./package.json": "./package.json"
+  },
+  "freddie": { "client": { "inject": ["@freddie/freddie-client-runtime", "@freddie/freddie-client-ui-conversation", "@freddie/freddie-api-remotes"], "platform": "web" } },
+  "files": ["src/**/*.js"],
+  "license": "MIT",
+  "dependencies": { "@freddie/webjsx": "*" },
+  "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-api-remotes": "*",
+    "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-client-ui-conversation": "*",
+    "@freddie/freddie-invariants": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-api-remotes": "*",
+    "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-client-ui-conversation": "*",
+    "@freddie/freddie-client-ui-primitives": "*",
+    "@freddie/freddie-client-ui-slots": "*",
+    "@freddie/freddie-invariants": "*"
+  }
+}

@@ -614,6 +614,7 @@ class Hmr extends Service {
       'cache',
       'data',
     ]),
+    usePolling: z.boolean().default(false),
     debounce: z.natural().role('ms').default(100),
   })
 }

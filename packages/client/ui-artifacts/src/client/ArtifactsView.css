@@ -1,0 +1,56 @@
+.freddie-artifacts__root {
+  box-sizing: border-box;
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 28px clamp(16px, 4vw, 44px) calc(var(--freddie-composer-height, 180px) + 44px);
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-artifacts__header,
+.freddie-artifacts__list,
+.freddie-artifacts__editor {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--freddie-alias-border-l1);
+  border-radius: 14px;
+  background: var(--freddie-alias-bg-base);
+}
+
+.freddie-artifacts__header h1,
+.freddie-artifacts__editor h2 { margin: 0; }
+.freddie-artifacts__header p { margin: 0; color: var(--freddie-alias-label-tertiary); }
+.freddie-artifacts__eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+
+.freddie-artifacts__workspace {
+  display: grid;
+  grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.freddie-artifacts__item {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 10px;
+  background: var(--freddie-alias-interactive-bg-hover);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.freddie-artifacts__item[data-selected] { border-color: var(--freddie-alias-state-business-primary); }
+.freddie-artifacts__item span,
+.freddie-artifacts__empty { color: var(--freddie-alias-label-secondary); font-size: 12px; }
+.freddie-artifacts__field { display: grid; gap: 6px; color: var(--freddie-alias-label-secondary); font-size: 12px; }
+.freddie-artifacts__field input,
+.freddie-artifacts__field textarea,
+.freddie-artifacts__field select { box-sizing: border-box; width: 100%; padding: 9px; border: 1px solid var(--freddie-alias-border-l2); border-radius: 8px; background: var(--freddie-alias-bg-base); color: inherit; }
+.freddie-artifacts__field textarea { min-height: 180px; resize: vertical; }
+.freddie-artifacts__actions { display: flex; gap: 8px; }
+.freddie-artifacts__actions button { padding: 7px 11px; border: 1px solid var(--freddie-alias-border-l2); border-radius: 8px; background: var(--freddie-alias-interactive-bg-hover); color: inherit; cursor: pointer; }
+.freddie-artifacts__error { color: var(--freddie-alias-state-danger); }
+
+@media (max-width: 700px) { .freddie-artifacts__workspace { grid-template-columns: 1fr; } }

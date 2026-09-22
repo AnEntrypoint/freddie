@@ -19,6 +19,11 @@
       You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
     toolOrder: !!js "process.platform === 'win32' ? ['read', 'edit', 'write', 'grep', 'glob', 'pwsh', 'skill', 'todo_write', 'workflow', 'ralph', 'gm_instruction', 'gm_codesearch', 'gm_phase_status', '<unlisted-tools>'] : ['read', 'edit', 'write', 'grep', 'glob', 'bash', 'skill', 'todo_write', 'workflow', 'ralph', 'gm_instruction', 'gm_codesearch', 'gm_phase_status', '<unlisted-tools>']"
 
+- id: hmr
+  config:
+    root: []
+    usePolling: true
+
 # Full-text session search is opt-in (the base row's `openAt: never`). This
 # restatement keeps the Web values on one ephemeral in-memory index; a
 # deployment enabling content search overrides `openAt` to `first-search` in a
@@ -75,6 +80,9 @@
       config:
         writeEveryEvents: 200
         writeIntervalMs: 5000
+
+    - id: session-artifacts
+      name: '@freddie/freddie-session-artifacts'
 
     - id: session-reference
       name: '@freddie/freddie-session-reference'
@@ -274,6 +282,9 @@
     # Compact projected GM, workflow, subagent, and terminal status dock.
     - id: ui-observability
       name: '@freddie/freddie-client-ui-observability'
+
+    - id: ui-artifacts
+      name: '@freddie/freddie-client-ui-artifacts'
 
     # Per-message feedback: Like/Dislike plus an optional note in the
     # assistant-message action strip, over the messageFeedback Remote.

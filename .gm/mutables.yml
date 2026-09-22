@@ -2519,3 +2519,12 @@
   session_id: freddie-12560-1789889089950
   status: witnessed
   witness_evidence: After last-line-any-line fix, cargo run --release --scan-deps C:\dev\acptoapi flagged index.js line 224 (39234 bytes) and fa-solid-400.woff2 before strip. Planted fixture also flagged both. Post-rewrite both trees exit 0.
+- id: local-remote-topology
+  subject: 'Unknown: configured upstream relation and whether local or remote has unique commits. Resolve only from a git witness before selecting fast-forward or merge.'
+  SESSION_ID: root-178993588923673451
+  status: witnessed
+  witness_evidence: git_pull ff_only reported origin already up to date at 548ab5a; git_stash_pop reported main ahead of origin/main by two commits.
+- id: remote-push-credentials
+  subject: 'Unknown: a credential authorized to publish local main to origin is available to this session. Current witness: git_push HEAD failed before remote mutation because GitHub HTTPS could not read a username.'
+  SESSION_ID: root-178993588923673451
+  status: unknown
