@@ -1,59 +1,3 @@
-- id: inventory-local-hits
-  title: Inventory every local 9-8926-1 carrier
-  subject: Every git-tracked file under C:\dev that contains the HiddenSpawn marker, plus introducing commit SHA/author/date.
-  acceptance: Exhaustive per-repo git grep of 9-8926-1 with introducing commit. Submodules included.
-  status: completed
-  route_family: grounding
-  session_id: freddie-12560-1789889089950
-  witness: 'git grep 9-8926-1: C:\dev\acptoapi index.js + fa-solid-400.woff2 (ea7f448 2026-09-11 lanmower); C:\dev\gm flatspace.config.mjs + gm-plugkit font (a18f352 2026-09-18); C:\dev\gm\agentplug crates/agentplug-host font (77fdb41 2026-09-19 agentplug-bot). Freddie grep 0.'
-- id: github-org-ground-zero
-  title: Find first AnEntrypoint commit with the marker
-  subject: GitHub org code search plus per-repo -S log to name the earliest dirty commit and whether it is org-wide vs this machine.
-  acceptance: Earliest SHA, author, date, repo. Last clean SHA named.
-  status: completed
-  route_family: boundary
-  session_id: freddie-12560-1789889089950
-  witness: 'gh search 9-8926-1 --owner AnEntrypoint: goofedup, gm-skill, acptoapi, thatcher, semiosis. Oldest indexed path commit: AnEntrypoint/semiosis 7faeb96 2026-07-30T12:50:09Z lanmower chore: remove vendored .gm/ state. acptoapi IIFE ea7f448 2026-09-11 is later. Code search is not exhaustive.'
-- id: static-c2-decode
-  title: Static-extract C2 without eval
-  subject: Regex-extract URLs, spawn/eval/child_process from the appended IIFE. Never require or eval the payload.
-  acceptance: Named C2 host/path or explicit none-found. No process spawned from the dropper.
-  status: completed
-  route_family: grounding
-  session_id: freddie-12560-1789889089950
-  witness: 'exec_js on index.js IIFE: payloadLen 40304, eval 0, child_process 2, spawn 4, require 4, no plaintext https C2. Decoder is y7/s8/v8 packed strings; 1125 literals decoded to 0 interesting URLs. Did not eval.'
-- id: live-process-load
-  title: Did a live process already load index.js
-  subject: :4800 and other node processes whose command line is C:\dev\acptoapi. Loading index.js would have already run the IIFE.
-  acceptance: PID, command line, whether it required index.js. Do not kill unless user asks.
-  status: completed
-  route_family: observability
-  session_id: freddie-12560-1789889089950
-  witness: :4800 PID 13536 node bin/acptoapi.js since 2026-09-19 21:53 parent npm run start. bin/acptoapi.js:75 require('../lib/server') not index.js. index.js required only for claude subcommand line 256. IIFE did not run in this server process.
-- id: rewrite-strip-hiddenspawn
-  title: Rewrite history to strip HiddenSpawn from dirty remotes
-  subject: 'User authorized history rewrite: no dirty SHAs remain. Strip 9-8926-1 IIFE from JS/mjs and delete fake fa-solid-400.woff2 blobs from acptoapi, gm, agentplug, goofedup, gm-skill, thatcher, semiosis. Force-with-lease push.'
-  acceptance: git grep 9-8926-1 empty on rewritten HEADs; git log -S 9-8926-1 empty; origin/main matches. Unrelated dirty files not mixed.
-  status: completed
-  route_family: execution
-  session_id: freddie-12560-1789889089950
-  witness: 'filter-repo --file-info-callback line-only strip + drop JS-magic assets. force-with-lease: acptoapi e593e2c, gm 72d0a18, agentplug 01c6df0, goofedup 3b366ac then de41df7, thatcher 7831100, semiosis 2f25a32, gm-skill 3865739. log -S 9-8926-1 empty. Contents API 404 on every fake fa-solid-400.woff2. index.js runClaude survived; pinned skip + CHATJIMMY_NEGATIVE_TTL survived.'
-- id: goofedup-early-warning
-  title: Wire goofedup as earliest HiddenSpawn detector
-  subject: C:\dev\goofedup is the org early-warning. Detect 9-8926-1, global['!'], whitespace-padded IIFE after real source, fake woff2 whose first bytes are JS. Run as early as possible in local/CI work.
-  acceptance: Detector exists, runs, catches a planted fixture or the known marker shape, is live on origin.
-  status: completed
-  route_family: observability
-  session_id: freddie-12560-1789889089950
-  witness: 'Live: planted fixture flagged js-masquerading-as-asset + appended-packed-payload exit 1. After last-line fix, acptoapi index.js line 224 (39234 bytes) + fa-solid-400.woff2 flagged. Post-rewrite --scan-deps acptoapi/gm/goofedup exit 0. CI plants both shapes at runtime. Pushed de41df7 then auto-bump 86550f9 0.1.45.'
-- id: machine-not-ground-zero
-  title: Confirm this machine is not HiddenSpawn ground zero
-  subject: Live :4800 did not load index.js. gh login is lanmower keyring gho_. No PAT to rotate unless local secret theft is witnessed.
-  acceptance: Document process evidence. Rotate gh login only if a local steal is witnessed.
-  status: completed
-  route_family: boundary
-  session_id: freddie-12560-1789889089950
-  witness: :4800 PID 13536 node bin/acptoapi.js require lib/server not index.js. gh auth lanmower keyring gho_ scopes repo/workflow. No local steal witnessed; dirty SHAs were already on origin (lanmower + agentplug-bot). No gh login rotation.
 - id: freddie-premature-stop
   title: Find and fix Freddie stopping a walk too early
   subject: 'User: also fix the stopping in freddie, you shouldnt have stopped there. The latency goal was auto-completed with a goal_complete injection that forbade further tools, cutting HiddenSpawn cleanup mid-flight. Find the harness path that ends an autonomous run / completes a goal while in-spirit work remains, and stop it from doing that.'
@@ -68,13 +12,6 @@
   status: pending
   route_family: boundary
   session_id: freddie-12560-1789889089950
-- SESSION_ID: root-sync-push
-  id: sync-verify-publish-ui-liveness
-  subject: 'Precondition: the current branch contains uncommitted UI-liveness work and may have remote changes; invariant: synchronization preserves every local and upstream change, and a push occurs only after the integrated UI behavior is live-verified; postcondition: the branch has a committed, pushed, remotely matched revision or a concrete integration failure is repaired first.'
-  route_family: boundary
-  status: completed
-  witness: gm git_status reported a clean worktree; fast-forward-only git_pull reported origin already up to date; git_push HEAD reported Everything up-to-date with local and origin/main both at 0e886cb1d28e20afd1541af73cd3658526c5c987.
-  commit_comment: Confirm UI liveness branch is synchronized with origin
 - id: preserve-acptoapi-forensics
   title: Preserve acptoapi compromise evidence
   subject: 'Pre: suspected faux-font payload exists or history names it. Invariant: no evidence is deleted or executed. Post: hashes, path, history, IOCs, and loading context are recorded in durable incident evidence.'
@@ -117,15 +54,6 @@
   status: pending
   route_family: reasoning
   session_id: freddie-2260524-1789740208025
-- id: discover-target-repositories
-  title: Discover incident-relevant sibling repositories
-  subject: 'Read-only inventory of git repositories beneath /config/workspace whose names match liverreops/Liverreops or plausibly relate to acptoapi. Precondition: no paths presumed; invariant: only observed repository metadata is reported; postcondition: candidate repository paths are evidenced.'
-  acceptance: Use sanctioned discovery surfaces to enumerate matching/candidate repositories and record exact witnessed paths without changing filesystem state.
-  status: completed
-  route_family: grounding
-  session_id: freddie-2260524-1789740208025
-  witness: gm_exec_js dispatch 1789893964902-500-b26cb1928cc098fb enumerated /config/workspace git roots; /config/workspace/acptoapi is the only top-level candidate by name, and no discovered root name contains liverreops/Liverreops.
-  commit_comment: 'inventory: discover relevant sibling repositories'
 - id: inventory-repository-state
   title: Inventory dirty and remediation state
   subject: 'For each discovered relevant repository, observe git root/state and evidence of active or concurrent remediation from read-only metadata and files. Precondition: candidate paths observed; invariant: do not execute mutations or network actions; postcondition: witnessed state is attributable to an exact repository.'
@@ -151,36 +79,10 @@
   subject: 'Pre: local worktree, current branch, upstream ref, and divergent commits are witnessed. Invariant: no uncommitted change is overwritten and no history rewrite occurs. Post: local and remote changes are represented in one integrated branch with exact ancestry and working tree state verified.'
   SESSION_ID: root-178993588923673451
   status: pending
-- id: verify-outgoing-package-shape
-  subject: 'Pre: outgoing commits modify root package metadata. Invariant: verification neither installs dependencies nor changes package state. Post: the publish-shape validator succeeds against the integrated local branch.'
-  SESSION_ID: root-178993588923673451
-  status: completed
-  witness: CI=true pnpm install --frozen-lockfile completed and pnpm run publint exited 0 for all 216 packages.
-- id: verify-cli-startup
-  subject: 'Pre: the repository command surface is available without a provider call. Invariant: no credential is read into output and no paid model request is sent. Post: the Freddie CLI starts and renders its help successfully.'
-  SESSION_ID: root-178993588923673451
-  status: completed
-  witness: pnpm freddie --help exited 0 and rendered the Freddie CLI usage.
-- id: repair-web-profile-invocation
-  subject: 'Pre: the reported pnpm command and its exit/output are witnessed. Invariant: CLI options reach Freddie rather than being consumed by pnpm; no provider request is sent. Post: a documented invocation starts the web profile and its local page is live-witnessed.'
-  SESSION_ID: root-1789936869536856702
-  status: completed
-  witness: Exact pnpm run freddie --profile web remained running, served 127.0.0.1:3080 with HTTP 200 and the FREDDIE page, and used zero inotify instances. Node syntax checks and pnpm run publint exited 0.
-- id: full-project-comment-sweep
-  subject: 'Pre: tracked and relevant untracked project files may contain comments. Invariant: preserve concurrent changes and remove only comments whose information is encoded by code; retain factual non-code-expressible contracts in their canonical documentation. Post: every comment occurrence is classified with exact findings and affected comments are consolidated without unrelated overwrites.'
-  SESSION_ID: comment-sweep-1789937133883
-  status: completed
-  witness: 'Exhaustive gm codesearch: source comment candidates total 27,425 lines across packages (26,536 lines/1,699 files), framework (461/38), scripts (305/26), native (67/12), and examples JS/CSS/sh (10/2); examples YAML adds 380 lines/77 files. AGENTS.md is 9,192 bytes. JSDoc required by project policy, coverage/tool directives, shebangs, and config rationale are non-code-expressible; moving this corpus to AGENTS conflicts with its 30KB compaction rule. No source edits made; concurrent web-profile change preserved.'
 - id: workspace-scoped-prompt-history
   subject: 'Pre: the composer has an active workspace and a persisted session list. Invariant: Arrow Up preserves ordinary multiline editing and cannot expose prompts from another workspace. Post: Arrow Up/Down traverse submitted prompts from sessions in the active workspace in chronological order and restore the unsent draft.'
   SESSION_ID: root-1789941199981246183
   status: pending
-- SESSION_ID: comment_sweep_history_1789941284352
-  id: project-comment-sweep
-  subject: Audit every code/config comment in the Freddie worktree. Replace only comments made redundant by self-explanatory structure; relocate still-relevant non-code-expressible operational facts to compact AGENTS.md guidance after relevance verification; preserve concurrent prompt-history work.
-  acceptance: An exhaustive syntax-family sweep names every current comment finding, each finding is either safely removed/replaced or retained only where repository instruction allows it, and touched behavior is live-witnessed.
-  status: completed
-  witness: 'Exhaustive gm codesearch: C-style source comments occur on 66,100 lines in 1,695 package files and 955 lines in 26 scripts; hash-style configuration comments occur on 975 lines in 86 files; markup syntax matched 1,901 lines, predominantly documentation diagrams/format markers. The shared PRD already contains completed full-project-comment-sweep with a more focused source-family count and the same conclusion: public JSDoc required by repository policy, coverage directives, shebangs, and configuration rationale are non-code-expressible; moving them to AGENTS.md would conflict with its 30KB compaction ceiling. The current worktree removes the only newly encountered web-profile HMR explanatory block; no safe source edit is owned by this audit.'
 - id: conversation-artifact-service
   title: Create durable conversation artifact service
   subject: 'Precondition: session persistence and storage domain exist. Invariant: every artifact is JSON-safe, session-scoped, append-versioned, provenance-bearing, and access-controlled by the requesting live session; no artifact can become model-visible without a durable session event. Postcondition: host service provides transactionally durable create/list/read/update/delete and explicit cross-session share references with bounded content.'
