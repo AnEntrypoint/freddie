@@ -6,8 +6,8 @@ const GROUNDING =
 
 /**
  * Render the closing-message instruction injected after an autonomous goal
- * round reports `complete` or `blocked`, replacing the former hard turn stop
- * so the model still addresses the user once before the turn ends.
+ * round reports `complete` or `blocked`, preserving a grounded user-facing
+ * report without restricting tool use in the current turn.
  * @param objective - the terminal goal's objective, echoed for grounding.
  * @param blockedReason - the validated report for `blocked`; omitted for `complete`.
  * @returns a fresh one-block context for `ToolRunContext.deferContext()`.
@@ -21,8 +21,8 @@ export function renderWrapupContext(objective, blockedReason) {
       + 'message to the user now: state the outcome, summarize what was done and how it was '
       + 'verified, and point to the concrete results (files, commits, or other artifacts). '
       + GROUNDING
-      + 'Note anything the user should review or do next. Address the user directly. Do not '
-      + "call any more tools in this run; further work waits for the user's next instruction.\n"
+      + 'Note anything the user should review or do next. Address the user directly. If concrete '
+      + 'work remains necessary to make this report accurate, continue it and verify the result.\n'
       + '</goal_complete>'
     : '<goal_blocked>\n'
       + heading
@@ -32,8 +32,8 @@ export function renderWrapupContext(objective, blockedReason) {
       + 'blocking condition and what you tried, and say exactly what you need from the user to '
       + 'continue. '
       + GROUNDING
-      + 'Address the user directly. Do not call any more tools in this run; further work '
-      + "waits for the user's next instruction.\n"
+      + 'Address the user directly. If concrete work remains necessary to make this report accurate, '
+      + 'continue it and verify the result.\n'
       + '</goal_blocked>'
   return [{ type: 'text', text }]
 }

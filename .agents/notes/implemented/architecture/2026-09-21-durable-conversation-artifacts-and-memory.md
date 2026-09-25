@@ -12,7 +12,9 @@ A session log records the conversation and projections expose durable read model
 
 The authoritative sidecar item holds content, type, timestamps, source-event coordinate, actor, item revision, state, and explicit target-session grants. The session event and projection omit content. This separates bounded inspectable metadata from content-bearing storage and keeps the session log from becoming an artifact blob store.
 
-The Web bundle mounts `@freddie/freddie-client-ui-artifacts`. Its conversation view uses the projection for live metadata and the typed `sessionArtifacts` Remote for content reads and mutations. Browser-local selection and drafts are not durable session facts.
+A receiver's artifact view includes valid grants as read-only records. Each shared record carries immutable source session, item, revision, and provenance attribution; revocation removes that receiver view without deleting the source. A source row whose stored session lifecycle identity is stale never becomes visible to a receiver.
+
+The Web bundle mounts `@freddie/freddie-client-ui-artifacts`. Its conversation view uses the projection for live metadata and the typed `sessionArtifacts` Remote for content reads and mutations. Browser-local selection and drafts are not durable session facts. The Overview combines `gmProgress`, `workflow`, and `goal` projections so a conversation's durable orchestration checkpoint is inspectable beside the artifact folder.
 
 ## Alternatives considered
 
@@ -24,8 +26,8 @@ The Web bundle mounts `@freddie/freddie-client-ui-artifacts`. Its conversation v
 
 ## Consequences
 
-A user can keep durable artifacts and explicit memory records in the active conversation, revise them with conflict detection, and observe the artifact index through the ordinary realtime projection route. Sharing and revocation are durable, visible item state. Semantic retrieval, expiry review, cross-workspace principals, and pre-step memory injection remain separate capabilities so they cannot silently broaden access or prompt content.
+A user can keep durable artifacts and explicit memory records in the active conversation, revise owned items with conflict detection, and observe the artifact index through the ordinary realtime projection route. Sharing and revocation are durable, recipient-visible item state while source ownership remains immutable. The artifact folder and Overview make explicit memory, GM, workflow, and goal checkpoints inspectable without making them model context. Semantic retrieval, expiry review, cross-workspace principals, and pre-step memory injection remain separate capabilities so they cannot silently broaden access or prompt content.
 
 ## Verification
 
-`pnpm freddie --profile web --dump-config` includes the `session-artifacts` host row and `ui-artifacts` browser row. `node --check` validates the new host, Remote, and client sources; `pnpm run publint` validates the package surfaces.
+The live Web GUI records and renders the Overview's GM, workflow, and goal summaries. It creates an artifact through the typed Remote, reloads the conversation view from the durable sidecar, and renders a grant in the target session as a read-only record with source attribution. `node --check` validates the host, Remote, and client sources; documentation gates validate the reference links.

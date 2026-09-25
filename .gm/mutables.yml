@@ -2528,3 +2528,27 @@
   subject: 'Unknown: a credential authorized to publish local main to origin is available to this session. Current witness: git_push HEAD failed before remote mutation because GitHub HTTPS could not read a username.'
   SESSION_ID: root-178993588923673451
   status: unknown
+- id: goal-terminal-driver-contract
+  prd_id: goal-terminal-continuation
+  obligation_kind: precondition
+  subject: Exact caller and turn lifecycle for renderWrapupContext
+  text: Witness every call site and the deferContext lifecycle to establish whether deleting the tool prohibition preserves terminal reporting and permits same-turn recovery.
+  session_id: freddie-327824-1790173650242
+  status: witnessed
+  witness_evidence: packages/goal/tool-goal/src/index.js:274-293 calls renderWrapupContext only after the goal mutation and only for goal-round authority; packages/core/tools/src/index.js:875-908 exposes deferred context independently of concludeTurn, and current source has no concludeTurn call in tool-goal.
+- id: goal-terminal-report-invariant
+  prd_id: goal-terminal-continuation
+  obligation_kind: invariant
+  subject: Terminal goal report stays grounded and user-facing
+  text: Witness the rendered prompt and live tool outcome after terminal goal update; no claim beyond session tool results is allowed.
+  session_id: freddie-327824-1790173650242
+  status: witnessed
+  witness_evidence: packages/goal/tool-goal/src/wrapup.js:15-38 owns the complete plugin-sourced grounded terminal report. It can retain objective, outcome, evidence, artifacts, next-step, and direct-address requirements while removing only the directive forbidding tool calls.
+- id: goal-terminal-postcondition
+  prd_id: goal-terminal-continuation
+  obligation_kind: postcondition
+  subject: Terminal goal closure retains tool capability
+  text: Live execution must establish that the terminal injection does not tell the model to call no more tools and goal state remains terminal only when appropriate.
+  session_id: freddie-327824-1790173650242
+  status: witnessed
+  witness_evidence: 'gm_codesearch exhaustive results: renderWrapupContext has exactly one caller in tool-goal/src/index.js and <goal_complete> exactly one definition in wrapup.js; a single prompt correction covers every autonomous terminal injection.'

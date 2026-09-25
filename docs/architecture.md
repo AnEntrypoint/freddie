@@ -91,6 +91,8 @@ Details: the [sequence diagram](agent-lifecycle.md), the [tool pipeline](tool-ex
 
 The session log is the source of the context the model sees. `deriveMessages()` projects model history from it, and raw `assistant/chunk` events preserve replay and UI fidelity. Fork, resume, transcripts, telemetry, and persistence all derive from this stream.
 
+Content-bearing per-conversation records that are not model context use a storage-domain sidecar. Its owner commits the sidecar before it appends a metadata-only session event; the resulting projection makes the committed state observable through replay and realtime transport without turning the session log into a blob store.
+
 **Model-visible means logged.** Anything that reaches a model request must be reconstructable from the log, and a runtime invariant asserts it. This is why a new model-visible input requires a new session event: extend `SessionEventMap` and render from the log.
 
 ## Capability seams
@@ -121,6 +123,8 @@ New behavior attaches to a documented extension point. Changing the loop itself 
 | Add UI or editor integration | drive `ctx.agents` and render from `session/event` |
 | Add a Web Client Chat node | register a `ConversationNodeDefinition` + keyed renderer |
 | Add durable session state | extend `SessionEventMap`; render and replay from the log |
+| Add a durable conversation artifact or explicit memory | use a host-owned storage-domain sidecar and publish its committed metadata through a session projection |
+| Make stored cross-session content model-visible | add a bounded pre-step retrieval consumer that logs its exact sourced capture; a share grant alone is never prompt context |
 | Generate session titles | register the sole `ctx.sessionTitle` provider |
 | Manage a same-session objective | use `ctx.goals`; continue through `agent/*` |
 | Fork a live session | `ctx.sessions.fork(source, boundary?, childSessionId?)` |

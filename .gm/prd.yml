@@ -146,3 +146,64 @@
   status: pending
   route_family: state
   session_id: freddie-1620061-1789960162134
+- id: durable-orchestration-observability
+  title: Complete durable orchestration observability
+  subject: 'Pre: session projections can fold durable orchestration facts. Invariant: every model-visible orchestration fact remains reconstructable from the session log, and the GUI consumes projections rather than an ad-hoc live store. Post: the current conversation exposes durable GM/workflow/goal state through an interactive Freddie view and reconnect/replay preserves it.'
+  acceptance: A real Freddie session records and renders GM/workflow/goal observability from durable projection state, with a live browser witness after reload/reconnect.
+  status: completed
+  route_family: observability
+  session_id: freddie-3574885-1790099470563
+  witness: 'Live agent-browser at http://127.0.0.1:3080: Overview tab rendered region "Durable orchestration state" with GM graph and projection-backed GM/workflow/goal summary after source HMR.'
+  commit_comment: 'feat: expose durable orchestration summaries in Overview'
+- id: database-artifact-folders
+  title: Complete database-backed artifact folders
+  subject: 'Pre: session-artifact sidecar has revisioned rows. Invariant: each session identity gates one serialized, CAS-protected database row and metadata publication follows durable commit. Post: the interactive folder supports durable create, edit, delete, organize, and content loading for the current conversation.'
+  acceptance: A browser creates and revises an artifact through the Remote, the resulting row survives a fresh list/reload, and its revision/provenance are displayed.
+  status: completed
+  route_family: state
+  session_id: freddie-3574885-1790099470563
+  witness: 'Live agent-browser at http://127.0.0.1:3080: Artifacts tab created "Live orchestration memory" as memory v1; a full GUI reload returned the same 36-byte record.'
+  commit_comment: 'feat: make durable artifact folders reloadable'
+- id: share-orchestration-memories
+  title: Make orchestration memories shareable
+  subject: 'Pre: artifacts can name target sessions. Invariant: grants never make content model-visible implicitly and receiving-session state retains source provenance. Post: the owner can grant/revoke a share and an authorized target can inspect the shared memory in its own artifact folder.'
+  acceptance: A live browser/remote flow grants one memory to another session and an authorized target folder lists it with immutable source provenance; revocation removes target visibility without deleting the source.
+  status: in-progress
+  route_family: boundary
+  session_id: freddie-3574885-1790099470563
+- id: document-orchestration-artifacts
+  title: Document the orchestration artifact architecture
+  subject: 'Pre: architecture, package README, and Agent Note define separate documentation roles. Invariant: docs state current contracts with one home per fact. Post: architecture map, package contracts, and an active Agent Note describe the durable projections, storage-domain ownership, sharing boundary, and live verification.'
+  acceptance: Documentation links resolve and accurately name code-owned mechanisms, alternatives, consequences, and live verification evidence.
+  status: completed
+  route_family: representation
+  session_id: freddie-3574885-1790099470563
+  witness: docs/architecture.md:94-96; docs/subsystems/conversation-artifacts.md:1-21; .agents/notes/implemented/architecture/2026-09-21-durable-conversation-artifacts-and-memory.md:11-35 document the sidecar, projection, sharing, and observability contracts.
+  commit_comment: 'docs: define durable artifact and orchestration contracts'
+- id: goal-terminal-continuation
+  title: Keep autonomous goal closure tool-capable
+  subject: 'Pre: a goal may become terminal while the user request''s in-spirit closure still has actionable work. Invariant: terminal goal messaging must never be the mechanism that prohibits a same-turn tool dispatch. Post: a terminal goal update retains a user-facing grounded wrap-up while follow-on closure work can proceed through tools and durable goal state.'
+  acceptance: The terminal goal prompt no longer directs the model to stop using tools; the active goal driver/tool path is live-executed with a terminal goal transition and confirms tool capability remains available. The established terminal report stays grounded and user-facing.
+  status: pending
+  route_family: state
+  session_id: freddie-327824-1790173650242
+- SESSION_ID: root-ecab108
+  id: ecab108-origin-and-remediation
+  subject: 'Pre: commit ecab108 and its push timing are alleged. Invariant: local/remote timestamps and payload provenance are independently witnessed without execution or deletion. Post: origin confidence is bounded and confirmed cleanup targets have recoverable forensic references.'
+  route_family: grounding
+  status: pending
+- SESSION_ID: root-ecab108
+  id: audit-suspicious-schema-comments
+  subject: 'Pre: comment sweep found batch-narration comments in host API schema shims. Invariant: preserve their exact paths and diff provenance before any removal. Post: classify whether they are compromise residue and, if confirmed, replace them with self-explanatory code or remove them without obscuring evidence.'
+  route_family: grounding
+  status: pending
+- SESSION_ID: root-ecab108
+  id: restore-api-boundary-validation
+  subject: 'Pre: committed host API schemas and fetch/downloads boundaries contain identity parser shims and documented malformed-input pass-through. Invariant: forensic paths/provenance are preserved and unrelated dirty work is untouched. Post: every affected wire boundary restores trusted validation and rejects malformed input with live negative-path evidence.'
+  route_family: boundary
+  status: pending
+- SESSION_ID: root-ecab108
+  id: inspect-ignored-config-bat
+  subject: 'Pre: gm-mcp history identifies an ignored config.bat candidate near the compromise interval. Invariant: inspect/hash without execution and retain a recoverable forensic reference. Post: determine whether it is malicious, whether it exists locally, and remove/quarantine only if confirmed.'
+  route_family: grounding
+  status: pending

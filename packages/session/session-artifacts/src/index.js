@@ -24,9 +24,9 @@ function rejected(code, details = {}) {
   return Object.freeze({ ok: false, error: Object.freeze({ code, ...details }) })
 }
 
-function copyItem(item, includeContent = true) {
+function copyItem(item, includeContent = true, sharedFrom = undefined) {
   return Object.freeze({
-    id: item.id,
+    id: sharedFrom === undefined ? item.id : `${sharedFrom.sessionId}:${item.id}`,
     name: item.name,
     kind: item.kind,
     bytes: item.bytes,
@@ -36,6 +36,7 @@ function copyItem(item, includeContent = true) {
     status: item.status,
     sharedWith: Object.freeze([...item.sharedWith]),
     provenance: Object.freeze({ ...item.provenance }),
+    ...sharedFrom === undefined ? {} : { sharedFrom },
     ...includeContent ? { content: item.content } : {},
   })
 }
@@ -93,8 +94,7 @@ export class SessionArtifactsService extends TypertRemoteService {
   async list(request) {
     const known = await this.inspectSession(request.sessionId)
     if (!known.ok) return known
-    const row = this.currentRow(request.sessionId, known.value.meta)
-    return success({ revision: row.revision, items: snapshotItems(row.items) })
+    return success(await this.viewFor(request.sessionId, known.value.meta))
   }
 
   put(request) {
@@ -183,6 +183,29 @@ export class SessionArtifactsService extends TypertRemoteService {
     const stored = this.requireTable().get(sessionId)
     if (stored !== undefined && sameIdentity(stored, header)) return stored
     return Object.freeze({ session: identityOf(header), revision: 0, items: EMPTY_ITEMS })
+  }
+
+  async viewFor(sessionId, header) {
+    const owned = this.currentRow(sessionId, header)
+    const shared = []
+    for (const [sourceSessionId, row] of this.requireTable().entries()) {
+      if (sourceSessionId === sessionId || !row.items.some(item => item.sharedWith.includes(sessionId))) continue
+      const source = await this.inspectSession(sourceSessionId)
+      if (!source.ok || !sameIdentity(row, source.value.meta)) continue
+      for (const item of row.items) {
+        if (!item.sharedWith.includes(sessionId)) continue
+        shared.push(copyItem(item, true, Object.freeze({
+          sessionId: sourceSessionId,
+          itemId: item.id,
+          sourceRevision: item.revision,
+          sourceProvenance: Object.freeze({ ...item.provenance }),
+        })))
+      }
+    }
+    return Object.freeze({
+      revision: owned.revision,
+      items: Object.freeze([...snapshotItems(owned.items), ...shared]),
+    })
   }
 
   async commit(inspection, row, items) {

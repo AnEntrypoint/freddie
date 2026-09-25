@@ -44,5 +44,6 @@ const css = {
   inspector: 'freddie-observability__inspector',
   field: 'freddie-observability__field',
   running: 'freddie-observability__running',
+  orchestration: 'freddie-observability__orchestration',
 }
 export default css

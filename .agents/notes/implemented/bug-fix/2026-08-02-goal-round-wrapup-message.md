@@ -8,7 +8,7 @@ An autonomous goal round that reported `update_goal` `complete` or `blocked` con
 
 ## Decision
 
-A goal-round `complete` or `blocked` success no longer calls `concludeTurn()`. Instead the tool defers one wrap-up context onto its own result: a `{ kind: 'plugin', plugin: 'tool-goal' }`-sourced user message carrying a `<goal_complete>`/`<goal_blocked>` instruction to write a grounded closing message to the user and call no more tools. The turn then ends through the agent loop's ordinary no-tool-calls stop, so no new loop primitive exists and steering semantics are untouched. Direct-human mutations remain uninstructed exactly as before. The cost is one additional model request per goal lifecycle, not per round.
+A goal-round `complete` or `blocked` success no longer calls `concludeTurn()`. Instead the tool defers one wrap-up context onto its own result: a `{ kind: 'plugin', plugin: 'tool-goal' }`-sourced user message carrying a `<goal_complete>`/`<goal_blocked>` instruction to write a grounded closing message to the user. The follow-up decision preserves tool access for concrete work needed to make that report accurate; [the continuation decision](2026-10-15-goal-terminal-report-keeps-tool-access.md) owns that correction. The turn then ends through the agent loop's ordinary no-tool-calls stop, so no new loop primitive exists and steering semantics are untouched. Direct-human mutations remain uninstructed exactly as before. The cost is one additional model request per goal lifecycle, not per round.
 
 The instruction wording was selected by A/B sampling on `deepseek-v4-pro` with a reconstructed goal-round transcript: a structured instruction (outcome, verification, artifacts, next steps) consistently beat a minimal "summarize" one on completeness; adding a session-grounding clause shifted unsupported detail from asserted fact to hedged suggestion; and the no-instruction control produced high-variance closings, including confidently fabricated file-level detail.
 
@@ -16,7 +16,7 @@ Scripting the keyless proof required one snapshot-harness addition: `dsh-llm-rep
 
 ## Verification
 
-`tool-goal` package tests pin the injected context (source, tag, objective, no-more-tools clause) and the absent `concludesTurn` for both terminal actions, plus the uninstructed direct-human pause and complete paths, at 100% file coverage. `llm-replay` unit tests pin the placeholder contract: last-match-wins capture, whole-match fallback, and loud failures for unmatched, invalid, and unterminated patterns. The new keyless ACP snapshot `goal-wrapup` drives the shipped application through create → round one → autonomous complete and asserts the plugin-sourced wrap-up injection, the same-turn closing assistant message, and the `completed` turn end in both the durable session log and the ACP stdout stream.
+`tool-goal` package checks pin the injected context (source, tag, objective, and continued access for report-accuracy work) and the absent `concludesTurn` for both terminal actions, plus the uninstructed direct-human pause and complete paths. `llm-replay` checks pin the placeholder contract: last-match-wins capture, whole-match fallback, and loud failures for unmatched, invalid, and unterminated patterns. The keyless ACP `goal-wrapup` flow drives the shipped application through create → round one → autonomous complete and observes the plugin-sourced wrap-up injection, the same-turn closing assistant message, and the `completed` turn end in both the durable session log and ACP stdout stream.
 
 ## Alternatives considered
 

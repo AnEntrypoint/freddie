@@ -4,10 +4,10 @@
 
 ## Service API
 
-- `list({ sessionId })` returns a session-bound revision and complete artifact content for the authorized browser workspace.
-- `put({ sessionId, id?, name, kind, content, ifRevision, sourceSeq?, actor? })` creates or revises an `artifact`, `memory`, `decision`, `evidence`, or `plan` item. It rejects invalid names, kinds, content limits, item limits, missing revisions, and CAS conflicts.
-- `remove({ sessionId, id, ifRevision })` removes an item at its observed session revision.
-- `share({ sessionId, id, targetSessionId, grant, ifRevision })` adds or removes an explicit target-session grant. The grant is preserved in item provenance and is visible to the owner; it does not itself inject content into another model request.
+- `list({ sessionId })` returns the receiver's session-bound revision, owned content, and every live source item that explicitly grants that session access. Shared records carry immutable `sharedFrom` source session/item/revision/provenance attribution and are read-only in the receiver.
+- `put({ sessionId, id?, name, kind, content, ifRevision, sourceSeq?, actor? })` creates or revises an owned `artifact`, `memory`, `decision`, `evidence`, or `plan` item. It rejects invalid names, kinds, content limits, item limits, missing revisions, and CAS conflicts.
+- `remove({ sessionId, id, ifRevision })` removes an owned item at its observed session revision.
+- `share({ sessionId, id, targetSessionId, grant, ifRevision })` adds or removes an explicit target-session grant. A grant exposes the source item to its receiver on the next list read; revocation removes that receiver view without deleting the source. Neither operation injects content into a model request.
 
 Each mutation serializes behind the owning session, persists the complete sidecar row before publishing it, and appends the current metadata-only view as an ignorable `session-artifacts/changed` event when that session is live. The `artifacts` projection makes that event durable, replayable, cached, and realtime through the standard session-projection transport.
 

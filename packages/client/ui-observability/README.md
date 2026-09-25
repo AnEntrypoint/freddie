@@ -1,6 +1,6 @@
 # @freddie/freddie-client-ui-observability
 
-Selected-session Overview of the live GM PRD/mutable graph. The dock reads the host `gmProgress` projection, lays out one CSS-grid column per PRD, overlays in-flight JIT tools and compact CLI last-lines on walking nodes, and edits selected nodes through `ctx.remote.gm` inject callbacks. Workflow, subagent, and terminal plugins stay mounted elsewhere; this view does not duplicate their tabs or a PTY emulator.
+Selected-session Overview of durable orchestration state. The dock reads the host `gmProgress`, `workflow`, and `goal` projections: it summarizes the current GM checkpoint, recorded workflow runs, and durable goal lifecycle before laying out the GM PRD/mutable graph. It overlays in-flight JIT tools and compact CLI last-lines on walking nodes, and edits selected GM nodes through `ctx.remote.gm` inject callbacks. Workflow chat rows remain the chronological detail view; goal activation remains process-local and is not claimed as replayable state.
 
 ## Model Experience
 

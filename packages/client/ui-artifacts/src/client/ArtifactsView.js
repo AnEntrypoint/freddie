@@ -15,37 +15,72 @@ export class FreddieArtifactsView extends HTMLElement {
   #selected = null
   #draft = { name: '', kind: 'memory', content: '' }
   #loadedItems = []
+  #loadedRevision = 0
+  #loadedSessionId = null
   #error = null
   #busy = false
 
-  setProps(props) { this.#props = props; this.#load(); this.#render() }
+  setProps(props) {
+    const changedSession = this.#props?.sessionId !== props.sessionId
+    this.#props = props
+    if (changedSession) {
+      this.#loadedItems = []
+      this.#loadedRevision = 0
+      this.#loadedSessionId = null
+      this.#selected = null
+    }
+    this.#load()
+    this.#render()
+  }
   connectedCallback() { this.#load(); this.#render() }
 
   async #load() {
     const list = this.#props?.list
-    if (typeof list !== 'function') return
+    const sessionId = this.#props?.sessionId
+    if (typeof list !== 'function' || typeof sessionId !== 'string' || this.#loadedSessionId === sessionId) return
+    this.#loadedSessionId = sessionId
     try {
       const result = await list()
       if (result?.ok === true) {
         this.#loadedItems = result.value.items
+        this.#loadedRevision = typeof result.value.revision === 'number' ? result.value.revision : 0
         this.#render()
       }
-    } catch { /* The projection remains the availability fallback. */ }
+    } catch {
+      this.#loadedSessionId = null
+      // The projection remains the availability fallback.
+    }
   }
 
   #artifacts() {
     const projection = this.#props?.useProjection?.('artifacts')
-    return this.#loadedItems.length > 0 ? this.#loadedItems : projection?.items ?? []
+    const loaded = Array.isArray(this.#loadedItems) ? this.#loadedItems : []
+    return loaded.length > 0 ? loaded : projection?.items ?? []
   }
 
   #revision() {
-    return this.#props?.useProjection?.('artifacts')?.revision ?? 0
+    const projected = this.#props?.useProjection?.('artifacts')?.revision
+    if (typeof projected === 'number') return projected
+    return this.#loadedSessionId === this.#props?.sessionId ? this.#loadedRevision : 0
   }
 
-  #select(item) {
+  async #select(item) {
     this.#selected = item.id
-    this.#draft = { name: item.name, kind: item.kind, content: item.content, shareTarget: '' }
+    this.#draft = { name: item.name, kind: item.kind, content: item.content ?? '', shareTarget: '' }
     this.#error = null
+    if (item.content === undefined && typeof this.#props?.list === 'function') {
+      try {
+        const result = await this.#props.list()
+        if (result?.ok === true) {
+          this.#loadedItems = result.value.items
+          this.#loadedRevision = typeof result.value.revision === 'number' ? result.value.revision : 0
+          const loaded = result.value.items.find(candidate => candidate.id === item.id)
+          if (loaded !== undefined) this.#draft = { name: loaded.name, kind: loaded.kind, content: loaded.content, shareTarget: '' }
+        }
+      } catch (error) {
+        this.#error = error instanceof Error ? error.message : String(error)
+      }
+    }
     this.#render()
   }
 
@@ -61,6 +96,7 @@ export class FreddieArtifactsView extends HTMLElement {
       if (result?.ok === false) this.#error = message(result)
       else {
         this.#loadedItems = result.value.items
+        this.#loadedRevision = typeof result.value.revision === 'number' ? result.value.revision : 0
         this.#draft = { name: '', kind: 'memory', content: '' }
       }
     } catch (error) {
@@ -73,6 +109,7 @@ export class FreddieArtifactsView extends HTMLElement {
 
   #editor() {
     const selected = this.#artifacts().find(item => item.id === this.#selected)
+    const readOnly = selected?.sharedFrom !== undefined
     const draft = selected === undefined
       ? this.#draft
       : { name: selected.name, kind: selected.kind, content: selected.content, id: selected.id, shareTarget: this.#draft.shareTarget ?? '' }
@@ -81,14 +118,15 @@ export class FreddieArtifactsView extends HTMLElement {
       h(tag, { value: draft[key], oninput: event => this.#patch({ [key]: event.target.value }), ...attrs }),
     )
     return h('aside', { class: css.editor ?? '', 'aria-label': 'Artifact editor' },
-      h('h2', null, selected === undefined ? 'New artifact' : `Edit ${selected.name}`),
+      h('h2', null, selected === undefined ? 'New artifact' : `${readOnly ? 'Shared' : 'Edit'} ${selected.name}`),
+      readOnly ? h('p', { class: css.shared ?? '' }, `Shared from ${selected.sharedFrom.sessionId} · source revision ${selected.sharedFrom.sourceRevision}`) : null,
       this.#error === null ? null : h('p', { class: css.error ?? '', role: 'alert' }, this.#error),
-      field('Name', 'input', 'name'),
+      field('Name', 'input', 'name', { disabled: readOnly }),
       h('label', { class: css.field ?? '' }, h('span', null, 'Type'), h('select', {
-        value: kind(draft.kind), oninput: event => this.#patch({ kind: event.target.value }),
+        value: kind(draft.kind), disabled: readOnly, oninput: event => this.#patch({ kind: event.target.value }),
       }, ['artifact', 'memory', 'decision', 'evidence', 'plan'].map(value => h('option', { value }, value)))),
-      field('Content', 'textarea', 'content'),
-      h('div', { class: css.actions ?? '' },
+      field('Content', 'textarea', 'content', { disabled: readOnly }),
+      readOnly ? null : h('div', { class: css.actions ?? '' },
         h('button', { type: 'button', disabled: this.#busy, onclick: () => void this.#run(() => this.#props.put({
           ...selected === undefined ? {} : { id: selected.id },
           name: this.#draft.name || draft.name,
@@ -110,7 +148,12 @@ export class FreddieArtifactsView extends HTMLElement {
     const artifacts = this.#artifacts()
     const gm = props.useProjection?.('gmProgress')
     const workflow = props.useProjection?.('workflow')
-    applyDiff(this, h('section', { class: css.root ?? '', 'data-artifacts-view': '', 'aria-labelledby': 'freddie-artifacts-title' },
+    applyDiff(this, h('section', {
+      class: css.root ?? '',
+      'data-artifacts-view': '',
+      'data-artifact-remote': typeof props.put === 'function' ? 'ready' : 'missing',
+      'aria-labelledby': 'freddie-artifacts-title',
+    },
       h('header', { class: css.header ?? '' },
         h('p', { class: css.eyebrow ?? '' }, 'Durable conversation folder'),
         h('h1', { id: 'freddie-artifacts-title' }, 'Artifacts & memory'),
@@ -120,8 +163,8 @@ export class FreddieArtifactsView extends HTMLElement {
         h('section', { class: css.list ?? '', 'aria-label': 'Conversation artifacts' },
           artifacts.length === 0 ? h('p', { class: css.empty ?? '' }, 'No artifacts yet. Save a memory, decision, plan, or evidence item for this conversation.') : artifacts.map(item => h('button', {
             type: 'button', key: item.id, class: css.item ?? '', 'data-selected': item.id === this.#selected ? '' : undefined,
-            onclick: () => this.#select(item),
-          }, h('strong', null, item.name), h('span', null, `${item.kind} · ${item.bytes} bytes · v${item.revision}`))),
+            onclick: () => { void this.#select(item) },
+          }, h('strong', null, item.name), h('span', null, `${item.sharedFrom === undefined ? item.kind : `shared ${item.kind}`} · ${item.bytes} bytes · v${item.revision}`))),
         ),
         this.#editor(),
       ),

@@ -32,6 +32,19 @@ function overlayItems(overlay, nodeId) {
   return overlay?.byNode?.get?.(nodeId) ?? []
 }
 
+function goalSummary(goal) {
+  if (goal?.goal === undefined) return 'No durable goal'
+  const current = goal.goal
+  const rounds = `${goal.roundsStarted ?? 0}/${current.maxGoalRounds}`
+  return `${current.phase} · r${current.revision} · ${rounds} rounds`
+}
+
+function workflowSummary(workflow) {
+  const runs = Array.isArray(workflow?.runs) ? workflow.runs : []
+  const active = runs.filter(run => run.status === 'running').length
+  return active === 0 ? `${runs.length} recorded` : `${active} running · ${runs.length} recorded`
+}
+
 export class FreddieObservabilityDock extends HTMLElement {
   #props = null
   #selectedNodeId = null
@@ -141,6 +154,19 @@ export class FreddieObservabilityDock extends HTMLElement {
     )
   }
 
+  #orchestrationSummary(gm, workflow, goal) {
+    const runs = Array.isArray(workflow?.runs) ? workflow.runs : []
+    const currentGoal = goal?.goal
+    return h('section', { class: css.orchestration ?? '', 'aria-label': 'Durable orchestration state' },
+      h('h2', null, 'Durable orchestration'),
+      h('div', { class: css.metrics ?? '' },
+        h('article', { class: css.metric ?? '' }, h('span', { class: css.label ?? '' }, 'GM'), h('strong', { class: css.value ?? '' }, phase(gm)), h('span', { class: css.detail ?? '' }, `${gm?.prdPendingCount ?? 0} PRD · ${gm?.mutablesPendingCount ?? 0} mutable pending`)),
+        h('article', { class: css.metric ?? '' }, h('span', { class: css.label ?? '' }, 'Workflow'), h('strong', { class: css.value ?? '' }, workflowSummary(workflow)), h('span', { class: css.detail ?? '' }, runs.length === 0 ? 'No workflow events in this conversation' : runs.map(run => `${run.name}: ${run.currentPhase ?? run.status}`).join(' · '))),
+        h('article', { class: css.metric ?? '' }, h('span', { class: css.label ?? '' }, 'Goal'), h('strong', { class: css.value ?? '' }, goalSummary(goal)), h('span', { class: css.detail ?? '' }, currentGoal === undefined ? 'Goal activation is process-local' : currentGoal.objective)),
+      ),
+    )
+  }
+
   #inspector(gm) {
     const props = this.#props
     const node = this.#selectedNodeId === null ? undefined : this.#nodeOf(gm, this.#selectedNodeId)
@@ -215,6 +241,8 @@ export class FreddieObservabilityDock extends HTMLElement {
     const props = this.#props
     if (props === null) return
     const gm = typeof props.useProjection === 'function' ? props.useProjection('gmProgress') : undefined
+    const workflow = typeof props.useProjection === 'function' ? props.useProjection('workflow') : undefined
+    const goal = typeof props.useProjection === 'function' ? props.useProjection('goal') : undefined
     const connection = typeof props.useConnection === 'function' ? props.useConnection(state => state) : 'offline'
     const terminals = typeof props.useTerminals === 'function' ? props.useTerminals(state => state) : []
     const chatStore = typeof props.useSession === 'function' ? props.useSession(snapshot => snapshot?.chat?.nodes) : undefined
@@ -244,6 +272,7 @@ export class FreddieObservabilityDock extends HTMLElement {
         h('h1', { id: 'freddie-observability-title' }, 'GM graph'),
         h('p', null, `${phase(gm)} · ${nodes.filter(node => isOpen(node.status)).length} open of ${nodes.length} nodes${walking?.verb === undefined || walking.verb === null ? '' : ` · walking ${walking.verb}`}`),
       ),
+      this.#orchestrationSummary(gm, workflow, goal),
       h('div', { class: css.workspace ?? '' },
         h('section', { class: css.panel ?? '', 'data-observability-overview': '' },
           nodes.length === 0

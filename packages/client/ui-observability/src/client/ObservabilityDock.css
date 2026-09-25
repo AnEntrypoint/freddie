@@ -114,6 +114,18 @@
   font-weight: 700;
 }
 
+.freddie-observability__orchestration {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid var(--freddie-alias-border-l1);
+  border-radius: 14px;
+  background: var(--freddie-alias-bg-base);
+}
+
+.freddie-observability__orchestration h2 { margin: 0; font-size: 16px; }
+
 .freddie-observability__priority {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

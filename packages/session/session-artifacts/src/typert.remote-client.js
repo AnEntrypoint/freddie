@@ -5,6 +5,10 @@ const artifact = z.object({
   id: z.string(), name: z.string(), kind: z.string(), content: z.string().optional(), bytes: z.number(), revision: z.number(),
   createdAt: z.number(), updatedAt: z.number(), status: z.string(), sharedWith: z.array(z.string()),
   provenance: z.object({ sessionId: z.string(), sourceSeq: z.number().nullable(), actor: z.string() }),
+  sharedFrom: z.object({
+    sessionId: z.string(), itemId: z.string(), sourceRevision: z.number(),
+    sourceProvenance: z.object({ sessionId: z.string(), sourceSeq: z.number().nullable(), actor: z.string() }),
+  }).optional(),
 })
 const view = z.object({ revision: z.number(), items: z.array(artifact) })
 const result = z.union([z.object({ ok: z.literal(true), value: view }), z.object({ ok: z.literal(false), error: z.object({ code: z.string() }).passthrough() })])
