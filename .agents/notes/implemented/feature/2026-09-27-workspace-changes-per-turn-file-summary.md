@@ -1,0 +1,27 @@
+# Agent Note: `workspace-changes` — per-turn file-change summaries from git snapshots
+
+Status: implemented
+
+## Problem
+
+`@freddie/freddie-client-ui-deliverables` infers produced files only from tracked mutation tools' own `locations` — a real, narrower guarantee than a complete picture of what a turn changed on disk (a `bash`-run script, an external process, or an edit outside the tracked tool set is invisible to it). `deepseek-ai/deepseek-harness`'s `deliverables/workspace-changes` solves the general case: snapshot the git working tree at turn start and turn end into a private, read-only-alternate object store (the real repository's index, objects, work tree, and refs are never touched), diff the two trees, and fall back to whole-file content capture around file-tool edits for paths outside any repository or ones git ignores.
+
+## Decision
+
+New package `packages/deliverables/workspace-changes` (`@freddie/freddie-workspace-changes`), ported closely: `git.js` (subprocess-driven git plumbing: `rev-parse` to locate the repository, a scratch index seeded from the real index for `add --all`/`write-tree`, `diff-tree --numstat` for per-file line counts with rename detection, `ls-tree`/`cat-file` for reading a snapshot's blob, `ls-files --stage` for gitlink/submodule exclusion, `check-ignore --stdin` for the ignore set), `numstat.js` (NUL-terminated numstat record parsing), `paths.js` (canonical/display/durable path forms), `capture.js` (SHA-1 content-addressed whole-file capture with an oversized/binary classification), `compare.js` (`diff`'s `structuredPatch`, already an existing dependency via `@freddie/freddie-tool-fs`, with the same timeout-degrades-to-coarse-replacement behavior), and `recorder.js`/`index.js` (per-session turn orchestration: `TurnRecorder` serializes snapshot/capture/record work per session, `apply()` wires it to `session/event` (`turn/start`/`turn/end`/`tool/result`), `agent/turn-stopping`, `session/disposed`, and `tools/pre-execute`, and provides `ctx.workspaceChanges`).
+
+Every git-plumbing touchpoint (`ctx.subprocess.spawn`/`resolveExecutable`, `handle.done`/`handle.collected.stdout.readFrom(0)`) was cross-checked against freddie's real `@freddie/freddie-subprocess`/`-subprocess-local` source before porting, matching an existing consumer's usage (`packages/fs/tool-fs-search/src/search-core.js`) exactly. Every session/agent event and API (`session.header.origin`/`delegationDepth`, `session.append`, `agent/turn-stopping`, `tools/pre-execute`, `ctx.provide`) was likewise verified against freddie's real source, not assumed from the port.
+
+**Correctness fix required and applied, here and retroactively in `@freddie/freddie-tool-present`:** freddie's session-persistence layer (`packages/session/session-persistence/src/coordinator.js`'s `assertEventsSupported`) refuses to interpret a persisted log containing an event type outside its generated `KNOWN_SESSION_EVENT_TYPES` set unless the event carries `ignorable: true` — and the generator that would register a new type (`scripts/gen-persistence-catalog.ts`, named in that set's own header comment) does not exist in this buildless-JS tree. Without `ignorable: true`, every session that used the new `workspace/changes` event (or, discovered by the same check, `tool-present`'s `deliverables/presented` event from the prior change) would become unreadable/unresumable the moment it was persisted and reloaded. Both now append with `{ ignorable: true }`, which is semantically correct here: neither event carries content required to reconstruct the model-visible conversation.
+
+## Alternatives considered
+
+**Skip this because `ui-deliverables`'s inference and `tool-present` already cover "what a turn produced."** Rejected: both are narrower. Inference only sees tracked-tool `locations`; `tool-present` only sees what the model explicitly declares. Neither sees a `bash`-produced change, an edit outside the tracked tools, or a change the model never explicitly declared. `workspace-changes` is the general case underneath both.
+
+**Skip the private-object-store snapshot and just diff the live working tree against HEAD.** Rejected: this ports the design that already solves the problem HEAD-diffing does not — a turn's changes over its own start/end boundary, independent of what was committed before or after, without ever writing to the real repository's index or refs (a concurrent `git status`/`git add` from the user or another tool never observes or interferes with a snapshot).
+
+## Consequences
+
+Verified live against a real git repository and freddie's real `LocalSubprocessRuntime` (not a stub) on this Windows development machine: the full `git.js` primitive set (locate → snapshot → mutate working tree → snapshot → diff-tree → read a blob from each snapshot → gitlink/ignore checks) against a real scratch repository, and the full `TurnRecorder` orchestration (turn start, a captured file-tool mutation, turn end, the appended `workspace/changes` event carrying `ignorable: true`, the retrievable summary with correct per-file added/deleted counts and snapshot tree ids, and a real unified-diff hunk for the changed file). `pnpm run publint` passes (230/230). A CLI headless boot regression-checked cleanly (this plugin is not wired into any shipped profile, so this only confirms no collateral damage).
+
+Ships without client-side rendering — a UI surface reading `workspace/changes` events and calling `workspaceChanges.summary`/`diff` is separate, additive work, matching the same honest scope boundary drawn for `tool-present`.

@@ -1,0 +1,31 @@
+# Agent Note: `util/time`, `util/crypto`, and `util/chunked-list`, ported from dsh
+
+Status: implemented
+
+## Problem
+
+Continuing the `deepseek-ai/deepseek-harness` (dsh) comparison started in [the `util/values` Agent Note](2026-09-27-shared-values-util-package.md): three more of dsh's zero-dependency `util/*` packages have direct, already-duplicated or already-missing counterparts in freddie.
+
+`canonicalClientTimeZone` (IANA zone validation/canonicalization against `Intl.DateTimeFormat`) existed byte-for-byte identically inlined in `packages/host/apiproxy/src/api-proxy.js`, with no shared package. Browser-safe UUID generation (`crypto.getRandomValues`-backed, working on insecure-context HTTP origins where `crypto.randomUUID()` throws) already existed in `packages/client/connection/src/client/random-uuid.js`, but `packages/client/ui-conversation/src/client/service.js`'s `browserDraftAttachment` called `crypto.randomUUID()` directly — a real latent bug: accessing freddie's web UI from another device over `http://<lan-ip>:3080` (a normal way to reach it) makes that call throw when a user attaches an image, since `crypto.randomUUID` requires a secure context. That same file also carried its own byte-identical copy of `bytesToBase64`, dsh's chunked base64 encoder. `chunked-list` (a persistent, structural-sharing append-only list) had no counterpart in freddie at all — a pure gap, ported as-is with no existing consumer.
+
+Two other dsh `util/*` candidates from the same comparison, `code-language` and `workspace-path`, turned out to already be independently covered — `packages/fs/tool-fs/src/read-render.js`'s `langFromPath`/`LANG_BY_EXTENSION` and `packages/client/runtime/src/client/workspaces/path.js`'s `resolveWorkspacePath`/`abbreviateHomePath` are freddie's own equivalents — so they are not ported; porting them would create a second competing implementation.
+
+## Decision
+
+Three new zero-dependency packages: `packages/util/time` (`@freddie/freddie-time`, `canonicalClientTimeZone`), `packages/util/crypto` (`@freddie/freddie-crypto`, `randomUUID` + `bytesToBase64`), and `packages/util/chunked-list` (`@freddie/freddie-chunked-list`, `appendChunkedList`/`iterateChunkedList`/`chunkedListSchema`, depending on `zod` — already an established dependency elsewhere in the tree, so this is not a new addition to the stack).
+
+`packages/host/apiproxy/src/api-proxy.js` now imports `canonicalClientTimeZone` from `@freddie/freddie-time` instead of defining it locally. `packages/client/connection/src/client/random-uuid.js` re-exports `randomUUID` from `@freddie/freddie-crypto` as its existing `randomUuid` name. `packages/client/ui-conversation/src/client/service.js` now imports both `randomUUID` and `bytesToBase64` from `@freddie/freddie-crypto`, deletes its local `bytesToBase64`, and uses `randomUUID()` in `browserDraftAttachment` instead of `crypto.randomUUID()` — fixing the insecure-context bug.
+
+Client-side consumption of a new workspace package requires a build-time declaration, not just a `package.json` dependency: `packages/client/modules/src/index.js`'s `buildImportMapEntries` only adds a bare specifier to the page's `<script type="importmap">` when a `freddie.client` plugin row lists it in `external` (documented in that file as "the browser-side mirror of the build-time purity gate — an import map has no entry for anything not on this list, so an unlisted specifier fails resolution at import() time"). Both `packages/client/connection/package.json` and `packages/client/ui-conversation/package.json` now list `@freddie/freddie-crypto` in their own `freddie.client.external`, since both import it directly — not relying on either package's declaration covering the other, even though the two currently always load together.
+
+## Alternatives considered
+
+**Let `ui-conversation` rely on `client-connection`'s `external` declaration for `@freddie/freddie-crypto` instead of declaring its own**, since the page-level import map is a single merged object and `ui-conversation` always loads with `client-connection` injected. Rejected: this is exactly the hidden-dependency-on-a-sibling's-declaration shape the codebase's "explicit > implicit at package boundaries" convention exists to prevent, and would silently break if the two packages ever stopped being co-loaded.
+
+**Port `code-language` and `workspace-path` anyway, for literal parity with dsh's package list.** Rejected: freddie already has independently-converged equivalents (`fs/tool-fs`'s `langFromPath`, `client/runtime`'s `resolveWorkspacePath`/`abbreviateHomePath`); adding a second, competing implementation under a different name serves the dsh package *count* rather than any real gap.
+
+## Consequences
+
+`canonicalClientTimeZone`, `randomUUID`, and `bytesToBase64` replace local re-implementations with a shared reference (`api-proxy.js`'s and `random-uuid.js`'s public behavior is unchanged); `chunked-list` and the `ui-conversation` `crypto.randomUUID()` → `randomUUID()` swap are new capability/bug-fix respectively. Verified live: `canonicalClientTimeZone` and `chunked-list`'s append/iterate/schema round-trip via `node --input-type=module` assertions; `randomUUID`'s output shape (RFC 4122 v4 regex) and `bytesToBase64` against `Buffer.from(...).toString('base64')` on both a small string and a 200,000-byte buffer (to exercise the chunking boundary). `pnpm run publint` passes for all three new packages (223/223 packages green). A full `pnpm freddie --profile headless` boot round-tripped a real model response after the `apiproxy` change. The client-side import-map fix was verified by booting `pnpm freddie web`, confirming `@freddie/freddie-crypto` appears in the served `<script type="importmap">` at `/workspace/@freddie/freddie-crypto/src/index.js`, and fetching both consuming files' served bundles to confirm their `import` statements match that map key exactly — a real in-browser `import()` execution was not available in this environment (no connected browser), so the check stops at confirming every piece the native ESM resolution algorithm reads is present and consistent, short of running that algorithm itself.
+
+`code-language` and `workspace-path` are deliberately not ported (see Alternatives); a future comparison pass should treat those two as "already at parity" rather than re-flagging them as gaps.

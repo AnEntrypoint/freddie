@@ -1,0 +1,26 @@
+{
+  "name": "@freddie/freddie-values",
+  "description": "Zero-dependency closed-union, lossless-JSON, deep-freeze, and weak-map-with-values helpers shared across packages",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/util/values"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js"
+  ],
+  "license": "MIT"
+}

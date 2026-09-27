@@ -57,6 +57,9 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@freddie/freddie-<pkg>`. **Gr
 | [`examples/`](examples/README.md) | Demo bundles (agent-spine + CLI/ACP/JSON-RPC bins) leaves load | Support — example infra |
 | [`test-support/`](test-support/README.md) | Support infrastructure (testkits, invariants, replay, Loader smokes) | Support — lower compatibility expectations |
 | [`util/`](util/README.md) | Low-level zero-dependency utilities shared across groups (`Branded<B>`, Harness home/path helpers, timeout, retention) | Support — small, stable, harness-dep-free |
+| [`webhook/`](webhook/README.md) | Fire-and-forget webhook rule runtime + signed GitHub HTTP adapter | Product — stable API |
+| [`deliverables/`](deliverables/README.md) | Explicit model-declared file deliveries | Product — stable API |
+| [`browser-use/`](browser-use/README.md) | Exclusive named browser-use provider registration | Product — stable API |
 
 New packages join existing groups; new groups update their README and this table.
 

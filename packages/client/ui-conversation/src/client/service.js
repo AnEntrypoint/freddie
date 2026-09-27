@@ -8,12 +8,13 @@
  * private fields bypass that rebinding.
  */
 import { Service } from '@freddie/cordis'
+import { bytesToBase64, randomUUID } from '@freddie/freddie-crypto'
 
 /** Create one browser-only draft descriptor; only its id enters input state. */
 function browserDraftAttachment(file) {
   return {
     kind: 'image',
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     previewUrl: URL.createObjectURL(file),
     file,
   }
@@ -290,15 +291,6 @@ function imageMediaType(value) {
     default:
       throw new UnsupportedImageMediaTypeError(value)
   }
-}
-
-function bytesToBase64(data) {
-  let binary = ''
-  const chunk = 0x8000
-  for (let offset = 0; offset < data.length; offset += chunk) {
-    binary += String.fromCharCode(...data.subarray(offset, offset + chunk))
-  }
-  return btoa(binary)
 }
 
 function revokePreview(url) {

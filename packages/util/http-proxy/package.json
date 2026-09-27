@@ -1,0 +1,32 @@
+{
+  "name": "@freddie/freddie-http-proxy",
+  "description": "Outbound HTTP proxy support: resolves HTTP_PROXY/HTTPS_PROXY/ALL_PROXY/NO_PROXY from the launch environment and installs undici's global dispatcher, which Node's built-in fetch resolves",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/util/http-proxy"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./policy": {
+      "default": "./src/policy.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/*.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "undici": ">=7.29.0"
+  }
+}

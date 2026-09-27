@@ -44,6 +44,7 @@
     "@freddie/freddie-gm-client": "*",
     "@freddie/freddie-tool-gm": "*",
     "@freddie/freddie-home-paths": "*",
+    "@freddie/freddie-http-proxy": "*",
     "@freddie/freddie-persona": "*",
     "@freddie/freddie-plan-mode": "*",
     "@freddie/freddie-terminal": "*",

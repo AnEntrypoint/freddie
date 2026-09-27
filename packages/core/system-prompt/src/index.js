@@ -83,7 +83,7 @@ function compareToolNames(a, b) {
  */
 export function renderPrompt(assembly) {
   return assembly.sections
-    .map(section => interpolate(section, assembly.variables, 'section'))
+    .map(section => section.interpolate === false ? section.text : interpolate(section, assembly.variables, 'section'))
     .filter(text => text.length > 0)
     .join('\n\n')
 }
@@ -236,7 +236,10 @@ export class SystemPrompt extends Service {
    * Register an ordered prompt section in the calling context's scope. A scoped
    * section shadows a global section with the same name; duplicates within one
    * layer and non-finite orders throw. Registration and disposal emit
-   * `system-prompt/change`.
+   * `system-prompt/change`. `interpolate: false` renders the section's text
+   * verbatim, skipping `{{variable}}` scanning — for a section whose text can
+   * legitimately contain literal brace pairs (e.g. echoing caller-supplied
+   * names) that would otherwise misparse as a malformed or unknown reference.
    * @param section - the section to register.
    * @returns the exact Cordis effect disposer.
    */
@@ -374,6 +377,7 @@ export class SystemPrompt extends Service {
         const assembled = {
           name: section.name,
           text: typeof section.text === 'function' ? section.text(context) : section.text,
+          ...section.interpolate === false ? { interpolate: false } : {},
         }
         if (section.complete === true) completeSection = { ...assembled }
         return assembled

@@ -6,6 +6,7 @@ This family provides provider-neutral web search and fetch operations plus the m
 |---|---|---|
 | [`web/`](web/README.md) | Defines web provider registration, selection, and shared errors | `ctx.web` |
 | [`web-search-exa/`](web-search-exa/README.md) | Provides web search through Exa | registers on `ctx.web` |
+| [`web-search-deepseek/`](web-search-deepseek/README.md) | Provides web search through DeepSeek's native Anthropic-compatible `web_search` tool | registers on `ctx.web` |
 | [`web-search-perplexity/`](web-search-perplexity/README.md) | Provides web search through Perplexity | registers on `ctx.web` |
 | [`web-search-browser/`](web-search-browser/README.md) | Provides web search through a headless browser (Google) | registers on `ctx.web` |
 | [`web-fetch-http/`](web-fetch-http/README.md) | Fetches public HTTP and HTTPS resources | registers on `ctx.web` |

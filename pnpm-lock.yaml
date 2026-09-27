@@ -117,6 +117,9 @@ importers:
       '@freddie/freddie-home-paths':
         specifier: '*'
         version: link:../../packages/util/home-paths
+      '@freddie/freddie-http-proxy':
+        specifier: '*'
+        version: link:../../packages/util/http-proxy
       '@freddie/freddie-jobs-local':
         specifier: '*'
         version: link:../../packages/jobs/jobs-local
@@ -958,6 +961,12 @@ importers:
         specifier: ^15.0.0
         version: 15.0.0
 
+  packages/browser-use/browser-use:
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+
   packages/bundle/base:
     dependencies:
       '@freddie/cordis-plugin-hmr':
@@ -1523,6 +1532,9 @@ importers:
       '@freddie/freddie-commands':
         specifier: '*'
         version: link:../../interaction/commands
+      '@freddie/freddie-crypto':
+        specifier: '*'
+        version: link:../../util/crypto
       '@freddie/freddie-host-apiproxy':
         specifier: '*'
         version: link:../../host/apiproxy
@@ -1858,6 +1870,9 @@ importers:
 
   packages/client/ui-conversation:
     dependencies:
+      '@freddie/freddie-crypto':
+        specifier: '*'
+        version: link:../../util/crypto
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -3653,6 +3668,9 @@ importers:
       '@freddie/freddie-typert-registry':
         specifier: '*'
         version: link:../../typert/registry
+      '@freddie/freddie-values':
+        specifier: '*'
+        version: link:../../util/values
 
   packages/core/system-prompt:
     dependencies:
@@ -3749,6 +3767,56 @@ importers:
       '@freddie/freddie-launch-environment':
         specifier: '*'
         version: link:../../util/launch-environment
+
+  packages/deliverables/tool-present:
+    dependencies:
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-fs':
+        specifier: '*'
+        version: link:../../fs/fs
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
+      '@freddie/freddie-tools':
+        specifier: '*'
+        version: link:../../core/tools
+
+  packages/deliverables/workspace-changes:
+    dependencies:
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+      diff:
+        specifier: ^9.0.0
+        version: 9.0.0
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
+      '@freddie/freddie-subprocess':
+        specifier: '*'
+        version: link:../../subprocess/subprocess
+      '@freddie/freddie-subprocess-local':
+        specifier: '*'
+        version: link:../../subprocess/subprocess-local
+      '@freddie/freddie-tools':
+        specifier: '*'
+        version: link:../../core/tools
 
   packages/e2b/e2b:
     dependencies:
@@ -4769,6 +4837,65 @@ importers:
         specifier: '*'
         version: link:../../shell/shell
 
+  packages/hooks/hooks-claude-code:
+    dependencies:
+      '@freddie/freddie-hook-protocol':
+        specifier: '*'
+        version: link:../hook-protocol
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-llm':
+        specifier: '*'
+        version: link:../../llm/llm
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
+      '@freddie/freddie-shell':
+        specifier: '*'
+        version: link:../../shell/shell
+      '@freddie/freddie-subagent':
+        specifier: '*'
+        version: link:../../subagent/subagent
+      '@freddie/freddie-tools':
+        specifier: '*'
+        version: link:../../core/tools
+
+  packages/hooks/hooks-codex:
+    dependencies:
+      '@freddie/freddie-hook-protocol':
+        specifier: '*'
+        version: link:../hook-protocol
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-llm':
+        specifier: '*'
+        version: link:../../llm/llm
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
+      '@freddie/freddie-shell':
+        specifier: '*'
+        version: link:../../shell/shell
+      '@freddie/freddie-tools':
+        specifier: '*'
+        version: link:../../core/tools
+
   packages/host/apiproxy:
     dependencies:
       '@freddie/freddie-agent':
@@ -4834,6 +4961,9 @@ importers:
       '@freddie/freddie-terminal':
         specifier: '*'
         version: link:../../terminal/terminal
+      '@freddie/freddie-time':
+        specifier: '*'
+        version: link:../../util/time
       '@freddie/freddie-tools':
         specifier: '*'
         version: link:../../core/tools
@@ -5278,6 +5408,9 @@ importers:
       '@freddie/freddie-timeout':
         specifier: '*'
         version: link:../../util/timeout
+      '@freddie/freddie-values':
+        specifier: '*'
+        version: link:../../util/values
 
   packages/llm/llm-deepseek:
     dependencies:
@@ -5454,6 +5587,40 @@ importers:
         specifier: '*'
         version: link:../../util/timeout
 
+  packages/lsp/tool-lsp:
+    dependencies:
+      '@freddie/freddie-values':
+        specifier: '*'
+        version: link:../../util/values
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-lsp':
+        specifier: '*'
+        version: link:../lsp
+      '@freddie/freddie-lsp-stdio':
+        specifier: '*'
+        version: link:../lsp-stdio
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
+      '@freddie/freddie-system-prompt':
+        specifier: '*'
+        version: link:../../core/system-prompt
+      '@freddie/freddie-timeout':
+        specifier: '*'
+        version: link:../../util/timeout
+      '@freddie/freddie-tools':
+        specifier: '*'
+        version: link:../../core/tools
+
   packages/mcp/mcp-client:
     dependencies:
       '@freddie/schemastery':
@@ -5487,6 +5654,21 @@ importers:
       '@freddie/freddie-timeout':
         specifier: '*'
         version: link:../../util/timeout
+      '@freddie/freddie-tools':
+        specifier: '*'
+        version: link:../../core/tools
+
+  packages/mcp/mcp-resources:
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-scope':
+        specifier: '*'
+        version: link:../../core/scope
+      '@freddie/freddie-system-prompt':
+        specifier: '*'
+        version: link:../../core/system-prompt
       '@freddie/freddie-tools':
         specifier: '*'
         version: link:../../core/tools
@@ -7040,6 +7222,114 @@ importers:
         specifier: '*'
         version: link:../../interaction/user-approval
 
+  packages/subagent/subagent-acp:
+    dependencies:
+      '@agentclientprotocol/sdk':
+        specifier: 1.4.0
+        version: 1.4.0(zod@4.4.3)
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-llm':
+        specifier: '*'
+        version: link:../../llm/llm
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
+      '@freddie/freddie-subagent':
+        specifier: '*'
+        version: link:../subagent
+      '@freddie/freddie-subprocess':
+        specifier: '*'
+        version: link:../../subprocess/subprocess
+      '@freddie/freddie-subprocess-local':
+        specifier: '*'
+        version: link:../../subprocess/subprocess-local
+      '@freddie/freddie-timeout':
+        specifier: '*'
+        version: link:../../util/timeout
+
+  packages/subagent/subagent-claude-code:
+    dependencies:
+      '@anthropic-ai/claude-agent-sdk':
+        specifier: 0.3.263
+        version: 0.3.263(@anthropic-ai/sdk@0.93.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)
+      '@anthropic-ai/sdk':
+        specifier: 0.93.0
+        version: 0.93.0(zod@4.4.3)
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-llm':
+        specifier: '*'
+        version: link:../../llm/llm
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
+      '@freddie/freddie-subagent':
+        specifier: '*'
+        version: link:../subagent
+      '@freddie/freddie-subprocess':
+        specifier: '*'
+        version: link:../../subprocess/subprocess
+      '@freddie/freddie-subprocess-local':
+        specifier: '*'
+        version: link:../../subprocess/subprocess-local
+      '@freddie/freddie-timeout':
+        specifier: '*'
+        version: link:../../util/timeout
+
+  packages/subagent/subagent-codex:
+    dependencies:
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+      '@openai/codex':
+        specifier: 0.153.4
+        version: 0.153.4
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-llm':
+        specifier: '*'
+        version: link:../../llm/llm
+      '@freddie/freddie-sdk-protocol':
+        specifier: '*'
+        version: link:../../sdk/protocol
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
+      '@freddie/freddie-subagent':
+        specifier: '*'
+        version: link:../subagent
+      '@freddie/freddie-subprocess':
+        specifier: '*'
+        version: link:../../subprocess/subprocess
+      '@freddie/freddie-subprocess-local':
+        specifier: '*'
+        version: link:../../subprocess/subprocess-local
+      '@freddie/freddie-timeout':
+        specifier: '*'
+        version: link:../../util/timeout
+
   packages/subagent/subagent-fork-in-process:
     dependencies:
       '@freddie/schemastery':
@@ -7076,6 +7366,31 @@ importers:
       '@freddie/freddie-subagent-spawn-in-process':
         specifier: '*'
         version: link:../subagent-spawn-in-process
+
+  packages/subagent/subagent-freddie-sdk:
+    dependencies:
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-sdk-client':
+        specifier: '*'
+        version: link:../../sdk/client
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
+      '@freddie/freddie-subagent':
+        specifier: '*'
+        version: link:../subagent
+      '@freddie/freddie-subprocess':
+        specifier: '*'
+        version: link:../../subprocess/subprocess
 
   packages/subagent/subagent-in-process-driver:
     devDependencies:
@@ -7566,6 +7881,18 @@ importers:
         specifier: '*'
         version: link:../../runtime-diagnostics/invariants
 
+  packages/util/chunked-list:
+    dependencies:
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+
+  packages/util/code-language: {}
+
+  packages/util/crypto: {}
+
+  packages/util/deque: {}
+
   packages/util/home-paths:
     devDependencies:
       '@freddie/cordis':
@@ -7575,6 +7902,12 @@ importers:
         specifier: '*'
         version: link:../../runtime-diagnostics/invariants
 
+  packages/util/http-proxy:
+    dependencies:
+      undici:
+        specifier: '>=7.29.0'
+        version: 8.10.1
+
   packages/util/launch-environment:
     devDependencies:
       '@freddie/cordis':
@@ -7583,6 +7916,8 @@ importers:
       '@freddie/freddie-invariants':
         specifier: '*'
         version: link:../../runtime-diagnostics/invariants
+
+  packages/util/lazy-require: {}
 
   packages/util/native-command:
     devDependencies:
@@ -7602,6 +7937,8 @@ importers:
         specifier: '*'
         version: link:../../runtime-diagnostics/invariants
 
+  packages/util/time: {}
+
   packages/util/timeout:
     devDependencies:
       '@freddie/cordis':
@@ -7610,6 +7947,10 @@ importers:
       '@freddie/freddie-invariants':
         specifier: '*'
         version: link:../../runtime-diagnostics/invariants
+
+  packages/util/values: {}
+
+  packages/util/workspace-path: {}
 
   packages/web/tool-web:
     dependencies:
@@ -7714,6 +8055,31 @@ importers:
         specifier: '*'
         version: link:../web
 
+  packages/web/web-search-deepseek:
+    dependencies:
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-credentials':
+        specifier: '*'
+        version: link:../../credentials/credentials
+      '@freddie/freddie-launch-environment':
+        specifier: '*'
+        version: link:../../util/launch-environment
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
+      '@freddie/freddie-web':
+        specifier: '*'
+        version: link:../web
+
   packages/web/web-search-exa:
     dependencies:
       '@freddie/schemastery':
@@ -7732,6 +8098,84 @@ importers:
       '@freddie/freddie-web':
         specifier: '*'
         version: link:../web
+
+  packages/web/web-search-perplexity:
+    dependencies:
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-launch-environment':
+        specifier: '*'
+        version: link:../../util/launch-environment
+      '@freddie/freddie-web':
+        specifier: '*'
+        version: link:../web
+
+  packages/webhook/webhook:
+    dependencies:
+      '@freddie/freddie-values':
+        specifier: '*'
+        version: link:../../util/values
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-agent-default-model':
+        specifier: '*'
+        version: link:../../core/agent-default-model
+      '@freddie/freddie-agent-presets':
+        specifier: '*'
+        version: link:../../preset/agent-presets
+      '@freddie/freddie-invariants':
+        specifier: '*'
+        version: link:../../runtime-diagnostics/invariants
+      '@freddie/freddie-llm':
+        specifier: '*'
+        version: link:../../llm/llm
+      '@freddie/freddie-permission-presets':
+        specifier: '*'
+        version: link:../../interaction/permission-presets
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../../core/session
+      '@freddie/freddie-session-title':
+        specifier: '*'
+        version: link:../../session/session-title
+      '@freddie/freddie-workspace':
+        specifier: '*'
+        version: link:../../workspace/workspace
+
+  packages/webhook/webhook-github:
+    dependencies:
+      '@freddie/freddie-values':
+        specifier: '*'
+        version: link:../../util/values
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+      '@octokit/webhooks':
+        specifier: ^14.2.0
+        version: 14.2.0
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-credentials':
+        specifier: '*'
+        version: link:../../credentials/credentials
+      '@freddie/freddie-host-webserver':
+        specifier: '*'
+        version: link:../../host/webserver
+      '@freddie/freddie-webhook':
+        specifier: '*'
+        version: link:../webhook
 
   packages/workflow/tool-ralph:
     dependencies:
@@ -7925,12 +8369,77 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
+  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.263':
+    resolution: {integrity: sha512-H4eLd4Tkx3rJkt739CHb+9AcaKiiOpibU4tYsmma47mV+2zAPjUyFxpuE2N57VSmpAgbLQxu44du0TFN+UH5dg==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.263':
+    resolution: {integrity: sha512-jKwmfkem1s/TcK7u83cJf2zLHMz846irV4vqYGUlo74uX2qfX57R4UsrCMlcTUMou/U9vQyNCc/Kk0s+zSxYRg==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.263':
+    resolution: {integrity: sha512-TiOmi9mqYvu3uGgM+0eQrUQzgXb7pgTzqahtRyEjpJrNigddGoANHcbNKL7P7y4etJpyIuYXGuVh5SLJzySYVA==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.263':
+    resolution: {integrity: sha512-2KPY1wu1hdjpVsw+Tg3i50uhxhhetO1fB24wjUJAQJ8YPSogqO32UbtYPJ6I3F17lBNHb/Mq3nRYGAuSU5yjtg==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.263':
+    resolution: {integrity: sha512-PWctt/XjebBxtI37i2xx2OMxSscPMnKmxU82MWdtIvoAyJ40U5yfqpm92fm45R02eLn9j4LQpvNocVTcRAHv+g==}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.263':
+    resolution: {integrity: sha512-un7HJzTT+DSQLgM33emQ0qHAwIY3CXIwe8JXoD9PaT7pdLepK4Ffa4r5j84pHTVS5uoGqxcf196tBgqb5/Z7FA==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.263':
+    resolution: {integrity: sha512-n8owOwNSSi7/KpONb/ut+uXRjBIp9N6EjwADiB+YygPwGRtpWP+PR/qFsGdTVBE5cpPwhgKVAf27xEZEfNvcSQ==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.263':
+    resolution: {integrity: sha512-EwqzsOLxIJTX6RIXtQ21ekOKmYBNfwbtGtqaPqdWZGzpMbHaie8kGsM630h9RFaoxeytS/jbg8B3fPCdUKfhPw==}
+    cpu: [x64]
+    os: [win32]
+
+  '@anthropic-ai/claude-agent-sdk@0.3.263':
+    resolution: {integrity: sha512-0QWoHgWWlSmgXfEqZRbVYRoXT9p4tx/yKaZ4eLJ8l1MR65SIvMGR+cd5ZXUpGYZpj9RzbYiYU9LoFg90mdIjmw==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@anthropic-ai/sdk': '>=0.93.0'
+      '@modelcontextprotocol/sdk': ^1.29.0
+      zod: ^4.0.0
+
+  '@anthropic-ai/sdk@0.93.0':
+    resolution: {integrity: sha512-q9vaSZQVFx6B/gPxetGYfLXSJD5v0sOmh0OpZDq7yCrTSA+Rscvrtyol7JJTW40wEpQB4U1B4JXzxQitbQ3CAA==}
+    hasBin: true
+    peerDependencies:
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
+
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-validator-identifier@7.29.7':
     resolution: {integrity: sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.29.7':
+    resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
     engines: {node: '>=6.9.0'}
 
   '@bufbuild/protobuf@2.13.0':
@@ -8372,6 +8881,68 @@ packages:
     peerDependenciesMeta:
       '@cfworker/json-schema':
         optional: true
+
+  '@octokit/openapi-types@29.0.1':
+    resolution: {integrity: sha512-9qWOMFNxxLokERcms42rU0PTLqQmVs7g5E41TI4mCOxmpFayD1rfC7XxOL55cG9MBZLFlC31BrR37myMKardwg==}
+
+  '@octokit/openapi-webhooks-types@12.1.0':
+    resolution: {integrity: sha512-WiuzhOsiOvb7W3Pvmhf8d2C6qaLHXrWiLBP4nJ/4kydu+wpagV5Fkz9RfQwV2afYzv3PB+3xYgp4mAdNGjDprA==}
+
+  '@octokit/request-error@7.1.2':
+    resolution: {integrity: sha512-XZRuT3xZ84D3gYErI1DZvhJ33dCWVV6uzBtWkaBB4TvA/L6eOeTZodxLFVB44bBEEo3vEx7y00UfX1tBLrtLRg==}
+    engines: {node: '>= 20'}
+
+  '@octokit/types@18.0.0':
+    resolution: {integrity: sha512-l6bAF43PNxkJp6g+W4PjoUSSkxHomXw2nOum5CTftJz1NlV3vu93NImgOYtLf6CbBUb5j+fiuzW0PPQ5JTSvZA==}
+
+  '@octokit/webhooks-methods@6.0.0':
+    resolution: {integrity: sha512-MFlzzoDJVw/GcbfzVC1RLR36QqkTLUf79vLVO3D+xn7r0QgxnFoLZgtrzxiQErAjFUOdH6fas2KeQJ1yr/qaXQ==}
+    engines: {node: '>= 20'}
+
+  '@octokit/webhooks@14.2.0':
+    resolution: {integrity: sha512-da6KbdNCV5sr1/txD896V+6W0iamFWrvVl8cHkBSPT+YlvmT3DwXa4jxZnQc+gnuTEqSWbBeoSZYTayXH9wXcw==}
+    engines: {node: '>= 20'}
+
+  '@openai/codex@0.153.4':
+    resolution: {integrity: sha512-wbHDmit7S/YvBGVX1DQmk13xtWblZ2cApeJ/pB7xDZ10Cna+DZc5ij7f0F4OxdsXN4FW1oLT48OpogUI1+8Y2w==}
+    engines: {node: '>=16'}
+    hasBin: true
+
+  '@openai/codex@0.153.4-darwin-arm64':
+    resolution: {integrity: sha512-B1qhN3fa1ay0R0wGziXqgwSkB5icpYChNKHhtBHff/0UtSTC7z+l8aTtvMlGjH3E8HEvY3+njIJelM9CAAoVWg==}
+    engines: {node: '>=16'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@openai/codex@0.153.4-darwin-x64':
+    resolution: {integrity: sha512-vnSbbPzfoDZmmyzsxswsDDXQ06IVFBzkQU7/hroB3ji93Ok2utcsq8Psfk2tjF5r9mEx8RWFJhzuTGHG26/NDA==}
+    engines: {node: '>=16'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@openai/codex@0.153.4-linux-arm64':
+    resolution: {integrity: sha512-QKdjYLYV4hXIuUQDP3P6F4NXuWFoKo9WUoV4nAREIx55kiUyi8UsYdsVobkeXir5n/maEQgYMCKLHVma4rNPiw==}
+    engines: {node: '>=16'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@openai/codex@0.153.4-linux-x64':
+    resolution: {integrity: sha512-x1EcwBlY3AObM1VTUHNM2AzAJQsyreGdagpF+qFiYi/Oa30VBktvvG0C6tLtCzqW6hjZNWkGZQWmeVk7MuJKWg==}
+    engines: {node: '>=16'}
+    cpu: [x64]
+    os: [linux]
+
+  '@openai/codex@0.153.4-win32-arm64':
+    resolution: {integrity: sha512-/FBh42976ltF1kxDoPQBg1Q6+hwChRU5/sm5dfeC8kFVQMvOCGoGeY5d8rRZGVJE8XojlXo74VQb0sHowcfgBw==}
+    engines: {node: '>=16'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@openai/codex@0.153.4-win32-x64':
+    resolution: {integrity: sha512-lMkB43kJZH0VFr+hoXc11qqR7QtQIbkr07ALgj4urKL1osNyUyuy1iXd3Vzz2iCYvBUCSw7I0l/W1cEPGx9euQ==}
+    engines: {node: '>=16'}
+    cpu: [x64]
+    os: [win32]
 
   '@opentelemetry/api-logs@0.220.0':
     resolution: {integrity: sha512-CmVa4ImJ+ynfrPMNaAXHET6Bhb44SwzmfyVJFq9ni2jgXJR/l7C6gfVFddNmHP+ZOkP9cf4f9DBe68qVLTHc9w==}
@@ -8991,6 +9562,10 @@ packages:
     resolution: {integrity: sha512-28R/k+NAjeuf7+CKlTxWZVExJGwVVLwY06DgEnOMz2gEpfNkDcD7QvyiVPT0xy0XXhU8vHsd4Ot42OOPdJG7dQ==}
     hasBin: true
 
+  json-schema-to-ts@3.1.1:
+    resolution: {integrity: sha512-+DWg8jCJG2TEnpy7kOm/7/AxaYoaRbjVB4LFZLySZlWn8exGs3A4OLJR966cVvU26N7X9TWxl+Jsw7dzAqKT6g==}
+    engines: {node: '>=16'}
+
   json-schema-traverse@1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
 
@@ -9528,6 +10103,9 @@ packages:
   trim-lines@3.0.1:
     resolution: {integrity: sha512-kRj8B+YHZCc9kQYdWfJB2/oUl9rA99qbowYYBtr4ui4mZyAQ2JpvVBd/6U2YloATfqBhBTSMhTpgBHtU0Mf3Rg==}
 
+  ts-algebra@2.0.0:
+    resolution: {integrity: sha512-FPAhNPFMrkwz76P7cdjdmiShwMynZYN6SgOujD1urY4oNm80Ou9oMdmbR45LotcKOXoy7wSmHkRFE6Mxbrhefw==}
+
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
@@ -9644,6 +10222,51 @@ snapshots:
     dependencies:
       zod: 4.4.3
 
+  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.263':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.263':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.263':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.263':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.263':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.263':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.263':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.263':
+    optional: true
+
+  '@anthropic-ai/claude-agent-sdk@0.3.263(@anthropic-ai/sdk@0.93.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)':
+    dependencies:
+      '@anthropic-ai/sdk': 0.93.0(zod@4.4.3)
+      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
+      zod: 4.4.3
+    optionalDependencies:
+      '@anthropic-ai/claude-agent-sdk-darwin-arm64': 0.3.263
+      '@anthropic-ai/claude-agent-sdk-darwin-x64': 0.3.263
+      '@anthropic-ai/claude-agent-sdk-linux-arm64': 0.3.263
+      '@anthropic-ai/claude-agent-sdk-linux-arm64-musl': 0.3.263
+      '@anthropic-ai/claude-agent-sdk-linux-x64': 0.3.263
+      '@anthropic-ai/claude-agent-sdk-linux-x64-musl': 0.3.263
+      '@anthropic-ai/claude-agent-sdk-win32-arm64': 0.3.263
+      '@anthropic-ai/claude-agent-sdk-win32-x64': 0.3.263
+
+  '@anthropic-ai/sdk@0.93.0(zod@4.4.3)':
+    dependencies:
+      json-schema-to-ts: 3.1.1
+    optionalDependencies:
+      zod: 4.4.3
+
   '@babel/code-frame@7.29.7':
     dependencies:
       '@babel/helper-validator-identifier': 7.29.7
@@ -9651,6 +10274,8 @@ snapshots:
       picocolors: 1.1.1
 
   '@babel/helper-validator-identifier@7.29.7': {}
+
+  '@babel/runtime@7.29.7': {}
 
   '@bufbuild/protobuf@2.13.0': {}
 
@@ -9932,6 +10557,53 @@ snapshots:
       zod-to-json-schema: 3.25.2(zod@4.4.3)
     transitivePeerDependencies:
       - supports-color
+
+  '@octokit/openapi-types@29.0.1': {}
+
+  '@octokit/openapi-webhooks-types@12.1.0': {}
+
+  '@octokit/request-error@7.1.2':
+    dependencies:
+      '@octokit/types': 18.0.0
+
+  '@octokit/types@18.0.0':
+    dependencies:
+      '@octokit/openapi-types': 29.0.1
+
+  '@octokit/webhooks-methods@6.0.0': {}
+
+  '@octokit/webhooks@14.2.0':
+    dependencies:
+      '@octokit/openapi-webhooks-types': 12.1.0
+      '@octokit/request-error': 7.1.2
+      '@octokit/webhooks-methods': 6.0.0
+
+  '@openai/codex@0.153.4':
+    optionalDependencies:
+      '@openai/codex-darwin-arm64': '@openai/codex@0.153.4-darwin-arm64'
+      '@openai/codex-darwin-x64': '@openai/codex@0.153.4-darwin-x64'
+      '@openai/codex-linux-arm64': '@openai/codex@0.153.4-linux-arm64'
+      '@openai/codex-linux-x64': '@openai/codex@0.153.4-linux-x64'
+      '@openai/codex-win32-arm64': '@openai/codex@0.153.4-win32-arm64'
+      '@openai/codex-win32-x64': '@openai/codex@0.153.4-win32-x64'
+
+  '@openai/codex@0.153.4-darwin-arm64':
+    optional: true
+
+  '@openai/codex@0.153.4-darwin-x64':
+    optional: true
+
+  '@openai/codex@0.153.4-linux-arm64':
+    optional: true
+
+  '@openai/codex@0.153.4-linux-x64':
+    optional: true
+
+  '@openai/codex@0.153.4-win32-arm64':
+    optional: true
+
+  '@openai/codex@0.153.4-win32-x64':
+    optional: true
 
   '@opentelemetry/api-logs@0.220.0':
     dependencies:
@@ -10574,6 +11246,11 @@ snapshots:
   js-yaml@5.4.1:
     dependencies:
       argparse: 2.0.1
+
+  json-schema-to-ts@3.1.1:
+    dependencies:
+      '@babel/runtime': 7.29.7
+      ts-algebra: 2.0.0
 
   json-schema-traverse@1.0.0: {}
 
@@ -11356,6 +12033,8 @@ snapshots:
   toidentifier@1.0.1: {}
 
   trim-lines@3.0.1: {}
+
+  ts-algebra@2.0.0: {}
 
   tslib@2.8.1:
     optional: true

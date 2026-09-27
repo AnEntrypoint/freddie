@@ -40,6 +40,7 @@
     "@freddie/freddie-brand": "*",
     "@freddie/freddie-invariants": "*",
     "@freddie/freddie-timeout": "*",
+    "@freddie/freddie-values": "*",
     "@freddie/cordis": "*"
   },
   "dependencies": {
@@ -50,6 +51,7 @@
     "@freddie/freddie-brand": "*",
     "@freddie/freddie-invariants": "*",
     "@freddie/freddie-timeout": "*",
+    "@freddie/freddie-values": "*",
     "@freddie/cordis": "*"
   }
 }

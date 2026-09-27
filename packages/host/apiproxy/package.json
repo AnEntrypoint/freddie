@@ -56,6 +56,7 @@
     "@freddie/freddie-skill": "*",
     "@freddie/freddie-subagent": "*",
     "@freddie/freddie-terminal": "*",
+    "@freddie/freddie-time": "*",
     "@freddie/freddie-jobs": "*",
     "@freddie/freddie-tools": "*",
     "@freddie/freddie-user-approval": "*",

@@ -40,8 +40,13 @@ if (invocation.mode === 'profile' && invocation.profile === 'web') {
 switch (invocation.mode) {
   case 'profile': {
     const { runProfile } = await import('./profile-boot.js')
+    const { installProxyFromEnvironment } = await import('@freddie/freddie-http-proxy')
+    const environment = loadLayeredEnv('freddie')
+    // Installed before any plugin mounts: LLM adapters, web search, and MCP-over-HTTP all resolve
+    // Node's global fetch, so this is the one place that covers every outbound caller at once.
+    await installProxyFromEnvironment(environment, message => void process.stderr.write(`freddie: ${message}\n`))
     await runProfile({
-      environment: loadLayeredEnv('freddie'),
+      environment,
       profile: invocation.profile,
       patchFiles: invocation.patches,
       args: invocation.args,

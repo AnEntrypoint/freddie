@@ -1,0 +1,36 @@
+{
+  "name": "@freddie/freddie-browser-use",
+  "description": "Exclusive named browser-use provider registration",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/browser-use/browser-use"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./src/*": "./src/*",
+    "./brand": {
+      "default": "./src/brand.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/brand.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/cordis": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*"
+  }
+}

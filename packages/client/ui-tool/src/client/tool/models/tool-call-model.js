@@ -33,6 +33,7 @@ const TOOL_VARIANTS = {
   web_search: 'search',
   grep: 'search',
   glob: 'search',
+  lsp: 'search',
   write: 'write',
   edit: 'edit',
   run_code: 'code',

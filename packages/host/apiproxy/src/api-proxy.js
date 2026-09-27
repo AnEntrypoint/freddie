@@ -24,6 +24,7 @@ import { SessionQueryError } from '@freddie/freddie-session-query'
 import { SubagentError } from '@freddie/freddie-subagent'
 import { TerminalError, TerminalSessionId } from '@freddie/freddie-terminal'
 import { isUserInvocable } from '@freddie/freddie-skill'
+import { canonicalClientTimeZone } from '@freddie/freddie-time'
 import {
   workspaceDomainState, workspaceRecord, WorkspaceId as brandWorkspaceId,
   WorkspaceMoveInvalidError, WorkspaceOrderInvalidError, WorkspaceUnknownSessionError,
@@ -145,25 +146,6 @@ function referencedImage(events, attachmentId) {
     if (found !== undefined) return found
   }
   return undefined
-}
-
-/** Strict browser-zone profile: UTC or an IANA Area/Location-style identifier. */
-const IANA_TIME_ZONE = /^[A-Za-z][A-Za-z0-9_+.-]*(?:\/[A-Za-z0-9_+.-]+)+$/
-
-/** Validate and canonicalize one browser-supplied IANA zone at the wire boundary. */
-function canonicalClientTimeZone(value) {
-  if (value.length === 0 || value.trim() !== value
-    || (value !== 'UTC' && !IANA_TIME_ZONE.test(value))) return undefined
-  try {
-    const canonical = new Intl.DateTimeFormat('en-US', { timeZone: value })
-      .resolvedOptions().timeZone
-    /* v8 ignore next -- Intl returns UTC or a canonical IANA Area/Location for accepted input. */
-    if (canonical !== 'UTC' && !IANA_TIME_ZONE.test(canonical)) return undefined
-    return canonical
-  } catch {
-    // Intl rejects unsupported zone names; the RPC maps that parser rejection below.
-    return undefined
-  }
 }
 
 /** Read live abort state across awaits without treating it as synchronously immutable. */

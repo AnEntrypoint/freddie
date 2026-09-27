@@ -38,6 +38,7 @@
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-typert-protocol": "*",
+    "@freddie/freddie-values": "*",
     "@freddie/cordis": "*"
   },
   "devDependencies": {
@@ -47,6 +48,7 @@
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/freddie-typert-registry": "*",
+    "@freddie/freddie-values": "*",
     "@freddie/cordis": "*"
   }
 }

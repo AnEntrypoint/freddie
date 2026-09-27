@@ -9,6 +9,8 @@ This family lets an agent delegate work to child agents. Multiple named provider
 | [`subagent-spawn-in-process/`](subagent-spawn-in-process/README.md) | Starts a fresh in-process child | registers on `ctx.subagents` |
 | [`subagent-fork-in-process/`](subagent-fork-in-process/README.md) | Starts an in-process child from the parent's completed history | registers on `ctx.subagents` |
 | [`subagent-acp/`](subagent-acp/README.md) | Starts an out-of-process child over ACP | registers on `ctx.subagents` |
+| [`subagent-claude-code/`](subagent-claude-code/README.md) | Starts an out-of-process child through the official Claude Agent SDK | registers on `ctx.subagents` |
+| [`subagent-codex/`](subagent-codex/README.md) | Starts an out-of-process child through the official Codex app-server protocol | registers on `ctx.subagents` |
 | [`subagent-freddie-sdk/`](subagent-freddie-sdk/README.md) | Starts an out-of-process Harness child through the TypeScript SDK | registers on `ctx.subagents` |
 | [`tool-subagent/`](tool-subagent/README.md) | Exposes delegation to the model | registers on `ctx.tools` |
 | [`tool-subagent-control/`](tool-subagent-control/README.md) | Exposes child messaging and listing to the model | registers on `ctx.tools` |

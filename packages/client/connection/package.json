@@ -31,6 +31,7 @@
       "platform": "web",
       "immediately": true,
       "external": [
+        "@freddie/freddie-crypto",
         "@freddie/freddie-host-apiproxy/api/events.schema",
         "@freddie/freddie-host-apiproxy/api/rpc.schema",
         "@freddie/freddie-host-apiproxy/client",
@@ -53,6 +54,7 @@
     "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*",
     "@freddie/freddie-attachment": "*",
+    "@freddie/freddie-crypto": "*",
     "@freddie/freddie-host-apiproxy": "*",
     "@freddie/freddie-commands": "*",
     "@freddie/freddie-llm": "*",
@@ -64,6 +66,7 @@
     "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*",
     "@freddie/freddie-attachment": "*",
+    "@freddie/freddie-crypto": "*",
     "@freddie/freddie-host-apiproxy": "*",
     "@freddie/freddie-commands": "*",
     "@freddie/freddie-llm": "*",
