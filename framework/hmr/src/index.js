@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
 import picomatch from 'picomatch'
 import z from '@freddie/schemastery'
+import { AsyncLocalStorage } from 'node:async_hooks'
 
 /**
  * Recursively collect all module dependencies from a ModuleJob.
@@ -97,6 +98,24 @@ class Hmr extends Service {
 
   config
 
+  /**
+   * Tail of the one serialized mutation queue. Automatic module reloads and
+   * config refreshes join it, and so does every `runExclusive` transaction, so
+   * a caller that rewrites a watched file never races the reload its own write
+   * triggers.
+   */
+  operations = Promise.resolve()
+
+  /**
+   * Marks the async call stack of a `runExclusive` transaction. Nesting is
+   * rejected rather than queued: the outer transaction holds the queue tail an
+   * inner one would wait on, so queueing it deadlocks.
+   */
+  executing = new AsyncLocalStorage()
+
+  /** Set by the disposal effect so a transaction cannot outlive the service. */
+  closing = false
+
   constructor(ctx, config) {
     super(ctx, 'hmr')
     this.config = config
@@ -105,6 +124,33 @@ class Hmr extends Service {
     }
     this.internal = this.ctx.loader.internal
     this.baseDir = fileURLToPath(new URL(config.base || '.', ctx.baseUrl))
+  }
+
+  /**
+   * Append one operation to the mutation queue and let the caller await it.
+   * Automatic reloads use this directly: a chokidar callback can inherit the
+   * async context of a transaction that wrote the file it reports, so an
+   * automatic reload must queue rather than assert it is not nested.
+   * @param operation - the work to serialize.
+   * @returns a promise settling with `operation`.
+   */
+  joinQueue(operation) {
+    const run = this.operations.then(operation)
+    this.operations = run.then(() => {}, () => {})
+    return run
+  }
+
+  /**
+   * Run one caller-owned mutation with every automatic reload held back, and
+   * hold it back from any automatic reload already running.
+   * @param operation - the mutation to serialize.
+   * @returns whatever `operation` resolves to.
+   * @throws when called inside another transaction, or after disposal.
+   */
+  async runExclusive(operation) {
+    if (this.closing) throw new Error('HMR is disposing')
+    if (this.executing.getStore() !== undefined) throw new Error('HMR transactions cannot be nested')
+    return await this.joinQueue(() => this.executing.run(true, operation))
   }
 
   /**
@@ -181,6 +227,7 @@ class Hmr extends Service {
 
   async* [Service.init]() {
     yield async () => {
+      this.closing = true
       this.stopDeferring()
       await this.watcher?.close()
       await Promise.allSettled([...this.configs.values()].map(registration => registration.watcher.close()))
@@ -223,7 +270,9 @@ class Hmr extends Service {
       ignoreInitial: true,
     })
 
-    const partialReload = this.ctx.debounce(() => this.partialReload(), this.config.debounce)
+    const reload = () => this.joinQueue(() => this.partialReload())
+      .catch(error => this.ctx.logger.warn(error))
+    const partialReload = this.ctx.debounce(reload, this.config.debounce)
 
     const onChange = (kind, path) => {
       this.ctx.logger.debug('%s detected at %C', kind, path)
@@ -289,7 +338,7 @@ class Hmr extends Service {
       do {
         state.dirty = false
         try {
-          await refresh()
+          await this.joinQueue(refresh)
         } catch (reason) {
           const error = reason instanceof Error ? reason : new Error(String(reason), { cause: reason })
           this.ctx.logger.warn('config reload at %C failed', filename)
@@ -415,7 +464,7 @@ class Hmr extends Service {
       this.recordJournal({ kind: 'deferred', reason })
       const off = this.ctx.on('hmr/idle', () => {
         this.stopDeferring()
-        void this.partialReload()
+        void reload()
       })
       this.deferredReload = off
       return

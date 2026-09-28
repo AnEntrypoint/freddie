@@ -7,6 +7,8 @@
  * into it. The three cards this package ships are the host-plane sections the
  * deployment already exposes; each binds its namespace through the client
  * settings scope, which keeps them unaware of one another and of other tabs.
+ * The subagent and web-search cards live in the packages that own those
+ * namespaces and register themselves into this tab the same way.
  */
 
 import { resolveSlotLabel } from '@freddie/freddie-client-ui-slots'
@@ -95,8 +97,8 @@ export function apply(ctx) {
     children: { 'settings.plugins.tab': { kind: 'list', scope: 'root' } },
   }, PluginsSettingsSection))
 
-  // The existing configuration page is one ordinary tab. It keeps ownership
-  // of the card slot and the three shipped card contributions below.
+  // The existing configuration page is one ordinary tab. It keeps ownership of
+  // the card slot and the card contributions this package ships below.
   ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({
     name: 'settings.plugins.tab',
     id: 'configurable',

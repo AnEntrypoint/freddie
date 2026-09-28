@@ -52,6 +52,23 @@
         maxOutputTokens: 64
         timeoutMs: 60000
 
+    # The alternative title cadence: summarize every eligible human message
+    # instead of only the first. DISABLED by default and on purpose — the title
+    # service refuses a second provider registration ("one provider at a time",
+    # see its README), so this row and `session-title-llm` above are
+    # alternatives, not complements. Flip this row on and `session-title-llm`
+    # off in the same edit: enabling one with the other still mounted fails the
+    # mount rather than picking a winner.
+    - id: session-title-all-prompts-llm
+      name: '@freddie/freddie-session-title-all-prompts-llm'
+      disabled: true
+      config:
+        targetWords: 5
+        targetCjkCharacters: 10
+        maxInputBytes: 4096
+        maxOutputTokens: 64
+        timeoutMs: 60000
+
     - id: user-questions
       name: '@freddie/freddie-user-questions'
 
@@ -116,6 +133,16 @@
     - id: credentials
       name: '@freddie/freddie-credentials-local'
 
+    # The authorization seam: the registry for credentials a human has to be
+    # talked into (open this page, paste that code, pick an account). The seam
+    # owns the conversation and the lifecycle, never a protocol, and no flow
+    # ships here — mounting it registers an empty registry, and a flow arrives
+    # only with the plugin that owns its protocol (llm-pi-ai registers one per
+    # installed catalog provider that ships a login). Nothing can be authorized
+    # while the registry is empty.
+    - id: authorization
+      name: '@freddie/freddie-authorization'
+
     - id: session-persistence-jsonl
       name: '@freddie/freddie-session-persistence-jsonl'
       config:
@@ -147,6 +174,14 @@
     # loud without it; web layers reuse this same mount for list rows.
     - id: session-projection
       name: '@freddie/freddie-session-projection'
+
+    # Whole-session turn outline: turn number, its `turn/start` seq, and bounded
+    # prompt/response previews, as a `turnOutline` projection unit. It is a pure
+    # client-facing read model over already-logged events — no prompt, tool, or
+    # model request — and consumers treat an absent key as capability absence,
+    # so mounting it costs one projection unit and changes nothing model-facing.
+    - id: session-turn-outline
+      name: '@freddie/freddie-session-turn-outline'
 
     - id: gm-progress
       name: '@freddie/freddie-gm-progress'
@@ -185,8 +220,50 @@
           maxExportBatchSize: 2048
           exportTimeoutMillis: 1500
 
+    # Opt-in Chrome DevTools inspection of this Host realm, on its own loopback
+    # port. Mounted DISABLED (`enabled: false` is the package's own default):
+    # disabled installs nothing and logs the refusal, and no worker, socket, or
+    # fetch capture exists. The surface is remote code evaluation in the Host
+    # realm — `Runtime.evaluate` on this target is a root shell — so it is never
+    # enabled by a bundle. Flip it in a later layer (profile cordis.patch.yml or
+    # `plugin-manager`) when a human is actually debugging a running Host; the
+    # bind is asserted loopback with no field that widens it.
+    - id: inspector
+      name: '@freddie/freddie-inspector'
+      config:
+        enabled: false
+
     - id: subprocess
       name: '@freddie/freddie-subprocess-local'
+
+    # ── capability registries: one exclusive provider slot each ──────────────
+    #
+    # Each row is the named registration seam for a capability, not the
+    # capability: exactly one provider may hold `ctx.computerUse` /
+    # `ctx.browserUse` at a time, so a deployment swaps backends without any
+    # consumer caring which one is mounted. An empty slot is the shipped state —
+    # no provider ships in either group — so mounting these registers the slot
+    # and nothing else: no tool, no prompt, no model-visible surface.
+
+    - id: computer-use
+      name: '@freddie/freddie-computer-use'
+
+    - id: browser-use
+      name: '@freddie/freddie-browser-use'
+
+    # The experimental browser-use provider, DISABLED: its `apply()` resolves
+    # the pinned `chrome-devtools-mcp@1.9.0` server entry at load and throws
+    # when it is absent, and this package declares no dependency on it (the
+    # tree carried a supply-chain dropper, so no third-party package enters at
+    # install time). Mounting it active would fail the boot on any host without
+    # that server. Flip it on only where the server IS installed — out of band,
+    # or named through `entryPath` — and only in a layer below this one.
+    - id: browser-use-chrome-devtools-mcp
+      name: '@freddie/freddie-experimental-browser-use-chrome-devtools-mcp'
+      disabled: true
+      config:
+        mode: launch
+        headless: true
 
     - id: terminal
       name: '@freddie/freddie-terminal'
@@ -236,6 +313,25 @@
           danger-full-access:
             sandbox: danger-full-access
             approval: never
+
+    # Authorization reviewer for the `auto` permission preset: with that preset
+    # selected, a model reviews every tool call before its body runs. Mounted
+    # with the package's own defaults, which are its documented dormant posture —
+    # it acts ONLY while a session has explicitly selected `auto`, and the
+    # deployment default (`workspace-write`) never does, so nothing is reviewed
+    # until a person switches. Fail-closed by construction: an unreadable
+    # policy, a reviewer error, a timeout, or a log/execution disagreement
+    # denies the call. `advertise: true` adds the `auto` row to the preset table
+    # (its documented default); set it to false in an overlay to keep the gate
+    # without touching the table.
+    - id: auto-review
+      name: '@freddie/freddie-auto-review'
+      config:
+        preset: auto
+        advertise: true
+        timeoutMs: 60000
+        maxOutputTokens: 2048
+        maxInputBytes: 262144
 
     - id: shell-env
       name: '@freddie/freddie-shell-env'
@@ -316,6 +412,15 @@
 
     - id: compaction-basic
       name: '@freddie/freddie-compaction-basic'
+
+    # Durable offload of retained images when an image-capable route fails a
+    # request with `IMAGE_OFFLOAD_REQUIRED`. A function plugin on the agent
+    # loop's failure seam — not a compaction backend and not a tool — so it
+    # composes with `compaction-basic` and `tool-result-pruner` without either.
+    # Inert until an adapter reports a count, and no adapter in this workspace
+    # does today, so mounting it registers one listener and changes nothing.
+    - id: compaction-image-offload
+      name: '@freddie/freddie-compaction-image-offload'
 
     # Human `/compact`: one useful reduction below the automatic threshold. Backend
     # independent, so it follows whichever compaction service this leaf mounts.
@@ -493,3 +598,17 @@
     # choice.
     - id: llm-deepseek
       name: '@freddie/freddie-llm-deepseek'
+
+    # pi-ai-backed multi-provider adapter, mounted as its own documented
+    # "dormant bare mount": `providers` is empty, so NO route is registered and
+    # no request can be routed through pi-ai — `ensureRegistrationFacts` returns
+    # without calling `registerAdapter` for a zero-route set. What mounting does
+    # add is the configuration directory: the whole installed pi-ai catalog
+    # becomes configurable under the `llm-pi-ai` settings namespace (the Models
+    # page can offer every provider before any route exists), plus its model
+    # discovery and one authorization flow per catalog provider that ships a
+    # login. A route appears only when a settings section supplies a profile.
+    - id: llm-pi-ai
+      name: '@freddie/freddie-llm-pi-ai'
+      config:
+        providers: {}

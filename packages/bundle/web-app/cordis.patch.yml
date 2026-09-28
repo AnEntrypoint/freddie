@@ -110,6 +110,57 @@
     - id: api-gateway
       name: '@freddie/freddie-host-apiproxy'
 
+    # ── optional/experimental Host Remote namespaces over the same gateway ────
+    #
+    # Every row below is a Host Typert Remote owner: it registers one namespace
+    # on the gateway already mounted above and adds nothing model-facing (no
+    # tool, prompt, or session event). They are browser surfaces, so they live
+    # on this layer rather than the shared base: a headless or ACP deployment
+    # has no client for a session roster, a workspace list, or a file reader.
+    #
+    # Each namespace degrades rather than fails: `settings` and `credentials`
+    # answer `unavailable` when no provider is composed, `directoryPicker`
+    # answers `unavailable` for a capability the composed backend does not
+    # serve, and `workspaceFiles` refuses a request that can establish no
+    # workspace root. Only `remote-stream`'s own row is owned elsewhere.
+
+    # Session reads for a UI: list, search, paged history, projections, the
+    # model catalog, and the Agent/Session identity policy. `follow`/`control`
+    # stay in-process generators — freddie's /api RPC is unary — so the Client
+    # model reports `unsupported` for them instead of faking frames.
+    - id: session-controller
+      name: '@freddie/freddie-session-controller'
+
+    # Session-owned interactive terminals over the PTY registry: shell
+    # discovery, bounded screen recovery, attachment-scoped input, and typed
+    # control. `retain`/`follow` are unported for the same unary-RPC reason.
+    - id: terminal-controller
+      name: '@freddie/freddie-terminal-controller'
+
+    # Background jobs: the roster one session can see, plus the human kill.
+    # The roster's stream needs both halves of a streaming Remote; with either
+    # absent the Client keeps no roster rather than showing a stale one.
+    - id: job-controller
+      name: '@freddie/freddie-job-controller'
+
+    # Deployment configuration and credential references. Both owners resolve
+    # their provider lazily, so a composition with no settings or credential
+    # provider still boots every other namespace. No verb returns a secret
+    # value: a secret path is reported as `{ path, set }` and nothing more.
+    - id: settings-controller
+      name: '@freddie/freddie-api-settings-controller'
+
+    # Workspace registrations (list/create/rename/reorder/delete) and the host
+    # directory chooser, over `ctx.workspaceRegistry` and `ctx.directoryPicker`.
+    - id: workspace-controller
+      name: '@freddie/freddie-api-workspace-controller'
+
+    # Read-only workspace file reads and directory listings. Every verb proves
+    # containment in a workspace root before it reads, and cuts what it returns
+    # to its configured bounds; no write verb is served at all.
+    - id: workspace-files
+      name: '@freddie/freddie-api-workspace-files'
+
     - id: cordis-host-runner
       name: '@freddie/freddie-cordis-host-runner'
 
@@ -308,6 +359,16 @@
     - id: ui-settings-plugins
       name: '@freddie/freddie-client-ui-settings-plugins'
 
+    # Two cards contributed to the Plugin configuration tab by the packages
+    # that own their namespaces: delegation limits (`subagent`) and the search
+    # provider's endpoint, key, and budget (`web-search-deepseek`). Each renders
+    # nothing when the deployment serves no such namespace.
+    - id: ui-settings-subagent
+      name: '@freddie/freddie-client-ui-settings-subagent'
+
+    - id: ui-settings-web-search
+      name: '@freddie/freddie-client-ui-settings-web-search'
+
     # Plan control: the composer plan seat over the plan projection + /plan channel.
     - id: ui-plan
       name: '@freddie/freddie-client-ui-plan'
@@ -317,6 +378,12 @@
 
     - id: ui-trajectory
       name: '@freddie/freddie-client-ui-trajectory'
+
+    # Keyboard commands: the window-local registry plus the searchable reference
+    # that rebinds a command by action, alias, or key. Contributes the
+    # `shortcuts` row to General settings and the reference overlay.
+    - id: shortcuts
+      name: '@freddie/freddie-client-shortcuts'
 
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #

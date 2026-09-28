@@ -67,6 +67,10 @@ allowBuilds:
   # Postinstall downloads plugkit.wasm (~12MB) from AnEntrypoint/plugkit-bin GitHub
   # Releases -- the same WASM libsql runtime freddie depends on, no native compile.
   libsql-plugkit-client@https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/61057a4cf02cd9e6d1e6694c250d0f3d0099ac24: true
+  # Transitive dependency of @earendil-works/pi-ai (llm-pi-ai). Its `prepare`
+  # script is Google's own build step; we only import the published dist at
+  # runtime, so the build script is denied rather than executed on our machine.
+  '@google/genai': false
 
 minimumReleaseAgeExclude:
   - node-addon-native-custom-loader@0.1.4

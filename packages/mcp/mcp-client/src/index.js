@@ -14,6 +14,7 @@
  */
 
 import z from '@freddie/schemastery'
+import { scopeOf } from '@freddie/freddie-scope'
 import { MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
 import { RECONNECT_DEFAULTS, resolveReconnectPolicy, startConnection } from './connection.js'
 
@@ -30,10 +31,9 @@ const DEFAULT_TOOL_CALL_TIMEOUT_MS = 60_000
 const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/
 
 /**
- * Live `serverName` reservations per app, keyed off `ctx.root` (multiple apps
- * in one process — tests — must not see each other's names). A duplicate
- * namespace is a configuration error surfaced at plugin load, never silent
- * shadowing.
+ * Live `serverName` reservations per registration scope. Agent-scoped MCP
+ * servers may reuse a namespace in another Agent, while global instances and
+ * duplicates inside one Agent remain mutually exclusive.
  */
 const activeServerNames = new WeakMap()
 
@@ -88,10 +88,11 @@ export async function apply(ctx, config) {
   // Reserve the namespace next: a duplicate `serverName` fails THIS instance
   // at load with an actionable error and leaves the earlier instance intact.
   ctx.effect(() => {
-    let names = activeServerNames.get(ctx.root)
+    const owner = scopeOf(ctx) ?? ctx.root
+    let names = activeServerNames.get(owner)
     if (!names) {
       names = new Set()
-      activeServerNames.set(ctx.root, names)
+      activeServerNames.set(owner, names)
     }
     if (names.has(config.serverName)) {
       throw new Error(

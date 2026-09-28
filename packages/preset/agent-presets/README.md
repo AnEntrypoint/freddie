@@ -1,6 +1,6 @@
 # freddie-agent-presets
 
-Per-preset agent composition. A **preset** is a directory holding one `agent.cordis.yml`; the roster mounts it ONCE per process under a standing scope, and each session that names it joins by having its agent scope key parented to the mount's (`freddie-scope`'s parent chain). The mount's tools, prompt sections, and projection units exist exactly once and cover every joined agent — its plugins key their state by Session/Agent, so sessions stay apart inside one shared instance — and a host reader with no agent at all (a cold transcript read) resolves the same standing registrations by preset id.
+Per-preset agent composition. A **preset** is a directory holding one `agent.cordis.yml`; a plugin may also declare one in process, with no directory behind it. the roster mounts it ONCE per process under a standing scope, and each session that names it joins by having its agent scope key parented to the mount's (`freddie-scope`'s parent chain). The mount's tools, prompt sections, and projection units exist exactly once and cover every joined agent — its plugins key their state by Session/Agent, so sessions stay apart inside one shared instance — and a host reader with no agent at all (a cold transcript read) resolves the same standing registrations by preset id.
 
 The mechanism is two seams. Entry contexts chain to the context a subtree was plugged into, and both [`freddie-tools`](../../core/tools/README.md) and [`freddie-system-prompt`](../../core/system-prompt/README.md) file registrations into the calling context's scope layer — so the standing mount's contributions land in the PRESET's layer. What carries them to each session is `freddie-scope`'s parent chain: an agent's views resolve `agent → preset → global` (nearest shadowing farthest), and the mount's listeners are admitted for every agent parented under it while a sibling preset's stay deaf.
 
@@ -21,8 +21,37 @@ Discovery is unmemoized: `list()` and `resolve()` re-read the roots on every cal
 - `ctx.agentPresets.read(id): Promise<string>` One preset's composition text, exactly as stored.
 - `ctx.agentPresets.copy(from, id, name?): Promise<void>` Create a locally authored preset by copying an existing one's whole directory — the only authoring write. No composition text crosses this seam, so a copy is exactly as loadable as its source; the copied metadata keeps the source's description but never its name or roster order, and `name` (or the id fallback) is what distinguishes the rows.
 - `ctx.agentPresets.remove(id): Promise<void>` Delete a locally authored preset; joined sessions keep their standing mount. Clears the user default when it named the preset just deleted: storing a default that does not exist yet is deliberate, but one this call removed will never be supplied again and would fail every session created without an explicit pick.
+- `ctx.agentPresets.register(definition): Promise<() => Promise<void>>` Add a preset a plugin composed in process, with no directory behind it, and return a disposer that withdraws it. [Declaring a preset from a plugin](#declaring-a-preset-from-a-plugin).
 
-`AgentPreset` carries `id` (the directory name), `trust` (`system` or `user`, from the root it was found under), `path` (the absolute composition file), and — only when the preset cannot compose a session — `broken` (one human-readable reason, shown verbatim on roster surfaces).
+`AgentPreset` carries `id` (the directory name), `trust` (`system` or `user`, from the root it was found under), `path` (the absolute composition file), and — only when the preset cannot compose a session — `broken` (one human-readable reason, shown verbatim on roster surfaces). A preset a plugin declared carries no `path`.
+
+### Declaring a preset from a plugin
+
+A roster row does not have to come from a directory. A plugin can compose one in process and register it:
+
+```js
+import { Service } from '@freddie/cordis'
+
+export default class MyPreset {
+  static inject = ['agentPresets']
+  constructor(ctx, config) { this.ctx = ctx; this.config = config }
+  async* [Service.init]() {
+    yield await this.ctx.agentPresets.register(this.config)
+  }
+}
+```
+
+with the definition carrying `id`, optional display `name` / `description` / `order`, and `plugins` — a Cordis entry list, the same rows an `agent.cordis.yml` holds, `cordis:group` rows and their `isolate` realms included. Once declared, the preset is an ordinary roster member: `list()`, `resolve()`, `read()`, `mount()`, `recompose()`, and the `default` setting treat it exactly like a discovered one.
+
+**Disposal is automatic.** The registration is installed as an effect on the CALLING plugin's fiber (`this.ctx` inside a service method is the caller's context), so unloading that plugin withdraws the preset, and a standing mount the preset already produced is disposed with it. The disposer `register()` returns does the same thing and is idempotent with the effect, so a plugin that yields it from its own `init` and is then unloaded pays nothing twice. A preset never outlives its owner.
+
+**A registration never displaces.** `register()` refuses an id another registration already holds, and refuses an id any configured root supplies — the deployment's own compositions are not silently narrowed by a plugin. The same rule holds in the other direction: discovery re-reads the roots on every call, so a root that grows an id a registration already claimed wins it from the next `list()` on, and the declared row is skipped rather than layered over the file. Fail-safe, deliberately: a preset that silently changed what an agent may do, because two owners claimed one name, is worse than a refused registration. The way out is always to pick an id no root supplies.
+
+**The rows are checked at registration, not listed as broken.** A definition whose rows could never be an entry list — not a list, or a row naming no plugin — is refused with the reason, by the same check discovery applies to a file, so a declared composition can never be stricter or looser than a written one. A definition is code its author ships: unlike a hand-edited file it has no state worth displaying as a broken roster row.
+
+**A declared preset is not writable.** `copy()` and `remove()` both refuse it — there is no directory to copy or delete — so editing one means editing the plugin that declared it.
+
+**A row resolves from the declaring plugin.** A package name resolves against the `baseUrl` the registration captured from its caller, which is the composition that plugin was loaded from; a relative path resolves against the same base, since a declared preset has no directory of its own; an absolute path keeps its location.
 
 ### Where to call `mount()`
 
@@ -126,7 +155,7 @@ The package invariant re-checks that last rule on every service notification, be
 
 The Loader writes a tree back to its source file whenever it decides the config changed, and a row disposing its own fiber is enough to decide that: the entry is marked `disabled` and the tree is written. Inherited, that would burn one session's runtime state into a file every session shares — comments stripped by the YAML round trip, and a `writeFile` rejection inside a `setTimeout` for a read-only shipped preset.
 
-The mounted subtree therefore overrides `write()` as a no-op. Nothing in this package writes a composition; authoring one is a separate, explicit operation.
+The mounted subtree therefore overrides `write()` as a no-op, and a preset a plugin declared does the same for the same reason minus the file: its rows belong to the plugin. Nothing in this package writes a composition; authoring one is a separate, explicit operation.
 
 ## Trust
 
@@ -149,4 +178,6 @@ Prefix-stable for the life of an agent: a composition is installed once, before 
 - **A copy is never mounted to validate** — it is byte-identical to its source, so a source broken on disk yields a copy exactly as broken as the source; discovery's health check marks both rows on the next roster read rather than deferring the failure to a session start.
 - **Health is a shape check, not a mount** — discovery proves the composition parses in the loader dialect and holds named rows, not that every row's module resolves or activates; a row naming an absent package still fails at the first session, which rolls the creation back.
 - **A copy is a snapshot that drifts** — upgrading the deployment does not update copies of shipped presets, and there is no patch semantics at this layer to express "standard plus one change" (that is the bundle layer's `cordis.patch.yml`); the shipped set itself accepts the same cost — `cordis` and `code` are full copies of `standard` — so the whole assembly stays readable in one file.
+- **A declared preset is validated, not pre-mounted** — `register()` proves the rows are an entry list; a row naming an absent package still fails the first session that mounts it, exactly as a hand-edited file would. Mounting stays lazy because a preset nobody selected should cost nothing.
+- **A declared preset is invisible to authoring** — it has no directory, so no roster surface can copy, edit, or delete it, and `read()` renders its rows for display only. Changing one means changing the plugin that declared it.
 - **Root scans are not watched** — every read hits the filesystem instead, which keeps the roster fresh but puts one `readdir` per root on each `list()`.

@@ -16,7 +16,8 @@
 
 import { isAbsolute } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { Context } from '@freddie/cordis'
+import { Context, Service } from '@freddie/cordis'
+import { EntryGroup, EntryTree } from '@freddie/cordis-plugin-loader'
 import { Include } from '@freddie/cordis-plugin-include'
 import { scopeOf, scopeParentOf } from '@freddie/freddie-scope'
 import { PresetMountError } from './preset.js'
@@ -38,6 +39,43 @@ const mounted = new WeakMap()
 const harnessBase = new WeakMap()
 
 /**
+ * Resolve one row's module specifier from `base` rather than from the tree.
+ *
+ * `EntryTree.import()` resolves against the tree's own `baseUrl`, which for a
+ * preset composition is the composition's own directory. That is right for a
+ * relative specifier — a preset's own files travel with it — and wrong for a
+ * package name: a locally authored preset lives under the user's home, where
+ * Node's upward `node_modules` walk never reaches the harness's own
+ * dependencies, so every `@freddie/freddie-*` row would fail to import. Both
+ * trees below therefore resolve bare names against a base the mount recorded:
+ * the harness's, or the declaring plugin's for a preset that never came from a
+ * file. An absolute filesystem path names neither base and becomes a file URL
+ * before Node's ESM loader receives it, which is required for drive-letter
+ * paths on Windows.
+ * @param tree - the tree the row belongs to.
+ * @param base - the URL bare specifiers resolve against.
+ * @param name - the module specifier from the row.
+ * @param getOuterStack - the loader's stack composer for import diagnostics.
+ * @param relativeBase - the URL relative specifiers resolve against, or
+ *   undefined to keep the tree's own base (the composition directory, which is
+ *   where a written preset's own files sit).
+ * @returns the imported module, or the `cordis:` builtin.
+ */
+function importFrom(tree, base, name, getOuterStack, relativeBase) {
+  const specifier = isAbsolute(name) ? pathToFileURL(name).href : name
+  const internal = tree.ctx.loader.internal
+  /* v8 ignore next 3 -- the mount always records a base and Node always supplies the
+     internal module loader; the branch keeps a hypothetical embedder from losing the
+     row's name in a resolution error. */
+  if (base === undefined || internal === undefined) {
+    return EntryTree.prototype.import.call(tree, name.startsWith('.') ? name : specifier, getOuterStack)
+  }
+  if (name.startsWith('cordis:')) return EntryTree.prototype.import.call(tree, name, getOuterStack)
+  if (name.startsWith('.')) return internal.import(name, relativeBase ?? tree.ctx.baseUrl, {})
+  return internal.import(specifier, base, {})
+}
+
+/**
  * Include subclass that publishes its tree and fiber for the audit, and never
  * writes to the file it read.
  */
@@ -49,33 +87,12 @@ class PresetTree extends Include {
 
   /**
    * Resolve a bare specifier from the harness rather than from the preset.
-   *
-   * `EntryTree.import()` resolves against the tree's own `baseUrl`, which
-   * `Include` sets to the composition's directory. That is right for a
-   * relative specifier — a preset's own files travel with it — and wrong for
-   * a package name: a locally authored preset lives under the user's home,
-   * where Node's upward `node_modules` walk never reaches the harness's own
-   * dependencies, so every `@freddie/freddie-*` row would fail to import. The
-   * mount records the host composition's base instead, which is inside the
-   * installed harness, and bare names resolve from there. An absolute
-   * filesystem path names neither base and becomes a file URL before Node's
-   * ESM loader receives it, which is required for drive-letter paths on
-   * Windows.
    * @param name - the module specifier from the row.
    * @param getOuterStack - the loader's stack composer for import diagnostics.
    * @returns the imported module, or the `cordis:` builtin.
    */
   import(name, getOuterStack) {
-    const specifier = isAbsolute(name) ? pathToFileURL(name).href : name
-    const base = harnessBase.get(this.config)
-    /* v8 ignore next -- every PresetTree is constructed by `mountPreset`, which records the base first */
-    if (base === undefined) return super.import(specifier, getOuterStack)
-    if (name.startsWith('.') || name.startsWith('cordis:')) return super.import(name, getOuterStack)
-    const internal = this.ctx.loader.internal
-    /* v8 ignore next -- Node always supplies the internal module loader; the branch keeps a
-       hypothetical embedder from losing the row's name in a resolution error. */
-    if (internal === undefined) return super.import(specifier, getOuterStack)
-    return internal.import(specifier, base, {})
+    return importFrom(this, harnessBase.get(this.config), name, getOuterStack)
   }
 
   /**
@@ -95,6 +112,60 @@ class PresetTree extends Include {
    * persistence path rather than this method's return.
    */
   write() {
+  }
+}
+
+/**
+ * Entry tree over rows a plugin declared in process, with no file behind them.
+ *
+ * The same tree {@link PresetTree} builds, minus the file: a declared
+ * composition is a row list the declaring plugin already holds, so there is
+ * nothing to read, nothing to watch, and nothing to persist. It still has to
+ * be an `EntryTree` rather than a bare `ctx.plugin` loop, because the mount
+ * audit — rows that never became usable, services that leaked into the root
+ * realm — and the standing-mount bookkeeping both read one.
+ */
+class InlinePresetTree extends EntryTree {
+  static inject = ['loader']
+  // Tree-carrier marker, as `Include` and `Group` declare: this config carries an
+  // entry list, so the Loader's `internal/config` interpolation keeps it literal
+  // — a `!!js` expression inside a row belongs to that row's fiber.
+  static [EntryGroup.key] = true
+
+  config
+
+  constructor(ctx, config) {
+    super(ctx)
+    this.config = config
+    mounted.set(config, { tree: this, fiber: ctx.fiber })
+  }
+
+  /**
+   * Resolve a bare specifier from the declaring plugin rather than from here.
+   *
+   * There is no composition directory, so a bare package name resolves from
+   * the base the registering plugin's own context carried — the composition
+   * the plugin was loaded from, which is where its dependencies live and where
+   * a relative row of its own belongs.
+   * @param name - the module specifier from the row.
+   * @param getOuterStack - the loader's stack composer for import diagnostics.
+   * @returns the imported module, or the `cordis:` builtin.
+   */
+  import(name, getOuterStack) {
+    return importFrom(this, this.config.baseUrl, name, getOuterStack, this.config.baseUrl)
+  }
+
+  /**
+   * A declared composition is an input, never a persistence target — the same
+   * reason {@link PresetTree} drops the write, minus the file it would have
+   * overwritten. The rows live in the plugin that declared them.
+   */
+  write() {
+  }
+
+  async* [Service.init]() {
+    yield () => this.root.stop()
+    await this.root.update(this.config.rows)
   }
 }
 
@@ -295,8 +366,16 @@ function mountDetail(error) {
  *
  * The subtree is owned by `agentCtx`'s fiber, so it unwinds with the agent and
  * the caller receives no disposer. A rejection leaves nothing mounted.
+ *
+ * A preset arrives either way a roster can supply one: as a `path` to a
+ * composition file, or as `rows` a plugin declared in process. The two differ
+ * only in where the entry list comes from — every guard below is the same
+ * audit either way, because a declared composition is exactly as privileged as
+ * a written one.
  * @param agentCtx - the agent's scope context, from the agent factory's `setup`.
- * @param preset - the resolved preset to compose the agent from.
+ * @param preset - the resolved preset to compose the agent from, carrying
+ *   either `path` or `rows` (and, with `rows`, the `baseUrl` bare specifiers
+ *   resolve against).
  * @throws when `agentCtx` carries no scope, a row is unusable, or a row
  * published a service into the root realm.
  */
@@ -308,7 +387,14 @@ export async function mountPreset(agentCtx, preset) {
       + 'its registrations would apply to every agent in the process',
     )
   }
-  const config = { path: pathToFileURL(preset.path).href }
+  // Detached from the definition on purpose: `EntryGroup.update()` mints an
+  // `id` into every row that names none, so mounting a plugin's own array would
+  // bake those ids back into the object it still holds and re-export — the same
+  // reason `applyEntryPatches` clones a parsed file before patching it.
+  const inline = preset.rows !== undefined
+  const config = inline
+    ? { rows: structuredClone(preset.rows), baseUrl: preset.baseUrl }
+    : { path: pathToFileURL(preset.path).href }
   // Captured before the subtree exists: the standing scope context still
   // carries the host composition's base, which is inside the installed
   // harness and is therefore where a row's package name has to resolve from.
@@ -318,7 +404,7 @@ export async function mountPreset(agentCtx, preset) {
   // preset and live until whole-tree teardown, so pruning here only sweeps
   // records of torn-down runtimes (tests; an HMR reload of the roster).
   pruneDisposedMounts()
-  const handle = agentCtx.plugin(PresetTree, config)
+  const handle = agentCtx.plugin(inline ? InlinePresetTree : PresetTree, config)
   try {
     await handle.await()
     const subtree = mounted.get(config)

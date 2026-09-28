@@ -1,6 +1,6 @@
 # @freddie/freddie-typert-registry
 
-Runtime registry for generated Typert artifacts. A contribution carries one package face's business reflection and optional live Zod schemas; `ctx.typert` registers both atomically and withdraws them with the calling Cordis fiber. TypeScript analysis and code generation live in [`freddie-typert-generator`](../generator/README.md).
+Runtime registry for Typert artifacts. A contribution carries one package face's business reflection and optional live Zod schemas; `ctx.typert` registers both atomically and withdraws them with the calling Cordis fiber. Artifacts are **hand-owned** by each contributing package (there is no generator — see [`../README.md`](../README.md)); TypeScript analysis and code generation are upstream-only concerns that freddie, being buildless, does not carry.
 
 Package reflection is keyed by `<package>#<face>`. Schemas are keyed by `<package>#<name>` and retain the producer's Zod instance. JSON Schema is computed on demand at the consumer edge.
 

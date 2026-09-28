@@ -86,6 +86,36 @@ Depends on: [`agentCore`](../packages/examples/agent-spine-demo/src/index.js) ·
 
 Source: [`packages/examples/acp-demo/src/index.js:39`](../packages/examples/acp-demo/src/index.js)
 
+<a id="deepseek-aidsh-auto-review"></a>
+
+## `@freddie/freddie-auto-review`
+
+Requires: `llm` · `permissionPresets` · `approval` · `tools`
+
+```ts config-catalog
+/**
+ * Runtime schema. Every field has a default except the paired route override.
+ */
+export interface AutoReviewConfig {
+  /** Preset name whose selection enrolls a session in per-call review. */
+  preset?: string
+  /** Add the Auto preset to the permission-preset table so a client or the /permission command can select it. */
+  advertise?: boolean
+  /** Optional explicit review route; must be paired with model. */
+  provider?: string
+  /** Optional explicit review route; must be paired with provider. */
+  model?: string
+  /** End-to-end deadline for one review request. */
+  timeoutMs?: number
+  /** Generation cap for one review request. */
+  maxOutputTokens?: number
+  /** UTF-8 byte ceiling for the framed review prompt. */
+  maxInputBytes?: number
+}
+```
+
+Source: [`packages/interaction/auto-review/src/index.js:74`](../packages/interaction/auto-review/src/index.js)
+
 <a id="deepseek-aidsh-agent-default-model"></a>
 
 ## `@freddie/freddie-agent-default-model`
@@ -420,6 +450,24 @@ export interface ConnectionConfig {
 
 Source: [`packages/client/connection/src/index.ts:50`](../packages/client/connection/src/index.js)
 
+<a id="deepseek-aidsh-client-file-upload"></a>
+
+## `@freddie/freddie-client-file-upload`
+
+Requires: `webServer`
+
+```ts config-catalog
+/** Runtime schema for the staged-upload transport. */
+export interface FileUploadConfig {
+  /** Harness home holding the staged-upload tree; defaults to `resolveFreddieHome`. */
+  freddieHome: string
+  /** Hard per-upload byte ceiling; the intake stops and discards the partial past it. */
+  maxUploadBytes?: number
+}
+```
+
+Source: [`packages/client/file-upload/src/index.js`](../packages/client/file-upload/src/index.js)
+
 <a id="deepseek-aidsh-client-hmr"></a>
 
 ## `@freddie/freddie-client-hmr`
@@ -435,6 +483,24 @@ export interface Config {
 ```
 
 Source: [`packages/client/hmr/src/index.ts:31`](../packages/client/hmr/src/index.js)
+
+<a id="deepseek-aidsh-client-ui-settings-subagent"></a>
+
+## `@freddie/freddie-client-ui-settings-subagent`
+
+```ts config-catalog
+/** Served `subagent` settings namespace. */
+export interface UiSettingsSubagentConfig {
+  /** Maximum delegation depth. */
+  maxDepth?: number
+  /** Maximum concurrently active subagents. */
+  maxActiveSubagents?: number
+}
+```
+
+The write is durable and validated, but no consumer enforces `subagent` yet — freddie's delegation stack composes its depth cap per `tool-subagent` instance. Wiring it is the follow-on.
+
+Source: [`packages/client/ui-settings-subagent/src/index.js`](../packages/client/ui-settings-subagent/src/index.js)
 
 <a id="deepseek-aidsh-code-runtime-worker-thread"></a>
 
@@ -539,6 +605,19 @@ export interface ToolResultPruneConfig {
 
 Source: [`packages/compaction/compaction-tool-result-pruner/src/index.js:4`](../packages/compaction/compaction-tool-result-pruner/src/index.js)
 
+<a id="deepseek-aidsh-compaction-image-offload"></a>
+
+## `@freddie/freddie-compaction-image-offload`
+
+```ts config-catalog
+/** Mount request-error recovery without configuration. */
+export interface Config {}
+```
+
+No settable keys: the offload policy is fixed. The schema is an empty object rather than absent so the package still composes as an ordinary `config:` entry — it listens on `agent/request-error` and drops the session's oldest images when a request fails with the provider's image-offload signal, then answers `retry`.
+
+Source: [`packages/compaction/compaction-image-offload/src/index.js`](../packages/compaction/compaction-image-offload/src/index.js)
+
 <a id="deepseek-aidsh-cordis-host-runner"></a>
 
 ## `@freddie/freddie-cordis-host-runner`
@@ -574,6 +653,24 @@ export interface Config {
 ```
 
 Source: [`packages/credentials/credentials-local/src/index.ts:64`](../packages/credentials/credentials-local/src/index.js)
+
+<a id="deepseek-aidsh-dream-rsi-context"></a>
+
+## `@freddie/freddie-dream-rsi-context`
+
+Requires: `agents`
+
+```ts config-catalog
+/** Runtime schema for the RSI context slice. */
+export interface DreamRsiContextConfig {
+  /** Serve the slice at all; `false` leaves the system prompt without it. */
+  enabled?: boolean
+  /** Most recently observed nodes retained for the slice. */
+  maxObservedNodes?: number
+}
+```
+
+Source: [`packages/context/dream-rsi-context/src/index.js`](../packages/context/dream-rsi-context/src/index.js)
 
 <a id="deepseek-aidsh-e2b"></a>
 
@@ -616,6 +713,44 @@ export interface Config {
 ```
 
 Source: [`packages/experimental/agent-team/src/types.ts:125`](../packages/experimental/agent-team/src/types.js)
+
+<a id="deepseek-aidsh-experimental-browser-use-chrome-devtools-mcp"></a>
+
+## `@freddie/freddie-experimental-browser-use-chrome-devtools-mcp`
+
+Requires: `browserUse` · `agents` · `tools` · `systemPrompt`
+
+```ts config-catalog
+/** Fixed Chromium launch or existing-browser attachment settings. */
+export type Config = BrowserMcpConfig & BrowserEntryConfig
+
+/** Overrides merged onto the shared launch or attachment settings. */
+export interface BrowserEntryConfig {
+  /** Explicit path to the pinned `chrome-devtools-mcp` CLI entry; omission resolves it from the Node module resolution of this package. */
+  entryPath?: string
+}
+```
+
+Depends on: `BrowserMcpConfig` (`@freddie/freddie-experimental-browser-use-runtime/mcp`)
+
+```ts config-catalog
+/** Validate the browser mode before the provider reserves browser use. */
+export type BrowserMcpConfig = {
+  mode: 'launch'
+  headless?: boolean
+  executablePath?: string
+  toolCallTimeoutMs?: number
+} | {
+  mode: 'attach'
+  /** HTTP(S) or WS(S) URL of an existing browser's debugging endpoint, without whitespace. */
+  endpoint: string
+  toolCallTimeoutMs?: number
+}
+```
+
+Unreleased `experimental/` group. Freddie declares no dependency on the upstream server: `entryPath` — or Node resolution next to this package — supplies `chrome-devtools-mcp@1.9.0`'s `build/src/bin/chrome-devtools-mcp.js` at launch, and activation fails loudly when neither resolves, so no third-party code enters the tree at install time.
+
+Source: [`packages/experimental/browser-use-chrome-devtools-mcp/src/index.js`](../packages/experimental/browser-use-chrome-devtools-mcp/src/index.js)
 
 <a id="deepseek-aidsh-experimental-tool-agent-team"></a>
 
@@ -855,6 +990,60 @@ export interface Config {
 
 Source: [`packages/host/frontend-static/src/index.ts:28`](../packages/host/frontend-static/src/index.js)
 
+<a id="deepseek-aidsh-host-open-in-app"></a>
+
+## `@freddie/freddie-host-open-in-app`
+
+Requires: `webServer`
+
+```ts config-catalog
+/** Runtime schema for host application discovery and launch. */
+export interface OpenInAppConfig {
+  /** Deadline per catalog-resolution host command (`xcode-select`, each `reg.exe` read). */
+  probeTimeoutMs?: number
+  /** Deadline per icon-extraction host command (`plutil`/`sips`, the PowerShell extraction). */
+  iconTimeoutMs?: number
+  /** Early-failure watch window per launch: a launcher still running when the window closes counts as launched and keeps running. */
+  launchWatchMs?: number
+}
+```
+
+Source: [`packages/host/open-in-app/src/index.js`](../packages/host/open-in-app/src/index.js)
+
+<a id="deepseek-aidsh-host-product-telemetry-otel"></a>
+
+## `@freddie/freddie-host-product-telemetry-otel`
+
+```ts config-catalog
+/** Plugin config: the collector destination and the export budgets. */
+export interface Config {
+  /** Full HTTP(S) logs URL; required, with no default. */
+  endpoint: string
+  /** Extra headers reaching the collector, `name: value` strings. */
+  headers?: Record<string, string>
+  /** Application name on the OTel resource. */
+  serviceName: string
+  /** Application version on the OTel resource. */
+  serviceVersion: string
+  /** Wire encoding; omission honors the SDK environment variables. */
+  compression?: 'none' | 'gzip'
+  /** Records per export batch; cannot exceed `maxQueueSize`. */
+  maxExportBatchSize?: number
+  /** Records retained between exports. */
+  maxQueueSize?: number
+  /** Partial-batch export interval in milliseconds. */
+  scheduledDelayMillis?: number
+  /** Exporter HTTP and retry deadline in milliseconds. */
+  timeoutMillis?: number
+  /** Processor batch export deadline in milliseconds. */
+  exportTimeoutMillis?: number
+  /** Outer wait for shutdown in milliseconds; expiry reports possible loss. */
+  shutdownTimeoutMillis?: number
+}
+```
+
+Source: [`packages/host/product-telemetry-otel/src/index.ts:65`](../packages/host/product-telemetry-otel/src/index.js)
+
 <a id="deepseek-aidsh-host-webserver"></a>
 
 ## `@freddie/freddie-host-webserver`
@@ -870,6 +1059,57 @@ export interface Config {
 ```
 
 Source: [`packages/host/webserver/src/index.ts:59`](../packages/host/webserver/src/index.js)
+
+<a id="deepseek-aidsh-inspector"></a>
+
+## `@freddie/freddie-inspector`
+
+```ts config-catalog
+/**
+ * Inspector configuration. There is deliberately no `host` field: the endpoint
+ * binds loopback or it does not start.
+ */
+export interface Config {
+  /**
+   * Opt-in gate. The CDP target executes arbitrary Host code, so a composition
+   * has to ask for it explicitly; a mounted-but-disabled plugin installs
+   * nothing and logs the refusal.
+   */
+  enabled?: boolean
+  /** First port the Worker tries; occupied ports advance upward, `0` asks the OS for one. */
+  port?: number
+  /** Whether to observe calls made through the current global fetch function. */
+  captureFetch?: boolean
+  /**
+   * Whether captured fetches retain request and response bodies. Bodies are the
+   * one capture surface redaction cannot make exhaustive, so they stay off
+   * until a composition accepts that.
+   */
+  captureBodies?: boolean
+  /** Byte ceiling for one captured body. */
+  maxBodyBytes?: number
+  /** Total request and response body bytes the Worker retains. */
+  maxJournalBytes?: number
+  /** Active and completed fetch requests the Worker retains. */
+  maxRetainedRequests?: number
+  /** Records waiting in one producer queue before the oldest is dropped. */
+  maxQueuedRecords?: number
+  /** Encoded bytes waiting in one producer queue before the oldest is dropped. */
+  maxQueuedBytes?: number
+  /** Encoded bytes accepted in one transport frame. */
+  maxFrameBytes?: number
+  /** Context and Fiber nodes admitted from one realm snapshot before truncation. */
+  maxCordisNodes?: number
+  /** How often the Host republishes its Cordis snapshot for the Elements panel. */
+  cordisIntervalMs?: number
+  /** Deadline for the Worker to become ready. */
+  startupTimeoutMs?: number
+  /** Grace period before a stopping Worker is terminated. */
+  stopTimeoutMs?: number
+}
+```
+
+Source: [`packages/runtime-diagnostics/inspector/src/index.ts:54`](../packages/runtime-diagnostics/inspector/src/index.js)
 
 <a id="deepseek-aidsh-invariants"></a>
 
@@ -988,6 +1228,102 @@ export interface DeepSeekCatalogModel {
 Depends on: [`ModelModality`](../packages/llm/llm/src/index.js) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.js)
 
 Source: [`packages/llm/llm-deepseek/src/index.ts:106`](../packages/llm/llm-deepseek/src/index.js)
+
+<a id="deepseek-aidsh-llm-pi-ai"></a>
+
+## `@freddie/freddie-llm-pi-ai`
+
+Requires: `llm`
+
+```ts config-catalog
+/** Runtime schema for the plugin configuration: the provider routes it owns. */
+export interface Config {
+  /** Provider routes keyed by route name, so the composition base and a user-settings layer merge per provider and the route set is structural. */
+  providers?: Record<string, Profile>
+}
+```
+
+Depends on: `Profile` (package-local)
+
+```ts config-catalog
+/**
+ * One provider route. A route naming an installed pi-ai provider inherits that
+ * provider's endpoint, protocol, and model catalog as defaults and the profile
+ * overrides them field by field; a route pi-ai does not ship is declared
+ * outright.
+ */
+export interface Profile {
+  /** Environment-variable name holding the route's API key. */
+  apiKeyEnv?: string
+  /** Display name; defaults to the route key, which never renames itself on a configuration surface. */
+  displayName?: string
+  /** Wire protocol; defaults to the installed provider's. */
+  api?: string
+  /** Endpoint base URL; empty is refused. */
+  baseURL?: string
+  /** Declared models. */
+  models?: ModelProfile[]
+  /** Per-model overrides keyed by model id. */
+  modelOverrides?: Record<string, ModelOverride>
+  /** Protocol capability overrides. */
+  compat?: CompatProfile
+  /** Context capacity assumed for a model neither configuration nor the catalog sizes. */
+  defaultContextWindow?: number
+  /** Output capability assumed for a model neither configuration nor the catalog sizes. */
+  defaultMaxTokens?: number
+  /** Modalities assumed for a model neither configuration nor the catalog declares; text is the floor, so under-claiming refuses an image before it is attached. Must name at least one. */
+  defaultInput?: Modality[]
+  /** Extra request headers; each must be a valid Fetch field name and a single-line value representable as bytes. */
+  headers?: Record<string, string>
+  /** Default reasoning level. */
+  reasoning?: ThinkingLevel
+  /** Per-level thinking token budgets. */
+  thinkingBudgets?: ThinkingBudgets
+  /** Prompt-cache retention. */
+  cacheRetention?: 'none' | 'short' | 'long'
+  /** Transport selection. */
+  transport?: 'sse' | 'websocket' | 'websocket-cached' | 'auto'
+  /** Per-request deadline. */
+  timeoutMs?: number
+  /** Deadline for establishing the websocket. */
+  websocketConnectTimeoutMs?: number
+  /** Maximum idle interval while an adapter stream read is outstanding. */
+  streamIdleTimeoutMs?: number
+  /** Request-level bound on base64-encoded image payload; every image in history is re-encoded into every request body. */
+  maxRequestImageBytes?: number
+  /** Total-pixel budget preserving the complete 2048px normalized attachment. */
+  requestImagePixelBudget?: number
+  /** Raw encoded-byte target before inline base64 expansion. */
+  requestImageMaxBytes?: number
+  /** Retry policy captured at registration; changing it re-registers the adapter in place. */
+  retryPolicy?: RetryPolicy
+}
+
+/** The fields a `models` entry and a `modelOverrides` value share; only the id's home differs. */
+export interface ModelFields {
+  name?: string
+  contextWindow?: number
+  maxTokens?: number
+  /** Absent means "no answer here", so the route's `defaultInput` still applies. */
+  input?: Modality[]
+  /** `false` disables reasoning; absent inherits the installed catalog's capability. Absent must stay distinguishable from `{}`. */
+  reasoningEfforts?: false | Record<string, string | null>
+  compat?: CompatProfile
+}
+
+export interface ModelProfile extends ModelFields {
+  id: string
+}
+
+/** A `ModelProfile` whose id lives in the `modelOverrides` dict key. */
+export type ModelOverride = ModelFields
+```
+
+Depends on: `RetryPolicy` (`@freddie/freddie-llm`). `CompatProfile` is the per-protocol capability table declared in the same file (`packages/llm/llm-pi-ai/src/config.js`).
+
+A changed route set — or a route's registration-captured retry policy — re-registers the same adapter instance in place; every other fact resolves per request over the optional `llm-pi-ai` user-settings section, so a changed key, endpoint, model, or knob reaches the next request without a restart.
+
+Source: [`packages/llm/llm-pi-ai/src/config.js`](../packages/llm/llm-pi-ai/src/config.js)
 
 <a id="deepseek-aidsh-llm-replay"></a>
 
@@ -1428,6 +1764,22 @@ Depends on: [`SandboxMode`](subsystems/sandbox.md)
 
 Source: [`packages/sandbox/sandbox-policy/src/index.ts:67`](../packages/sandbox/sandbox-policy/src/index.js)
 
+<a id="deepseek-aidsh-sdk-app"></a>
+
+## `@freddie/freddie-sdk-app`
+
+Requires: `cmdlineArgs`
+
+```ts config-catalog
+/** App config: the swappable per-deployment values. */
+export interface Config {
+  /** Profile name this app's command dispatches under; rendered into the command grammar and its help text. */
+  profile?: string
+}
+```
+
+Source: [`packages/bundle/sdk-app/src/startup.js`](../packages/bundle/sdk-app/src/startup.js)
+
 <a id="deepseek-aidsh-sdk-jsonrpc-server"></a>
 
 ## `@freddie/freddie-sdk-jsonrpc-server`
@@ -1686,7 +2038,7 @@ export type Config = SessionTitleLlmConfig
 
 Depends on: [`SessionTitleLlmConfig`](../packages/session/session-title-llm/src/index.js)
 
-Source: `packages/session/session-title-all-prompts-llm` (package scaffold only, no `src/` implementation present yet)
+Source: [`packages/session/session-title-all-prompts-llm/src/index.ts:14`](../packages/session/session-title-all-prompts-llm/src/index.js)
 
 <a id="deepseek-aidsh-session-title-first-prompt-llm"></a>
 
@@ -1963,6 +2315,54 @@ export type PermissionPolicy = 'allow' | 'reject'
 ```
 
 Source: `packages/subagent/subagent-acp` (package scaffold only, no `src/` implementation present yet)
+
+<a id="deepseek-aidsh-subagent-claude-code"></a>
+
+## `@freddie/freddie-subagent-claude-code`
+
+Requires: `subagents` · `subprocess`
+
+```ts config-catalog
+/** Runtime schema for the Claude Code subagent provider. */
+export interface ClaudeCodeSubagentConfig {
+  /** Provider name registered with `ctx.subagents`. */
+  providerName?: string
+  /** Model the child Claude Code process runs; required, since no default is assumed for another vendor's CLI. */
+  model: string
+  /** Extra environment for the child process. */
+  env?: Record<string, string>
+  /** Permission mode handed to the child CLI. */
+  permissionMode?: string
+  /** Grace period after dispose before the child is killed. */
+  disposeGraceMs?: number
+}
+```
+
+Source: [`packages/subagent/subagent-claude-code/src/index.js`](../packages/subagent/subagent-claude-code/src/index.js)
+
+<a id="deepseek-aidsh-subagent-codex"></a>
+
+## `@freddie/freddie-subagent-codex`
+
+Requires: `subagents` · `subprocess`
+
+```ts config-catalog
+/** Runtime schema for the Codex subagent provider. */
+export interface CodexSubagentConfig {
+  /** Provider name registered with `ctx.subagents`. */
+  providerName?: string
+  /** Model the child Codex process runs; required, since no default is assumed for another vendor's CLI. */
+  model: string
+  /** Extra environment for the child process. */
+  env?: Record<string, string>
+  /** Permission mode handed to the child CLI. */
+  permissionMode?: string
+  /** Grace period after dispose before the child is killed. */
+  disposeGraceMs?: number
+}
+```
+
+Source: [`packages/subagent/subagent-codex/src/index.js`](../packages/subagent/subagent-codex/src/index.js)
 
 <a id="deepseek-aidsh-subagent-freddie-sdk"></a>
 
@@ -2351,6 +2751,22 @@ export interface Config {
 ```
 
 Source: `packages/lsp/tool-lsp` (package scaffold only, no `src/` implementation present yet)
+
+<a id="deepseek-aidsh-tool-present"></a>
+
+## `@freddie/freddie-tool-present`
+
+Requires: `tools` · `fs`
+
+```ts config-catalog
+/** Runtime schema for the delivery tool. */
+export interface ToolPresentConfig {
+  /** Maximum files one presentation names. */
+  maxFiles?: number
+}
+```
+
+Source: [`packages/deliverables/tool-present/src/index.js`](../packages/deliverables/tool-present/src/index.js)
 
 <a id="deepseek-aidsh-tool-pwsh"></a>
 
@@ -2794,6 +3210,22 @@ export interface Config {
 
 Source: [`packages/web/web-fetch-http/src/index.ts:34`](../packages/web/web-fetch-http/src/index.js)
 
+<a id="deepseek-aidsh-web-search-browser"></a>
+
+## `@freddie/freddie-web-search-browser`
+
+Requires: `web` · `gm`
+
+```ts config-catalog
+/** Runtime schema for the browser-automation search provider. */
+export interface WebSearchBrowserConfig {
+  /** Deadline for one browser-driven search. */
+  timeoutMs?: number
+}
+```
+
+Source: [`packages/web/web-search-browser/src/index.js`](../packages/web/web-search-browser/src/index.js)
+
 <a id="deepseek-aidsh-web-search-deepseek"></a>
 
 ## `@freddie/freddie-web-search-deepseek`
@@ -2870,6 +3302,30 @@ export interface Config {
 
 Source: `packages/web/web-search-perplexity` (package scaffold only, no `src/` implementation present yet)
 
+<a id="deepseek-aidsh-webhook-github"></a>
+
+## `@freddie/freddie-webhook-github`
+
+Requires: `webServer` · `webhookRuntime` · `credentials`
+
+```ts config-catalog
+/** Runtime schema for one signed GitHub endpoint. */
+export interface WebhookGithubConfig {
+  /** Source name the endpoint is registered under; must be non-empty and untrimmed. */
+  source: string
+  /** Absolute non-root pathname without a trailing slash, query, or fragment. */
+  path: string
+  /** Environment-variable name holding the shared secret. */
+  secretEnv: string
+  /** Request body byte ceiling. */
+  maxBodyBytes: number
+}
+```
+
+Every key is required: an unsigned or unbounded webhook endpoint is a refusal at load, not a default. `secretEnv` names an environment variable rather than carrying the secret, so no secret reaches `cordis.yml`.
+
+Source: [`packages/webhook/webhook-github/src/index.js`](../packages/webhook/webhook-github/src/index.js)
+
 <a id="deepseek-aidsh-workflow-worker-thread"></a>
 
 ## `@freddie/freddie-workflow-worker-thread`
@@ -2900,6 +3356,30 @@ export interface Config {
 
 Source: [`packages/workflow/workflow-worker-thread/src/index.ts:32`](../packages/workflow/workflow-worker-thread/src/index.js)
 
+<a id="deepseek-aidsh-workspace-changes"></a>
+
+## `@freddie/freddie-workspace-changes`
+
+Requires: `subprocess`
+
+```ts config-catalog
+/** Runtime schema for the workspace-change deliverable. */
+export interface WorkspaceChangesConfig {
+  /** Deadline for one `git` invocation. */
+  timeoutMs?: number
+  /** Byte ceiling on captured command output. */
+  outputMaxBytes?: number
+  /** Maximum files one change set names. */
+  maxFiles?: number
+  /** Byte ceiling per file. */
+  maxFileBytes?: number
+  /** Deadline for the diff pass. */
+  diffTimeoutMs?: number
+}
+```
+
+Source: [`packages/deliverables/workspace-changes/src/index.js`](../packages/deliverables/workspace-changes/src/index.js)
+
 ## Loadable plugins with no config
 
 These load from a `cordis.yml` entry with no `config:` block; they declare no configuration API.
@@ -2907,7 +3387,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@freddie/freddie-agent` ([`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.js))
 - `@freddie/freddie-api-gateway` — requires `typert` ([`packages/api/gateway/src/index.ts`](../packages/api/gateway/src/index.js))
 - `@freddie/freddie-api-remotes` ([`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.js))
-- `@freddie/freddie-authorization` — requires `credentials` (`packages/credentials/authorization` (package scaffold only, no `src/` implementation present yet))
+- `@freddie/freddie-authorization` — requires `credentials` ([`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.js))
 - `@freddie/freddie-client-locale` ([`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.js))
 - `@freddie/freddie-client-modules` — requires `webServer` · `loader` ([`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.js))
 - `@freddie/freddie-client-runtime` ([`packages/client/runtime/src/index.ts`](../packages/client/runtime/src/index.js))

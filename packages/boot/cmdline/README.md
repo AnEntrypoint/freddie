@@ -56,6 +56,23 @@ Loader defers a row's `!!js` interpolation until that row's declared injections 
 
 An out-of-tree plugin brings its own commander copy, so commander's control-flow errors are detected structurally rather than by class identity; an identity check would rethrow a printed help as a fatal load failure.
 
+### Stdio-serving surfaces and stdin EOF
+
+A stdio app has no SIGTERM to wait for: its client closes the pipe, the transport drains, and stdin ends. `exitOnStdinEnd(ctx, label)` binds that end to `ctx.appExit(0)`, so the launcher's shutdown drains the whole tree — persistence, telemetry, every other disposal — instead of the app calling `process.exit` over a live root:
+
+```ts ignore
+export function apply(ctx: Context): void {
+  const program = acpCommand()
+  program.action(() => {
+    exitOnStdinEnd(ctx, 'acp-app.stdin')
+    ctx.provide('acpStartup', { accepted: true })
+  })
+  parseCmdline(ctx, program)
+}
+```
+
+Binding it inside the action puts it behind the same accepted-invocation latch as the transport: `--help` never runs the action, so help writes and exits with no listener attached and no stream claimed. The listener is removed when the owning scope disposes, and a repeated end requests exit once. Like `parseCmdline`, it fails loud when the launcher provided no `appExit`.
+
 ## Model Experience
 
 None, as this package resolves the process's own command line before any session exists.

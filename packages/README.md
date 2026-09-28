@@ -36,10 +36,10 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@freddie/freddie-<pkg>`. **Gr
 | [`spill/`](spill/README.md) | Spill capability family: storage seam, local impl, tool-result spill policy | Product — stable API |
 | [`todo/`](todo/README.md) | The model-facing `todo_write` tool | Product — stable API |
 | [`plan/`](plan/README.md) | Plan collaboration state with a direct entry command and reviewed exit | Product — stable API |
-| [`preset/`](preset/README.md) | Per-session agent composition from preset `cordis.yml` files | Product — stable API |
+| [`preset/`](preset/README.md) | Per-session agent composition from preset `cordis.yml` files or a plugin-declared composition | Product — stable API |
 | [`gm/`](gm/README.md) | First-class gm spool client (`ctx.gm`) and model-facing `gm_*` tools | Product — stable API |
 | [`guard/`](guard/README.md) | Loop-hygiene guards: advisory repeat-call reminders + the `tools/execute` deadline enforcer | Product — stable API |
-| [`bundle/`](bundle/README.md) | Installable `dsh --profile` patch layers | Product — stable API |
+| [`bundle/`](bundle/README.md) | Installable `freddie --profile` patch layers | Product — stable API |
 | [`extensions/`](extensions/README.md) | Agent runtime self-modification: live plugin/service inspection and model-written plugin mount/unmount ([design](../.agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md)) | Product — stable API |
 | [`hooks/`](hooks/README.md) | Hook bridges + the shared Claude Code / Codex wire-protocol library | Product — stable API |
 | [`session/`](session/README.md) | Durable session data plane: persistence seam + JSONL/SQLite backends, projection seam, log-backed titles, session reporting | Product — stable API |
@@ -50,7 +50,7 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@freddie/freddie-<pkg>`. **Gr
 | [`workspace/`](workspace/README.md) | Workspace entity | Product — stable API |
 | [`sdk/`](sdk/README.md) | Out-of-process runtime SDK: JSON-RPC protocol, TypeScript client, and server plugin | Product — stable API |
 | [`acp/`](acp/README.md) | Automation-only Agent Client Protocol server | Product — stable API |
-| [`interaction/`](interaction/README.md) | Human-collaboration plane: approval/interaction seams, permission preset, commands, ask-user tool | Product — stable API |
+| [`interaction/`](interaction/README.md) | Human-collaboration plane: approval/interaction seams, permission presets, per-tool auto review, commands, ask-user tool | Product — stable API |
 | [`boot/`](boot/README.md) | Shared app-bin boot glue | Product — stable API |
 | [`host/`](host/README.md) | Web-GUI host half: API gateway + HTTP route server | Product — stable API |
 | [`client/`](client/README.md) | Web-GUI browser half: shell, wire, object services, slots, `ui-*` plugins | Product — stable API |
@@ -58,8 +58,11 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@freddie/freddie-<pkg>`. **Gr
 | [`test-support/`](test-support/README.md) | Support infrastructure (testkits, invariants, replay, Loader smokes) | Support — lower compatibility expectations |
 | [`util/`](util/README.md) | Low-level zero-dependency utilities shared across groups (`Branded<B>`, Harness home/path helpers, timeout, retention) | Support — small, stable, harness-dep-free |
 | [`webhook/`](webhook/README.md) | Fire-and-forget webhook rule runtime + signed GitHub HTTP adapter | Product — stable API |
+| [`mcp/`](mcp/README.md) | Model Context Protocol client bridge: external MCP servers' tools registered as native model tools | Product — stable API |
 | [`deliverables/`](deliverables/README.md) | Explicit model-declared file deliveries | Product — stable API |
-| [`browser-use/`](browser-use/README.md) | Exclusive named browser-use provider registration | Product — stable API |
+| [`browser-use/`](browser-use/README.md) | Exclusive named browser-use provider registration, plus the experimental shared provider runtime and Chrome DevTools MCP provider ([experimental/](experimental/README.md)) | Product — stable API |
+| [`computer-use/`](computer-use/README.md) | Exclusive named computer-use provider registration | Product — stable API |
+| [`runtime-diagnostics/`](runtime-diagnostics/README.md) | Runtime observation of a live Host: invariant-check registry + opt-in loopback-only DevTools inspector | Product — stable API |
 
 New packages join existing groups; new groups update their README and this table.
 

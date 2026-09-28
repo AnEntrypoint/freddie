@@ -5,6 +5,8 @@ Browser-use providers let models inspect and operate web pages. This group owns 
 | Package | Role | ctx key |
 |---|---|---|
 | [`browser-use/`](browser-use/README.md) | Exclusive named provider registration | `ctx.browserUse` |
+| [`../experimental/browser-use-runtime/`](../experimental/browser-use-runtime/README.md) | Shared provider library: per-live-Agent resource ownership, serialized operations, cleanup on disposal, and `mountSessionMcp` discovery | — |
+| [`../experimental/browser-use-chrome-devtools-mcp/`](../experimental/browser-use-chrome-devtools-mcp/README.md) | Experimental provider: per-Session Chromium through the pinned `chrome-devtools-mcp` server | `ctx.browserUse` |
 
-No provider is mounted yet — this ships the seam a future browser-use driver registers against, matching how several other capability seams this session shipped before their first real consumer wired into them.
+The two experimental packages are private prototypes (see [`experimental/AGENTS.md`](../experimental/AGENTS.md)) and mount only when a composition names them explicitly; the registration seam itself ships in this group. The Chrome DevTools provider declares no dependency on its upstream server — it resolves the pinned entry at launch — so nothing third-party enters the tree at install time.
 

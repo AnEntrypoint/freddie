@@ -37,11 +37,16 @@
         "@freddie/freddie-goal/remote",
         "@freddie/freddie-cordis-host-runner/remote",
         "@freddie/freddie-file-reference/remote",
+        "@freddie/freddie-remote-stream/client",
+        "@freddie/freddie-remote-stream/remote",
         "@freddie/freddie-host-plugin-inventory/remote",
         "@freddie/freddie-message-feedback/remote",
         "@freddie/freddie-session-reference/remote",
         "@freddie/freddie-session-artifacts/remote",
-        "@freddie/freddie-gm-client/remote"
+        "@freddie/freddie-gm-client/remote",
+        "@freddie/freddie-job-controller/remote",
+        "@freddie/freddie-session-controller/remote",
+        "@freddie/freddie-terminal-controller/remote"
       ]
     }
   },
@@ -65,13 +70,17 @@
     "@freddie/freddie-goal": "*",
     "@freddie/freddie-host-plugin-inventory": "*",
     "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-job-controller": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-message-feedback": "*",
+    "@freddie/freddie-remote-stream": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-session-reference": "*",
     "@freddie/freddie-session-artifacts": "*",
+    "@freddie/freddie-session-controller": "*",
     "@freddie/freddie-settings": "*",
+    "@freddie/freddie-terminal-controller": "*",
     "@freddie/freddie-typert-registry": "*",
     "@freddie/cordis": "*"
   },
@@ -87,13 +96,17 @@
     "@freddie/freddie-goal": "*",
     "@freddie/freddie-host-plugin-inventory": "*",
     "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-job-controller": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-message-feedback": "*",
+    "@freddie/freddie-remote-stream": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-session-reference": "*",
     "@freddie/freddie-session-artifacts": "*",
+    "@freddie/freddie-session-controller": "*",
     "@freddie/freddie-settings": "*",
+    "@freddie/freddie-terminal-controller": "*",
     "@freddie/freddie-typert-registry": "*",
     "@freddie/cordis": "*"
   }

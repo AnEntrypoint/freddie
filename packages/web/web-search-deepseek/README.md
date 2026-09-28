@@ -8,6 +8,10 @@ Registers into `ctx.web` alongside `@freddie/freddie-web-search-exa`/`-browser`;
 
 Every dispatched request is recorded — secret-free — as a `web/deepseek-search-llm-request` session event immediately before the network call, so a transcript shows exactly what was sent for an auxiliary search the same way it shows the conversation's own requests.
 
+## Settings namespace
+
+This provider serves the `web-search-deepseek` settings namespace: the endpoint, the per-request search budget, and the credential reference the key is resolved under. A commit to that section re-resolves the options the provider serves, so an edit reaches the next search rather than the next composition reload. The key itself is not a section field — it is written through the credentials domain, and the section only names which reference to resolve.
+
 ## Model Experience
 
 The seam's own `search` tool surfaces `sources[]` (`url`, optional `title`/`snippet`/`publishedAt`); this provider fills that shape by joining Anthropic `web_search_result` items to their citation excerpt (the snippet lives in a separate `text` block's `citations[]`, keyed by URL — Anthropic's result items themselves carry no inline snippet).
@@ -18,6 +22,6 @@ None beyond the ordinary search-tool result; the request this provider makes is 
 
 ## Known Limitations and Deferred Work
 
-- **Config is resolved once at plugin load, not re-read live.** Unlike the seam this was ported from (which snapshots a live, hot-reloadable settings section per search), this matches `@freddie/freddie-web-search-exa`'s own existing precedent — freddie has no established `.volatile()`-style live-settings mechanism for a search provider today. A config change takes effect on the next composition reload.
+- **Only the section's three fields are live.** `model`, `apiVersion`, and `maxTokens` are not in the served namespace, so they still take effect on the next composition reload. Widening the section is a config-surface decision, not a transport one.
 - **Credential resolution still re-runs per search** (via `ctx.get('credentials')`, matching `@freddie/freddie-llm-deepseek`'s own pattern), so a credential rotated through the credentials service reaches the next search without a restart even though the endpoint/model/limits do not.
 - **Redirects fail closed** (`redirect: 'error'`) rather than following them, matching the seam's other providers' trust posture for a credentialed request.

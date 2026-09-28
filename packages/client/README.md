@@ -1,6 +1,6 @@
 # client/ — web-GUI browser half
 
-The browser side of the dsh web GUI: shell boot, browser-host communication, shared UI services, and feature plugins. Authoring rules live in [AGENTS.md](AGENTS.md); the host half is [`host/`](../host/README.md). All except `test-runtime` are **product** packages named `@freddie/freddie-client-<name>`.
+The browser side of the freddie web GUI: shell boot, browser-host communication, shared UI services, and feature plugins. Authoring rules live in [AGENTS.md](AGENTS.md); the host half is [`host/`](../host/README.md). All except `test-runtime` are **product** packages named `@freddie/freddie-client-<name>`.
 
 | Package | Purpose |
 |---|---|
@@ -8,6 +8,7 @@ The browser side of the dsh web GUI: shell boot, browser-host communication, sha
 | [`ui-renderer/`](ui-renderer/README.md) | Binds slot data to React and mounts the assembled application after client boot settles. |
 | [`modules/`](modules/README.md) | Loads browser-side client modules. |
 | [`connection/`](connection/README.md) | Maintains browser-host RPC communication and event delivery. |
+| [`file-upload/`](file-upload/README.md) | Streams browser file uploads to a session with progress, cancellation, and staged receipts for later prompts. |
 | [`runtime/`](runtime/README.md) | Provides shared client services for sessions, workspaces, and UI composition. |
 | [`hmr/`](hmr/README.md) | Refreshes client plugins during development. |
 | [`locale/`](locale/README.md) | Provides localization preferences and message dictionaries. |
@@ -35,8 +36,11 @@ The browser side of the dsh web GUI: shell boot, browser-host communication, sha
 | [`ui-permission/`](ui-permission-presets/README.md) | Configures default permissions and switches the current session's access. |
 | [`ui-plan/`](ui-plan/README.md) | Presents active plan-mode status and its exit control. |
 | [`ui-settings-plugins/`](ui-settings-plugins/README.md) | Owns the Plugins settings section, its tab extension point, and configurable host-plane plugin cards. |
+| [`ui-settings-subagent/`](ui-settings-subagent/README.md) | Contributes the delegation depth and capacity card over the `subagent` namespace. |
+| [`ui-settings-web-search/`](ui-settings-web-search/README.md) | Contributes the search provider's endpoint, key, and per-request budget card. |
 | [`ui-user-questions/`](ui-user-questions/README.md) | Presents interactive questions requested by the agent. |
 | [`ui-agent-preset/`](ui-agent-preset/README.md) | Selects a session's agent preset and authors preset compositions. |
+| [`shortcuts/`](shortcuts/README.md) | Owns the window-local keyboard command registry and the searchable reference that rebinds commands by action, alias, or key. |
 | [`ui-settings/`](ui-settings/README.md) | Hosts the settings interface and its extension areas. |
 | [`ui-settings-general/`](ui-settings-general/README.md) | Provides the general settings section. |
 | [`ui-settings-models/`](ui-settings-models/README.md) | Provides model-provider configuration and DeepSeek onboarding. |

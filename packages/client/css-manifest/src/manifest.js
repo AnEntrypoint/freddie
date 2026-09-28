@@ -2,11 +2,13 @@
 // Regenerate after adding/removing a converted CSS file.
 export const cssManifest = [
   { id: "client-locale-src-client-LanguageRow", path: "packages/client/locale/src/client/LanguageRow.css" },
-  { id: "client-ui-artifacts-src-client-ArtifactsView", path: "packages/client/ui-artifacts/src/client/ArtifactsView.css" },
+  { id: "client-shortcuts-src-client-ShortcutReference", path: "packages/client/shortcuts/src/client/ShortcutReference.css" },
+  { id: "client-shortcuts-src-client-ShortcutRow", path: "packages/client/shortcuts/src/client/ShortcutRow.css" },
   { id: "client-ui-agent-preset-src-client-AgentPresetLabel", path: "packages/client/ui-agent-preset/src/client/AgentPresetLabel.css" },
   { id: "client-ui-agent-preset-src-client-AgentPresetRow", path: "packages/client/ui-agent-preset/src/client/AgentPresetRow.css" },
   { id: "client-ui-agent-preset-src-client-AgentPresetSeat", path: "packages/client/ui-agent-preset/src/client/AgentPresetSeat.css" },
   { id: "client-ui-agent-preset-src-client-AgentPresetSection", path: "packages/client/ui-agent-preset/src/client/AgentPresetSection.css" },
+  { id: "client-ui-artifacts-src-client-ArtifactsView", path: "packages/client/ui-artifacts/src/client/ArtifactsView.css" },
   { id: "client-ui-attachment-src-AttachmentRail", path: "packages/client/ui-attachment/src/AttachmentRail.css" },
   { id: "client-ui-attachment-src-DropOverlay", path: "packages/client/ui-attachment/src/DropOverlay.css" },
   { id: "client-ui-attachment-src-ImageLightbox", path: "packages/client/ui-attachment/src/ImageLightbox.css" },
@@ -80,6 +82,8 @@ export const cssManifest = [
   { id: "client-ui-settings-plugins-src-client-PluginCard", path: "packages/client/ui-settings-plugins/src/client/PluginCard.css" },
   { id: "client-ui-settings-plugins-src-client-PluginsSettingsSection", path: "packages/client/ui-settings-plugins/src/client/PluginsSettingsSection.css" },
   { id: "client-ui-settings-plugins-src-client-fields", path: "packages/client/ui-settings-plugins/src/client/fields.css" },
+  { id: "client-ui-settings-subagent-src-client-SubagentCard", path: "packages/client/ui-settings-subagent/src/client/SubagentCard.css" },
+  { id: "client-ui-settings-web-search-src-client-WebSearchCard", path: "packages/client/ui-settings-web-search/src/client/WebSearchCard.css" },
   { id: "client-ui-sidebar-src-client-SidebarRoot", path: "packages/client/ui-sidebar/src/client/SidebarRoot.css" },
   { id: "client-ui-skill-src-client-SkillRow", path: "packages/client/ui-skill/src/client/SkillRow.css" },
   { id: "client-ui-subagent-src-client-SubagentHeaderLineage", path: "packages/client/ui-subagent/src/client/SubagentHeaderLineage.css" },

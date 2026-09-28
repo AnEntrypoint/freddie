@@ -20,4 +20,4 @@ class MyBrowserDriver extends Service {
 
 ## Known Limitations and Deferred Work
 
-- **No provider ships yet.** This is the exclusivity seam only — dsh's own driver implementations (Playwright MCP, Chrome DevTools MCP, a native Stagehand-style backend) live under its `experimental/` group and were not ported this session (out of scope: each is its own substantial automation surface deserving independent review, and freddie's `gm` tooling already covers ad hoc browser automation for this deployment).
+- **No provider ships in this group.** Two experimental providers implement this seam under [`experimental/`](../../experimental/README.md) — a shared resource-ownership runtime and a Chrome DevTools MCP driver — and were not promoted to release packages this session (they are private, mount only when a composition names them explicitly, and the driver resolves a pinned third-party server entry at launch rather than declaring a dependency).

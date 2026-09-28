@@ -56,6 +56,8 @@ export function resolveProfileDir(name, home = resolveFreddieHome()) {
 export const PROFILE_TEMPLATES = {
   web: ['@freddie/freddie-base', '@freddie/freddie-web-app'],
   headless: ['@freddie/freddie-base', '@freddie/freddie-headless'],
+  acp: ['@freddie/freddie-base', '@freddie/freddie-acp-app'],
+  sdk: ['@freddie/freddie-base', '@freddie/freddie-sdk-app'],
 }
 
 /** Installation-owned bundle tuples normalized to the shipped template. */

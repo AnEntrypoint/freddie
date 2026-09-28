@@ -16,7 +16,7 @@
 
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { load } from 'js-yaml'
+import { dump, load } from 'js-yaml'
 import { entryListSchema } from '@freddie/cordis-plugin-include'
 import { expandHomePath } from '@freddie/freddie-home-paths'
 import { readPresetMetadata } from './metadata.js'
@@ -48,11 +48,15 @@ export const USER_PRESET_DIR = '.agent-presets'
  * that produces a file the loader cannot even begin with — and it must accept
  * everything the loader accepts, which is why rows are only required to be
  * maps carrying a plugin `name` (groups recurse into their own lists).
+ *
+ * Exported because a definition a plugin submits at runtime is judged by
+ * exactly the check a file is: one derivation decides what an entry list is,
+ * so a declared composition can never be stricter or looser than a written one.
  * @param rows - the parsed composition document.
  * @param at - row-path prefix for nested diagnostics, empty at the top level.
  * @returns one human-readable reason, or undefined when the shape holds.
  */
-function entryListProblem(rows, at = '') {
+export function entryListProblem(rows, at = '') {
   if (!Array.isArray(rows)) {
     return at === ''
       ? 'the composition must be a top-level list of plugin rows'
@@ -103,6 +107,25 @@ async function compositionProblem(path) {
     return `the composition is not valid YAML: ${full.replace(/\n[\s\S]*$/, '')}`
   }
   return entryListProblem(rows)
+}
+
+/**
+ * Render an in-memory entry list as composition text.
+ *
+ * A preset a plugin declared has no file, so this is the only text a reader of
+ * one can be shown. It is rendered in the loader's own dialect
+ * ({@link entryListSchema}) — the same schema {@link compositionProblem}
+ * parses with — so a `!!js` expression a plugin submitted reads back as the
+ * expression it is rather than as an opaque object, and the text round-trips
+ * through the check that accepted it.
+ *
+ * Presentation only, and never a source of truth: nothing writes it and no
+ * mount reads it back.
+ * @param rows - the declared composition rows.
+ * @returns the YAML document.
+ */
+export function renderComposition(rows) {
+  return dump(rows, { schema: entryListSchema, noRefs: true, lineWidth: -1 })
 }
 
 /**

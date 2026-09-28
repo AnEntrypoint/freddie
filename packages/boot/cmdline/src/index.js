@@ -41,6 +41,43 @@ export const internals = {
   stderr: process.stderr,
 }
 
+/** The stdin stream {@link exitOnStdinEnd} watches; production watches the process's. */
+export const stdio = {
+  stdin: process.stdin,
+}
+
+/**
+ * Bind the end of stdin to the launcher's bounded exit request.
+ *
+ * A stdio-serving app has no other termination signal: its client closes the
+ * pipe, the transport drains, and the stream ends. EOF is a successful
+ * disconnect rather than a failure, so the request carries exit code 0 and the
+ * launcher's shutdown drains the tree — persistence, telemetry, and every
+ * other disposal — instead of the app calling `process.exit` over a live root.
+ *
+ * Attaching this from a startup provider's action, as the stdio app bundles do,
+ * keeps the binding behind the same accepted-invocation latch as the transport:
+ * `--help` never runs the action, so help writes and exits with no listener
+ * left behind and no stream ever claimed.
+ * @param ctx - plugin context carrying `appExit`.
+ * @param label - the lifetime scope owning the listener, named in diagnostics.
+ * @throws when the launcher did not provide the exit request.
+ */
+export function exitOnStdinEnd(ctx, label) {
+  const exit = ctx.get('appExit')
+  if (exit === undefined) {
+    throw new Error(`${label}: the launcher must provide ctx.appExit before the tree mounts`)
+  }
+  let ended = false
+  const requestExit = () => {
+    if (ended) return
+    ended = true
+    exit(0)
+  }
+  stdio.stdin.on('end', requestExit)
+  ctx.effect(() => () => void stdio.stdin.off('end', requestExit), label)
+}
+
 /**
  * Parse the launcher's immutable argument snapshot with an app's commander
  * program. Commander runs the program's own synchronous action handler on a
