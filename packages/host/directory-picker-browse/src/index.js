@@ -1,14 +1,3 @@
-/**
- * Browse backend of the directory-picker seam: registers `ctx.directoryPicker`
- * with the `browse` capability — one-level directory listing and child-directory
- * creation over the host filesystem via Node's stdlib (which already carries
- * the per-OS adaptation). Nothing renders on the host display, so this backend
- * serves remote clients the dialog backend cannot. Policy decisions (hidden
- * entries flagged but returned, symlinks followed, whole-filesystem scope) are
- * recorded in the directory-picker seam Agent Note.
- * @module @freddie/freddie-host-directory-picker-browse
- */
-
 import { mkdir, opendir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join, posix, resolve, win32 } from 'node:path'
@@ -17,10 +6,6 @@ import {
   DirectoryPicker, DirectoryPickerError,
 } from '@freddie/freddie-host-directory-picker'
 
-/**
- * Ancestor chain from the filesystem root to `target` inclusive — the
- * breadcrumb rows of a listing, every one a jump target.
- */
 function ancestryCrumbs(target) {
   const crumbs = []
   let current = target
@@ -32,32 +17,12 @@ function ancestryCrumbs(target) {
   }
 }
 
-/**
- * True when the path names one fixed filesystem location regardless of
- * process state: POSIX-absolute on POSIX; on Windows only drive-qualified
- * (`C:\…`) or complete UNC (`\\server\share…`) forms. Rooted drive-less
- * forms (`\foo`, `/foo`) and incomplete UNC prefixes (`\\`, `\\server`)
- * pass `isAbsolute` yet still resolve against the process's current drive.
- * @param path - candidate path.
- * @param platform - replaces `process.platform` for deterministic tests.
- * @returns whether the path is fully qualified on the platform.
- */
 export function fullyQualified(path, platform = process.platform) {
   return platform === 'win32'
     ? win32.isAbsolute(path) && /^(?:[A-Za-z]:[\\/]|[\\/]{2}[^\\/]+[\\/]+[^\\/]+)/.test(path)
     : posix.isAbsolute(path)
 }
 
-/**
- * Insert a streamed candidate into the name-sorted bounded window, evicting
- * the name-largest candidate when the window exceeds `keep`. Memory over an
- * arbitrarily large level therefore stays O(keep) regardless of how many
- * children the directory holds.
- * @param window - the name-ascending window, mutated in place.
- * @param candidate - the streamed candidate to place.
- * @param keep - the window bound.
- * @returns true when an eviction happened (the level has candidates beyond the window).
- */
 export function boundedInsert(window, candidate, keep) {
   if (window.length === keep && candidate.name.localeCompare(window[window.length - 1].name) >= 0) return true
   let lo = 0
@@ -73,16 +38,6 @@ export function boundedInsert(window, candidate, keep) {
   return true
 }
 
-/**
- * Await `operation`, but reject with the signal's reason the moment it
- * aborts. Node's filesystem reads are not retractable, so the operation
- * itself keeps running against a handle the caller then closes — its late
- * settlement is swallowed here so an abandoned read cannot surface as an
- * unhandled rejection.
- * @param operation - the in-flight filesystem step.
- * @param signal - caller lifetime; absent means plain awaiting.
- * @returns the operation's value.
- */
 export function raceAbort(operation, signal) {
   if (signal === undefined) return operation
   return new Promise((resolve, reject) => {
@@ -109,27 +64,19 @@ export function raceAbort(operation, signal) {
   })
 }
 
-/** The thrown value as an Error (wire/abort reasons may be anything). */
 function asError(reason) {
   return reason instanceof Error ? reason : new Error(String(reason))
 }
 
 /* v8 ignore start -- a close failure of an abandoned handle has no consumer, and forcing one needs a filesystem torn down mid-request. */
-/** Swallow the close failure of a handle its caller already departed. */
 function swallowCloseFailure() {}
 /* v8 ignore stop */
 
-/** Message text of an unknown thrown value. */
 function messageOf(error) {
   /* v8 ignore next -- node:fs rejects with Error instances; the String arm only satisfies the unknown narrowing. */
   return error instanceof Error ? error.message : String(error)
 }
 
-/**
- * One listing row for a dirent, following symlinks to directories; null for
- * non-directories and broken/cyclic links (skipped silently — the browser
- * shows what can be entered, and a broken link cannot).
- */
 async function directoryRow(
   parent, name, isDirectory, isSymbolicLink, signal,
 ) {
@@ -148,15 +95,7 @@ async function directoryRow(
   return { name, path, hidden: name.startsWith('.') }
 }
 
-/** The `ctx.directoryPicker` browse implementation (stable capability object per service life). */
 export default class BrowseDirectoryPicker extends DirectoryPicker {
-  /**
-   * `maxEntries` bounds the complete listing level a single `list` call may
-   * materialize and put on the wire: at most this many child-directory rows
-   * (hidden rows included), with `truncated` flagging a cut level. The
-   * default follows GitHub's web UI, which truncates directory listings at
-   * 1,000 entries.
-   */
   static Config = z.object({
     maxEntries: z.natural().min(1).default(1000),
   })
@@ -172,10 +111,6 @@ export default class BrowseDirectoryPicker extends DirectoryPicker {
     this.config = config
   }
 
-  /**
-   * The browse interaction capability.
-   * @returns the stable `browse` capability object.
-   */
   capability() {
     return this.browseCapability
   }
