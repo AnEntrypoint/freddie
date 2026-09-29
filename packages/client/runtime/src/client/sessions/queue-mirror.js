@@ -13,32 +13,19 @@ function textOf(content) {
   return content.map(block => block.text).join('')
 }
 
-/** Authoritative transient queue projection and durable steering handoff. */
 export class SessionQueueMirror {
   current = []
 
-  /**
-   * Return the current immutable queue projection.
-   * @returns current queue rows.
-   */
   snapshot() {
     return this.current
   }
 
-  /**
-   * Drop the stale generation before its replacement queue baseline arrives.
-   * @returns whether any projected queue row was removed.
-   */
   reset() {
     if (this.current.length === 0) return false
     this.current = []
     return true
   }
 
-  /**
-   * Replace from one authoritative stream queue frame.
-   * @param items - complete host queue snapshot.
-   */
   replace(items) {
     this.current = items.map(item => ({
       id: item.id,
@@ -50,11 +37,6 @@ export class SessionQueueMirror {
     }))
   }
 
-  /**
-   * Retire a transient steering row once its durable message enters the log.
-   * @param event - newly contiguous durable Session event.
-   * @returns whether the projection changed.
-   */
   acceptDurable(event) {
     if (event.type !== 'user/message') return false
     const messageId = event.data.id

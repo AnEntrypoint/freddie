@@ -7,19 +7,16 @@ import { ProjectionValueStore } from './projection-store.js'
 import { Session } from './session.js'
 import { TerminalActivityStore } from './terminal-activity.js'
 
-/** Stable identity of a frame retained until an uninstantiated Session can consume it. */
 function bufferedRequestKey(envelope) {
   const frame = envelope.payload
   switch (frame.type) {
     case 'approval/requested': return `a:${frame.approvalId}`
     case 'question/requested': return `q:${envelope.rpcId}`
     case 'session/queue': return 'queue'
-    /* v8 ignore next -- pendingBuffers contains only the three frame types above. */
     default: return undefined
   }
 }
 
-/** Match ui-user-questions's binary plan-review routing at the wire boundary. */
 function questionInteractionStatus(
   questions,
 ) {
@@ -33,61 +30,32 @@ function questionInteractionStatus(
   return options.some(option => option.label === intent.approve) ? 'plan-review' : 'question'
 }
 
-/** The interaction the composer answers first (a question ahead of an approval), so the sidebar names what the user can act on. */
 function composerLeadingStatus(statuses) {
   return statuses.find(candidate => candidate !== 'approval') ?? statuses[0]
 }
 
-/** Instance cluster + frame entry + the session list. */
 export class SessionManager {
   sessions = new Map()
-  /** Pre-instantiation buffer for answerable requests and the queued-turn snapshot, which history
-   *  cannot reconstruct on open. Live requests remain until resolution; queue and replay duplicates
-   *  compact by identity. Instantiation replays and clears it, while removal drops it. */
   pendingBuffers = new Map()
-  /** Outstanding answerable interactions per session, keyed by their stable request identity.
-   *  Manager-owned rather than read off Session instances because the sidebar must light up for
-   *  sessions never instantiated. Cleared per connection generation — the reopen replay re-adds
-   *  still-pending requests — and on session-removed. */
   pendingInteractions = new Map()
-  /**
-   * Sessions that finished running while not selected — the sidebar's green
-   * "done" reminder (manager-owned, survives connection generations; cleared
-   * on select and session-removed, re-armed by the next completion).
-   */
   completedNotifications = new Set()
-  /** Last-observed running bits per session; the true→false edge here arms {@link completedNotifications}. */
   prevRunning = new Map()
-  /** Per-session projection value stores, retained independently of instance arrival (the
-   *  title-snapshot precedent, generalized): push frames land here whether or not the Session
-   *  is instantiated (list rows read the 'title' key), and an instantiated Session adopts the
-   *  same store so history-baseline seeding and frames converge on one row set. */
   projectionStores = new Map()
   summaries = []
   listState = 'idle'
-  /** Arrival phase; the pending → ready edge fires on the first successful pull (see SessionListPhase). */
   listPhase = 'pending'
   listError = null
   listInflight = null
-  /** Mutations arriving after a list request starts are replayed over its response. */
   listMutations = null
   addresses = new Map()
   catalogs = new Map()
   catalogInflight = new Map()
-  /** Catalog owners whose membership changed while a pull was in flight: one trailing refresh after it settles. */
   catalogStale = new Set()
   openCatalogs = new Set()
   catalogDebounce = new Map()
-  /**
-   * Background jobs per session, last-wins from `session/jobs`. An empty set
-   * is stored as an absent key, so absence and `[]` are one representation.
-   */
   jobsBySession = new Map()
-  /** Owner-scoped PTY snapshots and bounded output, fed solely by terminal/activity mux frames. */
   terminalsBySession = new Map()
-  /** Bounded durable activity ledger for every mux-fed session, including rendered sessions. */
   activityBySession = new Map()
-  /** Coarse observer notification channel for tree activity and session membership changes. */
   treeActivitySnapshot = Object.freeze([])
   treeTerminalSnapshot = Object.freeze([])
   treeActivityNotifier = new Notifier(() => {
@@ -100,19 +68,12 @@ export class SessionManager {
   selected
 
   listSnapshotCache
-  /** Entry-identity cache (reference stability): list rebuilds reuse the previous entry
-   *  object when every field matches — wire refreshes mint all-new summary objects, so identity
-   *  must be recovered by value or every SessionListItem memo misses on every refresh. */
   entryCache = new Map()
   itemsCache = []
   notifier = new Notifier(() => {
     this.listSnapshotCache = this.buildListSnapshot()
   })
 
-  /**
-   * @param api - shared wire client.
-   * @param restoredSelection - persisted real-Session selection candidate.
-   */
   constructor(
     api,
     remote,
@@ -129,10 +90,6 @@ export class SessionManager {
   }
 
 
-  /**
-   * Select a listed Session or a retained catalog-addressed child.
-   * @param sessionId - listed or catalog-addressed Session id.
-   */
   select(sessionId) {
     const address = this.navigationAddress(sessionId)
     if (!this.summaries.some(summary => summary.sessionId === sessionId) && address === undefined) {
@@ -151,10 +108,6 @@ export class SessionManager {
     this.notifier.notifyNow()
   }
 
-  /**
-   * Select a healthy child through its durable direct-parent address.
-   * @param address - catalog-derived parent and child ids.
-   */
   selectSubagent(address) {
     const catalog = this.catalogs.get(address.parentSessionId)
     const entry = catalog?.entries.find(candidate => candidate.id === address.childSessionId)
@@ -169,26 +122,15 @@ export class SessionManager {
     this.notifier.notifyNow()
   }
 
-  /** Clear the selection (the layout falls to the no-session view state). */
   clearSelection() {
     this.selected = undefined
     this.notifier.notifyNow()
   }
 
-  /**
-   * Return the durable catalog address retained for one child.
-   * @param sessionId - possible addressed child id.
-   * @returns The direct-parent address, when navigation discovered one.
-   */
   subagentAddress(sessionId) {
     return this.addresses.get(sessionId)
   }
 
-  /**
-   * Resolve an address for breadcrumb navigation without retaining transport authority.
-   * @param sessionId - possible child id in an already-loaded catalog.
-   * @returns A retained or catalog-derived direct-parent address.
-   */
   navigationAddress(sessionId) {
     const retained = this.addresses.get(sessionId)
     if (retained !== undefined) return retained
@@ -202,22 +144,10 @@ export class SessionManager {
   }
 
 
-  /**
-   * Drop a session instance (scope-prune companion: instance
-   * and scope share one lifecycle). The host session log is the durable
-   * truth — a later get() lazily rebuilds and open() backfills history.
-   * @param sessionId - the session to drop.
-   */
   drop(sessionId) {
     this.sessions.delete(sessionId)
   }
 
-  /**
-   * Lazy build: return the existing instance or construct one (no auto-open —
-   * open is triggered by the container's select callback).
-   * @param sessionId - the session to get.
-   * @returns the resident instance.
-   */
   get(sessionId) {
     let session = this.sessions.get(sessionId)
     if (session === undefined) {
@@ -260,12 +190,10 @@ export class SessionManager {
     })
   }
 
-  /** Rebuild every resident Session after one coalesced registry transaction. */
   rebuildConversationRegistry() {
     for (const session of this.sessions.values()) session.rebuildConversationRegistry()
   }
 
-  /** Resident per-session projection store (create-on-demand; outlives instantiation). */
   projectionStore(sessionId) {
     let store = this.projectionStores.get(sessionId)
     if (store === undefined) {
@@ -276,7 +204,6 @@ export class SessionManager {
     return store
   }
 
-  /** Resident per-session terminal activity store (create-on-demand; mux-fed only). */
   terminalStore(sessionId) {
     let store = this.terminalsBySession.get(sessionId)
     if (store === undefined) {
@@ -286,7 +213,6 @@ export class SessionManager {
     return store
   }
 
-  /** Retain bounded durable activity for the board whether or not a conversation is rendered. */
   noteActivity(sessionId, event) {
     const prior = this.activityBySession.get(sessionId) ?? []
     const next = [...prior, event]
@@ -294,14 +220,12 @@ export class SessionManager {
     this.treeActivityNotifier.markDirty()
   }
 
-  /** Remove live-only retention for a session that left the visible workspace. */
   clearTreeActivity(sessionId) {
     const activity = this.activityBySession.delete(sessionId)
     const terminals = this.terminalsBySession.delete(sessionId)
     if (activity || terminals) this.treeActivityNotifier.markDirty()
   }
 
-  /** Stable observable snapshot of terminal activity for every mux-fed session. */
   treeTerminalSource() {
     if (this.treeTerminalSourceCache === undefined) {
       this.treeTerminalSourceCache = {
@@ -315,7 +239,6 @@ export class SessionManager {
     return this.treeTerminalSourceCache
   }
 
-  /** Stable observable snapshot of all mux-fed session activity; consumers filter their tree locally. */
   treeActivitySource() {
     if (this.treeActivitySourceCache === undefined) {
       this.treeActivitySourceCache = {
@@ -329,10 +252,6 @@ export class SessionManager {
     return this.treeActivitySourceCache
   }
 
-  /**
-   * Refresh one direct-child catalog, reusing its in-flight request.
-   * @param parentSessionId - catalog owner.
-   */
   refreshSubagents(parentSessionId) {
     const existing = this.catalogInflight.get(parentSessionId)
     if (existing !== undefined) return existing.promise
@@ -400,11 +319,6 @@ export class SessionManager {
     return operation
   }
 
-  /**
-   * Mark whether a catalog menu is consuming live membership updates.
-   * @param parentSessionId - catalog owner.
-   * @param open - current menu state.
-   */
   setSubagentCatalogOpen(parentSessionId, open) {
     if (open) {
       this.openCatalogs.add(parentSessionId)
@@ -420,7 +334,6 @@ export class SessionManager {
   }
 
 
-  /** Full refresh via session.list (single-flight: an in-flight call is reused). */
   refreshList() {
     if (this.listInflight !== null) return this.listInflight
     this.listState = 'loading'
@@ -469,7 +382,6 @@ export class SessionManager {
       } catch (error) {
         this.listState = 'error'
         const folded = transportError(error)
-        /* v8 ignore next -- the `? null` arm is unreachable: transportError always returns ok:false. */
         this.listError = folded.ok ? null : folded.error
       } finally {
         this.listMutations = null
@@ -480,13 +392,6 @@ export class SessionManager {
     return this.listInflight
   }
 
-  /**
-   * Search visible session message content without adding transient query
-   * state to the list snapshot.
-   * @param query - non-blank literal phrase.
-   * @param signal - cancellation for superseded UI queries.
-   * @returns the Host result or a folded transport error.
-   */
   async search(
     query,
     signal,
@@ -498,13 +403,6 @@ export class SessionManager {
     }
   }
 
-  /**
-   * Contract session.create; on success merge into summaries immediately (no
-   * wait for the next refresh). A created session is blank by definition
-   * (entity birth precedes the first message).
-   * @param opts - target workspace or working directory, plus an optional caller-owned id.
-   * @returns the create result.
-   */
   async create(
     opts = {},
   ) {
@@ -537,15 +435,6 @@ export class SessionManager {
     }
   }
 
-  /**
-   * Contract session.fork; on success merge the child into summaries
-   * immediately (same synchronous-addressability guarantee as create). The
-   * child carries the source's history, so it is never blank; lineage rides
-   * parentSessionId so the list nests it under its source. A child published
-   * before Workspace attachment fails is also reconciled into the list.
-   * @param opts - source session and the optional seq anchoring the cut.
-   * @returns the fork result (the child session id).
-   */
   async fork(
     opts,
   ) {
@@ -571,28 +460,16 @@ export class SessionManager {
     }
   }
 
-  /**
-   * Insert-or-enrich a locally synthesized summary: a new id prepends; an
-   * existing entry only gains fields it lacks (the session-added frame and the
-   * create() echo race — whichever lands second must fill the placeholder's
-   * missing cwd/parentSessionId, never overwrite list-refresh data).
-   */
   mergeSummary(summary) {
     this.recordMutation({ kind: 'upsert', summary })
   }
 
-  /**
-   * Record a host-confirmed composition switch (see ISessions.noteAgentPreset).
-   * @param sessionId - the switched session.
-   * @param agentPreset - the preset id the host confirmed.
-   */
   noteAgentPreset(sessionId, agentPreset) {
     this.recordMutation({ kind: 'upsert', summary: {
       sessionId, updatedAt: Date.now(), running: false, blank: true, agentPreset,
     } })
   }
 
-  /** Apply immediately and retain for replay when a list response is in flight. */
   recordMutation(mutation) {
     this.listMutations?.push(mutation)
     this.summaries = applyMutation(this.summaries, mutation)
@@ -601,25 +478,15 @@ export class SessionManager {
   }
 
 
-  /**
-   * uSES subscription entry for useSessionList.
-   * @param listener - change callback.
-   * @returns the unsubscribe function.
-   */
   subscribe(listener) {
     return this.notifier.subscribe(listener)
   }
 
-  /**
-   * Cached list snapshot (rebuilt lazily when dirty with no listeners).
-   * @returns the cached reference (stable until the next flush).
-   */
   getListSnapshot() {
     this.notifier.ensureFresh()
     return this.listSnapshotCache
   }
 
-  /** Add or refresh one stable pending-interaction identity. */
   trackPending(sessionId, key, status) {
     let interactions = this.pendingInteractions.get(sessionId)
     if (interactions === undefined) {
@@ -631,7 +498,6 @@ export class SessionManager {
     this.notifier.markDirty()
   }
 
-  /** Settle one pending-interaction identity without disturbing sibling waits. */
   resolvePending(sessionId, key) {
     const interactions = this.pendingInteractions.get(sessionId)
     if (interactions === undefined || !interactions.delete(key)) return
@@ -640,12 +506,6 @@ export class SessionManager {
   }
 
 
-  /**
-   * Mux frame entry: sessionId-bearing frames go only to instantiated sessions
-   * (no lazy build; non-pending frames for uninstantiated sessions drop —
-   * history backfills them on open).
-   * @param envelope - the frame with its wire rpcId.
-   */
   handleMuxEnvelope(envelope) {
     const frame = envelope.payload
     if (frame.type === 'stream/error') return
@@ -735,10 +595,6 @@ export class SessionManager {
     session.handleMuxEnvelope(envelope.rpcId, frame)
   }
 
-  /**
-   * Host frame entry: list upkeep + per-instance running/removed/agent-error relay.
-   * @param envelope - the frame with its wire rpcId.
-   */
   handleHostEnvelope(envelope) {
     const frame = envelope.payload
     switch (frame.type) {
@@ -812,15 +668,6 @@ export class SessionManager {
     }
   }
 
-  /**
-   * The moment a connection generation dies (before any next-generation frame
-   * can arrive — onConnected waits for the readiness handshake while replayed
-   * frames flow from stream open, so clearing there would race the replay):
-   * drop generation-scoped live state. Interactions resolved while disconnected
-   * send no frame, so stale statuses and buffered answerable frames must not
-   * survive into the next generation — mux-open replay re-adds every still-pending
-   * request with its live rpcId.
-  */
   handleDisconnected() {
     if (this.pendingInteractions.size > 0) {
       this.pendingInteractions.clear()
@@ -835,7 +682,6 @@ export class SessionManager {
     }
   }
 
-  /** After each connection generation: refresh the session baseline and rebuild opened windows. */
   handleConnected() {
     void this.refreshList()
     const selectedAddress = this.selected === undefined ? undefined : this.addresses.get(this.selected)
@@ -845,7 +691,6 @@ export class SessionManager {
     for (const session of this.sessions.values()) void session.resync()
   }
 
-  /** Debounce membership refetches while one parent catalog is selected or open. */
   scheduleCatalogRefresh(parentSessionId) {
     if (this.catalogDebounce.has(parentSessionId)) return
     const timer = setTimeout(() => {
@@ -859,7 +704,6 @@ export class SessionManager {
     this.catalogDebounce.set(parentSessionId, timer)
   }
 
-  /** Apply one Agent-driver transition to loaded and in-flight catalogs. */
   updateCatalogActivity(childSessionId, running) {
     const activity = running ? 'running' : 'inactive'
     for (const inflight of this.catalogInflight.values()) {
@@ -879,13 +723,11 @@ export class SessionManager {
     if (changed) this.notifier.markDirty()
   }
 
-  /** Preserve and project a positive expandability hint after one direct subagent publishes. */
   markCatalogParentExpandable(parentSessionId) {
     this.applyCatalogParentExpandable(parentSessionId)
     for (const inflight of this.catalogInflight.values()) inflight.expandableRows.add(parentSessionId)
   }
 
-  /** Apply one positive expandability hint to every loaded catalog containing that unique row id. */
   applyCatalogParentExpandable(parentSessionId) {
     let changed = false
     for (const [catalogParentId, catalog] of this.catalogs) {
@@ -901,7 +743,6 @@ export class SessionManager {
     if (changed) this.notifier.markDirty()
   }
 
-  /** Fold request-local row mutations into one catalog result before publication. */
   withCatalogMutations(
     entries,
     expandableRows,
@@ -919,14 +760,6 @@ export class SessionManager {
     })
   }
 
-  /**
-   * Reconcile completion reminders against the latest summaries, eagerly after
-   * every mutation and pull (a snapshot-build-time pass would collapse
-   * consecutive status frames into one observation). A running→idle edge of a
-   * non-selected session arms its reminder; running disarms it; removal drops
-   * it. First observation only records the running bit — sessions already
-   * idle at load get no reminder.
-   */
   syncCompletedNotifications() {
     const seen = new Set()
     for (const s of this.summaries) {
@@ -1007,7 +840,6 @@ export class SessionManager {
   }
 }
 
-/** Apply one list mutation without deriving display order. */
 function applyMutation(summaries, mutation) {
   switch (mutation.kind) {
     case 'upsert': {
@@ -1054,7 +886,6 @@ function applyMutation(summaries, mutation) {
   }
 }
 
-/** Temporary source-plane bridge while the Host contract and client project build independently. */
 function workspaceAttachSessionId(error) {
   const candidate = error
   return candidate.code === 'workspace-attach-failed' ? candidate.details.sessionId : undefined

@@ -1,29 +1,10 @@
-/**
- * The session standard-props provide channel: provider roster, bundle
- * materialization (fail-loud on undeclared/missing/duplicate members), the
- * static no-session projection, and the atomic current-session projection
- * observable. One implementation — SessionRuntime drives it from wire
- * truth, the test runtime's sessions double drives it from fixtures — so
- * the materialization rules and the projection semantics cannot drift
- * between production and the test bench.
- */
 
-/**
- * Provider roster + materialization + current projection. The channel owns
- * every rule a provider contribution must satisfy; owners keep only their
- * per-session bundle storage and the definition of "current".
- */
 export class SessionProvideChannel {
   providers = []
   maybeInfoCache
-  /** Latest published current bundle (identity comparison dedupes republish). */
   currentSnapshot
-  /** Projection subscribers (plain cell: bundles hold live session sources, so no store freeze may touch them). */
   listeners = new Set()
 
-  /**
-   * @param host - owner-side bundle storage and current-selection resolution.
-   */
   constructor(host) {
     this.host = host
     this.providers.push({
@@ -41,20 +22,10 @@ export class SessionProvideChannel {
     }
   }
 
-  /** The static no-session projection under the current roster (declared names present, values undefined). */
   get maybeInfo() {
     return this.maybeInfoCache
   }
 
-  /**
-   * Register a per-session standard-props provider (see
-   * SessionRuntime.provide for the product contract). Live bundles rebuild
-   * immediately; misdeclared providers fail loud here, at the registration
-   * edge, and the registration rolls back — the channel never stays on a
-   * roster it cannot materialize.
-   * @param descriptor - static member roster plus per-session resolver.
-   * @returns disposer removing the provider.
-   */
   provide(descriptor) {
     this.providers.push(descriptor)
     try {
@@ -71,13 +42,6 @@ export class SessionProvideChannel {
     }
   }
 
-  /**
-   * Re-derive the current selection's bundle and publish it when it changed.
-   * Bundles are identity-stable per (scope, roster) materialization, so an
-   * identity compare is exact; synchronous notify — call sites (the owner's
-   * list subscription, provide()) already sit behind their own batching or
-   * registration edges.
-   */
   publishCurrent() {
     const next = this.host.resolveCurrent()
     if (next === this.currentSnapshot) return
@@ -91,12 +55,6 @@ export class SessionProvideChannel {
     }
   }
 
-  /**
-   * Materialize the standard-props bundle for one session (fails loud on
-   * undeclared, missing, and duplicate member names).
-   * @param binding - session assembly handle fed to every resolver.
-   * @returns the materialized bundle (identity-stable until the next materialization).
-   */
   materializeInfo(binding) {
     const hooks = {}
     const props = {}
@@ -134,14 +92,12 @@ export class SessionProvideChannel {
     }
   }
 
-  /** Rebuild the static projection and the owner's live bundles, then republish the current one. */
   applyRosterChange() {
     this.maybeInfoCache = this.materializeMaybeInfo()
     this.host.rebuildBundles()
     this.publishCurrent()
   }
 
-  /** Build the static no-session kit and reject duplicate declared names. */
   materializeMaybeInfo() {
     const hooks = {}
     const props = {}

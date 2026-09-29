@@ -1,17 +1,4 @@
-/**
- * Pure subagent-lineage aggregation over the retained session-list mirror.
- * Ordinary forks terminate propagation so each visible session owns only its
- * uninterrupted subagent subtree.
- * @module @freddie/freddie-client-runtime/client/sessions/subagent-lineage
- */
 
-/**
- * Index direct subagents by their immediate parent. Sidebar status describes
- * work the selected session started directly; nested work remains visible in
- * the Operations tree instead of inflating the parent’s running count.
- * @param summaries - retained session summaries keyed by id.
- * @returns direct-child totals and running totals keyed by possible parent id.
- */
 export function indexSubagentDescendants(
   summaries,
 ) {

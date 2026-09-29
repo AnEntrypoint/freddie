@@ -79,7 +79,6 @@ function sameLocation(left, right) {
   return left.turn === right.turn && left.step === right.step
 }
 
-/** Session-owned Turn/Step timeline and event-to-Location index. */
 export class ConversationLocationIndex {
   coordinates = new Map()
   locations = new Map()
@@ -90,19 +89,10 @@ export class ConversationLocationIndex {
   currentTurn
   currentStep
 
-  /**
-   * Return the current reference-stable timeline.
-   * @returns current timeline snapshot.
-   */
   snapshot() {
     return this.timeline
   }
 
-  /**
-   * Replace all Definition-owned Location values while preserving reader identities.
-   * @param entries - complete current set of Definition-owned Location values.
-   * @returns whether any published Location data changed.
-   */
   replaceData(entries) {
     const turns = new Map()
     const steps = new Map()
@@ -128,11 +118,6 @@ export class ConversationLocationIndex {
     return changed
   }
 
-  /**
-   * Apply changed Context publications without rebuilding Turn/Step membership.
-   * @param changes - incremental removals and replacements from published Contexts.
-   * @returns whether any published Location data changed.
-   */
   applyData(changes) {
     let changed = false
     for (const change of changes) {
@@ -148,20 +133,10 @@ export class ConversationLocationIndex {
     return changed
   }
 
-  /**
-   * Resolve the latest Location for one event.
-   * @param event - event already ingested into this index.
-   * @returns current Location, falling back to session when it has no Turn/Step affinity.
-   */
   locationOf(event) {
     return this.locations.get(event.seq) ?? SESSION_LOCATION
   }
 
-  /**
-   * Rebuild timeline facts after replace/prepend or a boundary append.
-   * @param entries - complete current window in ascending seq order.
-   * @returns seqs whose resolved Location changed.
-   */
   rebuild(entries) {
     const previousLocations = this.locations
     const turns = new Map()
@@ -306,11 +281,6 @@ export class ConversationLocationIndex {
     return changed
   }
 
-  /**
-   * Append one Turn/Step boundary while revisiting only the owning Turn.
-   * @param event - contiguous tail boundary event.
-   * @returns seqs whose immutable Location reference changed.
-   */
   appendBoundary(event) {
     if (event.type !== 'turn/start' && event.type !== 'turn/end'
       && event.type !== 'step/start' && event.type !== 'step/end') {
@@ -396,10 +366,6 @@ export class ConversationLocationIndex {
     return changed
   }
 
-  /**
-   * Index one non-boundary tail event without rescanning the window.
-   * @param event - contiguous appended event.
-   */
   appendNonBoundary(event) {
     const explicit = payloadCoordinates(event)
     if (explicit.session === true) {

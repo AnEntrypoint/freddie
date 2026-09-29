@@ -1,17 +1,7 @@
-/**
- * core ContentBlock[] -> AssistantBlock[] (classifier shared by finalized messages and partial block-end).
- * @param content - core content blocks verbatim.
- * @returns UI-classified blocks in source order.
- */
 export function toAssistantBlocks(content) {
   return content.map(toAssistantBlock)
 }
 
-/**
- * Classify one block (ToolCallBlock fields are id/arguments, mapped to callId/argsRaw).
- * @param block - one core content block.
- * @returns the UI classification.
- */
 export function toAssistantBlock(block) {
   switch (block.type) {
     case 'text': return { kind: 'text', text: block.text }
@@ -25,12 +15,10 @@ export function toAssistantBlock(block) {
 const EMPTY_LIST = []
 const EMPTY_TIMELINE = { turnOrder: EMPTY_LIST, turns: new Map() }
 
-/** Empty target store used by fixtures and Sessions without registered views. */
 export const EMPTY_CONVERSATION_VIEWS = {
   get: () => undefined,
 }
 
-/** Empty Chat target used before a view builder is registered. */
 export const EMPTY_CHAT_SNAPSHOT = {
   order: EMPTY_LIST,
   nodes: {

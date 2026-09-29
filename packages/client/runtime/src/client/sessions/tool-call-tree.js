@@ -1,4 +1,3 @@
-/** Fixed wire-safety ceiling for every recursive Tool call consumer. */
 export const MAX_TOOL_CALL_TREE_DEPTH = 256
 
 function sameReferences(
@@ -9,10 +8,6 @@ function sameReferences(
     && left.every((block, index) => block === right[index])
 }
 
-/**
- * Owns Code Dispatch pairing and projects its private parent index into the
- * recursive Tool call contract exposed by conversation snapshots.
- */
 export class ToolCallTree {
   childrenByParent = new Map()
   depthByCall = new Map()
@@ -21,7 +16,6 @@ export class ToolCallTree {
   nodesCache = null
   runningCache = null
 
-  /** Forget all event-derived child calls before replaying a new window. */
   reset() {
     this.childrenByParent.clear()
     this.depthByCall.clear()
@@ -29,11 +23,6 @@ export class ToolCallTree {
     this.revision++
   }
 
-  /**
-   * Fold one event when it belongs to the Code Dispatch lifecycle.
-   * @param event - Session event from the current live or history window.
-   * @returns Whether the event was consumed as a child-call lifecycle event.
-   */
   apply(event) {
     if (event.type === 'tool/code-dispatch-start') {
       const data = event.data
@@ -82,11 +71,6 @@ export class ToolCallTree {
     return true
   }
 
-  /**
-   * Attach recursively projected children to all settled roots in a node list.
-   * @param nodes - Cache-stable base conversation nodes.
-   * @returns The original list when no root changed, otherwise a structurally shared list.
-   */
   projectNodes(nodes) {
     if (this.nodesCache?.source === nodes && this.nodesCache.revision === this.revision) {
       return this.nodesCache.value
@@ -100,11 +84,6 @@ export class ToolCallTree {
     return value
   }
 
-  /**
-   * Attach recursively projected children to all running root calls.
-   * @param calls - Cache-stable base running calls.
-   * @returns The original list when no root changed, otherwise a structurally shared list.
-   */
   projectRunningCalls(calls) {
     if (this.runningCache?.source === calls && this.runningCache.revision === this.revision) {
       return this.runningCache.value
@@ -136,11 +115,6 @@ export class ToolCallTree {
     return value
   }
 
-  /**
-   * Accept an edge only when every recursive consumer can traverse it safely.
-   * Host-minted ids exclude cycles and current bindings emit one level; a
-   * malformed wire/history edge is consumed without hiding the rest of the session.
-   */
   acceptEdge(parentCallId, subCallId) {
     if (this.wouldCreateCycle(parentCallId, subCallId)) return false
     const pending = [{

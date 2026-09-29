@@ -8,111 +8,44 @@ import { ProjectionValueStore } from './projection-store.js'
 import { resolvedClientTimeZone } from '../time-zone.js'
 import { SessionQueueMirror } from './queue-mirror.js'
 
-/** Messages requested per history page. */
 export const PAGE_MESSAGES = 50
 
-/**
- * The session-facing contract features consume: the ISession verbs
- * (`prompt`, `cancel`, `rename`, `command`, `updateQueue`, `readAttachment`,
- * `loadOlder`, `open`) plus the observable snapshot source (`subscribe`/
- * `getSnapshot`). {@link Session} implements this slice among its wider
- * manager/runtime surface.
- * @typedef {object} SessionFace
- * @property {string} sessionId
- * @property {Session['prompt']} prompt
- * @property {Session['cancel']} cancel
- * @property {Session['rename']} rename
- * @property {Session['command']} command
- * @property {Session['updateQueue']} updateQueue
- * @property {Session['readAttachment']} readAttachment
- * @property {Session['loadOlder']} loadOlder
- * @property {Session['open']} open
- * @property {Session['subscribe']} subscribe
- * @property {Session['getSnapshot']} getSnapshot
- */
 
-/**
- * Owns a session's event window, derived conversation state, and observable
- * snapshot. React bindings remain outside this data layer. Features see only
- * the {@link SessionFace} slice (ISession verbs + the snapshot source); the
- * remaining public members are manager/runtime entry points.
- */
 export class Session {
   events = []
-  /** Wire views aligned with `events` by index (envelope-level annotations; undefined = no view).
-   *  Kept parallel rather than merged so `events` stays the raw log slice (model-visible ⟺ logged). */
   views = []
   baseSeq = 0
   hasMore = false
   openState = 'cold'
   openError = null
   openPromise = null
-  /** Bumped by resync to invalidate an in-flight doOpen: a reconnect must rebuild, never adopt
-   *  a pre-disconnect open whose history request is already doomed. Stale doOpen
-   *  passes drop all writes once the generation moves on. */
   openGeneration = 0
   loadingOlder = false
   pending = new Map()
   pendingRev = 0
   pendingCache = null
-  /** Authoritative stream-only inbox snapshot; pending work never hits history. */
   queueMirror = new SessionQueueMirror()
   running = false
   address
   parentAvailable = false
-  /**
-   * Sticky send marker, private input of the composerPhase derivation: set
-   * synchronously before prompt()'s first await, never reset — the blank →
-   * engaging edge of the phase machine (see ComposerPhase).
-   */
   promptAttempted = false
-  /** A first accepted prompt stays in the engaging phase until its turn is observable. */
   firstPromptPendingTurn = false
-  /** Empty-log mirror (see ConversationSnapshot.blank); unknown bare sessions begin conservatively blank. */
   blankBit = true
   removed = false
   promptError = null
   lastAgentError = null
-  /** Live events buffered during open/resync and stitched by sequence once history lands. */
   liveBuffer = []
-  /** Gap repair in flight; live events detour to the buffer until the tail page lands. */
   stitching = false
   gapRepairRetry = null
   gapRepairDelay = 250
-  /** subscribed.lastSeq baseline (gap detection; null when no subscribed frame arrived — degrade to the liveBuffer dedup path). */
   subscribedLastSeq = null
 
-  /**
-   * Per-session projection value store (push model; see the session-projection
-   * subsystem page, docs/subsystems/session-projection.md): finished whole
-   * values computed on the host, seeded by the tail page's
-   * projections block and updated by `session/projection` frames under the
-   * one higher-seq-wins rule. Keys are read via `projections.faceOf(key)`
-   * (the useProjection resolution face); the conversation snapshot never
-   * carries projection values, and no client-side domain folding exists.
-   * Manager-owned when constructed through SessionManager (frames route and
-   * the store outlives instantiation, the title-snapshot precedent); a bare
-   * construction gets a private store.
-   */
   projections
 
   snapshotCache
   notifier
-  /**
-   * Agent-scoped cordis context, bound once by SessionRuntime when it
-   * mints the scope (the client mirror of the host Agent's loopCtx). The
-   * Session dispatches its own scoped events through it; undefined means
-   * unbound (bare object-layer construction) or already pruned — both skip
-   * dispatch-dependent behavior rather than fail.
-   */
   actx
 
-  /**
-   * @param sessionId - Host session identity (client sessions are always Host-born).
-   * @param api - shared wire client.
-   * @param remote - generated Remote namespaces this session calls.
-   * @param options - optional manager-owned state observers.
-   */
   constructor(
     sessionId,
     api,
@@ -139,31 +72,16 @@ export class Session {
     this.snapshotCache = this.buildSnapshot()
   }
 
-  /**
-   * Bind the Agent-scoped context minted by SessionRuntime (single write;
-   * a second bind is a wiring error and throws). Direction stays one-way at
-   * this binding boundary: consumers still reach the Session via `sessions.sessionOf`,
-   * while the Session holds its own dispatch point (host Agent.loopCtx
-   * mirror).
-   * @param actx - the agent's scoped context.
-   */
   bindScope(actx) {
     if (this.actx !== undefined) throw new Error(`session ${this.sessionId} already has a bound scope`)
     this.actx = actx
   }
 
-  /** Release the bound scope at prune time (a later rebind accompanies a freshly minted scope). */
   unbindScope() {
     this.actx = undefined
   }
 
 
-  /**
-   * Send (queue/steer passed through 1:1); failures land in the snapshot's promptError.
-   * @param content - text plus browser-owned temporary image uploads.
-   * @param mode - queue appends after the current turn; steer interrupts it.
-   * @returns the prompt result (also mirrored into promptError on failure).
-   */
   async prompt(
     content,
     mode,
@@ -229,11 +147,6 @@ export class Session {
     return result
   }
 
-  /**
-   * Resolve one image referenced by this session into browser-consumable bytes.
-   * @param attachmentId - opaque id found in the folded session log.
-   * @returns the authenticated reference and decoded bytes.
-   */
   async readAttachment(
     attachmentId,
   ) {
@@ -251,7 +164,6 @@ export class Session {
     }
   }
 
-  /** Apply one operation to a still-pending queue occurrence. */
   async updateQueue(itemId, action) {
     try {
       return (await this.api.sessions.updateQueue({ sessionId: this.sessionId, itemId, action })).result
@@ -260,15 +172,6 @@ export class Session {
     }
   }
 
-  /**
-   * Stop the active turn while the Host preserves pending inbox work; failures
-   * land in promptError (same error-strip display slot). A continuable
-   * subagent address routes through `subagent.interrupt`, whose durable
-   * parent-address authority works without a live parent Agent; a one-shot
-   * address stays uncancellable (the UI offers no stop action, so this arm is
-   * defensive).
-   * @returns the cancel result.
-   */
   async cancel() {
     const address = this.address
     if (address !== undefined && address.mode === 'one-shot') {
@@ -299,15 +202,6 @@ export class Session {
     return result
   }
 
-  /**
-   * Rename: contract session.rename 1:1. On success settle the 'title'
-   * projection cell from the response's `{title, seq}` under the store's
-   * higher-seq-wins rule (the push frame arriving later is a no-op replay),
-   * so the list row and any useProjection('title') reader update without
-   * waiting for the mux frame.
-   * @param title - raw title text (the host normalizes acceptance).
-   * @returns the rename result (normalized accepted title + title event seq).
-   */
   async rename(title) {
     try {
       const { result } = await this.api.sessions.rename({ sessionId: this.sessionId, title })
@@ -318,20 +212,12 @@ export class Session {
     }
   }
 
-  /**
-   * Execute one slash-command line against this session's agent — pure
-   * admission semantics (the host executor durably logs the lifecycle;
-   * outcomes render as flow nodes, never as a response echo).
-   * @param line - the full command line, leading slash included.
-   * @returns the admission result, or the error branch on transport failure.
-   */
   async command(line) {
     const result = await this.remote.commands.execute(this.sessionId, line, [])
     if (!result.ok) return result
     return { ok: true, value: { matched: result.value !== undefined } }
   }
 
-  /** First open: pull the tail page (idempotent — in-flight/already-open returns the existing promise). */
   open() {
     if (this.openState === 'open') return Promise.resolve()
     if (this.openPromise !== null) return this.openPromise
@@ -342,7 +228,6 @@ export class Session {
     return promise
   }
 
-  /** Page up: pull one earlier page with the window's first seq as beforeSeq and prepend. */
   async loadOlder() {
     if (this.openState !== 'open' || !this.hasMore || this.loadingOlder) return
     this.loadingOlder = true
@@ -365,7 +250,6 @@ export class Session {
       }
       this.events = [...older.map(e => e.event), ...this.events]
       this.views = [...older.map(e => e.view), ...this.views]
-      /* v8 ignore next -- the ?? arm needs older[0] undefined, but the empty-page branch above already returned. */
       this.baseSeq = older[0]?.event.seq ?? this.baseSeq
       this.hasMore = result.value.hasMore
       this.conversation.prepend(older.map(conversationInput), this.hasMore)
@@ -377,10 +261,6 @@ export class Session {
     }
   }
 
-  /** Reconnect rebuild (manager calls this on onConnected for instances that were opened):
-   *  reset the window and rerun open; pending waits for the baseline replay. Invalidates any
-   *  in-flight open first — its history request rode the dead connection and must not settle
-   *  the fresh generation into 'error'. */
   async resync() {
     if (this.openState === 'cold') return
     this.openGeneration++
@@ -405,30 +285,16 @@ export class Session {
   }
 
 
-  /**
-   * uSES subscription entry.
-   * @param listener - change callback.
-   * @returns the unsubscribe function.
-   */
   subscribe(listener) {
     return this.notifier.subscribe(listener)
   }
 
-  /**
-   * Cached conversation snapshot (rebuilt lazily when dirty with no listeners).
-   * @returns the cached reference (stable until the next flush).
-   */
   getSnapshot() {
     this.notifier.ensureFresh()
     return this.snapshotCache
   }
 
 
-  /**
-   * Mux frame arrival (the dispatch switch).
-   * @param rpcId - the frame envelope id (the respond backfill key for requested frames).
-   * @param frame - the routed frame.
-   */
   handleMuxEnvelope(rpcId, frame) {
     switch (frame.type) {
       case 'session/event': {
@@ -480,10 +346,6 @@ export class Session {
     }
   }
 
-  /**
-   * Running-bit relay from the host stream (list entry and snapshot stay consistent).
-   * @param running - the new running state.
-   */
   handleRunning(running) {
     if (running && this.blankBit) {
       this.blankBit = false
@@ -495,12 +357,6 @@ export class Session {
     this.notifier.markDirty()
   }
 
-  /**
-   * Install or clear the catalog-discovered transport address. A changed
-   * address rebuilds an already-open window through its new history route.
-   * @param address - direct parent/child address, or undefined for ordinary transport.
-   * @param parentAvailable - latest exact-parent availability hint.
-   */
   configureSubagent(address, parentAvailable = false) {
     const same = this.address?.parentSessionId === address?.parentSessionId
       && this.address?.childSessionId === address?.childSessionId
@@ -511,23 +367,12 @@ export class Session {
     else this.notifier.markDirty()
   }
 
-  /**
-   * Update only the parent availability hint from a catalog refresh.
-   * @param available - whether the exact direct parent is live.
-   */
   handleSubagentParentAvailable(available) {
     if (this.parentAvailable === available) return
     this.parentAvailable = available
     this.notifier.markDirty()
   }
 
-  /**
-   * Blank-bit relay from the authoritative summary source (list baseline and
-   * the session-added frame). Monotone: once any signal (local first send,
-   * running flip, an earlier summary) cleared it, a stale true never
-   * re-blanks.
-   * @param blank - the summary's derived empty-log bit.
-   */
   handleBlank(blank) {
     if (blank === this.blankBit) return
     if (blank && (this.promptAttempted || this.running)) return
@@ -535,46 +380,35 @@ export class Session {
     this.notifier.markDirty()
   }
 
-  /** host/session-removed relay: flag the snapshot (instance survives — resident-instance rule). */
   handleRemoved() {
     this.removed = true
     this.clearGapRepairRetry()
     this.notifier.markDirty()
   }
 
-  /**
-   * host/agent-error relay: the only outlet for live failures with no turn position.
-   * @param message - the stringified error.
-   */
   handleAgentError(message) {
     this.lastAgentError = message
     this.notifier.markDirty()
   }
 
-  /** No-op because session instances remain resident. */
   dispose() {}
 
-  /** Rebuild the current window after a low-frequency Definition or view registration change. */
   rebuildConversationRegistry() {
     this.scheduleConversation(this.conversation.rebuildRegistry())
   }
 
 
-  /** Requested-frame arrival: the wait enters the pending map under its own key. */
   mint(wait) {
     this.pending.set(wait.key, wait)
     this.pendingRev++
   }
 
-  /** Authoritative resolved-frame settlement: mark, then drop from the pending map. */
   settle(wait) {
     wait.markSettled()
     this.pending.delete(wait.key)
     this.pendingRev++
   }
 
-  /** @param generation - openGeneration at launch; every await re-checks it and a stale pass
-   *  drops all writes (resync superseded this open — its outcome belongs to a dead connection). */
   async doOpen(generation) {
     this.openState = 'loading'
     this.openError = null
@@ -599,20 +433,12 @@ export class Session {
       if (generation !== this.openGeneration) return
       this.openState = 'error'
       const folded = transportError(error)
-      /* v8 ignore next -- the `? null` arm is unreachable: transportError always returns ok:false. */
       this.openError = folded.ok ? null : folded.error
     } finally {
       if (generation === this.openGeneration) this.notifier.markDirty()
     }
   }
 
-  /** Install the history window + stitch the liveBuffer (seq is the sole dedup key).
-   *  Stitching MUST NOT route through acceptLiveEvent: openState is still 'loading' here
-   *  (doOpen flips it after install), so recursing would push every buffered event straight
-   *  back into liveBuffer where nothing ever drains it — a silent drop loop.
-   *  A carried projections block seeds the value store (higher seq wins, so a stale
-   *  baseline cannot overwrite a newer push frame); the window events themselves are
-   *  never folded — the host is the only computation site. */
   installWindow(entries, hasMore, projections) {
     this.events = entries.map(e => e.event)
     this.views = entries.map(e => e.view)
@@ -628,7 +454,6 @@ export class Session {
     this.notifier.markDirty()
   }
 
-  /** Seq-guarded append shared by stitching and the open-state live path. */
   appendLive(event, view) {
     const tailSeq = this.windowTailSeq()
     if (tailSeq !== null && event.seq <= tailSeq) return 'none'
@@ -640,11 +465,6 @@ export class Session {
     return queueChanged ? 'immediate' : publication
   }
 
-  /** Land a live session/event (open/repair in flight -> buffer; overlapping seq -> drop;
-   *  a seq gap -> buffer + tail-page repull instead of appending a hole (a gap is an
-   *  expected reconnect-window artifact, repaired by refetch). The window stays one contiguous
-   *  raw range, which lets Conversation Definitions correlate every recorded event between its
-   *  ends and lets a compaction checkpoint resolve its cited summary event. */
   acceptLiveEvent(event, view) {
     if (this.openState === 'loading' || this.stitching) {
       this.liveBuffer.push({ event, view })
@@ -660,17 +480,12 @@ export class Session {
     this.scheduleConversation(this.appendLive(event, view))
   }
 
-  /** Route assembler cadence into the Session's existing microtask/RAF notifier. */
   scheduleConversation(publication) {
     if (publication === 'immediate') this.notifier.markDirty()
     else if (publication === 'animation-frame') this.notifier.markFrameDirty()
   }
 
-  /** Resync-lite: repull the tail page and stitch the liveBuffer through the shared
-   *  installWindow path. No openState transition — the UI keeps the current window (no loading
-   *  flash); events arriving meanwhile detour to liveBuffer via the stitching flag. */
   async repairGap() {
-    /* v8 ignore next -- re-entry guard: acceptLiveEvent already detours to liveBuffer while stitching, so no second call reaches here. */
     if (this.stitching) return
     this.clearGapRepairRetry(false)
     this.stitching = true
@@ -752,7 +567,6 @@ export class Session {
     }
   }
 
-  /** Select ordinary or addressed history transport from the stored browser fact. */
   history(payload) {
     return this.address === undefined
       ? this.api.sessions.history({ sessionId: this.sessionId, ...payload })
@@ -760,26 +574,14 @@ export class Session {
   }
 }
 
-/** Convert one wire history row into the assembler's transport-neutral input. */
 function conversationInput(entry) {
   return { event: entry.event, view: entry.view }
 }
 
-/** A generic command row alone remains control-plane content; every other visible Chat Node activates the conversation. */
 function hasVisibleConversationContent(chat) {
   return chat.order.some(key => chat.nodes.get(key)?.kind !== 'command')
 }
 
-/**
- * The composerPhase judgment — the single site that knows the predicate
- * (consumers switch on the result, never re-derive). A failed first prompt
- * stays engaging until an authoritative accepted-turn, running, or pending
- * signal arrives (retry semantics — see ComposerPhase).
- * @param hasContent - authoritative non-blank activity beyond a pending first
- *   prompt, visible non-command Chat content, a running turn, or a pending interaction.
- * @param promptAttempted - a prompt was initiated on this session object.
- * @returns the derived phase.
- */
 function derivePhase(hasContent, promptAttempted) {
   if (hasContent) return 'active'
   return promptAttempted ? 'engaging' : 'blank'

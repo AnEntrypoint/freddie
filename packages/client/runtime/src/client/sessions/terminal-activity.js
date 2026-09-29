@@ -1,4 +1,3 @@
-/** Owner-scoped terminal activity mirror fed only by mux frames. */
 import { Notifier } from './notifier.js'
 
 const MAX_OUTPUT_CHARS = 256 * 1024
@@ -12,7 +11,6 @@ function boundedAppend(output, text) {
   return retained + text
 }
 
-/** Immutable terminal snapshots for one session's current PTY ownership. */
 export class TerminalActivityStore {
   terminals = new Map()
   snapshotCache = EMPTY_TERMINALS

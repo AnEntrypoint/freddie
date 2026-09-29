@@ -73,10 +73,6 @@ function mergeMatches(
   return merged
 }
 
-/**
- * Session-owned incremental engine that assembles business Contexts from a
- * contiguous Event window and materializes registered view snapshots.
- */
 export class ConversationNodeAssembler {
   contexts = new Map()
   contextsByKind = new Map()
@@ -91,10 +87,6 @@ export class ConversationNodeAssembler {
   replacePending = true
   timelineDirty = true
 
-  /**
-   * @param eventDefinitions - live Event Definition registry.
-   * @param viewDefinitions - live view builder registry.
-   */
   constructor(
     eventDefinitions,
     viewDefinitions,
@@ -104,12 +96,6 @@ export class ConversationNodeAssembler {
     this.resetViewBuilders()
   }
 
-  /**
-   * Replace the complete loaded window after open, resync, or gap repair.
-   * @param entries - complete contiguous window.
-   * @param hasMore - whether older history remains outside the window.
-   * @returns immediate publication request.
-   */
   replaceWindow(entries, hasMore) {
     this.contexts.clear()
     this.contextsByKind.clear()
@@ -131,11 +117,6 @@ export class ConversationNodeAssembler {
     return 'immediate'
   }
 
-  /**
-   * Add one contiguous live tail event without scanning existing Contexts.
-   * @param input - appended Event and optional wire view.
-   * @returns highest requested publication cadence.
-   */
   append(input) {
     if (this.inputs.has(input.event.seq)) return 'none'
     this.revised.clear()
@@ -159,12 +140,6 @@ export class ConversationNodeAssembler {
     return publication
   }
 
-  /**
-   * Add an older page while preserving existing Context and view identities.
-   * @param entries - newly loaded older Events.
-   * @param hasMore - whether history still precedes the expanded window.
-   * @returns highest requested publication cadence.
-   */
   prepend(entries, hasMore) {
     this.revised.clear()
     let publication = 'none'
@@ -192,19 +167,11 @@ export class ConversationNodeAssembler {
     return publication
   }
 
-  /**
-   * Rebuild against the current Registry set after a low-frequency plugin change.
-   * @returns immediate publication request.
-   */
   rebuildRegistry() {
     this.resetViewBuilders()
     return this.replaceWindow(this.sortedInputs(), this.hasMore)
   }
 
-  /**
-   * Materialize dirty Contexts and advance every registered view builder.
-   * @returns whether any view snapshot was rebuilt or incrementally applied.
-   */
   flush() {
     if (!this.replacePending && this.dirty.size === 0 && !this.timelineDirty) return false
     if (this.replacePending) {
@@ -260,11 +227,6 @@ export class ConversationNodeAssembler {
     return true
   }
 
-  /**
-   * Read the latest snapshot of a registered target.
-   * @param target - registered view target.
-   * @returns target snapshot, or undefined when no builder is registered.
-   */
   snapshot(target) {
     return this.views.get(target)?.snapshot
   }
@@ -564,7 +526,6 @@ export class ConversationNodeAssembler {
     return undefined
   }
 
-  /** Insert one newly discovered start into its Definition's ordered predecessor index. */
   indexStartedContext(context) {
     const seq = context.startSeq
     if (seq === undefined) return

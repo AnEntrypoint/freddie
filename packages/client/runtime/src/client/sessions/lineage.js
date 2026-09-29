@@ -1,12 +1,3 @@
-/**
- * Summaries -> flat list with lineage indentation. Root and sibling order
- * follows the established input order; this projection never re-sorts a
- * hydrated list from mutable timestamps.
- * @param summaries - the host's session.list items.
- * @param pendingInteractions - current manager-owned interaction status by session.
- * @param completed - sessions with a pending completion reminder (manager-owned live fact; absent = false).
- * @returns display rows in render order.
- */
 export function flattenLineage(
   summaries,
   pendingInteractions,

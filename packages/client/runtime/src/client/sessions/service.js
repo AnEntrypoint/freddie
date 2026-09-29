@@ -1,19 +1,3 @@
-/**
- * SessionRuntime: root sessions service — list snapshot store (manager
- * projection; carries `current`, the persisted selection every
- * session-scoped surface keys off), Agent scope tree (mintScope pattern: no-op plugin
- * Fiber + ctx.extend scope tag; one scope per session, agent id === session
- * id), stable SessionBinding cache, breadcrumb-route projection.
- *
- * Scope lifecycle is stage-driven: a scope is minted lazily on first
- * resolution (pure — resolution has no side effects and is render-safe);
- * the event window and deferred teardown key off the STAGED session, which
- * follows `list.current` exactly. Staging is the open signal: the window
- * opens ⟺ the session is on stage (today the stage is `current`; the staged
- * state can widen to a multi-pane list later). A session leaving the list
- * tears its scope down immediately unless it is the staged one, whose scope
- * survives frozen (read-only view) until the stage moves on.
- */
 import { SESSION_SEARCH_RESULT_LIMIT } from '@freddie/freddie-host-apiproxy/api'
 import { createSnapshotStore } from '../contract/store.js'
 import { createScope, scopeOf as scopeTagOf } from '../agents/scope.js'
@@ -21,16 +5,9 @@ import { SessionManager } from './manager.js'
 import { SessionProvideChannel } from './provide.js'
 import { loadUserPrompts } from './user-prompts.js'
 
-/**
- * Structured session-create failure.
- */
 export class SessionCreateError extends Error {
   name = 'SessionCreateError'
 
-  /**
-   * @param rpcError - Host business or folded transport error.
-   * @param requestedSessionId - caller-preallocated id used for later stream/list reconciliation.
-   */
   constructor(
     rpcError,
     requestedSessionId,
@@ -41,14 +18,9 @@ export class SessionCreateError extends Error {
   }
 }
 
-/** Structured session-fork failure. */
 export class SessionForkError extends Error {
   name = 'SessionForkError'
 
-  /**
-   * @param rpcError - Host business or folded transport error.
-   * @param sourceSessionId - the session the fork was cut from.
-   */
   constructor(
     rpcError,
     sourceSessionId,
@@ -61,24 +33,10 @@ export class SessionForkError extends Error {
 
 export { scopeOf } from '../agents/scope.js'
 
-/**
- * Workspace display title of a session cwd: the path's last non-empty
- * segment (both separators accepted; trailing separators ignored), or ''
- * for separator-only paths — callers own their fallback (session id, raw
- * cwd, default-directory copy). The repo-wide single basename derivation —
- * every surface naming a workspace (picker rows, toggle labels, list titles)
- * calls this instead of re-splitting paths.
- * @param cwd - workspace directory path.
- * @returns basename title, or '' when no non-empty segment exists.
- */
 export function workspaceTitleOf(cwd) {
   return cwd.replace(/[/\\]+$/, '').split(/[/\\]/).pop() ?? ''
 }
 
-/**
- * Display title projection: durable title, project directory basename, then
- * the raw id.
- */
 function displayTitleOf(title, cwd, id) {
   if (title !== undefined) return title
   if (cwd !== undefined && cwd !== '') {
@@ -88,12 +46,6 @@ function displayTitleOf(title, cwd, id) {
   return id
 }
 
-/**
- * Increment a trailing fork number while preserving its half-width or
- * full-width parentheses; an unnumbered title starts with ` (1)`.
- * @param title - source session's durable title.
- * @returns the title assigned to the fork child.
- */
 function increasedForkTitle(title) {
   const ascii = /^(.*?)\((\d+)\)$/u.exec(title)
   if (ascii?.[1] !== undefined && ascii[2] !== undefined) {
@@ -106,56 +58,19 @@ function increasedForkTitle(title) {
   return `${title} (1)`
 }
 
-/** Root sessions service: list store, current selection, object-layer manager, scope tree, bindings, and breadcrumb routes. */
 export class SessionRuntime {
-  /**
-   * The wire schema's own result bound, re-exposed for presentation plugins as
-   * injected data. Not per-connection state: the `session.search` response
-   * schema caps `items` at this constant, so every transport (fixture included)
-   * reports the same number.
-   */
   searchResultLimit = SESSION_SEARCH_RESULT_LIMIT
-  /** List snapshot store (list RPC + host stream increments; re-pulled on reconnect) — the useSessions standard feed, current included. */
   list
-  /** The object-layer instance cluster and frame dispatch entry. */
   manager
-  /**
-   * Atomic current-session provide projection: selection changes and
-   * provider-roster changes publish through this one source (the renderer
-   * host's `sessions.provide` feed), so a roster change under a stable
-   * current id republishes the bundle instead of stranding mounted entries.
-   */
   currentProvideInfo
 
-  /**
-   * Persisted selection cell (the durable half of `list.current`). Private on
-   * purpose: reads go through the list snapshot; writes through {@link
-   * SessionRuntime.open} / {@link SessionRuntime.clear}. Projection
-   * validates it against the live list instead of destructively pruning, so a
-   * selection survives transient list states (reconnect re-pull) and
-   * resurfaces when its session returns.
-   */
   selection
 
   scopes = new Map()
-  /** The provide channel (roster, materialization rules, current projection) — shared with the test runtime's double. */
   provideChannel
-  /**
-   * The staged session id — follows `list.current` exactly, holding its last
-   * defined value across masked gaps (a transiently absent selection blanks
-   * `current` without moving the stage, so reconnect re-pulls and removals
-   * keep the staged scope's frozen view alive until the stage moves on).
-   */
   watched
-  /** Removed-while-staged sessions whose teardown waits for the stage to move away. */
   deferredRemovals = new Set()
 
-  /**
-   * @param rootCtx - client root context (scope fibers mount under it).
-   * @param api - wire client shared with every Session.
-   * @param remote - generated Remote namespaces shared with every Session.
-   * @param conversationRuntime - same-pass registry instances, when runtime apply owns them.
-   */
   constructor(
     rootCtx,
     api,
@@ -221,79 +136,42 @@ export class SessionRuntime {
     rootCtx.reflect.provide('sessions', this, undefined)
   }
 
-  /**
-   * Register a per-session standard-props provider: every session-scope slot
-   * component receives the contributed members as standard props (`hooks`
-   * sources become `use<Name>` selector hooks on the render side; `props`
-   * spread verbatim). Contributions materialize lazily with the session's
-   * scope record and die with it. Registration order is resolution order;
-   * duplicate member names fail loud at materialization.
-   * @param descriptor - static member roster plus per-session resolver.
-   * @returns disposer removing the provider (already-materialized bundles keep their members until their scope drops).
-   */
   provide(descriptor) {
     return this.provideChannel.provide(descriptor)
   }
 
-  /**
-   * Select a listed or retained catalog-addressed session as current.
-   * @param id - listed or addressed session id.
-   */
   open(id) {
     this.manager.select(id)
   }
 
-  /**
-   * Open a healthy catalog child through its direct-parent address.
-   * @param address - catalog-derived parent and child ids.
-   */
   openSubagent(address) {
     this.manager.selectSubagent(address)
   }
 
-  /**
-   * Resolve an already discovered direct-parent address without opening it.
-   * Feature plugins use this to avoid Agent-bound RPCs in persisted child views.
-   * @param id - possible addressed child id.
-   * @returns The retained address, when present.
-   */
   subagentAddress(id) {
     return this.manager.subagentAddress(id)
   }
 
-  /** Read the owner-scoped terminal activity source for one session. */
   terminalActivity(sessionId) {
     return this.manager.terminalStore(sessionId)
   }
 
-  /** Apply an authoritative terminal unary-response snapshot before its mux echo arrives. */
   noteTerminalActivity(sessionId, activity) {
     this.manager.terminalStore(sessionId).apply(activity)
   }
 
-  /** Read recent live durable activity for non-selected sessions without changing selection. */
   treeActivity() {
     return this.manager.treeActivitySource()
   }
 
-  /** Read mux-fed terminal snapshots for every live session without changing selection. */
   treeTerminals() {
     return this.manager.treeTerminalSource()
   }
 
-  /**
-   * Inform the runtime whether a catalog menu is consuming membership updates.
-   * @param parentSessionId - selected parent.
-   * @param open - menu state.
-   */
   setSubagentCatalogOpen(parentSessionId, open) {
     this.manager.setSubagentCatalogOpen(parentSessionId, open)
   }
 
-  /**
-   * Refresh one direct-child catalog.
-   * @param parentSessionId - catalog owner.
-   */
   refreshSubagents(parentSessionId) {
     return this.manager.refreshSubagents(parentSessionId)
   }
@@ -302,32 +180,14 @@ export class SessionRuntime {
     this.manager.noteAgentPreset(sessionId, agentPreset)
   }
 
-  /**
-   * Clear the current selection so the layout shows the no-session empty
-   * state (new-session affordance and the workspace preselection flow).
-   * Wipes the persisted selection too — a reload stays on empty until the
-   * user opens or starts a session. The staged scope keeps its frozen view
-   * per the masked-gap contract until the next open() moves the stage.
-   */
   clear() {
     this.manager.clearSelection()
   }
 
-  /**
-   * Refresh the real Session baseline, reusing an in-flight pull.
-   * @returns completion of the current or newly started baseline pull.
-   */
   refresh() {
     return this.manager.refreshList()
   }
 
-  /**
-   * Search the Host's visible message-content index. Results stay
-   * request-local; the list snapshot remains the metadata authority.
-   * @param query - non-blank literal phrase.
-   * @param signal - cancellation for a superseded search.
-   * @returns bounded results or a business/transport error.
-   */
   search(
     query,
     signal,
@@ -339,43 +199,22 @@ export class SessionRuntime {
     return loadUserPrompts(this.manager.api, id)
   }
 
-  /**
-   * Route a mux stream envelope into the Session object layer.
-   * @param envelope - validated mux stream envelope.
-   */
   handleMuxEnvelope(envelope) {
     this.manager.handleMuxEnvelope(envelope)
   }
 
-  /**
-   * Route a Host stream envelope into the Session object layer.
-   * @param envelope - validated Host stream envelope.
-   */
   handleHostEnvelope(envelope) {
     this.manager.handleHostEnvelope(envelope)
   }
 
-  /** Rebuild the Session baseline and every opened window after connection. */
   handleConnected() {
     this.manager.handleConnected()
   }
 
-  /** Drop generation-scoped live interaction state the moment a connection generation dies. */
   handleDisconnected() {
     this.manager.handleDisconnected()
   }
 
-  /**
-   * Create a session on the host. Resolution guarantee: by the time the
-   * promise resolves, the created session is in the list store and
-   * {@link SessionRuntime.binding} resolves it — callers (New Session
-   * draft hand-off) may address the scope synchronously, without waiting a
-   * notifier flush. The synchronous projection below makes this structural
-   * rather than an accident of microtask ordering.
-   * @param opts - target workspace or directory and an optional preallocated id.
-   * @returns the new session id.
-   * @throws {SessionCreateError} with the requested id.
-   */
   async create(opts = {}) {
     const result = await this.manager.create(opts)
     if (!result.ok) throw new SessionCreateError(result.error, opts.sessionId)
@@ -383,21 +222,6 @@ export class SessionRuntime {
     return result.value.sessionId
   }
 
-  /**
-   * Fork a session from a completed-turn prefix of the source (same
-   * synchronous-addressability guarantee as {@link SessionRuntime.create}:
-   * on resolution the child is in the list store and open() can target it).
-   * @param opts - source session id, the optional event seq anchoring the
-   *   cut (the boundary is the first turn/end at or after it; an in-log
-   *   anchor in an open turn is unavailable rather than clipped backward),
-   *   and whether to increment an inherited durable title before resolving.
-   *   A fractional anchor floors to a real event seq: the frozen nodes of an
-   *   interrupted turn carry flow-ordering seqs between two events, and the
-   *   wire takes integers only.
-   * @returns the child session id.
-   * @throws {SessionForkError} with the source id.
-   * @throws {Error} when a requested child-title rename fails after creation.
-   */
   async fork(opts) {
     const sourceTitle = opts.increaseTitle
       ? this.list.getSnapshot().byId[opts.sessionId]?.title
@@ -418,78 +242,32 @@ export class SessionRuntime {
     return childId
   }
 
-  /**
-   * Resolve an Agent-scoped context view (use-and-discard).
-   * @param id - session id (the agent identity — 1:1 same axis).
-   * @returns scoped ctx, or undefined for a session neither listed nor already scoped.
-   */
   scope(id) {
     return this.resolve(id)?.ctx
   }
 
-  /**
-   * Read the Agent scope tag off a context. Service-method boundary: fetch
-   * bundles must reach scope resolution through ctx.sessions — a cross-bundle
-   * value import of the standalone helper would inline a second module
-   * instance whose private tag Symbol never matches.
-   * @param ctx - any client context.
-   * @returns the session id, or undefined on root contexts.
-   */
   scopeOf(ctx) {
     return scopeTagOf(ctx)
   }
 
-  /**
-   * Resolve the business Session behind an Agent-scoped context — the one
-   * hop every scoped consumer (event listeners, per-session controllers)
-   * takes from ctx-space into object-space (the client mirror of host
-   * `agent.session`). Same service-method boundary as
-   * {@link SessionRuntime.scopeOf}.
-   * @param ctx - an Agent-scoped context.
-   * @returns the session face, or undefined when the ctx is untagged or its scope was pruned.
-   */
   sessionOf(ctx) {
     const id = scopeTagOf(ctx)
     if (id === undefined) return undefined
     return this.scopes.get(id)?.binding.session
   }
 
-  /**
-   * Resolve the stable session binding (scope-addressed assembly feed). Pure
-   * resolution — no staging, no window side effects.
-   * @param id - session id.
-   * @returns binding, or undefined for a session neither listed nor already scoped.
-   */
   binding(id) {
     return this.resolve(id)?.binding
   }
 
-  /**
-   * Resolve one session's render-layer standard-props bundle (ctx never
-   * enters the render layer; the renderer subscribes to
-   * {@link SessionRuntime.currentProvideInfo}). Pure resolution — render-safe:
-   * no staging, no window side effects (StrictMode double-invokes and
-   * concurrent discarded passes must stay free).
-   */
   provideInfo(id) {
     return this.resolve(id)?.provideInfo
   }
 
-  /**
-   * Resolve the current-session-optional standard kit. Unknown or absent ids
-   * return the static no-session projection rather than removing hook props.
-   */
   maybeProvideInfo(id) {
     return (id === undefined ? undefined : this.provideInfo(id)) ?? this.provideChannel.maybeInfo
   }
 
-  /**
-   * Move the stage to the list's current session: sweep teardowns deferred
-   * behind the previous occupant and pull the new occupant's history window.
-   * Staging IS the open signal — the window opens ⟺ the session is on stage
-   * — and open() is idempotent (an in-flight or completed open no-ops; a
-   * failed one retries the next time current is touched).
-   */
   followCurrent() {
     const snapshot = this.list.getSnapshot()
     const current = snapshot.current
@@ -497,21 +275,12 @@ export class SessionRuntime {
     this.watched = current
     this.sweepDeferred()
     const record = this.resolve(current)
-    /* v8 ignore next 3 -- defensive: current is always a listed id (open()
-     * validates and the projection masks absent selections), so resolve
-     * cannot miss; kept so a future current writer cannot crash the notify. */
     if (record !== undefined) {
       void record.session.open()
       void this.manager.refreshSubagents(current)
     }
   }
 
-  /**
-   * Lazily mint the scope + binding for an eligible session. Eligibility and
-   * prune share one predicate: listed on the host or selected
-   * through a retained subagent address. Breadcrumb-only ancestors remain
-   * summary data and do not keep scopes alive.
-   */
   resolve(id) {
     const existing = this.scopes.get(id)
     if (existing !== undefined) return existing
@@ -531,13 +300,11 @@ export class SessionRuntime {
     return record
   }
 
-  /** The one aliveness predicate shared by scope mint and prune: host-listed or currently addressed. */
   eligible(id) {
     const { ids, current } = this.list.getSnapshot()
     return current === id || ids.includes(id)
   }
 
-  /** Project the manager's list snapshot into the store (title derivation is display-only). */
   projectList() {
     const {
       items, current, phase, subagentsByParent, jobsBySession, currentAddress,
@@ -613,7 +380,6 @@ export class SessionRuntime {
     this.pruneScopes()
   }
 
-  /** Tear down scope + instance for no-longer-eligible sessions off stage; the staged one defers until the stage moves. */
   pruneScopes() {
     for (const [id, record] of this.scopes) {
       if (this.eligible(id)) continue
@@ -627,13 +393,6 @@ export class SessionRuntime {
     }
   }
 
-  /**
-   * One teardown for the whole per-session axis: the scope
-   * fiber (cascading every actx-registered effect: input shell, slash
-   * controller, popup, plugin stores, listeners), the session-keyed slot
-   * stores, and the Session instance itself — the host session log is the
-   * durable truth, a reopen lazily rebuilds and backfills via open().
-   */
   dropScope(id, record) {
     void record.fiber.dispose()
     record.session.unbindScope()
@@ -641,12 +400,8 @@ export class SessionRuntime {
     this.manager.drop(id)
   }
 
-  /** Run deferred teardowns whose session is no longer staged (called when the stage moves). */
   sweepDeferred() {
     for (const id of [...this.deferredRemovals]) {
-      /* v8 ignore next -- defensive: only the staged id ever defers, and every
-       * stage move sweeps first, so the set cannot contain the id the stage just
-       * moved to; kept as a guard against future extra sweep call sites. */
       if (id === this.watched) continue
       if (this.eligible(id)) {
         this.deferredRemovals.delete(id)
@@ -654,9 +409,6 @@ export class SessionRuntime {
       }
       const record = this.scopes.get(id)
       this.deferredRemovals.delete(id)
-      /* v8 ignore next -- defensive: prune deletes a scope and its deferral
-       * together, so a deferred id always still owns its record; kept so a
-       * future teardown path cannot double-dispose. */
       if (record !== undefined) {
         this.scopes.delete(id)
         this.dropScope(id, record)

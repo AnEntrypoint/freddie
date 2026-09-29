@@ -1,8 +1,3 @@
-/**
- * Create the empty client projection for one streamed Assistant block kind.
- * @param blockType - wire block kind.
- * @returns empty projected block ready to receive deltas.
- */
 export function emptyAssistantBlock(blockType) {
   switch (blockType) {
     case 'text': return { kind: 'text', text: '' }

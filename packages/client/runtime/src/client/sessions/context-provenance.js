@@ -1,17 +1,14 @@
-/** One durable source narrowed to the readable-record shape; null for anything else. */
 function asRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? value
     : null
 }
 
-/** A record field read as a non-empty string, or null. */
 function readString(record, key) {
   const value = record[key]
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
-/** Distinct non-empty `field` values of an array-valued source member, in first-seen order. */
 function collect(source, member, field) {
   const list = source[member]
   if (!Array.isArray(list)) return []
@@ -24,34 +21,16 @@ function collect(source, member, field) {
   return seen
 }
 
-/** A collected name list rendered as one label; null when the list is empty. */
 function joined(names) {
   return names.length > 0 ? names.join(', ') : null
 }
 
-/**
- * The referenced-session labels of one durable `session-reference` recall
- * source, in first-seen order; empty for every other source shape, including
- * a foreign or older log whose reference entries carry no readable label.
- * @param source - the logged `user/message` source, exactly as recorded.
- * @returns distinct non-empty reference labels.
- */
 export function sessionRecallLabels(source) {
   const record = asRecord(source)
   if (record === null || readString(record, 'kind') !== 'session-reference') return []
   return collect(record, 'references', 'label')
 }
 
-/**
- * Project one durable message source onto its transcript role and producer name.
- *
- * The source arrives over the wire as opaque JSON (`MessageSource` is
- * merge-extensible, so no client-side union can be exhaustive), and a durable
- * log may predate or postdate this UI; every unreadable shape therefore
- * degrades to `inject` with whatever name the record still carries.
- * @param source - the logged `user/message` source, exactly as recorded.
- * @returns the role and producer name to present for this context.
- */
 export function contextProvenance(source) {
   const record = asRecord(source)
   const kind = record === null ? null : readString(record, 'kind')
@@ -72,20 +51,8 @@ export function contextProvenance(source) {
   }
 }
 
-/**
- * Context forms this UI version renders with a dedicated presentation. The
- * durable vocabulary (`ContextForm` in `freddie-llm`) may already be wider — an
- * unrecognized or absent value degrades to the opaque presentation rather than
- * dropping the row, so a log written by a newer or foreign producer still
- * renders.
- */
 const KNOWN_FORMS = ['instructions', 'catalog', 'snapshot', 'notice', 'relay', 'recall']
 
-/**
- * Read the producer-declared form off one durable message source.
- * @param source - the logged `user/message` source, exactly as recorded.
- * @returns the form when this UI version presents it, otherwise null (opaque).
- */
 export function contextForm(source) {
   const record = asRecord(source)
   const form = record === null ? null : readString(record, 'form')
