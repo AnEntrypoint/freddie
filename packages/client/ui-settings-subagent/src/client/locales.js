@@ -1,6 +1,3 @@
-/** Locale bundles for the subagent delegation-limits card. */
-
-/** English copy. */
 export const en = {
   title: 'Subagent',
   description: 'How deep and how wide delegation may go.',

@@ -1,29 +1,11 @@
-/**
- * The subagent card: a header naming what the namespace governs, disclosing its
- * two limits in place, with the one save that writes both.
- *
- * Disclosure is card-local state — which card a user has open is a reading
- * gesture, not something the Host or the section has a stake in. A card renders
- * nothing while its namespace is unavailable: a deployment that composes no
- * section for it should show no trace, rather than a card the user cannot act
- * on.
- */
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconChevronDownOutline14, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './SubagentCard.css.js'
 
-/** Join the class names that apply, without a class-name library. */
 function classes(...names) {
   return names.filter(name => typeof name === 'string' && name.length > 0).join(' ')
 }
 
-/**
- * One staged value field. `numeric` only hints the keypad: which drafts a field
- * accepts is decided by its spec, so the control never rewrites what was typed.
- * @param props - the field's copy, its staged text, and the edit actions.
- * @returns the labelled control.
- */
 function LimitField(props) {
   return h('div', { class: css.field ?? '' },
     h('div', { class: css.head ?? '' },
@@ -59,12 +41,10 @@ function LimitField(props) {
   )
 }
 
-/** One subagent card custom element. Disclosure and staged edits are card-local. */
 export class FreddieSubagentCard extends HTMLElement {
   #props = null
   #open = false
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -156,11 +136,6 @@ export class FreddieSubagentCard extends HTMLElement {
 
 defineElement('freddie-subagent-card', FreddieSubagentCard)
 
-/**
- * Render the subagent card.
- * @param props - locale copy, the card snapshot, and its form actions.
- * @returns the card; renders nothing when the namespace is unavailable.
- */
 export function SubagentCard(props) {
   const el = document.createElement('freddie-subagent-card')
   el.setProps(props)
