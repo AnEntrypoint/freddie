@@ -1,20 +1,6 @@
-/**
- * The `node:vm` sandbox a dynamic package's HOST half evaluates in: a fresh realm whose globals
- * are a tagged write-through console, the `harness` registration helpers, the encoding primitives
- * a bare vm context lacks, and callable traps over the Node APIs the sandbox deliberately
- * withholds. Traps steer filesystem, network, process, and timer work to `ctx.fs`, `ctx.web`,
- * `ctx.bash`, and Cordis timers. This keeps cooperative packages inspectable and disposable but
- * is not containment: host-realm helper functions remain an escape route.
- *
- * The browser half never reaches this module — it is evaluated by the client-side runner in a
- * closure, with its own facade.
- * @module @freddie/freddie-cordis-host-runner/sandbox
- */
-
 import { createContext, runInContext, Script } from 'node:vm'
 import { sandboxDefineTool, sandboxRegisterTool } from './guard.js'
 
-/** Exact Host closure symbols exposed by the sandbox and guarded Context. */
 export const HOST_BUILTIN_INSPECTION = [
   {
     name: 'ctx',
@@ -42,12 +28,6 @@ export const HOST_BUILTIN_INSPECTION = [
   { name: 'TextDecoder', description: 'Standard text decoder constructor.', signatures: ['new TextDecoder(label?: string)'] },
 ]
 
-/**
- * A write-through console for one package, tagging every line with the package
- * id. Write-through (host stdout/stderr), NOT buffered into the tool result:
- * a registered listener fires long after the run call returned, and its output
- * must land somewhere the user can see — for a terminal entry point, the host terminal.
- */
 function taggedConsole(id) {
   const tag = `[cordis:${id}]`
   const log = (...args) => { console.log(tag, ...args) }
@@ -55,10 +35,6 @@ function taggedConsole(id) {
   return { log, info: log, warn: log, debug: log, error }
 }
 
-/**
- * Patch only VM constructors so `instanceof` accepts both VM values and host values passed as
- * arguments, events, or service results; host intrinsics remain untouched.
- */
 const DUAL_REALM_INSTANCEOF_PRELUDE = `
 (hostIntrinsics) => {
   'use strict'
@@ -75,7 +51,6 @@ const DUAL_REALM_INSTANCEOF_PRELUDE = `
 }
 `
 
-/** Run {@link DUAL_REALM_INSTANCEOF_PRELUDE} in a freshly created sandbox, handing it the host intrinsics to pair up. */
 function patchDualRealmInstanceof(sandbox) {
   const patch = runInContext(DUAL_REALM_INSTANCEOF_PRELUDE, sandbox)
   patch({ Object, Array, Function, Error, TypeError, RangeError, SyntaxError, Promise, RegExp, Date, Map, Set })
@@ -86,13 +61,6 @@ const TIMER_REDIRECT
     + 'and call ctx.timeout / ctx.interval after querying Host Service.listService for the exact overloads. '
     + 'Those calls are fiber effects, cleaned up automatically when stopped.'
 
-/**
- * The callable Node APIs the sandbox deliberately disables, each mapped to the
- * cordis alternative its trap error names. Only function-valued globals are
- * trapped; a data-valued global such as `process` stays `undefined`, because a
- * throwing accessor would detonate the common `typeof process` feature probe
- * at resolution time.
- */
 const NODE_API_REDIRECTS = {
   require:
     'Node modules are unavailable. Use the cordis services on ctx instead — e.g. inject: [\'fs\'] for files, '
@@ -107,7 +75,6 @@ const NODE_API_REDIRECTS = {
     + '(query Host Service.listService with cordis_inspect_query for its methods).',
 }
 
-/** Build the trap functions for {@link NODE_API_REDIRECTS}: calling one throws the redirect. */
 function nodeApiTraps() {
   const traps = {}
   for (const [name, redirect] of Object.entries(NODE_API_REDIRECTS)) {
@@ -118,14 +85,6 @@ function nodeApiTraps() {
   return traps
 }
 
-/**
- * Build the vm context one host half evaluates in: the tagged console, the
- * `harness` registration helpers, the encoding primitives, the Node-API traps,
- * and the dual-realm `instanceof` patch, already `createContext`-ed.
- * @param id - the package id (`dyn-<n>`), used as the console tag and filename stem.
- * @param harnessExtras - per-package `harness` verbs beyond the registration pair (`handle`).
- * @returns the contextified sandbox object to pass to {@link evaluateHostCode}.
- */
 export function createSandbox(id, harnessExtras = {}) {
   const sandbox = {
     ...nodeApiTraps(),
@@ -141,23 +100,10 @@ export function createSandbox(id, harnessExtras = {}) {
   return sandbox
 }
 
-/**
- * Cross-realm SyntaxError detection: a compile failure inside `runInContext`
- * constructs its error in the SANDBOX realm, so a host `instanceof
- * SyntaxError` is silently false — the `name` property is the realm-safe tag.
- */
 function isSyntaxError(error) {
   return typeof error === 'object' && error !== null && error.name === 'SyntaxError'
 }
 
-/**
- * The parse-failure context a vm `SyntaxError` carries: the vm prints the
- * offending source line and a caret before the message, which is exactly what
- * a model needs to self-correct — surface it instead of the bare message.
- * Falls back to `String(error)` when the stack carries no such prelude.
- * @param error - the `SyntaxError` (host- or sandbox-realm) thrown while compiling package code.
- * @returns the stack prefix up to and including the `SyntaxError: …` line.
- */
 export function syntaxErrorContext(error) {
   const lines = (error.stack ?? '').split('\n')
   const messageIndex = lines.findIndex(line => line.startsWith('SyntaxError'))
@@ -165,14 +111,6 @@ export function syntaxErrorContext(error) {
   return lines.slice(0, messageIndex + 1).join('\n')
 }
 
-/**
- * The teaching text one parse failure produces, shared by the define-time
- * precheck and the run-time evaluation so a model reads the same diagnosis
- * whichever verb caught it.
- * @param half - which half failed to parse, named as the define argument that carried it.
- * @param context - the {@link syntaxErrorContext} of the failure.
- * @returns the model-facing error message.
- */
 export function parseErrorMessage(half, context) {
   const offendingLine = context.split('\n')[1] ?? ''
   if (/\bas\b/.test(offendingLine)) {
@@ -187,26 +125,9 @@ export function parseErrorMessage(half, context) {
     + 'a plain `return { … }` ends with `}` (an optional `;`), never `)`.'
 }
 
-/**
- * Parse one half's source without running it: the define-time precheck that
- * keeps unparseable code out of the registry, so a model fixes it and defines
- * again instead of discovering the failure at run time. `new Function` is the
- * gate — hosts without a real `node:vm` (the browser worker) still refuse
- * unparseable code — and `vm.Script` is only the best-effort prettifier: on a
- * Node host its failure carries the source-line-and-caret prelude the
- * teaching text builds on, and where the vm is a stub the message stays bare.
- * The two parsers' syntax faces differ at the margin (`new.target` parses in
- * a function body but not at the vm wrapper's top level), an accepted cost of
- * a vm-free gate; and under a page CSP without `'unsafe-eval'`, `new Function`
- * throws `EvalError`, which propagates unwrapped.
- * @param code - the model-written function body.
- * @param half - which define argument carried it, for the error text.
- * @throws when the body does not parse, with the offending line and a teaching hint.
- */
 export function precheckCode(code, half) {
   const wrapped = `(async () => {\n${code}\n})()`
   try {
-    // oxlint-disable-next-line typescript/no-implied-eval -- parse gate over model-written code; nothing is invoked
     new Function(wrapped)
   } catch (error) {
     if (!isSyntaxError(error)) throw error
@@ -214,14 +135,6 @@ export function precheckCode(code, half) {
   }
 }
 
-/**
- * Best-effort vm recompile of a body `new Function` already refused, for the
- * source-line-and-caret prelude only.
- * @param wrapped - the wrapped source that failed to parse.
- * @param half - which define argument carried it, for the vm filename.
- * @param refusal - the gate's own `SyntaxError`, the fallback context source.
- * @returns the vm prelude when a real vm produced one, else the bare refusal.
- */
 function prettyParseContext(wrapped, half, refusal) {
   try {
     new Script(wrapped, { filename: `cordis-dyn-${half}.js` })
@@ -231,17 +144,6 @@ function prettyParseContext(wrapped, half, refusal) {
   return String(refusal)
 }
 
-/**
- * Evaluate a host half as the body of an async function inside the sandbox. `vmTimeoutMs` only
- * bounds the SYNCHRONOUS portion; an async body escapes it — acceptable under the module's
- * trust stance. Parse errors include the offending line and a TypeScript-removal or bracket-
- * balance hint.
- * @param sandbox - the contextified object from {@link createSandbox}.
- * @param code - the model-written function body; must `return` a plugin.
- * @param id - the package id, used as the vm filename (`cordis-dyn-<id>.js`).
- * @param vmTimeoutMs - the synchronous evaluation bound in milliseconds.
- * @returns whatever the code returned, still un-narrowed (the run lifecycle checks plugin shape).
- */
 export async function evaluateHostCode(sandbox, code, id, vmTimeoutMs) {
   try {
     return await runInContext(

@@ -1,10 +1,7 @@
-/** Host registry for model-visible, read-only Cordis capability queries. */
-
 import { Service } from '@freddie/cordis'
 import { snapshotJsonValue } from '@freddie/freddie-session'
 import { assertSupportedJsonSchema, validateJsonSchemaValue } from '@freddie/freddie-tools'
 
-/** Registry and cross-page router behind the two model-facing inspect tools. */
 export class CordisInspectRegistryService extends Service {
   providers = new Map()
   sharedProviders = new Map()
@@ -12,16 +9,10 @@ export class CordisInspectRegistryService extends Service {
   clientManifest
   nextRequest = 1
 
-  /** Register the process-global Host registry. */
   constructor(ctx) {
     super(ctx, 'cordisInspect')
   }
 
-  /**
-   * Register one Host provider.
-   * @param registration - manifest and local query handler.
-   * @returns idempotent disposer.
-   */
   register(registration) {
     const manifest = validateManifest(registration.manifest)
     if (this.providers.has(manifest.id)) throw new Error(`Host Cordis inspect provider "${manifest.id}" is already registered`)
@@ -32,11 +23,6 @@ export class CordisInspectRegistryService extends Service {
     }
   }
 
-  /**
-   * Retain one process-wide provider shared by every equivalent caller.
-   * @param registration - manifest and local query handler.
-   * @returns disposer that releases this caller's retention.
-   */
   registerShared(registration) {
     const manifest = validateManifest(registration.manifest)
     const existing = this.providers.get(manifest.id)
@@ -53,10 +39,6 @@ export class CordisInspectRegistryService extends Service {
     return () => { this.releaseShared(manifest.id) }
   }
 
-  /**
-   * Release one shared-provider retention.
-   * @param id - provider identifier retained through {@link registerShared}.
-   */
   releaseShared(id) {
     const shared = this.sharedProviders.get(id)
     if (shared === undefined) return
@@ -66,10 +48,6 @@ export class CordisInspectRegistryService extends Service {
     shared.release()
   }
 
-  /**
-   * Replace the mirrored Client provider directory.
-   * @param providers - complete Client manifest snapshot.
-   */
   syncClientManifest(providers) {
     const ids = new Set()
     const validated = providers.map((provider) => {
@@ -81,10 +59,6 @@ export class CordisInspectRegistryService extends Service {
     this.clientManifest = Object.freeze(validated)
   }
 
-  /**
-   * Return the complete known Host and Client provider directory.
-   * @returns Host providers followed by the Client providers.
-   */
   list() {
     return [
       ...[...this.providers.values()].map(provider => view('host', provider.manifest)),
@@ -92,16 +66,6 @@ export class CordisInspectRegistryService extends Service {
     ]
   }
 
-  /**
-   * Execute one provider query on its owning platform.
-   * @param platform - Host or Client runtime.
-   * @param providerId - provider selected from {@link list}.
-   * @param methodName - declared method name.
-   * @param input - optional lossless JSON input.
-   * @param agent - requesting Agent and scope.
-   * @param signal - tool-call cancellation.
-   * @returns provider JSON data.
-   */
   async query(platform, providerId, methodName, input, agent, signal) {
     if (platform === 'host') {
       const registration = this.providers.get(providerId)
@@ -116,13 +80,6 @@ export class CordisInspectRegistryService extends Service {
     return await this.queryClient(providerId, methodName, input, agent, signal)
   }
 
-  /**
-   * Accept the first valid Client response for a pending query.
-   * @param agent - Agent whose Session owns the query.
-   * @param requestId - Pending Client query identity.
-   * @param resolution - Client provider result or failure.
-   * @returns whether this response settled the still-pending query.
-   */
   resolveClientQuery(agent, requestId, resolution) {
     const pending = this.pending.get(requestId)
     if (pending === undefined || pending.request.agentId !== agent.id) return { accepted: false }

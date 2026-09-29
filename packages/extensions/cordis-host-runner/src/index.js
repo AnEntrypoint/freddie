@@ -1,9 +1,3 @@
-/**
- * Dynamic Cordis Plugin service: immutable package definitions, one active run
- * per Plugin, human-approved Client activation, and Host/Client invocation.
- * @module @freddie/freddie-cordis-host-runner
- */
-
 import z from '@freddie/schemastery'
 import { createUserMessage } from '@freddie/freddie-llm'
 import { TypertRemoteService, Remote } from '@freddie/freddie-typert-protocol'
@@ -16,43 +10,22 @@ import { createSandbox, evaluateHostCode, precheckCode } from './sandbox.js'
 export { CordisInspectRegistryService } from './inspect-registry.js'
 export { HOST_BUILTIN_INSPECTION } from './sandbox.js'
 
-/**
- * Brand a Host-minted Plugin ID.
- * @param id - opaque identifier minted by the Host registry.
- * @returns the branded Plugin identifier.
- */
 export function CordisDynamicPluginId(id) {
   return id
 }
 
-/**
- * Brand a Host-minted Package ID.
- * @param id - opaque identifier minted by the Host registry.
- * @returns the branded Package identifier.
- */
 export function CordisDynamicPackageId(id) {
   return id
 }
 
-/**
- * Brand a Host-minted Plugin Run ID.
- * @param id - opaque identifier minted by the Host registry.
- * @returns the branded Plugin Run identifier.
- */
 export function CordisDynamicPluginRunId(id) {
   return id
 }
 
-/**
- * Brand a Host-minted approval request ID.
- * @param id - opaque identifier minted by the Host registry.
- * @returns the branded approval request identifier.
- */
 export function ApprovalRequestId(id) {
   return id
 }
 
-/** Dynamic Plugin registry and Host-half lifecycle. */
 export class DynamicCordisRunnerService extends TypertRemoteService {
   static inject = ['tools']
 
@@ -67,7 +40,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
   resolved
   group
 
-  /** Create the service under the Host composition. */
   constructor(ctx, config) {
     super(ctx, 'dynamicCordisRunner')
     this.rootCtx = ctx
@@ -75,11 +47,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     this.inspectRegistry = new CordisInspectRegistryService(ctx)
   }
 
-  /**
-   * Define a new Plugin's first Package or append a Package to an existing Plugin.
-   * @param request - Session ownership, Plugin selection, metadata, and source code.
-   * @returns Host-minted Plugin and Package identities with declared-half metadata.
-   */
   define(request) {
     const name = request.name.trim()
     const purpose = request.purpose.trim()
@@ -133,12 +100,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     }
   }
 
-  /**
-   * Remove a Plugin, its active run, and all immutable Packages.
-   * @param agent - Agent whose Session must own the Plugin.
-   * @param pluginId - Stable Plugin identity to remove.
-   * @returns Whether removal succeeded and whether it stopped an active run.
-   */
   async undefine(agent, pluginId) {
     const plugin = this.owned(agent, pluginId)
     if (plugin === undefined) return { ok: false, reason: 'plugin-missing', message: missingPluginMessage(pluginId) }
@@ -149,12 +110,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     return { ok: true, wasRunning }
   }
 
-  /**
-   * Remove a Plugin from the user panel and queue the resulting state change for the model's next step.
-   * @param agent - Agent whose Session owns the Plugin and receives the context.
-   * @param pluginId - Stable Plugin identity to remove.
-   * @returns Whether removal succeeded and whether it stopped an active run.
-   */
   async undefineFromPanel(agent, pluginId) {
     const result = await this.undefine(agent, pluginId)
     if (result.ok) {
@@ -166,16 +121,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     return result
   }
 
-  /**
-   * Start or update one Package for a model tool call. An unauthorized Client
-   * Package waits for approval; Plugin-wide authorization covers later versions.
-   * @param agent - Agent whose Session must own the Plugin.
-   * @param pluginId - Stable Plugin identity to activate.
-   * @param packageId - Immutable Package version to activate.
-   * @param mode - Whether to run the current version or switch versions.
-   * @param signal - Tool-call cancellation signal while the activation request is being created.
-   * @returns The successful activation identity or an actionable refusal.
-   */
   async run(agent, pluginId, packageId, mode, signal) {
     const plan = this.resolvePlan(agent, pluginId, packageId, mode)
     if (!plan.ok) return plan.response
@@ -236,16 +181,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     }
   }
 
-  /**
-   * Start Host code for an approved request or a direct panel gesture.
-   * @param agent - Agent whose Session must own the Plugin.
-   * @param pluginId - Stable Plugin identity to activate.
-   * @param packageId - Immutable Package version to activate.
-   * @param mode - Whether to run the current version or switch versions.
-   * @param requestId - Model-driven request identity, or null for a direct user gesture.
-   * @param approveFutureVersions - Whether this approval covers later Packages of the same Plugin.
-   * @returns The exact Host activation or a failure message.
-   */
   async runHostHalf(agent, pluginId, packageId, mode, requestId, approveFutureVersions) {
     const plan = this.resolvePlan(agent, pluginId, packageId, mode, requestId === null)
     if (!plan.ok) return { ok: false, message: plan.response.message }
@@ -290,13 +225,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     return started
   }
 
-  /**
-   * Fetch Client code for the exact active run.
-   * @param agent - Agent whose Session must own the Plugin.
-   * @param pluginId - Stable Plugin identity to read.
-   * @param pluginRunId - Exact active run authorized to receive source.
-   * @returns Client source and its Plugin, Package, and run identities.
-   */
   getClientCode(agent, pluginId, pluginRunId) {
     const plugin = this.owned(agent, pluginId)
     if (plugin === undefined) throw new Error(missingPluginMessage(pluginId))
@@ -315,12 +243,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     }
   }
 
-  /**
-   * Resolve one model-driven Client activation request.
-   * @param requestId - Request identity to settle once.
-   * @param resolution - Browser refusal or exact Client activation result.
-   * @returns Whether the still-pending request accepted this resolution.
-   */
   async resolveRequestRun(requestId, resolution) {
     const pending = this.registry.peekRequest(requestId)
     if (pending === undefined) return { accepted: false }
@@ -335,13 +257,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     return { accepted: true }
   }
 
-  /**
-   * Settle a direct panel run after this page loaded or failed its Client half.
-   * @param agent - Agent whose Session must own the Plugin.
-   * @param pluginId - Stable Plugin identity being settled.
-   * @param resolution - Exact Client activation result from the acting page.
-   * @returns The committed activation or its failure.
-   */
   async settleUserRun(agent, pluginId, resolution) {
     const plugin = this.owned(agent, pluginId)
     if (plugin === undefined) return { ok: false, reason: 'plugin-missing', message: missingPluginMessage(pluginId) }
@@ -350,12 +265,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     return settled
   }
 
-  /**
-   * Stop the active run while retaining every Package version.
-   * @param agent - Agent whose Session must own the Plugin.
-   * @param pluginId - Stable Plugin identity to stop.
-   * @returns Success or the reason no run was stopped.
-   */
   async stop(agent, pluginId) {
     const plugin = this.owned(agent, pluginId)
     if (plugin === undefined) return { ok: false, reason: 'plugin-missing', message: missingPluginMessage(pluginId) }
@@ -373,12 +282,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     return { ok: true }
   }
 
-  /**
-   * Stop a Plugin from the user panel and queue the resulting state change for the model's next step.
-   * @param agent - Agent whose Session owns the Plugin and receives the context.
-   * @param pluginId - Stable Plugin identity to stop.
-   * @returns Success or the reason no run was stopped.
-   */
   async stopFromPanel(agent, pluginId) {
     const result = await this.stop(agent, pluginId)
     if (!result.ok) return result
@@ -391,31 +294,15 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     return result
   }
 
-  /**
-   * Replace the Host mirror of the Client inspect provider directory.
-   * @param providers - complete Client provider manifest.
-   * @returns null after accepting the manifest.
-   */
   syncInspectManifest(providers) {
     this.inspectRegistry.syncClientManifest(providers)
     return null
   }
 
-  /**
-   * Claim one pending Client inspect query with its live result.
-   * @param agent - Session that owns the query.
-   * @param requestId - exact pending query identity.
-   * @param resolution - provider result or structured refusal.
-   * @returns whether this answer won the query.
-   */
   resolveInspectQuery(agent, requestId, resolution) {
     return this.inspectRegistry.resolveClientQuery(agent, requestId, resolution)
   }
 
-  /**
-   * Frame-wide inventory, grouped as one row per stable Plugin.
-   * @returns Source-free metadata for every process-local Plugin.
-   */
   /* jscpd:ignore-start */
   inventory() {
     return this.registry.all().map(plugin => ({
@@ -438,11 +325,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
   }
   /* jscpd:ignore-end */
 
-  /**
-   * Read one Session's Host-rich state for inspection and result rendering.
-   * @param agent - Agent whose Session selects visible Plugins.
-   * @returns Plugin versions, active runs, Host fibers, and render failures.
-   */
   snapshot(agent) {
     return this.registry.ofSession(agent.id).map(plugin => ({
       pluginId: plugin.pluginId,
@@ -468,12 +350,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     }))
   }
 
-  /**
-   * Read source-free context for an explicit `@pluginId` user gesture.
-   * @param agent - Agent whose Session must own the Plugin.
-   * @param pluginId - Stable Plugin identity referenced by the user.
-   * @returns The preferred modification base, or undefined when unavailable.
-   */
   reference(agent, pluginId) {
     const plugin = this.owned(agent, pluginId)
     if (plugin === undefined) return undefined
@@ -497,21 +373,10 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     }
   }
 
-  /**
-   * List source-free Plugin summaries owned by one Session.
-   * @param agent - Agent whose Session selects visible Plugins.
-   * @returns one summary per Plugin in creation order.
-   */
   listPlugins(agent) {
     return this.registry.ofSession(agent.id).map(plugin => this.inspectPlugin(agent, plugin.pluginId))
   }
 
-  /**
-   * Inspect one Plugin without returning Package source.
-   * @param agent - Agent whose Session must own the Plugin.
-   * @param pluginId - stable Plugin identity.
-   * @returns version pointers, latest run, and all Package summaries.
-   */
   inspectPlugin(agent, pluginId) {
     const plugin = this.owned(agent, pluginId)
     if (plugin === undefined) throw new Error(missingPluginMessage(pluginId))
@@ -529,13 +394,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     }
   }
 
-  /**
-   * Read one exact immutable Package and its Host and Client source.
-   * @param agent - Agent whose Session must own the Plugin.
-   * @param pluginId - Stable Plugin identity that owns the Package.
-   * @param packageId - Exact immutable Package identity to inspect.
-   * @returns Package metadata, source, and the Plugin's lifecycle pointers.
-   */
   inspectPackage(agent, pluginId, packageId) {
     const plugin = this.owned(agent, pluginId)
     if (plugin === undefined) throw new Error(missingPluginMessage(pluginId))
@@ -563,14 +421,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     }
   }
 
-  /**
-   * Record a post-load render failure for the exact active run.
-   * @param agent - Agent whose Session must own the Plugin.
-   * @param pluginId - Stable Plugin identity that rendered.
-   * @param pluginRunId - Exact active run that produced the failure.
-   * @param failure - Slot, message, and entry-retirement result.
-   * @returns Null after recording or ignoring a stale report.
-   */
   async reportRenderFailure(agent, pluginId, pluginRunId, failure) {
     const plugin = this.owned(agent, pluginId)
     if (plugin?.run?.pluginRunId === pluginRunId) {
@@ -591,14 +441,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     return await Promise.resolve(null)
   }
 
-  /**
-   * Report a Client guard rejection that happened after the Package completed activation.
-   * @param agent - Agent whose Session must own the Plugin.
-   * @param pluginId - Stable Plugin identity whose Client code was rejected.
-   * @param pluginRunId - Exact active run that produced the rejection.
-   * @param failure - Original guard message and stack.
-   * @returns Null after reporting or ignoring a stale/startup failure.
-   */
   async reportClientGuardFailure(agent, pluginId, pluginRunId, failure) {
     const plugin = this.owned(agent, pluginId)
     const run = plugin?.run
@@ -608,14 +450,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     return await Promise.resolve(null)
   }
 
-  /**
-   * Invoke an active Host method while rejecting stale Client runs.
-   * @param pluginId - Stable Plugin identity that owns the method.
-   * @param pluginRunId - Exact active run authorizing the call.
-   * @param method - Registered Host handler name.
-   * @param args - JSON argument delivered to the handler.
-   * @returns The JSON result or a typed invocation failure.
-   */
   async invoke(pluginId, pluginRunId, method, args) {
     const plugin = this.registry.get(pluginId)
     if (plugin === undefined || plugin.run === undefined) {

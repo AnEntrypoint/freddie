@@ -1,4 +1,3 @@
-/** Hand-owned Typert Remote-client manifest for this package's Host RPC surface. */
 import { z } from 'zod'
 
 const JsonValueRemoteCodec$schema = z.union([z.literal(null), z.string(), z.number(), z.literal(false), z.literal(true), z.array(z.lazy(() => JsonValueRemoteCodec$schema)), z.record(z.string(), z.lazy(() => JsonValueRemoteCodec$schema))])

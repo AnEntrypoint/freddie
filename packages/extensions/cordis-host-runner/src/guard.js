@@ -1,18 +1,3 @@
-/**
- * The registration boundary between a sandboxed host half and the real runtime: ParameterSchemaSpec
- * normalization + validation with teaching errors, the marker-guarded `harness.defineTool` /
- * `harness.registerTool` pair, the `harness.handle` invoke-handler normalizer, the SANDBOX CONTEXT
- * FAÇADE a running plugin's `apply` receives in place of the real `ctx`, and the plugin-shape
- * helpers the run lifecycle narrows sandbox return values with. The façade is a whitelist of
- * lifecycle-safe verbs and declared services; framework internals and context-valued service
- * returns are denied.
- *
- * VM-realm schemas and canonical values are rebuilt as host objects, while rendered content and
- * presentation metadata are shape-checked before entering the registry. Common JSON-Schema spellings are normalized when they
- * have one meaning; invalid vocabulary fails during registration with a teaching error.
- * @module @freddie/freddie-cordis-host-runner/guard
- */
-
 import { Context } from '@freddie/cordis'
 import { scopeOf } from '@freddie/freddie-scope'
 import { assertSupportedJsonSchema, defineTool } from '@freddie/freddie-tools'
@@ -32,7 +17,6 @@ function isPlainRecord(value) {
 }
 
 /* jscpd:ignore-start -- this VM boundary mirrors the session-owned realm-safe intrinsic test */
-/** Whether a realm-owned intrinsic prototype is backed by its native constructor. */
 function hasIntrinsicConstructor(prototype, name) {
   const descriptor = Object.getOwnPropertyDescriptor(prototype, 'constructor')
   const constructor = descriptor?.value
@@ -46,7 +30,6 @@ function hasIntrinsicConstructor(prototype, name) {
   }
 }
 
-/** Whether an array uses one realm's intrinsic Array prototype rather than a subclass. */
 function hasPlainArrayPrototype(value) {
   const prototype = Object.getPrototypeOf(value)
   if (!Array.isArray(prototype) || !hasIntrinsicConstructor(prototype, 'Array')) return false
@@ -58,7 +41,6 @@ function hasPlainArrayPrototype(value) {
 }
 /* jscpd:ignore-end */
 
-/** Whether a schema list is a dense intrinsic array with no JSON-invisible decorations. */
 function isDensePlainArray(value) {
   if (!Array.isArray(value) || !hasPlainArrayPrototype(value) || Reflect.ownKeys(value).length !== value.length + 1) {
     return false
@@ -69,14 +51,12 @@ function isDensePlainArray(value) {
   return true
 }
 
-/** Reject schema records whose declarations would disappear from object enumeration. */
 function assertSchemaContainerKeys(value, path) {
   if (Reflect.ownKeys(value).some(key => typeof key !== 'string' || !Object.prototype.propertyIsEnumerable.call(value, key))) {
     throw new Error(`harness.defineTool ${path} must contain only own enumerable string keys`)
   }
 }
 
-/** Materialize realm-foreign lossless JSON without allowing JSON.stringify coercions; `path` carries the caller's own error prefix. */
 function cloneJson(value, path) {
   const ancestors = new Set()
   let root
@@ -167,7 +147,6 @@ function cloneJson(value, path) {
   return root
 }
 
-/** Copy and realm-materialize the shared annotation vocabulary. */
 function copyAnnotations(value, output, path) {
   if (Object.hasOwn(value, 'description')) output.description = value.description
   if (Object.hasOwn(value, 'title')) output.title = value.title
@@ -175,7 +154,6 @@ function copyAnnotations(value, output, path) {
   if (Object.hasOwn(value, 'examples')) output.examples = cloneJson(value.examples, `harness.defineTool ${path}.examples`)
 }
 
-/** Reject sandbox schema keys that the unified DSL would otherwise ignore. */
 function assertSchemaKeys(value, path, allowed) {
   assertSchemaContainerKeys(value, path)
   for (const key of Object.keys(value)) {
@@ -183,11 +161,6 @@ function assertSchemaKeys(value, path, allowed) {
   }
 }
 
-/**
- * Normalize a sandbox-provided `parameters` value into a fresh host-realm
- * ParameterSchemaSpec. A raw JSON-Schema object wrapper retains its open root
- * default, while the direct DSL is already an implicit open property map.
- */
 function normalizeParameterSchemaSpec(value, path = 'parameters') {
   if (!isPlainRecord(value)) {
     throw new Error(`harness.defineTool ${path} must be a ParameterSchemaSpec object`)
@@ -214,7 +187,6 @@ function normalizeParameterSchemaSpec(value, path = 'parameters') {
   return { spec: normalizePropertyMap(value, path, new Set(), false) }
 }
 
-/** Validate raw required names and return their lookup set. */
 function normalizeRequiredNames(value, properties, path) {
   if (value === undefined) return new Set()
   if (!isDensePlainArray(value)) {
@@ -232,7 +204,6 @@ function normalizeRequiredNames(value, properties, path) {
   return names
 }
 
-/** Install one normalized node without `__proto__` assignment semantics. */
 function assignNormalizedValue(destination, value) {
   if (destination.kind === 'property') {
     Object.defineProperty(destination.target, destination.key, {
@@ -248,13 +219,11 @@ function assignNormalizedValue(destination, value) {
   }
 }
 
-/** Install one normalized property map at its root or containing object. */
 function assignNormalizedMap(destination, value) {
   if (destination.kind === 'root') destination.holder.value = value
   else destination.target.properties = value
 }
 
-/** Normalize one implicit property map and all descendants with explicit work frames. */
 function normalizePropertyMap(entries, path, requiredNames, raw) {
   const holder = {}
   const ancestors = new Set()
@@ -431,35 +400,17 @@ function assertDynamicTool(tool) {
   }
 }
 
-/**
- * Structurally a content block, checked AFTER the JSON round-trip: a plain
- * object carrying a string `type` tag. Deliberately nothing deeper — the
- * ContentBlock union is merge-extensible (an unknown tag must pass), and every
- * downstream consumer dispatches on `type` and falls through unknowns.
- */
 function isContentBlockShape(value) {
   return isPlainRecord(value) && typeof value.type === 'string'
 }
 
-/**
- * How much of an invalid execute return the teaching error echoes back — a
- * huge blob would burn the model turn the error is trying to save.
- */
 const RETURN_PREVIEW_LIMIT = 120
 
-/**
- * Compact JSON preview of an invalid execute return for the teaching error
- * (`String(…)` for the un-stringifiable undefined case), truncated to
- * {@link RETURN_PREVIEW_LIMIT}.
- */
 function describeReturn(value) {
   const json = JSON.stringify(value)
   return json.length > RETURN_PREVIEW_LIMIT ? `${json.slice(0, RETURN_PREVIEW_LIMIT)}…` : json
 }
 
-/**
- * Validate and host-materialize a sandbox renderer's content blocks.
- */
 function assertRenderedContent(value) {
   if (Array.isArray(value) && value.every(isContentBlockShape)) {
     return value
@@ -470,15 +421,6 @@ function assertRenderedContent(value) {
   )
 }
 
-/**
- * The `harness.defineTool` handed into the sandbox: the real DSL, with `parameters` normalized
- * into a fresh host-realm ParameterSchemaSpec (raw object wrappers unwrapped,
- * required arrays mapped, and explicit DSL object openness enforced) and the tool's `execute` return normalized into the host realm
- * via a JSON round-trip. Non-JSON or wrong-shape output fails that call instead of poisoning
- * the session log.
- * @param options - the standard `defineTool` options; `parameters` may be the ParameterSchemaSpec DSL or a JSON-Schema-style wrapper.
- * @returns the marker-tagged definition `harness.registerTool` (and the guarded `ctx.tools.register`) accepts.
- */
 export function sandboxDefineTool(options) {
   if (!isPlainRecord(options)) throw new Error('harness.defineTool options must be an object')
   const normalized = normalizeParameterSchemaSpec(options.parameters)
@@ -522,16 +464,6 @@ export function sandboxDefineTool(options) {
   })
 }
 
-/**
- * Normalize one `harness.handle` registration at the sandbox boundary: the
- * method name must be a non-empty string and the handler a function whose
- * result is host-materialized through the same cross-realm JSON clone as tool
- * `execute` returns (a VM-realm object would otherwise escape the wire's
- * plain-object contract).
- * @param method - handler name the package's browser half calls through `host.call`.
- * @param fn - sandbox handler receiving the wire-decoded JSON arguments.
- * @returns the validated name and the clone-wrapped handler.
- */
 export function normalizeHandler(method, fn) {
   if (typeof method !== 'string' || method.length === 0) {
     throw new Error('harness.handle(method, fn) needs a non-empty string method name')
@@ -547,35 +479,14 @@ export function normalizeHandler(method, fn) {
   }
 }
 
-/**
- * The `harness.registerTool` handed into the sandbox: registers a
- * marker-verified dynamic tool on the given context's registry.
- * @param ctx - the (guarded) context whose `tools` service receives the tool.
- * @param tool - a definition produced by {@link sandboxDefineTool}; anything else is rejected.
- * @returns the registry disposer for the registration.
- */
 export function sandboxRegisterTool(ctx, tool) {
   assertDynamicTool(tool)
   return ctx.tools.register(tool)
 }
 
-/**
- * The verbs a running host half may reach through the sandbox `ctx` façade, beyond its injected
- * services. `on`/`once` observe events, `provide` exposes a service to other packages, and the
- * timer helpers schedule work — each a fiber effect that unwinds when the package stops.
- */
 const CTX_VERBS = new Set(['effect', 'on', 'once', 'provide', 'timeout', 'interval', 'setTimeout', 'setInterval', 'throttle', 'debounce'])
 const TIMER_VERBS = new Set(['timeout', 'interval', 'setTimeout', 'setInterval', 'throttle', 'debounce'])
 
-/**
- * The tool-registry façade: `register` (marker-guarded) plus READ-ONLY
- * metadata (`schemas`, and `get` returning a schema view, never the live
- * `ToolDefinition`). Exposing the raw definition would hand package code the
- * tool's `execute` function, letting it call another tool directly and bypass
- * `ToolRuntime.execute` — identity protection, pre-policy, monotonic guards,
- * around dispatch, post-policy, final observation, and result normalization. So `get` returns the same
- * name/description/parameters view as `schemas()`, and nothing invocable.
- */
 function sandboxTools(ctx) {
   return {
     register: tool => sandboxRegisterTool(ctx, tool),
@@ -584,12 +495,6 @@ function sandboxTools(ctx) {
   }
 }
 
-/**
- * Reject any injected-service return that is a cordis `Context`. Harness
- * services return data, never a context; a value that is one would be a
- * fresh, unguarded handle back into the runtime — the exact escape the façade
- * exists to close — so it fails loud instead of reaching sandbox code.
- */
 /* jscpd:ignore-start */
 function denyContext(value, service, reportFailure) {
   if (value instanceof Context) {
@@ -602,11 +507,6 @@ function denyContext(value, service, reportFailure) {
   return value
 }
 
-/**
- * Wrap an injected service so its methods forward to the real instance but
- * their return values pass through {@link denyContext}. Non-function members
- * (plain data) pass through as-is; a returned Promise is guarded on resolve.
- */
 function guardedService(service, name, reportFailure) {
   return new Proxy(service, {
     get(target, prop) {
@@ -622,24 +522,10 @@ function guardedService(service, name, reportFailure) {
 }
 /* jscpd:ignore-end */
 
-/**
- * The service names a plugin declared in `inject`, as a lookup set. Whatever
- * declaration style the plugin used — an `inject: ['bash', 'tools']` array or
- * the `{ required, optional }` object form — cordis resolves it into a single
- * name-keyed map on the fiber before `apply` runs (`{ bash: null, tools: null }`),
- * so the gate just reads that map's keys. A host half may reach only the services
- * it declared — that is what lets cordis park it when a declared provider
- * goes away.
- */
 function declaredInjects(ctx) {
   return new Set(Object.keys(ctx.fiber.inject))
 }
 
-/**
- * Whitelist context for running host halves: lifecycle-safe verbs, guarded
- * tools, optional `ctx.get()` lookup, and declared-service property access.
- * Framework plumbing is denied, and service methods cannot return a Context.
- */
 function sandboxContext(ctx, reportFailure) {
   const tools = sandboxTools(ctx)
   const declared = declaredInjects(ctx)
@@ -689,25 +575,12 @@ function sandboxContext(ctx, reportFailure) {
   /* jscpd:ignore-end */
 }
 
-/**
- * Narrow an arbitrary sandbox return value to a runnable cordis plugin: a
- * function, or an object with an `apply` function. (A bare function passes the
- * first arm, so the object arm never sees `Function.prototype.apply`.)
- * @param value - whatever the host half returned.
- * @returns whether the value can be started via `ctx.plugin`.
- */
 export function isPlugin(value) {
   if (typeof value === 'function') return true
   return typeof value === 'object' && value !== null
     && typeof value.apply === 'function'
 }
 
-/**
- * Wrap a plugin so `apply` receives the sandbox context while preserving injection metadata.
- * @param plugin - the plugin the host half returned.
- * @param reportFailure - reports a guard rejection to the owning Agent.
- * @returns an equivalent plugin whose `apply` sees the sandbox context façade.
- */
 export function guardedPlugin(plugin, reportFailure) {
   if (typeof plugin === 'function') {
     const functionPlugin = plugin
@@ -733,11 +606,6 @@ function rejectGuard(reportFailure, message) {
   throw error
 }
 
-/**
- * Display name for a running plugin: its `name` property, else anonymous.
- * @param plugin - the plugin the host half returned.
- * @returns the human-readable name used in run results and inspect output.
- */
 export function pluginName(plugin) {
   const named = plugin.name
   if (typeof named === 'string' && named.length > 0) return named

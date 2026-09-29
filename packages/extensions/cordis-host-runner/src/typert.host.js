@@ -1,4 +1,3 @@
-/** Hand-owned Typert host manifest (Remote RPC schema + reflection metadata). */
 import { z } from 'zod'
 
 const JsonValueRemoteCodec$schema = z.union([z.literal(null), z.string(), z.number(), z.literal(false), z.literal(true), z.array(z.lazy(() => JsonValueRemoteCodec$schema)), z.record(z.string(), z.lazy(() => JsonValueRemoteCodec$schema))])
