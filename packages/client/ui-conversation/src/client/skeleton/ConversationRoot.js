@@ -29,8 +29,6 @@ export class FreddieConversationRoot extends HTMLElement {
     this.#seatObserver = null
   }
 
-  /** Clear the pending pick once the session lands in it, or when the picked
-   * workspace disappears from a ready list (deleted from the sidebar). */
   #syncPendingWorkspace() {
     if (this.#props === null || this.#pendingWorkspaceId === undefined) return
     const { sessionId, useWorkspaces } = this.#props
@@ -47,9 +45,6 @@ export class FreddieConversationRoot extends HTMLElement {
     }
   }
 
-  /** Bind (or rebind) the composer-seat height observer once the seat element
-   * is in the DOM. Mirrors the former callback-ref: disconnect-then-observe
-   * on identity change, no-op when the element is unchanged. */
   #bindSeatObserver() {
     const seat = this.querySelector('[data-composer-seat]')
     if (seat === this.#seatEl) return
@@ -196,7 +191,6 @@ export class FreddieConversationRoot extends HTMLElement {
 
 defineElement('freddie-conversation-root', FreddieConversationRoot)
 
-/** One-shot creation/update helper preserving the original function-component call shape. */
 export function ConversationRoot(props) {
   const el = document.createElement('freddie-conversation-root')
   el.setProps(props)

@@ -3,19 +3,11 @@ import { IconChecklistOutline14, IconChevronDownOutline14, IconChevronUpOutline1
 import { NS } from '../locales.js'
 import css from './TodoPanel.css.js'
 
-/**
- * Local exhaustiveness helper — client packages do not depend on `freddie-llm`,
- * so the closed `TodoItem` status union is re-declared narrowly here instead
- * of imported.
- * @param {never} value - a status value the switch above left unhandled.
- * @returns {never}
- */
 /* v8 ignore next 3 -- closed-union backstop; only reached if status is forged */
 function assertNever(value) {
   throw new Error(`unreachable todo status: ${String(value)}`)
 }
 
-/** Status glyphs share the figma 14×14 artboard; the 16×16 `.glyph` cell centers them. */
 function CompletedGlyph() {
   return h(
     'svg',
@@ -30,7 +22,6 @@ function CompletedGlyph() {
 
 let gradientSeq = 0
 
-/** In-progress: business-blue ring fading out; CSS spins the svg. */
 function ProgressGlyph() {
   gradientSeq += 1
   const gradientId = `todo-progress-${String(gradientSeq)}`
@@ -47,7 +38,6 @@ function ProgressGlyph() {
   )
 }
 
-/** Pending: dashed unstarted ring (figma dash 2.4 2.4). */
 function PendingGlyph() {
   return h(
     'svg',
@@ -68,7 +58,6 @@ function StatusGlyph({ status }) {
 
 const EN_SPACED_SEPARATOR = '\u2002·\u2002'
 
-/** Header summary: "·"-joined per-status counts; zero-count segments are omitted as noise (a non-empty list keeps at least one). */
 function progressLabel(todos, t) {
   const done = todos.filter(item => item.status === 'completed').length
   const active = todos.filter(item => item.status === 'in_progress').length
@@ -80,12 +69,6 @@ function progressLabel(todos, t) {
   ].join(EN_SPACED_SEPARATOR)
 }
 
-/**
- * Plan strip custom element: collapsed/expanded is the only local state.
- * Converted from a React hooks component (useState) to a webjsx custom
- * element with a private field and an explicit #render() (Toast.tsx's
- * pattern).
- */
 export class FreddieTodoPanel extends HTMLElement {
   #props = { todos: [], t: (key) => key }
   #collapsed = true
@@ -142,30 +125,20 @@ export class FreddieTodoPanel extends HTMLElement {
 
 defineElement('freddie-todo-panel', FreddieTodoPanel)
 
-/** One-shot creation/update helper preserving the original function-component call shape. */
 export function TodoPanel(props) {
   const el = document.createElement('freddie-todo-panel')
   el.setProps(props)
   return el
 }
 
-/** Dock adapter: reads the host-computed 'todos' projection (whole list; absent or null renders nothing). */
 export function TodoDock({ useProjection, t }) {
   const todos = useProjection('todos')
   return TodoPanel({ todos: todos ?? [], t })
 }
 
-/**
- * The plan strip as a plain registrant plugin (QueueDock posture), following
- * the input-dock declaration across independent activation and reload.
- */
 export const todoDockEntry = {
   name: 'conversation-todo-dock',
   inject: ['slots'],
-  /**
-   * Register the plan strip before the goal and queue entries (order 0).
-   * @param ctx - registrant context (disposal rides ctx.effect inside slots.register).
-   */
   apply(ctx) {
     ctx.slots.inject('conversation.input.dock', () =>
       ctx.slots.register({ name: 'conversation.input.dock', id: 'todo', order: 0, locale: NS }, TodoDock))

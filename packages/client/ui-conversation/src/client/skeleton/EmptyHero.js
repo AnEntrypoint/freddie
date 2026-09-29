@@ -5,28 +5,11 @@ import {
 import { workspaceTitleOf } from '@freddie/freddie-client-runtime/client'
 import css from './HeroShell.css.js'
 
-/**
- * Basename label for the workspace chip (the shared derivation);
- * separator-only paths echo the raw cwd.
- * @param cwd - workspace directory path (non-empty).
- * @returns chip label.
- */
 export function workspaceLabel(cwd) {
   const base = workspaceTitleOf(cwd)
   return base !== '' ? base : cwd
 }
 
-/**
- * The workspace chip (folder + label + chevron), always interactive: before
- * the first message the workspace stays switchable — picking another one
- * moves the New Session flow to that workspace's blank session. Without a
- * label the chip renders its placeholder state: closed folder + the
- * "Choose workspace" call to action.
- * @param props.label - chip label (see {@link workspaceLabel}); omitted → placeholder.
- * @param props.menuOpen - menu expansion echo.
- * @param props.onClick - menu toggle.
- * @returns the chip button element.
- */
 export function WorkspaceChip({ buttonRef, label, menuOpen = false, onClick, t }) {
   return (
     h('button',
@@ -49,19 +32,6 @@ export function WorkspaceChip({ buttonRef, label, menuOpen = false, onClick, t }
 }
 
 
-/**
- * Hero chrome props. The workspace row rides the InputBar accessory hole, not here.
- * @typedef {object} HeroShellProps
- * @property {*} children - accessory content rendered after the hero chrome (e.g. the composer takeover).
- */
-
-/**
- * Render the hero chrome (no headline/logo/preview badge -- freddie is
- * already named in the sidebar; no glow, no composer, no workspace row —
- * the glow belongs to the hero's owner, not this component).
- * @param props - see {@link HeroShellProps}.
- * @returns the centered hero element tree.
- */
 export function HeroShell({ children }) {
   return (
     h('div', { class: css.root ?? '' },

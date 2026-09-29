@@ -48,7 +48,6 @@ function shieldGlyph(kind) {
   )
 }
 
-/** Glyph for a permission option value; host-configured names outside the design set get none. */
 function permissionGlyph(value) {
   if (value === 'read-only') return shieldGlyph('read-only')
   if (value === 'workspace-write') return shieldGlyph('workspace-write')
@@ -56,13 +55,6 @@ function permissionGlyph(value) {
   return undefined
 }
 
-/**
- * Display transform: kebab-case machine names render as title-case labels
- * (`workspace-write` → `Workspace Write`); non-kebab host-configured names
- * pass through. Full access intentionally overrides the machine-name
- * transform so both permission surfaces use the product label `Full access`;
- * the warning body remains locale-aware.
- */
 function displayName(name) {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(name)) return name
   return name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
@@ -209,37 +201,12 @@ export class FreddiePermissionSelect extends HTMLElement {
 
 defineElement('freddie-permission-select', FreddiePermissionSelect)
 
-/**
- * @typedef {object} PermissionSelectProps
- * @property {{currentValue: string, options: Array<{value: string, name: string, description?: string}>}} [value] - the access-mode field state; omitted renders nothing.
- * @property {boolean} locked - whether the control is locked (busy applying, or owner-disabled).
- * @property {(command: string) => Promise<*>} command - dispatches a slash command (e.g. `/permission <id>`).
- * @property {(key: string, vars?: object) => string} t - localization function.
- */
-
-/**
- * Update (or create) the underlying `freddie-permission-select` in place.
- * @param el - an existing element (from a prior call) to update, or null to create one.
- * @param props - see {@link PermissionSelectProps}.
- * @returns the `freddie-permission-select` element; hold it and pass it back in on the next render.
- */
 export function renderPermissionSelect(el, props) {
   const target = el ?? document.createElement('freddie-permission-select')
   target.setProps(props)
   return target
 }
 
-/**
- * One-shot creation/update helper preserving the original function-component
- * call shape for a caller that has not yet been converted to hold the
- * element itself. Prefer `renderPermissionSelect(el, props)` in any owner
- * that re-renders more than once (holds the element across renders instead
- * of recreating it every call — recreating it orphans its own internally
- * held `#menu`/`#confirmModal` `freddie-menu`/`freddie-modal` elements onto
- * `document.body` on every owner re-render, since the replaced
- * `freddie-permission-select` node is torn down but never signals those
- * self-mounted children to remove themselves).
- */
 export function PermissionSelect(props) {
   return renderPermissionSelect(null, props)
 }

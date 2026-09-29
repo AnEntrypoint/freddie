@@ -13,12 +13,10 @@ function cachedArgsBlock(callId, props) {
   return el
 }
 
-/** Material of a settled result node (native call or run_code sub-dispatch). */
 function settledMaterial(node, callId) {
   return { name: node.call?.name ?? callId, argsRaw: node.call?.argsRaw ?? null, block: node }
 }
 
-/** Material of an in-flight call (native call or run_code sub-dispatch). */
 function runningMaterial(call) {
   return { name: call.name, argsRaw: call.argsRaw, block: call }
 }
@@ -37,7 +35,6 @@ function pretty(raw) {
   }
 }
 
-/** Flatten a settled result for the no-ui-tool fallback. */
 function rawResultText(block) {
   if (!('kind' in block)) return ''
   const parts = block.content.map(item => item.type === 'text' ? item.text : JSON.stringify(item, null, 2))

@@ -1,32 +1,13 @@
-/** Composer context-occupancy meter: a ring beside the send button fed by the
- * `contextPressure` projection, with a click-open panel of the heuristic
- * `contextBreakdown` composition (system prompt, tools, conversation).
- * Renders nothing until a provider reports both pressure and a route
- * capacity.
- *
- * Converted from a React hooks component to a webjsx custom element:
- * open/rootRef become instance fields, the availability-close and
- * outside-click/Escape-close effects become connectedCallback/
- * disconnectedCallback plus explicit bind/unbind pairs, and re-render is an
- * explicit applyDiff(this, vdom) call (Toast.tsx's pattern). */
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { renderTooltip, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { contextOccupancy, formatTokens } from '../chat/StatsLine.js'
 import css from './ContextMeter.css.js'
 
-/** Ring geometry: 14px viewBox, 2px stroke. */
 const RADIUS = 5.5
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 
-/**
- * Marker the localized occupancy sentence is split on, so the panel headline
- * keeps the reading in its own tone while each locale still owns the word
- * order (`45% of context used`).
- */
 const READING_SLOT = ' '
 
-/** Panel legend rows, in bar-segment order; each color class carries the shared swatch/segment tint. */
 const ROWS = [
   { key: 'systemTokens', label: 'context.system', color: css.colorSystem },
   { key: 'toolsTokens', label: 'context.tools', color: css.colorTools },
@@ -196,7 +177,6 @@ export class FreddieContextMeter extends HTMLElement {
 
 defineElement('freddie-context-meter', FreddieContextMeter)
 
-/** One-shot creation/update helper preserving the original function-component call shape. */
 export function ContextMeter(props) {
   const el = document.createElement('freddie-context-meter')
   el.setProps(props)

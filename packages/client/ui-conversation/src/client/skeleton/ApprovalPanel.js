@@ -4,7 +4,6 @@ import { PendingApproval } from '../contract/slots.js'
 import { rootToolCall } from '../chat/tool-node-reader.js'
 import css from './ApprovalPanel.css.js'
 
-/** Extract the shell command from an approval's paired running call (bash-family args carry `command`); undefined hides the line. */
 export function commandOf(call) {
   if (call === undefined) return undefined
   try {
@@ -15,12 +14,6 @@ export function commandOf(call) {
   }
 }
 
-/**
- * Approval flow custom element: the one-shot answered latch keyed by the
- * approval's own `key`. Converted from a React hooks component to a webjsx
- * custom element — `answered` becomes an instance field, keyed remount
- * (React's `key`) becomes recreating the element when `pending.key` changes.
- */
 export class FreddieApprovalFlow extends HTMLElement {
   #pending = null
   #command
@@ -80,16 +73,8 @@ export class FreddieApprovalFlow extends HTMLElement {
 
 defineElement('freddie-approval-flow', FreddieApprovalFlow)
 
-/** Registry of the mounted flow element per approval key, so remount happens only when the key changes. */
 const approvalFlowByKey = new Map()
 
-/**
- * Composer takeover boundary: mints the domain face on the carrier's stable
- * identity and remounts the flow per request key, so the one-shot answered
- * latch never leaks to the next pending approval.
- * @param props - the selector-matched pending approval carrier plus the framework standard kit.
- * @returns The approval prompt for this request.
- */
 export function ApprovalPanel(props) {
   const approval = new PendingApproval(props.matched)
   const command = props.useSession((snapshot) => {

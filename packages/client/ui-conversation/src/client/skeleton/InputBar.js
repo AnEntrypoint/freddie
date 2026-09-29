@@ -1,17 +1,3 @@
-/** The default composer body: the 'conversation.composer.bar' slot entry.
- * Machine state arrives through the standard provide channel
- * (useInput + inputActions); the keyboard/DOM command face and stop arrive
- * through this entry's own inject, whose hooks compartment binds
- * useNotices/useLexicon; layout-phase inputs (variant, placeholder,
- * region-slot content) ride the owner props. Session facts
- * (running/removed/promptError) are self-selected via useSession.
- *
- * Converted from a React hooks component to a webjsx custom element: every
- * useRef becomes a private field, useState becomes a private field plus
- * #render(), and the layout/scroll/beforeinput effects become bind/unbind
- * methods driven from connectedCallback/disconnectedCallback (Toast.tsx's
- * pattern, ChatView.tsx's application of it). */
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
@@ -26,22 +12,9 @@ import { renderPermissionSelect } from './PermissionSelect.js'
 import { isSafariBrowser, repairSafariTextareaLayout } from './safari.js'
 import css from './InputBar.css.js'
 
-/** Decoration product of the no-session state (no machine, empty draft). */
 const INERT_DECORATIONS = { token: null, chips: [], textRefs: [], hint: null }
 const LEGACY_IME_COMPOSITION_KEYCODE = 229
 
-/**
- * Resolve one edit's range from the record taken before it applied.
- * A selection the edit replaces is the range outright. A caret delete replaces
- * nothing and reports the bare caret, so the removed span is whatever the draft
- * lost, on the side `inputType` names — measured, because one caret gesture can
- * remove a multi-unit grapheme, a word, or a line.
- * @param pending - record taken at `beforeinput`, null when none was seen.
- * @param prevLength - length of the draft the edit applied to.
- * @param nextLength - length of the resulting draft.
- * @returns the exact range, or undefined when the record cannot describe this
- * edit and the machine's diff scan has to recover it.
- */
 function editRangeOf(pending, prevLength, nextLength) {
   if (pending === null || pending.draftLength !== prevLength) return undefined
   const { start, end, inputType } = pending
@@ -59,14 +32,6 @@ function editRangeOf(pending, prevLength, nextLength) {
   return undefined
 }
 
-/**
- * The composer bar custom element: pure component over the composed props;
- * every previous hook-owned ref/state becomes a private field, and every
- * one-lifetime effect (unlock focus, wheel chaining, beforeinput capture,
- * Safari layout repair) becomes a bind/unbind pair driven from
- * connectedCallback/disconnectedCallback plus explicit sync calls inside
- * setProps (React's dependency-array reruns, done by hand).
- */
 export class FreddieInputBar extends HTMLElement {
   #props = null
 
@@ -226,8 +191,6 @@ export class FreddieInputBar extends HTMLElement {
     this.#boundBeforeInputEl = null
   }
 
-  /** Post-render effect pass: mirrors the original hooks' dependency arrays by
-   * hand, comparing each effect's inputs against the previous render. */
   #afterRender() {
     const props = this.#props
     if (props === null) return
@@ -908,9 +871,6 @@ export class FreddieInputBar extends HTMLElement {
 
 defineElement('freddie-input-bar', FreddieInputBar)
 
-/**
- * The default composer body: the 'conversation.composer.bar' slot entry.
- */
 export function InputBar(props) {
   const el = document.createElement('freddie-input-bar')
   el.setProps(props)

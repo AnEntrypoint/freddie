@@ -1,13 +1,3 @@
-/** Strict per-session header/body content inserted into the resident conversation layout.
- *
- * Converted from React hooks components to webjsx custom elements: the
- * `useSyncExternalStore(views.subscribe, ...)` subscription becomes an
- * explicit `views.subscribe` call in `connectedCallback` (unsubscribed in
- * `disconnectedCallback`, ReadBlock.tsx's grammar-subscription pattern), and
- * the mount-only draft-mirror / image-release effects become
- * connectedCallback/disconnectedCallback bodies.
- */
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import css from './ConversationRoot.css.js'
@@ -15,7 +5,6 @@ import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
 const DEFAULT_VIEW_ID = 'chat'
 
-/** Resolve by id and keep stale persisted selections on the stable Chat fallback. */
 function resolveActiveView(tabs, selectedId) {
   const requestedId = selectedId ?? DEFAULT_VIEW_ID
   return tabs.find(view => view.id === requestedId)
@@ -42,10 +31,6 @@ function deriveAncestry(list, id) {
   return chain
 }
 
-/**
- * Session header chrome custom element: subscribes to the view ledger for its
- * only reactive input beyond the standard session kit.
- */
 export class FreddieConversationSessionHeader extends HTMLElement {
   #props = null
   #unsubscribeViews = null
@@ -182,22 +167,12 @@ export class FreddieConversationSessionHeader extends HTMLElement {
 
 defineElement('freddie-conversation-session-header', FreddieConversationSessionHeader)
 
-/**
- * Renders Session header chrome above the resident conversation scrollport.
- * @param props - Strict Session store, view ledger, navigation, render, and locale shares.
- * @returns the hidden blank-session header or visible title and tabs.
- */
 export function ConversationSessionHeader(props) {
   const el = document.createElement('freddie-conversation-session-header')
   el.setProps(props)
   return el
 }
 
-/**
- * Strict session body custom element: subscribes to the view ledger, seeds
- * the draft mirror once per mount, and releases session images on unmount
- * (the two former mount-only effects).
- */
 export class FreddieConversationSession extends HTMLElement {
   #props = null
   #unsubscribeViews = null
@@ -230,8 +205,6 @@ export class FreddieConversationSession extends HTMLElement {
     if (this.#props !== null) this.#props.releaseSessionImages(this.#props.sessionId)
   }
 
-  /** Mount-only seed + mirror bind: rebinds only when `actions` identity changes
-   * (mirrors the original effect's `[inputActions]` dep pin). */
   #syncMirror() {
     if (this.#props === null) return
     if (this.#props.actions !== this.#mirrorBoundActions) {
@@ -273,12 +246,6 @@ export class FreddieConversationSession extends HTMLElement {
 
 defineElement('freddie-conversation-session', FreddieConversationSession)
 
-/**
- * Renders the active Session view inside the resident scrollport and keeps
- * the input draft mirrored while blank Hero chrome is visible.
- * @param props - Strict Session input/store, view ledger, and render shares.
- * @returns the active view area, or null while the Session remains blank.
- */
 export function ConversationSession(props) {
   const el = document.createElement('freddie-conversation-session')
   el.setProps(props)
