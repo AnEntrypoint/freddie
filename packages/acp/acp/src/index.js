@@ -1,13 +1,3 @@
-/**
- * Automation-only Agent Client Protocol server over JSON-RPC stdio.
- *
- * The bridge exposes fresh harness sessions to trusted programmatic clients. It
- * carries prompt text/images, committed assistant text/images, cancellation,
- * and one-shot permission decisions; presentation and human-interaction
- * features stay with the harness's UI modules.
- *
- * @module @freddie/freddie-acp
- */
 
 import { randomUUID } from 'node:crypto'
 import { isAbsolute } from 'node:path'
@@ -25,15 +15,12 @@ import { AcpContentError, admitAcpPrompt, assistantBlockToAcp, supportsAcpImageP
 import { turnEndToStopReason } from './codec.js'
 
 export const name = 'acp'
-/** The bridge creates and owns agents; every other concern is carried by the agent composition. */
 export const inject = ['agents']
 
-/** Preserve invalid-parameter detail in the SDK wire error message. */
 function invalidParams(detail) {
   return RequestError.invalidParams(undefined, detail)
 }
 
-/** Preserve failed-turn detail; plain handler errors become a generic wire internal error. */
 function internalError(detail) {
   return RequestError.internalError(undefined, detail)
 }
@@ -43,11 +30,6 @@ export const Config = Schema.object({
   model: Schema.string(),
 })
 
-/**
- * Mount the automation-only ACP server.
- * @param ctx - Cordis context carrying the agent factory and session events.
- * @param config - Initial provider/model selection and optional test transport.
- */
 export function apply(ctx, config) {
   const agents = ctx.agents
   const logger = ctx.logger
@@ -56,7 +38,6 @@ export function apply(ctx, config) {
   let conn
   let imagePromptEnabled = false
 
-  /** Return the bridge-owned record for an agent, rejecting same-id impostors. */
   const ownedRecord = (agent) => {
     const record = sessions.get(agent.session.id)
     return record?.agent === agent ? record : undefined
@@ -72,7 +53,6 @@ export function apply(ctx, config) {
     return record
   }
 
-  /** Send one ordered protocol update while containing transport-only failure. */
   const notify = async (notification) => {
     try {
       await conn.sessionUpdate(notification)
@@ -90,10 +70,6 @@ export function apply(ctx, config) {
     inflight.reject(internalError(`turn failed: ${reason.error.message}`))
   }
 
-  /**
-   * Settle one exact prompt only after admission, agent activity, and ordered
-   * assistant delivery have all reached quiescence.
-   */
   const settleAfterQuiescence = (
     record,
     inflight,
@@ -403,11 +379,6 @@ export function apply(ctx, config) {
   ctx.effect(() => quiesce, 'acp.connection')
 }
 
-/**
- * Build per-agent options from plugin config without assigning absent optional fields.
- * @param config - ACP provider/model configuration.
- * @returns the configured fields only.
- */
 function agentOptions(config) {
   return {
     ...config.provider !== undefined ? { provider: config.provider } : {},
@@ -415,7 +386,6 @@ function agentOptions(config) {
   }
 }
 
-/** Reject session features outside the automation contract. */
 function validateSessionParams(params) {
   if (!isAbsolute(params.cwd)) throw invalidParams(`cwd must be an absolute path: ${params.cwd}`)
   if (params.additionalDirectories !== undefined && params.additionalDirectories.length > 0) {

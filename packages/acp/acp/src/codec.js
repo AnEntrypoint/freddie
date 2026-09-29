@@ -1,13 +1,4 @@
-/**
- * Pure translation between the harness lifecycle and the automation-only ACP wire.
- * @module @freddie/freddie-acp/codec
- */
 
-/**
- * Map a harness turn ending to ACP's terminal reason vocabulary.
- * @param reason - harness turn outcome.
- * @returns the closest legal ACP stop reason.
- */
 export function turnEndToStopReason(reason) {
   switch (reason.kind) {
     case 'completed':

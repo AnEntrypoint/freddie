@@ -1,8 +1,6 @@
-/** ACP wire-content admission and projection owned by the ACP adapter. @module */
 
 import { isImageAdmissionError } from '@freddie/freddie-attachment'
 
-/** Raster formats shared by ACP image blocks and the core attachment vocabulary. */
 const IMAGE_MEDIA_TYPES = [
   'image/png',
   'image/jpeg',
@@ -10,16 +8,9 @@ const IMAGE_MEDIA_TYPES = [
   'image/gif',
 ]
 
-/** Canonical RFC 4648 base64, excluding whitespace and URL-safe aliases. */
 const CANONICAL_BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/
 
-/** Error with a stable ACP request-failure category and no raw binary payload. */
 export class AcpContentError extends Error {
-  /**
-   * @param message - safe protocol-facing detail without inline binary data.
-   * @param kind - request-failure category.
-   * @param options - optional causal chain for diagnostics.
-   */
   constructor(message, kind, options) {
     super(message, options)
     this.name = 'AcpContentError'
@@ -27,12 +18,10 @@ export class AcpContentError extends Error {
   }
 }
 
-/** Narrow a wire MIME string to the durable raster vocabulary. */
 function imageMediaType(value) {
   return IMAGE_MEDIA_TYPES.includes(value) ? value : undefined
 }
 
-/** Strictly decode one ACP inline image without accepting base64 aliases. */
 function decodeImage(block) {
   const mediaType = imageMediaType(block.mimeType)
   if (mediaType === undefined) {
@@ -48,7 +37,6 @@ function decodeImage(block) {
   return { data, mediaType }
 }
 
-/** Resolve the exact current route and require explicit image input support. */
 async function assertImageRoute(ctx, agent, signal) {
   const routed = agent.session.requestHeader()?.config
   const provider = routed?.provider ?? agent.options.provider
@@ -68,14 +56,6 @@ async function assertImageRoute(ctx, agent, signal) {
   }
 }
 
-/**
- * Determine whether initialization may truthfully advertise inline image prompts.
- * Unknown service, route, capability, or deployment media support is negative.
- * @param ctx - bridge context carrying optional attachment and model services.
- * @param provider - configured provider route used for newly created sessions.
- * @param model - configured exact model id used for newly created sessions.
- * @returns whether this bridge can admit images at initialization time.
- */
 export async function supportsAcpImagePrompts(
   ctx,
   provider,
@@ -93,23 +73,10 @@ export async function supportsAcpImagePrompts(
   }
 }
 
-/** Render one baseline resource link into the core's current text vocabulary. */
 function resourceLinkText(block) {
   return `\n[resource_link name=${JSON.stringify(block.name)} uri=${JSON.stringify(block.uri)}]\n`
 }
 
-/**
- * Admit one ACP prompt into ordered durable core content.
- * Every wire block and image is validated before the ordered image batch starts
- * writing; cancellation after a successful content-addressed write may leave an
- * unreachable object but never queues a late user message.
- * @param ctx - bridge context carrying attachment and model services.
- * @param agent - destination agent whose latest exact route controls admission.
- * @param prompt - untrusted ACP prompt blocks in wire order.
- * @param imageEnabled - capability result advertised during initialization.
- * @param signal - admission cancellation signal.
- * @returns core content with durable image references in wire order.
- */
 export async function admitAcpPrompt(
   ctx,
   agent,
@@ -193,14 +160,6 @@ export async function admitAcpPrompt(
   return content
 }
 
-/**
- * Translate one committed assistant block to ACP wire content.
- * Images are re-read and integrity-verified before inline base64 delivery;
- * unsupported core output blocks stay off the automation wire.
- * @param ctx - bridge context carrying the authoritative attachment store.
- * @param block - committed core assistant block.
- * @returns ACP text/image content, or undefined for non-output blocks.
- */
 export async function assistantBlockToAcp(
   ctx,
   block,
