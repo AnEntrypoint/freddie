@@ -1,9 +1,3 @@
-/**
- * Bounded sharing and exclusive reservation of unpublished Sessions.
- * @module @freddie/freddie-session-persistence/preparations
- */
-
-/** Per-coordinator cold-read sharing, exclusive reservation, and ready-entry LRU. */
 export class SessionPreparations {
   entries = new Map()
 
@@ -11,22 +5,10 @@ export class SessionPreparations {
     this.capacity = capacity
   }
 
-  /**
-   * Whether this pool currently knows about an unpublished identity.
-   * @param id - session identity.
-   * @returns whether an entry exists for the identity.
-   */
   has(id) {
     return this.entries.has(id)
   }
 
-  /**
-   * Observe one prepared source, sharing an in-flight read for the same id.
-   * @param id - session identity.
-   * @param load - cold loader used when no entry exists.
-   * @param signal - optional cancellation signal while waiting.
-   * @returns the shared prepared source.
-   */
   async inspect(id, load, signal) {
     const entry = this.entryFor(id, load)
     const loaded = signal === undefined
@@ -37,20 +19,12 @@ export class SessionPreparations {
     return source
   }
 
-  /**
-   * Reserve one ready source after committing its pending durable repair.
-   * @param id - session identity.
-   * @param load - cold loader used when no entry exists.
-   * @param commit - durable repair and cursor-state commit.
-   * @param signal - optional cancellation signal while waiting.
-   * @returns the exclusive reservation, or undefined if its entry was invalidated.
-   */
   async reserve(id, load, commit, signal) {
     const entry = this.entryFor(id, load)
     await (signal === undefined ? entry.result : observeQueuedAbort(entry.result, signal))
     while (this.entries.get(id) === entry && entry.phase !== 'ready') {
       const settled = entry.reservationSettled
-      /* v8 ignore next -- committing/reserved transitions install this waiter synchronously. */
+      /* v8 ignore next */
       if (settled === undefined) throw new Error(`session "${id}" preparation lost its reservation waiter`)
       if (signal === undefined) await settled
       else await observeQueuedAbort(settled, signal)
@@ -90,11 +64,6 @@ export class SessionPreparations {
     return reservation
   }
 
-  /**
-   * Return the exact reservation for Session publication, rejecting aliases.
-   * @param session - exact Session candidate for publication.
-   * @returns its reservation, or undefined when no preparation exists.
-   */
   reservationFor(session) {
     const entry = this.entries.get(session.id)
     if (entry === undefined) return undefined
@@ -106,10 +75,6 @@ export class SessionPreparations {
     throw new Error(`cannot publish session "${session.id}": persisted state already owns this identity`)
   }
 
-  /**
-   * Consume a reservation after its exact Session has attached.
-   * @param reservation - reservation to consume.
-   */
   attach(reservation) {
     const { entry } = reservation
     if (this.entries.get(entry.id) !== entry || entry.reservation !== reservation) {
@@ -118,21 +83,12 @@ export class SessionPreparations {
     this.remove(entry)
   }
 
-  /**
-   * Consume a reservation whose caller only needs the committed inspection.
-   * @param reservation - reservation to consume.
-   */
   discard(reservation) {
     const { entry } = reservation
     if (this.entries.get(entry.id) !== entry || entry.reservation !== reservation) return
     this.remove(entry)
   }
 
-  /**
-   * Return a reusable unpublished reservation to the ready LRU.
-   * @param reservation - reservation to release.
-   * @param reusable - whether the source remains valid for reuse.
-   */
   release(reservation, reusable) {
     const { entry } = reservation
     if (this.entries.get(entry.id) !== entry
@@ -146,21 +102,11 @@ export class SessionPreparations {
     this.makeReady(entry)
   }
 
-  /**
-   * Discard a prepared view after the durable log changes.
-   * @param id - changed session identity.
-   */
   invalidate(id) {
     const entry = this.entries.get(id)
     if (entry !== undefined) this.remove(entry)
   }
 
-  /**
-   * Discard an exact stale ready source without disturbing an exclusive owner.
-   * @param id - changed session identity.
-   * @param expected - exact source observed before its revision check.
-   * @returns whether the source was discarded, retained by a reservation, or is absent.
-   */
   discardReady(id, expected) {
     const entry = this.entries.get(id)
     if (entry === undefined || entry.source !== expected) return 'missing'
@@ -169,10 +115,6 @@ export class SessionPreparations {
     return 'discarded'
   }
 
-  /**
-   * Reject writes while an unpublished Session exclusively reserves the id.
-   * @param id - session identity to check.
-   */
   assertWritable(id) {
     const phase = this.entries.get(id)?.phase
     if (phase === 'committing' || phase === 'reserved') {
@@ -180,11 +122,6 @@ export class SessionPreparations {
     }
   }
 
-  /**
-   * Remove a completed entry for an already-serialized append adoption.
-   * @param id - adopted session identity.
-   * @returns the prepared source, or undefined when no ready entry exists.
-   */
   takeReady(id) {
     const entry = this.entries.get(id)
     if (entry === undefined || entry.phase !== 'ready' || entry.source === undefined) return undefined
@@ -258,13 +195,6 @@ export class SessionPreparations {
   }
 }
 
-/**
- * Give a queued observer a prompt cancellation view without cancelling shared work.
- * @param operation - shared operation whose settlement remains authoritative.
- * @param signal - observer-local cancellation signal.
- * @param started - whether the operation has crossed its cancellation cutoff.
- * @returns the operation result or the observer's prompt cancellation.
- */
 export function observeQueuedAbort(operation, signal, started = () => false) {
   return new Promise((resolve, reject) => {
     let settled = false
@@ -283,7 +213,7 @@ export function observeQueuedAbort(operation, signal, started = () => false) {
           rejectObservation(reject, reason)
           return
         }
-        /* v8 ignore next -- a native AbortSignal emits abort only after becoming aborted. */
+        /* v8 ignore next */
         reject(new Error('queued observation abort event lacked an aborted signal'))
       })
     }
@@ -298,7 +228,6 @@ export function observeQueuedAbort(operation, signal, started = () => false) {
   })
 }
 
-/** Preserve an exact loader or AbortSignal reason, including legacy non-Error values. */
 function rejectObservation(reject, reason) {
   reject(reason)
 }

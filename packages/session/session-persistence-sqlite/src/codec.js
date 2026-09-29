@@ -1,17 +1,7 @@
-/**
- * Schema-17 physical chunk-row codec. This package owns the durable tags,
- * validation, and row-size limits independently from other persistence formats.
- * @module @freddie/freddie-session-persistence-sqlite/codec
- */
+/* jscpd:ignore-start */
 
-/* jscpd:ignore-start -- schema 17 deliberately owns a frozen physical codec;
- * importing or sharing the JSONL codec would let that format mutate this database interpreter. */
-
-/** Minimum eligible members in a packed physical record. */
 export const MIN_PACKED_ROW_MEMBERS = 3
-/** Maximum logical members represented by one packed physical record. */
 export const MAX_PACKED_ROW_MEMBERS = 1_024
-/** Maximum UTF-8 bytes in one packed physical record's data column. */
 export const MAX_PACKED_DATA_BYTES = 1_048_576
 
 function isRecord(value) {
@@ -135,18 +125,13 @@ function emitBoundedRun(out, kind, completeRun) {
       offset += 1
       continue
     }
-    /* v8 ignore next -- accepted is set only with its same-branch candidate. */
+    /* v8 ignore next */
     out.push(acceptedRow ?? malformed(kind, 'bounded encoder lost its accepted row'))
     offset += accepted
   }
   out.push(...completeRun.slice(offset))
 }
 
-/**
- * Pack eligible logical chunk runs into bounded schema-17 records.
- * @param events - logical events in sequence order.
- * @returns scalar and packed physical records in equivalent order.
- */
 export function packChunkRuns(events) {
   const out = []
   let kind
@@ -267,11 +252,6 @@ function expandRow(row) {
   return events
 }
 
-/**
- * Decode one scalar or packed schema-17 record.
- * @param value - parsed physical-record value.
- * @returns the represented logical events.
- */
 export function decodeStorageRecord(value) {
   if (!isRecord(value)) return [value]
   const tag = value.type
@@ -281,15 +261,6 @@ export function decodeStorageRecord(value) {
   return expandRow(validateRow(value, tag))
 }
 
-/**
- * Decode one packed row from its exact uncompressed data value. The byte bound
- * rejects oversized input before JSON parsing and avoids serializing it again.
- * @param tag - validated packed physical type.
- * @param seq0 - first represented logical sequence number.
- * @param time0 - first represented logical timestamp.
- * @param serializedData - decoded SQLite data-column text.
- * @returns the represented logical events.
- */
 export function decodeSerializedChunkRow(tag, seq0, time0, serializedData) {
   const bytes = Buffer.byteLength(serializedData)
   if (bytes > MAX_PACKED_DATA_BYTES) malformed(tag, `data exceeds ${MAX_PACKED_DATA_BYTES} UTF-8 bytes`)

@@ -1,17 +1,3 @@
-/**
- * OpenTelemetry Service Provider for the Freddie telemetry capability.
- *
- * Composes the OTel JS SDK as-is — a `LoggerProvider` with a
- * `BatchLogRecordProcessor` and an OTLP/HTTP log exporter — and maps each
- * record handed over by the capture coordinator onto `logger.emit()`. After that call,
- * batching, retry, queueing, and loss policy use the SDK's documented behavior, configured
- * verbatim through the `exporter`/`processor` passthroughs. This package owns
- * capture mode and an outer shutdown deadline: the SDK's export timeout does
- * not bound its preceding `forceFlush()` wait.
- *
- * @module @freddie/freddie-session-telemetry-otel
- */
-
 import { createRequire } from 'node:module'
 import z from '@freddie/schemastery'
 import {
@@ -30,17 +16,14 @@ import { resourceFromAttributes } from '@opentelemetry/resources'
 
 const { version: instrumentationScopeVersion } = createRequire(import.meta.url)('../package.json')
 
-/** OTel semantic-convention Resource attribute for the anonymous user. */
 const SEMCONV_USER_ID = 'user.id'
 
-/** Session-sharing policy selected by {@link Config.mode}. */
 export const SessionTelemetryMode = Object.freeze({
   FULL: 'FULL',
   FEEDBACK_ONLY: 'FEEDBACK_ONLY',
   DISABLED: 'DISABLED',
 })
 
-/** Default session-sharing policy for schema and direct construction. */
 export const DEFAULT_TELEMETRY_MODE = SessionTelemetryMode.DISABLED
 
 const DISABLED_FEEDBACK_WARNING = 'session telemetry is DISABLED; nothing will be shared and this feedback remains local'
@@ -48,7 +31,6 @@ const ENDPOINT_MISSING_WARNING = requestedMode => `session telemetry mode ${requ
 const NON_CANONICAL_FEEDBACK_WARNING = 'session telemetry ignored a feedback event absent from the canonical session log'
 const DROP_RECORD = () => {}
 
-/** Resolve the default and reject unknown runtime values before transport setup. */
 function resolveMode(mode) {
   const resolved = mode ?? DEFAULT_TELEMETRY_MODE
   switch (resolved) {
@@ -61,42 +43,20 @@ function resolveMode(mode) {
   }
 }
 
-/** Fail closed when direct construction bypasses the runtime config schema. */
 function assertNever(value) {
   throw new Error(`session-telemetry-otel: unsupported mode ${JSON.stringify(value)}`)
 }
 
-/** Map the serialized mode onto the seam's backend-independent sharing vocabulary. */
 function sharingStatusFor(mode) {
   switch (mode) {
     case SessionTelemetryMode.FULL: return 'full'
     case SessionTelemetryMode.FEEDBACK_ONLY: return 'feedback-only'
     case SessionTelemetryMode.DISABLED: return 'disabled'
-    /* v8 ignore next 2 -- resolveMode already rejected unknown values before this switch; the closed enum cannot reach the default. */
+    /* v8 ignore next 2 */
     default: return assertNever(mode)
   }
 }
 
-/**
- * Plugin configuration: one sharing policy, two verbatim SDK option objects,
- * and one FREDDIE-owned shutdown bound. Uploading modes validate their endpoint
- * and shutdown deadline at plugin load; `DISABLED` reads neither. An uploading
- * mode with no `exporter.url` runs as `DISABLED` and logs why: the package has
- * no default collector, so nothing is exported until an operator names one.
- * @typedef {object} SessionTelemetryOtelConfig
- * @property {string} [mode] - one of {@link SessionTelemetryMode}'s values; defaults to {@link DEFAULT_TELEMETRY_MODE}.
- * @property {unknown} [exporter] - verbatim OpenTelemetry OTLP log-exporter SDK options.
- * @property {unknown} [processor] - verbatim OpenTelemetry batch log-processor SDK options.
- * @property {number} [shutdownTimeoutMillis] - outer allowance for the SDK's shutdown sequence.
- */
-
-/**
- * Schemastery validator for {@link Config}; cordis runs it before the plugin
- * starts. It checks only the top-level fields; value checks live in the constructor
- * so their errors name the fields. Both SDK option objects pass through unchanged:
- * the SDK defines and validates their fields. Re-declaring them here would
- * silently drop every field this plugin did not repeat.
- */
 export const Config = z.object({
   mode: z.union(Object.values(SessionTelemetryMode)).default(DEFAULT_TELEMETRY_MODE),
   exporter: z.any(),
@@ -104,35 +64,22 @@ export const Config = z.object({
   shutdownTimeoutMillis: z.number(),
 })
 
-/** Default outer allowance for the SDK's complete shutdown sequence. */
 export const DEFAULT_SHUTDOWN_TIMEOUT_MILLIS = 3_000
 
 const NODE_TIMER_DELAY_CEILING_MILLIS = 2_147_483_647
 
-/**
- * Refuse a batch size the SDK accepts but cannot drain at shutdown.
- * @param {unknown} batchSize - `processor.maxExportBatchSize`, when configured.
- * @throws {Error} when the size is defined and not a positive integer.
- */
 function assertDrainableBatchSize(batchSize) {
   if (batchSize !== undefined && (!Number.isInteger(batchSize) || batchSize < 1)) {
     throw new Error(`session-telemetry-otel: processor.maxExportBatchSize must be a positive integer, got ${String(batchSize)}`)
   }
 }
 
-/** Severity mapping from the Service Definition's three-level vocabulary to OTel severity numbers. */
 const SEVERITY = {
   info: { severityNumber: SeverityNumber.INFO, severityText: 'INFO' },
   warn: { severityNumber: SeverityNumber.WARN, severityText: 'WARN' },
   error: { severityNumber: SeverityNumber.ERROR, severityText: 'ERROR' },
 }
 
-/**
- * The backend plugin — the only entry a deployment loads. It always registers
- * the `telemetry` service (duplicate load throws). Uploading modes wire the SDK
- * pipeline and compose {@link SessionTelemetryCoordinator}; `DISABLED` constructs no
- * SDK state and listens only to warn when recorded feedback stays local.
- */
 export class OpenTelemetrySessionBackend extends SessionTelemetryBackend {
   static inject = ['sessions']
   static Config = Config
@@ -224,25 +171,10 @@ export class OpenTelemetrySessionBackend extends SessionTelemetryBackend {
     })
   }
 
-  /**
-   * Hand a direct service record to the SDK only in `FULL`. Direct calls are
-   * no-ops in `FEEDBACK_ONLY` and `DISABLED`; feedback replay uses a private
-   * backend capability created only for the canonical feedback listener.
-   * @param record - the logical record offered directly to the service.
-   */
   emit(record) {
     this.directEmit(record)
   }
 
-  /**
-   * Ask the SDK to drain and quiesce, but reject after the backend-owned
-   * deadline. OTel's processor export timeout wraps `exportCompleted` only;
-   * shutdown awaits `exporter.forceFlush()` first, which can remain pending
-   * when the transport never obtains a socket. The provider promise remains
-   * observed after the deadline so a later rejection cannot become unhandled.
-   * `DISABLED` has no provider and resolves immediately.
-   * @returns resolves when the SDK pipeline quiesces or is disabled, or rejects at the configured deadline.
-   */
   async shutdown() {
     if (this.provider === undefined) return
     const providerShutdown = this.provider.shutdown()
@@ -255,7 +187,7 @@ export class OpenTelemetrySessionBackend extends SessionTelemetryBackend {
     try {
       await Promise.race([providerShutdown, deadline])
     } finally {
-      /* v8 ignore else -- the Promise executor assigns timer synchronously before this race starts. */
+      /* v8 ignore else */
       if (timer !== undefined) clearTimeout(timer)
     }
   }

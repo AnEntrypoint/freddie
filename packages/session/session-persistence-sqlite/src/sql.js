@@ -1,8 +1,3 @@
-/**
- * Closed, package-owned SQL resource loading for SQLite.
- * @module @freddie/freddie-session-persistence-sqlite/sql
- */
-
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
@@ -37,11 +32,6 @@ const SQL_RESOURCES = [
 
 const cache = new Map()
 
-/**
- * Load an immutable SQL statement by closed resource name.
- * @param name - package-owned resource basename.
- * @returns the resource text.
- */
 export function sql(name) {
   const cached = cache.get(name)
   if (cached !== undefined) return cached

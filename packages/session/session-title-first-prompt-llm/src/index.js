@@ -1,5 +1,3 @@
-/** First-human-message model provider for `ctx.sessionTitle`. */
-
 import z from '@freddie/schemastery'
 import {
   registerSessionTitleLlmProvider,
@@ -9,11 +7,7 @@ import {
 export const name = 'session-title-first-prompt-llm'
 export const inject = ['sessionTitle', 'llm', 'sessions']
 
-/**
- * Loader schema shared with the all-messages provider.
- * @name Config
- */
-/* jscpd:ignore-start -- Loader requires each plugin to export its own statically walkable schema; the field validators remain shared. */
+/* jscpd:ignore-start */
 export const Config = z.object({
   targetWords: SessionTitleLlmConfigFields.targetWords,
   maxInputBytes: SessionTitleLlmConfigFields.maxInputBytes,
@@ -24,11 +18,6 @@ export const Config = z.object({
 })
 /* jscpd:ignore-end */
 
-/**
- * Register the first-prompt model provider.
- * @param ctx - context exposing session-title, LLM, and session services.
- * @param config - required route, target, byte, token, and timeout policy.
- */
 export function apply(ctx, config) {
   registerSessionTitleLlmProvider(ctx, config, name, 'first-prompt', (messages) => {
     const first = messages[0]

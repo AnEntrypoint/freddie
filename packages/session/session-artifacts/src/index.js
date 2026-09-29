@@ -84,7 +84,6 @@ function validContent(value, maxBytes) {
   return typeof value === 'string' && Buffer.byteLength(value, 'utf8') <= maxBytes
 }
 
-/** Host-owned durable conversation artifact and explicit memory record service. */
 export class SessionArtifactsService extends TypertRemoteService {
   static inject = ['storageDomain', 'sessionPersistence', 'sessions']
 

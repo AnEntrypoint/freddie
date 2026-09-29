@@ -1,43 +1,20 @@
-/**
- * Log-backed session title service, deterministic fallback, and provider contract.
- * @module @freddie/freddie-session-title
- */
-
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { assertNever, deepFreeze, isAgentLoopRequest } from '@freddie/freddie-llm'
 import { fallbackSessionTitle, normalizeSessionTitle } from './normalize.js'
 
-/** Runtime mirror: FiberState is a cross-package const enum, erased at compile time by cordis's own build. */
 const FiberState = { PENDING: 0, LOADING: 1, ACTIVE: 2, FAILED: 3, DISPOSED: 4, UNLOADING: 5 }
 
 export { fallbackSessionTitle, normalizeSessionTitle, truncateTitleUtf8 } from './normalize.js'
 
-/**
- * Brand a raw provider id.
- * @param id - stable non-empty provider identifier supplied by a plugin.
- * @returns the same string with the session-title provider brand.
- */
 export function SessionTitleProviderId(id) {
   return id
 }
 
-/**
- * Rejection of an explicit user title whose text normalizes to empty — the
- * one {@link SessionTitleService.rename} failure that blames the input.
- * Callers translating rename failures onto a wire (`title-invalid`) narrow on
- * this class; liveness and disposal failures stay plain `Error`s.
- */
 export class SessionTitleInvalidError extends Error {
   name = 'SessionTitleInvalidError'
 }
 
-/**
- * Collect human text-bearing user messages in log order.
- * @param events - session log or persisted replay.
- * @param throughSeq - optional inclusive event boundary.
- * @returns eligible messages with exact source seqs.
- */
 export function collectSessionTitleMessages(events, throughSeq) {
   const messages = []
   for (const event of events) {
@@ -54,11 +31,6 @@ export function collectSessionTitleMessages(events, throughSeq) {
   return messages
 }
 
-/**
- * Fold the latest logged title without consulting mutable metadata.
- * @param events - live or persisted session log.
- * @returns the latest immutable title snapshot, or `undefined`.
- */
 export function foldSessionTitle(events) {
   const event = events.findLast(item => item.type === 'session/title')
   if (event === undefined) return undefined
@@ -71,7 +43,6 @@ export function foldSessionTitle(events) {
   })
 }
 
-/** Defensive copy of a logged title source (the snapshot must not alias log-owned objects). */
 function copySessionTitleSource(source) {
   switch (source.kind) {
     case 'fallback': return { kind: 'fallback' }
@@ -81,19 +52,17 @@ function copySessionTitleSource(source) {
       ...(source.model === undefined ? {} : { model: { ...source.model } }),
     }
     case 'user': return { kind: 'user' }
-    /* v8 ignore next -- closed-union exhaustiveness guard */
+    /* v8 ignore next */
     default: return assertNever(source, 'SessionTitleSource')
   }
 }
 
-/** Validate one positive integer configuration field. */
 function assertPositiveInteger(name, value) {
   if (!Number.isInteger(value) || value <= 0) {
     throw new Error(`session-title: ${name} must be a positive integer`)
   }
 }
 
-/** Log-backed title fold plus asynchronous fallback generation. */
 export class SessionTitleService extends Service {
   static inject = ['sessions']
   static Config = z.object({
@@ -171,26 +140,10 @@ export class SessionTitleService extends Service {
     })
   }
 
-  /**
-   * Read the latest folded title from one live or replayed session.
-   * @param session - session whose log is the title source of truth.
-   * @returns latest title snapshot, or `undefined` before eligible input.
-   */
   get(session) {
     return foldSessionTitle(session.events)
   }
 
-  /**
-   * Accept an explicit user title. Appends a `session/title` event with the
-   * `user` source, which pins the title: in-flight automatic generation is
-   * superseded and later user messages schedule none (an explicit
-   * {@link SessionTitleService.refresh} remains the deliberate unpin).
-   * @param session - exact live session to rename.
-   * @param title - raw user input; normalized before acceptance.
-   * @returns the accepted title snapshot.
-   * @throws {SessionTitleInvalidError} when the title normalizes to empty.
-   * @throws {Error} when the session is not live or the service is disposed.
-   */
   rename(session, title) {
     this.assertServiceActive()
     if (this.ctx.sessions.get(session.id) !== session) {
@@ -208,18 +161,11 @@ export class SessionTitleService extends Service {
       source: { kind: 'user' },
     })
     const snapshot = this.get(session)
-    /* v8 ignore next -- unreachable: the append above just committed a session/title event. */
+    /* v8 ignore next */
     if (snapshot === undefined) throw new Error('renamed title failed to fold')
     return snapshot
   }
 
-  /**
-   * Explicitly retry the registered provider, or materialize the built-in
-   * fallback when no provider is registered.
-   * @param session - exact live session to refresh.
-   * @param signal - optional caller cancellation.
-   * @returns latest accepted title, or `undefined` when no eligible text exists.
-   */
   async refresh(session, signal) {
     signal?.throwIfAborted()
     this.assertServiceActive()
@@ -253,12 +199,6 @@ export class SessionTitleService extends Service {
     return this.startProvider(session, work, route)
   }
 
-  /**
-   * Register the sole optional title provider. Disposal aborts its pending and
-   * active work before another provider may register.
-   * @param provider - provider identity, cadence, and generation function.
-   * @returns exact Cordis effect disposer, which settles after active calls quiesce.
-   */
   register(provider) {
     this.validateProvider(provider)
     if (this.registration !== undefined) {
@@ -286,7 +226,6 @@ export class SessionTitleService extends Service {
     return dispose
   }
 
-  /** Schedule fallback creation and any provider cadence for one eligible event. */
   onUserMessage(session, event) {
     if (!this.serviceActive()) return
     if (event.data.source.kind !== 'user' || collectSessionTitleMessages([event]).length === 0) return
@@ -312,7 +251,6 @@ export class SessionTitleService extends Service {
     })
   }
 
-  /** Start pending automatic work only after its exact main-request route is logged. */
   onRequestHeader(session, event) {
     if (!this.serviceActive()) return
     const state = this.work.get(session)
@@ -325,7 +263,6 @@ export class SessionTitleService extends Service {
     this.startPending(session, state, pending, route)
   }
 
-  /** Start unchanged-route work from the marked loop request after its header fold is current. */
   onMainRequest(options) {
     if (!this.serviceActive() || options.sessionId === undefined || !isAgentLoopRequest(options)) return
     const session = this.ctx.sessions.get(options.sessionId)
@@ -341,7 +278,6 @@ export class SessionTitleService extends Service {
     this.startPending(session, state, pending, { provider: options.provider, model: options.model })
   }
 
-  /** Consume one pending revision and schedule its non-blocking provider call. */
   startPending(session, state, pending, route) {
     delete state.pending
     this.defer(async () => {
@@ -359,13 +295,11 @@ export class SessionTitleService extends Service {
     })
   }
 
-  /** Start one tracked provider call after publishing its active revision. */
   startProvider(session, work, route) {
     const run = Promise.resolve().then(() => this.runProvider(session, work, route))
     return this.track(run, work.registration)
   }
 
-  /** Execute and accept one current provider revision. */
   async runProvider(session, work, route) {
     try {
       this.assertCurrent(session, work)
@@ -396,7 +330,6 @@ export class SessionTitleService extends Service {
     }
   }
 
-  /** Validate and normalize provider output against the supplied message snapshot. */
   validateResult(result, messages) {
     if (result === null || typeof result !== 'object') {
       throw new Error('session-title provider returned an invalid result')
@@ -442,13 +375,11 @@ export class SessionTitleService extends Service {
     }
   }
 
-  /** Fail a completion whose provider, revision, session, or signal is stale. */
   assertCurrent(session, work) {
     this.assertServiceActive()
     work.signal.throwIfAborted()
     const state = this.work.get(session)
-    /* v8 ignore next -- every supported supersession, provider disposal, and session disposal aborts
-     * the work signal before changing this state. */
+    /* v8 ignore next */
     if (this.registration !== work.registration
       || state?.active !== work
       || state.revision !== work.revision
@@ -457,7 +388,6 @@ export class SessionTitleService extends Service {
     }
   }
 
-  /** Create and publish an active provider call from one fixed revision. */
   activate(pending, state, upstream) {
     const controller = new AbortController()
     const signal = upstream === undefined
@@ -468,7 +398,6 @@ export class SessionTitleService extends Service {
     return work
   }
 
-  /** Abort older active work and reserve the next session-local revision. */
   supersede(state, reason) {
     state.active?.controller.abort(new Error(reason))
     delete state.pending
@@ -476,7 +405,6 @@ export class SessionTitleService extends Service {
     return state.revision
   }
 
-  /** Return mutable work state for one session. */
   stateFor(session) {
     let state = this.work.get(session)
     if (state === undefined) {
@@ -486,7 +414,6 @@ export class SessionTitleService extends Service {
     return state
   }
 
-  /** Queue detached service work and retain it through service disposal. */
   defer(task) {
     const run = Promise.resolve().then(async () => {
       if (!this.serviceActive()) return
@@ -495,7 +422,6 @@ export class SessionTitleService extends Service {
     void this.track(run)
   }
 
-  /** Retain one promise until settlement for service and optional provider teardown. */
   track(run, registration) {
     this.inFlight.add(run)
     registration?.active.add(run)
@@ -507,24 +433,20 @@ export class SessionTitleService extends Service {
     return run
   }
 
-  /** Await every current and settling promise in one lifecycle registry. */
   async drain(active) {
     while (active.size > 0) await Promise.allSettled([...active])
   }
 
-  /** Whether the owning plugin fiber can still start or commit title work. */
   serviceActive() {
     return !this.lifetime.signal.aborted
       && this.ownerFiber.uid !== null
       && this.ownerFiber.state === FiberState.ACTIVE
   }
 
-  /** Reject work once the owning plugin fiber has begun unloading. */
   assertServiceActive() {
     if (!this.serviceActive()) throw new Error('session-title service disposed')
   }
 
-  /** Reject malformed provider registrations before publishing an effect. */
   validateProvider(provider) {
     if (provider === null || typeof provider !== 'object') {
       throw new Error('session-title provider must be an object')
@@ -541,13 +463,6 @@ export class SessionTitleService extends Service {
     }
   }
 
-  /**
-   * Derive and append the deterministic fallback title over whatever stands
-   * (the refresh unpin path: overwriting a pinned user title is the point).
-   * Synchronous on purpose — no await may separate derivation from append, so
-   * it needs neither ensureFallback's in-flight dedup nor its liveness
-   * re-check. An underivable fallback (empty after the caps) appends nothing.
-   */
   appendFallback(session, first) {
     const title = fallbackSessionTitle(first.text, this.config.fallbackMaxWords, this.config.fallbackMaxBytes)
     if (title.length === 0) return
@@ -558,7 +473,6 @@ export class SessionTitleService extends Service {
     })
   }
 
-  /** Create the first deterministic fallback if the session still lacks a title. */
   async ensureFallback(session) {
     this.assertServiceActive()
     const current = this.get(session)

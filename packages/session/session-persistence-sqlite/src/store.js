@@ -1,9 +1,3 @@
-/**
- * SQLite storage primitives: transactional append-batch packing, physical
- * reads, schema validation, revisions, repair, and lifecycle closure.
- * @module @freddie/freddie-session-persistence-sqlite/store
- */
-
 import { randomUUID } from 'node:crypto'
 import { statSync } from 'node:fs'
 import { lstat, mkdir, open } from 'node:fs/promises'
@@ -29,7 +23,6 @@ import {
 } from './schema.js'
 import { sql } from './sql.js'
 
-/** SQLite implementation of the coordinator's physical backend hooks. */
 export class SqliteStore {
   name = 'session-persistence-sqlite'
   db
@@ -39,54 +32,23 @@ export class SqliteStore {
   pathReady
   ready
 
-  /**
-   * Tail of a promise chain serializing every transaction taken against
-   * `this.db` (`appendBatch`/`commitRepair`/`readTransaction`'s
-   * BEGIN..COMMIT/ROLLBACK spans). One `libsql-plugkit-client` connection is
-   * held for this store's whole lifetime, and its BEGIN/COMMIT/ROLLBACK are
-   * connection-global, not scoped to a caller — two overlapping transactions
-   * on the shared connection can interleave, with a losing caller's
-   * ROLLBACK discarding a winning caller's still-open, uncommitted work.
-   * Adversarial testing this session reproduced this live via un-awaited
-   * parallel calls (the public async API alone does not protect against a
-   * caller that doesn't serialize its own awaits). Every transaction-taking
-   * method chains onto `this.txnQueue` so the class's own API is safe
-   * regardless of caller await discipline, rather than relying on every
-   * caller getting that right.
-   */
   txnQueue = Promise.resolve()
 
   constructor(options) {
     this.options = options
   }
 
-  /**
-   * Run `fn` after every previously queued transaction on this store has
-   * settled, chaining this call onto the tail so the next queued caller
-   * waits for this one too. A rejection propagates to THIS call's awaiter
-   * without breaking the chain for callers still queued behind it.
-   * @param fn - the transactional operation to serialize.
-   * @returns `fn`'s own return value.
-   */
   runSerialized(fn) {
     const result = this.txnQueue.then(fn, fn)
     this.txnQueue = result.then(() => {}, () => {})
     return result
   }
 
-  /**
-   * Validate filesystem ownership without importing or opening the client.
-   * @returns settlement of the store's one path-validation operation.
-   */
   validatePath() {
     this.pathReady ??= this.preparePath(this.options.path)
     return this.pathReady
   }
 
-  /**
-   * Lazily open and validate the database on first persistence use.
-   * @returns settlement of the store's one database-open operation.
-   */
   open() {
     this.ready ??= this.openDb()
     return this.ready
@@ -244,11 +206,6 @@ export class SqliteStore {
     return rows.map(rowToMeta)
   }
 
-  /**
-   * Return every materialized header with its source-qualified revision.
-   * @param signal - optional cancellation before or after the metadata query.
-   * @returns stored headers and revisions without loading event rows.
-   */
   async listSnapshots(signal) {
     await this.observe(signal)
     const rows = await this.sessionRows()
@@ -305,7 +262,7 @@ export class SqliteStore {
     try {
       await this.db.execute(sql('rollback'))
     } catch (rollbackError) {
-      /* v8 ignore next -- requires the backend to fail both an operation and its immediate rollback. */
+      /* v8 ignore next */
       throw new AggregateError([error, rollbackError], `${this.name} ${operation} failed and rollback also failed`)
     }
     throw error
@@ -313,7 +270,7 @@ export class SqliteStore {
 
   async incrementRevision(id) {
     const result = await this.db.execute({ sql: sql('update-session-revision'), args: [id] })
-    /* v8 ignore next -- materialized writes follow coordinator create(); other writes upsert in this transaction. */
+    /* v8 ignore next */
     if (Number(result.rowsAffected) !== 1) throw new Error(`session ${id} metadata row is missing`)
   }
 
@@ -329,7 +286,6 @@ export class SqliteStore {
     return (await this.physicalSpanFrom(id, tail[0].seq)).eventRows
   }
 
-  /** Select the bounded physical span that may represent `fromSeq`. */
   async physicalSpanFrom(id, fromSeq) {
     const packedFloor = Math.max(0, fromSeq - MAX_PACKED_ROW_MEMBERS + 1)
     const predecessorResult = await this.db.execute({
@@ -387,25 +343,11 @@ export class SqliteStore {
   }
 }
 
-/** Bind a Buffer/Uint8Array payload as libsql-plugkit-client's real blob marker; pass strings through unchanged. */
 function bindBlobIfNeeded(value) {
   if (value instanceof Uint8Array) return { $blob: Buffer.from(value).toString('base64') }
   return value
 }
 
-/**
- * libsql-plugkit-client binds a JS `null` positional param as the literal
- * TEXT string "null" rather than SQL NULL (live-verified this session: a
- * bound `null` reads back as `typeof(a) = 'text'`, value `"null"`; only a
- * `NULL` literal written directly into the SQL text produces a true SQL
- * NULL). This rewrites the statement's positional `?` placeholders,
- * in order, replacing each one whose argument is `null` with an inline
- * `NULL` literal and dropping that argument from the bound list, leaving
- * the remaining `?`s to bind the remaining (non-null) arguments in order.
- * @param sqlText - a statement using only positional `?` placeholders.
- * @param args - ordered argument values, one per `?`, `null` for SQL NULL.
- * @returns an `{ sql, args }` statement safe to pass to execute().
- */
 function bindNullable(sqlText, args) {
   let index = 0
   let rewritten = ''
@@ -427,7 +369,6 @@ function bindNullable(sqlText, args) {
   return { sql: rewritten, args: bound }
 }
 
-/** Attach column names to a libsql-plugkit-client row array (already indexable by name, kept explicit for schema.js decoders). */
 function namedRow(row, columns) {
   const out = {}
   for (let index = 0; index < columns.length; index += 1) out[columns[index]] = row[index]
@@ -455,8 +396,7 @@ async function validateParentDirectory(path) {
     throw new Error(`session database parent "${path}" must be a real directory`)
   }
   const uid = process.getuid?.()
-  /* v8 ignore start -- Windows exposes neither process.getuid nor meaningful
-   * uid/mode bits; POSIX tests cover owner and mode rejection. */
+  /* v8 ignore start */
   if (uid !== undefined && (parent.uid !== uid || (parent.mode & 0o022) !== 0)) {
     throw new Error(`session database parent "${path}" must be owned by the current user and not group/world-writable`)
   }
@@ -469,8 +409,7 @@ async function validateDatabaseFile(path) {
     throw new Error(`session database "${path}" must be a regular file, not a symbolic link`)
   }
   const uid = process.getuid?.()
-  /* v8 ignore start -- Windows exposes neither process.getuid nor meaningful
-   * uid/mode bits; POSIX tests cover owner and mode rejection. */
+  /* v8 ignore start */
   if (uid !== undefined && (file.uid !== uid || (file.mode & 0o077) !== 0)) {
     throw new Error(`session database "${path}" must be owned by the current user and accessible only by that user`)
   }

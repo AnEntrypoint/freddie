@@ -1,3 +1,4 @@
 ## Rationale
 
 - `src/index.js` late cell build mid-stream: history before the current event is folded first via `session.events.slice(0, event.seq)`; this is exact because `seq` equals the log index. The normal change gate then runs.
+- Whole-value event rule: a state-carrying log event MUST carry the complete post-change state, never a bare delta. Registrants sharing a key share one unit and are ref-counted (the same tool package in N presets registers N times). `checkpoint` returns detached structured clones; `restoreFloor` anchors one event below the lowest usable watermark so a shrunk log (crash-repair truncation) is detected and forces a full re-read; a discarded row with `baseSeq > 0` throws. Design authority: `.agents/notes/proposed/architecture/2026-07-27-session-projection-and-command-log.md`. `src/types.js` is intentionally empty (compile-time-only merge interfaces were dropped in the buildless conversion).

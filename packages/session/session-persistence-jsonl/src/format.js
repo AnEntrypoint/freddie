@@ -1,31 +1,11 @@
-/**
- * On-disk format helpers for the JSONL session-persistence backend: path
- * sanitization (a {@link import('@freddie/freddie-session/types').SessionId} is an unvalidated branded string, so it
- * MUST be encoded before use in a path — no traversal, no collision), the
- * per-project/session directory layout, header-line (de)serialization, and the
- * truncation-repair offset computation.
- *
- * @module freddie-session-persistence-jsonl/format
- */
-
 import { join } from 'node:path'
 import { decodeStorageRecord, packChunkRuns, SESSION_FORMAT_VERSION } from '@freddie/freddie-session'
 import { SessionFormatUnsupportedError, sessionFormatVersionRefusal } from '@freddie/freddie-session-persistence'
 
-/**
- * Return the artifact suffix for one physical encoding.
- * @param compression - configured JSONL artifact encoding.
- * @returns `.jsonl.zstd` for Zstandard or `.jsonl` for plaintext.
- */
 export function logSuffix(compression) {
   return compression === 'zstd' ? '.jsonl.zstd' : '.jsonl'
 }
 
-/**
- * Build the header line object from a {@link import('@freddie/freddie-session/types').SessionHeader}.
- * @param header - the immutable session metadata to serialize.
- * @returns the `type: 'session'`-tagged line object, absent optional fields omitted (never null).
- */
 export function toHeaderLine(header) {
   return {
     type: 'session',
@@ -41,11 +21,6 @@ export function toHeaderLine(header) {
   }
 }
 
-/**
- * Parse a header line back into a {@link import('@freddie/freddie-session/types').SessionHeader}.
- * @param line - the shape-checked first line of a log (see the `isHeaderLine` guard).
- * @returns the header, absent optional fields omitted.
- */
 export function fromHeaderLine(line) {
   if (Object.hasOwn(line, 'sandboxMode') || Object.hasOwn(line, 'approvalPolicy')) {
     throw new Error('session header uses retired policy baseline fields')
@@ -63,7 +38,6 @@ export function fromHeaderLine(line) {
   }
 }
 
-/** Type guard: a parsed first line is a well-formed session header. */
 function isHeaderLine(value) {
   return (
     typeof value === 'object' && value !== null
@@ -83,17 +57,6 @@ function isHeaderLine(value) {
   )
 }
 
-/**
- * Encode an arbitrary string as a single safe path segment, injectively over ALL JS (UTF-16)
- * strings — including lone surrogates. A {@link import('@freddie/freddie-session/types').SessionId} is an unvalidated branded string,
- * so this neutralizes `../`, absolute paths, NUL, and separators before any filesystem use.
- * Safe code units remain literal; every other unit, including `~`, becomes
- * `~XXXX`. Operating on code units preserves lone surrogates, while special-
- * casing `.` and `..` prevents traversal by an otherwise safe whole segment.
- *
- * @param raw - the string to encode; must be non-empty (throws on `''`).
- * @returns the escaped single path segment, decodable back to `raw`.
- */
 export function encodeSegment(raw) {
   if (raw.length === 0) throw new Error('cannot encode an empty path segment')
   if (raw === '.') return '~002E'
@@ -111,15 +74,6 @@ export function encodeSegment(raw) {
   return out
 }
 
-/**
- * Build the readable directory key for a project path.
- * Filesystem separators and drive separators become `-`; unsafe code units use
- * the same `~XXXX` escape as session ids. The key is bounded for filesystem
- * component limits. Separator replacement and truncation are intentionally
- * lossy, following the common human-navigable project-directory convention.
- * @param cwd - the session's project directory.
- * @returns a single filesystem-safe project directory name.
- */
 export function projectKey(cwd) {
   if (cwd.length === 0) throw new Error('cannot encode an empty project path')
   let readable = ''
@@ -142,70 +96,24 @@ export function projectKey(cwd) {
   return `--${slug.slice(0, 251)}--`
 }
 
-/**
- * The configured root's human-navigable project directory. A configured root
- * may be local or shared; this grouping does not prescribe its deployment.
- * @param root - the backend's session root directory.
- * @param cwd - the session's project directory; `undefined` selects `_no-cwd`.
- * @returns the project directory path under `root`.
- */
 export function projectDir(root, cwd) {
   if (cwd === undefined) return join(root, '_no-cwd')
   return join(root, projectKey(cwd))
 }
 
-/**
- * The directory owned by one session and available for future session-local
- * artifacts.
- * @param root - the backend's session root directory.
- * @param cwd - the session's project directory.
- * @param id - the session id, encoded to one safe path segment.
- * @returns the session directory beneath its project directory.
- */
 export function sessionDir(root, cwd, id) {
   return join(projectDir(root, cwd), encodeSegment(id))
 }
 
-/**
- * The append-only event-log file path for a session.
- * @param root - the backend's session root directory.
- * @param cwd - the session's project directory (`undefined` → `_no-cwd`).
- * @param id - the session id, path-encoded via {@link encodeSegment} before filesystem use.
- * @param compression - physical artifact encoding and filename suffix.
- * @returns the session's configured JSONL artifact path.
- */
 export function logPath(root, cwd, id, compression) {
   return join(sessionDir(root, cwd, id), `session${logSuffix(compression)}`)
 }
 
-/**
- * Serialize an event batch as JSONL lines (no trailing newline). With
- * `packChunks` on, delta-chunk runs pack into `text-chunks` /
- * `reasoning-chunks` / `tool-call-chunks` storage rows; off writes one event
- * per line, byte-identical to the pre-packing layout. Reading is layout-blind
- * either way ({@link scanLog} always decodes rows), so the switch changes only
- * newly written bytes.
- * @param events - the batch to serialize, in log order.
- * @param packChunks - whether to pack delta runs into storage rows.
- * @returns the batch's JSONL text; the writer adds the final newline.
- */
 export function eventLines(events, packChunks) {
   const records = packChunks ? packChunkRuns(events) : events
   return records.map(record => JSON.stringify(record)).join('\n')
 }
 
-/**
- * Parse one complete header record supplied independently from event rows.
- * @name parseHeaderRecord
- * @function
- */
-/**
- * Refuse a header carrying a format version this build does not read BEFORE
- * validating the current header shape or decoding any event row: a future
- * format need not satisfy today's structural checks at all, and its user must
- * see "upgrade the harness", never "corrupt session log".
- * @param parsed - the JSON-parsed first line of a session artifact.
- */
 function refuseForeignFormatVersion(parsed) {
   if (typeof parsed !== 'object' || parsed === null) return
   const { version, id } = parsed
@@ -232,12 +140,6 @@ function parseHeaderRecord(record) {
   return fromHeaderLine(parsed)
 }
 
-/**
- * Incrementally scan complete JSONL event records after an independently
- * supplied header record. Newline search and byte offsets stay on raw buffers;
- * only complete records are decoded to UTF-8. A fragment crossing writes is
- * copied because a decoder may reuse its output buffer after `write()` returns.
- */
 export class SessionLogScanner {
   meta
   events = []
@@ -249,20 +151,12 @@ export class SessionLogScanner {
   issue
   finished = false
 
-  /**
-   * Create an event scanner from exactly one newline-terminated header record.
-   * @param headerRecord - the complete first JSONL record, including its newline.
-   */
   constructor(headerRecord) {
     this.meta = parseHeaderRecord(headerRecord)
     this.inputBytes = headerRecord.length
     this.committedBytes = headerRecord.length
   }
 
-  /**
-   * Consume the next raw plaintext chunk, retaining only an incomplete final record.
-   * @param chunk - bytes immediately following all previously supplied bytes.
-   */
   write(chunk) {
     if (this.finished) throw new Error('cannot write to a finished session log scanner')
     const chunkStart = this.inputBytes
@@ -291,10 +185,6 @@ export class SessionLogScanner {
     }
   }
 
-  /**
-   * Snapshot progress before appending a recoverable torn-frame prefix.
-   * @returns byte, committed-prefix, and expanded-event cursors.
-   */
   checkpoint() {
     return {
       inputBytes: this.inputBytes,
@@ -303,16 +193,11 @@ export class SessionLogScanner {
     }
   }
 
-  /**
-   * Finish scanning, ignoring a final record without a newline as a torn tail.
-   * @returns the header, contiguous event prefix, and safe truncation offset.
-   */
   finish() {
     this.finished = true
     return { meta: this.meta, events: this.events, committedBytes: this.committedBytes }
   }
 
-  /** Decode one complete event row and update the contiguous prefix. */
   consumeEventLine(line, endByte) {
     this.eventLine += 1
     let decoded
@@ -346,14 +231,6 @@ export class SessionLogScanner {
   }
 }
 
-/**
- * Parse a complete or torn JSONL buffer into its preserved event prefix. This
- * compatibility wrapper supplies the first record separately, then delegates
- * event rows to {@link SessionLogScanner}.
- *
- * @param buffer - the raw bytes of the log file (header line first).
- * @returns the header, preserved event prefix, and byte offset safe to append at.
- */
 export function scanLog(buffer) {
   const headerEnd = buffer.indexOf(0x0A)
   if (headerEnd === -1) throw new Error('empty or header-less session log')
@@ -362,14 +239,6 @@ export function scanLog(buffer) {
   return scanner.finish()
 }
 
-/**
- * Parse just the header line of a log into a {@link import('@freddie/freddie-session/types').SessionHeader}, or
- * `undefined` if it is missing/not a header. Used by `list()` to read session
- * metadata WITHOUT parsing the whole log: a session picker scales with the
- * number of sessions, not the total size of every conversation.
- * @param firstLine - the first line of a log file (without its trailing newline).
- * @returns the parsed header, or `undefined` when the line is not a well-formed session header.
- */
 export function parseHeaderMeta(firstLine) {
   let parsed
   try {

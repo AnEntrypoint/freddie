@@ -1,64 +1,11 @@
-/**
- * Capture coordinator for the telemetry capability. Live capture subscribes to
- * the session firehose plus the one live-bus relay (`agent/error`). Both
- * capture paths apply the fixed chunk projection, build logical records, and
- * run each through the
- * `session-telemetry/record` waterfall (deployment-mounted redaction rules;
- * pass-through when none), then hands the result to the backend. Live capture
- * follows the session firehose; on-demand capture replays the canonical log
- * only when requested. Every synchronous handler is self-contained so a
- * failing backend can never starve other subscribers (cordis `emit` is
- * stop-on-throw) or touch the agent loop. Composed by a backend in its
- * constructor.
- *
- * @module @freddie/freddie-session-telemetry/coordinator
- */
-
-/**
- * The handoff cursor: per session, the highest `seq` handed to a backend.
- * Deliberately MODULE-scope ambient state — a narrow, documented exception
- * to the registrations-are-effects discipline: cordis has no HMR
- * state-handover API, and keying by the `Session` object (which belongs to
- * the session store and outlives any telemetry fiber) is the only in-process
- * lifetime that lets a re-adopting fiber resume instead of re-handing
- * history. Entries die with their sessions; a missing entry safely means
- * "re-hand everything". Advanced only at emit time — the cursor marks
- * handed-off, not delivered.
- */
 const handoffCursor = new WeakMap()
 
-/**
- * Install the telemetry capture side onto a context for one backend.
- *
- * Live capture registers the persistence-coordinator listener set plus the
- * `agent/error` relay, all through `ctx.effect()`/`ctx.on()` on the composing
- * fiber, and sweeps already-live sessions (a hot reload does not replay
- * `session/created`). A `session/disposed` captures the session's `shutdown`
- * operational record at its own termination edge and retires it from the
- * adopted set. On-demand capture registers none of those continuous listeners;
- * {@link SessionTelemetryCoordinator#captureSession} reads the canonical log
- * explicitly and never creates operational records. Disposal captures
- * shutdown markers for live-adopted sessions, then awaits the backend's
- * `shutdown()`; a failure there warns instead of throwing — best-effort
- * reporting must not fail application teardown.
- */
 export class SessionTelemetryCoordinator {
-  /**
-   * Sessions adopted by THIS fiber and still live, for double-adoption
-   * protection and the teardown sweep of unmarked sessions;
-   * `session/disposed` marks and retires entries.
-   */
   #adopted = new Set()
-  /** Per session, the `turn:step` keys whose first chunk already shipped; rebuilt from the log on re-adoption. */
   #chunkSeen = new WeakMap()
   #ctx
   #backend
 
-  /**
-   * @param ctx - the composing backend's context; listeners bind to its fiber.
-   * @param backend - the backend receiving records; owned elsewhere, never disposed here beyond `shutdown()` forwarding.
-   * @param capture - follow live events ('live'), or wait for explicit canonical-log capture ('on-demand').
-   */
   constructor(ctx, backend, capture = 'live') {
     this.#ctx = ctx
     this.#backend = backend
@@ -105,16 +52,6 @@ export class SessionTelemetryCoordinator {
     }, 'telemetry capture')
   }
 
-  /**
-   * Project and hand over the canonical session-log suffix after the handoff
-   * cursor, optionally stopping at an inclusive sequence boundary. Redaction
-   * runs during this call, so an on-demand caller retains no copied records
-   * before requesting capture and uses the policy mounted at that time.
-   * Backend and policy failures remain contained per event and do not starve
-   * later events in the same replay.
-   * @param session - session whose current canonical-log prefix may be handed over.
-   * @param throughSeq - optional last sequence included in this capture.
-   */
   captureSession(session, throughSeq) {
     const cursor = handoffCursor.get(session) ?? session.firstLiveSeq - 1
     for (const event of session.events) {
@@ -126,35 +63,18 @@ export class SessionTelemetryCoordinator {
     }
   }
 
-  /**
-   * Adopt a session: replay its log THROUGH the projection from the handoff
-   * cursor, then rely on the firehose for everything after. When no cursor
-   * survived, replay starts at the session's construction boundary
-   * (`firstLiveSeq`), not seq 0: constructor seeds never publish on the
-   * firehose, and their content already left the process under another
-   * identity — the same id in a previous process (resume) or the parent's
-   * stream (fork, stitched by receivers via `session.seed_length`). Events
-   * at or below the start still feed the projection state (first-chunk
-   * tracking) without being re-handed, so a resumed fiber drops mid-step
-   * chunk continuations exactly like the fiber that saw the step begin. The
-   * cost, accepted with the capture contract's at-most-once stance: a resume no longer
-   * backfills records a previous process failed to deliver.
-   * @param session - the live session to adopt; a second adoption is a no-op.
-   */
   #adopt(session) {
     if (this.#adopted.has(session)) return
     this.#adopted.add(session)
     this.captureSession(session)
   }
 
-  /** Feed the chunk projection without handing off — the ≤cursor half of re-adoption. */
   #track(session, event) {
     if (event.type === 'assistant/chunk') {
       this.#seen(session).add(`${event.data.turn}:${event.data.step}`)
     }
   }
 
-  /** Project, redact, and hand one event to the backend. */
   #captureEvent(session, event) {
     if (event.type === 'assistant/chunk') {
       const key = `${event.data.turn}:${event.data.step}`
@@ -174,30 +94,19 @@ export class SessionTelemetryCoordinator {
     })
   }
 
-  /**
-   * Run the `session-telemetry/record` waterfall at capture time. The innermost `next`
-   * passes the record through unchanged — this package ships no rules; exported
-   * data is as clean as the listeners a deployment mounts. Callers run inside
-   * {@link #contain}, so a throwing rule withholds the record instead of
-   * reaching the loop (fail-closed). On-demand capture invokes this waterfall
-   * while reading the canonical session log, not when the event was appended.
-   */
   #redact(record) {
     return this.#ctx.waterfall('session-telemetry/record', record, () => record)
   }
 
-  /** Hand one redacted record to the backend, then advance its ledger cursor. */
   #deliver(session, pending) {
     this.#backend.emit(pending.record)
     if (pending.seq !== undefined) handoffCursor.set(session, pending.seq)
   }
 
-  /** Forward the turn-end boundary to the backend's optional flush hint. */
   #hintFlush(session) {
     if (this.#adopted.has(session)) this.#backend.flush?.()
   }
 
-  /** Relay one `agent/error` bus emission as an `agent-error` operational record. */
   #relayAgentError(agent, turn, step, error) {
     const detail = errorDetail(error)
     this.#deliver(agent.session, {
@@ -218,18 +127,12 @@ export class SessionTelemetryCoordinator {
     })
   }
 
-  /** Lazily create the per-session first-chunk tracking set. */
   #seen(session) {
     let set = this.#chunkSeen.get(session)
     if (!set) this.#chunkSeen.set(session, set = new Set())
     return set
   }
 
-  /**
-   * Run one capture-side step with its exception contained: cordis `emit`
-   * is stop-on-throw, so a throwing listener would starve every subscriber
-   * registered after this plugin — nothing from the backend may escape.
-   */
   #contain(step) {
     try {
       step()
@@ -239,10 +142,6 @@ export class SessionTelemetryCoordinator {
   }
 }
 
-/**
- * Build the per-session clean-exit marker: emitted at the session's own
- * disposal edge, or at coordinator dispose for sessions still alive then.
- */
 function shutdownRecord(session) {
   return {
     channel: 'ops',
@@ -253,7 +152,6 @@ function shutdownRecord(session) {
   }
 }
 
-/** Map an event's own outcome flag to the pre-baked alerting severity. */
 function severityOf(event) {
   switch (event.type) {
     case 'tool/result':
@@ -265,13 +163,11 @@ function severityOf(event) {
   }
 }
 
-/** Normalize the live bus's arbitrary thrown value into the stable operational-record shape. */
 function errorDetail(error) {
   const normalized = error instanceof Error ? error : new Error(String(error))
   return { name: normalized.name, message: normalized.message }
 }
 
-/** Build the minimal identity attributes: envelope plus self-contained header facts. */
 function identityOf(session, event) {
   const attributes = {
     'session.id': String(session.id),

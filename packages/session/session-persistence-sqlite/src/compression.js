@@ -1,10 +1,3 @@
-/**
- * Fixed physical-record compression for SQLite. Schema-owned functions
- * encode logical events and decode tagged rows before persistence consumers
- * observe them.
- * @module @freddie/freddie-session-persistence-sqlite/compression
- */
-
 import { TextDecoder } from 'node:util'
 import { constants, zstdCompressSync, zstdDecompressSync } from 'node:zlib'
 import {
@@ -12,7 +5,6 @@ import {
   MAX_PACKED_DATA_BYTES,
 } from './codec.js'
 
-/** Small values stay as SQLite text to avoid per-frame CPU and byte overhead. */
 export const ZSTD_DATA_THRESHOLD_BYTES = 4_096
 
 const MAX_SAFE_INTEGER = BigInt(Number.MAX_SAFE_INTEGER)
@@ -27,11 +19,6 @@ function isChunkTag(value) {
   return CHUNK_TAGS.includes(value)
 }
 
-/**
- * Decode one physical SQLite row into its complete logical event span.
- * @param row - detached SQLite event row.
- * @returns every logical event represented by the row.
- */
 export function decodeRow(row) {
   if (row.ignorable !== PACKED_ROW_SENTINEL) return [decodeScalarRow(row)]
   if (!isChunkTag(row.type)) {
@@ -48,11 +35,6 @@ export function decodeRow(row) {
   )
 }
 
-/**
- * Convert a storage record to SQLite column values.
- * @param record - scalar event or packed chunk record.
- * @returns column values for one physical insert.
- */
 export function bindRecord(record) {
   if (isChunkRow(record)) {
     return {
@@ -196,14 +178,6 @@ function decodeScalarRow(row) {
   }
 }
 
-/**
- * Validate and flatten physical rows into their logical prefix. A malformed
- * row or logical gap is committed corruption when a later valid turn end
- * exists; otherwise it starts a removable physical tail.
- * @param rows - physical rows ordered by their first logical sequence.
- * @param base - logical sequence expected from the first selected row.
- * @returns the contiguous logical prefix and optional physical deletion base.
- */
 export function scanRows(rows, base = 0) {
   let lastTurnEndRow = -1
   for (let index = rows.length - 1; index >= 0; index -= 1) {

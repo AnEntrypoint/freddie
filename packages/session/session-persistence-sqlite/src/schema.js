@@ -1,27 +1,13 @@
-/**
- * SQLite schema ownership and durable-row validation.
- * @module @freddie/freddie-session-persistence-sqlite/schema
- */
-
 import { randomUUID } from 'node:crypto'
 import { isAbsolute } from 'node:path'
 import { SessionId } from '@freddie/freddie-session'
 import { sql } from './sql.js'
 
-/** Current physical-record schema with packed and compressed event rows. */
 export const SCHEMA_VERSION = 17
-/** Application id reserved for Freddie SQLite session databases. */
 export const SESSION_PERSISTENCE_SQLITE_APPLICATION_ID = 0x44534850
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
 
-/**
- * Open and validate a SQLite session database.
- * @param createClient - libsql-plugkit-client's createClient function.
- * @param path - SQLite path, including `:memory:`.
- * @returns the configured database client.
- * @throws when connection settings, schema ownership, or SQLite setup cannot be validated.
- */
 export async function openDatabase(createClient, path) {
   const client = createClient({ url: path === ':memory:' ? ':memory:' : `file:${path}` })
   try {
@@ -37,7 +23,7 @@ export async function openDatabase(createClient, path) {
 async function configureConnectionSecurity(client, path) {
   await client.execute(sql('trusted-schema-off'))
   const trustedSchema = integerField(await scalarRow(client, 'select-trusted-schema'), 'trusted_schema')
-  /* v8 ignore next 3 -- supported SQLite versions return the fixed setting. */
+  /* v8 ignore next 3 */
   if (trustedSchema !== 0) {
     throw new Error(`session database at "${path}" retained trusted_schema=${trustedSchema}, expected 0`)
   }
@@ -70,9 +56,9 @@ async function configureDatabase(createClient, client, path) {
     await client.execute(sql('commit'))
     began = false
   } catch (error) {
-    /* v8 ignore else -- a failed begin leaves no transaction to roll back. */
+    /* v8 ignore else */
     if (began) {
-      /* v8 ignore next 5 -- retain the original ownership failure if rollback fails too. */
+      /* v8 ignore next 5 */
       try {
         await client.execute(sql('rollback'))
       } catch {
@@ -89,16 +75,6 @@ async function initializeDatabase(client) {
   await client.execute(sql('set-user-version-17'))
 }
 
-/**
- * Execute a fixed, package-owned SQL resource containing multiple
- * `;`-terminated statements. libsql-plugkit-client's execute() runs only the
- * first statement in a multi-statement string (live-verified this session),
- * unlike Node SQLite's db.exec(); this closed statement splitter covers only
- * `schema.sql`, which contains no semicolons inside string literals or
- * identifiers.
- * @param client - open libsql-plugkit-client connection.
- * @param script - `;`-separated SQL statements.
- */
 async function execMulti(client, script) {
   for (const statement of script.split(';').map(part => part.trim()).filter(part => part.length > 0)) {
     await client.execute(statement)
@@ -145,13 +121,6 @@ async function validateRequiredSchema(createClient, client, path) {
   }
 }
 
-/**
- * Recheck schema ownership inside the caller's mutation transaction.
- * @param createClient - libsql-plugkit-client's createClient function, used to validate the canonical schema.
- * @param client - open owned database client with an active immediate transaction.
- * @param path - database location used in ownership diagnostics.
- * @throws when another writer changed the application identity, schema, or version.
- */
 export async function validateSchemaForMutation(createClient, client, path) {
   const version = integerField(await scalarRow(client, 'select-user-version'), 'user_version')
   const applicationId = integerField(await scalarRow(client, 'select-application-id'), 'application_id')
@@ -166,11 +135,6 @@ export async function validateSchemaForMutation(createClient, client, path) {
   }
 }
 
-/**
- * Decode and validate one durable session row.
- * @param value - row array returned by libsql-plugkit-client, with named columns attached.
- * @returns a validated session row.
- */
 export function decodeSessionRow(value) {
   const row = record(rowObject(value, SESSION_COLUMNS), 'stored session metadata')
   const id = nonemptyStringField(row, 'id')
@@ -204,11 +168,6 @@ const SESSION_COLUMNS = [
 
 const EVENT_COLUMNS = ['seq', 'type', 'time', 'data', 'source_event_seqs', 'surface_op', 'ignorable']
 
-/**
- * Decode and validate one durable event row before JSON interpretation.
- * @param value - row array returned by libsql-plugkit-client, with named columns attached.
- * @returns a validated physical event row.
- */
 export function decodeEventRow(value) {
   const row = record(rowObject(value, EVENT_COLUMNS), 'stored event')
   const ignorable = nullableSafeIntegerField(row, 'ignorable')
@@ -226,11 +185,6 @@ export function decodeEventRow(value) {
   }
 }
 
-/**
- * Validate the singleton identity read from durable storage.
- * @param value - row array returned by libsql-plugkit-client.
- * @returns the UUID store identity.
- */
 export function decodeStoreIdentity(value) {
   const row = rowObject(value, ['store_id'])
   const identity = nonemptyStringField(row, 'store_id')
@@ -238,11 +192,6 @@ export function decodeStoreIdentity(value) {
   return identity
 }
 
-/**
- * Reconstruct an immutable session header from a validated metadata row.
- * @param row - validated stored metadata row.
- * @returns the session header.
- */
 export function rowToMeta(row) {
   return {
     version: row.version,
@@ -257,26 +206,12 @@ export function rowToMeta(row) {
   }
 }
 
-/**
- * Fetch a single scalar-column row from a bare SQL resource and decode a blob
- * marker back into a Buffer where present.
- * @param client - open libsql-plugkit-client connection.
- * @param resource - closed SQL resource name selecting exactly one row.
- * @returns the row as a plain object keyed by column name, or undefined.
- */
 async function scalarRow(client, resource) {
   const { rows, columns } = await client.execute(sql(resource))
   if (rows.length === 0) return undefined
   return rowObject(rows[0], columns)
 }
 
-/**
- * Attach column names to a libsql-plugkit-client row array, decoding any
- * `{"$blob": base64}` marker into a Node Buffer.
- * @param value - the row as returned by execute() (array, indexable by column name too).
- * @param columns - ordered column names for this row shape.
- * @returns a plain object keyed by column name.
- */
 function rowObject(value, columns) {
   if (value === undefined) return undefined
   const out = {}

@@ -1,9 +1,3 @@
-/**
- * Shared route, framing, timeout, assembly, and validation policy for
- * model-backed session-title providers.
- * @module @freddie/freddie-session-title-llm
- */
-
 import z from '@freddie/schemastery'
 import { createUserMessage, BlockAssembler, deepFreeze } from '@freddie/freddie-llm'
 import { deadline, MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
@@ -12,17 +6,10 @@ import {
   SessionTitleProviderId,
 } from '@freddie/freddie-session-title'
 
-/** Capability-owned timeout reason code for auxiliary title requests. */
 export const SESSION_TITLE_TIMEOUT_CODE = 'SESSION_TITLE_TIMEOUT'
 
-/**
- * Provider-outage copy that must never become a durable session title.
- * Gateways sometimes stream this sentence as a successful chat completion
- * instead of an HTTP/SSE error; accepting it pins the sidebar to the outage.
- */
 const PROVIDER_OUTAGE_TITLE = 'All upstream providers are currently unavailable. Please retry shortly.'
 
-/** Shared Loader field schemas with no library defaults. */
 export const SessionTitleLlmConfigFields = {
   targetWords: z.number().step(1).min(1).required(),
   maxInputBytes: z.number().step(1).min(1).required(),
@@ -32,10 +19,8 @@ export const SessionTitleLlmConfigFields = {
   model: z.string(),
 }
 
-/** Shared Loader schema with no library defaults. */
 export const SessionTitleLlmConfigSchema = z.object(SessionTitleLlmConfigFields)
 
-/** Complete configuration key set for direct construction validation. */
 const CONFIG_KEYS = new Set([
   'targetWords',
   'maxInputBytes',
@@ -45,18 +30,12 @@ const CONFIG_KEYS = new Set([
   'model',
 ])
 
-/** Validate one positive integer limit. */
 function assertPositiveInteger(name, value) {
   if (!Number.isInteger(value) || value <= 0) {
     throw new Error(`session-title-llm: ${name} must be a positive integer`)
   }
 }
 
-/**
- * Validate and detach required model-provider configuration.
- * @param config - untrusted plugin configuration.
- * @returns immutable policy with optional route absence preserved.
- */
 export function resolveSessionTitleLlmConfig(config) {
   const candidate = config
   if (candidate === null || typeof candidate !== 'object') {
@@ -86,14 +65,6 @@ export function resolveSessionTitleLlmConfig(config) {
   return deepFreeze({ ...value })
 }
 
-/**
- * Register one model-backed provider through the shared configuration and call policy.
- * @param ctx - context exposing the title and LLM services.
- * @param config - untrusted required deployment policy.
- * @param id - stable plugin id recorded with generated titles.
- * @param automatic - provider-owned automatic generation cadence.
- * @param selectMessages - exact source-message selection for one revision.
- */
 export function registerSessionTitleLlmProvider(
   ctx,
   config,
@@ -112,7 +83,6 @@ export function registerSessionTitleLlmProvider(
   })
 }
 
-/** Resolve the explicit pair or the exact route captured from `request/header`. */
 function resolveRoute(config, request) {
   if (config.provider !== undefined && config.model !== undefined) {
     return { provider: config.provider, model: config.model }
@@ -123,7 +93,6 @@ function resolveRoute(config, request) {
   return request.route
 }
 
-/** Stable language-aware system instruction shared by both provider plugins. */
 function systemPrompt(config) {
   return [
     'Create a concise title for an AI coding-assistant session from the supplied human messages.',
@@ -133,12 +102,10 @@ function systemPrompt(config) {
   ].join('\n')
 }
 
-/** Frame exact messages as JSON so user text cannot break structural delimiters. */
 function frameMessages(messages) {
   return `Generate the session title from this JSON array of human messages:\n${JSON.stringify(messages)}`
 }
 
-/** Translate terminal finish reasons into an auxiliary-call failure. */
 function finishError(finish) {
   switch (finish.kind) {
     case 'stop':
@@ -158,15 +125,6 @@ function finishError(finish) {
   }
 }
 
-/**
- * Generate one title through the shared auxiliary LLM call.
- * @param ctx - context exposing the registered LLM service.
- * @param config - validated model-provider policy.
- * @param request - service-owned session, route, message snapshot, and cancellation.
- * @param selectedMessages - exact provider-selected subset to frame and attribute.
- * @param titleProvider - registered title-provider identity recorded with the request.
- * @returns normalized non-empty title, exact source seqs, and used model route.
- */
 export async function generateSessionTitleWithLlm(
   ctx,
   config,

@@ -1,10 +1,3 @@
-/**
- * Zstandard frame primitives for the JSONL persistence backend. The backend
- * owns a concatenated-frame container so it can append and recover batches
- * without exposing compression mechanics through the persistence seam.
- * @module freddie-session-persistence-jsonl/zstd
- */
-
 import {
   constants, zstdCompress, zstdDecompress,
 } from 'node:zlib'
@@ -22,13 +15,6 @@ const INCOMPLETE_FRAME_OPTIONS = {
   finishFlush: constants.ZSTD_e_flush,
 }
 
-/**
- * Locate complete frames without decompressing their blocks. Invalid complete
- * structure rejects; EOF inside the final frame returns its start for repair.
- * @param buffer - complete bytes currently present in the session artifact.
- * @param maxFrames - optional complete-frame limit for metadata-only readers.
- * @returns complete frame ranges and an optional incomplete-final-frame start.
- */
 export function scanZstdFrames(buffer, maxFrames = Number.POSITIVE_INFINITY) {
   const frames = []
   let offset = 0
@@ -87,40 +73,18 @@ export function scanZstdFrames(buffer, maxFrames = Number.POSITIVE_INFINITY) {
   return { frames }
 }
 
-/**
- * Compress one independently decodable, checksummed Zstandard frame.
- * @param input - JSONL bytes for a header or durable event batch.
- * @returns the complete encoded frame.
- */
 export async function compressZstdFrame(input) {
   return zstdCompressAsync(input, CHECKSUM_OPTIONS)
 }
 
-/**
- * Decompress one complete frame and validate its checksum.
- * @param input - one structurally complete Zstandard frame.
- * @returns the frame plaintext.
- */
 export async function decompressZstdFrame(input) {
   return zstdDecompressAsync(input)
 }
 
-/**
- * Select the shared private decoder when the running Node 22/24/26 shape is
- * compatible, otherwise preserve correctness with the public one-shot API.
- * @returns a synchronous decoder with an implementation-independent lifecycle.
- */
 export function createZstdFrameDecoder() {
   return NodePrivateZstdFrameDecoder.create() ?? new PublicZstdFrameDecoder()
 }
 
-/**
- * Recover available plaintext from a structurally incomplete final frame.
- * `ZSTD_e_flush` deliberately suppresses final-frame and checksum completion;
- * callers must establish the torn frame boundary before using this helper.
- * @param input - available bytes from a known incomplete Zstandard frame.
- * @returns plaintext produced from the available input.
- */
 export async function decompressZstdPrefix(input) {
   return zstdDecompressAsync(input, INCOMPLETE_FRAME_OPTIONS)
 }

@@ -1,11 +1,3 @@
-/**
- * JSONL durable session-persistence backend. It stores a header and contiguous
- * events in one append-only file per session, and delegates orchestration to
- * {@link PersistenceCoordinator}. Its side-effect-free locator returns the
- * absolute per-session log target before materialization.
- * @module @freddie/freddie-session-persistence-jsonl
- */
-
 import z from '@freddie/schemastery'
 import { readdirSync } from 'node:fs'
 import { open, mkdir, readFile, readdir, realpath, link, rm, stat, truncate } from 'node:fs/promises'
@@ -30,27 +22,19 @@ export { logSuffix } from './format.js'
 
 const DEFAULT_PACK_CHUNKS = true
 const DEFAULT_COMPRESSION = 'zstd'
-/**
- * Internal scheduling constant, not deployment configuration: balance
- * frame-boundary event-loop yields against `setImmediate` overhead. One frame
- * remains an indivisible synchronous decode.
- */
 const ZSTD_DECODE_YIELD_INTERVAL_MS = 500
 
-/** Assert that the independently decodable first frame contains only the header record. */
 function assertZstdHeaderFrame(plaintext) {
   if (plaintext.length === 0 || plaintext.indexOf(0x0A) !== plaintext.length - 1) {
     throw new Error('corrupt Zstandard session log: first frame is not exactly one header line')
   }
 }
 
-/** Loader schema for the JSONL artifact's physical encoding. */
 export const JsonlCompressionSchema = z.union([
   z.const('zstd'),
   z.const('none'),
 ]).default(DEFAULT_COMPRESSION)
 
-/** Build the source-qualified revision shared by full and lightweight reads. */
 function fileRevision(identity) {
   return SessionPersistenceRevision([
     identity.dev,
@@ -61,17 +45,10 @@ function fileRevision(identity) {
   ].join(':'))
 }
 
-/** Whether a filesystem error means absence; every non-ENOENT failure must surface. */
 function isENOENT(error) {
   return error?.code === 'ENOENT'
 }
 
-/**
- * The JSONL persistence backend. Load as a plugin; it registers as
- * `ctx.sessionPersistence` and (via the coordinator) installs the write-path
- * listeners. Its torn-tail marker carries the byte offset and any events
- * recovered from an incomplete final Zstandard frame.
- */
 export class JsonlSessionPersistence extends SessionPersistence {
   supportsRawArtifacts = true
 
@@ -87,11 +64,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
       .default(DEFAULT_WRITE_BATCH_MAX_DELAY_MS),
   })
 
-  /**
-   * Backend label for coordinator diagnostics and effects. It shadows
-   * `Service.name` without changing the service key captured by the base
-   * constructor.
-   */
   name = 'session-persistence-jsonl'
 
   root
@@ -126,12 +98,10 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }, 'jsonlSessionPersistence.writerLock()')
   }
 
-  /** Path of the writer lock this process holds, or `undefined` before it claims one. */
   writerLockPath
 
   /* jscpd:ignore-start */
 
-  /** Resolve the absolute target path without touching the filesystem. */
   locate(meta) {
     return { kind: 'jsonl', path: logPath(this.root, meta.cwd, meta.id, this.compression) }
   }
@@ -162,7 +132,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
 
   /* jscpd:ignore-end */
 
-  /** Read a stored prefix by id across all project directories when cwd is unknown. */
   async loadStored(id, signal) {
     signal?.throwIfAborted()
     await this.ensureRootEncoding()
@@ -172,10 +141,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return this.readPrefix(path, id, signal)
   }
 
-  /**
-   * Read one log's stat-derived revision without loading its event bytes.
-   * Resolving an id with unknown cwd still scans the project directories.
-   */
   async readStoredRevision(id, signal) {
     signal?.throwIfAborted()
     await this.ensureRootEncoding()
@@ -193,19 +158,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /**
-   * Read a session's stored artifact text verbatim: the durable file bytes
-   * decoded from this backend's physical encoding (complete zstd frames
-   * concatenated, or UTF-8 plaintext). The content is the exact JSONL text the
-   * backend wrote — never a reconstruction from parsed events — so packed-
-   * chunk rows, key order, and line breaks survive byte-for-byte. A torn
-   * final frame is omitted, matching the committed-prefix semantics of every
-   * other read.
-   * @param id - the persisted session to read.
-   * @param signal - optional cancellation for the stat/read/decode work.
-   * @returns the raw artifact text plus the header parsed from its own first
-   * line, or `undefined` when the session has no stored artifact.
-   */
   async readRaw(id, signal) {
     signal?.throwIfAborted()
     await this.ensureRootEncoding()
@@ -234,14 +186,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return { meta, filename: 'session.jsonl', content }
   }
 
-  /**
-   * Read a file's bytes under a revision-stable loop: a writer appending
-   * between stat and readFile would yield a torn physical file, so retry
-   * while the stat revision changes.
-   * @param path - the artifact file to read.
-   * @param signal - optional cancellation for the stat/read work.
-   * @returns the stable bytes and the revision that matched both stats.
-   */
   async readStableFile(path, signal) {
     for (;;) {
       signal?.throwIfAborted()
@@ -253,10 +197,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /**
-   * Read a stored prefix and convert torn-tail state to the opaque marker the
-   * coordinator can round-trip without knowing the physical encoding.
-   */
   async readPrefix(path, expectedId, signal) {
     const { buffer, revision } = await this.readStableFile(path, signal)
     let prefix
@@ -287,7 +227,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return { ...prefix, revision }
   }
 
-  /** Decode complete frames and retain complete JSONL records from a torn final frame. */
   async readZstdPrefix(buffer, signal) {
     signal?.throwIfAborted()
     const { frames, tornStart } = scanZstdFrames(buffer)
@@ -301,7 +240,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
       signal?.throwIfAborted()
       const headerFrame = decodedFrames.next()
       signal?.throwIfAborted()
-      /* v8 ignore next -- a non-empty structural frame list makes the decoder yield its first frame or throw. */
+      /* v8 ignore next */
       if (headerFrame.done) throw new Error('empty or header-less Zstandard session log')
       assertZstdHeaderFrame(headerFrame.value)
       const scanner = new SessionLogScanner(headerFrame.value)
@@ -332,7 +271,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
         signal?.throwIfAborted()
         recoveredPlaintext = await decompressZstdPrefix(buffer.subarray(tornStart))
       } catch {
-        /* v8 ignore next -- decoder failure plus concurrent abort is timing-dependent */
+        /* v8 ignore next */
         if (signal?.aborted) signal.throwIfAborted()
       }
       signal?.throwIfAborted()
@@ -348,7 +287,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
         },
       }
     } catch (error) {
-      /* v8 ignore next -- decoder failure plus concurrent abort is timing-dependent */
+      /* v8 ignore next */
       if (signal?.aborted) signal.throwIfAborted()
       throw error
     } finally {
@@ -356,7 +295,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /** Durably append a batch, lazily materializing the file when not yet present. */
   async appendBatch(meta, events, isMaterialized) {
     await this.ensureRootEncoding()
     if (isMaterialized) {
@@ -366,29 +304,16 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /**
-   * Make a crash repair durable: truncate a torn tail, restore complete events
-   * decoded from it, then append synthetic closers. Two fsync'd steps — the seam
-   * does not require this to be atomic.
-   */
   async commitRepair(meta, tornMarker, closers) {
     if (tornMarker !== undefined) await this.repair(meta, tornMarker.truncateTo)
     const repairedEvents = [...(tornMarker?.recoveredEvents ?? []), ...closers]
     if (repairedEvents.length > 0) await this.appendLines(meta, repairedEvents)
   }
 
-  /** List valid unique stored sessions' metadata (header line only — no full-log parse). */
   async list(signal) {
     return (await this.listArtifacts(signal)).map(artifact => artifact.header)
   }
 
-  /**
-   * List headers from another FREDDIE_HOME sessions root without claiming its
-   * writer lock. The owning process remains the sole writer; this process only
-   * reads header frames. Missing roots yield an empty list.
-   * @param root - absolute or cwd-relative extra sessions directory.
-   * @param signal - optional cancellation.
-   */
   async listForeign(root, signal) {
     signal?.throwIfAborted()
     const resolved = resolve(root)
@@ -396,7 +321,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return (await this.listArtifactsAt(resolved, signal)).map(artifact => artifact.header)
   }
 
-  /** List metadata plus a stat-derived identity for each append-only log. */
   async listSnapshots(signal) {
     const snapshots = []
     for (const artifact of await this.listArtifacts(signal)) {
@@ -424,10 +348,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return this.listArtifactsAt(this.root, signal)
   }
 
-  /**
-   * Scan one sessions root for headers. Does not claim `.writer.lock`, so a
-   * foreign home's owning process can keep writing while this listing runs.
-   */
   async listArtifactsAt(root, signal) {
     signal?.throwIfAborted()
     const artifacts = []
@@ -471,14 +391,13 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return artifacts
   }
 
-  /** Atomically write the header line + first batch (temp-write, fsync, publish). */
   async materialize(meta, events) {
     const project = projectDir(this.root, meta.cwd)
     const dir = sessionDir(this.root, meta.cwd, meta.id)
     const finalPath = logPath(this.root, meta.cwd, meta.id, this.compression)
     await this.rejectOppositeArtifact(meta.cwd, meta.id)
     const content = await this.encodeMaterialization(meta, events)
-    /* v8 ignore next -- native Windows coverage exercises this platform dispatch; Linux covers the POSIX peer */
+    /* v8 ignore next */
     if (process.platform === 'win32') {
       await this.materializeWin32(project, dir, finalPath, meta.id, content)
     } else {
@@ -486,7 +405,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /* v8 ignore start -- Windows uses the Win32 durable-publish path; POSIX coverage exercises this peer. */
+  /* v8 ignore start */
   async materializePosix(project, dir, finalPath, id, content) {
     await mkdir(this.root, { recursive: true, mode: 0o700 })
     await this.syncDirPosix(dirname(this.root))
@@ -501,19 +420,19 @@ export class JsonlSessionPersistence extends SessionPersistence {
       await link(tmp, finalPath)
       linked = true
     } finally {
-      /* v8 ignore next -- link failure is the TOCTOU/IO race guarded above; not reachable in test */
+      /* v8 ignore next */
       if (!linked) await rm(tmp, { force: true })
     }
     await this.syncDirPosix(dir)
     try {
       await rm(tmp, { force: true })
     } catch {
-      /* v8 ignore next -- redundant temp link; publish already durable, rm failure is an unreachable IO edge */
+      /* v8 ignore next */
     }
   }
   /* v8 ignore stop */
 
-  /* v8 ignore start -- native Windows coverage exercises this integration path */
+  /* v8 ignore start */
   async materializeWin32(project, dir, finalPath, id, content) {
     await ensureDurableDirectoryWin32(this.root)
     await ensureDurableDirectoryWin32(project)
@@ -530,7 +449,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
   /* v8 ignore stop */
 
   async rejectExistingLog(finalPath, id) {
-    /* v8 ignore next 3 -- createCore guards collisions before materialize; this is a TOCTOU backstop */
+    /* v8 ignore next 3 */
     if (await this.exists(finalPath)) {
       throw new Error(`refusing to materialize "${id}": a log already exists on disk (load/resume it instead)`)
     }
@@ -548,7 +467,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return tmp
   }
 
-  /** Encode the header and first batch without combining their frame boundaries. */
   async encodeMaterialization(meta, events) {
     const header = JSON.stringify(toHeaderLine(meta)) + '\n'
     const body = eventLines(events, this.packChunks) + '\n'
@@ -558,18 +476,12 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return Buffer.concat([headerFrame, eventFrame])
   }
 
-  /** Encode one durable append batch in the configured physical representation. */
   async encodeEventBatch(events) {
     const body = eventLines(events, this.packChunks) + '\n'
     return this.compression === 'zstd' ? compressZstdFrame(body) : body
   }
 
-  /**
-   * fsync a POSIX directory so a just-created/renamed entry is crash-durable.
-   * @name JsonlSessionPersistence#syncDirPosix
-   * @function
-   */
-  /* v8 ignore start -- Windows uses write-through namespace operations; POSIX coverage exercises directory fsync. */
+  /* v8 ignore start */
   async syncDirPosix(dir) {
     const handle = await open(dir, 'r')
     try {
@@ -580,11 +492,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
   }
   /* v8 ignore stop */
 
-  /**
-   * Append and fsync event lines. On a partial write or sync failure, restore the
-   * previous size before rethrowing because the unchanged cursor will retry the
-   * batch; leaving partial bytes would create duplicate sequence numbers.
-   */
   async appendLines(meta, events) {
     const content = await this.encodeEventBatch(events)
     const path = logPath(this.root, meta.cwd, meta.id, this.compression)
@@ -625,7 +532,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /** Truncate the log file to `offset` bytes and fsync (discard the crash tail). */
   async repair(meta, offset) {
     const path = logPath(this.root, meta.cwd, meta.id, this.compression)
     await truncate(path, offset)
@@ -637,11 +543,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /**
-   * Read the first newline-terminated line of a file without loading the whole
-   * file. Returns undefined if the file is empty or has no complete first line.
-   * Reads in bounded chunks so a huge log costs only the header read.
-   */
   async readFirstLine(path, signal) {
     signal?.throwIfAborted()
     const handle = await open(path, 'r')
@@ -668,7 +569,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /** Read and validate only the independently compressed header frame. */
   async readFirstZstdLine(path, signal) {
     signal?.throwIfAborted()
     const handle = await open(path, 'r')
@@ -692,7 +592,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
           signal?.throwIfAborted()
           plaintext = await decompressZstdFrame(content.subarray(first.start, first.end))
         } catch (error) {
-          /* v8 ignore next -- decoder failure plus concurrent abort is timing-dependent */
+          /* v8 ignore next */
           if (signal?.aborted) signal.throwIfAborted()
           throw new Error('corrupt Zstandard session log: header frame failed validation', { cause: error })
         }
@@ -705,7 +605,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /** Find the unique physical log for an id across every project directory. */
   async findLog(id, signal) {
     const matches = []
     for (const project of await this.listProjectDirs(signal)) {
@@ -729,7 +628,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return matches[0]
   }
 
-  /** Require an existing configured root to be a readable directory. */
   assertUsableRoot() {
     try {
       readdirSync(this.root)
@@ -739,7 +637,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /** Reject metadata that does not identify the selected physical log. */
   async assertStoredIdentity(path, meta, expectedId, signal) {
     return this.assertStoredIdentityAt(this.root, path, meta, expectedId, signal)
   }
@@ -761,11 +658,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     signal?.throwIfAborted()
   }
 
-  /**
-   * Whether two path spellings resolve to the same physical file. This admits
-   * case aliases on case-insensitive filesystems without weakening identity
-   * checks on case-sensitive stores.
-   */
   async sameFile(path, expectedPath, signal) {
     signal?.throwIfAborted()
     try {
@@ -774,14 +666,13 @@ export class JsonlSessionPersistence extends SessionPersistence {
       return actual === expected
     } catch (error) {
       signal?.throwIfAborted()
-      /* v8 ignore else -- non-ENOENT realpath failures require an external permission or I/O fault */
+      /* v8 ignore else */
       if (isENOENT(error)) return false
-      /* v8 ignore next -- non-ENOENT realpath failures are external I/O faults, propagated unchanged */
+      /* v8 ignore next */
       throw error
     }
   }
 
-  /** The human-readable project directories under the configured root. */
   async listProjectDirs(signal) {
     return this.listProjectDirsAt(this.root, signal)
   }
@@ -798,7 +689,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /** List session-owned directories and reject the obsolete flat-file layout. */
   async listSessionDirs(project, signal) {
     signal?.throwIfAborted()
     const entries = await readdir(project, { withFileTypes: true })
@@ -809,7 +699,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return entries.filter(entry => entry.isDirectory()).map(entry => join(project, entry.name))
   }
 
-  /** Reject a root that already belongs to the other physical encoding. */
   ensureRootEncoding() {
     this.rootEncodingCheck ??= this.checkRootEncoding()
     return this.rootEncodingCheck
@@ -825,21 +714,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /**
-   * Take an exclusive advisory lock on this root, so only one process appends
-   * to its session logs.
-   *
-   * Every log is opened `'a'` with no exclusivity, and each writer carries its
-   * own in-memory seq counter. Two processes sharing a root therefore interleave
-   * appends and assign the same seq numbers to different events, which
-   * `SessionLogScanner` rejects as `seq gap in committed region` — refusing the
-   * whole session, including the events written before the collision. That is
-   * unrecoverable without hand-repair, so it is worth failing the second process
-   * loudly at startup instead.
-   *
-   * A lock whose recorded pid is no longer running is stale (a crash or a kill
-   * leaves the file behind) and is reclaimed rather than treated as a conflict.
-   */
   async claimWriterLock() {
     const lockPath = join(this.root, '.writer.lock')
     const record = () => JSON.stringify({ pid: process.pid, since: Date.now() })
@@ -869,7 +743,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     throw new Error(`could not claim the session-store writer lock at "${lockPath}"`)
   }
 
-  /** Read a lock record, or `undefined` when it is missing or not parseable. */
   async readWriterLock(lockPath) {
     try {
       const parsed = JSON.parse(await readFile(lockPath, 'utf8'))
@@ -879,7 +752,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /** Whether a pid is still running. Signal 0 checks liveness without delivering. */
   processAlive(pid) {
     try {
       process.kill(pid, 0)
@@ -930,17 +802,17 @@ export class JsonlSessionPersistence extends SessionPersistence {
       await handle.close()
       return true
     } catch (error) {
-      /* v8 ignore else -- Windows reports file-valued parents as ENOENT; POSIX covers direct ENOTDIR. */
+      /* v8 ignore else */
       if (isENOENT(error)) {
         await this.assertLogParentAllowsAbsence(path)
         return false
       }
-      /* v8 ignore next -- Windows repairs ENOTDIR from ENOENT above; POSIX covers direct ENOTDIR. */
+      /* v8 ignore next */
       throw error
     }
   }
 
-  /* v8 ignore start -- native Windows coverage exercises this repair; POSIX open reports ENOTDIR before this point. */
+  /* v8 ignore start */
   async assertLogParentAllowsAbsence(path) {
     try {
       const parent = dirname(path)

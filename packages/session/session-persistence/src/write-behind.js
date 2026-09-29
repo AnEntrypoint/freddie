@@ -1,14 +1,3 @@
-/**
- * Bounded per-session write batching for the shared persistence coordinator.
- * @module @freddie/freddie-session-persistence/write-behind
- */
-
-/** Dependencies and scheduling policy for one live session's write controller. */
-
-/**
- * Owns one live session's pending events, fixed batching deadline, active write,
- * failure retention, and explicit quiescence barrier.
- */
 export class SessionWriteBehind {
   pending = []
   timer
@@ -17,23 +6,14 @@ export class SessionWriteBehind {
   deadlineExpired = false
   automaticPaused = false
 
-  /**
-   * @param options - fixed scheduling policy and durable batch sink.
-   */
   constructor(options) {
     this.options = options
   }
 
-  /** Whether this controller owns queued events or an active durable write. */
   get hasWork() {
     return this.pending.length > 0 || this.active !== undefined
   }
 
-  /**
-   * Copy one event into the persistence-owned queue and start a fixed deadline
-   * when the automatic path is idle.
-   * @param event - frozen live event to retain independently of its producer.
-   */
   enqueue(event) {
     const wasEmpty = this.pending.length === 0
     this.pending.push(structuredClone(event))
@@ -47,11 +27,6 @@ export class SessionWriteBehind {
     }
   }
 
-  /**
-   * Cancel the batching wait and durably drain through a quiescent point.
-   * Concurrent callers join the same barrier.
-   * @returns a promise that rejects if the barrier's durable retry fails.
-   */
   flush() {
     if (this.barrier !== undefined) return this.barrier
     this.cancelTimer()
@@ -63,25 +38,21 @@ export class SessionWriteBehind {
     return barrier.promise
   }
 
-  /** Cancel the current automatic deadline without draining retained work. */
   cancelAutomaticWait() {
     this.cancelTimer()
     this.deadlineExpired = false
   }
 
-  /** Start the one fixed window for the current pending prefix. */
   armTimer() {
     this.timer = setTimeout(() => { this.onDeadline() }, this.options.maxDelayMs)
   }
 
-  /** Cancel any pending automatic deadline. */
   cancelTimer() {
     if (this.timer === undefined) return
     clearTimeout(this.timer)
     this.timer = undefined
   }
 
-  /** Start a background write now, or remember that an active write used the budget. */
   onDeadline() {
     this.timer = undefined
     if (this.active !== undefined) {
@@ -91,13 +62,11 @@ export class SessionWriteBehind {
     this.startBackground()
   }
 
-  /** Start one detached write whose failure is reported and retained. */
   startBackground() {
     const active = this.startWrite(true)
     void active.then(() => { this.continueAutomatic() }, () => {})
   }
 
-  /** Continue immediately after an over-budget active write, otherwise keep its timer. */
   continueAutomatic() {
     if (this.barrier !== undefined || this.pending.length === 0) return
     if (this.deadlineExpired) {
@@ -106,7 +75,6 @@ export class SessionWriteBehind {
     }
   }
 
-  /** Await overlapping work, drain to quiescence, and settle the shared barrier. */
   async drainBarrier(resolve, reject) {
     try {
       const overlapping = this.active
@@ -124,7 +92,6 @@ export class SessionWriteBehind {
     resolve()
   }
 
-  /** Start one stable pending prefix, retaining it in order if durability fails. */
   startWrite(background) {
     const batch = this.pending.splice(0)
     this.cancelTimer()

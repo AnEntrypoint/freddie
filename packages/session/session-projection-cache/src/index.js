@@ -1,17 +1,3 @@
-/**
- * Persisted projection cache (`ctx.sessionProjectionCache`): durable
- * checkpoints of every client-visible or explicitly persisted projection unit's state, one record per
- * session on the domain data form (`session_projcache` domain — the shipped
- * json backend lands it beside `workspace.json`). The cache is a fold
- * shortcut, never an authority: a row is possibly stale (its `seq`
- * says how stale) but never wrong, so every write path is fail-soft (a lost
- * write costs a longer tail replay on the next cold read) and a
- * `ver` mismatch discards the row instead of migrating it. Design
- * authority: the session-projection RFC
- * (.agents/notes/proposed/architecture/2026-07-27-session-projection-and-command-log.md).
- * @module @freddie/freddie-session-projection-cache
- */
-
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { snapshotJsonValue } from '@freddie/freddie-session'
@@ -19,26 +5,11 @@ import { projectionCacheDomainSpec } from './spec.js'
 
 export { projectionCacheDomainSpec } from './spec.js'
 
-/**
- * Plugin config. Both throttle triggers are deployment choices with no
- * universally correct value, so the composition states them explicitly
- * (cordis.yml); the two mandatory write points (`turn/end` and session
- * disposal) are policy, not tunables, and always fire.
- */
 export const Config = z.object({
   writeEveryEvents: z.natural().min(1).required(),
   writeIntervalMs: z.natural().min(1).required(),
 })
 
-/**
- * The persisted projection cache service. Opens the `session_projcache`
- * domain at init, checkpoints live sessions on a throttled write-behind
- * (count/interval triggers from {@link Config}) plus two mandatory points —
- * `turn/end` and session disposal (the live-to-cold moment) — and serves the
- * cold-read ladder: cached row, persistence `readFrom` tail, registry
- * `restore`, durable write-back. Every durable write is fail-soft: failures
- * log a warning and the cache self-heals on the next write or cold read.
- */
 export class SessionProjectionCache extends Service {
   static inject = ['storageDomain', 'sessionProjections', 'sessionPersistence', 'sessions']
 
@@ -52,7 +23,6 @@ export class SessionProjectionCache extends Service {
     this.config = config
   }
 
-  /** Open the domain and install the write-behind listeners. */
   async [Service.init]() {
     const domain = await this.ctx.storageDomain.open(projectionCacheDomainSpec)
     this.ctx.effect(() => () => domain.close(), 'sessionProjectionCache.domainClose')
@@ -60,34 +30,12 @@ export class SessionProjectionCache extends Service {
     this.installWritePath()
   }
 
-  /**
-   * The stored record for one session, accepted only when its bound log
-   * identity matches `expected`. A session id names a slot, not a lifecycle:
-   * a recreated id or a persistence store swapped under a surviving cache
-   * must not let an old record seed state folded from an unrelated log.
-   * Synchronous from the domain's in-memory state.
-   * @param id - the session whose record is read.
-   * @param expected - the log identity the caller holds (live or stored header).
-   * @returns the identity-matching record, or `undefined` (absent or unrelated).
-   */
   recordFor(id, expected) {
     const record = this.requireTable().get(id)
     if (record === undefined) return undefined
     return identityMatches(record.identity, expected) ? record : undefined
   }
 
-  /**
-   * The zero-I/O listing read: whole values viewed straight from the stored
-   * rows (version-matching keys only), each cut carried with its watermark
-   * so a client value store can seed under its higher-seq-wins rule — as
-   * stale as the last durable checkpoint but never wrong, and never from an
-   * unrelated log (the caller's header is the identity witness). Fresher
-   * paths (the history tail baseline, {@link coldSnapshot}) supersede these
-   * values whenever a session is actually opened.
-   * @param meta - the listed session's header (identity witness; no log read).
-   * @returns the cut (`asOfSeq` = lowest served-row watermark), or
-   *   `undefined` when no usable row exists for this lifecycle.
-   */
   cachedSnapshot(meta) {
     const record = this.recordFor(meta.id, identityOf(meta))
     if (record === undefined) return undefined
@@ -98,14 +46,6 @@ export class SessionProjectionCache extends Service {
     return { asOfSeq, values }
   }
 
-  /**
-   * Durably checkpoint one live session NOW (both mandatory points call
-   * this; tests and carriers may too). The registry cut is snapshotted at
-   * this boundary (states are live references), then the whole record is
-   * replaced. NOT fail-soft — callers on the fail-soft paths contain it.
-   * @param session - the live session to checkpoint.
-   * @returns resolution after durability and event emission.
-   */
   async write(session) {
     const rows = this.ctx.sessionProjections.checkpoint(session)
     this.markClean(session)
@@ -113,18 +53,6 @@ export class SessionProjectionCache extends Service {
     await this.put(session.id, identityOf(session.header), rows)
   }
 
-  /**
-   * Cold-read one persisted session's projections with zero full-log load:
-   * cached rows + a persistence `readFrom` tail from the registry's restore
-   * floor, refolded by the registry and written back (fail-soft) so the next
-   * cold read starts closer. A cache row invalidated by a shrunk log
-   * (crash-repair truncation) triggers one full re-read from seq 0 — the
-   * ladder's slow rung, still no crash. Rejects when the session has no
-   * persisted log (`not found` from the persistence seam).
-   * @param id - the persisted session to read.
-   * @param signal - optional cancellation for the persistence reads.
-   * @returns the snapshot cut at the stored log end.
-   */
   async coldSnapshot(id, signal) {
     const record = this.requireTable().get(id)
     const cached = record?.rows ?? {}
@@ -180,11 +108,6 @@ export class SessionProjectionCache extends Service {
     }, 'sessionProjectionCache.timers')
   }
 
-  /**
-   * One fail-soft durable checkpoint. Every caller has work by construction:
-   * the throttle triggers only fire dirty (markClean clears the timer with
-   * the counter) and the two mandatory points write unconditionally.
-   */
   async flushSoft(session, trigger) {
     try {
       await this.write(session)
@@ -193,7 +116,6 @@ export class SessionProjectionCache extends Service {
     }
   }
 
-  /** Reset one session's dirty bookkeeping (its checkpoint is being written). */
   markClean(session) {
     const state = this.dirty.get(session)
     if (state === undefined) return
@@ -204,7 +126,6 @@ export class SessionProjectionCache extends Service {
     }
   }
 
-  /** Replace one session's stored record with its log identity and a detached snapshot of `rows`. */
   async put(id, identity, rows) {
     const detached = snapshotJsonValue(rows)
     if (detached === undefined) {
@@ -213,7 +134,6 @@ export class SessionProjectionCache extends Service {
     await this.requireTable().put(id, { identity, rows: detached })
   }
 
-  /** Fail-soft {@link put}: cache writes must never fail their caller's read or event path. */
   async putSoft(id, identity, rows, what) {
     try {
       await this.put(id, identity, rows)
@@ -223,18 +143,16 @@ export class SessionProjectionCache extends Service {
   }
 
   requireTable() {
-    /* v8 ignore next -- Service.init assigns the table before the service becomes injectable */
+    /* v8 ignore next */
     if (this.table === undefined) throw new Error('session projection cache is not initialized')
     return this.table
   }
 }
 
-/** Project a header onto the identity fields a record is bound to. */
 function identityOf(header) {
   return { createdAt: header.createdAt, ...header.cwd === undefined ? {} : { cwd: header.cwd } }
 }
 
-/** Whether a stored record's bound identity names the caller's lifecycle. */
 function identityMatches(stored, expected) {
   return stored.createdAt === expected.createdAt && stored.cwd === expected.cwd
 }

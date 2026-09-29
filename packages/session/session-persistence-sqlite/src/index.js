@@ -1,9 +1,3 @@
-/**
- * Opt-in SQLite persistence provider. Logical sessions remain unchanged;
- * the physical backend packs eligible chunk runs into schema-17 rows.
- * @module @freddie/freddie-session-persistence-sqlite
- */
-
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import {
@@ -17,14 +11,9 @@ import { SqliteStore } from './store.js'
 
 export { SCHEMA_VERSION } from './schema.js'
 
-/** Default wait for another SQLite connection's write reservation. */
 export const DEFAULT_BUSY_TIMEOUT_MS = 5_000
-/** Largest busy timeout accepted by SQLite's signed millisecond interface. */
 export const MAX_BUSY_TIMEOUT_MS = 2_147_483_647
 
-/**
- * SQLite `SessionPersistence` provider with a schema-owned physical codec.
- */
 export class SqliteSessionPersistence extends SessionPersistence {
   supportsRawArtifacts = false
   name = 'session-persistence-sqlite'
@@ -61,12 +50,10 @@ export class SqliteSessionPersistence extends SessionPersistence {
     })
   }
 
-  /** Reject self-contained path and ownership failures without loading Node SQLite. */
   async [Service.init]() {
     await this.store.validatePath()
   }
 
-  /** SQLite has one database, not an independent per-session artifact. */
   locate(_meta) {
     return undefined
   }

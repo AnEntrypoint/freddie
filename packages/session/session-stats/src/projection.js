@@ -1,43 +1,11 @@
-/**
- * The `sessionStats` projection unit: a pure fold of step boundaries, stream
- * chunks, tool pairs, and assembled assistant messages into whole-log counts
- * and wall times.
- *
- * `step/end` — not `assistant/message` — is the counted step event because it
- * is the step lifecycle authority: the loop appends exactly one per entered
- * step, in a `finally`, so completed, failed, cancelled, and max-tokens steps
- * all land one. Counting assembled assistant messages instead would overcount
- * max-tokens usage-host messages (empty content, excluded from the surface)
- * and undercount cancelled steps (aborted before the message assembles).
- *
- * The wall-time folds mirror the client window fold field by field
- * (`deriveStats` in freddie-client-ui-conversation, that fold's whole-window
- * fallback role): model time is `step/start` → `assistant/message`, first
- * token is the first non-empty delta chunk and survives an in-step
- * `llm/retry`, decode spans first token → assembled message on steps that
- * also report output tokens, and tool time pairs `tool/call` → `tool/result`
- * by callId. A cancelled step assembles no message, so its partial stream
- * time stays uncounted in every time figure — matching the window, which
- * renders it as an untimed interrupted node.
- *
- * @module @freddie/freddie-session-stats/projection
- */
-
 import { isTokenDelta } from '@freddie/freddie-llm/message'
 
-/**
- * Provider-reported completion tokens, guarded the way the window fold guards
- * node usage.
- * @param usage - the assistant/message event's optional usage record.
- * @returns the output-token count, or null when unreported or invalid.
- */
 function usageOutputTokens(usage) {
   if (typeof usage !== 'object' || usage === null) return null
   const value = usage.outputTokens
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
 }
 
-/** The `sessionStats` unit registered on `ctx.sessionProjections` (exported for the unit spec). */
 export const sessionStatsProjectionDefinition = {
   key: 'sessionStats',
   stateVersion: 1,
