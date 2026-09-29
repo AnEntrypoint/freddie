@@ -1,5 +1,3 @@
-/** Durable DeepSeek attachment-to-file-id index. @module freddie-llm-deepseek/upload-index */
-
 import { createHash } from 'node:crypto'
 import { readFile, mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -10,12 +8,6 @@ import { DeepSeekFileId, DeepSeekFileScope } from './file-id.js'
 
 class InvalidUploadIndexError extends Error {}
 
-/**
- * Derive a non-secret stable index namespace without persisting or logging the API key.
- * @param baseURL - normalized provider endpoint namespace.
- * @param apiKey - resolved credential used only as hash input.
- * @returns branded SHA-256 namespace digest.
- */
 export function deepSeekFileScope(baseURL, apiKey) {
   const digest = createHash('sha256')
     .update(baseURL.replace(/\/+$/u, ''))
@@ -82,11 +74,7 @@ function reusable(record, now, refreshMarginMs) {
   return record.expiresAt - now > refreshMarginMs
 }
 
-/** Atomic local index shared by every DeepSeek session in this FREDDIE home. */
 export class DeepSeekUploadIndex {
-  /**
-   * @param path - explicit test path; omission uses `FREDDIE_HOME/llm-deepseek/files-v3.json`.
-   */
   constructor(path = join(resolveFreddieHome(), 'llm-deepseek', 'files-v3.json')) {
     this.path = path
   }
@@ -109,14 +97,6 @@ export class DeepSeekUploadIndex {
     })
   }
 
-  /**
-   * Read one reusable mapping.
-   * @param scope - endpoint/API-key namespace.
-   * @param variantId - complete request-image transformation identity.
-   * @param now - current Unix time in milliseconds.
-   * @param refreshMarginMs - remaining lifetime below which a mapping is not reused.
-   * @returns the mapping when it has enough lifetime remaining.
-   */
   async get(scope, variantId, now, refreshMarginMs) {
     const record = (await this.load()).records.find(candidate => (
       candidate.scope === scope && candidate.variantId === variantId
@@ -124,13 +104,6 @@ export class DeepSeekUploadIndex {
     return record !== undefined && reusable(record, now, refreshMarginMs) ? record : undefined
   }
 
-  /**
-   * Publish a completed upload unless another process already published a reusable mapping.
-   * @param candidate - completed remote upload.
-   * @param now - current Unix time in milliseconds.
-   * @param refreshMarginMs - minimum reusable remaining lifetime.
-   * @returns the winning record and whether the candidate entered the index.
-   */
   async commit(candidate, now, refreshMarginMs) {
     await mkdir(dirname(this.path), { recursive: true, mode: 0o700 })
     return withFileLock(this.path, async () => {
@@ -151,12 +124,6 @@ export class DeepSeekUploadIndex {
     })
   }
 
-  /**
-   * Remove one exact mapping without deleting a concurrently installed successor.
-   * @param scope - endpoint/API-key namespace.
-   * @param variantId - complete request-image transformation identity.
-   * @param fileId - exact rejected file id.
-   */
   async remove(scope, variantId, fileId) {
     await mkdir(dirname(this.path), { recursive: true, mode: 0o700 })
     await withFileLock(this.path, async () => {
@@ -168,10 +135,6 @@ export class DeepSeekUploadIndex {
     })
   }
 
-  /**
-   * Remove every local mapping for one remote namespace.
-   * @param scope - endpoint/API-key namespace.
-   */
   async clear(scope) {
     await mkdir(dirname(this.path), { recursive: true, mode: 0o700 })
     await withFileLock(this.path, async () => {

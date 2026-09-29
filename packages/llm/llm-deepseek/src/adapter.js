@@ -1,13 +1,3 @@
-/**
- * `DeepSeekAdapter`: fetch + SSE against a DeepSeek (OpenAI-compatible)
- * chat-completions endpoint, emitting harness StreamChunks. The adapter is
- * transport-only: connection facts arrive through a thunk resolved once per
- * operation and the bearer token through a per-request resolver, so the
- * registering plugin owns validation, layering, and credential policy.
- *
- * @module freddie-llm-deepseek/adapter
- */
-
 import { attributionHeaders, contentHasImage, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, offloadRequestImagesWithPolicy, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId } from '@freddie/freddie-llm'
 import { deadline, idleWatchdog, timeoutOf } from '@freddie/freddie-timeout'
 import { serializeRequest, serializeRequestWithImages } from './serialize.js'
@@ -15,37 +5,21 @@ import { DeepSeekFileStore } from './file-store.js'
 import { parseSse } from './sse.js'
 import { translate } from './translate.js'
 
-/** Default maximum idle interval while an adapter stream read is outstanding. */
 export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
-/** Default combined request/response context capacity. */
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000
-/** Default per-request output-token cap. */
 export const DEFAULT_MAX_TOKENS = 256_000
-/** Default bound on accumulated file-referenced image bytes per request. */
 export const DEFAULT_MAX_REQUEST_FILES_BYTES = 128 * 1024 * 1024
-/** Default bound on accumulated base64 image payload after Files API fallback. */
 export const DEFAULT_MAX_INLINE_REQUEST_IMAGE_BYTES = 20 * 1024 * 1024
-/** Provider request image-count limit. */
 export const DEFAULT_MAX_IMAGES_PER_REQUEST = 600
-/** Total-pixel budget matching DeepSeek's normal vision projection. */
 export const DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET = 640_000
-/** Total-pixel budget matching provider low-detail image input. */
 export const DEFAULT_LOW_DETAIL_IMAGE_PIXEL_BUDGET = 512 * 512
-/** Encoded-byte cap for one deterministic model-request image. */
 export const DEFAULT_REQUEST_IMAGE_MAX_BYTES = 1024 * 1024
-/** Deterministic raw-byte removal step. */
 export const DEFAULT_IMAGE_OFFLOAD_BYTE_QUANTUM = 64 * 1024 * 1024
-/** Deterministic base64-byte removal step after Files API fallback. */
 export const DEFAULT_INLINE_IMAGE_OFFLOAD_BYTE_QUANTUM = 10 * 1024 * 1024
-/** Deterministic image-count removal step. */
 export const DEFAULT_IMAGE_OFFLOAD_COUNT_QUANTUM = 20
-/** Default explicit lifetime for uploaded images. */
 export const DEFAULT_FILE_EXPIRY_SECONDS = 7 * 24 * 60 * 60
-/** Default proactive refresh window for indexed file ids. */
 export const DEFAULT_FILE_REFRESH_MARGIN_SECONDS = 60 * 60
-/** Default number of oldest harness-owned files removed on quota recovery. */
 export const DEFAULT_FILE_QUOTA_CLEANUP_BATCH = 100
-/** Default deadline for resolving one request image through the Files API. */
 export const DEFAULT_FILES_API_TIMEOUT_MS = 60_000
 const STREAM_IDLE_TIMEOUT_CODE = 'LLM_STREAM_IDLE_TIMEOUT'
 const FILES_API_TIMEOUT_CODE = 'DEEPSEEK_FILES_API_TIMEOUT'
@@ -63,7 +37,6 @@ const OFF_ONLY_REASONING_EFFORTS = [
   { id: OFF_REASONING_EFFORT, name: 'Off' },
 ]
 
-/** Marks a failed file-id resolution that may be retried as an inline request. */
 class FileResolutionFailure extends Error {
   constructor(cause) {
     super('DeepSeek Files API could not resolve a request image.', { cause })
@@ -78,12 +51,6 @@ function collectImageRefs(content, refs) {
   }
 }
 
-/**
- * Resolve the request-image budgets owned by one DeepSeek model route.
- * @param model - Advertised model route and its optional image overrides.
- * @returns Complete pixel and encoded-byte budgets.
- * @internal
- */
 export function resolveRequestImagePolicy(model) {
   let maxPixels
   if (model.imagePixelBudget !== undefined) maxPixels = model.imagePixelBudget
@@ -190,12 +157,6 @@ function requestId(headers) {
   return value === null || value.length === 0 ? undefined : ProviderRequestId(value)
 }
 
-/**
- * Map an HTTP status to a stable LlmError code.
- * @param status - status of a non-2xx provider response.
- * @param error - parsed provider error body, when available.
- * @returns the normalized harness error code.
- */
 export function httpErrorCode(status, error) {
   if (status === 401 || status === 403) return 'AUTH'
   if (status === 413) return 'INVALID_REQUEST'
@@ -210,13 +171,6 @@ export function httpErrorCode(status, error) {
   return `HTTP_${status}`
 }
 
-/**
- * The first real `LlmAdapter`. One instance serves every model name it was
- * registered under (the harness model name IS the wire model name).
- *
- * One stable signal reaches both initial fetch and body reads. Caller aborts
- * map to `ABORTED`; the configured per-read idle watchdog maps to `TIMEOUT`.
- */
 export class DeepSeekAdapter extends LlmAdapter {
   constructor(config) {
     super()

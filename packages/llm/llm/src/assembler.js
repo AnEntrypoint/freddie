@@ -1,27 +1,7 @@
-/**
- * Incremental chunk-to-message assembler. This is the single canonical assembly
- * algorithm used by the agent loop to build an assistant message from a chunk
- * stream while logging the raw chunks for replay fidelity.
- *
- * @module @freddie/freddie-llm/assembler
- */
-
 import { CallId } from './brand.js'
 import { assertNever } from './never.js'
 import { createMessage } from './message.js'
 
-/**
- * Incrementally assembles raw {@link import('./types.js').StreamChunk}s into complete
- * {@link import('./types.js').ContentBlock}s and a final assistant {@link import('./types.js').Message}.
- *
- * The agent loop feeds it while logging raw chunks for replay fidelity, then
- * reads `blocks()` / `message()` / `usage` / `finish` once the stream ends,
- * or `interruptedBlocks()` when cancellation cut the stream short.
- *
- * Tolerant of delta-only protocols (no block-start/end); deltas arriving for
- * an index already closed by `block-end` are ignored (malformed stream) so a
- * misbehaving adapter cannot grow memory or corrupt a completed block.
- */
 export class BlockAssembler {
   partials = new Map()
   order = []
@@ -29,10 +9,6 @@ export class BlockAssembler {
   _finish
   _replayState
 
-  /**
-   * Feed one chunk into the assembly state.
-   * @param chunk - the next raw chunk, in stream order.
-   */
   push(chunk) {
     switch (chunk.type) {
       case 'block-start': {
@@ -105,18 +81,12 @@ export class BlockAssembler {
     }
   }
 
-  /** Invariant accessor: every index in `order` has a partial. */
   mustGet(index) {
     const partial = this.partials.get(index)
     if (!partial) throw new Error(`BlockAssembler invariant violated: no partial for index ${index}`)
     return partial
   }
 
-  /**
-   * The one shared keep/drop decision over all seen blocks: max-token
-   * truncation drops tool calls that cannot be executed safely. Emitted blocks
-   * and replay metadata both derive from this result, so they cannot disagree.
-   */
   assembled() {
     const all = this.order.map(index => this.assemble(this.mustGet(index), index))
     const kept = this.finish.kind === 'max-tokens'
@@ -134,23 +104,10 @@ export class BlockAssembler {
     }
   }
 
-  /**
-   * Assemble all blocks seen so far, in stream order.
-   * @returns one block per seen index, except that max-token truncation drops
-   *   tool calls that cannot be executed safely; an open block assembles from
-   *   its accumulated deltas (an unknown block type never closed by `block-end` throws).
-   */
   blocks() {
     return this.assembled().blocks
   }
 
-  /**
-   * Assemble the prefix an interrupted stream can safely finalize: closed and
-   * open text/reasoning blocks with non-whitespace content, in stream order.
-   * Tool calls are omitted because interruption precedes dispatch; retaining
-   * one would require a fabricated result. Open unknown blocks are also omitted.
-   * @returns the kept blocks; empty when nothing streamed before the interruption.
-   */
   interruptedBlocks() {
     return this.order
       .map((index) => {
@@ -163,30 +120,18 @@ export class BlockAssembler {
         (block?.type === 'text' || block?.type === 'reasoning') && block.text.trim() !== '')
   }
 
-  /** Usage from the `usage` chunk; undefined until one arrives. */
   get usage() {
     return this._usage
   }
 
-  /** Finish reason from the `finish` chunk; `{kind: 'stop'}` when the stream ended without one. */
   get finish() {
     return this._finish ?? { kind: 'stop' }
   }
 
-  /**
-   * Replay metadata from the terminal finish chunk, if any, with per-block
-   * entries pruned in step with {@link blocks}. Undefined when the envelope's
-   * entries do not align with the emitted blocks.
-   */
   get replayState() {
     return this.assembled().replay
   }
 
-  /**
-   * The assembled assistant message.
-   * @param source - producer attribution for the assembled message.
-   * @returns a frozen assistant-role message over `blocks()` (same open-block assembly rules).
-   */
   message(source = { kind: 'plugin', plugin: 'freddie-llm/assembler' }) {
     return createMessage({ role: 'assistant', content: this.blocks(), source })
   }

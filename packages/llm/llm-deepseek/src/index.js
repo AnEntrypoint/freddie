@@ -1,16 +1,3 @@
-/**
- * Register a {@link DeepSeekAdapter} for the `deepseek-official` provider route on
- * `ctx.llm`, with connection facts resolved per request instead of frozen at
- * load: the plugin layers its `cordis.yml` entry config under the optional
- * `llm-deepseek` user-settings section (`ctx.settings`) and resolves the API
- * key through the optional credential seam (`ctx.credentials`), so a changed
- * base URL, catalog, or key reaches the very next request without restarting
- * anything, while an in-flight stream keeps the facts it started with. The
- * one registration-captured fact — the retry policy — re-registers the route
- * in place when it changes.
- * @module @freddie/freddie-llm-deepseek
- */
-
 import z from '@freddie/schemastery'
 import { assertUsableApiKey, attributionHeaders, LlmError, resolveRetryPolicy, RetryPolicySchema } from '@freddie/freddie-llm'
 import { credentialRef } from '@freddie/freddie-credentials'
@@ -67,7 +54,6 @@ export const inject = ['llm']
 
 const NS = settingsNamespace('llm-deepseek')
 const DEFAULT_API_KEY_ENV = 'DEEPSEEK_API_KEY'
-/** The single provider route this plugin owns. */
 const PROVIDER = 'deepseek-official'
 
 const DEFAULT_MODELS = [
@@ -119,13 +105,10 @@ export const Config = z.object({
   retryPolicy: RetryPolicySchema,
 })
 
-/** Public API default; the internal endpoint comes from $DEEPSEEK_BASE_URL. */
 export const PUBLIC_BASE_URL = 'https://api.deepseek.com'
 
-/** Environment variable naming this provider's endpoint, honored only from trusted layers. */
 const BASE_URL_ENV = 'DEEPSEEK_BASE_URL'
 
-/** Resolve, validate, and detach the advisory model catalog. */
 function resolveModels(models) {
   const seen = new Set()
   return (models ?? DEFAULT_MODELS).map((model) => {
@@ -193,18 +176,6 @@ function resolveModels(models) {
   })
 }
 
-/**
- * The one explicit resolve step from raw config to validated connection
- * facts. Programmatic construction may bypass Schemastery normalization, so
- * every default and bound is re-judged here — for the composition entry at
- * load (fail loud) and for each settings snapshot at its first use.
- * @param config - raw plugin config or resolved settings snapshot.
- * @param environment - this run's environment layers, or `undefined` outside
- * the product CLI. Every layer may supply an endpoint: the product trusts the
- * project it is launched in, so a checkout can point its own agent at the
- * gateway that checkout is meant to use.
- * @returns validated connection facts plus the credential reference.
- */
 export function resolveAdapterOptions(config, environment) {
   if (config.thinking === 'disabled'
     && config.reasoningEffort !== undefined

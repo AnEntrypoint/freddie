@@ -1,15 +1,5 @@
-/**
- * Durable pi-ai replay metadata and assistant-history reconstruction.
- *
- * Harness content remains the durable source for text and tool calls. This
- * module stores only the provider-native metadata needed to reconstruct a
- * pi-ai assistant message on a later request.
- * @module @freddie/freddie-llm-pi-ai/replay
- */
-
 import { LlmError } from '@freddie/freddie-llm'
 
-/** Parse tool-call argument JSON; tolerate model malformations with {}. */
 function parseArguments(raw) {
   try {
     const parsed = JSON.parse(raw)
@@ -22,7 +12,6 @@ function parseArguments(raw) {
 
 const NEVER_A_CATALOG_API = 'freddie-foreign'
 
-/** Construct the zero usage value required by historical pi-ai messages. */
 function emptyPiUsage() {
   return {
     input: 0,
@@ -34,15 +23,6 @@ function emptyPiUsage() {
   }
 }
 
-/**
- * Project a successful pi-ai response into the minimal durable replay state.
- * The per-block half is index-aligned with the streamed blocks (pi-ai content
- * order), so `BlockAssembler` prunes an entry with its block whenever assembly
- * removes one.
- * @param {object} message - completed native pi-ai assistant response.
- * @param {string} [requestedModel] - request identity stored in the assistant source.
- * @returns {{ response: object, blocks: object[] }} the versioned lossless-JSON replay projection.
- */
 export function toPiReplayState(message, requestedModel = message.model) {
   const responseModel = message.api === 'anthropic-messages' && message.model !== requestedModel
     ? message.model : message.responseModel
@@ -80,15 +60,10 @@ export function toPiReplayState(message, requestedModel = message.model) {
   }
 }
 
-/**
- * @param {string} message - what is wrong with the replay state.
- * @returns {never}
- */
 function invalidReplay(message) {
   throw new LlmError(`invalid pi-ai replay state: ${message}`, 'INVALID_REPLAY_STATE')
 }
 
-/** Validate the durable adapter-private envelope before it reaches pi-ai. */
 function readReplayState(value) {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return invalidReplay('expected a replay envelope')
   const envelope = value
@@ -120,14 +95,8 @@ function readReplayState(value) {
   return { response, blocks }
 }
 
-/**
- * Convert provider-neutral blocks without trusting them as same-model replay.
- * @param {object} message - durable harness assistant message.
- * @returns {object} a native pi-ai assistant message with no replay metadata.
- */
 function foreignAssistant(message) {
   const source = message.source
-  /** @type {object[]} */
   const content = []
   for (const block of message.content) {
     switch (block.type) {
@@ -157,13 +126,6 @@ function foreignAssistant(message) {
   }
 }
 
-/**
- * Recombine durable harness content with validated pi-ai replay metadata.
- * @param {object} message - durable harness assistant message.
- * @param {object} source - its model message source.
- * @param {unknown} rawState - the stored replay envelope.
- * @returns {object} a native pi-ai assistant message reconstructed from durable content.
- */
 function replayedAssistant(message, source, rawState) {
   const state = readReplayState(rawState)
   if (state.response.provider !== source.provider) return invalidReplay('provider does not match assistant source')
@@ -211,17 +173,6 @@ function replayedAssistant(message, source, rawState) {
   }
 }
 
-/**
- * Convert one durable harness assistant message into pi-ai history.
- *
- * Durable content is the authoritative record; replay metadata only restores
- * native fidelity (ids, signatures). A replay state this build cannot use
- * degrades the one message to provider-neutral history instead of failing the
- * request.
- * @param {object} message - model-produced assistant content with provider, model, and optional replay metadata.
- * @param {(reason: string) => void} [onDegrade] - called with the diagnostic reason when an unusable replay state falls back.
- * @returns {object} a native pi-ai assistant message reconstructed from durable content.
- */
 export function toPiAssistant(message, onDegrade) {
   const source = message.source
   if (source.replayState === undefined) return foreignAssistant(message)

@@ -1,10 +1,3 @@
-/**
- * Provider-routed model-request retry policy on the agent loop's request
- * recovery extension point. Each scheduled retry is durable before its cancellable wait.
- *
- * @module @freddie/freddie-llm-retry
- */
-
 import { randomUUID } from 'node:crypto'
 import z from '@freddie/schemastery'
 import { RetryId } from './brand.js'
@@ -14,7 +7,6 @@ export { RetryId } from './brand.js'
 export const name = 'llm-retry'
 export const inject = ['agents']
 
-/** Runtime schema for the empty executor config. */
 export const Config = z.object({})
 
 function validateConfig(config) {
@@ -69,12 +61,6 @@ function cancellableDelay(delayMs, signal) {
   })
 }
 
-/**
- * Install provider-routed normal or unbounded request recovery.
- * @param ctx - plugin context that owns the listener and active waits.
- * @param config - empty executor config; provider registrations own policy.
- * @param internals - non-serializable deterministic hooks for tests.
- */
 export function apply(ctx, config = {}, internals = {}) {
   validateConfig(config)
   const random = internals.random ?? Math.random

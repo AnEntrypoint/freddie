@@ -1,7 +1,3 @@
-/**
- * Pure folds for durable provider-reported token usage and context occupancy.
- */
-
 import { foldSurfaceProjection } from './surface-projection.js'
 
 const zeroBuckets = () => ({
@@ -31,11 +27,9 @@ const addReplacing = (totals, previous, next) => ({
   cacheWriteTokens: totals.cacheWriteTokens - (previous?.cacheWriteTokens ?? 0) + next.cacheWriteTokens,
 })
 
-/** Prompt-side pressure of one request: input plus cache traffic, no output. */
 const pressureFrom = usage =>
   usage.inputTokens + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0)
 
-/** The usage a chunk or finalized message reports for its step, if any. */
 const usageOf = event =>
   event.type === 'assistant/chunk' && event.data.chunk.type === 'usage'
     ? event.data.chunk.usage
@@ -43,16 +37,6 @@ const usageOf = event =>
       ? event.data.usage
       : undefined
 
-/**
- * Token-meter's session projection unit.
- *
- * Usage chunks provide an early sample that survives a later request failure;
- * an assistant message provides the final sample for the same turn/step. A
- * repeated sample replaces that step's earlier value instead of double
- * counting it. The single `last` slot relies on the session-log invariant
- * that usage reports for one turn/step are adjacent: once a later step begins,
- * a legal log never reports usage for an earlier step again.
- */
 export const tokenUsageProjectionDefinition = {
   key: 'tokenUsage',
   stateVersion: 1,
@@ -86,34 +70,6 @@ export const tokenUsageProjectionDefinition = {
   wire: { view: state => state.totals },
 }
 
-/**
- * Token-meter's context-occupancy projection unit.
- *
- * Independent last-wins slots: the newest usage sample supplies the provider
- * numerator, the newest `request/context` record the denominator. Both are
- * whole values, so replay order alone decides the result and no cross-field
- * consistency is claimed — the pair is explicitly not one atomic request
- * observation (see {@link ContextPressureProjectionState}).
- *
- * @typedef {object} ContextPressureProjectionState
- * @property {number} surfaceTokens - running signed surface-shadow-price total since the last usage sample.
- * @property {*} [claim] - in-flight `foldSurfaceProjection` claim, when a claimed compaction is pending.
- * @property {number} [contextWindow] - denominator from the latest `request/context` event.
- * @property {number} [pressureTokens] - prompt-side numerator from the latest usage sample.
- * @property {number} [sampledSurfaceTokens] - `surfaceTokens` value at the moment `pressureTokens` was sampled.
- *
- * `pressureTokens` is prompt-side only, so it holds still while a turn streams
- * and steps forward once the next request reports its usage. Because nothing
- * but a request reports usage, it also cannot see a compaction: the fold
- * therefore carries a running surface total alongside it and publishes
- * `projectedTokens` — the sample plus the surface's signed movement since it
- * was taken — so occupancy answers for the next request rather than the last
- * one. The total rides {@link foldSurfaceProjection}, so the state stays O(1)
- * and a replacement shrinks it by its logged shadow price. A replacement
- * without a claim preserves the previous total. A usage sample is stamped
- * BEFORE the same event joins the surface, so an `assistant/message` anchors
- * against the surface its own request saw.
- */
 export const contextPressureProjectionDefinition = {
   key: 'contextPressure',
   stateVersion: 4,

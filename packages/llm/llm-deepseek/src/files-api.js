@@ -1,26 +1,13 @@
-/** OpenAI-compatible DeepSeek Files API transport. @module freddie-llm-deepseek/files-api */
-
 import { attributionHeaders, LlmError } from '@freddie/freddie-llm'
 import { DeepSeekFileId } from './file-id.js'
 
-/** Minimum provider-supported file lifetime. */
 export const MIN_FILE_EXPIRY_SECONDS = 3_600
-/** Maximum provider-supported file lifetime. */
 export const MAX_FILE_EXPIRY_SECONDS = 2_592_000
-/** Maximum Files API upload size. */
 export const MAX_FILE_UPLOAD_BYTES = 128 * 1024 * 1024
-/** Current per-key file-count quota. */
 export const MAX_STORED_FILE_COUNT = 10_000
-/** Current per-key storage quota. */
 export const MAX_STORED_FILE_BYTES = 25 * 1024 * 1024 * 1024
 
-/** Files API operation failure with its HTTP status retained for recovery policy. */
 export class DeepSeekFilesError extends LlmError {
-  /**
-   * @param message - user-readable provider failure.
-   * @param status - HTTP status returned by the Files API.
-   * @param detail - provider error fields joined for classification.
-   */
   constructor(message, status, detail) {
     super(message, status === 401 || status === 403
       ? 'AUTH'
@@ -34,11 +21,6 @@ export class DeepSeekFilesError extends LlmError {
   }
 }
 
-/**
- * Whether an upload failure reports a provider storage or file-count quota.
- * @param error - Files API operation failure.
- * @returns whether one bounded remote cleanup and upload retry may recover.
- */
 export function isFilesQuotaError(error) {
   return error instanceof DeepSeekFilesError
     && /(?:quota|storage|stored files|file count|too many files)/iu.test(error.detail)
@@ -85,11 +67,7 @@ function providerErrorDetail(value) {
   }
 }
 
-/** Direct client for the OpenAI-compatible `/files` endpoints. */
 export class DeepSeekFilesClient {
-  /**
-   * @param options - endpoint, API-key snapshot, and optional test transport.
-   */
   constructor(options) {
     this.baseURL = options.baseURL.replace(/\/+$/u, '')
     this.apiKey = options.apiKey
@@ -124,11 +102,6 @@ export class DeepSeekFilesClient {
     )
   }
 
-  /**
-   * Upload one image with an explicit expiry.
-   * @param input - deterministic request-version bytes, media type, filename, lifetime, and cancellation.
-   * @returns the validated provider file object, including `expires_at`.
-   */
   async upload(input) {
     if (input.data.byteLength > MAX_FILE_UPLOAD_BYTES) {
       throw new LlmError('DeepSeek Files API upload exceeds 128 MiB.', 'INVALID_REQUEST')
@@ -149,11 +122,6 @@ export class DeepSeekFilesClient {
     return { ...file, expiresAt: file.expiresAt }
   }
 
-  /**
-   * List one ascending or descending page of user-data files.
-   * @param options - pagination, ordering, and cancellation.
-   * @returns the validated page.
-   */
   async list(options = {}) {
     const query = new URLSearchParams({ purpose: 'user_data' })
     if (options.after !== undefined) query.set('after', options.after)
@@ -176,22 +144,11 @@ export class DeepSeekFilesClient {
     }
   }
 
-  /**
-   * Retrieve one file object.
-   * @param fileId - provider file identifier.
-   * @param signal - request cancellation.
-   * @returns the validated file object.
-   */
   async retrieve(fileId, signal) {
     const response = await this.request(`/files/${encodeURIComponent(fileId)}`, { method: 'GET' }, signal)
     return parseFileObject(await response.json(), 'retrieve')
   }
 
-  /**
-   * Delete one provider file.
-   * @param fileId - provider file identifier.
-   * @param signal - request cancellation.
-   */
   async delete(fileId, signal) {
     const response = await this.request(`/files/${encodeURIComponent(fileId)}`, { method: 'DELETE' }, signal)
     const value = await response.json()

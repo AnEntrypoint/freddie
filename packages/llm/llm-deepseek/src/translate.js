@@ -1,21 +1,6 @@
-/**
- * Translate DeepSeek SSE payloads with one stateful harness block per content, reasoning, or tool
- * call index. An empty initial reasoning delta does not open a block. Finish reason and the latest
- * usage are deferred until `[DONE]`, covering both finish-attached and trailing usage-only shapes
- * while ensuring no chunk follows `finish`.
- *
- * Translate DeepSeek wire chunks into the harness `StreamChunk` protocol.
- * @module freddie-llm-deepseek/translate
- */
-
 import { CallId, EMPTY_RESPONSE_CODE, LlmError } from '@freddie/freddie-llm'
 import { DONE } from './sse.js'
 
-/**
- * Map the wire finish_reason vocabulary to the harness FinishReason.
- * @param reason - the wire `finish_reason` string.
- * @returns the mapped reason; unrecognized values (content_filter, …) become `{kind: 'error'}` with the uppercased value as `code`.
- */
 export function mapFinishReason(reason) {
   switch (reason) {
     case 'stop': return { kind: 'stop' }
@@ -29,14 +14,6 @@ export function mapFinishReason(reason) {
   }
 }
 
-/**
- * Map wire usage fields. DeepSeek's `prompt_tokens` INCLUDES cache hits
- * (`prompt_tokens = prompt_cache_hit_tokens + prompt_cache_miss_tokens`,
- * api/create-chat-completion); the harness TokenUsage convention is
- * DISJOINT counts, so cache reads are subtracted out of `inputTokens`.
- * @param usage - wire usage from the finish chunk or the trailing usage-only chunk.
- * @returns disjoint harness counts; cache/reasoning fields present only when the wire reported them.
- */
 export function mapUsage(usage) {
   const cacheRead = usage.prompt_tokens_details?.cached_tokens ?? usage.prompt_cache_hit_tokens
   const reasoning = usage.completion_tokens_details?.reasoning_tokens
@@ -48,7 +25,6 @@ export function mapUsage(usage) {
   }
 }
 
-/** Assemble the final ContentBlock for one open block. */
 function closeBlock(block) {
   switch (block.kind) {
     case 'text': return { type: 'text', text: block.text }
@@ -62,14 +38,6 @@ function closeBlock(block) {
   }
 }
 
-/**
- * Consume SSE data payloads (ending with `[DONE]`) and yield StreamChunks.
- * Malformed JSON payloads abort the stream with `MALFORMED_RESPONSE`.
- * @param payloads - SSE data payloads from {@link import('./sse.js').parseSse}, `[DONE]`-terminated.
- * @returns deltas as they arrive; `block-end`s, `usage`, and `finish` are all deferred to the `[DONE]` sentinel.
- *   A `stop` (or absent) finish with no opened blocks is a degenerate provider completion and maps to an
- *   `EMPTY_RESPONSE` error finish instead of a successful empty message.
- */
 export async function* translate(payloads) {
   let nextIndex = 0
   let textBlock

@@ -1,14 +1,3 @@
-/** Durable request-route lookup for one open model step. @module @freddie/freddie-llm-retry/history */
-
-/**
- * Find the provider in force for one currently open step.
- * Request headers remain effective across turn boundaries until a newer full
- * snapshot changes them; every provider change requires a newer full snapshot.
- * @param events - session events ending inside the open step.
- * @param turn - turn that owns the failed step.
- * @param step - failed step whose provider is required.
- * @returns the provider from the request header in force for the step.
- */
 export function providerForOpenStep(events, turn, step) {
   const stepStartIndex = events.findLastIndex(event =>
     event.type === 'step/start'

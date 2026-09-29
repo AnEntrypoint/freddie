@@ -1,32 +1,6 @@
-/**
- * The measurement service's positional surface fold: the per-node priced
- * surface `measure()` serves and compaction plans against. The projection
- * units deliberately do NOT share this fold — their state must stay O(1)
- * for the persisted checkpoint, so they ride `surface-projection.js`'s
- * shadow-price protocol instead. Fully metered logs stay in agreement by
- * construction: both price through `estimate.js`, and every logged shadow
- * price is derived from THIS fold's nodes by the replace producer. A
- * projection replacement without a claim deliberately folds with zero delta.
- *
- * @module @freddie/freddie-token-meter/surface-fold
- */
-
 import { deriveEventMessage } from '@freddie/freddie-session'
 import { estimateMessage } from './estimate.js'
 
-/**
- * Fold one surface event onto a priced surface.
- *
- * Total and allocation-fresh: the caller assigns the result rather than
- * mutating in place, so a throw here leaves the caller's state untouched and
- * the same malformed event fails identically on every retry.
- * @param nodes - the priced surface preceding this event, in model-visible order.
- * @param event - the surface event to place.
- * @returns the event's price, the next surface, and the signed total delta.
- * @throws when a replacement names a range absent from `nodes` — committed
- *   logs are surface-validated at append time, so an unresolvable range is log
- *   corruption and must fail loud rather than skip the event.
- */
 export function foldSurfaceTokens(nodes, event) {
   const message = deriveEventMessage(event)
   const tokens = message === null ? 0 : estimateMessage(message)

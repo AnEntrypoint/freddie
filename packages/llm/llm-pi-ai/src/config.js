@@ -1,17 +1,3 @@
-/**
- * Configuration schema and provider-profile validation for the pi-ai adapter.
- * Profiles are a dict keyed by provider route, so the composition base and a
- * user-settings layer merge per provider and the route set is structural.
- *
- * A route key is not required to name an installed pi-ai provider. When it does,
- * that provider's endpoint, protocol, display name, and model catalog are the
- * profile's defaults and the profile overrides them field by field; when it does
- * not, the profile is the whole provider declaration. Stored reads retain
- * catalog diagnostics beside serviceable models; writes validate every changed
- * provider before persistence.
- * @module @freddie/freddie-llm-pi-ai/config
- */
-
 import z from '@freddie/schemastery'
 import { credentialRef } from '@freddie/freddie-credentials'
 import { resolveRetryPolicy, RetryPolicySchema } from '@freddie/freddie-llm'
@@ -30,32 +16,15 @@ import {
 } from './catalog.js'
 import { buildProvider, supportedProtocols } from './provider.js'
 
-/** Default maximum idle interval while an adapter stream read is outstanding. */
 export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
 
-/**
- * Default request-level bound on base64-encoded image payload. Every image in
- * history is re-encoded into every request body, so an unbounded conversation
- * eventually exceeds a provider or gateway request-size cap.
- */
 export const DEFAULT_MAX_REQUEST_IMAGE_BYTES = 20 * 1024 * 1024
-/** Default total-pixel budget preserves the complete 2048px normalized attachment. */
 export const DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET = 2048 * 2048
-/** Default raw encoded-byte target before inline base64 expansion. */
 export const DEFAULT_REQUEST_IMAGE_MAX_BYTES = 1024 * 1024
 
-/** Context capacity assumed for a model neither configuration nor the catalog sizes. */
 export const DEFAULT_CONTEXT_WINDOW = 262_144
-/** Output capability assumed for a model neither configuration nor the catalog sizes. */
 export const DEFAULT_MAX_TOKENS = 32_768
 
-/**
- * Modalities assumed for a model neither configuration nor the catalog
- * declares. Text is the floor every supported protocol certainly carries, so
- * this is the absence of a declaration rather than a guess at the endpoint:
- * under-claiming refuses the image before it is attached, while over-claiming
- * admits one the provider rejects mid-turn, after the message is durable.
- */
 export const DEFAULT_INPUT = ['text']
 
 const thinkingBudgets = z.object({
@@ -65,11 +34,6 @@ const thinkingBudgets = z.object({
   high: z.number(),
 })
 
-/**
- * One `chat_template_kwargs` or `chat_template_args` value. The `$var` member
- * is pi-ai's placeholder for a value dispatch fills from the request's thinking
- * state.
- */
 const chatTemplateKwarg = z.union([
   z.string(),
   z.number(),
@@ -110,18 +74,11 @@ const compatProfile = z.object({
   supportsStrictTools: z.boolean(),
 })
 
-/**
- * Keys are the offered levels, values their wire spellings. A valueless key
- * survives validation because schemastery passes nullable data through before
- * any member schema runs; only resolution decides which levels may leave the
- * value empty, so the diagnostic can name the route and model.
- */
 const reasoningEfforts = z.dict(
   z.union([z.string(), z.const(null)]),
   z.union(THINKING_LEVELS),
 )
 
-/** The fields a `models` entry and a `modelOverrides` value share; only the id's home differs. */
 const modelFields = {
   name: z.string(),
   contextWindow: z.number().step(1).min(1),
@@ -136,7 +93,6 @@ const modelProfile = z.object({
   ...modelFields,
 })
 
-/** A {@link modelProfile} whose id lives in the `modelOverrides` dict key. */
 const modelOverride = z.object(modelFields)
 
 const profile = z.object({
@@ -164,27 +120,16 @@ const profile = z.object({
   retryPolicy: RetryPolicySchema,
 })
 
-/** Runtime schema for the plugin configuration: the provider routes it owns. */
 export const Config = z.object({
   providers: z.dict(profile).default({}),
 })
 
-/**
- * Reject new or changed provider profiles that cannot be served. Unchanged
- * stored profiles may need repair after a catalog upgrade and do not block
- * edits to another provider.
- * @param {object} config - the resolved section to check.
- * @param {object} [previous] - current resolved section; omission checks every provider.
- * @returns {void}
- * @throws Error naming the route and configuration entry that cannot be served.
- */
 export function assertServiceable(config, previous) {
   const changed = Object.fromEntries(Object.entries(config.providers ?? {}).filter(([provider, entry]) =>
     !deepEqualJson(entry, previous?.providers?.[provider])))
   resolveProfiles(changed)
 }
 
-/** Reject removed pre-release profile fields and name their replacements. */
 function rejectRemovedFields(provider, source) {
   if ('provider' in source) {
     throw new Error(`llm-pi-ai: provider "${provider}" sets "provider", which moved to the providers dict key`)
@@ -197,7 +142,6 @@ function rejectRemovedFields(provider, source) {
   }
 }
 
-/** Reject a profile header that Fetch cannot put on a provider request. */
 function assertValidHeaders(provider, headers) {
   for (const [name, value] of Object.entries(headers ?? {})) {
     try {
@@ -211,18 +155,11 @@ function assertValidHeaders(provider, headers) {
   }
 }
 
-/**
- * Resolve scalar defaults and materialize each route's serviceable models.
- * @param {Readonly<Record<string, object>> | undefined} providers - configured provider profiles keyed by route.
- * @param {'strict' | 'deferred'} [validation] - writes require a complete catalog; stored reads retain catalog diagnostics.
- * @returns {Map<string, object>} validated profiles in configuration order.
- */
 export function resolveProfiles(providers, validation = 'strict') {
   if (Array.isArray(providers)) {
     throw new Error('llm-pi-ai: providers is now a dict keyed by provider route, not an array of profiles')
   }
   const entries = Object.entries(providers ?? {})
-  /** @type {Map<string, object>} */
   const resolved = new Map()
   for (const [provider, source] of entries) {
     rejectRemovedFields(provider, source)

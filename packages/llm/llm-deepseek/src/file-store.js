@@ -1,10 +1,7 @@
-/** DeepSeek Files API upload reuse, invalidation, and quota recovery. @module freddie-llm-deepseek/file-store */
-
 import { LlmError } from '@freddie/freddie-llm'
 import { DeepSeekFilesClient, isFilesQuotaError } from './files-api.js'
 import { deepSeekFileScope, DeepSeekUploadIndex } from './upload-index.js'
 
-/** DeepSeek chat accepts at most 32 MiB per image even when it is referenced by file id. */
 export const MAX_CHAT_IMAGE_BYTES = 32 * 1024 * 1024
 const OWNED_FILE_PREFIX = 'freddie-'
 
@@ -72,11 +69,7 @@ function filename(version) {
   return `${OWNED_FILE_PREFIX}${attachment}-${variant}.${extension(version.mediaType)}`
 }
 
-/** User-scoped durable file-id reuse for the DeepSeek route. */
 export class DeepSeekFileStore {
-  /**
-   * @param options - testable index, clock, and transport boundaries.
-   */
   constructor(options = {}) {
     this.index = options.index ?? new DeepSeekUploadIndex()
     this.now = options.now ?? Date.now
@@ -92,14 +85,6 @@ export class DeepSeekFileStore {
     })
   }
 
-  /**
-   * Resolve or upload one deterministic request image. Concurrent calls share one upload while retaining independent waits.
-   * @param version - deterministic model-request bytes and complete transformation identity.
-   * @param connection - endpoint and API-key snapshot.
-   * @param policy - expiry and quota-recovery policy.
-   * @param signal - cancellation of this wait; shared transport stops when no waiter remains.
-   * @returns a reusable file id and whether this call published a new upload.
-   */
   ensureUploaded(version, connection, policy, signal) {
     signal?.throwIfAborted()
     const scope = deepSeekFileScope(connection.baseURL, connection.apiKey)
@@ -183,12 +168,6 @@ export class DeepSeekFileStore {
     return { record: committed.record, uploaded: committed.accepted }
   }
 
-  /**
-   * Invalidate one exact local mapping after the chat endpoint rejects its remote id.
-   * @param version - request-image version whose remote generation failed.
-   * @param fileId - exact rejected file id.
-   * @param connection - endpoint and API-key snapshot.
-   */
   async invalidate(version, fileId, connection) {
     await this.index.remove(
       deepSeekFileScope(connection.baseURL, connection.apiKey),
@@ -197,14 +176,6 @@ export class DeepSeekFileStore {
     )
   }
 
-  /**
-   * Delete the indexed remote file for one attachment and remove its local mapping.
-   * @param version - exact request-image version to release.
-   * @param connection - endpoint and API-key snapshot.
-   * @param policy - expiry policy used to locate a reusable mapping.
-   * @param signal - request cancellation.
-   * @returns whether an indexed file existed and was deleted.
-   */
   async release(version, connection, policy, signal) {
     const scope = deepSeekFileScope(connection.baseURL, connection.apiKey)
     const record = await this.index.get(
@@ -219,13 +190,6 @@ export class DeepSeekFileStore {
     return true
   }
 
-  /**
-   * Delete the oldest provider files whose names identify harness ownership.
-   * @param connection - endpoint and API-key snapshot.
-   * @param count - positive maximum number of files to delete.
-   * @param signal - request cancellation.
-   * @returns number of successfully deleted files.
-   */
   async reclaimOldestOwned(connection, count, signal) {
     const client = this.client(connection)
     let after
@@ -249,12 +213,6 @@ export class DeepSeekFileStore {
     return owned.length
   }
 
-  /**
-   * Delete every remote harness-owned file in the active API-key namespace and clear its index.
-   * @param connection - endpoint and API-key snapshot.
-   * @param signal - request cancellation.
-   * @returns number of deleted files.
-   */
   async releaseAll(connection, signal) {
     let total = 0
     for (;;) {

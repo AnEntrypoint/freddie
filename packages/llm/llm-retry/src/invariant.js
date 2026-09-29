@@ -1,16 +1,11 @@
-/** Package-owned durable retry-event invariants. @module @freddie/freddie-llm-retry/invariant */
-
 import { MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
 import { providerForOpenStep } from './history.js'
 
 const PACKAGE_NAME = '@freddie/freddie-llm-retry'
 
-/** Cordis companion plugin name. */
 export const name = 'llm-retry-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Validate the complete provider-neutral failure payload at the durable boundary. */
 function validateFailure(value, fail) {
   if (typeof value !== 'object' || value === null) {
     fail('llm/retry failure must be an object')
@@ -36,7 +31,6 @@ function validateFailure(value, fail) {
   }
 }
 
-/** Validate one retry record against the currently open request step. */
 function validateRetry(history, event, fail) {
   const { retryId, turn, step, provider, mode, policyKey, retry, delayMs } = event.data
   if (typeof retryId !== 'string' || retryId.length === 0) {
@@ -114,7 +108,6 @@ function validateRetry(history, event, fail) {
   }
 }
 
-/** Validate one wait-complete transition against its scheduled attempt. */
 function validateStarted(history, event, fail) {
   const { retryId, turn, step, retry } = event.data
   if (typeof retryId !== 'string' || retryId.length === 0) {
@@ -132,7 +125,6 @@ function validateStarted(history, event, fail) {
   }
 }
 
-/** Validate every retry record already present in one loaded session. */
 function validateSession(session, fail) {
   for (const [index, event] of session.events.entries()) {
     if (event.type === 'llm/retry') validateRetry(session.events.slice(0, index), event, fail)
@@ -140,7 +132,6 @@ function validateSession(session, fail) {
   }
 }
 
-/** Install validation for loaded and newly appended retry records. */
 const install = Object.assign((ctx, fail) => {
   for (const session of ctx.sessions.list()) validateSession(session, fail)
   ctx.on('session/created', (session) => { validateSession(session, fail) }, { global: true })
@@ -152,10 +143,5 @@ const install = Object.assign((ctx, fail) => {
   }, { global: true })
 }, { inject: ['sessions'] })
 
-/**
- * Register the LLM retry invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

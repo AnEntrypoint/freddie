@@ -1,61 +1,16 @@
-/**
- * Answering "which models can this provider serve?" for the configuration
- * surface's "fetch available models" action.
- *
- * A route the installed pi-ai catalog ships is answered **from that catalog**,
- * with no network call at all: pi-ai's registry is the authoritative list for
- * its own providers, and it carries the capacities a listing endpoint would
- * not disclose. Only a route the catalog does not describe — a gateway, a
- * self-hosted server — is interrogated over the wire.
- *
- * Neither path is a catalog refresh. Nothing here is stored: the request
- * carries a draft the user is still editing, and the reply is candidate
- * metadata the surface offers for adoption. A provider profile remains the only
- * thing that decides what a route serves.
- *
- * OpenAI-compatible and Anthropic Messages protocols are interrogated through
- * their native model-listing endpoints. The parser accepts the standard
- * `data` array and the enriched `models` map some compatible gateways expose.
- * Every other protocol reports that it cannot be interrogated so the surface
- * falls back to hand-entry rather than guessing its response fields.
- * @module @freddie/freddie-llm-pi-ai/discovery
- */
-
 import { attributionHeaders, INVALID_CREDENTIAL_CODE, LlmError, normalizeApiKey } from '@freddie/freddie-llm'
 import { catalogModels } from './catalog.js'
 
-/**
- * Protocols whose model listing this module can read. OpenAI protocols use
- * bearer auth at `GET {baseURL}/models`; Anthropic Messages uses `x-api-key`
- * and `anthropic-version` at its native `GET /v1/models`. Azure is absent
- * despite its OpenAI lineage — it authenticates with an `api-key` header and
- * requires an `api-version` query — and Codex authenticates through OAuth;
- * guessing at either would report an authentication failure as a provider
- * with no models. pi-ai's remaining protocols are absent for the same reason.
- */
 const LISTABLE_PROTOCOLS = new Set(['anthropic-messages', 'openai-completions', 'openai-responses'])
 
 const PROTOCOL_ASSUMED_FOR_UNCHOSEN_DRAFT = 'openai-completions'
 
-/** Stable API version required by Anthropic's model-listing endpoint. */
 const ANTHROPIC_VERSION = '2023-06-01'
 
-/** Largest model-list page accepted by Anthropic's public endpoint; discovery reads one page and does not follow `has_more`. */
 const ANTHROPIC_MODEL_LIMIT = 1000
 
-/**
- * Endpoint replies larger than this are refused. The endpoint is whatever URL
- * the user typed, so the ceiling holds on the bytes actually read rather than
- * on the length the server claims — a truncated model listing is not
- * parseable, so overflow rejects instead of truncating.
- */
 const MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 
-/**
- * A positive integer field of a listing entry, or `undefined` when absent or unusable.
- * @param {...unknown} candidates - the entry fields to consider, most specific first.
- * @returns {number | undefined} the first usable capacity.
- */
 function capacity(...candidates) {
   for (const candidate of candidates) {
     if (typeof candidate === 'number' && Number.isInteger(candidate) && candidate > 0) return candidate
@@ -63,11 +18,6 @@ function capacity(...candidates) {
   return undefined
 }
 
-/**
- * A non-empty string field of a listing entry, or `undefined`.
- * @param {...unknown} candidates - the entry fields to consider, most specific first.
- * @returns {string | undefined} the first usable label.
- */
 function label(...candidates) {
   for (const candidate of candidates) {
     if (typeof candidate === 'string' && candidate.length > 0) return candidate
@@ -75,20 +25,6 @@ function label(...candidates) {
   return undefined
 }
 
-/**
- * Join the endpoint base with the protocol's listing path. The base is
- * treated as a prefix rather than a URL to resolve against, so a deployment
- * path such as `https://gateway.example/openai/v1` keeps its segments instead
- * of losing them to `URL` resolution. OpenAI protocols list at
- * `{baseURL}/models`. Anthropic lists at `{root}/v1/models`, where the root is
- * the base without trailing slashes and without one trailing `/v1` segment:
- * gateway documentation publishes both spellings of the same root. Only this
- * listing URL normalizes that segment; model requests receive the configured
- * `baseURL` unchanged.
- * @param {string} baseURL - the configured endpoint base.
- * @param {string} api - the route protocol.
- * @returns {string} the listing URL.
- */
 function listingUrl(baseURL, api) {
   const base = baseURL.replace(/\/+$/, '')
   if (api !== 'anthropic-messages') return `${base}/models`
@@ -98,22 +34,10 @@ function listingUrl(baseURL, api) {
 
 const ignoreCleanupCancelFailure = () => undefined
 
-/**
- * The failure for a caller that withdrew the discovery, whether before the
- * request went out or while its body was being read.
- * @param {unknown} cause - what the abort surfaced as, which may be any value.
- * @returns {LlmError} the coded failure.
- */
 function discoveryAborted(cause) {
   return new LlmError('model discovery aborted by caller', 'ABORTED', { cause })
 }
 
-/**
- * The listing an installed catalog route already answers with, or undefined
- * when the route is not one pi-ai ships.
- * @param {string | undefined} provider - the route being interrogated.
- * @returns {object[] | undefined} the installed models, when there are any.
- */
 function installedCatalogListing(provider) {
   if (provider === undefined) return undefined
   const installed = catalogModels(provider)
@@ -126,15 +50,6 @@ function installedCatalogListing(provider) {
   }))
 }
 
-/**
- * Read a reply body, refusing one that outgrows the ceiling. A declared length
- * is checked first so an honest server is turned away without transferring
- * anything; the accumulated total is what actually enforces the bound, because
- * a server that under-declares (or streams) tells us nothing up front.
- * @param {Response} response - the endpoint reply.
- * @param {string} url - the endpoint, for the diagnostic.
- * @returns {Promise<string>} the decoded body.
- */
 async function readBounded(response, url) {
   const oversized = () => new LlmError(
     `${url} answered with more than ${MAX_RESPONSE_BYTES} bytes`,
@@ -147,7 +62,6 @@ async function readBounded(response, url) {
   }
   if (response.body === null) return ''
   const reader = response.body.getReader()
-  /** @type {Uint8Array[]} */
   const chunks = []
   let total = 0
   try {
@@ -170,26 +84,9 @@ async function readBounded(response, url) {
   return new TextDecoder().decode(body)
 }
 
-/**
- * Read one supported model-listing reply. The standard `data` array takes
- * precedence when both supported formats are present. An enriched `models`
- * map uses each property key as the endpoint-facing id; its nested `id` is
- * only a fallback for an empty key because gateways may put a canonical model
- * identity there instead of the alias they accept on requests. Only
- * object-valued map entries are models; primitive properties are ignored
- * because they may be directory metadata rather than model records.
- *
- * Entries without a usable id are skipped rather than failing the whole
- * interrogation: a single malformed row should not deny the user the rest of
- * a working endpoint's catalog. Missing names fall back to the adopted id so
- * the form receives a complete human-readable row.
- * @param {unknown} body - the parsed reply.
- * @returns {object[]} the advertised models in endpoint order.
- */
 function readListing(body) {
   const listing = body
   const data = listing?.data
-  /** @type {{ key?: string, raw: unknown }[]} */
   let listed
   if (Array.isArray(data)) {
     listed = data.map(raw => ({ raw }))
@@ -206,7 +103,6 @@ function readListing(body) {
       .filter(([, raw]) => raw !== null && typeof raw === 'object' && !Array.isArray(raw))
       .map(([key, raw]) => ({ key, raw }))
   }
-  /** @type {object[]} */
   const models = []
   for (const { key, raw } of listed) {
     const entry = raw
@@ -238,14 +134,6 @@ function readListing(body) {
   return models
 }
 
-/**
- * Accept one probe key, or refuse it before the header is built. Without this
- * the `fetch` below would throw a ByteString `TypeError` that this function's
- * catch reports as `could not reach <url>` — blaming the network for a local,
- * deterministic fault.
- * @param {string} raw - the key typed into the form or read from storage.
- * @returns {string} the trimmed, usable key.
- */
 function usableProbeKey(raw) {
   const checked = normalizeApiKey(raw)
   if (checked.ok) return checked.value
@@ -257,16 +145,6 @@ function usableProbeKey(raw) {
   )
 }
 
-/**
- * Interrogate one draft provider endpoint for the models it advertises.
- * @param {object} request - the endpoint, protocol, and one-shot credential to use.
- * @param {() => object | undefined} [storedProfile] - host-owned headers and lazy
- *   credential resolution for the named route. It is read only on the path that
- *   reaches the network; the credential is resolved only when the draft carries none.
- * @returns {Promise<readonly object[]>} the advertised models in endpoint order.
- * @throws {LlmError} when the protocol has no readable listing, the endpoint
- *   refuses or fails the request, or the reply is not a model listing.
- */
 export async function discoverModels(request, storedProfile) {
   const installedListing = installedCatalogListing(request.provider)
   if (installedListing !== undefined) return installedListing
@@ -288,7 +166,6 @@ export async function discoverModels(request, storedProfile) {
   const stored = storedProfile?.()
   const typedOrStoredKey = request.apiKey ?? await stored?.resolveApiKey()
   const apiKey = typedOrStoredKey === undefined ? undefined : usableProbeKey(typedOrStoredKey)
-  /** @type {Response} */
   let response
   try {
     const headers = new Headers(stored?.headers === undefined ? undefined : Object.entries(stored.headers))
@@ -315,7 +192,6 @@ export async function discoverModels(request, storedProfile) {
       'DISCOVERY_FAILED',
     )
   }
-  /** @type {string} */
   let text
   try {
     text = await readBounded(response, url)
@@ -323,7 +199,6 @@ export async function discoverModels(request, storedProfile) {
     if (request.signal?.aborted) throw discoveryAborted(error)
     throw error
   }
-  /** @type {unknown} */
   let body
   try {
     body = JSON.parse(text)

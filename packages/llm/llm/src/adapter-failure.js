@@ -1,17 +1,5 @@
-/**
- * Normalization for values thrown by a final LLM adapter boundary.
- *
- * @module @freddie/freddie-llm/adapter-failure
- */
-
 import { HarnessError } from './error.js'
 
-/**
- * Detach serializable provider facts from a value thrown by an adapter.
- * @param value - arbitrary value thrown during adapter dispatch or iteration.
- * @returns immutable provider-neutral facts suitable for a terminal finish chunk.
- * @internal
- */
 export function normalizeLlmFailure(value) {
   const error = value instanceof Error
     ? value
@@ -24,7 +12,6 @@ export function normalizeLlmFailure(value) {
   })
 }
 
-/** Render a non-Error throw without letting hostile coercion escape normalization. */
 function thrownMessage(value) {
   try {
     const message = String(value)
@@ -34,7 +21,6 @@ function thrownMessage(value) {
   }
 }
 
-/** Read a foreign error's own data-backed `code` without invoking accessors. */
 function ownErrorCode(error) {
   try {
     const descriptor = Object.getOwnPropertyDescriptor(error, 'code')
@@ -44,7 +30,6 @@ function ownErrorCode(error) {
   }
 }
 
-/** Snapshot an own data property without invoking an SDK-defined accessor. */
 function ownFailureSnapshot(error) {
   try {
     const descriptor = Object.getOwnPropertyDescriptor(error, 'failure')
@@ -56,7 +41,6 @@ function ownFailureSnapshot(error) {
   }
 }
 
-/** Validate and detach an arbitrary serializable failure payload. */
 function failureSnapshot(value) {
   if (typeof value !== 'object' || value === null) return undefined
   try {
@@ -84,7 +68,6 @@ function failureSnapshot(value) {
   }
 }
 
-/** Read an SDK error message without letting an accessor replace the primary failure. */
 function errorMessage(error) {
   try {
     const message = error.message
@@ -94,7 +77,6 @@ function errorMessage(error) {
   return 'LLM adapter failed'
 }
 
-/** Trust only Harness-owned codes; third-party SDK codes are not our taxonomy. */
 function harnessErrorCode(error) {
   return error instanceof HarnessError ? error.code : 'UNKNOWN'
 }

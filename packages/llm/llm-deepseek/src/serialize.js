@@ -1,16 +1,7 @@
-/**
- * Serialize harness messages into DeepSeek chat completions. Text-only
- * requests retain string user content; the image path resolves durable
- * attachments into ordered file-id or inline parts. Tool-result images follow their
- * string-only tool messages in a separate user message.
- * @module freddie-llm-deepseek/serialize
- */
-
 import { contentHasImage, LlmError, offloadRequestImagesWithPolicy, requestImageHandleText } from '@freddie/freddie-llm'
 
 const TOOL_RESULT_IMAGE_TEXT = 'Attached image(s) from tool result:'
 
-/** Validate the adapter-owned effort before resolving its DeepSeek wire fields. */
 function reasoningEffort(effort) {
   if (effort === 'off' || effort === 'low' || effort === 'high' || effort === 'max') {
     return effort
@@ -21,7 +12,6 @@ function reasoningEffort(effort) {
   )
 }
 
-/** Resolve one legal thinking/effort pair without exposing `off` as a wire effort. */
 function resolveThinking(options, defaults) {
   if (options.purpose === 'session-title') return { thinking: 'disabled' }
   const effort = options.reasoningEffort === undefined
@@ -40,7 +30,6 @@ function resolveThinking(options, defaults) {
   return defaults.thinking === undefined ? {} : { thinking: defaults.thinking }
 }
 
-/** Join the text blocks of a message (used for user/tool-result content). */
 function flattenText(blocks) {
   return blocks
     .filter(block => block.type === 'text')
@@ -48,14 +37,12 @@ function flattenText(blocks) {
     .join('')
 }
 
-/** Reject core image content before any text-flattening path can silently erase it. */
 function assertTextOnly(blocks) {
   if (contentHasImage(blocks)) {
     throw new LlmError('The DeepSeek chat-completions adapter does not support image content.', 'UNSUPPORTED_CONTENT')
   }
 }
 
-/** Reject roles whose DeepSeek history format cannot carry image input. */
 function assertSupportedImageRoles(messages) {
   for (const message of messages) {
     if (message.role !== 'user' && contentHasImage(message.content)) {
@@ -67,7 +54,6 @@ function assertSupportedImageRoles(messages) {
   }
 }
 
-/** Describe the exact request preview and its model-callable coordinate system. */
 function imageHandle(version, precededByContent) {
   return {
     type: 'text',
@@ -75,7 +61,6 @@ function imageHandle(version, precededByContent) {
   }
 }
 
-/** Resolve one durable image into its descriptor and transient DeepSeek image part. */
 async function imageParts(block, images, location, precededByContent) {
   const version = images.requestImages.get(block.attachment.attachmentId)
   if (version === undefined) {
@@ -93,7 +78,6 @@ async function imageParts(block, images, location, precededByContent) {
   return [imageHandle(version, precededByContent), image]
 }
 
-/** Convert user or nested tool-result blocks into ordered wire parts. */
 async function contentParts(blocks, images, message, nextImage) {
   const parts = []
   for (const block of blocks) {
@@ -115,7 +99,6 @@ async function contentParts(blocks, images, message, nextImage) {
   return parts
 }
 
-/** Keep text-only user messages on the compact string wire form. */
 function userContent(parts) {
   const text = []
   for (const part of parts) {
@@ -125,7 +108,6 @@ function userContent(parts) {
   return text.join('')
 }
 
-/** Serialize one assistant message (text + reasoning + tool calls). */
 function serializeAssistant(message) {
   const text = flattenText(message.content)
   const reasoning = message.content
@@ -148,14 +130,6 @@ function serializeAssistant(message) {
   }
 }
 
-/**
- * Serialize the conversation. `tool-result` blocks become standalone
- * `{role: 'tool'}` messages; the harness puts each tool result in its own
- * user-role message, so a mixed user message contributes its text first and
- * its tool results as separate wire messages after.
- * @param messages - the harness conversation, in order.
- * @returns the wire messages; order preserved, each tool result expanded into its own entry.
- */
 export function serializeMessages(messages) {
   const wire = []
   for (const message of messages) {
@@ -184,14 +158,6 @@ export function serializeMessages(messages) {
   return wire
 }
 
-/**
- * Serialize image-capable history after resolving durable attachments.
- * Consecutive tool results keep string `tool` messages and share one following
- * user message containing their images.
- * @param messages - transient request history after request-size offloading.
- * @param images - prepared request versions, one provider representation, and its budget.
- * @returns ordered DeepSeek wire messages.
- */
 export async function serializeMessagesWithImages(messages, images) {
   assertSupportedImageRoles(messages)
   const wire = []
@@ -244,7 +210,6 @@ export async function serializeMessagesWithImages(messages, images) {
   return wire
 }
 
-/** Assemble request fields shared by text-only and image-capable conversion. */
 function requestWithMessages(options, messages, defaults) {
   const tools = options.tools?.map(tool => ({
     type: 'function',
@@ -271,14 +236,6 @@ function requestWithMessages(options, messages, defaults) {
   }
 }
 
-/**
- * Build the full wire request. Always streaming (`stream: true`, usage
- * reporting on); optional fields are omitted rather than sent as null, so
- * provider defaults apply.
- * @param options - the harness request (model, history, system, tools, sampling).
- * @param defaults - adapter-level thinking defaults; undefined fields put nothing on the wire.
- * @returns the chat-completions request body.
- */
 export function serializeRequest(options, defaults = {}) {
   const messages = []
   if (options.system !== undefined) {
@@ -289,15 +246,6 @@ export function serializeRequest(options, defaults = {}) {
   return requestWithMessages(options, messages, defaults)
 }
 
-/**
- * Build one image-capable request while keeping durable bytes out of session
- * messages. Oversized oldest images become deterministic text after their
- * exact request-version byte lengths are known and before provider serialization.
- * @param options - harness request containing image-capable user content.
- * @param images - attachment resolver, request bound, and cancellation.
- * @param defaults - adapter-level thinking defaults.
- * @returns the fully materialized DeepSeek request body.
- */
 export async function serializeRequestWithImages(options, images, defaults = {}) {
   assertSupportedImageRoles(options.messages)
   const requestMessages = offloadRequestImagesWithPolicy(options.messages, {

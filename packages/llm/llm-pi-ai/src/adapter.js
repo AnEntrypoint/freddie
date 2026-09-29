@@ -1,30 +1,3 @@
-/**
- * Generic pi-ai-backed implementation of the Harness LLM seam.
- *
- * Each resolution produces one **immutable** snapshot — the profiles plus a
- * `Models` collection holding the `Provider` each route built — and an
- * operation captures a whole snapshot before its first `await`. A
- * configuration change builds a *new* collection rather than mutating the one
- * in use, because `Models.streamSimple()` is lazy: it resolves the provider
- * when the stream is first consumed, which is after the credential await, so a
- * mutated collection would let a request that started under one configuration
- * finish under another — or fail with a provider that no longer exists. This is
- * what makes the seam's per-step call freeze (`llm.prepareCall()`) hold all the
- * way down: switching models mid-reply takes effect on the next step, never
- * inside the one in flight.
- *
- * A route naming a credential reference still resolves it through the harness
- * seam and passes it as the request's `apiKey` option, which pi-ai treats as
- * the highest-priority auth override — that is what keeps the fail-loud
- * reference semantics. Everything that override does not cover reaches pi-ai
- * through the collection's own auth: the credential store holds the records a
- * login wrote and a refresh rotates, and the auth context answers the ambient
- * questions a provider asks while resolving. Both are stable across snapshots,
- * so a configuration change rebuilds the collection without forgetting who is
- * signed in.
- * @module @freddie/freddie-llm-pi-ai/adapter
- */
-
 import {
   attributionHeaders,
   contentHasImage,
@@ -37,35 +10,10 @@ import { toPiContext } from './context.js'
 import { createModels, getSupportedThinkingLevels } from './models.js'
 import { toStreamChunks } from './stream.js'
 
-/** Idle timeout code every route's watchdog arms. */
 const STREAM_IDLE_TIMEOUT_CODE = 'LLM_STREAM_IDLE_TIMEOUT'
-
-/**
- * One resolution's frozen view: the profiles and the collection built from them.
- * @typedef {object} PiAiSnapshot
- * @property {ReadonlyMap<string, object>} profiles The resolved profiles this collection was built from, used as its identity.
- * @property {object} models Providers for exactly those profiles; never mutated once published.
- */
-
-/**
- * Constructor options for {@link PiAiAdapter}: the resolution hooks the plugin owns.
- * @typedef {object} PiAiAdapterOptions
- * @property {() => ReadonlyMap<string, object>} profiles Current validated profiles by provider route; called once per operation.
- * @property {(provider: string, profile: object) => Promise<string | undefined>} resolveApiKey Resolve the credential for one already-resolved profile; called once per stream call and frozen for that call. `undefined` defers to the route's own pi-ai auth, which for an installed catalog route is its provider-native ambient discovery; the plugin allows that only for a profile naming no credential at all, because a named reference that misses throws `LlmError` `MISSING_CREDENTIAL` rather than falling back.
- * @property {object} auth The two auth injectables every collection is built with.
- * @property {() => object | undefined} [resolveAttachments] Resolve the optional durable attachment service at request time.
- * @property {(detail: { provider: string, model: string, reason: string }) => void} [onReplayDegrade] Observe one assistant history message degrading to provider-neutral conversion because its stored replay state is unusable by this build.
- */
 
 const SDK_RETRIES_DISABLED = 0
 
-/**
- * Ask a stream iterator to stop, discarding the failure its aborted SDK raises
- * while tearing down: the stable signal already owns termination, so a
- * return-time abort adds no outcome.
- * @param {AsyncIterator<object>} iterator - the harness chunk iterator being abandoned.
- * @returns {Promise<void>} settles once the iterator has returned or failed quietly.
- */
 async function swallowAbortedSdkTeardown(iterator) {
   try {
     await iterator.return(undefined)
@@ -74,13 +22,6 @@ async function swallowAbortedSdkTeardown(iterator) {
   }
 }
 
-/**
- * Copy profile stream knobs into pi-ai's common option vocabulary.
- * @param {object} profile - the resolved route profile.
- * @param {string | undefined} reasoning - the resolved reasoning level.
- * @param {string | undefined} apiKey - the harness-resolved credential override.
- * @returns {object} the pi-ai stream options this profile owns.
- */
 function profileOptions(profile, reasoning, apiKey) {
   const enabledReasoning = reasoning === 'off' ? undefined : reasoning
   return {
@@ -95,30 +36,11 @@ function profileOptions(profile, reasoning, apiKey) {
   }
 }
 
-/**
- * The profile default this exact model can actually take, for DESCRIBING it.
- * A configured level the model does not support yields none rather than
- * throwing: `resolveModel` builds the model catalog, and a catalog that fails
- * takes its whole provider out of every picker — so one mis-set profile field
- * would hide every model on the route, including the ones that support the
- * level. The request path still refuses, which is where a bad configuration
- * belongs: describing what a model can do must not fail because a deployment
- * asked it for something it cannot.
- * @param {object} model - the resolved model descriptor.
- * @param {string | undefined} effort - the profile's configured level, if any.
- * @returns {string | undefined} the level when this model supports it, otherwise undefined.
- */
 function describableReasoningLevel(model, effort) {
   if (effort === undefined) return undefined
   return getSupportedThinkingLevels(model).some(level => level === effort) ? effort : undefined
 }
 
-/**
- * Validate an explicit harness/profile effort without invoking pi-ai's clamp.
- * @param {object} model - the resolved model descriptor.
- * @param {string | undefined} effort - the effort to validate.
- * @returns {string | undefined} the validated level.
- */
 function resolveReasoningLevel(model, effort) {
   if (effort === undefined) return undefined
   const supported = getSupportedThinkingLevels(model)
@@ -129,22 +51,6 @@ function resolveReasoningLevel(model, effort) {
   )
 }
 
-/**
- * Selectable reasoning efforts for one model, or nothing at all.
- *
- * A model that carries no reasoning metadata — every hand-declared one, and
- * every catalog model pi-ai marks as non-reasoning — is reported by pi-ai as
- * supporting the single level `off`. Passing that through would offer a control
- * that cannot do what it says: `off` is translated to *omitting* the reasoning
- * option, which for such a model is byte-for-byte the same request as naming no
- * effort — so a provider whose own default is to think would keep thinking with
- * `off` selected. Omitting `reasoning` entirely is the seam's way of saying the
- * capability is unavailable, which leaves the surface offering only the
- * provider's default.
- * @param {object} model - the resolved model descriptor.
- * @param {string | undefined} defaultLevel - the profile's configured effort, already validated.
- * @returns {object} the `reasoning` field, or an empty object when none can be offered.
- */
 function reasoningInfo(model, defaultLevel) {
   if (!model.reasoning) return {}
   const levels = getSupportedThinkingLevels(model)
@@ -159,11 +65,6 @@ function reasoningInfo(model, defaultLevel) {
   }
 }
 
-/**
- * Merge deployment headers while removing case-insensitive attribution collisions.
- * @param {Readonly<Record<string, string>> | undefined} headers - the route's configured headers.
- * @returns {Record<string, string>} the request headers.
- */
 function requestHeaders(headers) {
   const attribution = attributionHeaders()
   const reserved = new Set(Object.keys(attribution).map(name => name.toLowerCase()))
@@ -173,29 +74,13 @@ function requestHeaders(headers) {
   }
 }
 
-/**
- * pi-ai-backed multi-provider adapter. Each operation reads the current
- * profiles, so a configuration change reaches the next request without a
- * restart; model descriptors come from the collection those profiles built.
- */
 export class PiAiAdapter extends LlmAdapter {
-  /**
-   * @param {PiAiAdapterOptions} config - the resolution hooks the plugin owns.
-   */
   constructor(config) {
     super()
     this.config = config
-    /** @type {PiAiSnapshot | undefined} */
     this.snapshot = undefined
   }
 
-  /**
-   * The snapshot for the current profiles. Resolution memoizes its result, so
-   * an unchanged configuration is recognized by identity; a changed one gets a
-   * brand-new collection, leaving any snapshot an operation already captured
-   * untouched for as long as that operation holds it.
-   * @returns {PiAiSnapshot} the current snapshot.
-   */
   current() {
     const profiles = this.config.profiles()
     if (this.snapshot?.profiles === profiles) return this.snapshot
@@ -207,12 +92,6 @@ export class PiAiAdapter extends LlmAdapter {
     return this.snapshot
   }
 
-  /**
-   * The profile for one route within one snapshot, or the not-owned failure.
-   * @param {PiAiSnapshot} snapshot - the captured snapshot.
-   * @param {string} provider - the provider route.
-   * @returns {object} the resolved profile.
-   */
   profileOf(snapshot, provider) {
     const profile = snapshot.profiles.get(provider)
     if (profile === undefined) {
@@ -221,13 +100,6 @@ export class PiAiAdapter extends LlmAdapter {
     return profile
   }
 
-  /**
-   * The configured descriptor for one exact route/model pair within one snapshot.
-   * @param {PiAiSnapshot} snapshot - the captured snapshot.
-   * @param {string} provider - the provider route.
-   * @param {string} model - the exact model id.
-   * @returns {object} the pi-ai model descriptor.
-   */
   modelOf(snapshot, provider, model) {
     const profile = this.profileOf(snapshot, provider)
     const failure = profile.modelErrors.get(model)
@@ -240,26 +112,14 @@ export class PiAiAdapter extends LlmAdapter {
     return resolved
   }
 
-  /**
-   * @param {string} provider - the provider route.
-   * @returns {{ id: string, name: string }} the route identity for selectors.
-   */
   providerInfo(provider) {
     return { id: provider, name: this.current().profiles.get(provider)?.displayName ?? provider }
   }
 
-  /**
-   * @param {string} provider - the provider route.
-   * @returns {object | undefined} the route's resolved retry policy.
-   */
   providerRetryPolicy(provider) {
     return this.current().profiles.get(provider)?.retryPolicy
   }
 
-  /**
-   * @param {string} provider - the provider route.
-   * @returns {Promise<readonly object[]>} the route's selectable models.
-   */
   listModels(provider) {
     return Promise.resolve().then(() => {
       const snapshot = this.current()
@@ -273,22 +133,10 @@ export class PiAiAdapter extends LlmAdapter {
     })
   }
 
-  /**
-   * @param {string} provider - the provider route.
-   * @param {string} model - the exact model id.
-   * @param {AbortSignal} [_signal] - cancellation for asynchronous lookup.
-   * @returns {Promise<object>} the resolved model info.
-   */
   resolveModel(provider, model, _signal) {
     return Promise.resolve().then(() => this.modelInfo(this.current(), provider, model))
   }
 
-  /**
-   * @param {PiAiSnapshot} snapshot - the captured snapshot.
-   * @param {string} provider - the provider route.
-   * @param {string} model - the exact model id.
-   * @returns {object} the resolved model info.
-   */
   modelInfo(snapshot, provider, model) {
     const profile = this.profileOf(snapshot, provider)
     const resolvedModel = this.modelOf(snapshot, provider, model)
@@ -305,12 +153,6 @@ export class PiAiAdapter extends LlmAdapter {
     }
   }
 
-  /**
-   * @param {string} provider - the provider route.
-   * @param {string} model - the exact model id.
-   * @param {AbortSignal} [_signal] - cancellation for asynchronous lookup.
-   * @returns {Promise<object>} the prepared call, frozen to this snapshot.
-   */
   prepareCall(provider, model, _signal) {
     const snapshot = this.current()
     return Promise.resolve({
@@ -319,20 +161,10 @@ export class PiAiAdapter extends LlmAdapter {
     })
   }
 
-  /**
-   * @param {object} options - the harness request.
-   * @returns {AsyncIterable<object>} the harness chunk stream.
-   */
   stream(options) {
     return this.streamWithSnapshot(options, this.current())
   }
 
-  /**
-   * Stream one request against the snapshot captured with it.
-   * @param {object} options - the harness request.
-   * @param {PiAiSnapshot} snapshot - the snapshot captured for this call.
-   * @returns {AsyncGenerator<object>} the harness chunks.
-   */
   async * streamWithSnapshot(options, snapshot) {
     if (options.stop !== undefined) {
       throw new LlmError('llm-pi-ai does not support GenerateOptions.stop', 'UNSUPPORTED_OPTION')

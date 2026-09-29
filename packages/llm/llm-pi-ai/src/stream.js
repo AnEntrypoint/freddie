@@ -1,12 +1,3 @@
-/**
- * pi-ai assistant event translation into the harness streaming protocol.
- *
- * pi-ai tool-call arguments are parsed objects while the harness keeps their
- * raw JSON representation. pi-ai also reports failures as terminal stream
- * events, which this module maps into harness finish chunks.
- * @module @freddie/freddie-llm-pi-ai/stream
- */
-
 import { isContextOverflow } from '@earendil-works/pi-ai/utils/overflow'
 import {
   CallId,
@@ -19,11 +10,6 @@ import {
 } from '@freddie/freddie-llm'
 import { toPiReplayState } from './replay.js'
 
-/**
- * Map pi-ai usage (reasoning folded into output by pi-ai).
- * @param {object} usage - cumulative usage from the terminal pi-ai event.
- * @returns {object} harness counts with pi-ai's exact total; cache fields appear only when non-zero.
- */
 export function mapUsage(usage) {
   return {
     inputTokens: usage.input,
@@ -34,38 +20,18 @@ export function mapUsage(usage) {
   }
 }
 
-/** A request body a gateway or provider refused for size; resending it cannot succeed, so it is invalid, not transient. */
 const REJECTED_REQUEST_BODY = /\b413\b|failed to buffer the request body:\s*length limit exceeded|payload too large|request body too large/i
 
-/** A stream truncated before the provider's terminal event; each pi-ai provider words this differently when the wire closes mid-response. */
 const STREAM_TRUNCATED_BEFORE_TERMINAL_EVENT = /stream ended (?:before|without)\b/i
 
-/**
- * The raw argument string the harness vocabulary keeps; pi-ai hands back the parsed object.
- * @param {{ arguments: unknown }} toolCall - the pi-ai tool call.
- * @returns {string} the serialized arguments.
- */
 function rawArgumentsOf(toolCall) {
   return JSON.stringify(toolCall.arguments)
 }
 
-/**
- * Whether a terminal stop produced no content blocks: a degenerate provider
- * completion rather than a successful, empty assistant message.
- * @param {object} message - the assistant message carried by the terminal event.
- * @returns {boolean} true when the message has no content.
- */
 function isDegenerateCompletion(message) {
   return message.content.length === 0
 }
 
-/**
- * pi-ai flattens the caught error to `error.message`, discarding the original
- * Error and its `cause` chain before it reaches us, so classification reads
- * terse words rather than codes.
- * @param {string} message - the flattened provider failure text.
- * @returns {string} the harness error code.
- */
 function classifyPiAiError(message) {
   if (/\b(?:401|403)\b/.test(message)) return 'AUTH'
   if (isQuotaExceededError(message)) return QUOTA_EXCEEDED_CODE
@@ -83,12 +49,6 @@ function classifyPiAiError(message) {
   return 'PI_AI_ERROR'
 }
 
-/**
- * Map a terminal pi-ai event to the harness finish reason.
- * @param {object} message - the assistant message carried by the `done` or `error` event.
- * @param {number} [contextWindow] - resolved catalog capacity for usage-based overflow detection.
- * @returns {object} the mapped harness reason.
- */
 export function mapStopReason(message, contextWindow) {
   const piAiOverflow = isContextOverflow(message, contextWindow)
   const harnessOverflow = message.stopReason === 'error'
@@ -141,16 +101,6 @@ export function mapStopReason(message, contextWindow) {
   }
 }
 
-/**
- * Translate the pi-ai event stream into stream chunks. pi-ai never throws
- * mid-stream — failures arrive as `error` events, which become error/aborted
- * `finish` chunks.
- * @param {AsyncIterable<object>} events - one assistant turn's pi-ai event stream.
- * @param {number} [contextWindow] - resolved catalog capacity for usage-based overflow detection.
- * @param {AbortSignal} [callerSignal] - caller cancellation state.
- * @param {string} [requestedModel] - request model identity recorded for durable replay.
- * @returns {AsyncGenerator<object>} the harness chunks, ending with `usage` then `finish`.
- */
 export async function* toStreamChunks(events, contextWindow, callerSignal, requestedModel) {
   const toolIds = new Map()
 

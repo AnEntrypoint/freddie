@@ -1,20 +1,14 @@
-/** Package-owned LLM stream-protocol invariants. @module @freddie/freddie-llm/invariant */
-
 const PACKAGE_NAME = '@freddie/freddie-llm'
 
-/** Cordis companion plugin name. */
 export const name = 'llm-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Require one chunk index to be a non-negative safe integer. */
 function validateIndex(index, fail) {
   if (!Number.isSafeInteger(index) || index < 0) {
     fail(`LLM stream block index must be a non-negative safe integer, got ${index}`)
   }
 }
 
-/** Require a delta to address an open block of its matching type. */
 function validateDelta(open, index, expected, fail) {
   validateIndex(index, fail)
   const actual = open.get(index)
@@ -23,7 +17,6 @@ function validateDelta(open, index, expected, fail) {
   }
 }
 
-/** Wrap one provider stream and enforce its grammar as chunks are consumed. */
 async function* validateStream(source, fail) {
   const open = new Map()
   let usageSeen = false
@@ -71,7 +64,6 @@ async function* validateStream(source, fail) {
   if (!finished) fail('LLM stream ended without a terminal finish chunk')
 }
 
-/** Install validation around every provider stream. */
 const install = (ctx, fail) => {
   ctx.on('llm/stream', (_options, next) => validateStream(next(), fail), { global: true, prepend: true })
   ctx.on('llm/adapters-updated', () => {
@@ -87,10 +79,5 @@ const install = (ctx, fail) => {
   }, { global: true })
 }
 
-/**
- * Register the LLM invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

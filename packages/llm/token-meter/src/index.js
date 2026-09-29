@@ -1,9 +1,3 @@
-/**
- * Single replay-aware token-meter service for request and surface pressure.
- *
- * @module @freddie/freddie-token-meter
- */
-
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { BlockAssembler, deepFreeze } from '@freddie/freddie-llm'
@@ -13,7 +7,6 @@ import { contextPressureProjectionDefinition, tokenUsageProjectionDefinition } f
 import { estimateContent, estimateHeader, estimateMessage, ROLE_OVERHEAD } from './estimate.js'
 import { foldSurfaceTokens } from './surface-fold.js'
 
-/** Sum disjoint provider usage buckets without double-counting reasoning output. */
 function usageTokens(usage) {
   return usage.inputTokens
     + (usage.cacheReadTokens ?? 0)
@@ -21,20 +14,17 @@ function usageTokens(usage) {
     + usage.outputTokens
 }
 
-/** Compare optional envelopes so a headerless estimate can track later surface deltas. */
 function optionalHeaderEquals(left, right) {
   if (left === undefined || right === undefined) return left === right
   return headerEquals(left, right)
 }
 
-/** Reject stale or misspelled keys before defaults can hide them. */
 function validateConfigKeys(config) {
   for (const key of Object.keys(config)) {
     throw new Error(`TokenMeterConfig: unknown key "${key}" (no settings are supported)`)
   }
 }
 
-/** Replay owner for one service-wide estimator and isolated per-session folds. */
 export class TokenMeter extends Service {
   static Config = z.object({})
 
@@ -55,22 +45,6 @@ export class TokenMeter extends Service {
     })
   }
 
-  /**
-   * Measure current request pressure and surface through the durable tail.
-   *
-   * Provider usage is reused only when the latest successful call's canonical
-   * request envelope matches `requestHeader` and its total is no lower than
-   * that call's full heuristic anchor; otherwise the complete envelope and
-   * surface are heuristically repriced.
-   *
-   * `requestHeader` affects request pressure only; surface fields always
-   * describe the current session surface. Every call clones those positional
-   * nodes, so measurement is O(surface).
-   *
-   * @param session - session to replay through its current durable tail.
-   * @param requestHeader - optional effective request envelope replacing the latest logged header.
-   * @returns a detached deeply immutable pressure and surface measurement.
-   */
   measure(session, requestHeader) {
     const state = this._sync(session)
     const header = requestHeader === undefined
@@ -104,17 +78,10 @@ export class TokenMeter extends Service {
     }))
   }
 
-  /**
-   * Heuristically price one model-visible message (instance face of the pure
-   * `estimateMessage` export from `estimate.js`).
-   * @param message - message to price without mutation.
-   * @returns content and role-framing tokens under the fixed service heuristic.
-   */
   estimateMessage(message) {
     return estimateMessage(message)
   }
 
-  /** Catch one session's fold up to the current durable tail. */
   _sync(session) {
     let state = this.states.get(session)
     if (state === undefined) {
@@ -130,7 +97,7 @@ export class TokenMeter extends Service {
     }
 
     while (state.consumedEvents < session.events.length) {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- contiguous session seqs index the durable log
+      // oxlint-disable-next-line typescript/no-non-null-assertion
       const event = session.events[state.consumedEvents]
       this._foldEvent(session, state, event)
       state.consumedEvents += 1
@@ -138,11 +105,6 @@ export class TokenMeter extends Service {
     return state
   }
 
-  /**
-   * Validate and prepare every fallible part before mutating replay state.
-   * A malformed event remains unread on every retry instead of partially
-   * applying the same mutation more than once.
-   */
   _foldEvent(session, state, event) {
     let nextHeader = state.header
     let nextStepStart = state.stepStart
@@ -224,11 +186,6 @@ export class TokenMeter extends Service {
     state.anchor = nextAnchor
   }
 
-  /**
-   * Reassemble provider output from the exact cited chunk seqs for a usage anchor.
-   * Missing legacy source seqs conservatively treat the durable output as the
-   * provider output; an explicit empty list prices a known empty stream.
-   */
   _estimateProviderAssistant(session, event, durableEventTokens) {
     const sourceSeqs = event.sourceEventSeqs
     if (sourceSeqs === undefined) return durableEventTokens

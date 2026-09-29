@@ -1,11 +1,3 @@
-/**
- * LLM service: adapter registry with a waterfall-interceptable streaming call
- * API. Exports the `LlmRuntime` default, the abstract `LlmAdapter` for
- * provider backends, and `BlockAssembler` for chunk assembly.
- *
- * @module @freddie/freddie-llm
- */
-
 import { Context, Service } from '@freddie/cordis'
 import { freezeMessage } from './message.js'
 import { resolveRetryPolicy } from './retry-policy.js'
@@ -27,19 +19,9 @@ export * from './retry-policy.js'
 export { BlockAssembler } from './assembler.js'
 export { callConfigEquals, deepFreeze, isAgentLoopRequest, markAgentLoopRequest } from './call-config.js'
 
-/**
- * Typed error for LLM-related failures. Extends {@link HarnessError}, so the
- * `code` string (e.g. `AUTH`, `RATE_LIMIT`, `NO_ADAPTER`) is shared taxonomy.
- */
 export class LlmError extends HarnessError {
-  /** Serializable facts retained beside this live Error. */
   failure
 
-  /**
-   * @param message - non-empty human-readable failure summary.
-   * @param code - non-empty stable provider-neutral machine code.
-   * @param options - optional cause and validated serializable provider facts.
-   */
   constructor(message, code, options) {
     if (typeof message !== 'string' || message.length === 0) throw new Error('LlmError message must be a non-empty string')
     if (typeof code !== 'string' || code.length === 0) throw new Error('LlmError code must be a non-empty string')
@@ -67,24 +49,6 @@ export class LlmError extends HarnessError {
   }
 }
 
-/**
- * Accept one supplied credential, or refuse it as unusable.
- *
- * A stored key arrives from the credentials seam, a `.env` line, or a shell
- * export, all of which pick up surrounding whitespace, so trimming is silent.
- * Anything else fails here rather than inside `fetch`, whose ByteString
- * refusal names a UTF-16 code point instead of the setting to change. The key
- * never enters the message: `ref` names where to fix it, and echoing any part
- * of a secret into a log or a UI is the failure this diagnosis avoids.
- *
- * Lives beside {@link LlmError} rather than in `./api-key.js` so the predicate
- * module stays dependency-free; both adapters share this one diagnosis instead
- * of keeping near-identical local copies.
- * @param raw - the credential exactly as supplied.
- * @param pkg - the refusing package name, prefixed to the diagnostic.
- * @param ref - the credential reference the value resolved through.
- * @returns the trimmed, usable key.
- */
 export function assertUsableApiKey(raw, pkg, ref) {
   const checked = normalizeApiKey(raw)
   if (checked.ok) return checked.value
@@ -98,64 +62,23 @@ export function assertUsableApiKey(raw, pkg, ref) {
   )
 }
 
-/**
- * Provider-wire adapter for the harness message and stream vocabulary. Register implementations
- * with `ctx.llm.registerAdapter(providers, adapter)`. Every provider HTTP request must include
- * `attributionHeaders()`; prove the headers are added in the wire request or library header hook. The direct-fetch
- * DeepSeek and library-backed pi-ai adapters meet this contract through different internals.
- */
 export class LlmAdapter {
-  /**
-   * Describe one provider route owned by this adapter.
-   * @param provider - a route passed to `registerAdapter()` for this instance.
-   * @returns detached display metadata whose id must equal `provider`.
-   */
   providerInfo(provider) {
     return { id: provider, name: provider }
   }
 
-  /**
-   * Return the provider-owned retry policy captured with this route.
-   * @param _provider - a route passed to `registerAdapter()` for this instance.
-   * @returns a resolved policy, or `undefined` to use the normal defaults.
-   */
   providerRetryPolicy(_provider) {
     return undefined
   }
 
-  /**
-   * List models this adapter can currently advertise for one owned provider.
-   * The result is advisory: an adapter may accept unlisted model ids, and
-   * consumers must not turn absence into request rejection.
-   * @param _provider - one provider route owned by this adapter.
-   * @returns discoverable models in adapter-preferred order.
-   */
   listModels(_provider) {
     return Promise.resolve([])
   }
 
-  /**
-   * Resolve all metadata available for one exact model. This query is
-   * independent of the advisory catalog and does not validate request routing.
-   * @param provider - one provider route owned by this adapter.
-   * @param model - exact model id passed to {@link import('./types.js').GenerateOptions}'s `model`.
-   * @param _signal - cancellation for this exact-model lookup; asynchronous
-   *   implementations must settle promptly after it aborts.
-   * @returns provider/model identity plus any context, call-default, and reasoning metadata.
-   */
   resolveModel(provider, model, _signal) {
     return Promise.resolve({ provider, id: model, name: model })
   }
 
-  /**
-   * Bind exact model metadata and the eventual request dispatch to one adapter generation.
-   * Dynamic adapters override this so settings changes between preparation and
-   * dispatch cannot combine one generation's capabilities with another's endpoint.
-   * @param provider - registered provider route.
-   * @param model - exact model id.
-   * @param signal - cancellation for model resolution.
-   * @returns model metadata and a one-generation stream entry point.
-   */
   async prepareCall(provider, model, signal) {
     return {
       model: await this.resolveModel(provider, model, signal),
@@ -163,20 +86,11 @@ export class LlmAdapter {
     }
   }
 
-  /**
-   * Stream one model call as raw chunks. The only required method.
-   * @param options - the fully-assembled request; implementations must honor `options.signal`.
-   * @returns the chunk stream, obeying the adapter contract documented on `StreamChunk`.
-   */
   stream(_options) {
     throw new Error('LlmAdapter.stream must be implemented by subclasses')
   }
 }
 
-/**
- * The abstract `llm` service: an adapter registry plus a streaming model-call
- * API, interceptable via the `llm/stream` waterfall.
- */
 export class LlmRuntime extends Service {
   adapters = new Map()
   directory = new Map()
@@ -186,7 +100,6 @@ export class LlmRuntime extends Service {
     super(ctx, 'llm')
   }
 
-  /** Notify topology observers without letting one broken listener veto the commit. */
   emitAdaptersUpdated() {
     let invariantFailure
     for (const listener of this.ctx.events.dispatch('emit', ['llm/adapters-updated'])) {
@@ -208,27 +121,11 @@ export class LlmRuntime extends Service {
     if (invariantFailure !== undefined) throw invariantFailure
   }
 
-  /** Contained-listener diagnostic shared by the sync and async failure paths. */
   warnAdaptersListenerFailure(error) {
     this.ctx.logger.warn('llm: an llm/adapters-updated listener failed')
     this.ctx.logger.warn(error)
   }
 
-  /**
-   * What {@link registerAdapter} returns: the disposer, plus an atomic route
-   * replacement for the same adapter instance.
-   * @typedef {function(): void} AdapterRegistrationHandle
-   * @property {function(readonly string[]): void} replace - replace this registration's routes with a new candidate set, validated in full before the swap; throws `LlmError` (`REGISTRATION_DISPOSED`) once released.
-   */
-
-  /**
-   * Register an adapter for the given provider routes. Throws `LlmError` with code
-   * `DUPLICATE_ADAPTER` if any provider already has an adapter (all-or-nothing).
-   * Disposed with the fiber.
-   * @param providers - every provider route this adapter should serve.
-   * @param adapter - the adapter that streams calls for those providers.
-   * @returns the disposer, carrying {@link AdapterRegistrationHandle}'s `replace`.
-   */
   registerAdapter(providers, adapter) {
     const owned = new Set()
     let released = false
@@ -252,11 +149,6 @@ export class LlmRuntime extends Service {
     return handle
   }
 
-  /**
-   * Validate one candidate route set for `adapter`, treating routes this
-   * registration already holds as available. Nothing is mutated: a rejected
-   * candidate leaves the registry exactly as it was.
-   */
   prepareRoutes(providers, adapter, owned) {
     const unique = new Set()
     const registrations = []
@@ -281,13 +173,6 @@ export class LlmRuntime extends Service {
     return registrations
   }
 
-  /**
-   * Swap this registration's routes for the prepared ones in one synchronous
-   * section, so no observer can see the registry between the release and the
-   * re-registration. The route set's one mutation point is also where
-   * `llm/adapters-updated` is published, so a `replace` announces itself
-   * exactly like a first registration.
-   */
   commitRoutes(owned, registrations) {
     for (const provider of owned) this.adapters.delete(provider)
     owned.clear()
@@ -298,32 +183,13 @@ export class LlmRuntime extends Service {
     this.emitAdaptersUpdated()
   }
 
-  /**
-   * Describe provider routes with a registered adapter.
-   * @returns detached provider metadata in registration order.
-   */
   listProviders() {
     return [...this.adapters.values()].map(({ provider }) => ({ ...provider }))
   }
 
-  /**
-   * Declare provider routes an adapter plugin can activate through
-   * configuration. Registration is all-or-nothing: an empty list, invalid
-   * entry, or a provider already declared by any registration throws
-   * `LlmError` without registering the rest. Disposed with the fiber.
-   * @param entries - every configurable provider this plugin owns.
-   * @returns a handle that withdraws all of them, and can atomically replace them.
-   */
   registerConfigurableProviders(entries) {
     let held = []
     let disposed = false
-    /**
-     * Validate a candidate set in full against everything this registration
-     * does not already hold, then publish it. Nothing is written until the
-     * whole set passes, so a refused candidate leaves the current entries in
-     * place — the property that makes `replace` a swap rather than a
-     * delete-then-add that can strand the directory empty.
-     */
     const commit = (candidates) => {
       const detached = []
       const own = new Set(held.map(entry => entry.provider))
@@ -369,24 +235,10 @@ export class LlmRuntime extends Service {
     return handle
   }
 
-  /**
-   * List every declared configurable provider, registered or dormant.
-   * @returns detached directory entries in declaration order.
-   */
   listConfigurableProviders() {
     return [...this.directory.values()].map(entry => ({ ...entry, settingsPath: [...entry.settingsPath] }))
   }
 
-  /**
-   * Offer to interrogate provider endpoints on behalf of the settings
-   * namespace this plugin owns. The namespace is the key because that is what
-   * a configuration surface already holds from the configurable-provider
-   * directory, and because a provider being *added* has no route to name yet.
-   * Disposed with the fiber.
-   * @param settingsNs - the namespace whose profiles this discovery serves.
-   * @param discover - interrogates one endpoint; must honor `request.signal`.
-   * @returns the disposer that withdraws the offer.
-   */
   registerModelDiscovery(settingsNs, discover) {
     const dispose = this.ctx.effect(function* () {
       if (settingsNs.length === 0) {
@@ -403,15 +255,6 @@ export class LlmRuntime extends Service {
     return () => void dispose()
   }
 
-  /**
-   * Interrogate one provider endpoint for the models it advertises. The
-   * request describes a draft, not a stored route, so nothing here reads or
-   * writes settings or credentials — the caller owns both, and the reply is
-   * candidate metadata a surface may offer for adoption.
-   * @param settingsNs - namespace whose registered discovery serves this draft.
-   * @param request - the endpoint, protocol, and one-shot credential to use.
-   * @returns the advertised models, deduplicated in endpoint order.
-   */
   async discoverModels(settingsNs, request) {
     const discover = this.discoveries.get(settingsNs)
     if (discover === undefined) {
@@ -436,26 +279,14 @@ export class LlmRuntime extends Service {
     return models
   }
 
-  /**
-   * Resolve the retry policy captured when one provider route was registered.
-   * @param provider - registered provider route to inspect.
-   * @returns the provider-owned policy, with normal defaults already resolved.
-   */
   providerRetryPolicy(provider) {
     return this.registration(provider).retryPolicy
   }
 
-  /** Detach typed adapter-owned modality metadata. */
   detachedModalities(modalities) {
     return modalities === undefined ? undefined : [...modalities]
   }
 
-  /**
-   * Discover models advertised by one registered provider. Catalog membership
-   * is advisory and never changes routing or request validation.
-   * @param provider - registered provider route to inspect.
-   * @returns detached model metadata in adapter-preferred order.
-   */
   async listModels(provider) {
     const adapter = this.registration(provider).adapter
     const models = await adapter.listModels(provider)
@@ -485,15 +316,6 @@ export class LlmRuntime extends Service {
     })
   }
 
-  /**
-   * Resolve and validate all metadata from the adapter that owns one exact
-   * route. The result is detached from adapter-owned objects; catalog
-   * membership remains advisory and does not control request routing.
-   * @param provider - registered provider route to inspect.
-   * @param model - exact model id passed to the adapter.
-   * @param signal - optional cancellation for adapter-owned asynchronous lookup.
-   * @returns exact model identity plus available context and reasoning metadata.
-   */
   async resolveModelInfo(provider, model, signal) {
     return this.resolveModelInfoFor(this.registration(provider), model, signal)
   }
@@ -503,7 +325,6 @@ export class LlmRuntime extends Service {
     return this.normalizeModelInfo(registration, model, resolved)
   }
 
-  /** Validate and detach one adapter-returned exact model result. */
   normalizeModelInfo(registration, model, resolved) {
     const provider = registration.provider.id
     if (
@@ -590,16 +411,6 @@ export class LlmRuntime extends Service {
     }
   }
 
-  /**
-   * Validate a conversation call config against its exact model capability and
-   * materialize adapter-configured defaults. Unsupported explicit efforts
-   * reject before provider I/O; no clamping or aliasing is performed. This
-   * standalone query does not bind a later dispatch; use {@link prepareCall}
-   * when logging and streaming must share one adapter registration.
-   * @param config - provider/model route and optional request controls.
-   * @param signal - optional cancellation for adapter-owned capability lookup.
-   * @returns a detached config only when a default must be materialized.
-   */
   async resolveCallConfig(config, signal) {
     return (await this.resolveCallFor(this.registration(config.provider), config, signal)).config
   }
@@ -609,7 +420,6 @@ export class LlmRuntime extends Service {
     return this.resolveCallWithInfo(config, info)
   }
 
-  /** Validate request controls against one already-bound exact model result. */
   resolveCallWithInfo(config, info) {
     const defaulted = config.maxTokens === undefined && info.defaultMaxTokens !== undefined
       ? { ...config, maxTokens: info.defaultMaxTokens }
@@ -643,14 +453,6 @@ export class LlmRuntime extends Service {
     }
   }
 
-  /**
-   * Resolve one call under its current adapter registration. The returned
-   * one-shot handle keeps that registration across header logging and dispatch,
-   * so HMR cannot combine one adapter's capability result with another adapter.
-   * @param config - provider/model route and optional request controls.
-   * @param signal - optional cancellation for adapter-owned capability lookup.
-   * @returns a prepared config and its registration-bound stream entry point.
-   */
   async prepareCall(config, signal) {
     const registration = this.registration(config.provider)
     const adapterCall = await registration.adapter.prepareCall(config.provider, config.model, signal)
@@ -704,7 +506,6 @@ export class LlmRuntime extends Service {
     return registration
   }
 
-  /** Remove replay state whose historical route is owned by another adapter. */
   forAdapter(options, adapter) {
     const messages = options.messages.map((message) => {
       const source = message.source
@@ -720,11 +521,6 @@ export class LlmRuntime extends Service {
     return Object.isFrozen(options) ? deepFreeze(filtered) : filtered
   }
 
-  /**
-   * Final adapter boundary. Adapter selection, dispatch, iterator construction,
-   * and iteration failures become one terminal failure chunk. Middleware and
-   * downstream consumer failures remain thrown plugin or consumer errors.
-   */
   async * adapterStream(options, prepared) {
     let iterator
     try {
@@ -796,17 +592,6 @@ export class LlmRuntime extends Service {
     }
   }
 
-  /**
-   * Stream one model call as raw chunks (token-level deltas). Replay state is
-   * retained only when the same adapter instance owns its historical provider
-   * and the target provider. Final adapter selection remains fixed through
-   * asynchronous exact-model resolution and dispatch. Adapter selection,
-   * dispatch, and iteration failures become terminal `error` or `aborted`
-   * finish chunks; middleware, nested-call, cleanup, and consumer failures
-   * remain thrown.
-   * @param options - the full request; `options.provider` selects the adapter.
-   * @returns the chunk stream, possibly wrapped by `llm/stream` listeners.
-   */
   stream(options) {
     return this.streamWithRegistration(options)
   }
@@ -821,7 +606,6 @@ export class LlmRuntime extends Service {
   }
 }
 
-/** Convert one adapter throw into the stream protocol's terminal outcome. */
 function adapterFailureChunk(error, signal) {
   const failure = normalizeLlmFailure(error)
   return {

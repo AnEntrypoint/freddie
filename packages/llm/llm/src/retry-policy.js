@@ -1,12 +1,3 @@
-/**
- * Provider-owned request-retry policy configuration and resolution.
- *
- * Adapters expose one resolved policy per registered provider route; the
- * optional freddie-llm-retry plugin executes it on the agent's failed-step extension point.
- *
- * @module @freddie/freddie-llm/retry-policy
- */
-
 import z from '@freddie/schemastery'
 import { MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
 import { EMPTY_RESPONSE_CODE } from './error.js'
@@ -41,7 +32,6 @@ const alwaysPolicySchema = z.object({
   backoff: backoffSchema,
 })
 
-/** Cordis schema embedded by each concrete provider configuration. */
 export const RetryPolicySchema = z.union([
   normalPolicySchema,
   alwaysPolicySchema,
@@ -83,12 +73,6 @@ function resolveBackoff(config, path) {
   return Object.freeze({ initialDelayMs, maxDelayMs, jitterRatio })
 }
 
-/**
- * Validate, default, and detach one provider-owned retry policy.
- * @param config - optional provider configuration; omission selects normal defaults.
- * @param path - diagnostic path naming the provider config that owns the value.
- * @returns an immutable policy safe to capture in provider registration state.
- */
 export function resolveRetryPolicy(config, path) {
   if (config === undefined) {
     return Object.freeze({
