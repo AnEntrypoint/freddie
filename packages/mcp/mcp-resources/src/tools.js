@@ -1,8 +1,3 @@
-/**
- * Three shared tools adapt model arguments to scoped resource operations.
- * @module @freddie/freddie-mcp-resources
- */
-
 import { defineTool } from '@freddie/freddie-tools'
 import { renderResourceResult } from './render.js'
 
@@ -16,12 +11,6 @@ const output = {
   render: (args, value) => renderResourceResult(args.server, value),
 }
 
-/**
- * Register resource operations in the consumer's tool scope.
- * @param ctx - context owning the tool registrations.
- * @param request - caller-aware resource operation: `(server, request, exec) => Promise<JsonValue>`.
- * @returns the effect disposer that removes all three tools synchronously.
- */
 export function registerResourceTools(ctx, request) {
   const dispose = ctx.effect(function* () {
     yield ctx.tools.register(defineTool({

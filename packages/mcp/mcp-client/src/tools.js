@@ -1,17 +1,3 @@
-/**
- * Tool bridge: discovers MCP tools, registers them on the harness ToolRuntime
- * under deterministic server-qualified public names, and handles re-sync when
- * the server's tool list changes.
- *
- * Naming contract (see the mcp-client Agent Note "Naming invariants"): every MCP tool
- * has the stable identity `(serverName, rawName)`; the model-facing public name
- * is `mcp__<serverName>__<rawName>`, normalized to the DeepSeek function-name
- * constraints. The raw name is only ever sent on the wire (`tools/call`); the
- * public name is never parsed to recover it.
- *
- * @module
- */
-
 import { createHash } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
 import { ListToolsResultSchema } from '@modelcontextprotocol/sdk/types.js'
@@ -19,27 +5,14 @@ import { z } from 'zod'
 import { isImageAdmissionError } from '@freddie/freddie-attachment'
 import { assertSupportedJsonSchema } from '@freddie/freddie-tools'
 
-/**
- * DeepSeek function-name contract: at most 64 characters. Wire-protocol
- * constant, not configuration.
- */
 const MAX_PUBLIC_NAME_LENGTH = 64
 
-/** DeepSeek function-name contract: only `[A-Za-z0-9_-]` is allowed. */
 const INVALID_NAME_CHARS = /[^A-Za-z0-9_-]/g
 
-/** Hex chars of the SHA-256 identity hash appended on lossy normalization. */
 const HASH_LENGTH = 12
 
-/**
- * Raw result record. `client.request` (MCP SDK) requires a zod schema
- * argument that it `.parse`s internally — this is the SDK's own external
- * contract, not validation this bridge performs, so the schema here is kept
- * maximally permissive (any string-keyed object) rather than removed.
- */
 const RawCallToolResultSchema = z.record(z.string(), z.unknown())
 
-/** Raster formats supported by the durable attachment vocabulary. */
 const IMAGE_MEDIA_TYPES = [
   'image/png',
   'image/jpeg',
@@ -47,10 +20,8 @@ const IMAGE_MEDIA_TYPES = [
   'image/gif',
 ]
 
-/** Canonical RFC 4648 base64, excluding whitespace and URL-safe aliases. */
 const CANONICAL_BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/
 
-/** List without mutating the SDK's per-page output-validator cache. */
 function listToolsUncached(client, cursor) {
   return client.request(
     { method: 'tools/list', ...cursor === undefined ? {} : { params: { cursor } } },
@@ -58,7 +29,6 @@ function listToolsUncached(client, cursor) {
   )
 }
 
-/** Call without the SDK pre-validating an output schema the bridge may not support. */
 function callToolUncached(
   client,
   rawName,
@@ -76,20 +46,6 @@ function callToolUncached(
   )
 }
 
-/**
- * Derive the model-facing public name for one MCP tool.
- *
- * Deterministic pure function of `(serverName, rawName)`: the clean case is
- * `mcp__<serverName>__<rawName>` verbatim. When character replacement or
- * truncation to the DeepSeek function-name contract (64 chars,
- * `[A-Za-z0-9_-]`) changes the name, a 12-hex-char SHA-256 hash of the
- * identity is appended so distinct MCP identities never collapse into the
- * same public name.
- *
- * @param serverName - Stable local namespace from plugin config.
- * @param rawName - The MCP server's own tool name.
- * @returns The globally unique, model-facing ToolRuntime name.
- */
 export function publicToolName(serverName, rawName) {
   const joined = `mcp__${serverName}__${rawName}`
   const normalized = joined.replace(INVALID_NAME_CHARS, '_')
@@ -98,30 +54,6 @@ export function publicToolName(serverName, rawName) {
   return `${normalized.slice(0, MAX_PUBLIC_NAME_LENGTH - HASH_LENGTH - 1)}_${hash}`
 }
 
-/**
- * Sync the MCP server's tool list into the harness ToolRuntime.
- *
- * Two phases keep the swap safe:
- *
- * 1. Fetch: drain uncached `tools/list` pagination and build the full next
- *    generation of `ToolDefinition`s under public names. Any failure here
- *    (network error, duplicate raw name in the server's list) rejects and
- *    leaves the previous generation registered untouched.
- * 2. Swap: dispose the previous generation, register the new one. A registry
- *    conflict here can only mean a foreign registration squats on this
- *    server's `mcp__<serverName>__` namespace — the partial generation is
- *    rolled back (zero tools from this server) and logged. Initial strict
- *    synchronization may propagate the conflict so its parent transaction
- *    rejects; ordinary clients and later re-syncs return an empty map.
- *
- * @param client - Connected MCP Client instance used to list and call tools.
- * @param ctx - Cordis context providing the `tools` service for registration.
- * @param opts - Bridge options: server namespace and per-call timeout.
- * @param previous - Disposer map from the prior sync generation; disposed
- *   during the swap phase (only after the fetch phase succeeded).
- * @returns A map of registered public tool names to their unregister
- *   disposers — the exact set of live registrations owned by this server.
- */
 export async function syncTools(
   client,
   ctx,
@@ -169,7 +101,6 @@ export async function syncTools(
   return disposers
 }
 
-/** Keep a supported advertised schema; unsupported MCP vocabulary falls back to JsonValue. */
 function supportedOutputSchema(candidate) {
   if (candidate === undefined) return undefined
   try {
@@ -180,19 +111,6 @@ function supportedOutputSchema(candidate) {
   }
 }
 
-/**
- * Build one generation-local tool definition and its execution-local rich projections.
- * @param client - connected MCP client used for calls.
- * @param ctx - plugin context carrying optional attachment and model services.
- * @param publicName - registry-qualified public tool name.
- * @param rawName - MCP wire tool name.
- * @param description - model-facing tool description.
- * @param parameters - MCP input schema.
- * @param structuredSchema - supported structured-output schema, when advertised.
- * @param taskRequired - whether this MCP tool requires unsupported task execution.
- * @param opts - bridge timeout and namespace options.
- * @returns a complete ToolRuntime definition.
- */
 function createDefinition(
   client,
   ctx,
@@ -223,7 +141,6 @@ function createDefinition(
   }
 }
 
-/** Build the canonical result schema and existing Native text projection. */
 function createOutput(rawName, structuredSchema) {
   return {
     schema: {
@@ -242,16 +159,6 @@ function createOutput(rawName, structuredSchema) {
   }
 }
 
-/**
- * Create an execute function for one MCP tool. The executor closes over the
- * raw MCP tool name and sends an uncached `tools/call` request with it (never
- * the public name), with abort signal and timeout, then maps the result to
- * harness ContentBlocks. Owning the raw request prevents the SDK's internal
- * per-page schema cache from pre-validating a different contract.
- *
- * When the MCP server returns `isError: true`, the executor throws so that
- * the ToolRuntime's catch path produces an `isError` result for the model.
- */
 function createExecutor(
   client,
   ctx,
@@ -303,22 +210,18 @@ function createExecutor(
   }
 }
 
-/** Whether an untrusted MCP content array contains a declared image block. */
 function containsImage(content) {
   return content.some(value => isRecord(value) && value.type === 'image')
 }
 
-/** Narrow one JSON value to a string-keyed object. */
 function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/** Narrow a declared MIME string to the durable image vocabulary. */
 function isImageMediaType(value) {
   return IMAGE_MEDIA_TYPES.includes(value)
 }
 
-/** Decode one untrusted MCP image block without accepting base64 aliases. */
 function decodeImage(block) {
   if (block.mimeType === undefined || !isImageMediaType(block.mimeType)) {
     throw new Error('the declared media type is not PNG, JPEG, WebP, or GIF')
@@ -333,12 +236,6 @@ function decodeImage(block) {
   return { data, mediaType: block.mimeType }
 }
 
-/**
- * Resolve the active model route and durable store for an image-bearing result.
- * @param ctx - plugin context with optional services.
- * @param exec - exact tool execution whose agent supplies the latest route.
- * @returns the attachment store after exact positive image-capability proof.
- */
 async function resolveImageAdmission(ctx, exec) {
   const attachments = ctx.get('attachments')
   if (attachments === undefined) throw new Error('no attachment store is mounted')
@@ -362,17 +259,11 @@ async function resolveImageAdmission(ctx, exec) {
   return attachments
 }
 
-/** Stable diagnostic text for an image block that was not admitted. */
 function imageDiagnostic(block, reason) {
   const mediaType = block.mimeType ?? 'unknown media type'
   return `[image unavailable: ${mediaType}; ${reason}; raw image data remains available to programmatic callers]`
 }
 
-/**
- * Decode, preflight, and durably save one MCP result's ordered image batch.
- * Any refusal projects every image as text while retaining the canonical raw
- * value for programmatic callers.
- */
 async function prepareImageProjection(
   ctx,
   exec,
@@ -427,24 +318,11 @@ async function prepareImageProjection(
   }
 }
 
-/**
- * Extract text from an MCP content array into a single string.
- * - text blocks: join with '\n'
- * - image/audio/resource blocks: replaced with a placeholder
- *
- * Defensive: fields that the MCP spec declares required (mimeType, text) are
- * guarded with fallbacks because this is a network trust boundary.
- */
 function extractText(mcpContent, toolName) {
   const content = projectContent(mcpContent, toolName)
   return content.map(block => block.text).join('\n')
 }
 
-/**
- * Project ordered MCP blocks into the core content vocabulary.
- * Text-like runs are newline-coalesced; admitted images split those runs at
- * their original position.
- */
 function projectContent(
   mcpContent,
   toolName,

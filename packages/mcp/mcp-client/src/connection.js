@@ -1,27 +1,9 @@
-/**
- * Connection supervisor: owns the MCP client/transport generations for one
- * plugin instance, keeps the harness tool registry in sync with the live
- * generation, and — when the connection drops — restarts the configured
- * server with bounded exponential backoff.
- *
- * One outage shares one attempt budget (`maxAttempts` consecutive failed
- * attempts, delays doubling from `initialDelayMs` up to `maxDelayMs`). A
- * connection that stays up past the stability window closes the outage, so
- * the next disconnect starts a fresh budget while a crash-looping server —
- * even one whose connects briefly succeed — still exhausts the cap instead of
- * restarting forever. Exhaustion unregisters the server's tools and stops;
- * disposal (including HMR) is the only way back from that state.
- *
- * @module
- */
-
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js'
 import { MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
 import { createTransport } from './transport.js'
 import { syncTools } from './tools.js'
 
-/** Defaults shared by the Config schema and {@link resolveReconnectPolicy}. */
 export const RECONNECT_DEFAULTS = Object.freeze({
   enabled: true,
   initialDelayMs: 500,
@@ -31,16 +13,6 @@ export const RECONNECT_DEFAULTS = Object.freeze({
 
 const GENERATION_CLOSE_TIMEOUT_MS = 5_000
 
-/**
- * The one explicit resolve step from raw reconnect config to the policy the
- * supervisor runs. Programmatic construction may bypass Schemastery
- * normalization, so every default and bound is re-judged here — misconfiguration
- * fails the plugin instance at load.
- *
- * @param config - Raw `reconnect` config; omission uses the defaults.
- * @param path - Diagnostic prefix naming the config location in thrown messages.
- * @returns The frozen resolved policy.
- */
 export function resolveReconnectPolicy(config, path) {
   if (config !== undefined) {
     for (const key of Object.keys(config)) {
@@ -51,7 +23,7 @@ export function resolveReconnectPolicy(config, path) {
   const initialDelayMs = config?.initialDelayMs ?? RECONNECT_DEFAULTS.initialDelayMs
   const maxDelayMs = config?.maxDelayMs ?? RECONNECT_DEFAULTS.maxDelayMs
   const maxAttempts = config?.maxAttempts ?? RECONNECT_DEFAULTS.maxAttempts
-  /* jscpd:ignore-start — domain-specific delay validation parallels llm retry-policy; not extractable */
+  /* jscpd:ignore-start */
   if (!Number.isFinite(initialDelayMs) || initialDelayMs <= 0 || initialDelayMs > MAX_TIMER_DELAY_MS) {
     throw new Error(`${path}.initialDelayMs must be a positive finite number no greater than ${MAX_TIMER_DELAY_MS}`)
   }
@@ -68,15 +40,6 @@ export function resolveReconnectPolicy(config, path) {
   return Object.freeze({ enabled, initialDelayMs, maxDelayMs, maxAttempts })
 }
 
-/**
- * Start the supervised connection for one MCP server and keep it alive per
- * the reconnect policy.
- *
- * @param ctx - Cordis context providing the `tools` registry and logger.
- * @param config - Resolved plugin config selecting the transport and server identity.
- * @param policy - Resolved reconnect policy from {@link resolveReconnectPolicy}.
- * @returns Handle with a `ready` promise for startup-await and a `dispose` for teardown.
- */
 export function startConnection(ctx, config, policy) {
   const label = `mcp-client(${config.serverName})`
   const opts = {
@@ -89,29 +52,16 @@ export function startConnection(ctx, config, policy) {
     : opts
 
   let disposed = false
-  /** Current generation: the connecting or connected client; undefined during backoff waits and after final failure. */
   let client
-  /** Close signal paired with {@link client}; captured by dispose before current ownership is cleared. */
   let clientClosed
-  /** Live tool registrations owned by this server; only {@link enqueueSync} and dispose swap it. */
   let disposers = new Map()
   let reconnectTimer
-  /** Consecutive failed connection attempts within the current outage. */
   let failedAttempts = 0
-  /** When the current generation finished connect + initial sync; undefined while down. */
   let connectedAt
-  /** The real error from the first connection attempt, for startup-await diagnostics. */
   let firstAttemptError
 
-  /** A generation may act only while it is the current one on a live plugin. */
   const isCurrent = generation => !disposed && client === generation
 
-  /**
-   * Serializes every syncTools call — initial syncs and notification re-syncs
-   * across all generations — so two syncs can never interleave their
-   * dispose-previous/register-next swap (which would double-dispose one
-   * generation and leak another).
-   */
   let syncChain = Promise.resolve()
   function enqueueSync(generation, syncOpts = opts) {
     const run = syncChain.then(async () => {
@@ -122,7 +72,6 @@ export function startConnection(ctx, config, policy) {
     return run
   }
 
-  /** One disconnect decision per generation: the isCurrent guard makes racing close/error signals idempotent. */
   function generationDown(generation) {
     if (!isCurrent(generation)) return
     client = undefined
@@ -130,7 +79,6 @@ export function startConnection(ctx, config, policy) {
     scheduleReconnect()
   }
 
-  /** Wait for the transport-owned close signal without letting a broken transport wedge teardown forever. */
   function waitForClose(closed) {
     return new Promise((resolve) => {
       const timeout = setTimeout(() => { resolve(false) }, GENERATION_CLOSE_TIMEOUT_MS)
@@ -172,16 +120,6 @@ export function startConnection(ctx, config, policy) {
     reconnectTimer.unref()
   }
 
-  /**
-   * One connection attempt: fresh transport + client (the MCP SDK binds a
-   * Protocol to one transport for life), connect, then queue the initial tool
-   * sync. The startup flag belongs to the attempt rather than the shared sync
-   * queue, so an early notification cannot consume strict startup semantics.
-   * Every failure funnels through {@link generationDown}; success arms the
-   * onclose-driven disconnect path. Never rejects.
-   *
-   * @param startup - Whether this is the plugin's activation attempt.
-   */
   async function connectGeneration(startup) {
     const generation = new Client(
       { name: 'freddie-mcp-client', version: '0.0.1' },
@@ -248,12 +186,11 @@ export function startConnection(ctx, config, policy) {
     if (failedAttempts > 0) ctx.logger.info(`${label}: reconnected and re-synced tools (attempt ${failedAttempts}/${policy.maxAttempts})`)
   }
 
-  /** The in-flight (or last settled) connection attempt; dispose awaits it for quiescence. */
   let settling = connectGeneration(true)
 
   const ready = settling.then(() => {
     if (client !== undefined) return {}
-    /* v8 ignore next -- defensive: firstAttemptError is always set when connect/sync fails */
+    /* v8 ignore next */
     return { error: firstAttemptError ?? new Error(`${label}: initial connection failed`) }
   })
 
