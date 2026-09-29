@@ -35,7 +35,7 @@ Real-API demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, and root `
 - ESM everywhere (`"type": "module"`). Use package names across packages and `.js` in local relative imports — the workspace is buildless plain JavaScript; `packages/*/*/src` runs directly under plain `node`, no build step, no TypeScript, no `tsx`. Raw/Web `cordis.yml` bare plugins must appear in their resolver manifest's `dependencies`; no script checks this, so boot the real config after adding a plugin.
 - **Registrations are effects**: every contribution goes through `ctx.effect()` / `ctx.on()`; a registry's `register()` returns the disposer.
 - **Runtime invariants assert owned relationships.** Check authoritative event streams or mutable data, not service or method presence, plugin metadata or effects, or fixed pure examples. Without a plausible relationship, an explained empty companion is correct ([package invariant rules](packages/AGENTS.md)).
-- **Typed events are JSDoc `@typedef`s on merge-extensible maps** (e.g. `SessionEventMap`); nothing compiles them, so a plugin's new event also needs adding to its owning package's runtime type set. Event JSDoc needs `@mode` and payload `@param`. Public service methods document parameters and non-void returns. A `SessionEventMap` member is required-on-read by default — builds that do not know its type refuse the log unless the event carries the envelope's `ignorable: true`; only structural format changes bump `SESSION_FORMAT_VERSION` ([mechanism](.agents/notes/implemented/architecture/2026-08-10-session-log-version-mechanism.md)).
+- **Typed events are merge-extensible maps** (e.g. `SessionEventMap`); nothing compiles them, so a plugin's new event also needs adding to its owning package's runtime type set, and its mode and payload contract live in the package README. Public service methods document parameters and returns in the package README. A `SessionEventMap` member is required-on-read by default — builds that do not know its type refuse the log unless the event carries the envelope's `ignorable: true`; only structural format changes bump `SESSION_FORMAT_VERSION` ([mechanism](.agents/notes/implemented/architecture/2026-08-10-session-log-version-mechanism.md)).
 - **Switch on discriminant tags.** Closed unions end in `assertNever`; merge-extensible unions fall through a documented default.
 - **Waterfall listeners MUST call `next()`** to delegate; returning without it short-circuits the chain ([semantics](docs/cordis-primer.md#cordis-waterfall-semantics)).
 - **Model-visible ⟺ logged**: anything that reaches a model request must be reconstructable from the session log; a new model-visible input requires a session event.
@@ -46,7 +46,7 @@ Real-API demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, and root `
 - **No hardcoded tunables in plugins**: deployment-varying choices are `Config` fields; protocol, spec, and security constants stay fixed.
 - **Misconfiguration fails loud** at load when self-contained, otherwise at the earliest resolvable point; never silently skip a missing referent.
 - **Opaque cross-boundary ids are branded** (`Branded<B>` from `freddie-brand`), never bare `string`.
-- **Trust the documented JSDoc contract at same-process boundaries.** Nothing in this buildless workspace compiles or type-checks it, so do not add runtime validation, fallback behavior, or hostile-input tests solely for values a same-process JSDoc signature already documents; validate at parser/config, queued, model/tool JSON, durable/file, worker, process, and wire boundaries.
+- **Trust the documented contract at same-process boundaries.** Nothing in this buildless workspace compiles or type-checks it, so do not add runtime validation, fallback behavior, or hostile-input tests solely for values a same-process package contract already documents; validate at parser/config, queued, model/tool JSON, durable/file, worker, process, and wire boundaries.
 - **An empty `catch` names what it swallows** and why nothing else can reach it; keep the `try` to one statement.
 - Do not comment on facts obvious from code.
 - **Prefer symmetry for parallel values**; unexplained asymmetry usually signals a missed extraction.
@@ -65,7 +65,7 @@ Read [docs/defensive-patterns.md](docs/defensive-patterns.md) before lifecycle, 
 
 ## Documentation
 
-JSDoc states non-obvious contracts. Prose, budgets, and placement live in [docs/AGENTS.md](docs/AGENTS.md); decisions in [freddie-prose-standard](.agents/skills/freddie-prose-standard/SKILL.md).
+Source carries no comments; non-obvious contracts live in package READMEs and AGENTS.md. Prose, budgets, and placement live in [docs/AGENTS.md](docs/AGENTS.md); decisions in [freddie-prose-standard](.agents/skills/freddie-prose-standard/SKILL.md).
 
 ## Editing these instructions
 

@@ -20,13 +20,12 @@ These package-specific rules supplement the repo-wide [conventions](../AGENTS.md
 [Naming rules](../docs/cookbook/adding-a-package.md#name-the-role-that-exists):
 
 - **Package source is buildless plain JavaScript** (`src/*.js`, ESM), runnable directly under plain `node` with no transformation step and no `lib/` output. `framework/*` is buildless plain JavaScript too ([its own AGENTS.md](../framework/AGENTS.md)).
-- A package's README and JSDoc are part of the change: altered behavior (config keys, defaults, error codes, wire fields) updates them in the same commit; apply [freddie-prose-standard](../.agents/skills/freddie-prose-standard/SKILL.md) for complete, concise prose and verify accuracy against code.
+- A package's README is part of the change: altered behavior (config keys, defaults, error codes, wire fields) updates them in the same commit; apply [freddie-prose-standard](../.agents/skills/freddie-prose-standard/SKILL.md) for complete, concise prose and verify accuracy against code.
 - Package READMEs document model, token, and KV-cache effects using the [canonical Model Experience format](../docs/cookbook/adding-a-package.md#4-write-the-package-readme).
 - Package READMEs put durable consumer gaps and non-obvious maintainer constraints under `## Known Limitations and Deferred Work`; ordinary cleanup stays in its TODO or Agent Note.
 
 ## Comment sweep (settings, shell, skill, spill, storage, subagent, subprocess, terminal, todo, typert, util, web, webhook, workflow, workspace)
-- Nothing compiles, typechecks, or emits declarations from JSDoc here (no tsconfig, no d.ts), so prose JSDoc, `@param`/`@returns` docs, and `@module` headers were removed; contracts live in package READMEs and names.
-- Exception: JSDoc blocks carrying types (`@typedef`, `@callback`, `@template`, `@type`, `@import`, `@satisfies`, `{Type}`-annotated `@param`/`@returns`/`@property`) stay, because other packages reference them through `import('...')` type paths and editors resolve them. Their descriptive lines stay with them.
+- Nothing compiles, typechecks, or emits declarations from JSDoc here (no tsconfig, no d.ts), so all JSDoc and prose comments were removed; contracts live in package READMEs, AGENTS.md and names.
 - Functional directives stay: `v8 ignore`, `oxlint-disable`, `jscpd:ignore`, shebangs. Files that held only a module header are `export {}`.
 
 ## core/ package invariants
