@@ -1,11 +1,8 @@
-/** Browser observability view registration. */
-
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import './ObservabilityDock.js'
 
 export const inject = ['connection', 'sessions', 'slots']
 
-/** Mount GM graph traversal as the session Overview. */
 export function apply(ctx) {
   const gmRemote = () => ctx.get('remote.gm')
   const missing = async () => ({

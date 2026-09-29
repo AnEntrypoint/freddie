@@ -1,5 +1,3 @@
-/** Pure GM graph layout and JIT/CLI overlay for the Overview walk. */
-
 const GM_NODE_TOOLS = /^(gm_prd_|gm_mutable_)/
 
 function compactText(value) {
@@ -68,13 +66,6 @@ function isRunningTool(root) {
   return root.call !== undefined && root.content === undefined
 }
 
-/**
- * Overlay in-flight tool calls and interactive terminals onto graph node ids.
- * @param chatNodes - conversation snapshot nodes.
- * @param terminals - mux-fed terminal snapshots for this session.
- * @param walkingId - node currently being walked, or null.
- * @returns `{ byNode, unmatched }` overlay lists.
- */
 export function overlayWalk(chatNodes, terminals, walkingId) {
   const byNode = new Map()
   const unmatched = []
@@ -111,11 +102,6 @@ function isOpen(status) {
   return status !== 'completed' && status !== 'resolved' && status !== 'witnessed' && status !== 'parked' && status !== 'done'
 }
 
-/**
- * Column layout: one column per PRD, mutables stacked under their prdId.
- * @param nodes - graph nodes.
- * @returns columns `{ id, prd, mutables }[]` plus `orphans`.
- */
 export function layoutGraph(nodes) {
   const list = Array.isArray(nodes) ? nodes.filter(node => node != null && typeof node.id === 'string') : []
   const prds = list.filter(node => node.kind === 'prd')
@@ -133,12 +119,6 @@ export function layoutGraph(nodes) {
   return { columns, orphans }
 }
 
-/**
- * Inspection payload for page.evaluate — ids/status/verb/names only.
- * @param gm - gmProgress projection.
- * @param overlay - overlayWalk result.
- * @returns JSON-safe debug object.
- */
 export function inspectGraph(gm, overlay) {
   const walking = walkingOf(gm)
   const jit = []
