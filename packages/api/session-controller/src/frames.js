@@ -1,19 +1,5 @@
-/**
- * Wire schemas for the Session frame streams.
- *
- * `session/follow` and `session/control` hand the Client a stream id, and the
- * frames themselves ride the generic `stream/next` carrier. The carrier is
- * untyped by construction, so these schemas are the frame contract: the Host
- * validates every produced frame against them while the stream is open, which
- * is the only point where a malformed frame can be rejected before it reaches
- * a polling Client.
- *
- * @module @freddie/freddie-session-controller/frames
- */
-
 import { z } from 'zod'
 
-/** One durable Session event as it crosses the wire. */
 const wireEvent = z.object({
   'type': z.string(),
   'seq': z.number(),
@@ -24,13 +10,11 @@ const wireEvent = z.object({
   'surfaceOp': z.unknown().optional(),
 })
 
-/** Projection values folded to one durable seq. */
 const projectionBaseline = z.object({
   'asOfSeq': z.number(),
   'values': z.record(z.string(), z.unknown()),
 })
 
-/** `session/follow` frames: an opening snapshot, then every durable event in seq order. */
 export const sessionFollowFrameSchema = z.discriminatedUnion('type', [
   z.object({
     'type': z.literal('snapshot'),
@@ -49,7 +33,6 @@ export const sessionFollowFrameSchema = z.discriminatedUnion('type', [
   }),
 ])
 
-/** `session/control` frames: one Host-wide baseline, then per-key replacements. */
 export const sessionControlFrameSchema = z.discriminatedUnion('type', [
   z.object({
     'type': z.literal('baseline'),

@@ -1,13 +1,3 @@
-/**
- * Strict wire codecs for the Session command endpoints, shared by the Host and
- * Client manifests so both faces of one endpoint can never drift apart.
- *
- * None declares cancellation: the gateway command surface has no cancellation
- * channel, and a declared one that did nothing would misreport what a Client
- * can stop.
- *
- * @module @freddie/freddie-session-controller/command-codecs
- */
 import { z } from 'zod'
 
 const promptContentPart = z.looseObject({
@@ -29,7 +19,6 @@ const selection = z.object({
   'reasoningEffort': z.string().optional(),
 })
 
-/** One row per command endpoint, in declaration order. */
 export const COMMAND_CODECS = [
   {
     method: 'create',

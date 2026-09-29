@@ -1,10 +1,4 @@
-/** Live Session projection state with reconnect baselines. */
-
-/** Owns the Host-wide Session control stream. */
 export class SessionControlController {
-  /**
-   * @param {import('@freddie/cordis').Context} ctx - Host context carrying live Session and projection services.
-   */
   constructor(ctx) {
     this.ctx = ctx
     this.streams = new Set()
@@ -17,12 +11,6 @@ export class SessionControlController {
     }, 'session-controller.control')
   }
 
-  /**
-   * Open one generation of Host-wide live control state.
-   * @param {AbortSignal} signal - stream cancellation.
-   * @returns {AsyncIterable<import('./types.js').SessionControlFrame>} one complete
-   *   baseline followed by live replacement frames.
-   */
   async *control(signal) {
     signal.throwIfAborted()
     const queue = new ControlQueue()
@@ -36,15 +24,10 @@ export class SessionControlController {
     }
   }
 
-  /** @returns {import('./types.js').SessionControlBaseline} the current Host-wide cut. */
   baseline() {
     return { projections: this.projectionBaseline(this.ctx.sessions.list()) }
   }
 
-  /**
-   * @param {object[]} sessions - live Sessions.
-   * @returns {Record<string, import('./types.js').SessionProjectionBaseline>} one block per Session.
-   */
   projectionBaseline(sessions) {
     const blocks = Object.create(null)
     for (const session of sessions) {
@@ -54,26 +37,17 @@ export class SessionControlController {
     return blocks
   }
 
-  /**
-   * @param {import('./types.js').SessionControlFrame} frame - frame to publish.
-   * @returns {void}
-   */
   broadcast(frame) {
     for (const stream of this.streams) stream.push(frame)
   }
 }
 
-/** One follower's bounded frame buffer with wake-on-push teardown. */
 class ControlQueue {
   constructor() {
     this.buffer = []
     this.done = false
   }
 
-  /**
-   * @param {import('./types.js').SessionControlFrame} frame - frame to enqueue.
-   * @returns {void}
-   */
   push(frame) {
     if (this.done) return
     this.buffer.push(frame)
@@ -82,7 +56,6 @@ class ControlQueue {
     wake?.()
   }
 
-  /** @returns {void} */
   end() {
     if (this.done) return
     this.done = true
@@ -91,10 +64,6 @@ class ControlQueue {
     wake?.()
   }
 
-  /**
-   * @param {AbortSignal} signal - stream cancellation.
-   * @returns {AsyncIterable<import('./types.js').SessionControlFrame>} buffered frames.
-   */
   async *iterate(signal) {
     const onAbort = () => { this.end() }
     signal.addEventListener('abort', onAbort, { once: true })

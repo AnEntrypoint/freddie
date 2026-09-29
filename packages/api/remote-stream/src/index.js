@@ -1,16 +1,3 @@
-/**
- * Host frame-stream registry.
- *
- * Freddie's `/api` carrier is unary — one POST, one JSON response — so an
- * async generator cannot ride it. This service owns the missing half: a
- * business method registers its generator here and returns an opaque stream
- * id, and the Client pumps frames through `stream/next` polls. Frames stay
- * ordinary JSON, so every boundary check the unary path already applies
- * (`assertJsonValue` in the Gateway) still applies to them.
- *
- * @module @freddie/freddie-remote-stream
- */
-
 import { randomUUID } from 'node:crypto'
 import { Remote, TypertLookupFailure, TypertRemoteService } from '@freddie/freddie-typert-protocol'
 import {
@@ -31,40 +18,13 @@ export {
   REMOTE_STREAM_NAMESPACE,
 } from './config.js'
 
-/**
- * Open one Host stream.
- * @typedef {object} RemoteStreamOpenOptions
- * @property {AbortSignal} [signal] - external lifetime; its abort destroys the stream.
- * @property {{ parse: (value: unknown) => unknown }} [frame] - frame validator applied
- *   to every produced frame; a rejected frame fails the stream.
- * @property {number} [maxBufferedFrames] - producer pause threshold.
- * @property {number} [idleTimeoutMs] - unpolled lifetime.
- */
-
-/** Owns every in-flight Host frame stream behind the `stream` Remote namespace. */
 export class RemoteStreamService extends TypertRemoteService {
-  /**
-   * @param {import('@freddie/cordis').Context} ctx - Host context.
-   */
   constructor(ctx) {
     super(ctx, 'remoteStream', { namespace: REMOTE_STREAM_NAMESPACE })
-    /** @type {Map<string, object>} */
     this.streams = new Map()
     ctx.effect(() => () => this.closeAll(), 'remote-stream.closeAll')
   }
 
-  /**
-   * Register one generator as a pollable stream and buffer its opening frame.
-   *
-   * The first frame is awaited before the id is handed out, so a producer that
-   * rejects on its first step (unknown session, bad request) surfaces as the
-   * opening call's failure instead of the first poll's.
-   * @param {string} name - diagnostic name used in logs and stream failures.
-   * @param {(signal: AbortSignal) => AsyncIterable<unknown>} factory - producer;
-   *   its signal is aborted when the stream is destroyed.
-   * @param {RemoteStreamOpenOptions} [options] - lifetime, frame validator, and bounds.
-   * @returns {Promise<{ streamId: string }>} the opaque stream handle.
-   */
   async open(name, factory, options = {}) {
     if (this.streams.size >= REMOTE_STREAM_MAX_OPEN_STREAMS) {
       throw streamFailure('stream/unavailable', `too many open streams; at most ${String(REMOTE_STREAM_MAX_OPEN_STREAMS)} may be registered`, { name })
@@ -116,13 +76,6 @@ export class RemoteStreamService extends TypertRemoteService {
     return { streamId: stream.streamId }
   }
 
-  /**
-   * Take the next frames from one stream, waiting for them to be produced.
-   * @param {{ streamId: string, maxWaitMs?: number }} request - stream handle and wait bound.
-   * @param {AbortSignal} [signal] - poll cancellation owned by the caller.
-   * @returns {Promise<{ frames: unknown[], done: boolean }>} buffered frames and
-   *   whether the producer has finished with nothing left to deliver.
-   */
   async next(request, signal) {
     const stream = this.require(request.streamId)
     if (stream.inflight) {
@@ -157,11 +110,6 @@ export class RemoteStreamService extends TypertRemoteService {
     }
   }
 
-  /**
-   * Destroy one stream and release its producer.
-   * @param {{ streamId: string }} request - stream handle.
-   * @returns {Promise<{ closed: boolean }>} whether a live stream was closed.
-   */
   async close(request) {
     const stream = this.streams.get(request.streamId)
     if (stream === undefined) return { closed: false }
@@ -169,10 +117,6 @@ export class RemoteStreamService extends TypertRemoteService {
     return { closed: true }
   }
 
-  /**
-   * @param {string} streamId - stream handle.
-   * @returns {object} the live stream.
-   */
   require(streamId) {
     if (typeof streamId !== 'string') {
       throw streamFailure('stream/invalid', 'streamId must be a string', {})
@@ -185,11 +129,6 @@ export class RemoteStreamService extends TypertRemoteService {
     return stream
   }
 
-  /**
-   * @param {object} stream - registered stream.
-   * @param {{ parse: (value: unknown) => unknown } | undefined} frame - frame validator.
-   * @returns {Promise<void>} after the producer finishes or fails.
-   */
   async pump(stream, frame) {
     try {
       while (!stream.dead) {
@@ -203,13 +142,6 @@ export class RemoteStreamService extends TypertRemoteService {
     }
   }
 
-  /**
-   * Validate and buffer one frame, pausing the producer when the buffer is full.
-   * @param {object} stream - registered stream.
-   * @param {unknown} value - produced frame.
-   * @param {{ parse: (value: unknown) => unknown } | undefined} frame - frame validator.
-   * @returns {Promise<void>} after the frame is buffered.
-   */
   async enqueue(stream, value, frame) {
     let parsed = value
     if (frame !== undefined) {
@@ -225,11 +157,6 @@ export class RemoteStreamService extends TypertRemoteService {
     await this.parkProducerUntilDrainedOrDestroyed(stream)
   }
 
-  /**
-   * Backpressure: park the producer rather than buffer without bound.
-   * @param {object} stream - registered stream.
-   * @returns {Promise<void>} after a poll drains the buffer or the stream is destroyed.
-   */
   async parkProducerUntilDrainedOrDestroyed(stream) {
     await new Promise((resolve) => {
       stream.drains.push(resolve)
@@ -237,12 +164,6 @@ export class RemoteStreamService extends TypertRemoteService {
     })
   }
 
-  /**
-   * @param {object} stream - registered stream.
-   * @param {number} milliseconds - maximum wait.
-   * @param {AbortSignal} [signal] - poll cancellation.
-   * @returns {Promise<void>} after a frame arrives, the wait elapses, or the caller aborts.
-   */
   waitForFrames(stream, milliseconds, signal) {
     return new Promise((resolve) => {
       const settle = () => {
@@ -257,29 +178,16 @@ export class RemoteStreamService extends TypertRemoteService {
     })
   }
 
-  /**
-   * @param {object} stream - registered stream.
-   * @returns {void}
-   */
   wake(stream) {
     for (const waiter of [...stream.waiters]) waiter()
   }
 
-  /**
-   * @param {object} stream - registered stream.
-   * @returns {void}
-   */
   releaseDrains(stream) {
     const drains = stream.drains
     stream.drains = []
     for (const drain of drains) drain()
   }
 
-  /**
-   * Mark one stream finished; buffered frames are still delivered.
-   * @param {object} stream - registered stream.
-   * @returns {void}
-   */
   finish(stream) {
     if (stream.dead) return
     stream.done = true
@@ -287,12 +195,6 @@ export class RemoteStreamService extends TypertRemoteService {
     this.releaseDrains(stream)
   }
 
-  /**
-   * Fail one stream; the failure is delivered by the next poll.
-   * @param {object} stream - registered stream.
-   * @param {unknown} error - producer failure.
-   * @returns {void}
-   */
   fail(stream, error) {
     if (stream.dead) return
     stream.error = error
@@ -300,30 +202,17 @@ export class RemoteStreamService extends TypertRemoteService {
     this.releaseDrains(stream)
   }
 
-  /**
-   * @param {object} stream - registered stream.
-   * @returns {void}
-   */
   armIdle(stream) {
     this.clearIdle(stream)
     stream.idleTimer = setTimeout(() => { this.destroy(stream) }, stream.idleTimeoutMs)
   }
 
-  /**
-   * @param {object} stream - registered stream.
-   * @returns {void}
-   */
   clearIdle(stream) {
     if (stream.idleTimer === undefined) return
     clearTimeout(stream.idleTimer)
     stream.idleTimer = undefined
   }
 
-  /**
-   * Destroy one stream: abort its producer, drop its buffer, release every waiter.
-   * @param {object} stream - registered stream.
-   * @returns {void}
-   */
   destroy(stream) {
     if (stream.dead) return
     stream.dead = true
@@ -337,18 +226,11 @@ export class RemoteStreamService extends TypertRemoteService {
     this.releaseDrains(stream)
   }
 
-  /** @returns {void} */
   closeAll() {
     for (const stream of [...this.streams.values()]) this.destroy(stream)
   }
 }
 
-/**
- * @param {string} code - stable failure category.
- * @param {string} message - caller-safe diagnostic.
- * @param {object} details - structured detail.
- * @returns {TypertLookupFailure} the typed failure.
- */
 function streamFailure(code, message, details) {
   return new TypertLookupFailure({ code, message, details })
 }

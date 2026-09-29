@@ -1,4 +1,3 @@
-/** Hand-owned Typert host manifest for the Remote frame-stream carrier. */
 import { z } from 'zod'
 
 const sourceLocation = {

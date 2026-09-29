@@ -1,7 +1,5 @@
-/** Window holds and retryable process cleanup for one terminal. */
 import { TypertLookupFailure } from '@freddie/freddie-typert-protocol'
 
-/** Validated Host timing policy for owned terminal cleanup. */
 export class TerminalRetention {
   lifetime = new AbortController()
   holders = new Set()
@@ -10,22 +8,12 @@ export class TerminalRetention {
   disposed = false
   cleanup = undefined
 
-  /**
-   * @param {{ readonly cleanupRetryMs: number }} policy - deployment timing choices.
-   * @param {() => Promise<void>} terminate - mark the identity closed, await process quiescence, and remove its owner record.
-   * @param {(error: unknown) => void} failed - diagnostic sink for failed automatic cleanup.
-   */
   constructor(policy, terminate, failed) {
     this.policy = policy
     this.terminate = terminate
     this.failed = failed
   }
 
-  /**
-   * Hold one terminal for one physical connection, independently of screen attachments.
-   * @param {AbortSignal} signal - connection lifetime.
-   * @returns {AsyncIterable<import('./types.js').TerminalRetentionFrame>} acknowledgement followed by an open stream.
-   */
   async *retain(signal) {
     signal.throwIfAborted()
     if (this.closing || this.disposed) {
@@ -55,10 +43,6 @@ export class TerminalRetention {
     }
   }
 
-  /**
-   * Start or join cleanup; failure keeps the identity closed and schedules one retry.
-   * @returns {Promise<void>} after owned process cleanup succeeds, or rejects with its failure.
-   */
   close() {
     if (this.cleanup !== undefined) return this.cleanup
     this.closing = true
@@ -72,10 +56,6 @@ export class TerminalRetention {
     return this.cleanup
   }
 
-  /**
-   * Stop timers and await final process cleanup.
-   * @returns {Promise<void>} after process quiescence; cleanup failure reaches the disposing owner.
-   */
   async dispose() {
     this.disposed = true
     this.cancelTimer()
@@ -87,10 +67,6 @@ export class TerminalRetention {
     this.timer = undefined
   }
 
-  /**
-   * @param {number} delay - milliseconds before the next cleanup attempt.
-   * @returns {void}
-   */
   schedule(delay) {
     if (this.disposed || this.timer !== undefined || !this.closing) return
     const due = Date.now() + delay

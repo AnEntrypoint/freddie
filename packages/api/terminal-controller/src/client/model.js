@@ -1,45 +1,6 @@
-/**
- * React-free browser terminal state and Remote-stream ownership.
- * @module @freddie/freddie-terminal-controller/client/model
- */
-
 import { randomUUID } from '@freddie/freddie-crypto'
 import { preferredShell, rememberShell } from './shell-preference.js'
 
-/**
- * Observable state of one sidebar occurrence.
- * @typedef {{
- *   readonly phase: 'idle' | 'loading' | 'creating' | 'connecting' | 'connected' | 'disconnected' | 'closing' | 'closed' | 'failed',
- *   readonly environment?: import('../types.js').TerminalEnvironment | undefined,
- *   readonly title?: string | undefined,
- *   readonly info?: import('../types.js').WebTerminalInfo | undefined,
- *   readonly writable: boolean,
- *   readonly render?: TerminalRenderFrame | undefined,
- *   readonly error?: string | undefined,
- *   readonly issue?: TerminalViewIssue | undefined
- * }} TerminalViewState
- */
-
-/**
- * Product error identifiers translated by the terminal UI. `unsupported` reports
- * an endpoint this Client has no transport for, never a Host failure.
- * @typedef {'missingTerminal' | 'inputFull' | 'attachmentEnded' | 'invalidOutput' | 'terminalLimit' | 'unsupported'} TerminalViewIssue
- */
-
-/**
- * One screen write awaiting the terminal emulator's acknowledgement.
- * @typedef {{ readonly revision: number, readonly frame: TerminalRenderFrame['frame'] }} TerminalRenderFrame
- */
-
-/**
- * @typedef {{
- *   getSnapshot: () => TerminalViewState,
- *   subscribe: (listener: () => void) => () => void,
- *   set: (next: TerminalViewState) => void
- * }} ViewStore
- */
-
-/** Freddie ships no shared client store, so each view owns its subscriber set. */
 export function createViewStore(initial) {
   let view = Object.freeze(initial)
   const listeners = new Set()
@@ -62,14 +23,9 @@ export function createViewStore(initial) {
   }
 }
 
-/** A local view failure carrying the same wire shape a Host failure carries. */
 export class TerminalViewError extends Error {
   code = 'terminal/view'
 
-  /**
-   * @param {TerminalViewIssue} issue - translated product identifier.
-   * @param {string} [message] - diagnostic text.
-   */
   constructor(issue, message = issue) {
     super(message)
     this.name = 'TerminalViewError'
@@ -78,7 +34,6 @@ export class TerminalViewError extends Error {
   }
 }
 
-/** A view survives DOM unmount; its process only ends on explicit close. */
 export class TerminalView {
   state = createViewStore(Object.freeze({ phase: 'idle', writable: false }))
   lifetime = new AbortController()
@@ -94,15 +49,6 @@ export class TerminalView {
   queuedInput = 0
   detaching = new Set()
 
-  /**
-   * @param {string} sessionId - Session owning the terminal.
-   * @param {import('./index.js').TerminalRemote} remote - typed terminal Remote operations.
-   * @param {{ $stream?: unknown }} gateway - Client Remote service carrying a stream factory when one exists.
-   * @param {import('../types.js').WebTerminalId} id - Host terminal identity.
-   * @param {boolean} [createWhenMissing] - allow allocation only for a new tab, never a listed terminal.
-   * @param {string} [shellPath] - explicit shell chosen at the guide.
-   * @param {(signal: AbortSignal) => Promise<void>} [retain] - window hold acknowledgement required before output attachment.
-   */
   constructor(sessionId, remote, gateway, id, createWhenMissing = true, shellPath, retain) {
     this.sessionId = sessionId
     this.remote = remote
@@ -113,10 +59,6 @@ export class TerminalView {
     this.retain = retain
   }
 
-  /**
-   * Attach the DOM lifetime, starting the chosen shell or reconnecting the saved process.
-   * @returns {() => void} a detach callback that leaves the terminal process alive.
-   */
   mount() {
     this.mounted = true
     if (this.state.getSnapshot().info === undefined) void this.refresh()
@@ -127,10 +69,6 @@ export class TerminalView {
     }
   }
 
-  /**
-   * Start or recover this tab, deduplicating mounts and retries during allocation.
-   * @returns {Promise<void>} after environment lookup and creation or recovery settle.
-   */
   refresh() {
     if (this.creation !== undefined) return this.creation
     if (this.loading !== undefined) return this.loading
@@ -162,10 +100,6 @@ export class TerminalView {
     return this.loading
   }
 
-  /**
-   * Explicitly terminate this view's process independently of its DOM lifetime.
-   * @returns {Promise<void>} after Host process cleanup succeeds; failures remain retryable by the owner.
-   */
   close() {
     if (this.closing !== undefined) return this.closing
     this.patch({ phase: 'closing', writable: false, error: undefined, issue: undefined })
@@ -179,10 +113,6 @@ export class TerminalView {
     return this.closing
   }
 
-  /**
-   * Stop Client work on plugin unload without closing Host terminals.
-   * @returns {Promise<void>} after active and previously detached stream iterators have closed.
-   */
   async dispose() {
     this.mounted = false
     this.lifetime.abort()
@@ -190,22 +120,12 @@ export class TerminalView {
     await Promise.all(this.detaching)
   }
 
-  /**
-   * Release the next stream item after the terminal emulator has parsed this frame.
-   * @param {number} revision - locally delivered render revision.
-   * @returns {void}
-   */
   acknowledge(revision) {
     if (this.pendingRender?.revision !== revision) return
     this.pendingRender.resolve()
     this.pendingRender = undefined
   }
 
-  /**
-   * Serialize raw input so concurrent RPC requests cannot reorder keystrokes.
-   * @param {string} data - input from the terminal emulator.
-   * @returns {void}
-   */
   write(data) {
     const state = this.state.getSnapshot()
     const attachmentId = this.attachmentId
@@ -224,12 +144,6 @@ export class TerminalView {
       .finally(() => { this.queuedInput -= bytes })
   }
 
-  /**
-   * Resize only from the currently writable view.
-   * @param {number} cols - measured column count.
-   * @param {number} rows - measured row count.
-   * @returns {void}
-   */
   resize(cols, rows) {
     const state = this.state.getSnapshot()
     const attachmentId = this.attachmentId
@@ -244,16 +158,10 @@ export class TerminalView {
     }).catch((error) => { if (this.attachmentId === attachmentId) this.fail(error) })
   }
 
-  /** @returns {boolean} whether this view has stopped making visible progress. */
   stopped() {
     return this.lifetime.signal.aborted || this.closing !== undefined
   }
 
-  /**
-   * @param {import('../types.js').TerminalEnvironment} environment - Host limits.
-   * @param {string} [shellPath] - selected shell.
-   * @returns {Promise<void>} after allocation settles.
-   */
   async create(environment, shellPath) {
     this.patch({ phase: 'creating', error: undefined, issue: undefined })
     this.creation = (async () => {
@@ -268,10 +176,6 @@ export class TerminalView {
     await this.creation
   }
 
-  /**
-   * @param {import('../types.js').WebTerminalInfo} info - Host metadata for this identity.
-   * @returns {void}
-   */
   adopt(info) {
     this.patch({ info, title: info.title })
     if (this.retain === undefined) {
@@ -283,7 +187,6 @@ export class TerminalView {
     }).catch((error) => { if (!this.stopped()) this.fail(error) })
   }
 
-  /** Reattach with a fresh screen and regain input control. */
   connect() {
     const info = this.state.getSnapshot().info
     if (info === undefined || !this.mounted || this.closing !== undefined || this.lifetime.signal.aborted) return
@@ -295,10 +198,6 @@ export class TerminalView {
     void this.consume(stream)
   }
 
-  /**
-   * @param {import('../types.js').WebTerminalInfo} info - terminal to attach.
-   * @returns {AsyncIterable<import('../types.js').TerminalFrame> | undefined} the opened stream, or undefined when this Client has no stream face.
-   */
   openStream(info) {
     if (typeof this.gateway?.$stream !== 'function' || typeof this.remote.follow !== 'function') {
       this.patch({
@@ -326,10 +225,6 @@ export class TerminalView {
     })
   }
 
-  /**
-   * @param {AsyncIterable<import('../types.js').TerminalFrame>} stream - one attachment generation.
-   * @returns {Promise<void>} after the stream ends, detaches, or fails.
-   */
   async consume(stream) {
     let sequence = 0
     try {
@@ -358,10 +253,6 @@ export class TerminalView {
     }
   }
 
-  /**
-   * @param {import('../types.js').TerminalFrame} frame - screen frame awaiting the emulator.
-   * @returns {Promise<void>} after the emulator acknowledges this revision.
-   */
   render(frame) {
     const revision = ++this.revision
     return new Promise((resolve) => {
@@ -378,19 +269,11 @@ export class TerminalView {
     })
   }
 
-  /**
-   * @param {Partial<TerminalViewState>} patch - fields replacing the current view.
-   * @returns {void}
-   */
   patch(patch) {
     if (this.lifetime.signal.aborted) return
     this.state.set({ ...this.state.getSnapshot(), ...patch })
   }
 
-  /**
-   * @param {unknown} error - carrier failure, Host failure, or local view failure.
-   * @returns {void}
-   */
   fail(error) {
     const code = codeOf(error)
     if (code === 'terminal/control-unavailable') {
@@ -413,7 +296,6 @@ export class TerminalView {
     })
   }
 
-  /** @returns {void} */
   detach() {
     const previous = this.stream
     this.stream = undefined
@@ -426,20 +308,10 @@ export class TerminalView {
   }
 }
 
-/**
- * @param {unknown} error - thrown failure.
- * @returns {string | undefined} its wire code when it carries one.
- */
 function codeOf(error) {
   return typeof error?.code === 'string' ? error.code : undefined
 }
 
-/**
- * Unwrap one Client Remote reply and its business result.
- * @template T
- * @param {{ readonly ok: boolean, readonly value?: { readonly ok: boolean, readonly value?: T, readonly error?: unknown }, readonly error?: unknown }} carried - transport reply.
- * @returns {T} the business value.
- */
 function valueOf(carried) {
   if (!carried.ok) throw carried.error
   const result = carried.value

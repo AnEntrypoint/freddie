@@ -1,4 +1,3 @@
-/** Hand-owned Typert Remote-client manifest for the Remote frame-stream carrier. */
 import { z } from 'zod'
 
 function descriptor(method, parameters, resultTypeSymbol, resultSchema, cancellation = undefined) {

@@ -1,4 +1,3 @@
-/** Hand-owned Typert host manifest (Remote RPC schema + reflection metadata). */
 import { z } from 'zod'
 import { COMMAND_CODECS } from './command-codecs.js'
 import { projectionValues, sessionListValue } from './list-codecs.js'
@@ -102,7 +101,6 @@ function requestSymbol(method) {
 function resultSymbol(method) {
   return `@freddie/freddie-session-controller#sessionController/${method}:result`
 }
-
 
 const COMMAND_DOCS = {
   create: ['SessionCreateRequest', 'SessionCreateValue', 'Create or idempotently adopt one ordinary Session.'],

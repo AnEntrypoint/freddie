@@ -1,8 +1,6 @@
-/** Unfinished close requests survive reload independently of the removed sidebar tabs. */
 const PREFIX = 'freddie.terminal.close.v1.'
 const IDENTITY = /^[\w-]{1,128}$/u
 
-/** Each request has its own storage key, so other browser windows cannot overwrite its cleanup. */
 export class TerminalCloseRequests {
   requests = new Map()
 
@@ -18,19 +16,10 @@ export class TerminalCloseRequests {
     }
   }
 
-  /**
-   * Read cleanup work still awaiting Host confirmation.
-   * @returns {readonly import('../types.js').TerminalCloseRequest[]} unfinished requests owned by this browser instance.
-   */
   pending() {
     return [...this.requests.values()]
   }
 
-  /**
-   * Retain cleanup across reload before removing a tab.
-   * @param {import('../types.js').TerminalCloseRequest} request - close intent to save before removing its tab.
-   * @returns {void}
-   */
   save(request) {
     this.requests.set(request.id, request)
     try {
@@ -40,11 +29,6 @@ export class TerminalCloseRequests {
     }
   }
 
-  /**
-   * Forget confirmed cleanup in memory and browser storage.
-   * @param {import('../types.js').WebTerminalId} id - terminal whose Host cleanup succeeded.
-   * @returns {void}
-   */
   remove(id) {
     this.requests.delete(id)
     try {
@@ -54,10 +38,6 @@ export class TerminalCloseRequests {
     }
   }
 
-  /**
-   * @param {string} key - storage key under this prefix.
-   * @returns {void}
-   */
   load(key) {
     try {
       const raw = localStorage.getItem(key)
@@ -71,10 +51,6 @@ export class TerminalCloseRequests {
   }
 }
 
-/**
- * @param {unknown} value - parsed storage entry.
- * @returns {value is import('../types.js').TerminalCloseRequest} whether every field survived the round trip.
- */
 function isRequest(value) {
   if (typeof value !== 'object' || value === null) return false
   const request = value

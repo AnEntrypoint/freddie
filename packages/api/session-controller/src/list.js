@@ -1,5 +1,3 @@
-/** Cold-safe Session list and search projection. */
-
 import { stat } from 'node:fs/promises'
 import { resolveSessionPreset } from '@freddie/freddie-agent-presets'
 import { SessionQueryError } from '@freddie/freddie-session-query'
@@ -15,12 +13,6 @@ const MESSAGE_TYPES = new Set(['user/message', 'assistant/message'])
 const COLD_SUMMARY_BATCH_SIZE = 16
 const DEFAULT_COLD_PROBE_MAX_BYTES = 1024
 
-/**
- * Return the longest prefix containing at most `maximum` Unicode code points.
- * @param {string} value - source text.
- * @param {number} maximum - maximum number of Unicode code points.
- * @returns {string} the source text or its longest allowed prefix.
- */
 export function truncateUnicodeCodePoints(value, maximum) {
   let count = 0
   let end = 0
@@ -32,18 +24,11 @@ export function truncateUnicodeCodePoints(value, maximum) {
   return value
 }
 
-/** Owns bounded cold summaries and authorized search over the visible corpus. */
 export class ApiSessionList {
-  /** @param {import('@freddie/cordis').Context} ctx - Host context carrying Session, query, and projection services. */
   constructor(ctx) {
     this.ctx = ctx
   }
 
-  /**
-   * Build one current attached-Session summary.
-   * @param {object} session - attached Session to summarize.
-   * @returns {import('./types.js').SessionSummary} current list metadata and available projections.
-   */
   summaryFor(session) {
     const projections = this.projectionsFor(session.header, session)
     const metadata = projections?.values.sessionListMetadata
@@ -60,26 +45,14 @@ export class ApiSessionList {
     }
   }
 
-  /**
-   * Whether an attached Session's latest closed turn failed while no turn runs.
-   * @param {object} session - attached Session.
-   * @param {boolean} running - whether its Agent is running a turn now.
-   * @returns {boolean} the row's `errored` value.
-   */
   erroredFor(session, running) {
     return !running && this.projectionsFor(session.header, session)?.values.sessionListMetadata?.errored === true
   }
 
-  /**
-   * Read every visible attached and persisted Session without activating an Agent.
-   * @param {AbortSignal} [signal] - optional cancellation for persistence reads.
-   * @returns {Promise<import('./types.js').SessionSummary[]>} visible Session summaries ordered by activity.
-   */
   async list(signal) {
     signal?.throwIfAborted()
     const records = await this.ctx.sessionQuery.listSessions(signal)
     signal?.throwIfAborted()
-    /** @type {import('./types.js').SessionSummary[]} */
     const items = []
     const cold = []
     for (const record of records) {
@@ -102,14 +75,6 @@ export class ApiSessionList {
     return items
   }
 
-  /**
-   * Read the read-only rows of every extra session root the persistence backend
-   * lists without owning. A root that cannot be read is skipped with a warning,
-   * so one stale mount never hides the primary corpus.
-   * @param {Set<string>} seen - ids already listed, which a foreign row never shadows.
-   * @param {AbortSignal} [signal] - optional cancellation for persistence reads.
-   * @returns {Promise<import('./types.js').SessionSummary[]>} the foreign rows.
-   */
   async listForeignRows(seen, signal) {
     const persistence = this.ctx.get('sessionPersistence')
     if (typeof persistence?.listForeign !== 'function') return []
@@ -145,14 +110,6 @@ export class ApiSessionList {
     return rows
   }
 
-  /**
-   * Summarize one persisted Session. A cached `blank: false` is a prefix fact
-   * and settles the row; any other cache state falls back to the bounded log
-   * probe, and a probe that cannot run leaves the row visible.
-   * @param {object} header - persisted Session header.
-   * @param {AbortSignal} [signal] - optional cancellation for the probe read.
-   * @returns {Promise<import('./types.js').SessionSummary>} the cold row.
-   */
   async summarizeCold(header, signal) {
     const projections = this.projectionsFor(header, undefined)
     const cached = projections?.values.sessionListMetadata
@@ -169,14 +126,6 @@ export class ApiSessionList {
     }
   }
 
-  /**
-   * Fold the list metadata of one small persisted log through the projection
-   * registry, so the fold stays the registered unit's own. A large, location-less,
-   * or unreadable artifact yields nothing, and listing never fails on it.
-   * @param {object} header - persisted Session header.
-   * @param {AbortSignal} [signal] - optional cancellation for the read.
-   * @returns {Promise<import('./types.js').SessionListMetadata | undefined>} the folded metadata.
-   */
   async probeColdMetadata(header, signal) {
     const maxBytes = this.ctx.get('apiProxy')?.coldBlankProbeMaxBytes ?? DEFAULT_COLD_PROBE_MAX_BYTES
     const persistence = this.ctx.get('sessionPersistence')
@@ -201,12 +150,6 @@ export class ApiSessionList {
     }
   }
 
-  /**
-   * Search current visible message content without activating any matching Session.
-   * @param {string} query - literal message-content query.
-   * @param {AbortSignal} signal - cancellation for list and search reads.
-   * @returns {Promise<import('./types.js').SessionSearchValue>} authorized bounded Session search results.
-   */
   async search(query, signal) {
     const normalizedQuery = normalizeSearchQuery(query)
     signal.throwIfAborted()
@@ -216,7 +159,6 @@ export class ApiSessionList {
       .filter(record => record.header.cwd !== undefined)
       .map(record => record.header.id))
     if (visibleIds.size === 0) return { items: [], hasMore: false }
-    /** @type {import('./types.js').SessionSearchItem[]} */
     const authorized = []
     const acceptedIds = new Set()
     const seenCursors = new Set()
@@ -294,14 +236,6 @@ export class ApiSessionList {
     }
   }
 
-  /**
-   * Read the projection hints for one list row, fail-soft: an attached Session
-   * cuts the live registry, a cold row views the persisted projection cache.
-   * @param {object} header - Session header, and the cache's identity witness.
-   * @param {object | undefined} session - attached Session when one exists.
-   * @returns {import('./types.js').SessionProjectionHints | undefined} the hints,
-   *   or undefined when no source served a non-empty block.
-   */
   projectionsFor(header, session) {
     try {
       if (session !== undefined) {
@@ -318,22 +252,11 @@ export class ApiSessionList {
   }
 }
 
-/**
- * Wrap one projection block as Session-list hints of the named sequence space.
- * @param {import('./types.js').SessionProjectionHints['kind']} kind - sequence space of the watermark.
- * @param {{ asOfSeq: number, values: object } | undefined} block - the block, or undefined.
- * @returns {import('./types.js').SessionProjectionHints | undefined} the hints, or
- *   undefined when the block is absent or carries no value.
- */
 function hintsOf(kind, block) {
   if (block === undefined || Object.keys(block.values).length === 0) return undefined
   return { kind, asOfSeq: block.asOfSeq, values: block.values }
 }
 
-/**
- * @param {string} query - caller-submitted search query.
- * @returns {string} the trimmed query.
- */
 function normalizeSearchQuery(query) {
   const normalized = query.trim()
   if (normalized.length === 0) {
@@ -360,22 +283,10 @@ function normalizeSearchQuery(query) {
   return normalized
 }
 
-/**
- * @param {object} header - Session header.
- * @param {import('./types.js').SessionListMetadata | undefined} metadata - folded list metadata.
- * @returns {number} the activity time used for list ordering.
- */
 function updatedAt(header, metadata) {
   return Math.max(header.createdAt, metadata?.lastPromptAt ?? 0)
 }
 
-/**
- * @param {object} header - Session header.
- * @param {readonly object[]} [events] - the attached event log; a cold or foreign
- *   row has none, so its preset is the one the header records.
- * @returns {{ parentSessionId?: string, origin?: 'subagent', cwd?: string, agentPreset?: string }} the
- *   inherited list fields.
- */
 function listFields(header, events = []) {
   const agentPreset = resolveSessionPreset({ header, events })
   return {

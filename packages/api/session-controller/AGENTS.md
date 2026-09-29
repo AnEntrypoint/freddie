@@ -14,3 +14,10 @@
 
 - **Browser consumer: none, by design.** The web page drives sessions through the legacy `/api/session.*` routes and the `events.mux` channel (`packages/client/runtime` `SessionManager`, classified SAME as upstream `ui-session` in the client capability audit). That path already covers what a browser needs: list, history pages, prompt and cancel, and live events for every attached session. This package's Typert route serves out-of-process Clients (an SDK, a second frontend, a CLI) and the eight command verbs and `follow`/`control` streams are for them. The package therefore declares no `freddie.client` entry, `packages/api/remotes` does not list its `./remote` export among the browser externals, and no UI package reads `ctx.sessionModel`. Add a `freddie.client` entry only for a browser feature the legacy path cannot serve, such as a second live view of a session that cannot ride the mux.
 - The `session.*` methods are unpinned by decision in `packages/client/connection`, so a browser on a trusted host may call them; nothing in the shipped page does.
+
+## Design notes
+
+- Command endpoints delegate to the host gateway (`api.sessions.*`) through `ctx.get`, not a package dependency, to avoid a composition cycle; with no gateway they answer `session/commands-unavailable`. Their codecs declare no cancellation because the gateway command surface has none.
+- The frame carrier is untyped, so `frames.js` schemas are the only place a malformed `follow`/`control` frame is rejected (Host validates while the stream is open).
+- Search with no full-text backend (or search disabled) answers typed `session/search-unavailable`, never an internal failure.
+- Forwarding an `api-session/*` event to a Client also needs an entry in the allowlist in `packages/api/remotes/src/remote-events.js`.

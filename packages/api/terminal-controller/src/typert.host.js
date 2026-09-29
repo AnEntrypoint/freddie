@@ -1,4 +1,3 @@
-/** Hand-owned Typert host manifest for Session-owned terminal Remotes. */
 import { z } from 'zod'
 
 const sessionId = z.intersection(z.string(), z.unknown())
@@ -50,12 +49,10 @@ const agentLookup = {
   codec: { mode: 'strict', typeSymbol: SESSION_ID_SYMBOL, schema: sessionId },
 }
 
-/** @param {string} name - wire field and business parameter name. @param {import('zod').ZodType} schema @param {string} typeSymbol */
 function json(name, schema, typeSymbol) {
   return { name, wire: name, source: 'json', codec: { mode: 'strict', typeSymbol, schema } }
 }
 
-/** @param {string} method @param {object[]} parameters @param {object} result @param {string} typeSymbol @param {boolean} cancellation */
 function invocation(method, parameters, result, typeSymbol, cancellation = false) {
   const scoped = parameters.some(parameter => parameter.source === 'lookup')
   return {

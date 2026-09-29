@@ -1,4 +1,3 @@
-/** Hand-owned Typert Remote-client manifest for Session Remotes. */
 import { z } from 'zod'
 import { COMMAND_CODECS } from './command-codecs.js'
 import { projectionValues, sessionListValue } from './list-codecs.js'

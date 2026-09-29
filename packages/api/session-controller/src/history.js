@@ -1,5 +1,3 @@
-/** Cold Session history pagination and live-event source. */
-
 import { isAppendSurfaceEvent } from '@freddie/freddie-session'
 import { SessionQueryError } from '@freddie/freddie-session-query'
 import { TypertLookupFailure } from '@freddie/freddie-typert-protocol'
@@ -7,12 +5,7 @@ import { TypertLookupFailure } from '@freddie/freddie-typert-protocol'
 const DEFAULT_MAX_MESSAGES = 50
 const MESSAGE_TYPES = new Set(['user/message', 'assistant/message'])
 
-/** Implements cold-safe history operations delegated by the Session Controller. */
 export class SessionHistoryController {
-  /**
-   * @param {import('@freddie/cordis').Context} ctx - Host context carrying Session query and projection services.
-   * @param {(sessionId: string) => void} promote - starts ordinary Session activation after snapshot delivery.
-   */
   constructor(ctx, promote) {
     this.ctx = ctx
     this.promote = promote
@@ -23,12 +16,6 @@ export class SessionHistoryController {
     }, 'session-controller.history')
   }
 
-  /**
-   * Read one message-aligned history page without activating an Agent.
-   * @param {import('./types.js').SessionPageRequest} request - durable address and backwards-page cursor.
-   * @param {AbortSignal} signal - caller cancellation for persistence reads.
-   * @returns {Promise<import('./types.js').SessionPage>} a contiguous event page.
-   */
   async page(request, signal) {
     validatePageRequest(request)
     const throughSeq = request.throughSeq
@@ -51,18 +38,10 @@ export class SessionHistoryController {
     return { records: pageRecords(page.events), hasMore: page.hasMore }
   }
 
-  /**
-   * Follow events appended after an initial cursor on one durable address.
-   * @param {import('./types.js').SessionFollowRequest} request - durable address and page budget.
-   * @param {AbortSignal} signal - stream cancellation owned by the caller.
-   * @returns {AsyncIterable<import('./types.js').SessionFollowFrame>} an opening
-   *   snapshot followed by gap-free durable events.
-   */
   async *follow(request, signal) {
     validateHistoryWindow(request)
     const { address } = request
     const target = addressId(address)
-    /** @type {object[]} */
     const buffered = []
     let snapshotCursor
     let wake
@@ -132,16 +111,6 @@ export class SessionHistoryController {
     }
   }
 
-  /**
-   * Read one Session's header, event log, and optional projection baseline
-   * without activating an Agent.
-   * @param {import('./types.js').SessionAddress} address - durable address.
-   * @param {AbortSignal} signal - caller cancellation for cold reads.
-   * @param {boolean} withProjections - whether the baseline is required.
-   * @returns {Promise<{ header: object, events: object[], cursor: number,
-   *   projections: { asOfSeq: number, values: object } | undefined,
-   *   live: boolean }>} the observation.
-   */
   async sourceFor(address, signal, withProjections) {
     const sessionId = addressId(address)
     const wanted = withProjections || address.kind === 'subagent'
@@ -182,26 +151,14 @@ export class SessionHistoryController {
   }
 }
 
-/**
- * @param {string} message - caller-safe rejection text.
- * @returns {TypertLookupFailure} the typed bad-request rejection.
- */
 function badRequest(message) {
   return new TypertLookupFailure({ code: 'bad-request', message, details: {} })
 }
 
-/**
- * @param {object} header - Session header.
- * @returns {number} the durable fork-lineage boundary.
- */
 function inheritedEventCount(header) {
   return header.seedLength ?? 0
 }
 
-/**
- * @param {import('./types.js').SessionPageRequest} request - page request.
- * @returns {void}
- */
 function validatePageRequest(request) {
   if (!Number.isSafeInteger(request.throughSeq)
     || request.throughSeq < -1
@@ -217,10 +174,6 @@ function validatePageRequest(request) {
   validateHistoryWindow(request)
 }
 
-/**
- * @param {{ maxMessages?: number, turnWindow?: { minMessages: number, minTurns: number } }} request
- * @returns {void}
- */
 function validateHistoryWindow(request) {
   if (request.maxMessages !== undefined
     && (!Number.isSafeInteger(request.maxMessages) || request.maxMessages <= 0)) {
@@ -238,21 +191,10 @@ function validateHistoryWindow(request) {
   }
 }
 
-/**
- * @param {import('./types.js').SessionAddress} address - durable address.
- * @returns {string} the Session identity the address selects.
- */
 function addressId(address) {
   return address.kind === 'session' ? address.sessionId : address.childSessionId
 }
 
-/**
- * @param {import('./types.js').SessionAddress} address - durable address.
- * @param {object} header - observed Session header.
- * @param {number} inherited - durable fork-lineage boundary.
- * @param {{ asOfSeq: number, values: object } | undefined} projections - observed baseline.
- * @returns {void}
- */
 function validateAddress(address, header, inherited, projections) {
   if (address.kind === 'session') {
     if (header.origin === 'subagent') {
@@ -303,10 +245,6 @@ function validateAddress(address, header, inherited, projections) {
   }
 }
 
-/**
- * @param {import('./types.js').SessionAddress} address - durable address.
- * @returns {never}
- */
 function rejectNotFound(address) {
   if (address.kind === 'session') {
     throw new TypertLookupFailure({
@@ -325,15 +263,6 @@ function rejectNotFound(address) {
   })
 }
 
-/**
- * Walk one Session log backwards, stopping at a message or Turn budget.
- * @param {object[]} events - complete event log.
- * @param {number | undefined} beforeSeq - exclusive upper bound.
- * @param {number} maxMessages - append-origin message budget.
- * @param {number} throughSeq - inclusive log cut.
- * @param {{ minMessages: number, minTurns: number }} [turnWindow] - Turn-crossing minimum.
- * @returns {{ events: object[], hasMore: boolean }} the page.
- */
 function paginate(events, beforeSeq, maxMessages, throughSeq, turnWindow) {
   const end = Math.min(throughSeq + 1, beforeSeq ?? throughSeq + 1)
   let count = 0
@@ -365,18 +294,10 @@ function paginate(events, beforeSeq, maxMessages, throughSeq, turnWindow) {
   return { events: events.slice(cut, end), hasMore: cut > 0 }
 }
 
-/**
- * @param {object} header - Session header.
- * @returns {import('./types.js').SessionWireHeader} the browser wire form.
- */
 function wireHeader(header) {
   return { ...header, isSeeded: (header.seedLength ?? 0) > 0 }
 }
 
-/**
- * @param {object[]} events - bounded logical page.
- * @returns {import('./types.js').SessionHistoryRecord[]} the wire records.
- */
 function pageRecords(events) {
   return events.map(event => ({ type: 'event', event }))
 }

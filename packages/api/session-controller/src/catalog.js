@@ -1,13 +1,3 @@
-/** Shared projection of the live LLM registry into the browser model catalog. */
-
-/**
- * Build the browser model catalog without requiring a Session.
- * @param {import('@freddie/cordis').Context} ctx - Host context carrying the live LLM registry.
- * @param {import('./types.js').ModelSelection} [defaultSelection] - deployment default
- *   used before a Session selects a model.
- * @returns {Promise<import('./types.js').ModelCatalog>} successful non-empty provider
- *   groups and isolated provider failures.
- */
 export async function buildModelCatalog(ctx, defaultSelection = ctx.agentDefaultModel.currentSelection()) {
   const providers = ctx.llm.listProviders()
   const catalog = await Promise.all(providers.map(async (provider) => {

@@ -1,7 +1,5 @@
-/** A bounded output queue for one attachment generation. */
 import { Deque } from '@freddie/freddie-deque'
 
-/** Slow followers fail explicitly; a later attachment recovers from the screen. */
 export class TerminalFollower {
   queue = new Deque()
   bytes = 0
@@ -10,16 +8,10 @@ export class TerminalFollower {
   finished = false
   failure = undefined
 
-  /** @param {number} maxBytes - maximum queued UTF-8 bytes for this follower. */
   constructor(maxBytes) {
     this.maxBytes = maxBytes
   }
 
-  /**
-   * Queue a frame, or fail this follower when its byte limit is exceeded.
-   * @param {import('./types.js').TerminalFrame} frame - next ordered frame.
-   * @returns {void}
-   */
   push(frame) {
     if (this.closed || this.finished) return
     const bytes = Buffer.byteLength(JSON.stringify(frame), 'utf8')
@@ -33,13 +25,11 @@ export class TerminalFollower {
     this.wake?.()
   }
 
-  /** Finish after delivering every queued frame, including the final exit state. */
   finish() {
     this.finished = true
     this.wake?.()
   }
 
-  /** Stop this follower without stopping its terminal. */
   close() {
     this.closed = true
     this.queue.clear()
@@ -47,11 +37,6 @@ export class TerminalFollower {
     this.wake?.()
   }
 
-  /**
-   * Drain until detached or failed.
-   * @param {AbortSignal} signal - attachment cancellation.
-   * @returns {AsyncIterable<import('./types.js').TerminalFrame>} ordered terminal frames.
-   */
   async *read(signal) {
     const abort = () => { this.close() }
     signal.addEventListener('abort', abort, { once: true })

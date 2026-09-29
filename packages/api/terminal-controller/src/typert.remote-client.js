@@ -1,12 +1,3 @@
-/**
- * Hand-owned Typert Remote-client manifest for Session-owned terminal Remotes.
- *
- * These descriptors deliberately carry no `scope`: a scoped descriptor resolves
- * its Agent from the *calling* Client Context, which would make the same call
- * site mean two different things depending on where the view was created. Every
- * endpoint therefore takes its Session identity as an ordinary argument, and the
- * Host resolves the Agent by lookup.
- */
 import { z } from 'zod'
 
 const sessionId = z.intersection(z.string(), z.unknown())
@@ -58,12 +49,10 @@ const agentId = {
   codec: { mode: 'strict', typeSymbol: SESSION_ID_SYMBOL, schema: sessionId },
 }
 
-/** @param {string} name @param {import('zod').ZodType} schema @param {string} typeSymbol */
 function json(name, schema, typeSymbol) {
   return { name, wire: name, source: 'json', codec: { mode: 'strict', typeSymbol, schema } }
 }
 
-/** @param {string} method @param {object[]} parameters @param {object} result @param {string} typeSymbol @param {boolean} cancellation */
 function descriptor(method, parameters, result, typeSymbol, cancellation = false) {
   return {
     id: `@freddie/freddie-terminal-controller#terminal/${method}`,
