@@ -1,8 +1,3 @@
-/**
- * Durable, lifecycle-bound feedback for finalized assistant messages.
- * @module @freddie/freddie-message-feedback
- */
-
 import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 import { Service } from '@freddie/cordis'
@@ -13,10 +8,8 @@ import { messageFeedbackDomainSpec } from './spec.js'
 
 export { messageFeedbackDomainSpec } from './spec.js'
 
-/** Immutable empty list reused only as an input to caller-owned copying. */
 const EMPTY_ITEMS = Object.freeze([])
 
-/** Validate the one deployment-varying limit at the configuration boundary. */
 function resolveMaxNoteBytes(value) {
   if (!Number.isSafeInteger(value) || value < 1) {
     throw new TypeError(
@@ -26,7 +19,6 @@ function resolveMaxNoteBytes(value) {
   return value
 }
 
-/** Copy and freeze one item before it crosses the service boundary. */
 function snapshotItem(item) {
   return Object.freeze({
     messageId: item.messageId,
@@ -38,22 +30,18 @@ function snapshotItem(item) {
   })
 }
 
-/** Copy and freeze a list response. */
 function snapshotList(items) {
   return Object.freeze({ items: Object.freeze(items.map(snapshotItem)) })
 }
 
-/** Build a frozen success branch. */
 function success(value) {
   return Object.freeze({ ok: true, value })
 }
 
-/** Build a frozen business-failure branch. */
 function rejected(error) {
   return Object.freeze({ ok: false, error: Object.freeze(error) })
 }
 
-/** Project the Session fields that distinguish one persisted log lifecycle. */
 function identityOf(header) {
   return Object.freeze({
     createdAt: header.createdAt,
@@ -61,17 +49,14 @@ function identityOf(header) {
   })
 }
 
-/** Whether a stored row belongs to the inspected Session lifecycle. */
 function sameIdentity(row, header) {
   return row.session.createdAt === header.createdAt && row.session.cwd === header.cwd
 }
 
-/** Whether two observations name the same persisted Session lifecycle. */
 function sameHeaderIdentity(left, right) {
   return left.id === right.id && left.createdAt === right.createdAt && left.cwd === right.cwd
 }
 
-/** Freeze the replacement row so storage-domain never exposes mutable aliases. */
 function rowSnapshot(session, items) {
   const copiedItems = items.map(snapshotItem)
   Object.freeze(copiedItems)
@@ -81,19 +66,13 @@ function rowSnapshot(session, items) {
   })
 }
 
-/** Generate an opaque equality token for one material mutation. */
 function nextVersion() {
   return randomUUID()
 }
 
-/**
- * Storage-domain sidecar service. It inspects persisted Session history and
- * never creates or resumes an Agent or Session.
- */
 export class MessageFeedbackService extends TypertRemoteService {
   static inject = ['storageDomain', 'sessionPersistence', 'sessions']
 
-  /** Loader validation for the required note-size policy. */
   static Config = s.object({
     maxNoteBytes: s.number().step(1).min(1).required(),
   })
@@ -103,16 +82,11 @@ export class MessageFeedbackService extends TypertRemoteService {
   operationTails = new Map()
   mutationAdmissionOpen = true
 
-  /**
-   * @param ctx - Host context carrying persistence and the storage-domain form.
-   * @param config - Required note-size policy.
-   */
   constructor(ctx, config) {
     super(ctx, 'messageFeedback')
     this.maxNoteBytes = resolveMaxNoteBytes(config.maxNoteBytes)
   }
 
-  /** Open and own the one message-feedback sidecar domain. */
   async [Service.init]() {
     const domain = await this.ctx.storageDomain.open(messageFeedbackDomainSpec)
     this.ctx.effect(() => async () => {
@@ -123,12 +97,6 @@ export class MessageFeedbackService extends TypertRemoteService {
     this.table = domain.table('sessions')
   }
 
-  /**
-   * Read feedback belonging to the current persisted Session lifecycle.
-   * A stale row from a reused Session id is invisible.
-   * @param request - Session identity to inspect and list.
-   * @returns current immutable items or `session-not-found`.
-   */
   async list(request) {
     const known = await this.inspectSession(request.sessionId)
     if (!known.ok) return known
@@ -137,13 +105,6 @@ export class MessageFeedbackService extends TypertRemoteService {
     return success(snapshotList(items))
   }
 
-  /**
-   * Create or replace feedback for one derived append-origin assistant
-   * message. Every request must match the addressed item's current version;
-   * a matching no-op returns the stored item without changing its revision.
-   * @param request - target, desired value, and observed item version.
-   * @returns the committed item or an explicit business failure.
-   */
   put(request) {
     const note = this.resolveNote(request.note)
     if (!note.ok) return Promise.resolve(note)
@@ -203,12 +164,6 @@ export class MessageFeedbackService extends TypertRemoteService {
     })
   }
 
-  /**
-   * Delete one feedback item. Absence is successful regardless of the
-   * supplied version; an existing item requires an exact version match.
-   * @param request - Session, message, and observed item version.
-   * @returns the stable absent postcondition, or an explicit failure.
-   */
   delete(request) {
     return this.enqueue(request.sessionId, async () => {
       const known = await this.inspectSession(request.sessionId)
@@ -234,12 +189,6 @@ export class MessageFeedbackService extends TypertRemoteService {
     })
   }
 
-  /**
-   * Resolve a live owner directly; otherwise use the storage catalog as the
-   * existence authority before inspecting the log. Inspection failures for a
-   * catalogued Session remain infrastructure failures rather than being
-   * guessed into the business `session-not-found` branch.
-   */
   async inspectSession(sessionId) {
     if (this.ctx.sessions.get(sessionId) === undefined) {
       const snapshots = await this.ctx.sessionPersistence.listSnapshots()
@@ -251,7 +200,6 @@ export class MessageFeedbackService extends TypertRemoteService {
     return success(await this.ctx.sessionPersistence.inspect(sessionId))
   }
 
-  /** Require the exact finalized append-origin assistant message projection. */
   hasFeedbackTarget(inspection, messageId) {
     return inspection.events.some((event) => {
       if (event.type !== 'assistant/message' || !isAppendSurfaceEvent(event)) return false
@@ -260,11 +208,6 @@ export class MessageFeedbackService extends TypertRemoteService {
     })
   }
 
-  /**
-   * Put the target log prefix behind a durability barrier before its sidecar.
-   * A live owner flushes through the SessionStore's canonical checkpoint; a
-   * cold owner is re-read from the physical durable prefix.
-   */
   async ensureTargetDurable(inspection) {
     const live = this.ctx.sessions.get(inspection.meta.id)
     if (live !== undefined && sameHeaderIdentity(live.header, inspection.meta)) {
@@ -278,7 +221,6 @@ export class MessageFeedbackService extends TypertRemoteService {
     return await this.ctx.sessionPersistence.readFrom(inspection.meta.id, 0)
   }
 
-  /** Validate optional-note semantics and the configured complete UTF-8 byte bound. */
   resolveNote(note) {
     if (note === undefined) return success(undefined)
     if (note.trim().length === 0) return rejected({ code: 'note-blank' })
@@ -289,7 +231,6 @@ export class MessageFeedbackService extends TypertRemoteService {
     return success(note)
   }
 
-  /** Return the authoritative item needed to reconcile one failed comparison. */
   versionConflict(current) {
     return {
       code: 'version-conflict',
@@ -297,7 +238,6 @@ export class MessageFeedbackService extends TypertRemoteService {
     }
   }
 
-  /** Queue a complete read/compare/write mutation behind this Session's prior mutation. */
   enqueue(sessionId, operation) {
     if (!this.mutationAdmissionOpen) {
       return Promise.reject(new Error('message-feedback: service is disposing'))
@@ -311,7 +251,6 @@ export class MessageFeedbackService extends TypertRemoteService {
     })
   }
 
-  /** Resolve the initialized durable table or fail a broken service lifecycle. */
   requireTable() {
     if (this.table === undefined) {
       throw new Error('message-feedback: durable domain is not initialized')

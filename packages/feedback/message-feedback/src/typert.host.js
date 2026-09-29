@@ -1,4 +1,3 @@
-/** Hand-owned Typert host manifest (Remote RPC schema + reflection metadata). */
 import { z } from 'zod'
 
 const _deepseek_ai_dsh_message_feedback_messageFeedback_delete_parameter_0$schema = z.object({

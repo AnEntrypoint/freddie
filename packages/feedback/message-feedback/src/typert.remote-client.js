@@ -1,4 +1,3 @@
-/** Hand-owned Typert Remote-client manifest for this package's Host RPC surface. */
 import { z } from 'zod'
 
 const _deepseek_ai_dsh_message_feedback_messageFeedback_delete_parameter_0$schema = z.object({

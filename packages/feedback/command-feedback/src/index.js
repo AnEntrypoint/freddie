@@ -1,11 +1,3 @@
-/**
- * Session feedback event plus the human-facing `/feedback` producer. Recording
- * appends one authoritative log-only event and does not start model work. The
- * append is eager but unflushed, so acknowledgement reports that the entry is
- * logged, not that it reached disk.
- * @module @freddie/freddie-command-feedback
- */
-
 import { getOrCreateAnonymousUserId } from '@freddie/freddie-anonymous-user-id'
 
 export const name = 'command-feedback'
@@ -13,13 +5,11 @@ export const inject = ['commands']
 
 const USAGE = 'Usage: /feedback <text>'
 
-/** Fail closed when a future sharing status reaches the sentence switch. */
 /* v8 ignore next 3 -- only the ignored default arm calls this; the closed union cannot reach it via the public API. */
 function assertNever(value) {
   throw new Error(`command-feedback: unsupported sharing status ${JSON.stringify(value)}`)
 }
 
-/** The acknowledgement's sharing sentence for a disclosed policy. */
 function sharingSentence(sharing) {
   switch (sharing) {
     case 'full':
@@ -34,14 +24,6 @@ function sharingSentence(sharing) {
   }
 }
 
-/**
- * The sharing disclosure appended to the acknowledgement: the mounted
- * backend's disclosed policy, or a "not configured" notice when no backend
- * is mounted. Read through the plugin context so the command still works
- * when the telemetry service is absent.
- * @param telemetry - the mounted telemetry service, or undefined.
- * @returns one sentence describing this session's sharing policy.
- */
 function sharingDisclosure(telemetry) {
   if (telemetry === undefined) {
     return 'Session sharing is not configured.'
@@ -49,27 +31,12 @@ function sharingDisclosure(telemetry) {
   return sharingSentence(telemetry.sharing)
 }
 
-/**
- * Record feedback independently of any UI trigger.
- * @param session - session the feedback describes.
- * @param text - human-authored feedback; surrounding whitespace is discarded.
- * @throws {TypeError} when the normalized text is empty.
- */
 export function recordFeedback(session, text) {
   const normalized = text.trim()
   if (normalized.length === 0) throw new TypeError('feedback text must not be empty')
   session.append('feedback/record', { text: normalized })
 }
 
-/**
- * Validate, record, and acknowledge one feedback entry. Returning an error
- * leaves no `feedback/record` event.
- * @param invocation - receiving agent, raw command input, and UI cancellation.
- * @param ctx - plugin context used to read the optional telemetry service.
- * @returns an acknowledgement containing the receiving session and anonymous
- * user ids plus the session-sharing disclosure, or a usage error when no
- * feedback text was supplied.
- */
 function executeFeedbackCommand(invocation, ctx) {
   if (invocation.rawInput.trim().length === 0) {
     return { kind: 'error', text: `Feedback text is required. ${USAGE}` }
@@ -82,7 +49,6 @@ function executeFeedbackCommand(invocation, ctx) {
   }
 }
 
-/** Register the global `/feedback` command for every composed command adapter. */
 export function apply(ctx) {
   ctx.commands.register({
     name: 'feedback',
