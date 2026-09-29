@@ -1,15 +1,7 @@
-/** Shared event metadata and semantic-document projection. */
-
 import { foldSurface } from '@freddie/freddie-session'
 import { SessionQueryError } from './config.js'
 import { extractSessionEventText } from './extraction.js'
 
-/**
- * Project a raw log into lightweight surface-aware event records.
- * @param sessionId - session that owns the log.
- * @param events - complete contiguous raw event log.
- * @returns one record per event in ascending seq order.
- */
 export function buildSessionEventRecords(sessionId, events) {
   const surfaceBySeq = classifySurface(events)
   return events.map(event => ({
@@ -21,12 +13,6 @@ export function buildSessionEventRecords(sessionId, events) {
   }))
 }
 
-/**
- * Build first-party semantic documents for one complete raw event log.
- * @param sessionId - session that owns the log.
- * @param events - complete contiguous raw event log.
- * @returns searchable documents in ascending seq order; structural events are omitted.
- */
 export function buildSessionEventSearchDocuments(sessionId, events) {
   const surfaceBySeq = classifySurface(events)
   const documents = []
@@ -51,7 +37,7 @@ function classifySurface(events) {
     folded = foldSurface(events)
   } catch (error) {
     throw new SessionQueryError(
-      /* v8 ignore next -- foldSurface throws Error instances */
+      /* v8 ignore next */
       `invalid session surface: ${error instanceof Error ? error.message : 'unknown error'}`,
       'SESSION_QUERY_INVALID_SURFACE',
       { cause: error },

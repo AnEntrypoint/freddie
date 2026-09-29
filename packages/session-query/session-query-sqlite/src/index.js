@@ -1,9 +1,3 @@
-/**
- * Concrete session-query service with SQLite FTS5 over the live-preferred corpus.
- *
- * @module @freddie/freddie-session-query-sqlite
- */
-
 import { createHash, randomUUID } from 'node:crypto'
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
@@ -39,19 +33,14 @@ export {
   SESSION_QUERY_SQLITE_SCHEMA_VERSION,
 } from './schema.js'
 
-/** Boot-context slot for a launcher-owned absolute path to this process's derived query index. */
 export const SESSION_QUERY_SQLITE_PATH_KEY = 'launcherSessionQueryPath'
 
-/** Default result page size. */
 export const SESSION_QUERY_SQLITE_DEFAULT_LIMIT = 20
-/** Maximum accepted result page size. */
 export const SESSION_QUERY_SQLITE_MAX_LIMIT = 100
-/** Default maximum snippet length in Unicode code points. */
 export const SESSION_QUERY_SQLITE_SNIPPET_CHARS = 240
 
 const STABLE_OBSERVATION_ATTEMPTS = 2
 
-/** Concrete SQLite owner of the combined `ctx.sessionQuery` service. */
 export class SqliteSessionQueryEngine extends SessionQueryEngine {
   static inject = ['sessions']
 
@@ -70,7 +59,6 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
       .default(SESSION_QUERY_DEFAULT_PERSISTED_INSPECT_CONCURRENCY),
   })
 
-  /** Validated and defaulted backend configuration. */
   config
 
   _instance = randomUUID()
@@ -94,7 +82,7 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
       const binding = { identity: Symbol(), service }
       this._persistenceBinding = binding
       childCtx.effect(() => () => {
-        /* v8 ignore next -- a stale optional-service disposer cannot clear a replacement */
+        /* v8 ignore next */
         if (this._persistenceBinding !== binding) return
         this._persistenceBinding = { identity: Symbol() }
       }, 'sessionQuerySqlite.persistenceBinding')
@@ -105,7 +93,6 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
     ctx.effect(() => async () => this.close(), 'sessionQuerySqlite.close')
   }
 
-  /** Open eagerly only when activation owns the configured readiness boundary. */
   async [Service.init]() {
     if (this.config.openAt === 'startup') await this._ensureReady(undefined)
   }
@@ -163,17 +150,11 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
     })
   }
 
-  /** Close the database after every accepted operation reaches quiescence. */
   close() {
     this._closePromise ??= this._close()
     return this._closePromise
   }
 
-  /**
-   * Refuse full-text calls under `openAt: 'never'` before any request
-   * normalization or SQLite work, so a disabled deployment never imports
-   * the SQLite client, opens the index, or observes sources.
-   */
   _assertSearchEnabled() {
     if (this.config.openAt !== 'never') return
     throw new SessionQueryError(
@@ -293,7 +274,7 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
         began = true
         for (const row of persistentDeletes) await this._deleteSession('persisted', row.id)
         for (const entry of persistentChanges) {
-          /* v8 ignore next -- observation loads every entry whose revision differs */
+          /* v8 ignore next */
           if (entry.loaded === undefined) throw new Error(`missing loaded revision for session "${entry.header.id}"`)
           await this._replacePersistedSession(entry.loaded, entry.revision, nextMainGeneration)
         }
@@ -306,9 +287,9 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
         }
         await db.exec('COMMIT')
       } catch (error) {
-        /* v8 ignore next -- a BEGIN failure has no transaction to roll back; the common wrapper still reports it. */
+        /* v8 ignore next */
         if (began) {
-          /* v8 ignore next 5 -- ROLLBACK failure requires a SQLite double fault; the original failure remains actionable. */
+          /* v8 ignore next 5 */
           try {
             await db.exec('ROLLBACK')
           } catch {
@@ -579,7 +560,7 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
   }
 
   _requireDb() {
-    /* v8 ignore next -- callers await `_ready`; this guards lifecycle misuse */
+    /* v8 ignore next */
     if (this._db === undefined) throw indexClosed()
     return this._db
   }
@@ -589,12 +570,6 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
   }
 }
 
-/**
- * The header columns both session upserts bind, in the order their INSERT
- * lists them. The two statements differ only in what they append after these.
- * @param header - the session header being written.
- * @returns one bound value per header column.
- */
 function headerBindings(header) {
   return [
     header.id,

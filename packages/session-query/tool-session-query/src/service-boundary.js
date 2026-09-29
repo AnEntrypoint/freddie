@@ -1,9 +1,3 @@
-/**
- * Session-query service error containment and model-safe translation.
- *
- * @module @freddie/freddie-tool-session-query/service-boundary
- */
-
 import { HarnessError } from '@freddie/freddie-llm'
 import { SessionQueryError } from '@freddie/freddie-session-query'
 
@@ -156,13 +150,12 @@ function renderFullError(error) {
     diagnostics.push(current.stack ?? String(current))
     current = current.cause
   }
-  /* v8 ignore next -- defensive containment for a cyclic Error.cause graph */
+  /* v8 ignore next */
   if (current instanceof Error) diagnostics.push('[circular error cause]')
   else if (current !== undefined) diagnostics.push(renderFullError(current))
   return diagnostics.join('\nCaused by: ')
 }
 
-/** Model-safe session-query invocation and error translation boundary. */
 export const serviceBoundary = {
   unauthorizedTarget,
   call,

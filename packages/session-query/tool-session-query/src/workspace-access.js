@@ -1,9 +1,3 @@
-/**
- * Caller identity, workspace authorization, and visible lineage projection.
- *
- * @module @freddie/freddie-tool-session-query/workspace-access
- */
-
 import { HarnessError } from '@freddie/freddie-llm'
 import { SessionId } from '@freddie/freddie-session'
 import { serviceBoundary } from './service-boundary.js'
@@ -195,7 +189,6 @@ function titleText(view) {
     : `${view.text} (title unavailable: ${view.unavailableCode})`
 }
 
-/** Workspace-scoped caller authorization, title access, and lineage projection. */
 export const workspaceAccess = {
   callerOf,
   targetId,

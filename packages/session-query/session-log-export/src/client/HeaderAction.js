@@ -3,14 +3,6 @@ import { IconDownloadOutline16, renderModal, defineElement } from '@freddie/fred
 import { dialogProps } from './Dialog.js'
 import css from './HeaderAction.css.js'
 
-/**
- * Session Header export capsule custom element, plus its shared result
- * modal: converted to a class so the modal can be held across renders
- * (renderModal(el, props)) instead of recreated via a bare <Modal> call on
- * every re-render, which would orphan a fresh freddie-modal each time and leave
- * a stale, unclosable instance behind (the one-shot-leak pattern already
- * fixed elsewhere in the webjsx conversion).
- */
 export class FreddieSessionLogDownloadHeaderAction extends HTMLElement {
   #props = null
   #modal = null
@@ -55,7 +47,6 @@ export class FreddieSessionLogDownloadHeaderAction extends HTMLElement {
 
 defineElement('freddie-session-log-download-header-action', FreddieSessionLogDownloadHeaderAction)
 
-/** One-shot creation/update helper preserving the original function-component call shape. */
 export function SessionLogDownloadHeaderAction(props) {
   const el = document.createElement('freddie-session-log-download-header-action')
   el.setProps(props)

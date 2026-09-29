@@ -1,9 +1,3 @@
-/**
- * Model argument schemas, normalization, and filter construction.
- *
- * @module @freddie/freddie-tool-session-query/input
- */
-
 import { SessionId } from '@freddie/freddie-session'
 import { SessionQueryError } from '@freddie/freddie-session-query'
 
@@ -245,7 +239,6 @@ function assertNonEmptyArray(name, values) {
   }
 }
 
-/** Model schemas and model-owned value normalization shared by tool operations. */
 export const toolInput = {
   sessionSearchParameters,
   eventSearchParameters,

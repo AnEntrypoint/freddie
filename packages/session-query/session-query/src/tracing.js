@@ -1,29 +1,15 @@
-/** One-shot session-lineage and event-relationship tracing helpers. */
-
 import { foldSurface, isSurfaceEvent, snapshotSessionEvent } from '@freddie/freddie-session'
 import { SessionQueryError } from './config.js'
 
-/**
- * Classify a raw event log with one canonical surface fold.
- * @param sessionId - owner of the event log.
- * @param events - detached raw event log.
- * @returns lightweight records in ascending log order.
- */
 export function eventRecords(sessionId, events) {
   return analyzeEventLog(sessionId, events).records
 }
 
-/**
- * Fold and return the current model surface after validating the whole log.
- * @param sessionId - owner used in query diagnostics.
- * @param events - detached raw event log from one corpus observation.
- * @returns detached current surface events in folded order.
- */
 export function currentSurfaceEvents(sessionId, events) {
   const analysis = analyzeEventLog(sessionId, events)
   return analysis.currentSeqs.map((seq) => {
     const event = events[seq]
-    /* v8 ignore next 6 -- analyzeEventLog validated contiguous seqs and foldSurface returned only surface-event seqs. */
+    /* v8 ignore next 6 */
     if (event === undefined || event.seq !== seq || !isSurfaceEvent(event)) {
       throw new SessionQueryError(
         `invalid session surface: current node ${seq} is not a surface event`,
@@ -34,13 +20,6 @@ export function currentSurfaceEvents(sessionId, events) {
   })
 }
 
-/**
- * Trace one target after one canonical surface fold and whole-log validation.
- * @param sessionId - owner of the event log.
- * @param events - detached raw event log.
- * @param seq - target event seq.
- * @returns direct surface replacements and relationships to cited source events.
- */
 export function traceEvent(sessionId, events, seq) {
   const target = events[seq]
   if (target === undefined || target.seq !== seq) {
@@ -78,12 +57,6 @@ export function traceEvent(sessionId, events, seq) {
   }
 }
 
-/**
- * Trace one target's known ancestry and recursively known descendants.
- * @param records - complete logical corpus from one observation.
- * @param sessionId - target session id.
- * @returns complete or explicitly partial lineage.
- */
 export function traceSession(records, sessionId) {
   const byId = new Map(records.map(record => [record.header.id, record]))
   const target = byId.get(sessionId)
@@ -149,7 +122,7 @@ function analyzeEventLog(sessionId, events) {
     folded = foldSurface(events)
   } catch (error) {
     throw new SessionQueryError(
-      /* v8 ignore next -- foldSurface throws Error instances */
+      /* v8 ignore next */
       `invalid session surface: ${error instanceof Error ? error.message : 'unknown error'}`,
       'SESSION_QUERY_INVALID_SURFACE',
       { cause: error },

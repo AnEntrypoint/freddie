@@ -1,9 +1,3 @@
-/**
- * Tool operation orchestration over session-query service capabilities.
- *
- * @module @freddie/freddie-tool-session-query/operations
- */
-
 import { HarnessError } from '@freddie/freddie-llm'
 import { SessionQueryError } from '@freddie/freddie-session-query'
 import { toolInput } from './input.js'
@@ -228,7 +222,6 @@ async function collectPages(
   }
 }
 
-/** Five model-facing session-query operation implementations. */
 export const operations = {
   executeSessionSearch,
   executeEventSearch,

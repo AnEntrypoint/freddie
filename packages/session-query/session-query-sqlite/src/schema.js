@@ -1,12 +1,8 @@
-/** SQLite schema for the disposable session full-text read model. */
-
 import { mkdir, open } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 
-/** Current derived-index schema version. Incompatible versions reset in place. */
 export const SESSION_QUERY_SQLITE_SCHEMA_VERSION = 8
 
-/** SQLite application id protecting unrelated databases from derived resets. */
 export const SESSION_QUERY_SQLITE_APPLICATION_ID = 0x44534851
 
 const DERIVED_USER_TABLES = new Set([
@@ -20,10 +16,6 @@ const DERIVED_USER_TABLES = new Set([
   'persisted_docs_config',
 ])
 
-/**
- * Exclusively create a missing database file with owner-only permissions.
- * Existing files retain their modes, and errors other than `EEXIST` propagate.
- */
 async function createDatabaseFile(path) {
   try {
     const handle = await open(path, 'wx', 0o600)
@@ -33,12 +25,6 @@ async function createDatabaseFile(path) {
   }
 }
 
-/**
- * Open, validate, and initialize persistent and connection-local schemas.
- * @param path - dedicated derived-index path or `:memory:`; missing filesystem paths are created owner-only.
- * @param journalMode - validated SQLite journal mode.
- * @returns initialized database handle owned by the search service.
- */
 export async function openSearchDatabase(path, journalMode) {
   const actual = path === ':memory:' ? path : resolve(path)
   if (actual !== ':memory:') {
@@ -71,12 +57,6 @@ export async function openSearchDatabase(path, journalMode) {
   }
 }
 
-/**
- * Adapt the async libsql client to the statement shapes this backend uses.
- * Result rows are arrays carrying column names as own properties, so callers
- * keep reading `row.column`; absent rows surface as `undefined`, matching the
- * synchronous handle this replaced.
- */
 function wrapClient(client) {
   const execute = (sql, params) => {
     if (params === undefined || params.length === 0) return client.execute(sql)
@@ -109,15 +89,6 @@ function wrapClient(client) {
   }
 }
 
-/**
- * Replace `null` bindings with literal `NULL` in the statement text.
- *
- * The wasm client marshals bound parameters through JSON and reads a JSON
- * `null` back as the four-character string "null", which silently corrupts
- * TEXT columns and violates STRICT INTEGER columns outright. Positional
- * placeholders are rewritten in order, so the surviving arguments keep their
- * original positions; only literal `NULL` — never caller data — is inlined.
- */
 function inlineNullBindings(sql, params) {
   if (!params.includes(null) && !params.includes(undefined)) return { sql, args: params }
   const args = []
@@ -148,7 +119,7 @@ function inlineNullBindings(sql, params) {
       args.push(value)
     }
   }
-  /* v8 ignore next -- a placeholder/argument mismatch is a caller defect, not a runtime path */
+  /* v8 ignore next */
   if (index !== params.length) throw new Error('session-search statement placeholder count does not match its bindings')
   return { sql: out, args }
 }

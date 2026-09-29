@@ -1,34 +1,15 @@
-/** Pure provider-independent predicates for logical sessions and event text. */
-
 import { SessionQueryError } from './config.js'
 
-/**
- * Apply ANDed logical-session filters while preserving input order.
- * @param records - detached logical-session records to inspect.
- * @param filters - clauses whose list values are ORed within each clause.
- * @returns records accepted by every clause.
- */
 export function filterSessionResults(records, filters = []) {
   const predicates = filters.map(sessionPredicate)
   return records.filter(record => predicates.every(predicate => predicate(record)))
 }
 
-/**
- * Apply ANDed event filters to extracted semantic documents.
- * @param documents - semantic documents produced by {@link import('./documents.js').buildSessionEventSearchDocuments}.
- * @param filters - metadata and literal-text predicates.
- * @returns documents accepted by every clause, in input order.
- */
 export function filterSessionEventDocuments(documents, filters = []) {
   const predicates = filters.map(eventPredicate)
   return documents.filter(document => predicates.every(predicate => predicate(document)))
 }
 
-/**
- * Copy and validate logical-session filters before an asynchronous boundary.
- * @param filters - caller-owned clauses to materialize.
- * @returns detached validated clauses.
- */
 export function materializeSessionResultFilters(filters) {
   assertArray(filters)
   return filters.map((filter) => {
@@ -52,11 +33,6 @@ export function materializeSessionResultFilters(filters) {
   })
 }
 
-/**
- * Copy and validate event filters before an asynchronous boundary.
- * @param filters - caller-owned clauses to materialize.
- * @returns detached validated clauses.
- */
 export function materializeSessionEventResultFilters(filters) {
   assertArray(filters)
   return filters.map((filter) => {
@@ -80,11 +56,6 @@ export function materializeSessionEventResultFilters(filters) {
   })
 }
 
-/**
- * Compile a literal case-insensitive, whitespace-flexible semantic-text match.
- * @param text - caller-provided literal text.
- * @returns Unicode-aware regular expression safe from regex injection.
- */
 export function compileSessionTextFilter(text) {
   const trimmed = text.trim()
   if (trimmed.length === 0) {

@@ -1,9 +1,6 @@
-/** Live/persisted logical-corpus resolution for session-query. */
-
 import { SessionQueryError } from './config.js'
 import { assertSessionHeadersCompatible } from './sources.js'
 
-/** Resolves a live-preferred corpus against the persistence service mounted now. */
 export class SessionCorpus {
   _persistence
   _optionalPersistenceFiber
@@ -15,7 +12,7 @@ export class SessionCorpus {
       const service = childCtx.sessionPersistence
       this._persistence = service
       childCtx.effect(() => () => {
-        /* v8 ignore next -- a stale optional-service disposer cannot clear a replacement */
+        /* v8 ignore next */
         if (this._persistence === service) this._persistence = undefined
       }, 'sessionQuery.persistenceBinding')
     })
@@ -24,11 +21,6 @@ export class SessionCorpus {
     }, 'sessionQuery.optionalPersistence')
   }
 
-  /**
-   * List the complete logical corpus with live precedence and cloned headers.
-   * @param signal - optional cancellation for persistence listing.
-   * @returns records in deterministic newest-first order.
-   */
   async listSessions(signal) {
     signal?.throwIfAborted()
     const persistence = this._persistence
@@ -50,15 +42,6 @@ export class SessionCorpus {
     return [...records.values()].sort(compareSessions)
   }
 
-  /**
-   * Load one logical source, preferring a detached live snapshot.
-   *
-   * A known live target never consults persistence, so an optional backend's
-   * failure cannot make current in-memory history unreadable.
-   * @param sessionId - session to resolve.
-   * @param signal - optional cancellation for persisted source resolution.
-   * @returns detached live-preferred header and events.
-   */
   async load(sessionId, signal) {
     signal?.throwIfAborted()
     const live = this._ctx.sessions.get(sessionId)
@@ -89,16 +72,6 @@ export class SessionCorpus {
     return snapshot
   }
 
-  /**
-   * Project unique logical sources immediately from one persistence listing.
-   *
-   * The synchronous projector runs before a persisted worker claims its next id.
-   * Full logs are borrowed only for that call and never retained by the batch.
-   * @param sessionIds - sessions to resolve in first-occurrence order.
-   * @param project - synchronous fold that owns/clones every retained value.
-   * @param signal - cancellation shared by listing and every persisted inspection.
-   * @returns one fulfilled or rejected projected result per unique requested id.
-   */
   async projectMany(sessionIds, project, signal) {
     const ids = [...new Set(sessionIds)]
     signal?.throwIfAborted()
@@ -177,7 +150,7 @@ export class SessionCorpus {
       Array.from({ length: workerCount }, () => worker()),
     )
     if (signal?.aborted) signal.throwIfAborted()
-    /* v8 ignore start -- per-id failures settle inside resolvePersisted; workers reject only on abort above */
+    /* v8 ignore start */
     for (const settlement of settlements) {
       if (settlement.status === 'rejected') {
         throw settlement.reason
@@ -196,7 +169,7 @@ function projectSource(sessionId, source, project, signal) {
     signal?.throwIfAborted()
     return { sessionId, status: 'fulfilled', value }
   } catch (reason) {
-    /* v8 ignore next -- the synchronous projector has no external cancellation yield */
+    /* v8 ignore next */
     if (signal?.aborted) signal.throwIfAborted()
     return { sessionId, status: 'rejected', reason }
   }

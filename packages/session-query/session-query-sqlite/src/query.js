@@ -1,29 +1,18 @@
-/** Request normalization, parameterized predicates, and result presentation. */
-
 import {
   SessionQueryError,
   materializeSessionEventResultFilters,
   materializeSessionResultFilters,
 } from '@freddie/freddie-session-query'
 
-/** Collision-free marker inserted before an FTS5 match by `highlight()`. */
 export const FTS_HIGHLIGHT_START = '﷐'
-/** Collision-free marker inserted after an FTS5 match by `highlight()`. */
 export const FTS_HIGHLIGHT_END = '﷑'
 
-/** Largest page size whose internal lookahead remains an exact SQLite integer binding. */
 export const SQLITE_MAX_PAGE_LIMIT = Number.MAX_SAFE_INTEGER - 1
 
-/** Portable host-parameter ceiling shared by predicate and statement builders. */
 export const SQLITE_PORTABLE_VARIABLE_LIMIT = 32_766
 
-/** Supported outer-predicate budget that keeps SQLite FTS5 MATCH usable. */
 export const SQLITE_FTS5_OUTER_PREDICATE_LIMIT = 14
 
-/**
- * Reject prospective SQLite binding growth beyond the portable ceiling.
- * @param count - binding count at the current construction boundary.
- */
 export function assertPortableBindingCount(count) {
   if (count > SQLITE_PORTABLE_VARIABLE_LIMIT) {
     throw new SessionQueryError(
@@ -33,10 +22,6 @@ export function assertPortableBindingCount(count) {
   }
 }
 
-/**
- * Reject compiled outer predicates beyond the supported FTS5 planner budget.
- * @param count - predicate count including fixed statement predicates.
- */
 export function assertFts5OuterPredicateCount(count) {
   if (count > SQLITE_FTS5_OUTER_PREDICATE_LIMIT) {
     throw new SessionQueryError(
@@ -46,12 +31,6 @@ export function assertFts5OuterPredicateCount(count) {
   }
 }
 
-/**
- * Validate and canonicalize a cross-session request.
- * @param request - caller-provided query, filters, limit, and cursor.
- * @param limits - configured default and maximum page sizes.
- * @returns normalized request with explicit arrays and limit.
- */
 export function normalizeSessionRequest(request, limits) {
   const sessionFilters = materializeSessionResultFilters(request.sessionFilters ?? [])
   const eventFilters = materializeMetadataFilters(request.eventFilters ?? [])
@@ -65,12 +44,6 @@ export function normalizeSessionRequest(request, limits) {
   }
 }
 
-/**
- * Validate and canonicalize a within-session request.
- * @param request - caller-provided target, query, filters, limit, and cursor.
- * @param limits - configured default and maximum page sizes.
- * @returns normalized request with an explicit filter array and limit.
- */
 export function normalizeEventRequest(request, limits) {
   if (typeof request.sessionId !== 'string') {
     throw new SessionQueryError('session-search session id must be text', 'SESSION_QUERY_INVALID_FILTER')
@@ -86,11 +59,6 @@ export function normalizeEventRequest(request, limits) {
   }
 }
 
-/**
- * Compile logical-session predicates against selected-document columns.
- * @param filters - validated ANDed logical-session clauses.
- * @returns parameterized SQL fragment and ordered bindings.
- */
 export function buildSessionWhere(filters) {
   const clauses = []
   const params = []
@@ -134,11 +102,6 @@ export function buildSessionWhere(filters) {
   return { sql: clauses.join(' AND '), params, predicateCount: clauses.length }
 }
 
-/**
- * Compile event metadata predicates against selected-document columns.
- * @param filters - validated ANDed event metadata clauses.
- * @returns parameterized SQL fragment and ordered bindings.
- */
 export function buildEventWhere(filters) {
   const clauses = []
   const params = []
@@ -164,20 +127,10 @@ export function buildEventWhere(filters) {
   return { sql: clauses.join(' AND '), params, predicateCount: clauses.length }
 }
 
-/**
- * Quote caller text as one FTS5 phrase so query syntax remains inert data.
- * @param query - normalized caller query.
- * @returns FTS5 expression containing one escaped literal phrase.
- */
 export function quoteFtsData(query) {
   return `"${query.replaceAll('"', '""')}"`
 }
 
-/**
- * Remove reserved marker collisions before text enters FTS5 or MATCH.
- * @param text - extracted document text or normalized caller query.
- * @returns text with reserved noncharacters mapped to replacement characters.
- */
 export function sanitizeFtsText(text) {
   return text
     .replaceAll('\0', '�')
@@ -185,11 +138,6 @@ export function sanitizeFtsText(text) {
     .replaceAll(FTS_HIGHLIGHT_END, '�')
 }
 
-/**
- * Build the stable normalized request identity stored in opaque cursors.
- * @param request - normalized request whose filter ordering is canonicalized.
- * @returns deterministic JSON identity for cursor binding.
- */
 export function requestFingerprint(request) {
   if ('sessionId' in request) {
     return JSON.stringify({
@@ -209,12 +157,6 @@ export function requestFingerprint(request) {
   })
 }
 
-/**
- * Build a whitespace-normalized excerpt no longer than `maxChars`.
- * @param markedText - complete document with FTS5 `highlight()` markers.
- * @param maxChars - maximum result length in Unicode code points.
- * @returns bounded plain-text snippet.
- */
 export function makeSnippet(markedText, maxChars) {
   const { text: clean, matchStart } = normalizeMarkedText(markedText)
   const characters = Array.from(clean)

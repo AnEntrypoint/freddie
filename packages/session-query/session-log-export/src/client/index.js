@@ -1,15 +1,9 @@
-/** Browser plugin owning Session export download state and its shared modal. */
-
 import { SessionLogDownloadController } from './controller.js'
 import { SessionLogDownloadHeaderAction } from './HeaderAction.js'
 import { en, NS } from './locales.js'
 
 export const inject = ['slots', 'locale']
 
-/**
- * Provide the download controller and mount its modal into the Session Header.
- * @param ctx - browser context carrying slots and locale services.
- */
 export function apply(ctx) {
   const controller = new SessionLogDownloadController()
   ctx.provide('sessionLogDownload', controller)

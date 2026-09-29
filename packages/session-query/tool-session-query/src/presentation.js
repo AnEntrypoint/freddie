@@ -1,9 +1,3 @@
-/**
- * Model text rendering and generic tool-call presentation.
- *
- * @module @freddie/freddie-tool-session-query/presentation
- */
-
 import { extractSessionEventText } from '@freddie/freddie-session-query'
 import { workspaceAccess } from './workspace-access.js'
 
@@ -202,7 +196,6 @@ function presentEventTargetCall(
   }
 }
 
-/** Text output and call-card presentation for every session-query tool. */
 export const presentation = {
   formatSessionSearch,
   formatEmptySessionSearch,
