@@ -24,6 +24,11 @@ These package-specific rules supplement the repo-wide [conventions](../AGENTS.md
 - Package READMEs document model, token, and KV-cache effects using the [canonical Model Experience format](../docs/cookbook/adding-a-package.md#4-write-the-package-readme).
 - Package READMEs put durable consumer gaps and non-obvious maintainer constraints under `## Known Limitations and Deferred Work`; ordinary cleanup stays in its TODO or Agent Note.
 
+## Comment sweep (settings, shell, skill, spill, storage, subagent, subprocess, terminal, todo, typert, util, web, webhook, workflow, workspace)
+- Nothing compiles, typechecks, or emits declarations from JSDoc here (no tsconfig, no d.ts), so prose JSDoc, `@param`/`@returns` docs, and `@module` headers were removed; contracts live in package READMEs and names.
+- Exception: JSDoc blocks carrying types (`@typedef`, `@callback`, `@template`, `@type`, `@import`, `@satisfies`, `{Type}`-annotated `@param`/`@returns`/`@property`) stay, because other packages reference them through `import('...')` type paths and editors resolve them. Their descriptive lines stay with them.
+- Functional directives stay: `v8 ignore`, `oxlint-disable`, `jscpd:ignore`, shebangs. Files that held only a module header are `export {}`.
+
 ## core/ package invariants
 - `core/session/src/surface.js` is browser-safe (web bundle): no `node:` imports.
 - `core/session/src/chunk-rows.js` storage rows (`text-chunks`, `reasoning-chunks`, `tool-call-chunks`) are durable encoding only: never in `Session.events`, no `SessionEventMap` entry, slash-less tags; they losslessly pack same-block `assistant/chunk` delta runs.
