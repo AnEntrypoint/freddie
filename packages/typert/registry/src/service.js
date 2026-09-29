@@ -1,38 +1,14 @@
-/**
- * Runtime registry for generated Typert reflection, Remote invocations, and
- * dependency-inverted lookup/Context providers. It performs no TypeScript
- * analysis or schema generation.
- * @module @freddie/freddie-typert-registry
- */
-
 import { Context, Service } from '@freddie/cordis'
 import { z } from 'zod'
 
-/**
- * Compose the global key of one generated schema.
- * @param packageName - contributing npm package.
- * @param name - schema export name.
- * @returns `<package>#<name>`.
- */
 export function typertKey(packageName, name) {
   return `${packageName}#${name}`
 }
 
-/**
- * Compose the identity of one package-face model.
- * @param packageName - contributing npm package.
- * @param face - independently compiled face.
- * @returns `<package>#<face>`.
- */
 export function typertPackageKey(packageName, face) {
   return `${packageName}#${face}`
 }
 
-/**
- * Compose the endpoint key used by local and Remote invocation registries.
- * @param descriptor - invocation whose namespace and method form the endpoint.
- * @returns `<namespace>/<method>`.
- */
 export function typertEndpoint(descriptor) {
   return `${descriptor.namespace}/${descriptor.method}`
 }
@@ -349,11 +325,6 @@ class ContextStore {
   }
 }
 
-/**
- * Registry of generated schemas, package reflection, invocations, and Remote
- * dependency providers.
- * @typert service typert
- */
 export class TypertRegistry extends Service {
   schemas = new Map()
   packages = new Map()
@@ -370,7 +341,6 @@ export class TypertRegistry extends Service {
     this.contextStore = new ContextStore(report)
   }
 
-  /** Current-environment invocation definitions. */
   get local() {
     const ctx = this.ctx
     return {
@@ -381,28 +351,18 @@ export class TypertRegistry extends Service {
     }
   }
 
-  /** Consumer-selected Remote definitions. */
   get remotes() {
     return this.remoteStore.view(this.ctx)
   }
 
-  /** Host object lookup providers. */
   get lookups() {
     return this.lookupStore.view(this.ctx)
   }
 
-  /** Host Context providers and Client Context binders. */
   get contexts() {
     return this.contextStore.view(this.ctx)
   }
 
-  /**
-   * Register one generated contribution atomically for the calling fiber.
-   * Duplicate package-face identities, schemas, invocation ids, or endpoints
-   * reject the whole batch.
-   * @param contribution - generated schemas, reflection, and Host invocations.
-   * @returns the exact effect disposer that removes this contribution.
-   */
   register(contribution) {
     const packageRecord = this.validatePackage(contribution)
     const schemaRecords = this.validateSchemas(contribution)
@@ -426,21 +386,10 @@ export class TypertRegistry extends Service {
     }, 'typert.register()')
   }
 
-  /**
-   * Look up one schema by `<package>#<name>`.
-   * @param key - global schema key.
-   * @returns the live schema record, or `undefined` when absent.
-   */
   get(key) {
     return this.schemas.get(key)
   }
 
-  /**
-   * Resolve one required schema.
-   * @param key - global schema key.
-   * @returns the live schema record.
-   * @throws when the key is malformed, the package face is absent, or the schema is not contributed.
-   */
   resolve(key) {
     const record = this.schemas.get(key)
     if (record !== undefined) return record
@@ -457,40 +406,18 @@ export class TypertRegistry extends Service {
     throw new Error(`typert: cannot resolve "${key}" — package "${packageName}" has no registered contribution`)
   }
 
-  /**
-   * Enumerate live schemas in registration order.
-   * @param filter - optional package and face restriction.
-   * @returns matching schema records.
-   */
   list(filter = {}) {
     return [...this.schemas.values()].filter(record => matches(record, filter))
   }
 
-  /**
-   * Look up generated reflection for one package face.
-   * @param packageName - exact npm package name.
-   * @param face - face to query; defaults to the host runtime.
-   * @returns the live package record, or `undefined` when absent.
-   */
   getPackage(packageName, face = 'host') {
     return this.packages.get(typertPackageKey(packageName, face))
   }
 
-  /**
-   * Enumerate generated package reflection in registration order.
-   * @param filter - optional package and face restriction.
-   * @returns matching package records.
-   */
   listPackages(filter = {}) {
     return [...this.packages.values()].filter(record => matches(record, filter))
   }
 
-  /**
-   * Project a live Zod schema to JSON Schema without caching the result.
-   * @param key - global schema key.
-   * @param params - Zod projection parameters.
-   * @returns a fresh JSON Schema document.
-   */
   toJSONSchema(key, params) {
     return z.toJSONSchema(this.resolve(key).schema, params)
   }

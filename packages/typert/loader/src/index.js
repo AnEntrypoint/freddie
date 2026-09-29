@@ -1,52 +1,20 @@
-/**
- * Typert Loader integration: automatic registration for mounted plugin packages.
- *
- * When a loader entry mounts, this plugin resolves the entry's package.json; a
- * package exporting `./typert` has its host face imported and its
- * `TYPERT` manifest registered into `ctx.typert`, and the registration is
- * withdrawn when the entry unmounts. Explicit `packages` cover plugins nested
- * behind another Loader entry, whose Cordis fibers carry no resolvable package
- * specifier. Packages without the export are skipped silently when discovered
- * from Loader entries; an explicit package or declared artifact that is broken
- * fails loud — aggregated into this plugin's activation throw for existing
- * entries, contained to a logged error per package in steady state.
- *
- * Scanning is incremental per entry name, mirroring the client-modules node
- * half: every cordis `internal/plugin` emission marks the fiber's entry name
- * dirty and a microtask flush reconciles each dirty name against the live
- * loader entries; the activation pass seeds the same dirty set with all
- * current entries. Package verdicts and imported manifests are cached per
- * package name and never expire — plugin-set changes take effect on restart.
- *
- * Manual `ctx.typert.register()` remains available for contributions
- * that do not use a `./typert` artifact (hand-written wire schemas,
- * tests, non-loader compositions).
- *
- * @module @freddie/freddie-typert-loader
- */
-
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import z from '@freddie/schemastery'
 
-/** The package.json exports key naming a package's host-face typert artifact. */
 export const TYPERT_HOST_EXPORT = './typert'
 
-/** Cordis plugin name. */
 export const name = 'typert-loader'
-/** Services required before registration: the registry this plugin feeds and the Loader it observes. */
 export const inject = ['typert', 'loader']
 
-/** Validate explicit package names and default to Loader-entry discovery only. */
 export const Config = z.object({
   packages: z.array(z.string().min(1)).default([]),
 })
 
 const MEMBER_KINDS = new Set(['property', 'method', 'getter', 'setter', 'call', 'construct', 'index'])
 
-/** Resolve the `./typert` export to a relative path, accepting the string and one-level conditional forms. */
 function typertExportOf(pkgName, exportsField) {
   if (typeof exportsField !== 'object' || exportsField === null) return undefined
   const target = exportsField[TYPERT_HOST_EXPORT]
@@ -59,15 +27,6 @@ function typertExportOf(pkgName, exportsField) {
   throw new Error(`typert-loader: ${pkgName} exports["${TYPERT_HOST_EXPORT}"] must be a string or an object with a string default`)
 }
 
-/**
- * Narrow a dynamically imported typert module's `TYPERT` export to a
- * contribution owned by `pkgName`. This is the module/file boundary: the
- * manifest crosses from a build artifact into the typed registry, so every
- * field is checked and every failure names the package and the defect.
- * @param pkgName - the package whose typert face was imported.
- * @param exported - the module's `TYPERT` export.
- * @returns the validated contribution.
- */
 export function validateTypertManifest(pkgName, exported) {
   if (typeof exported !== 'object' || exported === null) {
     throw new Error(`typert-loader: ${pkgName} exports "${TYPERT_HOST_EXPORT}" but its module has no TYPERT manifest object`)
@@ -263,12 +222,6 @@ function requireStrictCodec(pkgName, value, subject) {
   }
 }
 
-/**
- * Scan current Loader entries during activation, then follow entry mounts and
- * unmounts for this plugin's lifetime.
- * @param ctx - plugin context carrying `typert` and `loader`.
- * @param config - explicit package artifacts in addition to Loader entries.
- */
 export async function apply(ctx, config) {
   if (ctx.baseUrl === undefined) {
     throw new Error('typert-loader: ctx.baseUrl is unset — the loader needs the config-tree anchor to resolve plugin packages')
@@ -340,7 +293,6 @@ export async function apply(ctx, config) {
     return false
   }
 
-  /** Reconcile one entry name against the live loader entries; a mount returns its async task. */
   const processOne = (entryName) => {
     if (!qualifies(entryName)) {
       const dispose = registered.get(entryName)
@@ -402,7 +354,6 @@ export async function apply(ctx, config) {
   }
 }
 
-/** Normalize an arbitrary import or manifest failure to an Error. */
 function toError(error) {
   return error instanceof Error ? error : new Error(String(error))
 }
