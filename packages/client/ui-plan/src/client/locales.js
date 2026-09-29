@@ -1,6 +1,3 @@
-/** `plan` namespace dictionaries (the composer plan chip's copy). */
-
-/** English dictionary. */
 export const en = {
   'chip.on.aria': 'Plan mode on, press to turn off',
   'chip.on.title': 'Plan mode on — click to turn off (/plan off)',

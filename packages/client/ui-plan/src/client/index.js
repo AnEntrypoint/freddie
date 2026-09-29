@@ -1,26 +1,11 @@
-/**
- * Plan control plugin, browser half: occupies the composer's named
- * `conversation.input.plan` seat with an active-state status chip. Plan mode
- * is entered through the command source; while the projection's effective
- * target is plan mode the chip renders and executes /plan off through
- * `command.execute`, otherwise the seat stays empty. Reads ride the generic
- * projection pair through the standard-kit `useProjection`; zero client-side
- * plan state.
- */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 export { PlanChip } from './PlanModeControl.js'
 import { en } from './locales.js'
 
-/** Dictionary namespace owned by this plugin. */
 const NS = 'plan'
 
-/** Required services: the seat's slot registry, commands Remote, and locale registry. */
 export const inject = ['slots', 'remote', 'remote.commands', 'locale']
 
-/**
- * Client plugin body: register the plan chip over the command channel.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-plan: dictionaries')
 

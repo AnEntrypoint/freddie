@@ -2,23 +2,12 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconCloseFill14, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './PlanModeControl.css.js'
 
-/**
- * Plan-mode status over the host-computed `plan` projection. The chip renders
- * only while the effective target is plan mode (`pending ? !active : active`
- * — a folded host value, not client optimism) and executes /plan off.
- *
- * Converted from a React hooks component to a webjsx custom element:
- * leaving/error state become instance fields, the alive-tracking useEffect
- * becomes connectedCallback/disconnectedCallback, and re-render is an
- * explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
- */
 export class FreddiePlanChip extends HTMLElement {
   #props = null
   #leaving = false
   #error = null
   #alive = true
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -86,7 +75,6 @@ export class FreddiePlanChip extends HTMLElement {
 
 defineElement('freddie-plan-chip', FreddiePlanChip)
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function PlanChip(props) {
   const el = document.createElement('freddie-plan-chip')
   el.setProps(props)
