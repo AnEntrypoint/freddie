@@ -5,13 +5,11 @@ import {
 } from '@freddie/freddie-client-ui-primitives'
 import css from './SkillRow.css.js'
 
-/** First physical line for the collapsed error summary and malformed-args fallback. */
 function firstLine(text) {
   const newline = text.indexOf('\n')
   return newline === -1 ? text : text.slice(0, newline)
 }
 
-/** The `name` argument of complete JSON args, or undefined while args are still streaming. */
 function completeArgsSkillName(argsRaw) {
   try {
     const parsed = JSON.parse(argsRaw)
@@ -25,15 +23,12 @@ function completeArgsSkillName(argsRaw) {
   }
 }
 
-/** Skill names are the only call argument the compact row presents. */
 function skillName(argsRaw, callId) {
   const name = completeArgsSkillName(argsRaw)
   if (name !== undefined) return firstLine(name)
   return argsRaw === '' ? callId : firstLine(argsRaw)
 }
 
-/** Flatten durable result blocks under the generic Tool-row text contract.
- *  Keep aligned with ui-tool's models/tool-call-model.ts `resultText`. */
 function resultText(block) {
   if (!('kind' in block)) return null
   const parts = []
@@ -46,7 +41,6 @@ function resultText(block) {
   return parts.join('\n') || null
 }
 
-/** Derive display state without consulting the live skill catalog. */
 function skillRowModel(block) {
   const settled = 'kind' in block
   const argsRaw = (settled ? block.call?.argsRaw : block.argsRaw) ?? ''
@@ -64,7 +58,6 @@ function skillRowModel(block) {
   }
 }
 
-/** State substitution for the collapsed leading slot. */
 function leadingFor(state) {
   switch (state) {
     case 'error': return h(StateDot, {state: 'error'})
@@ -73,7 +66,6 @@ function leadingFor(state) {
   }
 }
 
-/** Leading disclosure slot: state icon at rest, chevron on hover or while open. */
 function disclosureLeading(state, open, expandable) {
   if (open) return h(IconChevronDownOutline14, {className: css.chevron})
   const icon = leadingFor(state)
@@ -84,7 +76,6 @@ function disclosureLeading(state, open, expandable) {
   ]
 }
 
-/** Visually hidden state copy for the colour-only lifecycle cues. */
 function stateStatus(state, t) {
   switch (state) {
     case 'running': return t('row.running')
@@ -94,16 +85,10 @@ function stateStatus(state, t) {
   }
 }
 
-/**
- * Skill row custom element: renders one `skill` tool call as an accent
- * summary and instructions disclosure. Registered as `freddie-skill-row` via
- * `webjsxSlot` at the slot's register call site (see index.ts).
- */
 export class FreddieSkillRow extends HTMLElement {
   #props = null
   #expanded = false
 
-  /** Set/replace props and re-render; called by the slot renderer's webjsx bridge. */
   setProps(props) {
     this.#props = props
     this.#render()

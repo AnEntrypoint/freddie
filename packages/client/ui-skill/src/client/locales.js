@@ -1,9 +1,5 @@
-/** `skill` namespace dictionaries for the dedicated tool row. */
-
-/** Dictionary namespace owned by this plugin. */
 export const NS = 'skill'
 
-/** English dictionary. */
 export const en = {
   'row.running': 'Loading skill',
   'row.failed': 'Skill load failed',
