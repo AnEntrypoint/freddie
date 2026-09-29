@@ -1,13 +1,3 @@
-/**
- * HMR plugin, node half: watches served source roots and emits ordered rebuild
- * frames. Native filesystem events mark roots dirty and trigger a coalesced
- * scan; polling remains the fallback for mounts without native watch support.
- * Dynamic rows publish revised graph rows for fiber replacement, a stylesheet
- * change publishes the css-manifest's new bundle rev for an in-place link
- * swap, a shell change publishes `shell-rebuilt` naming its root, and every
- * host HMR journal row (reload / deferred / failed) is relayed as
- * `host-reloaded` — all through `/plugins/events`.
- */
 import { existsSync, readdirSync, statSync, watch as watchFs } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, relative, sep } from 'node:path'
@@ -18,13 +8,9 @@ import { handleLedgerOf } from './handles.js'
 
 export { EVENTS_ENDPOINT } from './events.js'
 
-/** Cordis plugin name. */
 export const name = 'client-hmr'
 
-/** Required services: the web plugin table and the route registry. */
 export const inject = ['clientModules', 'webServer']
-
-/** Plugin config, validated by the same-named schemastery schema. */
 
 export const Config = z.object({
   pollIntervalMs: z.number().step(1).min(1).default(500),
@@ -34,16 +20,6 @@ export const Config = z.object({
   distIndex: z.string(),
 })
 
-/**
- * Resolve the Web frontend's built `index.html`, the same workspace-known
- * path `freddie-web-app` resolves for `frontend-static` â€” duplicated here rather
- * than threaded through the YAML composition (this row is declared
- * statically, not mounted imperatively) so a composition needs no config to
- * get shell reload; a checkout without the frontend package simply gets none.
- * apps/web is served buildless (no dist/ build output), so this watches its
- * own index.html directly â€” the same file frontend-static serves.
- * @returns the resolved path, or undefined when the frontend package is absent.
- */
 function resolveDistIndexIfBuilt() {
   const require = createRequire(import.meta.url)
   try {
@@ -53,15 +29,6 @@ function resolveDistIndexIfBuilt() {
   }
 }
 
-/**
- * Find the source package root for a buildless static browser dependency.
- * The HMR package does not depend on the seeded packages it watches, so their
- * package exports cannot be resolved from this package's dependency graph.
- * Source execution has the workspace layout directly; packaged deployments
- * simply omit these development-only watches.
- * @param packageDirectory - workspace directory under packages/client.
- * @returns absolute package directory, or undefined outside a source checkout.
- */
 function resolveStaticSourceRoot(packageDirectory) {
   const root = join(workspaceRoot, 'packages', 'client', packageDirectory)
   return existsSync(join(root, 'package.json')) ? root : undefined
@@ -69,32 +36,23 @@ function resolveStaticSourceRoot(packageDirectory) {
 
 const workspaceRoot = fileURLToPath(new URL('../../../../', import.meta.url))
 
-/** Host HMR journal kinds relayed to the browser; module/external/unhandled change rows are watch noise. */
 const HOST_JOURNAL_KINDS = new Set(['reload', 'deferred', 'failed'])
 
-/** Workspace-relative form of a host plugin file URL (a non-file URL passes through). */
 function workspacePath(url) {
   if (!url.startsWith('file:')) return url
   return relative(workspaceRoot, fileURLToPath(url)).split(sep).join('/')
 }
 
-/** Headers shared by finite endpoint metadata and live SSE responses. */
 const SSE_HEADERS = {
   'content-type': 'text/event-stream',
   'cache-control': 'no-cache',
   'connection': 'keep-alive',
 }
 
-/** Serialize one frame as an SSE data line. */
 function sseData(frame) {
   return `data: ${JSON.stringify(frame)}\n\n`
 }
 
-/**
- * Mount the dev chain: bundle watches, rebuilt reporting, and the SSE channel.
- * @param ctx - host plugin context carrying clientModuleHost and webServer.
- * @param config - validated {@link Config}.
- */
 export function apply(ctx, config) {
   const pollIntervalMs = config.pollIntervalMs
   const scanDebounceMs = config.scanDebounceMs
@@ -119,7 +77,6 @@ export function apply(ctx, config) {
   let dynamicPollTimer
   let dynamicPollQueued = false
 
-  /** List every file under `root`, recursively, as absolute paths. */
   function listTreeFiles(root) {
     const files = []
     const walk = (dir) => {
@@ -143,7 +100,6 @@ export function apply(ctx, config) {
     return false
   }
 
-  /** Snapshot every file's mtime/size under `root`, keyed by relative path. */
   const snapshot = (root) => {
     const files = new Map()
     let dirty = false
@@ -159,7 +115,6 @@ export function apply(ctx, config) {
     return { files, dirty }
   }
 
-  /** Every directory under `root`, root first. */
   function listTreeDirs(root) {
     const dirs = [root]
     const walk = (dir) => {
@@ -174,18 +129,6 @@ export function apply(ctx, config) {
     return dirs
   }
 
-  /**
-   * Native watch over a served tree: one non-recursive `fs.watch` per
-   * directory, re-armed on every rename so a directory that appears later
-   * is covered. Node's own `recursive: true` on Linux tracks file inodes and
-   * goes silent for a file after an atomic write replaces it (sed -i, mv,
-   * editors that write-then-rename): the rename itself is reported, every
-   * later in-place modification of the new inode is not, and the fallback
-   * poll skips roots that hold a watcher — so an edited row silently
-   * stopped rebuilding until its next rename. A directory watch reports its
-   * children by name, whichever inode currently carries the name.
-   * @returns a handle with `close()`, or undefined when no directory could be watched (polling covers the root).
-   */
   const nativeWatch = (root, markDirty) => {
     const watchers = new Map()
     let complete = true
@@ -258,7 +201,6 @@ export function apply(ctx, config) {
     watch.dirty = rehash(id, root) || watch.dirty
   }
 
-  /** Whether two file snapshots differ (added/removed/changed entries). */
   const snapshotsDiffer = (before, after) => {
     if (before.size !== after.size) return true
     for (const [relPath, prior] of before) {
@@ -268,10 +210,6 @@ export function apply(ctx, config) {
     return false
   }
 
-  /**
-   * Which file kinds moved between two snapshots: `.css` files ride the
-   * css-manifest link swap, anything else is script or shell content.
-   */
   const changeKinds = (before, after) => {
     const kinds = { css: false, other: false }
     const names = new Set([...before.keys(), ...after.keys()])
@@ -394,7 +332,6 @@ export function apply(ctx, config) {
   const connections = new Set()
   let frameSequence = 0
 
-  /** Write one SSE line or drop a client whose socket buffer cannot keep up. */
   const write = (res, line) => {
     if (res.destroyed || res.writableEnded) {
       connections.delete(res)
@@ -417,7 +354,6 @@ export function apply(ctx, config) {
     }
   }
 
-  /** Publish one ordered frame to every connected browser. */
   const publish = (frame) => {
     const line = sseData({ ...frame, sequence: ++frameSequence })
     for (const res of connections) write(res, line)

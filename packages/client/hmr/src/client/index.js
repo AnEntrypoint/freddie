@@ -1,95 +1,17 @@
-/**
- * client-hmr, browser half: hot-reload driver for client plugin entries.
- *
- * Listens on the host's system SSE channel (`GET /plugins/events`); on a
- * `rebuilt` frame it reloads the entry's bundle and swaps the cordis
- * fiber in place. Every graph entry is a plugin bundle
- * — `immediately` rows differ only in stage-one prefetch (a boot
- * optimization), so all rostered plugin packages share these reload semantics;
- * normal packages (react family, cordis, shell, pure libs) are not entries.
- * A `css-rebuilt` frame swaps the one css-manifest stylesheet link in place.
- * A `shell-rebuilt` frame for the shell's own roots (apps/web and
- * packages/client/web) remounts AppWebEntry in this document under a
- * `/__hmr/<rev>/` import prefix; the seeded platform packages (ui-slots,
- * ui-primitives) resolve through the frozen import map and can only be
- * refreshed by a document reload. A `host-reloaded` frame is journaled and
- * announced on `window` for the GUI notice.
- * Cascade is zero-touch:
- * downstream fibers key their activation epoch on provider fiber uids
- * (vendor/cordis/src/fiber.ts `_refresh`), so replacing a provider fiber
- * re-cascades natively — reloading a data-layer plugin (connection/runtime)
- * cascades into its UI dependents with no HMR-side bookkeeping.
- *
- * Reload order (native ESM import()): invalidate (drop the stale record —
- * the module graph carries the rebuilt entry's new `/~<rev>/` URL already,
- * so the next import() is a genuinely fresh module, never a stale browser
- * module-cache hit) → prefetch (import() the fresh URL) → registry-first
- * teardown → drain old fiber unload → remove owned `<style data-plugin>`
- * tags → `entry.refresh()` re-imports and re-applies the new module.
- * Invalidate MUST precede prefetch: a live record makes prefetch a no-op,
- * and importing a URL already in this system's record table is a loud
- * duplicate reject. The swap is safe because import() runs a module's top-
- * level side effects (CSS injection included) exactly once, at import time —
- * which is also when refresh() re-applies. That keeps the CSS ordering
- * guarantee: owned styles are removed after the old fiber's disposers
- * drained (SlotCore one-owner unregister) and before the fresh import
- * re-injects tags under the same stable tag ids.
- *
- * Failure window: if prefetch rejects after invalidate, the module is left
- * unregistered while the OLD fiber keeps running untouched (teardown never
- * started) — degraded but recoverable, the next rebuilt frame retries from
- * scratch. Consistent with the no-rollback policy below. Known dev-only
- * race: a rebuilt frame overlapping a still-in-flight boot arrival shares
- * that arrival's task and may materialize the pre-rebuild bytes; the next
- * rebuilt frame self-heals.
- *
- * Why not the naive `entry.fiber.dispose()` → `entry.refresh()` path:
- * 1. `Entry.fiber` is never cleared on dispose (`framework/loader` assigns it
- *    only in `_init`), so `refresh()` hits its `if (this.fiber) return` guard
- *    and no-ops.
- * 2. A bare `fiber.dispose()` lands in Loader's self-dispose branch
- *    (`framework/loader` `internal/plugin` case 4: the registry still holds
- *    the runtime at emit time), which flags the entry `disabled: true` —
- *    permanently.
- * framework/hmr's reload skeleton documents the fix: delete the runtime record
- * FIRST (`registry.delete` → case 4 returns early, the entry stays enabled),
- * then rebuild. `entry.fiber` is additionally cleared so
- * `entry.refresh()` re-imports and re-plugins through the Loader's own
- * `_init` (entry-resolved config, automatic `fiber.entry` rebinding) instead
- * of hand-rolling `registry.plugin`. Client entries have exactly one fiber
- * per runtime, so `registry.delete` never collaterally disposes siblings.
- *
- * Self-reload: this plugin is itself a graph entry, so a rebuilt frame may
- * name it. The in-flight reload keeps running in the old bundle's closure
- * (its EventSource closes with the old fiber's effects); the new bundle's
- * apply opens a fresh channel. The host sends its current graph to each
- * channel, so a later graph mismatch heals a missed rebuild.
- *
- * Failure policy: no rollback. A failed plugin reload or graph-rev mismatch
- * remounts AppWebEntry in this document; the previous fiber is not restored.
- * A lost frame sequence reloads the document, since the graph the host
- * published in the gap is unknown.
- */
 import { EVENTS_ENDPOINT } from '../events.js'
 
 export { EVENTS_ENDPOINT } from '../events.js'
 
-/** Cordis plugin name. */
 export const name = 'client-hmr'
 
-/** Required services: the vendored Loader (entry governance) and the client module system (boot provide, service name `modules`). */
 export const inject = ['loader', 'modules']
 
-/** Shell package the remount re-imports under the `/__hmr/<rev>/` prefix. */
 const SHELL_PACKAGE = '@freddie/freddie-client-web'
 
-/** Static watch ids whose files the shell's own relative imports reach, so a prefixed re-import refreshes them. */
 const REMOUNTABLE_ROOTS = new Set(['apps/web', SHELL_PACKAGE])
 
-/** `window` event carrying every journal row (the GUI notice listens; no other subscription surface). */
 export const JOURNAL_EVENT = 'freddie:hmr'
 
-/** The server emits an observable heartbeat every 15 seconds; three missed beats mean the stream is stale. */
 const STALL_TIMEOUT_MS = 45_000
 
 const AUTO_RELOAD_KEY = 'freddie:hmr-auto-reload'
@@ -121,7 +43,6 @@ function refundAutoReload() {
   }
 }
 
-/** Find the loader entry whose module specifier is `id` (entry tree ids are random; the package name lives in `options.name`). */
 function findEntry(loader, id) {
   for (const entry of loader.entries()) {
     if (entry.options.name === id) return entry
@@ -129,14 +50,12 @@ function findEntry(loader, id) {
   return undefined
 }
 
-/** Remove every `<style data-plugin>` tag owned by `id` (attribute compared verbatim — no CSS-selector escaping pitfalls). */
 function removeOwnedStyles(id) {
   for (const el of document.querySelectorAll('style[data-plugin]')) {
     if (el.getAttribute('data-plugin') === id) el.remove()
   }
 }
 
-/** The shell's import-map URL, read from the page's one `<script type="importmap">`. */
 function shellImportUrl() {
   const script = document.querySelector('script[type="importmap"]')
   if (script === null) return undefined
@@ -144,15 +63,6 @@ function shellImportUrl() {
   return typeof url === 'string' ? url : undefined
 }
 
-/**
- * Remount AppWebEntry in this document: import the shell under a fresh
- * `/__hmr/<rev>/` prefix (its relative imports fetch fresh bytes; bare
- * specifiers still resolve through the import map, so plugin, cordis and
- * seed module identities are shared with the disposed tree), dispose the
- * live entry into the same #root, construct and run the new one. Falls back
- * to a document reload when the live entry is not reachable.
- * @param rev - cache-busting token for the prefix.
- */
 async function remountInDocument(rev) {
   const shell = globalThis.__FREDDIE_SHELL__
   const shellUrl = shellImportUrl()
@@ -167,11 +77,6 @@ async function remountInDocument(rev) {
   await next.run()
 }
 
-/**
- * Swap the css-manifest stylesheet link: insert the new href, wait for it
- * to load, then drop the old link — no navigation, no fiber swap.
- * @param href - the new `/styles/app.css?rev=` URL.
- */
 async function swapStylesheet(href) {
   const old = document.querySelector('link[rel="stylesheet"][data-css-manifest]')
   if (old === null) throw new Error('client-hmr: css-rebuilt frame but the page carries no css-manifest link')
@@ -194,11 +99,6 @@ async function swapStylesheet(href) {
   old.remove()
 }
 
-/**
- * Mount the HMR driver: subscribe to the system SSE channel and hot-swap
- * rebuilt entries.
- * @param ctx - plugin context with `loader` and `modules` available.
- */
 export function apply(ctx) {
   const modLoader = ctx.modules
   const loader = ctx.loader
