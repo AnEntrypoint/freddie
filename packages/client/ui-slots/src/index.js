@@ -1,110 +1,32 @@
-/**
- * Slot registry pure core. Owners declare slot
- * contracts by merging into {@link SlotMap}; one `register` call contributes a
- * component AND (optionally) declares child slots, a store seat, and the
- * registrant's business face. Zero runtime dependencies, framework-agnostic.
- *
- * SlotMap and the standard-kit interfaces live directly in this entry module:
- * consumer `declare module` augmentation merges with declarations lexically in
- * the augmented module, not with re-exports.
- */
-
-/**
- * @typedef {object} SlotSpec
- * @property {'single'|'keyed'|'list'|'chain'} kind - shadowing/dispatch discipline for this slot.
- * @property {string} scope - store-mount scope tag; a shared store handle may only mount under one scope.
- */
-
-/**
- * Registry of every declared slot name to its spec, growing as each parent
- * entry's `children` table declares more child slots at registration time.
- * @typedef {Object<string, SlotSpec>} SlotMap
- */
 export * from './store.js'
 export * from './renderer.js'
 
-/** Property name of the tag marker {@link webjsxSlot} stamps onto its returned function. */
 export const WEBJSX_SLOT_TAG = Symbol('webjsxSlotTag')
 
-/**
- * Opt a NEW registrant into the webjsx dispatch path instead of React's.
- * Returns a real `SlotComponent<P>` — register() accepts it exactly where a
- * plain React function component goes, so the registration call sites
- * ({@link SlotCore.register} and its typed overloads) need no branching of
- * their own. The returned function is never actually invoked as a React
- * component: the installed renderer recognizes the {@link WEBJSX_SLOT_TAG}
- * marker on `entry.component` and hosts the named custom element (already
- * registered through `ui-primitives`' `defineElement` by the package that owns
- * it, e.g. `freddie-toast`) inside ui-renderer's `freddie-entry-host` instead
- * of calling this function. The function body is therefore only a fallback for
- * a caller that invokes it directly outside the slot machinery (returns
- * `null`, never throws) — dispatch always goes through the tag.
- * @param tag - the custom element's registered tag name (e.g. `'freddie-toast'`).
- * @returns a `SlotComponent<P>` tagged for webjsx dispatch.
- */
 export function webjsxSlot(tag) {
   const component = (() => null)
   Object.defineProperty(component, WEBJSX_SLOT_TAG, { value: tag, enumerable: true })
   return component
 }
 
-/**
- * Runtime discriminator: whether a stored `component` is a webjsx-dispatch
- * registrant (see {@link webjsxSlot}) rather than an ordinary React function
- * component. Plain-JS backstop the render side calls once per entry; typed
- * registration already proved the value is a `SlotComponent<P>` either way.
- * @param component - a stored entry's `component` value.
- * @returns the custom-element tag when webjsx-tagged, else undefined.
- */
 export function webjsxSlotTagOf(component) {
   if (typeof component !== 'function') return undefined
   const tag = component[WEBJSX_SLOT_TAG]
   return typeof tag === 'string' ? tag : undefined
 }
 
-/**
- * Resolve a possibly-thunked list label at read time (thunks follow the
- * active locale; owners projecting ledger rows call this instead of reading
- * `options.label` raw).
- * @param label - the stored label.
- * @returns the display string, or undefined when the entry declared none.
- */
 export function resolveSlotLabel(label) {
   return typeof label === 'function' ? label() : label
 }
 
 const NO_ENTRIES = Object.freeze([])
 
-/**
- * Pure slot registry (no cordis; event emission and the renderer installation contract
- * live in the runtime Service wrapper).
- *
- * The 'root' slot is the one a-priori declaration, seeded at construction
- * (single/root, declared by the framework) — the render tree's root hole.
- *
- * Change propagation contract: versions bump and {@link SlotCore.onMutate}
- * fires synchronously per mutation (registry state is consistent when they
- * fire); {@link SlotCore.subscribeDeclaration} fires synchronously for each
- * declaration lifetime boundary; {@link SlotCore.subscribe} notifications
- * batch per microtask, so N same-tick mutations produce one notification per
- * touched key. Entry crash reports ({@link SlotCore.reportEntryError}) ride
- * the same mutation channel when they abdicate, then notify
- * {@link SlotCore.onEntryError} synchronously.
- */
 export class SlotCore {
   records = new Map()
   mutateListeners = new Set()
-  /** Shared-handle scope ledger: handle → the scope it first mounted under + live mount count. */
   handleScopes = new Map()
   dirty = new Set()
   flushScheduled = false
-  /**
-   * Entries retired by an abdicating crash report
-   * ({@link SlotCore.reportEntryError}): excluded from
-   * {@link SlotCore.entriesOfSlot} projections for the rest of their
-   * registration's life, while the registration itself stays on the ledger
-   * (disposal authority remains with the registrant).
-   */
   abdicated = new WeakSet()
   entryErrorListeners = new Set()
 
@@ -115,43 +37,7 @@ export class SlotCore {
     root.declarationEpoch = 1
   }
 
-  /**
-   * Contribute a component to a declared slot and (optionally) declare child
-   * slots, a store seat, and the registrant's business face.
-   *
-   * Load-time validation (misconfiguration fails loud; the render hot path
-   * re-checks nothing): registering into an undeclared slot throws; declaring
-   * an already-declared child key throws (one declarer per slot — the message
-   * names the first declarer); mounting one shared store handle under slots
-   * of different scopes throws. Kind constraints: keyed — missing `key`
-   * throws; list — missing `id` throws; chain — missing `select` throws (the
-   * selector is the entry's routing seat: a pure function of the owner props
-   * whose first non-null return elects that entry).
-   *
-   * Shadowing (single/keyed/list): entries sharing one cell (single — the
-   * slot itself; keyed — same `key`; list — same `id`) coexist at distinct
-   * priorities, sorted ascending with ties keeping registration order; the
-   * cell's lowest live entry renders ({@link SlotCore.entriesOfSlot}). A
-   * second registration at an occupied cell's exact priority (default 0)
-   * throws naming the occupant, so priority-less composition keeps the
-   * historical one-occupant-per-cell fail-loud.
-   *
-   * Lifecycle: the disposer removes the contribution AND collapses every
-   * declared child slot (child entries clear recursively; their stale
-   * disposers become no-ops) — one lifecycle axis, no dangling state.
-   *
-   * @param options - registration options: target `name`, `children`
-   * declaration table, `store` seat, `inject` business-face factory, kind
-   * shape fields (keyed `key`; list `id`/`order`/`label`).
-   * @param component - component honoring the four-share composed props
-   * contract (owner props, render-slots face, store face, and inject face);
-   * checked at this call site.
-   * @returns disposer removing the registration and its declarations
-   * (idempotent; stale disposers after a cascade are no-ops).
-   */
-  /* jscpd:ignore-start -- the two register overloads are deliberately
-   * parallel declarations differing only in the inject share; folding them
-   * would lose the per-overload inference of I. */
+  /* jscpd:ignore-start */
   /* jscpd:ignore-end */
   register(options, component) {
     const rec = this.records.get(options.name)
@@ -253,13 +139,6 @@ export class SlotCore {
     }
   }
 
-  /**
-   * Whether a previously obtained entry is still registered (the render
-   * machinery's stale-authorization probe: a retained renderSlot binding
-   * whose entry left the ledger must not render).
-   * @param entry - a previously read entry.
-   * @returns false once the entry's registration was disposed.
-   */
   isLive(entry) {
     for (const rec of this.records.values()) {
       if (rec.entries.includes(entry)) return true
@@ -267,30 +146,10 @@ export class SlotCore {
     return false
   }
 
-  /**
-   * Snapshot the registered entries for a key. Returns the cached array
-   * reference (stable between mutations — safe as a uSES getSnapshot source);
-   * empty for keys not (or no longer) declared, so renderers may probe ahead
-   * of plugin load order.
-   * @param key - slot key (dynamic: the render machinery holds keys as strings).
-   * @returns entries in registration (list: order) sequence.
-   */
   entries(key) {
     return this.records.get(key)?.entries ?? NO_ENTRIES
   }
 
-  /**
-   * Project a key's entries to its shadowing winners: the first live
-   * (non-abdicated) entry of each cell in priority order — single: the slot
-   * is one cell; keyed: one cell per `key`; list: one cell per `id` (winners
-   * keep ledger sequence; list renderers still refine display by `order`).
-   * Chain keys return the raw entries unchanged: election consumes every
-   * entry, shadowing does not apply. The raw {@link SlotCore.entries} view
-   * stays the inspection surface. Builds a fresh array per call — a render
-   * body read, not a uSES getSnapshot source.
-   * @param key - slot key (dynamic: the render machinery holds keys as strings).
-   * @returns the winning entry per occupied cell (empty while undeclared).
-   */
   entriesOfSlot(key) {
     const rec = this.records.get(key)
     if (!rec?.spec) return NO_ENTRIES
@@ -308,31 +167,14 @@ export class SlotCore {
     return heads
   }
 
-  /**
-   * Look up a slot's declared spec, narrowed by the SlotMap key.
-   * @param key - SlotMap key.
-   * @returns the spec, or undefined while undeclared.
-   */
   spec(key) {
     return this.records.get(key)?.spec
   }
 
-  /**
-   * Dynamic-key escape hatch for spec lookup — renderers resolving keys they
-   * only hold as strings (generic dispatch) use this wide form; statically
-   * keyed callers use {@link SlotCore.spec}.
-   * @param key - candidate slot key.
-   * @returns the wide-typed spec, or undefined while undeclared.
-   */
   specDynamic(key) {
     return this.records.get(key)?.spec
   }
 
-  /**
-   * Export the current declaration topology without components or executable hooks.
-   * @param root - exact Slot key to select; omitted returns every live root.
-   * @returns selected live Slot trees, or an empty array when `root` is unavailable.
-   */
   snapshot(root) {
     const build = (name, seen) => {
       const record = this.records.get(name)
@@ -375,83 +217,31 @@ export class SlotCore {
       })
   }
 
-  /**
-   * Read the declaration lifetime of a key. Entry additions and removals do
-   * not change it; declaration creation and collapse each advance it.
-   * @param key - slot key.
-   * @returns monotonic epoch (0 before the first declaration).
-   */
   declarationEpoch(key) {
     return this.records.get(key)?.declarationEpoch ?? 0
   }
 
-  /**
-   * Subscribe to registration changes for a key (microtask-batched).
-   * Subscribing ahead of declaration is allowed; the declaration notifies.
-   * @param key - slot key.
-   * @param fn - change callback.
-   * @returns unsubscribe.
-   */
   subscribe(key, fn) {
     const rec = this.record(key)
     rec.listeners.add(fn)
     return () => { rec.listeners.delete(fn) }
   }
 
-  /**
-   * Subscribe to declaration lifetime boundaries for a key. Notifications
-   * are synchronous so declaration teardown finishes before a subsequent
-   * same-tick registration can observe stale resources. Ordinary entry
-   * mutations do not notify this surface. A children table commits every
-   * sibling declaration before its first notification.
-   * @param key - slot key.
-   * @param fn - declaration or collapse callback.
-   * @returns unsubscribe.
-   */
   subscribeDeclaration(key, fn) {
     const rec = this.record(key)
     rec.declarationListeners.add(fn)
     return () => { rec.declarationListeners.delete(fn) }
   }
 
-  /**
-   * Monotonic version for a key, bumped synchronously per mutation so a
-   * uSES getSnapshot read is never stale when its batched notification lands.
-   * @param key - slot key.
-   * @returns current version (0 for untouched keys).
-   */
   getVersion(key) {
     return this.records.get(key)?.version ?? 0
   }
 
-  /**
-   * Hook every mutation (the runtime Service wrapper bridges this to ctx.emit).
-   * Fires synchronously per mutation, unbatched — event semantics need one
-   * emission per change.
-   * @param fn - called with the mutated key.
-   * @returns unsubscribe.
-   */
   onMutate(fn) {
     this.mutateListeners.add(fn)
     return () => { this.mutateListeners.delete(fn) }
   }
 
-  /**
-   * Renderer crash report from an entry boundary. Always notifies
-   * {@link SlotCore.onEntryError} listeners; with `info.abdicate` set (the
-   * shadowing kinds — single/keyed/list) it first retires the entry from its
-   * cell, one-shot: the record's version bumps through the ordinary mutation
-   * channel so outlets re-project onto the cell's next survivor, and a
-   * repeat abdicating report no-ops entirely. Chain crashes report with
-   * `abdicate: false` — election alternatives resolve at select time, so the
-   * entry keeps its cell and only the notification fires. The registration
-   * itself stays on the ledger either way — raw {@link SlotCore.entries}
-   * still lists the entry and its disposer keeps working.
-   * @param key - slot key the entry rendered under.
-   * @param entry - the crashed entry.
-   * @param error - the crash cause, forwarded to listeners verbatim.
-   * @param info - `abdicate`: whether the crash retires the entry from its cell.
-   */
   reportEntryError(key, entry, error, info) {
     if (info.abdicate) {
       if (this.abdicated.has(entry)) return
@@ -462,27 +252,11 @@ export class SlotCore {
     for (const fn of [...this.entryErrorListeners]) fn(key, entry, error, { abdicated: info.abdicate })
   }
 
-  /**
-   * Observe entry boundary crashes (every render-time entry failure the
-   * boundaries contain, abdicating or not) — the supervision seam for hosts
-   * mirroring contribution health. Fires synchronously per report, after the
-   * registry mutated for abdicating crashes (same listener discipline as
-   * {@link SlotCore.onMutate}).
-   * @param fn - called with the slot key, the crashed entry, the crash
-   * cause, and `abdicated`: whether the crash retired the entry from its cell.
-   * @returns unsubscribe.
-   */
   onEntryError(fn) {
     this.entryErrorListeners.add(fn)
     return () => { this.entryErrorListeners.delete(fn) }
   }
 
-  /**
-   * Cascade for a removed entry: release its store mount and collapse every
-   * child slot it declared — specs clear, contributions empty (their stale
-   * disposers no-op), recursively down the declaration tree. One lifecycle
-   * axis: ledger rows, slots, contributions, and store mounts die together.
-   */
   releaseEntry(entry) {
     if (entry.store !== undefined && typeof entry.store !== 'function') {
       const pinned = this.handleScopes.get(entry.store)
@@ -491,7 +265,7 @@ export class SlotCore {
     if (!entry.children) return
     for (const childKey of Object.keys(entry.children)) {
       const childRec = this.records.get(childKey)
-      /* v8 ignore next -- defensive: declaring always creates the record */
+      /* v8 ignore next */
       if (!childRec) continue
       const doomed = childRec.entries
       childRec.spec = undefined
