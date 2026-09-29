@@ -1,22 +1,9 @@
-/**
- * Default one-shot summarization and durable checkpoint framing.
- *
- * @module @freddie/freddie-compaction-basic/summarizer
- */
 
 import { contentHasImage, createUserMessage, BlockAssembler, LlmError } from '@freddie/freddie-llm'
 
-/** Tags wrapping the structured summary inside the landed checkpoint node. */
 const SUMMARY_OPEN_TAG = '<compacted-summary>'
 const SUMMARY_CLOSE_TAG = '</compacted-summary>'
 
-/**
- * The summarization directive, delivered as the FINAL user message after the
- * replayed conversation rather than as a distinct summarizer system prompt.
- * Keeping the conversation's own system prompt, tools, and message prefix in
- * front of it makes the auxiliary call a genuine prefix of the last routed
- * request, so the provider's KV cache is reused instead of invalidated.
- */
 const COMPACTION_INSTRUCTION = [
   'You are now acting as a compaction engine for this AI coding assistant. Condense the conversation ABOVE into a structured checkpoint that lets another model resume the work with no loss of essential context.',
   '',
@@ -54,21 +41,9 @@ const COMPACTION_INSTRUCTION = [
   `- If the conversation already contains a ${SUMMARY_OPEN_TAG} block, it is a PRIOR checkpoint. Do not copy it forward verbatim: preserve still-true facts, drop stale ones, and merge newer information into a single consolidated summary under the same structure.`,
 ].join('\n')
 
-/** Framing that makes the replacement user message established context. */
 const CHECKPOINT_PREAMBLE =
   'This is an automatically generated checkpoint condensing an earlier span of the conversation to free up context. Treat the captured context as established background and build on it without restating it. Continue the task directly from the messages that follow, without acknowledging this checkpoint.'
 
-/**
- * Run the default cache-reusing `ctx.llm.stream()` summarization call: replay
- * the conversation prefix, then append the compaction instruction as the final
- * user message so the provider's warm prefix cache is reused.
- * @param ctx - context providing the LLM service.
- * @param config - resolved backend configuration.
- * @param input - replayed conversation prefix (system, tools, and leading messages) to condense.
- * @param agent - supplies routed-model history, fallback model, and session id.
- * @param signal - optional cancellation forwarded to the adapter.
- * @returns safe text-only summary blocks and the exact call envelope and output.
- */
 export async function summarizeWithLlm(ctx, config, input, agent, signal) {
   const latest = agent.session.requestHeader()?.config
   const configured = config.summarizationProvider.length === 0
@@ -126,11 +101,6 @@ export async function summarizeWithLlm(ctx, config, input, agent, signal) {
   }
 }
 
-/**
- * Wrap raw summary blocks in the durable checkpoint framing.
- * @param summary - safe text-only model output.
- * @returns content for the synthesized replacement user message.
- */
 export function frameSummary(summary) {
   return [
     { type: 'text', text: `${CHECKPOINT_PREAMBLE}\n\n${SUMMARY_OPEN_TAG}` },
@@ -139,7 +109,6 @@ export function frameSummary(summary) {
   ]
 }
 
-/** Map a terminal summarization finish to its fail-closed error. */
 function finishError(finish) {
   switch (finish.kind) {
     case 'error':
@@ -158,7 +127,6 @@ function finishError(finish) {
   }
 }
 
-/** Reject visual output and keep only text before synthesizing a user message. */
 function summaryText(blocks) {
   if (contentHasImage(blocks)) {
     throw new LlmError('compaction summary cannot contain image output', 'UNSUPPORTED_CONTENT')

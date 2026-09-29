@@ -1,21 +1,16 @@
-/** Package-owned compaction log-stream invariants. @module @freddie/freddie-compaction/invariant */
 
 import { isReplacementSurfaceEvent } from '@freddie/freddie-session'
 import { isCompactCheckpointSource } from './checkpoint.js'
 
 const PACKAGE_NAME = '@freddie/freddie-compaction'
 
-/** Cordis companion plugin name. */
 export const name = 'compaction-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Require a durable opaque identity to be a non-empty string. */
 function validateId(value, label, fail) {
   if (typeof value !== 'string' || value.length === 0) fail(`${label} must be a non-empty string`)
 }
 
-/** Keep the optional initiating command identity stable across one transaction. */
 function validateSourceCommandId(
   eventType,
   value,
@@ -28,7 +23,6 @@ function validateSourceCommandId(
   }
 }
 
-/** Validate one replacement checkpoint against its open compaction transaction. */
 function validateCheckpoint(
   trace,
   event,
@@ -47,7 +41,6 @@ function validateCheckpoint(
   validateSourceCommandId('compaction checkpoint', source.sourceCommandId, open.sourceCommandId, fail)
 }
 
-/** Compaction starts still unmatched when a later seed boundary made them stale. */
 function inheritedOrphanStartSeqs(
   events,
 ) {
@@ -66,7 +59,6 @@ function inheritedOrphanStartSeqs(
   return stale
 }
 
-/** Keep every live compaction bracket on one side of each turn boundary. */
 function validateTurnBoundary(
   trace,
   event,
@@ -82,7 +74,6 @@ function validateTurnBoundary(
   fail(`${event.type} cannot cross an open ${owner}`)
 }
 
-/** Advance the committed turn cursor after its boundary has been accepted. */
 function applyTurnBoundary(trace, event) {
   if (event.type === 'turn/start') {
     trace.openTurn = event.data.turn
@@ -95,7 +86,6 @@ function applyTurnBoundary(trace, event) {
   return false
 }
 
-/** Require a numbered bracket inside its exact turn, or a standalone bracket between turns. */
 function validateOwner(
   owner,
   openTurn,
@@ -110,7 +100,6 @@ function validateOwner(
   if (owner !== openTurn) fail(`${eventType} names turn ${owner} but open turn is ${openTurn}`)
 }
 
-/** Validate one compaction event without advancing committed trace state. */
 function validateCompactionEvent(
   trace,
   event,
@@ -192,7 +181,6 @@ function validateCompactionEvent(
   return { kind: 'end' }
 }
 
-/** Apply one committed compaction transition. */
 function applyCompactionTransition(
   transition,
 ) {
@@ -217,7 +205,6 @@ function applyCompactionTransition(
   return undefined
 }
 
-/** Install compaction start/summary/end checks. */
 /* jscpd:ignore-start */
 const install = Object.assign((ctx, fail) => {
   const traces = new WeakMap()
@@ -268,10 +255,5 @@ const install = Object.assign((ctx, fail) => {
 }, { inject: ['sessions'] })
 /* jscpd:ignore-end */
 
-/**
- * Register the compact invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

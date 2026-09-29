@@ -1,8 +1,3 @@
-/**
- * Replay-safe, model-free tool-result pruning service.
- *
- * @module @freddie/freddie-compaction-tool-result-pruner
- */
 
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
@@ -11,7 +6,6 @@ import { codePointLength, DEFAULTS, PRUNE_MARKER, resolveConfig } from './config
 
 export { codePointLength, DEFAULTS, PRUNE_MARKER, resolveConfig } from './config.js'
 
-/** Deterministic head/middle/tail pruning for current tool-result surface nodes. */
 export class ToolResultPruner extends Service {
   static inject = ['tokenMeter']
 
@@ -21,7 +15,6 @@ export class ToolResultPruner extends Service {
     tailChars: z.number().step(1).min(0).default(DEFAULTS.tailChars),
   })
 
-  /** Resolved and immutable character budgets. */
   config
 
   constructor(ctx, config = {}) {
@@ -29,11 +22,6 @@ export class ToolResultPruner extends Service {
     this.config = resolveConfig(config)
   }
 
-  /**
-   * Measure text content in Unicode code points; non-text blocks cost zero.
-   * @param blocks - tool-result content to measure.
-   * @returns total Unicode code points across text blocks.
-   */
   measureContent(blocks) {
     let chars = 0
     for (const block of blocks) {
@@ -42,13 +30,6 @@ export class ToolResultPruner extends Service {
     return chars
   }
 
-  /**
-   * Replace an over-budget text middle while retaining rich-block order.
-   * Text slicing is by Unicode code point, not UTF-16 code unit, so a retained
-   * boundary cannot split a surrogate pair. Grapheme clusters may still split.
-   * @param blocks - original tool-result content.
-   * @returns pruned content, or `null` when the text is within budget.
-   */
   pruneContent(blocks) {
     const totalChars = this.measureContent(blocks)
     if (totalChars <= this.config.thresholdChars) return null
@@ -90,18 +71,6 @@ export class ToolResultPruner extends Service {
     return pruned
   }
 
-  /**
-   * Prune every over-budget tool result from one stable current-surface snapshot.
-   * Each replacement preserves the complete event data except for `content`,
-   * cites the shadowed node so replay can recover the replacement input, and is
-   * immediately preceded by a `compaction/prune` shadow-price event pricing the
-   * shadowed node through the injected token meter, so pure consumers can
-   * subtract it without per-node state.
-   * @param session - session whose current surface is rewritten.
-   * @returns landed replacements and aggregate Unicode-code-point savings.
-   * @throws when the session rejects a replacement; replacements committed
-   * earlier in the pass remain durable.
-   */
   pruneSession(session) {
     const candidates = []
     for (const seq of [...session.surface.nodes]) {

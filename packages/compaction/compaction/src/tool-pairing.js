@@ -1,13 +1,6 @@
-/**
- * Tool-pairing balance over a session surface. Compaction changes surface
- * positions, so safe cuts are derived from tool-call/result content in current
- * surface order rather than step markers.
- * @module @freddie/freddie-compaction/tool-pairing
- */
 
 const balanceCacheBySession = new WeakMap()
 
-/** Return how one surface event changes the in-progress tool-call count. */
 function eventDelta(event) {
   switch (event.type) {
     case 'assistant/message':
@@ -19,7 +12,6 @@ function eventDelta(event) {
   }
 }
 
-/** Read and validate the event named by a surface sequence. */
 function eventForSeq(events, seq) {
   const event = events[seq]
   if (event === undefined || event.seq !== seq) {
@@ -28,7 +20,6 @@ function eventForSeq(events, seq) {
   return event
 }
 
-/** Fold surface sequences not yet in the cache into its balance state. */
 function extendCache(
   session,
   cache,
@@ -53,7 +44,6 @@ function extendCache(
   return cache
 }
 
-/** Return balance state synchronized with the current session surface. */
 function balanceCache(session) {
   const surface = session.surface
   const seqs = surface.nodes
@@ -74,7 +64,6 @@ function balanceCache(session) {
   return cached
 }
 
-/** Balance of the cut at a sequence's position plus offset, rejecting seqs outside current membership. */
 function cutBalance(cache, seq, offset) {
   const index = cache.indexBySeq.get(seq)
   const balanced = index === undefined ? undefined : cache.cutBalanced[index + offset]
@@ -84,26 +73,10 @@ function cutBalance(cache, seq, offset) {
   return balanced
 }
 
-/**
- * Whether the cut immediately before a current surface sequence is tool-pairing balanced.
- * @param session - session whose surface is checked.
- * @param seq - event sequence whose leading cut is checked.
- * @returns true when no unanswered tool call crosses the cut.
- * @throws when the seq is absent from the current surface, a surface sequence has no
- * matching log event, or a tool result has no preceding open call.
- */
 export function toolPairingBalancedBefore(session, seq) {
   return cutBalance(balanceCache(session), seq, 0)
 }
 
-/**
- * Whether the cut immediately after a current surface sequence is tool-pairing balanced.
- * @param session - session whose surface is checked.
- * @param seq - event sequence whose trailing cut is checked.
- * @returns true when no unanswered tool call crosses the cut.
- * @throws when the seq is absent from the current surface, a surface sequence has no
- * matching log event, or a tool result has no preceding open call.
- */
 export function toolPairingBalancedAfter(session, seq) {
   return cutBalance(balanceCache(session), seq, 1)
 }

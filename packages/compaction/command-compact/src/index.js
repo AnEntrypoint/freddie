@@ -1,7 +1,3 @@
-/**
- * Human-facing `/compact` command over the backend-independent compaction seam.
- * @module @freddie/freddie-command-compact
- */
 
 import { ManualCompactionError } from '@freddie/freddie-compaction'
 
@@ -10,14 +6,12 @@ export const inject = ['commands', 'compaction']
 
 const USAGE = 'Usage: /compact (no arguments)'
 
-/** Fail loudly if a locally closed union gains an unhandled member. */
 /* v8 ignore start -- closed-union backstop is unreachable without violating the TypeScript contract */
 function assertNever(value) {
   throw new TypeError(`unknown manual compaction error code: ${String(value)}`)
 }
 /* v8 ignore stop */
 
-/** Convert expected capability failures into concise human-only outcomes. */
 function expectedFailure(error) {
   switch (error.code) {
     case 'busy':
@@ -52,7 +46,6 @@ function expectedFailure(error) {
   }
 }
 
-/** Execute one argument-free manual compaction request. */
 async function executeCompact(ctx, invocation) {
   if (invocation.rawInput.trim().length > 0) {
     return { kind: 'error', text: USAGE }
@@ -72,10 +65,6 @@ async function executeCompact(ctx, invocation) {
   }
 }
 
-/**
- * Register `/compact` for every composed human-command adapter.
- * @param ctx - context carrying the command registry and the compaction seam.
- */
 export function apply(ctx) {
   const active = new Set()
   const handler = (invocation) => {

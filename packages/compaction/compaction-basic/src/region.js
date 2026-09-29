@@ -1,9 +1,3 @@
-/**
- * Surface retention selection and the shared log-recorded compaction
- * transaction for automatic open-turn and manual idle-session compaction.
- *
- * @module @freddie/freddie-compaction-basic/region
- */
 
 import { randomUUID } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
@@ -17,21 +11,8 @@ import {
 import { createUserMessage, errorChain } from '@freddie/freddie-llm'
 import { frameSummary } from './summarizer.js'
 
-/**
- * Rejects a summary whose replacement boundaries are no longer the ones it was
- * built from, distinguished from summarizer and shrink failures so a manual
- * caller can report the two causes differently.
- */
 class SurfaceChangedError extends Error {}
 
-/**
- * Resolve the next head-anchored range while retaining a priced recent tail
- * and never splitting an assistant tool-call/result pair.
- * @param session - session supplying authoritative current surface positions.
- * @param measurement - unified pressure and surface measurement from the conversation meter.
- * @param retainTokens - minimum recent tail budget retained verbatim.
- * @returns the inclusive positional seq range to compact, or `null`.
- */
 export function selectCompactableRange(session, measurement, retainTokens) {
   const pricedNodes = measurement.nodes
   if (pricedNodes.length === 0) return null
@@ -62,22 +43,6 @@ export function selectCompactableRange(session, measurement, retainTokens) {
   return { start: first, end: cutoff }
 }
 
-/**
- * Run the single compaction transaction over one selected positional span.
- * Selection and validation are read-only. Idle/log validation and
- * `compaction/start` are synchronously adjacent, so the durable opening marker is
- * the compaction lock before summarization yields. Every later failure makes
- * exactly one `compaction/end` attempt; a failed close deliberately leaves the
- * unmatched start detectable.
- * @param dependencies - conversation meter and dynamically dispatched summarizer hook.
- * @param session - session whose surface is mutated.
- * @param start - inclusive first surface-node seq.
- * @param end - inclusive last surface-node seq.
- * @param agent - agent used by the summarizer.
- * @param options - bracket owner, stability rule, and optional durability checkpoint.
- * @param signal - optional summarization cancellation signal.
- * @returns the successful durable compaction result.
- */
 export async function compactSurfaceRegion(
   dependencies,
   session,
@@ -182,7 +147,6 @@ export async function compactSurfaceRegion(
   return result
 }
 
-/** Classify one closed manual attempt without weakening cancellation precedence. */
 function throwManualFailure(failure) {
   if (failure.stage === 'commit') {
     throw new ManualCompactionError(
@@ -205,13 +169,6 @@ function throwManualFailure(failure) {
   )
 }
 
-/**
- * Reject a durable unmatched compaction marker unless a later constructor-seed
- * boundary proves that its owner belongs to an earlier session lifecycle.
- * @param unmatchedCompactionStart - latest unmatched opening marker, if any.
- * @param latestEndSeedSeq - newest constructor-seed boundary, if any.
- * @param stage - operation label included in the busy diagnostic.
- */
 function assertCompactionInactive(unmatchedCompactionStart, latestEndSeedSeq, stage) {
   if (unmatchedCompactionStart === undefined
     || (latestEndSeedSeq !== undefined
@@ -222,11 +179,6 @@ function assertCompactionInactive(unmatchedCompactionStart, latestEndSeedSeq, st
   )
 }
 
-/**
- * Recheck the durable compaction lock after an asynchronous policy decision.
- * @param session - session whose latest marker state is inspected.
- * @param stage - operation label included in the busy diagnostic.
- */
 export function assertNoActiveCompaction(session, stage) {
   const entryState = inspectCompactionEntryState(session.events)
   assertCompactionInactive(
@@ -236,7 +188,6 @@ export function assertNoActiveCompaction(session, stage) {
   )
 }
 
-/** Validate one requested surface-position span before asynchronous work begins. */
 function validateSurfaceRegion(session, start, end) {
   const nodes = session.surface.nodes
   const startIdx = nodes.indexOf(start)
@@ -258,7 +209,6 @@ function validateSurfaceRegion(session, start, end) {
   return { start, end, startIdx, endIdx, shadowedSeqs: nodes.slice(startIdx, endIdx + 1) }
 }
 
-/** Snapshot pricing and replay input for a validated surface range. */
 function prepareCompaction(dependencies, session, selection) {
   const measurement = dependencies.meter.measure(session)
   const selectedNodes = measurement.nodes.slice(selection.startIdx, selection.endIdx + 1)
@@ -275,7 +225,6 @@ function prepareCompaction(dependencies, session, selection) {
   }
 }
 
-/** Run the summarizer and frame its replacement checkpoint. */
 async function summarizeCompaction(
   dependencies,
   prepared,
@@ -302,7 +251,6 @@ async function summarizeCompaction(
   }
 }
 
-/** Reject a summary prepared against any earlier surface generation. */
 function assertWholeSurfaceUnchanged(dependencies, session, prepared) {
   const current = dependencies.meter.measure(session)
   if (!isDeepStrictEqual(current.nodes, prepared.measurement.nodes)) {
@@ -310,11 +258,6 @@ function assertWholeSurfaceUnchanged(dependencies, session, prepared) {
   }
 }
 
-/**
- * Require only that the selected span remain the same present, contiguous,
- * equally priced, balanced replacement target. Nodes added outside it remain
- * visible and do not invalidate the summary.
- */
 function assertSelectedSpanStable(dependencies, session, prepared) {
   let current
   try {
@@ -334,7 +277,6 @@ function assertSelectedSpanStable(dependencies, session, prepared) {
   }
 }
 
-/** Append one completed summary record and replacement body without yielding. */
 function commitCompactionBody(session, startEvent, summarized) {
   const {
     start,
@@ -384,21 +326,10 @@ function commitCompactionBody(session, startEvent, summarized) {
   }
 }
 
-/** Attach the successfully appended close event to a pending result. */
 function completeCompaction(pending, endEvent) {
   return { ...pending, endSeq: endEvent.seq }
 }
 
-/**
- * Reconstruct the last routed request's cacheable prefix for the shadowed
- * region: its system prompt and tool schemas, then the region's own derived
- * messages in surface order. The summarizer appends only the compaction
- * instruction after this, so the call is a genuine prefix of the conversation
- * and reuses the provider's KV cache.
- * @param session - session supplying the request header and per-node projection.
- * @param shadowedSeqs - the surface-node seqs, in order, being compacted.
- * @returns the replayed conversation prefix to condense.
- */
 function buildSummarizationInput(session, shadowedSeqs) {
   const header = session.requestHeader()
   const events = session.events
@@ -412,7 +343,6 @@ function buildSummarizationInput(session, shadowedSeqs) {
   }
 }
 
-/** Inspect open-turn, unmatched-compaction, and latest seed-boundary state independently. */
 function inspectCompactionEntryState(events) {
   let openTurn = null
   let openTurnStateKnown = false

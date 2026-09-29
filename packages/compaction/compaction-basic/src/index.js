@@ -1,8 +1,3 @@
-/**
- * Basic replay-aware compaction backend.
- *
- * @module @freddie/freddie-compaction-basic
- */
 
 import z from '@freddie/schemastery'
 import { CompactionEngine, ManualCompactionError } from '@freddie/freddie-compaction'
@@ -20,7 +15,6 @@ import {
 } from './region.js'
 import { summarizeWithLlm } from './summarizer.js'
 
-/** Resolve the exact provider/model durably routed for the latest request. */
 function routedTarget(session) {
   const config = session.requestHeader()?.config
   if (config === undefined || config.provider.length === 0 || config.model.length === 0) {
@@ -29,7 +23,6 @@ function routedTarget(session) {
   return { provider: config.provider, model: config.model }
 }
 
-/** Resolve the conversation target used to select an optional policy override. */
 function conversationTarget(agent) {
   const routed = routedTarget(agent.session)
   if (routed !== undefined) return routed
@@ -60,14 +53,6 @@ const modelPolicy = z.object({
   maxOverflowRetries: maxOverflowRetriesSchema,
 })
 
-/**
- * Dependency-light compaction backend using `ctx.tokenMeter` for pressure,
- * retention, cited source events, and summary-convergence pricing.
- *
- * `summarize()` is the sole subclass customization hook; the replay and durable
- * mutation strategy stays fixed so every pricing decision uses the singleton
- * token meter.
- */
 export class BasicCompactionEngine extends CompactionEngine {
   static inject = ['llm', 'tokenMeter', 'sessions']
 
@@ -84,7 +69,6 @@ export class BasicCompactionEngine extends CompactionEngine {
     auto: z.boolean(),
   })
 
-  /** Resolved and validated compaction configuration. */
   config
 
   warnedPressureConfigTargets = new Set()
@@ -97,11 +81,6 @@ export class BasicCompactionEngine extends CompactionEngine {
     if (this.config.auto) this._registerAutomaticCompaction()
   }
 
-  /**
-   * Register automatic between-step pressure and model-request overflow
-   * recovery. `compactIfNeeded` stays dynamically dispatched so subclass
-   * overrides are honored at event time.
-   */
   _registerAutomaticCompaction() {
     const { ctx } = this
     const logResult = (result, trigger) => {
@@ -183,16 +162,6 @@ export class BasicCompactionEngine extends CompactionEngine {
     })
   }
 
-  /**
-   * Summarize the replayed conversation region through a direct one-shot
-   * `ctx.llm.stream()` call whose prefix reuses the conversation's own system
-   * prompt, tools, and messages so the provider's KV cache is not invalidated.
-   * Override this sole hook for a template or remote summarizer.
-   * @param input - replayed conversation prefix (system, tools, and leading messages) to condense.
-   * @param agent - supplies routed-model history, fallback model, and session id.
-   * @param signal - optional cancellation forwarded to the adapter.
-   * @returns safe text summary blocks and the exact auxiliary call envelope and output.
-   */
   async summarize(input, agent, signal) {
     const target = conversationTarget(agent)
     const config = target === undefined
@@ -201,16 +170,6 @@ export class BasicCompactionEngine extends CompactionEngine {
     return summarizeWithLlm(this.ctx, config, input, agent, signal)
   }
 
-  /**
-   * Compact for replayed step-boundary pressure or one provider-confirmed context
-   * overflow. Both triggers price the latest durable routed request envelope;
-   * overflow bypasses the normal threshold and retained-tail policy so it can
-   * force one useful balanced reduction.
-   * @param agent - agent whose latest durable routed request is measured.
-   * @param trigger - normal step-boundary pressure or context-overflow recovery.
-   * @param signal - live turn cancellation signal forwarded to summarization.
-   * @returns the latest summary compaction result, or `null` when no summary ran.
-   */
   async compactIfNeeded(agent, trigger, signal) {
     const target = routedTarget(agent.session)
     if (target === undefined) return null
@@ -278,15 +237,6 @@ export class BasicCompactionEngine extends CompactionEngine {
     )
   }
 
-  /**
-   * Compact one inclusive positional range from the agent-owned surface using
-   * the effective token meter for all retention and shrink pricing.
-   * @param start - inclusive first surface-node seq.
-   * @param end - inclusive last surface-node seq.
-   * @param agent - owner of the target session, used by the summarizer.
-   * @param signal - optional summarization cancellation signal.
-   * @returns the successful durable compaction result.
-   */
   async compactRegion(start, end, agent, signal) {
     return compactSurfaceRegion(
       this.regionDependencies(),
@@ -299,14 +249,6 @@ export class BasicCompactionEngine extends CompactionEngine {
     )
   }
 
-  /**
-   * Force one useful idle-session compaction below the pressure threshold, and
-   * resolve only after its standalone marker pair is durably checkpointed.
-   * @param agent - idle agent whose next-turn admission this call reserves.
-   * @param signal - cancellation scoped to this compaction request.
-   * @param sourceCommandId - initiating command identity for presentation correlation.
-   * @returns the committed result, or `null` when no safe useful range exists.
-   */
   compactNow(agent, signal, sourceCommandId) {
     signal.throwIfAborted()
     try {
@@ -357,7 +299,6 @@ export class BasicCompactionEngine extends CompactionEngine {
     }
   }
 
-  /** Bind the effective token meter and dynamically dispatched summarizer hook. */
   regionDependencies() {
     return {
       meter: this.ctx.tokenMeter,

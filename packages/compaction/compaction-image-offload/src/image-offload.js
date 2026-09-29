@@ -1,16 +1,6 @@
-/** Select and log permanent image omissions in current model-request order. */
 
 import { imageOffloadProjection } from './projection.js'
 
-/**
- * Select the oldest retained input-image occurrences still present on the surface.
- * Assistant nodes carry model output and are excluded. Image indexes count every
- * occurrence in depth-first order, including images nested inside tool results.
- * @param session - session whose next request applies the decision.
- * @param sourceEventSeqs - input message events in the failed request's order.
- * @param count - additional retained occurrences the caller needs omitted.
- * @returns one target per contributing message event, empty when nothing remains.
- */
 export function selectOldestImageTargets(session, sourceEventSeqs, count) {
   const targets = []
   for (const seq of [...sourceEventSeqs]) {
@@ -38,16 +28,6 @@ export function selectOldestImageTargets(session, sourceEventSeqs, count) {
   return targets
 }
 
-/**
- * Record one decision omitting the oldest retained input-image occurrences and
- * land it as durable surface replacements. The selection event is appended with
- * the envelope's `ignorable` marker because the generated persistence vocabulary
- * names only the types present when `gen-persistence-catalog` last ran.
- * @param session - session whose next request applies the decision.
- * @param sourceEventSeqs - input message events in the failed request's order.
- * @param count - additional retained occurrences the caller needs omitted.
- * @returns whether any occurrence remained to offload.
- */
 export function offloadOldestImages(session, sourceEventSeqs, count) {
   const targets = selectOldestImageTargets(session, sourceEventSeqs, count)
   if (targets.length === 0) return false

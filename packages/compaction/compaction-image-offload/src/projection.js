@@ -1,18 +1,14 @@
-/** Browser-safe durable image selection declaration and pure replay definition. */
 
 import { offloadMessageImages } from './project-message.js'
 
-/** Whether a durable value is a JSON object. */
 function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/** Whether a durable occurrence index or sequence is canonical. */
 function isIndex(value) {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && !Object.is(value, -0)
 }
 
-/** Atomic validation and reconstruction shared by live sessions and detached replay. */
 export const imageOffloadProjection = {
   type: 'image/offload',
   project(event, context) {
