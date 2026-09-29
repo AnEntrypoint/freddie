@@ -1,15 +1,5 @@
-/**
- * Fail-closed Win32 error type. Every backend API failure raises this with the
- * API name and the exact Win32 code; the original POC silently ignored every
- * failed call and would run children UNRESTRICTED (fail-open) — that is the
- * failure mode this class exists to prevent.
- * @module @freddie/freddie-sandbox-windows-acl/errors
- */
-
 export class Win32Error extends Error {
-  /** The failing Win32 API name, e.g. `CreateRestrictedToken`. */
   api
-  /** The Win32 error code (`GetLastError` for BOOL APIs, the HRESULT-style return for ACL APIs). */
   win32Code
 
   constructor(api, win32Code, detail) {

@@ -1,17 +1,6 @@
-/**
- * Internal platform-profile builders for the local sandbox provider.
- *
- * @module @freddie/freddie-sandbox-local/profiles
- */
-
 import { grantArgs as landlockGrantArgs } from '@freddie/node-addon-landlock-run'
 import { writableRoots } from '@freddie/freddie-sandbox'
 
-/**
- * Build the bwrap profile arguments for one file-effect policy.
- * @param policy - file-effect policy to express as bwrap mounts.
- * @returns profile arguments before the trailing separator and command argv.
- */
 export function bwrapProfileArgs(policy) {
   const args = ['--ro-bind', '/', '/', '--dev', '/dev', '--unshare-pid', '--proc', '/proc', '--die-with-parent']
   if (policy.mode === 'workspace-write') {
@@ -21,11 +10,6 @@ export function bwrapProfileArgs(policy) {
   return args
 }
 
-/**
- * Build the Landlock launcher grants for one file-effect policy.
- * @param policy - file-effect policy to express as Landlock allow-list grants.
- * @returns launcher grant arguments before the trailing separator and command argv.
- */
 export function landlockProfileArgs(policy) {
   const readWrite = ['/dev/null']
   if (policy.mode === 'workspace-write') {
@@ -34,19 +18,10 @@ export function landlockProfileArgs(policy) {
   return landlockGrantArgs({ readOnly: ['/'], readWrite })
 }
 
-/** Quote one path as an SBPL string literal. */
 function sbplString(path) {
   return `"${path.replaceAll('\\', String.raw`\\`).replaceAll('"', String.raw`\"`)}"`
 }
 
-/**
- * Build the sandbox-exec arguments and SBPL profile for one policy. The
- * writable roots come from the shared {@link writableRoots} helper (canonical,
- * deduplicated) so the Seatbelt grant and the in-process fs fence
- * (`@freddie/freddie-fs-sandbox`) can never drift apart.
- * @param policy - file-effect policy to express as an SBPL profile.
- * @returns sandbox-exec arguments before the trailing separator and command argv.
- */
 export function seatbeltProfileArgs(policy) {
   const forms = ['(version 1)', '(allow default)', '(deny file-write*)', `(allow file-write* (literal ${sbplString('/dev/null')}))`]
   const roots = writableRoots(policy)

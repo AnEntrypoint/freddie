@@ -1,27 +1,6 @@
-/**
- * Restricted-process spawning: anonymous pipes for stdio, STARTUPINFOW with
- * STARTF_USESTDHANDLES, CreateProcessAsUserW under the restricted token, then
- * asynchronous pipe draining and exit waiting. Console isolation
- * (CREATE_NO_WINDOW / CREATE_NEW_CONSOLE) is intentionally absent: under this
- * restriction scheme hidden-console children die with STATUS_DLL_INIT_FAILED
- * (0xC0000142) — verified empirically, see win32-abi.ts. Stdio redirection is
- * pipe-based and unaffected; the child shares the host console.
- * @module @freddie/freddie-sandbox-windows-acl/spawn
- */
-
 import { allocPtrSlot, allocProcessInfo, allocStartupInfo, allocUint32, decodePtr, decodeProcessInfo, decodeUint32, encodeStartupInfo, isNullPtr, throwLastError, throwWin32 } from './ffi.js'
 import * as abi from './win32-abi.js'
 
-/**
- * Quote one argument per the CommandLineToArgvW parsing rules: backslashes
- * are doubled only before a quote character — including the closing quote
- * this function appends, so a trailing backslash run is doubled as well
- * (otherwise an odd run would escape the closing quote into a literal
- * character and corrupt the rest of the command line). Mirrors the CRT
- * ArgvQuote behavior Microsoft documents for command-line arguments.
- * @param argument - one argv entry to quote.
- * @returns the quoted entry (bare when quoting is unnecessary).
- */
 export function quoteArg(argument) {
   if (argument === '') return '""'
   if (!/[\s"]/u.test(argument)) return argument
@@ -43,12 +22,6 @@ export function quoteArg(argument) {
   return quoted + '"'
 }
 
-/**
- * Build the single command line CreateProcess parses from program + argv.
- * @param program - the executable (argv[0]).
- * @param args - the remaining argv entries.
- * @returns the joined, quoted command line.
- */
 export function buildCommandLine(program, args) {
   return [program, ...args].map(quoteArg).join(' ')
 }
@@ -69,19 +42,6 @@ function setInheritable(api, handle, label) {
   }
 }
 
-/**
- * Create a process under the restricted token with piped stdio. The child's
- * stdin is closed immediately (EOF), matching the POC; stdout/stderr read ends
- * are returned for draining. The child inherits the caller's environment block
- * (lpEnvironment NULL); the caller rewrites entries through
- * SetEnvironmentVariableW before spawning (the runner's per-session temp
- * contract) — passing an explicit block through koffi trips
- * ERROR_INVALID_PARAMETER in CreateProcessAsUserW (verified empirically).
- * @param api - the binding table.
- * @param token - the restricted token the child runs under.
- * @param options - command, args, and working directory.
- * @returns the spawned child's handles.
- */
 export function spawnSandboxed(
   api,
   token,
@@ -145,12 +105,6 @@ export function spawnSandboxed(
   }
 }
 
-/**
- * Drain one pipe read end to a Buffer via non-blocking PeekNamedPipe polling.
- * @param api - the binding table.
- * @param handle - the pipe read end to drain (closed when done).
- * @returns the complete pipe contents.
- */
 export async function drainPipe(api, handle) {
   const chunks = []
   for (;;) {
@@ -178,16 +132,6 @@ export async function drainPipe(api, handle) {
   return Buffer.concat(chunks)
 }
 
-/**
- * Wait for process exit and return its exit code. Call only after both drains
- * have resolved — the drains finish when the child closed its pipe ends, i.e.
- * the child has already exited, so this wait returns immediately. Calling it
- * earlier would block the event loop and starve the drains (the pipe-buffer
- * deadlock the POC comments warn about).
- * @param api - the binding table.
- * @param process - the child process handle (closed when done).
- * @returns the child's exit code.
- */
 export function waitForExit(api, process) {
   const waitResult = api.waitForSingleObject(process, abi.INFINITE)
   if (waitResult === 0xFFFFFFFF) throwLastError(api, 'WaitForSingleObject')
@@ -197,13 +141,6 @@ export function waitForExit(api, process) {
   return decodeUint32(exitCodeSlot)
 }
 
-/**
- * Create a kill-on-close job object (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE at
- * LimitFlags offset 16 of JOBOBJECT_EXTENDED_LIMIT_INFORMATION, layout
- * verified by abi-probe.cpp). When the caller dies with the job handle open,
- * Windows terminates every process in the job — the orphan-child backstop.
- * The caller keeps the returned handle open for the child's lifetime.
- */
 function createKillOnCloseJob(api) {
   const job = api.createJobObjectW(null, null)
   if (isNullPtr(job)) throwLastError(api, 'CreateJobObjectW')
@@ -217,24 +154,6 @@ function createKillOnCloseJob(api) {
   return job
 }
 
-/**
- * Create a process under the restricted token whose stdio passes straight
- * through to the caller's pipes. This is the runner shape: the harness spawns
- * the runner with piped stdio, and the runner's confined child writes to
- * those same pipes.
- *
- * Node clears the inheritability of its stdio handles at startup
- * (uv_disable_stdio_inheritance), so raw spawns must re-enable the inherit
- * bit around the call (libuv instead duplicates the handles; re-enabling is
- * equivalent here and cheaper) and pass them explicitly via
- * STARTF_USESTDHANDLES — otherwise the child receives INVALID std handles
- * ("The handle is invalid", verified the hard way). The child starts
- * suspended so it can be assigned to a kill-on-close job before it runs.
- * @param api - the binding table.
- * @param token - the restricted token the child runs under.
- * @param options - command, args, and working directory.
- * @returns the spawned child's handles and job.
- */
 export function spawnSandboxedInherited(
   api,
   token,

@@ -1,23 +1,3 @@
-/**
- * The sandbox POLICY home (`ctx.sandboxPolicy`): the single owner of the
- * deployment's sandbox fallbacks plus per-session resolution: the file-effect
- * {@link import('./session-mode.js').SandboxMode}, the `workspace-write` root, and the override kit (the
- * `sandbox/mode` event, its fold, and its write path, from `./session-mode.js`).
- * Before each agent request, the owner also contributes the resolved policy to
- * the cache-safe runtime-context snapshot. The agent loop logs that snapshot as
- * model history, so replay reconstructs the same mode and root the enforcing
- * consumers resolve without rewriting the stable system prompt.
- *
- * Enforcing filesystem, one-shot bash, and terminal backends read the SAME
- * resolved policy here. The context describes that policy without inventorying
- * capabilities, while each backend retains its own enforcement dialect and each
- * tool owns its operation-specific denial and escalation guidance. The service
- * reads session state once at each operation boundary; executors and providers
- * remain session-free.
- *
- * @module @freddie/freddie-sandbox-policy
- */
-
 import { resolve as resolvePath } from 'node:path'
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
@@ -26,12 +6,10 @@ import { effectiveSandboxMode } from './session-mode.js'
 
 export { SANDBOX_MODES, effectiveSandboxMode, setSandboxMode } from './session-mode.js'
 
-/** Resolve filesystem identity before lexical normalization can erase symlink-sensitive components. */
 function resolveWorkspaceRoot(path) {
   return resolvePath(canonicalPath(path))
 }
 
-/** Render the policy without claiming which capabilities are mounted. */
 function renderPolicyContext(policy) {
   switch (policy.mode) {
     case 'read-only':
@@ -40,7 +18,7 @@ function renderPolicyContext(policy) {
       return `Current FREDDIE file policy: workspace-write. Any available operation enforced by the FREDDIE file sandbox may modify files under the session workspace: ${JSON.stringify(policy.workspaceRoot)}. Some platform temporary areas may also be writable.`
     case 'danger-full-access':
       return 'Current FREDDIE file policy: danger-full-access. The FREDDIE file sandbox does not restrict file modifications by available operations. Do not set sandbox_permissions: no wider mode exists.'
-    /* v8 ignore next 4 -- SandboxMode is a typed same-process closed union; this branch is only the static exhaustiveness guard. */
+    /* v8 ignore next 4 */
     default: {
       const mode = policy.mode
       throw new Error(`unreachable sandbox mode: ${String(mode)}`)
@@ -48,41 +26,13 @@ function renderPolicyContext(policy) {
   }
 }
 
-/**
- * Plugin config: the deployment's sandbox default. All optional — `Config`
- * supplies the defaults (`mode: 'read-only'` is the fail-safe default; a
- * deployment that wants a workspace-writable agent opts in explicitly). The
- * runner choice is NOT here (it is the `ctx.sandbox` provider's config), nor
- * is any per-family knob: this is the one shared policy home.
- * @typedef {object} SandboxPolicyServiceConfig
- * @property {import('./session-mode.js').SandboxMode} [mode] - deployment default file-effect mode.
- * @property {string} [workspaceRoot] - absolute workspace-write fallback root; defaults to `process.cwd()`.
- */
-
-/**
- * The fully resolved per-call sandbox policy: the mode an enforcing capability
- * runs under plus the workspace-write boundary, as returned by {@link resolve}.
- * @typedef {object} SandboxPolicy
- * @property {import('./session-mode.js').SandboxMode} mode - the mode this exact call runs under.
- * @property {string} workspaceRoot - absolute `workspace-write` boundary for this call.
- * @property {import('@freddie/freddie-session').SessionId} [sessionId] - the resolving session, when one was given.
- */
-
-/**
- * The sandbox-policy service (`ctx.sandboxPolicy`). Owns the deployment
- * default mode, fallback workspace root, and current request-time policy
- * section. Tool layers call {@link resolve} for each execution so a session's
- * mode log and immutable cwd travel together to every enforcing capability.
- */
 export class SandboxPolicyService extends Service {
   static Config = z.object({
     mode: z.union(['read-only', 'workspace-write', 'danger-full-access']).default('read-only'),
     workspaceRoot: z.string(),
   })
 
-  /** The deployment default mode — the fallback beneath a session override. */
   defaultMode
-  /** The absolute `workspace-write` fallback root for calls without a session cwd. */
   workspaceRoot
   constructor(ctx, config) {
     super(ctx, 'sandboxPolicy')
@@ -103,15 +53,6 @@ export class SandboxPolicyService extends Service {
     })
   }
 
-  /**
-   * Resolve the complete policy for one capability call. An approved explicit
-   * mode outranks the session's last `sandbox/mode` event, which outranks the
-   * deployment default. A session cwd is its workspace-write boundary; the
-   * configured root is the fallback for agentless calls and sessions without a
-   * cwd.
-   * @param request - optional session and approved mode override.
-   * @returns the fully resolved per-call mode and absolute workspace root.
-   */
   resolve(request = {}) {
     const { session } = request
     return {
@@ -121,11 +62,6 @@ export class SandboxPolicyService extends Service {
     }
   }
 
-  /**
-   * Read the session override without applying the deployment default.
-   * @param session - session whose log supplies the override.
-   * @returns the last logged mode, or `undefined` without one.
-   */
   overrideOf(session) {
     return effectiveSandboxMode(session.events)
   }

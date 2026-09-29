@@ -1,25 +1,3 @@
-/**
- * Local sandbox backend. It selects the platform runner chain (Linux bwrap then
- * Landlock; macOS Seatbelt; Windows the ACL restricted-token runner), functionally probes
- * competing candidates once, and reports each wrap's enforcement and stderr
- * classification facts. Missing or unusable confinement fails closed rather
- * than returning the original argv.
- *
- * The windows-acl rung additionally owns the write grants: the write SID is
- * the per-WORKSPACE identity derived from the canonical workspace path
- * (`workspaceWriteSid`), while every live session receives a RANDOM private
- * temp directory and its own derived capability (`tempWriteSid`). The
- * workspace-root ACE materializes once per workspace per server lifetime
- * and STANDS (the cross-session reuse cache — the exact-ACE skip makes
- * every later provision O(1) instead of re-propagating the tree per
- * session); the private-temp ACEs are revoked on dispose. The runner
- * receives both SIDs (their presence marks the seam-managed contract) and
- * stops managing DACLs itself. The rung reports partial enforcement because
- * WRITE_RESTRICTED must retain Everyone in its
- * restricting list and NTFS hard links alias one file object across paths.
- * @module @freddie/freddie-sandbox-local
- */
-
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -37,7 +15,6 @@ import { SandboxProvider, SandboxUnavailableError } from '@freddie/freddie-sandb
 import { AclWriteGrant, assertTempRootOutsideWorkspace, tempWriteSid, workspaceWriteSid } from '@freddie/freddie-sandbox-windows-acl'
 import { bwrapProfileArgs, landlockProfileArgs, seatbeltProfileArgs } from './profiles.js'
 
-/** Probe whether `bwrap` can create the profile; the provider caches the bounded result. */
 function defaultProbeBwrap(timeoutMs) {
   const probe = spawnSync('bwrap', [...bwrapProfileArgs({ mode: 'read-only', workspaceRoot: '/' }), '--', 'true'], {
     timeout: timeoutMs,
@@ -46,15 +23,6 @@ function defaultProbeBwrap(timeoutMs) {
   return probe.status === 0
 }
 
-/**
- * Functional Seatbelt probe: apply the real `read-only` profile through
- * `sandbox-exec -p` and run `true` under it — exit 0 means the kernel
- * accepted and enforced the profile (`sandbox-exec` exits non-zero when
- * `sandbox_init` refuses it). A missing `sandbox-exec` (every non-macOS
- * host) fails the spawn and probes `unusable`, exactly like the other
- * rungs' absent binaries. Apple marks the CLI deprecated but ships it on
- * every macOS; if it ever disappears, this probe is what fails closed.
- */
 function defaultProbeSeatbelt(seatbeltExec, timeoutMs) {
   const probe = spawnSync(seatbeltExec, [...seatbeltProfileArgs({ mode: 'read-only', workspaceRoot: '/' }), '--', 'true'], {
     timeout: timeoutMs,
@@ -63,13 +31,6 @@ function defaultProbeSeatbelt(seatbeltExec, timeoutMs) {
   return probe.status === 0
 }
 
-/**
- * Functional windows-acl probe: run the runner in read-only mode (zero grants,
- * no ACL mutation) around `cmd /c exit 0` — exit 0 means the runner created
- * the restricted token and spawned the child under it. The win32 chain is a
- * sole candidate, so the product never probes; the probe exists for override
- * chains and mirrors the other rungs' shape.
- */
 function defaultProbeWindowsAcl(runnerInvocation, timeoutMs) {
   const program = runnerInvocation[0]
   if (program === undefined) return false
@@ -84,30 +45,12 @@ function defaultProbeWindowsAcl(runnerInvocation, timeoutMs) {
   return probe.status === 0
 }
 
-/**
- * The runner chain per platform — selection is BY PLATFORM first, probes
- * second: a platform's chain is probed in preference order only when it has
- * MORE than one candidate (probing arbitrates; it does not re-validate a
- * choice that has no alternative). A platform with no chain fails closed at
- * `confine()`. Linux prefers `bwrap` (its mount profile is closest to the
- * mode vocabulary) over the Landlock launcher; darwin has exactly one
- * candidate, selected without any probe.
- */
 const PLATFORM_CHAINS = {
   linux: ['bwrap', 'landlock'],
   darwin: ['seatbelt'],
   win32: ['windows-acl'],
 }
 
-/**
- * Enforcement completeness a rung claims when selected WITHOUT a probe (a
- * chain of one). `bwrap` and Seatbelt govern every promised file effect by
- * construction, so the claim is a profile fact; `landlock` is listed for the
- * table's totality but is unreachable unprobed today (the Linux chain has
- * two rungs, so it is only ever selected through its probe, whose report is
- * what distinguishes full from per-ABI-partial — and the launcher additionally
- * self-reports partial enforcement on stderr at every confined run).
- */
 const STATIC_ENFORCEMENT = {
   bwrap: 'full',
   landlock: 'full',
@@ -115,22 +58,12 @@ const STATIC_ENFORCEMENT = {
   'windows-acl': 'partial',
 }
 
-/**
- * A probe bound must be a positive finite number: Node treats
- * `spawnSync({ timeout: 0 })` as NO timeout, so an unvalidated 0 would
- * silently mean "unbounded" — the opposite of what the field promises.
- */
 function assertPositiveFinite(name, value) {
   if (!Number.isFinite(value) || value <= 0) {
     throw new Error(`sandbox-local: ${name} must be a positive finite number`)
   }
 }
 
-/**
- * The denial dialect each runner's kernel speaks — the case-insensitive stderr substrings a
- * denied file effect produces under it, carried on every wrap (the seam's
- * `ConfinedArgv.denialSignatures`).
- */
 const DENIAL_SIGNATURES = {
   bwrap: ['read-only file system'],
   landlock: ['permission denied'],
@@ -139,22 +72,8 @@ const DENIAL_SIGNATURES = {
   runnerCommand: ['read-only file system', 'permission denied'],
 }
 
-/** The windows-acl runner's documented failure exit (its own RUNNER_FAILURE_EXIT contract, distinct from Landlock's 125). */
 const WINDOWS_ACL_RUNNER_FAILURE_EXIT = 127
 
-/**
- * Runner-owned fatal diagnostics. Landlock has a versioned exit-125 plus
- * fatal-line launcher-failure contract. Bubblewrap's current fatal paths exit
- * 1 but its public contract does not reserve that status, while sandbox-exec
- * publishes no launcher-failure status; those backends remain signature-only.
- * The windows-acl runner prints `windows-acl-run: <detail>` on every
- * runner-side failure and exits 127 — the rule is exit-gated on that status
- * so a confined command that merely PRINTS the signature (or a runner
- * cleanup failure reported on a non-zero child exit) is never misclassified
- * as "the command did not run". Keep the Landlock tuple aligned with the
- * assembled snapshot composition at
- * `examples/acp-agent/partial-landlock.cordis.snapshot.yml`.
- */
 const RUNNER_FAILURE_RULES = {
   bwrap: [{ fatalSignatures: ['bwrap: '] }],
   landlock: [{
@@ -166,14 +85,6 @@ const RUNNER_FAILURE_RULES = {
   'windows-acl': [{ allowedExitCodes: [WINDOWS_ACL_RUNNER_FAILURE_EXIT], fatalSignatures: ['windows-acl-run: '] }],
 }
 
-/**
- * Local process-sandbox provider. Registers as `ctx.sandbox`. Caches the
- * chain verdict and, on the windows-acl rung, the write grants
- * ({@link AclWriteGrant}: the standing workspace-root grant per workspace
- * and the revocable private-temp grant per live session/workspace pair, the
- * latter revoked on provider dispose); the one-time probes spawn nothing
- * else.
- */
 export class LocalSandboxProvider extends SandboxProvider {
   static Config = z.object({
     runnerCommand: z.array(z.string()).default([]),
@@ -181,21 +92,12 @@ export class LocalSandboxProvider extends SandboxProvider {
     probeTimeoutMs: z.natural().default(5_000),
   })
 
-  /** Test hook (mirrors the bash executors' `internals`). */
   internals = {}
 
   runnerCommand
   configuredRunnerFailureSignatures
   probeTimeoutMs
-  /** Cached chain verdict; undefined until the first confined wrap needs it. */
   selectedRunner
-  /**
-   * Server-lifetime write grants (windows-acl rung): the STANDING
-   * workspace-root grant per workspace (its ACE is the cross-session reuse
-   * cache and outlives the provider — never revoked) and the REVOCABLE
-   * private-temp grant per live session/workspace pair (revoked on provider
-   * dispose).
-   */
   workspaceGrants = new Map()
   tempCapabilities = new Map()
 
@@ -221,17 +123,6 @@ export class LocalSandboxProvider extends SandboxProvider {
     })
   }
 
-  /**
-   * Wrap `argv` in the selected runner's invocation for `policy` — the configured
-   * `runnerCommand` when present (the operator's assertion, no probe), else the platform
-   * chain's runner speaking its own profile dialect.
-   *
-   * @param argv - the exact argv the caller is about to spawn.
-   * @param policy - the file-effect policy this execution runs under.
-   * @returns the wrapped argv plus the selected backend's enforcement completeness, denial
-   *   signatures, and structured runner-failure rules; throws the fail-closed
-   *   `SANDBOX_UNAVAILABLE` error when the platform has no usable runner.
-   */
   confine(argv, policy) {
     if (this.runnerCommand !== undefined) {
       return {
@@ -251,7 +142,6 @@ export class LocalSandboxProvider extends SandboxProvider {
     }
   }
 
-  /** The selected rung's runner invocation (program + profile arguments) for one policy. */
   runnerArgv(runner, policy) {
     switch (runner) {
       case 'bwrap': return ['bwrap', ...bwrapProfileArgs(policy)]
@@ -262,18 +152,6 @@ export class LocalSandboxProvider extends SandboxProvider {
     }
   }
 
-  /**
-   * The windows-acl runner argv for one policy. With a calling session (the
-   * policy's `sessionId`) under workspace-write, the grants are materialized
-   * once per provider lifetime — the standing workspace-root grant per
-   * workspace and a revocable, RANDOM private-temp capability per live
-   * session/workspace pair. The runner receives `--write-sid` plus
-   * `--temp-write-sid` and grants nothing itself. Agentless workspace-write
-   * calls pass the ambient temp ROOT and no SID flags: the runner creates and
-   * removes a random private child directory for that one invocation.
-   * @param policy - the resolved per-call policy.
-   * @returns the runner invocation.
-   */
   windowsAclRunnerArgv(policy) {
     const sessionId = policy.sessionId
     if (sessionId === undefined || policy.mode === 'read-only') {
@@ -295,19 +173,6 @@ export class LocalSandboxProvider extends SandboxProvider {
     ]
   }
 
-  /**
-   * Materialize one workspace-write policy's ACEs once per provider
-   * lifetime. The workspace SID and standing root grant are shared by the
-   * workspace. The temp directory is random and carries a distinct SID, so
-   * another session on the same workspace cannot use the shared workspace
-   * SID to enter it. A fresh provider always chooses a new path; crash
-   * residue therefore cannot collide with or authorize a resumed session.
-   * Fail-closed: a half-materialized temp grant is revoked and its directory
-   * removed before the error propagates.
-   * @param sessionId - the policy's calling-session identity.
-   * @param workspaceRoot - the resolved policy root.
-   * @returns the pair's private temp directory and write capability.
-   */
   materializeAclGrant(sessionId, workspaceRoot) {
     assertTempRootOutsideWorkspace(workspaceRoot, tmpdir())
     const writeSid = workspaceWriteSid(workspaceRoot)
@@ -358,15 +223,6 @@ export class LocalSandboxProvider extends SandboxProvider {
     return capability
   }
 
-  /**
-   * Dispose every write grant (provider dispose): the revocable temp ACEs
-   * are revoked, the private temp directories this provider created are
-   * removed, and every SID allocation is freed; the standing workspace ACEs
-   * stay (the reuse cache). Cleanup failures are reported, not thrown:
-   * cordis teardown must not be aborted by grant cleanup. A crash skips all
-   * of it, but a new provider never reuses the residue's random path or SID;
-   * OS temp hygiene (or manual removal) eventually reclaims it.
-   */
   revokeAclGrants() {
     if (this.workspaceGrants.size === 0 && this.tempCapabilities.size === 0) return
     const failures = []
@@ -392,26 +248,17 @@ export class LocalSandboxProvider extends SandboxProvider {
     }
   }
 
-  /** Remove one provider-owned private temp directory (injectable for cleanup tests). */
   removeTempDir(dir) {
     const remove = this.internals.rmTempDir ?? ((path) => { rmSync(path, { recursive: true, force: true }) })
     remove(dir)
   }
 
-  /**
-   * Resolve which runner confines commands, once, for the provider's
-   * lifetime: this platform's chain ({@link PLATFORM_CHAINS}), its sole
-   * candidate selected directly, multiple candidates arbitrated by
-   * functional probes in chain order. Fail closed when the platform has no
-   * chain or no candidate passes — the command never runs.
-   */
   selectRunner(mode) {
     this.selectedRunner ??= this.chainVerdict()
     if (this.selectedRunner === 'unavailable') throw new SandboxUnavailableError(mode)
     return this.selectedRunner
   }
 
-  /** Walk this platform's chain: sole candidate unprobed, several probed in order, none usable → unavailable. */
   chainVerdict() {
     const chain = this.internals.chain ?? PLATFORM_CHAINS[this.internals.platform ?? process.platform] ?? []
     const [first, ...rest] = chain
@@ -424,7 +271,6 @@ export class LocalSandboxProvider extends SandboxProvider {
     return 'unavailable'
   }
 
-  /** One rung's functional probe (each at most once, via the chain walk). */
   probeRunner(runner) {
     switch (runner) {
       case 'bwrap': {
@@ -448,22 +294,14 @@ export class LocalSandboxProvider extends SandboxProvider {
     }
   }
 
-  /** The Landlock launcher to probe and exec (test hook over the resolved one). */
   landlockLauncher() {
     return this.internals.landlockLauncher ?? landlockLauncherPath()
   }
 
-  /** The `sandbox-exec` executable to probe and exec (test hook over the system one). */
   seatbeltExec() {
     return this.internals.seatbeltExec ?? 'sandbox-exec'
   }
 
-  /**
-   * The windows-acl runner argv prefix: the built lib/runner.js entry when
-   * present (production), else the package source through tsx (development).
-   * The prefix stays `[node, runner, ...]` — a future native-exe runner keeps
-   * the same argv contract and only swaps these entries.
-   */
   windowsAclRunnerInvocation() {
     const override = this.internals.windowsAclRunnerArgs
     if (override !== undefined) return override
