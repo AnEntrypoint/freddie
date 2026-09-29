@@ -1,33 +1,8 @@
-/**
- * Browser-half closure evaluation: the package source runs as the body of an
- * async function whose parameters ARE the symbol surface. Shadowing parameters
- * (setTimeout/fetch/require/…) turn the ambient browser globals into teaching
- * redirects without touching the page. The host syntax-prechecked the source at
- * define time; SyntaxError handling here is the engine-divergence fallback and
- * reaches the model through the load report.
- *
- * `React` is withheld the same way as the other teaching-redirect globals
- * below: the whole GUI is webjsx now (no React runtime ships to the page), so
- * a dynamic package reaching for `React.createElement`/`React.useState` gets
- * a redirect toward the tool.view.cordis business slot's own webjsx contract
- * (a plain function returning JSX, or an HTMLElement subclass registered via
- * ui-primitives' `defineElement` for stateful views — see ui-primitives'
- * Button.js/Toast.js for the two shapes) instead of a runtime crash reading `useState`
- * off `undefined`.
- */
-
 const TIMER_REDIRECT
   = 'browser timer globals are unavailable in dynamic packages. Declare inject: [\'timer\'] on the returned plugin, '
     + 'query Client Service.listService for the exact API, and close over that plugin ctx. In React, create timers '
     + 'from an event handler or React.useEffect and return callback-form disposers from the effect cleanup.'
 
-/**
- * Where each withheld browser global sends the author instead. One home for two
- * consumers: the closure traps below throw these, and a render crash whose
- * message names one of them gets the same redirect appended — a package that
- * reached the global some other way (`window.setInterval`) crashes with the
- * engine's own bare text, and the author needs the redirect either way.
- */
 export const DYNAMIC_CLIENT_REDIRECTS = {
   setTimeout: TIMER_REDIRECT,
   setInterval: TIMER_REDIRECT,
@@ -43,7 +18,6 @@ export const DYNAMIC_CLIENT_REDIRECTS = {
     + 'setProps); see the tool.view.cordis business-view contract for the expected shape.',
 }
 
-/** Callable teaching traps shadowing the ambient globals the closure must not reach. */
 function closureTraps() {
   const traps = {}
   for (const [name, redirect] of Object.entries(DYNAMIC_CLIENT_REDIRECTS)) {
@@ -54,7 +28,6 @@ function closureTraps() {
   return traps
 }
 
-/** The `harness` seat exists only host-side; any touch teaches the split. */
 function harnessTrap() {
   return new Proxy({}, {
     get(_target, prop) {
@@ -66,20 +39,13 @@ function harnessTrap() {
   })
 }
 
-/** Per-package style-tag bookkeeping behind the `styles.insert` symbol. */
 export class DynamicCordisStyles {
   tags = new Set()
 
-  /** @param pluginId - owning Plugin ID, stamped as `data-dyn` on every tag. */
   constructor(pluginId) {
     this.pluginId = pluginId
   }
 
-  /**
-   * Inject one stylesheet, removed automatically on package unload.
-   * @param css - raw CSS text.
-   * @returns disposer removing this one tag early.
-   */
   insert(css) {
     if (typeof css !== 'string') throw new Error('styles.insert(css) needs a CSS string')
     const tag = document.createElement('style')
@@ -93,19 +59,16 @@ export class DynamicCordisStyles {
     }
   }
 
-  /** Live tag count (load-report contribution summary). */
   get count() {
     return this.tags.size
   }
 
-  /** Remove every tag this package still owns (unload path). */
   dispose() {
     for (const tag of this.tags) tag.remove()
     this.tags.clear()
   }
 }
 
-/** Stringify one console argument for the error mirror. */
 function errorText(arg) {
   if (arg instanceof Error) return arg.message
   if (typeof arg === 'string') return arg
@@ -117,7 +80,6 @@ function errorText(arg) {
   }
 }
 
-/** Tagged write-through console; error lines additionally copy into the load report. */
 function taggedConsole(pluginId, noteError) {
   const tag = `[cordis:${pluginId}]`
   const forward = level => (...args) => {
@@ -135,35 +97,19 @@ function taggedConsole(pluginId, noteError) {
   }
 }
 
-/**
- * Narrow a closure return value to a mountable plugin (host guard mirror).
- * @param value - whatever the closure returned.
- * @returns whether the value is mountable.
- */
 export function isDynamicCordisPlugin(value) {
   if (typeof value === 'function') return true
   return typeof value === 'object' && value !== null
     && typeof value.apply === 'function'
 }
 
-/** Node globals bound to `undefined` inside the closure so package code sees a browser and `typeof process` probes stay safe. */
 const NODE_GLOBALS_HIDDEN_FROM_PACKAGES = ['process', 'Buffer']
 
-/**
- * Evaluate one package's browser half and return the (un-guarded) plugin.
- * @param pluginId - stable Plugin ID (console tag and style ownership).
- * @param clientCode - the browser half's source: an async function body returning a plugin.
- * @param env - runner wiring for `host.call` and error mirroring.
- * @param styles - the package's style bookkeeping (owned by the caller so unload can dispose it).
- * @returns the plugin the closure returned.
- * @throws teaching errors for syntax failures and non-plugin returns.
- */
 export async function evaluateClientHalf(pluginId, clientCode, env, styles) {
   const traps = closureTraps()
   const parameters = ['console', 'styles', 'host', 'harness', ...Object.keys(traps), ...NODE_GLOBALS_HIDDEN_FROM_PACKAGES]
   let closure
   try {
-    // oxlint-disable-next-line typescript/no-implied-eval -- evaluating the prechecked browser half is this package's product
     const factory = new Function(...parameters, `return (async () => {\n${clientCode}\n})()`)
     closure = factory
   } catch (error) {
@@ -174,13 +120,6 @@ export async function evaluateClientHalf(pluginId, clientCode, env, styles) {
     )
   }
   const host = {
-    /**
-     * Call a host-half handler of THIS package (harness.handle pairing). A call
-     * with nothing to pass omits the argument: it arrives at the handler as
-     * `null`, because the wire carries JSON and `undefined` is not JSON —
-     * requiring `host.call('m', {})` would be a ritual, and defaulting to `{}`
-     * would invent an empty argument the caller never wrote.
-     */
     call: (method, args = null) => env.invoke(method, args),
   }
   const returned = await closure(

@@ -1,5 +1,3 @@
-/** Built-in Client inspect providers over live Client-owned services. */
-
 import { queryEventApi, queryServiceApi } from './api-catalog.js'
 import { CLIENT_SLOT_API } from './slot-catalog.js'
 
@@ -29,7 +27,6 @@ const SUBTREE_INPUT = {
   additionalProperties: false,
 }
 
-/** Exact Client closure symbols exposed by the evaluator and guard. */
 export const CLIENT_BUILTIN_INSPECTION = [
   {
     name: 'ctx',
@@ -63,11 +60,6 @@ export const CLIENT_BUILTIN_INSPECTION = [
   },
 ]
 
-/**
- * Construct the first-party Client provider registrations.
- * @param ctx - Client context used for live Service-backed queries.
- * @returns registrations for static catalogs and live Client capabilities.
- */
 export function clientInspectProviders(ctx) {
   return [
     registration(

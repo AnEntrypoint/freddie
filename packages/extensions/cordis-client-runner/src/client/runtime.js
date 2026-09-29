@@ -1,64 +1,24 @@
-/**
- * Per-package browser lifecycle: evaluate the closure, wrap `apply` in the guard
- * facade, seat a ready-made factory in the module table, and create a loader
- * entry — so dynamic packages ride the exact machinery static plugins do
- * (activation gating on inject, fiber-effect cleanup, status projection). Unload
- * = loader entry removal (fiber disposal cascades slot entries and facade
- * effects) + factory invalidation + style removal.
- *
- * The engine answers its caller: `load` resolves with what this page ended up
- * with, which is what the run orchestration reports back to the host. Loads
- * converge by Plugin Run ID against live state, not history: loading the exact
- * activation this page already runs is a no-op that still answers, another run
- * replaces it, and the same Package after a retract loads afresh. Per-Plugin
- * serialization keeps a second request from interleaving with one in flight.
- */
-
 import { DynamicCordisStyles, evaluateClientHalf, DYNAMIC_CLIENT_REDIRECTS } from './evaluator.js'
 import { dynamicCordisContext } from './guard.js'
 
-/** Module-table id of one package (also its loader entry name and fiber name). */
 function moduleIdOf(id) {
   return `dyn/${id}`
 }
 
 const LOAD_DEADLINE_MS = 15_000
 
-/** The browser-side load engine for dynamic packages. */
 export class DynamicCordisPackageRunner {
   live = new Map()
-  /** Serializes load/unload per package id (a second request can outrun a slow load). */
   queues = new Map()
   changeListeners = new Set()
-  /** Page-local shadowing rank. A later registration receives a lower priority. */
   nextPriority = 0
-  /**
-   * Which package seated which component, and for whom. Component identity is the
-   * only attribution key that holds:
-   * - the registry stores the component verbatim, so a crashed entry carries its
-   *   own way back — no parallel entry ledger to keep in step;
-   * - `entry.registrant` is `options.registrant ?? fiber.name` and the facade does
-   *   not strip a package-supplied one, so a package could name itself something
-   *   else — attributing by it would let a package impersonate another;
-   * - the assigned shadowing priority is unique but absent on chain entries (their
-   *   election is deliberately left alone), so it would miss chain crashes;
-   * - a package torn down between the crash and the report is still attributable,
-   *   because this index does not depend on the live record.
-   *
-   * Two packages cannot collide here: each browser half is evaluated in its own
-   * closure, so no component object reaches two of them. A collision is only
-   * possible inside ONE package (the same component seated twice), where both
-   * entries map to the same id and the value is identical.
-   */
   owners = new WeakMap()
-  /** This page's last render crash per package: what a run surface shows on the row. */
   failures = new Map()
   cancellers = new Map()
   unwatch
   snapshotCache
   failureCache
 
-  /** @param env - loader/module/slot wiring plus the two host verbs this engine uses. */
   constructor(env) {
     this.env = env
     this.unwatch = env.slots.onEntryError((slot, entry, error, info) => {
@@ -81,31 +41,16 @@ export class DynamicCordisPackageRunner {
     })
   }
 
-  /**
-   * Observe live-set changes (the run-state surface's re-render seam).
-   * @param fn - notified after every converged mutation.
-   * @returns unsubscribe.
-   */
   subscribe(fn) {
     this.changeListeners.add(fn)
     return () => { this.changeListeners.delete(fn) }
   }
 
-  /**
-   * This page's last render crash per package, on the same notification channel as
-   * the live set — a surface that already subscribed learns about a crash without
-   * a second mechanism to wire.
-   */
   renderFailures = {
     getSnapshot: () => this.failureCache ??= new Map(this.failures),
     subscribe: fn => this.subscribe(fn),
   }
 
-  /**
-   * What this page currently has loaded (stable reference between mutations, so
-   * it can back a snapshot selector).
-   * @returns one row per live package.
-   */
   getSnapshot() {
     return this.snapshotCache ??= [...this.live.values()].map(({ pkg, ledger, styles }) => ({
       pluginId: pkg.pluginId,
@@ -117,21 +62,10 @@ export class DynamicCordisPackageRunner {
     }))
   }
 
-  /**
-   * Whether this page has the browser half loaded — page-local truth, never the
-   * host's "it is running".
-   * @param pluginId - stable Plugin identity.
-   * @returns true while one activation of the Plugin is live here.
-   */
   isLoaded(pluginId) {
     return this.live.has(pluginId)
   }
 
-  /**
-   * Load one browser half into this page and answer what happened.
-   * @param half - source for one exact Host activation.
-   * @returns the outcome the run orchestration reports to the host.
-   */
   load(half) {
     return this.enqueue(half.pluginId, async () => {
       const current = this.live.get(half.pluginId)
@@ -145,12 +79,6 @@ export class DynamicCordisPackageRunner {
     })
   }
 
-  /**
-   * Unload one package (`cordis/dynamic-retract`: a stop, or an undefine
-   * that stops first).
-   * @param pluginId - stable Plugin identity.
-   * @param pluginRunId - exact activation being retracted; a newer run survives.
-   */
   retract(pluginId, pluginRunId) {
     this.cancellers.get(pluginId)?.('the package was stopped while it was loading')
     void this.enqueue(pluginId, async () => {
@@ -161,7 +89,6 @@ export class DynamicCordisPackageRunner {
     })
   }
 
-  /** Unload everything (plugin disposal path). */
   async dispose() {
     this.unwatch()
     for (const current of [...this.live.values()]) {
@@ -176,7 +103,6 @@ export class DynamicCordisPackageRunner {
     for (const fn of [...this.changeListeners]) fn()
   }
 
-  /** Queue one package operation behind that package's previous ones. */
   enqueue(id, op) {
     const previous = this.queues.get(id) ?? Promise.resolve()
     const next = previous.then(op)
@@ -260,13 +186,6 @@ export class DynamicCordisPackageRunner {
     return settled(record)
   }
 
-  /**
-   * Wrap the evaluated plugin so `apply` sees the guard facade; the surface
-   * doubles as the module-table module. The plugin's OWN `inject` survives (the
-   * object form's declaration is the facade's service gate, mirroring the host
-   * sandbox reading `ctx.fiber.inject`); the function form has no declaration
-   * site and therefore reaches no service.
-   */
   guardedSurface(pkg, agentId, plugin, ledger) {
     const claim = (component) => {
       if (indexable(component)) {
@@ -296,10 +215,6 @@ export class DynamicCordisPackageRunner {
     }
   }
 
-  /**
-   * Unload one package's contributions. Takes the pieces rather than the record
-   * because a load can fail before any record is seated.
-   */
   async teardown(id, entryId, styles) {
     this.live.delete(id)
     this.failures.delete(id)
@@ -309,7 +224,6 @@ export class DynamicCordisPackageRunner {
   }
 }
 
-/** The success answer for a package that is live here, parked or active. */
 function settled(record) {
   return {
     ok: true,
@@ -318,22 +232,10 @@ function settled(record) {
   }
 }
 
-/**
- * Whether a component can key the ownership index. Identity is the key, so only
- * objects and functions qualify — a package may register anything, and what it
- * registered is what a crash report carries back.
- * @param component - whatever a package passed as its component.
- * @returns true when the value can be indexed by identity.
- */
 function indexable(component) {
   return typeof component === 'object' && component !== null || typeof component === 'function'
 }
 
-/**
- * Preserve error fields for a load result without fabricating a stack.
- * @param error - original thrown value.
- * @returns its message and original string stack, when present.
- */
 /* jscpd:ignore-start */
 export function errorDetails(error) {
   if (typeof error !== 'object' || error === null) return { message: String(error) }
@@ -345,12 +247,6 @@ export function errorDetails(error) {
 }
 /* jscpd:ignore-end */
 
-/**
- * What the authoring session reads about one render crash. The slot says where it
- * happened, the crash message says what broke, and a withheld global named in that
- * text pulls in its redirect — a package that reached `window.setInterval` around
- * the closure trap crashes with the engine's bare message, which teaches nothing.
- */
 function renderFailureMessage(slot, message) {
   const redirect = Object.entries(DYNAMIC_CLIENT_REDIRECTS)
     .find(([name, text]) => message.includes(name) && !message.includes(text))?.[1]

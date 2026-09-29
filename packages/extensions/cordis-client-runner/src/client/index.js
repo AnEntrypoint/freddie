@@ -1,15 +1,3 @@
-/**
- * Dynamic-package runner, browser half: the load engine that turns one browser
- * half's source into a live cordis plugin (closure → guard → module table →
- * loader entry, ./runtime.js), plus the retract announcement that unloads it.
- *
- * Nothing loads on activation: this page holds no dynamic package until a
- * dispatch arrives, and a dispatch only follows a model `cordis_run` or a user
- * pressing a card's start control. A refresh therefore starts clean by design —
- * host process memory still holds the definition, the page simply does not run
- * it until asked again.
- */
-
 import { DynamicCordisPackageRunner } from './runtime.js'
 import { CordisRunOrchestrator } from './orchestrator.js'
 import { ClientCordisInspectRegistry, provideClientCordisInspect } from './inspect-registry.js'
@@ -24,7 +12,6 @@ export { DynamicCordisStyles, evaluateClientHalf, isDynamicCordisPlugin } from '
 export { dynamicCordisContext } from './guard.js'
 export { ClientTimerService } from './timer.js'
 
-/** Teaching text for a routing failure the infrastructure itself reports. */
 function invokeFailure(pluginId, method, result) {
   const where = `host.call("${method}") on ${pluginId}`
   if (result.code === 'plugin-not-running') {
@@ -39,20 +26,12 @@ function invokeFailure(pluginId, method, result) {
   return `${where} failed inside the host handler: ${result.message}`
 }
 
-/** Preserve a Host handler's stack while adding the Client call site diagnosis. */
 function invokeError(pluginId, method, result) {
   const error = new Error(invokeFailure(pluginId, method, result))
   if (result.stack !== undefined) error.stack = `${error.stack ?? error.message}\nHost stack:\n${result.stack}`
   return error
 }
 
-/**
- * Teaching text for a `host.call` the wire itself refused: the generated codec
- * rejected the argument before sending, or the result on the way back, or the
- * transport broke. The infrastructure's message names the field it refused but
- * not the call it belonged to, and the model authored both halves — so this adds
- * the call and the contract it has to satisfy.
- */
 function wireFailure(id, method, error) {
   const message = error instanceof Error ? error.message : String(error)
   return `host.call("${method}") on ${id} did not complete: ${message}\n`
@@ -60,21 +39,10 @@ function wireFailure(id, method, error) {
     + `null — and answer from harness.handle("${method}", fn) with JSON (\`return null\` when there is nothing to report).`
 }
 
-/** Stable Cordis plugin name. */
 export const name = 'cordis-client-runner'
 
-/**
- * Required services: the loader/module chain for entries, the slot registry for
- * contributions, and the `dynamicCordisRunner` Remote namespace. Declaring the
- * namespace parks this plugin until the host side exists, so a page never loads
- * a browser half whose host half it could not reach.
- */
 export const inject = ['loader', 'modules', 'slots', 'remote', 'remote.dynamicCordisRunner']
 
-/**
- * Client plugin body: build the runner and subscribe the dispatch family.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   provideClientTimer(ctx)
   const inspect = new ClientCordisInspectRegistry({

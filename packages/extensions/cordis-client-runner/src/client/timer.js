@@ -1,43 +1,20 @@
-/** Browser implementation of the Cordis timer Service. */
-
 import { Service } from '@freddie/cordis'
 
 
-/** Browser timer Service with the same public API as the Host Cordis TimerService. */
 export class ClientTimerService extends Service {
-  /** Register the Service and mix its lifecycle-safe helpers onto Context. */
   constructor(ctx) {
     super(ctx, 'timer')
     ctx.mixin('timer', ['timeout', 'interval', 'throttle', 'debounce', 'setTimeout', 'setInterval'])
   }
 
-  /**
-   * Run a callback once through {@link timeout}.
-   * @param callback - Work to run after the delay.
-   * @param delay - Delay in milliseconds.
-   * @returns Disposer that cancels the pending callback early.
-   * @deprecated Use `ctx.timeout()` instead.
-   */
   setTimeout(callback, delay) {
     return this.timeout(callback, delay)
   }
 
-  /**
-   * Run a callback repeatedly through {@link interval}.
-   * @param callback - Work to run on each tick.
-   * @param delay - Interval in milliseconds.
-   * @returns Disposer that stops the interval early.
-   * @deprecated Use `ctx.interval()` instead.
-   */
   setInterval(callback, delay) {
     return this.interval(callback, delay)
   }
 
-  /**
-   * Run a callback once after a delay, or wait for a delay.
-   * @param args - `(callback, delay)` to run once, or `(delay)` to await.
-   * @returns disposer, or a promise resolved after the delay.
-   */
   timeout(...args) {
     const callback = typeof args[0] === 'function' ? args.shift() : undefined
     const delay = args[0]
@@ -63,11 +40,6 @@ export class ClientTimerService extends Service {
     return promise.finally(() => { void dispose() })
   }
 
-  /**
-   * Run a callback repeatedly, or iterate over timer ticks.
-   * @param args - `(callback, delay)` to run repeatedly, or `(delay)` for an async iterator.
-   * @returns disposer, or an async iterator of ticks.
-   */
   interval(...args) {
     const callback = typeof args[0] === 'function' ? args.shift() : undefined
     const delay = args[0]
@@ -115,7 +87,6 @@ export class ClientTimerService extends Service {
     }
   }
 
-  /** Build a delayed wrapper whose pending callback belongs to the calling Fiber. */
   schedule(label, trigger, disposed = false) {
     let timer
     const dispose = this.ctx.effect(() => () => {
@@ -130,13 +101,6 @@ export class ClientTimerService extends Service {
     return wrapper
   }
 
-  /**
-   * Return a throttled function whose timer is disposed with the calling Fiber.
-   * @param callback - Function to throttle.
-   * @param delay - Minimum interval between calls in milliseconds.
-   * @param noTrailing - Whether to suppress a delayed trailing call.
-   * @returns Throttled function with an early disposer.
-   */
   throttle(callback, delay, noTrailing) {
     let lastCall = -Infinity
     const execute = (...args) => {
@@ -153,12 +117,6 @@ export class ClientTimerService extends Service {
     }, noTrailing)
   }
 
-  /**
-   * Return a debounced function whose timer is disposed with the calling Fiber.
-   * @param callback - Function to debounce.
-   * @param delay - Quiet period in milliseconds.
-   * @returns Debounced function with an early disposer.
-   */
   debounce(callback, delay) {
     return this.schedule('ctx.debounce()', (args, disposed) => {
       if (disposed) return
@@ -167,11 +125,6 @@ export class ClientTimerService extends Service {
   }
 }
 
-/**
- * Install the browser timer Service on one Client composition.
- * @param ctx - Client context that owns the Service and mixed-in helpers.
- * @returns Nothing after registering the Service.
- */
 export function provideClientTimer(ctx) {
   new ClientTimerService(ctx)
 }

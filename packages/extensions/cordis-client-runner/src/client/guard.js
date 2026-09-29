@@ -1,28 +1,11 @@
-/**
- * The browser twin of the tool-cordis context facade: a whitelist of
- * lifecycle-safe verbs plus optional `ctx.get()` lookup and declared-service
- * property access, with
- * framework internals withheld and Context-valued returns denied. Two seats
- * carry extra machinery: `slots`, where the register proxy assigns the
- * shadowing priority and ledgers the registration — invoking the service with
- * the traced receiver so the effect lands on the CALLING plugin's fiber
- * (SlotRegistry.register must stay a prototype method for exactly that
- * reason) — and `theme`, whose override source is pinned to the package id.
- *
- * This is API discipline, not a security boundary: a dynamic package's code is
- * as trusted as the host process that accepted its definition.
- */
-
 import { Context } from '@freddie/cordis'
 
-/** Facade verbs beyond declared services (host CTX_VERBS twin). */
 const CTX_VERBS = new Set([
   'effect', 'on', 'once', 'provide', 'timeout', 'interval', 'setTimeout', 'setInterval', 'throttle', 'debounce',
 ])
 const TIMER_VERBS = new Set(['timeout', 'interval', 'setTimeout', 'setInterval', 'throttle', 'debounce'])
 const STRUCTURAL_SLOTS = new Set(['root', 'sidebar'])
 
-/** Reject any service return that is a cordis Context (host guard twin). */
 function denyContext(value, service, env) {
   if (value instanceof Context) {
     return rejectGuard(env,
@@ -33,11 +16,6 @@ function denyContext(value, service, env) {
   return value
 }
 
-/**
- * Forward service methods with the traced service as receiver — `this.ctx`
- * inside prototype methods (slots.register) must stay the CALLER's ctx so
- * effects land on the calling plugin's fiber — while denying Context returns.
- */
 function guardedService(service, name, env) {
   return new Proxy(service, {
     get(target, prop) {
@@ -52,19 +30,8 @@ function guardedService(service, name, env) {
   })
 }
 
-/** The register option that names an entry's cell, per shadowing seat kind (single and chain seats have none). */
 const CELL_FIELD = { keyed: 'key', list: 'id' }
 
-/**
- * The entry that already holds the cell a registration names, when a different
- * registrant seated it: built-in entries and other dynamic packages. A package's
- * own earlier entries never count, so it can still re-seat its own cell.
- * @param slots - the traced slots service.
- * @param spec - the target seat's declared spec.
- * @param options - the registration options after guard rewrites.
- * @param env - package row and ownership lookup.
- * @returns the cell field, its value and a description of the holder, or undefined when the cell is free.
- */
 function heldCell(slots, spec, options, env) {
   const field = CELL_FIELD[spec?.kind]
   const cell = field === undefined ? undefined : options[field]
@@ -78,10 +45,6 @@ function heldCell(slots, spec, options, env) {
   return undefined
 }
 
-/**
- * The slots seat: automatic shadowing priority and ledger recording around the
- * traced service's own register.
- */
 function guardedSlots(slots, env) {
   return new Proxy(slots, {
     get(target, prop) {
@@ -135,15 +98,6 @@ function guardedSlots(slots, env) {
   })
 }
 
-/**
- * The theme seat: `overrideTokens`' source is FORCED to the package id — a
- * dynamic package can never impersonate (or evict) another source's layer, and
- * its own layers converge under one identity unload can reason about. The
- * layer's disposer is additionally hung on the calling fiber, because the
- * documented contract is "unload restores" and model code cannot be trusted to
- * keep the returned handle (slots parity — register hangs its own cleanup).
- * Everything else forwards through the generic guard.
- */
 function guardedTheme(theme, env, ctx) {
   return new Proxy(theme, {
     get(target, prop) {
@@ -172,14 +126,6 @@ function guardedTheme(theme, env, ctx) {
   })
 }
 
-/**
- * Build the facade one dynamic plugin's `apply` receives (host sandboxContext
- * twin, browser seats). `ctx.get(name)` performs optional lookup; direct
- * `ctx.serviceName` access is gated by the fiber's `inject` declaration.
- * @param ctx - the plugin's real fiber ctx (loader-created).
- * @param env - package row + ledger sink.
- * @returns the whitelisting proxy standing in for ctx.
- */
 export function dynamicCordisContext(ctx, env) {
   const declared = new Set(Object.keys(ctx.fiber.inject))
   const denyRead = (prop) => {

@@ -1,22 +1,13 @@
-/** Browser registry for read-only Cordis capability providers. */
-
-/** Client provider registry, manifest publisher, and live query dispatcher. */
 export class ClientCordisInspectRegistry {
   providers = new Map()
   active = new Map()
   publishQueued = false
   syncChain = Promise.resolve()
 
-  /** @param host - folded manifest and query result transport. */
   constructor(host) {
     this.host = host
   }
 
-  /**
-   * Register one Client provider and publish a new complete manifest.
-   * @param registration - provider manifest and local handler.
-   * @returns idempotent disposer.
-   */
   register(registration) {
     const { manifest } = registration
     if (manifest.id.trim() === '') throw new Error('Client Cordis inspect provider id must not be empty')
@@ -39,7 +30,6 @@ export class ClientCordisInspectRegistry {
     }
   }
 
-  /** Publish the current complete manifest, including after reconnect. */
   publish() {
     if (this.publishQueued) return
     this.publishQueued = true
@@ -54,11 +44,6 @@ export class ClientCordisInspectRegistry {
     })
   }
 
-  /**
-   * Execute and answer one Host-broadcast query.
-   * @param request - exact provider query and Session correlation received from Host.
-   * @returns after the first local result has been sent back to Host.
-   */
   async query(request) {
     if (this.active.has(request.requestId)) return
     const controller = new AbortController()
@@ -90,21 +75,12 @@ export class ClientCordisInspectRegistry {
     await this.host.resolve(request.agentId, request.requestId, resolution)
   }
 
-  /**
-   * Cancel local work after another page answered or the Tool call ended.
-   * @param requestId - query correlation that is no longer answerable.
-   */
   close(requestId) {
     this.active.get(requestId)?.abort()
     this.active.delete(requestId)
   }
 }
 
-/**
- * Provide the registry as a normal Client service.
- * @param ctx - Client Cordis context receiving the service.
- * @param registry - page-local inspect registry to publish.
- */
 export function provideClientCordisInspect(ctx, registry) {
   ctx.provide('cordisInspect', registry)
 }

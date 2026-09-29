@@ -1,13 +1,5 @@
-/**
- * Page-side run orchestration for model approvals and direct panel gestures.
- * Host activation always precedes Client loading. The same Plugin-keyed state
- * drives every surface, so remounting a panel never loses an open approval or
- * an in-flight transition.
- */
-
 import { errorDetails } from './runtime.js'
 
-/** Drives Host → Client activation and publishes Plugin-keyed activity. */
 export class CordisRunOrchestrator {
   requests = new Map()
   activity = new Map()
@@ -17,27 +9,20 @@ export class CordisRunOrchestrator {
   activityCache
   failureCache
 
-  /** @param env - Client loader and folded Host operations. */
   constructor(env) {
     this.env = env
   }
 
-  /** Open approvals and current activation attempts, keyed by stable Plugin ID. */
   activeRuns = {
     getSnapshot: () => this.activityCache ??= new Map(this.activity),
     subscribe: fn => this.observe(fn),
   }
 
-  /** Latest page-side activation failure for each Plugin. */
   lastRunError = {
     getSnapshot: () => this.failureCache ??= new Map(this.failures),
     subscribe: fn => this.observe(fn),
   }
 
-  /**
-   * Register a Client activation request, starting it immediately when the Plugin is already authorized.
-   * @param request - forwarded approval and activation metadata.
-   */
   open(request) {
     this.requests.set(request.requestId, request)
     if (!request.requiresApproval) {
@@ -67,10 +52,6 @@ export class CordisRunOrchestrator {
     this.commit()
   }
 
-  /**
-   * Rebuild pending approvals and automatic Client activations from an authoritative Host inventory read.
-   * @param rows - complete process-wide Plugin inventory.
-   */
   reconcileApprovals(rows) {
     const expected = new Map()
     for (const row of rows) {
@@ -133,10 +114,6 @@ export class CordisRunOrchestrator {
     if (changed) this.commit()
   }
 
-  /**
-   * Close an approval settled by another page or by cancellation.
-   * @param requestId - approval request that can no longer be answered here.
-   */
   close(requestId) {
     const request = this.requests.get(requestId)
     if (request === undefined) return
@@ -148,11 +125,6 @@ export class CordisRunOrchestrator {
     this.commit()
   }
 
-  /**
-   * Approve and execute one still-open model request.
-   * @param requestId - approval request to execute.
-   * @param approveFutureVersions - whether this approval covers later Packages for the same Plugin.
-   */
   approve(requestId, approveFutureVersions) {
     const request = this.requests.get(requestId)
     if (request === undefined || !request.requiresApproval) return Promise.resolve()
@@ -167,10 +139,6 @@ export class CordisRunOrchestrator {
     })
   }
 
-  /**
-   * Reject one still-open model request without executing either half.
-   * @param requestId - approval request to reject.
-   */
   async decline(requestId) {
     const request = this.requests.get(requestId)
     if (request === undefined || !request.requiresApproval) return
@@ -182,10 +150,6 @@ export class CordisRunOrchestrator {
     await this.answer(requestId, { ok: false, reason: 'rejected' })
   }
 
-  /**
-   * Execute a direct panel run; the user gesture itself authorizes it.
-   * @param request - exact Package activation selected by the user.
-   */
   startUserRun(request) {
     return this.orchestrate(request)
   }
