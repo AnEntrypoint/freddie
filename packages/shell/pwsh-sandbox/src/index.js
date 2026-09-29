@@ -1,43 +1,13 @@
-/**
- * Sandbox-consuming PowerShell executor — the pwsh twin of
- * `@freddie/freddie-bash-sandbox`. It wraps the exact local pwsh argv through
- * `ctx.sandbox` (which on Windows resolves to the ACL restricted-token runner
- * chain), inherits local process mechanics, and reports the selected mode,
- * enforcement, and denial facts. Positive runner-launch evidence means the
- * command never ran: foreground calls throw `SANDBOX_UNAVAILABLE`, while
- * background processes carry `runnerFailed`; other spawn rejections retain
- * local-executor semantics. The tool layer owns the escalation approval flow
- * through `ctx.approval`; this executor reports the sandbox facts the tool
- * renders.
- * @module @freddie/freddie-pwsh-sandbox
- */
-
 import { SandboxUnavailableError } from '@freddie/freddie-sandbox'
 import { PwshLocalExecutor } from '@freddie/freddie-pwsh-local'
 import { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from './helpers.js'
 
-/**
- * Registers as `ctx.shell` in place of the local pwsh executor and requires a
- * `ctx.sandbox` provider plus `ctx.sandboxPolicy`; the tool layer carries the
- * sandbox denial rendering and escalation surface (see the
- * pwsh-tool-and-executor Agent Note). Tool calls pass the calling session's
- * resolved policy; direct calls fall back to deployment policy.
- * `result.sandbox` reports the mode, enforcement, and denial facts the tool
- * renders.
- * @name SandboxPwshExecutor
- */
 /* jscpd:ignore-start -- deliberate call-for-call mirror of bash-sandbox's executor (pwsh-tool-and-executor Agent Note) */
 export class SandboxPwshExecutor extends PwshLocalExecutor {
   static inject = ['subprocess', 'sandbox', 'sandboxPolicy']
 
   mode
 
-  /**
-   * Per-process confinement facts retained until settlement. Providers may
-   * vary enforcement and diagnostic dialect between overlapping calls, so a
-   * shared latest-wrap value would classify a process against the wrong facts.
-   * Unconfined processes have no entry.
-   */
   processFacts = new Map()
 
   constructor(ctx, config) {
@@ -45,16 +15,10 @@ export class SandboxPwshExecutor extends PwshLocalExecutor {
     this.mode = ctx.sandboxPolicy.defaultMode
   }
 
-  /** The configured default mode — the capability fact the tool layer reads. */
   get sandboxMode() {
     return this.mode
   }
 
-  /**
-   * Stamp a complete per-call policy onto the spec. Tool calls supply the
-   * calling session's resolved mode and root; lower-level callers fall back to
-   * the deployment policy.
-   */
   resolve(request) {
     return { ...super.resolve(request), sandboxPolicy: request.sandboxPolicy ?? this.ctx.sandboxPolicy.resolve() }
   }
@@ -110,10 +74,6 @@ export class SandboxPwshExecutor extends PwshLocalExecutor {
     return proc
   }
 
-  /**
-   * Stamp per-process sandbox facts before `done` settles. Full-access
-   * processes have no facts; signal deaths are not denials.
-   */
   onProcessDone(proc, stderr, spawnFailed, spawnError) {
     const facts = this.processFacts.get(proc)
     if (facts !== undefined) {
@@ -131,14 +91,6 @@ export class SandboxPwshExecutor extends PwshLocalExecutor {
     super.onProcessDone(proc, stderr, spawnFailed, spawnError)
   }
 
-  /**
-   * Wrap one pwsh invocation via the `ctx.sandbox` provider. Provider errors
-   * propagate unchanged; the returned argv is handed directly to the local
-   * executor's subprocess path.
-   * @param spec - resolved execution spec whose pwsh argv is confined.
-   * @param policy - resolved confined execution policy.
-   * @returns the provider's exact argv and settlement-classification facts.
-   */
   confine(spec, policy) {
     return this.ctx.sandbox.confine(this.argv(spec), policy)
   }

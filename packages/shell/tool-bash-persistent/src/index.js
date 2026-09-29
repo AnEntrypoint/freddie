@@ -1,8 +1,3 @@
-/**
- * Model-facing persistent `bash` tool over the owner-scoped PTY seam.
- * @module @freddie/freddie-tool-bash-persistent
- */
-
 import { randomUUID } from 'node:crypto'
 import z from '@freddie/schemastery'
 import { deadline, timeoutOf } from '@freddie/freddie-timeout'
@@ -132,13 +127,6 @@ function renderShellExitStatus(content, exitCode, signal) {
   return appendStatusMarker(content, marker)
 }
 
-/**
- * Render the exited-session result, reset the owner's shell, and reset the
- * message that tells the model the next call starts fresh.
- * @param shells - the owner-scoped registry to reset.
- * @param status - the exited session status (exit code and signal).
- * @returns the complete model-facing result.
- */
 async function respondToSessionExit(ctx, shells, owner, id, status, marker, fallback, fallbackTruncated, config) {
   const snapshot = retainedScrollback(ctx, owner, id)
   await shells.reset(owner, 'persistent bash shell exited')
@@ -296,11 +284,6 @@ async function executeCommand(ctx, shells, owner, command, config, upstream) {
   }
 }
 
-/**
- * Register the model-facing persistent `bash` tool.
- * @param ctx - plugin context carrying tools and the owner-scoped PTY service.
- * @param config - selected PTY backend and command deadline.
- */
 function registerPersistentBash(ctx, config) {
   const shells = persistentShells(ctx, config)
   const queues = new WeakMap()
@@ -347,7 +330,6 @@ function registerPersistentBash(ctx, config) {
 export const name = 'tool-bash-persistent'
 export const inject = ['tools', 'terminals']
 
-/** Runtime configuration schema for the persistent Bash tool. */
 export const Config = z.object({
   backendType: z.string().default('shell'),
   timeoutMs: z.number().default(300_000),
@@ -355,7 +337,6 @@ export const Config = z.object({
   description: z.string().default(DEFAULT_DESCRIPTION),
 })
 
-/** Register one owner-scoped persistent `bash` tool. */
 export function apply(ctx, config) {
   const resolved = {
     backendType: config.backendType ?? 'shell',

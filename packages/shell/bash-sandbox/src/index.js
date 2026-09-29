@@ -1,33 +1,10 @@
-/**
- * Sandbox-consuming bash executor. It wraps the exact local bash argv through
- * `ctx.sandbox`, inherits local process mechanics, and reports the selected
- * mode, enforcement, and denial facts. Positive runner-launch evidence means
- * the command never ran: foreground calls throw `SANDBOX_UNAVAILABLE`, while
- * background processes carry `runnerFailed`; other spawn rejections retain
- * local-executor semantics. The tool owns approval and passes a complete per-call policy.
- * @module @freddie/freddie-bash-sandbox
- */
-
 import { SandboxUnavailableError } from '@freddie/freddie-sandbox'
 import { LocalBashExecutor } from '@freddie/freddie-bash-local'
 import { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from './helpers.js'
 
-/**
- * Registers as `ctx.shell` in place of the local executor and requires a
- * `ctx.sandbox` provider plus `ctx.sandboxPolicy`; the tool layer is
- * unchanged. Tool calls pass the calling session's resolved policy; direct
- * calls fall back to deployment policy. `result.sandbox` reports the mode and
- * enforcement actually used.
- */
 export class SandboxBashExecutor extends LocalBashExecutor {
   static inject = ['subprocess', 'sandbox', 'sandboxPolicy']
 
-  /**
-   * Per-process confinement facts retained until settlement. Providers may
-   * vary enforcement and diagnostic dialect between overlapping calls, so a
-   * shared latest-wrap value would classify a process against the wrong facts.
-   * Unconfined processes have no entry.
-   */
   processFacts = new Map()
 
   constructor(ctx, config) {
@@ -35,16 +12,10 @@ export class SandboxBashExecutor extends LocalBashExecutor {
     this.mode = ctx.sandboxPolicy.defaultMode
   }
 
-  /** The configured default mode — the capability fact the tool layer reads. */
   get sandboxMode() {
     return this.mode
   }
 
-  /**
-   * Stamp a complete per-call policy onto the spec. Tool calls supply the
-   * calling session's resolved mode and root; lower-level callers fall back to
-   * the deployment policy.
-   */
   resolve(request) {
     return { ...super.resolve(request), sandboxPolicy: request.sandboxPolicy ?? this.ctx.sandboxPolicy.resolve() }
   }
@@ -100,10 +71,6 @@ export class SandboxBashExecutor extends LocalBashExecutor {
     return proc
   }
 
-  /**
-   * Stamp per-process sandbox facts before `done` settles. Full-access processes
-   * have no facts; signal deaths are not denials.
-   */
   onProcessDone(proc, stderr, spawnFailed, spawnError) {
     const facts = this.processFacts.get(proc)
     if (facts !== undefined) {
@@ -121,14 +88,6 @@ export class SandboxBashExecutor extends LocalBashExecutor {
     super.onProcessDone(proc, stderr, spawnFailed, spawnError)
   }
 
-  /**
-   * Wrap one shell command via the `ctx.sandbox` provider. Provider errors
-   * propagate unchanged; the returned argv is handed directly to the local
-   * executor's subprocess path.
-   * @param command - shell source for the confined inner `bash -c`.
-   * @param policy - resolved confined execution policy.
-   * @returns the provider's exact argv and settlement-classification facts.
-   */
   confine(command, policy) {
     return this.ctx.sandbox.confine(['bash', '-c', command], policy)
   }

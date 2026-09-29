@@ -1,18 +1,8 @@
-/**
- * Internal sandbox-result classification helpers — deliberate call-for-call
- * mirror of `@freddie/freddie-bash-sandbox/src/helpers.js` (the pwsh twin of
- * the bash consumer shares the identical classification dialect).
- *
- * @module @freddie/freddie-pwsh-sandbox/helpers
- */
-
 /* jscpd:ignore-start */
 import { accessSync, constants, statSync } from 'node:fs'
 
-/** Node-local spawn codes proven to identify executable resolution or permission failure. */
 const EXECUTABLE_SPAWN_CODES = new Set(['EACCES', 'ENOENT'])
 
-/** Whether the caller-owned spawn cwd can be entered. */
 function isUsableWorkdir(path) {
   try {
     if (!statSync(path).isDirectory()) return false
@@ -23,20 +13,6 @@ function isUsableWorkdir(path) {
   }
 }
 
-/**
- * Attribute only Node ENOENT/EACCES failures with positive argv[0] provenance
- * after independently ruling out the caller-owned cwd. A supplied error path
- * must exactly identify the runner; without one, the syscall must. With a
- * usable cwd, these codes describe resolution or execute permission for that
- * argv[0] or its shebang interpreter.
- * The workdir is checked at classification time, not atomically with spawn;
- * concurrent path replacement may change attribution but cannot permit an
- * unconfined execution.
- * @param error - the original spawn rejection.
- * @param runnerProgram - provider argv[0], the executable that establishes confinement.
- * @param workdir - the caller-owned spawn cwd, checked independently for usability.
- * @returns whether the rejection has executable-specific runner evidence.
- */
 export function isRunnerSpawnFailure(error, runnerProgram, workdir) {
   if (runnerProgram === undefined || !isUsableWorkdir(workdir)) return false
   if (typeof error !== 'object' || error === null) return false
@@ -49,26 +25,10 @@ export function isRunnerSpawnFailure(error, runnerProgram, workdir) {
   return syscall === 'spawn' || syscall === exactSyscall
 }
 
-/**
- * Classify a failed run against the selected backend's denial dialect.
- * @param result - settled foreground run.
- * @param signatures - case-insensitive denial substrings from the active wrap.
- * @returns whether the failed run matches that denial dialect.
- */
 export function classifyDenial(result, signatures) {
   return matchesSignature(result.exitCode, result.stderr.text, signatures)
 }
 
-/**
- * Classify one settled process against the selected backend's structured
- * runner-failure rules. Each rule requires a nonzero exit, its optional
- * exit-code gate, and a fatal signature on one stderr line after exact
- * informational lines are excluded.
- * @param exitCode - process exit code; null means signal termination.
- * @param stderr - collected stderr text, left unchanged.
- * @param rules - structured runner-failure rules from the active wrap.
- * @returns the first matching fatal line, or undefined when evidence is insufficient.
- */
 export function classifyRunnerFailure(exitCode, stderr, rules) {
   if (exitCode === null || exitCode === 0) return undefined
   const lines = stderr.split(/\r?\n/)
@@ -87,13 +47,6 @@ export function classifyRunnerFailure(exitCode, stderr, rules) {
   return undefined
 }
 
-/**
- * Match a non-zero exit against case-insensitive stderr signatures.
- * @param exitCode - process exit code; null means signal termination.
- * @param stderr - collected stderr text.
- * @param signatures - substrings identifying the selected backend's dialect.
- * @returns whether this is a non-zero exit whose stderr matches a signature.
- */
 export function matchesSignature(exitCode, stderr, signatures) {
   if (exitCode === null || exitCode === 0) return false
   const lowered = stderr.toLowerCase()

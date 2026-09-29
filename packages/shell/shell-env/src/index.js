@@ -1,13 +1,3 @@
-/**
- * Tool-independent shell environment plugin: owns the `ctx.shellEnv` registry of
- * trusted, per-execution `FREDDIE_*` variables consumed by the model-facing shell
- * tools (`freddie-tool-bash`, `freddie-tool-pwsh`). Built-in shell facts are owned by
- * the registry itself while plugins can register additional, enumerable facts
- * with effect-scoped disposal.
- *
- * @module @freddie/freddie-shell-env
- */
-
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { FREDDIE_ENV_PREFIX } from '@freddie/freddie-shell'
@@ -16,7 +6,6 @@ import { FREDDIE_HOME_ENV, resolveFreddieHome } from '@freddie/freddie-home-path
 export const name = 'shell-env'
 export const inject = []
 
-/** Runtime configuration schema for the shell-env plugin. */
 export const Config = z.object({
   freddieHome: z.string(),
 })
@@ -31,35 +20,16 @@ const RESERVED_BASH_ENV_KEYS = new Set([
 ])
 const BASH_ENV_KEY_SUFFIX = /^[A-Z][A-Z0-9_]*$/
 
-/**
- * Registry (`ctx.shellEnv`) for trusted, per-execution `FREDDIE_*` variables.
- * The namespace is rebuilt for every model shell call: ambient `FREDDIE_*` values
- * are discarded by the executor, then the registry's current snapshot is
- * injected. Built-in shell facts remain owned by the registry itself while
- * plugins can register additional, enumerable facts with effect-scoped
- * disposal.
- */
 export class ShellEnvRegistry extends Service {
   contributors = new Map()
   keyOwners = new Map()
   freddieHome
 
-  /**
-   * Create and install the `ctx.shellEnv` service.
-   * @param ctx - Cordis context that owns the service and registrations.
-   * @param config - home-directory configuration for the built-in variables.
-   */
   constructor(ctx, config = {}) {
     super(ctx, 'shellEnv')
     this.freddieHome = resolveFreddieHome(config.freddieHome)
   }
 
-  /**
-   * Register one environment contributor. Names and keys are unique; built-in
-   * keys are reserved. Registration is disposed with the calling plugin fiber.
-   * @param contributor - declared key ownership and per-execution resolver.
-   * @returns the disposer that unregisters the contribution.
-   */
   register(contributor) {
     const dispose = this.ctx.effect(function* () {
       if (contributor.name.trim().length === 0) {
@@ -97,11 +67,6 @@ export class ShellEnvRegistry extends Service {
     return () => void dispose()
   }
 
-  /**
-   * Build the trusted `FREDDIE_*` snapshot for one shell tool execution.
-   * @param execution - the current tool execution.
-   * @returns an immutable environment overlay containing built-ins and current contributions.
-   */
   collect(execution) {
     const values = {
       [FREDDIE_HOME_ENV]: this.freddieHome,
@@ -128,10 +93,6 @@ export class ShellEnvRegistry extends Service {
     return Object.freeze(Object.fromEntries(Object.entries(values).sort(([left], [right]) => left.localeCompare(right))))
   }
 
-  /**
-   * Enumerate plugin-contributed variables without executing their resolvers.
-   * @returns declarations sorted by environment variable name.
-   */
   list() {
     return [...this.contributors.values()]
       .flatMap(contributor => Object.entries(contributor.variables).map(([key, variable]) => ({
@@ -143,12 +104,6 @@ export class ShellEnvRegistry extends Service {
   }
 }
 
-/**
- * Load the shell-env plugin: register the `ctx.shellEnv` service and the
- * shell-agnostic persistence contributor (`FREDDIE_SESSION_JSONL`).
- * @param ctx - Cordis context that owns the service and registrations.
- * @param config - home-directory configuration for the built-in variables.
- */
 export function apply(ctx, config = {}) {
   const registry = new ShellEnvRegistry(ctx, config)
   registry.register({

@@ -1,17 +1,3 @@
-/**
- * Generic-task adaptation for background bash process handles.
- *
- * @module @freddie/freddie-tool-bash/background
- */
-
-/**
- * Map a settled background process onto the generic task-outcome vocabulary:
- * `killed` stays `killed` (detail: the signal when one is known), everything
- * else is `completed` with the exit code as detail. A nonzero command exit is
- * reported, not failed, exactly like the foreground rendering.
- * @param proc - the settled process handle.
- * @returns the outcome for the `ctx.jobs` registration.
- */
 export function processOutcome(proc) {
   if (proc.status === 'killed') {
     return { status: 'killed', detail: proc.signal !== null ? `signal: ${proc.signal}` : 'killed before exit' }

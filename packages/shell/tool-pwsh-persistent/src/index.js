@@ -1,9 +1,5 @@
 /* jscpd:ignore-start -- deliberate mirror of tool-bash-persistent (persistent-pty note 2026-08-11-pwsh-persistent-pty):
    the PowerShell counterpart shares the session registry, polling loop, and reset contract by design. */
-/**
- * Model-facing persistent `pwsh` tool over the owner-scoped PTY seam.
- * @module @freddie/freddie-tool-pwsh-persistent
- */
 
 import { randomUUID } from 'node:crypto'
 import z from '@freddie/schemastery'
@@ -35,15 +31,6 @@ function markers() {
   }
 }
 
-/**
- * Escape a command body for embedding in the wrapper's double-quoted string.
- * Backtick escapes keep every character literal: backtick first so the
- * escapes this function inserts are never re-escaped, `$` so no expansion
- * happens at wrapper construction, and `\r\n`/ESC so multi-line commands and
- * raw control bytes ride one physical input line without PSReadLine mangling.
- * @param value - the model's PowerShell command text.
- * @returns the escaped double-quoted-string body.
- */
 function quoteForPwsh(value) {
   return value
     .replaceAll('`', '``')
@@ -159,13 +146,6 @@ function renderShellExitStatus(content, exitCode, signal) {
   return appendStatusMarker(content, marker)
 }
 
-/**
- * Render the exited-session result, reset the owner's shell, and reset the
- * message that tells the model the next call starts fresh.
- * @param shells - the owner-scoped registry to reset.
- * @param status - the exited session status (exit code and signal).
- * @returns the complete model-facing result.
- */
 async function respondToSessionExit(ctx, shells, owner, id, status, marker, wrapped, fallback, fallbackTruncated, config) {
   const snapshot = retainedScrollback(ctx, owner, id)
   await shells.reset(owner, 'persistent pwsh shell exited')
@@ -179,12 +159,6 @@ async function respondToSessionExit(ctx, shells, owner, id, status, marker, wrap
   ].filter(part => part.length > 0).join('\n')
 }
 
-/**
- * The pwsh prompt function that overrides the backend bootstrap value with
- * this tool's own prompt. `[char]27`/`[char]7` build the OSC bytes at runtime
- * because raw ESC characters in submitted input are unreliable under
- * PSReadLine.
- */
 const PWSH_PROMPT_SETUP =
   "function prompt { [Console]::Write([char]27 + ']133;D;' + [int]$LASTEXITCODE + [char]7); '" + SHELL_PROMPT + "' }"
 
@@ -332,11 +306,6 @@ async function executeCommand(ctx, shells, owner, command, config, upstream) {
   }
 }
 
-/**
- * Register the model-facing persistent `pwsh` tool.
- * @param ctx - plugin context carrying tools and the owner-scoped PTY service.
- * @param config - selected PTY backend and command deadline.
- */
 function registerPersistentPwsh(ctx, config) {
   const shells = persistentShells(ctx, config)
   const queues = new WeakMap()
@@ -383,7 +352,6 @@ function registerPersistentPwsh(ctx, config) {
 export const name = 'tool-pwsh-persistent'
 export const inject = ['tools', 'terminals']
 
-/** Runtime configuration schema for the persistent pwsh tool. */
 export const Config = z.object({
   backendType: z.string().default('shell'),
   timeoutMs: z.number().default(300_000),
@@ -391,7 +359,6 @@ export const Config = z.object({
   description: z.string().default(DEFAULT_DESCRIPTION),
 })
 
-/** Register one owner-scoped persistent `pwsh` tool. */
 export function apply(ctx, config) {
   const resolved = {
     backendType: config.backendType ?? 'shell',

@@ -1,13 +1,3 @@
-/**
- * Model-facing Consumer of the `ctx.shell` capability seam. Background calls
- * register process handles with `ctx.jobs`; their work uses job cancellation
- * rather than the tool-call signal after an id is returned.
- *
- * TODO(permissions): deployment policy belongs in `tools/pre-execute` and
- * sandboxing executors; see docs/architecture.md § Where new behavior goes.
- * @module @freddie/freddie-tool-bash
- */
-
 import z from '@freddie/schemastery'
 import { isAbsolute, resolve as resolvePath } from 'node:path'
 import { defineTool, TOOL_ABORTED } from '@freddie/freddie-tools'
@@ -20,7 +10,6 @@ import { parseExitStatus, renderProcessRead, renderResult } from './render.js'
 export const name = 'tool-bash'
 export const inject = ['tools', 'shell', 'systemPrompt', 'shellEnv']
 
-/** Runtime configuration schema for the bash tool plugin. */
 export const Config = z.object({
   enableRunInBackground: z.boolean().default(true),
 })
@@ -63,11 +52,6 @@ function bashDescription(backgroundEnabled, escalationModes) {
     + 'it — but it does not forbid attempting or escalating other commands later.'
 }
 
-/**
- * Present foreground calls as terminals and background starts as generic cards.
- * The command remains the title on both paths; foreground cwd is passed through
- * for the bridge to resolve, while background descriptions remain card content.
- */
 function presentBashCall(args) {
   if (args.run_in_background === true) {
     return {
@@ -86,10 +70,6 @@ function presentBashCall(args) {
   }
 }
 
-/**
- * Present completed foreground output as a terminal; background acknowledgements
- * and execution errors use generic fenced output without an exit-status pill.
- */
 function presentBashResult(args, result) {
   const block = result.content.length === 1 ? result.content[0] : undefined
   if (block === undefined || block.type !== 'text') return undefined
@@ -102,12 +82,6 @@ function presentBashResult(args, result) {
   return { card: 'terminal', output: body, ...exit }
 }
 
-/**
- * Resolve an explicit workdir first, making a relative one session-workspace-relative;
- * otherwise use the filesystem identity of the session cwd and leave executor
- * defaulting as the fallback. A resolved sandbox-policy root wins so workdir
- * and confinement use the exact same per-call identity.
- */
 function resolveWorkdir(
   modelWorkdir,
   exec,
@@ -122,7 +96,6 @@ function resolveWorkdir(
   return modelWorkdir
 }
 
-/** Detach the executor DTO from readonly Service Definition types into plain JSON data. */
 function canonicalBashResult(result) {
   const output = (stream) => ({
     text: stream.text,
@@ -148,7 +121,6 @@ function canonicalBashResult(result) {
   }
 }
 
-/** Canonical background-handle properties shared by the bash output union. */
 const BACKGROUND_OUTPUT_PROPERTIES = {
   kind: { type: 'string', required: true, const: 'background' },
   jobId: { type: 'string', required: true },
@@ -162,21 +134,9 @@ export function apply(ctx, config = {}) {
   if (defaultMode !== undefined && sandboxPolicy === undefined) {
     throw new Error('tool-bash: the mounted bash executor confines but ctx.sandboxPolicy is missing')
   }
-  /** Resolve the complete standing policy for this call when a confining executor is mounted. */
   const resolveSandboxPolicy = (exec) =>
     sandboxPolicy?.resolve(exec.agent === undefined ? {} : { session: exec.agent.session })
 
-  /**
-   * Resolve a sandbox-escalation request through `ctx.approval` BEFORE
-   * anything executes, delegating the shared fail-closed sequence (strict
-   * widening, channel resolution, outcome mapping) to
-   * {@link approveEscalation}. This tool contributes only the composition
-   * guard (the fields are unadvertised without a sandboxing executor, yet
-   * schema validation checks advertised keys only, so an unadvertised
-   * `sandbox_permissions` still reaches execute) and the approval
-   * ingredients. The shared policy resolver is required whenever the executor
-   * advertises confinement, so a split composition fails at tool-plugin load.
-   */
   const approveBashEscalation = (
     mode,
     justification,

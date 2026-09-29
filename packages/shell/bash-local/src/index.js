@@ -1,26 +1,8 @@
-/**
- * Local Service Provider for the bash capability seam over the subprocess
- * capability seam. Public commands run as `bash -c` in a managed process group spawned
- * through `ctx.subprocess`; subclasses may reuse the same mechanics with an
- * explicit argv. This executor owns command defaulting, deadlines and cause
- * classification, the model-friendly terminal environment, and the model-facing
- * stdout/stderr merge for background reads. Execution policy belongs in
- * `tools/pre-execute` or a sandboxing executor.
- * @module @freddie/freddie-bash-local
- */
-
 import z from '@freddie/schemastery'
 import { SHELL_SETTINGS_NAMESPACE, ShellExecutor } from '@freddie/freddie-shell'
 import { installSettingsSection } from '@freddie/freddie-settings'
 import { clampTimeout, deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@freddie/freddie-timeout'
 
-/**
- * Model-friendly environment overrides: disable colors, pagers, and
- * interactive terminal features that would garble tool output (the same set
- * Codex hardcodes; Claude Code achieves it via TERM=dumb). Bash-tool policy —
- * merged first into the spawn's explicit env, so a trusted caller's own entry
- * still wins; the subprocess service applies its credential scrub independently.
- */
 export const ENV_OVERRIDES = {
   NO_COLOR: '1',
   TERM: 'dumb',
@@ -28,13 +10,10 @@ export const ENV_OVERRIDES = {
   GIT_PAGER: 'cat',
 }
 
-/** Default SIGTERM→SIGKILL grace period (the `graceMs` config; matches OpenCode's 3s). */
 const DEFAULT_GRACE_MS = 3_000
 
-/** Default per-stream spill cap (the `maxSpillBytes` config). */
 const DEFAULT_MAX_SPILL_BYTES = 64 * 1024 * 1024
 
-/** Project a settled collect-mode reader into the final CollectedOutput shape. */
 function finalOutput(reader) {
   const read = reader.readFrom(0)
   return {
@@ -50,14 +29,6 @@ function assertPositiveFinite(name, value) {
   }
 }
 
-/**
- * Reject a resolved section this executor could not run with. The schema
- * expresses neither "positive and finite" nor the timer bound `graceMs` has to
- * fit, so a stored value is refused where it is written instead of failing at
- * the next command.
- * @param config - the resolved section, schema-valid by construction.
- * @throws Error naming the field that cannot be used.
- */
 export function assertServiceableBashConfig(config) {
   const resolved = config
   assertPositiveFinite('timeoutMs', resolved.timeoutMs)
@@ -70,13 +41,6 @@ export function assertServiceableBashConfig(config) {
   }
 }
 
-/**
- * Local bash executor over `ctx.subprocess`. Bounded output, spill files, and
- * process-group SIGTERM→SIGKILL escalation are the subprocess service's
- * mechanics; this executor supplies their configured budgets per spawn, so a
- * still-running background process stays managed (killed and joined at
- * composition teardown) even across an executor reload.
- */
 export class LocalBashExecutor extends ShellExecutor {
   static inject = ['subprocess']
 
@@ -89,10 +53,8 @@ export class LocalBashExecutor extends ShellExecutor {
     graceMs: z.number().default(DEFAULT_GRACE_MS),
   })
 
-  /** The currently authoritative config: the settings section, or the composition entry. */
   source
 
-  /** Validated config (schemastery applied the defaults before construction). */
   get config() {
     return this.source()
   }
@@ -111,13 +73,6 @@ export class LocalBashExecutor extends ShellExecutor {
     })
   }
 
-  /**
-   * Resolve a request into a fully-specified spec: fill `workdir` from
-   * `config.cwd` (else `process.cwd()`), and `timeoutMs` from
-   * `config.timeoutMs`, capped at `config.maxTimeoutMs`. The tool layer calls
-   * this before {@link run}/{@link start}, so those methods receive explicit
-   * values and never re-default.
-   */
   resolve(request) {
     const timeoutMs = clampTimeout(
       request.timeoutMs,
@@ -140,7 +95,6 @@ export class LocalBashExecutor extends ShellExecutor {
     }
   }
 
-  /** Map one resolved bash spec and explicit argv onto a fully-specified subprocess spawn. */
   spawnSpec(
     spec,
     argv,
@@ -163,7 +117,6 @@ export class LocalBashExecutor extends ShellExecutor {
     }
   }
 
-  /** The collect-mode readers the executor itself requested (present by construction). */
   static collected(handle) {
     const { stdout, stderr } = handle.collected
     /* v8 ignore start -- collect dispositions expose both readers by the seam contract; defensive. */
@@ -178,14 +131,6 @@ export class LocalBashExecutor extends ShellExecutor {
     return this.runArgv(spec, ['bash', '-c', spec.command])
   }
 
-  /**
-   * Run an explicit argv with the foreground lifecycle, environment, output,
-   * timeout, and cancellation semantics of this executor. Subclasses use this
-   * after replacing the public command's shell argv at an execution boundary.
-   * @param spec - resolved execution settings and caller-owned command metadata.
-   * @param argv - exact executable and arguments to hand to `ctx.subprocess`.
-   * @returns the settled foreground result with collected output and cause facts.
-   */
   async runArgv(spec, argv) {
     using d = deadline(spec.signal, spec.timeoutMs, 'BASH_TIMEOUT')
     const handle = this.ctx.subprocess.spawn(this.spawnSpec(spec, argv, spec.stdoutMaxBytes, d.signal))
@@ -207,15 +152,6 @@ export class LocalBashExecutor extends ShellExecutor {
     return this.startArgv(spec, ['bash', '-c', spec.command])
   }
 
-  /**
-   * Start an explicit argv with the background lifecycle, environment, output,
-   * cancellation, and process-tree ownership semantics of this executor.
-   * Subclasses use this after replacing the public command's shell argv at an
-   * execution boundary.
-   * @param spec - resolved execution settings and caller-owned command metadata.
-   * @param argv - exact executable and arguments to hand to `ctx.subprocess`.
-   * @returns the live background handle; spawn rejection settles it as killed.
-   */
   startArgv(spec, argv) {
     const running = this.ctx.subprocess.spawn(this.spawnSpec(spec, argv, this.config.maxOutputBytes, spec.signal))
     const collected = LocalBashExecutor.collected(running)
@@ -272,16 +208,6 @@ export class LocalBashExecutor extends ShellExecutor {
     return proc
   }
 
-  /**
-   * Settlement hook for subclasses that attach execution facts to a process.
-   * Called after exit facts or spawn-failure output are stamped and before
-   * {@link import('@freddie/freddie-shell').ShellProcess.done} resolves. The base implementation is intentionally
-   * empty.
-   * @param _proc - the settled process handle.
-   * @param _stderr - the process's retained stderr tail used by subclasses for settlement classification.
-   * @param _spawnFailed - whether the subprocess promise rejected before a process started.
-   * @param _spawnError - the original spawn rejection reason, which may itself be undefined.
-   */
   onProcessDone(_proc, _stderr, _spawnFailed, _spawnError) {}
 }
 

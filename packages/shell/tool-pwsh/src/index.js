@@ -1,24 +1,3 @@
-/**
- * Model-facing PowerShell Consumer of the `ctx.shell` capability seam. Intended for
- * Windows compositions where a PowerShell executor (e.g.
- * `@freddie/freddie-pwsh-local`) backs `ctx.shell`; the tool contract is
- * PowerShell-dialect: native `C:\...` paths and `$env:NAME` variables.
- *
- * Behavior mirrors `freddie-tool-bash` call-for-call: foreground and
- * `run_in_background` execution (background handles register with the
- * generic `ctx.jobs` runtime), the managed `FREDDIE_*` environment through the
- * shared `shell-env` registry, the per-call sandbox policy resolution (the
- * calling session's mode and cwd travel to the confining executor), the
- * sandbox-denial rendering with the same-turn escalation surface
- * (`sandbox_permissions` + `justification` resolved through
- * `ctx.approval`), and the bash marker/truncation rendering story. UI
- * presentation mirrors the bash tool's too: a completed foreground call is
- * a terminal card with the parsed exit-status pill, using the shared
- * exit-status parse from `@freddie/freddie-shell`.
- *
- * @module @freddie/freddie-tool-pwsh
- */
-
 import { basename, isAbsolute, resolve as resolvePath } from 'node:path'
 import z from '@freddie/schemastery'
 import { defineTool, TOOL_ABORTED } from '@freddie/freddie-tools'
@@ -31,7 +10,6 @@ import { renderPwshProcessRead, renderPwshResult } from './render.js'
 export const name = 'tool-pwsh'
 export const inject = ['tools', 'shell', 'systemPrompt', 'shellEnv']
 
-/** Runtime configuration schema for the pwsh tool plugin. */
 export const Config = z.object({
   enableRunInBackground: z.boolean().default(true),
 })
@@ -51,13 +29,6 @@ function validatePwshArgs(args) {
 }
 /* jscpd:ignore-end */
 
-/**
- * Model-facing invocation clause for the executable `ctx.shell` actually spawns.
- * Windows last-resorts to `powershell.exe` (Windows PowerShell 5.1) when `pwsh`
- * is absent; naming `pwsh -Command` in that case is a false contract.
- * @param pwshPath - the executor's resolved executable, when it exposes one.
- * @returns a parenthetical naming that executable (and 5.1 last-resort when it is powershell.exe).
- */
 export function describePwshInvocation(pwshPath) {
   if (typeof pwshPath !== 'string' || pwshPath.length === 0) {
     return '`pwsh -Command` (on Windows, `powershell.exe` / Windows PowerShell 5.1 is the last-resort executable when `pwsh` is not installed)'
@@ -107,10 +78,6 @@ function pwshDescription(backgroundEnabled, escalationModes, pwshPath) {
     + 'it — but it does not forbid attempting or escalating other commands later.'
 }
 
-/**
- * Resolve an explicit workdir first, making a relative one session-workspace-relative;
- * otherwise use the session header cwd and leave executor defaulting as the fallback.
- */
 function resolveWorkdir(modelWorkdir, exec) {
   const headerCwd = exec.agent?.session.header.cwd
   if (modelWorkdir === undefined) return headerCwd
@@ -120,7 +87,6 @@ function resolveWorkdir(modelWorkdir, exec) {
   return modelWorkdir
 }
 
-/** Detach the executor DTO from readonly Service Definition types into plain JSON data. */
 function canonicalPwshResult(result) {
   const output = (stream) => ({
     text: stream.text,
@@ -148,7 +114,6 @@ function canonicalPwshResult(result) {
   }
 }
 
-/** Canonical background-handle properties shared by the pwsh output union. */
 const BACKGROUND_OUTPUT_PROPERTIES = {
   kind: { type: 'string', required: true, const: 'background' },
   jobId: { type: 'string', required: true },
@@ -165,23 +130,10 @@ export function apply(ctx, config = {}) {
     throw new Error('tool-pwsh: the mounted bash executor confines but ctx.sandboxPolicy is missing')
   }
   /* jscpd:ignore-end */
-  /** Resolve the complete standing policy for this call when a confining executor is mounted. */
   const resolveSandboxPolicy = (exec) =>
     sandboxPolicy?.resolve(exec.agent === undefined ? {} : { session: exec.agent.session })
 
   /* jscpd:ignore-start -- deliberate mirror of freddie-tool-bash's escalation resolver (pwsh-tool-and-executor Agent Note). */
-  /**
-   * Resolve a sandbox-escalation request through `ctx.approval` BEFORE
-   * anything executes, delegating the shared fail-closed sequence (strict
-   * widening, channel resolution, outcome mapping) to
-   * {@link approveEscalation}. This tool contributes only the composition
-   * guard (the fields are unadvertised without a sandboxing executor, yet
-   * schema validation checks advertised keys only, so an unadvertised
-   * `sandbox_permissions` still reaches execute) and the approval
-   * ingredients. The shared policy resolver is required whenever the
-   * executor advertises confinement, so a split composition fails at
-   * tool-plugin load.
-   */
   const approvePwshEscalation = (
     mode,
     justification,

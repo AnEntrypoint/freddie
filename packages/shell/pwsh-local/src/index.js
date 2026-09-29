@@ -1,18 +1,3 @@
-/**
- * Local PowerShell Service Provider for the bash capability seam. Each command runs
- * as `pwsh -NoLogo -NoProfile -NonInteractive -Command <command>` in a managed
- * process spawned through `ctx.subprocess`; the executor owns command
- * defaulting, deadlines and cause classification, the model-friendly terminal
- * environment, and the model-facing stdout/stderr merge for background reads.
- *
- * The command string is passed as ONE argv element to `-Command`: PowerShell
- * itself parses the text, and no intermediate shell exists, so there is no
- * shell-quoting layer to escape (the `bash -c` string domain has no
- * equivalent here). Native Win32 paths (`C:\...`) pass through unchanged.
- *
- * @module @freddie/freddie-pwsh-local
- */
-
 /* jscpd:ignore-start -- this executor mirrors freddie-bash-local call-for-call by
    design (see this package's README), so the two import the same seam surface */
 import z from '@freddie/schemastery'
@@ -23,37 +8,21 @@ import { clampTimeout, deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@freddie/
 import { resolvePwshPath } from './resolve.js'
 
 /* jscpd:ignore-start -- deliberate call-for-call mirror of freddie-bash-local (Agent Note: pwsh-tool-and-executor). */
-/**
- * Model-friendly environment overrides for PowerShell: disable colors and
- * pagers that would garble tool output. `TERM=dumb` is a POSIX concept and is
- * deliberately absent; `NO_COLOR` is honored by modern pwsh renderers.
- */
 export const ENV_OVERRIDES = {
   NO_COLOR: '1',
   PAGER: 'cat',
   GIT_PAGER: 'cat',
 }
 
-/**
- * UTF-8 output pinning prepended to every command. The subprocess collector
- * decodes output bytes as UTF-8, but Windows PowerShell 5.1 (the last-resort
- * executable fallback) writes the console/OEM code page by default, which
- * garbles non-ASCII output; pwsh 7 defaults to UTF-8 and is unaffected. The
- * statements ride on line 1 after `; ` separators so PowerShell error line
- * numbers stay accurate.
- */
 export const ENCODING_PREAMBLE =
   '[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); $OutputEncoding = [System.Text.UTF8Encoding]::new($false); '
 
-/** Default SIGTERM→SIGKILL grace period (the `graceMs` config). */
 const DEFAULT_GRACE_MS = 3_000
 
-/** Default per-stream spill cap (the `maxSpillBytes` config). */
 const DEFAULT_MAX_SPILL_BYTES = 64 * 1024 * 1024
 
 export { candidatePwshPaths, resolvePwshPath } from './resolve.js'
 
-/** Project a settled collect-mode reader into the final CollectedOutput shape. */
 function finalOutput(reader) {
   const read = reader.readFrom(0)
   return {
@@ -69,14 +38,6 @@ function assertPositiveFinite(name, value) {
   }
 }
 
-/**
- * Reject a resolved section this executor could not run with. The schema
- * expresses neither "positive and finite" nor the timer bound `graceMs` has to
- * fit, so a stored value is refused where it is written instead of failing at
- * the next command.
- * @param config - the resolved section, schema-valid by construction.
- * @throws Error naming the field that cannot be used.
- */
 export function assertServiceablePwshConfig(config) {
   const resolved = config
   assertPositiveFinite('timeoutMs', resolved.timeoutMs)
@@ -89,11 +50,6 @@ export function assertServiceablePwshConfig(config) {
   }
 }
 
-/**
- * Local PowerShell executor over `ctx.subprocess`. Bounded output, spill
- * files, and process-tree termination are the subprocess service's mechanics;
- * this executor supplies their configured budgets per spawn.
- */
 export class PwshLocalExecutor extends ShellExecutor {
   static inject = ['subprocess']
 
@@ -107,21 +63,16 @@ export class PwshLocalExecutor extends ShellExecutor {
     pwshPath: z.string(),
   })
 
-  /** The currently authoritative config: the settings section, or the composition entry. */
   source
 
-  /** The declared executable the current {@link pwshPath} was resolved from. */
   declaredPwshPath
 
-  /** The pwsh executable resolved from the current config. */
   resolvedPwshPath
 
-  /** Validated config (schemastery applied the defaults before construction). */
   get config() {
     return this.source()
   }
 
-  /** The pwsh executable every command runs through. */
   get pwshPath() {
     return this.resolvedPwshPath
   }
@@ -147,11 +98,6 @@ export class PwshLocalExecutor extends ShellExecutor {
     })
   }
 
-  /**
-   * Resolve a request into a fully-specified spec: fill `workdir` from
-   * `config.cwd` (else `process.cwd()`), and `timeoutMs` from
-   * `config.timeoutMs`, capped at `config.maxTimeoutMs`.
-   */
   resolve(request) {
     const timeoutMs = clampTimeout(
       request.timeoutMs,
@@ -174,17 +120,10 @@ export class PwshLocalExecutor extends ShellExecutor {
     }
   }
 
-  /**
-   * The pwsh invocation argv for one resolved spec — the argv-level seam a
-   * confining subclass wraps through `ctx.sandbox.confine` (the pwsh twin of
-   * `freddie-bash-local`'s `runArgv`/`startArgv` hooks; see
-   * `@freddie/freddie-pwsh-sandbox`).
-   */
   argv(spec) {
     return [this.pwshPath, '-NoLogo', '-NoProfile', '-NonInteractive', '-Command', `${ENCODING_PREAMBLE}${spec.command}`]
   }
 
-  /** Map one resolved spec plus its argv onto a fully-specified subprocess spawn. */
   spawnSpec(
     spec,
     stdoutMaxBytes,
@@ -207,7 +146,6 @@ export class PwshLocalExecutor extends ShellExecutor {
     }
   }
 
-  /** The collect-mode readers the executor itself requested (present by construction). */
   static collected(handle) {
     const { stdout, stderr } = handle.collected
     /* v8 ignore start -- collect dispositions expose both readers by the seam contract; defensive. */
@@ -222,7 +160,6 @@ export class PwshLocalExecutor extends ShellExecutor {
     return this.runArgv(spec, this.argv(spec))
   }
 
-  /** Foreground run of an exact argv (the confining subclass re-wraps it). */
   async runArgv(spec, argv) {
     using d = deadline(spec.signal, spec.timeoutMs, 'BASH_TIMEOUT')
     const handle = this.ctx.subprocess.spawn(this.spawnSpec(spec, spec.stdoutMaxBytes, d.signal, argv))
@@ -244,7 +181,6 @@ export class PwshLocalExecutor extends ShellExecutor {
     return this.startArgv(spec, this.argv(spec))
   }
 
-  /** Background start of an exact argv (the confining subclass re-wraps it). */
   startArgv(spec, argv) {
     const running = this.ctx.subprocess.spawn(this.spawnSpec(spec, this.config.maxOutputBytes, spec.signal, argv))
     const collected = PwshLocalExecutor.collected(running)
@@ -301,16 +237,6 @@ export class PwshLocalExecutor extends ShellExecutor {
     return proc
   }
 
-  /**
-   * Settlement hook for subclasses that attach execution facts to a process.
-   * The base implementation is intentionally empty. Mirrored from
-   * `freddie-bash-local` (whose sandboxing subclass consumes the same hook); the
-   * pwsh-confining consumer is `@freddie/freddie-pwsh-sandbox`.
-   * @param _proc - the settled process handle.
-   * @param _stderr - the process's retained stderr tail used by subclasses for settlement classification.
-   * @param _spawnFailed - whether the spawn rejected before any process existed.
-   * @param _spawnError - the spawn rejection, when `_spawnFailed`.
-   */
   onProcessDone(_proc, _stderr, _spawnFailed, _spawnError) {}
 }
 /* jscpd:ignore-end */
