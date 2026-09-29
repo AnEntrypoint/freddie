@@ -1,5 +1,3 @@
-/** Cross-platform native single-directory chooser behind the native backend's capability. */
-
 import { runNativeCommand } from '@freddie/freddie-native-command'
 import { pickWin32Directory } from './win32-dialog.js'
 
@@ -28,12 +26,6 @@ function rethrowIfAborted(signal, error) {
   if (signal.aborted) throw error
 }
 
-/**
- * Open the platform directory picker.
- * @param signal - caller/connection lifetime; abort terminates the native command.
- * @param internals - Platform and runner hooks for deterministic tests.
- * @returns the selected path, or null when the user cancels.
- */
 export async function pickNativeDirectory(signal, internals = {}) {
   const platform = internals.platform ?? process.platform
   const run = internals.run ?? runNativeCommand

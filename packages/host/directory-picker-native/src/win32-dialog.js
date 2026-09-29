@@ -1,34 +1,16 @@
-/**
- * Main-thread driver for the Win32 folder dialog: spawns the dialog child
- * process (which blocks inside the modal `Show`), maps its message protocol
- * onto a promise, and services aborts by posting `WM_CLOSE` to the dialog
- * thread's windows until the child reports back. The real process/window
- * surface is injectable so every driver path is testable on any platform.
- */
-
 import { closeThreadWindows as hostCloseThreadWindows, spawnDialogWorker } from './win32-dialog-host.js'
 
-/** The dialog title every host shows. */
 export const DIALOG_TITLE = 'Select Workspace Directory'
 
-/** `WM_CLOSE` re-post cadence while an abort waits for the worker to unwind. */
 const CLOSE_RETRY_MS = 150
-/** Abort-service attempts before force-terminating the worker. */
 const CLOSE_MAX_ATTEMPTS = 20
 
 /* v8 ignore start -- closed-union backstop; unreachable without a TypeScript contract violation */
-/** Fail loudly if the closed worker-to-driver union gains an unhandled member. */
 function assertNever(value) {
   throw new TypeError(`unknown win32 dialog worker message kind: ${String(value)}`)
 }
 /* v8 ignore stop */
 
-/**
- * Open the modern Win32 folder picker off the event loop.
- * @param signal - caller lifetime; abort closes the dialog and rejects.
- * @param internals - Worker/window hooks for deterministic tests.
- * @returns the selected path, or null when the user cancels.
- */
 export async function pickWin32Directory(signal, internals = {}) {
   if (signal.aborted) throw new Error('native directory picker aborted')
   const spawnWorker = internals.spawnWorker ?? spawnDialogWorker

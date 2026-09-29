@@ -1,23 +1,3 @@
-/**
- * koffi-backed Win32 bindings for the folder dialog: the COM vtable calls
- * behind {@link Win32DialogBindings} plus the cross-thread window closer the
- * driver uses to service aborts. The module loads on every platform; koffi
- * itself is imported lazily inside each function, so non-Windows processes
- * never load it — the same containment as the repo's other `win32.js`
- * modules.
- *
- * The COM surface used here (IModalWindow/IFileDialog/IFileOpenDialog and
- * IShellItem vtable order, the GUIDs, `FOS_*` and `SIGDN_FILESYSPATH`) is
- * frozen Windows ABI since Vista; slots are offsets into the vtable at the
- * object's first pointer.
- */
-
-/**
- * Read a NUL-terminated UTF-16 string at a native address. koffi's
- * `_Out_ void **` out-params surface a raw address, and
- * `koffi.decode(addr, 'str16')` would dereference it as a pointer — crash
- * on real Windows — so view the memory directly instead.
- */
 function readUtf16(koffi, address) {
   const bytes = Buffer.from(koffi.view(address, 32768))
   let end = 0
@@ -28,30 +8,16 @@ function readUtf16(koffi, address) {
 const COINIT_APARTMENTTHREADED = 0x2
 const CLSCTX_INPROC_SERVER = 0x1
 const SIGDN_FILESYSPATH = 0x80058000 | 0
-/**
- * Thread DPI awareness contexts, best first: per-monitor-v2 (Windows 10
- * 1703+), per-monitor (1607+), then system-aware. `SetThreadDpiAwarenessContext`
- * returns NULL for an unsupported context instead of throwing, so the caller
- * cascades to the best one the host accepts; DPI stays a cosmetic
- * best-effort — an unsupported host still gets the modern dialog.
- */
 const DPI_AWARENESS_CONTEXTS = [-4, -3, -2]
 const WM_CLOSE = 0x10
 
-/** IFileOpenDialog vtable slots (IUnknown 0-2, IModalWindow 3, IFileDialog 4+). */
 const SLOT_RELEASE = 2
 const SLOT_SHOW = 3
 const SLOT_SET_OPTIONS = 9
 const SLOT_SET_TITLE = 17
 const SLOT_GET_RESULT = 20
-/** IShellItem vtable slot for `GetDisplayName`. */
 const SLOT_GET_DISPLAY_NAME = 5
 
-/**
- * Encode a canonical GUID string as its 16 little-endian bytes.
- * @param text - the `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` form.
- * @returns the in-memory GUID bytes CoCreateInstance expects.
- */
 function guidBytes(text) {
   const match = /^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/i.exec(text)
   const bytes = Buffer.alloc(16)
@@ -65,33 +31,8 @@ function guidBytes(text) {
 const CLSID_FILE_OPEN_DIALOG = guidBytes('dc1c5a9c-e88a-4dde-a5a1-60f82a20aef7')
 const IID_IFILE_OPEN_DIALOG = guidBytes('d57c7288-d4ad-4768-be02-9d969532d960')
 
-/**
- * The native bindings {@link loadWin32DialogBindings} resolves: DPI/COM lifecycle calls plus one
- * folder-dialog COM object factory.
- * @typedef {{
- *   setThreadDpiAwareness: () => void,
- *   coInitializeSta: () => number,
- *   coUninitialize: () => void,
- *   currentThreadId: () => number,
- *   createFolderDialog: () => Win32FolderDialog,
- * }} Win32DialogBindings
- */
 
-/**
- * One created IFileOpenDialog COM object's bound methods.
- * @typedef {{
- *   setOptions: (options: number) => number,
- *   setTitle: (title: string) => number,
- *   show: () => number,
- *   resultPath: () => { hr: number, path?: string },
- *   release: () => void,
- * }} Win32FolderDialog
- */
 
-/**
- * Load koffi and expose the dialog bindings for this thread.
- * @returns {Win32DialogBindings} the bindings {@link import('./win32-dialog-logic.js').runFolderDialog} sequences against.
- */
 export async function loadWin32DialogBindings() {
   const koffi = (await import('koffi')).default
   const ole32 = koffi.load('ole32.dll')
@@ -112,7 +53,6 @@ export async function loadWin32DialogBindings() {
   const protoGetDisplayName = koffi.proto('int32 __stdcall FreddieItemGetDisplayName(void *self, int32 form, _Out_ void **name)')
   const protoRelease = koffi.proto('uint32 __stdcall FreddieComRelease(void *self)')
 
-  /** Bind vtable slot `slot` of COM object `self` to a caller through `proto`. */
   const method = (self, slot, proto) => {
     const vtable = koffi.decode(self, 'void *')
     const fn = koffi.decode(vtable, slot * pointerSize, 'void *')
@@ -169,12 +109,6 @@ export async function loadWin32DialogBindings() {
   }
 }
 
-/**
- * Post `WM_CLOSE` to every window of a native thread — the driver's abort
- * lever against the worker blocked inside `Show`, after which `Show` returns
- * `HRESULT_CANCELLED` and the worker unwinds normally.
- * @param threadId - the dialog thread's native id (from the `showing` notice).
- */
 export async function closeThreadWindows(threadId) {
   const koffi = (await import('koffi')).default
   const user32 = koffi.load('user32.dll')

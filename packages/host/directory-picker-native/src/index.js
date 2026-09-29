@@ -1,20 +1,8 @@
-/**
- * Native backend of the directory-picker seam: registers `ctx.directoryPicker`
- * with the `native` capability, opening one native OS chooser on the host
- * display per pick (macOS `osascript`, Linux Zenity with a KDialog fallback;
- * Windows opens the modern `IFileOpenDialog` in a spawned child process — a
- * koffi-driven COM conversation on the child's main thread). Only viable when
- * the operator sits at the host's screen; remote deployments compose the
- * browse backend instead.
- * @module @freddie/freddie-host-directory-picker-native
- */
-
 import { DirectoryPicker } from '@freddie/freddie-host-directory-picker'
 import { pickNativeDirectory } from './native-picker.js'
 
 export { pickNativeDirectory } from './native-picker.js'
 
-/** The `ctx.directoryPicker` native implementation (stable capability object per service life). */
 export default class NativeDirectoryPicker extends DirectoryPicker {
   nativeCapability = {
     kind: 'native',
@@ -22,10 +10,6 @@ export default class NativeDirectoryPicker extends DirectoryPicker {
     pick: signal => pickNativeDirectory(signal),
   }
 
-  /**
-   * The native interaction capability.
-   * @returns the stable `native` capability object.
-   */
   capability() {
     return this.nativeCapability
   }
