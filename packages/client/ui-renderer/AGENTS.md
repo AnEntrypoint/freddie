@@ -7,3 +7,19 @@
 - `FreddieSlotOutlet#render` / `FreddieRootOutlet#render`: `trackReads` wraps `applyDiff` because entry elements read their hooks inside the diff (`setProps` runs from webjsx's `ref` callback); those reads feed `#bindHookSources` / `#bindReads`.
 - `FreddieRootOutlet#render`: no `root` entry after the first render is a hot swap of the plugin owning `root` (empty anchor until the next registration re-renders); before any render it is a boot-order bug and throws `SlotAssemblyError`.
 - `src/client/index.js` `mount`: the render waits for the first `root` registration instead of throwing. After a `connection` rebuild the renderer can re-activate before `client-ui-layout` re-registers `root`; the throw left the mount fiber FAILED for good and the container emptied.
+
+- `src/client/index.js` `mount` uses `applyDiff(container, vnode)`: webjsx has no diff state for a never-touched container, so the first call recreates every node and removes leftover children, replacing the boot kernel `[data-freddie-boot]` markup (static, stateless) with no adoption step.
+
+- `src/client/scoped-slots.js` dispatch: a `webjsxSlot(tag)` marker (returns null, carries `WEBJSX_SLOT_TAG`) creates or reuses that custom element keyed by entry identity and drives it via `setProps`/field assignment; a bare function registrant is called with the composed props and its VNode used directly.
+
+- Crash boundary (`guardedRender`) guards only the synchronous render call: errors from async work or custom-element lifecycle callbacks escape it. `SlotAssemblyError` is always rethrown (fail-loud misassembly); entry errors render the `data-slot-error` face.
+
+- Session-maybe entries adopt: an incarnation born session-less adopts the first session (identity holds across undefined to first id); switching to a different session, or dropping to no session, remounts (`nextIncarnation`).
+
+- Outlets subscribe to the current-session provide projection because a session switch triggers none of registration-version or locale; hook sources are re-bound every render since a session switch swaps every source identity.
+
+- Stale-wrapper pruning and the diff-cache reset guard an observed webjsx desync (`__webjsx_childNodes` reporting a stale child count after a burst of re-renders) that left duplicate `[data-slot]` wrappers.
+
+- `bind.js` `bindSnapshotSelector` is a plain synchronous `getSnapshot()` read with no subscription; `_eq` is accepted only for call-site compatibility and unused. Change notification is the outlet/custom element's job via `source.subscribe`.
+
+- `session-provider.js` `trackReads` exists because a hook reader without a subscription is a stale-view bug (a root-scope entry reading `useSessions` never saw host-side renames).

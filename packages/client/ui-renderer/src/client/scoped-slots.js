@@ -1,31 +1,3 @@
-/**
- * webjsx renderer for declarative slots. Per-entry bindings enforce child
- * authorization, and entry boundaries contain registrant failures.
- *
- * Converted from React to webjsx (see docs on each outlet class below for the
- * concrete pattern each replaces): HostContext/SessionContext become
- * explicit `host`/`info` fields threaded through render calls (no context);
- * useSyncExternalStore becomes explicit subscribe in connectedCallback +
- * unsubscribe in disconnectedCallback, triggering `#render()`
- * (Toast.tsx/CodeBlock.tsx's pattern); the SlotErrorBoundary React class
- * becomes a manual try/catch around the guarded render call, rendering the
- * crash-face markup on catch; entry-identity-keyed remounting is manual DOM
- * teardown (`replaceChildren`) when the winning entry's identity changes.
- *
- * webjsxSlot() indirection: KEPT. 14 registrant packages call
- * `webjsxSlot('tag-name')` directly at their `register()` call site — that
- * marker function returns `null` and carries `WEBJSX_SLOT_TAG`, so it is
- * fundamentally different from a plain function registrant (which webjsx
- * itself also uses for its "create-or-update, return as JSX.Element" idiom,
- * see Toast.tsx/Menu.tsx/CodeBlock.tsx's exported helpers). The dispatch
- * layer below still branches on `webjsxSlotTagOf(component)`: tagged means
- * "create/reuse this custom-element tag", untagged means "call this function
- * with composed props and use the returned VNode". Both paths are now
- * webjsx-native — the former React bridge component (WebjsxBridge) is
- * removed; a tagged entry's custom element is created directly and updated
- * via its `setProps` (or plain field assignment), uniformly with how
- * ui-primitives' own registrants already work.
- */
 import { createElement as h, Fragment, applyDiff } from '@freddie/webjsx'
 import {
   SlotOwnershipError, StaleAuthorizationError, webjsxSlotTagOf,
@@ -35,13 +7,6 @@ import {
   sessionProviderFor,
 } from './session-provider.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
-
-/**
- * Per-entry renderSlot / renderSlotChain bindings, called from inside a
- * registrant's render body. Each returns a `<freddie-slot-outlet>` VNode (a
- * custom element that owns its own dispatch/subscription lifecycle) instead
- * of React elements — applyDiff reconciles it by `key` like any other node.
- */
 
 const renderSlotCache = new WeakMap()
 
@@ -219,12 +184,6 @@ function localeSeat(face, ns) {
   return t
 }
 
-/**
- * Entry-identity keys for entry boundaries — unchanged plain-JS WeakMap
- * cache. An outlet remounts its boundary fresh whenever the winning entry's
- * identity changes (re-election, shadowing fallback, HMR re-registration),
- * so a boundary that failed on entry A never survives to black out entry B.
- */
 let nextEntryKey = 0
 const entryKeys = new WeakMap()
 
@@ -314,12 +273,6 @@ function standardKit(
   return { kit, standard, actions: store?.actions }
 }
 
-/**
- * Compose one entry's full props object (standard kit + cached entry inject +
- * common slot inject + contextual slot hooks + owner props, owner wins).
- * Pure data assembly — no rendering; the caller decides how to turn this into
- * a VNode (bare-function call vs. tagged-custom-element props).
- */
 function composeEntryProps(
   kit,
   standard,
@@ -340,17 +293,6 @@ function composeEntryProps(
   return { ...kit, ...injected, ...slotInjected.props, ...contextual, ...ownerProps }
 }
 
-/**
- * Render one entry to a VNode. `entry.component` is either:
- *  - a bare function registrant (call it with the composed props, use the
- *    returned VNode directly — the webjsx-JSX-returning-stateless-function
- *    convention every converted registrant package now follows), or
- *  - a `webjsxSlot(tag)` marker: create (or reuse, keyed by entry identity)
- *    the named custom element and drive it via `setProps`/plain-field
- *    assignment (same convention as ui-primitives' own `renderMenu`/
- *    `renderCodeBlock`/`mountToast` helpers), returned as a keyed VNode so
- *    applyDiff preserves its identity across re-renders of the parent.
- */
 function renderEntryVNode(
   entry,
   props,
@@ -364,13 +306,6 @@ function renderEntryVNode(
   return Comp(props)
 }
 
-/**
- * Custom element hosting one webjsxSlot(tag)-tagged entry: creates the named
- * tag on connect (or reuses it across `applyDiff` updates via its stable
- * `key`), and drives it through `setProps` when present, else plain-field
- * assignment — the exact convention `WebjsxBridge` used to bridge into
- * React, now the terminal case (no bridge needed, webjsx owns the whole tree).
- */
 class FreddieEntryHost extends HTMLElement {
   #tag = ''
   #entryProps = EMPTY_INJECTED_PROPS
@@ -407,16 +342,6 @@ class FreddieEntryHost extends HTMLElement {
 }
 defineElement('freddie-entry-host', FreddieEntryHost)
 
-/**
- * Per-entry crash boundary: wraps `render()` in try/catch. On crash it
- * renders the `data-slot-error` crash face and reports through
- * `onEntryError` — the manual replacement for React's
- * getDerivedStateFromError/componentDidCatch. This does not catch errors
- * thrown later from async work or from inside a custom element's own
- * lifecycle callbacks (only the synchronous render call is guarded) — an
- * accepted, documented gap matching the earlier blocked attempt's own
- * conclusion.
- */
 function guardedRender(slotKey, onEntryError, render) {
   try {
     return render()
@@ -428,18 +353,6 @@ function guardedRender(slotKey, onEntryError, render) {
   }
 }
 
-/**
- * Session-maybe identity: adoption — the ONLY behavior (there is no
- * hold-identity-forever mode). An incarnation born session-less ADOPTS the
- * first session that arrives: identity holds across that one transition
- * (undefined → first id). From then on the entry behaves exactly like a
- * strict session entry: switching to a DIFFERENT session remounts, and
- * dropping back to no-session remounts into a fresh blank incarnation, which
- * will adopt again. Bookkeeping now lives on the owning outlet instance
- * (`#maybeIncarnation`) instead of a React child component's setState-in-render
- * trick — the outlet already tracks winner identity per render, so this is
- * one more piece of the same imperative bookkeeping.
- */
 const FIRST_INCARNATION = { adopted: undefined, epoch: 0 }
 
 function nextIncarnation(state, sessionId) {
@@ -455,19 +368,8 @@ function nextIncarnation(state, sessionId) {
   return state
 }
 
-/**
- * Anchor style shared by every outlet: `display:contents` keeps the wrapper
- * out of layout, so the anchor is purely addressable surface.
- */
 const ANCHOR_STYLE = 'display: contents'
 
-/**
- * Prune stale duplicate `[data-slot]` wrapper children an outlet's applyDiff
- * pass may have left behind (see the callers' comments for the observed
- * webjsx diff-cache desync this guards). Keeps the last child — the wrapper
- * the render just produced or updated — and removes any earlier ones.
- * A no-op when the element already has zero or one child (the normal case).
- */
 function pruneStaleOutletChildren(el) {
   while (el.children.length > 1) {
     const stale = el.children[0]
@@ -476,14 +378,6 @@ function pruneStaleOutletChildren(el) {
   }
 }
 
-/**
- * Reset webjsx's internal per-element diff bookkeeping (the
- * `__webjsx_childNodes` cache `applyDiff` reads as its "previous render"
- * baseline) to match what the DOM actually holds right now. Safe no-op on
- * the normal path (cache already agrees with the DOM); guards specifically
- * against the observed desync where a burst of re-renders leaves the cache
- * reporting a stale child count.
- */
 function resyncOutletDiffCache(el) {
   const cache = el.__webjsx_childNodes
   const live = [...el.childNodes]
@@ -491,12 +385,6 @@ function resyncOutletDiffCache(el) {
   el.__webjsx_childNodes = live
 }
 
-/**
- * Owns one outlet's version + locale subscription lifecycle, shared by
- * FreddieSlotOutlet and FreddieRootOutlet: connect binds both and renders once
- * already-seen, disconnect tears both down, and locale rebinds fresh on
- * every call (the face itself may change or (dis)appear between renders).
- */
 class OutletSubscriptions {
   #unsubscribeVersion = null
   #unsubscribeLocale = null
@@ -528,17 +416,6 @@ class OutletSubscriptions {
     this.#unsubscribeLocale = face === undefined ? null : face.subscribe(onChange)
   }
 
-  /**
-   * Subscribe to the current-session provide projection: switching sessions
-   * (sessions.open) publishes through this source (SessionProvideChannel.
-   * publishCurrent), but nothing else in the outlet's render-trigger set
-   * (slot-registration version, locale) fires on that change — without this,
-   * currentSessionMaybeProvideInfo(host) reads fresh sessionId only on the
-   * NEXT render, which the outlet never schedules on its own for a pure
-   * session switch. Re-bound every connect (host's session source is stable
-   * for the renderer's lifetime, but rebinding here mirrors bindLocale's
-   * defensive re-fetch-per-call contract).
-   */
   bindSession(host, onChange) {
     this.#unsubscribeSession?.()
     const source = host()?.sessions.provideInfo
@@ -546,15 +423,6 @@ class OutletSubscriptions {
   }
 }
 
-/**
- * Slot outlet custom element — replaces the React `SlotOutlet` function
- * component. `host`/`slotKey`/`ownerProps`/`opts` land as plain instance
- * fields (webjsx property convention, see Toast.tsx's `setProps`); the
- * registration-version and locale-revision `useSyncExternalStore`
- * subscriptions become explicit `host.subscribe`/locale-face `subscribe`
- * calls bound in `connectedCallback` and torn down in
- * `disconnectedCallback`, each re-invoking `#render()` on notification.
- */
 export class FreddieSlotOutlet extends HTMLElement {
   #host = null
   #slotKey = ''
@@ -602,22 +470,6 @@ export class FreddieSlotOutlet extends HTMLElement {
     this.#boundHookSources = []
   }
 
-  /**
-   * Subscribe to every hook source in the current sessionInfo.hooks roster
-   * (e.g. the per-session Session object behind `useSession`). standardKit's
-   * `useSession`/`use<Name>` readers (observableHook -> bindSnapshotSelector)
-   * are pure synchronous `getSnapshot()` wrappers with no subscription of
-   * their own — see bind.ts's own doc comment: "Callers that need change
-   * notification subscribe to source.subscribe directly." The outlet is that
-   * caller: without this, a session's own internal state change (e.g.
-   * Session.openState flipping loading -> open on history load, via
-   * notifier.markDirty()) has nothing in the outlet's render-trigger set to
-   * fire on, so the strict session slot (ChatView et al.) stays rendered
-   * against the stale snapshot it saw at mount — the "stuck on Loading
-   * history..." symptom. Re-bound every render since a session switch swaps
-   * every source's identity (compared by reference against the last-bound
-   * set, so a same-session re-render is a no-op resubscribe, not a churn).
-   */
   #bindHookSources(sessionInfo, reads) {
     const sources = [...new Set([
       ...Object.values(sessionInfo.hooks).filter((s) => s !== undefined),
@@ -649,15 +501,6 @@ export class FreddieSlotOutlet extends HTMLElement {
 }
 defineElement('freddie-slot-outlet', FreddieSlotOutlet)
 
-/**
- * Build a `<freddie-slot-outlet>` VNode for one renderSlot/renderSlotChain call
- * site. The host API and dispatch opts are multi-field, must-update-together
- * state, so they route through the `ref` callback's imperative `setProps`
- * call (the same pattern ui-primitives' own `renderMenu`/`renderCodeBlock`
- * helpers use for their complex prop objects) rather than as individual JSX
- * attributes — this is the direct replacement for `WebjsxBridge`'s React
- * indirection, now the terminal case.
- */
 function slotOutletVNode(
   host,
   slotKey,
@@ -671,7 +514,6 @@ function slotOutletVNode(
   })
 }
 
-/** Kind dispatch behind the outlet anchor (single/keyed/list/chain, fallbacks, crash faces). */
 function renderOutletContent(
   host,
   slotKey,
@@ -792,12 +634,6 @@ function renderOutletContent(
     : h('div', { 'data-slot-error': slotKey, key: `x${item.id}` }))
 }
 
-/**
- * Root outlet custom element — replaces the React `RootOutlet` function
- * component. Same subscribe/render lifecycle as `FreddieSlotOutlet`; kept
- * distinct because 'root' has its own boot-order assembly-failure contract
- * (throwing before any registration exists) that ordinary slots don't.
- */
 export class FreddieRootOutlet extends HTMLElement {
   #host = null
   #ownerProps = {}
@@ -814,7 +650,6 @@ export class FreddieRootOutlet extends HTMLElement {
     this.#render()
   }
 
-  /** Subscribe to the sources the last render read (same contract as FreddieSlotOutlet's #bindHookSources). */
   #bindReads(reads) {
     const sources = [...reads]
     const unchanged = sources.length === this.#boundReads.length
@@ -882,11 +717,6 @@ export class FreddieRootOutlet extends HTMLElement {
 }
 defineElement('freddie-root-outlet', FreddieRootOutlet)
 
-/**
- * Build the renderer the shell installs into the runtime SlotRegistry
- * (ctx.slots.install(createSlotRenderer()) at boot).
- * @returns the renderer.
- */
 export function createSlotRenderer() {
   return {
     renderRoot(host, ownerProps) {
