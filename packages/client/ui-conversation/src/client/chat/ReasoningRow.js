@@ -1,10 +1,4 @@
-/** Assistant reasoning disclosure, independent of Tool-call presentation.
- *
- * Converted from a React hooks component to a webjsx custom element: the
- * `expanded` useState becomes a private field, the summary scroll-follow
- * useEffect becomes connectedCallback binding plus an explicit call after
- * each render, and re-render is an explicit applyDiff(this, vdom) call.
- */
+
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { DisclosureRow, IconThinkOutline14, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { createThrottledVisualUpdate } from './use-throttled-visual-update.js'
@@ -24,7 +18,6 @@ function latestLine(text) {
 
 const DEFAULT_PROPS = { text: '', running: false, t: (key) => key }
 
-/** Assistant reasoning disclosure custom element. */
 export class FreddieReasoningRow extends HTMLElement {
   #props = DEFAULT_PROPS
   #expanded = false
@@ -91,26 +84,12 @@ export class FreddieReasoningRow extends HTMLElement {
 
 defineElement('freddie-reasoning-row', FreddieReasoningRow)
 
-/**
- * @typedef {object} ReasoningRowProps
- * @property {string} text - the reasoning text accumulated so far.
- * @property {boolean} running - whether reasoning is still streaming.
- * @property {(key: string, vars?: object) => string} t - localization function.
- */
-
-/**
- * Create (if needed) or update a ReasoningRow element in place.
- * @param el - an existing `freddie-reasoning-row` element to update, or null to create one.
- * @param props - see {@link ReasoningRowProps}.
- * @returns the `freddie-reasoning-row` element; keep it and pass it back in to update.
- */
 export function renderReasoningRow(el, props) {
   const target = el ?? document.createElement('freddie-reasoning-row')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function ReasoningRow(props) {
   return renderReasoningRow(null, props)
 }

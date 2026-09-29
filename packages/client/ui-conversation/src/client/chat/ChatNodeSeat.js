@@ -9,7 +9,6 @@ function cachedFallbackJsonBlock(identity, props) {
   return el
 }
 
-/** Subscribe and dispatch one stable Context key without observing sibling Nodes. */
 export function ChatNodeSeat({
   key, nodeKey, selectedCallId, cwd, openFile, inspectCall, forkAt,
   renderMessageImages, fileMentions, useSession, renderSlot, t,

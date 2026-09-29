@@ -7,10 +7,6 @@ import {
 } from './MessageItem.js'
 import { TurnTailNodeView } from './TurnTailNodeView.js'
 
-/**
- * Register this package's business renderers behind the keyed Chat Node seat.
- * @param ctx - owning UI Conversation context.
- */
 export function registerChatNodeRenderers(ctx) {
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
     { name: 'conversation.chat.node', key: 'user', locale: NS }, UserMessageNodeView))

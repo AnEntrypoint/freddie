@@ -12,7 +12,6 @@ function cachedMentions(node, fileMentions, owner) {
   return value
 }
 
-/** Streaming, settled, and interrupted Assistant states share one keyed renderer instance. */
 export function AssistantNodeView({
   node, useTurnData, openFile, renderMessageImages, fileMentions, t,
 }) {

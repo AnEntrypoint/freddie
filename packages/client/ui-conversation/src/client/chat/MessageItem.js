@@ -50,7 +50,6 @@ const DEFAULT_RETRY_PROPS = {
   t: (key) => key,
 }
 
-/** Retry countdown row custom element: the deadline/interval timer becomes private state. */
 export class FreddieModelRetryItem extends HTMLElement {
   #props = DEFAULT_RETRY_PROPS
   #deadline = 0
@@ -150,7 +149,6 @@ function ModelRetryItem(props) {
   return renderModelRetryItem(null, props)
 }
 
-/** Persistent, turn-positioned feedback for a terminal failure. */
 function TurnErrorItem({ node, t }) {
   return h(
     'div',
@@ -166,7 +164,6 @@ function TurnErrorItem({ node, t }) {
   )
 }
 
-/** Persistent, turn-positioned notice for a turn ended at the output-token cap. */
 function TurnMaxTokensItem({ t }) {
   return h(
     'div',
@@ -181,15 +178,6 @@ function TurnMaxTokensItem({ t }) {
   )
 }
 
-/**
- * Display projection of reference forms in a user bubble (free geometry — no
- * textarea alignment constraint here); everything else stays plain text. The
- * logged model text remains the single truth; this is presentation only.
- * Plain-text `/name` / `@name` word-boundary tokens decorate (the sent text
- * IS the reference — the bubble uses the same plainest token
- * scan as the composer, minus the lexicon: sent tokens were validated at
- * compose time, so shape alone decorates).
- */
 function projectUserText(text, sessionLabels) {
   const ranges = []
   for (const rawLabel of [...new Set(sessionLabels)].sort((a, b) => b.length - a.length)) {
@@ -251,7 +239,6 @@ function projectUserText(text, sessionLabels) {
   return parts
 }
 
-/** Right-aligned bubble shared by user and steering rows. */
 function UserStyleBubble({
   identity, content, renderMessageImages, actions, pending = false, referenceLabels = [], t,
 }) {
@@ -280,12 +267,6 @@ function UserStyleBubble({
   )
 }
 
-/**
- * Render one Host-authoritative pending steering item with the same visual
- * language as its eventual durable transcript node.
- * @param props - Pending message content and conversation translator.
- * @returns the pending steering bubble.
- */
 export function PendingSteeringBubble({ identity, content, renderMessageImages, t }) {
   return h(UserStyleBubble, {
     identity,
@@ -304,7 +285,6 @@ export function PendingSteeringBubble({ identity, content, renderMessageImages, 
   })
 }
 
-/** User and admitted-steering keyed Chat renderer. */
 export function UserMessageNodeView({
   node, renderMessageImages, t,
 }) {
@@ -327,7 +307,6 @@ export function UserMessageNodeView({
   })
 }
 
-/** Injected-context keyed Chat renderer. */
 export function ContextMessageNodeView({ node, t }) {
   const data = node.data
   return h('freddie-context-injection-row', {
@@ -343,28 +322,23 @@ export function ContextMessageNodeView({ node, t }) {
   })
 }
 
-/** Automatic compaction keyed Chat renderer. */
 export function CompactionNodeView({ node, t }) {
   return h(CompactionItem, { node: node.data, t })
 }
 
-/** Correlated retry-chain keyed Chat renderer. */
 export function RetryNodeView({ node, t }) {
   const data = node.data
   return h(ModelRetryItem, { node: data.current, active: data.current.retryState === 'scheduled', t })
 }
 
-/** Terminal turn-error keyed Chat renderer. */
 export function TurnErrorNodeView({ node, t }) {
   return h(TurnErrorItem, { node: node.data, t })
 }
 
-/** Max-tokens turn-end notice keyed Chat renderer. */
 export function TurnMaxTokensNodeView({ t }) {
   return h(TurnMaxTokensItem, { t })
 }
 
-/** Explicit unknown-surface keyed Chat renderer. */
 export function UnknownNodeView({ node, t }) {
   const data = node.data
   return h(

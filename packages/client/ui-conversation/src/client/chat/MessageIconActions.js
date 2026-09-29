@@ -11,9 +11,6 @@ const DEFAULT_PROPS = { text: '', clock: 'start', t: (key) => key }
 
 let nextReasonId = 0
 
-/**
- * Copy / branch (/ clock) IconActions row shared by user and assistant chrome.
- */
 export class FreddieMessageIconActions extends HTMLElement {
   #props = DEFAULT_PROPS
   #reasonId = `message-icon-actions-branch-reason-${(nextReasonId += 1)}`
@@ -142,34 +139,12 @@ export class FreddieMessageIconActions extends HTMLElement {
 
 defineElement('freddie-message-icon-actions', FreddieMessageIconActions)
 
-/**
- * @typedef {object} MessageIconActionsProps
- * @property {string} text - clipboard text for the copy action.
- * @property {number} [time] - message timestamp shown next to the actions; omitted hides the clock.
- * @property {number} [runMs] - total run duration to append to the clock, in milliseconds.
- * @property {number} [ttftMs] - time-to-first-token to append to the clock, in milliseconds.
- * @property {number} [tokensPerSecond] - decode throughput to append to the clock.
- * @property {'start'|'end'} clock - which side of the row shows the clock.
- * @property {() => void} [onBranch] - branch handler; omitted hides the branch action entirely.
- * @property {boolean} [branchUnavailable] - disables the branch action and shows the unavailable reason.
- * @property {string} [className] - extra class appended to the row.
- * @property {*} [extraActions] - additional action elements rendered between copy and branch.
- * @property {(key: string, vars?: object) => string} t - localization function.
- */
-
-/**
- * Create (if needed) or update a MessageIconActions element in place.
- * @param el - an existing `freddie-message-icon-actions` element to update, or null to create one.
- * @param props - see {@link MessageIconActionsProps}.
- * @returns the `freddie-message-icon-actions` element; keep it and pass it back in to update.
- */
 export function renderMessageIconActions(el, props) {
   const target = el ?? document.createElement('freddie-message-icon-actions')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function MessageIconActions(props) {
   return renderMessageIconActions(null, props)
 }

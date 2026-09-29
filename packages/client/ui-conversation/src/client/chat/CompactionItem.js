@@ -13,7 +13,6 @@ const DEFAULT_PROPS = {
   t: (key) => key,
 }
 
-/** The collapsed-by-default compaction marker custom element. */
 export class FreddieCompactionItem extends HTMLElement {
   #props = DEFAULT_PROPS
   #expanded = false
@@ -82,27 +81,12 @@ export class FreddieCompactionItem extends HTMLElement {
 
 defineElement('freddie-compaction-item', FreddieCompactionItem)
 
-/**
- * @typedef {object} CompactionItemProps
- * @property {{summary: string|null, shadowedItemCount: number|null, shadowedTokenCount: number|null}} node - the compaction node's collapse state and completed counts.
- * @property {string} [title] - row title; falls back to the localized default when omitted.
- * @property {string} [fallbackSummary] - collapsed summary shown while incomplete or unavailable.
- * @property {(key: string, vars?: object) => string} t - localization function.
- */
-
-/**
- * Create (if needed) or update a CompactionItem element in place.
- * @param el - an existing `freddie-compaction-item` element to update, or null to create one.
- * @param props - see {@link CompactionItemProps}.
- * @returns the `freddie-compaction-item` element; keep it and pass it back in to update.
- */
 export function renderCompactionItem(el, props) {
   const target = el ?? document.createElement('freddie-compaction-item')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function CompactionItem(props) {
   return renderCompactionItem(null, props)
 }

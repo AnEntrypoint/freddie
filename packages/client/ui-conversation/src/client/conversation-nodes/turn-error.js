@@ -26,11 +26,6 @@ function fallbackState(context) {
   return { turn: end.event.data.turn, failure }
 }
 
-/**
- * Terminal turn failure Definition. Retries run inside the failing turn, so the
- * turn's `llm/retry` history never suppresses this terminal row; the model-retry
- * node renders that history separately.
- */
 export const turnErrorDefinition = {
   kind: 'turn-error',
   target: 'chat',
@@ -66,10 +61,6 @@ export const turnErrorDefinition = {
   },
 }
 
-/**
- * Register the terminal Turn-error business contribution.
- * @param ctx - owning UI Conversation context.
- */
 export function registerTurnErrorConversationNode(ctx) {
   ctx.conversationEvents.register(turnErrorDefinition)
 }

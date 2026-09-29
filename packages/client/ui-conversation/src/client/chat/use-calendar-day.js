@@ -1,10 +1,5 @@
 import { msUntilNextLocalMidnight, startOfLocalDay } from './message-chrome.js'
 
-/**
- * Create a local calendar-day epoch that advances at each local midnight.
- * @param onChange - called with the new `day` value whenever it changes.
- * @returns a controller exposing `day` and `stop`.
- */
 export function createCalendarDay(onChange) {
   let day = startOfLocalDay(Date.now())
   let timer = null

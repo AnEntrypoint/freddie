@@ -196,7 +196,6 @@ function fallbackState(context) {
   return state
 }
 
-/** Root Tool lifecycle and nested Code Dispatch Definition. */
 export const toolDefinition = {
   kind: 'tool-call',
   target: 'chat',
@@ -232,10 +231,6 @@ export const toolDefinition = {
   },
 }
 
-/**
- * Register the root Tool lifecycle and nested-subcall contribution.
- * @param ctx - owning UI Conversation context.
- */
 export function registerToolConversationNode(ctx) {
   ctx.conversationEvents.register(toolDefinition)
 }

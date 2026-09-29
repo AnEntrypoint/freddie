@@ -4,11 +4,6 @@ function usageOutputTokens(usage) {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
 }
 
-/**
- * Read one assistant node's TTFT, decode wall time, and output tokens.
- * @param node - A settled assistant node.
- * @returns Per-part readings with `null` for unrecorded values.
- */
 export function assistantStepReading(node) {
   const timing = node.timing
   const ttftMs = timing !== undefined && timing.stepStartTime !== null && timing.firstTokenTime !== null
@@ -20,17 +15,6 @@ export function assistantStepReading(node) {
   return { ttftMs, decodeMs, outputTokens: usageOutputTokens(node.usage) }
 }
 
-/**
- * Fold assistant nodes into per-turn footer metrics.
- *
- * TTFT is the turn's lowest-step request-dispatch-to-first-token reading, so
- * it is only meaningful when the turn's start is inside
- * the loaded window (the caller gates on `turnTimings`, which shares that
- * window). Throughput divides summed output tokens by summed decode wall time,
- * counting only steps that carry both.
- * @param nodes - Snapshot nodes of the loaded window.
- * @returns Turn number → available metrics; turns with none are absent.
- */
 export function deriveTurnMetrics(nodes) {
   const folds = new Map()
   for (const node of nodes) {

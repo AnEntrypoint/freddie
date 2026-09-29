@@ -9,7 +9,6 @@ function isCompactionCheckpoint(event) {
   return source.kind === 'plugin' && source.plugin === 'compact'
 }
 
-/** User, steering, and injected-context message classification Definition. */
 export const messageDefinition = {
   kind: 'input-message',
   target: 'chat',
@@ -57,10 +56,6 @@ export const messageDefinition = {
   },
 }
 
-/**
- * Register the user, steering, and injected-context message contribution.
- * @param ctx - owning UI Conversation context.
- */
 export function registerMessageConversationNode(ctx) {
   ctx.conversationEvents.register(messageDefinition)
 }

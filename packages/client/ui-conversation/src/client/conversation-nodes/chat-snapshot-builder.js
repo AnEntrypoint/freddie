@@ -81,7 +81,6 @@ class MutableChatLocationIndex {
     this.steps = updateIndex(this.steps, steps)
   }
 
-  /** Invalidate aggregate readers when member data changes without moving. */
   touch(nodes) {
     const turns = new Set()
     const steps = new Set()
@@ -160,7 +159,6 @@ function withReferenceLabels(node, labels) {
   return { ...candidate, data }
 }
 
-/** Associates a direct message with the sourced recall event that immediately follows it. */
 class ReferenceLabelProjector {
   constructor() {
     this.messagesBySeq = new Map()
@@ -295,7 +293,6 @@ function sameContribution(left, right) {
     && sameReferences(left.nodes, right.nodes)
 }
 
-/** Incremental compatibility projection for StatsLine and legacy top-level snapshot fields. */
 class LegacySliceBuilder {
   constructor() {
     this.contributions = new Map()
@@ -431,7 +428,6 @@ function partialContributionChanged(previous, next) {
       && previous?.anchorSeq !== next.anchorSeq)
 }
 
-/** Incremental keyed Chat builder registered under the `chat` target. */
 export class ChatSnapshotBuilder {
   constructor() {
     this.store = new MutableChatNodeStore()
@@ -489,16 +485,11 @@ function locationIdentity(location) {
   return `${location.kind}:${coordinates.turn ?? ''}:${coordinates.step ?? ''}`
 }
 
-/** Chat target factory contributed to the Runtime view registry. */
 export const chatViewDefinition = {
   target: 'chat',
   create: () => new ChatSnapshotBuilder(),
 }
 
-/**
- * Register the incremental Chat target builder.
- * @param ctx - owning UI Conversation context.
- */
 export function registerChatConversationView(ctx) {
   ctx.conversationViews.register(chatViewDefinition)
 }

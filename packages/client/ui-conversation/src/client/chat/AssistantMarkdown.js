@@ -25,13 +25,6 @@ function cachedBlockEl(identity, index, render, props) {
   return el
 }
 
-/**
- * Renders one assistant node's ordered blocks (see file header). Stateless:
- * no per-instance state, so this stays a plain function component (not a
- * custom element) per the ui-primitives conversion pattern -- MarkdownText/
- * JsonBlock element identity is cached externally (see cachedBlockEl above)
- * since this function has no instance of its own to hold the cache.
- */
 export function AssistantMarkdown({
   identity, blocks, streaming, interrupted, renderMessageImages, mentions, t,
 }) {

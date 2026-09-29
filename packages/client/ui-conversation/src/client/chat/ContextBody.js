@@ -1,34 +1,16 @@
 import { createElement as h } from '@freddie/webjsx'
 import css from './ContextBody.css.js'
 
-/** Model-facing text stays bounded at the disclosure, not at the producer. */
 const MAX_CHARS = 20_000
 
-/** Rows a list body materializes before summarizing the remainder. */
 const MAX_ENTRIES = 200
 
-/** One durable source narrowed to the readable-record shape; null for anything else. */
 function asRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? value
     : null
 }
 
-/**
- * One run of the model-facing content: adjacent text, or one unknown block.
- * @typedef {{text: string}|{block: object}} ContentRun
- */
-
-/**
- * The content blocks as runs, IN THE ORDER the model received them.
- *
- * Adjacent text blocks join with no separator, matching how provider adapters
- * flatten them — inserting a line break would show the reader a line the model
- * never saw. An unknown block breaks the run and keeps its own fallback rather
- * than being hoisted past the text around it or vanishing; the block union is
- * merge-extensible, so a foreign log may interleave shapes this build does not
- * know.
- */
 function contentRuns(content) {
   const runs = []
   for (const block of content) {
@@ -43,23 +25,16 @@ function contentRuns(content) {
   return runs
 }
 
-/** Only the blocks this UI version does not know, for bodies that replace the text. */
 function unknownBlocks(content) {
   return contentRuns(content).flatMap(run => 'block' in run ? [run.block] : [])
 }
 
-/** The model-facing text, truncated to the display bound. */
 function boundedText(text, t) {
   return text.length > MAX_CHARS
     ? `${text.slice(0, MAX_CHARS)}\n${t('json.truncated', { total: text.length })}`
     : text
 }
 
-/**
- * One source field rendered as a value row; nested shapes stay compact JSON.
- * Bounded on its own, because source fields are as unbounded as the text: an unknown
- * producer may record an arbitrarily large string or array.
- */
 function fieldValue(value, t) {
   const text = typeof value === 'string'
     ? value
@@ -67,14 +42,6 @@ function fieldValue(value, t) {
   return boundedText(text, t)
 }
 
-/**
- * Source fields as a key/value list. `kind` is always omitted because the
- * row header already names the producer. `form` is omitted only when a
- * dedicated body rendered for it — then the presentation the reader is looking
- * at IS that value. On the opaque fallback the declaration is kept, because
- * that is the one place a form this version cannot present would otherwise
- * disappear from the UI entirely.
- */
 function SourceFields({ source, formRendered, t }) {
   const record = asRecord(source)
   if (record === null) return null
@@ -93,13 +60,6 @@ function SourceFields({ source, formRendered, t }) {
   )
 }
 
-/**
- * Content blocks this UI version does not know, kept visible rather than
- * dropped: the block union is merge-extensible, so a newer or foreign log may
- * carry a shape this build has no presentation for.
- * @param props - The unrecognized blocks and the locale seat.
- * @returns One generic JSON block per unknown entry.
- */
 function UnknownBlocks({ blocks, t, jsonBlock }) {
   return blocks.map((block, index) => (
     jsonBlock(`unknown-${index}`, {
@@ -110,13 +70,6 @@ function UnknownBlocks({ blocks, t, jsonBlock }) {
   ))
 }
 
-/**
- * The model-facing content of one context, shared by every form that shows it:
- * the text with its real line breaks, then any block this UI version does not
- * know, which keeps its own fallback rather than vanishing.
- * @param props - Durable content and the locale seat.
- * @returns The content blocks as the model received them.
- */
 function ModelFacingContent({ content, t, jsonBlock }) {
   return contentRuns(content).flatMap((run, index) => ('text' in run
     ? run.text !== ''
@@ -131,13 +84,6 @@ function ModelFacingContent({ content, t, jsonBlock }) {
     ]))
 }
 
-/**
- * Default presentation: the model-facing text as text, with its real line
- * breaks, and the remaining source fields beneath it. This is what every form
- * this UI version does not recognize renders as.
- * @param props - Durable content, its source, and the locale seat.
- * @returns The opaque context body.
- */
 export function OpaqueBody({ content, source, t, jsonBlock }) {
   const fields = SourceFields({ source, formRendered: false, t })
   return fields === null
@@ -145,23 +91,6 @@ export function OpaqueBody({ content, source, t, jsonBlock }) {
     : [...ModelFacingContent({ content, t, jsonBlock }), fields]
 }
 
-/**
- * One reconciled instruction file, as the durable source records it.
- * @typedef {object} InstructionChange
- * @property {'set'|'replace'|'remove'} action - what happened to the file.
- * @property {string} path - the file's durable path.
- * @property {string} [digest] - the file's content digest, when the source recorded one.
- */
-
-/**
- * Instruction changes read off the source, or null when the record is not a
- * usable instruction list.
- *
- * The read is all-or-nothing: silently dropping one unreadable entry would show
- * a confident, incomplete file list for a log this version cannot fully read.
- * Paths are deduplicated in first-seen order, matching how the header label is
- * derived from the same array.
- */
 function instructionChanges(source) {
   const record = asRecord(source)
   const list = record === null ? undefined : record['changes']
@@ -183,29 +112,12 @@ function instructionChanges(source) {
   return changes.length === 0 ? null : changes
 }
 
-/**
- * Locale key for one reconciled file. The baseline loads a file; a later delta
- * distinguishes a newly reconciled path from a rewritten one, which `set` and
- * `replace` already separate at the producer.
- * @param action - the durable change action.
- * @param baseline - whether this context is the startup/resume baseline.
- * @returns the key naming what happened to that file.
- */
 function instructionAction(action, baseline) {
   if (action === 'remove') return 'message.context.instructions.removed'
   if (baseline) return 'message.context.instructions.loaded'
   return action === 'set' ? 'message.context.instructions.added' : 'message.context.instructions.updated'
 }
 
-/**
- * `instructions` form: the files this context reconciled, then their text.
- *
- * The text keeps its `<system-reminder>` framing verbatim — the framing is part
- * of what the model read, so hiding it would misreport the request.
- * @param props - Durable content, its source, and the locale seat.
- * @returns The instructions context body, or the opaque body when the change
- * list is unreadable.
- */
 export function InstructionsBody({ content, source, t, jsonBlock }) {
   const changes = instructionChanges(source)
   if (changes === null) return OpaqueBody({ content, source, t, jsonBlock })
@@ -225,19 +137,6 @@ export function InstructionsBody({ content, source, t, jsonBlock }) {
   ]
 }
 
-/**
- * One catalog entry, as the durable source records it.
- * @typedef {object} CatalogEntry
- * @property {string} name - the entry's published name.
- * @property {string} description - the entry's published description.
- */
-
-/**
- * Catalog entries read off the source, or null when the record is not a usable
- * catalog. All-or-nothing for the same reason as the instruction list: this body
- * replaces the model-facing text, so a partial list would hide the only complete
- * account of what the model read.
- */
 function catalogEntries(source) {
   const record = asRecord(source)
   const list = record === null ? undefined : record['entries']
@@ -254,16 +153,6 @@ function catalogEntries(source) {
   return entries
 }
 
-/**
- * `catalog` form: the published entries as a list, read from the source rather
- * than re-parsed out of the model-facing prose.
- *
- * A catalog whose source carries no usable entries falls through to the opaque
- * body, so an older or hand-edited log still shows its text.
- * @param props - Durable content, its source, and the locale seat.
- * @returns The catalog context body, or the opaque body when the entry list is
- * unreadable.
- */
 export function CatalogBody({ content, source, t, jsonBlock }) {
   const entries = catalogEntries(source)
   if (entries === null) return OpaqueBody({ content, source, t, jsonBlock })
@@ -291,14 +180,6 @@ export function CatalogBody({ content, source, t, jsonBlock }) {
   ]
 }
 
-/**
- * One named contribution to a runtime snapshot, as the durable source records it.
- * @typedef {object} SnapshotSection
- * @property {string} name - the contributing subsystem's name.
- * @property {string} text - the section's durable text.
- */
-
-/** Snapshot sections read off the source, or null when the record is unusable. */
 function snapshotSections(source) {
   const record = asRecord(source)
   const list = record === null ? undefined : record['sections']
@@ -315,25 +196,9 @@ function snapshotSections(source) {
   return sections.length === 0 ? null : sections
 }
 
-/**
- * `snapshot` form: the named contributions this snapshot assembled, in order.
- *
- * The sections are the same bytes the model read, split at the boundaries the
- * producer assembled them on, so a reader sees which subsystem contributed
- * which state instead of one undifferentiated wall.
- *
- * One sentence of the model-facing text is NOT in any section: the producer's
- * framing line declaring that this snapshot supersedes earlier ones. Unlike the
- * `<system-reminder>` wrapper an instruction context carries — which wraps
- * content and cannot be separated from it — that line states the form's own
- * semantics, so the body states them as a caption instead of reprinting the
- * joined prose beside the sections it was split from.
- * @param props - Durable content, its source, and the locale seat.
- * @returns The snapshot context body, or the opaque body when unreadable.
- */
 export function SnapshotBody({ content, source, t, jsonBlock }) {
   const sections = snapshotSections(source)
-  /* v8 ignore next -- contextBody reads the sections before choosing this body. */
+  /* v8 ignore next */
   if (sections === null) return OpaqueBody({ content, source, t, jsonBlock })
   return [
     h('p', { class: css.catalogNotice ?? '', 'data-context-snapshot-supersedes': '' },
@@ -350,29 +215,13 @@ export function SnapshotBody({ content, source, t, jsonBlock }) {
   ]
 }
 
-/**
- * `notice` form: what just happened, with the model-facing text beneath it.
- *
- * The one-line account also rides the collapsed row ({@link contextBody}), so a
- * notice is usually readable without expanding at all.
- * @param props - Durable content, its source, and the locale seat.
- * @returns The notice context body.
- */
 export function NoticeBody({ content, t, jsonBlock }) {
   return ModelFacingContent({ content, t, jsonBlock })
 }
 
-/**
- * `relay` form: which agent sent this, then what it said.
- *
- * The sender is an opaque session id; it is shown as a field rather than a
- * label, because this client cannot resolve it to a title.
- * @param props - Durable content, its source, and the locale seat.
- * @returns The relay context body.
- */
 export function RelayBody({ content, source, t, jsonBlock }) {
   const sender = relaySender(source)
-  /* v8 ignore next -- contextBody resolves the sender before choosing this body. */
+  /* v8 ignore next */
   if (sender === null) return OpaqueBody({ content, source, t, jsonBlock })
   return [
     h('p', { class: css.relaySender ?? '', 'data-context-relay-sender': '' },
@@ -382,22 +231,11 @@ export function RelayBody({ content, source, t, jsonBlock }) {
   ]
 }
 
-/** The sending agent's session id, or null when the record does not name one. */
 function relaySender(source) {
   const sender = asRecord(source)?.['senderSessionId']
   return typeof sender === 'string' && sender !== '' ? sender : null
 }
 
-/**
- * One recalled session, as the durable source records it.
- * @typedef {object} RecalledSession
- * @property {string} label - the recalled session's display label.
- * @property {number} retained - how many of its messages survived the read.
- * @property {number} omitted - how many of its messages were left out.
- * @property {boolean} truncated - whether the retained material was itself cut short.
- */
-
-/** Recalled sessions read off the source, or null when the record is unusable. */
 function recalledSessions(source) {
   const record = asRecord(source)
   const list = record === null ? undefined : record['references']
@@ -418,16 +256,6 @@ function recalledSessions(source) {
   return sessions.length === 0 ? null : sessions
 }
 
-/**
- * `recall` form: which sessions this material came from and how much of each
- * survived the read, then the material itself.
- *
- * Completeness is the fact a reader needs first: recalled context is bounded on
- * the way in, so a card that hid the omitted count would overstate what the
- * model received.
- * @param props - Durable content, its source, and the locale seat.
- * @returns The recall context body, or the opaque body when unreadable.
- */
 export function RecallBody({ content, source, t, jsonBlock }) {
   const sessions = recalledSessions(source)
   if (sessions === null) return OpaqueBody({ content, source, t, jsonBlock })
@@ -452,24 +280,11 @@ export function RecallBody({ content, source, t, jsonBlock }) {
   ]
 }
 
-/** The one-line account a `notice` puts on its collapsed row, when it records one. */
 function noticeSummary(source) {
   const summary = asRecord(source)?.['summary']
   return typeof summary === 'string' && summary !== '' ? summary : null
 }
 
-/**
- * Choose the body for one context node.
- *
- * Returns the form the body actually rendered as, which is not always the
- * declared one: a declared form whose fields are unreadable falls back to
- * opaque, and the caller labels the row with what it really shows.
- * `summary` is the collapsed row's one-line account, which only a `notice`
- * records: its whole point is being readable without expanding.
- * @param form - the producer-declared form projected onto the node.
- * @param props - durable content, its source, and the locale seat.
- * @returns the rendered form (null for opaque), its collapsed summary, and its body.
- */
 export function contextBody(form, props) {
   const opaque = { rendered: null, summary: null, body: OpaqueBody(props) }
   switch (form) {
@@ -501,8 +316,7 @@ export function contextBody(form, props) {
         : { rendered: 'recall', summary: null, body: RecallBody(props) }
     case null:
       return opaque
-    /* v8 ignore next 4 -- closed-union backstop; the compiler rejects a new
-    KnownContextForm here rather than letting it degrade to opaque silently. */
+    /* v8 ignore next 4 */
     default: {
       const unreachable = form
       throw new Error(`unreachable context form: ${String(unreachable)}`)

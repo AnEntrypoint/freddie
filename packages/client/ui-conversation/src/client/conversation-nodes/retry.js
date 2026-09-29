@@ -11,13 +11,11 @@ function scheduledNode(match) {
   }
 }
 
-/** A scheduled attempt is cancelled once either owning boundary closes. */
 function isClosed(location) {
   return (location.kind === 'step' && location.step.status === 'closed')
     || ((location.kind === 'step' || location.kind === 'turn') && location.turn.status === 'closed')
 }
 
-/** Producer-correlated model retry chain Definition. */
 export const retryDefinition = {
   kind: 'model-retry',
   target: 'chat',
@@ -74,10 +72,6 @@ export const retryDefinition = {
   },
 }
 
-/**
- * Register the correlated model-retry business contribution.
- * @param ctx - owning UI Conversation context.
- */
 export function registerRetryConversationNode(ctx) {
   ctx.conversationEvents.register(retryDefinition)
 }

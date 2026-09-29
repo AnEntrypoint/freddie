@@ -9,15 +9,13 @@ const FOLLOW_THRESHOLD = 24
 
 const INITIAL_WINDOW_SIZE = 40
 const WINDOW_GROW_STEP = 40
-/** Reveal-more trigger fires once the window's own top comes within this many px of the scrollport top. */
+
 const WINDOW_GROW_MARGIN = 600
 
-/** Active column host when present; otherwise the view-local scroller. */
 function scrollerOf(from) {
   return (from.closest('[data-conversation-scroll]')) ?? from
 }
 
-/** Find an already-rendered settled row without interpolating a selector. */
 function anchorElement(list, key) {
   for (const row of list.querySelectorAll('[data-chat-anchor-key]')) {
     if (row.dataset.chatAnchorKey === key) return row
@@ -25,13 +23,10 @@ function anchorElement(list, key) {
   return null
 }
 
-/** Row position in scrollport coordinates (viewport-independent). */
 function flowTop(row, scrollport) {
   return row.getBoundingClientRect().top - scrollport.getBoundingClientRect().top
 }
 
-/** Select a visible stable node/call identity, falling back only when layout
- * has not exposed a visible box yet. */
 function pagingAnchor(list, scrollport) {
   const viewport = scrollport.getBoundingClientRect()
   const composer = scrollport.querySelector('[data-composer-seat]')
@@ -60,7 +55,6 @@ function pagingAnchor(list, scrollport) {
   return visibleRows[0] ?? rows[0] ?? null
 }
 
-/** Capture a reflow-resistant reader position from the current rendered window. */
 function scrollPosition(list, scrollport) {
   const row = pagingAnchor(list, scrollport)
   const anchorKey = row?.dataset.chatAnchorKey
@@ -72,13 +66,11 @@ function scrollPosition(list, scrollport) {
   }
 }
 
-/** Host/OS refusal text for the file-open dialog; empty throws keep a locale fallback. */
 function openFailureMessage(error, fallback) {
   const message = error instanceof Error ? error.message : String(error)
   return message === '' ? fallback : message
 }
 
-/** ProducedFiles opens the session workspace as `.`. */
 function isFolderOpenPath(path) {
   return path === '.'
 }
@@ -91,8 +83,6 @@ function runningTurnStartTime(timeline) {
   return latest
 }
 
-/** Turn-level model activity label custom element: retains elapsed time across
- * first-token, tool, and streaming phases via an internal ticking clock. */
 class FreddieTurnStatus extends HTMLElement {
   #startTime = null
   #t = (key) => key
@@ -139,7 +129,6 @@ class FreddieTurnStatus extends HTMLElement {
 
 defineElement('freddie-turn-status', FreddieTurnStatus)
 
-/** In-page Host open-path refusal: the wire reason plus a retry of the same path. */
 function fileOpenErrorModalProps({
   path, message, busy, onClose, onRetry, t,
 }) {
@@ -156,10 +145,6 @@ function fileOpenErrorModalProps({
   }
 }
 
-/**
- * The chat view slot entry custom element: pure component over the composed
- * props; each ordered business Node crosses the keyed renderer seat.
- */
 export class FreddieChatView extends HTMLElement {
   #props = null
 
@@ -186,7 +171,6 @@ export class FreddieChatView extends HTMLElement {
   #turnStatus = null
   #fileOpenModal = null
 
-  /** Indices into `order`: only `order.slice(#windowStart, #windowEnd)` mounts. Reset on open/session change. */
   #windowStart = 0
   #windowEnd = Number.POSITIVE_INFINITY
   #windowGrowPending = false
@@ -386,10 +370,6 @@ export class FreddieChatView extends HTMLElement {
     this.#render()
   }
 
-  /** Mount more of the already-loaded `order` above the current window, holding
-   *  the reader's visible row fixed on screen (same anchor mechanism `loadOlder`
-   *  uses for a freshly-fetched page -- revealing more of an already-loaded
-   *  array is the same operation from the scrollport's point of view). */
   #growWindowUpward() {
     if (this.#windowStart === 0 || this.#windowGrowPending) return
     const props = this.#props
@@ -408,10 +388,6 @@ export class FreddieChatView extends HTMLElement {
     this.#render()
   }
 
-  /** Mount more of the already-loaded `order` below the current window. No
-   *  anchor bookkeeping needed (unlike growing upward): appending rows past
-   *  the visible viewport's bottom edge does not move anything already on
-   *  screen. */
   #growWindowDownward() {
     if (!Number.isFinite(this.#windowEnd)) return
     const order = this.#props?.useSession(s => s.chat.order)
@@ -623,10 +599,6 @@ export class FreddieChatView extends HTMLElement {
 
 defineElement('freddie-chat-view', FreddieChatView)
 
-/**
- * The chat view slot entry: pure component over the composed props; each
- * ordered business Node crosses the keyed renderer seat.
- */
 export function ChatView(props) {
   const el = document.createElement('freddie-chat-view')
   el.setProps(props)

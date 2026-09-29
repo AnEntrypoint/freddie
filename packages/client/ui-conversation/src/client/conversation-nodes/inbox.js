@@ -26,16 +26,10 @@ function inboxDefinition(target) {
   }
 }
 
-/** Cumulative next-turn inbox splice Definition. */
 export const nextTurnInboxDefinition = inboxDefinition('next-turn')
 
-/** Cumulative next-step inbox splice Definition used to classify steering. */
 export const nextStepInboxDefinition = inboxDefinition('next-step')
 
-/**
- * Register the two durable Inbox-state contributions.
- * @param ctx - owning UI Conversation context.
- */
 export function registerInboxConversationNodes(ctx) {
   ctx.conversationEvents.register(nextTurnInboxDefinition)
   ctx.conversationEvents.register(nextStepInboxDefinition)

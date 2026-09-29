@@ -3,7 +3,6 @@ import { CompactionCommandCard } from './CompactionCommandCard.js'
 import { GenericCommandCard } from './GenericCommandCard.js'
 import css from './ChatView.css.js'
 
-/** Ordinary command lifecycle renderer with command-name keyed specialization. */
 export function CommandNodeView({ node, renderSlot, t }) {
   const command = node.data
   const owner = { node: command }
@@ -17,7 +16,6 @@ export function CommandNodeView({ node, renderSlot, t }) {
   )
 }
 
-/** One integrated `/compact` command and compaction transaction renderer. */
 export function ManualCompactionNodeView({
   node, t,
 }) {

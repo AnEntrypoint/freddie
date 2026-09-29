@@ -40,11 +40,6 @@ function commandFromDone(match, previous) {
   }
 }
 
-/**
- * Read correlation identity from a compaction replacement checkpoint.
- * @param event - candidate Session event.
- * @returns correlated compaction and optional command identity.
- */
 function compactSource(event) {
   if (event.type !== 'user/message' || !isReplacementSurfaceEvent(event)) return undefined
   const source = event.data.source
@@ -55,12 +50,6 @@ function compactSource(event) {
   }
 }
 
-/**
- * Build the visible summary marker from optional lifecycle evidence.
- * @param match - compaction/summary Match, when loaded.
- * @param checkpoint - replacement checkpoint Match.
- * @returns final compaction summary Node data.
- */
 function compactSummary(match, checkpoint) {
   let summary = null
   let shadowedItemCount = null
@@ -118,19 +107,12 @@ function fallbackState(context) {
   }
 }
 
-/**
- * Fold shared compaction evidence into a Definition-owned State.
- * @param state - current business State carrying optional compaction evidence.
- * @param match - next compaction lifecycle Match.
- * @returns adopted State, preserving reference identity when the Match adds no evidence.
- */
 export function updateCompactionState(state, match) {
   if (match.event.type === 'compaction/summary') return { ...state, summary: match }
   if (compactSource(match.event) !== undefined) return { ...state, checkpoint: match }
   return state
 }
 
-/** Slash-command lifecycle, including integrated manual compaction, Definition. */
 export const commandDefinition = {
   kind: 'command',
   target: 'chat',
@@ -175,13 +157,8 @@ export const commandDefinition = {
   },
 }
 
-/**
- * Register the command lifecycle business contribution.
- * @param ctx - owning UI Conversation context.
- */
 export function registerCommandConversationNode(ctx) {
   ctx.conversationEvents.register(commandDefinition)
 }
 
-/** Shared structural checkpoint recognizer for automatic compaction. */
 export { compactSource, compactSummary }

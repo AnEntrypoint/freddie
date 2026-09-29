@@ -11,10 +11,6 @@ import { registerTurnErrorConversationNode } from './turn-error.js'
 import { registerTurnMaxTokensConversationNode } from './turn-max-tokens.js'
 import { registerTurnTailConversationNode } from './turn-tail.js'
 
-/**
- * Register the Chat business Definitions and target builder contributed by this package.
- * @param ctx - owning UI Conversation context.
- */
 export function registerConversationNodes(ctx) {
   registerInboxConversationNodes(ctx)
   registerMessageConversationNode(ctx)

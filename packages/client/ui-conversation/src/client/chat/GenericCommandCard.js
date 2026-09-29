@@ -3,7 +3,6 @@ import { DisclosureRow, IconApiOutline14, StateDot, defineElement } from '@fredd
 import a11yCss from './accessibility.css.js'
 import css from './GenericCommandCard.css.js'
 
-/** Node state → row state semantic (running while unsettled; outcome kind after). */
 function stateOf(outcome) {
   if (outcome === null) return 'running'
   return outcome.kind === 'error' ? 'error' : 'ok'
@@ -13,14 +12,11 @@ function leadingFor(state) {
   return state === 'error' ? h(StateDot, { state: 'error' }) : h(IconApiOutline14, { size: 14 })
 }
 
-/** Card props: the owner payload plus the render site's locale seat (plain prop). */
-
 const DEFAULT_PROPS = {
   node: { name: null, outcome: null },
   t: (key) => key,
 }
 
-/** Generic command row custom element. */
 export class FreddieGenericCommandCard extends HTMLElement {
   #props = DEFAULT_PROPS
   #expanded = false
@@ -83,26 +79,12 @@ export class FreddieGenericCommandCard extends HTMLElement {
 
 defineElement('freddie-generic-command-card', FreddieGenericCommandCard)
 
-/**
- * @typedef {object} GenericCommandCardProps
- * @property {{name: string|null, outcome: {kind: string, text?: string}|null}} node - the command node's name and settled outcome.
- * @property {string} [runningSummary] - collapsed summary shown while the command has not settled.
- * @property {(key: string, vars?: object) => string} t - localization function.
- */
-
-/**
- * Create (if needed) or update a GenericCommandCard element in place.
- * @param el - an existing `freddie-generic-command-card` element to update, or null to create one.
- * @param props - see {@link GenericCommandCardProps}.
- * @returns the `freddie-generic-command-card` element; keep it and pass it back in to update.
- */
 export function renderGenericCommandCard(el, props) {
   const target = el ?? document.createElement('freddie-generic-command-card')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function GenericCommandCard(props) {
   return renderGenericCommandCard(null, props)
 }

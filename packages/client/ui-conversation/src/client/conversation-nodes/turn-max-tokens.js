@@ -6,12 +6,6 @@ function lastStep(context) {
   return location.turn.steps.at(-1)?.step ?? 0
 }
 
-/**
- * Anchor the notice between the closing Assistant and the turn-tail so the
- * tail stays the turn's last Chat node and keeps its branch action enabled.
- * Without a closing text Assistant there is no branch action to protect, and
- * the turn/end seq keeps the notice at the truncation point.
- */
 function noticeAnchor(context, seq) {
   const location = context.start?.location ?? context.matches[0]?.location
   if (location?.kind !== 'turn' && location?.kind !== 'step') return seq
@@ -26,7 +20,6 @@ function stateFrom(match) {
   return { turn: match.event.data.turn, seq: match.event.seq, time: match.event.time }
 }
 
-/** Notice Definition for a turn the provider ended at its output-token cap. */
 export const turnMaxTokensDefinition = {
   kind: 'turn-max-tokens',
   target: 'chat',
@@ -56,10 +49,6 @@ export const turnMaxTokensDefinition = {
   },
 }
 
-/**
- * Register the max-tokens turn-end notice contribution.
- * @param ctx - owning UI Conversation context.
- */
 export function registerTurnMaxTokensConversationNode(ctx) {
   ctx.conversationEvents.register(turnMaxTokensDefinition)
 }

@@ -10,7 +10,6 @@ function cachedMessageIconActions(identity, props) {
   return el
 }
 
-/** Turn-local actions and feature tail over the Location index, independent of Assistant placement. */
 export function TurnTailNodeView({
   node, openFile, forkAt, renderSlot, renderSlotChain, t, useSession,
 }) {

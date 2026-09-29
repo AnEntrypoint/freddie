@@ -4,18 +4,6 @@ import { formatTokensPerSecond } from './message-chrome.js'
 import { assistantStepReading } from './turn-metrics.js'
 import css from './StatsLine.css.js'
 
-/**
- * Fold assistant and tool-result nodes into window-scoped display totals —
- * the FALLBACK for assemblies without the `sessionStats` projection.
- *
- * Every displayed figure rides that durable whole-log projection (and token
- * accounting rides `tokenUsage`) because the window is paged and compaction
- * rewrites it; this fold answers "what is on screen" only when no projection
- * value is served. Its field names deliberately mirror the projection's so
- * the two swap wholesale.
- * @param nodes - snapshot nodes.
- * @returns fallback counts and summed wall times.
- */
 export function deriveStats(nodes) {
   const turns = new Set()
   let steps = 0
@@ -49,11 +37,6 @@ export function deriveStats(nodes) {
   return { turns: turns.size, steps, llmMs, toolMs, ttftMs, ttftSteps, decodeMs, decodeTokens }
 }
 
-/**
- * Compact token count: 517 / 12.2K / 517K / 1.2M (one decimal under three digits).
- * @param n - token count.
- * @returns display string.
- */
 export function formatTokens(n) {
   const scaled = (v) =>
     v >= 100 ? String(Math.round(v)) : String(Math.round(v * 10) / 10)
@@ -62,11 +45,6 @@ export function formatTokens(n) {
   return `${scaled(n / 1_000_000)}M`
 }
 
-/**
- * Compact duration: 45.2s under a minute, 2m42s from there on.
- * @param ms - duration in milliseconds.
- * @returns display string.
- */
 export function formatDuration(ms) {
   const s = ms / 1_000
   if (s < 60) return `${Math.round(s * 10) / 10}s`
@@ -74,7 +52,6 @@ export function formatDuration(ms) {
   return `${Math.floor(whole / 60)}m${whole % 60}s`
 }
 
-/** Round a cache-read ratio to an integer percentage, with positive ties rounded up. */
 function roundedIntegerPercent(cacheReadTokens, denominator) {
   const denominatorQuotient = Math.floor(denominator / 200)
   const denominatorRemainder = denominator % 200
@@ -94,13 +71,6 @@ function roundedIntegerPercent(cacheReadTokens, denominator) {
   return lower
 }
 
-/**
- * Display-ready cache-hit share of prompt-side input over the whole durable log.
- * @param usage - the session's token-usage projection value.
- * @returns integer text when integer rounding stays below 100, otherwise the
- * minimum decimal precision that still rounds below 100; a full hit returns
- * 100, and no billed input returns null.
- */
 export function cacheHitPercent(usage) {
   const denominator = billedInputTokens(usage)
   if (denominator === 0) return null
@@ -130,27 +100,10 @@ export function cacheHitPercent(usage) {
   return `99.${'9'.repeat(decimalPlaces - 1)}${10 - roundedLoss}`
 }
 
-/**
- * Sum the three disjoint prompt-side billing buckets.
- * @param usage - the session's token-usage projection value.
- * @returns billed input tokens.
- */
 export function billedInputTokens(usage) {
   return usage.uncachedInputTokens + usage.cacheReadTokens + usage.cacheWriteTokens
 }
 
-/**
- * Approximate context occupancy, using the TUI's integer rounding and upper
- * clamp. The numerator is `projectedTokens` — the provider sample carried
- * forward over the surface's movement since — so compaction shows immediately
- * instead of waiting for the next request to report usage; it falls back to the
- * bare sample only for a log whose projection predates that field. Numerator
- * and capacity remain independent last-wins projection fields, so this is a
- * reference figure rather than an exact measurement of one request (see the
- * token-meter README).
- * @param pressure - the session's context-pressure projection value.
- * @returns occupancy with its numerator and denominator, or null until both values are known.
- */
 export function contextOccupancy(pressure) {
   const usedTokens = pressure?.projectedTokens ?? pressure?.pressureTokens
   if (usedTokens === undefined || pressure?.contextWindow === undefined) return null
@@ -161,15 +114,12 @@ export function contextOccupancy(pressure) {
   }
 }
 
-/** Props: the conversation-snapshot selector plus the projection read seat. */
-
 const DEFAULT_PROPS = {
   useSession: (() => { throw new Error('StatsLine: useSession not wired') }),
   useProjection: (() => undefined),
   t: (key) => key,
 }
 
-/** Elided stats strip custom element, with a delayed hover tooltip carrying the full line. */
 export class FreddieStatsLine extends HTMLElement {
   #props = DEFAULT_PROPS
   #truncated = false
@@ -282,26 +232,12 @@ export class FreddieStatsLine extends HTMLElement {
 
 defineElement('freddie-stats-line', FreddieStatsLine)
 
-/**
- * @typedef {object} StatsLineProps
- * @property {(selector: (state: object) => *) => *} useSession - the conversation-store selector hook.
- * @property {(key: string) => *} useProjection - the session-projection read seat; returns undefined until the named projection is known.
- * @property {(key: string, vars?: object) => string} t - localization function.
- */
-
-/**
- * Create (if needed) or update a StatsLine element in place.
- * @param el - an existing `freddie-stats-line` element to update, or null to create one.
- * @param props - see {@link StatsLineProps}.
- * @returns the `freddie-stats-line` element; keep it and pass it back in to update.
- */
 export function renderStatsLine(el, props) {
   const target = el ?? document.createElement('freddie-stats-line')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function StatsLine(props) {
   return renderStatsLine(null, props)
 }

@@ -10,7 +10,6 @@ function fallbackState(context) {
   }
 }
 
-/** Automatic compaction lifecycle and landed checkpoint Definition. */
 export const compactionDefinition = {
   kind: 'compaction',
   target: 'chat',
@@ -39,10 +38,6 @@ export const compactionDefinition = {
   },
 }
 
-/**
- * Register the automatic-compaction business contribution.
- * @param ctx - owning UI Conversation context.
- */
 export function registerCompactionConversationNode(ctx) {
   ctx.conversationEvents.register(compactionDefinition)
 }

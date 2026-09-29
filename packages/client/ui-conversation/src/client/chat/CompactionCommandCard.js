@@ -1,7 +1,6 @@
 import { CompactionItem } from './CompactionItem.js'
 import { GenericCommandCard } from './GenericCommandCard.js'
 
-/** Render one manual compaction lifecycle without duplicating its checkpoint marker. */
 export function CompactionCommandCard({ node, compaction, t }) {
   if (compaction !== undefined) {
     return CompactionItem({

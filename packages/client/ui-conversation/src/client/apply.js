@@ -1,4 +1,4 @@
-/** Registers the conversation components, shared store, and service callbacks. */
+
 import { resolveSlotLabel, webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { resolveWorkspacePath } from '@freddie/freddie-client-runtime/client'
 import { createChatStore } from './stores.js'
@@ -21,7 +21,6 @@ import { registerConversationNodes } from './conversation-nodes/register.js'
 import { registerChatNodeRenderers } from './chat/register-node-renderers.js'
 import { CONVERSATION_SETTINGS_NAMESPACE } from '../submission-settings.js'
 
-/** Services required by the conversation plugin. */
 export const inject = [
   'slots', 'layout', 'sessions', 'workspaces', 'locale', 'connection', 'remote', 'settingsScope',
   'conversationEvents', 'conversationViews',
@@ -31,7 +30,7 @@ const ABSENT_NOTICES = {
   getSnapshot: () => null,
   subscribe: () => () => {},
 }
-/** No session, therefore nothing to block; same one-identity rule as above. */
+
 const ABSENT_BLOCK = {
   getSnapshot: () => undefined,
   subscribe: () => () => {},
@@ -59,7 +58,6 @@ const CHAT_NODE_INJECT = {
   },
 }
 
-/** Resolve the session-scoped conversation face (scope-addressed send/cancel), failing loud. */
 function scopedConversation(sessions, id) {
   const scoped = sessions.scope(id)
   if (scoped === undefined) throw new Error(`ui-conversation: session "${id}" resolved no scope`)
@@ -68,21 +66,16 @@ function scopedConversation(sessions, id) {
   return conversation
 }
 
-/** Resolve package-internal attachment operations from the public service registration. */
 function concreteConversation(ctx) {
   const conversation = ctx.get('conversation')
   if (conversation === undefined) throw new Error('ui-conversation: conversation service unavailable')
   return conversation
 }
 
-/** Chain routing: claim the composer while an approval wait is pending (pure — owner props only). */
 function selectApproval({ interactions }) {
   return interactions.find((i) => i.kind === 'approval') ?? null
 }
 
-/** Mounts the conversation plugin.
- * @param ctx - Client root context.
- */
 export function apply(ctx) {
   const sessions = ctx.sessions
   const workspaces = ctx.workspaces
@@ -117,7 +110,7 @@ export function apply(ctx) {
   const viewTabs = () => {
     const tabs = []
     for (const entry of slots.entries('conversation.view')) {
-      /* v8 ignore next -- unreachable: list registration validates id at load. */
+      /* v8 ignore next */
       if (entry.options.id === undefined) continue
       tabs.push({ id: entry.options.id, label: resolveSlotLabel(entry.options.label) ?? entry.options.id })
     }

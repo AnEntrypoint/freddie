@@ -198,7 +198,6 @@ function projectAssistant(context) {
   }
 }
 
-/** Per-step Assistant streaming/final/interruption Definition. */
 export const assistantDefinition = {
   kind: 'assistant-step',
   target: 'chat',
@@ -266,10 +265,6 @@ export const assistantDefinition = {
   },
 }
 
-/**
- * Register the Assistant lifecycle business contribution.
- * @param ctx - owning UI Conversation context.
- */
 export function registerAssistantConversationNode(ctx) {
   ctx.conversationEvents.register(assistantDefinition)
 }

@@ -113,7 +113,6 @@ function tailData(context) {
   }
 }
 
-/** Completed-turn footer Definition independent of any Assistant row. */
 export const turnTailDefinition = {
   kind: 'turn-tail',
   target: 'chat',
@@ -152,10 +151,6 @@ export const turnTailDefinition = {
   },
 }
 
-/**
- * Register completed-Turn footer data and its Chat node contribution.
- * @param ctx - owning UI Conversation context.
- */
 export function registerTurnTailConversationNode(ctx) {
   ctx.conversationEvents.register(turnTailDefinition)
 }

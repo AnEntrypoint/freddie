@@ -1,7 +1,6 @@
 import { isAppendSurfaceEvent } from '@freddie/freddie-client-runtime/client'
 import { chatNode } from './common.js'
 
-/** Unclaimed append-surface fallback Definition. */
 export const unknownFallbackDefinition = {
   kind: 'unknown-surface',
   target: 'chat',
@@ -21,10 +20,6 @@ export const unknownFallbackDefinition = {
     : chatNode(context, 'unknown', context.state.seq, context.state),
 }
 
-/**
- * Register the unmatched append-surface fallback contribution.
- * @param ctx - owning UI Conversation context.
- */
 export function registerUnknownConversationFallback(ctx) {
   ctx.conversationEvents.registerFallback(unknownFallbackDefinition)
 }
