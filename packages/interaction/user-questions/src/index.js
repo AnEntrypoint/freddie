@@ -1,16 +1,6 @@
-/**
- * Service Definition for the user-questions capability seam (`ctx.userQuestions`): a UI-backed service for
- * pausing an agent tool call until the human answers a question. The model-
- * facing tool lives in `@freddie/freddie-tool-ask-user`; UI packages provide
- * the single active provider.
- *
- * @module @freddie/freddie-user-questions
- */
-
 import { Service } from '@freddie/cordis'
 import { HarnessError } from '@freddie/freddie-llm'
 
-/** Stable error taxonomy for user-questions failures. */
 export class UserQuestionError extends HarnessError {
   constructor(message, code, options) {
     super(message, code, options)
@@ -18,7 +8,6 @@ export class UserQuestionError extends HarnessError {
   }
 }
 
-/** `ctx.userQuestions`: one active UI provider plus an `ask()` API. */
 export class UserQuestionService extends Service {
   provider
 
@@ -26,12 +15,6 @@ export class UserQuestionService extends Service {
     super(ctx, 'userQuestions')
   }
 
-  /**
-   * Register the UI provider. Only one provider may be active in a context.
-   *
-   * @param provider UI-side implementation that collects answers.
-   * @returns Disposer that unregisters this provider.
-   */
   registerProvider(provider) {
     const dispose = this.ctx.effect(function* () {
       if (this.provider !== undefined) {
@@ -45,21 +28,6 @@ export class UserQuestionService extends Service {
     return () => void dispose()
   }
 
-  /**
-   * Ask the active UI provider and wait for the user's answer.
-   *
-   * When a caller supplies an agent, human interaction is valid only for the
-   * exact live runtime root. Runtime ownership, not durable session lineage,
-   * decides this boundary: an owned child has no human answerer and would
-   * block forever, while a lineage-bearing session resumed as a new runtime
-   * root may ask normally.
-   *
-   * @param request Questions, owner agent, and abort signal.
-   * @returns The answer chosen or typed by the human.
-   * @throws {UserQuestionError} code `CALLER_NOT_LIVE` when a supplied
-   *   agent is not the registry's exact live instance, or `DELEGATED_CALLER`
-   *   when that live agent is owned by another agent.
-   */
   async ask(request) {
     if (request.signal?.aborted) {
       throw new UserQuestionError('ask_user_question was aborted before the user answered', 'ASK_ABORTED')

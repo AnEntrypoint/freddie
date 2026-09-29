@@ -1,16 +1,11 @@
-/** Package-owned approval audit-stream invariants. @module @freddie/freddie-user-approval/invariant */
-
 import { APPROVAL_POLICIES } from './index.js'
 
 const PACKAGE_NAME = '@freddie/freddie-user-approval'
 const APPROVAL_OUTCOMES = ['allowed-once', 'rejected', 'cancelled', 'unavailable']
 
-/** Cordis companion plugin name. */
 export const name = 'user-approval-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Validate one approval event against committed unmatched questions. */
 function validateApprovalEvent(trace, event, fail) {
   if (event.type === 'approval/asked') {
     if (trace.openTurn === null) fail('approval/asked appended outside any open turn')
@@ -32,17 +27,11 @@ function validateApprovalEvent(trace, event, fail) {
   return undefined
 }
 
-/** Apply one accepted approval-pair transition. */
 function applyApprovalTransition(pending, transition) {
   if (transition.kind === 'asked') pending.add(transition.id)
   else pending.delete(transition.id)
 }
 
-/**
- * Install audit pairing and closed-vocabulary checks.
- * @name install
- * @function
- */
 /* jscpd:ignore-start */
 const install = Object.assign((ctx, fail) => {
   const traces = new WeakMap()
@@ -74,7 +63,7 @@ const install = Object.assign((ctx, fail) => {
     }
     if (event.type !== 'approval/asked' && event.type !== 'approval/decided') return
     const candidate = staged.get(event)
-    /* v8 ignore next -- internal/dispatch stages every package-owned pair event */
+    /* v8 ignore next */
     if (candidate === undefined || candidate.session !== session) return fail('approval audit event published without pre-commit validation')
     staged.delete(event)
     applyApprovalTransition(trace.pending, candidate.transition)
@@ -88,10 +77,5 @@ const install = Object.assign((ctx, fail) => {
 }, { inject: ['sessions'] })
 /* jscpd:ignore-end */
 
-/**
- * Register the approval invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

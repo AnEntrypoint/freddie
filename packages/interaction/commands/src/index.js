@@ -1,8 +1,3 @@
-/**
- * Plugin-owned human-command registry shared by interactive UI adapters.
- * @module @freddie/freddie-commands
- */
-
 import { Context } from '@freddie/cordis'
 import { AttachmentError, admitEncodedImages } from '@freddie/freddie-attachment'
 import { NamedEntries, ScopedLayers } from '@freddie/freddie-scope'
@@ -15,56 +10,40 @@ export const name = 'commands'
 
 const COMMAND_NAME = /^[a-z][a-z0-9_-]*$/u
 
-/** Shared frozen attachments value for image-free invocations. */
 const NO_ATTACHMENTS = Object.freeze([])
 
-/** All command registrations owned by one global or scoped layer. */
 class CommandLayer {
   commands
 
-  /**
-   * Create one command layer with diagnostics specific to its ownership scope.
-   * @param scope - the scoped owner, or `undefined` for global registrations.
-   */
   constructor(scope) {
     this.commands = new NamedEntries(name => new Error(scope === undefined
       ? `command "${name}" is already registered (for a per-agent variant, mount a command-injected plugin under that agent's \`agent.ctx\`)`
       : `command "${name}" is already registered in this scope`))
   }
 
-  /** @returns whether this layer owns no command registrations. */
   isEmpty() {
     return this.commands.isEmpty()
   }
 }
 
-/**
- * Parse an exact slash command without normalizing its trailing input.
- *
- * @param line - Complete candidate command line.
- * @returns The parsed command, or `undefined` when the line is not a command.
- */
 export function parseCommand(line) {
   const match = /^\/([a-z][a-z0-9_-]*)(?=$|[\t\n\r ])/u.exec(line)
   if (match === null) return undefined
   const name = match[1]
-  /* v8 ignore next -- the first capture is required whenever the regular expression matches */
+  /* v8 ignore next */
   if (name === undefined) return undefined
   return Object.freeze({ name, rawInput: line.slice(match[0].length) })
 }
 
-/** Convert arbitrary abort reasons to one stable rejected Error. */
 function abortError(signal) {
   if (signal.reason instanceof Error) return signal.reason
   return new Error(typeof signal.reason === 'string' ? signal.reason : 'command aborted')
 }
 
-/** The signal's normalized abort error when it is already aborted. */
 function cancellationOf(signal) {
   return signal.aborted ? abortError(signal) : undefined
 }
 
-/** Render arbitrary thrown values without trusting their string coercion. */
 function renderThrown(value) {
   try {
     return String(value)
@@ -73,7 +52,6 @@ function renderThrown(value) {
   }
 }
 
-/** Stop awaiting an uncooperative handler once its owning UI request aborts. */
 function withAbort(promise, signal) {
   if (signal.aborted) return Promise.reject(abortError(signal))
   return new Promise((resolve, reject) => {
@@ -97,7 +75,6 @@ function withAbort(promise, signal) {
   })
 }
 
-/** Reject invalid command metadata before it can reach a UI protocol. */
 function normalizeDefinition(definition) {
   if (!COMMAND_NAME.test(definition.name)) {
     throw new TypeError(`command name "${definition.name}" must match ${String(COMMAND_NAME)}`)
@@ -144,7 +121,6 @@ function normalizeDefinition(definition) {
   return { definition: normalized, descriptor }
 }
 
-/** Validate and detach an untrusted handler result at the registry boundary. */
 function normalizeResult(command, value) {
   if (typeof value !== 'object' || value === null || !('kind' in value)) {
     throw new TypeError(`command "${command}" handler must return a CommandResult`)
@@ -173,31 +149,19 @@ function normalizeResult(command, value) {
   throw new TypeError(`command "${command}" returned unknown result kind "${String(result.kind)}"`)
 }
 
-/**
- * Human-command registry. Plain-context definitions are global; definitions
- * registered through a command-injected child of an agent context shadow
- * globals for that agent.
- */
 export class CommandRuntime extends TypertRemoteService {
   layers = new ScopedLayers(
     scope => new CommandLayer(scope),
     () => { this.notifyChange() },
   )
 
-  /** Monotonic per-instance counter behind {@link mintCommandId}. */
   commandSeq = 0
-  /** Instance token keeping minted ids unique across process restarts over one resumed log. */
   instanceToken = crypto.randomUUID().slice(0, 8)
 
   constructor(ctx) {
     super(ctx, 'commands')
   }
 
-  /**
-   * Register a global or calling-agent-scoped command.
-   * @param definition - discovery metadata and direct UI handler.
-   * @returns the exact effect disposer that unregisters this definition.
-   */
   register(definition) {
     const registered = normalizeDefinition(definition)
     return this.layers.effect(
@@ -207,53 +171,16 @@ export class CommandRuntime extends TypertRemoteService {
     )
   }
 
-  /**
-   * List the effective immutable command descriptors for one agent.
-   * @param agent - exact receiving agent and scoped-layer key.
-   * @returns name-sorted descriptors after scoped shadowing.
-   */
   list(agent) {
     return Object.freeze([...this.view(agent).values()]
       .map(command => command.descriptor)
       .sort((left, right) => left.name < right.name ? -1 : 1))
   }
 
-  /**
-   * Resolve one effective command definition.
-   * @param agent - exact receiving agent and scoped-layer key.
-   * @param name - command name without a slash.
-   * @returns the scoped shadow or global definition.
-   */
   find(agent, name) {
     return this.view(agent).get(name)?.definition
   }
 
-  /**
-   * Parse and execute a known command without sending it to the model.
-   *
-   * A resolved command's lifecycle is logged: `command/run` is appended
-   * before the handler is invoked and `command/done` after settlement (a
-   * thrown or aborted handler settles as `kind: 'error'`). Both are direct
-   * log-only appends — no turn wraps them, and persistence drains them at
-   * ordinary checkpoints. Admission misses (syntax or unknown name) log
-   * nothing — they never entered a handler. A `command/run` append failure
-   * fails the execution loud; a `command/done` append failure on the
-   * handler-failure path is contained so the handler's own error stays the
-   * reported failure.
-   *
-   * Image admission is enforced here, not in the composer: images sent to a
-   * command that does not declare `input.images`, an absent attachment store,
-   * and an exceeded attachment limit each settle as an error result before
-   * the handler runs, and a rejected batch publishes no durable object.
-   *
-   * @param agent - exact receiving agent.
-   * @param line - complete slash-command line.
-   * @param images - base64-encoded composer images accompanying the line, in
-   *   submission order; empty for a plain invocation.
-   * @param signal - cancellation signal owned by the UI request.
-   * @returns the settled execution (result + lifecycle pairing id), or
-   *   `undefined` when syntax or name does not resolve.
-   */
   async execute(
     agent,
     line,
@@ -319,7 +246,6 @@ export class CommandRuntime extends TypertRemoteService {
     return settle(result)
   }
 
-  /** Contained `command/done` error append for a thrown handler or admission failure. */
   settleThrown(session, command, commandId, error) {
     try {
       this.appendLifecycle(session, 'command/done', {
@@ -331,29 +257,20 @@ export class CommandRuntime extends TypertRemoteService {
     }
   }
 
-  /** Mint the next pairing id (monotonic; instance-token-prefixed so a resumed log never repeats one). */
   mintCommandId() {
     this.commandSeq += 1
     return CommandId(`cmd-${this.instanceToken}-${this.commandSeq}`)
   }
 
-  /**
-   * Append one log-only lifecycle event directly: no turn is opened for it and
-   * no flush is forced — persistence observes the eager `session/event` path
-   * and drains at ordinary checkpoints and teardown, like every other
-   * standalone plugin event.
-   */
   appendLifecycle(session, type, data) {
     const appendLogOnly = session.append.bind(session)
     return appendLogOnly(type, data)
   }
 
-  /** Resolve global definitions followed by exact scoped shadows. */
   view(agent) {
     return this.layers.merge(agent, layer => layer.commands)
   }
 
-  /** Notify every registry observer without making UI refresh load-bearing. */
   notifyChange() {
     for (const callback of this.ctx.events.dispatch('emit', ['commands/change'])) {
       try {

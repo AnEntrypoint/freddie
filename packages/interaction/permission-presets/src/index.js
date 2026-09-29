@@ -1,27 +1,9 @@
-/**
- * User-facing permission presets over the independent sandbox-mode and
- * approval-policy knobs. A switch records the selected preset, then writes
- * changed knobs through their canonical setters. Execution, prompt narration,
- * and replay keep reading their knob folds. The preset event preserves user
- * intent when two presets share a bundle. The read side ships as the
- * `permissions` session projection; the write side ships as the
- * `/permission` command — both optional children over the same service.
- *
- * @module freddie-permission-presets
- */
-
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { SANDBOX_MODES, effectiveSandboxMode, setSandboxMode } from '@freddie/freddie-sandbox-policy'
 import { APPROVAL_POLICIES, effectiveApprovalPolicy, setApprovalPolicy } from '@freddie/freddie-user-approval'
 import { installSettingsSection, settingsNamespace } from '@freddie/freddie-settings'
 
-/**
- * Fold the last selected preset from the durable log; replay needs no catch-up
- * state.
- * @param events - session events in log order; other event types are ignored.
- * @returns the last selected preset, or undefined when none was recorded.
- */
 export function effectivePermissionPreset(events) {
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index]
@@ -30,23 +12,12 @@ export function effectivePermissionPreset(events) {
   return undefined
 }
 
-/** Returned when effective knob values match no table entry. Clients may show
- * it as the current value, but it is never a switch target or event payload. */
 export const CUSTOM_PRESET = 'custom'
 
-/** Settings namespace carrying the default for future sessions. */
 export const PERMISSION_SETTINGS_NAMESPACE = settingsNamespace('permission')
 
-/** State for the empty log: every knob at its composition default. */
 const EMPTY_KNOBS = { preset: null, sandbox: null, approval: null }
 
-/**
- * One-event knob transition (the projection unit's `apply`). Uninterested
- * events return the same reference — the registry's change gate.
- * @param state - the folded knob state before `event`.
- * @param event - one committed session event.
- * @returns the next state; the same reference when the event is not a knob.
- */
 export function applyKnobEvent(state, event) {
   switch (event.type) {
     case 'permission/preset':
@@ -60,18 +31,12 @@ export function applyKnobEvent(state, event) {
   }
 }
 
-/** Whole-log knob fold (the cold-read parallel of {@link applyKnobEvent}). */
 function foldKnobs(events) {
   let state = EMPTY_KNOBS
   for (const event of events) state = applyKnobEvent(state, event)
   return state
 }
 
-/**
- * Owns the deployment's permission presets and their write path. Requires a
- * confining `ctx.shell` executor and `ctx.approval`; unmatched knob values are
- * reported as {@link CUSTOM_PRESET}, not an error.
- */
 export class PermissionPresetService extends Service {
   static Config = z.object({
     presets: z.dict(z.object({
@@ -166,35 +131,18 @@ export class PermissionPresetService extends Service {
     })
   }
 
-  /**
-   * The advertised preset names, in the preset table's declaration order.
-   * @returns every switchable preset name.
-   */
   get names() {
     return Object.keys(this.presets)
   }
 
-  /**
-   * The preset currently selected as the default for future sessions.
-   * @returns the resolved settings value, or the composition default without
-   * a mounted settings provider.
-   */
   get defaultPreset() {
     return this.defaultSettings().defaultPreset
   }
 
-  /**
-   * Resolve the preset matching the effective knob values. A still-matching
-   * last selection wins shared-bundle ties; otherwise the first table match
-   * wins, or {@link CUSTOM_PRESET} when no entry matches.
-   * @param events - the session's events in log order.
-   * @returns the effective preset name, or `custom` when nothing matches.
-   */
   current(events) {
     return this.derive(foldKnobs(events))
   }
 
-  /** Resolve the preset for one folded knob state (the shared mathematics of `current` and the projection unit). */
   derive(state) {
     const sandbox = state.sandbox ?? this.ctx.shell.sandboxMode
     const approval = state.approval ?? this.ctx.approval.config.policy ?? 'ask'
@@ -209,12 +157,6 @@ export class PermissionPresetService extends Service {
     return CUSTOM_PRESET
   }
 
-  /**
-   * Build the whole select value for one folded knob state: every table
-   * option in declaration order, `custom` appended exactly while derived.
-   * @param state - the folded knob overrides.
-   * @returns the `permissions` projection payload.
-   */
   selectFor(state) {
     const currentValue = this.derive(state)
     return {
@@ -226,12 +168,6 @@ export class PermissionPresetService extends Service {
     }
   }
 
-  /**
-   * Resolve a preset's knob bundle.
-   * @param name - the preset name to resolve.
-   * @returns the configured bundle.
-   * @throws when `name` is not in the table.
-   */
   resolve(name) {
     const spec = this.presets[name]
     if (spec === undefined) {
@@ -240,13 +176,6 @@ export class PermissionPresetService extends Service {
     return spec
   }
 
-  /**
-   * Build the client option for a table entry or {@link CUSTOM_PRESET}. A
-   * missing label falls back to the table key.
-   * @param name - a table key, or `custom`.
-   * @returns the option a client renders.
-   * @throws when `name` is neither a table key nor `custom`.
-   */
   optionOf(name) {
     if (name === CUSTOM_PRESET) {
       return { value: CUSTOM_PRESET, name: 'Custom', description: 'Current sandbox and approval settings do not match a preset.' }
@@ -255,17 +184,10 @@ export class PermissionPresetService extends Service {
     return { value: name, name: spec.name ?? name, ...spec.description !== undefined ? { description: spec.description } : {} }
   }
 
-  /**
-   * Record a changed preset, then update each changed knob through its own
-   * setter. Selecting the effective preset again appends nothing.
-   * @param session - the session the switch belongs to.
-   * @param name - the preset to switch to; unknown names throw.
-   */
   set(session, name) {
     this.apply(session, name, (policy) => { setApprovalPolicy(session, policy) })
   }
 
-  /** Apply one preset with the caller-selected live or initialization policy writer. */
   apply(session, name, setApproval) {
     const spec = this.resolve(name)
     if (this.current(session.events) !== name) {
@@ -280,12 +202,6 @@ export class PermissionPresetService extends Service {
     }
   }
 
-  /**
-   * Fill every missing permission fact before a session is published. A
-   * genuinely fresh session uses the current user default; seeded or partially
-   * initialized sessions preserve their effective knob values and only gain
-   * the missing durable facts.
-   */
   pinInitialPermission(session) {
     const events = session.events
     const selected = effectivePermissionPreset(events)

@@ -1,18 +1,9 @@
-/**
- * Package-owned invariant companion for `@freddie/freddie-commands`:
- * command lifecycle events pair by commandId within one session log.
- * @module @freddie/freddie-commands/invariant
- */
-
 const PACKAGE_NAME = '@freddie/freddie-commands'
 
-/** Cordis companion plugin name. */
 export const name = 'commands-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/* jscpd:ignore-start -- package companions share replay and dispatch plumbing */
-/** Install pairing validation over loaded logs and newly appended lifecycle events. */
+/* jscpd:ignore-start */
 const install = Object.assign((ctx, fail) => {
   const runIds = new WeakMap()
   const validateEvent = (session, event) => {
@@ -51,10 +42,5 @@ const install = Object.assign((ctx, fail) => {
 }, { inject: ['sessions'] })
 /* jscpd:ignore-end */
 
-/**
- * Register this package's invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

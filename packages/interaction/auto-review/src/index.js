@@ -1,38 +1,15 @@
-/**
- * LLM-backed authorization gate for the Auto permission preset. Every native
- * call and every Code Mode inner call is reviewed once before its body; the
- * outer `run_code` transport is deliberately excluded. Under the `ask`
- * approval policy a reviewer denial asks the user; under `never` it is final.
- *
- * A reviewer failure, an unreadable policy, and every inconsistency between
- * the pending execution and the durable log deny the call: this plugin is a
- * security control and fails closed (Saltzer & Schroeder's fail-safe
- * defaults). No exception path may let a call execute unreviewed.
- *
- * @module @freddie/freddie-auto-review
- */
-
 import z from '@freddie/schemastery'
 import { BlockAssembler, deepFreeze } from '@freddie/freddie-llm'
 import { effectivePermissionPreset } from '@freddie/freddie-permission-presets'
 import { deadline, MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
 import { RUN_CODE_NAME } from '@freddie/freddie-tools'
 
-/** Cordis plugin name used by loader diagnostics. */
 export const name = 'auto-review'
 
-/** Complete host services required before Auto may gate a call. */
 export const inject = ['llm', 'permissionPresets', 'approval', 'tools']
 
-/** The preset name that enrolls a session in per-call review. */
 export const AUTO_PRESET = 'auto'
 
-/**
- * The Auto bundle: Full access's sandbox value with the `ask` approval policy,
- * so an allowed call executes immediately and a denied call prompts. The
- * bundle duplicates no shipped preset, so Auto is reachable only by an
- * explicit switch.
- */
 export const AUTO_PRESET_BUNDLE = Object.freeze({
   sandbox: 'danger-full-access',
   approval: 'ask',
@@ -40,10 +17,8 @@ export const AUTO_PRESET_BUNDLE = Object.freeze({
   description: 'Full host access with a model review before every tool call; denied calls ask first.',
 })
 
-/** Capability-owned timeout reason code for one review request. */
 export const AUTO_REVIEW_TIMEOUT_CODE = 'AUTO_REVIEW_TIMEOUT'
 
-/** Fixed policy sent as the first of the review request's five sections. */
 export const REVIEW_POLICY = `REVIEW_POLICY
 You are the final authorization reviewer for exactly one pending tool call. Your decision replaces human approval for this call. If you allow it, the call executes immediately with full host access and no later confirmation.
 
@@ -67,10 +42,6 @@ Judge the pending action by what its tool and arguments will actually do. The ex
 
 For any allow, end with exactly the applicable two-member object and nothing else. In particular, when a medium action is allowed, the complete text must be exactly {"risk":"medium","decision":"allow"}. Do not add reason, explanation, labels, Markdown, or surrounding prose. Stop immediately after the closing brace.`
 
-/**
- * Runtime schema. Every field has a default except the paired route override.
- * @typedef {z.infer<typeof Config>} AutoReviewConfig
- */
 export const Config = z.object({
   preset: z.string().default(AUTO_PRESET).description('Preset name whose selection enrolls a session in per-call review.'),
   advertise: z.boolean().default(true).description('Add the Auto preset to the permission-preset table so a client or the /permission command can select it.'),
@@ -81,17 +52,12 @@ export const Config = z.object({
   maxInputBytes: z.number().step(1).min(1).default(262_144).description('UTF-8 byte ceiling for the framed review prompt.'),
 })
 
-/** Render one immutable logged value as indented JSON text. */
 function json(value) {
   const rendered = JSON.stringify(value, null, 2)
   if (rendered === undefined) throw new Error('auto-review: a required value is not JSON-serializable')
   return rendered
 }
 
-/**
- * Recreate the caller's parse of one logged argument value. Native call events
- * store raw JSON text; Code Mode start events store a JSON value.
- */
 function parseLoggedArguments(raw) {
   if (typeof raw !== 'string') return raw
   if (raw === '') return {}
@@ -102,21 +68,14 @@ function parseLoggedArguments(raw) {
   }
 }
 
-/** Compare two lossless-JSON values without retaining aliases. */
 function sameJson(left, right) {
   return JSON.stringify(parseLoggedArguments(left)) === JSON.stringify(right)
 }
 
-/** Whether one logged JSON value is an object record rather than null or an array. */
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
-/**
- * Validate the schema fields a pending action must carry.
- * @returns the resolved tool schema.
- * @throws when the schema is incomplete — the caller turns that into a denial.
- */
 function toolSchemaOf(candidate, expectedName, mode) {
   if (!isRecord(candidate)
     || typeof candidate.description !== 'string'
@@ -130,12 +89,6 @@ function toolSchemaOf(candidate, expectedName, mode) {
   }
 }
 
-/**
- * Resolve the schema of one pending call: the latest request header first, then
- * the tool registry as the scope sees it. A Code Mode inner call under a
- * collapsed presentation has no header schema of its own, so the registry
- * lookup is what reaches it.
- */
 function pendingSchema(ctx, agent, name) {
   const header = agent.session.requestHeader()
   for (const schema of header?.tools ?? []) {
@@ -148,25 +101,18 @@ function pendingSchema(ctx, agent, name) {
   return toolSchemaOf(registered, name, 'Code Mode')
 }
 
-/** Whether this visible message is a durable human instruction. */
 function isHumanInstruction(source) {
   return source?.kind === 'user'
 }
 
-/** Whether this visible context is the current project-instruction source. */
 function isProjectInstruction(source) {
   return source?.kind === 'agent-instructions'
 }
 
-/** Whether this message is a tool-produced fact upstream excludes from review. */
 function isToolResult(source) {
   return source?.kind === 'tool'
 }
 
-/**
- * Find the seq of the in-process child's creation prompt, the one message that
- * adjusts a delegated task without carrying human authority.
- */
 function directParentInitialPromptSeq(session, events) {
   if (session.header.origin !== 'subagent' || session.header.parentSession === undefined) return undefined
   let passedCreationBoundary = false
@@ -184,18 +130,12 @@ function directParentInitialPromptSeq(session, events) {
   return undefined
 }
 
-/** Assign one retained text block its fixed instruction, constraint, summary, or fact role. */
 function textRole(source, seq, initialPromptSeq) {
   if (isHumanInstruction(source)) return 'human-instruction'
   if (seq === initialPromptSeq) return 'direct-parent-instruction'
   return 'fact'
 }
 
-/**
- * Partition one visible user-role message into role-labelled retained blocks.
- * Non-text blocks are facts whatever their source: images and attachment
- * metadata can only establish facts.
- */
 function filteredUserEntries(seq, source, content, initialPromptSeq) {
   return content.map(block => ({
     kind: 'user-message',
@@ -205,11 +145,6 @@ function filteredUserEntries(seq, source, content, initialPromptSeq) {
   }))
 }
 
-/**
- * Require exactly one durable-log record that matches the pending execution: a
- * second match, or none, leaves the review's subject ambiguous.
- * @throws when the record is missing, ambiguous, or disagrees with the execution.
- */
 function requireSingleMatchingLogRecord(events, exec, inner) {
   const nativeCalls = events.filter(event => event.type === 'tool/call' && event.data.callId === exec.callId)
   const codeStarts = events.filter(event => event.type === 'tool/code-dispatch-start' && event.data.subCallId === exec.callId)
@@ -226,15 +161,6 @@ function requireSingleMatchingLogRecord(events, exec, inner) {
   }
 }
 
-/**
- * Freeze the five reviewer sections from one session and pending execution.
- * Every inconsistency between the pending execution and the durable log
- * throws, so the caller denies rather than reviewing an action it cannot
- * describe.
- * @param ctx - context exposing the tool registry.
- * @param exec - immutable pending execution.
- * @returns the route and four data sections paired with {@link REVIEW_POLICY}.
- */
 export function snapshotAutoReview(ctx, exec) {
   const { session } = exec.agent
   const events = session.events
@@ -315,7 +241,6 @@ export function snapshotAutoReview(ctx, exec) {
   })
 }
 
-/** Render the four data sections paired with the fixed policy section. */
 export function reviewUserText(snapshot) {
   return [
     'ENVIRONMENT',
@@ -329,7 +254,6 @@ export function reviewUserText(snapshot) {
   ].join('\n\n')
 }
 
-/** Count members in the raw top-level JSON object. */
 function topLevelMemberCount(text) {
   const syntax = text.replace(/"(?:\\.|[^"\\])*"/gs, '')
   let depth = 0
@@ -351,10 +275,6 @@ function topLevelMemberCount(text) {
   return count
 }
 
-/**
- * Parse the closed risk/decision protocol and its fixed safety combinations.
- * @throws on any shape outside the protocol, including a repeated member.
- */
 export function parseReviewDecision(text) {
   const value = JSON.parse(text)
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -383,7 +303,6 @@ export function parseReviewDecision(text) {
   throw new Error('auto-review: reviewer output does not match the risk/decision protocol')
 }
 
-/** Consume zero or more reasoning blocks, one JSON text block, and one terminal stop. */
 async function readDecision(stream, signal) {
   const assembler = new BlockAssembler()
   let finished = false
@@ -411,10 +330,6 @@ async function readDecision(stream, signal) {
   return parseReviewDecision(final.text)
 }
 
-/**
- * Review one frozen pending action with the fixed policy and current route.
- * @throws on any failure — the caller turns that into a denial.
- */
 async function classifyRisk(ctx, config, exec, signal) {
   const snapshot = snapshotAutoReview(ctx, exec)
   const userText = reviewUserText(snapshot)
@@ -440,7 +355,6 @@ async function classifyRisk(ctx, config, exec, signal) {
   return readDecision(ctx.llm.stream(options), signal)
 }
 
-/** Materialize the model-facing final Auto denial. */
 function denied(exec, reason) {
   return {
     kind: 'deny',
@@ -450,7 +364,6 @@ function denied(exec, reason) {
   }
 }
 
-/** Ask the user to decide one call the reviewer denied. */
 function askUser(exec, reason) {
   const denial = `Auto review denied tool "${exec.name}"`
   return {
@@ -459,12 +372,10 @@ function askUser(exec, reason) {
   }
 }
 
-/** Materialize a withdrawn review (disposal in flight) as a denial; the pre-execute vocabulary has no `cancel`. */
 function withdrawn(exec) {
   return { kind: 'deny', reason: `Auto review of tool "${exec.name}" was withdrawn; its body was not executed` }
 }
 
-/** Materialize a reviewer failure as its own denial rather than a permission. */
 function failed(exec, error) {
   const message = error instanceof Error ? error.message : String(error)
   return {
@@ -473,12 +384,6 @@ function failed(exec, error) {
   }
 }
 
-/**
- * Add the Auto preset to the permission-preset table so a client or the
- * `/permission` command can select it, and withdraw it on disposal.
- * @returns the withdraw disposer, or undefined when the table already owns the
- * name (a deployment-declared entry is never overwritten).
- */
 function advertiseAutoPreset(ctx, preset) {
   const table = ctx.permissionPresets.presets
   if (Object.hasOwn(table, preset)) return undefined
@@ -488,13 +393,6 @@ function advertiseAutoPreset(ctx, preset) {
   }
 }
 
-/**
- * Install the per-call review gate on a prepended `tools/pre-execute`
- * listener. The gate only acts while the session has explicitly selected the
- * Auto preset; every other call passes straight through to later listeners.
- * @param ctx - context exposing the LLM, permission, approval, and tools services.
- * @param config - validated {@link AutoReviewConfig}.
- */
 export function apply(ctx, config) {
   const permissionPresets = ctx.permissionPresets
   const preset = config.preset
