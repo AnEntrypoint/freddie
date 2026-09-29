@@ -3,21 +3,9 @@ import { writeClipboard } from './clipboard.js'
 import css from './Toast.css.js'
 import { defineElement } from './define-element.js'
 
-/** Full-opacity hold before the fade starts. Must agree with the stylesheet's
- * toast-fade delay (Toast.module.css) or the banner unmounts mid-fade. */
 const HOLD_MS = 3000
-/** Fade duration. Must agree with the stylesheet's toast-fade duration. */
 const FADE_MS = 1000
 
-/**
- * Transient top-center banner custom element: slides in, holds at full
- * opacity, fades out, then calls `onDone` so the owner can unmount it (remove
- * the element from the DOM). Re-showing the same text restarts the cycle when
- * the owner recreates the element (key it by a per-show sequence, same as the
- * React version's `key` prop). Attaches itself to `document.body` on connect,
- * so an owner inside a transformed or filtered ancestor cannot trap the fixed
- * banner in that ancestor's box.
- */
 export class FreddieToast extends HTMLElement {
   #props = { text: '', onDone: () => {} }
   #doneTimer = null
@@ -26,7 +14,6 @@ export class FreddieToast extends HTMLElement {
   #copied = false
   #hovered = false
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     const anchorChanged = props.anchor !== this.#props.anchor
     this.#props = props
@@ -45,7 +32,6 @@ export class FreddieToast extends HTMLElement {
     this.#unbindAnchor()
   }
 
-  /** Arm (or re-arm) the auto-dismiss for a full hold-plus-fade cycle. */
   #startDismiss() {
     this.#stopDismiss()
     this.#doneTimer = setTimeout(this.#props.onDone, HOLD_MS + FADE_MS)
@@ -140,17 +126,6 @@ export class FreddieToast extends HTMLElement {
 
 defineElement('freddie-toast', FreddieToast)
 
-/**
- * Create and mount a Toast onto `document.body`.
- * @param props.text - resolved banner copy; the owner passes localized text.
- * @param props.icon - optional leading glyph (e.g. a warning icon).
- * @param props.anchor - optional element whose horizontal center the banner
- * follows (e.g. the composer card, so the banner centers over the chat column
- * rather than the whole window); omitted, it centers on the viewport.
- * @param props.onDone - called once the fade completes; the caller should
- * remove the returned element from the DOM here.
- * @returns the mounted `freddie-toast` element; call `.remove()` on `onDone`.
- */
 export function mountToast(props) {
   const el = document.createElement('freddie-toast')
   document.body.appendChild(el)

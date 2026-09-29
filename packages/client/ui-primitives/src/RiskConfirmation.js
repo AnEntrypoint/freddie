@@ -1,46 +1,10 @@
-/**
- * Controlled risk acknowledgement dialog shared by product surfaces that
- * must gate a sensitive action behind an explicit checkbox.
- *
- * Converted from a React function component to a webjsx custom element
- * wrapping `renderModal`: the one-shot `Modal(...)` helper always creates
- * and appends a brand-new `freddie-modal` to `document.body`, so calling it
- * fresh from a plain function component on every parent re-render (the
- * shape every one of this file's callers uses — a class field like
- * `#confirmingFullAccess` flips and `#render()` fires again) orphaned a new
- * modal on every state change instead of updating one in place: stale
- * modals (some still mid-open) piled up in the DOM and could swallow clicks
- * meant for the current one. Holding the `freddie-modal` across renders via
- * `renderModal(this.#modal, ...)` (Modal.tsx's own pattern, mirrored here)
- * fixes that at the source for every caller at once.
- */
 import { createElement as h, Fragment } from '@freddie/webjsx'
 import { renderModal } from './Modal.js'
 import { Button } from './Button.js'
 import { IconWarningOutline16 } from './icons/index.js'
 import css from './RiskConfirmation.css.js'
 
-/**
- * @typedef {object} RiskConfirmationProps
- * @property {boolean} open
- * @property {string} title
- * @property {string} description - warning text shown next to the warning icon.
- * @property {string} acknowledgeLabel - label for the acknowledgement checkbox.
- * @property {string} cancelLabel
- * @property {string} confirmLabel
- * @property {boolean} acknowledged - whether the checkbox is checked; the confirm button stays disabled until this is true.
- * @property {boolean} [disabled=false] - disables both the checkbox and the confirm button.
- * @property {function(boolean): void} onAcknowledgedChange - called with the checkbox's new checked state.
- * @property {function(): void} onCancel
- * @property {function(): void} onConfirm
- */
 
-/**
- * Update (or create) the underlying `freddie-modal` for one risk confirmation.
- * @param el - the modal returned by a prior call, or null to create one.
- * @param props - see {@link RiskConfirmationProps}.
- * @returns the `freddie-modal` element; hold it and pass it back in on the next render.
- */
 export function renderRiskConfirmation(el, {
   open,
   title,
@@ -100,14 +64,6 @@ export function renderRiskConfirmation(el, {
   })
 }
 
-/**
- * One-shot creation/update helper preserving the original function-component
- * call shape for a caller that has not yet been converted to hold the
- * element itself. Prefer `renderRiskConfirmation(el, props)` in any owner
- * that re-renders more than once (holds the element across renders instead
- * of recreating it every call) — this wrapper cannot do that on the
- * caller's behalf since it has no owner-scoped place to keep `el`.
- */
 export function RiskConfirmation(props) {
   return renderRiskConfirmation(null, props)
 }

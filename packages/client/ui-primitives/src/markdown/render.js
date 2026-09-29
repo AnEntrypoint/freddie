@@ -1,20 +1,3 @@
-/**
- * Direct mdast→webjsx markdown renderer. Replaces the react-markdown /
- * remark-rehype pipeline with one switch over parsed nodes so streaming can
- * cache frozen blocks as webjsx elements; the rendered DOM is pinned
- * byte-for-byte by `tests/fixtures/markdown-dom` and must not drift.
- *
- * Untrusted-output policy (unchanged from the replaced pipeline): link and
- * image destinations pass a protocol allowlist, images additionally require
- * absolute HTTP(S), raw HTML renders as literal text (no HTML enters the
- * DOM), and KaTeX runs without trusted commands. Fragment-anchor URLs fail
- * the allowlist, so footnote references and back-references render as plain
- * text rather than in-page links.
- *
- * Merge-extensible node unions fall through the documented default (render
- * nothing) rather than ending in assertNever: grammars registered elsewhere
- * may add node types this renderer has no mapping for.
- */
 
 import { createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
@@ -50,29 +33,11 @@ function remoteImageUrl(url) {
   }
 }
 
-/**
- * Reference and footnote-reference resolution state accumulated depth-first
- * across a document (or, while streaming, across the frozen prefix and the
- * current tail separately). Definitions are looked up by uppercased identifier.
- * @typedef {object} ReferenceTargets
- * @property {Map<string, object>} definitions - link/image definition nodes keyed by uppercased identifier.
- * @property {Map<string, object>} footnotes - footnote definition nodes keyed by uppercased identifier.
- */
 
-/**
- * Create an empty {@link ReferenceTargets}.
- * @returns Fresh empty maps.
- */
 export function createReferenceTargets() {
   return { definitions: new Map(), footnotes: new Map() }
 }
 
-/**
- * Record every definition and footnote definition under `nodes` into
- * `targets`, depth-first, keeping the first definition per identifier.
- * @param nodes - Subtrees to walk (top-level blocks or any nested children).
- * @param targets - Accumulator, typically shared across incremental segments.
- */
 export function collectReferenceTargets(nodes, targets) {
   for (const node of nodes) {
     if (node.type === 'definition') {
@@ -86,29 +51,12 @@ export function collectReferenceTargets(nodes, targets) {
   }
 }
 
-/**
- * Render top-level blocks. Nodes that render nothing (definitions, unmapped
- * types) are dropped rather than kept as null placeholders, matching the
- * replaced pipeline's child lists so separator newlines land identically.
- * @param blocks - Blocks with their stream-stable render keys.
- * @param context - The pass state; footnote numbering mutates in document order.
- * @returns One webjsx node per rendered block.
- */
 export function renderBlocks(blocks, context) {
   return blocks
     .map(block => renderNode(block.node, block.key, context))
     .filter(element => element !== null)
 }
 
-/**
- * Interleave the newline text nodes the replaced pipeline emitted between
- * block-level children. They are invisible between elements but coalesce
- * into adjacent literal raw-HTML text, where the DOM parity fixtures pin
- * them.
- * @param elements - Rendered block children with empty renders already dropped.
- * @param edges - Also emit the leading and trailing newline (hast's loose wrap).
- * @returns The interleaved children.
- */
 export function wrapBlockChildren(elements, edges) {
   const wrapped = []
   for (const element of elements) {
@@ -119,15 +67,7 @@ export function wrapBlockChildren(elements, edges) {
   return wrapped
 }
 
-/**
- * One block-level entry from a list item or footnote definition body: a
- * `paragraph` entry carries its already-rendered inline children unwrapped (so
- * a tight item skips the `<p>` element), while every other block type renders
- * through {@link renderNode} into a plain `element`.
- * @typedef {({paragraph: Array<*>} | {element: *})} BlockEntry
- */
 
-/** Render container children into {@link BlockEntry} values, dropping empty renders. */
 function renderBlockEntries(blocks, context) {
   const entries = []
   for (const [index, block] of blocks.entries()) {
@@ -262,7 +202,6 @@ function renderCode(node, key, context) {
   )
 }
 
-/** A list is loose when it or any of its items is spread; every item then keeps its paragraphs. */
 function listLoose(list) {
   return (list.spread ?? false) || list.children.some(listItemLoose)
 }
@@ -356,7 +295,6 @@ function renderTableRow(row, cellTag, align, key, context) {
   return h('tr', { key }, cells)
 }
 
-/** Anchor over an already-authored href: allowlisted or unwrapped, external links get the safe attributes. */
 function renderSafeLink(href, children, key) {
   const safeHref = sanitizeUrl(href)
   if (safeHref === '') return children
@@ -370,15 +308,10 @@ function renderSafeLink(href, children, key) {
   )
 }
 
-/** Anchor over a parsed markdown destination, which hast normalized before the allowlist saw it. */
 function renderAnchor(url, children, key) {
   return renderSafeLink(normalizeUri(url), children, key)
 }
 
-/**
- * The complete inline-code value when it is exactly an absolute HTTP(S) URL
- * (no surrounding whitespace); anything else stays inert code.
- */
 function inlineCodeHttpUrl(value) {
   if (value.trim() !== value) return undefined
   if (!HTTP_URL_PREFIX.test(value)) return undefined
@@ -408,7 +341,6 @@ function renderImage(url, alt, key) {
   )
 }
 
-/** The bracketed source text a reference reverts to when its definition is missing. */
 function referenceSuffix(node) {
   if (node.referenceType === 'collapsed') return '][]'
   if (node.referenceType === 'full') return `][${node.label ?? node.identifier}]`
@@ -437,13 +369,6 @@ function renderFootnoteReference(node, key, context) {
   return h('sup', { key }, String(context.footnoteOrder.indexOf(id) + 1))
 }
 
-/**
- * Render the trailing footnote section for every footnote referenced during
- * the pass, in first-reference order, with one plain-text back-reference
- * marker per rendered reference.
- * @param context - The pass state after all blocks rendered.
- * @returns The section, or null when no referenced footnote has a definition.
- */
 export function renderFootnoteSection(context) {
   const items = []
   for (const id of context.footnoteOrder) {

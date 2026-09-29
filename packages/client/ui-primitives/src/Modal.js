@@ -5,12 +5,6 @@ import css from './Modal.css.js'
 import { defineElement } from './define-element.js'
 import { isTopmostModal } from './modal-stack.js'
 
-/**
- * Centered modal over a blurred page mask, as a custom element. Attaches
- * itself to `document.body` on connect (mirrors Toast's mount pattern) so an
- * owner inside a transformed or filtered ancestor cannot trap the fixed
- * overlay in that ancestor's box.
- */
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), '
   + 'select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
@@ -19,7 +13,6 @@ export class FreddieModal extends HTMLElement {
   #wasOpen = false
   #returnFocusTo = null
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -141,26 +134,7 @@ export class FreddieModal extends HTMLElement {
 
 defineElement('freddie-modal', FreddieModal)
 
-/**
- * @typedef {object} ModalProps
- * @property {boolean} [open=false] - whether the dialog is visible.
- * @property {function(): void} [onClose=() => {}] - called on mask click, close button, or Escape.
- * @property {string} [title=''] - dialog heading; also used as the dialog's `aria-label`.
- * @property {string} [closeLabel='Close'] - accessible label for the close button.
- * @property {string} [description] - optional supporting text rendered under the header.
- * @property {*} [children] - dialog body content, skipped when `headless` is true (the caller then owns everything under `[role="dialog"]`).
- * @property {*} [footer] - optional content rendered below the body.
- * @property {string} [className] - class added to the dialog element itself.
- * @property {string} [contentClassName] - class added to the wrapper around header/description/body.
- * @property {boolean} [headless=false] - when true, render `children` directly with no header/description/body chrome.
- */
 
-/**
- * Create (if needed) and update a Modal mounted on `document.body`.
- * @param el - an existing mounted modal (from a prior call), or null to create one.
- * @param props - see {@link ModalProps}.
- * @returns the mounted `freddie-modal` element; keep it and pass it back in to update, `.remove()` when done with it.
- */
 export function renderModal(el, props) {
   const target = el ?? (() => {
     const created = document.createElement('freddie-modal')
@@ -171,16 +145,6 @@ export function renderModal(el, props) {
   return target
 }
 
-/**
- * Convenience wrapper preserving the original function-component call shape
- * for simple one-shot usage: creates the element, sets props, and returns it.
- * Callers that need to update props across renders should hold the returned
- * element and call `.setProps()` directly.
- *
- * The `FreddieModal` return self-mounts to `document.body` (see the class doc
- * above), so it is never diffed as a child of the caller's own vdom — the
- * call site only needs the side effect.
- */
 export function Modal(props) {
   return renderModal(null, props)
 }

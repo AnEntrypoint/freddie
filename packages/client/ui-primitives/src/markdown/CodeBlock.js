@@ -124,29 +124,13 @@ export class FreddieCodeBlock extends HTMLElement {
 
 defineElement('freddie-code-block', FreddieCodeBlock)
 
-/**
- * @typedef {object} CodeBlockProps
- * @property {string} [code=''] - the source text to highlight and display.
- * @property {string} [lang] - language hint (a markdown fence info string, or a file-extension-derived id);
- *   unresolved or omitted falls back to plain, unhighlighted text.
- * @property {string} [class] - additional class name(s) merged onto the root element.
- * @property {string} [copyLabel='Copy'] - copy-button label while idle.
- * @property {string} [copiedLabel='Copied'] - copy-button label shown after a successful copy.
- */
 
-/**
- * Create (if needed) or update a CodeBlock element in place.
- * @param el - an existing `freddie-code-block` element to update, or null to create one.
- * @param props - see {@link CodeBlockProps}.
- * @returns the `freddie-code-block` element; keep it and pass it back in to update.
- */
 export function renderCodeBlock(el, props) {
   const target = el ?? document.createElement('freddie-code-block')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function CodeBlock(props) {
   return renderCodeBlock(null, props)
 }

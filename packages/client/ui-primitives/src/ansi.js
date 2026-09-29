@@ -1,14 +1,5 @@
 import Anser from 'anser'
 
-/**
- * The 8/16 basic ANSI colors, keyed by the whitespace-free `r,g,b` triple
- * anser emits for them, mapped onto the theme tokens that carry the same
- * semantic. Black and white both resolve to the primary label color so text
- * stays legible under either theme instead of matching the surface it sits
- * on; bright black takes the tertiary label color (the muted-gray role).
- * Magenta and cyan have no token equivalent in this design system and fall
- * through to anser's literal rgb, as do all 256-palette and truecolor values.
- */
 const TOKEN_BY_BASIC_RGB = {
   '0,0,0': 'var(--freddie-alias-label-primary)',
   '255,255,255': 'var(--freddie-alias-label-primary)',
@@ -23,13 +14,6 @@ const TOKEN_BY_BASIC_RGB = {
   '85,85,255': 'var(--dsw-static-blue-400)',
 }
 
-/**
- * CSS for each SGR attribute anser reports. `blink` is deliberately absent —
- * animated text is not reproduced. `reverse` never arrives here: anser
- * consumes it by swapping the run's foreground and background. Underline and
- * strikethrough share `textDecoration`, so in a run declaring both, the
- * later declaration wins.
- */
 const STYLE_BY_DECORATION = {
   bold: 'font-weight: 700',
   dim: 'opacity: 0.7',
@@ -39,41 +23,20 @@ const STYLE_BY_DECORATION = {
   hidden: 'visibility: hidden',
 }
 
-/** OSC strings (window title, hyperlinks), with or without their terminator. */
 const OSC_SEQUENCE = /\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)?/g
 
-/** Escape sequences other than CSI: charset selection, single-shift, reset. */
 const NON_CSI_ESCAPE = /\u001b(?!\[)[\u0020-\u002f]*[\u0030-\u007e]?/g
 
-/**
- * C0 controls with no display meaning here. Tab, newline, backspace and ESC
- * survive: the first two for layout, backspace for the cursor replay, ESC
- * for anser's CSI split.
- */
 const INERT_CONTROL = /[\u0000-\u0007\u000b-\u001a\u001c-\u001f\u007f]/g
 
-/**
- * Lines whose cursor movements have to be replayed: a carriage return, a
- * backspace, or an erase-in-line. The erase pattern matches the SAME CSI shape
- * `replayLine` parses (parameters may carry `;` and intermediate bytes), so a
- * form like `\x1b[1;2K` cannot slip past this guard and skip its own erase.
- */
 const NEEDS_REPLAY = /\r|\u0008|\u001b\[[\u0030-\u003f]*[\u0020-\u002f]*K/
 
-/** SGR sequences alone, for folding state through a line that needs no replay. */
 const SGR_SEQUENCE = /\u001b\[([\u0030-\u003f]*)[\u0020-\u002f]*m/g
 
-/** Terminal tab stop width; a tab advances to the next multiple of this. */
 const TAB_WIDTH = 8
 
-/**
- * Combining marks and other zero-width code points: a terminal advances no
- * column for them, so `e` + U+0301 occupies one cell and a two-column redraw
- * covers both code points.
- */
 const ZERO_WIDTH = /^[\p{Mn}\p{Me}\p{Cf}\u200b-\u200f\u2060]$/u
 
-/** Code point ranges of the ideographic and syllabic scripts a terminal draws two columns wide. */
 const WIDE_SCRIPT_RANGES = [
   [0x1100, 0x11ff], [0x2e80, 0x2e99], [0x2e9b, 0x2ef3], [0x2f00, 0x2fd5],
   [0x3005, 0x3005], [0x3007, 0x3007], [0x3021, 0x3029], [0x302e, 0x302f],
@@ -93,12 +56,6 @@ const WIDE_SCRIPT_RANGES = [
 const rangeClass = ranges =>
   ranges.map(([low, high]) => `\\u{${low.toString(16)}}-\\u{${high.toString(16)}}`).join('')
 
-/**
- * Characters a terminal advances two columns for: ideographic and syllabic
- * scripts, fullwidth forms, wide punctuation, and characters with emoji
- * presentation. Text-presentation symbols (`\u2713`, `\u26a0` and the rest of
- * U+2600-U+27BF) are ONE column and must stay out of this set.
- */
 const WIDE_CHAR = new RegExp(
   `[${rangeClass(WIDE_SCRIPT_RANGES)}]`
   + '|\\p{Emoji_Presentation}'
@@ -106,47 +63,19 @@ const WIDE_CHAR = new RegExp(
   'u',
 )
 
-/**
- * Whether a character occupies two terminal columns (ideographs, syllabaries,
- * fullwidth forms, emoji). Covers the ranges a command's output realistically carries; a
- * narrower guess would misalign the columns this card exists to preserve.
- * @param char - one character from the output.
- * @returns true when the terminal advances two columns for it.
- */
 function isWide(char) {
   const code = char.codePointAt(0)
   if (code === undefined || code < 0x1100) return false
   return WIDE_CHAR.test(char)
 }
 
-/**
- * A cell's graphic state, normalized. Held as fields rather than as the raw
- * sequence history because a terminal tracks CURRENT state, not a transcript:
- * accumulating sequences made each state boundary re-emit the whole chain, so
- * output that switches color without a full reset emitted O(n^2) characters
- * (3200 such cells produced 25 MB and eventually a `RangeError`). It also makes
- * the attribute closers every chalk-based tool writes — `39`, `49`, `22`, `23`,
- * `24`, `27`, `29` — actually close their attribute instead of appending to it.
- * @typedef {object} SgrState
- * @property {string} fg - foreground SGR parameter code in force, or '' for none.
- * @property {string} bg - background SGR parameter code in force, or '' for none.
- * @property {string[]} attrs - open attribute SGR parameter codes, in first-opened order.
- */
 
-/** The default state: no color, no attributes. */
 const SGR_NONE = { fg: '', bg: '', attrs: [] }
 
-/** Attribute closers, mapped to the opener parameters each one turns off. */
 const ATTR_CLOSERS = {
   22: ['1', '2'], 23: ['3'], 24: ['4'], 25: ['5', '6'], 27: ['7'], 28: ['8'], 29: ['9'],
 }
 
-/**
- * Fold one SGR sequence's parameters into the state it produces.
- * @param state - state in force before the sequence.
- * @param params - the sequence's raw parameter string (`31`, `1;4`, `38;5;208`).
- * @returns the state the sequence leaves in force.
- */
 function foldSgr(state, params) {
   const codes = params === '' ? ['0'] : params.split(';')
   let next = state
@@ -176,13 +105,6 @@ function foldSgr(state, params) {
   return next
 }
 
-/**
- * Render a state as the one canonical sequence that establishes it from the
- * default, so a boundary emits a bounded string no matter how the state was
- * reached.
- * @param state - the state to open.
- * @returns the SGR sequence, or the empty string for the default state.
- */
 function openSgr(state) {
   const codes = [...state.attrs]
   if (state.fg !== '') codes.push(state.fg)
@@ -190,41 +112,18 @@ function openSgr(state) {
   return codes.length === 0 ? '' : `\u001b[${codes.join(';')}m`
 }
 
-/** Whether two states are the same, so a boundary is only emitted on a change. */
 function sameSgr(a, b) {
   return a.fg === b.fg && a.bg === b.bg && a.attrs.length === b.attrs.length
     && a.attrs.every((attr, index) => attr === b.attrs[index])
 }
 
-/**
- * Replay one line's cursor movements the way a terminal paints it, into a
- * column buffer. Carriage return and backspace only MOVE the cursor — neither
- * erases anything — so what a reader sees is whatever each column last had
- * written to it. That distinction is the whole point of doing this as a buffer
- * rather than as string surgery: `100%\rOK` shows `OK0%` because the redraw is
- * shorter than the frame beneath it, and a trailing `abc\b` still shows `abc`
- * because nothing ever overwrote the `c`.
- *
- * A CSI sequence occupies no column; it changes the state that the NEXT writes
- * are stamped with, which is how a terminal stores color per cell. `red bad`
- * then three backspaces then `ok` therefore shows `okd` with the `d` still red:
- * `ok` overwrote two cells and the third kept the state it was written with.
- * The columns are re-emitted as runs, so anser sees that same styling.
- * @param line - one output line, still carrying its CSI sequences.
- * @param entrySgr - SGR state in force when the line begins, since a newline
- *   does not reset it.
- * @returns the line as the terminal would have it after every movement, plus the
- *   SGR state at its end for the next line to enter with.
- */
 function replayLine(line, entrySgr) {
   const anserCsiSequence = /\u001b\[([\u0030-\u003f]*)[\u0020-\u002f]*([\u0040-\u007e])/g
-  /** Per column: the state in force when it was written, and its character. */
   const columns = []
   let cursor = 0
   let sgr = entrySgr
   let at = 0
 
-  /** Clear a cell and, for a wide pair, its partner: a terminal erases both. */
   const clear = (index, fill) => {
     const cell = columns[index]
     if (cell?.spacer === true && index > 0) columns[index - 1] = { sgr, char: fill }
@@ -290,14 +189,6 @@ function replayLine(line, entrySgr) {
   return { text: out, sgr }
 }
 
-/**
- * Replay every line's cursor movements. A `\r` that only terminates a CRLF line
- * is dropped first, so those lines keep their text instead of being redrawn onto
- * themselves. SGR state threads across lines: a newline does not reset it, so a
- * run opened before a redraw still colors the lines after it.
- * @param text - output text, already free of OSC and non-CSI escapes.
- * @returns the text with each line painted as the terminal would.
- */
 function applyCursorMovements(text) {
   const replayed = []
   let sgr = SGR_NONE
@@ -315,24 +206,11 @@ function applyCursorMovements(text) {
   return replayed.join('\n')
 }
 
-/**
- * Remove every escape sequence and control character that carries no color,
- * leaving CSI sequences for anser and `\n`/`\t` for layout. Cursor movements
- * (carriage return, backspace) replay first, since their effect on the visible
- * text must land before the characters that expressed them are dropped.
- * @param text - raw command output.
- * @returns text whose only remaining escapes are CSI sequences.
- */
 function sanitize(text) {
   const escaped = text.replace(OSC_SEQUENCE, '').replace(NON_CSI_ESCAPE, '')
   return applyCursorMovements(escaped).replace(INERT_CONTROL, '')
 }
 
-/**
- * Resolve one run's colors and decorations.
- * @param chunk - the anser chunk to style.
- * @returns the run's inline style, or undefined when it carries no SGR state.
- */
 function resolveStyle(chunk) {
   const declarations = new Map()
   const background = chunk.bg === null ? undefined : `rgb(${chunk.bg})`
@@ -354,11 +232,6 @@ function resolveStyle(chunk) {
   return [...declarations].map(([property, value]) => `${property}: ${value}`).join('; ')
 }
 
-/**
- * Parse command output into styled spans grouped by line.
- * @param text - raw output text, which may contain ANSI escape sequences.
- * @returns one entry per output line (always at least one, possibly empty).
- */
 export function parseAnsiLines(text) {
   let current = []
   const lines = [current]

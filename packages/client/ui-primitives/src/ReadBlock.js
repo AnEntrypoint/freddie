@@ -16,27 +16,14 @@ function ensureHighlightModule() {
   return undefined
 }
 
-/**
- * Content lines shown before the height cap collapses the middle. Matches
- * TerminalBlock's default so a long read and a long command output cut at the
- * same place in the same flow.
- */
 export const DEFAULT_READ_MAX_LINES = 16
 
-/**
- * Render one line's highlighted runs. The css-variables theme colors every run,
- * so each run is a styled span; a line with no highlighting at all takes the
- * bare-text path in the caller instead (an unknown or absent language).
- * @param spans - the line's styled runs.
- * @returns the line's children.
- */
 function renderSpans(spans) {
   return spans.map((span, index) => h('span', { key: index, style: span.style }, span.text))
 }
 
 const DEFAULT_PROPS = { lines: [], totalLines: 0 }
 
-/** Read-tool-result line-numbered file view, as a custom element. */
 export class FreddieReadBlock extends HTMLElement {
   #props = DEFAULT_PROPS
   #expanded = false
@@ -117,11 +104,6 @@ export class FreddieReadBlock extends HTMLElement {
     const windowed = lines.length < totalLines
     const hasContentToCopy = lines.length > 0
 
-    /**
-     * Render a slice of the line array as gutter-numbered rows.
-     * @param slice - the lines to draw, each with its aligned run array.
-     * @returns the row elements.
-     */
     const rows = (slice) =>
       slice.map(([line, spans]) => (
         h(
@@ -184,32 +166,13 @@ export class FreddieReadBlock extends HTMLElement {
 
 defineElement('freddie-read-block', FreddieReadBlock)
 
-/**
- * @typedef {object} ReadBlockProps
- * @property {string} [label] - banner label (e.g. the file path being shown).
- * @property {Array<{number: number, text: string}>} [lines=[]] - the (possibly windowed) lines to display, gutter-numbered by `number`.
- * @property {number} [totalLines=0] - full line count of the underlying file; when greater than `lines.length`, a "showing X / Y lines" count is shown.
- * @property {string} [lang] - language hint passed to the syntax highlighter and shown in the banner.
- * @property {number} [maxLines=DEFAULT_READ_MAX_LINES] - lines shown before the height cap collapses the middle behind an expand toggle.
- * @property {string} [className]
- */
 
-/**
- * Create (if needed) or update a ReadBlock element in place.
- * @param el - an existing `freddie-read-block` element to update, or null to create one.
- * @param props - see {@link ReadBlockProps}.
- * @returns the `freddie-read-block` element; keep it and pass it back in to update.
- */
 export function renderReadBlock(el, props) {
   const target = el ?? document.createElement('freddie-read-block')
   target.setProps(props)
   return target
 }
 
-/**
- * One-shot creation helper preserving the original function-component call
- * shape.
- */
 export function ReadBlock(props) {
   return renderReadBlock(null, props)
 }

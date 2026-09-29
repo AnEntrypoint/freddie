@@ -5,11 +5,6 @@ import { createCopyFeedback } from './use-copy-feedback.js'
 import css from './SearchBlock.css.js'
 import { defineElement } from './define-element.js'
 
-/**
- * Result rows shown before the height cap collapses the middle. Matches
- * {@link import('./TerminalBlock.js').DEFAULT_TERMINAL_MAX_LINES} so a search card and a terminal card cut a
- * long result at the same place.
- */
 export const DEFAULT_SEARCH_MAX_LINES = 16
 
 function copyText(props) {
@@ -56,7 +51,6 @@ function rowKey(row) {
 
 const DEFAULT_PROPS = { kind: 'paths', truncated: false, total: 0, paths: [] }
 
-/** Completed grep/glob search surface, as a custom element. */
 export class FreddieSearchBlock extends HTMLElement {
   #props = DEFAULT_PROPS
   #expanded = false
@@ -180,30 +174,13 @@ export class FreddieSearchBlock extends HTMLElement {
 
 defineElement('freddie-search-block', FreddieSearchBlock)
 
-/**
- * @typedef {object} SearchBlockProps
- * @property {'paths'|'files'} [kind='paths'] - `'paths'` for a plain glob-style result list, `'files'` for a grep-style result grouped by file.
- * @property {Array<string>} [paths=[]] - `kind: 'paths'` only: the matched file paths.
- * @property {Array<{path: string, matches: Array<{lineNumber: number, line: string}>}>} [files] - `kind: 'files'` only: one entry per matched file, each collapsible.
- * @property {boolean} [truncated=false] - whether the full result set exceeds what is shown.
- * @property {number} [total=0] - full result count, shown alongside the visible count when `truncated`.
- * @property {number} [maxLines=DEFAULT_SEARCH_MAX_LINES] - rows shown before the height cap collapses the middle behind an expand toggle.
- * @property {string} [className]
- */
 
-/**
- * Create (if needed) or update a SearchBlock element in place.
- * @param el - an existing `freddie-search-block` element to update, or null to create one.
- * @param props - see {@link SearchBlockProps}.
- * @returns the `freddie-search-block` element; keep it and pass it back in to update.
- */
 export function renderSearchBlock(el, props) {
   const target = el ?? document.createElement('freddie-search-block')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function SearchBlock(props) {
   return renderSearchBlock(null, props)
 }

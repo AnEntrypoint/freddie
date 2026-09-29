@@ -4,7 +4,6 @@ import { defineElement } from '../define-element.js'
 
 const MAX_CHARS = 20_000
 
-/** Default truncation footer; the owner passes a localized formatter. */
 function defaultTruncatedLabel(total) {
   return `… truncated, ${total} characters total`
 }
@@ -62,28 +61,13 @@ export class FreddieJsonBlock extends HTMLElement {
 
 defineElement('freddie-json-block', FreddieJsonBlock)
 
-/**
- * @typedef {object} JsonBlockProps
- * @property {string} [label=''] - the always-visible toggle button's label.
- * @property {*} [payload] - the JSON-serializable value shown, pretty-printed, once expanded.
- * @property {boolean} [defaultOpen=false] - initial expanded state; only read the first time `setProps` runs.
- * @property {function(number): string} [truncatedLabel] - formats the truncation footer from the full
- *   serialized length; defaults to `"… truncated, {total} characters total"`.
- */
 
-/**
- * Create (if needed) or update a JsonBlock element in place.
- * @param el - an existing `freddie-json-block` element to update, or null to create one.
- * @param props - see {@link JsonBlockProps}.
- * @returns the `freddie-json-block` element; keep it and pass it back in to update.
- */
 export function renderJsonBlock(el, props) {
   const target = el ?? document.createElement('freddie-json-block')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function JsonBlock(props) {
   return renderJsonBlock(null, props)
 }

@@ -1,23 +1,3 @@
-/**
- * Untrusted assistant-Markdown renderer over the direct mdast pipeline:
- * `parse.ts` grammars, the incremental streaming parser, and `render.tsx`.
- * While a message streams, all but the trailing two blocks freeze as cached
- * webjsx elements and only the source tail behind them re-parses per chunk,
- * so per-chunk work tracks the tail size instead of the whole reply. Frozen
- * blocks keep their source-offset keys when they cross the freeze boundary,
- * so `applyDiff` reconciles instead of remounting. Known deviation while
- * streaming: a reference-style link or footnote whose definition sits on the
- * other side of the freeze boundary renders literally until the settled
- * full parse self-heals it.
- *
- * Converted from a React `memo` function component (its own `useRef`-held
- * `StreamingRenderer` instance plus a `useMemo`'d children computation) to a
- * webjsx custom element: the refs become private fields, the memo'd
- * computation becomes a plain recompute inside #render guarded by a
- * last-props identity check (mirroring `memo`'s prop-equality skip and the
- * inner `useMemo`'s dependency list), and DOM update is an explicit
- * applyDiff(this, vdom) call.
- */
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IncrementalMarkdownParser } from './incremental.js'
@@ -29,7 +9,6 @@ import {
 import css from './MarkdownText.css.js'
 import { defineElement } from '../define-element.js'
 
-/** One settled full render: parse with math, resolve references, append the footnote section. */
 function renderSettled(text, codeLabels, fileMentions) {
   const root = parseGfmWithMath(text)
   const targets = createReferenceTargets()
@@ -50,12 +29,6 @@ function renderSettled(text, codeLabels, fileMentions) {
   return section === null ? blocks : [...blocks, '\n', section]
 }
 
-/**
- * Streaming render state for one growing message: the incremental parser,
- * the frozen blocks' cached elements, and the reference/footnote state their
- * rendering consumed (footnote numbering assigned to frozen references is
- * final, so the tail continues from a copy of it each frame).
- */
 class StreamingRenderer {
   parser = new IncrementalMarkdownParser(parseGfm)
   generation = -1
@@ -67,17 +40,10 @@ class StreamingRenderer {
   lastText = null
   lastRendered = []
 
-  /** @param codeLabels - Fence copy labels baked into cached elements; the owner replaces the renderer when they change. */
   constructor(codeLabels) {
     this.codeLabels = codeLabels
   }
 
-  /**
-   * Render the current accumulated text. Idempotent per text value, so the
-   * caller may invoke it from a render path that re-executes freely.
-   * @param text - The full accumulated markdown source.
-   * @returns Frozen elements, re-rendered tail, and the footnote section.
-   */
   render(text) {
     if (text === this.lastText) return this.lastRendered
     const { frozen, tail, generation } = this.parser.update(text)
@@ -139,12 +105,6 @@ function propsEqual(a, b) {
     && a.codeLabels === b.codeLabels && a.fileMentions === b.fileMentions
 }
 
-/**
- * Render untrusted assistant-authored Markdown as semantic webjsx elements.
- * A GFM document with TeX math rendered through KaTeX; raw HTML, relative
- * links, and unsafe protocols are disabled, while absolute HTTP(S) images
- * render directly.
- */
 export class FreddieMarkdownText extends HTMLElement {
   #props = { text: '' }
   #stream = null
@@ -193,35 +153,13 @@ export class FreddieMarkdownText extends HTMLElement {
 
 defineElement('freddie-markdown-text', FreddieMarkdownText)
 
-/**
- * @typedef {object} MarkdownTextProps
- * @property {string} [text=''] - the accumulated markdown source (the full text so far, even while streaming).
- * @property {boolean} [streaming=false] - true while `text` keeps growing; only the source tail behind the
- *   frozen blocks re-parses per chunk instead of the whole document.
- * @property {{copyLabel: string, copiedLabel: string}} [codeLabels] - fence copy-button labels forwarded to
- *   each rendered code block.
- * @property {{resolve: function(string): ({title: string, label: string, open: function(): void}|undefined)}} [fileMentions] -
- *   resolves an inline-code value to a clickable file-mention button.
- */
 
-/**
- * Create (if needed) or update a MarkdownText element in place.
- * @param el - an existing `freddie-markdown-text` element to update, or null to create one.
- * @param props - see {@link MarkdownTextProps}.
- * @returns the `freddie-markdown-text` element; keep it and pass it back in to update
- * (required for the streaming cache and settled-state memoization to persist
- * across renders of the same message).
- */
 export function renderMarkdownText(el, props) {
   const target = el ?? document.createElement('freddie-markdown-text')
   target.setProps(props)
   return target
 }
 
-/**
- * One-shot creation helper preserving the original function-component call
- * shape.
- */
 export function MarkdownText(props) {
   return renderMarkdownText(null, props)
 }

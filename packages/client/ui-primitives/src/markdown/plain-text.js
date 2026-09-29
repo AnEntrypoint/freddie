@@ -1,10 +1,3 @@
-/**
- * Markdown-to-plain-text projection for compact summaries and labels.
- * Parsing shares the renderer's streaming GFM grammar ({@link parseGfm}), so
- * the projection strips exactly the markup the renderer would draw; raw HTML
- * stays literal, links keep their labels, images keep alt text, and code
- * keeps its source text.
- */
 
 import { parseGfm } from './parse.js'
 
@@ -81,12 +74,6 @@ function fullText(root) {
     .trim()
 }
 
-/**
- * Parse GFM Markdown, remove its presentation markup, and preserve raw HTML literally.
- * @param markdown - Markdown source.
- * @param options - Optional extraction boundary.
- * @returns Plain text for the whole document, first visible line, or first semantic paragraph.
- */
 export function extractMarkdownPlainText(markdown, options = {}) {
   const { mode = 'all' } = options
   const root = parseGfm(markdown)

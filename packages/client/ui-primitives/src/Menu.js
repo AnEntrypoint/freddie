@@ -12,7 +12,6 @@ function isLabel(entry) {
   return 'type' in entry && entry.type === 'label'
 }
 
-/** Safe distance kept between the list and the viewport edge. */
 const MARGIN = 12
 
 const DEFAULT_PROPS = {
@@ -23,10 +22,6 @@ const DEFAULT_PROPS = {
   onClose: () => {},
 }
 
-/**
- * Anchored dropdown menu custom element.
- * @see MenuProps for the field-by-field docs (unchanged from the React version).
- */
 export class FreddieMenu extends HTMLElement {
   #props = DEFAULT_PROPS
   #openSubmenuId = null
@@ -37,7 +32,6 @@ export class FreddieMenu extends HTMLElement {
   #graceTimer = null
   #portalList = null
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     const prevOpen = this.#props.open
     this.#props = props
@@ -316,42 +310,13 @@ export class FreddieMenu extends HTMLElement {
 
 defineElement('freddie-menu', FreddieMenu)
 
-/**
- * @typedef {object} MenuProps
- * @property {boolean} [open=false] - whether the list is open.
- * @property {*} [anchor] - trigger content rendered before the list (e.g. a button vnode).
- * @property {Array<object>} [items=[]] - menu entries: item, separator (`type: 'separator'`) or
- *   label (`type: 'label'`, with `text`) rows. An item row has `id`, `label`, optional `icon`,
- *   `disabled`, `danger`, and an optional `submenu` (same item shape, nested one level).
- * @property {function(string): void} [onSelect=() => {}] - called with the selected entry's `id`.
- * @property {function(): void} [onClose=() => {}] - called on outside click, Escape, or pointer-leave grace expiry.
- * @property {Array<object>} [footer] - same entry shape as `items`, rendered in a separate footer section.
- * @property {boolean} [dense=false]
- * @property {boolean} [compact=false]
- * @property {boolean} [portal=false] - render the list into a fixed-position node appended to `document.body`.
- * @property {function(): ({top: number, left: number, right: number, bottom: number}|null)} [getAnchorRect] -
- *   custom anchor-rect resolver used for portal placement; falls back to the `[data-menu-root]` wrapper's rect.
- * @property {'top'|'bottom'} [side='bottom'] - portal placement side.
- * @property {'start'|'end'} [align='start'] - portal placement alignment.
- * @property {string} [className]
- * @property {boolean} [closeOnPointerLeave=false] - close after a short grace period once the pointer leaves.
- * @property {string} [selectedId] - id of the single selected entry, shown with a check mark.
- * @property {Array<string>} [selectedIds] - ids of multiple selected entries.
- */
 
-/**
- * Create (if needed) or update a Menu element in place.
- * @param el - an existing `freddie-menu` element (from a prior call) to update, or null to create one.
- * @param props - see {@link MenuProps}.
- * @returns the `freddie-menu` element; keep it and pass it back in to update.
- */
 export function renderMenu(el, props) {
   const target = el ?? document.createElement('freddie-menu')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function Menu(props) {
   return renderMenu(null, props)
 }

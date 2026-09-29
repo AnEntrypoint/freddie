@@ -1,11 +1,5 @@
-/**
- * ic_ds_* icon set for the freddie web UI. All glyphs render fill="currentColor"
- * and take {size, className}. Batch A mirrors the deepsuite icon library
- * (same figma source); batch B glyphs are harness-only figma extracts.
- */
 import { createElement as h } from '@freddie/webjsx'
 
-/** ic_ds_new_chat_outline_16 */
 export const IconNewChatOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -14,7 +8,6 @@ export const IconNewChatOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_search_outline_16 */
 export const IconSearchOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -24,7 +17,6 @@ export const IconSearchOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_globe_outline_14 — meridian globe (harness-only figma extract). */
 export const IconGlobeOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -33,7 +25,6 @@ export const IconGlobeOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_settings_outline_14 */
 export const IconSettingsOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -56,7 +47,6 @@ export const IconSettingsOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_settings_outline_16 */
 export const IconSettingsOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -79,7 +69,6 @@ export const IconSettingsOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_panel_left_outline_16 */
 export const IconPanelLeftOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -88,7 +77,6 @@ export const IconPanelLeftOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_ellipsis_outline_16 */
 export const IconEllipsisOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -99,7 +87,6 @@ export const IconEllipsisOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_plus_outline_16 */
 export const IconPlusOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -108,7 +95,6 @@ export const IconPlusOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_check_outline_16 */
 export const IconCheckOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -117,7 +103,6 @@ export const IconCheckOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_check_outline_14 */
 export const IconCheckOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -126,7 +111,6 @@ export const IconCheckOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_branch_outline_16 */
 export const IconBranchOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -135,7 +119,6 @@ export const IconBranchOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_chevron_down_outline_14 */
 export const IconChevronDownOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -144,7 +127,6 @@ export const IconChevronDownOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_chevron_left_outline_14 */
 export const IconChevronLeftOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -153,7 +135,6 @@ export const IconChevronLeftOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_chevron_right_outline_14 */
 export const IconChevronRightOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -162,7 +143,6 @@ export const IconChevronRightOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_triangle_right_fill_14 — tree expand arrow; points right, consumers rotate it 90° for the open state. */
 export const IconTriangleRightFill14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -171,7 +151,6 @@ export const IconTriangleRightFill14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_chevron_up_outline_14 */
 export const IconChevronUpOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -180,7 +159,6 @@ export const IconChevronUpOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_close_outline_16 */
 export const IconCloseOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -190,7 +168,6 @@ export const IconCloseOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_close_fill_14 */
 export const IconCloseFill14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -199,7 +176,6 @@ export const IconCloseFill14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_copy_outline_16 */
 export const IconCopyOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -208,7 +184,6 @@ export const IconCopyOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_refresh_outline_16 */
 export const IconRefreshOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -217,7 +192,6 @@ export const IconRefreshOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_refresh_outline_14 */
 export const IconRefreshOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -226,7 +200,6 @@ export const IconRefreshOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_like_outline_16 */
 export const IconLikeOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -235,7 +208,6 @@ export const IconLikeOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_like_fill_16 */
 export const IconLikeFill16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -245,7 +217,6 @@ export const IconLikeFill16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_dislike_outline_16 */
 export const IconDislikeOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -254,7 +225,6 @@ export const IconDislikeOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_dislike_fill_16 */
 export const IconDislikeFill16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -264,7 +234,6 @@ export const IconDislikeFill16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_share_outline_16 */
 export const IconShareOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -273,7 +242,6 @@ export const IconShareOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_edit_outline_16 */
 export const IconEditOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -282,7 +250,6 @@ export const IconEditOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_think_outline_14 */
 export const IconThinkOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -292,7 +259,6 @@ export const IconThinkOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_think_outline_16 */
 export const IconThinkOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -302,7 +268,6 @@ export const IconThinkOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_agent_preset_outline_16 (figma extract): node interiors knock out to transparency via mask, so the glyph sits on any fill. */
 export const IconAgentPresetOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -322,7 +287,6 @@ export const IconAgentPresetOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_browse_outline_16 */
 export const IconBrowseOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -333,7 +297,6 @@ export const IconBrowseOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_link_outline_14 */
 export const IconLinkOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -343,7 +306,6 @@ export const IconLinkOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_link_outline_16 */
 export const IconLinkOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -353,7 +315,6 @@ export const IconLinkOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_right_up_outline_14 */
 export const IconRightUpOutline14 = ({ size = 8, className }) => (
   h(
     'svg',
@@ -362,7 +323,6 @@ export const IconRightUpOutline14 = ({ size = 8, className }) => (
   )
 )
 
-/** ic_ds_right_up_outline_16 */
 export const IconRightUpOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -371,7 +331,6 @@ export const IconRightUpOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_enhance_outline_16 */
 export const IconEnhanceOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -383,7 +342,6 @@ export const IconEnhanceOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_trash_outline_16 */
 export const IconTrashOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -392,7 +350,6 @@ export const IconTrashOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_warning_outline_16 */
 export const IconWarningOutline16 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -403,7 +360,6 @@ export const IconWarningOutline16 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_user_outline_16 */
 export const IconUserOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -413,7 +369,6 @@ export const IconUserOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_send_outline_16 */
 export const IconSendOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -422,7 +377,6 @@ export const IconSendOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_stop_fill_16 */
 export const IconStopFill16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -431,7 +385,6 @@ export const IconStopFill16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_paperclip_outline_16 */
 export const IconPaperclipOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -440,7 +393,6 @@ export const IconPaperclipOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_loading_outline_16 */
 export const IconLoadingOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -449,7 +401,6 @@ export const IconLoadingOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_download_outline_16 */
 export const IconDownloadOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -458,7 +409,6 @@ export const IconDownloadOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_play_outline_16 */
 export const IconPlayOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -468,7 +418,6 @@ export const IconPlayOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_pause_outline_16 */
 export const IconPauseOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -479,7 +428,6 @@ export const IconPauseOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_fullscreen_outline_16 */
 export const IconFullscreenOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -489,7 +437,6 @@ export const IconFullscreenOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_code_outline_16 */
 export const IconCodeOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -498,7 +445,6 @@ export const IconCodeOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_cordis_plugin_outline_14 */
 export const IconCordisPluginOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -521,7 +467,6 @@ export const IconCordisPluginOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_api_outline (figma extract) */
 export const IconApiOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -532,7 +477,6 @@ export const IconApiOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_personalization_outline_16 (figma extract) */
 export const IconPersonalizationOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -541,7 +485,6 @@ export const IconPersonalizationOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_project_add_outline_16 (figma extract) */
 export const IconProjectAddOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -551,11 +494,6 @@ export const IconProjectAddOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/**
- * folder_open_16, outline layer only: the duotone original above reads a rung
- * heavier than the …Outline16 family, so an icon-button row mixing them looks
- * mismatched — this is the same geometry without the 20%-opacity inner fill.
- */
 export const IconFolderOpenOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -564,7 +502,6 @@ export const IconFolderOpenOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** folder_open_16 (figma extract): outline at full ink + 20%-opacity inner fill riding the same currentColor. */
 export const IconFolderOpen16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -574,7 +511,6 @@ export const IconFolderOpen16 = ({ size = 16, className }) => (
   )
 )
 
-/** folder_close_16 (figma extract) */
 export const IconFolderClose16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -583,7 +519,6 @@ export const IconFolderClose16 = ({ size = 16, className }) => (
   )
 )
 
-/** tree_corner_8x10 (figma extract; session-tree "L" connector, stroke geometry pre-expanded) */
 export const IconTreeCorner8x10 = ({ size = 10, className }) => (
   h(
     'svg',
@@ -592,7 +527,6 @@ export const IconTreeCorner8x10 = ({ size = 10, className }) => (
   )
 )
 
-/** ic_ds_light_outline_16 */
 export const IconLightOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -609,7 +543,6 @@ export const IconLightOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_dark_outline_16 */
 export const IconDarkOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -618,7 +551,6 @@ export const IconDarkOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_followsystem_outline_16 */
 export const IconFollowsystemOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -628,7 +560,6 @@ export const IconFollowsystemOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_data_outline_16 */
 export const IconDataOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -638,7 +569,6 @@ export const IconDataOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_send_outline_14 (figma extract): thin-stroke upward send arrow. */
 export const IconSendOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -647,7 +577,6 @@ export const IconSendOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_queue_outline_14 (figma extract): open chat bubble with two queued lines. */
 export const IconQueueOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -656,7 +585,6 @@ export const IconQueueOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_checklist_outline_14 (figma extract): two rings + two list bars. */
 export const IconChecklistOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -668,7 +596,6 @@ export const IconChecklistOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_List_Pen_outline_16 */
 export const IconListPenOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -682,7 +609,6 @@ export const IconListPenOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_goal_outline_16 (goal strip leading glyph: dartboard with a landed arrow) */
 export const IconGoalOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -693,9 +619,6 @@ export const IconGoalOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** sparkle_16 (Others tool-row leading glyph; hand-authored three-star
- *  approximation — the figma 43:31850 glyph is an SF Symbols "sparkles" text glyph,
- *  not extractable as vector data) */
 export const IconSparkle16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -706,7 +629,6 @@ export const IconSparkle16 = ({ size = 16, className }) => (
   )
 )
 
-/** inspect_outline_12 (shared tool-row trajectory affordance glyph) */
 export const IconInspectOutline12 = ({ size = 12, className }) => (
   h(
     'svg',
@@ -715,7 +637,6 @@ export const IconInspectOutline12 = ({ size = 12, className }) => (
   )
 )
 
-/** skill_outline_16 (skill tool-row glyph; document instructions + sparkle) */
 export const IconSkillOutline16 = ({ size = 16, className }) => (
   h(
     'svg',
@@ -725,7 +646,6 @@ export const IconSkillOutline16 = ({ size = 16, className }) => (
   )
 )
 
-/** ic_ds_question_outline_14 (figma extract): ring + question glyph. */
 export const IconQuestionOutline14 = ({ size = 14, className }) => (
   h(
     'svg',
@@ -736,9 +656,6 @@ export const IconQuestionOutline14 = ({ size = 14, className }) => (
   )
 )
 
-/** ic_ds_archive_outline_20 (figma extract): lidded box + label slot. The export's
- *  0.11px stroke ring around the box contour is dropped — it restates the same
- *  contour in the same ink, which currentColor already carries. */
 export const IconArchiveOutline20 = ({ size = 20, className }) => (
   h(
     'svg',

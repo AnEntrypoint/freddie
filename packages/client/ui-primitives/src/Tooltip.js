@@ -6,7 +6,6 @@ const DEFAULT_PROPS = { label: '', children: '' }
 
 const EDGE_MARGIN = 12
 
-/** Hover/focus tooltip attached to an anchor element, as a custom element. */
 export class FreddieTooltip extends HTMLElement {
   #props = DEFAULT_PROPS
   #pos = null
@@ -156,29 +155,13 @@ export class FreddieTooltip extends HTMLElement {
 
 defineElement('freddie-tooltip', FreddieTooltip)
 
-/**
- * @typedef {object} TooltipProps
- * @property {string|function(): string} [label=''] - the bubble text, or a function called on show to compute it lazily.
- * @property {*} [children=''] - the anchor content the tooltip is attached to.
- * @property {'right'|'top'|'bottom'} [side='right'] - preferred placement; `'top'`/`'bottom'` flip to fit the viewport.
- * @property {boolean} [disabled] - suppresses showing the bubble and resets any pending show/position state.
- * @property {number} [delayMs=0] - hover delay before showing; focus shows immediately.
- * @property {number} [maxWidth] - max-width in pixels applied to the bubble.
- */
 
-/**
- * Create (if needed) or update a Tooltip element in place.
- * @param el - an existing `freddie-tooltip` element to update, or null to create one.
- * @param props - see {@link TooltipProps}.
- * @returns the `freddie-tooltip` element; keep it and pass it back in to update.
- */
 export function renderTooltip(el, props) {
   const target = el ?? document.createElement('freddie-tooltip')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function Tooltip(props) {
   return renderTooltip(null, props)
 }
