@@ -1,16 +1,3 @@
-/**
- * The ACP automation server app: the default agent spine
- * ({@link module:@freddie/freddie-agent-spine-demo}), JSONL session persistence, and
- * the {@link module:@freddie/freddie-acp} bridge. The app owns those plugins through one
- * ordered lifecycle so ACP sessions quiesce before persistence detaches. It
- * writes nothing to stdout.
- * It pre-creates no agents and leaves adapters, executors, and optional tools to
- * the leaf, which must likewise avoid stdout loggers. Named exports are
- * required so Loader retains this plugin's `Config` schema (see
- * docs/postmortem/0001).
- * @module @freddie/freddie-acp-demo
- */
-
 import { join } from 'node:path'
 import z from '@freddie/schemastery'
 import * as acp from '@freddie/freddie-acp'
@@ -48,16 +35,6 @@ export const Config = z.object({
 })
 /* jscpd:ignore-end */
 
-/**
- * Compose the spine with the ACP automation transport. The agent-spine-demo bundle pre-creates
- * NO agents (its `agents` list defaults to `[]`) and carries the deployment
- * `persona`; the JSONL backend and derived query index persist under
- * `persistenceRoot`; the ACP bridge owns stdout for JSON-RPC and creates one
- * agent per `session/new` from the provider/model pair. The composite effect
- * unloads in reverse order, keeping checkpoint and persistence listeners
- * attached until ACP agents have flushed their closing events. No logger, no
- * `hmr` — stdout stays pure.
- */
 export async function apply(ctx, config) {
   const goals = config.goals ?? {}
   const persistenceRoot = config.persistenceRoot ?? DEFAULT_PERSISTENCE_ROOT
