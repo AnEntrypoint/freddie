@@ -1,4 +1,3 @@
-/** Hand-owned Typert host manifest for GM graph-edit Remotes. */
 import { z } from 'zod'
 
 const agentId = z.intersection(z.string(), z.unknown())
