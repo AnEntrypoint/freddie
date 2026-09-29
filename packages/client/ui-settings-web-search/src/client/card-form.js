@@ -1,24 +1,5 @@
-/**
- * The web-search form: what the user typed, written only on save.
- *
- * Two of the three controls are ordinary section fields. The third — the key —
- * is a write-only control: its literal never rides a response, so the card
- * learns only whether one is configured and addresses it through the
- * credentials domain rather than the settings document. It is still staged with
- * the rest of the form, so one save covers everything the card shows.
- *
- * A card owns this model rather than importing the Plugins section's because
- * the client bundle-purity gate forbids a value import across plugins.
- */
-
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 
-/**
- * A free-text field. An empty draft clears the field, so emptying the control
- * and saving is the same gesture as resetting it.
- * @param field - field name inside the namespace section.
- * @returns the field's conversion spec.
- */
 export function textField(field) {
   return {
     field,
@@ -30,18 +11,6 @@ export function textField(field) {
   }
 }
 
-/**
- * An endpoint URL field.
- *
- * The endpoint is where the provider sends a credentialed request, so the
- * control admits only an absolute `http(s)` URL and blocks the save on anything
- * else — a relative path, or a non-web scheme such as `file:` or `data:`, is
- * refused here rather than reaching the Host. That narrows the scheme, not the
- * host: an operator naming a different host is the entire point of the field,
- * and only the Host can judge whether that host should be trusted.
- * @param field - field name inside the namespace section.
- * @returns the field's conversion spec.
- */
 export function endpointField(field) {
   return {
     field,
@@ -61,13 +30,6 @@ export function endpointField(field) {
   }
 }
 
-/**
- * A whole-number field with a floor. An empty draft clears the field; any other
- * draft that is not a finite safe integer at or above the floor blocks the save.
- * @param field - field name inside the namespace section.
- * @param minimum - smallest whole number the field accepts.
- * @returns the field's conversion spec.
- */
 export function budgetField(field, minimum) {
   return {
     field,
@@ -82,19 +44,7 @@ export function budgetField(field, minimum) {
   }
 }
 
-/**
- * Stages one card's edits over one settings namespace and writes them on save.
- *
- * The form publishes through a snapshot store because slot components read
- * through a snapshot selector while the scope, the local drafts, and the
- * credential answer change underneath; every projection is rebuilt from them.
- */
 export class StagedForm {
-  /**
-   * @param scope - the bound settings scope for this card's namespace.
-   * @param specs - the section fields this card edits.
-   * @param secrets - the card's write-only controls, written outside the section.
-   */
   constructor(scope, specs, secrets = []) {
     this.scope = scope
     this.specs = new Map(specs.map(spec => [spec.field, spec]))
@@ -106,21 +56,12 @@ export class StagedForm {
     scope.subscribe(() => { this.publish() })
   }
 
-  /**
-   * Publish a projection of this form, rebuilt whenever an input changes.
-   * @param project - build the card's state from the form's current reads.
-   * @returns the store the card's component reads through its bound selector.
-   */
   bind(project) {
     const store = createSnapshotStore(project())
     this.listeners.add(() => { store.set(project()) })
     return store
   }
 
-  /**
-   * Read the card-level state: what the Host serves, and what a save would do.
-   * @returns the form state every card shares.
-   */
   shell() {
     const snapshot = this.scope.getSnapshot()
     const plan = this.plan()
@@ -135,13 +76,6 @@ export class StagedForm {
     }
   }
 
-  /**
-   * Read one control's state. A secret control reports no override and no
-   * invalidity: it holds no stored value to compare against, and a blank draft
-   * simply writes nothing.
-   * @param field - field name of a section field or of a write-only control.
-   * @returns the draft text, whether a save would leave an override, and whether it is invalid.
-   */
   field(field) {
     const staged = this.staged.get(field)
     if (this.secretSpecs.has(field)) return { text: staged?.text ?? '', overridden: false, invalid: false }
@@ -153,10 +87,6 @@ export class StagedForm {
     return { text: staged.text, overridden: write?.kind === 'set', invalid: write === undefined }
   }
 
-  /**
-   * Build the edit, reset, save, and discard actions bound to this form.
-   * @returns the actions a card's slot entry injects.
-   */
   actions() {
     return {
       edit: (field, text) => { this.stage(field, { text, clear: false }) },
@@ -173,14 +103,6 @@ export class StagedForm {
     }
   }
 
-  /**
-   * Write every staged edit, then re-seed from what the Host accepted.
-   *
-   * The Host is the only authority on whether a value was accepted, so the
-   * outcome is read back from the section rather than predicted here. A save
-   * that did not land keeps its drafts so the user can correct them.
-   * @returns settlement after every write and the read-back.
-   */
   async save() {
     const plan = this.plan()
     const writes = plan.flatMap(item => item.run === undefined ? [] : [item.run])
@@ -198,13 +120,6 @@ export class StagedForm {
     this.publish()
   }
 
-  /**
-   * Every staged edit a save would write. An entry whose draft is not a value
-   * its field accepts carries no write: the form stays dirty and the save
-   * refuses rather than dropping the edit. A blank secret writes nothing, which
-   * keeps the stored key rather than clearing it.
-   * @returns the planned writes, in the order the fields were staged.
-   */
   plan() {
     const plan = []
     for (const [field, staged] of this.staged) {
@@ -227,54 +142,45 @@ export class StagedForm {
     return plan
   }
 
-  /** @returns whether the Host reports the clear landed. */
   async clear(field) {
     await this.scope.unset(field)
     return !this.stored(field)
   }
 
-  /** @returns whether the Host now reports the stored value. */
   async store(field, value) {
     await this.scope.set(field, value)
     return this.userLayer()?.[field] === value
   }
 
-  /** Stage one edit and republish. */
   stage(field, edit) {
     this.staged.set(field, edit)
     this.failed = false
     this.publish()
   }
 
-  /** @returns the field's conversion spec, throwing on an undeclared field. */
   spec(field) {
     const spec = this.specs.get(field)
     if (spec === undefined) throw new Error(`web-search card has no field ${field}`)
     return spec
   }
 
-  /** @returns the current resolved section value. */
   sectionValue(field) {
     return this.scope.getSnapshot().value?.[field]
   }
 
-  /** @returns the composition-layer value a reset re-inherits. */
   baseValue(field) {
     return this.scope.getSnapshot().base?.[field]
   }
 
-  /** @returns the raw user layer, whose key presence marks an override. */
   userLayer() {
     return this.scope.getSnapshot().user
   }
 
-  /** @returns whether the raw user layer carries this field. */
   stored(field) {
     const user = this.userLayer()
     return user !== undefined && Object.hasOwn(user, field)
   }
 
-  /** Republish every bound projection. */
   publish() {
     for (const listener of this.listeners) listener()
   }

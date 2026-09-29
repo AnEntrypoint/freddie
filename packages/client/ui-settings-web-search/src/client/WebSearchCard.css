@@ -1,5 +1,3 @@
-/* Web-search card: a header naming the provider's configuration, disclosing it in place. */
-
 .freddie-webSearchCard__card {
   list-style: none;
   border: 1px solid var(--freddie-alias-border-l2);

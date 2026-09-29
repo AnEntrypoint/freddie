@@ -1,9 +1,3 @@
-/**
- * Copy for the web-search card. The key's own copy never names a value and
- * never promises one was stored — only that one is configured.
- */
-
-/** English copy. */
 export const en = {
   title: 'Web search',
   description: "The search provider's endpoint, key, and per-request budget",

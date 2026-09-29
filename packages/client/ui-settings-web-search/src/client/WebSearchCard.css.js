@@ -1,10 +1,3 @@
-/**
- * Name map for `WebSearchCard.css`, hand-maintained in step with that file: the
- * build hands no CSS Modules pass over client sources, so a class used in the
- * component must resolve through this table to the hashed name the sheet ships.
- */
-
-/** @type {Record<string, string>} */
 const css = {
   card: 'freddie-webSearchCard__card',
   cardOpen: 'freddie-webSearchCard__cardOpen',
