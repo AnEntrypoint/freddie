@@ -55,6 +55,7 @@ export class InputHub {
       popup: () => this.popup(actx),
       queue: queueReadFaceOf(session),
       defaultSink: (text, imageIds, mode, signal) => this.sink(session, text, imageIds, mode, signal),
+      promptHistory: () => this.workspacePrompts(id),
       steerQueue: () => { void this.steerQueue(session, shell) },
       commandImages: {
         serialize: ids => this.conversation().serializeDraftImages(ids),
@@ -160,6 +161,21 @@ export class InputHub {
       shell.notify('error', this.t('queue.steerFailed'))
       return
     }
+  }
+
+  async workspacePrompts(sessionId) {
+    const sessions = this.sessions()
+    const workspaces = this.rootCtx.get('workspaces')
+    const workspace = workspaces?.list.getSnapshot().items.find(item => item.sessionIds.includes(sessionId))
+    const summaries = sessions.list.getSnapshot().byId
+    const ids = (workspace?.sessionIds ?? [sessionId]).filter(id => summaries[id]?.parentId === undefined)
+    const settled = await Promise.allSettled(ids.map(id => sessions.userPrompts(id)))
+    return settled
+      .flatMap((outcome, order) => outcome.status === 'fulfilled'
+        ? outcome.value.map(prompt => ({ ...prompt, order }))
+        : [])
+      .sort((a, b) => a.time - b.time || a.order - b.order || a.seq - b.seq)
+      .map(prompt => prompt.text)
   }
 
   controller(actx) {

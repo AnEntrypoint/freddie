@@ -8,6 +8,7 @@
  */
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 import { InputMachine, projectClipboard } from './machine.js'
+import { PromptHistoryNavigator } from './prompt-history.js'
 
 /** Guard tier from the machine phase. */
 function guardOf(phase) {
@@ -74,6 +75,7 @@ export class SessionInputShell {
     /** One image-only send at a time: Enter during the Host round-trip is a no-op. */
     this.imageSendInFlight = false
     this.disposed = false
+    this.history = deps.promptHistory === undefined ? undefined : new PromptHistoryNavigator(deps.promptHistory)
     /** Draft persistence mirror (chat store write; receives the clipboard projection, never display-only ranges). */
     this.mirrorFn = undefined
 
@@ -88,6 +90,20 @@ export class SessionInputShell {
    */
   setDraft(text, editRange) {
     this.run(this.core.dispatch({ type: 'draft-changed', draft: text, ...(editRange !== undefined ? { editRange } : {}) }))
+    if (this.history !== undefined && text !== this.history.echo) this.history.reset()
+  }
+
+  get recalling() {
+    return this.history?.navigating ?? false
+  }
+
+  recallPrompt(direction, onApplied) {
+    const snapshot = this.snapshot
+    if (this.history === undefined || snapshot.phase !== 'plain') return false
+    return this.history.step(direction, snapshot.draft, (text, caret) => {
+      this.setDraft(text)
+      onApplied(caret === 'start' ? 0 : text.length)
+    })
   }
 
   /** Append ordered image ids unless an admission transaction is locked. */
@@ -133,6 +149,7 @@ export class SessionInputShell {
   commitSend(imageIds) {
     const submitted = new Set(imageIds)
     this.imageIds = this.imageIds.filter(id => !submitted.has(id))
+    this.history?.reset()
     this.run(this.core.dispatch({ type: 'send-committed' }))
   }
 
@@ -155,6 +172,7 @@ export class SessionInputShell {
    * @param generation - projection generation for late async-upgrade guards.
    */
   pasteBegin(text, selection, components, generation) {
+    this.history?.reset()
     this.run(this.core.dispatch({
       type: 'paste-begin', text, selection,
       ...(components !== undefined ? { components } : {}),

@@ -356,7 +356,22 @@ export class FreddieInputBar extends HTMLElement {
       }
     }
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      if (keyboard.arbitrate(e.key === 'ArrowUp' ? 'up' : 'down', composing) === 'consumed') e.preventDefault()
+      if (keyboard.arbitrate(e.key === 'ArrowUp' ? 'up' : 'down', composing) === 'consumed') {
+        e.preventDefault()
+        return
+      }
+      if (!composing && !locked && !machineBusy && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        const selection = this.#selectionOf(target)
+        const recalling = keyboard.recalling
+        const atEdge = selection.start === selection.end && (e.key === 'ArrowUp'
+          ? (recalling ? !draft.slice(0, selection.start).includes('\n') : selection.start === 0)
+          : !draft.slice(selection.end).includes('\n'))
+        if (atEdge && keyboard.recallPrompt(e.key === 'ArrowUp' ? 'up' : 'down', (caret) => {
+          this.#render()
+          const el = this.#inputEl
+          if (el !== null) this.#restoreCaret(el, caret)
+        })) e.preventDefault()
+      }
       return
     }
     if (e.key === 'Escape') {

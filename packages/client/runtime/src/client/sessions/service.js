@@ -19,6 +19,7 @@ import { createSnapshotStore } from '../contract/store.js'
 import { createScope, scopeOf as scopeTagOf } from '../agents/scope.js'
 import { SessionManager } from './manager.js'
 import { SessionProvideChannel } from './provide.js'
+import { loadUserPrompts } from './user-prompts.js'
 
 /**
  * Structured session-create failure.
@@ -332,6 +333,10 @@ export class SessionRuntime {
     signal,
   ) {
     return this.manager.search(query, signal)
+  }
+
+  userPrompts(id) {
+    return loadUserPrompts(this.manager.api, id)
   }
 
   /**
