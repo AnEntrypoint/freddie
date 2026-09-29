@@ -10,31 +10,6 @@ const ROOT = ''
 const TITLE_ID = 'freddie-workspace-files-title'
 const PREVIEW_TITLE_ID = 'freddie-workspace-files-preview-title'
 
-/**
- * @typedef {object} TreeNode
- * @property {string} id - stable key: `e:<path>` for an entry, `s:<directory>` for a status row.
- * @property {'entry' | 'status'} kind
- * @property {string} path - the entry's workspace-relative path, or the directory a status row reports on.
- * @property {string} name
- * @property {string} [type] - the host's entry type.
- * @property {number} [size]
- * @property {number} level - one-based depth.
- * @property {number} position - one-based place among its siblings.
- * @property {number} setSize - sibling count.
- * @property {string | null} parentId
- * @property {boolean} expandable
- * @property {boolean} expanded
- * @property {TreeNode[]} children
- * @property {string} [message]
- * @property {boolean} [retry]
- */
-
-/**
- * Read-only workspace tree and file preview for one session.
- *
- * Props: `sessionId`, `list`, `read`, `readBytes`, `stat` (each takes the request
- * without `sessionId`), and the optional `useSessions` reader.
- */
 export class FreddieWorkspaceFilesView extends HTMLElement {
   #props = null
   #sessionId = null

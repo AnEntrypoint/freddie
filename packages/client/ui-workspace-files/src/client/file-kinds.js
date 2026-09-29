@@ -1,9 +1,5 @@
-/** Pure classification, formatting and failure wording for the workspace files view. */
-
-/** Largest image the view opens: the host's default `readBytes` window, so one read is the whole file. */
 export const IMAGE_WINDOW_BYTES = 2 * 1024 * 1024
 
-/** Most lines the preview accumulates through "Load more" before it stops offering more. */
 export const MAX_PREVIEW_LINES = 50000
 
 const IMAGE_MIME_BY_EXTENSION = Object.freeze({
@@ -28,35 +24,19 @@ const BINARY_EXTENSIONS = new Set([
 
 const RETRYABLE_KINDS = new Set(['aborted', 'unreadable', 'transport'])
 
-/**
- * @param name - a directory entry name.
- * @returns the lower-case extension without its dot, or an empty string.
- */
 export function extensionOf(name) {
   const dot = name.lastIndexOf('.')
   return dot <= 0 ? '' : name.slice(dot + 1).toLowerCase()
 }
 
-/**
- * @param name - a directory entry name.
- * @returns the image media type its extension names, or undefined for a non-image.
- */
 export function imageMimeOf(name) {
   return IMAGE_MIME_BY_EXTENSION[extensionOf(name)]
 }
 
-/**
- * @param name - a directory entry name.
- * @returns whether its extension names a format that is never read as text.
- */
 export function isKnownBinary(name) {
   return BINARY_EXTENSIONS.has(extensionOf(name))
 }
 
-/**
- * @param bytes - a byte count, when the host reported one.
- * @returns a short human-readable size.
- */
 export function formatBytes(bytes) {
   if (typeof bytes !== 'number') return 'unknown size'
   if (bytes < 1024) return `${String(bytes)} B`
@@ -70,21 +50,10 @@ export function formatBytes(bytes) {
   return `${value < 10 ? value.toFixed(1) : String(Math.round(value))} ${units[unit]}`
 }
 
-/**
- * @param parent - the listed directory's workspace-relative path; empty for the root.
- * @param name - an entry name inside it.
- * @returns the entry's workspace-relative path.
- */
 export function joinPath(parent, name) {
   return parent === '' ? name : `${parent}/${name}`
 }
 
-/**
- * Directories first, then natural case-insensitive name order.
- * @param a - first directory entry.
- * @param b - second directory entry.
- * @returns a sort comparison.
- */
 export function compareEntries(a, b) {
   const rank = entry => (entry.type === 'directory' ? 0 : 1)
   if (rank(a) !== rank(b)) return rank(a) - rank(b)
@@ -92,10 +61,6 @@ export function compareEntries(a, b) {
   return natural !== 0 ? natural : a.name < b.name ? -1 : a.name > b.name ? 1 : 0
 }
 
-/**
- * @param error - the `error` of a failed Remote answer.
- * @returns the state kind the view shows, its readable wording, and whether a retry is offered.
- */
 export function describeFailure(error) {
   const code = typeof error?.code === 'string' ? error.code : 'unknown'
   const message = typeof error?.message === 'string' ? error.message : ''
@@ -152,10 +117,6 @@ function failureText(kind, error) {
   }
 }
 
-/**
- * @param data - base64 text from a `readBytes` answer.
- * @returns the decoded bytes.
- */
 export function base64ToBytes(data) {
   const binary = atob(data)
   const bytes = new Uint8Array(binary.length)

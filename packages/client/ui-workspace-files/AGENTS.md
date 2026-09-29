@@ -14,3 +14,8 @@ Facts that a name cannot carry; each bullet names the file and symbol it belongs
 - Status rows are `treeitem`s (`WorkspaceFilesView.js`, `#statusNode`): a `tree` may hold only treeitems, and this keeps "Loading", "empty", "truncated" and a failed level with its retry reachable by arrow keys.
 - The package name follows the client rule `@freddie/freddie-client-<directory>` (see [../AGENTS.md](../AGENTS.md)), not a `freddie-ui-` prefix.
 - `src/invariant.js` installs nothing. No runtime invariant: the host entry `src/index.js` registers nothing, and the browser half contributes one read-only `conversation.view` slot entry over the `workspaceFiles` Remote, whose path confinement the host enforces; the view's epoch and preview sequence are private component state and it emits no cordis event.
+
+## Contract notes
+
+- `WorkspaceFilesView` props: `sessionId`, `list`, `read`, `readBytes`, `stat` (each takes the request without `sessionId`) and the optional `useSessions` reader. Tree node ids are `e:<path>` for an entry and `s:<directory>` for a status row; levels and positions are one-based.
+- `file-kinds.js`: the preview accumulates lines through "Load more" up to a fixed cap, after which it stops offering more; entries sort directories first, then natural case-insensitive name order.
