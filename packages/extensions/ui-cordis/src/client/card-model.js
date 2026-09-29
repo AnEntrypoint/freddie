@@ -1,5 +1,3 @@
-/** Replay-stable view models for Cordis lifecycle Tool calls. */
-
 function firstLine(text) {
   const newline = text.indexOf('\n')
   return newline === -1 ? text : text.slice(0, newline)
@@ -43,11 +41,6 @@ function metaObject(block) {
   return block.meta
 }
 
-/**
- * Derive one Define card from its frozen call/result slice.
- * @param block - active or settled tool-call block.
- * @returns normalized Define card fields.
- */
 export function cordisDefineCard(block) {
   const settled = 'kind' in block
   const argsRaw = (settled ? block.call?.argsRaw : block.argsRaw) ?? ''
@@ -70,11 +63,6 @@ export function cordisDefineCard(block) {
   }
 }
 
-/**
- * Derive one Run card and its successful activation metadata.
- * @param block - active or settled tool-call block.
- * @returns normalized Run card fields.
- */
 export function cordisRunCard(block) {
   const settled = 'kind' in block
   const argsRaw = (settled ? block.call?.argsRaw : block.argsRaw) ?? ''
@@ -97,11 +85,6 @@ export function cordisRunCard(block) {
   }
 }
 
-/**
- * Derive one Stop or Remove card from its frozen call/result slice.
- * @param block - active or settled tool-call block.
- * @returns normalized lifecycle-action card fields.
- */
 export function cordisActionCard(block) {
   const settled = 'kind' in block
   const argsRaw = (settled ? block.call?.argsRaw : block.argsRaw) ?? ''

@@ -1,5 +1,3 @@
-/** Localized cards for `cordis_stop` and `cordis_undefine`. */
-
 import { createElement as h } from '@freddie/webjsx'
 import {
   IconInspectOutline12, IconStopFill16, IconTrashOutline16, StateDot,
@@ -7,7 +5,6 @@ import {
 import { cordisActionCard } from './card-model.js'
 import css from './CordisRunRow.css.js'
 
-/** Render one Stop or Remove call with Cordis-owned localized copy. */
 export function CordisActionRow({ callId, toolName, block, inspect, t }) {
   const card = cordisActionCard(block)
   const remove = toolName === 'cordis_undefine'

@@ -7,3 +7,5 @@
 ## Rationale
 
 - `src/client/CordisPanel.js` `#recovering`: Stop and Remove are tracked apart from run gestures and are never disabled by a run in flight, because a run whose browser half never settles would otherwise disable the only controls that can end it.
+- `src/client/inventory.js`: rows are re-read, never patched (`cordis/dynamic-package` and `/retract` announcements carry no labels). Reads are single-flight; a reconnect reset discards the in-flight answer and frees the slot, otherwise the old connection's rows would be published.
+- `CordisDefineRow` keeps `expanded`/`selectedSource` in module-scope WeakMap state keyed by callId; `CordisPanel` and `CordisRunRow` are webjsx custom elements that dedupe side effects inside `#render`.

@@ -1,5 +1,3 @@
-/** Session-local ownership index for Package business views on `cordis_run` cards. */
-
 function createStore() {
   const pointers = new Map()
   const listeners = new Set()
@@ -20,15 +18,9 @@ function createStore() {
   }
 }
 
-/** Page-lifetime registry that gives all cards of one session the same Store. */
 export class CordisRunCardRegistry {
   sessions = new Map()
 
-  /**
-   * Return the persistent page-local Store for a session.
-   * @param sessionId - session whose cards share supersession state.
-   * @returns the page-local Store retained for that session.
-   */
   forSession(sessionId) {
     let store = this.sessions.get(sessionId)
     if (store === undefined) {
@@ -39,12 +31,6 @@ export class CordisRunCardRegistry {
   }
 }
 
-/**
- * Build the Package business-view key shared by registrations and Run cards.
- * @param pluginId - stable Plugin identity.
- * @param packageId - immutable Package identity.
- * @returns the shared business-view key.
- */
 export function cordisToolViewKey(
   pluginId,
   packageId,

@@ -1,15 +1,3 @@
-/** Read-only `cordis_define` card with Host and Client source tabs.
- *
- * Converted from a React hooks component (useState/useId) to a plain webjsx
- * function component: this card has no lifecycle needs (no effects, no
- * external subscriptions beyond the injected hooks already re-invoked on
- * every parent re-render), so local `expanded`/`selectedSource` state is
- * hoisted into module-scope WeakMap-keyed state per callId instead of a
- * custom element — matching the "stateless-looking, state-carrying" plain
- * function idiom used elsewhere for simple per-key toggles. useId becomes a
- * stable id derived from callId.
- */
-
 import {
   CodeBlock, DisclosureRow, IconCodeOutline16, IconInspectOutline12, StateDot,
   defineElement,
@@ -43,7 +31,6 @@ function leadingFor(state) {
   }
 }
 
-/** Per-card local UI state (expanded / active source tab), keyed by `callId`. */
 const cardStates = new Map()
 
 function stateFor(callId) {
@@ -55,7 +42,6 @@ function stateFor(callId) {
   return state
 }
 
-/** Read-only `cordis_define` card, as a webjsx custom element (per-instance re-render on toggle). */
 export class FreddieCordisDefineRow extends HTMLElement {
   #props = null
 

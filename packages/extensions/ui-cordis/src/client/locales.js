@@ -1,16 +1,6 @@
-/**
- * Cordis dynamic-plugin UI dictionaries.
- * @module @freddie/freddie-client-ui-cordis/client/locales
- */
-
 export const NS = 'cordis'
 
-/**
- * Translation keys owned by the Cordis UI namespace.
- * @typedef {keyof typeof en} CordisUiTranslationKey
- */
 
-/** English Cordis UI messages. */
 export const en = {
   'row.defineTitle': 'Register Cordis Plugin',
   'row.runTitle': 'Run Cordis Plugin',

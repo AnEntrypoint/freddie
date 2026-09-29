@@ -1,12 +1,3 @@
-/** `cordis_run` card and the host seat for Package-owned interactive UI.
- *
- * Converted from a React hooks component to a webjsx custom element: the
- * useEffect that called `onObserveRunCard` on identity/seq change becomes an
- * explicit dedupe check inside #render (Toast.tsx/JobListAction.tsx's
- * pattern of doing side effects synchronously in the render path with a
- * change guard, since there is no dependency-array primitive here).
- */
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconCodeOutline16, IconInspectOutline12, StateDot,
@@ -27,7 +18,6 @@ const READING_LABELS = {
   superseded: 'status.superseded',
 }
 
-/** Render one activation result and, when eligible, its Package-owned view. */
 export class FreddieCordisRunRow extends HTMLElement {
   #props = null
   #observed = null

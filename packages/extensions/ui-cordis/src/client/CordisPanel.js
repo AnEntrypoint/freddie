@@ -1,15 +1,3 @@
-/** Frame-wide dynamic Plugin inventory, approvals, versions, and lifecycle actions.
- *
- * Converted from a React hooks component to a webjsx custom element: every
- * useState becomes a private instance field, useLayoutEffect/useEffect become
- * connectedCallback/disconnectedCallback-managed listeners driven from
- * #setOpen/#render, useDismissOnOutsidePointer becomes
- * createDismissOnOutsidePointer (JobListAction.tsx's pattern), and re-render
- * is an explicit applyDiff(this, vdom) call instead of implicit re-render on
- * setState. className -> class, camelCase event handlers -> lowercase, and
- * the inline `style={anchor}` object becomes a CSS string.
- */
-
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   IconCheckOutline16, IconCloseOutline16, IconCordisPluginOutline14, IconPlayOutline16,
@@ -86,7 +74,6 @@ function DoubleCheckIcon() {
   )
 }
 
-/** Frame-wide dynamic Plugin inventory panel, as a webjsx custom element. */
 export class FreddieCordisPanel extends HTMLElement {
   #props = null
   #open = false
@@ -99,7 +86,6 @@ export class FreddieCordisPanel extends HTMLElement {
   #resizeHandler = null
   #dismiss = createDismissOnOutsidePointer({ root: this, onDismiss: () => { this.#setOpen(false) } })
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     const first = this.#props === null
     this.#props = props
@@ -153,7 +139,6 @@ export class FreddieCordisPanel extends HTMLElement {
     this.#resizeHandler = null
   }
 
-  /** Auto-open the panel when a new approval request appears. */
   #syncActiveRuns() {
     const props = this.#props
     if (props === null) return

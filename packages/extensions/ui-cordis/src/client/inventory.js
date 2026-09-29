@@ -1,28 +1,3 @@
-/**
- * The host's definition registry as this page last read it, owned by the
- * plugin's apply closure.
- *
- * The panel is a frame-wide surface, so it cannot derive this from any session:
- * the registry is global and the read is a single global call. The rows are
- * re-read rather than patched, because the wire announcements
- * (`cordis/dynamic-package` / `/retract`) carry no labels and a definition
- * can appear or disappear between them — a patch-in-place cache would drift into
- * showing definitions the host no longer holds.
- *
- * Reads are single-flight: several announcements settling at once, or a badge
- * opening while a reconnect re-reads, must not multiply the call. Single-flight
- * alone would be wrong across a reconnect, though — the in-flight read belongs to
- * the previous connection, so a reset both discards its answer and frees the slot
- * for a fresh one. Without that, a reconnect either loses its re-read to the old
- * call or has the old host's rows published on top of it.
- */
-
-/**
- * Create the inventory source.
- * @param port - the RPC seam the read goes through.
- * @param onError - reporter for a failed read (console in production, captured in specs).
- * @returns the inventory observable and its read trigger.
- */
 export function createCordisInventory(
   port,
   onError,

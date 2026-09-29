@@ -1,5 +1,3 @@
-/** Cordis dynamic-plugin cards, inventory panel, business-view host, and `@pluginId` source. */
-
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { CordisActionRow } from './CordisActionRow.js'
 import './CordisDefineRow.js'
@@ -9,12 +7,10 @@ import { createCordisInventory } from './inventory.js'
 import { CordisRunCardRegistry } from './run-card-index.js'
 import { en, NS } from './locales.js'
 
-/** Required services for the two Tool cards, panel, Remote lifecycle, and Slash source. */
 export const inject = [
   'slots', 'locale', 'inputTriggers', 'remote', 'remote.dynamicCordisRunner', 'dynamicCordisRunner',
 ]
 
-/** Mount every Cordis browser surface over the shared Host inventory. */
 export function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-cordis: dictionaries')
 

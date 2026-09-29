@@ -1,11 +1,3 @@
-/** Shared status derivation over Host inventory and this page's Client live set. */
-
-/**
- * Locate one immutable Package inside a Plugin row.
- * @param row - owning Plugin inventory row.
- * @param packageId - immutable Package identity to locate.
- * @returns the matching Package metadata, or `undefined` when absent.
- */
 export function packageOf(
   row,
   packageId,
@@ -13,13 +5,6 @@ export function packageOf(
   return row.packages.find(pkg => pkg.packageId === packageId)
 }
 
-/**
- * Derive the visible state of one Package.
- * @param row - owning Plugin inventory row.
- * @param packageId - Package being described.
- * @param loaded - Client activations loaded in this page.
- * @returns idle, Host-running/Client-pending, or fully running.
- */
 export function cordisVisibleStatus(
   row,
   packageId,
