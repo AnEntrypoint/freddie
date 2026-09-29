@@ -24,8 +24,6 @@ function pad(indent) {
 /** A one-line JSDoc block for a schema `description`, or no lines when there is none. */
 function docLines(description, indent) {
   if (typeof description !== 'string' || description.length === 0) return []
-  // Collapse prose to stable one-line docs and escape comment closers so a
-  // schema description cannot terminate generated JSDoc.
   const collapsed = description.replace(/\s+/g, ' ').trim()
   return [`${pad(indent)}/** ${collapsed.replaceAll('*/', String.raw`*\/`)} */`]
 }

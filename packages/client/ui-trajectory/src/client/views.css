@@ -1,5 +1,3 @@
-/* Full-bleed, fixed-height host for the trajectory ledger. */
-
 freddie-trajectory-view,
 freddie-trajectory-table,
 freddie-trajectory-timeline {
@@ -33,6 +31,5 @@ freddie-trajectory-timeline {
   min-width: 0;
   overflow: hidden;
 
-  /* ConversationRoot publishes the floating composer's live height. */
   --freddie-trajectory-bottom-clearance: calc(var(--freddie-composer-height, 152px) + 16px);
 }

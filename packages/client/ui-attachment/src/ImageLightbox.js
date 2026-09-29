@@ -1,9 +1,3 @@
-// ImageLightbox: document-level original-image preview, converted from a
-// React component using createPortal to a webjsx custom element that
-// self-mounts to document.body (Modal.tsx's pattern): the Escape-key
-// listener and focus-restore effect become connectedCallback/
-// disconnectedCallback.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconCloseOutline16, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './ImageLightbox.css.js'
@@ -56,6 +50,14 @@ export class FreddieImageLightbox extends HTMLElement {
 }
 
 defineElement('freddie-image-lightbox', FreddieImageLightbox)
+
+/**
+ * @typedef {object} ImageLightboxProps
+ * @property {string} src - the full-resolution image URL to display.
+ * @property {string} alt - alt text for the displayed image.
+ * @property {{dialog: string, close: string}} labels - dialog aria-label and close-button aria-label text.
+ * @property {() => void} onClose - called on Escape, backdrop press, or the close control.
+ */
 
 /** Create (if needed) and update an ImageLightbox mounted on `document.body`.
  * @param el - an existing mounted lightbox (from a prior call), or null to create one.

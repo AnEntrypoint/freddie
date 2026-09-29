@@ -23,7 +23,6 @@ import {
 import { parseClaudeCodeConfig } from './config.js'
 
 export const name = 'hooks-claude-code'
-// `shell` runs hooks; the rest are read opportunistically via ctx.get so a deployment can omit them.
 export const inject = ['shell']
 
 /**
@@ -83,11 +82,9 @@ function lastTurn(agent) {
  * @param {{ configPath: string; pluginRoot?: string; projectDir?: string; defaultTimeoutMs: number; stderrSummaryMaxChars: number }} config
  */
 export function apply(ctx, config) {
-  // Validate before config parsing so a bad value cannot be hidden by its early return.
   const stderrSummaryMaxChars = config.stderrSummaryMaxChars ?? DEFAULT_STDERR_SUMMARY_MAX_CHARS
   assertPositiveInteger('stderrSummaryMaxChars', stderrSummaryMaxChars)
   const defaultTimeoutMs = config.defaultTimeoutMs ?? DEFAULT_HOOK_TIMEOUT_MS
-  // Parse once at load. A read or parse failure logs and registers nothing.
   let parsed = {}
   try {
     const raw = JSON.parse(readFileSync(config.configPath, 'utf8'))
@@ -104,13 +101,7 @@ export function apply(ctx, config) {
     return
   }
 
-  // Emit-shaped points run detached, so track their chains; disposal aborts
-  // active hooks and drains continuations before resolving.
   const detached = createDetachedRuns()
-  // Only the start edge guarantees registry access. Retain each local child
-  // through its paired end so stop hooks keep the session workspace after the
-  // handle unregisters the agent. Every retained entry relies on that paired
-  // end; a producer that can omit it must provide another release edge.
   const subagentChildren = new Map()
   ctx.effect(() => () => detached.drain(), 'hooks-claude-code: drain detached hook runs')
 
@@ -126,11 +117,7 @@ export function apply(ctx, config) {
   async function runPoint(point, matchQuery, payload, opts) {
     const groups = parsed[point] ?? []
     const outputs = []
-    // Run the hook in the agent's session workspace (the `session/new` cwd on the session
-    // header), not the executor or entry-point process's launch dir.
     const workdir = opts.agent?.session.header.cwd
-    // CLAUDE_PROJECT_DIR: an explicit config value wins; otherwise default it to the session
-    // workspace (the same dir the hook runs in).
     const projectDir = config.projectDir ?? workdir
     const hookEnv = projectDir !== undefined ? { CLAUDE_PROJECT_DIR: projectDir } : undefined
     for (const group of groups) {
@@ -151,8 +138,6 @@ export function apply(ctx, config) {
           ...workdir !== undefined ? { cwd: workdir } : {},
           signal: opts.signal,
           trailingNewline: true,
-          // Discard a `hookSpecificOutput` block whose `hookEventName` names a
-          // different event than the one firing (the schemas key it by event).
           expectedEventName: point,
         }, () => performance.now())
         outputs.push(output)
@@ -184,8 +169,6 @@ export function apply(ctx, config) {
 
   ctx.on('agent/created', async ({ agent }) => {
     const ownerSignal = detached.signal
-    // freddie's `agent/created` carries no `source`/`signal` (unlike the seam this bridges from);
-    // 'startup' covers the common case this bridge exists for. See README "Known Limitations".
     const source = 'startup'
     const run = runPoint('SessionStart', source, sessionStartPayload(agent, source), { agent, signal: ownerSignal })
       .then((merged) => {
@@ -199,8 +182,6 @@ export function apply(ctx, config) {
     await run
   })
 
-  // --- UserPromptSubmit → PreStepDecision. The prompt text is the payload; no
-  // matcher subject (CC ignores matchers for this event). ---
   ctx.on('agent/pre-step', async ({ agent, messages, turn, signal }, next) => {
     if (messages.length === 0) return next()
     const content = messages.flatMap(message => message.content)
@@ -208,8 +189,6 @@ export function apply(ctx, config) {
     if (merged.decision === 'deny') {
       return { kind: 'reject' }
     }
-    // Delegate so later listeners may still rewrite or reject, then prepend our
-    // context only to a downstream enter decision.
     const downstream = await next()
     const ours = contextFrom(merged)
     if (!ours || downstream.kind !== 'enter') return downstream
@@ -219,7 +198,6 @@ export function apply(ctx, config) {
     }
   })
 
-  // --- PreToolUse → PreToolDecision. Matcher subject is the tool name. ---
   ctx.on('tools/pre-execute', async (exec, next) => {
     const turn = lastTurn(exec.agent)
     const merged = await runPoint('PreToolUse', exec.name, preToolPayload(exec), { ...exec.agent ? { agent: exec.agent } : {}, turn, signal: exec.signal })
@@ -228,7 +206,6 @@ export function apply(ctx, config) {
     return next()
   })
 
-  // --- PostToolUse → PostToolDecision. Matcher subject is the tool name. ---
   ctx.on('tools/post-execute', async (exec, result, next) => {
     const turn = lastTurn(exec.agent)
     const merged = await runPoint('PostToolUse', exec.name, postToolPayload(exec, result), { ...exec.agent ? { agent: exec.agent } : {}, turn, signal: exec.signal })
@@ -236,8 +213,6 @@ export function apply(ctx, config) {
     if (merged.decision === 'deny') {
       return { kind: 'block', feedback: [{ type: 'text', text: merged.reason ?? 'blocked by PostToolUse hook' }], ...context ? { additionalContexts: [context] } : {} }
     }
-    // Our hooks did not block. DELEGATE so a later listener can still block/replace,
-    // then fold our context onto its decision (a downstream block carries it too).
     const downstream = await next()
     if (!context) return downstream
     if (downstream.kind === 'block') {
@@ -249,19 +224,14 @@ export function apply(ctx, config) {
     }
   })
 
-  // A blocking Stop hook steers at the stopping boundary, which makes the
-  // machine observe pending input and run another step.
   ctx.on('agent/turn-stopping', async ({ agent, turn, signal }) => {
     const merged = await runPoint('Stop', '', stopPayload(agent), { agent, turn, signal })
     if (merged.decision === 'deny') {
-      // A blocking Stop hook forces continuation.
       const text = merged.reason ?? 'continue: blocked by Stop hook'
       agent.steer(createUserMessage({ content: [{ type: 'text', text }], source: CONTEXT_SOURCE }))
     }
   })
 
-  // SubagentStart may inject child context; SubagentStop only observes. Both
-  // use the live child's workspace and the generic agent-type matcher subject.
   ctx.on('subagent/start', (info) => {
     const child = ctx.get('agents')?.get(info.id)
     if (child !== undefined) subagentChildren.set(info.runId, child)
@@ -287,8 +257,6 @@ export function apply(ctx, config) {
  */
 const SUBAGENT_TYPE = 'general-purpose'
 
-// --- Per-event stdin payloads (the CC DIALECT shape). Field names match CC's
-// hook input schema; this is the part a bridge owns. ---
 
 /** Flatten content blocks to the text a hook payload carries (the common case). */
 function blocksToText(content) {
@@ -298,8 +266,6 @@ function blocksToText(content) {
 function base(agent, event) {
   return {
     session_id: agent?.session.header.id ?? '',
-    // The persistence seam exposes no artifact path; the field stays empty
-    // (a durable consumer gap recorded in this package's README).
     transcript_path: '',
     cwd: agent?.session.header.cwd ?? process.cwd(),
     hook_event_name: event,

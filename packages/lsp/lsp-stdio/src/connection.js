@@ -43,9 +43,6 @@ export class LspConnection {
     this.onServerRequest = onServerRequest
     this.writer = writer
     this.decoder = new MessageDecoder(spec.maxMessageBytes)
-    // stdin/stdout are piped protocol streams this endpoint frames itself;
-    // stderr is a collected diagnostic tail (no spill — the bounded tail IS
-    // the contract). The seam owns detachment and tree-scoped signalling.
     this.handle = spawner({
       argv: [spec.command, ...spec.args],
       cwd: spec.cwd,
@@ -55,8 +52,6 @@ export class LspConnection {
         stderr: { maxBytes: spec.maxStderrBytes },
       },
       graceMs: spec.killGraceMs,
-      // The seam merges explicit config entries after its ambient scrub, so a
-      // configured credential or FREDDIE_* fact reaches the child deliberately.
       env: spec.env,
     })
     /* v8 ignore start -- 'pipe' dispositions expose both streams by the seam contract; defensive. */
@@ -68,22 +63,15 @@ export class LspConnection {
     this.closed = new Promise((resolve) => {
       const close = () => {
         const reason = this.closeReason ?? new Error(this.exitMessage())
-        // Record the reason so any request issued AFTER close rejects immediately instead of hanging
-        // (a closed process sends no further responses).
         this.closeReason = reason
         this.failAll(reason)
         resolve()
       }
       this.handle.done.then(close, (error) => {
-        // A spawn-level failure never produces a close event; the rejection is
-        // the fatal cause and the close boundary at once.
         this.fail(asError(error))
         close()
       })
     })
-    // Child stdin can fail while the process itself remains alive (for example, a server closes fd
-    // 0). Treat that as a fatal connection error so pending requests reject immediately instead of
-    // waiting for a process-close event that may never arrive.
     this.stdin.on('error', (error) => { this.fail(error) })
     this.handle.stdout.on('data', (chunk) => { this.onStdout(chunk) })
   }
@@ -127,13 +115,8 @@ export class LspConnection {
         return
       }
       this.pending.set(id, { resolve, reject })
-      // `write()` records either synchronous or callback-delivered failures on the connection and
-      // rejects every pending request. This handler only consumes the write promise itself.
       void this.write({ jsonrpc: '2.0', id, method, params }).catch(() => {})
     })
-    // A caller that stops awaiting (e.g. an aborted query) can leave this promise to reject later
-    // when the process closes; a benign no-op handler keeps that from surfacing as an unhandled
-    // rejection. The returned promise still delivers the rejection to the caller's own await/catch.
     promise.catch(() => {})
     return promise
   }
@@ -153,8 +136,6 @@ export class LspConnection {
    * @param requestId - the numeric id of the request to cancel.
    */
   cancel(requestId) {
-    // The server is already gone or unwritable when this rejects; `write()` has recorded the fatal
-    // connection failure and rejected the pending request, so cancellation remains best-effort.
     void this.write({ jsonrpc: '2.0', method: '$/cancelRequest', params: { id: requestId } }).catch(() => {})
   }
 
@@ -185,9 +166,6 @@ export class LspConnection {
     try {
       messages = this.decoder.push(chunk)
     } catch (error) {
-      // A framing/JSON failure corrupts the stream position irrecoverably: fail the instance and
-      // terminate the whole group so helper processes don't outlive the leader (SIGTERM first, then
-      // the kill grace's SIGKILL — a misbehaving server still gets its bounded flush window).
       this.fail(asError(error))
       this.handle.terminate()
       return
@@ -201,14 +179,12 @@ export class LspConnection {
     const id = frame.id
     const method = frame.method
     if (typeof method === 'string' && (typeof id === 'number' || typeof id === 'string')) {
-      // A response-write failure has already invalidated the connection in `write()`.
       /* v8 ignore next -- protocol tests exercise response writes; only a simultaneous connection
          failure makes this consumption handler run. */
       void this.handleServerRequest(id, method, frame.params).catch(() => {})
       return
     }
     if (typeof method === 'string') {
-      // A server→client notification (e.g. diagnostics, logs): ignored by this MVP host.
       return
     }
     if (typeof id === 'number') this.handleResponse(id, frame)

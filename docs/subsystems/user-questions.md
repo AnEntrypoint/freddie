@@ -1,8 +1,8 @@
 # User Interaction
 
-The user-questions seam of [dsh-user-questions](../../packages/interaction/user-questions). It is the provider-neutral vocabulary a tool or permission plugin uses when it needs the human to answer before the agent can continue. UI surfaces provide the active `UserQuestionProvider`; the host runtime relays requests to its connected client.
+The user-questions seam of [@freddie/freddie-user-questions](../../packages/interaction/user-questions). It is the provider-neutral vocabulary a tool or permission plugin uses when it needs the human to answer before the agent can continue. UI surfaces provide the active `UserQuestionProvider`; the host runtime relays requests to its connected client.
 
-Source: [`packages/interaction/user-questions/src/index.ts`](../../packages/interaction/user-questions/src/index.js)
+Source: [`packages/interaction/user-questions/src/index.js`](../../packages/interaction/user-questions/src/index.js)
 
 ## Question options
 
@@ -131,13 +131,13 @@ class UserQuestionError extends HarnessError {
 }
 ```
 
-<!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
+<!-- BEGIN cordis-surface (hand-maintained) -->
 
 <a id="cordis-surface"></a>
 
 ## Cordis API
 
-Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+Originally generated from source by `scripts/gen-cordis-catalog.ts`; that script and its `verify-cordis-catalog` freshness check no longer exist, so this region is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
 <a id="ctxuserquestions--userquestionservice"></a>
 
@@ -172,5 +172,5 @@ registerProvider(provider: UserQuestionProvider): () => void
 async ask(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer>
 ```
 
-Source: [`packages/interaction/user-questions/src/index.ts`](../../packages/interaction/user-questions/src/index.js)
-<!-- END GENERATED cordis-surface -->
+Source: [`packages/interaction/user-questions/src/index.js`](../../packages/interaction/user-questions/src/index.js)
+<!-- END cordis-surface -->

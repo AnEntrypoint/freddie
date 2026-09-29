@@ -14,9 +14,6 @@ export function turnEndToStopReason(reason) {
       return 'end_turn'
     case 'max-tokens':
       return 'max_tokens'
-    // `cancelled` is reserved for explicit client cancellation (`session/cancel`)
-    // and disposal, both settled out of band; a turn aborted by a hook or
-    // another owner is ordinary quiescence and reports `end_turn`.
     case 'aborted':
       return 'end_turn'
     case 'interrupted':

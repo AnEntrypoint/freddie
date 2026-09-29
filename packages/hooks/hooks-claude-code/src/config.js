@@ -58,7 +58,6 @@ export function substituteCommand(command, vars) {
 export function parseClaudeCodeConfig(raw, vars = {}) {
   const config = {}
   const skipped = []
-  // Accept either `{ hooks: { … } }` (a settings file) or the bare event map.
   const root = asObject(raw)
   const hooksMap = root ? asObject(root.hooks) ?? root : undefined
   if (!hooksMap) return { config, skipped }

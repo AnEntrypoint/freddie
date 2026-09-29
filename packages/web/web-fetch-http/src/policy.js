@@ -6,27 +6,33 @@
  * @module @freddie/freddie-web-fetch-http/policy
  */
 
+import { isIP } from 'node:net'
 import { WebError } from '@freddie/freddie-web'
+import { classifyAddress, normalizeHostname } from './address.js'
+
+const RESERVED_NAME_SUFFIXES = ['localhost', 'local', 'internal', 'localdomain', 'home.arpa']
 
 /**
- * Validate a request URL against the basic transport hygiene the provider
- * enforces before any network access: http(s) only, no embedded credentials,
- * bounded length. Returns the parsed `URL`. Throws {@link WebError} otherwise.
- * (SSRF / private-network blocking is deferred — see the package Agent Note.)
+ * Validate a request URL against the pre-network policy: http(s) only, no
+ * embedded credentials, bounded length, and a destination that is neither a
+ * non-public IP literal nor a reserved name (`localhost`, `*.local`,
+ * `*.internal`, ...). Resolved addresses are checked later, per hop, by
+ * `resolvePublicAddresses`. Returns the parsed `URL`. Throws {@link WebError}
+ * otherwise; messages never echo the input URL.
  *
  * @param input - the raw URL string from the fetch request.
  * @param maxUrlLength - inclusive upper bound on `input`'s length.
  * @returns the parsed `URL`.
  */
 export function validateFetchUrl(input, maxUrlLength) {
-  if (input.length > maxUrlLength) {
-    throw new WebError(`URL exceeds the maximum length of ${maxUrlLength}`, 'WEB_INVALID_URL')
+  if (typeof input !== 'string' || input.length > maxUrlLength) {
+    throw new WebError(`URL is missing or exceeds the maximum length of ${maxUrlLength}`, 'WEB_INVALID_URL')
   }
   let url
   try {
     url = new URL(input)
   } catch (error) {
-    throw new WebError(`invalid URL: ${input}`, 'WEB_INVALID_URL', { cause: error })
+    throw new WebError('invalid URL', 'WEB_INVALID_URL', { cause: error })
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     throw new WebError(`unsupported URL scheme "${url.protocol}" (only http and https are allowed)`, 'WEB_INVALID_URL')
@@ -34,7 +40,31 @@ export function validateFetchUrl(input, maxUrlLength) {
   if (url.username.length > 0 || url.password.length > 0) {
     throw new WebError('credentials in URLs are not allowed', 'WEB_BLOCKED_URL')
   }
+  assertPublicDestination(url)
   return url
+}
+
+/**
+ * Refuse a URL whose host is already known to be non-public without any
+ * lookup: an IP literal in a non-public range, or a reserved name.
+ *
+ * @param url - the parsed URL.
+ */
+export function assertPublicDestination(url) {
+  const host = normalizeHostname(url.hostname)
+  if (host === '') {
+    throw new WebError('URL has no host', 'WEB_INVALID_URL')
+  }
+  if (isIP(host) !== 0) {
+    const reason = classifyAddress(host)
+    if (reason !== undefined) {
+      throw new WebError(`URL destination is not a public address (${reason})`, 'WEB_BLOCKED_URL')
+    }
+    return
+  }
+  if (RESERVED_NAME_SUFFIXES.some(suffix => host === suffix || host.endsWith(`.${suffix}`))) {
+    throw new WebError('URL destination is not a public host (reserved name)', 'WEB_BLOCKED_URL')
+  }
 }
 
 /**

@@ -116,9 +116,6 @@ export class FreddieProviderEditor extends HTMLElement {
   #keyState = undefined
   #busy = false
   #failure = undefined
-  // A settings success advances both retry baselines immediately. Keeping the
-  // derived fields in the draft prevents a pushed namespace refresh from
-  // turning them into deletions when the following credential write is retried.
   #committedOriginal = undefined
   #expectedRevision = 0
   #credentialEpoch = 0
@@ -148,10 +145,6 @@ export class FreddieProviderEditor extends HTMLElement {
     const keyRef = refFor(schema, namespace, settingsPath, provider)
     const epoch = ++this.#credentialEpoch
     this.#keyState = undefined
-    // The key state is a placeholder hint, not a precondition for editing:
-    // neither a business rejection nor a transport failure may reach the
-    // browser as an unhandled rejection, so the card simply renders without
-    // the "already configured" hint.
     void api.credentials.describe({ refs: [keyRef] }).then(
       (response) => {
         if (epoch !== this.#credentialEpoch || !response.result.ok) return
@@ -169,10 +162,6 @@ export class FreddieProviderEditor extends HTMLElement {
 
   #setField(key, next) {
     const { schema } = this.#props
-    // A value of nothing but whitespace is cleared, not stored: `stringAt`
-    // already reports it as absent, so the field would otherwise render empty
-    // while the draft still carried the spaces into `settings.yaml`, where
-    // both adapters would accept that non-empty string as a real value.
     const value = next === undefined || next.trim().length === 0 ? undefined : next
     this.#draft = value === undefined
       ? schema.deletePath(this.#draft, [key])
@@ -194,10 +183,6 @@ export class FreddieProviderEditor extends HTMLElement {
     const root = this.#root ?? schema.rehydrate(namespace.schema)
     const node = schema.nodeAtPath(root, settingsPath)
     if (this.#props.credentialOnly !== true) {
-      // The same checker gates the submit button, so a card cannot reach this
-      // with a bad row; it stays because the schema check below would refuse
-      // the write with a message naming a path instead of the row, and because
-      // nothing but this function decides what is written.
       const failure = validateDeepSeekModels(schema.getPath(next, ['models']))
       /* v8 ignore next 3 -- unreachable from the card: the same failure disables submit */
       if (failure !== undefined) {
@@ -243,9 +228,6 @@ export class FreddieProviderEditor extends HTMLElement {
       }
       this.#props.onClose(true)
     } catch (error) {
-      // A transport failure (disconnect, a request the host refuses) rejects
-      // rather than answering; without this the card would stay busy forever
-      // with no error shown.
       this.#failure = messageOf(error)
     } finally {
       this.#busy = false
@@ -323,8 +305,6 @@ export class FreddieProviderEditor extends HTMLElement {
           required: props.credentialRequired === true,
           autofocus: props.autoFocusCredential === true,
           disabled: disabled || keyLocked,
-          // API-key validity controls the submit button; update it as the user types.
-          // The change event fires only after blur, which loses the first click on Save.
           oninput: (event) => { this.#keyDraft = event.target.value; this.#render() },
         }),
         shownKeyFailure === undefined ? null : h('p', { class: styles['error'] ?? '' }, t(shownKeyFailure)),
@@ -373,8 +353,6 @@ export class FreddieProviderEditor extends HTMLElement {
     const modelFailure = validateDeepSeekModels(schema.getPath(this.#draft, ['models']))
 
     if (node === undefined) {
-      // A directory entry addressing a position its schema cannot resolve is a
-      // host-side inconsistency; showing it beats a blank card.
       applyDiff(this, h('p', { class: styles['error'] ?? '' }, `${props.provider}: unresolvable settings path`))
       return
     }
@@ -424,6 +402,34 @@ export class FreddieProviderEditor extends HTMLElement {
 }
 
 defineElement('freddie-provider-editor', FreddieProviderEditor)
+
+/**
+ * @typedef {object} ProviderEditorProps
+ * @property {string} provider - the profile's route key (e.g. `llm-deepseek`), shown beside
+ * `displayName` when they differ and used to derive the credential reference.
+ * @property {string} displayName - the card's title text.
+ * @property {object} namespace - the addressed settings namespace view: `ns`, `value`
+ * (effective), `user` (stored override), `base` (composition-pinned), `schema` (serialized
+ * node), and `revision` (expected-revision fence for writes).
+ * @property {object} schema - settings-owned schema operations: `getPath`, `setPath`,
+ * `deletePath`, `hasPath`, `nodeAtPath`, `rehydrate`, `validate`.
+ * @property {Array<string|number>} settingsPath - path of the edited subtree inside the
+ * namespace's user section.
+ * @property {object} api - wire faces used by the card: `api.credentials.describe`/`set` and
+ * `api.settings.mutate`.
+ * @property {(key: string) => string} t - locale lookup for field labels and copy.
+ * @property {boolean} readOnly - disables every control without hiding them.
+ * @property {() => void} onClose - called with no meaning attached to the return; see the call
+ * site (`onClose(true)` on a successful apply, `onClose(false)` on cancel).
+ * @property {boolean} [credentialOnly] - renders only the API-key field, hiding the
+ * customized-settings disclosure and skipping section path ops on apply.
+ * @property {boolean} [credentialRequired] - requires a non-blank key before submit is enabled.
+ * @property {boolean} [autoFocusCredential] - autofocuses the API-key input.
+ * @property {boolean} [hideTitle] - omits the header row (title plus route).
+ * @property {string} [submitLabel] - overrides the footer submit button's copy key.
+ * @property {string} [submitBusyLabel] - overrides the footer submit button's busy-state copy key.
+ * @property {string} [cancelLabel] - overrides the footer cancel button's copy key.
+ */
 
 /**
  * Create (if needed) or update a ProviderEditor element in place.

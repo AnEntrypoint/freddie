@@ -7,7 +7,14 @@
 
 import { foldSubagentDescriptor } from './descriptor.js'
 
-/** Fold state for a subagent's latest timing snapshot. */
+/**
+ * Fold state for a subagent's latest timing snapshot.
+ * @typedef {object} SubagentTimingFoldState
+ * @property {boolean} descriptorSeen
+ * @property {number} settledMs
+ * @property {number} [pendingTurnStart] - a turn-start time observed before the descriptor.
+ * @property {{ since: number, through: number }} [active] - the in-progress active span, if any.
+ */
 
 /**
  * Fold turn boundaries around the child's own durable descriptor.
@@ -61,7 +68,10 @@ export const subagentTimingProjectionDefinition = {
   stateVersion: 2,
 }
 
-/** Identity from the last valid descriptor; absent before one, and after an invalid one. */
+/**
+ * Identity from the last valid descriptor; absent before one, and after an invalid one.
+ * @typedef {{ mode: 'one-shot', label?: string, seq: number } | { mode: 'continuable', label: string, seq: number }} SubagentDescriptorIdentity
+ */
 
 /** Interpret one `subagent/descriptor` event's identity; no value when the payload cannot be trusted. */
 function descriptorIdentity(event) {
@@ -69,8 +79,6 @@ function descriptorIdentity(event) {
   try {
     descriptor = foldSubagentDescriptor([event])
   } catch {
-    // Only a malformed current-version payload throws in descriptor parsing;
-    // a projection fold must never throw, so damage folds to no value.
     descriptor = undefined
   }
   if (descriptor === undefined) return undefined
@@ -103,7 +111,5 @@ export const subagentIdentityProjectionDefinition = {
     return identity === undefined ? {} : { identity }
   },
   wire: { view: state => state.identity ?? null },
-  // Bumped when the identity gained its `seq` field: an older checkpoint row
-  // predates that shape, so it must refold instead of replaying as-is.
   stateVersion: 2,
 }

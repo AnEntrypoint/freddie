@@ -52,9 +52,6 @@ function resolveBoot(program, profile, options, args) {
   if (options.dumpConfig === true && options.dumpDefaultConfig === true) {
     program.error('error: --dump-config and --dump-default-config are mutually exclusive')
   }
-  // The dump is boot-free: it never runs app command-line providers, so it
-  // cannot show what those flags would decide, and printing a tree that differs
-  // from the same invocation's boot would mislead.
   if (args.length > 0) {
     program.error(`error: config dumps take no app arguments, got ${args.map(argument => JSON.stringify(argument)).join(' ')}`)
   }
@@ -81,9 +78,6 @@ export function parseDshArgs(argv, version) {
     .description('freddie: boot a Freddie profile — an ordered stack of plugin-bundle patch layers under your own overrides.')
     .addHelpText('after', HELP_EXAMPLES)
     .exitOverride()
-    // The launcher's flags come first and end at the first token it does not
-    // know; everything from there on belongs to the booted app, including
-    // its -h. `freddie -h` with no profile still prints this help, below.
     .helpOption(false)
     .allowUnknownOption()
     .passThroughOptions()
@@ -94,8 +88,6 @@ export function parseDshArgs(argv, version) {
     .option('--dump-config', 'print the composed profile tree and exit')
     .option('--dump-default-config', 'print the profile tree without its user layer or --patch overlays and exit')
     .action((args, options) => {
-      // With the app owning -h, the launcher's own help is what a bare
-      // `freddie -h` (no profile to hand it to) must print.
       if (options.profile === undefined) {
         if (args.some(argument => argument === '-h' || argument === '--help')) program.help()
         program.error('error: --profile <name> is required')

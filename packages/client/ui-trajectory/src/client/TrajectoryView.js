@@ -284,8 +284,6 @@ export class FreddieTrajectoryView extends HTMLElement {
     const partialSearchTurns = appendTrajectoryPartialLayout([], partial, finalizedLastIndex)
     const searchLayouts = [finalizedTurns, partialSearchTurns]
 
-    // Debounced/throttled search-index refresh: first pass is synchronous,
-    // later passes throttle behind a timer keyed to the latest layouts.
     if (!this.#searchIndexInitialized) {
       this.#searchIndexInitialized = true
       if (this.#searchIndex.update(searchLayouts)) this.#searchIndexRevision += 1

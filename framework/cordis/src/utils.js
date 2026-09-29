@@ -40,7 +40,6 @@ export class DisposableList {
 
 /** Shared symbols used to avoid public property-name collisions. */
 export const symbols = {
-  // internal symbols
   shadow: Symbol.for('cordis.shadow'),
   receiver: Symbol.for('cordis.receiver'),
   original: Symbol.for('cordis.original'),
@@ -48,13 +47,11 @@ export const symbols = {
   initHooks: Symbol.for('cordis.initHooks'),
   checkProto: Symbol.for('cordis.checkProto'),
 
-  // context symbols
   effect: Symbol.for('cordis.effect'),
   filter: Symbol.for('cordis.filter'),
   isolate: Symbol.for('cordis.isolate'),
   intercept: Symbol.for('cordis.intercept'),
 
-  // service symbols
   init: Symbol.for('cordis.init'),
   check: Symbol.for('cordis.check'),
   config: Symbol.for('cordis.config'),
@@ -69,13 +66,8 @@ const AsyncGeneratorFunction = async function* () {}.constructor
 
 /** Return true when a plugin callback should be constructed with `new`. */
 export function isConstructor(func) {
-  // async function or arrow function
   if (!func.prototype) return false
-  // generator function or malformed definition
-  // we cannot use below check because `mock.fn()` is proxied
-  // if (func.prototype.constructor !== func) return false
   if (func instanceof GeneratorFunction) return false
-  // polyfilled AsyncGeneratorFunction === Function
   if (AsyncGeneratorFunction !== Function && func instanceof AsyncGeneratorFunction) return false
   return true
 }
@@ -155,10 +147,6 @@ function createShadowMethod(ctx, value, outer, shadow) {
 }
 
 function createTraceable(ctx, value, tracker) {
-  // noShadow services are identity-aware (e.g. logger uses the origin fiber to
-  // derive its name): keep the shadow ctx so they can read [symbols.shadow]
-  // and resolve the origin. Non-noShadow services strip — their side effects
-  // bind to caller, not origin.
   if (ctx[symbols.shadow] && !tracker.noShadow) {
     ctx = Object.getPrototypeOf(ctx)
   }
@@ -227,7 +215,6 @@ export function createCallable(name, proto, tracker) {
 function handleError(info, reason, getOuterStack) {
   const innerLines = info.error.stack.split('\n')
 
-  // malformed error
   if (typeof reason?.stack !== 'string') {
     const outerError = new Error(reason)
     const lines = outerError.stack.split('\n')
@@ -236,7 +223,6 @@ function handleError(info, reason, getOuterStack) {
     throw outerError
   }
 
-  // long stack trace
   const lines = reason.stack.split('\n')
   let index = lines.indexOf(innerLines[2])
   if (index === -1) throw reason

@@ -287,7 +287,6 @@ export class ScheduleRuntime {
         return Promise.resolve(true)
       })
     } catch (_busy) {
-      // `runMaintenance` rejects synchronously only while another agent activity owns the idle phase.
       if (this.isLive()) this.waitForIdle()
       return
     }

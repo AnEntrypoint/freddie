@@ -204,8 +204,6 @@ export class SessionPreparations {
     this.entries.set(id, entry)
     let loading
     try {
-      // Start immediately so a same-tick serialized append queues behind this
-      // read. The deferred result settles only after the entry becomes ready.
       loading = load()
     } catch (error) {
       this.remove(entry)

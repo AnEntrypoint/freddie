@@ -16,8 +16,7 @@ Every field is required except the paired route override; there are no library d
 
 | Key | Contract |
 |---|---|
-| `targetWords` | Positive target word count for non-CJK titles. |
-| `targetCjkCharacters` | Positive target character count for Chinese, Japanese, or Korean titles. |
+| `targetWords` | Positive target word count for titles. |
 | `maxInputBytes` | Positive UTF-8 byte ceiling for the final JSON-framed user prompt. |
 | `maxOutputTokens` | Positive auxiliary generation token cap. |
 | `timeoutMs` | Positive end-to-end deadline within the runtime timer limit. |
@@ -29,7 +28,7 @@ Every field is required except the paired route override; there are no library d
 
 #### What the model sees
 
-The title model receives a fixed system instruction to return one concise unadorned title in the input language, including the configured word and CJK-character targets. Its one user message contains a JSON array of the exact selected human messages and their seqs.
+The title model receives a fixed system instruction to return one concise unadorned title in the input language, including the configured word target. Its one user message contains a JSON array of the exact selected human messages and their seqs.
 
 #### Token effect
 

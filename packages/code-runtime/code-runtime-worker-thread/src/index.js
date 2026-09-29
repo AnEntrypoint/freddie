@@ -14,7 +14,7 @@ import z from '@freddie/schemastery'
 import { MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
 import { CodeRuntime, DUNDER_MEMBER, PORTABLE_RESERVED_WORDS, RESERVED_BINDING_GLOBALS, RESERVED_ERROR_MEMBERS } from '@freddie/freddie-code-runtime'
 import { snapshotJsonValue } from '@freddie/freddie-session'
-import { jsonStringBytesUpTo, jsonValueBytesUpTo, truncateJsonStringBytes } from './output-json.js'
+import { EMPTY_JSON_ARRAY_BYTES, JSON_STRING_QUOTES_BYTES, jsonStringBytesUpTo, jsonValueBytesUpTo, truncateJsonStringBytes } from './output-json.js'
 import { decodeWorkerJson, encodeWorkerJson } from './worker-json.js'
 
 /**
@@ -55,6 +55,16 @@ function messageOf(error) {
   return error instanceof Error ? error.message : String(error)
 }
 
+/** Resolve on the next event-loop turn, after the poll phase has delivered already-queued I/O. */
+function yieldToPollPhase() {
+  return new Promise((resume) => { setImmediate(resume) })
+}
+
+/** The binding function the consumer declared under `name`, never one inherited through the record's prototype chain. */
+function ownDeclaredFunction(record, name) {
+  return record && Object.hasOwn(record, name) ? record[name] : undefined
+}
+
 /** Resolve after a worker pipe emits all queued data, or closes/errors during termination. */
 function waitForPipeDrain(stream) {
   if (stream.readableEnded || stream.destroyed) return Promise.resolve()
@@ -68,8 +78,6 @@ function waitForPipeDrain(stream) {
     stream.once('end', done)
     stream.once('close', done)
     stream.once('error', done)
-    // Close the event-registration race if termination finished between the
-    // initial state check and the listeners above.
     /* v8 ignore next -- this race cannot be scheduled deterministically between the adjacent state check and listener registration. */
     if (stream.readableEnded || stream.destroyed) done()
   })
@@ -112,7 +120,7 @@ function parseWorkerMessage(raw) {
 
 /** One run's combined outer-output ledger; binding values never enter it. */
 class OutputLedger {
-  bytes = 2 // JSON serialization of the empty logs array: []
+  bytes = EMPTY_JSON_ARRAY_BYTES
   entries = 0
 
   constructor(maxBytes) {
@@ -145,11 +153,10 @@ class OutputLedger {
   /** Build the explicit output-limit failure while retaining a fitting prefix of the final log. */
   limit(logs) {
     const fullMessage = `outer output exceeded ${this.maxBytes} bytes`
-    // The fixed diagnostic is ASCII, so every character is one byte plus the quotes.
-    const messageBytes = fullMessage.length + 2
+    const asciiMessageBytes = fullMessage.length + JSON_STRING_QUOTES_BYTES
     const retained = []
-    let retainedBytes = 2
-    const logBudget = this.maxBytes - messageBytes
+    let retainedBytes = EMPTY_JSON_ARRAY_BYTES
+    const logBudget = this.maxBytes - asciiMessageBytes
     for (const text of logs) {
       const separatorBytes = retained.length > 0 ? 1 : 0
       const availableBytes = logBudget - retainedBytes - separatorBytes
@@ -199,7 +206,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
 
   constructor(ctx, config) {
     super(ctx)
-    // Schemastery filled the defaults.
     this.config = config
     for (const [key, value] of Object.entries(this.config)) {
       if (!(Number.isFinite(value) && value > 0)) throw new Error(`freddie-code-runtime-worker-thread: config.${key} must be a positive number, got ${String(value)}`)
@@ -207,9 +213,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
     if (!Number.isSafeInteger(this.config.maxOutputBytes) || this.config.maxOutputBytes < MIN_OUTPUT_BYTES) {
       throw new Error(`freddie-code-runtime-worker-thread: config.maxOutputBytes must be a safe integer of at least ${MIN_OUTPUT_BYTES}, got ${String(this.config.maxOutputBytes)}`)
     }
-    // maxWallMs reaches setTimeout, which clamps any delay above
-    // MAX_TIMER_DELAY_MS to 1 ms; the positivity check above accepts such a
-    // value, so a 25-day ceiling would time the run out immediately.
     if (this.config.maxWallMs > MAX_TIMER_DELAY_MS) {
       throw new Error(`freddie-code-runtime-worker-thread: config.maxWallMs must be at most ${MAX_TIMER_DELAY_MS} (Node clamps a longer setTimeout delay to 1ms), got ${String(this.config.maxWallMs)}`)
     }
@@ -248,9 +251,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
       const stripped = stripTypeScriptTypes(STRIP_WRAP.prefix + request.program + STRIP_WRAP.suffix)
       code = stripped.slice(STRIP_WRAP.prefix.length, stripped.length - STRIP_WRAP.suffix.length)
     } catch (error) {
-      // A program that does not survive the type-strip (syntax error,
-      // non-erasable syntax like `enum`) is a program failure, reported the
-      // same way a thrown exception would be — and no worker ever spawns.
       return this.failureBeforeWorker({ kind: 'exception', message: messageOf(error) })
     }
 
@@ -269,12 +269,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
       if (!IDENTIFIER.test(namespace.global) || PORTABLE_RESERVED_WORDS.has(namespace.global)) {
         throw new Error(`freddie-code-runtime-worker-thread: binding global ${JSON.stringify(namespace.global)} is not a usable identifier`)
       }
-      // RESERVED_BINDING_GLOBALS is the seam's shared backend-owned set:
-      // `console` is THIS backend's log-capture slot; the dunder entries exist
-      // for the Python side — its seeded/wrapped slots plus the `__debug__`
-      // compile-time constant — refused here too so the namespace list stays
-      // portable across backends. The seam declaration is the single home for
-      // why each entry is reserved.
       if (RESERVED_BINDING_GLOBALS.has(namespace.global)) {
         throw new Error(`freddie-code-runtime-worker-thread: reserved binding global ${JSON.stringify(namespace.global)}`)
       }
@@ -319,17 +313,9 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
     }
     const worker = new Worker(WORKER_PATH, {
       workerData: bootData,
-      // Model code gets NO ambient environment — stronger than the scrubbed
-      // env the defensive-patterns rule requires for spawned commands.
       env: {},
-      // Hermetic flags too: without this the worker inherits the host process's execArgv (a
-      // test runner's or tsx's loader hooks), which a bare isolate with an empty environment
-      // cannot satisfy.
       execArgv: [],
       resourceLimits: { maxOldGenerationSizeMb: this.config.maxOldGenerationSizeMb },
-      // Backstop capture: the bootstrap patches JS-level writes into its own
-      // ordered buffer, so these pipes normally stay silent; anything that
-      // still arrives (native-level writes) is appended after the done logs.
       stdout: true,
       stderr: true,
     })
@@ -342,10 +328,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
       const output = new OutputLedger(this.config.maxOutputBytes)
       let terminalOverride
 
-      // Pipe and message-port delivery are independent. Continue bounded pipe
-      // capture after a terminal message while worker termination drains bytes
-      // that were already queued; `finish` materializes the result only after
-      // termination completes.
       const captureStray = (chunk) => {
         /* v8 ignore next -- a second post-overflow chunk races immediate worker termination; the first overflow path is covered. */
         if (terminalOverride !== undefined) return
@@ -359,8 +341,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
       worker.stdout.on('data', captureStray)
       worker.stderr.on('data', captureStray)
 
-      // Exactly one outcome wins. Every path cleans up, terminates, and awaits the worker;
-      // logs captured before timeout, abort, or failure remain in the result.
       let finishResolve
       const finished = new Promise((done) => { finishResolve = done })
       const finish = (finalize) => {
@@ -370,9 +350,7 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
         clearTimeout(wallTimer)
         request.signal?.removeEventListener('abort', onAbort)
         this.live.delete(live)
-        // Let the poll phase deliver pipe bytes already queued independently
-        // of the terminal port message before termination closes the streams.
-        void new Promise((resume) => { setImmediate(resume) }).then(async () => {
+        void yieldToPollPhase().then(async () => {
           const stdoutDrained = waitForPipeDrain(worker.stdout)
           const stderrDrained = waitForPipeDrain(worker.stderr)
           await Promise.all([worker.terminate(), stdoutDrained, stderrDrained])
@@ -403,22 +381,13 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
 
       const onCall = (message) => {
         if (message.type !== 'call' || settled) return
-        // Hostile-peer rules: a duplicate id is ignored, an unknown name is
-        // answered with a failure, and a binding throw/reject becomes the
-        // program-side rejection — contained here, never a host crash.
         if (answered.has(message.id)) return
         answered.add(message.id)
         const reply = (payload) => {
           if (settled) return
-          // Canonical resolutions were snapshotted as lossless JSON before
-          // this point, so this payload is structured-cloneable by contract.
           worker.postMessage(payload)
         }
-        const record = bindings.get(message.global)?.functions
-        // Own-property lookup only: a forged name like 'constructor' or
-        // 'hasOwnProperty' must not walk the record's prototype chain and
-        // reach a callable the consumer never declared.
-        const fn = record && Object.hasOwn(record, message.name) ? record[message.name] : undefined
+        const fn = ownDeclaredFunction(bindings.get(message.global)?.functions, message.name)
         if (typeof fn !== 'function') {
           reply({ type: 'reply', id: message.id, ok: false, message: `unknown binding ${JSON.stringify(`${message.global}.${message.name}`)}` })
           return
@@ -449,8 +418,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
       }
 
       worker.on('message', (raw) => {
-        // Parse before touching: the peer can post ANY shape, and a throw in
-        // this listener would crash the host process. Junk drops silently.
         const message = parseWorkerMessage(raw)
         if (!message) return
         if (message.type === 'log' && !settled && !output.admit(message.text, logs)) {
@@ -473,9 +440,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
         finish(() => output.failure([...logs, ...strayLogs], { kind: 'worker-exit', message: `worker exited with code ${exitCode} before completing` }))
       })
 
-      // The compute budget reads the worker's own measured busy time, so a
-      // hot loop expires it no matter what dispatches are in flight, while a
-      // program idling on a slow binding accrues nothing.
       const eluTimer = setInterval(() => {
         const elu = worker.performance.eventLoopUtilization()
         if (elu.active > this.config.computeMs) {

@@ -25,8 +25,6 @@ function remoteEnvironmentEntries(raw) {
  * @returns the complete NUL-delimited UTF-8 environment.
  */
 export async function readRemoteEnvironment(sandbox, signal) {
-  // TODO(e2b-replace-environment): Remove this ambient probe when E2B can start
-  // a command with a replacement environment instead of merged overrides.
   const result = await sandbox.commands.run(
     'set -o pipefail; freddie_e2b_passwd="$(getent passwd "$(id -u)")"; IFS=: read -r _ _ _ _ _ freddie_e2b_home _ <<<"$freddie_e2b_passwd"; test -n "$freddie_e2b_home" -a -d "$freddie_e2b_home"; printf \'%s\' "$freddie_e2b_home" | base64 -w 0; printf \'\\n\'; env -0 | base64 -w 0',
     { envs: e2bControlEnvs(), ...(signal === undefined ? {} : { signal }) },
@@ -92,7 +90,6 @@ export function serializeRemoteEnvironment(raw, explicit) {
     if (name.length === 0 || name.includes('=') || name.includes('\0') || value?.includes('\0') === true) {
       throw new Error('subprocess-e2b: environment entries require non-empty NUL-free names without = and NUL-free values')
     }
-    // An explicit undefined is the seam's tombstone: remove the ambient entry.
     if (value === undefined) environment.delete(name)
     else environment.set(name, value)
   }

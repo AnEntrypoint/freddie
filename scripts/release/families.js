@@ -32,7 +32,10 @@ const PEER_SECTIONS = ['peerDependencies']
 /** The workspace root manifest, which is never a release member. */
 const WORKSPACE_ROOT_PACKAGE = '@freddie/freddie-root'
 
-/** One peer declaration the publish order leaves unordered. */
+/**
+ * One peer declaration the publish order leaves unordered.
+ * @typedef {{ consumer: string, peer: string }} DroppedPeerEdge
+ */
 
 /**
  * A family's publish order together with the ordering it could not honour.
@@ -40,9 +43,13 @@ const WORKSPACE_ROOT_PACKAGE = '@freddie/freddie-root'
  * The dropped edges are part of the result rather than a detail of forming it:
  * a release drops real ordering constraints, and the operator reading the pack
  * log is the only one who can judge whether a newly dropped edge is expected.
+ * @typedef {{ order: ReleaseMember[], droppedPeerEdges: DroppedPeerEdge[] }} PublishOrderResult
  */
 
-/** One publishable package of a release family. */
+/**
+ * One publishable package of a release family.
+ * @typedef {{ directory: string, name: string, version: string, manifest: object }} ReleaseMember
+ */
 
 /**
  * Read and parse a JSON file.
@@ -70,15 +77,25 @@ function requireString(manifest, field, context) {
   return value
 }
 
-/** The executable a family's installed artifacts are driven through. */
-
 /** A release sequence: its members, its version baseline, and its tag naming. */
 export class ReleaseFamily {
-  /** Workflow-facing identifier, also the `--family` argument. */
+  /**
+   * Workflow-facing identifier, also the `--family` argument.
+   * @name ReleaseFamily#id
+   * @type {string}
+   */
 
-  /** Glob patterns, relative to the repository root, that select this family's manifests. */
+  /**
+   * Glob patterns, relative to the repository root, that select this family's manifests.
+   * @name ReleaseFamily#patterns
+   * @type {string[]}
+   */
 
-  /** Git tag prefix this family publishes from. */
+  /**
+   * Git tag prefix this family publishes from.
+   * @name ReleaseFamily#tagPrefix
+   * @type {string}
+   */
 
   /**
    * Assert that built artifacts match this release family's required profile.
@@ -90,7 +107,7 @@ export class ReleaseFamily {
   /**
    * Discover this family's members.
    * @param root - repository root.
-   * @returns Members sorted by directory, with names validated and deduplicated.
+   * @returns {ReleaseMember[]} Members sorted by directory, with names validated and deduplicated.
    */
   members(root) {
     const manifestPaths = globSync([...this.patterns], { cwd: root }).sort()
@@ -131,7 +148,7 @@ export class ReleaseFamily {
    * Every dropped edge is reported, because dropping one is a decision about a
    * real release rather than an implementation detail.
    * @param members - this family's members.
-   * @returns The order, ties broken by name for determinism, and the peer edges it left unordered.
+   * @returns {PublishOrderResult} The order, ties broken by name for determinism, and the peer edges it left unordered.
    */
   publishOrder(members) {
     const byName = new Map(members.map(member => [member.name, member]))
@@ -139,9 +156,6 @@ export class ReleaseFamily {
     const edges = (member, sections) =>
       this.orderEdges(member, byName, sections)
 
-    // Install edges alone must be acyclic, and that is checked on its own graph:
-    // a peer edge leading into an install edge would otherwise read as a cycle
-    // where the install edges are perfectly orderable.
     const installVisiting = new Set()
     const installDone = new Set()
     const checkInstall = (member, path) => {
@@ -156,18 +170,10 @@ export class ReleaseFamily {
     }
     for (const member of byNameSorted) checkInstall(member, [])
 
-    // Emit the order over both kinds of edge. A node already on the stack closes
-    // a cycle, and that cycle carries at least one peer edge because the install
-    // edges were just proved acyclic — but the back edge that reaches the stacked
-    // node is not necessarily the peer one, so the post-condition below decides
-    // whether the emitted order survived.
     const ordered = []
     const droppedPeerEdges = []
     const placed = new Set()
     const onStack = new Set()
-    // Members reachable from one member through install edges. A peer edge is
-    // dropped when the peer installs the member declaring it: honouring it would
-    // emit a package before something it installs, and the install edge wins.
     const installClosure = (member) => {
       const reached = new Set()
       const walk = (current) => {
@@ -189,8 +195,6 @@ export class ReleaseFamily {
           droppedPeerEdges.push({ consumer: member.name, peer: peer.name })
           continue
         }
-        // A peer already on the stack is an ancestor, so it publishes after this
-        // member rather than before it: the edge is dropped, not honoured.
         if (onStack.has(peer.name)) droppedPeerEdges.push({ consumer: member.name, peer: peer.name })
         visit(peer)
       }
@@ -200,12 +204,6 @@ export class ReleaseFamily {
     }
     for (const member of byNameSorted) visit(member)
 
-    // A cycle mixing both kinds of edge can put an install edge's target on the
-    // stack, where the traversal skips it like a peer edge and emits a consumer
-    // before something it installs. Nothing downstream can detect that, and it
-    // would only surface as an unresolvable install for whoever consumes the
-    // published packages, so the emitted order is checked against the edges it
-    // exists to honour.
     const position = new Map(ordered.map((entry, index) => [entry.name, index]))
     for (const [index, member] of ordered.entries()) {
       for (const dependency of edges(member, INSTALL_SECTIONS)) {
@@ -247,6 +245,8 @@ export class ReleaseFamily {
   /**
    * Assert this family's version baseline holds across its members.
    * @param members - this family's members.
+   * @name ReleaseFamily#verifyVersions
+   * @function
    */
 
   /**
@@ -254,6 +254,8 @@ export class ReleaseFamily {
    * member starts with it, which is how the last published version is found.
    * @param member - the member being published.
    * @returns The prefix, ending in `-v`.
+   * @name ReleaseFamily#tagPrefixFor
+   * @function
    */
 
   /**
@@ -269,11 +271,16 @@ export class ReleaseFamily {
    * Check what a member's packed tarball carries.
    * @param member - the packed member.
    * @param files - every path inside its tarball.
+   * @name ReleaseFamily#validatePayload
+   * @function
    */
 
   /**
    * The executable that proves this family's artifacts install and run, or
-   * `undefined` for a family that publishes no executable.
+   * `undefined` for a family that publishes no executable — the entry
+   * `verify-packed-install.js` drives after installing the family's packed tarballs.
+   * @name ReleaseFamily#installedEntry
+   * @type {{ packageName: string, binPath: string } | undefined}
    */
 }
 
@@ -282,13 +289,6 @@ class FreddieFamily extends ReleaseFamily {
   id = 'freddie'
   patterns = ['packages/!(experimental)/*/package.json', 'apps/*/package.json']
   tagPrefix = 'freddie-v'
-
-  // No build-artifact gate: every package ships src/ as-authored, buildless
-  // — the base class's no-op verifyBuildArtifacts applies unchanged. This
-  // family used to require a complete official client build (packages'
-  // browser lib/client.js bundles, hashed via readClientBuildRecord); that
-  // build no longer exists now that every client package is served
-  // unbundled.
 
   /**
    * Require one version across the family, the way a single tag can name it.

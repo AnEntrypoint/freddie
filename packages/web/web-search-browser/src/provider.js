@@ -124,12 +124,6 @@ export class BrowserSearchProvider {
       throw new WebError(`browser search dispatch failed: ${String(error)}`, 'WEB_PROVIDER_ERROR', { cause: error })
     }
     if (signal?.aborted === true) throw searchAborted(signal)
-    // The daemon's own response shape differs by outcome (live-verified, not
-    // guessed): success wraps the engine's own {result, stderr, ...} under a
-    // `data` key alongside a mirrored top-level `ok`; a transport-level
-    // failure (e.g. the engine unavailable, an empty script body) has no
-    // `data` wrapper at all and puts `error`/`stderr`/`note` at the top level
-    // instead. Top-level `ok` is reliable in both shapes.
     if (response?.ok !== true) {
       const detail = response?.error || response?.stderr || response?.note || response?.error_code || 'unknown transport failure'
       throw new WebError(`browser search (${BROWSER_PROVIDER_ID}) failed: ${detail}`, 'WEB_PROVIDER_ERROR')

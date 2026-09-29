@@ -8,6 +8,4 @@
 import { parentPort, workerData } from 'node:worker_threads'
 import { requireParentPort, runWorkerSession } from './session.js'
 
-// workerData is untyped at the node:worker_threads boundary; the engine is the
-// only spawner and always provides a WorkerInit shape.
 void runWorkerSession(requireParentPort(parentPort), workerData)

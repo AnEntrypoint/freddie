@@ -62,7 +62,7 @@ while time.monotonic() < deadline:
             output.extend(chunk)
 
     snapshot = bytes(output)
-    if not termination_sent and b"dsh web: http://127.0.0.1:" in snapshot:
+    if not termination_sent and b"freddie web: http://127.0.0.1:" in snapshot:
         ready_seen = True
         os.kill(pid, signal.SIGTERM)
         termination_sent = True
@@ -77,11 +77,11 @@ if status is None:
     _, status = os.waitpid(pid, 0)
 sys.stdout.buffer.write(output)
 if not ready_seen:
-    sys.stderr.write("installed dsh web did not reach its ready URL\n")
+    sys.stderr.write("installed freddie web did not reach its ready URL\n")
     sys.exit(124)
 actual_exit = os.waitstatus_to_exitcode(status)
 if actual_exit != 0:
-    sys.stderr.write(f"installed dsh web exited {actual_exit}, expected 0\n")
+    sys.stderr.write(f"installed freddie web exited {actual_exit}, expected 0\n")
     sys.exit(125)
 `
 
@@ -238,8 +238,6 @@ class WorkspacePackageSet {
       const name = expectString(manifest, 'name', manifestPath)
       const version = expectString(manifest, 'version', manifestPath)
       const isVendored = manifestPath.startsWith('framework/')
-      // Vendored packages are rescoped too (vendor/README.md), so publication
-      // never carries an upstream name that would squat it on the registry.
       if (!name.startsWith('@freddie/')) {
         throw new Error(`${manifestPath} must name an @freddie package`)
       }
@@ -405,7 +403,7 @@ class ReleaseBundle {
   }
 }
 
-/** Installs one complete bundle outside the workspace and probes the shipped dsh entry. */
+/** Installs one complete bundle outside the workspace and probes the shipped freddie entry. */
 class InstalledBundleSmoke {
   constructor(
     bundle,
@@ -441,7 +439,7 @@ class InstalledBundleSmoke {
       ], consumerRoot, npmClientEnvironment())
 
       const bin = resolve(consumerRoot, 'node_modules/@freddie/freddie/lib/bin.js')
-      assertPathWithin(consumerRoot, bin, 'installed dsh bin')
+      assertPathWithin(consumerRoot, bin, 'installed freddie bin')
       const environment = installedArtifactEnvironment(consumerRoot)
       const version = this.runner.capture(
         process.execPath,
@@ -451,12 +449,12 @@ class InstalledBundleSmoke {
       )
       if (version !== this.bundle.manifest.version) {
         throw new Error(
-          `installed dsh --version returned ${JSON.stringify(version)}; `
+          `installed freddie --version returned ${JSON.stringify(version)}; `
           + `expected ${this.bundle.manifest.version}`,
         )
       }
       this.probeWeb(bin, consumerRoot, environment)
-      console.log('publish-npm-baseline: installed dsh entry and Web startup probes passed')
+      console.log('publish-npm-baseline: installed freddie entry and Web startup probes passed')
     } finally {
       rmSync(consumerRoot, { recursive: true, force: true })
     }
@@ -464,7 +462,7 @@ class InstalledBundleSmoke {
 
   probeWeb(bin, consumerRoot, environment) {
     if (process.platform === 'win32') {
-      throw new Error('installed dsh Web probe requires a POSIX host with python3')
+      throw new Error('installed freddie Web probe requires a POSIX host with python3')
     }
     const result = this.runner.result(
       'python3',
@@ -581,11 +579,7 @@ class BaselinePackager {
       console.log(`  version:  ${bundle.manifest.version}`)
       console.log(`  dist-tag: ${bundle.manifest.distTag}`)
       console.log(`  manifest: ${resolve(bundle.directory, RELEASE_MANIFEST_NAME)}`)
-      console.log('  publish:  ' + formatCopyableCommand('pnpm', [
-        '--dir',
-        this.repositoryRoot,
-        'exec',
-        'tsx',
+      console.log('  publish:  ' + formatCopyableCommand(process.execPath, [
         resolve(this.repositoryRoot, 'scripts/publish-npm-baseline.js'),
         'publish',
         '--manifest',
@@ -892,7 +886,7 @@ function installedArtifactEnvironment(consumerRoot) {
   const environment = npmClientEnvironment()
   delete environment.NODE_OPTIONS
   delete environment.NODE_PATH
-  environment.FREDDIE_HOME = resolve(consumerRoot, '.dsh')
+  environment.FREDDIE_HOME = resolve(consumerRoot, '.freddie')
   environment.FREDDIE_AGENTS_HOME = resolve(consumerRoot, '.agents')
   environment.FREDDIE_TELEMETRY_DISABLED = '1'
   environment.DEEPSEEK_API_KEY = 'keyless-installed-web-no-call'
@@ -984,10 +978,10 @@ function quoteShellArgument(value) {
 
 function printUsage() {
   console.log(`Usage:
-  pnpm exec tsx scripts/publish-npm-baseline.js pack [options]
-  pnpm exec tsx scripts/publish-npm-baseline.js release [options] [--yes]
-  pnpm exec tsx scripts/publish-npm-baseline.js publish --manifest <path> [--yes]
-  pnpm exec tsx scripts/publish-npm-baseline.js verify --manifest <path>
+  node scripts/publish-npm-baseline.js pack [options]
+  node scripts/publish-npm-baseline.js release [options] [--yes]
+  node scripts/publish-npm-baseline.js publish --manifest <path> [--yes]
+  node scripts/publish-npm-baseline.js verify --manifest <path>
 
 Pack/release options:
   --ref <git-ref>       Git commit to stage (default: HEAD)

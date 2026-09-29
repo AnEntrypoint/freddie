@@ -120,9 +120,6 @@ const currentPlatformEntry = manifests.find(
   ({ dir, manifest }) => platformDirs().includes(dir) && manifest.name === `${entryPackageName}-${hostPlatform}`,
 );
 
-// Payload checks: every expected tarball exists (full mode), the packed
-// entry's optional-dependency set names exactly the platform packages, and
-// no packed manifest carries workspace versions or install lifecycle.
 const expectedTarballs = currentPlatformOnly
   ? manifests.filter(({ dir }) => entryDirs().includes(dir) || dir === currentPlatformEntry?.dir)
   : manifests;
@@ -143,7 +140,6 @@ for (const { manifest } of expectedTarballs) {
   verifyPackedManifest(readPackedManifest(manifest));
 }
 
-// Throwaway ESM consumer, built from local tarballs only — no registry.
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nalr-packed-install-'));
 fs.writeFileSync(
   path.join(tempRoot, 'package.json'),
@@ -155,8 +151,6 @@ unpackTarball(entryManifest);
 if (currentPlatformEntry) {
   unpackTarball(currentPlatformEntry.manifest);
 
-  // Byte-pin: the installed binary must be the workspace build it was packed
-  // from — any divergence means the tarball did not carry the built bytes.
   const prebuilds = readJson(path.join(root, currentPlatformEntry.dir, 'prebuilds.json'));
   for (const binary of prebuilds.binaries) {
     const workspaceFile = path.join(root, currentPlatformEntry.dir, binary.path);
@@ -170,9 +164,6 @@ if (currentPlatformEntry) {
   throw new Error(`linux host without a platform package in the matrix: ${hostPlatform}`);
 }
 
-// Drive the INSTALLED entry under plain node: resolution, probe, and (on an
-// enforcing kernel) a real confinement world-proof through the installed
-// launcher.
 const driver = path.join(tempRoot, 'driver.mjs');
 fs.writeFileSync(driver, `
 import assert from 'node:assert/strict';

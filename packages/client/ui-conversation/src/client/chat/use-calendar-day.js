@@ -1,12 +1,3 @@
-// Component-local calendar-day tick: memoized message rows keep stable props
-// across midnight, so the IconActions clock needs a local day seat that
-// re-fires at the next local midnight without reaching for framework hooks.
-//
-// Converted from a React hook (useState/useEffect) to a plain closure:
-// create with `createCalendarDay(onChange)`, read `.day` for the current
-// midnight epoch, and call `.stop()` in `disconnectedCallback` to clear the
-// pending timer.
-
 import { msUntilNextLocalMidnight, startOfLocalDay } from './message-chrome.js'
 
 /**

@@ -7,8 +7,6 @@ if (process.argv.length > 2) {
 }
 
 const child = spawn(process.execPath, [
-  '--import',
-  'tsx',
   'packages/examples/acp-demo/src/bin.js',
   '--config',
   'examples/acp-agent/code-mode.cordis.yml',

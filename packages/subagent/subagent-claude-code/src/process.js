@@ -60,9 +60,6 @@ export class ManagedClaudeCodeProcess {
     this.events = new EventEmitter()
     this.outcomeValue = undefined
     this.killRequested = false
-    // EventEmitter gives `error` special throw semantics without a listener.
-    // The SDK attaches its listener synchronously after custom spawn returns,
-    // while this no-op also contains an already-rejected spawn handle.
     this.events.on('error', () => {})
     void child.done.then(
       (outcome) => {

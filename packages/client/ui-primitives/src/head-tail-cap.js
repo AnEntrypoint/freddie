@@ -1,8 +1,3 @@
-// Head/tail height-cap arithmetic shared by the block primitives (TerminalBlock,
-// SearchBlock), so long results use consistent head and tail slices. The split is
-// `ceil(maxLines / 2)` head rows and the remainder as tail rows; a result within
-// the cap shows every row and hides none.
-
 /**
  * Compute the head/tail cap metrics for a list of `total` rows against `maxLines`,
  * given whether the surface is expanded. Pure arithmetic; the caller slices its

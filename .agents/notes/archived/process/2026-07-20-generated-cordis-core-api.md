@@ -3,8 +3,6 @@
 Status: implemented
 Archived: 2026-07-27
 
-English | [中文](2026-07-20-generated-cordis-core-api.zh.md)
-
 ## Problem
 
 Plugin authors need the detailed Cordis APIs behind `ctx`, event dispatch, fibers, plugin registration, and services. The generated [Harness event and service catalogs](2026-06-20-generated-cordis-catalog.md) intentionally summarize inherited Cordis members, so they do not replace a method-level Cordis reference. Keeping a second hand-written copy under the website would drift from the vendored source and make the renderer an additional documentation owner.
@@ -29,4 +27,4 @@ The generator validates that documented classes and methods retain descriptive J
 
 The five Cordis API pages follow vendor updates through one deterministic generator and share the repository's documentation freshness gate. The website gains a dedicated Cordis API section without copied site content, while root and English navigation remain structurally identical.
 
-The page manifest is curated, so a newly public Cordis core type needs an explicit generator entry. Generated prose is English-only, and source JSDoc quality directly limits reference quality; Chinese output requires generator-level translation rather than hand-editing the generated files.
+The page manifest is curated, so a newly public Cordis core type needs an explicit generator entry. Generated prose is English-only, and source JSDoc quality directly limits reference quality; translated output requires generator-level translation rather than hand-editing the generated files.

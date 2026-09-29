@@ -11,9 +11,6 @@ import { Service } from '@freddie/cordis'
 
 export { CompactionId } from './brand.js'
 export { toolPairingBalancedAfter, toolPairingBalancedBefore } from './tool-pairing.js'
-// The checkpoint source constructor and predicate are declared on the cordis-free
-// `./checkpoint` leaf so client and wire programs can name them without this
-// root's Context merge; the root stays the host-side entry point for both.
 export { compactCheckpointSource, isCompactCheckpointSource } from './checkpoint.js'
 
 /**
@@ -45,8 +42,9 @@ export class ManualCompactionError extends Error {
  * and summarization, and may consume a separate measurement service. A
  * successful run replaces the selected surface span with one summary node and
  * prevents concurrent compaction of the same session. The replacement user
- * message uses {@link compactCheckpointSource} with the transaction identity
- * so consumers recognize and correlate it independently of the backend. Load
+ * message uses {@link import('./checkpoint.js').compactCheckpointSource} with
+ * the transaction identity so consumers recognize and correlate it
+ * independently of the backend. Load
  * one implementation per context as `ctx.compaction`.
  */
 export class CompactionEngine extends Service {
@@ -109,10 +107,12 @@ export class CompactionEngine extends Service {
    * balanced so assistant tool calls remain paired with their results. A model-
    * backed implementation forwards cancellation and rejects active, missing,
    * reversed, or unbalanced ranges. The target session is `agent.session`.
-   * Its replacement user message must use {@link compactCheckpointSource} with
-   * the transaction's `CompactionId`.
-   * Use {@link toolPairingBalancedBefore} and {@link toolPairingBalancedAfter}
-   * for the edge checks.
+   * Its replacement user message must use
+   * {@link import('./checkpoint.js').compactCheckpointSource} with the
+   * transaction's `CompactionId`.
+   * Use {@link import('./tool-pairing.js').toolPairingBalancedBefore} and
+   * {@link import('./tool-pairing.js').toolPairingBalancedAfter} for the edge
+   * checks.
    *
    * @param start - first surface seq, inclusive.
    * @param end - last surface seq, inclusive.

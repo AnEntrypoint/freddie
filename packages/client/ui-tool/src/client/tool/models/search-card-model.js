@@ -2,7 +2,7 @@
  * Pure derivation of the search-card props from a frozen call slice: the
  * `card:'search'` render intent the `grep` and `glob` tools declare arrives on
  * the snapshot as `resultView`, and this is the one place that turns it into
- * what {@link SearchBlock} draws. Both conversation render sites (the chat tool
+ * what {@link import('../../../../../ui-primitives/src/SearchBlock.js').SearchBlock} draws. Both conversation render sites (the chat tool
  * row's resident body and the details panel's Output section) call this, so the
  * grouped matches or the path list they show are derived once.
  *
@@ -17,8 +17,8 @@
  * at …` footer) in the raw `tool/result` content, not in the structured
  * matches/paths the view carries. Since both render sites replace that raw
  * result with the card, this derivation surfaces the block's own result text as
- * {@link SearchCardModel.recovery} so the one path to the dropped rows is not
- * lost.
+ * {@link SearchCardProps}'s `recovery` field so the one path to the dropped rows
+ * is not lost.
  * @module
  */
 
@@ -33,11 +33,19 @@
 export const CHAT_SEARCH_MAX_LINES = 8
 
 /**
+ * One matched file's grouped results, the shape {@link import('../../../../../ui-primitives/src/SearchBlock.js').SearchBlockProps}'s
+ * `files` field carries.
+ * @typedef {object} SearchFileGroup
+ * @property {string} path - the matched file's path.
+ * @property {Array<{lineNumber: number, line: string}>} matches - one entry per matching line in this file.
+ */
+
+/**
  * Whether every file group in a matches view is structurally valid: the wire
  * frame carries `shape` and `card` as strings the host schema checks, but not the
  * grouped `files` fields, so a version mismatch or loose producer could deliver
  * `shape: 'matches'` with a missing or malformed `files`. Rendering that would
- * crash {@link SearchBlock} at `.reduce`/`.map`; invalid fields select the
+ * crash {@link import('../../../../../ui-primitives/src/SearchBlock.js').SearchBlock} at `.reduce`/`.map`; invalid fields select the
  * generic path instead.
  * @param files - the candidate `files` field off the untrusted result view.
  * @returns whether `files` is a valid {@link SearchFileGroup} array.
@@ -71,6 +79,14 @@ function flattenContent(content) {
 }
 
 /**
+ * The search-card props {@link searchCardModel} returns for a settled call.
+ * @typedef {object} SearchCardProps
+ * @property {string} [title] - replacement title from the search view, when the tool supplied one.
+ * @property {string} [recovery] - the raw result text carrying the truncation-recovery footer, present only when the result was truncated.
+ * @property {{kind: 'matches', files: SearchFileGroup[], truncated: boolean, total: number}|{kind: 'paths', paths: string[], truncated: boolean, total: number}} card - the shape {@link import('../../../../../ui-primitives/src/SearchBlock.js').SearchBlock} renders.
+ */
+
+/**
  * Derive the search-card props for a tool call, or null when this call is not a
  * search card and belongs on the generic path.
  *
@@ -83,36 +99,20 @@ function flattenContent(content) {
  * `grep`/`glob` failure or nested `run_code` dispatch produces (its text keeps
  * the generic path).
  * @param block - RunningToolCall or ToolResultNode off the snapshot caches.
- * @returns the search-card props, or null for the generic path.
+ * @returns {SearchCardProps|null} the search-card props, or null for the generic path.
  */
 export function searchCardModel(block) {
-  // Running: no result view exists yet, and a search card is result-only.
   if (!('kind' in block)) return null
   const result = block.resultView?.card === 'search' ? block.resultView : null
   if (result === null) return null
   const common = { truncated: result.truncated, total: result.total }
-  // The recovery footer only matters when the tool capped the result: an
-  // uncapped card holds every match/path, so the raw text adds nothing the card
-  // does not already show. When capped, the raw result's `Full … stored at …`
-  // locator is the only way to retrieve the omitted rows, so include it.
   const recovery = result.truncated ? flattenContent(block.content) : undefined
   if (result.shape === 'matches') {
-    // `files` rides the untrusted wire frame: the host schema checks `card`/`shape`
-    // strings but not the grouped `files` fields, so validate them before
-    // SearchBlock, which would crash on a missing or malformed `files`.
-    // Invalid fields select the generic view.
     if (!isValidFiles(result.files)) return null
     return { title: result.title, recovery, card: { kind: 'matches', files: result.files, ...common } }
   }
-  // `shape` rides the same untrusted wire frame as `card`, so a version mismatch
-  // or a loose protocol producer could deliver a `card: 'search'` subtype this
-  // client does not compile. Guard the paths shape explicitly: an unknown shape
-  // falls to the generic path rather than being rendered as a paths card, which
-  // would leave SearchBlock calling `.length`/`.map` on an absent `paths`.
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- shape is wire data; the compiled union cannot prove this exhaustive.
   if (result.shape !== 'paths') return null
-  // `paths` is likewise unchecked by the wire schema; a known shape with a
-  // missing/malformed array would crash the paths card at `.map`.
   if (!Array.isArray(result.paths) || !result.paths.every(path => typeof path === 'string')) return null
   return { title: result.title, recovery, card: { kind: 'paths', paths: result.paths, ...common } }
 }

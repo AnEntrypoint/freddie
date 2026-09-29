@@ -1,5 +1,3 @@
-# Explicit session-query tool opt-in for the dedicated spill scenario. The
-# nested filesystem overlay supplies private spill storage and its byte limit.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

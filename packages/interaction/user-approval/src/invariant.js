@@ -38,8 +38,11 @@ function applyApprovalTransition(pending, transition) {
   else pending.delete(transition.id)
 }
 
-/** Install audit pairing and closed-vocabulary checks. */
-// Event owners keep precommit staging local so their vocabularies never move into a central helper.
+/**
+ * Install audit pairing and closed-vocabulary checks.
+ * @name install
+ * @function
+ */
 /* jscpd:ignore-start */
 const install = Object.assign((ctx, fail) => {
   const traces = new WeakMap()

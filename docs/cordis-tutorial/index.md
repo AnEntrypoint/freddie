@@ -4,7 +4,7 @@ Cordis is the plugin framework underneath Freddie: a small runtime where every c
 
 The audience is agent developers. You do not need deep TypeScript experience; the [TypeScript notes](#typescript-notes) below explain the syntax that may be unfamiliar, and every chapter shows the exact commands and expected output.
 
-If you want the condensed concept reference instead of a walkthrough, read the [Cordis primer](../cordis-primer.md). The exhaustive API reference lives in the generated `cordis-surface` regions on the [subsystem pages](../subsystems/core.md) and the [Cordis core API](../cordis-api/context.md) pages.
+If you want the condensed concept reference instead of a walkthrough, read the [Cordis primer](../cordis-primer.md). The exhaustive API reference lives in the `cordis-surface` regions on the [subsystem pages](../subsystems/core.md) and the [Cordis core API](../cordis-api/context.md) pages.
 
 To write plugins for the harness itself — loaded from a `cordis.yml` and driven from the Web UI rather than the launcher below — start from [your first Harness plugin](../user/develop/basic/index.md).
 
@@ -18,20 +18,24 @@ cd freddie
 pnpm install
 ```
 
-Create the scratch directory the chapters work in. `tmp/` is gitignored, so nothing you write there touches version control:
+Create the scratch directory the chapters work in. It sits under `examples/` because a plugin's imports resolve by walking up from its own file to `examples/node_modules`; `examples/cordis-tutorial/` is gitignored, so nothing you write there touches version control:
 
 ```sh
-mkdir -p tmp/cordis-tutorial
-cd tmp/cordis-tutorial
+mkdir -p examples/cordis-tutorial
+cd examples/cordis-tutorial
 ```
 
 Every chapter runs the same command from this directory:
 
 ```sh
-node --import tsx ../../framework/cordis/bin.js
+node ../../framework/cordis/bin.js
 ```
 
-That one-file launcher (see [framework/cordis/bin.js](../../framework/cordis/bin.js)) creates a root `Context`, mounts the Loader plugin, and tells it to load `./cordis.yml` from the current directory. Everything else — which plugins exist, how they are configured — comes from that YAML file, which you will write in a moment. The `--import tsx` flag lets Node run the TypeScript files the config points at without a build step.
+That one-file launcher (see [framework/cordis/bin.js](../../framework/cordis/bin.js)) creates a root `Context`, mounts the Loader plugin, and tells it to load `./cordis.yml` from the current directory. Everything else — which plugins exist, how they are configured — comes from that YAML file, which you will write in a moment. Node (`^22.19` or newer) strips the type annotations itself, so the TypeScript files the config points at run under plain `node` with no build step and no loader flag; only erasable syntax works, so no `enum` and no constructor parameter properties.
+
+> **Resolution limit.** From `examples/cordis-tutorial`, `@freddie/cordis-plugin-*` and `@freddie/freddie-*` resolve, but `@freddie/cordis` and `@freddie/schemastery` do not. A chapter file that imports either as a runtime value fails with `Cannot find package` until the scratch directory can resolve it: `Service` in chapters 3 and 4, `Schema` in chapter 5, and `FiberState` in chapter 6's `diagnose.ts`. `import type` lines are erased and work everywhere, so chapters 1, 2, and 7 run as written — as does chapter 6's HMR reload demo, whose files only `import type` from `@freddie/cordis`.
+>
+> **Verified fix.** For chapters 3, 4, 5, and chapter 6's `diagnose.ts`/`needs-timer.ts` pair, create the scratch directory under `packages/llm/llm-retry/.scratch-<name>/` instead (gitignored by the repo's `packages/*/*/.scratch-*/` rule; that package's own dependencies resolve both `@freddie/cordis` and `@freddie/schemastery`, plus `@freddie/cordis-plugin-include`) and run `node ../../../../framework/cordis/bin.js` from it. This does not cover chapter 6's HMR reload demo (`@freddie/cordis-plugin-logger-console` and `@freddie/cordis-plugin-timer` are not dependencies of `llm-retry` or of any other in-repo package outside the `examples` workspace member itself), so keep running that one part from `examples/cordis-tutorial` as shown below.
 
 ## Chapters
 
@@ -51,8 +55,8 @@ The examples use three TypeScript features beyond ordinary modern JavaScript:
 
 - **Type annotations** describe values without changing runtime behavior: `ctx: Context` says that `ctx` has the Cordis context API, `who: string` accepts text, and `string[]` means an array of strings.
 - **`import type { Context } from '@freddie/cordis'`** imports only type information. It vanishes at runtime, so a plugin file that needs `Context` solely for annotations adds no runtime dependency.
-- **Declaration merging** (`declare module '@freddie/cordis' { ... }`) adds your entries to interfaces that Cordis already declares — for example the type of a new `ctx.greeter` property or event name. It generates no runtime wiring; the plugin separately provides the service or emits the event. Chapter 3 shows the pattern in full.
+- **Declaration merging** (`declare module '@freddie/cordis' { ... }`) describes your entries on interfaces such as `Context`, for example the type of a new `ctx.greeter` property or event name. This checkout ships no Cordis type declarations, so the block only documents intent for your editor and Node erases it; the plugin separately provides the service or emits the event. Chapter 3 shows the pattern in full.
 
 Chapter 5 also uses an `interface` to describe a configuration object's fields and a generic type such as `Schema<Config>` to say which object fields a schema validates. You can copy those declarations as shown; the surrounding text explains what each one connects.
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)
+[![](https://img.shields.io/badge/powered_by-freddie-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)

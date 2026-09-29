@@ -4,7 +4,7 @@ Each `cordis.yml` entry can carry a `config` block, and the plugin declares a sc
 
 ## A configurable plugin
 
-Create `config-demo.ts` in `tmp/cordis-tutorial`:
+Create `config-demo.ts` in `packages/llm/llm-retry/.scratch-<name>/`, not `examples/cordis-tutorial` — this chapter's `Schema` import needs `@freddie/schemastery` resolvable (see the [setup resolution note](index.md#setup)):
 
 ```ts
 import type { Context } from '@freddie/cordis'
@@ -79,4 +79,4 @@ The loader used in this repo supports a `!!js` tag for config values that must b
 
 Next: [Composition and HMR](06-composition-and-hmr.md) — treating `cordis.yml` as the application.
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)
+[![](https://img.shields.io/badge/powered_by-freddie-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)

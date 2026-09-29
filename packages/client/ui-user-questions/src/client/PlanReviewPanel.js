@@ -1,22 +1,3 @@
-// PlanReviewPanel: the composer takeover for a question carrying the
-// `plan-review` presentation intent. A plan under review is one decision over
-// one body of markdown, so it takes the waiting-approval card shape — tinted
-// strip, content, right-aligned action row — instead of the generic question
-// flow's pager, numbered options, skip and custom-answer affordances, which
-// read as a quiz the user is being graded on.
-//
-// The three actions are the whole decision surface: approve and decline answer
-// the question with the option labels the asker offered (localised copy on the
-// buttons, the asker's descriptions as their tooltips), while "discuss"
-// dismisses the request so the composer returns and the user can simply say
-// what they want. Dismissal is the generic flow's own cancel verb, promoted to
-// a labelled button because in a two-outcome decision it is the third real
-// answer, not an escape hatch.
-//
-// Converted from a React hooks component to a webjsx custom element: `busy`
-// and `error` become instance fields, and re-render is an explicit
-// applyDiff(this, vdom) call instead of implicit re-render on setState.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { Button, IconEditOutline16, renderMarkdownText, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './PlanReviewPanel.css.js'

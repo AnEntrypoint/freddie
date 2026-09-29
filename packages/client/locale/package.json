@@ -1,6 +1,6 @@
 {
   "name": "@freddie/freddie-client-locale",
-  "description": "Locale plugin: Host-backed zh/en preference, browser-derived fallback, locale snapshots, and typed namespace dictionaries",
+  "description": "Locale plugin: English locale snapshot and typed namespace dictionaries",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
@@ -28,10 +28,7 @@
   "freddie": {
     "client": {
       "inject": [
-        "@freddie/freddie-client-connection",
-        "@freddie/freddie-client-runtime",
-        "@freddie/freddie-client-ui-settings",
-        "@freddie/freddie-api-remotes"
+        "@freddie/freddie-client-runtime"
       ],
       "platform": "web",
       "immediately": true
@@ -65,14 +62,8 @@
   "files": [
     "src/index.js",
     "src/invariant.js",
-    "src/locale-settings.js",
     "src/locales/en.js",
     "src/locales/index.js",
-    "src/locales/settings.js",
-    "src/locales/zh.js",
-    "src/client/index.js",
-    "src/client/LanguageRow.js",
-    "src/client/LanguageRow.css.js",
-    "src/client/settings-store.js"
+    "src/client/index.js"
   ]
 }

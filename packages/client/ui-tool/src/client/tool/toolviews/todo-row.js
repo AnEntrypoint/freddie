@@ -1,12 +1,3 @@
-// todo_write toolview: plan-flavored summary row replacing the generic
-// "Tool call" card, registered into the keyed 'tool.call.toolview'
-// hole like the bash sample (a product registration, not a sample). The row
-// composes ToolRow (chrome, running sweep, whole-row expand) and swaps in a
-// summary of the written list (counts + active items) from the call args, with
-// the parallel-active count riding ToolRow's non-shrinking summary suffix so a
-// narrow row never clips it; the durable list itself renders in the TodoPanel
-// above the composer, so the row stays one line until expanded.
-
 import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconChecklistOutline14 } from '@freddie/freddie-client-ui-primitives'
 import { toolRowModel } from '../models/tool-call-model.js'
@@ -23,11 +14,8 @@ function summarize(argsRaw, t) {
   try {
     parsed = JSON.parse(argsRaw)
   } catch {
-    // Mid-stream truncation or malformed model JSON: fall back to the generic summary.
     return null
   }
-  // Valid JSON with invalid todo fields (null root, non-array todos, null items —
-  // a rejected tool/call retains such args verbatim): same generic fallback.
   if (typeof parsed !== 'object' || parsed === null) return null
   const todos = parsed.todos
   if (!Array.isArray(todos) || !todos.every(isItem)) return null

@@ -1,6 +1,6 @@
 # @freddie/freddie-time-context
 
-Opt-in durable context with the current zoned time, the browser zone attached to the open request, and elapsed time sampled during model-request preparation. Default compositions leave it disabled; the Schedule Web overlay mounts it so the model can interpret otherwise-unqualified dates and times in the user's browser zone. Decision record: [the durable time-context Agent Note](../../../.agents/notes/implemented/feature/2026-07-16-durable-per-step-time-context.md).
+Durable context with the current zoned time, the browser zone attached to the open request, and elapsed time sampled during model-request preparation. Mounted by default: a host row in the base bundle (`refreshIntervalMs: 60000`) for the acp, sdk and headless surfaces, and a row in the Web `standard`, `code` and `cordis` agent presets (the Web bundle disables the host row); the `minimal` preset omits it so its request stays a fixed prompt. The model can interpret otherwise-unqualified dates and times in the user's browser zone. Decision record: [the durable time-context Agent Note](../../../.agents/notes/implemented/feature/2026-07-16-durable-per-step-time-context.md).
 
 ## Config
 
@@ -8,7 +8,7 @@ Opt-in durable context with the current zoned time, the browser zone attached to
 - id: time-context
   name: '@freddie/freddie-time-context'
   config:
-    timeZone: Asia/Shanghai  # optional fallback when the request has no unique browser zone
+    timeZone: UTC  # optional fallback when the request has no unique browser zone
     refreshIntervalMs: 60000 # optional; omit or set to 0 for every eligible attempt
 ```
 
@@ -60,11 +60,11 @@ Elapsed since the preceding step context: <duration-or-unavailable>.
 
 #### Token effect
 
-Each reading accumulates until compaction shadows it. A positive interval reduces additions; omission or `0` adds one at every eligible preparation attempt.
+Each reading accumulates until compaction shadows it. A positive interval reduces additions; omission or `0` adds one at every eligible preparation attempt. The shipped rows set `refreshIntervalMs: 60000`, so a session carries one reading of about 270 bytes at its first step and another only after a minute has passed.
 
 #### KV Cache effect
 
-Append-only; newly visible content follows the reusable request prefix and does not invalidate existing KV-cache entries.
+Append-only; newly visible content follows the reusable request prefix and does not invalidate existing KV-cache entries. Measured with a scripted adapter over the real composition (five consecutive model requests, interval `0` and the shipped `60000`): the system block is identical across requests, every request's messages begin with the previous request's messages byte for byte, and the reading is the last message of its step batch.
 
 ## Known Limitations and Deferred Work
 

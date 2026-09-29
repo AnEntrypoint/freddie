@@ -318,9 +318,6 @@ export class SkillRegistry extends Service {
     let attempt = 1
     while (true) {
       const revision = this.revision
-      // The chain is part of the key rather than assumed stable: a blank-session
-      // recompose re-parents an existing scope without touching this registry,
-      // and only a chain-bearing key makes the next read see the new preset.
       const key = this.collectCacheKey(options.cwd, scopeChainOf(options.scope), revision)
       const cached = this.collectCache.get(key)
       if (cached !== undefined) return { entries: cached, cacheable: true }
@@ -346,10 +343,6 @@ export class SkillRegistry extends Service {
   }
 
   async collectFresh(options) {
-    // Global first, then existing chain overlays farthest ancestor first and
-    // the exact scope last, so the nearest layer's same-name entry replaces
-    // the farther ones — the tools registry's shadowing rule. Rank decides
-    // duplicates only within one layer.
     const layers = [this.layers.global, ...this.layers.chainLayers(options.scope)]
     const merged = new Map()
     let cacheable = true
@@ -647,7 +640,6 @@ function toError(error) {
   try {
     if (error instanceof Error) return error
   } catch {
-    // A hostile proxy may throw during instanceof; fall through to the total renderer.
   }
   return new Error(errorMessage(error))
 }

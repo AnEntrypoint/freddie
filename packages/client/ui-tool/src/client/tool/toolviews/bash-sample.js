@@ -1,18 +1,3 @@
-// Bash toolview registrant: third-party posture over the keyed toolview hole
-// (ctx.slots.register + ToolRowProps only — never imports the chat domain).
-// Product chrome matches ToolRow / Think (figma: Bash · {description}).
-//
-// A bash call normally declares the terminal render intent, so this row renders
-// the command's own output through TerminalBlock. Execution failures that
-// settle without terminal material use the bounded generic IN/OUT fallback —
-// both are expand-gated exactly like
-// ToolRow's unified interaction: collapsed by default, the whole summary row
-// is the toggle (click / Enter / Space, icon→chevron hover preview; the
-// summary stays inline while open),
-// and the expanded card max-height-scrolls inside its own surface with the
-// full output (maxLines Infinity — no middle collapse). An error row's
-// collapsed summary is the failure's first line in the error color.
-
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
@@ -28,7 +13,6 @@ function leadingFor(state) {
   switch (state) {
     case 'error': return h(StateDot, {state: 'error'})
     case 'stopped': return h(StateDot, {state: 'warning'})
-    // Running keeps the icon — the row sweep carries the in-flight signal.
     default: return h(IconApiOutline14, {size: 14})
   }
 }
@@ -55,9 +39,6 @@ function stateStatus(state, t) {
 export class FreddieBashRow extends HTMLElement {
   #props = null
   #expanded = false
-  // TerminalBlock's own one-shot factory recreates its freddie-terminal-block
-  // element (dropping its copy-feedback state) on every call; this row
-  // re-renders on every running-tool state change while the call streams.
   #terminalEl = null
 
   setProps(props) {
@@ -79,19 +60,12 @@ export class FreddieBashRow extends HTMLElement {
     if (props === null) return
     const { toolName, block, sessionId, useSessions, inspect, t } = props
     const model = toolRowModel(toolName, block)
-    // Session workspace root: the terminal view's cwd resolves against it (an
-    // omitted workdir IS the workspace), which the pure presenter cannot do.
     const cwd = useSessions(list => list.byId[sessionId]?.cwd)
     const terminal = terminalCardModel(block, cwd)
-    // A failing exit status is the terminal card's own error signal (the call
-    // itself settles isError:false), surfaced as the row's red state dot.
     const state = model.state === 'ok' && terminal !== null && terminalFailed(terminal)
       ? 'error'
       : model.state
     const status = stateStatus(state, t)
-    // Execution failures (for example cancellation before the process reports a
-    // terminal result) use the generic presenter. Keep their recorded args and
-    // full error reachable instead of collapsing the row to the first line.
     const genericError = terminal === null
       && model.state === 'error'
       && (model.body !== null || model.output !== null)
@@ -132,15 +106,11 @@ export class FreddieBashRow extends HTMLElement {
           status !== null && h('span', {class: css.visuallyHidden ?? ''}, status),
           h('span', {class: css.title ?? ''}, model.title),
           h('span', {class: css.sep ?? '', 'aria-hidden': 'true'}),
-          /* The terminal presenter's description is the contractual
-              above-card summary; a failure's first line outranks both. */
           h('span', {class: clsx(css.summary, failureLine !== null && css.errorSummary)},
             failureLine ?? terminal?.description ?? model.summary
           ),
         ),
         open && (
-          /* Same hover-Inspect posture as ToolRow's expanded body, replicated
-             locally per the registrant posture. */
           h('div', {class: css.bodyWrap ?? ''},
             terminal !== null
               ? (

@@ -40,6 +40,8 @@ import koffi from 'koffi'
  * @param rootPid - the tree root to descend from.
  * @param started - creation-time identity resolver for one member.
  * @returns the root and its current transitive descendants, children first.
+ * @name windowsProcessTree
+ * @function
  */
 /* jscpd:ignore-start -- the Windows inspector deliberately mirrors process-inspector.ts:
    the decision logic (tree walk, identity fencing, group signalling) is the same contract over
@@ -68,7 +70,7 @@ export function windowsProcessTree(entries, rootPid, started) {
 }
 
 /**
- * Windows {@link ProcessInspector}. The shell pid stands in for a foreground
+ * Windows {@link import('./process-inspector.js').ProcessInspector}. The shell pid stands in for a foreground
  * process group: it is a stable pseudo-group that lets the prompt-marker
  * readiness path compare foreground identities, while every actual signal
  * targets the console-wide tree through taskkill (SIGINT is delivered by the
@@ -122,8 +124,6 @@ export function createWindowsProcessInspector(internals = defaultWindowsProcessI
 /** Terminate one Windows process tree with taskkill, contained like POSIX group signalling. */
 function taskkillTree(pid, force) {
   if (pid <= 0) return
-  // Outcome deliberately unchecked: an already-absent tree, exit races, and a
-  // missing taskkill binary are as tolerable here as ESRCH is for POSIX.
   spawnSync('taskkill', ['/PID', String(pid), '/T', ...(force ? ['/F'] : [])], { stdio: 'ignore' })
 }
 
@@ -160,7 +160,6 @@ const PVOID = koffi.pointer('void')
  */
 function win32Structs() {
   if (cachedStructs !== undefined) return cachedStructs
-  // koffi PROCESSENTRY32W layout (tlhelp32.h); the size assert pins the x64 layout.
   const PROCESSENTRY32W = koffi.struct('PROCESSENTRY32W', {
     dwSize: 'uint32',
     cntUsage: 'uint32',
@@ -173,7 +172,6 @@ function win32Structs() {
     dwFlags: 'uint32',
     szExeFile: koffi.array('char16', 260),
   })
-  // koffi FILETIME layout (minwinbase.h): two 32-bit halves of the 64-bit timestamp.
   const FILETIME = koffi.struct('FILETIME', {
     dwLowDateTime: 'uint32',
     dwHighDateTime: 'uint32',

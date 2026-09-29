@@ -178,7 +178,6 @@ export class DeepSeekFileStore {
       try {
         await client.delete(candidate.fileId, signal)
       } catch {
-        // The winning mapping is durable. A failed duplicate cleanup affects quota only and is retried by recovery.
       }
     }
     return { record: committed.record, uploaded: committed.accepted }

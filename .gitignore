@@ -5,8 +5,8 @@ lib/
 !packages/client/vendor-modules/vendor/**/lib/
 *.tsbuildinfo
 pnpm-debug.log
-dsh-web*.log
-dsh-web*.pid
+freddie-web*.log
+freddie-web*.pid
 dev-server*.log
 .gm/web-stdout*.log
 .gm/web-stderr*.log
@@ -18,6 +18,9 @@ examples/*/*.jsonl
 .storages/
 .sessions/
 examples/*/.sessions/
+examples/cordis-tutorial/
+examples/scratch-plugin/
+packages/*/*/.scratch-*/
 coverage/
 .humanize/
 tmp/
@@ -48,7 +51,11 @@ worktrees/
 # .gm/prd.yml, .gm/mutables.yml, .gm/disciplines/, and .gm/instructions/
 # are real, durable, repo-tracked content and are NOT covered by these
 # patterns -- gm's own design keeps memory following the codebase.
-.gm/scratch/
+.gm/scratch*/
+.gm/live-*.js
+.gm/rpc-*.json
+.gm/gui-*
+.gm/freddie-gui-*
 .gm/browser-chrome-profile-*/
 .gm/witness/
 .gm/exec-spool/

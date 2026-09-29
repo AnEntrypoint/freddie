@@ -3,17 +3,7 @@
 /** Dictionary namespace owned by this plugin. */
 export const NS = 'reference'
 
-/** Simplified Chinese dictionary (the key-set source of truth). */
-export const zh = {
-  'section.files': '文件与文件夹',
-  'section.sessions': 'Session 对话',
-  'candidate.file': '文件',
-  'candidate.folder': '文件夹',
-  'candidate.session': 'Session',
-  'candidate.noCwd': '（无工作目录）',
-}
-
-/** English dictionary, checked complete against the zh key set. */
+/** English dictionary. */
 export const en = {
   'section.files': 'Files & folders',
   'section.sessions': 'Session conversations',

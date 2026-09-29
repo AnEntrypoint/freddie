@@ -21,13 +21,17 @@ export {
   agentStopReason,
 } from './graph.js'
 
-/** The full set of `workflow/*` event names {@link WorkflowEngine.emitWorkflowEvent} dispatches. */
+/**
+ * The full set of `workflow/*` event names {@link WorkflowEngine.emitWorkflowEvent} dispatches.
+ * @typedef {'workflow/start' | 'workflow/phase' | 'workflow/log' | 'workflow/agent-start' | 'workflow/agent-end' | 'workflow/end'} WorkflowEventName
+ */
 
 /**
  * Machine-routable fatal workflow failures: parse/meta/argument/schema errors,
  * resource caps, subagent infrastructure failures, unserializable boundary
  * values, and cancellation. An ordinary child failure resolves its item to
  * `null` and is not one of these fatal codes.
+ * @typedef {'SCRIPT_PARSE' | 'META_INVALID' | 'INVALID_ARGUMENT' | 'UNSUPPORTED_OPTION' | 'UNSUPPORTED_SCHEMA' | 'AGENT_CAP' | 'ITEM_CAP' | 'AGENT_START' | 'AGENT_RESULT' | 'RESULT_UNSERIALIZABLE' | 'CANCELLED'} WorkflowErrorCode
  */
 
 /**
@@ -131,7 +135,6 @@ function renderListenerError(error) {
   try {
     return String(error)
   } catch {
-    // String coercion itself may throw.
     return '[unrenderable thrown value]'
   }
 }

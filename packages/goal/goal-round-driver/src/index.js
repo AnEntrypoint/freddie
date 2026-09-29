@@ -118,8 +118,6 @@ export function apply(ctx) {
         disarm(state)
         return
       }
-      // A mutation or ordinary prompt may have arrived while the checkpoint
-      // was settling. Give it its own checkpoint / turn before reserving.
       if (!readyAfterCheckpoint(state)) return
     }
 
@@ -210,8 +208,6 @@ export function apply(ctx) {
     })
   }
 
-  // One composite effect keeps the step fence installed until this
-  // plugin's own scheduling tasks settle.
   ctx.effect(function* () {
     ctx.on('agent/error', ({ agent }) => {
       const state = stateFor(agent)
@@ -339,9 +335,6 @@ export function apply(ctx) {
         decision = await next()
       } catch (error) {
         if (signal.aborted) throw error
-        // A throwing downstream hook drops the whole step proposal. Clear the
-        // reservation before the balanced no-step turn returns to idle so the
-        // next drive pass can reschedule the round.
         state.attempt = undefined
         requestDrive(state)
         throw error
@@ -378,15 +371,11 @@ export function apply(ctx) {
       return decision
     })
 
-    // Loading a lifecycle driver over existing agents never inherits hidden
-    // automatic authority from an earlier producer instance.
     for (const agent of ctx.agents.list()) {
       const state = stateFor(agent)
       disarm(state)
     }
 
-    // Yielded after listener registration, so this close runs first and the
-    // composite effect removes listeners only after its promise settles.
     yield async () => {
       const waits = []
       for (const state of states.values()) {

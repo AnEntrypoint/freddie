@@ -27,8 +27,6 @@ export function computeHunkDiffs(path, before, after) {
     const oldLines = []
     const newLines = []
     for (const line of hunk.lines) {
-      // The unified-diff marker for a missing trailing newline annotates the
-      // patch, not the content — skip it so it never leaks into a diff block.
       if (line.startsWith('\\')) continue
       const text = line.slice(1)
       if (line.startsWith('-')) {
@@ -36,7 +34,6 @@ export function computeHunkDiffs(path, before, after) {
       } else if (line.startsWith('+')) {
         newLines.push(text)
       } else {
-        // A context (unchanged) line appears on both sides.
         oldLines.push(text)
         newLines.push(text)
       }

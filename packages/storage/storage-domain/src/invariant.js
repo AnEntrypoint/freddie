@@ -24,7 +24,6 @@ const install = Object.assign((ctx, fail) => {
       return fail(`domain/changed for '${change.domain}' emitted while that domain is not open`)
     }
     if (change.table === '') {
-      // Global write: the event snapshot must be the current global value.
       if (domain.global.get() !== change.value) {
         return fail(`domain/changed global value for '${change.domain}' differs from the in-memory global`)
       }

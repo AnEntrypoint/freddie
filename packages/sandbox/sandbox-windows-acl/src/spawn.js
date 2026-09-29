@@ -33,7 +33,6 @@ export function quoteArg(argument) {
       index++
     }
     if (index === argument.length) {
-      // Trailing backslash run: doubled so it cannot escape the closing quote.
       quoted += '\\'.repeat(backslashes * 2)
     } else if (argument.charAt(index) === '"') {
       quoted += '\\'.repeat(backslashes * 2 + 1) + '"'
@@ -91,7 +90,6 @@ export function spawnSandboxed(
   const stdIn = createPipe(api)
   const stdOut = createPipe(api)
   const stdErr = createPipe(api)
-  // Child side of each pipe must be inheritable (POC lines 262-268).
   setInheritable(api, stdIn.read, 'stdin read end')
   setInheritable(api, stdOut.write, 'stdout write end')
   setInheritable(api, stdErr.write, 'stderr write end')
@@ -110,14 +108,11 @@ export function spawnSandboxed(
   const created = api.createProcessAsUserW(
     token, null, commandLine,
     null, null,
-    1, // bInheritHandles: required for redirection
-    0, // no creation flags: suspended/no-window variants are unusable under the restriction
+    1,
+    0,
     null, options.cwd,
     startupInfo, processInfo,
   )
-  // Capture the failure before CloseHandle calls clobber GetLastError, then
-  // close every pipe handle created so far — the six-close contract this test
-  // surface pins (tests/failure-paths.spec.ts).
   if (created === 0) {
     const win32Code = api.getLastError()
     api.closeHandle(stdIn.read)
@@ -136,8 +131,6 @@ export function spawnSandboxed(
     throw new Error(`CreateProcessAsUserW succeeded but returned null process/thread handles (pid ${info.dwProcessId})`)
   }
 
-  // Host-side cleanup: child handles are now duplicated in the child; the
-  // host closes its copies so ReadFile sees EOF when the child exits.
   api.closeHandle(stdIn.read)
   api.closeHandle(stdOut.write)
   api.closeHandle(stdErr.write)
@@ -167,7 +160,7 @@ export async function drainPipe(api, handle) {
     const peeked = api.peekNamedPipe(handle, null, 0, bytesReadSlot, totalAvailSlot, leftThisMessageSlot)
     if (peeked === 0) {
       const win32Code = api.getLastError()
-      if (win32Code === abi.ERROR_BROKEN_PIPE || win32Code === abi.ERROR_NO_DATA) break // child closed its end: clean EOF
+      if (win32Code === abi.ERROR_BROKEN_PIPE || win32Code === abi.ERROR_NO_DATA) break
       throwLastError(api, 'PeekNamedPipe', `drain failure after ${chunks.length} chunk(s)`)
     }
     const available = decodeUint32(totalAvailSlot)
@@ -179,8 +172,6 @@ export async function drainPipe(api, handle) {
       }
       chunks.push(chunk.subarray(0, decodeUint32(readSlot)))
     }
-    // Small backoff instead of setImmediate: a bare next-tick would busy-poll
-    // the pipe at full event-loop speed while the child produces no output.
     await new Promise(resolve => setTimeout(resolve, 1))
   }
   api.closeHandle(handle)
@@ -264,8 +255,6 @@ export function spawnSandboxedInherited(
     }
   }
   const restoreInherit = (handle) => {
-    // Best-effort hygiene: the runner spawns nothing else; failures here must
-    // not mask the child outcome, so the result is deliberately unchecked.
     api.setHandleInformation(handle, abi.HANDLE_FLAG_INHERIT, 0)
   }
   makeInheritable(stdIn, 'stdin')
@@ -286,8 +275,8 @@ export function spawnSandboxedInherited(
   const created = api.createProcessAsUserW(
     token, null, commandLine,
     null, null,
-    1, // bInheritHandles: the re-enabled std handles must be inheritable
-    abi.CREATE_SUSPENDED, // suspended so job assignment precedes any execution
+    1,
+    abi.CREATE_SUSPENDED,
     null, options.cwd,
     startupInfo, processInfo,
   )
@@ -309,9 +298,6 @@ export function spawnSandboxedInherited(
   }
 
   if (api.assignProcessToJobObject(job, processHandle) === 0) {
-    // The child was created suspended and is NOT in the kill-on-close job:
-    // closing handles would leave it suspended forever. Terminate it first,
-    // then drop the handles and throw.
     const win32Code = api.getLastError()
     api.terminateProcess(processHandle, 1)
     api.closeHandle(threadHandle)
@@ -320,9 +306,6 @@ export function spawnSandboxedInherited(
     throwWin32(api, 'AssignProcessToJobObject', win32Code, `pid ${info.dwProcessId}`)
   }
   if (api.resumeThread(threadHandle) === 0xFFFFFFFF) {
-    // Closing the job triggers kill-on-close, so the suspended child dies
-    // instead of hanging until this process exits; the process/thread handles
-    // must go too.
     const win32Code = api.getLastError()
     api.closeHandle(threadHandle)
     api.closeHandle(processHandle)

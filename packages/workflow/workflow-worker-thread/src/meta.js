@@ -1,5 +1,6 @@
 /**
- * Meta validation checks caller-provided DATA against the {@link WorkflowMeta}
+ * Meta validation checks caller-provided DATA against the
+ * {@link import('@freddie/freddie-workflow/src/types.js').WorkflowMeta}
  * contract and rejects every violation by name. Meta arrives as schema-checked
  * JSON data, never evaluated script text; evaluating it on the host could run getters outside the
  * worker timeout that exists to isolate model-written code.
@@ -64,7 +65,8 @@ function validateMetaShape(meta) {
 }
 
 /**
- * Validate a caller-provided meta value against the {@link WorkflowMeta}
+ * Validate a caller-provided meta value against the
+ * {@link import('@freddie/freddie-workflow/src/types.js').WorkflowMeta}
  * contract. Throws `META_INVALID` naming every violation (unknown fields,
  * missing/mistyped `name`/`description`, malformed `phases`); the returned
  * meta is a NORMALIZED copy built from the validated fields, so the engine

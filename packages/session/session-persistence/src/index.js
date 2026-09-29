@@ -1,23 +1,31 @@
 /**
  * Durable session-persistence Service Definition (`ctx.sessionPersistence`). Backends store
- * {@link SessionEvent}s as the event-sourced log and carry non-replayable
- * {@link SessionHeader} metadata separately.
+ * {@link import('@freddie/freddie-session/types').SessionEvent}s as the event-sourced log and carry non-replayable
+ * {@link import('@freddie/freddie-session/types').SessionHeader} metadata separately.
  * @module @freddie/freddie-session-persistence
  */
 
 import { Service } from '@freddie/cordis'
 import { SessionPreparation } from '@freddie/freddie-session'
 
-// Re-export the metadata vocabulary so Consumers import it from the Service Definition.
 export { SessionPersistenceRevision } from './revision.js'
 
-/** Lightweight immutable source identity returned without loading a full log. */
+/**
+ * Lightweight immutable source identity returned without loading a full log.
+ * @typedef {object} SessionSnapshot
+ * @property {import('@freddie/freddie-session/types').SessionHeader} meta
+ * @property {unknown} revision - opaque per-log change token (see {@link SessionPersistence#listSnapshots}).
+ */
 
-/** Immutable logical session prepared from persistence or a live owner. */
+/**
+ * Immutable logical session prepared from persistence or a live owner.
+ * @typedef {object} SessionLogView
+ * @property {import('@freddie/freddie-session/types').SessionHeader} meta
+ * @property {import('@freddie/freddie-session/types').SessionEvent[]} events
+ */
 
 /** A backend's own raw artifact text for one session, verbatim. */
 
-// The backend-agnostic write-path orchestration first-party backends compose.
 export {
   DEFAULT_PREPARED_SESSION_CACHE_SIZE,
   DEFAULT_WRITE_BATCH_MAX_DELAY_MS,
@@ -32,12 +40,14 @@ export {
  * A backend-resolved, per-session local artifact location. The path is an
  * absolute target path and can name an artifact that has not materialized yet.
  * Consumers must treat it as a location hint, never as an authorization token.
+ * @typedef {object} ArtifactLocation
+ * @property {string} path - absolute target path; may not exist yet.
  */
 
 /**
  * Durable append-only session storage. Implementations preserve contiguous,
- * losslessly JSON-serializable events; {@link append} resolves only after
- * durability, and {@link load} balances a complete interrupted tail without
+ * losslessly JSON-serializable events; {@link SessionPersistence#append} resolves only after
+ * durability, and {@link SessionPersistence#load} balances a complete interrupted tail without
  * rewriting committed events.
  */
 export class SessionPersistence extends Service {
@@ -51,14 +61,16 @@ export class SessionPersistence extends Service {
    * as SQLite that do not own one artifact per session return `undefined`.
    * @param meta - the immutable session header whose artifact is requested.
    * @returns the backend-specific absolute location, when one exists.
+   * @name SessionPersistence#locate
+   * @function
    */
-  // abstract locate(meta)
 
   /**
    * Whether this backend exposes one verbatim raw artifact per session.
    * A backend that declares `true` must override {@link readRaw}.
+   * @name SessionPersistence#supportsRawArtifacts
+   * @type {boolean}
    */
-  // abstract readonly supportsRawArtifacts
 
   /**
    * Read a session's backend-owned artifact text verbatim — the exact durable
@@ -66,7 +78,7 @@ export class SessionPersistence extends Service {
    * decompressed JSONL). The returned `content` is the raw text, not a
    * reconstruction from parsed events, so it preserves backend-specific
    * serialization (chunk packing, key order, line breaks). Callers first test
-   * {@link supportsRawArtifacts}; `undefined` then means only that the requested
+   * {@link SessionPersistence#supportsRawArtifacts}; `undefined` then means only that the requested
    * session has no materialized artifact.
    * @param _id - the persisted session to read (unused by the default: no
    * per-session artifact).
@@ -84,12 +96,13 @@ export class SessionPersistence extends Service {
 
   /**
    * Register a new session's metadata. A backend MAY defer the physical write
-   * until the first {@link append} (lazy materialization), in which case a
-   * created-but-never-appended session is absent from {@link list}
+   * until the first {@link SessionPersistence#append} (lazy materialization), in which case a
+   * created-but-never-appended session is absent from {@link SessionPersistence#list}
    * — abandoned sessions leave nothing behind.
    * @param meta - the immutable header (id, version, cwd, lineage) to record.
+   * @name SessionPersistence#create
+   * @function
    */
-  // abstract create(meta)
 
   /**
    * Durably persist a batch of events. Honors the append-only and contiguous-
@@ -98,12 +111,13 @@ export class SessionPersistence extends Service {
    * serializable `event.data` with an error naming the offending event type.
    * @param id - the session the batch belongs to.
    * @param events - the contiguous batch to persist, in seq order.
+   * @name SessionPersistence#append
+   * @function
    */
-  // abstract append(id, events)
 
   /**
    * Prepare the exact unpublished Session used by resume. Implementations may
-   * reuse object graphs retained by an earlier {@link inspect} after confirming
+   * reuse object graphs retained by an earlier {@link SessionPersistence#inspect} after confirming
    * their durable revision is still current; disposal releases an unpublished
    * reservation. Revision retries require the durable log to remain unchanged
    * for one read/check round trip; continuous external writers may delay completion.
@@ -138,8 +152,9 @@ export class SessionPersistence extends Service {
    * Revision-based implementations may wait for one stable read/check round trip.
    * @param id - the persisted session to reload.
    * @returns the header and a log ending on a balanced `turn/end`.
+   * @name SessionPersistence#load
+   * @function
    */
-  // abstract load(id)
 
   /**
    * Inspect an immutable logical session without committing recovery or
@@ -155,14 +170,15 @@ export class SessionPersistence extends Service {
    * @param id - the persisted session to inspect.
    * @param signal - optional cancellation for queued and backend read work.
    * @returns the validated header and current logical event log.
+   * @name SessionPersistence#inspect
+   * @function
    */
-  // abstract inspect(id, signal)
 
   /**
    * Read the stored events from `fromSeq` onward — the read-from-seq
    * primitive for read models that resume from a watermark (e.g. a persisted
    * projection cache folding only the tail past its checkpoint). Unlike
-   * {@link inspect}, it is a detached physical suffix read: no preparation
+   * {@link SessionPersistence#inspect}, it is a detached physical suffix read: no preparation
    * cache, torn-tail truncation, synthetic closers, or coordinator-state
    * publication. Only events from the valid contiguous stored prefix are
    * returned, so a torn fragment never reaches the caller. `fromSeq` at or
@@ -175,27 +191,30 @@ export class SessionPersistence extends Service {
    * @param fromSeq - first event seq to include; a non-negative safe integer.
    * @param signal - optional cancellation for queued and backend read work.
    * @returns the header and the stored events with `seq >= fromSeq`.
+   * @name SessionPersistence#readFrom
+   * @function
    */
-  // abstract readFrom(id, fromSeq, signal)
 
   /**
    * Lightweight listing from metadata, without a full-log parse.
    * @param signal - optional cancellation for backend listing work.
    * @returns one header per materialized session.
+   * @name SessionPersistence#list
+   * @function
    */
-  // abstract list(signal)
 
   /**
    * List materialized sessions with cheap per-log change tokens.
    *
    * Repeated observations of an unchanged log return the same revision. A
-   * successful mutating {@link load} repair changes the next listed revision.
+   * successful mutating {@link SessionPersistence#load} repair changes the next listed revision.
    * Revisions also distinguish independently backed stores so backend-local
    * counters cannot compare equal across different persistence sources.
    * @param signal - optional cancellation for backend snapshot-listing work.
    * @returns one header and opaque revision per materialized session without loading full logs.
+   * @name SessionPersistence#listSnapshots
+   * @function
    */
-  // abstract listSnapshots(signal)
 }
 
 export default SessionPersistence

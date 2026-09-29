@@ -1,12 +1,9 @@
-/* First-run stage: keep the product top bar visible, then let onboarding own
-   the complete workspace instead of presenting another settings modal. */
 .freddie-onboardingSurface__onboardingOverlay {
   position: fixed;
   inset: 0;
   z-index: 1100;
 }
 
-/* Mask */
 .freddie-onboardingSurface__onboardingMask {
   position: absolute;
   left: 0px;
@@ -14,7 +11,6 @@
   top: 80px;
   bottom: 0px;
   background: rgba(0, 0, 0, 0.24);
-  /* Mask-blur */
   backdrop-filter: blur(2px);
 }
 

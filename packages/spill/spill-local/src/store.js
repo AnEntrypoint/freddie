@@ -29,8 +29,6 @@ export function privateRoot() {
   return defaultRoot
 }
 
-// Deliberately mirrors the JSONL path encoder, but keeps spill's empty-name
-// policy (`""` -> `"~"`) local so storage backends stay decoupled.
 /* jscpd:ignore-start */
 /**
  * Encode an arbitrary string as one safe path segment, injectively over ALL JS

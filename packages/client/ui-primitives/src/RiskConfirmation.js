@@ -21,6 +21,21 @@ import { IconWarningOutline16 } from './icons/index.js'
 import css from './RiskConfirmation.css.js'
 
 /**
+ * @typedef {object} RiskConfirmationProps
+ * @property {boolean} open
+ * @property {string} title
+ * @property {string} description - warning text shown next to the warning icon.
+ * @property {string} acknowledgeLabel - label for the acknowledgement checkbox.
+ * @property {string} cancelLabel
+ * @property {string} confirmLabel
+ * @property {boolean} acknowledged - whether the checkbox is checked; the confirm button stays disabled until this is true.
+ * @property {boolean} [disabled=false] - disables both the checkbox and the confirm button.
+ * @property {function(boolean): void} onAcknowledgedChange - called with the checkbox's new checked state.
+ * @property {function(): void} onCancel
+ * @property {function(): void} onConfirm
+ */
+
+/**
  * Update (or create) the underlying `freddie-modal` for one risk confirmation.
  * @param el - the modal returned by a prior call, or null to create one.
  * @param props - see {@link RiskConfirmationProps}.

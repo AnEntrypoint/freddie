@@ -1,6 +1,3 @@
-# Code Mode image overlay: mounts the worker runtime and durable attachment
-# store so a nested read_image result can cross the generic rich-result bridge.
-# The live config selects the shipped vision route for manual use.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

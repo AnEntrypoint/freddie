@@ -140,8 +140,6 @@ export function apply(ctx, config = {}, internals = {}) {
     if (policy.mode === 'always') {
       if (signal.aborted || lifetime.signal.aborted) return
       const fusedSignal = AbortSignal.any([signal, lifetime.signal])
-      // The loop and plugin lifetime stay open until delegated recovery settles.
-      // An abort then wins before the decision or fallback can mutate later state.
       const downstream = await settleDownstream(next)
       if (fusedSignal.aborted) return
       if (downstream.type === 'error') {
@@ -187,9 +185,6 @@ export function apply(ctx, config = {}, internals = {}) {
   }
 
   const disposeListener = ctx.on('agent/request-error', (payload, next) => {
-    // A waterfall may have captured this callback before its registration was
-    // removed. Lifetime cancellation must prevent that stale callback from
-    // entering a downstream policy after disposal.
     if (lifetime.signal.aborted) return Promise.resolve(undefined)
     return track(recover(payload, next))
   })

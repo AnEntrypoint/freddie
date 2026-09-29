@@ -171,8 +171,6 @@ async function rollbackUnpublishedTerminal(sandbox, handle, completion, envs, gr
     try {
       sessionId = await terminalSessionId(sandbox, handle.pid, envs)
     } catch (_sessionLookupFailure) {
-      // E2B's PTY leader is also the provisional POSIX session leader, so its
-      // PID remains usable after the setup lookup itself fails or is canceled.
     }
     try {
       let groups = await sessionProcessGroups(sandbox, sessionId, envs)
@@ -187,7 +185,6 @@ async function rollbackUnpublishedTerminal(sandbox, handle, completion, envs, gr
       attemptFailures.push(asError(error))
     }
   }
-  // Completion can settle while any awaited provider cleanup above is running.
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- Provider cleanup yields to completion.
   if (!topLevelExited) {
     try {
@@ -211,7 +208,6 @@ async function rollbackUnpublishedTerminal(sandbox, handle, completion, envs, gr
       proofFailures.push(asError(error))
     }
   }
-  // The bounded completion race above updates this callback-owned state.
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- The callback mutates this after a race.
   if (!topLevelExited) {
     proofFailures.push(new Error(`subprocess-e2b: terminal setup rollback failed; surviving pid: ${handle.pid}`))
@@ -254,8 +250,6 @@ export class E2BTerminalHandle {
     this.done = this.waitForCommand()
   }
 
-  // TODO(e2b-pgid-identity): Replace retained numeric PTY/session ids when E2B
-  // exposes identity-bound input, foreground-signal, and cleanup operations.
   /** @inheritdoc */
   write(data) {
     return this.trackOperation(async (signal) => {
@@ -310,8 +304,6 @@ export class E2BTerminalHandle {
           result.stdout,
           `subprocess-e2b: cannot resolve foreground process group for terminal ${this.pid}`,
         ),
-        // E2B exposes process-table commands but not the /proc memory access
-        // needed to prove a specific syscall is waiting on fd 0.
         inputWaiting: false,
       }
     } catch (error) {
@@ -393,7 +385,6 @@ export class E2BTerminalHandle {
     try {
       await this.sandbox.files.remove(this.stateDir)
     } catch (_adapterPrivateStateRemovalFailure) {
-      // The terminal is quiescent; owner teardown bounds private residue.
     }
   }
 }
@@ -505,8 +496,6 @@ export async function spawnE2BTerminal(runtime, spec, stateDir, pollMs) {
     try {
       await cleanup()
     } catch (cleanupError) {
-      // TODO(e2b-terminal-setup-rollback): Retain retry state only if a real
-      // double failure must be recovered before sandbox disposal or timeout.
       throw new AggregateError([asError(error), asError(cleanupError)], asError(error).message)
     }
     throw error

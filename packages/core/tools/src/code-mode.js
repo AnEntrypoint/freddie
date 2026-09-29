@@ -50,6 +50,19 @@ const PYTHON_FLAVOR = {
   codeDescription: 'The program: the body of an async Python function.',
 }
 
+/**
+ * A `run_code` backend language: the key of {@link import('@freddie/freddie-code-runtime').CodeRuntime#language}
+ * that `freddie-tools` presents (only `'typescript'` has a published backend).
+ * @typedef {'typescript'|'python'} CodeSdkLanguage
+ */
+
+/**
+ * One language's `run_code` schema strings.
+ * @typedef {object} RunCodeFlavor
+ * @property {string} description - the model-facing `run_code` tool description.
+ * @property {string} codeDescription - the model-facing `code` parameter description.
+ */
+
 /** Per-language `run_code` schema flavors; one entry per {@link CodeSdkLanguage}. */
 const RUN_CODE_FLAVORS = {
   typescript: TYPESCRIPT_FLAVOR,
@@ -84,14 +97,8 @@ const RUN_CODE_DESCRIPTION_PARAM_DESCRIPTION
 function resolveFlavor(peekRuntime) {
   const runtime = peekRuntime()
   if (runtime === undefined) {
-    // No runtime mounted: reached by definition readers and `schemas()`, of
-    // which the doc-catalog harvest is the only shipped one. None feeds a
-    // model — `wireSchemas` calls `requireCodeRuntime` before projecting, so
-    // the assembly path never arrives here. Degrade to the TS default.
     return TYPESCRIPT_FLAVOR
   }
-  // Own-property read: a language like `toString`/`constructor` would otherwise
-  // resolve an inherited Object.prototype member as a flavor.
   const flavor = RUN_CODE_FLAVORS[runtime.language]
   if (!Object.hasOwn(RUN_CODE_FLAVORS, runtime.language) || flavor === undefined) {
     const known = Object.keys(RUN_CODE_FLAVORS).map(name => JSON.stringify(name)).join(', ')
@@ -223,7 +230,7 @@ function renderValue(value) {
 }
 
 /**
- * Build the `run_code` {@link ToolDefinition}: required `code` and
+ * Build the `run_code` {@link import('./schema.js').ToolDefinition}: required `code` and
  * `description` parameters, executed through the dispatch bridge described
  * above. The
  * registry reserves it as presentation infrastructure under non-native modes,
@@ -237,12 +244,6 @@ export function createRunCodeTool(registry, options) {
   const { requireRuntime, peekRuntime, maxParallel, shapeDispatchLog } = options
   const definition = defineTool({
     name: RUN_CODE_NAME,
-    // The description and `code` parameter description are placeholders here:
-    // the language-aware getters installed below replace both, resolving the
-    // loaded runtime's flavor at schema-emission time so the schema the MODEL
-    // sees matches the SDK section's language. Argument VALIDATION still keys
-    // off this static spec (defineTool closes over it), which is language-
-    // independent (one required string `code`).
     description: TYPESCRIPT_FLAVOR.description,
     parameters: {
       code: { type: 'string', required: true, description: TYPESCRIPT_FLAVOR.codeDescription },
@@ -273,30 +274,11 @@ export function createRunCodeTool(registry, options) {
       }
       const runtime = requireRuntime()
 
-      // The run-scoped abort: follows the outer signal in, and fires when the
-      // run settles for ANY reason, so an in-flight sub-dispatch is aborted
-      // (its executor kills on this signal) instead of orphaned, and
-      // queued-unstarted dispatches are abandoned.
       const runController = new AbortController()
       const onOuterAbort = () => { runController.abort(exec.signal.reason) }
       exec.signal.addEventListener('abort', onOuterAbort, { once: true })
 
       let dispatches = 0
-      // The per-run scheduler uses the registry's staged interface and follows
-      // the same concurrency rules as the native loop. It also follows the
-      // native loop's SEQUENCING: every ordered stage (the dispatch-start
-      // append, prepare = pre-execute/guards, finalize/finish = post-execute,
-      // context deferral, the settle append) runs inside ONE driver lane, so
-      // ordered policy stages never overlap each other and only the
-      // around-dispatch/body stage runs concurrently. Starts are strictly
-      // submission-ordered; results commit in submission order through the
-      // head-of-line cursor. Consecutive parallel-classified calls overlap up
-      // to maxParallel; an exclusive call waits for the pool to drain, runs
-      // alone, and holds its barrier until its COMMIT (post-execute included)
-      // completes, exactly like a native exclusive group. Classification is
-      // re-read via executionMode() immediately before each start (a registry
-      // mutation while queued can flip a call exclusive), matching the native
-      // scheduler's lazy reclassification.
       const pendingQueue = []
       const inFlight = new Set()
       /** Tracked settle-event side work (log-content listener + append), drained at run settlement. */
@@ -324,15 +306,11 @@ export function createRunCodeTool(registry, options) {
         driverRun = (async () => {
           try {
             for (;;) {
-              // Create the wakeup promise before inspecting state so a settle or submission arriving
-              // between the checks and the await below cannot be lost.
               const signal = new Promise((resolve) => { wake = resolve })
               const commitHead = commitQueue[0]
               if (commitHead !== undefined && commitHead.settled) {
                 commitQueue.shift()
                 await commitHead.commit()
-                // The barrier covers post-execute: later starts wait for the
-                // exclusive call's full pipeline, as under the native loop.
                 if (commitHead.mode === 'exclusive') exclusiveActive = false
                 continue
               }
@@ -343,7 +321,6 @@ export function createRunCodeTool(registry, options) {
                   head.abandon()
                   continue
                 }
-                // Reclassify at start time (fail-closed on registry changes).
                 const mode = head.classify()
                 const capacity = !exclusiveActive
                   && (mode === 'exclusive' ? inFlight.size === 0 : inFlight.size < maxParallel)
@@ -351,8 +328,6 @@ export function createRunCodeTool(registry, options) {
                   if (mode === 'exclusive') exclusiveActive = true
                   head.mode = mode
                   pendingQueue.shift()
-                  // Joined before start() so the commit cursor sees submission
-                  // order; nothing commits it until `settled` flips.
                   commitQueue.push(head)
                   await head.start()
                   const flight = head.flight.finally(() => {
@@ -375,18 +350,10 @@ export function createRunCodeTool(registry, options) {
       }
       /** Every dispatch settled AND committed; nothing can start (the run is aborted at call time). */
       const drainDispatches = async () => {
-        // The abort already fired: the driver abandons queued-unstarted
-        // entries, awaits the live pool, and drains the ordered commit lane —
-        // including a commit already in progress when the program returned.
         await drive()
-        // Every settle event is appended inside the open run_code turn
-        // (tasks self-remove on settlement).
         while (logWork.size > 0) await Promise.allSettled([...logWork])
       }
 
-      // Read through a call, not a bare property: the abort state genuinely
-      // changes across awaits, and a direct `.aborted` re-check after one
-      // would be narrowed away by control flow analysis.
       const runOver = () => runController.signal.aborted
 
       const binding = name => async (rawArgs) => {
@@ -407,29 +374,16 @@ export function createRunCodeTool(registry, options) {
         }
         const scheduler = registry[TOOL_RUNTIME_SCHEDULER]
         const outcome = await new Promise((resolve, reject) => {
-          // Set by the dispatch stage (or start() for a pre-settled result): what commit() finalizes in submission order.
           let parked
           const settle = (result) => {
-            // The program gets its value NOW: the log-content listener (for
-            // example, a spill backend) must never delay the binding or occupy
-            // a dispatch slot. The event append is tracked side work; the run's
-            // settlement drains logWork so every settle event is still appended
-            // inside the open turn (shapeDispatchLog is contained, so this
-            // chain cannot reject).
             resolve(result.isError
               ? { isError: true, message: result.error.message }
               : { isError: false, value: result.value })
             const agent = exec.agent
             if (agent === undefined) return
             const task = (async () => {
-              // The listener may replace the durable copy with a preview and
-              // locator; the program's value and model-visible result are
-              // untouched.
               const logged = await shapeDispatchLog({
                 exec, agent, subCallId, name, isError: result.isError,
-                // The registry deep-froze this projection at result
-                // finalization; append snapshots the final copy again, so
-                // the log stays detached.
                 content: result.content,
               })
               agent.session.append('tool/code-dispatch', {
@@ -437,9 +391,6 @@ export function createRunCodeTool(registry, options) {
                 parentCallId: exec.callId,
                 subCallId,
                 name,
-                // The SIBLING parse of the dispatched value: byte-identical JSON,
-                // but a separate object — a tool mutating its args cannot desync
-                // this record from what it actually received.
                 arguments: normalized.logged,
                 isError: result.isError,
                 content: logged,
@@ -450,8 +401,6 @@ export function createRunCodeTool(registry, options) {
           pendingQueue.push({
             flight: Promise.resolve(),
             settled: false,
-            // Re-read per driver pass against the same agent view the SDK
-            // declared; fail-closed exclusive when undeclared/invalid.
             classify: () => registry.executionMode(input).kind,
             abandon: () => {
               reject(new Error(`run_code run is over (${String(runController.signal.reason)}); ${name} tool call abandoned`))
@@ -464,9 +413,6 @@ export function createRunCodeTool(registry, options) {
                 name,
                 arguments: normalized.logged,
               })
-              // Ordered prepare runs INSIDE the driver lane: the next entry's
-              // pre-execute waits for this resolution, as under the native
-              // scheduler. Only the launched body below overlaps.
               const prepared = await scheduler.prepare(input)
               if (prepared.kind === 'dispatch') {
                 this.flight = scheduler.dispatch(prepared.exec).then((dispatchOutcome) => {
@@ -493,47 +439,22 @@ export function createRunCodeTool(registry, options) {
               for (const context of result.additionalContexts ?? []) {
                 exec.deferContext(context)
               }
-              // The composite forwards `additionalContexts` above and
-              // `concludesTurn` here from the nested result. Only a successful
-              // nested result can carry the terminal marker
-              // (ToolExecutionFailure types it never), so a policy-converted
-              // failure cannot stop the turn through a recovering program.
               if (result.concludesTurn) exec.concludeTurn()
               settle(result)
-              // Backpressure on pending event-append tasks: each task retains
-              // a full result while a slow backend stores it, so the pool cap
-              // bounds their count. Beyond the cap, the
-              // ordered lane waits, so later sub-calls cannot start and
-              // pending I/O/memory cannot grow without bound.
               while (logWork.size > maxParallel) await Promise.race(logWork)
             },
           })
           wakeup()
           void drive()
         })
-        // A budget expiry or outer cancel that occurs while this call was in
-        // flight already aborted the dispatch; stop the program now rather
-        // than hand it a result from a run that is over.
         if (runOver()) {
           throw new Error(`run_code run is over (${String(runController.signal.reason)}); ${name} result discarded`)
         }
-        // The worker turns a binding rejection into ToolCallError and adds
-        // only the binding name. Native content and internal error metadata
-        // stay outside the program-facing failure contract.
         if (outcome.isError) throw new Error(outcome.message)
         return outcome.value
       }
 
-      // Null-prototype + defineProperty, mirroring the worker-side namespace
-      // build: a registered tool named `__proto__` must become an ordinary
-      // own key (a plain-object assignment would hit the prototype setter,
-      // silently dropping the binding), and the runtime host resolves
-      // binding names as own properties only.
       const functions = Object.create(null)
-      // Enumerate the CALLING AGENT's visible set (scoped tools join,
-      // restricted globals vanish) — the same view the SDK section declared,
-      // so a program can bind exactly what its prompt promised; sub-dispatch
-      // re-resolves per call through the same view (exec.agent threads down).
       for (const schema of registry.schemas(exec.agent)) {
         if (schema.name === RUN_CODE_NAME) continue
         Object.defineProperty(functions, schema.name, { enumerable: true, value: binding(schema.name) })
@@ -552,9 +473,6 @@ export function createRunCodeTool(registry, options) {
             signal: runController.signal,
           })
         } finally {
-          // Abort sub-dispatches and drain every in-flight dispatch before
-          // closing the turn (queued-unstarted ones are abandoned unlogged).
-          // Binding failures remain observable through their individual promises.
           runController.abort('run_code settled')
           await drainDispatches()
         }
@@ -571,30 +489,19 @@ export function createRunCodeTool(registry, options) {
         exec.signal.removeEventListener('abort', onOuterAbort)
       }
     },
-    // The model-authored description is the call's always-visible UI label
-    // (the bash `description` precedent); the program itself rides rawInput.
     presentCall: args => ({
       card: 'generic',
       title: args.description,
       kind: 'execute',
       rawInput: args.code,
     }),
-    // Deliberately no presentResult: the generic card fallback keeps this
-    // title and reads durable result content without duplicating a large raw
-    // result into the host view payload.
   })
-  // Resolve the language flavor lazily, at the moment the registry projects the
-  // schema (`schemaOf` destructures `description`/`parameters`). The definition
-  // is minted once at registration, before a runtime is known; deferring here
-  // is the least invasive point that still emits the loaded runtime's language.
   Object.defineProperty(definition, 'description', {
     enumerable: true,
     get: () => resolveFlavor(peekRuntime).description,
   })
   Object.defineProperty(definition, 'parameters', {
     enumerable: true,
-    // Recompile through the same spec→schema projection defineTool used, so
-    // the emitted schema always matches the validated specification.
     get: () => parameterSchemaSpecToJsonSchema({
       code: { type: 'string', required: true, description: resolveFlavor(peekRuntime).codeDescription },
       description: { type: 'string', required: true, description: RUN_CODE_DESCRIPTION_PARAM_DESCRIPTION },

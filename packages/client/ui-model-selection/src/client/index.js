@@ -14,7 +14,7 @@
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { ModelDirectoryResolver } from './service.js'
 export { ModelSelect } from './ModelSelect.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 
 export { ModelDirectory } from './directory.js'
 export { ModelDirectoryResolver } from './service.js'
@@ -86,19 +86,12 @@ export const inject = ['commandUi', 'connection', 'locale', 'sessions', 'slots',
  * @param ctx - client root context.
  */
 export function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-model-selection: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-model-selection: dictionaries')
 
-  // Non-slot faces (the command description, the popup option builder) read
-  // through the bound translate; the seat component reads the standard seat.
   const t = ctx.locale.bind(NS)
 
-  // The composer-block reason is this plugin's own copy, read at raise time so
-  // a locale change reaches the next publish.
   ctx.plugin(ModelDirectoryResolver, { blockReason: () => t('blocked.composer') })
 
-  // Entry 1: the /model popupSelect over the shared directory. The command
-  // description is registry-held text: it reads t() once at registration and
-  // refreshes only on re-registration, not on locale change.
   ctx.inject(['commandUi', 'modelDirectories'], (scope) => {
     const command = scope.get('commandUi')
     const models = scope.modelDirectories
@@ -130,7 +123,6 @@ export function apply(ctx) {
     }), 'ui-model-selection: /model contribution')
   })
 
-  // Entry 2: the composer's named model seat over the SAME directory.
   ctx.inject(['slots', 'modelDirectories'], (scope) => {
     const models = scope.modelDirectories
     const sessions = scope.sessions
@@ -144,7 +136,7 @@ export function apply(ctx) {
           available,
           directory: directory.store,
           load: () => {
-            if (available) directory.load().catch(() => { /* surfaced on the store */ })
+            if (available) directory.load().catch(() => {})
           },
           select: (selection) => available
             ? directory.select(selection).then(() => true, () => false)

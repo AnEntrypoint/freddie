@@ -12,7 +12,7 @@ import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { createWorkspaceViewStore } from './stores.js'
 import './WorkspaceBrowser.js'
 import './WorkspacePicker.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 
 /** Dictionary namespace owned by this plugin. */
 const NS = 'workspace'
@@ -36,7 +36,7 @@ export const inject = ['slots', 'sessions', 'workspaces', 'locale', 'connection'
 export function apply(ctx) {
   const connection = ctx.get('connection')
   const hostDescription = connection.hostDescription
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-workspace: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-workspace: dictionaries')
 
   const searchSessions = async (query, signal) => {
     const result = await ctx.sessions.search(query, signal)
@@ -44,8 +44,6 @@ export function apply(ctx) {
     return result.value
   }
 
-  // Stable per-surface occupancy sources (the renderer's hook cache keys by
-  // source identity): true while the surface's directory-flow hole is filled.
   const flowSource = (hole) => ({
     getSnapshot: () => ctx.slots.entries(hole).length > 0,
     subscribe: listener => ctx.slots.subscribe(hole, listener),
@@ -53,15 +51,11 @@ export function apply(ctx) {
   const browserFlowSource = flowSource('sidebar.workspaces.directoryFlow')
   const pickerFlowSource = flowSource('conversation.hero.workspace.directoryFlow')
   const browserInjected = () => ({
-    // Explicit group actions keep their target; unscoped New Session inherits
-    // the current Session Workspace before the recent-Workspace fallback.
     startSession: (workspaceId) => { ctx.workspaces.startSession(workspaceId) },
     open: (sessionId) => { ctx.sessions.open(sessionId) },
     searchSessions,
     searchResultLimit: ctx.sessions.searchResultLimit,
     renameSession: async (sessionId, title) => {
-      // Row → session-face hop: rename is a per-session verb (ISession), not
-      // a list-service verb; the binding resolves any listed session.
       const session = ctx.sessions.binding(sessionId)?.session
       if (session === undefined) throw new Error(`unknown session "${sessionId}"`)
       const result = await session.rename(title)
@@ -70,9 +64,7 @@ export function apply(ctx) {
     forkSession: (sessionId) => {
       ctx.sessions.fork({ sessionId, increaseTitle: true })
         .then((childId) => { ctx.sessions.open(childId) })
-        .catch(() => {
-          // Fork or child-rename failure keeps the current selection.
-        })
+        .catch(() => {})
     },
     renameWorkspace: async (workspaceId, title) => { await ctx.workspaces.rename(workspaceId, title) },
     deleteWorkspace: async (workspaceId) => { await ctx.workspaces.delete(workspaceId) },
@@ -90,8 +82,6 @@ export function apply(ctx) {
     createWorkspace: input => ctx.workspaces.create(input),
     hooks: { directoryFlow: pickerFlowSource },
   })
-  // Each registration declares its directory-flow child in the same call;
-  // slot injection follows both the owner and declaration HMR lifetimes.
   ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register(
     {
       name: 'sidebar.workspaces',
@@ -100,12 +90,6 @@ export function apply(ctx) {
       inject: browserInjected,
       locale: NS,
     },
-    // The webjsxSlot() stub is a bare (props) => null function: it cannot
-    // structurally prove it consumes renderSlot the way RendersCheck wants
-    // (dispatch happens inside the registered custom element itself, off
-    // ui-slots' type-erased entry.component boundary — see webjsxSlot's own
-    // doc, and ui-layout/index.ts for the same escape hatch). The runtime
-    // dispatch is unaffected; only this compile-time shape check needs it.
     webjsxSlot('freddie-workspace-browser'),
   ))
   ctx.slots.inject('conversation.hero.workspace', () => ctx.slots.register(

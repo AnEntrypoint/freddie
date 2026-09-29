@@ -263,8 +263,6 @@ export class FreddieViewOptionsMenu extends HTMLElement {
       },
       align: 'end',
       dense: true,
-      // Portal: the section header clips overflow, so an in-place list would
-      // be cut off at the header's bounds.
       portal: true,
       anchor: (
         this.#tooltipEl = renderTooltip(this.#tooltipEl, {
@@ -517,9 +515,6 @@ export class FreddieSessionTree extends HTMLElement {
                 commitWorkspaceDrag(this.#workspaceDrag, { id: workspaceId, half })
               }
             return (
-            // Group section: header row + expanded top-level session rows. The
-            // inter-group breathing room is the section's own margin
-            // (WorkspaceBrowser.module.css).
               h('div', {
                 key: group.key,
                 role: 'presentation',
@@ -578,8 +573,6 @@ export class FreddieSessionTree extends HTMLElement {
                   ? group.sessions
                   : group.sessions.slice(0, COLLAPSED_SESSION_LIMIT)
                 ).map((node) => {
-                // Session drag never leaves its group. Ungrouped writes only the
-                // browser-local account; real Workspaces may also write Host order.
                   const sameGroupDrag = drag !== null && drag.accountKey === group.key
                   const dragProps = {
                     start: () => {
@@ -918,13 +911,10 @@ function SearchResults(props) {
 export class FreddieWorkspaceBrowser extends HTMLElement {
   #props = null
 
-  // Blank-session promotion (was a `useRef`).
   #promotedBlank = undefined
 
-  // Account-key retention sync edge-trigger (was a useEffect deps array: [workspacePhase, workspaces]).
   #retainedAccountKeys = null
 
-  // Search (wide-only), was useState/useRef.
   #query = ''
   #searchExpanded = false
   #remoteSearch = { query: '', status: 'idle', items: [], hasMore: false }
@@ -933,67 +923,45 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
   #searchRoot = null
   #searchInput = null
 
-  // Section-header + picker.
   #wsPickerOpen = false
   #wsPlusEl = null
   #composing = false
   #wsPickFlow = null
   #tooltips = new Map()
 
-  // Rail search = expand + land in the search box.
   #searchOnExpand = false
   #expandFocusTimer = null
   #expandFocusArmedFor = null
 
-  // Outside-click dismissal.
   #outsideClickBound = false
 
-  // Reused across renders (see SessionTree/FlatList's own row-item-cache
-  // comment): this component re-renders on every store tick, and a fresh
-  // document.createElement('freddie-session-tree'/'freddie-flat-list') per
-  // render would reset that element's own row-item caches to empty every
-  // time, defeating them entirely -- the leak this was chasing showed up as
-  // a HoverCard portal surviving pointerleave with no #close() ever logged,
-  // because the render that should have received the pointerleave belonged
-  // to an already-replaced FreddieSessionTree/FreddieFlatList instance.
   #sessionListEl = null
   #sessionListKind = null
   #onOutsideClick = null
 
-  // Search debounce (AbortController), was useEffect keyed on normalizedQuery.
   #searchQueryInFlight = null
   #searchAbort = null
   #searchDebounceTimer = null
 
-  // Rename dialog (workspace).
   #renameTarget = null
   #renameDraft = ''
   #renaming = false
   #renameError = null
 
-  // Session rename dialog.
   #sessionRenameTarget = null
   #sessionRenameDraft = ''
   #sessionRenaming = false
   #sessionRenameError = null
 
-  // Delete dialog.
   #deleteTarget = null
   #deleting = false
 
-  // Self-mounting portal dialogs held across renders (see Modal.tsx doc).
   #renameModal = null
   #sessionRenameModal = null
   #deleteModal = null
   #deleteCommittedId = null
   #deleteError = null
 
-  // See FreddieConversationRoot's identical guard (ui-conversation package):
-  // this element's one-shot creation helper calls setProps() synchronously
-  // before insertion into the document; connectedCallback then fires again
-  // right after. Rendering unconditionally in both places double-renders
-  // the first mount around that detach/attach boundary, which has been
-  // observed to desync webjsx's per-element diff cache from the live DOM.
   #renderedOnce = false
 
   setProps(props) {
@@ -1016,12 +984,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
     this.#searchAbort = null
   }
 
-  // WAI-ARIA tree pattern: ArrowDown/ArrowUp move focus among treeitems
-  // (wrapping at the ends), matching role="tree"'s implied keyboard contract
-  // -- same fix class as Menu.js. Queries the live DOM rather than tracking a
-  // parallel focus-index field, since it must work uniformly across this
-  // component's 3 render paths (grouped tree, flat list, search results),
-  // each producing role="treeitem" buttons with a different DOM shape.
   #onTreeKeyDown = (event) => {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
     if (!(event.target instanceof Element) || event.target.getAttribute('role') !== 'treeitem') return
@@ -1240,9 +1202,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
     this.#deleteError = null
     this.#render()
     props.deleteWorkspace(deleteTarget.workspaceId).then(() => {
-      // Keep the confirmation pending until this component has rendered the
-      // committed list projection without the deleted id. Closing earlier
-      // exposes one stale frame to the next Create Workspace gesture.
       this.#deleteCommittedId = deleteTarget.workspaceId
       this.#render()
     }).catch((reason) => {
@@ -1252,10 +1211,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
     })
   }
 
-  // h(Tooltip, {...}) calls Tooltip(props) synchronously (webjsx's
-  // function-component branch), Tooltip.js's bare one-shot factory --
-  // recreating the freddie-tooltip element (dropping its in-flight #showTimer
-  // hover-delay) on every #render(). `key` is a stable per-call-site label.
   #tooltip(key, props, ...children) {
     const el = renderTooltip(this.#tooltips.get(key) ?? null, { ...props, children })
     this.#tooltips.set(key, el)
@@ -1362,8 +1317,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
     const workspaces = useWorkspaces(state => state.items)
     const workspacePhase = useWorkspaces(state => state.phase)
     const archivedSessionIds = useWorkspaces(state => state.archivedSessionIds)
-    // Live occupancy of this surface's directory-flow hole (the same source the
-    // flow reads): a composition without a picking affordance can add nothing.
     const directoryFlowAvailable = useDirectoryFlow(occupied => occupied)
     const groupBy = useStore(s => s.groupBy)
     const orderBy = useStore(s => s.orderBy)
@@ -1379,7 +1332,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
       : (workspaces.find(workspace => workspace.sessionIds.includes(currentBlankSessionId))
         ?.workspaceId) ?? UNGROUPED_KEY
 
-    // Blank-session promotion sync (was a useEffect).
     if (currentBlankSessionId === undefined || currentBlankAccount === undefined) {
       this.#promotedBlank = undefined
     } else if (this.#promotedBlank === undefined
@@ -1395,13 +1347,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
       }
     }
 
-    // Account-key retention sync (was a useEffect keyed on workspacePhase/workspaces).
-    // retainAccountKeys always rebuilds fresh object references (even when
-    // nothing is filtered out), so calling it unconditionally every render
-    // produced a new store snapshot on every render, which resynchronously
-    // re-rendered this subscriber — an infinite loop with no yield point,
-    // hanging the tab. Edge-triggered on the actual key set, matching the
-    // original effect's dependency array.
     if (workspacePhase === 'ready') {
       const accountKeys = [
         UNGROUPED_KEY,
@@ -1437,7 +1382,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
     this.#syncOutsideClick(wide, searchExpanded, normalizedQuery)
     this.#syncSearchRequest(normalizedQuery, searchSessions)
 
-    // Rename dialog derived state.
     const renameTarget = this.#renameTarget
     const renameDraft = this.#renameDraft
     const renaming = this.#renaming
@@ -1448,7 +1392,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
     const renameBlocked = renaming || renameTrimmed === ''
       || renameTarget === null || renameTrimmed === renameTarget.currentTitle || renameDuplicate
 
-    // Session rename dialog derived state.
     const sessionRenameTarget = this.#sessionRenameTarget
     const sessionRenameDraft = this.#sessionRenameDraft
     const sessionRenaming = this.#sessionRenaming
@@ -1456,7 +1399,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
     const sessionRenameTrimmed = sessionRenameDraft.trim()
     const sessionRenameBlocked = sessionRenaming || sessionRenameTrimmed === '' || sessionRenameTarget === null
 
-    // Delete dialog sync (was a useEffect keyed on [deleteCommittedId, workspaces]).
     const deleteCommittedId = this.#deleteCommittedId
     if (deleteCommittedId !== null && !workspaces.some(workspace => workspace.workspaceId === deleteCommittedId)) {
       this.#deleting = false
@@ -1564,9 +1506,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
               onOrderPick: (mode) => { actions.setOrderBy(mode) },
               t,
             }),
-            /* Adding is the button's one action, so a composition with no
-                picking affordance has nothing to offer here: the region hides the
-                button rather than leaving a dead one in the header. */
             directoryFlowAvailable && (
               this.#tooltip('workspaceAdd', {label: t('workspace.add'), side: 'bottom', delayMs: 500},
                 h('button', {
@@ -1584,9 +1523,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
               )
             ),
           ),
-          /* Add flow + its error dialog. Cached across renders so the
-             auto-open latch on the custom element survives onClose's
-             synchronous re-render. */
           (this.#wsPickFlow = renderWorkspacePickFlow(this.#wsPickFlow, {
             t,
             open: wsPickerOpen,
@@ -1606,7 +1542,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
           })),
         ),
 
-        /* The collapsed rail keeps search as its own 36px control. */
         !wide && h('div', {class: css.search ?? ''},
           this.#tooltip('railSearch', {label: t('search')},
             h('button', {
@@ -1625,8 +1560,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
           ),
         ),
 
-        /* Always-mounted seat keeps the region's flex slot while the list
-            itself is wide-only. */
         h('div', {class: css.listArea ?? ''},
           wide && (normalizedQuery !== ''
             ? SearchResults({

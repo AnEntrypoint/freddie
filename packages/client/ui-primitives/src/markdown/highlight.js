@@ -13,9 +13,9 @@
  * is requested, so a session that never opens a read card in one of those
  * languages pays neither the ~1.6 MB of grammar modules nor their synchronous
  * init. The first render of a lazy language falls back to plain text while its
- * grammar loads, then {@link onGrammarLoaded} notifies subscribers to re-render
- * with highlighting. An unknown or absent language falls back to plain text (no
- * highlighting, still monospace) — never an error.
+ * grammar loads, then {@link subscribeGrammarLoaded} notifies subscribers to
+ * re-render with highlighting. An unknown or absent language falls back to
+ * plain text (no highlighting, still monospace) — never an error.
  */
 
 import { createHighlighterCoreSync, createCssVariablesTheme } from 'shiki/core'
@@ -221,7 +221,6 @@ export function grammarLoadCount() {
  */
 function ensureGrammar(resolved) {
   const load = LAZY_GRAMMARS.get(resolved)
-  // A boot grammar (already registered) has no lazy loader; it is always ready.
   if (load === undefined) return true
   if (highlighter().getLoadedLanguages().includes(resolved)) return true
   if (!requested.has(resolved)) {
@@ -235,16 +234,6 @@ function ensureGrammar(resolved) {
   return false
 }
 
-// Engine + grammar construction costs a long task (~120-175ms); building it
-// during the first finalized fence's render would jank exactly when a stream
-// completes. `setTimeout(fn, 0)` still fires as soon as the current
-// macrotask queue drains, which can land the whole block mid-keystroke or
-// mid-scroll on a busy boot -- `requestIdleCallback` defers it to a real
-// browser idle slot instead, so the one-time cost never contends with
-// active input. The lazy path above stays as the correctness fallback for a
-// fence that renders (or a keystroke that lands) before idle time arrives,
-// and for the non-browser (Node-only) `unref`'d setTimeout fallback where
-// `requestIdleCallback` does not exist.
 const scheduleWarmup = typeof requestIdleCallback === 'function'
   ? requestIdleCallback
   : (fn) => {
@@ -258,7 +247,7 @@ scheduleWarmup(() => { highlighter() })
  * when `lang` maps to a registered grammar; `undefined` means the caller
  * renders its plain fallback. A lazy grammar not yet loaded returns `undefined`
  * for this call and loads in the background; subscribe with
- * {@link onGrammarLoaded} to re-highlight once it registers.
+ * {@link subscribeGrammarLoaded} to re-highlight once it registers.
  * @param code - the source text.
  * @param lang - the language hint (a markdown fence info string or a fixed caller id).
  * @returns the highlighted HTML, or `undefined` for unknown or not-yet-loaded languages.
@@ -290,14 +279,8 @@ export function highlightLines(code, lang) {
   if (resolved === undefined) return undefined
   if (!ensureGrammar(resolved)) return undefined
   const { tokens } = highlighter().codeToTokens(code, { lang: resolved, theme: 'css-variables' })
-  // shiki tokenizes `a\nb` into two lines; a trailing newline (`a\n`) adds a
-  // third, empty line the caller's own line array does not carry. Drop that
-  // one terminator line so the two structures stay in step. The explicit
-  // `last !== undefined` (over `tokens[...]?.length`) keeps a single branch for
-  // per-file coverage, matching TerminalBlock's terminator check.
-  const last = tokens[tokens.length - 1]
-  const lines = tokens.length > 1 && last !== undefined && last.length === 0
-    ? tokens.slice(0, -1)
-    : tokens
+  const lastLine = tokens[tokens.length - 1]
+  const endsWithEmptyTerminatorLine = tokens.length > 1 && lastLine !== undefined && lastLine.length === 0
+  const lines = endsWithEmptyTerminatorLine ? tokens.slice(0, -1) : tokens
   return lines.map(line => line.map(token => ({ text: token.content, style: `color: ${token.color}` })))
 }

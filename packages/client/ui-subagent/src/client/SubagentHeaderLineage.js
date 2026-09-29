@@ -659,13 +659,9 @@ export class FreddieCatalogDropdown extends HTMLElement {
       : displayTitle
     const healthy = catalog?.entries.filter(entry => entry.kind === 'child') ?? []
     const descendants = indexSubagentDescendants(summaries).get(rootSessionId) ?? NO_DESCENDANTS
-    // The catalog can arrive before the session-list baseline; never undercount
-    // the already-visible direct rows during that short bootstrap window.
     const descendantCount = Math.max(healthy.length, descendants.count)
     const totalCountKey = descendantCount === 1 ? 'count.total.one' : 'count.total.other'
     const runningCountKey = descendants.runningCount === 1 ? 'count.running.one' : 'count.running.other'
-    // Session summaries can announce membership before the descriptor-backed catalog catches up.
-    // Keep that entry point visible through disabled loading rows; only catalog rows are navigable.
     const summaryBackedLoading = (descendants.count > 0 || variant === 'switcher')
       && (catalog === undefined || (catalog.state === 'ready' && catalog.entries.length === 0))
     const presentedCatalog = summaryBackedLoading
@@ -677,10 +673,6 @@ export class FreddieCatalogDropdown extends HTMLElement {
       }
       : catalog
 
-    // Visibility needs evidence of children (entries, summary-known descendants,
-    // or a failed load worth retrying). A bare loading catalog is not evidence:
-    // selecting any session schedules a refresh whose loading snapshot would
-    // otherwise flash the action in and out on childless sessions.
     const visible = presentedCatalog !== undefined
       && (variant === 'switcher'
         || presentedCatalog.state === 'error'
@@ -807,6 +799,21 @@ export class FreddieCatalogDropdown extends HTMLElement {
 defineElement('freddie-catalog-dropdown', FreddieCatalogDropdown)
 
 /**
+ * @typedef {object} CatalogDropdownProps
+ * @property {string} rootSessionId - session whose subagent catalog this dropdown renders.
+ * @property {string} [currentSessionId] - session id highlighted as the active entry (switcher variant).
+ * @property {string} [displayTitle] - fallback title shown until the current entry resolves its own label.
+ * @property {() => void} [openTitle] - opens the current title instead of the dropdown, when present.
+ * @property {'switcher'|'count'} variant - trigger presentation: a labeled switcher or a bare descendant count.
+ * @property {boolean} [separator] - renders a leading `/` separator before the trigger.
+ * @property {(selector: (state: object) => *) => *} useSessions - session-store selector hook.
+ * @property {(args: {parentSessionId: string, childSessionId: string, mode: string}) => void} openChild - opens a catalog child in the conversation view.
+ * @property {(sessionId: string) => void} refresh - requests a fresh catalog snapshot for a session.
+ * @property {(sessionId: string, open: boolean) => void} setCatalogOpen - reports whether this dropdown is observing a given catalog.
+ * @property {(key: string, params?: object) => string} t - locale translation function.
+ */
+
+/**
  * Create (if needed) or update a CatalogDropdown element in place.
  * @param el - an existing `freddie-catalog-dropdown` element to update, or null to create one.
  * @param props - see {@link CatalogDropdownProps}.
@@ -830,12 +837,6 @@ function renderCatalogDropdown(el, props) {
  */
 export class FreddieSubagentHeaderLineage extends HTMLElement {
   #props = null
-  // Imperatively managed children: webjsx's JSX.IntrinsicElements only covers
-  // built-in HTMLElementTagNameMap/SVGElementTagNameMap tags, so an
-  // unregistered custom-element tag like `freddie-catalog-dropdown` cannot be
-  // authored as a JSX element (no global TagNameMap augmentation exists for
-  // it) — these two slots are created/updated/removed directly instead,
-  // mirroring FreddieGoalDock's host-a-child-custom-element pattern.
   #ancestorOrCount = null
   #ownCount = null
 
@@ -849,8 +850,6 @@ export class FreddieSubagentHeaderLineage extends HTMLElement {
   }
 
   disconnectedCallback() {
-    // Child freddie-catalog-dropdown elements release their own listeners via
-    // their own disconnectedCallback when removed from the DOM below.
   }
 
   #render() {
@@ -916,6 +915,18 @@ export class FreddieSubagentHeaderLineage extends HTMLElement {
 }
 
 defineElement('freddie-subagent-header-lineage', FreddieSubagentHeaderLineage)
+
+/**
+ * @typedef {object} SubagentHeaderLineageProps
+ * @property {string} lineageSessionId - the subagent session whose ancestor chain and descendant count render.
+ * @property {string} [displayTitle] - fallback title for the ancestor switcher until its current entry resolves one.
+ * @property {() => void} [openTitle] - opens the current title instead of the ancestor switcher, when present.
+ * @property {(selector: (state: object) => *) => *} useSessions - session-store selector hook.
+ * @property {(args: {parentSessionId: string, childSessionId: string, mode: string}) => void} openChild - opens a catalog child in the conversation view.
+ * @property {(sessionId: string) => void} refresh - requests a fresh catalog snapshot for a session.
+ * @property {(sessionId: string, open: boolean) => void} setCatalogOpen - reports whether a descendant catalog dropdown is observing a given session.
+ * @property {(key: string, params?: object) => string} t - locale translation function.
+ */
 
 /**
  * Create (if needed) or update a SubagentHeaderLineage element in place.

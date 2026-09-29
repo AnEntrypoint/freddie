@@ -34,12 +34,34 @@ const COLD_READ_CONCURRENCY = 4
  * descriptor may not be appended yet (the creation window). Diagnostics
  * relay the projection fold's outcome or a failed read, never a per-child
  * event scan, and never expose model-hidden descriptor content.
+ * @typedef {SubagentChildRow | SubagentChildDiagnostic} SubagentChildListEntry
+ */
+
+/**
+ * A resolved child entry produced from a served `subagent` projection value.
+ * @typedef {object} SubagentChildRow
+ * @property {'child'} kind
+ * @property {string} id
+ * @property {'one-shot' | 'continuable'} mode
+ * @property {string} [label]
+ * @property {'running' | 'inactive'} activity
+ * @property {boolean} hasChildren
+ */
+
+/**
+ * A settled candidate whose projection fold served no identity, or a failed
+ * cold read.
+ * @typedef {object} SubagentChildDiagnostic
+ * @property {'diagnostic'} kind
+ * @property {string} id
+ * @property {'corrupt' | 'unavailable'} reason
  */
 
 /**
  * One entry of a descendant listing: the interpreted subagent facts plus its
  * position in the complete session tree. `parentId` is the durable direct
  * parent from the enumerated header, and `depth` counts edges from the root.
+ * @typedef {(SubagentChildRow | SubagentChildDiagnostic) & { parentId: string, depth: number }} SubagentDescendantEntry
  */
 
 /**
@@ -103,18 +125,12 @@ export async function listDescendants(ctx, rootSessionId, signal) {
 /** Resolve listing services once and build one live-preferred session corpus. */
 async function prepareListing(ctx, signal) {
   const projections = ctx.get('sessionProjections')
-  // Checked before any read, even with zero candidates: mode/label are the
-  // row's strong contract, so a missing fold capability is a deterministic
-  // deployment configuration error, never an empty success.
   if (projections === undefined) {
     throw new SubagentError(
       'listing subagents requires the sessionProjections registry (load @freddie/freddie-session-projection)',
       'SUBAGENT_CONTROL_PROJECTIONS_UNAVAILABLE',
     )
   }
-  // Strict global read, never the `ctx.sessions` property proxy: the proxy is
-  // caller-scope bound, so a consumer plugin without its own `sessions`
-  // injection (the model-facing tool, the API proxy) would throw on access.
   const sessions = ctx.get('sessions')
   if (sessions === undefined) {
     throw new SubagentError(
@@ -124,24 +140,17 @@ async function prepareListing(ctx, signal) {
   }
   assertListingNotCancelled(signal)
   const persistence = ctx.get('sessionPersistence')
-  // Optional acceleration only: an absent cache service just means every
-  // cold candidate takes the authoritative preparation rung, so it carries
-  // no error code and no configuration check.
   const cache = ctx.get('sessionProjectionCache')
   let persistedHeaders = []
   if (persistence !== undefined) {
     try {
       persistedHeaders = await persistence.list(signal)
     } catch (error) {
-      // The backend may reject with its own abort failure after observing the
-      // forwarded signal; cancellation stays a stable subagent failure.
       assertListingNotCancelled(signal)
       throw error
     }
     assertListingNotCancelled(signal)
   }
-  // Live-preferred merge without header reconciliation: a live record wins
-  // its id wholesale, exactly as a live-preferred corpus would serve it.
   const corpus = new Map()
   for (const header of persistedHeaders) corpus.set(header.id, { header, live: undefined })
   for (const session of sessions.list()) {
@@ -167,28 +176,17 @@ async function resolveCandidateRows(candidates, listing, signal) {
       coldReads.push({ index, header: candidate.header })
       return
     }
-    // The registry's watermark cache serves the live value with zero log
-    // reads; a live child without an identity yet is the creation window
-    // before the establishing provider appends its descriptor.
     let identity
     try {
       identity = projections.snapshot(candidate.live).values.subagent
     } catch {
-      // The snapshot folds EVERY registered unit over this child's log, so
-      // any unit's fold or schema can reject damaged payloads. That is
-      // deterministic data damage in this one child; it degrades to one
-      // corrupt diagnostic instead of failing the whole listing.
       rows[index] = { kind: 'diagnostic', id: childId, reason: 'corrupt' }
       return
     }
-    // The unit's serializable no-value sentinel is `null`; `undefined` can
-    // only mean the key was dropped at a JSON boundary. Both are no value.
     if (identity === undefined || identity === null) return
     rows[index] = childRow(childId, identity, 'running', subagentParents.has(childId))
   })
 
-  // Cold candidates exist only when persistence listed them, so the narrow
-  // re-check is about types, not reachability.
   if (persistence !== undefined && coldReads.length > 0) {
     const queue = [...coldReads]
     await Promise.all(Array.from(
@@ -225,7 +223,6 @@ function descendantCandidates(corpus, rootSessionId) {
     .reverse()
   const visited = new Set([rootSessionId])
   while (stack.length > 0) {
-    // The length guard proves one frame exists.
     // oxlint-disable-next-line typescript/no-non-null-assertion
     const position = stack.pop()
     const id = position.record.header.id
@@ -262,19 +259,8 @@ async function resolveColdIdentity(persistence, projections, cache, header, hasC
     try {
       cached = cache.cachedSnapshot(header)?.values.subagent
     } catch {
-      // Unlike the preparation fold below, a throwing cache read renders no
-      // verdict: the cache is derived data, so its damage (a poisoned stored
-      // row of ANY unit) silently falls through to the authoritative re-fold.
       cached = undefined
     }
-    // A child's OWN descriptor is immutable once appended, so a cached
-    // identity is final only when the seq gate proves it was folded from the
-    // own suffix: a creation-window checkpoint may instead carry a fork
-    // seed's replayed ANCESTOR descriptor (seq below `seedLength`), which
-    // must not outrank the re-fold. Everything else also falls through to
-    // preparation: an absent key (a cut before any descriptor) and the
-    // `null` sentinel, whose verdict belongs to the authoritative re-fold,
-    // not to a derived row.
     if (cached !== undefined && cached !== null && cached.seq >= (header.seedLength ?? 0)) {
       return childRow(childId, cached, 'inactive', hasChildren)
     }
@@ -284,15 +270,10 @@ async function resolveColdIdentity(persistence, projections, cache, header, hasC
   try {
     inspected = await persistence.inspect(childId, signal)
   } catch {
-    // Per-child isolation: the child vanished or its backend read failed —
-    // one diagnostic row, and the listing itself still succeeds.
     assertListingNotCancelled(signal)
     return { kind: 'diagnostic', id: childId, reason: 'unavailable' }
   }
   assertListingNotCancelled(signal)
-  // A session id names a slot, not a lifecycle: a child deleted and
-  // re-published under another owner between the enumeration and this read
-  // must not leak into the old parent's listing.
   if (!sameLifecycle(inspected.meta, header)) {
     return { kind: 'diagnostic', id: childId, reason: 'corrupt' }
   }
@@ -300,9 +281,6 @@ async function resolveColdIdentity(persistence, projections, cache, header, hasC
   try {
     identity = projections.restore({}, inspected.events, 0).snapshot.values.subagent
   } catch {
-    // The restore folds EVERY registered unit over this child's log, so any
-    // unit's fold or schema can reject damaged payloads — deterministic data
-    // damage in this one child, contained as its own corrupt diagnostic.
     return { kind: 'diagnostic', id: childId, reason: 'corrupt' }
   }
   if (identity === undefined || identity === null) {

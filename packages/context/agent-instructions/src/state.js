@@ -198,8 +198,6 @@ export async function reconcileInstructionContext(
   const effective = visibleInstructionChanges(agent, options.authorityMessages)
   /* v8 ignore next -- normal agents carry an absolute session cwd. */
   const cwd = session.header.cwd ?? process.cwd()
-  // TODO(frozen-project-root): retain the baseline root for the loop instance;
-  // recomputing it after marker edits reinterprets the existing relative scope keys.
   const projectRoot = options.projectRoot
     ?? await findProjectRoot(cwd, resolved.projectRootMarkers, fileSystem, options.signal)
   const scopes = new Set()
@@ -236,9 +234,6 @@ export async function reconcileInstructionContext(
 
   const versions = versionStatesFor(session, versionCache)
   const seenAbsolutePaths = new Set()
-  // Per-directory trimmed-content identities kept so far this pass, iterated in
-  // candidate order (base before local); a later sibling matching an earlier one
-  // is a duplicate and is dropped or removed rather than rendered twice.
   const keptTrimmedByDir = new Map()
   const registerKeptTrimmed = (directory, digest) => {
     let digests = keptTrimmedByDir.get(directory)
@@ -286,9 +281,6 @@ export async function reconcileInstructionContext(
       const probe = await probeScopeInstruction(scope, projectRoot, resolved, fileSystem, options.signal)
       if (probe.kind === 'unavailable') {
         if (previous === undefined || previous.action === 'remove') continue
-        // Same-directory candidates form one deduplicated authority group. If an
-        // active member cannot be observed, preserve the entire last-good group;
-        // cache warmth must never decide whether a sibling transition is emitted.
         items.splice(itemStart)
         versionUpdates.splice(versionUpdateStart)
         for (const [candidateScope, prior] of priorVersions) {
@@ -318,8 +310,6 @@ export async function reconcileInstructionContext(
         && previous.path === cached.path
         && previous.digest === cached.digest
       ) {
-        // Unchanged and previously rendered: keep it, but an earlier sibling that
-        // now matches its trimmed content makes this the duplicate to remove.
         if (registerKeptTrimmed(directory, cached.trimmedDigest)) pushRemoval(scope, previous.path)
         continue
       }
@@ -329,8 +319,6 @@ export async function reconcileInstructionContext(
       const currentDigest = instructionContentSha1(file.content)
       const trimmedDigest = trimmedInstructionDigest(file.content)
       if (registerKeptTrimmed(directory, trimmedDigest)) {
-        // A distinct file whose trimmed content already appeared earlier in this
-        // directory: drop it, removing any copy that was previously rendered.
         if (previous !== undefined && previous.action !== 'remove') pushRemoval(scope, previous.path)
         else versions.delete(scope)
         continue
@@ -358,9 +346,6 @@ export async function reconcileInstructionContext(
   }
   if (items.length === 0) return undefined
   const rendered = renderInstructionChanges(items, resolved.maxBytes)
-  // When no transition survived rendering (tiny budgets render notice-only
-  // text), emit nothing and commit nothing — the uncommitted versions make the
-  // next pass retry instead of spamming notice-only contexts.
   if (rendered.text.length === 0 || rendered.changes.length === 0) return undefined
   return {
     context: workspaceContextHook(rendered.text, rendered.changes),

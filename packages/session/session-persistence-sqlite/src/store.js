@@ -343,7 +343,6 @@ export class SqliteStore {
         const last = decodeRow(predecessor).at(-1)
         if (last !== undefined && last.seq >= fromSeq) base = Math.min(base, predecessor.seq)
       } catch {
-        // A malformed bounded predecessor may cover fromSeq; include it so the scanner fails closed.
         base = Math.min(base, predecessor.seq)
       }
     }

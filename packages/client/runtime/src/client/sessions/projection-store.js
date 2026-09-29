@@ -79,7 +79,7 @@ export class ProjectionValueStore {
    */
   apply(key, value, seq) {
     const row = this.rows.get(key)
-    if (row !== undefined && seq <= row.seq) return // higher seq wins; replays and stale frames drop
+    if (row !== undefined && seq <= row.seq) return
     this.rows.set(key, { value, seq })
     this.changed(key)
   }
@@ -93,8 +93,6 @@ export class ProjectionValueStore {
    * @param baseline - the response's projections block.
    */
   seed(baseline) {
-    // Erased walk: the framework crosses the open key space; per-key typing
-    // is re-established at the consumer (useProjection's map lookup).
     const values = baseline.values
     for (const key of Object.keys(values)) this.apply(key, values[key], baseline.asOfSeq)
     for (const [key, row] of this.rows) {
@@ -131,7 +129,6 @@ export class ProjectionValueStore {
   channel(key) {
     let channel = this.channels.get(key)
     if (channel === undefined) {
-      // The notifier only batches (no snapshot cache to rebuild: faces read rows directly).
       const notifier = new Notifier(() => {})
       channel = {
         notifier,

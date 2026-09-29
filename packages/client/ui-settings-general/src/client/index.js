@@ -13,7 +13,7 @@ import { CloseLabel, HeaderContent, TriggerContent } from './chrome.js'
 import { GeneralSection } from './GeneralSection.js'
 import './SettingsDocumentAction.js'
 import { SettingsDocumentStore } from './settings-document-store.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 
 export { SettingsDocumentStore } from './settings-document-store.js'
 
@@ -33,15 +33,10 @@ export const inject = ['slots', 'locale', 'connection', 'settingsScope']
  * @param ctx - client root context.
  */
 export function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-general: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-settings-general: dictionaries')
 
-  // Copy freshness is framework-owned: components read the standard `t`
-  // seat, and the nav label is a thunk the owner resolves per render — no
-  // locale/change re-registration wiring.
   const t = ctx.locale.bind(NS)
   const connection = ctx.get('connection')
-  // The action follows the shared describe mirror, whose owning plugin
-  // already refreshes it on document commits and reconnects.
   const documentController = connection.isLoopback
     ? new SettingsDocumentStore(connection.api, ctx.settingsScope.describe())
     : undefined
@@ -52,11 +47,6 @@ export function apply(ctx) {
       hooks: { snapshot: documentController.store },
     })
   ctx.effect(() => () => { documentController?.dispose() }, 'ui-settings-general: document action directory')
-  // The settings shell: this package occupies the sidebar-owned hole and
-  // declares the settings slots. Ledger → nav-row projection as an observable
-  // source (uSES contract: getSnapshot returns the cached rows until the
-  // ledger version moves). Labels may be locale-following thunks, so the cache
-  // key includes the locale revision and subscribers ride both sources.
   let rowsVersion = -1
   let rowsRevision = -1
   let rows = []
@@ -121,12 +111,6 @@ export function apply(ctx) {
       'settings.onboarding': { kind: 'list', scope: 'root' },
     },
     inject: shellInjected,
-    // The webjsxSlot() stub cannot structurally prove it consumes renderSlot
-    // the way RendersCheck wants (dispatch happens inside the registered
-    // custom element itself, off ui-slots' type-erased entry.component
-    // boundary — see webjsxSlot's own doc, and ui-layout/index.ts for the
-    // same cast). Runtime dispatch is unaffected; only this compile-time
-    // shape check needs it.
   }, webjsxSlot('freddie-settings-root')))
 
   ctx.slots.inject('settings.trigger', () =>

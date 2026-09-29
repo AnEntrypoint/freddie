@@ -15,7 +15,7 @@ const JsExpr = yaml.defineScalarTag('tag:yaml.org,2002:js', {
 /**
  * The entry-list YAML dialect: `!!js` scalars round-trip as expression nodes
  * the Loader evaluates at entry activation. Exported so config tooling
- * (`dsh --dump-config`) parses and prints exactly the dialect this include
+ * (`freddie --dump-config`) parses and prints exactly the dialect this include
  * mounts.
  */
 export const entryListSchema = new yaml.Schema([...yaml.JSON_SCHEMA.tags, JsExpr])
@@ -41,7 +41,7 @@ function retryableWriteError(error) {
 /**
  * Apply patch lists to an entry list — THE patch semantics of this include,
  * shared by mounting (`applyPatches`) and offline config tooling
- * (`dsh --dump-config`) so a dump can never drift from what boots. The input
+ * (`freddie --dump-config`) so a dump can never drift from what boots. The input
  * is never mutated and the result is always detached from it (even with no
  * patches): patching or mounting shared entry objects would bake earlier
  * values into the cached parse, so repeated application (config hot-reloads)
@@ -87,11 +87,6 @@ export function applyEntryPatches(data, patches, warn) {
       } else {
         data.push(...insert)
       }
-      // Index what this patch added so a LATER patch in the same list can
-      // target it. Patch lists compose one layer per source (each bundle
-      // layer, then the user's, then `--patch` overlays), and a layer must be
-      // able to configure or disable a row an earlier layer inserted; without
-      // this, inserted rows were silently unpatchable.
       buildMap(insert)
       continue
     }
@@ -135,11 +130,6 @@ class ConfigFileError extends Error {
 export class Include extends EntryTree {
   static inject = ['loader']
 
-  // Tree-carrier marker (the Group plugin declares the same): this config is
-  // entry and patch lists, so the Loader's `internal/config` interpolation
-  // keeps it literal — a `!!js` expression inside a nested row's config
-  // belongs to that row's fiber, resolving lazily in the row's own context.
-  // Include's own fields (`path`, `enableLogs`) therefore stay literal too.
   static [EntryGroup.key] = true
 
   filename
@@ -263,8 +253,6 @@ export class Include extends EntryTree {
    * @throws when reading, parsing, validation, application, or rollback fails; the last good tree remains active when rollback succeeds.
    */
   async refresh() {
-    // Read inside the queue so the changed-content check compares against the
-    // predecessor's committed state, not a mid-apply snapshot.
     await this.enqueue(async () => {
       const candidate = await this.read()
       if (!candidate) return

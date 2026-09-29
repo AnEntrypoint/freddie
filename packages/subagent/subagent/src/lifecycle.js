@@ -2,8 +2,8 @@
  * Lifecycle-edge publication for both subagent shapes: the contained emitter,
  * the one-shot run observer, and the continuable Activation observer.
  *
- * The public payload contracts ({@link SubagentRunInfo},
- * {@link SubagentRunEndInfo}) live in `./types.js` with the rest of the seam's
+ * The public payload contracts ({@link import('./types.js').SubagentRunInfo},
+ * {@link import('./types.js').SubagentRunEndInfo}) live in `./types.js` with the rest of the seam's
  * consumer-facing types; this module owns only the implementation and the
  * package-private {@link ActivationObserver} the continuation manager consumes.
  * Keeping the internal control interface out of the published surface is
@@ -22,6 +22,9 @@ import { SubagentRunId } from './types.js'
 /**
  * How one Activation's residency epoch ended, as both the terminal lifecycle
  * edge and the manager's own parent delivery report it.
+ * @typedef {object} SubagentActivationTerminal
+ * @property {'completed' | 'aborted' | 'max-tokens' | 'refusal' | 'error'} stopReason
+ * @property {Array<object>} [output] - the epoch's final model-facing content, when any.
  */
 
 /**
@@ -29,6 +32,11 @@ import { SubagentRunId } from './types.js'
  * children emit the same start/end pair as one-shot runs. Package-private: the
  * continuation manager is the only consumer, and its call ordering is an
  * in-package contract rather than a published extension point.
+ * @typedef {object} ActivationObserver
+ * @property {function(object): void} start - mark the residency boundary once the child Agent exists.
+ * @property {function(object): void} capture - snapshot the epoch's own final output before disposal.
+ * @property {function(Error|undefined): SubagentActivationTerminal} terminal - the epoch's terminal edge for a given disposal failure, if any.
+ * @property {function(Error|undefined): void} settle - emit the `subagent/end` edge.
  */
 
 /**
@@ -39,6 +47,11 @@ import { SubagentRunId } from './types.js'
  * The service owns this closure because scoped dispatch keys its carrier by the
  * exact service instance, whose own context filter composes into the carrier;
  * a narrowed stand-in would silently change scope filtering.
+ * @callback SubagentLifecycleEmit
+ * @param {string} name - the lifecycle event name (`subagent/start`, `subagent/end`).
+ * @param {object} info - the event payload.
+ * @param {object} [parent] - the delegating parent keying scoped dispatch, when any.
+ * @returns {void}
  */
 
 /**
@@ -83,14 +96,11 @@ export function observeRun(emit, provider, parent, run) {
     id: run.id,
     local: run.localAgent !== undefined,
   }
-  // Attach the terminal observer before dispatching start. Promise reactions
-  // still run after this synchronous start emission, preserving start → end.
   void run.result.then(
     (result) => {
       emit('subagent/end', {
         ...identity,
         stopReason: result.stopReason,
-        // Omit the field when no output exists, matching continuable epochs.
         ...result.output.length === 0 ? {} : { lastAssistantMessage: result.output },
       }, parent)
     },
@@ -115,15 +125,8 @@ export function observeRun(emit, provider, parent, run) {
  */
 export function createActivationObserver(emit, provider, childId, parent) {
   const identity = { runId: SubagentRunId(randomUUID()), provider, id: childId, local: true }
-  // A cold resume replays earlier turns, so this epoch's telemetry must come
-  // from the suffix it actually produced — never the whole session, which
-  // would report a previous epoch's answer when this one opened no turn.
   let boundary = 0
-  // Assigned by `capture()`, which the disposal path always runs before
-  // `settle()`; a resident epoch therefore always has its facts by then.
   let captured = { stopReason: 'completed' }
-  // Teardown failure overrides the epoch's own outcome and withholds its
-  // output: an answer this harness could not durably release is not a result.
   const terminal = failure => failure === undefined
     ? captured
     : { stopReason: 'error' }
@@ -178,12 +181,8 @@ function epochStopReason(events) {
       return 'aborted'
     case 'error':
       return 'error'
-    // A pre-step rejection — a hook deny, a policy plugin — discarded input
-    // this epoch had claimed: the work was declined, not done.
     case 'blocked':
       return 'refusal'
-    // A clean ending and no accounting turn at all share one rule: the epoch
-    // finished what it was given unless a cancelled queue says otherwise.
     case undefined:
     case 'completed':
       return droppedUnrun ? 'aborted' : 'completed'

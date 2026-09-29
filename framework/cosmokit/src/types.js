@@ -1,8 +1,13 @@
 import { isNullable } from './misc.js'
 
-/** Create a predicate for a global constructor name. */
-/** Test whether a value matches a global constructor name. */
-/** Test values using `instanceof` with a `toStringTag` fallback. */
+/**
+ * Test whether a value matches a global constructor name, using `instanceof` with a
+ * `toStringTag` fallback. Called with a single argument, returns a reusable predicate for that
+ * constructor name instead of testing a value immediately.
+ * @param type - global constructor name to test against.
+ * @param [value] - the value to test; omit to get back a predicate for `type`.
+ * @returns the boolean test result, or (when `value` is omitted) a predicate function.
+ */
 export function is(type, value) {
   if (arguments.length === 1) return (value) => is(type, value)
   return type in globalThis && value instanceof globalThis[type]
@@ -19,7 +24,6 @@ function isArrayBufferSource(value) {
 
 function fromSource(source) {
   if (ArrayBuffer.isView(source)) {
-    // https://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer#answer-31394257
     return source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength)
   } else {
     return source
@@ -80,7 +84,6 @@ export const hexToArrayBuffer = Binary.fromHex
 /** Encode binary data as hex. */
 export const arrayBufferToHex = Binary.toHex
 
-/** Deep-clone common JavaScript values while preserving prototypes. */
 /** Deep-clone common JavaScript values while preserving prototypes and cycles. */
 export function clone(source, refs = new Map()) {
   if (!source || typeof source !== 'object') return source

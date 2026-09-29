@@ -28,14 +28,14 @@
  *   How to align columns (default: `''`);
  *   one style for all columns or styles for their respective columns;
  *   each style is either `'l'` (left), `'r'` (right), or `'c'` (center);
- *   other values are treated as `''`, which doesn’t place the colon in the
+ *   other values are treated as `''`, which doesn\u2019t place the colon in the
  *   alignment row but does align left;
  *   *only the lowercased first character is used, so `Right` is fine.*
  * @property {boolean | null | undefined} [delimiterEnd=true]
  *   Whether to end each row with the delimiter (default: `true`).
  *
- *   > 👉 **Note**: please don’t use this: it could create fragile structures
- *   > that aren’t understandable to some markdown parsers.
+ *   > \ud83d\udc49 **Note**: please don\u2019t use this: it could create fragile structures
+ *   > that aren\u2019t understandable to some markdown parsers.
  *
  *   When `true`, there are ending delimiters:
  *
@@ -55,8 +55,8 @@
  * @property {boolean | null | undefined} [delimiterStart=true]
  *   Whether to begin each row with the delimiter (default: `true`).
  *
- *   > 👉 **Note**: please don’t use this: it could create fragile structures
- *   > that aren’t understandable to some markdown parsers.
+ *   > \ud83d\udc49 **Note**: please don\u2019t use this: it could create fragile structures
+ *   > that aren\u2019t understandable to some markdown parsers.
  *
  *   When `true`, there are starting delimiters:
  *
@@ -98,16 +98,16 @@
  *   full-width characters and emoji mess up delimiter alignment when viewing
  *   the markdown source;
  *   to fix this, you can pass this function,
- *   which receives the cell content and returns its “visible” size;
- *   note that what is and isn’t visible depends on where the text is displayed.
+ *   which receives the cell content and returns its \u201cvisible\u201d size;
+ *   note that what is and isn\u2019t visible depends on where the text is displayed.
  *
  *   Without such a function, the following:
  *
  *   ```js
  *   markdownTable([
  *     ['Alpha', 'Bravo'],
- *     ['中文', 'Charlie'],
- *     ['👩‍❤️‍👩', 'Delta']
+ *     ['\u4e2d\u6587', 'Charlie'],
+ *     ['\ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d\udc69', 'Delta']
  *   ])
  *   ```
  *
@@ -116,8 +116,8 @@
  *   ```markdown
  *   | Alpha | Bravo |
  *   | - | - |
- *   | 中文 | Charlie |
- *   | 👩‍❤️‍👩 | Delta |
+ *   | \u4e2d\u6587 | Charlie |
+ *   | \ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d\udc69 | Delta |
  *   ```
  *
  *   With [`string-width`](https://github.com/sindresorhus/string-width):
@@ -128,8 +128,8 @@
  *   markdownTable(
  *     [
  *       ['Alpha', 'Bravo'],
- *       ['中文', 'Charlie'],
- *       ['👩‍❤️‍👩', 'Delta']
+ *       ['\u4e2d\u6587', 'Charlie'],
+ *       ['\ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d\udc69', 'Delta']
  *     ],
  *     {stringLength: stringWidth}
  *   )
@@ -140,8 +140,8 @@
  *   ```markdown
  *   | Alpha | Bravo   |
  *   | ----- | ------- |
- *   | 中文  | Charlie |
- *   | 👩‍❤️‍👩    | Delta   |
+ *   | \u4e2d\u6587  | Charlie |
+ *   | \ud83d\udc69\u200d\u2764\ufe0f\u200d\ud83d\udc69    | Delta   |
  *   ```
  */
 
@@ -183,7 +183,7 @@ export function markdownTable(table, options) {
   let mostCellsPerRow = 0
   let rowIndex = -1
 
-  // This is a superfluous loop if we don’t align delimiters, but otherwise we’d
+  // This is a superfluous loop if we don\u2019t align delimiters, but otherwise we\u2019d
   // do superfluous work when aligning, so optimize for aligning.
   while (++rowIndex < table.length) {
     /** @type {Array<string>} */
@@ -324,7 +324,7 @@ export function markdownTable(table, options) {
 
       if (
         settings.padding !== false &&
-        // Don’t add the opening space if we’re not aligning and the cell is
+        // Don\u2019t add the opening space if we\u2019re not aligning and the cell is
         // empty: there will be a closing space.
         !(settings.alignDelimiters === false && cell === '') &&
         (settings.delimiterStart !== false || columnIndex)

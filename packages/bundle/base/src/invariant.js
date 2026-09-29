@@ -10,11 +10,7 @@ export const name = 'base-bundle-invariant'
 /** Service required before the companion can register. */
 export const inject = ['invariants']
 
-// No runtime invariant: the package is a static patch-list carrier (a YAML
-// document of loader rows owned by other packages); it mounts no service,
-// emits no events, and owns no mutable relation to check. Each inserted row's
-// own package carries that row's invariants.
-const install = () => {}
+const installNoRuntimeInvariants = () => {}
 
 /**
  * Register this package's invariant companion.
@@ -22,4 +18,4 @@ const install = () => {}
  * @returns the installed registration's disposer after setup succeeds.
  */
 export const apply = (ctx) =>
-  Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
+  Promise.resolve(ctx.invariants.register(PACKAGE_NAME, installNoRuntimeInvariants))

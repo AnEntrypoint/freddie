@@ -11,13 +11,6 @@ import { resultText } from './models/tool-call-model.js'
 import { webCardModel } from './models/web-card-model.js'
 import css from './ToolDetails.css.js'
 
-// TerminalBlock/ReadBlock/DiffBlock/SearchBlock's own one-shot factories
-// (and WebBlock's inner MarkdownText, see WebBlock.js) recreate their DOM
-// element (dropping copy-feedback/expanded-state/settled-render memoization)
-// on every call; ToolDetails is a plain function re-invoked whenever the
-// details pane's selection or data changes. `block` (the selected tool
-// call's own data object, stable across re-renders of the same selection)
-// is the cache key.
 const cachedBlocks = new WeakMap()
 function cachedBlock(identity, key, render, props) {
   let perIdentity = cachedBlocks.get(identity)

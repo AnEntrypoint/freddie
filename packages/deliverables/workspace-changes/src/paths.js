@@ -53,8 +53,6 @@ export async function canonicalPath(path) {
     try {
       return join(await realpath(head), ...missing)
     } catch {
-      // A missing or unreadable component is kept lexically under its nearest resolvable ancestor;
-      // a path with no existing ancestor but the root keeps its spelling entirely.
       const parent = dirname(head)
       if (parent === head || dirname(parent) === parent) return path
       missing.unshift(basename(head))

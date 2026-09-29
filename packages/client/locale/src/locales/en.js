@@ -1,4 +1,4 @@
-/** en base dictionary for the common namespace, checked complete against the zh key set. */
+/** English base dictionary for the common namespace: cross-feature standard words. */
 export const en = {
   'ok': 'OK',
   'cancel': 'Cancel',

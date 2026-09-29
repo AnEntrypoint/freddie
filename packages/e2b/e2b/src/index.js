@@ -60,7 +60,6 @@ export class E2BRuntime extends Service {
 
   constructor(ctx, config) {
     super(ctx, 'e2b')
-    // Schemastery fills these fields before construction; the type does not encode that step.
     const resolved = config
     const apiKey = config.apiKey ?? process.env.E2B_API_KEY
     this.config = {
@@ -72,8 +71,6 @@ export class E2BRuntime extends Service {
     this.cwd = this.config.cwd
     this.runtimeRoot = posix.join(this.cwd, '.freddie-e2b')
     this.ready = this.open()
-    // A deployment may load the owner before any adapter uses it. Keep a
-    // failed eager connection observed; getSandbox() still returns the error.
     void this.ready.catch(() => {})
 
     ctx.effect(() => async () => {
@@ -82,7 +79,6 @@ export class E2BRuntime extends Service {
       try {
         sandbox = await this.ready
       } catch (_sandboxSetupFailure) {
-        // open() either acquired no sandbox or already made the POC's one rollback attempt.
         return
       }
       try {
@@ -101,7 +97,6 @@ export class E2BRuntime extends Service {
   async getSandbox() {
     if (this.disposed) throw new Error('E2B sandbox service is disposing')
     const sandbox = await this.ready
-    // Disposal can race the awaited sandbox readiness despite the synchronous precheck.
     // oxlint-disable-next-line typescript/no-unnecessary-condition -- Awaiting readiness yields to disposal.
     if (this.disposed) throw new Error('E2B sandbox service is disposing')
     return sandbox
@@ -142,8 +137,6 @@ export class E2BRuntime extends Service {
       try {
         await sandbox.kill()
       } catch (_sandboxSetupRollbackFailure) {
-        // TODO(e2b-setup-rollback): Add retry state only if a real double failure
-        // outlives E2B's configured sandbox timeout.
       }
       throw error
     }

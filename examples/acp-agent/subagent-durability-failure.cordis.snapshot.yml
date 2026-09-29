@@ -1,5 +1,3 @@
-# Keyless counterpart to subagent-durability-failure.cordis.yml: replace the
-# live adapter with replay and fail the provider-owned final child checkpoint.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

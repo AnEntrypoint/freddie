@@ -10,14 +10,11 @@ import z from '@freddie/schemastery'
 import { deadline, timeoutOf } from '@freddie/freddie-timeout'
 import { defineTool } from '@freddie/freddie-tools'
 
-// TODO: Replace the file-search advice; arbitrary command output need not come from a searchable file.
 const TRUNCATED_MESSAGE = '<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with Select-String in order to find the line numbers of what you are looking for.</NOTE>'
 const LOST_PREFIX_MESSAGE = '<response clipped><NOTE>The beginning of this command output was dropped by the terminal scrollback limit. The following text is the earliest retained output.</NOTE>\n'
 const SHELL_RESET_MESSAGE = 'The persistent pwsh shell was reset; the next pwsh call starts from the workspace with a fresh current directory and environment.'
 const SHELL_PROMPT = '__DSH_PERSISTENT_PWSH_PROMPT__ '
 const TIMEOUT_CODE = 'PERSISTENT_PWSH_TIMEOUT'
-// One page is enough to find a just-emitted completion marker; the full
-// scrollback is assembled only when a command settles or needs partial output.
 const SCROLLBACK_PAGE_LINES = 1_000
 const POLL_INTERVAL_MS = 25
 
@@ -58,11 +55,6 @@ function quoteForPwsh(value) {
 }
 
 function wrapCommand(command, marker) {
-  // Keep the wrapper on one physical line: PSReadLine renders the echoed
-  // input, and a wrapped line would split the echo the extraction strips.
-  // The echoed END nonce can never fabricate completion because the status
-  // regex needs digits immediately after it and the echo continues with
-  // quote characters.
   const body = quoteForPwsh(command)
   return `Write-Output '${marker.start}'; $LASTEXITCODE = $null; $__s = 1; try { Invoke-Expression "${body}"; $__ok = $? } catch { $__ok = $false }; if ($null -ne $LASTEXITCODE) { $__s = [int]$LASTEXITCODE } else { $__s = if ($__ok) { 0 } else { 1 } }; Write-Output ('${marker.end}' + $__s)`
 }
@@ -83,10 +75,6 @@ function commandOutput(snapshot, marker, wrapper) {
   const startMarker = text.lastIndexOf(marker.start, end)
   const start = startMarker < 0 ? 0 : startMarker + marker.start.length
   let captured = text.slice(start, end)
-  // The PSReadLine echo carries the wrapper source (including both marker
-  // nonces) before the real markers; anchor on the real markers excludes it,
-  // and stripping the wrapper covers the rare case where the real START
-  // scrolled out and extraction fell back to the echoed copy.
   captured = captured.replaceAll(wrapper, '')
   return {
     text: captured.replace(/^\r?\n/, '').replace(/\r?\n$/, ''),
@@ -282,10 +270,6 @@ async function executeCommand(ctx, shells, owner, command, config, upstream) {
   let fallbackTruncated = false
 
   while (true) {
-    // The shell may flip to exited between iterations (a fast `exit` can
-    // settle the previous send while its exit event is still in flight, and
-    // the echoed wrapper can then carry a marker end without status digits);
-    // re-observing status before the next send closes that gap.
     const status = ctx.terminals.list(owner).find(session => session.sessionId === id)?.status
     if (status?.kind === 'exited') {
       return await respondToSessionExit(
@@ -319,7 +303,6 @@ async function executeCommand(ctx, shells, owner, command, config, upstream) {
       )
       await shells.reset(owner, 'persistent pwsh command timed out')
       return [
-        // TODO: Report a timeout only; this signal does not establish an OOM.
         `Your command timed out after ${Math.round(timedOut.timeoutMs / 1000)} seconds or experienced an OOM error. Below is partial output:`,
         partial,
         SHELL_RESET_MESSAGE,

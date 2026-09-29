@@ -66,8 +66,6 @@ function classify(event) {
         ? chunk.type
         : undefined
     }
-    // Whitelist fall-through over parsed data: block-start/end, usage, finish,
-    // and any future chunk variant stay one event per line.
     default:
       return undefined
   }
@@ -78,7 +76,7 @@ function toolCallOf(event) {
   return event.data.chunk
 }
 
-/** The block index of a whitelisted delta chunk (not every {@link StreamChunk} variant carries one). */
+/** The block index of a whitelisted delta chunk (not every {@link import('@freddie/freddie-llm').StreamChunk} variant carries one). */
 function indexOf(event) {
   return event.data.chunk.index
 }
@@ -86,19 +84,14 @@ function indexOf(event) {
 /** Whether `next` extends a run ending in `prev` (same kind already checked by the caller). */
 function continues(prev, next, kind) {
   if (next.seq !== prev.seq + 1) return false
-  // Two safe-integer times can sit further apart than a double subtracts
-  // exactly (2^53-1 and its negation differ by ~2^54); a rounded gap would
-  // decode to a different timestamp. The check is exact in both directions: a
-  // true gap within safe range subtracts without rounding and passes, while a
-  // true gap beyond it rounds to a value that is itself beyond and fails.
   if (!Number.isSafeInteger(next.time - prev.time)) return false
   if (next.data.turn !== prev.data.turn || next.data.step !== prev.data.step) return false
   if (indexOf(next) !== indexOf(prev)) return false
   if (kind !== 'tool-call-delta') return true
   const a = toolCallOf(prev)
   const b = toolCallOf(next)
-  // `name` must match in presence AND value — a mixed run is not representable.
-  return a.id === b.id && Object.hasOwn(a, 'name') === Object.hasOwn(b, 'name') && a.name === b.name
+  const namePresenceAndValueMatch = Object.hasOwn(a, 'name') === Object.hasOwn(b, 'name') && a.name === b.name
+  return a.id === b.id && namePresenceAndValueMatch
 }
 
 /** Build the row for a completed run (`run.length >= MIN_RUN`, uniform per {@link continues}). */
@@ -129,6 +122,40 @@ function buildRow(kind, run) {
     ? { type: 'text-chunks', ...envelope, data }
     : { type: 'reasoning-chunks', ...envelope, data }
 }
+
+/**
+ * One packed run of consecutive `text-delta` events for one block.
+ * @typedef {object} TextChunksRow
+ * @property {'text-chunks'} type
+ * @property {number} seq0 - seq of the run's first member event.
+ * @property {number} time0 - time of the run's first member event.
+ * @property {{turn: number, step: number, index: number, dt: readonly number[], texts: readonly string[]}} data
+ */
+
+/**
+ * One packed run of consecutive `reasoning-delta` events for one block.
+ * @typedef {object} ReasoningChunksRow
+ * @property {'reasoning-chunks'} type
+ * @property {number} seq0 - seq of the run's first member event.
+ * @property {number} time0 - time of the run's first member event.
+ * @property {{turn: number, step: number, index: number, dt: readonly number[], texts: readonly string[]}} data
+ */
+
+/**
+ * One packed run of consecutive `tool-call-delta` events for one block/call id.
+ * @typedef {object} ToolCallChunksRow
+ * @property {'tool-call-chunks'} type
+ * @property {number} seq0 - seq of the run's first member event.
+ * @property {number} time0 - time of the run's first member event.
+ * @property {{turn: number, step: number, index: number, id: import('@freddie/freddie-llm').CallId, name?: string, dt: readonly number[], args: readonly string[]}} data
+ */
+
+/**
+ * A packed storage row replacing a run of at least {@link MIN_RUN} consecutive
+ * same-kind, same-block `assistant/chunk` delta events (see {@link buildRow}
+ * and {@link expandRow}). Not a session event: never enters `Session.events`.
+ * @typedef {TextChunksRow|ReasoningChunksRow|ToolCallChunksRow} ChunkRow
+ */
 
 /**
  * Pack an event batch for storage: each run of at least {@link MIN_RUN}
@@ -224,11 +251,6 @@ function validateRow(value, tag) {
     }
     payload = validateRunData(tag, data, 'texts')
   }
-  // Reconstruction bounds. The encoder only packs runs whose member seqs and
-  // times are all safe integers, so a running value that leaves safe range is
-  // outside any encoder's image: float arithmetic would round it to a
-  // different number than exact arithmetic, a silent corruption. Within safe
-  // range every step is exact, so the first departure is always caught.
   if (!Number.isSafeInteger(value.seq0 + payload.length - 1)) {
     malformed(tag, 'member seqs must stay safe integers')
   }

@@ -22,7 +22,12 @@ export class FsSandboxController {
   constructor(ctx) {
     this.ctx = ctx
     const defaultMode = ctx.fs.sandboxMode
-    /** The escalation targets this composition advertises (`[]` when no confining backend is mounted). */
+    /**
+     * The escalation targets this composition advertises (`[]` when no
+     * confining backend is mounted).
+     * @name FsSandboxController#escalationModes
+     * @type {readonly string[]}
+     */
     this.escalationModes = defaultMode === undefined ? [] : ESCALATION_TARGETS
     /** Shared per-session policy resolver, required by a confining backend. */
     this.policy = defaultMode === undefined ? undefined : ctx.get('sandboxPolicy')
@@ -105,8 +110,6 @@ export class FsSandboxController {
    */
   mapError(error, policy) {
     if (!(error instanceof FsError) || error.code !== 'FS_SANDBOX_DENIED') return error
-    // A FS_SANDBOX_DENIED only arises under a confining backend, whose tool
-    // path always resolves a policy before mutation.
     const mode = policy.mode
     return new FsError(`${sandboxDenialMarker(mode)}\n${escalationHintMarker('operation')}`, 'FS_SANDBOX_DENIED', { cause: error })
   }

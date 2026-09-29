@@ -28,8 +28,6 @@ export function attachmentErrorText(t, reason, limits) {
     case 'IMAGE_DIMENSION_TOO_LARGE':
       if (limits !== undefined) return t('image.dimensionTooLarge', { size: limits.maxImageDimension })
       break
-    // Undecodable bytes or a declared type its bytes contradict: solvable by
-    // replacing or re-exporting the file, so it reads as a format problem.
     case 'INVALID_IMAGE':
     case 'IMAGE_TYPE_MISMATCH':
       return t('image.unsupportedType')

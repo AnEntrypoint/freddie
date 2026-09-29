@@ -17,6 +17,8 @@ import { scrubbedParentEnv } from '@freddie/freddie-subprocess'
 import { MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
 import { linuxProcessGroupHasLiveMembers } from './process-inspector.js'
 
+const SPAWN_FAILED_PID = -1
+
 /**
  * Build a child environment: explicit caller entries override the scrubbed
  * parent base using the target platform's environment-key semantics. A string
@@ -122,13 +124,9 @@ export class OutputCollector {
       const head = this.chunks[0]
       const excess = this.bytes - this.maxBytes
       if (head.length <= excess) {
-        // Drop the whole head chunk (length ≥ 1 is guaranteed while over cap).
         this.chunks.shift()
         this.bytes -= head.length
       } else {
-        // Trim the head so the retained window is byte-exact at the cap — a
-        // diagnostic tail (an LSP server's stderr) must hold the LAST
-        // maxBytes regardless of how the stream was chunked.
         this.chunks[0] = head.subarray(excess)
         this.bytes -= excess
       }
@@ -143,9 +141,6 @@ export class OutputCollector {
       return
     }
     if (this.spillFd === undefined) {
-      // Random suffix + O_EXCL + no-follow-equivalent ('wx' fails on any
-      // existing path, symlink or not) + owner-only mode: defeats spill-path
-      // prediction and symlink planting in shared tmp dirs.
       this.spillFile = join(
         this.spillDir,
         `freddie-subprocess-${process.pid}-${++spillCounter}-${randomBytes(6).toString('hex')}-${this.label}.log`,
@@ -167,7 +162,6 @@ export class OutputCollector {
       try {
         closeSync(fd)
       } catch {
-        // Retain the descriptor so finalize can retry the failed close.
         this.spillFd = fd
       }
     }
@@ -175,7 +169,6 @@ export class OutputCollector {
       try {
         unlinkSync(file)
       } catch {
-        // A failed unlink leaves at most maxSpillBytes behind, never an unbounded file.
       }
     }
   }
@@ -213,8 +206,6 @@ export class OutputCollector {
     try {
       closeSync(this.spillFd)
     } catch {
-      // A delayed writeback failure makes the spill unreliable; keep the
-      // in-memory result but stop advertising that file.
       this.spillFile = undefined
     }
     this.spillFd = undefined
@@ -246,7 +237,6 @@ export function killGroup(pid, sig) {
   try {
     process.kill(-pid, sig)
   } catch {
-    // Swallow: see contract above.
   }
 }
 
@@ -259,9 +249,6 @@ export function killGroup(pid, sig) {
  */
 export function taskkillProcessTree(pid) {
   if (pid <= 0) return
-  // Outcome deliberately unchecked: an already-absent tree (status 128), exit
-  // races, and a missing taskkill binary (spawnSync reports, never throws) are
-  // as tolerable here as ESRCH is for a POSIX group signal.
   spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore' })
 }
 
@@ -286,7 +273,6 @@ function signalTree(platform, pid, sig, child, taskkill) {
     try {
       child.kill(sig)
     } catch {
-      // The direct child already exited; teardown remains idempotent.
     }
     /* v8 ignore stop */
   }
@@ -332,8 +318,6 @@ export function spawnSubprocess(spec, internals = {}) {
       outMode === 'inherit' ? 'inherit' : 'pipe',
       errMode === 'inherit' ? 'inherit' : 'pipe',
     ],
-    // `detached` gives teardown a tree root on POSIX (its own process group);
-    // Windows terminates by root pid through taskkill /T instead.
     detached: platform !== 'win32',
   })
 
@@ -351,8 +335,7 @@ export function spawnSubprocess(spec, internals = {}) {
   let treeExitObservation
   let settled = false
 
-  // Failed spawns use pid -1 so signalling remains a no-op.
-  const pid = child.pid ?? -1
+  const pid = child.pid ?? SPAWN_FAILED_PID
 
   /** Whether the detached tree's root (or POSIX group) is still alive. */
   const treeAlive = () => {
@@ -361,16 +344,10 @@ export function spawnSubprocess(spec, internals = {}) {
     if (treeExitObserved) return false
     if (pid <= 0) return false
     if (platform === 'win32') {
-      // Windows has no group-liveness probe; the direct child's exit is the
-      // observable boundary (taskkill /T already took the tree with it).
       return child.exitCode === null && child.signalCode === null
     }
     try {
       process.kill(-pid, 0)
-      // A group containing only unreaped zombies still answers kill(0), but
-      // it can execute no work and cannot be signalled into quiescence. Only
-      // inspect after direct-child settlement so live-process polls remain a
-      // syscall rather than repeated process-table scans.
       if (settled && platform === 'linux' && linuxGroupHasLiveMembers(pid) === false) return false
       return true
     } catch (error) {
@@ -401,11 +378,6 @@ export function spawnSubprocess(spec, internals = {}) {
     return treeExitObservation
   }
 
-  // The escalation's tier primitive (not on the handle — terminate() is the
-  // only consumer-facing termination verb). Guards on TREE liveness, not
-  // outcome settlement: a TERM-trapping helper can outlive the settled direct
-  // child and must stay signalable, while a fully-dead tree (possible pid
-  // reuse) must not be re-signalled by a later tier.
   const kill = (sig) => {
     /* v8 ignore next -- the shared exit observer cancels the ordinary dead-tree timer;
        this remains the timer/death race guard and cannot be staged deterministically. */
@@ -415,17 +387,10 @@ export function spawnSubprocess(spec, internals = {}) {
 
   const terminate = () => {
     if (treeExitObserved || graceTimer !== undefined) return
-    // Observe from the first termination tier onward, even when inherited
-    // pipes delay `done` and no consumer has begun its own teardown wait.
     void observeTreeExit()
     // oxlint-disable-next-line typescript/no-unnecessary-condition -- observer can record absence before its first await.
     if (treeExitObserved) return
     kill('SIGTERM')
-    // The escalation must survive direct-child settlement — the leader dying
-    // does not mean the tree died — so settle does not clear this timer, and
-    // kill() re-probes tree liveness before force-killing. It stays ref'd:
-    // the pending SIGKILL is a commitment, and a parent exiting before it
-    // fires would orphan a trapped survivor. Self-bounds at graceMs.
     graceTimer = setTimeout(() => { kill('SIGKILL') }, spec.graceMs)
   }
 
@@ -433,14 +398,12 @@ export function spawnSubprocess(spec, internals = {}) {
     kill('SIGKILL')
   }
 
-  // The caller owns timeout classification; this layer only reacts to abort.
   const onAbort = () => { terminate() }
   spec.signal?.addEventListener('abort', onAbort, { once: true })
 
-  // Batch stdin is written and closed up front; process exit and captured
-  // output remain authoritative, so write errors (EPIPE) are best-effort.
   if (typeof stdinMode === 'object' && child.stdin !== null) {
-    child.stdin.on('error', () => { /* stdin write is best-effort; outcome rides on exit/output. */ })
+    const ignoreStdinWriteError = () => {}
+    child.stdin.on('error', ignoreStdinWriteError)
     child.stdin.end(stdinMode.data)
   }
 
@@ -449,8 +412,6 @@ export function spawnSubprocess(spec, internals = {}) {
     const settle = (exitCode, signal) => {
       if (settled) return
       settled = true
-      // Only harness-collected pipes are force-closed at the drain boundary;
-      // a 'pipe'-mode stream belongs to the caller and closes with the child.
       if (stdoutCollector !== undefined) child.stdout?.destroy()
       if (stderrCollector !== undefined) child.stderr?.destroy()
       stdoutCollector?.seal()
@@ -459,23 +420,17 @@ export function spawnSubprocess(spec, internals = {}) {
       resolve({ exitCode, signal })
     }
     child.on('error', (error) => {
-      // No meaningful close outcome follows a spawn failure.
       settled = true
       cleanup()
       reject(error)
     })
     child.on('exit', (exitCode, signal) => {
-      // A surviving descendant that inherited a pipe must not hold the
-      // outcome open indefinitely: after exit, the same bounded grace that
-      // governs kills also bounds the close wait.
       pipeDrainTimer = setTimeout(() => {
         settle(exitCode, signal)
       }, spec.graceMs)
     })
     child.on('close', settle)
     function cleanup() {
-      // graceTimer deliberately NOT cleared: the SIGKILL escalation must be
-      // able to reach tree survivors after the direct child settles.
       if (pipeDrainTimer !== undefined) clearTimeout(pipeDrainTimer)
       spec.signal?.removeEventListener('abort', onAbort)
     }

@@ -52,9 +52,22 @@ export const RESERVED_ERROR_MEMBERS = new Set([
  */
 export const DUNDER_MEMBER = /^__.+__$/
 
+const ECMASCRIPT_RESERVED_AND_STRICT_MODE_WORDS = [
+  'await', 'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default', 'delete', 'do',
+  'else', 'enum', 'export', 'extends', 'false', 'finally', 'for', 'function', 'if', 'import', 'in',
+  'instanceof', 'new', 'null', 'return', 'super', 'switch', 'this', 'throw', 'true', 'try', 'typeof',
+  'var', 'void', 'while', 'with', 'yield', 'let', 'static', 'implements', 'interface', 'package',
+  'private', 'protected', 'public', 'arguments', 'eval',
+]
+
+const PYTHON_KEYWORDS_AND_SOFT_KEYWORDS_BEYOND_ECMASCRIPT = [
+  'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'def', 'del', 'elif', 'except', 'from',
+  'global', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'match', 'type', '_',
+]
+
 /**
  * Reserved words of every portable target language (ECMAScript ∪ Python),
- * refused as {@link CodeBindingNamespace.global} / error-class names by all
+ * refused as `CodeBindingNamespace.global` / error-class names by all
  * backends. Python is a portability target here even though only the
  * TypeScript worker has a published backend. The portable-identifier contract
  * promises a namespace list valid on one backend is valid on every backend; a
@@ -63,21 +76,13 @@ export const DUNDER_MEMBER = /^__.+__$/
  * union (a breaking review of existing binding names, by design).
  */
 export const PORTABLE_RESERVED_WORDS = new Set([
-  // ECMAScript reserved words and reserved-in-strict-mode names.
-  'await', 'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default', 'delete', 'do',
-  'else', 'enum', 'export', 'extends', 'false', 'finally', 'for', 'function', 'if', 'import', 'in',
-  'instanceof', 'new', 'null', 'return', 'super', 'switch', 'this', 'throw', 'true', 'try', 'typeof',
-  'var', 'void', 'while', 'with', 'yield', 'let', 'static', 'implements', 'interface', 'package',
-  'private', 'protected', 'public', 'arguments', 'eval',
-  // Python 3.x keywords and soft keywords not already above ('type' and '_'
-  // are soft keywords: legal names in practice, reserved here for safety).
-  'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'def', 'del', 'elif', 'except', 'from',
-  'global', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'match', 'type', '_',
+  ...ECMASCRIPT_RESERVED_AND_STRICT_MODE_WORDS,
+  ...PYTHON_KEYWORDS_AND_SOFT_KEYWORDS_BEYOND_ECMASCRIPT,
 ])
 
 /**
  * Registers one `ctx.codeRuntime` implementation. Program, budget, abort, and substrate
- * failures resolve in {@link CodeRunResult}; only Service Definition contract misuse rejects. Implementations bridge
+ * failures resolve on the returned result object (`value`/`logs`/`error`); only Service Definition contract misuse rejects. Implementations bridge
  * structured-cloneable bindings, materialize each declared namespace rejection
  * class, treat programs as hostile peers, isolate runs from one another, and
  * terminate and await in-flight runs during disposal.

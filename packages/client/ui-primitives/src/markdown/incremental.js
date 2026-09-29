@@ -69,13 +69,8 @@ export class IncrementalMarkdownParser {
    */
   update(text) {
     if (this.cached !== null && text === this.prevText) return this.cached
-    // Deliberate O(prefix) memcmp per update: sound divergence detection has
-    // to verify the whole retained prefix, and startsWith compares bytes two
-    // orders of magnitude faster than parsing them — the cost this class
-    // exists to remove. Passing append/reset deltas instead would push
-    // append bookkeeping across the session-projection update boundary for a check
-    // that stays sub-millisecond at realistic reply sizes.
-    if (!text.startsWith(this.prevText)) {
+    const extendsPreviousText = text.startsWith(this.prevText)
+    if (!extendsPreviousText) {
       this.prevText = ''
       this.tailStart = 0
       this.frozen = []
@@ -88,8 +83,6 @@ export class IncrementalMarkdownParser {
     if (firstUnstable > 0) {
       const cutEnd = blocks[firstUnstable - 1]?.position?.end.offset
       if (cutEnd === undefined) {
-        // A grammar that omits positions leaves nothing to cut at; keep the
-        // whole parse in the tail rather than guessing a boundary.
         firstUnstable = 0
       } else {
         for (const node of blocks.slice(0, firstUnstable)) {

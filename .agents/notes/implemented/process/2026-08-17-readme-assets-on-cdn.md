@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-The public Chinese README embeds three community QR codes. Repository-relative images make each replacement depend on a source change and the separate public-repository publication flow, even though the image bytes do not change product code or documentation text.
+The public localized README embeds three community QR codes. Repository-relative images make each replacement depend on a source change and the separate public-repository publication flow, even though the image bytes do not change product code or documentation text.
 
 The images need stable public URLs while their source bytes, publication credentials, cache behavior, and update history remain explicit and reviewable.
 

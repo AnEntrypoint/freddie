@@ -103,10 +103,6 @@ export function createApiRemoteAgentResolver(ctx, options) {
           if (hasApiRemoteSubagentOwner(ctx, { header: inspected.meta }, undefined)) {
             throw new ApiRemoteSubagentSessionOwnership(sessionId)
           }
-          // Built from the inspected session before the published re-checks
-          // below, so those stay adjacent to `resume` and a Host setup that
-          // awaits (composing a preset, say) does not widen the collision
-          // window.
           const setup = options.setup === undefined ? undefined : await options.setup(inspected)
           const publishedSession = ctx.sessions.get(sessionId)
           const publishedAgent = ctx.agents.get(sessionId)

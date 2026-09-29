@@ -1,6 +1,6 @@
 # @freddie/freddie-tool-session-query
 
-Workspace-authorized model tools over `ctx.sessionQuery`. The opt-in package depends only on the unified interface and registers `session_search`, `session_event_search`, `session_trace`, `session_event_trace`, and `session_event_read`; shipped host compositions do not mount it by default.
+Workspace-authorized model tools over `ctx.sessionQuery`. The package depends only on the unified interface and registers `session_search`, `session_event_search`, `session_trace`, `session_event_trace`, and `session_event_read`. It is mounted by default: a host row in the base bundle for acp, sdk and headless, and a row in the Web `standard`, `code` and `cordis` agent presets (the Web bundle disables the host row); the `minimal` preset omits it. The model can read the recorded content of other sessions in the same workspace, and every search or read tool description and the prompt section say so and frame what returns as untrusted recorded data, never instructions.
 
 ## Configuration
 
@@ -15,7 +15,9 @@ The caller comes exclusively from `ToolExecution.exec.agent`. Cross-session acce
 
 Every trusted `ctx.sessionQuery` call crosses one model-boundary sanitizer. Caller cancellation is checked first and preserved exactly. Available corpus and provider diagnostics, including safely inspectable nested causes, are logged internally on a best-effort basis; unprintable failures use a fixed log placeholder. Diagnostic formatting and error classification are independently guarded, so an unprintable cause cannot escape or prevent a safely classified outer error, while unsafe classification or logging falls back to the fixed `SESSION_QUERY_TOOL_FAILED` code and message. Local argument-validation and authorization errors retain their precise tool-owned messages.
 
-The package deliberately performs no byte or character truncation and does not import a spill backend. Deployments that need bounded inline output mount `@freddie/freddie-spill-policy`, which can replace the rendered text after execution while retaining the complete result.
+The package deliberately performs no byte or character truncation and does not import a spill backend. Deployments that need bounded inline output mount `@freddie/freddie-spill-policy`, which can replace the rendered text after execution while retaining the complete result; the base bundle mounts it with `maxInlineBytes: 50000`, so a 200 KB stored event read through `session_event_read` reaches the model as a 49,998-character preview. Search hits are capped by `maxSearchResults` (a scripted call with `maxSearchResults: 2` returned two hits and the cap notice) and event windows beyond the service limit fail with `SESSION_QUERY_INVALID_WINDOW`.
+
+Live sessions are searchable and readable: a session that is still running in the process reports `Availability: live, persisted` and its current events match. A target in another workspace and a session id that does not exist both fail with the identical `session target is outside the caller workspace` error, so the tools cannot be used to probe whether an id exists elsewhere.
 
 ## Model Experience
 
@@ -43,7 +45,7 @@ Prefix-stable while the plugin and guidance text are unchanged.
 
 #### What the model sees
 
-The model sees the generated [`session_search`, `session_event_search`, `session_trace`, `session_event_trace`, and `session_event_read` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-session-query). Search filters add fixed schema tokens, while cursors, workspace paths, output pagination, and model-controlled result limits remain absent.
+The model sees the generated [`session_search`, `session_event_search`, `session_trace`, `session_event_trace`, and `session_event_read` schemas](../../../docs/tool-catalog.md#freddie-tool-session-query). Search filters add fixed schema tokens, while cursors, workspace paths, output pagination, and model-controlled result limits remain absent.
 
 #### Token effect
 

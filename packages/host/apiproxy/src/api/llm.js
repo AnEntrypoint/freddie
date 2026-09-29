@@ -6,4 +6,5 @@
  * (the same groups as `session.models`, without a per-session selection).
  * Clients invalidate from the forwarded `llm/adapters-updated` and
  * `settings/document-updated` owner events.
+ * @module @freddie/freddie-host-apiproxy/api/llm
  */

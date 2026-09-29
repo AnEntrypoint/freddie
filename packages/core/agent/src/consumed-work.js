@@ -5,7 +5,7 @@
  * before its first step leaves a `turn/end` shaped exactly like the balanced
  * no-op turns a rejection or an empty claim produces, so reading turns in
  * isolation either credits cut-short work as finished or convicts every no-op.
- * The missing fact is the inbox's own record: {@link Inbox} logs each mutation
+ * The missing fact is the inbox's own record: {@link import('./inbox.js').Inbox} logs each mutation
  * with `removedCount` and marks a cancellation `outcome: 'canceled'`, which
  * separates a turn claiming its input from work being dropped unrun.
  *
@@ -64,10 +64,7 @@ export function foldConsumedWork(events) {
       case 'agent/inbox/spliced': {
         const { removedCount, outcome, inserted } = event.data
         if (removedCount === undefined) break
-        // A replacement keeps the work pending under a new identity, so only a
-        // cancellation that leaves nothing behind drops it.
         if (outcome === 'canceled') droppedUnrun ||= inserted.length === 0
-        // Claims are the loop's own step-boundary reads, always inside a turn.
         else if (open !== undefined) claimed.add(open)
         break
       }
@@ -76,8 +73,6 @@ export function foldConsumedWork(events) {
         open = undefined
         if (stepped.delete(turn) || (claimed.delete(turn) && accountsForClaim(reason))) {
           end = event
-          // Anything dropped before this turn closed is what its own ending
-          // reports; only a later drop is still unaccounted for.
           droppedUnrun = false
         }
         break

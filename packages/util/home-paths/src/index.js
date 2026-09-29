@@ -37,8 +37,6 @@ export async function canonicalizeWatchPath(path) {
     try {
       const canonical = await realpath(current)
       if (missing.length > 0) {
-        // A Windows file-as-parent probe reports ENOENT. Opening the resolved
-        // ancestor preserves the cross-platform directory requirement.
         const directory = await opendir(canonical)
         await directory.close()
       }

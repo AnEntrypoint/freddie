@@ -13,6 +13,7 @@ export const inject = ['agents', 'agentTeams', 'tools', 'systemPrompt']
 export const Config = z.object({
   freshProvider: z.string().default('spawn'),
   forkProvider: z.string().default('fork'),
+  excludePresets: z.array(z.string()).default([]),
 })
 
 /** Model-facing collaboration guidance shared by Lead and teammates. */
@@ -230,13 +231,9 @@ function install(agent, ctx, config) {
       async execute(args, exec) {
         const caller = callingAgent(exec.agent, 'wait_agent')
         const timeoutMs = args.timeout_ms ?? 30_000
-        // Preserve TeamService's authoritative timeout validation before the
-        // model-only no-progress shortcut.
         if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 10_000 || timeoutMs > 3_600_000) {
           return await ctx.agentTeams.waitForChange(caller, timeoutMs, exec.signal)
         }
-        // The active-peer read and waiter registration must remain one synchronous
-        // span; awaiting between them can lose the only peer-status edge.
         const hasActivePeer = ctx.agentTeams.listMembers(caller).some(member =>
           member.id !== caller.id && ACTIVE_WAIT_STATUSES.has(member.status))
         if (!hasActivePeer) {
@@ -385,9 +382,12 @@ export function apply(ctx, config = {}) {
     freshProvider: config.freshProvider ?? 'spawn',
     forkProvider: config.forkProvider ?? 'fork',
   }
+  const excluded = new Set(config.excludePresets ?? [])
   const installed = new Map()
   const maybeInstall = (agent) => {
     if (installed.has(agent) || ctx.agentTeams.tryMembership(agent) === undefined) return
+    const preset = ctx.get('agentPresets')?.composedPreset(agent.ctx)
+    if (preset !== undefined && excluded.has(preset)) return
     installed.set(agent, install(agent, ctx, resolved))
   }
   for (const agent of ctx.agents.list()) maybeInstall(agent)

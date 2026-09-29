@@ -57,18 +57,12 @@ const STATIC_MISS_CODES = new Set([
  */
 export async function serveStatic(pathname, req, res, distRoot, distIndex, renderIndex) {
   const target = resolve(normalize(join(distRoot, pathname)))
-  // Traversal rejection: the target must be distRoot itself (`/`) or stay under
-  // it. `sep`, not '/': resolve() emits backslash paths on Windows, where a '/'
-  // suffix would reject every legitimate subpath as traversal.
   if (target !== distRoot && !target.startsWith(distRoot + sep)) {
     res.writeHead(403)
     res.end()
     return
   }
   if (target !== distRoot && target !== distIndex) {
-    // Asset filenames carry no content hash, so no-cache plus the shared
-    // ETag/Last-Modified validators: a warm load revalidates with a 304
-    // instead of re-downloading.
     const served = await sendFile(req, res, target, {
       'content-type': MIME[extname(target)] ?? 'application/octet-stream',
       'cache-control': 'no-cache',
@@ -83,8 +77,6 @@ export async function serveStatic(pathname, req, res, distRoot, distIndex, rende
   try {
     body = await renderIndex()
   } catch (error) {
-    // Only an absent or non-file index is 404; other filesystem failures reach
-    // the webserver's request-failure handling.
     if (!STATIC_MISS_CODES.has(error.code)) throw error
     res.writeHead(404)
     res.end()
@@ -105,8 +97,6 @@ export function apply(ctx, config) {
   const renderIndex = async () =>
     ctx.webServer.renderIndex(await readFile(distIndex, 'utf8'))
   ctx.effect(() => ctx.webServer.registerFallback(async (req, res) => {
-    // Non-GET/HEAD without a matching named route is 405 (fallback-only
-    // semantics: named routes own their method handling).
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405)
       res.end()

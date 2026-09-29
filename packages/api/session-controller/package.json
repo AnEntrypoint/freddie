@@ -1,0 +1,55 @@
+{
+  "name": "@freddie/freddie-session-controller",
+  "description": "Host Session Remote service: cold-safe list and search, paged history, live control state, the model catalog, and Agent/Session identity policy behind ctx.sessionController and ctx.remote.session",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/api/session-controller"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./types": {
+      "default": "./src/types.js"
+    },
+    "./client": {
+      "default": "./src/client/index.js"
+    },
+    "./typert": {
+      "default": "./src/typert.host.js"
+    },
+    "./remote": {
+      "default": "./src/typert.remote-client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/**/*.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-remote-stream": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-session-query": "*",
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-agent-presets": "*",
+    "@freddie/freddie-typert-protocol": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-agent-presets": "*",
+    "@freddie/freddie-typert-protocol": "*"
+  }
+}

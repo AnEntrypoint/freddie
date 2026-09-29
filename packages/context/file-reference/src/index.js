@@ -18,6 +18,18 @@ export class FileReferenceService extends TypertRemoteService {
   }
 
   /**
+   * Deterministic path-only candidates for one query, bounded by the session
+   * cwd. Left unimplemented here; a backend such as
+   * `@freddie/freddie-file-reference-local` supplies the actual discovery.
+   * @param agent - target agent whose session cwd bounds discovery.
+   * @param query - path text following `@` or `@"`.
+   * @param signal - caller cancellation.
+   * @returns deterministic path-only candidates.
+   * @name FileReferenceService#list
+   * @function
+   */
+
+  /**
    * Remote face of {@link list}; the decorator cannot mark the abstract
    * member, so this concrete adapter carries the identical contract.
    * @param agent - target agent whose session cwd bounds discovery.

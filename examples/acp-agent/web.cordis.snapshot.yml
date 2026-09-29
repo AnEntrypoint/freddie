@@ -1,6 +1,3 @@
-# Keyless replay counterpart to web.cordis.yml: the web stack and loopback
-# fixture server stay real (the tool call re-executes the actual HTTP fetch and
-# markdown rendering); only the model adapter is replaced by replay.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

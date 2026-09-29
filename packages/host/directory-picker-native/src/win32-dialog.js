@@ -16,8 +16,8 @@ const CLOSE_RETRY_MS = 150
 /** Abort-service attempts before force-terminating the worker. */
 const CLOSE_MAX_ATTEMPTS = 20
 
-/** Fail loudly if the closed worker-to-driver union gains an unhandled member. */
 /* v8 ignore start -- closed-union backstop; unreachable without a TypeScript contract violation */
+/** Fail loudly if the closed worker-to-driver union gains an unhandled member. */
 function assertNever(value) {
   throw new TypeError(`unknown win32 dialog worker message kind: ${String(value)}`)
 }
@@ -51,21 +51,11 @@ export async function pickWin32Directory(signal, internals = {}) {
     }
 
     const postClose = () => {
-      // Before `showing` there is no window to close; the budget below still
-      // runs so a child that never reports cannot dangle the pick. A
-      // rejected close attempt (EnumThreadWindows/PostMessageW refusing) is
-      // discarded: the interval retries it and kill is the backstop.
       if (dialogThreadId !== undefined) void closeWindows(dialogThreadId).catch(() => undefined)
     }
 
-    // Sole caller: the once-registered abort listener, so no re-entry guard.
     const serviceAbort = () => {
       let attempts = 0
-      // The `showing` notice precedes the blocking `Show`, so the very first
-      // WM_CLOSE can race the window's creation; re-post until the child
-      // reports back, then force-kill as a last resort. The budget is
-      // unconditional — an abort before `showing` (child hung in koffi or
-      // COM init) still ends in kill instead of a dangling promise.
       closeTimer = setInterval(() => {
         attempts += 1
         if (attempts > CLOSE_MAX_ATTEMPTS) {
@@ -89,7 +79,6 @@ export async function pickWin32Directory(signal, internals = {}) {
       switch (message.kind) {
         case 'showing':
           dialogThreadId = message.threadId
-          // An abort that raced ahead of this notice now has a window to hit.
           if (signal.aborted) postClose()
           return
         case 'done':

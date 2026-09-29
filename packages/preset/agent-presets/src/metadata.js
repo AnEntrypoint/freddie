@@ -44,16 +44,12 @@ export async function readPresetMetadata(directory) {
   try {
     raw = await readFile(join(directory, METADATA_FILE), 'utf8')
   } catch {
-    // Absent is the common case: metadata is optional and most presets,
-    // including every one authored by duplicating another, carry none.
     return {}
   }
   let parsed
   try {
     parsed = load(raw)
   } catch {
-    // Malformed display text is not worth failing discovery over; the picker
-    // falls back to the id, and the composition still mounts.
     return {}
   }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {}

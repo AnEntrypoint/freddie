@@ -61,8 +61,6 @@ function buildGroup(
   order,
 ) {
   const sessions = [...members]
-  // Real Workspace order comes from sessionIds. Ungrouped falls back to
-  // recency until the browser supplies its persisted local order.
   if (order === 'recency') sessions.sort(byRecency)
   return { key, workspaceId, cwd, createdAt, label, sessions }
 }
@@ -103,7 +101,7 @@ function groupByWorkspace(
     const members = []
     for (const id of workspace.sessionIds) {
       const summary = list.byId[id]
-      if (summary === undefined) continue // account may lead the list pull; the row appears when the summary lands
+      if (summary === undefined) continue
       accounted.add(id)
       if (!sessionVisible(summary, list.current, archived)) continue
       members.push(summary)
@@ -259,8 +257,6 @@ export function deriveSearchResults(
   const local = []
   for (const id of list.ids) {
     const summary = list.byId[id]
-    // Blank placeholders never match a query (their canonical title displays
-    // localized, so matching it would tie search to one language).
     if (summary === undefined || summary.blank || !sessionVisible(summary, list.current, archived)) continue
     if (
       sessionTitle(summary).toLowerCase().includes(q)

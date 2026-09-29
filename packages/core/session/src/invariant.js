@@ -33,8 +33,6 @@ function validateEvent(trace, event, fail) {
   let nextStep = trace.nextStep
   let pendingCalls = { kind: 'none' }
 
-  // Context and plugin-owned log-only events may be appended between model
-  // executions. Core execution events retain their explicit turn relations.
   switch (event.type) {
     case 'turn/start': {
       if (trace.openTurn !== null) {
@@ -92,8 +90,6 @@ function validateEvent(trace, event, fail) {
       break
     }
     case 'tool/result': {
-      // Session has already validated a content rewrite that cites its replaced event.
-      // It is durable turn work, not a second execution of the original call.
       if (event.surfaceOp !== 'append') {
         if (trace.openTurn === null) {
           fail('tool/result surface replacement appended outside any open turn')
@@ -112,7 +108,6 @@ function validateEvent(trace, event, fail) {
     case 'user/message':
       break
     case 'session/end-seed':
-      // Unconstrained: an unbalanced seed legally puts it inside an open turn.
       break
     case 'todo/write':
     case 'request/header':
@@ -123,7 +118,6 @@ function validateEvent(trace, event, fail) {
       break
     }
     default:
-      // Merge-extensible event relations belong to their owning plugin.
       break
   }
   return {
@@ -198,8 +192,6 @@ const install = Object.assign((ctx, fail) => {
     const [session, event] = args
     const trace = traceFor(session)
     const transition = validateEvent(trace, event, fail)
-    // A later dispatch listener may veto. Validation is pure, so abandoning
-    // this weakly keyed transition does not advance or retain the session.
     stagedTransitions.set(event, { session, trace, transition })
   }, { global: true })
 }, { inject: ['sessions'] })

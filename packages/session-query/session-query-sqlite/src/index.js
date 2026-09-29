@@ -49,7 +49,6 @@ export const SESSION_QUERY_SQLITE_MAX_LIMIT = 100
 /** Default maximum snippet length in Unicode code points. */
 export const SESSION_QUERY_SQLITE_SNIPPET_CHARS = 240
 
-// One transient source change gets a retry; repeated churn fails rather than monopolizing the queue.
 const STABLE_OBSERVATION_ATTEMPTS = 2
 
 /** Concrete SQLite owner of the combined `ctx.sessionQuery` service. */
@@ -88,8 +87,6 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
   _optionalPersistenceFiber
 
   constructor(ctx, config) {
-    // The assignment expression resolves before the base constructor can
-    // register `ctx.sessionQuery`; keep that same validated value afterward.
     super(ctx, config = resolveConfig(config))
     this.config = config
     this._optionalPersistenceFiber = ctx.inject(['sessionPersistence'], (childCtx) => {
@@ -192,7 +189,6 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
       try {
         await this._ready
       } catch {
-        // Opening already closed a partially-created handle; disposal only waits.
       }
     }
     this._db?.close()
@@ -316,7 +312,6 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
           try {
             await db.exec('ROLLBACK')
           } catch {
-            // The original SQLite failure remains the actionable cause.
           }
         }
         throw new SessionQueryError(
@@ -350,10 +345,6 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
           persisted = materializePersistenceSnapshots(before)
           for (const entry of persisted.values()) {
             if (canReuseIndexed && indexed.get(entry.header.id)?.revision === entry.revision) continue
-            // Skip work already shadowed by a live owner. `inspect()` is
-            // non-mutating, so an owner attaching after this check cannot cause
-            // crash-repair side effects; the live-membership retry below makes
-            // the returned observation live-preferred.
             if (initiallyLive.has(entry.header.id) || this.ctx.sessions.get(entry.header.id) !== undefined) continue
             assertNotAborted(signal)
             const loaded = await persistence.inspect(entry.header.id, signal)
@@ -493,8 +484,6 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
       offset,
     ]
     assertPortableBindingCount(bindings.length)
-    // The browser fixture mirrors these rank keys in
-    // `packages/client/connection/src/client/fixture.js`; update both together.
     return this._requireDb().all(`
       ${selected.sql},
       filtered AS (

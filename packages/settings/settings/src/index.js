@@ -13,6 +13,8 @@ export { redactSecrets } from './redact.js'
 
 const NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/
 
+/** @typedef {string} SettingsNamespace */
+
 /**
  * Brand a raw string as a {@link SettingsNamespace}.
  * @param value - candidate namespace; lowercase kebab-case, as in plugin short names.
@@ -80,7 +82,6 @@ function isPlainObject(value) {
 /** Apply one path op to a detached section, returning the next section. */
 function applyPathOp(section, op) {
   const [head, ...rest] = op.path
-  // The empty path addresses the section itself.
   if (head === undefined) {
     if (op.op === 'unset') return {}
     if (!isPlainObject(op.value)) {
@@ -95,8 +96,6 @@ function applyPathOp(section, op) {
   }
   const child = section[head]
   if (!isPlainObject(child)) {
-    // Unsetting through an absent path is already satisfied; setting through
-    // one creates the intermediate objects it needs.
     if (op.op === 'unset') return section
     return { ...section, [head]: applyPathOp({}, { ...op, path: rest }) }
   }
@@ -138,15 +137,12 @@ function cloneJsonShaped(root, reject) {
       if (visiting.has(value)) throw reject('a circular reference', path)
       visiting.add(value)
       const entries = value.map((entry, index) => clone(entry, `${path}[${index}]`))
-      // Un-mark on exit so one object referenced twice without a cycle passes.
       visiting.delete(value)
       return entries
     }
     if (isPlainObject(value)) {
       if (visiting.has(value)) throw reject('a circular reference', path)
       visiting.add(value)
-      // TODO(settings-json-properties): Use property-safe construction here and
-      // in mergeLayers so valid JSON keys such as "__proto__" remain own data.
       const out = {}
       for (const [key, entry] of Object.entries(value)) {
         if (entry === undefined) continue
@@ -186,7 +182,7 @@ function deepFreeze(value) {
 
 /**
  * Abstract settings service. Providers implement raw-document storage
- * (`load`/`persist`) and push external changes through {@link Settings.publish};
+ * (`load`/`persist`) and push external changes through {@link SettingsProvider#publish};
  * the base class owns namespace registration, resolution, validation, change
  * detection, and the `settings/updated` commit event.
  */
@@ -219,10 +215,6 @@ export class SettingsProvider extends Service {
    */
   async* [Service.init]() {
     yield async () => {
-      // Teardown: refuse new writes and new watcher starts, then wait until
-      // every queued write chain and every started watcher invocation settles
-      // so disposal completes only once storage and observers are quiescent.
-      // Invocations queued but not yet started skip via the stopped check.
       this.stopped = true
       await Promise.allSettled([...this.writeQueues.values(), ...this.pendingTails])
     }
@@ -278,8 +270,6 @@ export class SettingsProvider extends Service {
     }
     this.ctx.effect(() => {
       this.registrations.set(ns, registration)
-      // TODO(settings-registration-quiescence): Deactivate every watcher and await
-      // its tail on disposal so callbacks cannot outlive the registrant fiber.
       return () => this.registrations.delete(ns)
     }, `settings.register(${JSON.stringify(String(ns))})`)
     return {
@@ -310,9 +300,6 @@ export class SettingsProvider extends Service {
       try {
         user = this.section(registration.ns)
       } catch {
-        // A malformed stored section already warned at publish and kept the
-        // last good resolved value; only that malformed shape can throw here,
-        // and describing it as "no user layer" keeps this read total.
         user = undefined
       }
       const base = registration.base === undefined ? undefined : structuredClone(registration.base)
@@ -415,8 +402,6 @@ export class SettingsProvider extends Service {
     if (!this.writable) {
       throw new Error(`settings provider is read-only: "${ns}" cannot be updated in-process`)
     }
-    // A mutate's ops array is wrapped so one JSON-shape walk covers both
-    // shapes; merge/replace carry the section itself.
     let payload
     if (mode === 'mutate') {
       payload = { ops: input }
@@ -424,14 +409,9 @@ export class SettingsProvider extends Service {
       if (!isPlainObject(input)) throw new TypeError(`settings ${verb} for "${ns}" must be a plain object`)
       payload = input
     }
-    // Snapshot at call time: the queue must never read a caller-owned object
-    // the caller may keep mutating while the write waits its turn. The same
-    // walk rejects values that JSON cannot preserve (see cloneJsonShaped).
     const snapshot = cloneJsonShaped(payload, (label, path) =>
       new TypeError(`settings ${verb} for "${ns}" must contain only JSON-compatible data (found ${label} at ${path})`))
     const previous = this.writeQueues.get(ns) ?? Promise.resolve()
-    // Chain past a failed predecessor: one rejected write must not poison the
-    // namespace queue for every later caller.
     const run = previous.catch(() => undefined).then(async () => {
       if (this.isStopped()) {
         throw new Error(`settings service was disposed before the queued "${ns}" ${verb} ran`)
@@ -439,12 +419,7 @@ export class SettingsProvider extends Service {
       if (this.registrations.get(ns) !== registration) {
         throw new Error(`settings namespace "${ns}" registration was disposed before the queued ${verb} ran`)
       }
-      // Every mode derives from the section as it stands NOW, at the front of
-      // the queue — never from whatever the caller last saw.
       const current = this.section(ns) ?? {}
-      // The revision check belongs HERE, not at call time: the queue orders
-      // writes but cannot tell a fresh writer from one holding a snapshot
-      // that a predecessor already superseded.
       if (expectedRevision !== undefined && expectedRevision !== registration.revision) {
         throw new SettingsConflictError(ns, expectedRevision, registration.revision)
       }
@@ -455,12 +430,7 @@ export class SettingsProvider extends Service {
           : snapshot['ops'].reduce(applyPathOp, current)
       const next = deepFreeze(this.resolve(registration.schema, registration.base, section, registration.validate))
       await this.persist(ns, section)
-      // The write reached storage either way; the cache must say so. Commit
-      // only when this registration is still the namespace owner — a fiber
-      // disposed (or replaced) mid-persist must not receive the notification.
       this.document[ns] = section
-      // TODO(settings-replacement-resync): Re-resolve any replacement registration
-      // from this persisted section so an old in-flight write cannot leave it stale.
       if (this.registrations.get(ns) === registration && !this.isStopped()) {
         this.bumpRevision(registration, current, section)
         this.commit(registration, next, 'update')
@@ -478,16 +448,11 @@ export class SettingsProvider extends Service {
    * @param source - change origin; defaults to `provider`.
    */
   publish(doc, source = 'provider') {
-    // Read every raw section BEFORE swapping the document, so the revision
-    // bump below compares what was stored with what now is — an external edit
-    // moves the revision exactly like an in-process write.
     const before = new Map()
     for (const registration of this.registrations.values()) {
       try {
         before.set(registration.ns, this.section(registration.ns))
       } catch {
-        // A malformed stored section is not a readable "before"; treating it
-        // as absent still bumps against any well-formed replacement.
         before.set(registration.ns, undefined)
       }
     }
@@ -518,11 +483,7 @@ export class SettingsProvider extends Service {
 
   /** Resolve one namespace value: schema defaults, then `base`, then the user layer. */
   resolve(schema, base, section, validate) {
-    // The merged candidate is untyped by construction; the schema call is the
-    // runtime validation that admits it into T.
     const value = schema(mergeLayers(base, section))
-    // The owner's own check runs on the admitted value, so it sees defaults
-    // and the composition base exactly as the owner will.
     validate?.(value)
     return value
   }
@@ -569,12 +530,6 @@ export class SettingsProvider extends Service {
     if (deepEqualJson(next, prev)) return
     registration.resolved = next
     for (const watcher of [...registration.watchers]) {
-      // Serialize per watcher: invocations of one callback run one at a time
-      // in commit order, so a slow stale invocation can never apply after a
-      // newer one. Sync throws and async rejections land in the same handler.
-      // The activity check runs when the queued invocation would start, so a
-      // disposer (or service stop) that ran while it waited prevents the
-      // start entirely; started invocations drain at service dispose.
       const segment = watcher.tail
         .then(() => {
           if (!watcher.active || this.isStopped()) return
@@ -587,20 +542,12 @@ export class SettingsProvider extends Service {
       this.pendingTails.add(segment)
       void segment.then(() => this.pendingTails.delete(segment))
     }
-    // Fan the event out one listener at a time (the plain emit stops at the
-    // first throwing listener, starving the rest). Invariant violations are
-    // harness-fatal by design and rethrow after every listener ran; any other
-    // failure is contained so one broken observer cannot wedge the commit
-    // path (and, through it, a provider's reload loop).
     let invariantFailure
     const args = ['settings/updated', registration.ns, next, prev, source]
     for (const listener of this.ctx.events.dispatch('emit', args)) {
       try {
         const returned = listener(registration.ns, next, prev, source)
         if (returned != null && typeof returned.then === 'function') {
-          // An emit listener may still be an async function; its rejection
-          // cannot reach the synchronous INVARIANT rethrow below, so it is
-          // contained here instead of becoming an unhandled rejection.
           void Promise.resolve(returned).then(undefined, (error) => {
             this.warnListenerFailure(registration.ns, error)
           })
@@ -664,22 +611,12 @@ export function installSettingsSection(ctx, ns, schema, entry, hooks) {
     })
     hooks.setSource(() => scope.get())
     sctx.effect(() => () => {
-      // This disposer runs for two different reasons. A settings provider
-      // detaching leaves the consumer running, so it must fall back to its
-      // composition entry and re-judge what it derived. The consumer's own
-      // unload runs it too — and there `onChange` would re-register routes
-      // and touch resources the teardown is releasing, so the fallback is
-      // pointless and the notification actively harmful.
       if (isUnloading(ctx)) return
       hooks.setSource(() => entry)
       hooks.onChange()
     })
     hooks.onChange()
     scope.watch(() => {
-      // A stored change landing while the consumer unloads reaches the watcher
-      // before the registration is released, and `onChange` is exactly as
-      // harmful here as in the disposer above: it re-registers routes against
-      // a fiber whose resources are being let go.
       if (isUnloading(ctx)) return
       hooks.onChange()
     })

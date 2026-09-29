@@ -17,6 +17,18 @@ import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
  * selection. The Input side guards it: a menu-path span consumes iff draftRev
  * is unchanged, an enter-path line iff the trimmed draft still equals the
  * bare token.
+ * @typedef {{via: 'menu', span: {start: number, end: number, draftRev: number}} | {via: 'enter', token: string}} PopupSelectSegment
+ */
+
+/**
+ * One selectable popupSelect row, as loaded by {@link PopupSelectSpec.options}
+ * and settled by {@link PopupSelectSpec.onSelect}.
+ * @typedef {object} PopupSelectOption
+ * @property {string} id
+ * @property {string} label
+ * @property {string} [detail]
+ * @property {boolean} [active]
+ * @property {{title: string, description: string, acknowledgeLabel: string, cancelLabel: string, confirmLabel: string}} [confirmation] - when present, the risk gate `select()` must pass through `confirm()` before settling.
  */
 
 /**
@@ -24,9 +36,17 @@ import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
  * of CommandUiSpec, generic in the context value the opener captures (the
  * session wiring passes its session projection; the controller only carries
  * it from open() to the callbacks).
+ * @typedef {object} PopupSelectSpec
+ * @property {(context: *, signal: AbortSignal) => Promise<PopupSelectOption[]>} options - load the shell's option rows for one open-time context.
+ * @property {(option: PopupSelectOption, context: *) => Promise<void>} onSelect - settle the chosen option against the open-time context.
  */
 
-/** Injected session-wiring callbacks of one controller (tests pass fakes). */
+/**
+ * Injected session-wiring callbacks of one controller (tests pass fakes).
+ * @typedef {object} PopupSelectDeps
+ * @property {(segment: PopupSelectSegment) => boolean} consume - replay the open-time token segment through the session's input-consume guard; a false answer is benign (the guard rejected a stale segment).
+ * @property {() => void} focusComposer - return focus to the session's composer textarea.
+ */
 
 /** Popup shell state (the shell component renders from here; closed = render null). */
 
@@ -48,7 +68,15 @@ export function filterOptions(options, search) {
   return options.filter(o => o.label.toLowerCase().includes(query) || (o.detail?.toLowerCase().includes(query) ?? false))
 }
 
-/** One open shell's bindings (spec + open-time context + segment snapshot + options-fetch abort). */
+/**
+ * One open shell's bindings (spec + open-time context + segment snapshot + options-fetch abort).
+ * @typedef {object} PopupSelectBinding
+ * @property {string} command - command name the shell serves.
+ * @property {PopupSelectSpec} spec - the registered popupSelect spec.
+ * @property {*} context - open-time context snapshot, handed verbatim to options/onSelect.
+ * @property {PopupSelectSegment} segment - open-time token segment snapshot for post-select consumption.
+ * @property {AbortController} abort - aborts the in-flight options fetch when the binding is superseded or torn down.
+ */
 
 /** The shell's error-strip line for a settlement failure. */
 function errorText(error) {
@@ -208,11 +236,11 @@ export class PopupSelectController {
       await binding.spec.onSelect(option, binding.context)
     } catch (error) {
       console.error(`[ui-commands] popupSelect onSelect failed for /${binding.command}:`, error)
-      if (this.binding !== binding) return // dismissed/reopened/disposed while onSelect flew
+      if (this.binding !== binding) return
       this.state.set({ ...this.state.getSnapshot(), submitting: false, error: errorText(error) })
       return
     }
-    if (this.binding !== binding) return // late success: no state write, no consumption
+    if (this.binding !== binding) return
     this.deps.consume(binding.segment)
     this.binding = null
     this.state.set(CLOSED)

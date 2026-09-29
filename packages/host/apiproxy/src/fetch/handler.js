@@ -167,27 +167,10 @@ async function handleUnary(api, method, message, signal) {
   if (!payload.success) {
     return errorResponse(message.rpcId, { code: 'bad-request', message: `invalid payload for ${method}`, details: { issues: payload.error.issues } })
   }
-  // Payload-shape validation was removed repo-wide (see rpc.schema.js: the
-  // route schemas are identity pass-throughs), so a request with no payload at
-  // all reaches a handler that destructures it. That is not the "fails
-  // differently downstream" the removal traded for: `const { sessionId } =
-  // request.payload` throws a raw TypeError, which the catch below turns into
-  // a carrier-layer 500 -- an implementation crash, leaking an internal
-  // message, for what is purely a malformed request. Witnessed live against
-  // session.history, session.rename and agentPreset.read, each answering
-  // "handler failure: TypeError: Cannot destructure property ...".
-  //
-  // Substituting an empty object is the smallest change that keeps the
-  // no-schema design and still lets each handler answer for its OWN required
-  // fields: destructuring yields undefined, the handler's own field check
-  // fails, and the client gets a business `bad-request` naming the field. A
-  // payload that IS present passes through untouched, so no valid request
-  // changes shape.
   const data = payload.data ?? {}
   try {
     return fullResponse(await route.invoke(api, { rpcId: message.rpcId, payload: data }, signal))
   } catch (error) {
-    // The impl never throws business errors; reaching here means the implementation itself crashed — 500, carrier layer.
     return new Response(`handler failure: ${String(error)}`, { status: 500 })
   }
 }
@@ -206,28 +189,20 @@ function sseResponse(frames) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // Send an SSE comment line on open so clients/proxies see a live channel (the host
-        // stream has no baseline frames and would otherwise emit zero bytes while idle;
-        // a comment line is not a frame, so client frame parsing skips it naturally).
         controller.enqueue(encoder.encode(': connected\n\n'))
         for await (const narrow of frames) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(fullFrame(narrow))}\n\n`))
         }
       } catch (error) {
-        // Mid-stream impl failure → one stream/error frame, then close: the client must see
-        // the failure instead of a silent end (which reads as a normal disconnect). A fresh
-        // rpcId is minted — this is a server-initiated push like any other frame.
         const failure = { type: 'stream/error', error: { code: 'internal', message: String(error), details: {} } }
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(fullFrame({ rpcId: RpcId(randomUUID()), payload: failure }))}\n\n`))
         } catch {
-          // Consumer already cancelled the stream: enqueue-after-cancel is the
-          // only reachable error, and there is no one left to tell.
         }
       } finally {
         try {
           controller.close()
-        } catch { /* already cancelled by the consumer: a double close is the only reachable error */ }
+        } catch { }
       }
     },
   })
@@ -243,15 +218,11 @@ function sseResponse(frames) {
  */
 export function toFetchHandler(api) {
   return {
-    // Signature matches global fetch: the isomorphic point hands this function to InProcessApiClient as its transport aspect,
-    // Clients call in (url, init) form — normalize to Request before handling.
     async fetch(input, init) {
       const req = input instanceof Request ? input : new Request(input, init)
       const url = new URL(req.url)
       const path = url.pathname
 
-      // No-envelope read channels (SSE GET streams + host-only download):
-      // physical routes that answer directly, without a wire envelope.
       if (path === '/api/events.mux' && req.method === 'GET') {
         return sseResponse(api.events.mux({ rpcId: RpcId(randomUUID()), payload: {} }, req.signal))
       }
@@ -259,9 +230,6 @@ export function toFetchHandler(api) {
         return sseResponse(api.events.host({ rpcId: RpcId(randomUUID()), payload: {} }, req.signal))
       }
       if (path === '/api/session.export' && (req.method === 'GET' || req.method === 'HEAD')) {
-        // Query params are a different boundary from the POST envelope.
-        // No validation here — malformed input fails downstream instead of
-        // being rejected at this boundary (schema validation removed).
         const parsed = parseSessionLogQuery(Object.fromEntries(url.searchParams))
         const response = await api.downloads.sessionLog(parsed, req.signal)
         if (req.method === 'GET') return response
@@ -273,12 +241,6 @@ export function toFetchHandler(api) {
         return new Response('not found', { status: 404 })
       }
 
-      // Cross-site write fence: browsers send "simple" POSTs (text/plain,
-      // form encodings) without a CORS preflight, so a malicious page could
-      // otherwise execute side-effectful RPCs blind — the response stays
-      // unreadable cross-origin, but session.prompt would still run. Only the
-      // JSON media type is accepted; anything else is forced into a preflight
-      // this server never answers. 415 = carrier layer, like the 400 below.
       const mediaType = req.headers.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase()
       if (mediaType !== 'application/json') {
         return new Response('content type must be application/json', { status: 415 })
@@ -288,7 +250,6 @@ export function toFetchHandler(api) {
       try {
         body = await req.json()
       } catch {
-        // 400 = carrier layer (body is not even JSON); valid JSON with a bad shape goes 200 + bad-request.
         return new Response('body is not JSON', { status: 400 })
       }
 
@@ -303,8 +264,6 @@ export function toFetchHandler(api) {
 
       const envelope = clientRequestSchema.safeParse(body)
       if (!envelope.success) {
-        // Best effort at correlation: salvage a string rpcId from the raw body;
-        // otherwise the fixed sentinel keeps the response a valid ServerResponse.
         const rawId = body?.rpcId
         const rpcId = typeof rawId === 'string' ? RpcId(rawId) : INVALID_REQUEST_RPC_ID
         return errorResponse(rpcId, { code: 'bad-request', message: 'invalid client-request message', details: { issues: envelope.error.issues } })

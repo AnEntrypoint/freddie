@@ -10,7 +10,18 @@ import { assertTaskGraphCandidate } from './task-graph.js'
 
 const numericTaskIdPattern = /^task-(\d+)$/u
 
-/** Mutable internal replay state. */
+/**
+ * Mutable internal replay state, as built by {@link emptyTeamFoldState} and
+ * folded forward by {@link applyTeamEvent}.
+ * @typedef {object} TeamFoldState
+ * @property {import('./types.js').TeamId} id
+ * @property {Map<import('@freddie/freddie-session').SessionId, import('./types.js').TeammateRecord>} members
+ * @property {Map<string, import('@freddie/freddie-session').SessionId>} memberIdsByName
+ * @property {Map<import('./types.js').TeamTaskId, import('./types.js').TeamTask>} tasks
+ * @property {Map<import('./types.js').TeamMessageId, import('./types.js').TeamMessageRecord>} messages
+ * @property {Set<import('./types.js').TeamMessageId>} delivered
+ * @property {number} nextTaskNumber
+ */
 
 /**
  * Construct an empty Team fold for one root Session.
@@ -29,9 +40,12 @@ export function emptyTeamFoldState(rootId) {
   }
 }
 
-/** Whether one event belongs to the Team domain. */
-
-/** One event owned by the Team domain. */
+/**
+ * One event owned by the Team domain.
+ * @typedef {object} TeamEvent
+ * @property {'team/member' | 'team/task' | 'team/message/queued' | 'team/message/delivered'} type
+ * @property {object} data
+ */
 
 /**
  * Test whether a Session event belongs to the Team domain.

@@ -25,7 +25,6 @@ const PROVIDER_OUTAGE_TITLE = 'All upstream providers are currently unavailable.
 /** Shared Loader field schemas with no library defaults. */
 export const SessionTitleLlmConfigFields = {
   targetWords: z.number().step(1).min(1).required(),
-  targetCjkCharacters: z.number().step(1).min(1).required(),
   maxInputBytes: z.number().step(1).min(1).required(),
   maxOutputTokens: z.number().step(1).min(1).required(),
   timeoutMs: z.number().step(1).min(1).max(MAX_TIMER_DELAY_MS).required(),
@@ -39,7 +38,6 @@ export const SessionTitleLlmConfigSchema = z.object(SessionTitleLlmConfigFields)
 /** Complete configuration key set for direct construction validation. */
 const CONFIG_KEYS = new Set([
   'targetWords',
-  'targetCjkCharacters',
   'maxInputBytes',
   'maxOutputTokens',
   'timeoutMs',
@@ -69,7 +67,6 @@ export function resolveSessionTitleLlmConfig(config) {
     if (!CONFIG_KEYS.has(key)) throw new Error(`session-title-llm: unknown config key "${key}"`)
   }
   assertPositiveInteger('targetWords', value.targetWords)
-  assertPositiveInteger('targetCjkCharacters', value.targetCjkCharacters)
   assertPositiveInteger('maxInputBytes', value.maxInputBytes)
   assertPositiveInteger('maxOutputTokens', value.maxOutputTokens)
   assertPositiveInteger('timeoutMs', value.timeoutMs)
@@ -132,7 +129,7 @@ function systemPrompt(config) {
     'Create a concise title for an AI coding-assistant session from the supplied human messages.',
     'Return only the title on one line, **in plain text of natural language**, with no quotes, prefix, explanation, Markdown, XML, or terminal control codes. No code is allowed.',
     'Use the language of the messages.',
-    `Aim for about ${config.targetWords} words in non-CJK languages or ${config.targetCjkCharacters} CJK characters.`,
+    `Aim for about ${config.targetWords} words.`,
   ].join('\n')
 }
 

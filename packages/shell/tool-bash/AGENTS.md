@@ -1,0 +1,6 @@
+## Rationale
+
+- `src/index.js` `validateBashArgs`: the escalation pairing (`sandbox_permissions` with a non-empty `justification`) is the shared rule both enforcing families (bash and pwsh) validate identically through `validateEscalationArgs`.
+- `src/index.js` background start: undeclared input keys are allowed, so omitting `run_in_background` from the schema still needs the explicit `enableRunInBackground` enforcement. The caller owns cancellation until `ctx.jobs` commits detached ownership (aborted signal is checked first), and task preflight finishes before the starter can spawn a process.
+- `src/render.js` markers: the exit marker must stay last because `parseExitStatus` anchors there; the escalation hint is added before it and only when the composition exposes escalation. A timed-out command is still reported as interrupted even if it trapped SIGTERM and exited 0.
+- TODO(background-infrastructure-outcome) in `src/background.js` `processOutcome`: widen `ShellProcess` with an explicit infrastructure-failure outcome and map it to task `failed`. Restricted runner failures expose `sandbox.runnerFailed`, but unconfined spawn failures still alias a signal-less kill; real nonzero command exits must remain `completed`.

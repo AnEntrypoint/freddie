@@ -55,16 +55,9 @@ export function createAnchoredPosition(options) {
     start() {
       if (started) this.stop()
       started = true
-      // The first run measures the panel in the same tick that opened it, so
-      // the clamp uses real dimensions before anything paints.
       place()
       window.addEventListener('scroll', place, true)
       window.addEventListener('resize', place)
-      // The panel's own height changes without either event — a status line
-      // appearing inside it, or a `resize: vertical` textarea dragged taller —
-      // and a stale clamp would let a panel near the bottom edge cross the
-      // margin it is supposed to respect. The guard keeps this usable where
-      // `ResizeObserver` is absent, which is how jsdom runs.
       const panel = options.panel
       if (typeof ResizeObserver !== 'undefined' && panel !== null) {
         observer = new ResizeObserver(place)

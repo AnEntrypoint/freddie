@@ -20,9 +20,6 @@ function digest(data) {
 
 function displayName(value) {
   if (value === undefined) return undefined
-  // Strip both separator styles by hand: a POSIX host treats `\` as an
-  // ordinary character, so path.basename would keep a Windows client's full
-  // local path and leak it into the reference and the session log.
   const leaf = value.slice(Math.max(value.lastIndexOf('/'), value.lastIndexOf('\\')) + 1)
   const clean = leaf.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 255)
   return clean === '' ? undefined : clean
@@ -161,9 +158,6 @@ export async function commitPreparedImageFile(root, prepared) {
   }
   const bucket = join(root, 'objects', sha256.slice(0, 2))
   const staging = join(root, 'tmp')
-  // Establish FREDDIE_HOME itself against the filesystem root once per process.
-  // Every process performs that proof independently, so observing a directory
-  // another process created can never be mistaken for durable publication.
   const boundary = await ensureDurableHome(dirname(dirname(resolve(root))))
   await ensureDurableDirectory(bucket, boundary)
   await ensureDurableDirectory(staging, boundary)
@@ -184,10 +178,6 @@ export async function commitPreparedImageFile(root, prepared) {
       const existing = new Uint8Array(await readFile(target))
       if (digest(existing) !== sha256) throw new AttachmentError('Stored attachment failed integrity verification.', 'ATTACHMENT_CORRUPT')
     }
-    // Persist the target entry and close a concurrent bucket-creation window
-    // before the reference can reach a session checkpoint. The dedup path
-    // repeats both syncs because it may observe another writer's link before
-    // that writer reaches its own durability boundary.
     await syncDirectory(bucket)
     await syncDirectory(join(root, 'objects'))
     await unlink(temporary)
@@ -243,9 +233,6 @@ export async function readImageFile(root, ref, signal) {
   }
   signal?.throwIfAborted()
   if (digest(data) !== sha256) throw new AttachmentError('Stored attachment failed integrity verification.', 'ATTACHMENT_CORRUPT')
-  // The digest proves these are the exact bytes admission fully decoded, so
-  // the read path only re-derives the header fields (no raster decode, no
-  // per-request pixel amplification on history replay).
   const metadata = await probeImage(data)
   signal?.throwIfAborted()
   if (metadata.mediaType !== ref.mediaType || data.byteLength !== ref.bytes

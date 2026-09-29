@@ -1,9 +1,3 @@
-// Expanded bodies for the context disclosure, one per durable context form.
-// The producer declares the form; this module only chooses a presentation for
-// it. Every form falls back to OpaqueBody, which is the documented default for
-// an absent, unknown, or malformed form — a resumed or foreign log must render
-// even when this UI version has never seen its producer.
-
 import { createElement as h } from '@freddie/webjsx'
 import css from './ContextBody.css.js'
 
@@ -20,7 +14,10 @@ function asRecord(value) {
     : null
 }
 
-/** One run of the model-facing content: adjacent text, or one unknown block. */
+/**
+ * One run of the model-facing content: adjacent text, or one unknown block.
+ * @typedef {{text: string}|{block: object}} ContentRun
+ */
 
 /**
  * The content blocks as runs, IN THE ORDER the model received them.
@@ -148,7 +145,13 @@ export function OpaqueBody({ content, source, t, jsonBlock }) {
     : [...ModelFacingContent({ content, t, jsonBlock }), fields]
 }
 
-/** One reconciled instruction file, as the durable source records it. */
+/**
+ * One reconciled instruction file, as the durable source records it.
+ * @typedef {object} InstructionChange
+ * @property {'set'|'replace'|'remove'} action - what happened to the file.
+ * @property {string} path - the file's durable path.
+ * @property {string} [digest] - the file's content digest, when the source recorded one.
+ */
 
 /**
  * Instruction changes read off the source, or null when the record is not a
@@ -171,8 +174,6 @@ function instructionChanges(source) {
     const path = change['path']
     if (typeof path !== 'string' || path === '') return null
     const action = change['action']
-    // The action decides which word the row shows, so an unrecognized one is
-    // not a readable change — it would be presented as loaded or updated.
     if (action !== 'set' && action !== 'replace' && action !== 'remove') return null
     const digest = change['digest']
     if (seen.has(path)) continue
@@ -224,7 +225,12 @@ export function InstructionsBody({ content, source, t, jsonBlock }) {
   ]
 }
 
-/** One catalog entry, as the durable source records it. */
+/**
+ * One catalog entry, as the durable source records it.
+ * @typedef {object} CatalogEntry
+ * @property {string} name - the entry's published name.
+ * @property {string} description - the entry's published description.
+ */
 
 /**
  * Catalog entries read off the source, or null when the record is not a usable
@@ -245,8 +251,6 @@ function catalogEntries(source) {
     if (typeof name !== 'string' || name === '' || typeof description !== 'string') return null
     entries.push({ name, description })
   }
-  // An empty list is a real catalog: a replacement with no entries retires
-  // every earlier name. Only an unreadable shape falls back.
   return entries
 }
 
@@ -264,16 +268,12 @@ export function CatalogBody({ content, source, t, jsonBlock }) {
   const entries = catalogEntries(source)
   if (entries === null) return OpaqueBody({ content, source, t, jsonBlock })
   const update = asRecord(source)?.['update'] === true
-  // Entry count is unbounded (a provider may publish any number of skills), and
-  // the scrollport bounds height, not node count — so the list bounds itself.
   const shown = entries.slice(0, MAX_ENTRIES)
   const rest = unknownBlocks(content)
   return [
     ...(update ? [h('p', { class: css.catalogNotice ?? '', 'data-context-catalog-update': '' }, t('message.context.catalog.replaced'))] : []),
     h('ul', { class: css.entries ?? '', 'data-context-entries': '' },
       shown.map((entry, index) => (
-        // Index key: a hand-edited or foreign log may repeat a name, and a
-        // duplicate React key would drop a row the model did see.
         h('li', { key: index, class: css.entry ?? '' },
           h('code', { class: css.entryName ?? '' }, entry.name),
           h('span', { class: css.entryDescription ?? '' }, entry.description),
@@ -287,13 +287,16 @@ export function CatalogBody({ content, source, t, jsonBlock }) {
         ),
       ]
       : []),
-    // The block union is merge-extensible: a catalog message carrying an
-    // unknown block still shows it rather than dropping model-visible content.
     ...UnknownBlocks({ blocks: rest, t, jsonBlock }),
   ]
 }
 
-/** One named contribution to a runtime snapshot, as the durable source records it. */
+/**
+ * One named contribution to a runtime snapshot, as the durable source records it.
+ * @typedef {object} SnapshotSection
+ * @property {string} name - the contributing subsystem's name.
+ * @property {string} text - the section's durable text.
+ */
 
 /** Snapshot sections read off the source, or null when the record is unusable. */
 function snapshotSections(source) {
@@ -385,7 +388,14 @@ function relaySender(source) {
   return typeof sender === 'string' && sender !== '' ? sender : null
 }
 
-/** One recalled session, as the durable source records it. */
+/**
+ * One recalled session, as the durable source records it.
+ * @typedef {object} RecalledSession
+ * @property {string} label - the recalled session's display label.
+ * @property {number} retained - how many of its messages survived the read.
+ * @property {number} omitted - how many of its messages were left out.
+ * @property {boolean} truncated - whether the retained material was itself cut short.
+ */
 
 /** Recalled sessions read off the source, or null when the record is unusable. */
 function recalledSessions(source) {
@@ -400,9 +410,6 @@ function recalledSessions(source) {
     const retained = reference['retainedMessages']
     const omitted = reference['omittedMessages']
     const truncated = reference['truncated']
-    // Completeness is the fact this card exists to report, so a reference that
-    // cannot state it is not a readable recall — showing the label alone would
-    // present a confident card over unknown loss.
     if (typeof label !== 'string' || label === ''
       || typeof retained !== 'number' || typeof omitted !== 'number'
       || typeof truncated !== 'boolean') return null

@@ -54,8 +54,6 @@ export function mapExaResponse(response) {
   const sources = (response.results ?? [])
     .map(mapExaResult)
     .filter((source) => source !== undefined)
-  // Exa returns no generated answer, so `content` is omitted. The web service owns the
-  // final `maxResults` truncation, so this provider reports `truncated: false`.
   return { sources, truncated: false }
 }
 
@@ -75,7 +73,6 @@ export class ExaSearchProvider {
   }
 
   async search(request, signal) {
-    // A per-request bound wins over the configured default; either may be absent.
     const numResults = request.maxResults ?? this.options.numResults
     let response
     try {
@@ -109,13 +106,7 @@ export class ExaSearchProvider {
         const detail = parsed.error ?? parsed.message
         if (detail !== undefined && detail.length > 0) message = detail
       } catch (error) {
-        // An abort fired mid-body must surface as WEB_ABORTED, not be swallowed
-        // into a generic HTTP-error message — cancellation is not a provider
-        // error (the seam's cancellation contract).
         if (isAbortError(error)) throw new WebError('Exa search aborted', 'WEB_ABORTED', { cause: error })
-        // Otherwise: the HTTP status is already captured in `message` above; a
-        // malformed/non-JSON error body (normal for gateway 5xx/429s) can only
-        // cost a richer provider message, never the real error.
       }
       throw new WebError(message, 'WEB_PROVIDER_ERROR')
     }

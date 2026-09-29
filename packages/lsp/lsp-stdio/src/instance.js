@@ -46,8 +46,6 @@ export class LspInstance {
     this.spec = spec
     this.connection = new LspConnection(spec, spawner, (method, params) => this.answerServerRequest(method, params), writer)
     this.ready = this.initialize()
-    // A handshake rejection must not surface as an unhandled rejection before the first query awaits
-    // it; queries attach the real handler.
     this.ready.catch(() => {})
     void this.connection.closed.then(() => { this.processClosed = true })
   }
@@ -74,26 +72,18 @@ export class LspInstance {
    * @returns the normalized result.
    */
   query(request, source, signal) {
-    // Serialize behind prior work, but observe abort DURING the queue wait too: if an earlier query
-    // hangs (e.g. a signal-less service caller), a later tool's timeout must still be able to give up
-    // rather than block on the shared tail forever.
     const run = abortable(this.queue, signal)
       .then(() => this.runQuery(request, source, signal))
       .catch(async (error) => {
         if (this.isTransportFailure(error)) await this.startTeardown()
         throw error
       })
-    // Keep the tail alive regardless of this query's outcome so the next caller still serializes. The
-    // tail follows the ACTUAL prior work (this.queue), not the abortable view, so a caller giving up
-    // on the wait does not deserialize the queue.
     this.queue = this.queue.then(() => run).then(() => undefined, () => undefined)
     return run
   }
 
   async initialize() {
     const initializeResult = await this.connection.request('initialize', {
-      // A subprocess provider may run in another PID namespace or machine;
-      // the host PID would let the server monitor an unrelated process.
       processId: null,
       rootUri: this.spec.workspaceUri,
       workspaceFolders: [{ uri: this.spec.workspaceUri, name: 'workspace' }],
@@ -101,7 +91,6 @@ export class LspInstance {
       initializationOptions: this.spec.initializationOptions,
     })
     const capabilities = initializeResult.capabilities
-    // An omitted encoding defaults to utf-16; any other value is a protocol error we reject here.
     negotiatePositionEncoding(capabilities.positionEncoding)
     this.capabilities = capabilities
     await this.connection.notify('initialized', {})
@@ -111,10 +100,6 @@ export class LspInstance {
     if (this.disposed) throw new LspError('LSP instance was disposed', 'LSP_DISPOSED')
     /* v8 ignore next -- the abortable queue wait rejects a pre-aborted signal before runQuery; this is a belt-and-suspenders guard. */
     if (signal?.aborted) throw abortError(signal)
-    // Observe abort during the handshake wait, and never pool a poisoned instance: if the wait ends
-    // in failure — an abort on a still-pending handshake, OR `initialize` rejecting (utf-8
-    // negotiation, malformed result) without the process exiting — tear the instance down so a
-    // permanently-rejecting/pending `ready` can't make every later query for this workspace fail.
     try {
       await abortable(this.ready, signal)
     } catch (error) {
@@ -143,8 +128,6 @@ export class LspInstance {
           textDocument: { uri, languageId: request.languageId, version: 1, text: source.text },
         }), signal)
       } catch (error) {
-        // A canceled backpressured write or failed stdin leaves the protocol stream unusable before
-        // `opened` can arm the didClose cleanup. Teardown here makes the pool evict the instance.
         await this.startTeardown()
         throw error
       }
@@ -152,15 +135,10 @@ export class LspInstance {
       const payload = await this.sendRequest(request.operation, uri, request.position, signal)
       return this.normalize(request.operation, payload)
     } finally {
-      // A disposed or closed instance (e.g. an aborted request whose server ignored
-      // `$/cancelRequest`) is already tearing down; sending didClose would race that teardown and let
-      // the next queued query's document lifecycle overlap the still-active request.
       if (opened && !this.dead) {
         try {
           await this.connection.notify('textDocument/didClose', { textDocument: { uri } })
         } catch {
-          // A close-write failure does not replace the settled result/error, but the instance can no
-          // longer be trusted: invalidate it and await bounded process termination.
           try {
             await this.startTeardown()
           } catch {
@@ -176,8 +154,6 @@ export class LspInstance {
     const params = {
       textDocument: { uri },
       position: { line: position.line, character: position.character },
-      // findReferences always includes declarations: the caller gets no flag and impact analysis
-      // never omits the defining site.
       ...(operation === 'findReferences' ? { context: { includeDeclaration: true } } : {}),
     }
     const requestId = this.connection.peekNextId()
@@ -197,11 +173,8 @@ export class LspInstance {
     } catch (error) {
       if (!signal.aborted) throw error
       this.connection.cancel(requestId)
-      // Wait, bounded, for the server to honor the cancellation. If it does not, the request is still
-      // running: terminate the instance (disposal awaits process close) so nothing outlives the query.
       const grace = deadline(undefined, this.spec.killGraceMs, 'LSP_CANCEL_GRACE')
       try {
-        // `settled` is true if the request finished (either outcome) before the grace elapsed.
         const settled = await Promise.race([
           send.then(markSettled, markSettled),
           new Promise((resolve) => {
@@ -222,25 +195,20 @@ export class LspInstance {
     if (operation === 'hover') {
       return { kind: 'hover', hover: normalizeHover(payload) }
     }
-    // The filesystem provider owns URI syntax for the execution platform, which may differ from the
-    // harness host. Preserve that coordinate through rendering instead of reparsing `spec.cwd` there.
     return { kind: 'locations', locations: normalizeLocations(payload), resolvedWorkspaceUri: this.spec.workspaceUri }
   }
 
   answerServerRequest(method, params) {
     if (method === 'workspace/configuration') {
-      // Answer every requested item with the one static configuration value.
       const record = params
       /* v8 ignore next -- a configuration request always carries an items array; the empty fallback is defensive. */
       const items = Array.isArray(record?.items) ? record.items : []
       return Promise.resolve(items.map(() => this.spec.configuration))
     }
     if (LIFECYCLE_NOOP_METHODS.has(method)) {
-      // Accept lifecycle bookkeeping requests with an empty result; we register nothing dynamic.
       return Promise.resolve(null)
     }
     if (method === 'workspace/applyEdit') {
-      // This host never applies edits or runs commands.
       return Promise.reject(new Error('workspace/applyEdit is not permitted by this host'))
     }
     return Promise.reject(new Error(`unsupported server request: ${method}`))
@@ -266,7 +234,6 @@ export class LspInstance {
     try {
       await this.gracefulShutdown(shutdownDeadline.signal)
     } catch {
-      // Graceful shutdown failed or timed out; process-tree cleanup below remains authoritative.
     } finally {
       shutdownDeadline[Symbol.dispose]()
     }

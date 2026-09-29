@@ -104,11 +104,6 @@ export class ConnectionController {
       })
 
       try {
-        // Strict readiness handshake: describe proves unary reachability, onOpen
-        // proves each physical stream is established before any frame —
-        // only then may onConnected fire, so the resync it triggers cannot outrun the
-        // subscribed baseline. A failed readiness handshake finishes this generation
-        // itself; reconnect must not depend on an aborted carrier eventually ending.
         const timeout = new AbortController()
         const [description, streamsReady] = await Promise.all([
           this.api.host.describe({}),
@@ -126,14 +121,10 @@ export class ConnectionController {
         if (ac.signal.aborted) throw new Error('generation aborted during readiness handshake')
         this.attempt = 0
         this.emitState('connected')
-        // A state sink may synchronously stop this controller. Do not publish
-        // a description for a generation that no longer exists afterward.
         if (this.isGenerationActive(ac)) {
           this.callSink(() => { this.sinks.onConnected?.(descriptionResult.value) })
         }
       } catch {
-        // Transport failure: readiness owns its terminal transition, so an
-        // uncooperative stream cannot stall the reconnect loop after abort.
         finishGeneration()
       }
 
@@ -167,7 +158,6 @@ export class ConnectionController {
         if (sink !== undefined) this.callSink(() => { sink(envelope) })
       }
     } catch {
-      // Stream loss: converge on onEnd, which triggers the shared reconnect.
     }
     onEnd()
   }

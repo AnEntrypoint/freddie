@@ -16,7 +16,7 @@
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 export { PermissionRow } from './PermissionRow.js'
 import {
-  accessEn, accessZh, en, zh,
+  accessEn, en,
 } from './locales.js'
 import {
   displayPermissionPreset, FULL_ACCESS_PRESET,
@@ -64,38 +64,22 @@ function optionsOf(value, t) {
 export function apply(ctx) {
   const command = ctx.get('commandUi')
   const sessions = ctx.sessions
-  // This optional bundle and ui-conversation can load independently, so each
-  // owns the same safety copy under its own locale namespace.
   /* jscpd:ignore-start */
-  ctx.effect(() => {
-    const disposers = [
-      ctx.locale.register(ACCESS_NS, 'zh', {
-        'confirm.title': accessZh['confirm.title'],
-        'confirm.description': accessZh['confirm.description'],
-        'confirm.acknowledge': accessZh['confirm.acknowledge'],
-        'confirm.cancel': accessZh['confirm.cancel'],
-        'confirm.enable': accessZh['confirm.enable'],
-      }),
-      ctx.locale.register(ACCESS_NS, 'en', {
-        'confirm.title': accessEn['confirm.title'],
-        'confirm.description': accessEn['confirm.description'],
-        'confirm.acknowledge': accessEn['confirm.acknowledge'],
-        'confirm.cancel': accessEn['confirm.cancel'],
-        'confirm.enable': accessEn['confirm.enable'],
-      }),
-    ]
-    return () => { for (const dispose of disposers) dispose() }
-  }, 'ui-permission: Full access confirmation dictionaries')
+  ctx.effect(() => ctx.locale.register(ACCESS_NS, 'en', {
+    'confirm.title': accessEn['confirm.title'],
+    'confirm.description': accessEn['confirm.description'],
+    'confirm.acknowledge': accessEn['confirm.acknowledge'],
+    'confirm.cancel': accessEn['confirm.cancel'],
+    'confirm.enable': accessEn['confirm.enable'],
+  }), 'ui-permission: Full access confirmation dictionaries')
   /* jscpd:ignore-end */
   const t = ctx.locale.bind(ACCESS_NS)
   const sessionFor = session =>
     sessions.binding(session.sessionId)?.session
 
-  ctx.effect(() => ctx.locale.register('settings.permission', { zh, en }), 'ui-permission: settings row dictionaries')
+  ctx.effect(() => ctx.locale.register('settings.permission', { en }), 'ui-permission: settings row dictionaries')
 
   const connection = ctx.get('connection')
-  // The row follows the shared describe mirror, whose owning plugin already
-  // refreshes it on document commits and reconnects.
   const controller = new PermissionPresetSettingsController(
     ctx.settingsScope.describe(), connection.api, ctx.settingsSchema)
   const load = () => controller.load()
@@ -118,9 +102,6 @@ export function apply(ctx) {
 
   ctx.effect(() => command.decorate({
     name: 'permission',
-    // The picker exists exactly while the projection does: a permission-less
-    // host serves no key and the bare invocation falls through to the host
-    // command (which is absent too — the line simply misses).
     available: session => selectOf(sessionFor(session)) !== undefined,
     ui: {
       kind: 'popupSelect',

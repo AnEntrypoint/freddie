@@ -1,22 +1,3 @@
-// Hover/focus label bubble (figma tooltip pill: dark plate, white text).
-// TODO: interaction is a placeholder (horizontal overflow clamps and a
-// vertical collision flips the bubble to the other side, but there is no
-// arrow) — visuals and behavior get a proper pass later.
-// The bubble is position:fixed and coordinates come from the anchor's rect at
-// show time, so it escapes ancestor overflow clipping (the sidebar rail clips
-// its column) without a portal.
-//
-// Converted from a React hooks component to a webjsx custom element. React's
-// cloneElement (injecting hover/focus handlers into an arbitrary child
-// element without a wrapper node) has no webjsx equivalent, since webjsx has
-// no notion of an opaque "element with props" outside a vnode tree it owns —
-// so this version wraps the anchor in a lightweight inline-content span
-// instead of cloning it. The wrapper carries no layout box of its own
-// (`display: contents`, in Tooltip.module.css) so it does not change the
-// anchor's layout context, matching the original's "never changes layout"
-// guarantee without needing cloneElement. pos/placement state become
-// instance fields; re-render is an explicit applyDiff(this, vdom) call.
-
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import css from './Tooltip.css.js'
 import { defineElement } from './define-element.js'
@@ -119,8 +100,6 @@ export class FreddieTooltip extends HTMLElement {
       if (changed) this.#render()
     }
     this.#resizeHandler = fit
-    // Runs after the bubble is in the DOM (queued via microtask by #render's
-    // applyDiff having already run before this call site executes fit()).
     fit()
     window.addEventListener('resize', fit)
   }
@@ -176,6 +155,16 @@ export class FreddieTooltip extends HTMLElement {
 }
 
 defineElement('freddie-tooltip', FreddieTooltip)
+
+/**
+ * @typedef {object} TooltipProps
+ * @property {string|function(): string} [label=''] - the bubble text, or a function called on show to compute it lazily.
+ * @property {*} [children=''] - the anchor content the tooltip is attached to.
+ * @property {'right'|'top'|'bottom'} [side='right'] - preferred placement; `'top'`/`'bottom'` flip to fit the viewport.
+ * @property {boolean} [disabled] - suppresses showing the bubble and resets any pending show/position state.
+ * @property {number} [delayMs=0] - hover delay before showing; focus shows immediately.
+ * @property {number} [maxWidth] - max-width in pixels applied to the bubble.
+ */
 
 /**
  * Create (if needed) or update a Tooltip element in place.

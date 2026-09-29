@@ -14,9 +14,9 @@ import { DomainError } from './error.js'
 const noop = () => {}
 
 /**
- * The single domain implementation behind the {@link Domain} interface. The
- * facility constructs it from a validated `loadAll` snapshot and erases it to
- * `Domain<S>`; nothing outside this package constructs one.
+ * The single domain implementation returned to consumers as their open domain
+ * handle. The facility constructs it from a validated `loadAll` snapshot;
+ * nothing outside this package constructs one.
  */
 export class DomainImpl {
   /** Domain name from the spec. */
@@ -112,8 +112,6 @@ export class DomainImpl {
 
   async runClose() {
     this.disposing = true
-    // Chain links never reject (each is settled via then(noop, noop)), so
-    // this await is a pure drain barrier.
     await this.chain
     await this.unit.close()
     this.closed = true
@@ -129,10 +127,6 @@ export class DomainImpl {
     try {
       this.ctx.emit('domain/changed', change)
     } catch (error) {
-      // Swallows synchronous observer exceptions only: emit dispatches
-      // listeners inline and nothing else runs in the try. The event is a
-      // notification, not a transaction participant — the commit point has
-      // passed, so containment (with a log) is the only correct outcome.
       this.ctx.logger.warn(`domain '${this.name}': domain/changed listener failed: ${String(error)}`)
     }
   }
@@ -191,8 +185,6 @@ class KvTableImpl {
 
   delete(key) {
     return this.host.enqueue(async () => {
-      // Existence is decided at this job's chain slot, not at call time: an
-      // earlier queued put of the same key makes this delete observe it.
       if (!this.records.has(key)) return false
       await this.host.unit.deleteRecord(this.tableName, key)
       this.records.delete(key)

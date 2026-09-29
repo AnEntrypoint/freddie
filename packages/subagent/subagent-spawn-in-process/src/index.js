@@ -1,6 +1,8 @@
 /**
- * The in-process SPAWN subagent backend: registers a {@link SubagentProvider} on
- * `ctx.subagents` that runs each child as a fresh child {@link Agent} on the same cordis
+ * The in-process SPAWN subagent backend: registers a
+ * {@link import('@freddie/freddie-subagent/src/types.js').SubagentProvider} on
+ * `ctx.subagents` that runs each child as a fresh child
+ * {@link import('@freddie/freddie-agent').Agent} on the same cordis
  * context (its own session, own system prompt, zero parent context). The cheapest transport,
  * reusing the agent factory's quiescent teardown.
  * @module @freddie/freddie-subagent-spawn-in-process
@@ -10,8 +12,6 @@ import z from '@freddie/schemastery'
 import { startInProcessRun } from '@freddie/freddie-subagent-in-process-driver'
 
 export const name = 'subagent-spawn-in-process'
-// `tools` is deliberately not injected: the child factory already provides it during setup,
-// and adding it here would unnecessarily change this provider's apply timing.
 export const inject = ['subagents']
 
 export const Config = z.object({
@@ -27,7 +27,6 @@ export const Config = z.object({
  */
 class SpawnInProcessProvider {
   capabilities = { outputSchema: true, depthLimit: true, toolFilter: true, persona: true }
-  // Context contract: a spawned child starts fresh — it never sees the parent conversation.
   inheritsParentContext = false
 
   constructor(name) {
@@ -35,15 +34,10 @@ class SpawnInProcessProvider {
   }
 
   start(request) {
-    // Fresh child: no seed. The shared driver mints ids, stamps cwd/lineage/
-    // depth, drives the one-shot (including the structured capture when the
-    // request carries an outputSchema), and maps the result.
     return startInProcessRun(request, {})
   }
 
   prepareContinuable() {
-    // A spawned child starts fresh, so it contributes no seed; the continuation
-    // manager owns every later operation on it.
     return Promise.resolve({})
   }
 }

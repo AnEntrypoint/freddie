@@ -1,23 +1,3 @@
-// ChatView: the default conversation view — one stable keyed parent list over
-// final business Nodes, plus paging, pending steering and bottom-follow.
-// Each row dispatches through 'conversation.chat.node'; ui-tool owns the
-// tool-call renderer and its recursive root/subcall composition. A Host
-// open-path refusal from the injected opener is an in-page dialog here.
-//
-// Scroll: when nested under `[data-conversation-scroll]` (active conversation
-// column), that host is the scrollport and this view is flow content; when
-// mounted alone (unit tests), `.scroll` owns overflow. Bottom-follow and
-// prepend anchoring always target the resolved scrollport.
-//
-// Render economics: order changes only when rows enter, leave or move. Each
-// ChatNodeSeat subscribes to one Node key, so Assistant deltas and Tool
-// lifecycle updates replace only their own row without remounting it.
-//
-// Converted from a React hooks component to a webjsx custom element: every
-// useRef becomes a private field, useState becomes a private field plus
-// #render(), and the layout/scroll/resize effects become bind/unbind methods
-// driven from connectedCallback/disconnectedCallback (Toast.tsx's pattern).
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { Button, IconChevronDownOutline14, renderModal, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { PendingSteeringBubble } from './MessageItem.js'
@@ -27,17 +7,6 @@ import css from './ChatView.css.js'
 
 const FOLLOW_THRESHOLD = 24
 
-// Mounted-row windowing: a session with many steps (each step often a full
-// tool-call tree) renders every completed Node's own subtree eagerly with no
-// cap -- witnessed live via a CDP performance trace opening a real 61-step
-// session: 185 direct children under one column, an 8+ second run of
-// scheduled render/notify tasks on open, and Chrome's own DOMSize insight
-// flagging the same column. `order` already holds every loaded Node; only
-// the DOM-mounted slice needs bounding. The window always includes the tail
-// (bottom-follow's anchor) and grows toward the head exactly like `loadOlder`
-// grows the loaded set -- same #anchor scroll-preservation mechanism, since
-// revealing more already-loaded rows above the fold is structurally the same
-// operation as prepending a freshly-fetched page.
 const INITIAL_WINDOW_SIZE = 40
 const WINDOW_GROW_STEP = 40
 /** Reveal-more trigger fires once the window's own top comes within this many px of the scrollport top. */
@@ -67,9 +36,6 @@ function pagingAnchor(list, scrollport) {
   const viewport = scrollport.getBoundingClientRect()
   const composer = scrollport.querySelector('[data-composer-seat]')
   const visibleBottom = composer?.getBoundingClientRect().top ?? viewport.bottom
-  // Scroll events are hot: hit-test a few points through the stretched flow
-  // rows before considering the full mounted set. The fallback keeps jsdom
-  // and pre-layout states deterministic; a virtualizer naturally bounds it.
   if (typeof document.elementsFromPoint === 'function' && visibleBottom > viewport.top) {
     const content = list.getBoundingClientRect()
     const left = Math.max(viewport.left, content.left)
@@ -210,13 +176,6 @@ export class FreddieChatView extends HTMLElement {
   #lastSteeringId = null
   #followSig = null
 
-  // Bound once, not per render. This is handed down to every seat and ends up
-  // in the produced-files `owner`, which AssistantNodeView caches its mentions
-  // resolver against and MarkdownText compares by IDENTITY. A fresh arrow per
-  // render therefore invalidated that cache on every keystroke and re-parsed
-  // the closing block's whole markdown document -- measured with real
-  // keyboard input as 39 fileMentions cache misses costing 47ms across ten
-  // keys, against 243 correctly-equal calls costing 0ms.
   #openFile = (path) => { this.#requestOpenFile(path) }
 
   #listEl = null
@@ -237,9 +196,6 @@ export class FreddieChatView extends HTMLElement {
   setProps(props) {
     this.#props = props
     this.#render()
-    // Post-render layout pass (React's useLayoutEffect equivalent): runs
-    // synchronously after the DOM has the new rows so anchor/prepend
-    // measurement sees the final layout.
     this.#afterRender()
   }
 
@@ -258,8 +214,6 @@ export class FreddieChatView extends HTMLElement {
 
   #toBottom(el) {
     this.#anchor = null
-    // Snapping to bottom means the true tail must be mounted, not whatever
-    // bounded window a mid-history read left in place.
     this.#windowEnd = Number.POSITIVE_INFINITY
     el.scrollTop = el.scrollHeight
     this.#observedTop = el.scrollTop
@@ -297,19 +251,11 @@ export class FreddieChatView extends HTMLElement {
       this.#opened = true
       const saved = chatScroll.read()
       if (saved === null) {
-        // Bottom-follow open: only the tail needs to be mounted at all, with
-        // no upper bound (the tail is exactly where a live append lands).
         this.#windowStart = Math.max(0, order.length - INITIAL_WINDOW_SIZE)
         this.#windowEnd = Number.POSITIVE_INFINITY
         this.#render()
         this.#toBottom(el)
       } else {
-        // A restored mid-scroll position must land on an already-mounted row,
-        // so the window opens centered on the saved anchor (with the same
-        // margin on both sides) rather than the tail -- bounding both ends
-        // here is what keeps a restore into a session's middle as cheap as a
-        // fresh bottom-open; #growWindowUpward/#growWindowDownward widen
-        // whichever edge the reader actually scrolls toward.
         const savedIndex = order.indexOf(saved.anchorKey)
         const center = savedIndex === -1 ? order.length : savedIndex
         this.#windowStart = Math.max(0, center - Math.floor(INITIAL_WINDOW_SIZE / 2))
@@ -338,9 +284,6 @@ export class FreddieChatView extends HTMLElement {
 
     const olderPagePrepended = firstSeq !== null && this.#firstSeq !== null && firstSeq < this.#firstSeq
     if (olderPagePrepended && this.#lastFirstKey !== undefined) {
-      // A server page prepended to `order`'s front shifts every existing
-      // index -- keep #windowStart pointing at the same logical rows by
-      // sliding it forward by exactly how far the previously-first key moved.
       const shift = order.indexOf(this.#lastFirstKey)
       if (shift > 0) this.#windowStart += shift
     }
@@ -584,9 +527,6 @@ export class FreddieChatView extends HTMLElement {
               ),
             )
           ),
-          // Clamp: order can shrink out from under a stale #windowStart (e.g.
-          // a compaction checkpoint collapses many Nodes into one) -- render
-          // the whole thing rather than an empty window in that case.
           this.#windowStart > 0 && this.#windowStart < order.length && (
             h(
               'div',
@@ -598,11 +538,6 @@ export class FreddieChatView extends HTMLElement {
               ),
             )
           ),
-          // A window end within one grow-step of the true tail is treated as
-          // unbounded: a live append landing there would otherwise vanish
-          // from the mounted set until the reader scrolls close enough to
-          // trigger #growWindowDownward, and there is no scroll-preservation
-          // reason to hide it (growing downward never moves on-screen rows).
           order.slice(
             Math.min(this.#windowStart, order.length),
             this.#windowEnd >= order.length - WINDOW_GROW_STEP ? order.length : this.#windowEnd,
@@ -620,12 +555,6 @@ export class FreddieChatView extends HTMLElement {
             renderSlot,
             t,
           })),
-          // A bounded, not-yet-grown window end means the true tail (where a
-          // running-turn card or pending steering bubble belongs) is not
-          // mounted -- showing either here would look detached from the last
-          // visible message. #growWindowDownward's own margin trigger (or the
-          // reader scrolling to bottom, which snaps #windowEnd via #toBottom's
-          // own render path never re-bounding it) resolves this once reached.
           this.#windowEnd < order.length - WINDOW_GROW_STEP && (
             h(
               'div',
@@ -637,11 +566,6 @@ export class FreddieChatView extends HTMLElement {
               ),
             )
           ),
-          // No pending placeholders: questions (ui-user-questions) and approvals
-          // (ApprovalPanel) both take over the composer, so a flow card would
-          // double-render the same wait.
-          // Turn-level loading signal: rides the whole running turn (first-token
-          // wait, tool execution, streaming) so it never flickers per step.
           running && this.#windowEnd >= order.length - WINDOW_GROW_STEP && (() => {
             const el = this.#turnStatus ??= document.createElement('freddie-turn-status')
             el.setProps(runningTurnStart, t)

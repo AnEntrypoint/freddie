@@ -17,7 +17,6 @@ export * from './server.js'
 export { turnContextFor } from './turn-context.js'
 
 export const name = 'sdk-jsonrpc-server'
-// Only the agent factory is required; initialize reads the optional LLM seam with ctx.get().
 export const inject = ['agents']
 
 export const Config = Schema.object({
@@ -31,10 +30,7 @@ export const Config = Schema.object({
  * owns root-context disposal for EOF and signals.
  */
 export function apply(ctx, config) {
-  // Cordis applies the schema default before invoking the plugin.
   const resolvedConfig = config
-  // Protocol shutdown owns the complete runtime process, so it must await the
-  // root lifecycle (including persistence) before exiting.
   const rootFiber = ctx.root.fiber
   /* v8 ignore next -- production stdio wiring; tests always inject the runtime hooks */
   const input = config.input ?? process.stdin
@@ -48,8 +44,6 @@ export function apply(ctx, config) {
     maxTokensAsSuccess: resolvedConfig.maxTokensAsSuccess,
   })
 
-  // Share one exit task so racing shutdown requests cannot dispose the root or
-  // exit the process more than once.
   let exitTask
   const disposeAndExit = () => {
     exitTask ??= (async () => {
@@ -61,15 +55,9 @@ export function apply(ctx, config) {
   }
 
   transport.onRequest(async (method, params) => {
-    // `initialize` is the SDK's readiness boundary. This plugin can activate
-    // before async sibling Loader entries (for example an MCP client's initial
-    // tool discovery), so do not advertise a ready runtime until the complete
-    // current tree has settled. A hand-built context without Loader remains
-    // immediately usable.
     if (method === 'initialize') await ctx.get('loader')?.await()
     const result = await server.handleRequest(method, params)
     if (method === 'shutdown') {
-      // Run after the handler result is written; the task then flushes, disposes, and exits.
       setImmediate(() => { void disposeAndExit() })
     }
     return result

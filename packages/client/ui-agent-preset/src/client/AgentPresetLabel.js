@@ -5,7 +5,7 @@
  * conversation starts, and a header is only worth reading after that. Offering
  * a control here would promise a switch the host refuses; naming what the
  * session runs is the honest affordance, and the choice itself lives on the
- * new-session screen ({@link AgentPresetSeat}).
+ * new-session screen ({@link import('./AgentPresetSeat.js').AgentPresetSeat}).
  */
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
@@ -30,12 +30,6 @@ export class FreddieAgentPresetLabel extends HTMLElement {
   #maybeLoad(preset, status) {
     const props = this.#props
     if (props === null) return
-    // Deployments that compose no presets never label anything, so the roster
-    // is only worth a request once a session reports one. Gated on the shared
-    // roster status rather than a per-element flag: this label is a bare
-    // factory the outlet recreates every render, so a per-instance
-    // once-guard would refetch on each re-render — the roster load fires only
-    // while the shared store is still idle.
     if (preset !== undefined && status === 'idle') void props.load()
   }
 

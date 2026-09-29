@@ -42,12 +42,15 @@ export class SlotRegistry extends Service {
    * handle), the registrant diagnostics stamp, and store-instance lifecycle
    * on the entry axis.
    *
-   * Implemented by prototype assignment below the class: it MUST stay a
-   * prototype method (never an instance arrow) — the cordis service proxy
-   * binds `this.ctx` to the CALLER's context at call time, which is what
-   * routes the effect (and the unload cascade) into the caller's fiber. An
-   * arrow property would freeze `this` to the service's own root ctx and
-   * silently break per-plugin disposal.
+   * Implemented by prototype assignment below the class (see
+   * `SlotRegistry.prototype.register` at the end of this file): it MUST
+   * stay a prototype method (never an instance arrow) — the cordis service
+   * proxy binds `this.ctx` to the CALLER's context at call time, which is
+   * what routes the effect (and the unload cascade) into the caller's
+   * fiber. An arrow property would freeze `this` to the service's own root
+   * ctx and silently break per-plugin disposal.
+   * @name SlotRegistry#register
+   * @function
    */
 
   /**
@@ -75,8 +78,6 @@ export class SlotRegistry extends Service {
 
       const stop = () => {
         if (stopped) return
-        // Failure callers retire the injection permanently: a delayed setup
-        // failure never retries on a later declaration.
         stopped = true
         unsubscribe()
         const dispose = active
@@ -95,9 +96,6 @@ export class SlotRegistry extends Service {
         activeEpoch = undefined
         dispose?.()
         if (spec === undefined) return
-        // A declaration lifetime is a nested Cordis effect. This gives
-        // generator callbacks the same transactional setup, reverse teardown,
-        // diagnostics tree, and idempotence as every other plugin effect.
         const disposeEffect = ctx.effect(callback, `slots.inject(${JSON.stringify(key)}): declaration`)
         active = () => { void disposeEffect() }
         activeEpoch = epoch
@@ -171,9 +169,6 @@ export class SlotRegistry extends Service {
    * @returns the rendered root tree.
    */
   renderSlot(key, owner) {
-    // Widened: in this package's own program SlotMap holds only 'root', which
-    // would fold the guard to constant-false; the check exists for plain-JS
-    // and cross-program callers where K is wider.
     if (key !== 'root') {
       throw new Error(`ctx-level renderSlot only renders 'root' (got "${key}"); child slots render through the component props face`)
     }
@@ -216,7 +211,7 @@ export class SlotRegistry extends Service {
    * Shadowing winners per cell for a key: the first live (non-abdicated)
    * entry of each cell in priority order — what outlets render; chain keys
    * pass through unchanged (election consumes every entry). The raw
-   * {@link SlotsService.entries} view stays the inspection surface. Fresh
+   * {@link SlotRegistry#entries} view stays the inspection surface. Fresh
    * array per call, not a uSES getSnapshot source.
    * @param key - SlotMap key.
    * @returns the winning entry per occupied cell.
@@ -240,7 +235,7 @@ export class SlotRegistry extends Service {
    * plugins mirroring contribution health. Fires synchronously per report,
    * after the registry mutated for abdicating crashes. Callers own the
    * disposer (wire it through ctx.effect for fiber-lifetime cleanup, as with
-   * {@link SlotsService.subscribe}).
+   * {@link SlotRegistry#subscribe}).
    * @param fn - called with the slot key, the crashed entry, the crash
    * cause, and `abdicated`: whether the crash retired the entry from its cell.
    * @returns unsubscribe.
@@ -279,9 +274,6 @@ export class SlotRegistry extends Service {
 
   /** Delegating registration path: factory minting + registrant stamp + core write + instance-axis bookkeeping. */
   _register(options, component) {
-    // Exclusive stores pass the factory itself: minted here into a per-entry
-    // handle so the stored entry always carries a resolvable handle (the
-    // core's shared-handle scope pinning applies to it harmlessly).
     const store = typeof options.store === 'function' ? options.store() : options.store
     const registrant = options.registrant ?? this.ctx.fiber?.name
     const erased = {
@@ -289,12 +281,8 @@ export class SlotRegistry extends Service {
       ...(store !== undefined ? { store } : {}),
       ...(registrant !== undefined ? { registrant } : {}),
     }
-    // Core write first: all load-time validation (undeclared target,
-    // duplicate declaration, kind conflicts, cross-scope handle) throws
-    // there before this layer commits anything.
     const dispose = this._core.register(erased, component)
     if (store !== undefined) {
-      // Register succeeded, so the target's spec is on the ledger.
       const scope = this._core.specDynamic(options.name).scope
       this._acquire(store, scope)
     }
@@ -318,10 +306,6 @@ export class SlotRegistry extends Service {
     if (workspaces === undefined) {
       throw new Error("renderSlot('root') before the workspaces service mounted — boot order puts runtime apply first")
     }
-    // `locale` is a live getter: the face installs (and, under HMR, swaps)
-    // on the locale plugin's own fiber lifetime, while this host object is
-    // built once — a captured value would strand renders on a dead face. The
-    // alias is required: `this` inside the getter is the host literal.
     const service = this
     this._host = {
       subscribe: (key, fn) => this._core.subscribe(key, fn),
@@ -351,8 +335,6 @@ export class SlotRegistry extends Service {
     if (key === undefined) throw new Error(`${record.scope} store resolution requires a session id`)
     let instance = record.instances.get(key)
     if (instance === undefined) {
-      // Session instances get the scope key (the engine suffixes the persist
-      // key per session); root instances stay keyless.
       instance = record.scope === 'root' ? handle.create() : handle.create(key)
       record.instances.set(key, instance)
     }
@@ -381,12 +363,8 @@ export class SlotRegistry extends Service {
   }
 }
 
-// register's implementation (prototype assignment; see its JSDoc for why it
-// must live on the prototype).
 SlotRegistry.prototype.register
   = function register(rawOptions, component) {
-    // The core's overloads proved the shares; the implementation works on
-    // the erased view (same pattern as the core's own implementation arm).
     const options = rawOptions
     return this.ctx.effect(() => this['_register'](options, component), 'slots.register()')
   }

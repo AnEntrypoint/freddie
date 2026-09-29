@@ -1,10 +1,3 @@
-// Skill toolview registrant: a domain-owned row over the keyed toolview hole.
-// The compact accent row keeps loaded instructions scannable in the transcript;
-// the exact durable tool output remains available in a bounded disclosure card.
-//
-// Converted from a React function component (useState) to a webjsx custom
-// element: `#expanded` replaces useState, `#render()` calls applyDiff.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14, IconInspectOutline12, IconSkillOutline16, StateDot,
@@ -18,18 +11,24 @@ function firstLine(text) {
   return newline === -1 ? text : text.slice(0, newline)
 }
 
-/** Skill names are the only call argument the compact row presents. */
-function skillName(argsRaw, callId) {
+/** The `name` argument of complete JSON args, or undefined while args are still streaming. */
+function completeArgsSkillName(argsRaw) {
   try {
     const parsed = JSON.parse(argsRaw)
     if (typeof parsed === 'object' && parsed !== null) {
       const name = parsed.name
-      if (typeof name === 'string' && name !== '') return firstLine(name)
+      if (typeof name === 'string' && name !== '') return name
     }
+    return undefined
   } catch {
-    // Streaming can expose a truncated JSON prefix; its first line is still
-    // more useful than replacing the call with an unrelated catalog lookup.
+    return undefined
   }
+}
+
+/** Skill names are the only call argument the compact row presents. */
+function skillName(argsRaw, callId) {
+  const name = completeArgsSkillName(argsRaw)
+  if (name !== undefined) return firstLine(name)
   return argsRaw === '' ? callId : firstLine(argsRaw)
 }
 

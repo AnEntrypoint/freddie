@@ -65,8 +65,6 @@ export function apply(ctx) {
     return next()
   })
 
-  // Before each request, persist everything committed by the preceding step;
-  // the first step's call is an intentional no-op beyond any prompt intake.
   ctx.on('agent/pre-step', async ({ agent }, next) => {
     await ctx.sessions.flush(agent.session)
     return next()

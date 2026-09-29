@@ -45,24 +45,31 @@ export const PROFILE_PATCH_FILENAME = 'cordis.patch.yml'
  */
 export function resolveProfileDir(name, home = resolveFreddieHome()) {
   if (name === '' || name.includes('/') || name.includes('\\') || name === '.' || name === '..'
-    // The launcher-maintained flat module fallback lives at this sibling path.
     || name === 'node_modules') {
     throw new Error(`freddie: invalid profile name ${JSON.stringify(name)}`)
   }
   return join(home, PROFILES_DIR, name)
 }
 
+const DEFAULT_ON_BUNDLES = ['@freddie/freddie-agent-team-profile', '@freddie/freddie-dream-rsi']
+
 /** The shipped profile templates auto-initialized on first use, by name. */
 export const PROFILE_TEMPLATES = {
-  web: ['@freddie/freddie-base', '@freddie/freddie-web-app'],
-  headless: ['@freddie/freddie-base', '@freddie/freddie-headless'],
-  acp: ['@freddie/freddie-base', '@freddie/freddie-acp-app'],
-  sdk: ['@freddie/freddie-base', '@freddie/freddie-sdk-app'],
+  web: ['@freddie/freddie-base', '@freddie/freddie-web-app', ...DEFAULT_ON_BUNDLES],
+  headless: ['@freddie/freddie-base', '@freddie/freddie-headless', ...DEFAULT_ON_BUNDLES],
+  acp: ['@freddie/freddie-base', '@freddie/freddie-acp-app', ...DEFAULT_ON_BUNDLES],
+  sdk: ['@freddie/freddie-base', '@freddie/freddie-sdk-app', ...DEFAULT_ON_BUNDLES],
 }
 
 /** Installation-owned bundle tuples normalized to the shipped template. */
 const INSTALLATION_OWNED_PROFILE_TUPLES = {
-  headless: ['@freddie/freddie-base', '@freddie/freddie-web-app', '@freddie/freddie-headless'],
+  web: [['@freddie/freddie-base', '@freddie/freddie-web-app']],
+  headless: [
+    ['@freddie/freddie-base', '@freddie/freddie-web-app', '@freddie/freddie-headless'],
+    ['@freddie/freddie-base', '@freddie/freddie-headless'],
+  ],
+  acp: [['@freddie/freddie-base', '@freddie/freddie-acp-app']],
+  sdk: [['@freddie/freddie-base', '@freddie/freddie-sdk-app']],
 }
 
 /** The bundle list a `freddie plugin` init uses for a name with no shipped template. */
@@ -74,11 +81,6 @@ const PROFILE_PATCH_TEMPLATE = `# Your patch layer for this freddie profile, app
 []
 `
 
-// The hoisted linker gives out-of-tree plugins a flat node_modules whose
-// missing peers (cordis and friends) fall through to the healed
-// profiles/node_modules installation fallback, so every plugin shares the
-// installation's single cordis instance instead of a duplicate. pnpm ≥10
-// reads its settings from pnpm-workspace.yaml, not .npmrc.
 const PROFILE_PNPM_WORKSPACE = `packages:
   - .
 
@@ -117,8 +119,6 @@ function ensureSymlink(link, target) {
   try {
     stat = lstatSync(link)
   } catch {
-    // Missing link (first run) — created below. Any other lstat failure on a
-    // path we just created the parent of would resurface on symlinkSync.
     stat = undefined
   }
   if (stat !== undefined) {
@@ -126,17 +126,11 @@ function ensureSymlink(link, target) {
       throw new Error(`freddie: ${link} exists and is not a symlink; remove it so freddie can manage the installation fallback`)
     }
     if (readlinkSync(link) === target) return
-    // unlink deletes the reparse point itself on Windows too; rmSync treats a
-    // junction as a directory and throws EISDIR unless recursive.
     unlinkSync(link)
   }
   try {
     symlinkSync(target, link, 'junction')
   } catch (error) {
-    // Concurrent launches heal the same fallback; losing the race to a
-    // process writing the identical link is success, anything else is not.
-    // The window between the lstat miss above and this write cannot be
-    // staged deterministically from the public API.
     /* v8 ignore next 4 */
     if (error.code !== 'EEXIST'
       || !lstatSync(link).isSymbolicLink() || readlinkSync(link) !== target) {
@@ -172,19 +166,12 @@ export function healProfilesModuleFallback(installAnchor, home = resolveFreddieH
   const links = new Map()
   /* v8 ignore next -- a real app manifest always declares its name */
   if (appManifest.name !== undefined) links.set(appManifest.name, dirname(installAnchor))
-  // BFS over the resolvable dependency graph; the visited set is the link
-  // map itself (first resolution wins, matching Node's own nearest-wins).
   const queue = [{ anchor: installAnchor, manifest: appManifest }]
   for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-    // Peer dependencies participate: Service Definition packages (freddie-subprocess,
-    // freddie-compaction, ...) are peers of their implementations, never plain
-    // dependencies, yet out-of-tree plugins import them directly.
     /* v8 ignore next -- a real app manifest always declares dependencies */
     for (const dep of [...Object.keys(next.manifest.dependencies ?? {}), ...Object.keys(next.manifest.peerDependencies ?? {})]) {
       if (links.has(dep)) continue
       const dir = packageDirFromAnchor(next.anchor, dep)
-      // A declared-but-uninstalled dependency cannot be a loader-visible
-      // plugin; skip it rather than fail the whole boot.
       if (dir === undefined) continue
       links.set(dep, dir)
       const manifestPath = join(dir, 'package.json')
@@ -212,7 +199,6 @@ export function readProfileManifest(binName, dir) {
   } catch (error) {
     throw new Error(`${binName}: failed to read profile manifest ${path}: ${String(error)}`)
   }
-  // The field checks below validate the file data before trusting the parse type.
   const parsed = JSON.parse(raw)
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error(`${binName}: profile manifest ${path} must hold a JSON object`)
@@ -243,7 +229,7 @@ function normalizeShippedProfile(name, dir, manifest) {
   const current = PROFILE_TEMPLATES[name]
   const bundles = manifest.freddie?.profile?.bundles
   if (installationOwned === undefined || current === undefined || bundles === undefined
-    || !sameBundles(bundles, installationOwned)) return manifest
+    || !installationOwned.some(tuple => sameBundles(bundles, tuple))) return manifest
   const normalized = {
     ...manifest,
     freddie: {
@@ -264,7 +250,6 @@ function normalizeShippedProfile(name, dir, manifest) {
  * `existsSync` follows the symlinks pnpm's isolated layout uses.
  */
 function packageDirFromAnchor(anchor, packageName) {
-  // resolve.paths returns null only for builtins, which no bundle name is.
   /* v8 ignore next */
   for (const searchPath of createRequire(anchor).resolve.paths(packageName) ?? []) {
     const candidate = join(searchPath, packageName)
@@ -327,7 +312,6 @@ export function loadProfile(
     initProfile(dir, template)
   }
   const manifest = normalizeShippedProfile(name, dir, readProfileManifest(binName, dir))
-  // A hand-written profile manifest may omit the freddie section entirely.
   const bundles = manifest.freddie?.profile?.bundles ?? []
   const layers = bundles.map((packageName) => {
     const packageDir = resolveBundleDir(binName, packageName, installAnchor, dir)

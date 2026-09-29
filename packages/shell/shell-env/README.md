@@ -10,7 +10,7 @@ The package root exports the Cordis plugin contract (`name`, `inject`, `Config`,
 - id: shell-env
   name: '@freddie/freddie-shell-env'
   config:
-    freddieHome: C:\Users\me\.dsh   # default: $FREDDIE_HOME, then ~/.freddie
+    freddieHome: C:\Users\me\.freddie   # default: $FREDDIE_HOME, then ~/.freddie
 ```
 
 ## Managed environment

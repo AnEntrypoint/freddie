@@ -81,9 +81,6 @@ function main() {
   const family = releaseFamily(values.family)
   const members = family.members(process.cwd())
   family.verifyVersions(members)
-  // Resolve the publish order here, before the build: an install-edge cycle
-  // makes the order unrepresentable, and that has to surface at the first gate
-  // rather than when pack is already writing tarballs.
   const plan = family.publishOrder(members)
   if (plan.order.length !== members.length) {
     throw new Error(

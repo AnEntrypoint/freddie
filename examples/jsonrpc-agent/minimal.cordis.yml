@@ -1,8 +1,3 @@
-# Complete unattended minimal-agent composition for the Python SDK. The model
-# sees one deployment-selected system prompt and only the owner-scoped
-# persistent Bash and string-replace editor tools. Runtime-context injection and
-# context compaction are absent.
-
 - id: sdk-jsonrpc-server
   name: '@freddie/freddie-sdk-jsonrpc-server'
   config:
@@ -37,8 +32,6 @@
   config:
     timeoutMs: 300000
 
-# The editor uses the bare local filesystem; persistent Bash still consumes the
-# shared danger-full-access sandbox policy above.
 - id: fs-local
   name: '@freddie/freddie-fs-local'
   config:

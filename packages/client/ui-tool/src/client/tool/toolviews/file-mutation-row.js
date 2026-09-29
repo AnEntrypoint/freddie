@@ -1,13 +1,3 @@
-// File-mutation toolview registrant: the keyed toolview hole for the `edit`
-// and `write` tools. The row composes the shared ToolRow (chrome, running
-// sweep, whole-row expand) and feeds it the applied diff as ToolRow's `diff`
-// card material, so the change renders through DiffBlock in the collapsed-by-
-// default expanded body — the same unified interaction every other card row
-// has. The summary stays a path link (the file-tool interaction) that opens
-// through the host; an errored mutation (write/edit return no diff on
-// `result.isError`) keeps the model-facing error text on ToolRow's Output
-// section, its first line in the collapsed summary.
-
 import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconEditOutline16 } from '@freddie/freddie-client-ui-primitives'
 import { diffCardModel } from '../models/diff-card-model.js'

@@ -6,7 +6,7 @@
 import { ModelsSection } from './ModelsSection.js'
 import { ModelsSettingsStore } from './store.js'
 import { createSettingsSchemaOperations } from './schema-operations.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 
 /** Dictionary namespace owned by this plugin. */
 const NS = 'settings.models'
@@ -35,13 +35,11 @@ export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope
  * @param ctx - client root context.
  */
 export function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-models: copy dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-settings-models: copy dictionaries')
 
   const connection = ctx.get('connection')
   const schema = createSettingsSchemaOperations(ctx.settingsSchema)
   const controller = new ModelsSettingsStore(connection.api, schema, ctx.settingsScope.describe())
-  // Registration-time text (the nav label thunk) and the inject faces share
-  // one bound translate; copy freshness rides the locale revision.
   const t = ctx.locale.bind(NS)
   const injected = () => ({
     controller,
@@ -50,10 +48,6 @@ export function apply(ctx) {
     schema,
     t,
   })
-  // Pushed invalidations converge every open surface without polling. The
-  // settingsScope injection makes ui-settings activate first, and remote
-  // dispatch preserves listener order; its listener therefore starts the
-  // mirror refresh before this store joins that refresh.
   ctx.effect(() => {
     const refreshModels = () => { refreshIfLoaded(controller) }
     const disposers = [

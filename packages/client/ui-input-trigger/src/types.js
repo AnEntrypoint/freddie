@@ -8,3 +8,11 @@
  * never a Cordis context or the mutable Session. RPC and service access go
  * through the provider plugin's own root context captured at registration.
  */
+
+/**
+ * Per-call session projection a registered source's callbacks receive
+ * (`InputTriggerController#project` in `./client/controller.js`): agent-backed
+ * session identity, constant for the controller's lifetime.
+ * @typedef {object} ClientSessionContext
+ * @property {string} sessionId
+ */

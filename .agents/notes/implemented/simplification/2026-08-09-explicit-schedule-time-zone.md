@@ -32,7 +32,7 @@ No Session time-zone field, create/resume/fork zone conflict, JSONL header field
 
 ## Verification
 
-Host tests pin canonical aliases, omission, and rejection before Agent entry. Client tests pin one browser-zone sample on each prompt. Time-context tests pin unique, mixed, and missing current-turn derivation and exact model policy. Schedule tests pin required `time_zone`, strict offsets, calendar validation, canonical zones, gap rejection, overlap-first selection, and absence of an implicit context path. The assembled Web scenario fixes Playwright to `Asia/Shanghai`, sends through the real composer, observes the same zone in the model request, verifies an explicit local tool call, and snapshots the ordinary reminder response.
+Host tests pin canonical aliases, omission, and rejection before Agent entry. Client tests pin one browser-zone sample on each prompt. Time-context tests pin unique, mixed, and missing current-turn derivation and exact model policy. Schedule tests pin required `time_zone`, strict offsets, calendar validation, canonical zones, gap rejection, overlap-first selection, and absence of an implicit context path. The assembled Web scenario fixes Playwright to `Europe/Berlin`, sends through the real composer, observes the same zone in the model request, verifies an explicit local tool call, and snapshots the ordinary reminder response.
 
 Source audits reject `SessionHeader.timeZone`, persistence `time_zone` columns, confirmation errors, Schedule imports of time-context, and independent receipt machinery.
 

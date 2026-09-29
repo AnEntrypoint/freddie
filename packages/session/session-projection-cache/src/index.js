@@ -94,9 +94,6 @@ export class SessionProjectionCache extends Service {
     const values = this.ctx.sessionProjections.viewCheckpoint(record.rows)
     const keys = Object.keys(values)
     if (keys.length === 0) return undefined
-    // The block carries ONE cut: the lowest served watermark is the seq every
-    // value is at least current as of (under-claiming is safe under
-    // higher-seq-wins; over-claiming would let a stale value outrank pushes).
     const asOfSeq = Math.min(...keys.map(key => record.rows[key].seq))
     return { asOfSeq, values }
   }
@@ -112,13 +109,6 @@ export class SessionProjectionCache extends Service {
   async write(session) {
     const rows = this.ctx.sessionProjections.checkpoint(session)
     this.markClean(session)
-    // Durability barrier: the checkpoint cut was taken above, so flushing
-    // AFTER it guarantees every event inside the cut is durably logged
-    // before the cache row lands — a crash can leave the cache behind the
-    // log (longer tail replay) but never ahead of it (phantom values folded
-    // from events no stored log contains). At detach the store entry is
-    // already gone; persistence's own retirement drain covers that path and
-    // any residual overreach is caught by the cold read's anchored floor.
     if (this.ctx.sessions.get(session.id) === session) await this.ctx.sessions.flush(session)
     await this.put(session.id, identityOf(session.header), rows)
   }
@@ -141,25 +131,16 @@ export class SessionProjectionCache extends Service {
     const floor = this.ctx.sessionProjections.restoreFloor(cached)
     const persistence = this.ctx.sessionPersistence
     if (floor === undefined) {
-      // No unit registered: nothing to fold, but the not-found contract must
-      // hold in this topology too — the probe read rejects for an absent log
-      // and dates the empty cut for a present one.
       const probe = await persistence.readFrom(id, 0, signal)
       return { asOfSeq: probe.events.at(-1)?.seq ?? -1, values: {} }
     }
     let restored
     const tail = await persistence.readFrom(id, floor, signal)
-    // The tail's stored header is the identity witness: a record bound to a
-    // different lifecycle (recreated id, swapped store) is discarded whole
-    // before any of its rows can seed a fold.
     const related = record === undefined || identityMatches(record.identity, identityOf(tail.meta))
     try {
       if (!related) throw new Error('unrelated log identity')
       restored = this.ctx.sessionProjections.restore(cached, tail.events, floor)
     } catch {
-      // Recoverable failures are an unrelated record, a row outside the
-      // supplied suffix or log end, and stateSchema rejection. The full read
-      // removes every checkpoint seed and lets each unit refold from init.
       const whole = await persistence.readFrom(id, 0, signal)
       restored = this.ctx.sessionProjections.restore({}, whole.events, 0)
     }
@@ -167,12 +148,7 @@ export class SessionProjectionCache extends Service {
     return restored.snapshot
   }
 
-  // --- write-behind (throttle + mandatory points) ---
-
   installWritePath() {
-    // Every committed event advances the dirty counter; turn/end is a
-    // mandatory point (the durable value most reads want is the turn-final
-    // one), count/interval throttle the in-turn stream.
     this.ctx.on('session/event', (session, event) => {
       if (event.type === 'turn/end') {
         void this.flushSoft(session, 'turn/end')
@@ -190,17 +166,12 @@ export class SessionProjectionCache extends Service {
       }, this.config.writeIntervalMs)
     })
 
-    // Detach (the live-to-cold moment): the second mandatory point. After
-    // this write the cold-read ladder serves the session from the cache.
-    // flushSoft's synchronous prefix reads and resets the dirty state, so
-    // dropping it (timer already cleared by markClean) right after is safe.
     this.ctx.on('session/disposed', (session) => {
       void this.flushSoft(session, 'detach')
       this.markClean(session)
       this.dirty.delete(session)
     })
 
-    // Clear pending timers with the plugin (their sessions outlive the cache).
     this.ctx.effect(() => () => {
       for (const state of this.dirty.values()) {
         if (state.timer !== undefined) clearTimeout(state.timer)

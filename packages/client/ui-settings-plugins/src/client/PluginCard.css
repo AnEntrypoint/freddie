@@ -1,5 +1,3 @@
-/* Plugin card: a header that names the plugin, disclosing its controls in place. */
-
 .freddie-pluginCard__card {
   list-style: none;
   border: 1px solid var(--freddie-alias-border-l2);
@@ -12,7 +10,6 @@
   border-color: var(--freddie-alias-label-dimmed);
 }
 
-/* An open card reads as the one being worked on, not merely taller. */
 .freddie-pluginCard__cardOpen {
   background: var(--freddie-alias-bg-layer-2);
   border-color: var(--freddie-alias-label-dimmed);
@@ -39,8 +36,6 @@
   outline-offset: -2px;
 }
 
-/* Name over description: the description is what tells two plugins apart, so
-   it gets its own line rather than trailing the name. */
 .freddie-pluginCard__headText {
   flex: 1;
   min-width: 0;
@@ -85,7 +80,6 @@
   color: var(--freddie-alias-label-tertiary);
 }
 
-/* Carried on the header so a collapsed card still says it holds edits. */
 .freddie-pluginCard__pending {
   flex: none;
   border-radius: 999px;

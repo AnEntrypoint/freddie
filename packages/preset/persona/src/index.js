@@ -15,9 +15,6 @@
 
 import z from '@freddie/schemastery'
 
-// Imported rather than restated: the registry declares the slot this row
-// replaces, and two hardcoded copies would drift into a preset whose persona
-// silently lands beside the deployment's instead of shadowing it.
 import { PERSONA_ORDER, PERSONA_SECTION } from '@freddie/freddie-system-prompt'
 
 export { PERSONA_ORDER, PERSONA_SECTION }
@@ -39,8 +36,6 @@ export const inject = ['systemPrompt']
  * - `includeRuntimeContext`: Suppress dynamic runtime-context snapshots for
  *   this persona's agent scope.
  */
-
-/** Runtime schema for the persona row. */
 export const Config = z.object({
   text: z.string().required(),
   complete: z.boolean().default(false),

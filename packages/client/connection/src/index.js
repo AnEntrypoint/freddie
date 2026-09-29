@@ -1,6 +1,5 @@
 /** Host HTTP bridge for browser-client RPC. */
 import z from '@freddie/schemastery'
-// Activates the webServer Context merge used below.
 import { toFetchHandler } from '@freddie/freddie-host-apiproxy'
 import { API_PATH, HOST_EVENTS_PATH, MUX_EVENTS_PATH } from './api-path.js'
 import { bridge, DEFAULT_MAX_REQUEST_BODY_BYTES } from './http-bridge.js'
@@ -40,72 +39,41 @@ export const Config = z.object({
   maxRequestBodyBytes: z.natural().min(1).default(DEFAULT_MAX_REQUEST_BODY_BYTES),
 })
 
-/**
- * Methods gated to loopback even on a trusted-host deployment. Native dialogs
- * act on the host machine; the settings and credential domains mutate the
- * user's configuration and secret store, and READING them is equally
- * privileged — `settings.describe` returns every exposed namespace's
- * configuration and `credentials.describe` reports whether an arbitrary
- * environment-variable name is configured and where from, which is
- * reconnaissance no anonymous caller should have. `trustedHosts` is a
- * DNS-rebinding fence, explicitly not authentication, so the whole
- * configuration plane stays loopback-same-origin until a real authentication
- * layer exists. `llm.discoverModels` belongs to that plane on both counts: it
- * carries a draft credential, and it makes the HOST issue a GET to a URL the
- * caller chose and reports back the status or the parsed body — an anonymous
- * LAN caller would have a probe for whatever the host can reach and the
- * browser cannot.
- *
- * The model catalog (`llm.providers`, `llm.models`) is deliberately NOT here:
- * it carries provider ids, display names, and model lists — no endpoints,
- * keys, or key state — and a LAN client's model picker legitimately needs it.
- *
- * Left unpinned on the same reasoning: `goals.*`, `messageFeedback.*`,
- * `pluginInventory.list`, `commands.list`, `fileReferences.list`, and
- * `sessionArtifacts.{list,put,deleteArtifact}` read or write state the calling
- * session already owns — `pluginInventory.list` carries module names and fiber
- * phases and no configuration — and a caller who may create and prompt a
- * session through the unpinned `session.*` routes already reaches every one of
- * them through that session's own agent. Pinning them would be a fence beside
- * an open gate.
- */
-const PRIVILEGED_METHODS = new Set([
-  // A preset composition names the plugins a session runs, so reading one is
-  // reconnaissance; copy and remove rearrange what the deployment offers, and
-  // openDocument drives the host desktop — all more than the roster beside
-  // them. (Authoring is copy-only, so no method here accepts composition text
-  // or a path; the pin is about who may manage the roster at all.)
-  //
-  // CHOOSING one is not pinned, and `agentPreset.list` is not either. Picking a
-  // preset looks like escalation — one of them mounts the toolset that edits the
-  // live runtime — but `session.create` already takes an `agentPreset`, so
-  // pinning only the switch would leave the same capability one method over.
-  // The deeper reason is that the capability is not the preset's to grant: the
-  // deployment's own default already carries `bash` and the filesystem tools, so
-  // any caller that may start a session at all can already run commands as this
-  // process. Pinning the switch would be a fence beside an open gate.
+const AGENT_PRESET_ROSTER_MANAGEMENT = [
   'agentPreset.read',
   'agentPreset.copy',
   'agentPreset.openDocument',
   'agentPreset.remove',
+]
+
+const HOST_DESKTOP_AND_FILESYSTEM_ACCESS = [
   'host.pickDirectory',
   'host.openPath',
+  'host.listDirectory',
+  'host.createDirectory',
+  'directoryPicker.pick',
+  'directoryPicker.list',
+  'directoryPicker.createDirectory',
+]
+
+const DEPLOYMENT_CONFIGURATION = [
   'settings.describe',
   'settings.openDocument',
   'settings.update',
   'settings.replace',
   'settings.mutate',
+  'pluginManager.describe',
+  'pluginManager.setDisabled',
+]
+
+const CREDENTIALS_AND_CREDENTIALED_PROBES = [
   'credentials.describe',
   'credentials.set',
   'credentials.unset',
   'llm.discoverModels',
-  // The terminal namespace is pinned whole, so it is listed once: every legacy
-  // `terminal.*` route already was, `terminal/create` allocates a shell on the
-  // host and `terminal/write` feeds it input, so leaving either unpinned lets a
-  // trusted host spawn and drive a host shell. `environment` and `shells` are
-  // the same reconnaissance class `settings.describe` is pinned for. Three of
-  // the dotted names have no namespaced counterpart and stay for the legacy
-  // routes that still serve them.
+]
+
+const HOST_SHELL = [
   'terminal.list',
   'terminal.open',
   'terminal.snapshot',
@@ -116,16 +84,9 @@ const PRIVILEGED_METHODS = new Set([
   'terminal.shells',
   'terminal.create',
   'terminal.write',
-  // The Typert controllers reach the same Host state through namespaced
-  // endpoints (`settings/describe`) where the legacy routes used a dot
-  // (`settings.describe`). One canonical spelling, derived at the check below,
-  // keeps this list authoritative for both, so no controller slips outside it
-  // by differing in punctuation. The namespaces mirror the capability the
-  // dotted entries already pin — deployment configuration and credentials —
-  // and add the surfaces the controllers opened with no dotted ancestor:
-  // reading bytes out of the workspace, rearranging the workspace itself, and
-  // a directory picker able to drive the host's native dialog, which is the
-  // same capability `host.pickDirectory` above is pinned for.
+]
+
+const WORKSPACE_FILESYSTEM = [
   'workspaceFiles.stat',
   'workspaceFiles.read',
   'workspaceFiles.readBytes',
@@ -137,18 +98,9 @@ const PRIVILEGED_METHODS = new Set([
   'workspace.insertBefore',
   'workspace.insertSessionBefore',
   'workspace.archiveSession',
-  'directoryPicker.pick',
-  'directoryPicker.list',
-  'directoryPicker.createDirectory',
-  // `dynamicCordisRunner` is pinned whole because the namespace is one
-  // capability: loading a Cordis package's HOST half into this process and then
-  // calling into it. `runHostHalf` and `invoke` are host-side code execution
-  // with no model in the loop, and the verbs that look like bookkeeping —
-  // `resolveRequestRun`, `resolveInspectQuery`, `syncInspectManifest`,
-  // `settleUserRun` — are steps of that same activation pipeline, while
-  // `getClientCode`, `inventory`, `stopFromPanel`, `undefineFromPanel` and the
-  // two report verbs disclose or change which host code is live. Pinning a
-  // subset would leave the pipeline reachable one verb over.
+]
+
+const HOST_CODE_ACTIVATION = [
   'dynamicCordisRunner.getClientCode',
   'dynamicCordisRunner.inventory',
   'dynamicCordisRunner.invoke',
@@ -161,48 +113,98 @@ const PRIVILEGED_METHODS = new Set([
   'dynamicCordisRunner.stopFromPanel',
   'dynamicCordisRunner.syncInspectManifest',
   'dynamicCordisRunner.undefineFromPanel',
-  // `gm.*` is pinned whole: all five write the deployment's own durable
-  // workflow state (`.gm/prd.yml`, `.gm/mutable*.yml`) under the process cwd —
-  // host filesystem writes outside any session's grant — and `gm.transition`
-  // additionally advances the phase machine whose gates gate everything else.
+]
+
+const WORKFLOW_STATE_WRITES = [
   'gm.prdAdd',
   'gm.prdResolve',
   'gm.mutableAdd',
   'gm.mutableResolve',
   'gm.transition',
-  // Two verbs whose effect is a direct host action rather than a turn through
-  // the session's model: `commands.execute` runs a command handler in this
-  // process from caller-supplied text, and the roster Web mounts includes one
-  // that reads a session log off the host; `job.kill` terminates a host
-  // background process. `commands.list` beside them is a descriptor catalog and
-  // stays reachable.
+]
+
+const DIRECT_HOST_ACTIONS = [
   'commands.execute',
   'job.kill',
-  // `sessionArtifacts.share` grants or revokes one artifact to a session the
-  // caller does not own — the only verb in that namespace whose effect crosses
-  // a session boundary. `list`, `put` and `deleteArtifact` stay inside the
-  // caller's own session store.
+]
+
+const CROSS_SESSION_DISCLOSURE = [
   'sessionArtifacts.share',
-  // `sessionReferenceResolver.candidates` rows carry every visible session's id,
-  // cwd and title, so it discloses host paths and titles of sessions the caller
-  // does not own. `fileReferences.list` is deliberately not beside it: that one
-  // enumerates paths inside the calling session's own cwd grant.
   'sessionReferenceResolver.candidates',
-  // Deliberately NOT pinned, recorded so the omission reads as a choice rather
-  // than as a gap: `session.list`, `session.search`, `session.page` and
-  // `session.projections` disclose every session's id, cwd and title — and
-  // `page` its content by id — so a configured LAN host can read the whole
-  // conversation history. They stay reachable because the browser client is
-  // itself that caller: a LAN deployment's own session list, search and
-  // transcript paging go through exactly these, so pinning them breaks the
-  // product instead of closing a hole. This is the largest residual exposure on
-  // a trusted-host deployment, and `trustedHosts` is a DNS-rebinding fence, not
-  // authentication — a deployment that needs this closed needs an auth layer,
-  // not another entry here. `session.modelCatalog`, `fileReferences.list`,
-  // `messageFeedback.*`, `goals.*`, `pluginInventory.list`, `commands.list` and
-  // `sessionArtifacts.list|put|deleteArtifact` are unpinned for the opposite
-  // reason: each is confined to the calling session's own store.
+]
+
+/**
+ * Methods gated to loopback even on a trusted-host deployment. `trustedHosts` is
+ * a DNS-rebinding fence, not authentication, so reading or changing deployment
+ * configuration, secrets, the host filesystem or host processes stays
+ * loopback-only. Every group above is one capability; the reasoning is in this
+ * package's AGENTS.md.
+ */
+const PRIVILEGED_METHODS = new Set([
+  ...AGENT_PRESET_ROSTER_MANAGEMENT,
+  ...HOST_DESKTOP_AND_FILESYSTEM_ACCESS,
+  ...DEPLOYMENT_CONFIGURATION,
+  ...CREDENTIALS_AND_CREDENTIALED_PROBES,
+  ...HOST_SHELL,
+  ...WORKSPACE_FILESYSTEM,
+  ...HOST_CODE_ACTIVATION,
+  ...WORKFLOW_STATE_WRITES,
+  ...DIRECT_HOST_ACTIONS,
+  ...CROSS_SESSION_DISCLOSURE,
 ])
+
+/**
+ * Methods left reachable from a trusted host because the browser client is the
+ * caller, or because each is confined to the calling session. Listed so that an
+ * omission from {@link PRIVILEGED_METHODS} reads as a decision.
+ */
+export const UNPINNED_BY_DECISION = Object.freeze([
+  'session.list',
+  'session.search',
+  'session.page',
+  'session.projections',
+  'session.create',
+  'session.fork',
+  'session.prompt',
+  'session.cancel',
+  'session.attachment',
+  'session.updateQueue',
+  'session.selectModel',
+  'session.rename',
+  'session.follow',
+  'session.control',
+  'session.history',
+  'session.models',
+  'session.export',
+  'session.modelCatalog',
+  'stream.next',
+  'stream.close',
+  'respond',
+  'agentPreset.list',
+  'agentPreset.select',
+  'llm.providers',
+  'llm.models',
+  'fileReferences.list',
+  'pluginInventory.list',
+  'commands.list',
+  'sessionArtifacts.list',
+  'sessionArtifacts.put',
+  'sessionArtifacts.deleteArtifact',
+])
+
+for (const method of UNPINNED_BY_DECISION) {
+  if (PRIVILEGED_METHODS.has(method)) {
+    throw new Error(`client-connection: ${method} is both pinned to loopback and unpinned by decision`)
+  }
+}
+
+/**
+ * Fail the load on a `trustedHosts` entry that is not a bare authority, rather than authorizing its hostname prefix at request time.
+ * @param trustedHosts - configured non-loopback authorities.
+ */
+function refuseMalformedTrustedHosts(trustedHosts) {
+  for (const entry of trustedHosts) assertTrustedAuthority(entry)
+}
 
 /**
  * The `/api` endpoint a request addresses.
@@ -234,19 +236,11 @@ function canonicalMethodName(method) {
  * @param config - resolved plugin config (schema defaults applied).
  */
 export function apply(ctx, config) {
-  // The Loader resolves schema defaults; hand-built test contexts may pass none.
-  const trustedHosts = config?.trustedHosts ?? []
-  const maxRequestBodyBytes = config?.maxRequestBodyBytes ?? DEFAULT_MAX_REQUEST_BODY_BYTES
-  // Config boundary: a malformed entry fails the load loudly here rather than
-  // silently authorizing its hostname prefix at request time.
-  for (const entry of trustedHosts) assertTrustedAuthority(entry)
+  const { trustedHosts = [], maxRequestBodyBytes = DEFAULT_MAX_REQUEST_BODY_BYTES } = config ?? {}
+  refuseMalformedTrustedHosts(trustedHosts)
   if (ctx.get('apiProxy') !== undefined) assertImageBodyCapacity(ctx, maxRequestBodyBytes)
   const connection = new HostConnectionService(ctx, trustedHosts)
-  // The privilege pin belongs in front of the shared-channel dispatch, not
-  // inside the fallback: a Typert endpoint is claimed by the gateway's
-  // interceptor and never reaches the fallback, so a check placed there leaves
-  // every namespaced controller endpoint reachable from any trusted host.
-  const sharedFetchHandler = connection.createSharedFetchHandler(API_PATH, {
+  const channelDispatch = connection.createSharedFetchHandler(API_PATH, {
     async fetch(request) {
       const pathname = new URL(request.url).pathname
       if (request.method === 'GET' && (pathname === MUX_EVENTS_PATH || pathname === HOST_EVENTS_PATH)) {
@@ -260,7 +254,7 @@ export function apply(ctx, config) {
       return toFetchHandler(apiProxy).fetch(request)
     },
   })
-  const fetchHandler = {
+  const pinnedFetchHandler = {
     async fetch(request) {
       const method = apiMethodOf(request)
       if (method !== undefined
@@ -268,7 +262,7 @@ export function apply(ctx, config) {
         && !isTrustedApiRequest(request, [])) {
         return new Response('forbidden', { status: 403 })
       }
-      return sharedFetchHandler.fetch(request)
+      return channelDispatch.fetch(request)
     },
   }
   const route = {
@@ -280,7 +274,7 @@ export function apply(ctx, config) {
         res.end('forbidden')
         return
       }
-      await bridge(req, res, fetchHandler, maxRequestBodyBytes)
+      await bridge(req, res, pinnedFetchHandler, maxRequestBodyBytes)
     },
   }
   ctx.effect(() => ctx.webServer.register(route), 'client-connection: /api route')

@@ -60,26 +60,36 @@ export function isOwnerAuthorizedRuntime(name) {
   return name === CLAUDE_AGENT_SDK_PACKAGE
 }
 
+const RUST_WORKSPACE_BINS_WITHOUT_LICENSE_FIELD = {
+  'oxlint': { license: 'MIT', repo: 'https://github.com/oxc-project/oxc' },
+  'oxlint-tsgolint': { license: 'MIT', repo: 'https://github.com/oxc-project/tsgolint' },
+}
+
+const SERVERS_REPO_MID_RELICENSING_WITH_PER_CONTRIBUTION_TERMS = {
+  '@modelcontextprotocol/server-everything': { license: 'MIT / Apache-2.0', repo: 'https://github.com/modelcontextprotocol/servers' },
+  '@modelcontextprotocol/server-filesystem': { license: 'MIT / Apache-2.0', repo: 'https://github.com/modelcontextprotocol/servers' },
+}
+
+const MANIFESTS_WITHOUT_REPOSITORY_FIELD = {
+  'node-addon-require-builtin': { repo: 'https://www.npmjs.com/package/node-addon-require-builtin' },
+}
+
 /**
  * Metadata overrides where the installed manifest is wrong or unreachable.
  * Each entry documents why the store cannot answer.
  */
 const OVERRIDES = {
-  // Rust workspaces publishing npm bins without `license` in package.json.
-  'oxlint': { license: 'MIT', repo: 'https://github.com/oxc-project/oxc' },
-  'oxlint-tsgolint': { license: 'MIT', repo: 'https://github.com/oxc-project/tsgolint' },
-  // `license: SEE LICENSE IN LICENSE`: the servers repo is mid MIT→Apache-2.0
-  // relicensing, so the effective terms are per-contribution.
-  '@modelcontextprotocol/server-everything': { license: 'MIT / Apache-2.0', repo: 'https://github.com/modelcontextprotocol/servers' },
-  '@modelcontextprotocol/server-filesystem': { license: 'MIT / Apache-2.0', repo: 'https://github.com/modelcontextprotocol/servers' },
-  // No repository field in the published manifest.
-  'node-addon-require-builtin': { repo: 'https://www.npmjs.com/package/node-addon-require-builtin' },
+  ...RUST_WORKSPACE_BINS_WITHOUT_LICENSE_FIELD,
+  ...SERVERS_REPO_MID_RELICENSING_WITH_PER_CONTRIBUTION_TERMS,
+  ...MANIFESTS_WITHOUT_REPOSITORY_FIELD,
 }
 
 /** Read and parse a workspace-relative `package.json`. */
 function readManifest(rel) {
   return JSON.parse(readFileSync(resolve(root, rel), 'utf8'))
 }
+
+const DEMO_LEAF_MANIFESTS_REACHED_ONLY_THROUGH_EXAMPLES_PACKAGE = ['examples/*/package.json']
 
 /**
  * Manifest globs, derived from the workspace declarations rather than listed
@@ -90,9 +100,7 @@ export function manifestPatterns(rootMembers) {
   return [
     'package.json',
     ...rootMembers.map(member => `${member}/package.json`),
-    // The demo leaves join the workspace through `examples/package.json`, so
-    // their own manifests are members of nothing and no glob above reaches them.
-    'examples/*/package.json',
+    ...DEMO_LEAF_MANIFESTS_REACHED_ONLY_THROUGH_EXAMPLES_PACKAGE,
   ]
 }
 
@@ -128,9 +136,15 @@ function loadWorkspaceManifests() {
   return { manifests, names }
 }
 
-/** One platform payload declared by the official Claude Agent SDK. */
+/**
+ * One platform payload declared by the official Claude Agent SDK.
+ * @typedef {{ name: string, version: string }} ClaudePlatformPayload
+ */
 
-/** Current SDK and CLI distribution facts derived from the installed SDK manifest. */
+/**
+ * Current SDK and CLI distribution facts derived from the installed SDK manifest.
+ * @typedef {{ sdkVersion: string, claudeCodeVersion: string, payloads: ClaudePlatformPayload[] }} ClaudeDistribution
+ */
 
 function requiredManifestString(
   value,
@@ -146,7 +160,7 @@ function requiredManifestString(
  * Derive the official platform payload set without a version or platform
  * allowlist. Only identities in the SDK's own package namespace are covered.
  * @param manifest - installed official SDK manifest.
- * @returns current SDK, CLI, and optional platform payload facts.
+ * @returns {ClaudeDistribution} current SDK, CLI, and optional platform payload facts.
  */
 export function claudeDistributionFromManifest(
   manifest,
@@ -208,12 +222,12 @@ export function virtualManifest(virtual, name) {
   return undefined
 }
 
+const INSTALLED_PACKAGE_STORES = ['node_modules', 'native/landlock-run/node_modules']
+
 /** Resolve one installed external package manifest from either pnpm store. */
 function installedManifest(name) {
   let manifest
-  // Workspace-local link farms can expose a dependency that is not linked at
-  // the repository root; both are backed by the root workspace's lockfile.
-  for (const store of ['node_modules', 'native/landlock-run/node_modules']) {
+  for (const store of INSTALLED_PACKAGE_STORES) {
     const direct = resolve(root, store, name, 'package.json')
     if (existsSync(direct)) {
       manifest = JSON.parse(readFileSync(direct, 'utf8'))
@@ -307,8 +321,6 @@ function collectNpmDeps() {
  */
 export function tierExternalDeps(manifests, names) {
   const tiers = new Map()
-  // `tsx` is runtime by fiat: the root source-run scripts execute through its ESM hook.
-  tiers.set('tsx', true)
   for (const [path, manifest] of manifests) {
     const devOnly = DEV_ONLY_AREAS.some(area => (area.endsWith('/') ? path.startsWith(area) : path === area))
     for (const kind of ALL_KINDS) {
@@ -322,12 +334,15 @@ export function tierExternalDeps(manifests, names) {
   return tiers
 }
 
-/** A vendored package row parsed out of the `framework/README.md` manifest table. */
+/**
+ * A vendored package row parsed out of the `framework/README.md` manifest table.
+ * @typedef {{ npmName: string, upstreamName: string, upstream: string }} VendoredRow
+ */
 
 /**
  * Parse the vendored-package manifest table out of `framework/README.md`.
  * @param text - the complete `framework/README.md` contents.
- * @returns one row per manifest-table entry, in table order.
+ * @returns {VendoredRow[]} one row per manifest-table entry, in table order.
  */
 export function parseVendoredRows(text) {
   const rows = []
@@ -382,6 +397,11 @@ function collectPatched() {
 /** SPDX identifiers this project may ship without further review. */
 const PERMISSIVE_LICENSES = new Set(['MIT', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', '0BSD', 'Unlicense', 'CC0-1.0', 'BlueOak-1.0.0', 'Python-2.0'])
 
+/** Some npm manifests write a choice with a slash although SPDX requires `OR`. */
+function slashChoiceAsSpdxOr(license) {
+  return license.replace(/\s*\/\s*/g, ' OR ').trim()
+}
+
 /** Evaluate a parsed SPDX expression under the repository's license policy. */
 function isPermissiveSpdx(expression) {
   if ('conjunction' in expression) {
@@ -405,8 +425,7 @@ function isPermissiveSpdx(expression) {
  * @returns true when the expression's obligations are all permissive.
  */
 export function isPermissive(license) {
-  // Some npm manifests use a slash for a choice despite SPDX requiring `OR`.
-  const normalized = license.replace(/\s*\/\s*/g, ' OR ').trim()
+  const normalized = slashChoiceAsSpdxOr(license)
   try {
     return isPermissiveSpdx(parseSpdx(normalized))
   } catch {
@@ -455,6 +474,21 @@ ${rows.join('\n')}
 }
 
 /**
+ * Refuse to render while a runtime dependency carries non-permissive terms that
+ * no owner authorization covers: reaching a shipped surface makes that a
+ * distribution decision the notices must not quietly absorb.
+ */
+function requirePermissiveOrAuthorizedRuntime(runtimeDeps) {
+  const nonPermissiveRuntime = runtimeDeps.filter(dep =>
+    !isPermissive(dep.license)
+    && !isOwnerAuthorizedRuntime(dep.name),
+  )
+  if (nonPermissiveRuntime.length > 0) {
+    throw new Error(`gen-third-party-notices: runtime ${nonPermissiveRuntime.map(dep => `${dep.name} (${dep.license})`).join(', ')} is not a permissive license; review the distribution terms and record the decision before regenerating.`)
+  }
+}
+
+/**
  * Render the complete notices document.
  * @returns the exact bytes `THIRD_PARTY_NOTICES.md` must hold.
  */
@@ -470,15 +504,7 @@ export function render() {
     ? collectClaudeDistribution()
     : undefined
   const nonPermissiveDev = devDeps.filter(dep => !isPermissive(dep.license))
-  // A copyleft license reaching a shipped surface is a distribution decision,
-  // not a rendering detail; the notices cannot quietly absorb it.
-  const nonPermissiveRuntime = runtimeDeps.filter(dep =>
-    !isPermissive(dep.license)
-    && !isOwnerAuthorizedRuntime(dep.name),
-  )
-  if (nonPermissiveRuntime.length > 0) {
-    throw new Error(`gen-third-party-notices: runtime ${nonPermissiveRuntime.map(dep => `${dep.name} (${dep.license})`).join(', ')} is not a permissive license; review the distribution terms and record the decision before regenerating.`)
-  }
+  requirePermissiveOrAuthorizedRuntime(runtimeDeps)
   const patchedLines = patched.map(({ spec, patch }) => `- \`${spec}\` — [\`${patch}\`](${patch})`)
 
   return `<!-- Generated by scripts/gen-third-party-notices.js — do not edit by hand.
@@ -502,7 +528,7 @@ ${vendored.map(row => `| \`${row.npmName}\` | \`${row.upstreamName}\` | [${row.u
 
 ## Runtime npm dependencies
 
-External packages that a workspace package resolves at runtime. The tier covers every plugin a user can mount from \`cordis.yml\` — not only what the \`dsh\` CLI and Web UI load by default.
+External packages that a workspace package resolves at runtime. The tier covers every plugin a user can mount from \`cordis.yml\` — not only what the \`freddie\` CLI and Web UI load by default.
 
 ${renderNpmTable(runtimeDeps)}
 
@@ -523,21 +549,21 @@ ${renderNonPermissiveNote(nonPermissiveDev)}
 `
 }
 
+function committedNoticesOrNullWhenUnreadable() {
+  try {
+    return readFileSync(resolve(root, OUT), 'utf8')
+  } catch {
+    return null
+  }
+}
+
 /** CLI entry: default writes the notices, `--check` fails if the committed copy
  * is stale. Guarded behind an entry-point check so importing this module for
  * tests neither regenerates the committed file nor calls process.exit. */
 function main() {
   const content = render()
   if (process.argv.includes('--check')) {
-    let committed = null
-    try {
-      committed = readFileSync(resolve(root, OUT), 'utf8')
-    } catch {
-      // Only ENOENT (not yet generated) is expected; a present-but-unreadable
-      // file is not a state this repo produces, and the remedy is the same.
-      committed = null
-    }
-    if (committed === content) {
+    if (committedNoticesOrNullWhenUnreadable() === content) {
       console.log(`gen-third-party-notices: ${OUT} is up to date.`)
       process.exit(0)
     }
@@ -549,7 +575,7 @@ function main() {
   console.log(`gen-third-party-notices: wrote ${OUT}.`)
 }
 
-// Run only when invoked as a script, not when imported by a test.
-if (process.argv[1] !== undefined && import.meta.filename === resolve(process.argv[1])) {
+const invokedAsScript = process.argv[1] !== undefined && import.meta.filename === resolve(process.argv[1])
+if (invokedAsScript) {
   main()
 }

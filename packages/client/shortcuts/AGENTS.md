@@ -1,0 +1,8 @@
+# client-shortcuts
+
+## Rationale
+
+- `src/client/service.js` `ShortcutsService` keeps its state in underscore-named properties, never `#private` members. Cordis hands every consumer the service through a traced Proxy (`getTraceable` in `framework/cordis/src/utils.js`) and runs each method with `this` rebound to a shadow Proxy so `this.ctx` is the caller's context. A `#field` or `#method` read on that Proxy throws `TypeError: Receiver must be an instance of class ShortcutsService`, which failed the `ctx.inject(['slots', 'shortcuts'], ...)` fiber in `src/client/index.js` on its first `register()` while every client entry still reported active. Same rule as `SlotRegistry._core` and the `live` holders of the sibling services. Classes that are not Cordis services (`ShortcutRegistry`, the custom elements) are never wrapped and keep `#private` freely.
+- `src/client/index.js` `inject` lists only `locale` and `slots`: `ctx.plugin(ShortcutsService)` provides `shortcuts` from inside `apply`, so listing it would park the entry on a service only that entry can create.
+- `MODAL_OWNER_ATTRIBUTE` (`data-shortcut-modal`, set in `src/client/ShortcutReference.js`): `keyboard.js` reads it to name the topmost open dialog, and `registry.js` answers a command inside a modal only when the command's `modals` lists it.
+- `src/invariant.js` installs nothing. No runtime invariant: the host entry `src/index.js` registers nothing, and the registry, the `freddie.keybindings.v1` preference document, dispatch and `KeyRecorder` all live in the browser half, which the host `invariants` service cannot observe; registration conflicts are refused inside `ShortcutRegistry.register`, not through a cordis event stream.

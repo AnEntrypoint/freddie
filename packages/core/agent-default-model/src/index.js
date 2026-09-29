@@ -49,8 +49,6 @@ export class AgentDefaultModelConfig extends Service {
     this.source = () => entry
     installSettingsSection(ctx, AGENT_DEFAULT_MODEL_SETTINGS_NAMESPACE, AGENT_DEFAULT_MODEL_SETTINGS_SCHEMA, entry, {
       setSource: (current) => { this.source = current },
-      // Every consumer reads through currentSelection(), so no registration-level fact
-      // needs rebuilding when the settings document changes.
       onChange: () => {},
     })
   }

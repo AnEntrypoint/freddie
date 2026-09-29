@@ -11,10 +11,6 @@ function enhanceError(error) {
 
 const RESERVED_WORDS = ['prototype', 'then']
 
-// - is a symbol
-// - is a reserved word (prototype, then)
-// - is a number string (0, 1, 2, ...)
-// - starts with `_`
 function isSpecialProperty(prop) {
   return typeof prop === 'symbol'
     || RESERVED_WORDS.includes(prop)
@@ -198,7 +194,6 @@ export class ReflectService {
         delete this.store[key]
         const fibers = this.notify([name])
         await Promise.allSettled(fibers.map(fiber => fiber.await()))
-        // ensure self access before dependencies cleanup
         delete this.ctx.fiber.store[name]
       }
     }, `ctx.provide(${JSON.stringify(name)})`)
@@ -266,7 +261,6 @@ export class ReflectService {
     return this.ctx.fiber.effect(function* () {
       const entries = Array.isArray(mixins) ? mixins.map(key => [key, key]) : Object.entries(mixins)
       const getTarget = (ctx, error) => {
-        // TODO enhance error message
         return ctx[source]
       }
       for (const [key, value] of entries) {

@@ -40,8 +40,6 @@ async function openInBrowser(path, signal, platform, run, env) {
         'defaults', ['read', 'com.apple.LaunchServices/com.apple.launchservices.secure'], signal)
       bundle = macBundleForHttps(stdout)
     } catch {
-      // No LaunchServices record (a fresh account never changed a default):
-      // the content-type handler is then the system's own choice anyway.
       return false
     }
     if (bundle === undefined) return false
@@ -49,15 +47,11 @@ async function openInBrowser(path, signal, platform, run, env) {
     return true
   }
   if (platform === 'linux') {
-    // $BROWSER is the portable convention; desktop-entry resolution through
-    // xdg-settings needs a launcher this package has no business shipping.
     const browser = env.BROWSER
     if (browser === undefined || browser === '') return false
     await run(browser, [path], signal)
     return true
   }
-  // Windows names no browser without reading the UserChoice registry, and its
-  // .html association is the browser in the ordinary case.
   return false
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@freddie/freddie-client-ui-primitives",
-  "description": "Pure webjsx atoms for the dsh web UI: controls, icons, markdown, and JSON inspectors (zero cordis)",
+  "description": "Pure webjsx atoms for the freddie web UI: controls, icons, markdown, and JSON inspectors (zero cordis)",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"

@@ -32,6 +32,8 @@ export class BootPage {
   active = new Set()
   total = 0
   failure
+  failureTitle = 'Could not start Freddie'
+  failureAction = 'Retry'
 
   /**
    * Build and attach the boot page.
@@ -113,9 +115,22 @@ export class BootPage {
   /**
    * Display the boot failure report.
    * @param message - Failure report text.
+   * @param options - Optional headline and reload button label.
    */
-  fail(message) {
+  fail(message, options = {}) {
     this.failure = message
+    this.failureTitle = options.title ?? 'Could not start Freddie'
+    this.failureAction = options.action ?? 'Retry'
+    this.render()
+  }
+
+  attach(container) {
+    if (this.root.parentElement !== container) container.replaceChildren(this.root)
+  }
+
+  withdraw() {
+    this.failure = undefined
+    this.root.remove()
     this.render()
   }
 
@@ -137,12 +152,12 @@ export class BootPage {
       return
     }
     const report = div(css.failed)
-    report.append(div(css.failedTitle, 'Could not start Freddie'))
+    report.append(div(css.failedTitle, this.failureTitle))
     for (const id of failed) report.append(div(css.failedItem, id))
     if (this.failure !== undefined) report.append(div(css.failedItem, this.failure))
     const actions = div(css.actions)
     actions.append(
-      this.action('Retry', () => { globalThis.location.reload() }),
+      this.action(this.failureAction, () => { globalThis.location.reload() }),
       this.action('Copy details', () => { void globalThis.navigator.clipboard?.writeText(this.failure ?? failed.join('\n')) }),
     )
     report.append(actions)

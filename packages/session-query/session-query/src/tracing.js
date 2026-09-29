@@ -65,7 +65,6 @@ export function traceEvent(sessionId, events, seq) {
     if (eventSources(event).includes(seq)) derivedEventSeqs.push(event.seq)
   }
 
-  // The target check above proves the parallel record exists at this index.
   // oxlint-disable-next-line typescript/no-non-null-assertion
   const targetRecord = analysis.records[seq]
   const replacedBy = analysis.replacedBy.get(seq)
@@ -190,7 +189,6 @@ function buildDescendants(childrenByParent, sessionId) {
   const descendants = []
   const stack = [{ sessionId, descendants }]
   while (stack.length > 0) {
-    // The length guard proves a frame exists.
     // oxlint-disable-next-line typescript/no-non-null-assertion
     const frame = stack.pop()
     const nodes = []
@@ -200,7 +198,6 @@ function buildDescendants(childrenByParent, sessionId) {
       frame.descendants.push(node)
     }
     for (let index = nodes.length - 1; index >= 0; index -= 1) {
-      // The loop bounds prove this indexed node exists.
       // oxlint-disable-next-line typescript/no-non-null-assertion
       const node = nodes[index]
       stack.push({ sessionId: node.session.header.id, descendants: node.descendants })

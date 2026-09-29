@@ -131,9 +131,6 @@ export function createSandbox(id, harnessExtras = {}) {
     ...nodeApiTraps(),
     console: taggedConsole(id),
     harness: { defineTool: sandboxDefineTool, registerTool: sandboxRegisterTool, ...harnessExtras },
-    // Web APIs absent from fresh vm contexts — made available so the model
-    // can encode/decode base64 without Buffer (which is also absent). Host
-    // closures over Buffer, never Buffer itself.
     btoa: s => Buffer.from(s, 'utf-8').toString('base64'),
     atob: s => Buffer.from(s, 'base64').toString('utf-8'),
     TextEncoder,
@@ -177,9 +174,6 @@ export function syntaxErrorContext(error) {
  * @returns the model-facing error message.
  */
 export function parseErrorMessage(half, context) {
-  // Scope the TypeScript heuristic to the OFFENDING line, not the whole code:
-  // an ` as ` inside an ordinary description string must not turn a plain
-  // syntax error into a misleading remove-annotations message.
   const offendingLine = context.split('\n')[1] ?? ''
   if (/\bas\b/.test(offendingLine)) {
     return `dynamic package \`${half}\` failed to parse:\n${context}\n`
@@ -212,7 +206,6 @@ export function parseErrorMessage(half, context) {
 export function precheckCode(code, half) {
   const wrapped = `(async () => {\n${code}\n})()`
   try {
-    // Compile-only: constructing the function parses the source and runs nothing.
     // oxlint-disable-next-line typescript/no-implied-eval -- parse gate over model-written code; nothing is invoked
     new Function(wrapped)
   } catch (error) {
@@ -234,8 +227,6 @@ function prettyParseContext(wrapped, half, refusal) {
     new Script(wrapped, { filename: `cordis-dyn-${half}.js` })
   } catch (vmError) {
     if (isSyntaxError(vmError)) return syntaxErrorContext(vmError)
-    // A stubbed vm (the browser worker) refuses Script itself; the gate's
-    // error is the only context there is.
   }
   return String(refusal)
 }

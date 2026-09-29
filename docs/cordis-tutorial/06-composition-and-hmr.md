@@ -22,7 +22,7 @@ Groups nest a sub-list of entries that load and unload as one unit, and `isolate
 
 Because unloading releases effects ([chapter 2](02-lifecycle-and-effects.md)) and loading follows dependencies ([chapter 3](03-services.md)), HMR can replace a running plugin by unloading and loading it. The `@freddie/cordis-plugin-hmr` plugin watches your files and does exactly that on save.
 
-In `tmp/cordis-tutorial`, write `cordis.yml`:
+In `examples/cordis-tutorial`, write `cordis.yml`. Keep this part of the chapter here rather than in the `packages/llm/llm-retry/.scratch-<name>/` location used below: `hello.ts` only `import type`s `@freddie/cordis`, so this part needs no fix, but `@freddie/cordis-plugin-logger-console` and `@freddie/cordis-plugin-timer` are dependencies only of the `examples` workspace member, not of `llm-retry` (see the [setup resolution note](index.md#setup)).
 
 ```yaml
 - id: logger
@@ -39,10 +39,10 @@ In `tmp/cordis-tutorial`, write `cordis.yml`:
 
 Two support plugins joined the list: HMR logs through the Cordis logger service, so without a console exporter you would not see its messages, and it `inject`s the `timer` service for debouncing — without `@freddie/cordis-plugin-timer` it sits in PENDING forever, silently. That silence is the subject of the next section.
 
-HMR reads Node's loader internals through the Loader's native helper. Run Cordis under tsx:
+HMR reads Node's loader internals through the Loader's native helper. Run Cordis under plain `node`:
 
 ```sh
-node --import tsx ../../framework/cordis/bin.js
+node ../../framework/cordis/bin.js
 ```
 
 Now edit `hello.ts` — change the log message — and save:
@@ -60,7 +60,7 @@ The old instance unloaded (all its effects unwound), the new code loaded, `apply
 
 The flip side of dependency-driven loading: a plugin whose `inject` names a service nobody provides waits forever, printing nothing. No error — PENDING is a legitimate state, since the provider may be mounted later.
 
-You can see the states directly. Every context can enumerate the plugin registry; create `diagnose.ts`:
+You can see the states directly. Every context can enumerate the plugin registry; create `diagnose.ts` in `packages/llm/llm-retry/.scratch-<name>/` (not `examples/cordis-tutorial` — this file's `FiberState` import needs `@freddie/cordis` resolvable, see the [setup resolution note](index.md#setup)):
 
 ```ts
 import { FiberState, type Context } from '@freddie/cordis'
@@ -98,7 +98,7 @@ export function apply(ctx: Context) {
 - name: './diagnose.ts'
 ```
 
-Run it (plain `node --import tsx ../../framework/cordis/bin.js`; stop with Ctrl-C):
+Run it (plain `node ../../../../framework/cordis/bin.js` from `packages/llm/llm-retry/.scratch-<name>/`, where `@freddie/cordis` resolves for the `FiberState` import; stop with Ctrl-C):
 
 ```
 needs-timer is PENDING — a required service is missing
@@ -108,4 +108,4 @@ needs-timer is PENDING — a required service is missing
 
 Next: [Into the harness](07-into-the-harness.md) — the same patterns against real harness services.
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)
+[![](https://img.shields.io/badge/powered_by-freddie-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)

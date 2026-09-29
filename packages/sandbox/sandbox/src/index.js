@@ -65,7 +65,7 @@ export class SandboxProvider extends Service {
    *   arguments), NOT a shell string — a shell-shaped consumer passes
    *   `['bash', '-c', command]`.
    * @param policy - the file-effect policy this execution runs under,
-   *   carried per call (see {@link SandboxPolicy}).
+   *   carried per call (see {@link import('@freddie/freddie-sandbox-policy').SandboxPolicy}).
    * @returns the argv to spawn instead, plus the enforcement completeness
    *   the selected backend achieves for it.
    */

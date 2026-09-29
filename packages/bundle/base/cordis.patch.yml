@@ -1,17 +1,3 @@
-# The dsh-base bundle patch: the shared core of every dsh profile, applied as
-# ONE insert over the empty profile root. Later bundle patches and the user's
-# profile cordis.patch.yml address these rows by id, with the last write
-# winning per row.
-#
-# A patch replaces the targeted row's whole `config` rather than merging into
-# it, so a row whose value differs by mode does NOT live here: it belongs to
-# each mode bundle, keeping any single row down to one bundle layer plus the
-# user's. Mode-specific rows appear below only with shared plugin identity and
-# neutral defaults; each mode bundle restates its complete configuration.
-#
-# Row order carries no load semantics (activation is service-availability
-# driven); the grouping is for readers.
-
 - insert:
     - id: timer
       name: '@freddie/cordis-plugin-timer'
@@ -47,24 +33,15 @@
       name: '@freddie/freddie-session-title-first-prompt-llm'
       config:
         targetWords: 5
-        targetCjkCharacters: 10
         maxInputBytes: 4096
         maxOutputTokens: 64
         timeoutMs: 60000
 
-    # The alternative title cadence: summarize every eligible human message
-    # instead of only the first. DISABLED by default and on purpose — the title
-    # service refuses a second provider registration ("one provider at a time",
-    # see its README), so this row and `session-title-llm` above are
-    # alternatives, not complements. Flip this row on and `session-title-llm`
-    # off in the same edit: enabling one with the other still mounted fails the
-    # mount rather than picking a winner.
     - id: session-title-all-prompts-llm
       name: '@freddie/freddie-session-title-all-prompts-llm'
       disabled: true
       config:
         targetWords: 5
-        targetCjkCharacters: 10
         maxInputBytes: 4096
         maxOutputTokens: 64
         timeoutMs: 60000
@@ -75,8 +52,6 @@
     - id: agent
       name: '@freddie/freddie-agent'
 
-    # The transport-independent default for Agents created by entry points.
-    # Settings may supply a saved selection; consumers read it at creation time.
     - id: agent-default-model
       name: '@freddie/freddie-agent-default-model'
       config:
@@ -86,28 +61,6 @@
     - id: jobs
       name: '@freddie/freddie-jobs-local'
 
-    # gm as a first-class harness capability, native path: freddie-gm-client's
-    # ctx.gm dispatches gm's spool verbs directly against .gm/exec-spool/, in
-    # this process -- no MCP stdio hop, no subprocess. freddie-tool-gm
-    # registers real typed model-facing tools (gm_instruction, gm_codesearch,
-    # gm_recall, gm_prd_add, gm_mutable_add, gm_transition, gm_exec_js,
-    # gm_git_finalize) over that service, each with its own parameters/
-    # output.schema instead of one opaque (verb, body: any) passthrough.
-    # Always mounted, no disabled guard: `!!js` expressions evaluate via
-    # `with (ctx) { eval(expr) }` in framework/loader/src/config/utils.js -- a
-    # plain function scope, never CommonJS, so `require` is not defined
-    # there, which rules out a real synchronous fs.existsSync probe at this
-    # layer (an earlier require()-based auto-detect attempt threw
-    # ReferenceError at boot and never actually ran; an env-var-gated
-    # follow-up required setting GM_HOME_DIR on every single launch, which
-    # defeats "first-class" -- live-witnessed forgetting it on a routine
-    # restart, silently losing the native gm tools for the whole session).
-    # Mounting unconditionally is safe: Gm's constructor (gm-client/src/
-    # index.js) does no I/O -- ensureDaemon only runs lazily on the first
-    # real gm.call(), where daemon.js already throws a clear, real error
-    # naming the missing ~/.gm-tools/bootstrap.js path if gm truly isn't
-    # installed on this machine (the "misconfiguration fails loud at the
-    # earliest resolvable point" convention, not a boot-time crash).
     - id: gm-client
       name: '@freddie/freddie-gm-client'
       config:
@@ -120,26 +73,12 @@
     - id: llm-retry
       name: '@freddie/freddie-llm-retry'
 
-    # User-settings document (`$FREDDIE_HOME/settings.yaml`, hot-reloaded): a
-    # `llm-deepseek:` section there overrides the adapter entries below without
-    # a restart, and is what the web Models page writes.
     - id: settings
       name: '@freddie/freddie-settings-file'
 
-    # Credential sources: inherited environment over the managed
-    # `$FREDDIE_HOME/.credentials.yaml`, with project and user `.env` fallbacks.
-    # Adapters resolve references per request; the Models page writes only the
-    # managed document, which is never materialized into the process environment.
     - id: credentials
       name: '@freddie/freddie-credentials-local'
 
-    # The authorization seam: the registry for credentials a human has to be
-    # talked into (open this page, paste that code, pick an account). The seam
-    # owns the conversation and the lifecycle, never a protocol, and no flow
-    # ships here — mounting it registers an empty registry, and a flow arrives
-    # only with the plugin that owns its protocol (llm-pi-ai registers one per
-    # installed catalog provider that ships a login). Nothing can be authorized
-    # while the registry is empty.
     - id: authorization
       name: '@freddie/freddie-authorization'
 
@@ -149,69 +88,34 @@
         root: !!js freddieHomePath('sessions')
         extraRoots: !!js "(process.env.FREDDIE_EXTRA_SESSION_ROOTS ?? '').split(process.platform === 'win32' ? ';' : ':').map(s => s.trim()).filter(Boolean)"
 
-    # Durable image bytes live outside the append-only session log. Messages
-    # keep content-addressed references that this shared backend resolves for
-    # provider requests and authorized history reads.
     - id: attachment-local
       name: '@freddie/freddie-attachment-local'
 
-    # Full-text session search is opt-in. `openAt: never` keeps
-    # ctx.sessionQuery mounted — exact reads, titles, and lineage traces
-    # (session export, subagent-fork Workspace inheritance) stay available —
-    # while search calls fail with SESSION_QUERY_SEARCH_DISABLED and SQLite is
-    # never opened; the Web sidebar search matches titles and workspace names
-    # only. Deployments enabling content search override `openAt` to
-    # `first-search` or `startup` in a later patch layer (profile
-    # cordis.patch.yml or a --patch overlay), typically with a durable `path`.
     - id: session-query-sqlite
       name: '@freddie/freddie-session-query-sqlite'
       config:
         path: ':memory:'
-        openAt: never
+        openAt: first-search
 
-    # Shared projection registry: subagent catalog identity (mode/label) folds
-    # through its registered units, so the `list_agents` surface below fails
-    # loud without it; web layers reuse this same mount for list rows.
+    - id: tool-session-query
+      name: '@freddie/freddie-tool-session-query'
+
     - id: session-projection
       name: '@freddie/freddie-session-projection'
 
-    # Whole-session turn outline: turn number, its `turn/start` seq, and bounded
-    # prompt/response previews, as a `turnOutline` projection unit. It is a pure
-    # client-facing read model over already-logged events — no prompt, tool, or
-    # model request — and consumers treat an absent key as capability absence,
-    # so mounting it costs one projection unit and changes nothing model-facing.
     - id: session-turn-outline
       name: '@freddie/freddie-session-turn-outline'
 
     - id: gm-progress
       name: '@freddie/freddie-gm-progress'
 
-    # Session telemetry is mounted but disabled by default. FREDDIE_TELEMETRY_MODE
-    # explicitly opts into FULL or FEEDBACK_ONLY reporting; uploading mirrors
-    # session-log records onto OTLP/HTTP logs with no session-telemetry/record redaction
-    # rule, so exports are the raw captured copy. The deployment stance, env
-    # seams, and follow-ups are pinned in the default-off Agent Note.
-    # FREDDIE_TELEMETRY_OTLP_URL overrides the production endpoint. A non-empty
-    # FREDDIE_TELEMETRY_DISABLED — any value, including '0'/'false' — opts the
-    # process out (the launchers patch the row disabled; config cannot disable
-    # a row). Exports carry the harness home's anonymous user id ($FREDDIE_HOME/.anonymous-user-id,
-    # random UUID; delete the file to reset the identity) as the Resource's
-    # user.id. The exporter/processor values normally bound the shutdown drain
-    # to ~1s against an unreachable collector: exporter.timeoutMillis is both
-    # the per-attempt socket timeout and the retry deadline (1s effectively
-    # disables the SDK's 5-try backoff), while maxExportBatchSize == maxQueueSize
-    # (both explicit) makes the drain a single batch. The SDK awaits
-    # exporter.forceFlush() outside exportTimeoutMillis, so the backend's 3s
-    # shutdownTimeoutMillis is the load-bearing outer bound when a transport
-    # promise never settles. Every CLI exit path drains it by disposing the root
-    # on SIGINT/SIGTERM.
     - id: session-telemetry-otel
       name: '@freddie/freddie-session-telemetry-otel'
       config:
         mode: !!js process.env.FREDDIE_TELEMETRY_MODE || 'DISABLED'
         shutdownTimeoutMillis: 3000
         exporter:
-          url: !!js process.env.FREDDIE_TELEMETRY_OTLP_URL ?? 'https://harness-telemetry.deepseeksvc.com/v1/logs'
+          url: !!js process.env.FREDDIE_TELEMETRY_OTLP_URL || undefined
           compression: gzip
           timeoutMillis: 1000
         processor:
@@ -220,14 +124,6 @@
           maxExportBatchSize: 2048
           exportTimeoutMillis: 1500
 
-    # Opt-in Chrome DevTools inspection of this Host realm, on its own loopback
-    # port. Mounted DISABLED (`enabled: false` is the package's own default):
-    # disabled installs nothing and logs the refusal, and no worker, socket, or
-    # fetch capture exists. The surface is remote code evaluation in the Host
-    # realm — `Runtime.evaluate` on this target is a root shell — so it is never
-    # enabled by a bundle. Flip it in a later layer (profile cordis.patch.yml or
-    # `plugin-manager`) when a human is actually debugging a running Host; the
-    # bind is asserted loopback with no field that widens it.
     - id: inspector
       name: '@freddie/freddie-inspector'
       config:
@@ -236,34 +132,18 @@
     - id: subprocess
       name: '@freddie/freddie-subprocess-local'
 
-    # ── capability registries: one exclusive provider slot each ──────────────
-    #
-    # Each row is the named registration seam for a capability, not the
-    # capability: exactly one provider may hold `ctx.computerUse` /
-    # `ctx.browserUse` at a time, so a deployment swaps backends without any
-    # consumer caring which one is mounted. An empty slot is the shipped state —
-    # no provider ships in either group — so mounting these registers the slot
-    # and nothing else: no tool, no prompt, no model-visible surface.
-
     - id: computer-use
       name: '@freddie/freddie-computer-use'
 
     - id: browser-use
       name: '@freddie/freddie-browser-use'
 
-    # The experimental browser-use provider, DISABLED: its `apply()` resolves
-    # the pinned `chrome-devtools-mcp@1.9.0` server entry at load and throws
-    # when it is absent, and this package declares no dependency on it (the
-    # tree carried a supply-chain dropper, so no third-party package enters at
-    # install time). Mounting it active would fail the boot on any host without
-    # that server. Flip it on only where the server IS installed — out of band,
-    # or named through `entryPath` — and only in a layer below this one.
     - id: browser-use-chrome-devtools-mcp
       name: '@freddie/freddie-experimental-browser-use-chrome-devtools-mcp'
-      disabled: true
       config:
         mode: launch
         headless: true
+        excludePresets: [minimal]
 
     - id: terminal
       name: '@freddie/freddie-terminal'
@@ -273,9 +153,6 @@
       config:
         shellDialect: !!js "process.platform === 'win32' ? 'pwsh' : 'bash'"
 
-    # Every shipped CLI mode starts with the same file-effect boundary.
-    # The environment remains an explicit deployment override; otherwise fresh
-    # sessions pin workspace-write + ask through the permission service below.
     - id: sandbox
       name: '@freddie/freddie-sandbox-local'
 
@@ -314,16 +191,6 @@
             sandbox: danger-full-access
             approval: never
 
-    # Authorization reviewer for the `auto` permission preset: with that preset
-    # selected, a model reviews every tool call before its body runs. Mounted
-    # with the package's own defaults, which are its documented dormant posture —
-    # it acts ONLY while a session has explicitly selected `auto`, and the
-    # deployment default (`workspace-write`) never does, so nothing is reviewed
-    # until a person switches. Fail-closed by construction: an unreadable
-    # policy, a reviewer error, a timeout, or a log/execution disagreement
-    # denies the call. `advertise: true` adds the `auto` row to the preset table
-    # (its documented default); set it to false in an overlay to keep the gate
-    # without touching the table.
     - id: auto-review
       name: '@freddie/freddie-auto-review'
       config:
@@ -362,6 +229,14 @@
       name: '@freddie/freddie-agent-instructions'
       config:
         maxBytes: 65536
+
+    - id: time-context
+      name: '@freddie/freddie-time-context'
+      config:
+        refreshIntervalMs: 60000
+
+    - id: tmux-context
+      name: '@freddie/freddie-tmux-context'
 
     - id: skill
       name: '@freddie/freddie-skill'
@@ -413,17 +288,9 @@
     - id: compaction-basic
       name: '@freddie/freddie-compaction-basic'
 
-    # Durable offload of retained images when an image-capable route fails a
-    # request with `IMAGE_OFFLOAD_REQUIRED`. A function plugin on the agent
-    # loop's failure seam — not a compaction backend and not a tool — so it
-    # composes with `compaction-basic` and `tool-result-pruner` without either.
-    # Inert until an adapter reports a count, and no adapter in this workspace
-    # does today, so mounting it registers one listener and changes nothing.
     - id: compaction-image-offload
       name: '@freddie/freddie-compaction-image-offload'
 
-    # Human `/compact`: one useful reduction below the automatic threshold. Backend
-    # independent, so it follows whichever compaction service this leaf mounts.
     - id: command-compact
       name: '@freddie/freddie-command-compact'
 
@@ -440,8 +307,6 @@
       config:
         providerName: fork
 
-    # Continuable background children are selected per delegation tool. The
-    # separately loaded follow-up tool registers the one global `send_message`.
     - id: tool-subagent-control
       name: '@freddie/freddie-tool-subagent-control'
 
@@ -455,10 +320,6 @@
         toolName: subagent
         backgroundMode: continuable
 
-    # Fork stays one-shot: a continuable child's `report` tool and prompt
-    # section precede the inherited history a fork exists to reuse; one-shot
-    # fork children install neither, keeping the parent's request prefix.
-    # See .agents/notes/implemented/architecture/2026-08-10-fork-children-stay-one-shot.md.
     - id: tool-subagent-fork
       name: '@freddie/freddie-tool-subagent'
       config:
@@ -466,7 +327,6 @@
         toolName: subagent_fork
         backgroundMode: one-shot
 
-    # Optional direct-child return channel; absent from roots and one-shot agents.
     - id: tool-subagent-report
       name: '@freddie/freddie-tool-subagent-report'
 
@@ -489,12 +349,9 @@
       config:
         maxInlineBytes: 50000
 
-    # Durability checkpoints before each model request and top-level dispatch.
     - id: session-checkpoint-policy
       name: '@freddie/freddie-session-checkpoint-policy'
 
-    # Compacts oversized tool results before the broader conversation compactor
-    # runs, preserving the model-visible result within the configured budget.
     - id: tool-result-pruner
       name: '@freddie/freddie-compaction-tool-result-pruner'
       config:
@@ -507,12 +364,9 @@
       config:
         allowParallelInProgress: true
 
-    # Persisted same-session goals reach the model and the slash menu here; the
-    # domain, driver, and `/goal` command are above.
     - id: tool-goal
       name: '@freddie/freddie-tool-goal'
 
-    # Fresh-agent Ralph iteration over a build-time-fixed script.
     - id: tool-ralph
       name: '@freddie/freddie-tool-ralph'
       config:
@@ -525,89 +379,54 @@
       config:
         maxOutputChars: 16000
 
-    # Consecutive-repeat reminders on the tool chain.
     - id: repeat-tool-reminder
       name: '@freddie/freddie-repeat-tool-reminder'
       config:
         thresholds: [3, 5, 8]
         argumentsPreviewChars: 500
 
-    # Every mode enables the stable model-facing web_search tool. The DeepSeek
-    # provider (native web_search over the Anthropic-compatible Messages API)
-    # needed a paid DEEPSEEK_API_KEY purely to reach search, and had no
-    # in-harness fallback when that key was absent/invalid (live-witnessed:
-    # HTTP 401 mid-turn, "Your api key: sk is invalid"). Replaced with a
-    # browser-automation provider over ctx.gm's own `browser` verb (the shared
-    # gm daemon's lightpanda/CDP engine, already wired into this process) --
-    # no credential, no new dependency. Targets Google directly (tried and
-    # kept per explicit direction over DuckDuckGo): live-verified clean across
-    # several repeated searches, no CAPTCHA/consent wall; the provider still
-    # throws a distinct WEB_PROVIDER_BLOCKED error naming the interstitial if
-    # that ever changes, the documented signal to escalate this provider to a
-    # stealth engine (camoufox) rather than silently degrade. Fetch stays
-    # disabled and no fetch provider is mounted: that provider defers SSRF
-    # protection and the model would choose the request target. Search drives
-    # a real browser navigation+DOM-extraction round trip, so it keeps the
-    # same 60s route while the provider-neutral tool default remains 30s.
     - id: web
       name: '@freddie/freddie-web'
       config:
         searchProvider: browser-google
+        fetchProvider: http
 
     - id: web-search-browser
       name: '@freddie/freddie-web-search-browser'
       config:
         timeoutMs: 60000
 
+    - id: web-fetch-http
+      name: '@freddie/freddie-web-fetch-http'
+      config:
+        timeoutMs: 45000
+
     - id: tool-web
       name: '@freddie/freddie-tool-web'
       config:
-        fetch: false
+        fetch: true
         searchTimeoutMs: 60000
 
-    # ── rows every mode mounts, whose values each overlay may state ──────────────
-
-    # The tool registry. Presentation mode is a deployment choice; omitting it here
-    # keeps the schema default (native).
     - id: tools
       name: '@freddie/freddie-tools'
 
-    # The deployment persona is a deployment choice; plan-mode and tool plugins own
-    # their own prompt sections.
     - id: system-prompt
       name: '@freddie/freddie-system-prompt'
       config:
         persona: ''
         toolOrder: !!js "process.platform === 'win32' ? ['read', 'edit', 'write', 'grep', 'glob', 'pwsh', 'skill', 'todo_write', 'workflow', 'ralph', 'gm_instruction', 'gm_codesearch', 'gm_phase_status', '<unlisted-tools>'] : ['read', 'edit', 'write', 'grep', 'glob', 'bash', 'skill', 'todo_write', 'workflow', 'ralph', 'gm_instruction', 'gm_codesearch', 'gm_phase_status', '<unlisted-tools>']"
 
-    # Agents created at startup. The base stays empty; raw overlays may create
-    # agents, while Web creates sessions on client request.
     - id: agent-loop
       name: '@freddie/freddie-agent-loop'
       config:
         agents: []
 
-    # The sandboxed filesystem provider. `cwd` defaults to `process.cwd()`; an
-    # overlay can pin another workspace.
     - id: fs-sandbox
       name: '@freddie/freddie-fs-sandbox'
 
-    # The native DeepSeek adapter. No key or endpoint is inlined: both resolve per
-    # request from the `llm-deepseek:` settings section over this entry, with the
-    # key coming from the credential store below. Thinking defaults are a deployment
-    # choice.
     - id: llm-deepseek
       name: '@freddie/freddie-llm-deepseek'
 
-    # pi-ai-backed multi-provider adapter, mounted as its own documented
-    # "dormant bare mount": `providers` is empty, so NO route is registered and
-    # no request can be routed through pi-ai — `ensureRegistrationFacts` returns
-    # without calling `registerAdapter` for a zero-route set. What mounting does
-    # add is the configuration directory: the whole installed pi-ai catalog
-    # becomes configurable under the `llm-pi-ai` settings namespace (the Models
-    # page can offer every provider before any route exists), plus its model
-    # discovery and one authorization flow per catalog provider that ships a
-    # login. A route appears only when a settings section supplies a profile.
     - id: llm-pi-ai
       name: '@freddie/freddie-llm-pi-ai'
       config:

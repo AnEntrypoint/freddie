@@ -1,10 +1,3 @@
-// ComposerAttachments: draft-image rail, document drop target, and
-// original-image preview slot entry. Converted from a React hooks component
-// to a webjsx custom element: state (preview/dragActive/dragDepth) becomes
-// instance fields, the document-level drag/drop listeners' useEffect becomes
-// connectedCallback/disconnectedCallback, and re-render is an explicit
-// applyDiff(this, vdom) call (Toast.tsx's pattern).
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { renderAttachmentRail } from '../AttachmentRail.js'
 import { renderDropOverlay } from '../DropOverlay.js'

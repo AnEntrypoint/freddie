@@ -53,21 +53,13 @@ function toolTimeoutResult(timeoutMs) {
 export function apply(ctx) {
   ctx.on('tools/execute', async (exec, next) => {
     const timeoutMs = ctx.tools.get(exec.name, exec.agent)?.timeoutMs
-    // A tool that declares no budget: no deadline, delegate unchanged.
     if (timeoutMs === undefined) return next()
 
     using d = deadline(exec.signal, timeoutMs, TOOL_TIMEOUT)
-    // Swap the derived deadline onto exec for dispatch, then restore the
-    // caller's own signal so post-execute listeners never see this plugin's
-    // (possibly already-aborted) timeout signal.
     const upstream = exec.signal
     exec.signal = d.signal
     try {
       const result = await next()
-      // If OUR timer fired (scoped by code — a nested outer deadline reads as
-      // undefined here), the tool/capability saw the abort and reached
-      // quiescence; replace whatever it returned (its own abort result) with the
-      // structured TOOL_TIMEOUT the model sees.
       if (timeoutOf(d.signal, TOOL_TIMEOUT) !== undefined) {
         return toolTimeoutResult(timeoutMs)
       }

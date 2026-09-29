@@ -1,0 +1,8 @@
+## Rationale
+
+- `src/index.js` served block `asOfSeq`: one cut per block, the lowest served row watermark. Under-claiming is safe under higher-seq-wins; over-claiming would let a stale value outrank pushes.
+- `src/index.js` flush-before-put: the checkpoint cut is taken first, then `sessions.flush` runs so every event inside the cut is durably logged before the cache row lands. A crash can leave the cache behind the log (longer tail replay) but never ahead of it. At detach the store entry is already gone; persistence's retirement drain covers that path and any residual overreach is caught by the cold read's anchored floor.
+- `src/index.js` cold read with no unit registered: the `readFrom(id, 0)` probe still runs so the not-found contract holds (rejects for an absent log, dates the empty cut for a present one).
+- `src/index.js` cold read identity: the tail's stored header is the identity witness; a record bound to a different lifecycle (recreated id, swapped store) is discarded whole before any row seeds a fold. Recoverable failures (unrelated record, row outside the suffix or log end, `stateSchema` rejection) fall back to a full read that refolds every unit from init.
+- `src/index.js` `installWritePath`: every committed event advances the dirty counter; `turn/end` is a mandatory flush point (the durable value most reads want is turn-final), count/interval throttle the in-turn stream. `session/disposed` is the second mandatory point (live-to-cold); `flushSoft` reads and resets dirty state synchronously, so dropping its promise after `markClean` cleared the timer is safe.
+- `src/index.js` teardown effect clears pending timers because their sessions outlive the cache.

@@ -16,11 +16,7 @@ export const inject = ['invariants']
 const install = (ctx, fail) => {
   ctx.on('internal/plugin', () => {
     const server = ctx.get('webServer')
-    if (server === undefined) return // no webserver row in this composition
-    // Register/dispose probe on a reserved path: if dispose leaves the route
-    // behind, a second register throws the duplicate error — the asymmetry.
-    // Each register(probe)() is one register+dispose cycle, so the probe never
-    // leaves residue; a leftover from the first cycle makes the second throw.
+    if (server === undefined) return
     const probe = { kind: 'exact', path: '/__dsh_invariant_probe__', handler: () => {} }
     try {
       server.register(probe)()

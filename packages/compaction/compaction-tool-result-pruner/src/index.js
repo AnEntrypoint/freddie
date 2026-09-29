@@ -13,8 +13,6 @@ export { codePointLength, DEFAULTS, PRUNE_MARKER, resolveConfig } from './config
 
 /** Deterministic head/middle/tail pruning for current tool-result surface nodes. */
 export class ToolResultPruner extends Service {
-  // The token meter prices each shadowed node for its logged shadow-price
-  // event, so pruning genuinely requires the pricing capability.
   static inject = ['tokenMeter']
 
   static Config = z.object({
@@ -127,9 +125,6 @@ export class ToolResultPruner extends Service {
           content,
         }],
       })
-      // Shadow-price protocol: the metering event and its replacement are
-      // appended synchronously adjacent, so pure consumers subtract the
-      // shadowed node's heuristic price without retaining per-node state.
       session.append('compaction/prune', {
         shadowedRange: { start: seq, end: seq },
         shadowedSeqs: [seq],

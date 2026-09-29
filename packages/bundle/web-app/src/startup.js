@@ -1,5 +1,5 @@
 /**
- * The web app's command-line provider: it parses the `dsh --profile web` flag
+ * The web app's command-line provider: it parses the `freddie --profile web` flag
  * family (`--host`, `--port`, `--trusted-host`, `--no-open`) and its `--help`
  * text, then provides the immutable values as {@link WEB_STARTUP_SERVICE}.
  * Ordinary rows inject that service before reading it from lazy config.
@@ -32,7 +32,7 @@ export const WEB_STARTUP_SERVICE = 'webStartup'
  */
 function webCommand() {
   return new Command()
-    .name('dsh --profile web')
+    .name('freddie --profile web')
     .description('Serve the Freddie browser UI.')
     .helpOption('-h, --help', 'show this help')
     .option('--host <host>', 'bind host')
@@ -41,9 +41,9 @@ function webCommand() {
     .option('--trusted-host <authority...>', 'extra authority the /api browser-trust fence accepts (host or host:port; repeatable)')
     .addHelpText('after', `
 Examples:
-  dsh --profile web                          serve on the composed host and port
-  dsh --profile web --no-open                serve without opening a browser
-  dsh --profile web --port 8080              serve on another port
+  freddie --profile web                          serve on the composed host and port
+  freddie --profile web --no-open                serve without opening a browser
+  freddie --profile web --port 8080              serve on another port
 `)
 }
 

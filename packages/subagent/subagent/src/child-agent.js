@@ -87,16 +87,18 @@ export function childSessionMeta(parent, childDepth, lineageSeedLength) {
     ...parentHeader.cwd !== undefined ? { cwd: parentHeader.cwd } : {},
     ...agentPreset === undefined ? {} : { agentPreset },
     parentSession: parentHeader.id,
-    // Navigation classification only; the descriptor remains the authority
-    // for mode and continuation capability.
     origin: 'subagent',
-    // Durable: the recursion budget must survive persistence and resume.
     delegationDepth: childDepth,
     ...lineageSeedLength > 0 ? { seedLength: lineageSeedLength } : {},
   }
 }
 
-/** The scoped composition a child agent's creation window applies. */
+/**
+ * The scoped composition a child agent's creation window applies.
+ * @typedef {object} SubagentChildComposition
+ * @property {string} [persona] - shadowing persona section text, if any.
+ * @property {unknown} [toolFilter] - tool restriction passed to `ctx.tools.restrict()`, if any.
+ */
 
 /**
  * Model-facing delegation-scope statement for every in-process child. A
@@ -133,7 +135,6 @@ export const SUBAGENT_DELEGATION_CONTEXT
  */
 export function applyChildComposition(childCtx, parent, composition) {
   childCtx.get('agentPresets')?.composeFrom(childCtx, parent.ctx)
-  // Order 120: after the sandbox:policy (110) and approval:policy (115) sentences.
   childCtx.systemPrompt.context({ name: 'subagent:delegation', order: 120, text: SUBAGENT_DELEGATION_CONTEXT })
   if (composition.persona !== undefined) {
     childCtx.systemPrompt.section({ name: 'deployment:persona', order: 0, text: composition.persona })
@@ -141,7 +142,12 @@ export function applyChildComposition(childCtx, parent, composition) {
   if (composition.toolFilter !== undefined) childCtx.tools.restrict(composition.toolFilter)
 }
 
-/** Policy seeded onto a child session's log at the delegation boundary. */
+/**
+ * Policy seeded onto a child session's log at the delegation boundary.
+ * @typedef {object} SubagentDelegatedPolicyOverrides
+ * @property {string} [sandboxMode] - the parent session's explicit sandbox override, if any.
+ * @property {'never'} [approvalPolicy] - present and pinned to `'never'` when the parent has an approval policy configured.
+ */
 
 /**
  * Capture the policy to seed into one delegation. Call synchronously before
@@ -177,5 +183,3 @@ export function appendDelegatedPolicyOverrides(childSession, overrides) {
     childSession.append('approval/policy', { policy: overrides.approvalPolicy, source: 'delegation' })
   }
 }
-
-/** Identity and lineage inputs shared by every in-process child creation. */

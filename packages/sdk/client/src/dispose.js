@@ -20,7 +20,6 @@ function exitsWithin(child, ms) {
       clearTimeout(timer)
       resolve(true)
     }
-    // `.unref()` so a pending grace timer never keeps the parent's loop alive.
     const timer = setTimeout(() => {
       child.removeListener('exit', onExit)
       resolve(false)
@@ -82,16 +81,12 @@ export async function disposeRuntimeProcess(
   graces,
   platform = process.platform,
 ) {
-  // Already gone: nothing to reap.
   if (child.exitCode !== null || child.signalCode !== null) return
-  // 1. Close stdin and allow cooperative teardown and durable-state flush.
   child.stdin?.end()
   if (await exitsWithin(child, graces.disposeEofGraceMs)) return
-  // 2. POSIX gets a catchable graceful signal; Windows signals all force-terminate.
   if (platform !== 'win32') {
     child.kill('SIGTERM')
     if (await exitsWithin(child, graces.disposeGraceMs)) return
   }
-  // 3. Force-kill and await a bounded exit edge.
   await forceTerminateWithin(child, graces.disposeGraceMs)
 }

@@ -1,6 +1,3 @@
-# Workspace-context snapshot overlay: keep project-root and user-global
-# discovery inside the scenario's temporary cwd. The app config patch replaces
-# the whole base config, so the base fields are restated verbatim.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

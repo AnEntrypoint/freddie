@@ -17,6 +17,15 @@ import { renderThrown } from './realm.js'
 import { WorkflowExecution } from './runtime.js'
 
 /**
+ * The worker-side handle for one started child agent, as returned by
+ * {@link ChildPort#startAgent}.
+ * @typedef {object} ChildHandle
+ * @property {string} id - the started child's session id.
+ * @property {Promise<object>} result - the child's settled `SubagentResult`-shaped outcome.
+ * @property {function(): Promise<void>} dispose
+ */
+
+/**
  * The worker-side handle for one started child agent ({@link ChildHandle}):
  * every member is an RPC to the host keyed by this call's `callId`, resolved
  * by the session's message handler through the bridge's pending entry.
@@ -37,6 +46,13 @@ class RpcChildHandle {
     return this.entry.disposed.promise
   }
 }
+
+/**
+ * The worker-side child-RPC bridge {@link WorkflowExecution} drives to start
+ * and own children, without importing `@freddie/freddie-agent` into the worker realm.
+ * @typedef {object} ChildPort
+ * @property {function(object): Promise<ChildHandle>} startAgent
+ */
 
 /**
  * The worker-side child-RPC bridge ({@link ChildPort}): allocates callIds,
@@ -60,10 +76,7 @@ class ChildRpcBridge {
       settled: Promise.withResolvers(),
       disposed: Promise.withResolvers(),
     }
-    // Containment: when asynchronous provider start fails (or
-    // the run is torn down), the settled promise may never gain a consumer —
-    // it must not surface as an unhandled rejection and kill the worker.
-    entry.settled.promise.catch(() => { /* consumed: unconsumed child settlement after failed start */ })
+    entry.settled.promise.catch(() => {})
     this.pending.set(callId, entry)
     this.post(WorkerToHostType.ChildStart, { callId, request })
     const childId = await entry.started.promise
@@ -150,8 +163,6 @@ export async function runWorkerSession(port, init) {
         break
       case HostToWorkerType.Cancel:
         execution.cancel(message.reason)
-        // A cancel doubles as the gate release: drive() checks the cancelled
-        // state before running the body, so the script never executes.
         gate.resolve()
         break
       case HostToWorkerType.ChildStarted:

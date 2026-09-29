@@ -1,14 +1,3 @@
-// Web toolview registrant: the keyed toolview hole for the `web_search` and
-// `web_fetch` tools. Registered under BOTH, since both declare the one `web`
-// render intent and render through the one WebBlock family; the row
-// discriminates on the toolName only to pick its icon and title. The row
-// composes the shared ToolRow (chrome, running sweep, whole-row expand) and
-// feeds it the completed retrieval as ToolRow's `web` card material, so it
-// renders through WebBlock in the collapsed-by-default expanded body — the same
-// unified interaction every other card row has. Until the call settles there is
-// no web card (the tools keep a generic pending view), so a running row is the
-// summary line alone.
-
 import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconBrowseOutline16, IconGlobeOutline14 } from '@freddie/freddie-client-ui-primitives'
 import { webCardModel } from '../models/web-card-model.js'
@@ -30,7 +19,6 @@ const WEB_TITLES = {
 export function WebRow({ toolName, block, inspect, t }) {
   const model = toolRowModel(toolName, block)
   const web = webCardModel(block)
-  // Web search uses a globe; local grep/glob keep the magnifier family.
   const icon = toolName === 'web_fetch' ? h(IconBrowseOutline16, {size: 14}) : h(IconGlobeOutline14, {size: 14})
   return (
     h('freddie-tool-row', {

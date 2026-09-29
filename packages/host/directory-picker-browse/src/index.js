@@ -26,7 +26,6 @@ function ancestryCrumbs(target) {
   let current = target
   for (;;) {
     const parent = dirname(current)
-    // basename of a root is '' — label the root crumb by its full path ('/', 'C:\').
     crumbs.unshift({ name: parent === current ? current : basename(current), path: current, hidden: false })
     if (parent === current) return crumbs
     current = parent
@@ -60,12 +59,7 @@ export function fullyQualified(path, platform = process.platform) {
  * @returns true when an eviction happened (the level has candidates beyond the window).
  */
 export function boundedInsert(window, candidate, keep) {
-  // Full window, name at or beyond the tail: one comparison rejects, so an
-  // oversized level costs O(1) per candidate past the head instead of a
-  // window scan (100k children against a 1,001 window must not approach
-  // 10^8 comparisons).
   if (window.length === keep && candidate.name.localeCompare(window[window.length - 1].name) >= 0) return true
-  // Binary insertion keeps a retained candidate at O(log keep) comparisons.
   let lo = 0
   let hi = window.length
   while (lo < hi) {
@@ -94,8 +88,6 @@ export function raceAbort(operation, signal) {
   return new Promise((resolve, reject) => {
     const onAbort = () => {
       operation.catch(() => {
-        // Abandoned read: its handle is being closed by the aborting caller,
-        // and the abort reason already carried the outcome.
       })
       reject(asError(signal.reason))
     }
@@ -145,19 +137,14 @@ async function directoryRow(
   let enterable = isDirectory
   if (!enterable && isSymbolicLink) {
     try {
-      // The probe races the caller too: a symlink target on a stalled
-      // network filesystem must not keep a departed caller's request alive.
       enterable = (await raceAbort(stat(path), signal)).isDirectory()
     } catch {
       /* v8 ignore next 2 -- an abort landing mid-probe needs a stalled stat; the per-candidate check in list covers the settled path. */
       if (signal?.aborted) throw asError(signal.reason)
-      // Broken or cyclic symlink: stat is the probe, failure means "not enterable".
       return null
     }
   }
   if (!enterable) return null
-  // POSIX hidden convention; Windows' hidden attribute is not exposed by
-  // dirents (Known Limitations). The client owns whether hidden rows show.
   return { name, path, hidden: name.startsWith('.') }
 }
 
@@ -195,37 +182,17 @@ export default class BrowseDirectoryPicker extends DirectoryPicker {
 
   async list(path, signal) {
     const home = homedir()
-    // The seam contract takes fully qualified paths only; resolve() would
-    // silently rebase a relative or empty wire value under the host process
-    // cwd (or, for rooted drive-less Windows forms, its current drive).
     if (path !== undefined && !fullyQualified(path)) {
       throw new DirectoryPickerError('directory-unreadable', path, `cannot list "${path}": not a fully qualified path`)
     }
     const target = resolve(path ?? home)
-    // Stream the level (opendir, one dirent at a time) into a name-sorted
-    // window of maxEntries + 1 candidates: memory stays bounded no matter how
-    // many children the directory holds, the window keeps the name-sorted
-    // head, and the +1 slot lets an in-window extra row prove the cut. A
-    // window candidate that turns out non-enterable (broken symlink) is not
-    // backfilled from beyond the window — an eviction already marks the
-    // level truncated, which stays the honest answer.
     const keep = this.config.maxEntries + 1
     const window = []
     let evicted = false
     try {
-      // Every filesystem await races the caller's signal: a stalled
-      // opendir/read on a network filesystem must not keep a departed
-      // caller's scan alive, and an already-aborted request rejects even
-      // when the level is empty.
       const opening = opendir(target)
       const level = await raceAbort(opening, signal).catch((error) => {
-        // The abandoned open can still mint a handle after the abort won;
-        // close it so a departed caller cannot leak a descriptor. (A lost
-        // race against opendir's own rejection has nothing to close, and
-        // the close's own failure is swallowed — the request already
-        // returned, so a cleanup error has no consumer.)
         void opening.then(dir => dir.close().catch(swallowCloseFailure), () => {
-          // Already rejected: raceAbort surfaced or swallowed it.
         })
         throw error
       })
@@ -233,18 +200,11 @@ export default class BrowseDirectoryPicker extends DirectoryPicker {
         for (;;) {
           const dirent = await raceAbort(level.read(), signal)
           if (dirent === null) break
-          // Only rows a browser could enter contend for the window; dirent
-          // says "directory" outright, a symlink needs the later stat probe.
           if (!dirent.isDirectory() && !dirent.isSymbolicLink()) continue
           const candidate = { name: dirent.name, isDirectory: dirent.isDirectory(), isSymbolicLink: dirent.isSymbolicLink() }
           if (boundedInsert(window, candidate, keep)) evicted = true
         }
       } finally {
-        // Manual read() never auto-closes; close on every exit. The aborted
-        // exit must not await it — Node queues close behind any in-flight
-        // read, so awaiting would chain the departed caller back onto the
-        // very stall the abort escaped (the abandoned read's settlement is
-        // already swallowed by raceAbort).
         const closing = level.close()
         /* v8 ignore next 3 -- an abort between open and close needs a stalled read; the abandoned-close arm has no observable outcome. */
         if (signal?.aborted) {
@@ -254,15 +214,12 @@ export default class BrowseDirectoryPicker extends DirectoryPicker {
         }
       }
     } catch (error) {
-      // An abort is the caller's own reason, not an unreadable directory.
       signal?.throwIfAborted()
       throw new DirectoryPickerError('directory-unreadable', target, `cannot list ${target}: ${messageOf(error)}`)
     }
     const entries = []
     let truncated = evicted
     for (const candidate of window) {
-      // A caller that departed between reads and probes stops before the
-      // next probe (each probe's own await is raced inside directoryRow).
       signal?.throwIfAborted()
       const row = await directoryRow(target, candidate.name, candidate.isDirectory, candidate.isSymbolicLink, signal)
       if (row === null) continue
@@ -276,21 +233,15 @@ export default class BrowseDirectoryPicker extends DirectoryPicker {
   }
 
   async createDirectory(path, name) {
-    // Same fully-qualified fence as list: never rebase a parent under the
-    // cwd or the current drive.
     if (!fullyQualified(path)) {
       throw new DirectoryPickerError('directory-create-failed', path, `cannot create under "${path}": not a fully qualified parent path`)
     }
     const parent = resolve(path)
-    // The backend owns segment validation (the wire schema also refuses these,
-    // but direct service consumers must hit the same fence).
     if (name.trim() === '' || name === '.' || name === '..' || /[/\\]/.test(name)) {
       throw new DirectoryPickerError('directory-create-failed', join(parent, name), `"${name}" is not a single path segment`)
     }
     const target = join(parent, name)
     try {
-      // Non-recursive: the parent is the directory the browser is showing, so
-      // a missing parent is a real failure, not a level to invent.
       await mkdir(target)
       return target
     } catch (error) {

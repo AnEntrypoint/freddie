@@ -7,4 +7,5 @@
  * names the plugins a session runs, so reading one is reconnaissance, and
  * although authoring is copy-only (no caller supplies composition text or a
  * path), copying and deleting still rearrange what the deployment offers.
+ * @module @freddie/freddie-host-apiproxy/api/agent-presets
  */

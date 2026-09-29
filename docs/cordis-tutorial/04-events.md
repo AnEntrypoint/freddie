@@ -4,7 +4,7 @@ Services support direct calls; **events** let a plugin announce something withou
 
 ## Declare, emit, listen
 
-Create `stats.ts` in `tmp/cordis-tutorial` — a service that counts things and announces each change:
+Create `stats.ts` in `packages/llm/llm-retry/.scratch-<name>/` (see the [setup resolution note](index.md#setup)), not `examples/cordis-tutorial` — a service that counts things and announces each change:
 
 ```ts
 import { Service, type Context } from '@freddie/cordis'
@@ -60,7 +60,7 @@ export function apply(ctx: Context) {
 }
 ```
 
-The `import type {} from './stats.ts'` line imports nothing at runtime; it exists so TypeScript sees the declaration merges. Compose and run:
+The `import type {} from './stats.ts'` line imports nothing at runtime; it exists so a TypeScript editor sees the declaration merges. Compose and run:
 
 ```yaml
 - name: './stats.ts'
@@ -87,7 +87,7 @@ Because `ctx.on()` is an effect, the listener disappears with the plugin — no 
 | bail | `ctx.bail(name, ...args)` | Synchronous version of serial. |
 | waterfall | `ctx.waterfall(name, ...args, next)` | Around-middleware; see below. |
 
-Every harness event documents its mode in the generated reference on its owning [subsystem page](../subsystems/core.md).
+Every harness event documents its mode in the reference on its owning [subsystem page](../subsystems/core.md).
 
 ## Waterfall: transform or short-circuit
 
@@ -139,4 +139,4 @@ The harness uses waterfalls for decisions that cooperating plugins may wrap or a
 
 Next: [Configuration](05-config.md) — plugin options from `cordis.yml`.
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)
+[![](https://img.shields.io/badge/powered_by-freddie-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)

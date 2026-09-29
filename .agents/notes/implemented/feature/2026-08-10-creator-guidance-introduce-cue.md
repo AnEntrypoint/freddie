@@ -10,7 +10,7 @@ Authoring a preset happens inside a Creator-mode session, but the settings secti
 
 The custom group stays on screen while empty — heading plus the creator entry, which lives inside the group as the standing "your preset will appear here" affordance rather than floating below the roster.
 
-A pick staged from another screen carries a one-shot `introduce` flag through the seat store (`stage(id, introduce)`), and the chip announces it: the preset icon eases in over 150ms, then the name's characters fade up on a stagger the moment the icon lands. The stagger is capped twice — 40ms per tick for short CJK names, and one shared 200ms reveal window (`min(40, 200/(n-1))`) so a long Latin name finishes in the same time as its CJK counterpart instead of dragging the run out per character. CSS owns the motion; the component arms it and acknowledges the cue once the run is over, so the flag never replays on a later mount. `prefers-reduced-motion` and an empty display name acknowledge immediately with no run.
+A pick staged from another screen carries a one-shot `introduce` flag through the seat store (`stage(id, introduce)`), and the chip announces it: the preset icon eases in over 150ms, then the name's characters fade up on a stagger the moment the icon lands. The stagger is capped twice — 40ms per tick for short names in unspaced scripts, and one shared 200ms reveal window (`min(40, 200/(n-1))`) so a long Latin name finishes in the same time as a short name would instead of dragging the run out per character. CSS owns the motion; the component arms it and acknowledges the cue once the run is over, so the flag never replays on a later mount. `prefers-reduced-motion` and an empty display name acknowledge immediately with no run.
 
 The cue is pure presentation: it is client-side seat-store state, never a session event, because the model-visible composition is already carried by the staged preset itself.
 
@@ -18,7 +18,7 @@ The cue is pure presentation: it is client-side seat-store state, never a sessio
 
 **A toast or callout on the new-session screen.** It explains more, but it points at nothing — the chip is the artifact the user must find again later, and a dismissable box teaches the box, not the control. The cue puts the motion on the control itself.
 
-**A fixed per-character tick.** The first implementation used 60ms per character unconditionally; an English preset name took over three times as long as its four-character Chinese counterpart, reading as lag rather than emphasis. The shared reveal window makes duration a property of the cue, not of the locale.
+**A fixed per-character tick.** The first implementation used 60ms per character unconditionally; an English preset name took over three times as long as a four-character preset name, reading as lag rather than emphasis. The shared reveal window makes duration a property of the cue, not of the locale.
 
 **Animating the pick inside the settings dialog before leaving.** The dialog closes as part of the gesture — leaving settings is how the flow says the work happens in the session — so anything played there would be cut off or would delay the navigation it exists to explain.
 
@@ -28,4 +28,4 @@ The intro timeline lives in two places that must agree: the component's `INTRO_T
 
 ## Testing
 
-Component tests pin the capped stagger (11-character Latin name at 20ms steps, 4-character CJK name at the 40ms tick, single character with no stagger), the acknowledgement timing, and the reduced-motion and empty-name skips. `apply.spec.ts` drives the cross-screen stage end to end: the creator draft stages with the cue set, one acknowledgement clears it, and a repeat acknowledgement leaves the snapshot untouched. The `agent-preset-authoring` web e2e holds the empty custom group (heading plus creator entry) in its goldens.
+Component tests pin the capped stagger (11-character Latin name at 20ms steps, 4-character name at the 40ms tick, single character with no stagger), the acknowledgement timing, and the reduced-motion and empty-name skips. `apply.spec.ts` drives the cross-screen stage end to end: the creator draft stages with the cue set, one acknowledgement clears it, and a repeat acknowledgement leaves the snapshot untouched. The `agent-preset-authoring` web e2e holds the empty custom group (heading plus creator entry) in its goldens.

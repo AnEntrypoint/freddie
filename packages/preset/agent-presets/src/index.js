@@ -123,11 +123,6 @@ export class AgentPresets extends Service {
     this.resolvedRoots = config.includeUserRoot
       ? [...config.roots, { path: freddieHomePath(USER_PRESET_DIR), trust: 'user' }]
       : [...config.roots]
-    // Deliberately not `installSettingsSection`: that helper exists to re-judge
-    // what a consumer DERIVED from the source — memoized resolutions,
-    // registration-level facts — across attach, detach, and change. Nothing
-    // here is derived. `defaultId` reads through on every call, so both of its
-    // hooks would be no-ops and the source thunk would restate this field.
     ctx.inject(['settings'], (settingsCtx) => {
       this.settings = settingsCtx.settings.register(
         settingsNamespace(SETTINGS_NAMESPACE),
@@ -141,18 +136,6 @@ export class AgentPresets extends Service {
       }, 'agentPresets.settings()')
     })
 
-    // Advisory, not fatal: a synchronous `agent/created` listener that throws
-    // VETOES publication, and this service must not, because composing an agent
-    // outside the roster is legal — `recompose` binds exactly such a bare agent
-    // below, and the ACP, SDK-server, and headless entry points all create one.
-    // The invariant companion is the check that fails loud, at assembly. Why an
-    // unjoined agent matters at all has one home: the [Agent
-    // Note](../../../../.agents/notes/implemented/architecture/2026-08-10-host-plane-ownership-after-presets.md).
-    //
-    // Known false positive: a session created bare and bound later by
-    // `recompose` is warned about once, before its first bind. No shipped flow
-    // does that today — the Web surface mounts in `setup` and children join
-    // through `composeFrom` before publication.
     ctx.on('agent/created', ({ agent }) => {
       if (this.resolvedRoots.length === 0) return
       if (this.composedPreset(agent.ctx) !== undefined) return
@@ -163,8 +146,6 @@ export class AgentPresets extends Service {
       )
     })
 
-    // The durable record is the commit point. Its public notification carries
-    // only the stable identity needed by clients, never the live Session.
     ctx.on('session/event', (session, event) => {
       if (event.type !== 'agent-preset/selected') return
       ctx.emit('agent-preset/selected', session.id, event.data.agentPreset)
@@ -226,7 +207,7 @@ export class AgentPresets extends Service {
    * Declared presets follow every discovered one rather than sorting into them,
    * because root precedence is the deployment's ordering and a plugin is not a
    * root; among themselves they read by `order`, then by id, the same ordering
-   * {@link scanRoot} applies. A declared id a root also supplies is dropped —
+   * {@link import('./discovery.js').scanRoot} applies. A declared id a root also supplies is dropped —
    * see {@link register} for why the deployment always wins that collision.
    * @returns the presets, first-root-wins per id.
    */
@@ -235,9 +216,6 @@ export class AgentPresets extends Service {
     const onDisk = new Set(discovered.map(preset => preset.id))
     const declared = []
     for (const record of this.definitions.values()) {
-      // Registration refused this id, so a directory claiming it can only have
-      // appeared afterwards. The deployment keeps it; say so once per
-      // declaration rather than on every roster read the settings page makes.
       if (!onDisk.has(record.preset.id)) {
         declared.push(record.preset)
         record.shadowed = false
@@ -342,10 +320,6 @@ export class AgentPresets extends Service {
    */
   async register(definition) {
     const { id, name, description, order, plugins } = definition ?? {}
-    // The id is not a directory name here, but the roster is one vocabulary:
-    // `resolve()` matches discovered ids by it, every surface addresses a
-    // preset by it, and an id no copy could ever claim would be a row nothing
-    // could author beside.
     if (typeof id !== 'string' || !PRESET_ID.test(id)) throw new InvalidPresetIdError(id)
     const problem = entryListProblem(plugins)
     if (problem !== undefined) throw new InvalidPresetDefinitionError(id, problem)
@@ -366,10 +340,6 @@ export class AgentPresets extends Service {
       if (withdrawn || this.definitions.get(id) !== record) return
       withdrawn = true
       this.definitions.delete(id)
-      // A standing mount nobody can resolve any more is worse than none: its
-      // subtree holds live watchers and its rows still cover every agent
-      // joined to it. Sessions already joined keep the generation they run on
-      // — the scope's own disposal is the one thing that ends it.
       const pending = this.standing.get(id)
       if (pending === undefined) return
       this.standing.delete(id)
@@ -377,9 +347,6 @@ export class AgentPresets extends Service {
       if (mounted !== undefined) await mounted.scope.dispose()
     }
     try {
-      // `this.ctx` is the CALLER's context — Cordis rebinds it on every read
-      // of a tracked service — so the effect lands on the declaring plugin's
-      // own fiber and unwinds when that plugin does.
       this.ctx.effect(() => withdraw, `agentPresets.register(${id})`)
     } catch (error) {
       this.definitions.delete(id)
@@ -408,10 +375,6 @@ export class AgentPresets extends Service {
     }
     const preset = await this.resolveMountable(id)
     const standing = await this.ensureStanding(preset)
-    // The one bind of this agent's ancestry. The binding is the only re-link
-    // authority, held privately so nothing outside this roster can move a
-    // composed agent to another preset; a later recompose layer re-links
-    // through it under the caller-owned blank-session contract.
     this.bindings.set(agentKey, bindScopeParent(agentKey, standing.key))
     return preset
   }
@@ -522,16 +485,10 @@ export class AgentPresets extends Service {
     if (this.definitions.has(source.id)) {
       throw new PresetNotWritableError(source.id, 'it is declared by a plugin, which owns no directory to copy')
     }
-    // The roster check refuses ids any root supplies — shipped ones included,
-    // since a user directory named like a shipped preset is shadowed by it.
-    // The disk check inside copyComposition only sees the writable root.
     if ((await this.list()).some(preset => preset.id === id)) {
       throw new PresetExistsError(id)
     }
     await copyComposition(this.resolvedRoots, source, id, name)
-    // A settled mount under this id can only be stale (its preset was deleted
-    // from disk outside `remove`); the new preset must not inherit it. Every
-    // session already joined keeps the generation it runs on regardless.
     this.standing.delete(id)
   }
 
@@ -552,15 +509,7 @@ export class AgentPresets extends Service {
       throw new PresetNotWritableError(preset.id, 'it is declared by a plugin; withdraw that registration instead')
     }
     await deleteComposition(this.resolvedRoots, preset)
-    // Sessions on the deleted preset keep their standing mount; only new
-    // sessions see the roster without it.
     this.standing.delete(id)
-    // Storing a default that does not exist YET is deliberate — the roster is a
-    // live directory, so a name absent now may exist by the time a session asks
-    // for it, and `resolve` reports it then. A default this call just deleted is
-    // not that case: nothing will ever supply it again, and left in place every
-    // session created without an explicit pick would fail to start. Clearing it
-    // exposes the deployment's own default underneath, which is the layering.
     if (this.settings?.get().default !== id) return
     await this.settingsService?.mutate(
       settingsNamespace(SETTINGS_NAMESPACE),
@@ -645,25 +594,9 @@ export class AgentPresets extends Service {
     const pending = this.standing.get(preset.id)
     if (pending !== undefined) {
       const mounted = await pending
-      // A declared preset has no file to go stale, so it serves the generation
-      // it mounted for as long as its declaration lives. Withdrawing the
-      // declaration is what ends it.
       if (mounted.stamp === undefined) return mounted
-      // Files are the only composition editor (authoring is copy/delete), so
-      // the stamp is what notices an edit: a changed file starts the next
-      // generation here, for this and later sessions. An unreadable stamp
-      // serves the current generation — a mount must survive its file
-      // disappearing, and failing the session over a stat would not.
       const current = await compositionStamp(preset.path)
       if (current === undefined || sameStamp(mounted.stamp, current)) return mounted
-      // TODO: reclaim the superseded generation once the last agent joined to
-      // it is gone. The subtree is not inert — `freddie-skill-filesystem` watches its
-      // roots — and the settings-page authoring flow turns "a composition
-      // changed" into a per-save event. This needs a joined-agent count on
-      // StandingMount, incremented in `mount`/`composeFrom`/`recompose` and
-      // decremented when the agent's scope key dies.
-      // Guarded delete: a caller that raced this one may have already started
-      // the next generation, and dropping THAT pointer would fork a third.
       if (this.standing.get(preset.id) === pending) this.standing.delete(preset.id)
       return this.ensureStanding(preset)
     }
@@ -673,17 +606,11 @@ export class AgentPresets extends Service {
       const scope = createScope(this.selfCtx, key)
       try {
         if (declaration !== undefined) {
-          // The rows and the resolution base live on the declaration, never on
-          // the roster row: one mount argument, assembled here, so `mountPreset`
-          // cannot tell a declared preset from a discovered one anywhere else.
           await mountPreset(scope.ctx, {
             ...declaration.preset, rows: declaration.rows, baseUrl: declaration.baseUrl,
           })
           return { key, scope }
         }
-        // Stamped before the file is read: an edit racing the mount makes the
-        // stamp stale rather than silently current, so the next session
-        // refreshes instead of trusting a composition older than its stamp.
         const stamp = await compositionStamp(preset.path)
         if (stamp === undefined) {
           throw new PresetMountError(preset.id, `composition file is unreadable: ${preset.path}`)
@@ -707,8 +634,6 @@ async function compositionStamp(path) {
     const { mtimeMs, size } = await stat(path)
     return { mtimeMs, size }
   } catch {
-    // Deleted, replaced by an unreadable entry, or otherwise unstattable all
-    // mean the same to the caller: the file offers no identity to compare.
     return undefined
   }
 }

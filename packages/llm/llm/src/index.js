@@ -88,10 +88,6 @@ export class LlmError extends HarnessError {
 export function assertUsableApiKey(raw, pkg, ref) {
   const checked = normalizeApiKey(raw)
   if (checked.ok) return checked.value
-  // The Models page is named as the writer it usually is, not as the only one:
-  // the same value can arrive from a hand-edited .env or a shell export in a
-  // composition that mounts no credentials seam at all, where directing the
-  // user to a page that deployment does not serve would be a dead end.
   throw new LlmError(
     checked.reason === 'empty'
       ? `${pkg}: the API key resolved from ${ref} is blank; set ${ref} to the raw key`
@@ -142,7 +138,7 @@ export class LlmAdapter {
    * Resolve all metadata available for one exact model. This query is
    * independent of the advisory catalog and does not validate request routing.
    * @param provider - one provider route owned by this adapter.
-   * @param model - exact model id passed to {@link GenerateOptions.model}.
+   * @param model - exact model id passed to {@link import('./types.js').GenerateOptions}'s `model`.
    * @param _signal - cancellation for this exact-model lookup; asynchronous
    *   implementations must settle promptly after it aborts.
    * @returns provider/model identity plus any context, call-default, and reasoning metadata.
@@ -192,17 +188,11 @@ export class LlmRuntime extends Service {
 
   /** Notify topology observers without letting one broken listener veto the commit. */
   emitAdaptersUpdated() {
-    // Cordis emit uses Array.map: one synchronous throw starves later
-    // listeners. Registry notifications are non-vetoing, so contain each
-    // callback independently; INVARIANT-coded failures still surface.
     let invariantFailure
     for (const listener of this.ctx.events.dispatch('emit', ['llm/adapters-updated'])) {
       try {
         const returned = listener()
         if (returned != null && typeof returned.then === 'function') {
-          // An emit listener may still be an async function; its rejection
-          // cannot reach the synchronous INVARIANT rethrow below, so it is
-          // contained here instead of becoming an unhandled rejection.
           void Promise.resolve(returned).then(undefined, (error) => {
             this.warnAdaptersListenerFailure(error)
           })
@@ -225,19 +215,22 @@ export class LlmRuntime extends Service {
   }
 
   /**
+   * What {@link registerAdapter} returns: the disposer, plus an atomic route
+   * replacement for the same adapter instance.
+   * @typedef {function(): void} AdapterRegistrationHandle
+   * @property {function(readonly string[]): void} replace - replace this registration's routes with a new candidate set, validated in full before the swap; throws `LlmError` (`REGISTRATION_DISPOSED`) once released.
+   */
+
+  /**
    * Register an adapter for the given provider routes. Throws `LlmError` with code
    * `DUPLICATE_ADAPTER` if any provider already has an adapter (all-or-nothing).
    * Disposed with the fiber.
    * @param providers - every provider route this adapter should serve.
    * @param adapter - the adapter that streams calls for those providers.
-   * @returns the disposer, carrying {@link AdapterRegistrationHandle.replace}.
+   * @returns the disposer, carrying {@link AdapterRegistrationHandle}'s `replace`.
    */
   registerAdapter(providers, adapter) {
-    // The routes this registration currently holds; `replace` rewrites it, and
-    // the disposer releases whatever it holds at disposal time.
     const owned = new Set()
-    // The disposer has run: `owned` being empty cannot say so on its own,
-    // because `replace([])` legally leaves a live registration holding none.
     let released = false
     const dispose = this.ctx.effect(function* () {
       if (providers.length === 0) throw new LlmError('an adapter must register at least one provider', 'INVALID_ADAPTER')
@@ -249,12 +242,8 @@ export class LlmRuntime extends Service {
         this.emitAdaptersUpdated()
       }
     }.bind(this), 'llm.registerAdapter()')
-    // ctx.effect's disposer returns Promise<void>; our disposer API is
-    // synchronous fire-and-forget — discard the (always-resolved) promise.
     const handle = (() => void dispose())
     handle.replace = (next) => {
-      // Registering here would leak: the effect's disposer already ran, so
-      // nothing remains to release whatever this call would put in the map.
       if (released) {
         throw new LlmError('a disposed adapter registration cannot replace its routes', 'REGISTRATION_DISPOSED')
       }
@@ -428,8 +417,6 @@ export class LlmRuntime extends Service {
     if (discover === undefined) {
       throw new LlmError(`no model discovery is registered for "${settingsNs}"`, 'NO_DISCOVERY')
     }
-    // One of the two identifies what to describe: a route the adapter knows, or
-    // an endpoint to ask. Neither leaves nothing to answer about.
     if ((request.provider ?? '').length === 0 && (request.baseURL ?? '').length === 0) {
       throw new LlmError('model discovery needs a provider route or a baseURL', 'INVALID_DISCOVERY')
     }
@@ -540,8 +527,6 @@ export class LlmRuntime extends Service {
         'INVALID_MODEL_CONTEXT',
       )
     }
-    // Capability metadata rides through: an explicit modality omission is
-    // negative capability downstream preflights act on (image admission).
     const inputModalities = this.detachedModalities(resolved.inputModalities)
     const defaultMaxTokens = resolved.defaultMaxTokens
     if (defaultMaxTokens !== undefined
@@ -801,8 +786,6 @@ export class LlmRuntime extends Service {
           completed = true
           return
         }
-        // End the adapter-owned try before yielding: consumer/middleware
-        // failures resumed into this generator must remain thrown.
         yield item.value
       }
     } finally {

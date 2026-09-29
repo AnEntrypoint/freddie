@@ -1,5 +1,3 @@
-// Shared empty client projection for streamed Assistant blocks.
-
 /**
  * Create the empty client projection for one streamed Assistant block kind.
  * @param blockType - wire block kind.

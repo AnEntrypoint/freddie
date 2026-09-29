@@ -60,7 +60,6 @@ export class SettingsDescribeMirror {
       this.rerun = true
       return this.inFlight
     }
-    // Own the slot before the loading publication can synchronously reenter load().
     const run = Promise.resolve().then(() => this.run())
     this.inFlight = run
     return run
@@ -107,18 +106,10 @@ export class SettingsDescribeMirror {
   }
 
   async run() {
-    // The in-flight slot must clear in the same synchronous segment that
-    // observes `rerun` false (and on abrupt exit): a `.finally()` on the
-    // returned promise runs one microtask later, and a `load()` landing in
-    // that gap would mark a rerun nobody reads, losing the read.
     try {
       do {
         const before = this.store.getSnapshot()
         if (before.status === 'idle') this.store.set({ ...before, status: 'loading' })
-        // Cleared immediately before the wire read goes out: a load() marked
-        // earlier (including one reentering from the loading publish above)
-        // is covered by this very read, while one landing after needs the
-        // rerun.
         this.rerun = false
         const generation = ++this.generation
         let outcome
@@ -130,14 +121,11 @@ export class SettingsDescribeMirror {
         } catch (error) {
           outcome = { failure: error instanceof Error ? error.message : String(error) }
         }
-        // A write answer invalidates a document read before that write committed.
         if (generation !== this.generation) continue
         if ('view' in outcome) {
           this.store.set({ status: 'ready', view: outcome.view, error: null })
         } else {
           const held = this.store.getSnapshot()
-          // No answer yet: fall back to idle so `ensure` retries; with one, the
-          // held view keeps serving and only the error field reports the miss.
           this.store.set({
             status: held.view === undefined ? 'idle' : 'ready',
             view: held.view,

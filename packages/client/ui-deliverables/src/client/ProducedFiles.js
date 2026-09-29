@@ -1,14 +1,3 @@
-// ProducedFiles: the produced-file row a finished turn ends with. The paths
-// come pre-matched by the turn-tail chain from the mutation tools'
-// follow-along locations, never from the closing prose. Clicking one goes
-// through the same openFile the tool rows use — the Host's own opener, on the
-// Host machine.
-//
-// Converted from a React hooks component (useState/useRef/useLayoutEffect) to
-// a webjsx custom element: state becomes private fields, the layout
-// measurement effect becomes connectedCallback + a ResizeObserver kept as an
-// instance field, and re-render is an explicit #render() -> applyDiff call.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { basename } from './turn-deliverables.js'
 import css from './ProducedFiles.css.js'
@@ -75,15 +64,6 @@ export class FreddieProducedFiles extends HTMLElement {
   #rowEl = null
   #moreProbeEl = null
   #chipProbeEls = []
-  // The path list the mounted probes were last measured against. #measure()
-  // costs a forced synchronous reflow per candidate remainder label (it writes
-  // the probe's textContent, then reads its width back on the same pass, up to
-  // SHOWN_LIMIT + 1 times), and #remeasure() additionally rebuilds the
-  // ResizeObserver. Nothing else in `props` moves a chip, so re-running either
-  // for a re-render that did not change the paths is pure layout thrash --
-  // and this element re-renders on every store fanout, including the one every
-  // keystroke triggers. Compared by content, not array identity: the caller
-  // rebuilds the array each render even when the paths are unchanged.
   #measuredKey = null
 
   /** Set/replace props and re-render; call after creating or updating the element. */
@@ -93,8 +73,6 @@ export class FreddieProducedFiles extends HTMLElement {
     const pathsChanged = key !== this.#measuredKey
     if (pathsChanged) this.#shownCount = Math.min(props.matched.length, SHOWN_LIMIT)
     this.#render()
-    // An unchanged path list keeps the fit already measured for it; the
-    // ResizeObserver bound below still catches any genuine external resize.
     if (pathsChanged) {
       this.#measuredKey = key
       this.#remeasure()
@@ -103,8 +81,6 @@ export class FreddieProducedFiles extends HTMLElement {
 
   connectedCallback() {
     this.#render()
-    // A reconnect remounts fresh probes, so the previous measurement's probe
-    // elements are gone: measure again and re-key against the current paths.
     this.#measuredKey = this.#props === null ? null : pathsKey(this.#props.matched)
     this.#remeasure()
   }
@@ -112,8 +88,6 @@ export class FreddieProducedFiles extends HTMLElement {
   disconnectedCallback() {
     this.#observer?.disconnect()
     this.#observer = null
-    // The probes this key vouched for die with the disconnect; a reconnect
-    // must measure against its own fresh ones rather than trust this key.
     this.#measuredKey = null
   }
 
@@ -143,25 +117,11 @@ export class FreddieProducedFiles extends HTMLElement {
   #remeasure() {
     this.#observer?.disconnect()
     this.#observer = null
-    // Probe elements exist only after #render() has mounted the DOM.
     queueMicrotask(() => {
       const row = this.#rowEl
       if (row === null) return
       this.#measure()
       if (typeof ResizeObserver === 'undefined') return
-      // Observe the row and the chip probes only -- `remainderProbe` (the
-      // `#moreProbeEl`) resizes SOLELY because #measure() writes its own
-      // textContent into it on the same synchronous pass that reads chip
-      // widths (line 98 above); observing it too fed that write back into
-      // another #measure() call, a self-triggering resize loop the browser's
-      // own "ResizeObserver loop limit exceeded" guard eventually cuts off,
-      // but only after real, repeated layout-thrashing cost -- measured live
-      // as part of a 29-second input-delay stall with 18 of these elements
-      // mounted at once. #measure() already reads the remainder probe's
-      // fresh width synchronously right after writing it, so no observer is
-      // needed for it: only the row (a genuine external resize signal) and
-      // the chip probes (whose width changes only from font/content
-      // changes we do not control) need one.
       const observer = new ResizeObserver(() => { this.#measure() })
       observer.observe(row)
       for (const probe of this.#chipProbeEls) {
@@ -195,8 +155,6 @@ export class FreddieProducedFiles extends HTMLElement {
             key: path,
             type: 'button',
             class: css.file ?? '',
-            // The full path is the disambiguator when two turns produce files
-            // that share a basename; the chip itself stays short.
             title: path,
             'aria-label': t('produced.open', { name: path }),
             onclick: () => { openFile(path) },

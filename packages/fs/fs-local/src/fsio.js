@@ -14,7 +14,6 @@ import { FsError, FsTargetKey, FsVersion } from '@freddie/freddie-fs'
 import { copyFileDaclWin32, replaceFileWin32 } from './win32.js'
 
 const BINARY_SAMPLE_BYTES = 8192
-// Bound one non-abortable FileHandle.read so cancellation is observed between chunks.
 const DIFF_BASIS_READ_CHUNK_BYTES = 64 * 1024
 
 function isENOENT(error) {
@@ -77,15 +76,52 @@ function versionOf(info) {
 /**
  * Test hook: lets specs pin the atomic-write temp names (to prove exclusive-open behavior without
  * a name race), override native boundaries, and observe the staged temp file before publication.
+ * @typedef {object} FsIoInternals
+ * @property {(absolutePath: string) => string} [tempDirName] Override the staging directory name.
+ * @property {(absolutePath: string) => string} [tempName] Override the staged temp file name.
+ * @property {string} [platform] Override `process.platform` for the Windows-replacement branch.
+ * @property {(absolutePath: string, tempPath: string) => Promise<void>} [copyFileDacl] Override the Windows DACL copy.
+ * @property {(absolutePath: string, tempPath: string) => Promise<void>} [replaceFile] Override the Windows replace primitive.
+ * @property {(tempPath: string, absolutePath: string) => Promise<void>} [linkFile] Override the hard-link no-replace primitive.
+ * @property {(path: string) => Promise<unknown>} [inspectPublicationTarget] Override the post-link-failure `lstat`.
+ * @property {(path: string) => Promise<void>} [removeStagingDir] Override staging-directory cleanup.
+ * @property {(staged: { stagingDir: string, tempPath: string }) => void | Promise<void>} [inspectTemp] Observe the staged temp file before publication.
  */
 
-/** A resolved local path: the absolute path shown to callers and its realpath identity. */
+/**
+ * A resolved local path: the absolute path shown to callers and its realpath identity.
+ * @typedef {object} ResolvedLocalPath
+ * @property {string} displayPath
+ * @property {import('@freddie/freddie-fs').FsTargetKey} targetKey
+ */
 
-/** Result of probing a path: null when it does not exist. */
+/**
+ * Result of probing a path: null when it does not exist.
+ * @typedef {object} LocalProbeResult
+ * @property {import('@freddie/freddie-fs').FsVersion} version
+ * @property {number} mode
+ * @property {'file' | 'directory' | 'other'} type
+ * @property {number} size
+ */
 
-/** Result of probing a path without following the final symlink component. */
+/**
+ * Result of probing a path without following the final symlink component.
+ * @typedef {object} LocalProbeNoFollowResult
+ * @property {import('@freddie/freddie-fs').FsVersion} version
+ * @property {number} mode
+ * @property {'file' | 'directory' | 'other' | 'symlink'} type
+ * @property {number} size
+ */
 
-/** One local directory child with a resolved target and cheap metadata. */
+/**
+ * One local directory child with a resolved target and cheap metadata.
+ * @typedef {object} LocalDirChild
+ * @property {string} name
+ * @property {'file' | 'directory' | 'other'} type
+ * @property {ResolvedLocalPath} target
+ * @property {import('@freddie/freddie-fs').FsVersion} [version]
+ * @property {number} [size] Present only when `type` is `file`.
+ */
 
 /**
  * Resolve a path to its absolute display path and realpath identity. For a missing target,
@@ -99,29 +135,18 @@ export async function resolveLocalTarget(cwd, path) {
   if (path.trim().length === 0) throw new FsError('file_path must be a non-empty string', 'FS_NOT_FOUND')
   const displayPath = resolve(cwd, path)
   try {
-    // Prefer the file's own realpath (resolves a symlinked file to its target).
     return { displayPath, targetKey: FsTargetKey(await realpath(displayPath)) }
   } catch (error) {
-    // A path component is a file, not a directory (e.g. "afile/child.txt" where
-    // "afile" is a regular file): the target can neither exist nor be created,
-    // so surface the structured taxonomy instead of a raw Node ENOTDIR.
     /* v8 ignore next -- Windows reports this case as ENOENT and repairs it in the ancestor walk below. */
     if (isENOTDIR(error)) throw new FsError(`cannot resolve "${displayPath}": a parent path segment is not a directory`, 'FS_NOT_FOUND')
     /* v8 ignore next -- non-ENOENT realpath failure needs a permission/IO fault; ENOENT falls through to ancestor resolution. */
     if (!isENOENT(error)) throw error
   }
-  // File absent: realpath the nearest existing ancestor and re-append the
-  // missing suffix (the file basename plus any not-yet-created intermediate
-  // dirs), so the key is stable across creation of those dirs.
   const missing = [basename(displayPath)]
   let ancestor = dirname(displayPath)
   while (true) {
     try {
       const realAncestor = await realpath(ancestor)
-      // On Windows, realpath of a regular file succeeds where POSIX returns
-      // ENOTDIR (the OS reports ENOENT for `regular-file/child`, not ENOTDIR).
-      // Stat the ancestor to restore the semantic distinction: a non-directory
-      // ancestor means the target passes through a file and can never be created.
       /* v8 ignore start -- native Windows coverage exercises this repair; POSIX reports ENOTDIR before this point. */
       if (process.platform === 'win32') {
         const parentInfo = await stat(realAncestor)
@@ -162,9 +187,6 @@ async function probeStats(absolutePath, readStats) {
   try {
     return await readStats(absolutePath)
   } catch (error) {
-    // ENOENT (no such file) and ENOTDIR (a parent segment is a file) both mean
-    // the target is absent; any other metadata failure is a real permission/IO
-    // fault.
     /* v8 ignore next -- a non-ENOENT/ENOTDIR metadata failure needs a permission/IO fault; surface it. */
     if (!isENOENT(error) && !isENOTDIR(error)) throw error
     return null
@@ -203,7 +225,6 @@ export async function probeNoFollow(absolutePath) {
   }
 }
 
-// --- Directory listing ---
 
 function listingIoError(displayPath, error) {
   /* v8 ignore next -- defensive pass-through for races where a child resolver has already produced a structured FsError. */
@@ -269,7 +290,6 @@ export async function listDirectory(target, signal) {
   return result
 }
 
-// --- Reading ---
 
 function notTextError(verb, displayPath) {
   return new FsError(`cannot ${verb} "${displayPath}": invalid UTF-8 text`, 'FS_NOT_TEXT')
@@ -401,7 +421,6 @@ export async function* streamWholeText(target, signal) {
   }
 }
 
-// --- Writing ---
 
 async function removeStagingDirOrThrow(stagingDir, originalError, removeStagingDir) {
   try {
@@ -423,8 +442,6 @@ async function throwGuardedCreateFailure(error, absolutePath, displayPath, inspe
     }
   }
 
-  // Link errno values vary by platform and filesystem. Inspect the target entry
-  // after failure so a collision is not confused with missing hard-link support.
   if (existing !== undefined) {
     if (!existing.isFile()) {
       throw new FsError(`cannot write "${displayPath}": not a regular file`, 'FS_NOT_REGULAR_FILE', { cause: error })
@@ -508,8 +525,6 @@ export async function writeFileAtomic(absolutePath, content, mode, signal, inter
       try {
         await replaceFile(absolutePath, tempPath)
       } catch (error) {
-        // If the observed target disappears during staging, the protected DACL
-        // already copied to the temp remains authoritative for recreation.
         if (!isENOENT(error)) throw error
         await rename(tempPath, absolutePath)
       }
@@ -519,7 +534,6 @@ export async function writeFileAtomic(absolutePath, content, mode, signal, inter
     try {
       await removeStagingDir(stagingDir)
     } catch (_committedStagingCleanupFailure) {
-      // The target is committed; owner-only staging residue cannot turn that write into a failure.
     }
   } catch (error) {
     /* v8 ignore next -- abort-mid-write needs a writeFile/signal race; the non-abort (rename/open) side is tested. */
@@ -537,9 +551,11 @@ export async function writeFileAtomic(absolutePath, content, mode, signal, inter
   }
 }
 
-// --- Editing ---
 
-/** Line ending style detected before LF normalization. */
+/**
+ * Line ending style detected before LF normalization.
+ * @typedef {'CRLF' | 'LF'} LineEndingStyle
+ */
 
 /**
  * Collapse CRLF to LF — the canonical in-memory form every edit/diff basis
@@ -624,7 +640,6 @@ export async function readTextForDiff(absolutePath, maxBytes, signal) {
       if (!info.isFile()) return null
       if (info.size >= maxBytes) return null
       openedSize = info.size
-      // One extra byte detects growth after stat without retaining per-read backing buffers.
       buffer = Buffer.allocUnsafe(openedSize + 1)
       while (total < buffer.length) {
         throwIfAborted(signal, 'read')
@@ -649,11 +664,7 @@ export async function readTextForDiff(absolutePath, maxBytes, signal) {
       return null
     }
   } catch (error) {
-    // Cancellation is the caller's intent and still propagates.
     if (error instanceof FsError) throw error
-    // A descriptor-phase errno — deleted or made unreadable after the caller's
-    // preflight, or a faulted read — costs only the optional basis: a committed
-    // write must not fail for a presentation-only pre-read.
     if (error instanceof Error && 'code' in error) return null
     throw error
   }

@@ -80,8 +80,7 @@ The `api-remotes` assembly and the `ctx.remote` contract are React-independent; 
 | Location | Package or entry | Responsibility |
 |---|---|---|
 | Shared | `@freddie/freddie-typert-protocol` | Declares decorators, Gateway bindings, merge-extensible protocol maps, invocation descriptors, and provider types; starts no TypeScript analysis and registers no Cordis services |
-| Build | `@freddie/freddie-typert-generator` | Strictly analyzes Remote signatures, the type graph, lookups, Contexts, and source locations from the Host `ts.Program`, then generates Host and Host-for-Client artifacts |
-| Host | `@freddie/freddie-typert-registry` and Loader | Places generated Host descriptors, schemas, and business-package registrations in `ctx.typert`, and holds lookup and Context providers |
+| Host | `@freddie/freddie-typert-registry` and Loader | Places the descriptors and business-package registrations that `@Remote`/`@RemoteScope` record at module load in `ctx.typert`, and holds lookup and Context providers (no separate build-time generator package exists; see "Generation model" below) |
 | Host | `@freddie/freddie-api-remotes` | Owns the application Agent/Session identity policy and configures the corresponding Typert lookups |
 | Host | `@freddie/freddie-api-gateway` | Provides `ctx.typertGateway`, claims Remote endpoints, resolves objects or Contexts, invokes live Cordis services, and validates request and return values |
 | Client | `@freddie/freddie-api-gateway/client` | Provides `ctx.remote` and `remote.<namespace>` child Services, mounts generated descriptors as concrete methods, and initiates, validates, and cancels calls through the Connection |

@@ -1,8 +1,8 @@
 # Tools
 
-The tool pipeline of [dsh-tools](../../packages/core/tools). [core.md](core.md) introduces `ToolDefinition` as the pipeline-authoring type shared by the core packages; the model-facing [`ToolSchema`](llm-streaming.md#the-model-request-and-result) wire type is declared with the model request. This page documents every `ToolDefinition` field, the typed schema DSL that builds it, the guarded execution types, and the UI-presentation types.
+The tool pipeline of [@freddie/freddie-tools](../../packages/core/tools). [core.md](core.md) introduces `ToolDefinition` as the pipeline-authoring type shared by the core packages; the model-facing [`ToolSchema`](llm-streaming.md#the-model-request-and-result) wire type is declared with the model request. This page documents every `ToolDefinition` field, the typed schema DSL that builds it, the guarded execution types, and the UI-presentation types.
 
-Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.js) · [`packages/core/tools/src/schema.ts`](../../packages/core/tools/src/schema.js) · [`packages/core/tools/src/presentation.ts`](../../packages/core/tools/src/presentation.js)
+Source: [`packages/core/tools/src/index.js`](../../packages/core/tools/src/index.js) · [`packages/core/tools/src/schema.js`](../../packages/core/tools/src/schema.js) · [`packages/core/tools/src/presentation.js`](../../packages/core/tools/src/presentation.js)
 
 ## `ToolDefinition` — a registered tool
 
@@ -97,7 +97,7 @@ interface ToolDefinition extends ToolSchema {
 
 Plugin authors use one vocabulary for typed parameters and typed output values. `ValueSchemaSpec` supports `string`, `number`, `integer`, `boolean`, `null`, `array`, `object`, author-only `json`, and exact-one `oneOf`; scalar `enum` and `const` values must match their node type. An explicit object node always declares `additionalProperties: true | false`. Parameter definitions remain an implicit open object property map, with `required: true` attached to each required property.
 
-Source: [`packages/core/tools/src/schema.ts`](../../packages/core/tools/src/schema.js)
+Source: [`packages/core/tools/src/schema.js`](../../packages/core/tools/src/schema.js)
 
 ```ts type-equiv
 /** One author-facing schema for any lossless JSON value root. */
@@ -463,15 +463,15 @@ How a tool wants its call shown in a UI (an editor tool-call card, a CLI log lin
 
 `ToolCallKind` (`'read' | 'edit' | 'delete' | 'move' | 'search' | 'execute' | 'fetch' | 'other'`) picks an icon on a generic card. `FileLocation` (`{ path, line? }`), `FileDiff` (`{ path, oldText, newText }`), and `ReadFileLine` (`{ number, text }`, one 1-based numbered line of a read window) are the shared file-card vocabulary. The design is pinned in [the render-intent-union Agent Note](../../.agents/notes/implemented/architecture/2026-07-02-tool-render-intent-union.md); host/client runtimes project this neutral vocabulary into their own views.
 
-The full presentation field docs live in [`packages/core/tools/src/presentation.ts`](../../packages/core/tools/src/presentation.js). The `bash` schema and executor are on [shell.md](shell.md); generic background controls are on [jobs.md](jobs.md).
+The full presentation field docs live in [`packages/core/tools/src/presentation.js`](../../packages/core/tools/src/presentation.js). The `bash` schema and executor are on [shell.md](shell.md); generic background controls are on [jobs.md](jobs.md).
 
-<!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
+<!-- BEGIN cordis-surface (hand-maintained) -->
 
 <a id="cordis-surface"></a>
 
 ## Cordis API
 
-Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+Originally generated from source by `scripts/gen-cordis-catalog.ts`; that script and its `verify-cordis-catalog` freshness check no longer exist, so this region is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
 <a id="ctxtools--toolruntime"></a>
 
@@ -569,7 +569,7 @@ async execute(exec: ToolExecutionInput): Promise<ToolExecutionResult>
 
 Types: [ScopeKey](scope.md)
 
-Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.js)
+Source: [`packages/core/tools/src/index.js`](../../packages/core/tools/src/index.js)
 
 <a id="tools-events"></a>
 
@@ -594,7 +594,7 @@ A tool was registered or unregistered, or a scoped restriction changed (the avai
 'tools/change'(): void
 ```
 
-Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.js)
+Source: [`packages/core/tools/src/index.js`](../../packages/core/tools/src/index.js)
 
 <a id="toolscode-dispatch-log--waterfall"></a>
 
@@ -621,7 +621,7 @@ Allow a listener to replace content in the DURABLE LOG COPY of one `run_code` su
 
 Types: [ContentBlock](llm-streaming.md) · [Scoped](scope.md)
 
-Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.js)
+Source: [`packages/core/tools/src/index.js`](../../packages/core/tools/src/index.js)
 
 <a id="toolsexecute--waterfall"></a>
 
@@ -645,7 +645,7 @@ Around-dispatch waterfall for timeout, retry, or metrics. `next()` returns a nor
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.js)
+Source: [`packages/core/tools/src/index.js`](../../packages/core/tools/src/index.js)
 
 <a id="toolspost-execute--waterfall"></a>
 
@@ -670,7 +670,7 @@ Accept, replace, enrich, or block a normalized dispatch result. `next()` accepts
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.js)
+Source: [`packages/core/tools/src/index.js`](../../packages/core/tools/src/index.js)
 
 <a id="toolspre-execute--waterfall"></a>
 
@@ -693,7 +693,7 @@ Allow, deny, or ask before dispatch. `next()` delegates to allow; missing approv
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.js)
+Source: [`packages/core/tools/src/index.js`](../../packages/core/tools/src/index.js)
 
 <a id="toolsresult--emit"></a>
 
@@ -714,5 +714,5 @@ Observe the frozen, lossless-JSON final outcome. Listener failures are contained
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.js)
-<!-- END GENERATED cordis-surface -->
+Source: [`packages/core/tools/src/index.js`](../../packages/core/tools/src/index.js)
+<!-- END cordis-surface -->

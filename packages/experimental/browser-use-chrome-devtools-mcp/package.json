@@ -1,0 +1,50 @@
+{
+  "name": "@freddie/freddie-experimental-browser-use-chrome-devtools-mcp",
+  "description": "Experimental per-Session Chromium browser tools through chrome-devtools-mcp",
+  "version": "0.1.1-rc.2",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/experimental/browser-use-chrome-devtools-mcp"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/**/*.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@freddie/freddie-experimental-browser-use-runtime": "*",
+    "@freddie/schemastery": "*"
+  },
+  "optionalDependencies": {
+    "chrome-devtools-mcp": "1.9.0"
+  },
+  "peerDependencies": {
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-browser-use": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
+  },
+  "devDependencies": {
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-browser-use": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
+  }
+}

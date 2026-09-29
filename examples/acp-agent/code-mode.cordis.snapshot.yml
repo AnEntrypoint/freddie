@@ -1,6 +1,3 @@
-# Keyless Code Mode combines the runtime/registry patch with the DeepSeek-to-replay
-# swap. Include patches cannot target entries behind a nested include, so this file
-# applies both overlays directly to `cordis.yml`.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

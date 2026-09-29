@@ -15,7 +15,7 @@ export function filterSessionResults(records, filters = []) {
 
 /**
  * Apply ANDed event filters to extracted semantic documents.
- * @param documents - semantic documents produced by {@link buildSessionEventSearchDocuments}.
+ * @param documents - semantic documents produced by {@link import('./documents.js').buildSessionEventSearchDocuments}.
  * @param filters - metadata and literal-text predicates.
  * @returns documents accepted by every clause, in input order.
  */

@@ -55,7 +55,6 @@ export async function captureFile(absolute, directory, maxBytes) {
   }
   const file = join(directory, createHash('sha1').update(bytes).digest('hex'))
   await mkdir(directory, { recursive: true })
-  // Identical content across paths and turns shares one copy; `wx` keeps an existing copy as is.
   await writeFile(file, bytes, { flag: 'wx' }).catch((error) => {
     if (error?.code !== 'EEXIST') throw error
   })

@@ -1,18 +1,9 @@
-// Converted from a React hooks component to a webjsx custom element:
-// pick/open/confirmation/acknowledged become instance fields, the
-// lock-reset effect becomes an explicit sync call inside setProps, and
-// re-render is an explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { IconChevronDownOutline14, renderMenu, renderRiskConfirmation, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './PermissionSelect.css.js'
 
 const FULL_ACCESS = 'danger-full-access'
-
-/* Shield glyphs (design set 1556): check = read-only, pencil = workspace
-   write, exclamation = full access. currentColor so the trigger and menu
-   rows tint them with their own text color. */
 
 const shieldOutline = 'M8.20554 0.899994L14.7901 3.36857V7.01026C14.7901 12 11.0466 14.2103 8.20554 15.3C5.36446 14.2103 1.62012 12 1.62012 7.01026V3.36857L8.20554 0.899994Z'
 
@@ -87,19 +78,7 @@ export class FreddiePermissionSelect extends HTMLElement {
   #open = false
   #confirmation = null
   #acknowledged = false
-  // Held across renders and updated via renderMenu(this.#menu, ...) rather
-  // than the bare Menu(...) one-shot helper: Menu(...) always creates and
-  // returns a brand-new freddie-menu element, so calling it fresh on every
-  // #render() replaced the whole custom element (and its bound click
-  // listeners) on every state change instead of updating the existing one
-  // in place — see Menu.tsx's own renderMenu/Menu split and the same
-  // pattern already used by renderPresetMenu, DirectoryBrowser, JsonTree.
   #menu = null
-  // Same fix, same reason, for the confirmation dialog: held and updated via
-  // renderRiskConfirmation(this.#confirmModal, ...) instead of the bare
-  // <RiskConfirmation ... /> JSX call, which recreated the underlying
-  // freddie-modal (and orphaned the previous one onto document.body) on every
-  // #render() — including the very #render() that opens it.
   #confirmModal = null
 
   setProps(props) {
@@ -108,7 +87,6 @@ export class FreddiePermissionSelect extends HTMLElement {
     this.#props = props
     if (props.locked !== prevLocked || props.value !== prevValue) {
       if (!props.locked && props.value !== undefined) {
-        // unchanged
       } else {
         this.#open = false
         this.#acknowledged = false
@@ -195,7 +173,6 @@ export class FreddiePermissionSelect extends HTMLElement {
         h('span', { class: css.triggerIcon ?? '', 'aria-hidden': true }, permissionGlyph(currentValue))
       ),
       h('span', { class: css.triggerLabel ?? '' }, current === undefined ? displayName(currentValue) : optionLabel(current)),
-      // Same glyph + open rotation as the sibling ModelSelect trigger.
       h('span', { class: clsx(css.chevron, open && css.chevronOpen), 'aria-hidden': true },
         h(IconChevronDownOutline14, null)),
     )
@@ -231,6 +208,14 @@ export class FreddiePermissionSelect extends HTMLElement {
 }
 
 defineElement('freddie-permission-select', FreddiePermissionSelect)
+
+/**
+ * @typedef {object} PermissionSelectProps
+ * @property {{currentValue: string, options: Array<{value: string, name: string, description?: string}>}} [value] - the access-mode field state; omitted renders nothing.
+ * @property {boolean} locked - whether the control is locked (busy applying, or owner-disabled).
+ * @property {(command: string) => Promise<*>} command - dispatches a slash command (e.g. `/permission <id>`).
+ * @property {(key: string, vars?: object) => string} t - localization function.
+ */
 
 /**
  * Update (or create) the underlying `freddie-permission-select` in place.

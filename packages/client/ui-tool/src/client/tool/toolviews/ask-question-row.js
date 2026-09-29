@@ -1,11 +1,3 @@
-// ask_user_question toolview: question-flavored summary row replacing the
-// generic "Tool call" card, registered into the keyed
-// 'tool.call.toolview' hole like todo-row. The row composes ToolRow
-// (chrome, running sweep, whole-row expand) and swaps in the interaction
-// outcome — `waiting` while pending, answered-count once settled, `cancelled`
-// when the user dismissed the whole set — because the questions themselves
-// render in the composer takeover.
-
 import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconQuestionOutline14 } from '@freddie/freddie-client-ui-primitives'
 import { toolRowModel } from '../models/tool-call-model.js'
@@ -38,12 +30,6 @@ function answeredSummary(text, t) {
  *  Input/Output sections, ToolRow's unified expand). */
 export function AskQuestionRow({ toolName, block, inspect, t }) {
   const model = toolRowModel(toolName, block)
-  // Composer verdicts settle the call as specific UserQuestionErrors
-  // (apiproxy ask_user_question handler): 'ASK_CANCELLED' is the user's own
-  // dismissal of the set, 'ASK_ABORTED' is a turn interrupt landing while the
-  // question was pending. Both name their verdict instead of the generic
-  // failed shape, and the abort keeps the shared stopped (amber) semantics of
-  // any other interrupted tool call.
   const code = 'kind' in block ? block.error?.code : undefined
   let summary = model.summary
   let state = model.state

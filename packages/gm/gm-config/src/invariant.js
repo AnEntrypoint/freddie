@@ -10,9 +10,6 @@ export const name = 'gm-config-invariant'
 /** Service required before the companion can register. */
 export const inject = ['invariants']
 
-// No runtime invariant: gm-config is a read-only filesystem resolver over
-// already-materialized gm.config.json tiers; it mounts no service and owns
-// no session events or durable logged relation to check.
 const install = () => {}
 
 /**

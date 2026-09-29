@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-// Regenerates src/manifest.js from the repo's git-tracked plain CSS files
-// (excluding lib/ build output and vendor/ copies, which vendor-modules links
-// itself so their relative font URLs resolve). Run from the repo root: node
-// packages/client/css-manifest/scripts/generate-manifest.mjs
 import { execFileSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'

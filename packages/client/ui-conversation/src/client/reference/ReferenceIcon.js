@@ -3,7 +3,10 @@ import {
   IconBrowseOutline16, IconFolderClose16,
 } from '@freddie/freddie-client-ui-primitives'
 
-/** Reference domains with distinct composer and transcript glyphs. */
+/**
+ * Reference domains with distinct composer and transcript glyphs.
+ * @typedef {'session'|'file'|'folder'} ReferenceDomain
+ */
 
 /**
  * Render the icon that identifies one inline reference domain.

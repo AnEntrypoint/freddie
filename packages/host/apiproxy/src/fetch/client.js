@@ -176,8 +176,6 @@ export class AbstractApiClient {
     this.flushScheduled = true
     queueMicrotask(() => {
       this.flushScheduled = false
-      // Never empty here: a flush is only ever scheduled by the push above,
-      // and this callback is the sole drain point.
       const batch = this.envelopeBatch
       this.envelopeBatch = []
       for (const notify of this.envelopeListeners) {
@@ -197,7 +195,6 @@ export class AbstractApiClient {
   }
 
   mintRpcId() {
-    // crypto.randomUUID is a Web API (browser + Node ≥19): keeps this base platform-neutral.
     return RpcId(crypto.randomUUID())
   }
 
@@ -234,8 +231,6 @@ export class AbstractApiClient {
     this.onEnvelope(full)
     if (full.rpcId !== message.rpcId) throw new Error(`rpcId mismatch for ${method}: sent ${message.rpcId}, got ${full.rpcId}`)
     if (!full.result.ok) return { rpcId: full.rpcId, result: full.result }
-    // Second-level S→C parse: the ok value must match the method's Value schema (mirror of the
-    // handler's request-payload parse).
     const value = UNARY_VALUE_SCHEMAS[method].parse(full.result.value)
     return { rpcId: full.rpcId, result: { ok: true, value } }
   }
@@ -291,7 +286,6 @@ export class AbstractApiClient {
     }
   }
 
-  // ---- IApiClient API (arrow properties so destructured/passed references stay bound) ----
 
   sessions = {
     list: (payload, signal) => this.callUnary('session.list', payload, signal),
@@ -326,8 +320,6 @@ export class AbstractApiClient {
 
   host = {
     describe: (payload, signal) => this.callUnary('host.describe', payload, signal),
-    // A native system dialog is user-paced and may legitimately stay open
-    // longer than the normal unary deadline. Caller/connection aborts remain.
     pickDirectory: (payload, signal) => this.callUnary(
       'host.pickDirectory', payload, signal, 'caller-signal-only',
     ),

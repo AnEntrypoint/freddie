@@ -25,7 +25,7 @@ const VARIABLE_NAME = /^[a-z][a-z0-9_]*$/
 /** A complete `{{...}}` reference group at the scan position (validated after). */
 const GROUP_AT = /^\{\{([^{}]*)\}\}/
 
-/** Reserved {@link Config.toolOrder} marker for unlisted tools. */
+/** Reserved marker for unlisted tools in {@link SystemPrompt.Config}'s `toolOrder`. */
 export const TOOL_ORDER_REST = '<unlisted-tools>'
 
 /**
@@ -134,7 +134,6 @@ function interpolate(input, variables, kind) {
   for (let open = text.indexOf('{{'); open >= 0; open = text.indexOf('{{', last)) {
     const group = GROUP_AT.exec(text.slice(open))
     if (group === null) {
-      // A later closing brace makes this malformed; otherwise it is literal prose.
       if (text.indexOf('}}', open + 2) >= 0) {
         throw new Error(`malformed prompt variable reference at "${text.slice(open, open + 16)}…" in ${kind} "${input.name}" (references are complete simple {{name}} groups)`)
       }
@@ -142,12 +141,10 @@ function interpolate(input, variables, kind) {
       last = open + 2
       continue
     }
-    // `{{}}` yields an empty name and follows the malformed-reference path.
     const name = group[0].slice(2, -2)
     if (!VARIABLE_NAME.test(name)) {
       throw new Error(`malformed prompt variable reference "{{${name}}}" in ${kind} "${input.name}" (variable names match ${String(VARIABLE_NAME)})`)
     }
-    // Do not resolve unregistered names through Object.prototype.
     if (!Object.hasOwn(variables, name)) {
       const known = Object.keys(variables)
       throw new Error(`unknown prompt variable "{{${name}}}" in ${kind} "${input.name}"; registered variables: ${known.length > 0 ? known.join(', ') : '(none)'}`)
@@ -202,7 +199,6 @@ export class SystemPrompt extends Service {
     includeHarnessIdentity: z.boolean().default(true),
     includeRuntimeContext: z.boolean().default(true),
     persona: z.string().default(''),
-    // Preserve omission because an explicit empty order lacks the rest marker.
     toolOrder: z.array(z.string()).default(undefined),
   })
 
@@ -215,7 +211,6 @@ export class SystemPrompt extends Service {
   constructor(ctx, config) {
     super(ctx, 'systemPrompt')
     this.toolOrder = validateToolOrder(config.toolOrder)
-    // Keep harness-owned openers independent of the selected loop plugin.
     if (config.includeHarnessIdentity ?? true) {
       this.section({
         name: 'harness:identity',
@@ -226,7 +221,6 @@ export class SystemPrompt extends Service {
     this.section({
       name: PERSONA_SECTION,
       order: PERSONA_ORDER,
-      // The fallback narrows the optional input type; the schema already defaults it.
       text: config.persona ?? '',
     })
     if (!(config.includeRuntimeContext ?? true)) this.suppressRuntimeContext()
@@ -328,27 +322,22 @@ export class SystemPrompt extends Service {
    * @param context - the optional scope and plugin-defined assembly fields.
    * @returns the post-waterfall assembly with any complete prompt enforced.
    */
-  // Keep configuration failures on the declared asynchronous error path.
   async assemble(context = {}) {
     const scope = context.scope
     const scopeLayers = this.layers.chainLayers(scope)
     const runtimeContextSuppressed = !this.layers.global.runtimeContextSuppressors.isEmpty()
       || scopeLayers.some(layer => !layer.runtimeContextSuppressors.isEmpty())
-    // Scoped variables shadow globals.
     const variables = {}
     for (const [name, provider] of this.layers.global.variables.entries()) {
       variables[name] = provider(context)
     }
-    // Scope-chain variables, farthest first, so the nearest scope wins a name.
     for (const layer of scopeLayers) {
       for (const [name, provider] of layer.variables.entries()) {
         variables[name] = provider(context)
       }
     }
-    // Scoped sections shadow globals before the stable order sort.
     const sectionByName = this.layers.merge(scope, layer => layer.sections)
     const contextByName = this.layers.merge(scope, layer => layer.contexts)
-    // Validate order against pre-restriction names while collecting visible schemas.
     const providers = [
       ...this.layers.global.toolProviders.values(),
       ...scopeLayers.flatMap(layer => [...layer.toolProviders.values()]),

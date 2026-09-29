@@ -2,7 +2,7 @@
  * Pure derivation of the diff-card props from a frozen call slice: the
  * `card:'diff'` render intent the write/edit tools declare arrives on the
  * snapshot as `callView`/`resultView`, and this is the one place that turns
- * that pair into what {@link DiffBlock} draws. Both conversation render sites
+ * that pair into what {@link import('../../../../../ui-primitives/src/DiffBlock.js').DiffBlock} draws. Both conversation render sites
  * (the chat tool row's expanded body and the details panel's Output section)
  * call this, so the hunks they show are derived once.
  * @module
@@ -13,9 +13,9 @@
  * primitive's own default, which the details panel keeps. A chat row is a
  * summary surface inside the message flow: the flow must stay scannable across
  * many calls, while the details panel is the single-call reading surface. The
- * same split {@link CHAT_TERMINAL_MAX_LINES} draws for a terminal card, so the
- * two card kinds cap a long body at the same place in the flow. A design
- * constant of this UI's row geometry, not a deployment choice.
+ * same split — half of the terminal primitive's default line cap — draws for a
+ * terminal card, so the two card kinds cap a long body at the same place in the
+ * flow. A design constant of this UI's row geometry, not a deployment choice.
  */
 export const CHAT_DIFF_MAX_LINES = 8
 
@@ -67,14 +67,10 @@ function narrowDiffs(diffs) {
  */
 export function diffCardModel(block) {
   if (!('kind' in block)) {
-    // Running: the call view may carry the intended diff; the result is absent.
     const call = block.callView?.card === 'diff' ? block.callView : null
     const diffs = call === null ? null : narrowDiffs(call.diffs)
     return diffs === null ? null : { card: { diffs } }
   }
-  // Settled: the result view's applied hunks replace the call-time diff. A
-  // window that dropped the call head leaves only the result, which still
-  // renders — the result view carries the whole change.
   const result = block.resultView?.card === 'diff' ? block.resultView : null
   const diffs = result === null ? null : narrowDiffs(result.diffs)
   return diffs === null ? null : { card: { diffs } }

@@ -209,8 +209,6 @@ class LookupStore {
     validateSegment('lookup key', key)
     if (this.resolvers.has(key)) throw new Error(`typert: lookup "${key}" resolver is already configured`)
     const owner = {}
-    // The map erases each merge-declared Wire type; restore it only at the
-    // typed configure() boundary so strict function variance remains sound.
     const entry = {
       provider: { resolve: async id => resolver(id) },
       owner,

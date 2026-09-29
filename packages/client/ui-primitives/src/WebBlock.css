@@ -1,9 +1,3 @@
-/* Geometry mirrors CodeBlock/TerminalBlock (12px radius, code-block surface,
-   16px vertical margin) so a web card, a terminal card, and a fenced code block
-   read as one family. A source list is prose, not aligned output, so each row
-   wraps horizontally rather than scrolling sideways like a terminal card; the
-   list as a whole scrolls vertically within a capped height (see .sources). */
-
 .freddie-webBlock__block {
   --dsl-web-radius: 12px;
 
@@ -14,8 +8,6 @@
   border-radius: var(--dsl-web-radius);
 }
 
-/* The provider answer reads as body prose above the citation list; its own
-   MarkdownText margins are trimmed so the list sits tight under it. */
 .freddie-webBlock__answer {
   margin-bottom: 8px;
 }
@@ -28,21 +20,6 @@
   margin-bottom: 0;
 }
 
-/* The citation list: ordered so each source reads as a numbered reference. The
-   whole list — the sources the tool returned, matching what the model saw —
-   renders here; a max-height caps the card so a long list scrolls in place
-   rather than growing the card unbounded. The height is a design constant of the
-   card's geometry, not a deployment choice, so it lives here rather than a plugin
-   config field.
-
-   `overflow-y` makes this a scroll container, which also clips inline-start
-   overflow: a marker wider than `padding-left` loses its leading digits with no
-   way to scroll them back. Markers are right-aligned to the content edge, so the
-   padding must fit the widest one the list can produce. `searchMaxResults` is an
-   unbounded positive integer, so the padding is sized in `em` — against this
-   element's own font, the one a marker inherits — to hold a three-digit marker
-   (`999. ` measures 2.35em in the app font stack) plus the gap the one-digit
-   case already had. */
 .freddie-webBlock__sources {
   margin: 0;
   padding-left: 2.5em;
@@ -93,7 +70,6 @@
   font: var(--dsw-font-xs-13);
 }
 
-/* The fetch card is a compact summary: the URL over a status/truncation row. */
 .freddie-webBlock__fetch {
   display: flex;
   flex-direction: column;
@@ -123,8 +99,6 @@
   font: var(--dsw-font-xs-13);
 }
 
-/* The fetch card's truncation note sits inline beside the status, so it drops
-   the search card's top margin. */
 .freddie-webBlock__fetch .freddie-webBlock__truncated {
   margin-top: 0;
 }

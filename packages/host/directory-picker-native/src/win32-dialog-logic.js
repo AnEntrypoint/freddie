@@ -40,8 +40,6 @@ function check(hr, what) {
 export function runFolderDialog(bindings, title, onShowing) {
   bindings.setThreadDpiAwareness()
   check(bindings.coInitializeSta(), 'CoInitializeEx')
-  // From here the apartment is initialized (S_OK or S_FALSE) and must be
-  // uninitialized exactly once on every path.
   try {
     const dialog = bindings.createFolderDialog()
     try {

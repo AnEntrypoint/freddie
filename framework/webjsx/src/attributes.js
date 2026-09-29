@@ -96,11 +96,6 @@ function updateAttributesCore(el, newProps, oldProps = {}) {
                 }
             }
             else if (el.namespaceURI === "http://www.w3.org/2000/svg") {
-                // SVG attribute properties (e.g. `transform` on
-                // SVGGraphicsElement) are read-only accessors even when
-                // `key in el` is true -- assigning through them throws.
-                // SVG never has HTML-style settable DOM properties, so the
-                // attribute path is always correct here.
                 el.removeAttribute(key);
             }
             else if (key in el) {

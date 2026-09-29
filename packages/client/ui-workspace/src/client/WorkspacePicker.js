@@ -36,7 +36,6 @@ export class FreddieWorkspacePickFlow extends HTMLElement {
   #pickingFolder = false
   /** Edge-trigger latch for the addIsTheOnlyEntry auto-open (was a useEffect deps array). */
   #autoOpenArmedFor = null
-  // Self-mounting portal elements held across renders (see Menu.tsx/Modal.tsx doc).
   #menu = null
   #errorModal = null
 
@@ -95,23 +94,9 @@ export class FreddieWorkspacePickFlow extends HTMLElement {
     const workspaces = workspaceSnapshot.items
     const flowOpen = this.#flowOpen
     const pickingFolder = this.#pickingFolder
-    // One picking interaction at a time: while the flow is open (native chooser
-    // pending, browse dialog up) or its pick is being adopted, every other
-    // menu action stays disabled — a late outcome must not race a concurrent
-    // selection or adoption.
     const flowBusy = flowOpen || pickingFolder
 
-    // The occupied hole gates the picking affordance: with no composed flow the
-    // entry simply is not there (the seam's documented no-flow default). The
-    // framework-bound hook keeps occupancy live: flow plugins activate (and
-    // HMR-reload) independently of this menu's renders.
     const flowAvailable = useDirectoryFlow(occupied => occupied)
-    // An occupant that unloads mid-interaction leaves nobody to cancel: an
-    // open flow over an already empty hole (Choose again after the occupant
-    // unloaded with the error dialog up) — that transition must snap back
-    // too, not just occupancy loss. Deferred to a microtask so it lands after
-    // this synchronous render finishes (mirrors the original effect running
-    // after commit).
     if (flowOpen && !flowAvailable) {
       this.#flowOpen = false
       queueMicrotask(() => { this.#render() })
@@ -119,8 +104,6 @@ export class FreddieWorkspacePickFlow extends HTMLElement {
     const addEntries = flowAvailable
       ? [{ id: ADD_WORKSPACE, label: t('menu.addWorkspace'), icon: h(IconPlusOutline16, {size: 16}), disabled: flowBusy }]
       : []
-    // With workspaces listed, the add action pins below the scroll region
-    // (divider + always visible); otherwise it IS the menu.
     const pinAdd = !addOnly && workspaces.length > 0
     const items = pinAdd
       ? workspaces.map(workspace => ({
@@ -130,28 +113,10 @@ export class FreddieWorkspacePickFlow extends HTMLElement {
         disabled: flowBusy,
       }))
       : addEntries
-    // Nothing listed and nothing to add with (a composition that mounts this
-    // package without any directory-picker): an empty popover would claim a
-    // choice that does not exist, so the anchor gesture shows nothing at all.
     const menuIsEmpty = items.length === 0
 
-    // A menu exists to disambiguate between targets. With no workspaces listed
-    // and the add action the only entry left, the anchor gesture IS that action:
-    // a one-row popover would cost a click and offer nothing to choose between.
-    // The owner's open request is consumed the same way selecting the entry
-    // would consume it (close the popover, raise the flow). An empty list is
-    // only final once the baseline lands — until then the menu stays up with its
-    // loading status instead of jumping into a flow the arriving list would have
-    // made unnecessary; the add-only surface lists nothing and never waits.
     const listSettled = addOnly || workspaceSnapshot.phase === 'ready'
     const addIsTheOnlyEntry = !pinAdd && listSettled && addEntries.length === 1
-    // `flowBusy` gates this exactly as it disables the equivalent menu entry: a
-    // pick still being adopted owns the surface until it settles. Edge-triggered
-    // on [open, addIsTheOnlyEntry, flowBusy] (mirrors the original useEffect's
-    // deps array): re-checking the same held-true condition on every render
-    // (rather than only on a value transition) re-armed this open on each
-    // render the popover's own onClose synchronously caused while unwound —
-    // an infinite microtask loop with no yield point, hanging the tab.
     const autoOpenKey = { open, addIsTheOnlyEntry, flowBusy }
     const autoOpenChanged = this.#autoOpenArmedFor === null
       || this.#autoOpenArmedFor.open !== autoOpenKey.open
@@ -220,8 +185,6 @@ export class FreddieWorkspacePickFlow extends HTMLElement {
       title: t('folderError.title'),
       footer: [
         h(Button, {variant: 'outline', class: css.modalAction ?? '', onclick: () => { this.#closeModal() }}, t('cancel')),
-        /* Retrying needs an occupant to serve the flow; without one the
-         * button would open a flow nobody can answer or cancel. */
         h(Button, {variant: 'primary', class: css.modalAction ?? '', disabled: !flowAvailable, onclick: () => { this.#openDirectoryFlow() }}, t('folderError.retry')),
       ],
       children: h('div', {class: css.modalError ?? '', role: 'alert'}, this.#modalError),
@@ -230,6 +193,22 @@ export class FreddieWorkspacePickFlow extends HTMLElement {
 }
 
 defineElement('freddie-workspace-pick-flow', FreddieWorkspacePickFlow)
+
+/**
+ * @typedef {object} WorkspacePickFlowProps
+ * @property {function(string, object=): string} t - conversation locale seat.
+ * @property {boolean} open - whether the pick menu is open.
+ * @property {{current: Element|null}} anchorRef - element the pick menu and error modal anchor to.
+ * @property {function(function(object): object): object} useWorkspaces - workspace-store selector hook; called with an identity selector, returns `{items: Array<{workspaceId: string, title: string}>, phase: 'pending'|'ready'|string}`.
+ * @property {function({path: string}): Promise<{workspaceId: string}>} createWorkspace - adopts a picked host directory as a workspace.
+ * @property {function(function(boolean): boolean): boolean} useDirectoryFlow - reports whether the directory-flow slot occupant is available.
+ * @property {function(object): (Node|null)} renderDirectoryFlow - renders the composed directory-picking flow for the given flow-owner share.
+ * @property {string} [selectedId] - the menu item to show selected.
+ * @property {function(string): void} onPick - called with the chosen workspace id.
+ * @property {function(): void} onClose - called to close the pick menu.
+ * @property {boolean} [addOnly=false] - when true, the menu shows only the add-workspace entry.
+ * @property {string} [side='bottom'] - the menu's anchor side.
+ */
 
 /**
  * Create (if needed) or update a WorkspacePickFlow element in place.
@@ -274,7 +253,6 @@ export class FreddieWorkspacePicker extends HTMLElement {
     const {
       open, anchorRef, useWorkspaces, selectedId, onPick, onClose, createWorkspace, useDirectoryFlow, renderSlot, t,
     } = props
-    // Cached across renders so the flow's auto-open latch survives onClose.
     this.#pickFlow = renderWorkspacePickFlow(this.#pickFlow, {
       t,
       open,
@@ -292,6 +270,20 @@ export class FreddieWorkspacePicker extends HTMLElement {
 }
 
 defineElement('freddie-workspace-picker', FreddieWorkspacePicker)
+
+/**
+ * @typedef {object} WorkspacePickerProps
+ * @property {boolean} open - whether the pick menu is open.
+ * @property {{current: Element|null}} anchorRef - element the pick menu and error modal anchor to.
+ * @property {function(function(object): object): object} useWorkspaces - workspace-store selector hook; forwarded to {@link WorkspacePickFlowProps}.
+ * @property {string} [selectedId] - the menu item to show selected.
+ * @property {function(string): void} onPick - called with the chosen workspace id.
+ * @property {function(): void} onClose - called to close the pick menu.
+ * @property {function({path: string}): Promise<{workspaceId: string}>} createWorkspace - adopts a picked host directory as a workspace.
+ * @property {function(function(boolean): boolean): boolean} useDirectoryFlow - reports whether the directory-flow slot occupant is available.
+ * @property {function(string, object): (Node|null)} renderSlot - renders the named contract slot's registered occupant with the given owner share.
+ * @property {function(string, object=): string} t - conversation locale seat.
+ */
 
 /**
  * Create (if needed) or update a WorkspacePicker element in place.

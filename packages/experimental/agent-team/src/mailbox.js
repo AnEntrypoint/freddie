@@ -128,8 +128,6 @@ export class TeamMailbox {
         teamId: TeamId(root.id),
         message: queued,
       })
-      // Register dispatch before releasing the root transaction so concurrent
-      // senders enter the target-local queue in durable mailbox order.
       return { message: queued, dispatch: this.tryDispatch(root, queued, request.signal) }
     })
     const accepted = await queued.dispatch

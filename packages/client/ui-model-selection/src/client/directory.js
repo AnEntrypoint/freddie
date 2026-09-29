@@ -85,8 +85,6 @@ export class ModelDirectory {
       this.store.update((s) => { s.status = 'error'; s.error = `${result.error.code}: ${result.error.message}` })
       throw new Error(`session.selectModel failed: ${result.error.code}: ${result.error.message}`)
     }
-    // The Host validated the route before accepting it, so a selection that
-    // landed is by construction one it can serve.
     this.store.update((s) => {
       s.current = result.value.selected
       s.routable = true
@@ -112,7 +110,7 @@ export class ModelDirectory {
       s.error = null
     })
     if (!this.available()) return
-    void this.load().catch(() => { /* the next menu open remains the explicit retry surface */ })
+    void this.load().catch(() => {})
   }
 
   /** Scope teardown: late settlements lose write access to the store. */

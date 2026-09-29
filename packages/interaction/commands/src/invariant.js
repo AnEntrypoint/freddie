@@ -14,7 +14,6 @@ export const inject = ['invariants']
 /* jscpd:ignore-start -- package companions share replay and dispatch plumbing */
 /** Install pairing validation over loaded logs and newly appended lifecycle events. */
 const install = Object.assign((ctx, fail) => {
-  // Install-scoped so a dispose/re-register cycle re-sweeps from a clean slate.
   const runIds = new WeakMap()
   const validateEvent = (session, event) => {
     if (event.type === 'command/run') {

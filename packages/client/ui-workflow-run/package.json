@@ -1,6 +1,6 @@
 {
   "name": "@freddie/freddie-client-ui-workflow-run",
-  "description": "Durable workflow-run Conversation Node and nested member disclosure for dsh web",
+  "description": "Durable workflow-run Conversation Node and nested member disclosure for freddie web",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
@@ -34,10 +34,6 @@
       ],
       "platform": "web"
     }
-  },
-  "scripts": {
-    "bundle": "tsdown",
-    "watch": "tsdown --watch"
   },
   "files": [
     "src/**/*.js"

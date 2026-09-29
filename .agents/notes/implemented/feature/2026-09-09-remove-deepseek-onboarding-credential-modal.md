@@ -8,7 +8,7 @@ Status: implemented
 
 ## Decision
 
-**Un-register the step; keep the shared seam.** `ui-settings-models`'s `apply()` no longer calls `ctx.slots.inject('settings.onboarding', ...)` for the `deepseek-official` entry — `DeepSeekOnboardingDialog.js` (and its `.css`/`.css.js`) are deleted along with the now-orphaned `onboardingTitle`/`onboardingDescription`/`onboardingLater`/`onboardingSave`/`onboardingSaving` locale keys (`en`/`zh`). The `settings.onboarding` list slot itself, `OnboardingModal.js`'s shared modal chrome, and `SettingsRoot.js`'s onboarding-step coordinator are untouched — they are the general-purpose seam other first-run steps (e.g. `WelcomeNotice`) render through, not the removed feature.
+**Un-register the step; keep the shared seam.** `ui-settings-models`'s `apply()` no longer calls `ctx.slots.inject('settings.onboarding', ...)` for the `deepseek-official` entry — `DeepSeekOnboardingDialog.js` (and its `.css`/`.css.js`) are deleted along with the now-orphaned `onboardingTitle`/`onboardingDescription`/`onboardingLater`/`onboardingSave`/`onboardingSaving` locale keys (in every locale). The `settings.onboarding` list slot itself, `OnboardingModal.js`'s shared modal chrome, and `SettingsRoot.js`'s onboarding-step coordinator are untouched — they are the general-purpose seam other first-run steps (e.g. `WelcomeNotice`) render through, not the removed feature.
 
 **No replacement prompt.** The credential-missing state now completes the coordinator pass silently (there is no registrant for it any more), identical to how the original decision already treated an absent adapter, inactive route, or read-only deployment. The Models page remains the sole surface for adding a credential.
 

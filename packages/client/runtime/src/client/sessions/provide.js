@@ -26,8 +26,6 @@ export class SessionProvideChannel {
    */
   constructor(host) {
     this.host = host
-    // The runtime's own contribution comes first: useSession rides the same
-    // provide channel every plugin uses (no renderer special case).
     this.providers.push({
       hooks: ['session'],
       resolve: binding => ({ hooks: { session: binding.session } }),
@@ -63,8 +61,6 @@ export class SessionProvideChannel {
       this.applyRosterChange()
     } catch (error) {
       this.providers.splice(this.providers.indexOf(descriptor), 1)
-      // Restore the previous (valid) roster's bundles; cannot rethrow — the
-      // pre-push roster materialized successfully before.
       this.applyRosterChange()
       throw error
     }
@@ -90,9 +86,6 @@ export class SessionProvideChannel {
       try {
         fn()
       } catch (error) {
-        // Contain subscriber failures: this notify runs inside the list
-        // notification, where a throwing render-side subscriber would starve
-        // later listeners and abort the projection pass that scheduled it.
         console.error('sessions.currentProvideInfo subscriber failed:', error)
       }
     }
@@ -137,8 +130,6 @@ export class SessionProvideChannel {
       sessionId: binding.sessionId,
       hooks,
       props,
-      // The useProjection seat: key-addressed bare value faces off the
-      // session's projection store (open key space — never a static roster member).
       projections: { faceOf: key => binding.session.projections.faceOf(key) },
     }
   }
@@ -164,6 +155,6 @@ export class SessionProvideChannel {
         props[name] = undefined
       }
     }
-    return { sessionId: undefined, hooks, props } // no projections face: every key reads absent without a session
+    return { sessionId: undefined, hooks, props }
   }
 }

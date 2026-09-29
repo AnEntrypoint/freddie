@@ -62,7 +62,7 @@ export function apply(ctx: Context) {
 
 ### Declare its type
 
-Use TypeScript declaration merging to type `ctx.metrics`:
+Use TypeScript declaration merging to describe `ctx.metrics` for your own editor tooling. This checkout ships no Cordis type declarations, so nothing checks the block and Node erases it:
 
 ```ts
 import { Service, type Context } from '@freddie/cordis'
@@ -138,7 +138,7 @@ This prevents a plugin from calling a service that no longer exists.
 
 ## Built-in Harness services
 
-The repository generates the service names, public methods, and source locations into each service's [subsystem page](../../../subsystems/core.md). Use those generated regions and the service's TypeScript interface while developing a plugin; do not maintain a second static list.
+Each service's [subsystem page](../../../subsystems/core.md) lists its service name, public methods, and source location in its Cordis API region. Use those regions and the service's source JSDoc while developing a plugin; do not maintain a second static list.
 
 ## Next steps
 

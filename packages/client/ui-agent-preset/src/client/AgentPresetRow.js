@@ -14,7 +14,6 @@ import { defineElement } from '@freddie/freddie-client-ui-primitives'
 export class FreddieAgentPresetRow extends HTMLElement {
   #props = null
   #open = false
-  #loaded = false
   #lastStatus
   #lastWritable
   #menu = null
@@ -22,10 +21,6 @@ export class FreddieAgentPresetRow extends HTMLElement {
   /** Set/replace props and re-render; the owning renderer calls this on every update. */
   setProps(props) {
     this.#props = props
-    if (!this.#loaded) {
-      this.#loaded = true
-      void props.load()
-    }
     this.#render()
   }
 
@@ -38,6 +33,7 @@ export class FreddieAgentPresetRow extends HTMLElement {
     if (props === null) return
     const { select, useAgentPreset, t } = props
     const state = useAgentPreset(snapshot => snapshot)
+    if (state.status === 'idle') void props.load()
 
     if (state.status !== this.#lastStatus || state.writable !== this.#lastWritable) {
       this.#lastStatus = state.status
@@ -45,15 +41,11 @@ export class FreddieAgentPresetRow extends HTMLElement {
       if (!(state.writable && state.status !== 'unavailable')) this.#open = false
     }
 
-    // A deployment that composes no presets has nothing to choose between, and
-    // every session shares the host composition — the row simply does not exist.
     if (state.status === 'unavailable') {
       applyDiff(this, h('span', {style: 'display:none'}))
       return
     }
     const busy = state.status === 'loading' || state.status === 'saving'
-    // Every preset surface applies the same display-copy rule. The id remains
-    // addressing rather than a label, except where no display name exists.
     const chosen = state.options.find(option => option.id === state.currentValue)
     const chosenText = chosen === undefined ? undefined : presetDisplayText(chosen, t)
     const label = state.currentValue === '' ? t('loading') : (chosenText?.name ?? state.currentValue)

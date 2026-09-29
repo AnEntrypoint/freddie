@@ -2,10 +2,6 @@ import { createElement as h } from '@freddie/webjsx'
 import { renderJsonBlock } from '@freddie/freddie-client-ui-primitives'
 import css from './ChatView.css.js'
 
-// JsonBlock's own one-shot factory recreates its freddie-json-block element
-// (dropping its #open toggle state) on every call; ChatNodeSeat is a plain
-// function re-invoked on every session change. `node` is stable across
-// re-renders of the same seat.
 const cachedFallback = new WeakMap()
 function cachedFallbackJsonBlock(identity, props) {
   const el = renderJsonBlock(cachedFallback.get(identity) ?? null, props)
@@ -32,9 +28,6 @@ export function ChatNodeSeat({
       fileMentions,
     }
   if (routedNode === undefined || owner === null) return null
-  // Runtime dispatch owns the correlation: every Node's discriminant is the
-  // keyed-slot entry passed alongside that same Node. TypeScript does not
-  // distribute an object containing a union into a union of objects itself.
   const routedOwner = { ...owner, node: routedNode }
   return (
     h('div',

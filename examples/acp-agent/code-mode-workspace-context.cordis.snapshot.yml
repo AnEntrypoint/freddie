@@ -1,5 +1,3 @@
-# Keyless replay counterpart of code-mode-workspace-context.cordis.yml. It adds
-# Code Mode to the default filesystem suite and swaps in replay.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

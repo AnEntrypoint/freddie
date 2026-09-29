@@ -1,13 +1,3 @@
-// Central contract re-export point: every contract import inside
-// web-runtime goes through this single file.
-// Types and runtime protocol helpers/bounds come from the apiproxy api/ layer
-// (zero Node deps, browser-safe); AbstractApiClient is the client boundary.
-// NEVER import the package root: it drags bootHost/cordis into the browser bundle.
-// The ./api and ./client subpath exports are the browser-safe channels.
-
-// transportError lives in the apiproxy api layer (beside RpcResult, its
-// subject); re-exported here so connection consumers keep one contract
-// entry point.
 export {
   RpcId,
   SESSION_SEARCH_RESULT_LIMIT,

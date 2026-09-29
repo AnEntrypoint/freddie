@@ -25,9 +25,6 @@ export const CLIENT_NOTES = [
 ]
 
 /** Every slot the shipped web bundle declares, sorted by key. */
-// Seats of one cardinality repeat their register options and framework props
-// verbatim; that sameness IS the contract a registrant reads, so clone
-// detection is told to skip the data rather than the file.
 export const CLIENT_SLOT_API = [
   {
     key: 'conversation',
@@ -71,7 +68,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -123,7 +120,7 @@ export const CLIENT_SLOT_API = [
         name: 'key',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key: the entry renders where the owner dispatches this exact key. Registering an already-occupied key replaces that occupant.',
+        doc: 'Your cell key: the entry renders where the owner dispatches this exact key. A key another registrant already holds is rejected, never replaced.',
       },
     ],
     ownerProps: [
@@ -162,7 +159,7 @@ export const CLIENT_SLOT_API = [
         name: 'key',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key: the entry renders where the owner dispatches this exact key. Registering an already-occupied key replaces that occupant.',
+        doc: 'Your cell key: the entry renders where the owner dispatches this exact key. A key another registrant already holds is rejected, never replaced.',
       },
     ],
     ownerProps: [
@@ -334,7 +331,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -559,7 +556,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -614,7 +611,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -696,7 +693,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -776,7 +773,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -919,7 +916,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -1003,7 +1000,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -1053,7 +1050,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -1129,7 +1126,7 @@ export const CLIENT_SLOT_API = [
     kind: 'single',
     scope: 'root',
     summary: 'The built-in render-tree root hole (seeded by SlotCore): the one slot the shell itself renders, and the ancestor of every other seat.',
-    doc: 'The built-in render-tree root hole (seeded by SlotCore): the one slot the\nshell itself renders, and the ancestor of every other seat. OCCUPIED by\nui-layout\'s AppFrame, which declares the sidebar, conversation, details,\nand shell.overlay seats inside it.\n\nDO NOT register here. This is a single slot, so a second entry does not\nsit beside the frame — it shadows it, and a dynamically registered entry\nis assigned a lower priority than the shipped one, which makes it the\nwinner: the page would render your component alone, with every seat the\nframe declares gone. For a surface of your own that floats over the whole\napp, register into `shell.overlay` instead (a list slot: additive, and\nclick-through until your entry opts into pointer events).',
+    doc: 'The built-in render-tree root hole (seeded by SlotCore): the one slot the\nshell itself renders, and the ancestor of every other seat. OCCUPIED by\nui-layout\'s AppFrame, which declares the sidebar, conversation, details,\nand shell.overlay seats inside it.\n\nDO NOT register here: the guard rejects it. This is a single slot, so a second entry does not\nsit beside the frame — it would shadow it, and a dynamically registered entry\nis assigned a lower priority than the shipped one, which makes it the\nwinner: the page would render your component alone, with every seat the\nframe declares gone. For a surface of your own that floats over the whole\napp, register into `shell.overlay` instead (a list slot: additive, and\nclick-through until your entry opts into pointer events).',
     registerOptions: [],
     ownerProps: [
       '/** Root owner share: the shell supplies nothing — the frame is inject-assembled. */\nexport interface RootOwnerProps { children?: never }',
@@ -1161,7 +1158,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -1232,7 +1229,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -1260,7 +1257,6 @@ export const CLIENT_SLOT_API = [
     slotInject: '',
     declaredBy: 'an entry in \'settings.section\' (client-ui-settings-general), so it exists while that entry is mounted',
     occupants: [
-      'client-locale LanguageRow id \'language\'',
       'client-ui-agent-preset AgentPresetRow id \'agent-preset\'',
       'client-ui-conversation EnterBehaviorRow id \'composer-enter\'',
       'client-ui-permission-presets PermissionRow id \'permission\'',
@@ -1307,7 +1303,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -1353,7 +1349,7 @@ export const CLIENT_SLOT_API = [
         name: 'key',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key: the entry renders where the owner dispatches this exact key. Registering an already-occupied key replaces that occupant.',
+        doc: 'Your cell key: the entry renders where the owner dispatches this exact key. A key another registrant already holds is rejected, never replaced.',
       },
     ],
     ownerProps: [
@@ -1387,7 +1383,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -1433,7 +1429,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -1507,7 +1503,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -1542,7 +1538,7 @@ export const CLIENT_SLOT_API = [
     kind: 'single',
     scope: 'root',
     summary: 'The whole left column.',
-    doc: 'The whole left column. OCCUPIED by ui-sidebar\'s SidebarRoot, which\ndeclares the workspace and settings seats inside it — registering here\nreplaces the navigation column outright rather than adding to it, and\nthe seats it declares disappear with it. To add something to the\nsidebar, register into one of those inner seats instead.\n\nThe occupant receives the frame\'s live column state (collapsed, width)\nand is expected to render the compact control rail while collapsed.',
+    doc: 'The whole left column. OCCUPIED by ui-sidebar\'s SidebarRoot, which\ndeclares the workspace and settings seats inside it — registering here\nwould replace the navigation column outright rather than adding to it, and\nthe seats it declares (Settings, the plugin panel) would disappear with it, so\nthe guard rejects it. To add something to the\nsidebar, register into one of those inner seats instead.\n\nThe occupant receives the frame\'s live column state (collapsed, width)\nand is expected to render the compact control rail while collapsed.',
     registerOptions: [],
     ownerProps: [
       '/** Sidebar owner share: live column state from the frame\'s concession solve. */\nexport interface SidebarOwnerProps {\n  /** True when the sidebar is closed (the column renders the compact control rail). */\n  collapsed: boolean\n  /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */\n  width: number\n}',
@@ -1626,7 +1622,7 @@ export const CLIENT_SLOT_API = [
         name: 'id',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries; an id another registrant already holds is rejected, never replaced. Owners that filter by id address you by it.',
       },
       {
         name: 'order',
@@ -1750,7 +1746,7 @@ export const CLIENT_SLOT_API = [
         name: 'key',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key: the entry renders where the owner dispatches this exact key. Registering an already-occupied key replaces that occupant.',
+        doc: 'Your cell key: the entry renders where the owner dispatches this exact key. A key another registrant already holds is rejected, never replaced.',
       },
     ],
     ownerProps: [
@@ -1804,7 +1800,7 @@ export const CLIENT_SLOT_API = [
         name: 'key',
         requirement: 'required',
         type: 'string',
-        doc: 'Your cell key: the entry renders where the owner dispatches this exact key. Registering an already-occupied key replaces that occupant.',
+        doc: 'Your cell key: the entry renders where the owner dispatches this exact key. A key another registrant already holds is rejected, never replaced.',
       },
     ],
     ownerProps: [

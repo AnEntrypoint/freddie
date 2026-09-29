@@ -1,0 +1,8 @@
+## Rationale
+
+- `src/index.js` constructor: Schemastery fills the config fields before construction and the type does not encode that step, hence the direct `assertServiceableBashConfig(config)`. `onChange` is a no-op because every field is read through the source getter at each command; nothing derived needs rebuilding.
+- `src/index.js` `resolve`: `stdin`, ordinary `env` and trusted `freddieEnv` are carried through verbatim (optional, no config default); the subprocess service owns the ambient scrub and merge order. `sandboxPolicy` is carried through verbatim but inert here (this executor never confines, the seam contract); a sandboxing subclass overrides `resolve()` to stamp its default.
+- `src/index.js` `spawnSpec` env: one explicit map layered `ENV_OVERRIDES`, then caller `env`, then trusted `freddieEnv`, so the trusted snapshot beats both; the subprocess service merges the whole map after its ambient scrub.
+- `src/index.js` `runArgv`: one deadline combines timeout and upstream cancellation and its disposal clears the timer. Only this executor's `BASH_TIMEOUT` reason counts as `timedOut`; outer deadlines count as aborts.
+- `src/index.js` `startArgv`: background runs ignore `timeoutMs` (callers stop them through `kill()` or `spec.signal`). A spawn failure produces no process output, so the note is delivered exactly once through the read path and is mutually exclusive with real stderr text; the failed spawn settles the process as `killed`. Any signal termination counts as `killed`, including a command signaling itself. Sections are joined with a single newline added only when stdout does not already end with one.
+- XXX(stateful-shell): evaluate persistent cwd or PTY sessions in `spawnSpec` when workflows require shell state.

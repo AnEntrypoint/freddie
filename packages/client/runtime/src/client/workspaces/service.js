@@ -65,18 +65,8 @@ export class WorkspaceRuntime {
   async connectWorkspace(workspaceId) {
     const workspace = this.list.getSnapshot().items.find(item => item.workspaceId === workspaceId)
     if (workspace === undefined) throw new Error(`workspaces.connectWorkspace: unknown workspace ${workspaceId}`)
-    // Coalesce concurrent connects: a create's summary lands without cwd
-    // until the host frame arrives, so a second call inside that window
-    // would miss the reuse scan and mint another hidden blank session.
     const inflight = this.connecting.get(workspaceId)
     if (inflight !== undefined) return inflight
-    // Reuse requires workspace membership (id in sessionIds AND same
-    // canonical cwd — the host's own membership rule), never cwd alone:
-    // a cwd match can belong to no account (sessions the CLI/TUI birthed at
-    // the host cwd, or a deleted/recreated registration) and reusing it
-    // would open a session no grouping surface shows under this workspace.
-    // An archived blank is never reused either: reuse would open a session
-    // no grouping surface can show, so New Session mints a fresh one instead.
     const archived = this.list.getSnapshot().archivedSessionIds
     const sessions = this.sessions.list.getSnapshot()
     for (const id of sessions.ids) {
@@ -310,11 +300,6 @@ export class WorkspaceRuntime {
     const workspace = this.manager.getSnapshot()
     const sessions = this.sessions.list.getSnapshot()
     const baselinesReady = workspace.phase === 'ready' && sessions.phase === 'ready'
-    // An archived current selection clears into the New Session view state —
-    // a hidden row must not stay open behind the list. Sweeping here covers
-    // every install path with one rule: the local unary echo, another tab's
-    // changed frame, and a reconnect baseline restoring a persisted
-    // selection that was archived while this client was away.
     if (sessions.current !== undefined && workspace.archivedSessionIds.includes(sessions.current)) {
       this.sessions.clear()
     }

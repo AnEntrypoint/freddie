@@ -11,8 +11,8 @@ import { assertNever } from './never.js'
 import { createMessage } from './message.js'
 
 /**
- * Incrementally assembles raw {@link StreamChunk}s into complete
- * {@link ContentBlock}s and a final assistant {@link Message}.
+ * Incrementally assembles raw {@link import('./types.js').StreamChunk}s into complete
+ * {@link import('./types.js').ContentBlock}s and a final assistant {@link import('./types.js').Message}.
  *
  * The agent loop feeds it while logging raw chunks for replay fidelity, then
  * reads `blocks()` / `message()` / `usage` / `finish` once the stream ends,
@@ -49,13 +49,13 @@ export class BlockAssembler {
       case 'text-delta':
       case 'reasoning-delta': {
         const partial = this.ensure(chunk.index, chunk.type === 'text-delta' ? 'text' : 'reasoning')
-        if (partial.block) return // closed by block-end; ignore stragglers
+        if (partial.block) return
         partial.text += chunk.text
         return
       }
       case 'tool-call-delta': {
         const partial = this.ensure(chunk.index, 'tool-call')
-        if (partial.block) return // closed by block-end; ignore stragglers
+        if (partial.block) return
         partial.toolCallId = chunk.id
         if (chunk.name) partial.toolCallName = chunk.name
         partial.toolCallArguments += chunk.argumentsDelta
@@ -63,8 +63,6 @@ export class BlockAssembler {
       }
       case 'block-end': {
         const partial = this.ensure(chunk.index, chunk.block.type)
-        // First close wins; ignoring re-close stragglers keeps streamed output
-        // and the final assembled block in agreement.
         if (partial.block) return
         partial.block = chunk.block
         return

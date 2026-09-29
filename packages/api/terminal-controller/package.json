@@ -1,0 +1,60 @@
+{
+  "name": "@freddie/freddie-terminal-controller",
+  "description": "Session-owned interactive user terminals over the freddie PTY registry: shell discovery, bounded screen recovery, and typed Remote control",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/api/terminal-controller"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./types": {
+      "default": "./src/types.js"
+    },
+    "./client": {
+      "default": "./src/client/index.js"
+    },
+    "./typert": {
+      "default": "./src/typert.host.js"
+    },
+    "./remote": {
+      "default": "./src/typert.remote-client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/**/*.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@freddie/freddie-crypto": "*",
+    "@freddie/freddie-deque": "*",
+    "@freddie/schemastery": "*",
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-sandbox-policy": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-terminal": "*",
+    "@freddie/freddie-typert-protocol": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-client-runtime": "*",
+    "@freddie/freddie-sandbox-policy": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/freddie-terminal": "*",
+    "@freddie/freddie-typert-protocol": "*"
+  }
+}

@@ -38,10 +38,6 @@
       "platform": "web"
     }
   },
-  "scripts": {
-    "bundle": "tsdown",
-    "watch": "tsdown --watch"
-  },
   "license": "MIT",
   "dependencies": {
     "@freddie/schemastery": "*",
@@ -74,7 +70,6 @@
   },
   "files": [
     "src/*.js",
-    "src/client/*.js",
-    "lib/client.js"
+    "src/client/*.js"
   ]
 }

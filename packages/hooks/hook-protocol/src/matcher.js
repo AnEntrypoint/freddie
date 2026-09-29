@@ -20,8 +20,6 @@ function compileRegex(pattern) {
   try {
     return new RegExp(pattern)
   } catch (_syntaxError) {
-    // RegExp construction is the try's only operation, so malformed pattern
-    // syntax is the only expected failure.
     return undefined
   }
 }
@@ -54,7 +52,6 @@ export function matcherDiagnostic(matcher, mode) {
  */
 export function matchesMatcher(matcher, query, mode) {
   if (isMatchAll(matcher)) return true
-  // matcher is a non-empty string past the match-all guard.
   const pattern = matcher
   if (mode === 'claude-code' && CLAUDE_LITERAL.test(pattern)) {
     return pattern.split('|').includes(query)

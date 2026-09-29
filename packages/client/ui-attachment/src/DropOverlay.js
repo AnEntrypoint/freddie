@@ -1,7 +1,3 @@
-// DropOverlay: full-viewport drop invitation, converted from a React
-// component using createPortal to a webjsx custom element that self-mounts
-// to document.body (Toast.tsx/Modal.tsx's pattern) instead of portaling.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './DropOverlay.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
@@ -44,6 +40,12 @@ export class FreddieDropOverlay extends HTMLElement {
 }
 
 defineElement('freddie-drop-overlay', FreddieDropOverlay)
+
+/**
+ * @typedef {object} DropOverlayProps
+ * @property {boolean} disabled - whether the drop target rejects the current drag (shows the disabled illustration and hides the description line).
+ * @property {{title: string, desc?: string}} labels - overlay title text, plus an optional description shown only while not disabled.
+ */
 
 /** Create (if needed) and update a DropOverlay mounted on `document.body`.
  * @param el - an existing mounted overlay (from a prior call), or null to create one.

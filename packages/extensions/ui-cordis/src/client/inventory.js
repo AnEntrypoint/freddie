@@ -30,7 +30,6 @@ export function createCordisInventory(
   const listeners = new Set()
   let snapshot = { rows: [], removed: new Set(), read: false }
   let inFlight
-  // Bumped by reset; a read whose generation is stale publishes nothing.
   let generation = 0
 
   const publish = (next) => {
@@ -60,8 +59,6 @@ export function createCordisInventory(
         (error) => {
           if (issued !== generation) return
           onError(error)
-          // A failed read keeps whatever was shown and says why: dropping the
-          // rows would turn a transient wire failure into "nothing is defined".
           publish({
             rows: snapshot.rows,
             removed: snapshot.removed,

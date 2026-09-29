@@ -33,9 +33,26 @@ export const GLOB_MAX_RESULTS = 100
  */
 export const GLOB_VCS_EXCLUDES = ['.git', '.svn', '.hg', '.bzr', '.jj', '.sl']
 
-/** Resolved glob-tool caps — plugin config after defaulting (see `Config` in index.ts). */
+/**
+ * Resolved glob-tool caps — plugin config after defaulting (see `Config` in
+ * `index.js`).
+ * @typedef {object} GlobCaps
+ * @property {boolean} sampleOverCapGlobResults
+ * @property {number} maxResults
+ * @property {number} maxMetaBytes
+ * @property {number} rawOutputMaxBytes
+ * @property {number} graceMs
+ * @property {number} stderrMaxBytes
+ * @property {number} timeoutMs
+ */
 
-/** Validated `glob` arguments. */
+/**
+ * Validated `glob` arguments: the caller-facing shape after
+ * {@link parseGlobArgs} accepted it.
+ * @typedef {object} GlobInput
+ * @property {string} pattern Non-empty glob pattern.
+ * @property {string} [path] Non-empty search root, when given.
+ */
 
 /**
  * Validate value constraints the schema DSL can't express: a non-blank
@@ -70,10 +87,6 @@ export function buildGlobCommand(input) {
     '--sort=modified',
     '--no-ignore',
     '--hidden',
-    // Two negated globs per VCS name: the bare form prunes the directory
-    // during traversal; the /** form still excludes the contents when the
-    // search root is AT or INSIDE the directory (where the bare form,
-    // matched against root-prefixed paths, never fires).
     ...GLOB_VCS_EXCLUDES.flatMap(name => [
       `--glob=!**/${name}`,
       `--glob=!**/${name}/**`,
@@ -86,6 +99,10 @@ export function buildGlobCommand(input) {
 /**
  * The inline page of a capped `glob` result, plus how much of the complete
  * result's top level it reaches.
+ * @typedef {object} GlobResultPage
+ * @property {string[]} items The paths on this page.
+ * @property {number} shown How many top-level entries contributed to the page.
+ * @property {number} total How many top-level entries the complete result spans.
  */
 
 /** Remove the displayed search-root prefix before choosing a top-level group. */
@@ -198,8 +215,6 @@ function formatGlobPage(items, seen, spillRef, basis) {
 /** Bound and format one canonical path list for the Native surface relative to its search root. */
 function renderGlobPaths(paths, caps, root, spillRef) {
   if (paths.length === 0) return 'No files found'
-  // A result that fits is shown whole, untouched: modification-time order is the
-  // tool's contract, and over a complete result it is what answers age questions.
   if (paths.length <= caps.maxResults) return paths.join('\n')
   if (!caps.sampleOverCapGlobResults) {
     return formatGlobPage(paths.slice(0, caps.maxResults), paths.length, spillRef, '.')

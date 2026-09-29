@@ -38,8 +38,6 @@ export async function writeDefaultPreset(api, id) {
   try {
     response = await api.settings.update({ ns: AGENT_PRESET_SETTINGS_NS, patch: { default: id } })
   } catch (error) {
-    // The transport rejected rather than answering; the caller must be able to
-    // say so instead of the row silently snapping back.
     return messageOf(error)
   }
   return response.result.ok ? undefined : response.result.error.message
@@ -114,8 +112,6 @@ export function presetOptions(presets) {
 const INITIAL = {
   status: 'idle',
   error: null,
-  // Assumed until `load()` asks; a row that has not read yet renders nothing
-  // interactive anyway (status 'idle').
   writable: true,
   currentValue: '',
   options: [],
@@ -154,18 +150,12 @@ export class AgentPresetSettingsController {
       this.set({ status: 'unavailable', options: [], currentValue: '' })
       return
     }
-    // The roster says what may be chosen; the shared mirror says whether this
-    // browser may write the choice down. A non-loopback browser's mirror never
-    // answers, so the row stays read-only rather than offering a control
-    // whose write the Host would refuse.
     await this.describeFace.ensure()
     this.set({
       status: 'ready',
       error: null,
       writable: this.describeFace.getSnapshot().view?.writable ?? false,
       options: presetOptions(presets),
-      // A roster can mark nothing default: settings can name a preset that
-      // was since deleted, and the picker still has to show something.
       currentValue: presets.find(preset => preset.isDefault)?.id ?? first.id,
     })
   }
@@ -186,8 +176,6 @@ export class AgentPresetSettingsController {
       this.set({ status: 'ready', currentValue: before.currentValue, error: failure })
       return
     }
-    // Re-read rather than trust the patch: the host resolves the default
-    // through the same roster the row displays.
     await this.load()
   }
 }

@@ -7,9 +7,6 @@
   padding: 40px;
 }
 
-/* Same mask recipe as the Modal primitive and the settings dialog. A separate
-   layer, not a background on .backdrop: backdrop-filter there would blur the
-   previewed image and the close control along with the page. */
 .freddie-imageLightbox__mask {
   position: absolute;
   inset: 0;

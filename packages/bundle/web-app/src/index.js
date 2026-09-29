@@ -24,7 +24,7 @@ import { scrubbedParentEnv } from '@freddie/freddie-subprocess'
 /** Stable Cordis plugin name. */
 export const name = 'web-app'
 
-/** This dsh installation's root, from either this package's source or built entry. */
+/** This freddie installation's root, from either this package's source or built entry. */
 const SOURCE_ROOT = fileURLToPath(new URL('../../../..', import.meta.url))
 
 /** Runtime service that releases Web rows after bind-dependent values resolve. */
@@ -60,9 +60,7 @@ export const Config = z.object({
 /** Environment variable naming the canonical local URL of this Web GUI. */
 const FREDDIE_WEB_URL = 'FREDDIE_WEB_URL'
 
-// Display-only mirror of the webserver schema's loopback host: the address the
-// local URL always prints. Not a source of truth — the schema is.
-const LOOPBACK_HOST = '127.0.0.1'
+const DISPLAYED_LOOPBACK_HOST = '127.0.0.1'
 /** The webserver schema's all-interfaces bind literal. */
 const ALL_INTERFACES_HOST = '0.0.0.0'
 
@@ -75,6 +73,11 @@ function launchedThroughSsh(ctx) {
   })
 }
 
+/** Whether the loopback URL is reachable from the operator's own browser, which SSH forwarding is not. */
+function browserSharesThisHost(ctx) {
+  return !launchedThroughSsh(ctx)
+}
+
 const BROWSER_OPENER_MODULE = import.meta.resolve('open')
 
 const BROWSER_OPENER_PROGRAM = `
@@ -82,7 +85,6 @@ try {
   const { default: open } = await import(${JSON.stringify(BROWSER_OPENER_MODULE)})
   const launcher = await open(process.argv[1])
   if (process.platform === 'win32') {
-    // open resolves at PowerShell spawn; keep it referenced until that launcher hands the URL to Windows.
     const code = launcher.exitCode ?? await new Promise((resolve, reject) => {
       function onError(error) {
         launcher.off('close', onClose)
@@ -100,7 +102,6 @@ try {
   }
   process.exitCode = 0
 } catch (error) {
-  // The parent turns this exit into the manual-URL warning.
   console.error(error)
   process.exitCode = 1
 }
@@ -145,7 +146,7 @@ function webSurfacePrompt(webUrl) {
 function localWebUrl(ctx) {
   const port = ctx.get('webServer')?.port
   if (port === undefined) throw new Error('web-app: webServer service missing while resolving Web runtime')
-  return `http://${LOOPBACK_HOST}:${String(port)}`
+  return `http://${DISPLAYED_LOOPBACK_HOST}:${String(port)}`
 }
 
 /**
@@ -205,6 +206,21 @@ async function openBrowser(url) {
   })
 }
 
+const stayQuietBecauseLoaderReportsFailedBoot = () => {}
+
+/** Run `announce` once the Loader tree has settled, or at once in a hand-built tree without a Loader. */
+function announceWhenTreeSettled(ctx, announce) {
+  const settled = ctx.get('loader')?.await()
+  if (settled === undefined) {
+    announce()
+    return
+  }
+  void settled.then(() => {
+    const treeDisposedDuringBoot = ctx.get('webServer') === undefined
+    if (!treeDisposedDuringBoot) announce()
+  }, stayQuietBecauseLoaderReportsFailedBoot)
+}
+
 /** Test hooks for the built dist and native browser handoff; production never mutates them. */
 export const internals = { resolveDistIndex, openBrowser }
 
@@ -216,10 +232,7 @@ export const internals = { resolveDistIndex, openBrowser }
  */
 export function apply(ctx, config) {
   const runtime = resolveLanTrust(ctx.webServer.host, config.trustedHosts)
-  // The loopback URL belongs to this host. Under SSH, the operator reaches it
-  // through a local forwarding address that this process cannot derive.
-  const handoffBrowser = config.openBrowser && !launchedThroughSsh(ctx)
-  // Release dependent rows only after bind-dependent trust has been sampled once.
+  const handoffBrowser = config.openBrowser && browserSharesThisHost(ctx)
   ctx.provide(WEB_RUNTIME_SERVICE, runtime)
   ctx.plugin(FrontendStatic, { distIndex: internals.resolveDistIndex() })
   if (config.surfaceContext) {
@@ -242,18 +255,12 @@ export function apply(ctx, config) {
     })
   }
   if (config.printUrl || handoffBrowser) {
-    // The URL line and browser handoff are readiness signals: supervisors RPC
-    // as soon as they observe the line, while a browser requests the page as
-    // soon as it opens. Neither may run while sibling rows such as the /api
-    // route owner are still mounting. Await Loader settlement first; a
-    // hand-built tree without a Loader is already the complete tree.
     const announceReady = () => {
       const webUrl = localWebUrl(ctx)
-      // Reuse the exact LAN snapshot provided to the /api trust fence.
-      const lanCandidate = runtime.lanAddresses[0]
+      const trustFenceLanAddress = runtime.lanAddresses[0]
       const port = ctx.webServer.port
       if (config.printUrl) {
-        console.log(`freddie web: ${webUrl}${lanCandidate === undefined ? '' : ` (LAN: http://${lanCandidate}:${String(port)})`}`)
+        console.log(`freddie web: ${webUrl}${trustFenceLanAddress === undefined ? '' : ` (LAN: http://${trustFenceLanAddress}:${String(port)})`}`)
       }
       if (handoffBrowser) {
         console.log('freddie web: opening the default browser; pass --no-open to disable')
@@ -263,20 +270,6 @@ export function apply(ctx, config) {
         })
       }
     }
-    // This row's own activation can precede a sibling failure. The app owns
-    // readiness by waiting for its Loader tree, or announces at once in a
-    // hand-built context without Loader.
-    const settled = ctx.get('loader')?.await()
-    if (settled === undefined) announceReady()
-    else {
-      void settled.then(() => {
-        // The tree can be disposed while the boot was in flight (early
-        // SIGTERM); a URL line or browser tab for a dead server would only
-        // mislead, and reading the torn-down port would turn a clean shutdown
-        // into a crash.
-        if (ctx.get('webServer') !== undefined) announceReady()
-      // Loader reports a failed boot; this row only stays quiet.
-      }, () => {})
-    }
+    announceWhenTreeSettled(ctx, announceReady)
   }
 }

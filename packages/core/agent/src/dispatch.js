@@ -35,10 +35,6 @@ export function agentEvents(ctx, agent, carrier = agentCarrier(agent)) {
   const fused = (payload) => ({ ...payload, agent })
   return {
     emit(name, payload) {
-      // Cordis emit invokes callbacks through Array.map: one synchronous throw
-      // starves later listeners, and returned promises are discarded. Agent
-      // notifications are non-vetoing, so resolve the same filtered callback
-      // set ourselves and contain both failure modes independently.
       const args = [carrier, name, fused(payload)]
       const callbacks = ctx.events.dispatch('emit', args)
       for (const callback of callbacks) {

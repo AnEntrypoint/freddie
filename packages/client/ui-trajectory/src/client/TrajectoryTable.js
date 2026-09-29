@@ -1870,7 +1870,6 @@ export class FreddieTrajectoryTable extends HTMLElement {
 
     const toggleUnix = () => { this.#showUnix = !this.#showUnix; this.#render() }
 
-    // Scroll-to-record and timeline-focus effects (post-render, DOM-dependent)
     queueMicrotask(() => {
       this.#applyPendingScroll(records, virtualizationEnabled, virtualIndexByRecordId, rowVirtualizer)
       this.#applyTimelineFocus(
@@ -2655,7 +2654,6 @@ export class FreddieTrajectoryTable extends HTMLElement {
     applyDiff(this, vdom)
     this.#tablePaneEl = this.querySelector(`.${css.tablePane}`)
     if (virtualizationEnabled && this.#tablePaneEl !== null && this.#virtual.virtualizer !== null) {
-      // Ensure the virtualizer observes the (possibly newly mounted) pane.
       this.#virtual.virtualizer.scrollElement = this.#tablePaneEl
     }
     this.#syncScrollInit(historyLoading, virtualizationEnabled, rowVirtualizer)

@@ -41,7 +41,7 @@ function defaultLabel(prompt) {
 /**
  * One live script execution inside the worker. Constructed per run by the
  * session; `drive()` is called exactly once and NEVER rejects — every failure
- * becomes a {@link WorkflowResult} with a non-`completed` stop reason. The
+ * becomes a {@link import('@freddie/freddie-workflow/src/types.js').WorkflowResult} with a non-`completed` stop reason. The
  * host owns cancellation and cleanup of any dropped child work.
  */
 export class WorkflowExecution {
@@ -66,12 +66,6 @@ export class WorkflowExecution {
     this.limits = limits
     this.observer = observer
     this.children = children
-    // Compile FIRST: a body syntax error must throw out of the constructor
-    // before any realm state exists. The host pre-parses the identical
-    // wrapper, so under one Node version this throw is unreachable in
-    // production — the session still maps it to an error result defensively.
-    // lineOffset compensates for the wrapper line, so stack traces carry the
-    // script's own line numbers.
     try {
       this.compiled = new vm.Script(`(async () => {\n${body}\n})()`, {
         filename: `workflow:${meta.name}`,
@@ -89,12 +83,9 @@ export class WorkflowExecution {
       pipeline: (items, ...stages) => this.contain(this.pipeline(items, stages)),
       phase: (title) => { this.phase(title) },
       log: (message) => { this.log(message) },
-      // workerData already performed the real cross-thread structured clone.
       args,
     }
     for (const [key, value] of Object.entries(globals)) {
-      // Data properties on the contextified global; frozen shape not required —
-      // a script overwriting its own hooks only sabotages itself.
       this.context[key] = typeof value === 'function' ? Object.freeze(value) : value
     }
   }
@@ -138,7 +129,7 @@ export class WorkflowExecution {
 
   /**
    * Run the script to settlement. Resolves — never rejects — with the run's
-   * {@link WorkflowResult}: the materialized return value on `completed`, the
+   * {@link import('@freddie/freddie-workflow/src/types.js').WorkflowResult}: the materialized return value on `completed`, the
    * failure message on `error`, and `cancelled` when the script died of
    * cancellation. This method only chooses the result; the session publishes
    * it and the host owns terminal child cancellation.
@@ -147,27 +138,16 @@ export class WorkflowExecution {
    */
   async drive() {
     try {
-      // Cancelled before the body ever ran (an already-aborted start signal,
-      // relayed by the host before its `go`): the script must not execute at
-      // all, let alone report `completed`.
       if (this.isCancelled()) throw this.cancelledError()
       const scriptPromise = this.compiled.runInContext(this.context, { timeout: this.limits.syncTimeoutMs })
       const raw = await this.contain(Promise.resolve(scriptPromise))
-      // Cancelled while the body ran: a script that settled without touching
-      // another hook (or without any) must still report `cancelled` — the
-      // holder asked for cancellation and `completed` would be a lie.
       if (this.isCancelled()) throw this.cancelledError()
       const value = raw === undefined ? null : this.materializeResult(raw)
       return { value, stopReason: 'completed', agentsStarted: this.started }
     } catch (error) {
-      // Any failure after cancel() reports `cancelled` with the canonical
-      // reason — the reject path mirrors the resolve path's post-settle check.
       if (this.isCancelled()) {
         return { value: null, stopReason: 'cancelled', error: this.cancelledError().message, agentsStarted: this.started }
       }
-      // renderThrown is total (thrown values of any realm), so this arm
-      // cannot throw — drive() resolving is the `result` never-rejects contract
-      // contract.
       return { value: null, stopReason: 'error', error: renderThrown(error), agentsStarted: this.started }
     }
   }
@@ -179,13 +159,11 @@ export class WorkflowExecution {
    * the script does await it, it still observes the rejection.
    */
   contain(promise) {
-    promise.catch(() => { /* consumed: see method contract — a dropped hook promise must not surface an unhandled rejection */ })
+    promise.catch(() => {})
     return promise
   }
 
   cancelledError() {
-    // cancel() arms cancelError before any caller can observe isCancelled()
-    // === true; the fallback guards the type, not a reachable path.
     /* v8 ignore next */
     return this.cancelError ?? new WorkflowError('workflow run cancelled', 'CANCELLED')
   }
@@ -252,11 +230,6 @@ export class WorkflowExecution {
 
     await this.acquireSlot()
     try {
-      // Re-check after the acquire: the await yields at least one microtask
-      // tick even when a slot is free, and a queued waiter resumes a tick
-      // after its release — a cancel() landing in either window must not
-      // reach the host (which would refuse anyway, but the refusal reads as
-      // a start failure rather than the cancellation it is).
       this.throwIfCancelled()
       let run
       try {
@@ -267,16 +240,9 @@ export class WorkflowExecution {
           ...opts.model !== undefined ? { model: opts.model } : {},
         })
       } catch (error) {
-        // The host refuses starts once the run is cancelled — a refusal that
-        // races our own cancel state must read as the cancellation it is,
-        // not as a broken contract.
         if (this.isCancelled()) throw this.cancelledError()
         throw new WorkflowError(`agent() could not start a child: ${renderThrown(error)}`, 'AGENT_START', { cause: error })
       }
-      // The start round-trip yields to the event loop, so a cancel CAN land
-      // between the host starting the child and this continuation running —
-      // wind the fresh child down instead of leaving it live behind a dead
-      // script.
       if (this.isCancelled()) {
         await run.dispose()
         throw this.cancelledError()
@@ -288,11 +254,6 @@ export class WorkflowExecution {
         try {
           result = await run.result
         } catch (error) {
-          // A rejected child result is an INFRASTRUCTURE fault relayed by the
-          // host — distinct from a child that failed and resolved. Pair the
-          // lifecycle before propagating, and propagate FATAL: an ordinary
-          // throw would dissolve to a per-item null inside the combinators,
-          // and a broken provider must not read as a failed child.
           if (this.isCancelled()) {
             this.observer.agentEnd({ ...info, outcome: 'cancelled' })
             throw this.cancelledError()
@@ -302,8 +263,6 @@ export class WorkflowExecution {
         }
         if (result.stopReason === 'completed') {
           if (opts.schema !== undefined) {
-            // The provider honored outputSchema (capability-gated at start), so
-            // a completed run without a structured value is a child failure.
             if (result.structured === undefined) {
               this.observer.agentEnd({ ...info, outcome: 'failed' })
               return null
@@ -314,8 +273,6 @@ export class WorkflowExecution {
           this.observer.agentEnd({ ...info, outcome: 'completed' })
           return outputText(result.output)
         }
-        // A cancelled RUN kills the script; a child that failed for its own
-        // reasons resolves null (scripts .filter(Boolean) per the CC contract).
         if (this.isCancelled()) {
           this.observer.agentEnd({ ...info, outcome: 'cancelled' })
           throw this.cancelledError()
@@ -394,10 +351,6 @@ export class WorkflowExecution {
       try {
         return await thunk()
       } catch (error) {
-        // Hook failures are WorkflowErrors built OUTSIDE the script's realm;
-        // fatality is recognized by `instanceof` against this realm's class —
-        // a script-built object can never pass it, so fatality cannot be
-        // forged (nor accidentally dissolved).
         if (isFatalWorkflowError(error)) throw error
         return null
       }
@@ -428,9 +381,6 @@ export class WorkflowExecution {
         }
         return value
       } catch (error) {
-        // An ordinary stage throw drops the ITEM to null and skips its
-        // remaining stages; a fatal WorkflowError (see parallel()) kills the
-        // whole script.
         if (isFatalWorkflowError(error)) throw error
         return null
       }

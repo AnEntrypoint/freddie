@@ -1,9 +1,3 @@
-// Hero chrome for the blank-draft phase of ConversationRoot: fish headline,
-// glow backdrop, and the workspace row. Pure presentation — the resident
-// composer is NOT rendered here (it keeps its own stable tree position in
-// ConversationRoot so the textarea survives the hero → composer flip); CSS
-// positions it over this shell's glow area during the hero phase.
-
 import { createElement as h } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14, IconFolderClose16, IconFolderOpen16,
@@ -55,12 +49,16 @@ export function WorkspaceChip({ buttonRef, label, menuOpen = false, onClick, t }
 }
 
 
-/** Hero chrome props. The workspace row rides the InputBar accessory hole, not here. */
+/**
+ * Hero chrome props. The workspace row rides the InputBar accessory hole, not here.
+ * @typedef {object} HeroShellProps
+ * @property {*} children - accessory content rendered after the hero chrome (e.g. the composer takeover).
+ */
 
 /**
  * Render the hero chrome (no headline/logo/preview badge -- freddie is
  * already named in the sidebar; no glow, no composer, no workspace row —
- * the glow is the owner's {@link HeroGlow}).
+ * the glow belongs to the hero's owner, not this component).
  * @param props - see {@link HeroShellProps}.
  * @returns the centered hero element tree.
  */
@@ -69,10 +67,6 @@ export function HeroShell({ children }) {
     h('div', { class: css.root ?? '' },
       h('div', { class: css.stack ?? '' },
         h('div', { class: css.body ?? '' },
-          // The resident composer (ConversationRoot's root-owned scrollport;
-          // the workspace row rides the stack above the card) is CSS-centered
-          // in that scroll body during hero — see
-          // ConversationRoot.module.css [data-phase='hero'].
         ),
       ),
       children,

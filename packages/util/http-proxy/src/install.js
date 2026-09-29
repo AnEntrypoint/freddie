@@ -97,9 +97,6 @@ function snapshotProxyEnv() {
  * @returns {() => void} a function restoring every name to what it held before this call.
  */
 function writeProxyEnv(values) {
-  // Snapshot EVERY name before writing any of them. Windows folds environment names case-insensitively,
-  // so reading the uppercase spelling after writing the lowercase one would read back the value just
-  // written and restore the policy instead of the user's environment.
   const previous = snapshotProxyEnv()
   for (const name of Object.keys(previous)) {
     const value = values[name]
@@ -132,9 +129,6 @@ async function createPolicyDispatcher(policy) {
     factory(origin, options) {
       const proxy = proxyForUrl(policy, new URL(origin.toString()))
       if (proxy !== undefined) return new ProxyAgent({ ...options, uri: proxy })
-      // What undici's own default factory builds for these options, which `factory` replaces
-      // wholesale. It reaches for a bare `Client` only at `connections: 1`, an option this
-      // dispatcher never carries: it is constructed with undici's defaults.
       return new Pool(origin, options)
     },
   })
@@ -158,10 +152,6 @@ async function createPolicyDispatcher(policy) {
 async function installGlobalProxy(policy) {
   const previousPolicy = active
   if (policy.source === 'none') {
-    // A direct policy mounted over an installed one must actually stop proxying. Recording the policy
-    // alone would leave the previous agent as the global dispatcher, so a plain `fetch()` would keep
-    // tunnelling while `proxyForUrl()` reported a direct connection — and `mode: 'off'` would be a
-    // silent no-op. With nothing installed there is nothing to displace.
     if (previousPolicy === undefined) {
       active = policy
       return () => {
@@ -170,10 +160,6 @@ async function installGlobalProxy(policy) {
       }
     }
     const previousInstalled = installed
-    // The install underneath published its normalized policy into `process.env`, which is what a
-    // spawned child copies. With no policy active there is no normalization to stand behind, so the
-    // user's own values return for the window and the outer install's come back when it ends. An
-    // install underneath that proxied nothing published nothing, and there is nothing to put back.
     const restoreEnv = inheritedProxyEnv === undefined ? undefined : writeProxyEnv(inheritedProxyEnv)
     const undici = await import('undici')
     const previous = undici.getGlobalDispatcher()
@@ -247,8 +233,6 @@ export function proxyEnvironmentForChild() {
   const overlay = { NODE_USE_ENV_PROXY: '1' }
   for (const [field, names] of Object.entries(POLICY_ENV_NAMES)) {
     const resolved = policy[field]
-    // Naming a scheme in either casing claims that scheme: the child then gets exactly what the
-    // user wrote, in the casing they wrote it, rather than a value derived for this process.
     const named = field !== 'noProxy' && names.some(name => inherited[name] !== undefined)
     for (const name of names) overlay[name] = named ? inherited[name] : resolved
   }

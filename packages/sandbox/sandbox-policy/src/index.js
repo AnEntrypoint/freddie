@@ -1,7 +1,7 @@
 /**
  * The sandbox POLICY home (`ctx.sandboxPolicy`): the single owner of the
  * deployment's sandbox fallbacks plus per-session resolution: the file-effect
- * {@link SandboxMode}, the `workspace-write` root, and the override kit (the
+ * {@link import('./session-mode.js').SandboxMode}, the `workspace-write` root, and the override kit (the
  * `sandbox/mode` event, its fold, and its write path, from `./session-mode.js`).
  * Before each agent request, the owner also contributes the resolved policy to
  * the cache-safe runtime-context snapshot. The agent loop logs that snapshot as
@@ -54,6 +54,18 @@ function renderPolicyContext(policy) {
  * deployment that wants a workspace-writable agent opts in explicitly). The
  * runner choice is NOT here (it is the `ctx.sandbox` provider's config), nor
  * is any per-family knob: this is the one shared policy home.
+ * @typedef {object} SandboxPolicyServiceConfig
+ * @property {import('./session-mode.js').SandboxMode} [mode] - deployment default file-effect mode.
+ * @property {string} [workspaceRoot] - absolute workspace-write fallback root; defaults to `process.cwd()`.
+ */
+
+/**
+ * The fully resolved per-call sandbox policy: the mode an enforcing capability
+ * runs under plus the workspace-write boundary, as returned by {@link resolve}.
+ * @typedef {object} SandboxPolicy
+ * @property {import('./session-mode.js').SandboxMode} mode - the mode this exact call runs under.
+ * @property {string} workspaceRoot - absolute `workspace-write` boundary for this call.
+ * @property {import('@freddie/freddie-session').SessionId} [sessionId] - the resolving session, when one was given.
  */
 
 /**
@@ -63,11 +75,8 @@ function renderPolicyContext(policy) {
  * mode log and immutable cwd travel together to every enforcing capability.
  */
 export class SandboxPolicyService extends Service {
-  // Inline schema call: the config catalog walks `static Config` statically.
   static Config = z.object({
     mode: z.union(['read-only', 'workspace-write', 'danger-full-access']).default('read-only'),
-    // No schema default: process.cwd() is resolved in the constructor so the
-    // stored root is always absolute regardless of how it was supplied.
     workspaceRoot: z.string(),
   })
 
@@ -77,9 +86,6 @@ export class SandboxPolicyService extends Service {
   workspaceRoot
   constructor(ctx, config) {
     super(ctx, 'sandboxPolicy')
-    // schemastery (static Config) already filled `mode`; the cast records that
-    // runtime fact. `workspaceRoot` has NO schema default, so its fallback to
-    // the process cwd is real branching, resolved absolute either way.
     this.defaultMode = config.mode
     this.workspaceRoot = resolveWorkspaceRoot(config.workspaceRoot ?? process.cwd())
 

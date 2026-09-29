@@ -9,7 +9,6 @@ import { WebApiClient } from './web-api-client.js'
 import { createWebConnectionRpc } from './rpc.js'
 import { isLoopbackHostname } from '../loopback-hostname.js'
 
-// ---- Contract re-exports (browser-safe apiproxy channels + core types) ----
 export {
   RpcId,
   AbstractApiClient,
@@ -78,14 +77,11 @@ export function apply(ctx) {
     start(sinks, config) {
       if (started) throw new Error('connection: the stream loop is already owned by another consumer')
       started = true
+      let owned = true
       const controller = new ConnectionController(api, {
         ...sinks,
         onConnected: (next) => {
           publishDescription(next)
-          // A description subscriber may synchronously stop the loop. In that
-          // case publishDescription(undefined) has already retracted this
-          // generation, so do not leak its stale connected notification to
-          // the consumer sink afterward.
           if (!Object.is(description, next)) return
           sinks.onConnected?.(next)
         },
@@ -99,6 +95,10 @@ export function apply(ctx) {
       return {
         stop: () => {
           controller.stop()
+          if (owned) {
+            owned = false
+            started = false
+          }
           publishState('offline')
           publishDescription(undefined)
         },

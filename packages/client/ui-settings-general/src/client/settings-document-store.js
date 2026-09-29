@@ -69,8 +69,6 @@ export class SettingsDocumentStore {
   #derive() {
     const mirrored = this.describeFace.getSnapshot()
     if (mirrored.view === undefined) {
-      // A held failure with no answer means the document cannot be located;
-      // without one the read is still in flight and loading stands.
       if (mirrored.error !== null) {
         this.store.update((state) => {
           state.status = 'unavailable'

@@ -3,7 +3,7 @@
 
 # Inherited Cordis API
 
-The framework `ctx` members and events every plugin sees beyond the harness tier — first-party framework source ([framework/README.md](../../framework/README.md)), summarized tersely so the harness pages stay focused on repository-owned vocabulary. Detailed Context, Fiber, Registry, and Service APIs are generated in [context.md](context.md), [fiber.md](fiber.md), [registry.md](registry.md), and [service.md](service.md); the event-dispatch methods in [events.md](events.md).
+The framework `ctx` members and events every plugin sees beyond the harness tier — first-party framework source ([framework/README.md](../../framework/README.md)), summarized tersely so the harness pages stay focused on repository-owned vocabulary. Detailed Context, Fiber, Registry, and Service APIs are documented in [context.md](context.md), [fiber.md](fiber.md), [registry.md](registry.md), and [service.md](service.md); the event-dispatch methods in [events.md](events.md).
 
 This file was originally generated from source by `scripts/gen-cordis-catalog.ts`. That script and its `verify-cordis-catalog` freshness check no longer exist, so this page is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and include the original source JSDoc immediately before each event or service method. doc-typecheck skips these bare declaration fragments; type names in a signature link to the page that documents them.
 

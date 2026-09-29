@@ -5,7 +5,8 @@
  *
  * Nothing here imports `undici`, so the module stays loadable in a runtime with no Node transport.
  *
- * @typedef {{ get(name: string): { readonly value: string } | undefined }} EnvLookup
+ * @typedef {object} EnvLookup
+ * @property {function(string): ({ readonly value: string } | undefined)} get
  *   The one thing resolution needs from an environment: a name in, the winning value out. The
  *   launcher's snapshot satisfies this structurally, matching `@freddie/freddie-launch-environment`.
  * @typedef {{ readonly httpProxy?: string; readonly httpsProxy?: string; readonly noProxy: string; readonly source: 'env' | 'none' }} ProxyPolicy
@@ -203,8 +204,6 @@ export function isLoopbackHost(hostname) {
   const host = hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase()
   if (host === 'localhost' || host.endsWith('.localhost')) return true
   if (host === '::1' || host === '::' || host === '0.0.0.0') return true
-  // An IPv4-mapped IPv6 address may keep its dotted tail or, once a URL has normalized it, carry
-  // the same four bytes as two hex groups: `::ffff:127.0.0.1` and `::ffff:7f00:1` are one address.
   const mappedHigh = /^::ffff:([0-9a-f]{1,4}):[0-9a-f]{1,4}$/.exec(host)?.[1]
   if (mappedHigh !== undefined) return Number.parseInt(mappedHigh, 16) >>> 8 === 127
   return LOOPBACK_IPV4.test(host.startsWith('::ffff:') ? host.slice('::ffff:'.length) : host)
@@ -222,8 +221,6 @@ export function isLoopbackHost(hostname) {
  * @returns {boolean} true when the URL must bypass the proxy.
  */
 export function bypassesProxy(noProxy, url) {
-  // `URL.hostname` keeps the brackets around an IPv6 literal, while a bypass entry may be written
-  // either way, so both sides are unbracketed before they are compared.
   const host = url.hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase()
   const port = url.port !== '' ? url.port : url.protocol === 'https:' ? '443' : '80'
   for (const raw of noProxy.split(/[,\s]+/)) {
@@ -255,8 +252,6 @@ export function resolveProxyPolicy(env) {
   const envHttp = acceptProxyUrl(readEnv(env, 'http_proxy'), diagnostics)
   const envHttps = acceptProxyUrl(readEnv(env, 'https_proxy'), diagnostics)
   const httpProxy = resolveScheme(envHttp, allValue)
-  // HTTPS falls back to the HTTP proxy last, matching undici — but never past a value the user named
-  // for HTTPS and this package refused.
   const httpsProxy = resolveScheme(envHttps, allValue, httpProxy)
   if (httpProxy === undefined && httpsProxy === undefined) return { policy: DIRECT_POLICY, diagnostics }
   return {

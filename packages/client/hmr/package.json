@@ -58,6 +58,7 @@
     "src/index.js",
     "src/invariant.js",
     "src/events.js",
+    "src/handles.js",
     "src/client/index.js"
   ]
 }

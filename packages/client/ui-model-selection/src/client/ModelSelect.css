@@ -3,22 +3,16 @@
   min-width: 0;
 }
 
-/* Figma 313:14108 ToggleButton: 13/20 medium secondary label, 4px gap,
-   12px caption chevron; 28px chip height matches the sibling Plan /
-   Read-only selects in the same tool row. */
 .freddie-modelSelect__trigger {
   display: flex;
   align-items: center;
   gap: 4px;
   min-width: 0;
-  /* Legacy fallback, then a row-relative cap that grants long names more
-     room without letting this trailing control consume the composer. */
   max-width: 220px;
   max-width: min(360px, 45cqw);
   height: 28px;
   padding: 0 4px 0 8px;
   border: none;
-  /* Rounded chip chrome, matching the sibling permission trigger. */
   border-radius: 24px;
   outline: none;
   background: transparent;
@@ -49,7 +43,6 @@
   white-space: nowrap;
 }
 
-/* Effort value beside the model name (mock's 'High': same 13/20/500, caption tone). */
 .freddie-modelSelect__triggerEffort {
   flex: 0 0 auto;
   color: var(--freddie-alias-label-caption);
@@ -72,26 +65,17 @@
   z-index: 20;
   display: flex;
   flex-direction: column;
-  /* Let the visible pane's rows set the card width, but keep pathological ids
-     and narrow screens inside a bounded card where ellipsis remains. */
   width: max-content;
   min-width: min(240px, calc(100vw - 32px));
   max-width: min(420px, calc(100vw - 32px));
   max-height: min(360px, calc(100vh - 96px));
   overflow: hidden;
   padding: 4px;
-  /* Surface tokens match the Menu primitive card (ui-primitives
-   * Menu.module.css) so every dropdown reads as the same material. */
   border: 1px solid var(--freddie-alias-border-inverted);
   border-radius: 12px;
   background: var(--dsw-specific-menu);
   box-shadow: var(--dsw-shadow-lv3);
   color: var(--freddie-alias-label-primary);
-  /* Elevated surface: the scrollbar thumb takes the l2 elevation tokens.
-     Declared here rather than on the scrolling `.groups` child so the
-     elevation choice sits with the surface; the custom properties inherit
-     down to whichever descendant actually scrolls (see ui-theme
-     styles/scrollbar.css for the rebinding contract). */
   --freddie-scrollbar-thumb: var(--freddie-alias-scrollbar-bg-l2);
   --freddie-scrollbar-thumb-hover: var(--freddie-alias-scrollbar-hover-l2);
 }
@@ -179,8 +163,6 @@
   background: var(--freddie-alias-interactive-bg-hover);
 }
 
-/* Selection marker is the trailing check, not a fill — matches the Menu
- * primitive's selected treatment. */
 .freddie-modelSelect__selected {
   background: transparent;
 }
@@ -223,9 +205,6 @@
   color: var(--freddie-alias-label-primary);
 }
 
-/* Two-level root cells (figma 496:26454 .Menu_cell): 40px row, 10px side
-   padding, 8px gap, 10px radius; 14/22 label in primary, value in the
-   #81858C tertiary tone, right chevron drilling into the sub-list. */
 .freddie-modelSelect__cell {
   box-sizing: border-box;
   display: flex;

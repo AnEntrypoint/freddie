@@ -16,7 +16,7 @@ import { queueDockEntry } from './queue/QueueDock.js'
 import './skeleton/ConversationRoot.js'
 import './skeleton/ConversationSession.js'
 import { DetailsPanel } from './skeleton/DetailsPanel.js'
-import { en, NS, zh } from './locales.js'
+import { en, NS } from './locales.js'
 import { registerConversationNodes } from './conversation-nodes/register.js'
 import { registerChatNodeRenderers } from './chat/register-node-renderers.js'
 import { CONVERSATION_SETTINGS_NAMESPACE } from '../submission-settings.js'
@@ -27,9 +27,6 @@ export const inject = [
   'conversationEvents', 'conversationViews',
 ]
 
-// Static no-session sources for the composer-bar hooks compartment: module
-// constants so the render side's per-source hook cache (observableHook) keeps
-// one identity across every no-session render.
 const ABSENT_NOTICES = {
   getSnapshot: () => null,
   subscribe: () => () => {},
@@ -95,14 +92,10 @@ export function apply(ctx) {
   registerConversationNodes(ctx)
   registerChatNodeRenderers(ctx)
 
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-conversation: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-conversation: dictionaries')
 
-  // Registration-time text (the view tab label) reads through the bound
-  // translate as a thunk, so it follows the active locale without
-  // re-registration; components read the standard `t` seat instead.
   const t = ctx.locale.bind(NS)
 
-  // Apply-time construction keeps store identity bound to this fiber.
   const chatStore = createChatStore()
   const submissionPolicy = new ComposerSubmissionPolicy(
     ctx.settingsScope.bind({ namespace: CONVERSATION_SETTINGS_NAMESPACE }),
@@ -119,9 +112,6 @@ export function apply(ctx) {
     }),
   }, webjsxSlot('freddie-enter-behavior-row')))
 
-  // Chat semantic reader positions by session, surviving view switches and
-  // width reflow when the tab ring remounts the view. Deliberately not
-  // persisted: a fresh page load keeps the open-jump-to-bottom default.
   const chatScrollPositions = new Map()
 
   const viewTabs = () => {
@@ -139,20 +129,10 @@ export function apply(ctx) {
     version: () => slots.getVersion('conversation.view'),
   }
 
-  // The per-session input machine registry (SessionInputResolver face; published as
-  // ctx.conversation.input by the service below sharing this one instance).
   const inputHub = new InputHub(sessions, ctx, t)
 
-  // The composer-block registry: a plugin that knows a session cannot send —
-  // ui-model-selection, when no adapter serves the session's route — raises a block
-  // here, and the bar reads its own session's store. It cannot flow the other
-  // way: this package must not import the plugins that would know.
   const composerBlocks = new ComposerBlockRegistry()
 
-  // The input machine feeds every session-scope slot
-  // component through the standard provide channel — the 'input' hook plus
-  // the two public actions. Materialization is the shell creation trigger
-  // (per-session lazy; scope disposer tears down).
   ctx.effect(() => sessions.provide({
     hooks: ['input'],
     props: ['inputActions'],
@@ -165,8 +145,6 @@ export function apply(ctx) {
     },
   }), 'ui-conversation: input standard-kit provider')
 
-  // Resident current-session-optional shell. It owns the stable Hero/composer
-  // frame while strict session slots fill only their session-bound regions.
   slots.register({
     name: 'conversation',
     locale: NS,
@@ -208,9 +186,6 @@ export function apply(ctx) {
     }),
   }, webjsxSlot('freddie-conversation-root'))
 
-  // The strict session body fills the resident scrollport without owning it;
-  // the Hero/composer path therefore stays fixed while the first blank
-  // session appears after a Workspace pick.
   slots.register({
     name: 'conversation.session',
     children: {
@@ -227,8 +202,6 @@ export function apply(ctx) {
     },
   }, webjsxSlot('freddie-conversation-session'))
 
-  // Header chrome sits above the resident scrollport but shares the same
-  // per-session chat store (active view) as its body and view entries.
   slots.register({
     name: 'conversation.session.header',
     locale: NS,
@@ -244,19 +217,9 @@ export function apply(ctx) {
     }),
   }, webjsxSlot('freddie-conversation-session-header'))
 
-  // The default composer body: its own single slot inside the composer
-  // chain's fallback. Public machine surface arrives via the
-  // provide channel above; the keyboard command face and the stop/retry
-  // verbs ride this inject (package-internal — hub and bar are one plugin).
-  // Session-maybe: with no current session the machine faces are absent and
-  // the hooks compartment binds static empty sources (module constants, so
-  // observableHook caching and hook order stay stable across transitions).
   slots.register({
     name: 'conversation.composer.bar',
     locale: NS,
-    // The two named control seats in the bar's tool row (plan beside the
-    // access control, model right); empty until their owning plugins
-    // register.
     children: {
       'conversation.input.attachments': { kind: 'single', scope: 'session-maybe' },
       'conversation.input.plan': { kind: 'single', scope: 'session' },
@@ -291,8 +254,6 @@ export function apply(ctx) {
             return null
           } catch (error) {
             if (error instanceof UnsupportedImageMediaTypeError) {
-              // Positive copy: the supported list is fixed in imageMediaType,
-              // and naming it beats echoing the rejected MIME type back.
               return t('image.unsupportedType')
             }
             return error instanceof Error ? error.message : String(error)
@@ -320,7 +281,6 @@ export function apply(ctx) {
           },
         stop: () => {
           scopedConversation(sessions, sessionId).cancel().catch(() => {
-            // Stop failure surfaces via snapshot.promptError; nothing to restore.
           })
         },
         command: async (line) => {
@@ -338,19 +298,8 @@ export function apply(ctx) {
     },
   }, webjsxSlot('freddie-input-bar'))
 
-  // The approval takeover: a selector-routed entry of the chain this package
-  // just declared (the ui-user-questions registration pattern; the entry lives here
-  // because approval answering is core conversation UX, not an optional tool).
-  // Zero business face — data and verbs both ride the matched carrier.
-  // priority 1: question takeovers (default 0) win when both kinds are
-  // pending — a question is a conversation the model is waiting on, while an
-  // approval only blocks one tool call; answering the question first cannot
-  // strand the approval (it re-elects the moment the question resolves).
   slots.register({ name: 'conversation.composer', select: selectApproval, priority: 1, locale: NS }, ApprovalPanel)
 
-  // The chat view: first entry of the ring this package just declared.
-  // ChatView owns only the stable ordered Node list. Business renderers are
-  // independently keyed behind its one Node seat.
   slots.register({
     name: 'conversation.view',
     id: 'chat',
@@ -377,8 +326,6 @@ export function apply(ctx) {
         },
         loadOlder: () => { void scoped.loadOlder() },
         loadImage: attachment => conversation.resolveImage(sessionId, attachment),
-        // Unregistered 'trajectory' id is safe: the tab ring falls back to
-        // the first view, and the untouched inspect target stays inert.
         inspectCall: (callId) => {
           actions.setInspect({ callId })
           actions.setView('trajectory')
@@ -394,27 +341,18 @@ export function apply(ctx) {
           sessions.fork({ sessionId, atSeq: seq, increaseTitle: true })
             .then((childId) => { sessions.open(childId) })
             .catch(() => {
-              // Fork or child-rename failure keeps the source view untouched.
             })
         },
       }
     },
   }, webjsxSlot('freddie-chat-view'))
 
-  // Session stats stick with the composer (composer.dock = stats-line family).
   slots.register({ name: 'conversation.composer.dock', id: 'stats', order: 0, locale: NS }, webjsxSlot('freddie-stats-line'))
 
-  // Class-plugin mount (packages/AGENTS.md service form): the service
-  // registers itself as `conversation` and lives on its own child fiber.
-  // Presentation registrants depend directly on their slot declarations;
-  // this service remains only where conversation actions are required.
   ctx.plugin(ConversationController, { input: inputHub, blocks: composerBlocks })
 
-  // The plan strip rides the input dock above the queue rows (same posture).
   ctx.plugin(todoDockEntry)
 
-  // The read-only queue dock entry rides the same
-  // registration path into the input dock declared above.
   ctx.plugin(queueDockEntry)
 
   slots.register({

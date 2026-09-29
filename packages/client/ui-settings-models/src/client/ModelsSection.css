@@ -1,13 +1,3 @@
-/* Models settings section, in the settings-panel design language: 14/22 body,
- * 12/18 caption, capsule controls (h36 r18; h28 r14 where a row is dense),
- * 32px fields, and `border-l2` hairlines — the vocabulary GeneralSection and
- * the Button/Input primitives already use.
- *
- * Every color resolves through a `--freddie-alias-*` token. Bare `--border` /
- * `--surface` / `--text-*` names, which nothing in this app defines, would
- * render the light-mode literals written as their fallbacks and stay light
- * under the dark theme. */
-
 .freddie-modelsSection__section {
   display: flex;
   flex-direction: column;
@@ -47,7 +37,6 @@
 
 .freddie-modelsSection__rows {
   list-style: none;
-  /* Extra air between the title/intro block and the first provider card. */
   margin: 12px 0 0;
   padding: 0;
   display: flex;
@@ -55,8 +44,6 @@
   gap: 8px;
 }
 
-/* A configured provider: outlined on the panel fill, so the filled editor
-   card it expands into reads as the nested object. */
 .freddie-modelsSection__rowCard {
   border: 1px solid var(--freddie-alias-border-l2);
   border-radius: 12px;
@@ -86,10 +73,6 @@
   color: var(--freddie-alias-label-primary);
 }
 
-/* Reads as an annotation on the name, not as a second name: caption size and
-   the secondary label tone, so it never competes with the row's own title. It
-   sits inside `rowIdentity` with the credential dot, which is what keeps it
-   beside the name rather than drifting toward the actions. */
 .freddie-modelsSection__rowTag {
   flex: none;
   padding: 1px 6px;
@@ -124,9 +107,6 @@
   margin-left: auto;
 }
 
-/* `box-sizing` on every control here: the app has no global border-box reset,
-   so without it the outlined variants stand 2px taller than the filled ones
-   they sit beside (Cancel next to Apply, Edit next to Delete). */
 .freddie-modelsSection__primaryButton,
 .freddie-modelsSection__secondaryButton,
 .freddie-modelsSection__addButton {
@@ -191,7 +171,6 @@
   background: var(--freddie-alias-interactive-bg-hover-danger);
 }
 
-/* Provider-row controls take the dense capsule (Button `.sm`). */
 .freddie-modelsSection__rowActions .freddie-modelsSection__secondaryButton,
 .freddie-modelsSection__rowActions .freddie-modelsSection__dangerButton {
   height: 28px;
@@ -223,8 +202,6 @@
   box-shadow: 0 0 0 2px var(--freddie-alias-border-l3);
 }
 
-/* Editing surface: a filled module on the panel, matching the settings
-   selector fill rather than adding another outline inside the row. */
 .freddie-modelsSection__editor {
   border-radius: 12px;
   background: var(--freddie-alias-bg-module-platform);
@@ -309,8 +286,6 @@
   gap: 12px;
 }
 
-/* The two ways to gain a provider, as equal siblings spanning the same width
-   as the rows above. Wraps rather than shrinking below a legible label. */
 .freddie-modelsSection__addActions {
   display: flex;
   flex-wrap: wrap;
@@ -318,11 +293,6 @@
 }
 
 .freddie-modelsSection__addButton {
-  /* Overrides the shared button base above: these two are not pills sitting in
-     a footer but the last slot of the provider list, so they split the row
-     evenly and repeat the row cards' corner. Dashed, like every other "nothing
-     here yet" affordance on this page, to read as a place rather than a
-     command. */
   flex: 1 1 0;
   min-width: 180px;
   gap: 6px;
@@ -342,7 +312,6 @@
   list-style: none;
 }
 
-/* Nested in a card that already carries the module chrome. */
 .freddie-modelsSection__addCard .freddie-modelsSection__editor,
 .freddie-modelsSection__setupCard .freddie-modelsSection__editor {
   background: none;
@@ -354,8 +323,6 @@
   padding-top: 10px;
 }
 
-/* Native disclosure marker replaced by a rotating chevron: the built-in
-   triangle differs per engine and cannot take the label color. */
 .freddie-modelsSection__customizedSummary {
   display: flex;
   align-items: center;
@@ -401,11 +368,6 @@
   padding-top: 12px;
 }
 
-/* Model catalog: a table, not a stack of cards. The column captions are
-   written once above the rows, so a row is one line of fields plus its
-   delete control; each field still carries the indexed `aria-label` that
-   names it, and the caption strip is hidden from assistive tech to keep
-   that name from being announced twice. */
 .freddie-modelsSection__modelCatalog {
   display: flex;
   flex-direction: column;
@@ -435,12 +397,6 @@
   line-height: 18px;
 }
 
-/* Model list, shared with the pi-ai provider form: one bordered
-   entry per model, id and display name on the row, capacities behind the
-   row's own disclosure. The rules use this stylesheet's token vocabulary —
-   `--freddie-alias-border-subtle`, `--freddie-alias-text-tertiary`, and
-   `--freddie-alias-text-primary` are undefined here and would resolve to their
-   light-mode literals. */
 .freddie-modelsSection__modelList {
   display: flex;
   flex-direction: column;
@@ -467,8 +423,6 @@
   gap: 6px;
 }
 
-/* Square, label-free affordances: the row's own inputs carry the meaning, so
-   the actions stay glyphs and announce themselves through aria-label. */
 .freddie-modelsSection__iconButton {
   box-sizing: border-box;
   display: inline-flex;
@@ -493,7 +447,6 @@
   opacity: 0.4;
 }
 
-/* The delete glyph keeps the danger tint the rest of the section uses. */
 .freddie-modelsSection__iconButtonDanger:hover:not(:disabled) {
   background: var(--freddie-alias-interactive-bg-hover-danger);
   color: var(--freddie-alias-state-error-primary);
@@ -561,8 +514,6 @@
   color: var(--freddie-alias-label-primary);
 }
 
-/* Enum pickers hold a handful of short options; a field-width dropdown reads
-   as a text field the user is expected to fill. */
 select.freddie-modelsSection__input {
   max-width: 240px;
   cursor: pointer;
@@ -582,14 +533,9 @@ select.freddie-modelsSection__input {
   cursor: default;
 }
 
-/* Select variant of .input: replaces the OS arrow (which sits flush against
-   the right edge) with the shared 12px chevron inset like the composer's
-   .select chips; the right pad reserves its cell. */
 .freddie-modelsSection__selectInput {
   appearance: none;
   padding-right: 32px;
-  /* Data-URI SVGs cannot resolve CSS variables; #81858C is the caption gray
-     shared by both themes. */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2381858C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
@@ -616,8 +562,6 @@ select.freddie-modelsSection__input {
   background: var(--freddie-alias-interactive-bg-hover-danger);
 }
 
-/* Icon-button label seat: named for assistive tech and for the tests that
-   query these controls by their text. */
 .freddie-modelsSection__hiddenLabel {
   position: absolute;
   width: 1px;
@@ -636,10 +580,6 @@ select.freddie-modelsSection__input {
 .freddie-modelsSection__fetchDialog {
   max-width: 520px;
 
-  /* The candidate list scrolls inside this dialog, an elevated surface, so the
-     scrollbar indirection is rebound here rather than on the scrolling child:
-     the elevation choice belongs with the surface and inherits down (see
-     ui-theme styles/scrollbar.css for the contract). */
   --freddie-scrollbar-thumb: var(--freddie-alias-scrollbar-bg-l2);
   --freddie-scrollbar-thumb-hover: var(--freddie-alias-scrollbar-hover-l2);
 }

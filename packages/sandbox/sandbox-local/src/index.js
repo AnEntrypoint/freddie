@@ -96,9 +96,6 @@ function defaultProbeWindowsAcl(runnerInvocation, timeoutMs) {
 const PLATFORM_CHAINS = {
   linux: ['bwrap', 'landlock'],
   darwin: ['seatbelt'],
-  // The Windows restricted-token runner (@freddie/freddie-sandbox-windows-acl):
-  // a sole candidate, selected without a probe — its execution-time refusal
-  // fails closed through its stderr signature (windows-acl-run:) and exit 127.
   win32: ['windows-acl'],
 }
 
@@ -115,11 +112,6 @@ const STATIC_ENFORCEMENT = {
   bwrap: 'full',
   landlock: 'full',
   seatbelt: 'full',
-  // WRITE_RESTRICTED needs Everyone in both restricting lists for process
-  // initialization. An external object that grants Everyone write access
-  // therefore remains writable, and NTFS hard links can alias a granted
-  // workspace file to a path outside it. The backend enforces the remaining
-  // ACL-addressable surface but must not advertise the absolute promise.
   'windows-acl': 'partial',
 }
 
@@ -143,8 +135,6 @@ const DENIAL_SIGNATURES = {
   bwrap: ['read-only file system'],
   landlock: ['permission denied'],
   seatbelt: ['operation not permitted'],
-  // pwsh/.NET: "Access to the path '...' is denied."; cmd: "Access is denied.";
-  // node EACCES: "permission denied".
   'windows-acl': ['access is denied', 'access to the path', 'permission denied'],
   runnerCommand: ['read-only file system', 'permission denied'],
 }
@@ -185,7 +175,6 @@ const RUNNER_FAILURE_RULES = {
  * else.
  */
 export class LocalSandboxProvider extends SandboxProvider {
-  // Inline schema call: the config catalog walks `static Config` statically.
   static Config = z.object({
     runnerCommand: z.array(z.string()).default([]),
     runnerFailureSignatures: z.array(z.string()).default([]),
@@ -212,9 +201,6 @@ export class LocalSandboxProvider extends SandboxProvider {
 
   constructor(ctx, config) {
     super(ctx)
-    // The schema (static Config) defaults every field — the casts record
-    // those runtime facts. An empty runnerCommand means "not configured":
-    // use the platform chain.
     const runner = config.runnerCommand
     const runnerFailureSignatures = config.runnerFailureSignatures
     if (runner.length === 0 && runnerFailureSignatures.length > 0) {
@@ -230,10 +216,6 @@ export class LocalSandboxProvider extends SandboxProvider {
     this.configuredRunnerFailureSignatures = runnerFailureSignatures
     this.probeTimeoutMs = config.probeTimeoutMs
     assertPositiveFinite('probeTimeoutMs', this.probeTimeoutMs)
-    // The temp grants are revoked with the provider: a clean server
-    // shutdown leaves no temp ACEs behind (workspace ACEs stand by design —
-    // the reuse cache; an unclean shutdown leaves them for the next
-    // provision's exact-ACE skip).
     ctx.effect(() => () => {
       this.revokeAclGrants()
     })
@@ -334,9 +316,6 @@ export class LocalSandboxProvider extends SandboxProvider {
       try {
         grant.add(workspaceRoot, true)
       } catch (error) {
-        // Free the SID; a standing ACE (if the apply succeeded before a
-        // post-apply throw) is the intended end state, not an error
-        // artifact — nothing to revoke.
         try {
           grant.dispose()
         } catch (cleanupError) {
@@ -437,7 +416,6 @@ export class LocalSandboxProvider extends SandboxProvider {
     const chain = this.internals.chain ?? PLATFORM_CHAINS[this.internals.platform ?? process.platform] ?? []
     const [first, ...rest] = chain
     if (first === undefined) return 'unavailable'
-    // A sole candidate needs no arbitration; its execution-time refusal still fails closed.
     if (rest.length === 0) return { runner: first, enforcement: STATIC_ENFORCEMENT[first] }
     for (const runner of chain) {
       const enforcement = this.probeRunner(runner)
@@ -448,11 +426,6 @@ export class LocalSandboxProvider extends SandboxProvider {
 
   /** One rung's functional probe (each at most once, via the chain walk). */
   probeRunner(runner) {
-    // bwrap's mount profile and Seatbelt's deny-file-write* profile govern
-    // every promised file effect by construction, so their passing probes
-    // are always full enforcement; the Landlock launcher's probe report
-    // distinguishes full from per-ABI-partial, while windows-acl is always
-    // partial for its documented Everyone and hard-link boundaries.
     switch (runner) {
       case 'bwrap': {
         const probe = this.internals.probeBwrap ?? (() => defaultProbeBwrap(this.probeTimeoutMs))

@@ -1,15 +1,3 @@
-// CompactionItem: the one row a landed compaction contributes to the flow.
-// The conversation it shadowed on the model surface stays above it, so this
-// marker reports where the model stopped seeing that history — it never
-// replaces it. The framed checkpoint payload is written for the model and is
-// not rendered; the disclosure shows the summary from the checkpoint's own
-// cited `compaction/summary` event, and a window cut that left that event outside makes the row
-// non-expandable rather than empty.
-//
-// Converted from a React hooks component to a webjsx custom element: the
-// `expanded` useState becomes a private field, re-render is an explicit
-// applyDiff(this, vdom) call.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconApiOutline14,
@@ -93,6 +81,14 @@ export class FreddieCompactionItem extends HTMLElement {
 }
 
 defineElement('freddie-compaction-item', FreddieCompactionItem)
+
+/**
+ * @typedef {object} CompactionItemProps
+ * @property {{summary: string|null, shadowedItemCount: number|null, shadowedTokenCount: number|null}} node - the compaction node's collapse state and completed counts.
+ * @property {string} [title] - row title; falls back to the localized default when omitted.
+ * @property {string} [fallbackSummary] - collapsed summary shown while incomplete or unavailable.
+ * @property {(key: string, vars?: object) => string} t - localization function.
+ */
 
 /**
  * Create (if needed) or update a CompactionItem element in place.

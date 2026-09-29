@@ -1,28 +1,6 @@
 /** Copy dictionaries for the plugin inventory Settings section. */
 
-/** Simplified Chinese dictionary and key source of truth. */
-export const zh = {
-  tab: '插件列表',
-  loading: '正在读取插件…',
-  error: '暂时无法读取插件。',
-  retry: '重试',
-  search: '搜索插件',
-  catalog: '插件列表',
-  empty: '暂无插件。',
-  emptySearch: '没有匹配的插件。',
-  enabledTag: '已启用',
-  disabledTag: '已停用',
-  configuration: '配置状态',
-  cordis: 'Cordis 状态',
-  unobserved: '未挂载',
-  pending: '等待依赖',
-  loadingPhase: '加载中',
-  active: '已挂载',
-  failed: '挂载失败',
-  unloading: '卸载中',
-}
-
-/** English dictionary checked against the Chinese key set. */
+/** English dictionary. */
 export const en = {
   tab: 'Plugin list',
   loading: 'Reading plugins…',
@@ -42,4 +20,16 @@ export const en = {
   active: 'Mounted',
   failed: 'Mount failed',
   unloading: 'Unloading',
+  toggleLabel: 'Enable {name}',
+  busy: 'Applying…',
+  needsHostNotice: 'Switching plugins on or off requires the host machine. This browser can only view the list.',
+  needsHost: 'Requires the host machine.',
+  controlUnavailable: 'This deployment does not offer plugin switching.',
+  switchFailed: 'The change could not be made, so the plugin keeps its previous state.',
+  entryGone: 'That plugin is no longer mounted.',
+  refreshFailed: 'Plugin state could not be refreshed, so what is shown may be out of date.',
+  lockRequestPath: 'This plugin keeps the page running and cannot be disabled from the browser.',
+  lockHostDependents: 'Other plugins depend on it, so it cannot be disabled from the browser.',
+  lockClientDependents: 'The browser interface depends on it, so it cannot be disabled here.',
+  lockNotAddressable: 'This entry is not addressable from the profile file, so it cannot be changed here.',
 }

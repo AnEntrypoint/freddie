@@ -171,8 +171,6 @@ async function readDirectory(absolute, signal) {
     return entries.sort((left, right) => compareText(left.name, right.name))
   } catch (_error) {
     signal.throwIfAborted()
-    // An unreadable/missing subtree contributes no candidates; other readable
-    // branches remain useful and autocomplete is advisory.
     return []
   }
 }

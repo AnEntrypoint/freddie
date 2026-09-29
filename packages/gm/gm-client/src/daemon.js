@@ -50,8 +50,6 @@ export async function readStatus(cwd) {
     const text = await readFile(join(cwd, '.gm', 'exec-spool', '.status.json'), 'utf8')
     return JSON.parse(text)
   } catch (error) {
-    // ENOENT: the daemon has not written status yet. SyntaxError: a partial
-    // write is not a live status. Any other syscall is unexpected.
     if (error !== null && typeof error === 'object' && error.code === 'ENOENT') return undefined
     if (error instanceof SyntaxError) return undefined
     throw error
@@ -77,8 +75,6 @@ export async function isDaemonAlive(cwd) {
       process.kill(status.pid, 0)
       return true
     } catch (error) {
-      // ESRCH: pid is gone. EPERM: pid exists but this process cannot signal it
-      // — still alive. Windows Node often omits ESRCH for a missing pid.
       if (error !== null && typeof error === 'object' && error.code === 'EPERM') return true
       if (error !== null && typeof error === 'object' && error.code === 'ESRCH') return false
       if (process.platform === 'win32') return false
@@ -112,7 +108,6 @@ export async function readDaemonStatus() {
     const text = await readFile(daemonStatusPath(), 'utf8')
     return JSON.parse(text)
   } catch (error) {
-    // ENOENT: no machine-wide heartbeat yet. SyntaxError: a partial write.
     if (error !== null && typeof error === 'object' && error.code === 'ENOENT') return undefined
     if (error instanceof SyntaxError) return undefined
     throw error

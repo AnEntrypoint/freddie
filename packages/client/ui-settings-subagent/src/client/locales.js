@@ -1,0 +1,23 @@
+/** Locale bundles for the subagent delegation-limits card. */
+
+/** English copy. */
+export const en = {
+  title: 'Subagent',
+  description: 'How deep and how wide delegation may go.',
+  expand: 'Show settings',
+  collapse: 'Hide settings',
+  save: 'Save',
+  saving: 'Saving…',
+  discard: 'Discard',
+  unsaved: 'Unsaved',
+  saveFailed: 'The deployment did not accept these values; they were left for you to correct.',
+  readOnly: 'This deployment stores settings read-only.',
+  overridden: 'Overridden',
+  reset: 'Reset to default',
+  maxDepth: 'Maximum recursion depth',
+  maxDepthHint: 'How many delegation levels below the main agent a child may open. A tool’s own tighter maximum still wins.',
+  maxActiveSubagents: 'Subagent parallelism limit',
+  maxActiveSubagentsHint: 'How many subagents may run at once under one main agent, across every level.',
+  invalidDepth: 'Enter a whole number of 0 or more, or leave blank to use the default.',
+  invalidActive: 'Enter a whole number of 1 or more, or leave blank to use the default.',
+}

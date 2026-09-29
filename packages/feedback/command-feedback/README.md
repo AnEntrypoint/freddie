@@ -43,7 +43,7 @@ The producer injects only `commands`. A custom app mounts the registry plus this
   name: '@freddie/freddie-command-feedback'
 ```
 
-The shipped `dsh` base mounts this command unconditionally; it has no configuration and no dependency on the persisted-goal stack. The Web client exposes it through the command adapter. Headless mode, ACP automation, and JSON-RPC do not provide a command adapter, so they do not expose it.
+The shipped `freddie` base mounts this command unconditionally; it has no configuration and no dependency on the persisted-goal stack. The Web client exposes it through the command adapter. Headless mode, ACP automation, and JSON-RPC do not provide a command adapter, so they do not expose it.
 
 ## Model Experience
 

@@ -1,0 +1,5 @@
+## Rationale
+
+- `src/index.js` `inject`: `tools` is deliberately not injected (same rationale as subagent-spawn-in-process): the per-run structured runtime gates its capture-tool registration on `tools` itself, so this backend's apply timing and the delegation tool's position in the model-visible tool list are unchanged by structured output.
+- `src/index.js` seed: `seq` equals the array index (the append contract), so the completed-turn prefix is `events.slice(0, lastEnd.seq + 1)`. `inheritsParentContext` is `true`: a forked child is seeded with the parent's completed-turn prefix. A seed is passed only when a completed turn exists; an empty seed equals a fresh child, so it is omitted to keep the session unseeded.
+- `src/index.js` `prepareContinuable`: the fork prefix is captured once at creation and becomes part of the child's durable transcript, so a later cold resume replays it instead of re-forking the parent's newer history. No shipped composition calls it (they bind fork to `backgroundMode: one-shot`); see this package's README and `.agents/notes/implemented/architecture/2026-08-10-fork-children-stay-one-shot.md`.

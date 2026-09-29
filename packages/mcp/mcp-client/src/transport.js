@@ -34,6 +34,7 @@ export function createTransport(config) {
         args: config.args,
         env: buildChildEnv(config.env),
         cwd: config.cwd,
+        stderr: 'pipe',
       })
     case 'streamable-http':
       return new StreamableHTTPClientTransport(

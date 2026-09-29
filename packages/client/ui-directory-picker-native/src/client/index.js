@@ -22,9 +22,6 @@ export const inject = ['slots', 'workspaces']
  */
 export function apply(ctx) {
   const injected = () => ({ pick: () => ctx.workspaces.pickDirectory() })
-  // Both declaration lifetimes must be live before the pair installs; the
-  // generator makes the two registrations one transactional effect. The
-  // outer/inner nesting order is arbitrary; neither hole has precedence.
   ctx.slots.inject('conversation.hero.workspace.directoryFlow', () =>
     ctx.slots.inject('sidebar.workspaces.directoryFlow', function* () {
       yield ctx.slots.register({

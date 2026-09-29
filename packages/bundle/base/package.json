@@ -1,6 +1,6 @@
 {
   "name": "@freddie/freddie-base",
-  "description": "The shared dsh core as a profile bundle: every profile's first patch layer, inserting the base plugin rows over the empty profile root",
+  "description": "The shared freddie core as a profile bundle: every profile's first patch layer, inserting the base plugin rows over the empty profile root",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
@@ -113,9 +113,23 @@
     "@freddie/freddie-user-approval": "*",
     "@freddie/freddie-user-questions": "*",
     "@freddie/freddie-web": "*",
+    "@freddie/freddie-web-fetch-http": "*",
     "@freddie/freddie-web-search-browser": "*",
     "@freddie/freddie-workflow-worker-thread": "*",
-    "@freddie/freddie-agent-instructions": "*"
+    "@freddie/freddie-agent-instructions": "*",
+    "@freddie/freddie-authorization": "*",
+    "@freddie/freddie-session-title-all-prompts-llm": "*",
+    "@freddie/freddie-session-turn-outline": "*",
+    "@freddie/freddie-auto-review": "*",
+    "@freddie/freddie-inspector": "*",
+    "@freddie/freddie-computer-use": "*",
+    "@freddie/freddie-browser-use": "*",
+    "@freddie/freddie-experimental-browser-use-chrome-devtools-mcp": "*",
+    "@freddie/freddie-compaction-image-offload": "*",
+    "@freddie/freddie-time-context": "*",
+    "@freddie/freddie-tmux-context": "*",
+    "@freddie/freddie-tool-session-query": "*",
+    "@freddie/freddie-llm-pi-ai": "*"
   },
   "peerDependencies": {
     "@freddie/freddie-invariants": "*",

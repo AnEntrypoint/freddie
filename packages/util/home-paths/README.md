@@ -4,7 +4,7 @@ Shared filesystem path helpers for Freddie user data.
 
 ## FREDDIE home
 
-`resolveDshHome()` resolves the single-root Freddie home. Precedence, highest first: an explicit configured path, `$FREDDIE_HOME`, then `~/.freddie`. The harness keeps all user data under one root.
+`resolveFreddieHome()` resolves the single-root Freddie home. Precedence, highest first: an explicit configured path, `$FREDDIE_HOME`, then `~/.freddie`. The harness keeps all user data under one root.
 
 `freddieHomePath(...segments)` joins child segments onto that resolved home with Node's platform path rules. With no segments it returns the home itself.
 

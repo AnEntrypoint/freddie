@@ -36,8 +36,6 @@ function validateConfigKeys(config) {
 
 /** Replay owner for one service-wide estimator and isolated per-session folds. */
 export class TokenMeter extends Service {
-  // Schemastery preserves untrusted loader keys on an empty object schema;
-  // the public type excludes settings while validateConfigKeys rejects them.
   static Config = z.object({})
 
   states = new WeakMap()
@@ -46,16 +44,12 @@ export class TokenMeter extends Service {
     super(ctx, 'tokenMeter')
     validateConfigKeys(config)
 
-    // Projection registration is an optional child: compositions without the
-    // generic registry keep the meter's standalone read shape.
     ctx.inject(['sessionProjections'], (projectionCtx) => {
       projectionCtx.sessionProjections.register(tokenUsageProjectionDefinition)
       projectionCtx.sessionProjections.register(contextPressureProjectionDefinition)
       projectionCtx.sessionProjections.register(contextBreakdownProjectionDefinition)
     })
 
-    // Readers catch up independently, while eager observation bounds ordinary
-    // read latency without creating state for sessions no consumer has read.
     ctx.on('session/event', (session) => {
       if (this.states.has(session)) this._sync(session)
     })
@@ -190,7 +184,6 @@ export class TokenMeter extends Service {
         throw new Error(`token meter: assistant/message at seq ${event.seq} has no matching step/start event`)
       }
 
-      // assistant/message is surface-mandatory at every append/seed boundary.
       // oxlint-disable-next-line typescript/no-non-null-assertion
       const eventTokens = surface.tokens
       if (event.data.usage !== undefined && nextHeader !== undefined) {
@@ -205,8 +198,6 @@ export class TokenMeter extends Service {
         nextAnchor = {
           header: nextHeader,
           surfaceTokens: anchorSurfaceTokens,
-          // Signed heuristic deltas remain conservative only from an anchor
-          // that is at least as large as the matching full heuristic price.
           baseline: providerTokens >= estimatedAnchorTokens
             ? { kind: 'usage', tokens: providerTokens, usage: event.data.usage }
             : { kind: 'estimated', tokens: estimatedAnchorTokens },
@@ -252,8 +243,6 @@ export class TokenMeter extends Service {
         throw new Error(`token meter: assistant/message at seq ${event.seq} repeats source seq ${seq}`)
       }
       seen.add(seq)
-      // Session construction validates contiguous seqs, and the explicit
-      // earlier-than-assistant check above therefore guarantees existence.
       const source = session.events[seq]
       // oxlint-disable-next-line typescript/no-non-null-assertion
       const sourceEvent = source

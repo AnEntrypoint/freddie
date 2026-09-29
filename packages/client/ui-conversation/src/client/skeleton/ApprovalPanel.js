@@ -1,17 +1,3 @@
-// ApprovalPanel: the composer-takeover approval prompt (designer draft
-// approval.png), registered as a selector-routed entry of the
-// conversation-declared composer chain. While an approval question is
-// pending, this panel occupies the composer slot in place of the InputBar:
-// an amber "Waiting for approval" strip on the card top, the model's
-// justification as the headline, the paired command in muted code text, and
-// a right-aligned refuse/allow action row. Justification and command are
-// unbounded model text, so they scroll inside the card at the shared composer
-// cap (`data-approval-scroll`) and the action row stays outside it — the
-// buttons must be reachable no matter how long the command is.
-// One-shot: the buttons disable
-// after a click and the panel leaves (the InputBar returns) on the broadcast
-// resolved frame.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { Button, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { PendingApproval } from '../contract/slots.js'
@@ -25,7 +11,6 @@ export function commandOf(call) {
     const args = JSON.parse(call.argsRaw)
     return typeof args.command === 'string' ? args.command : undefined
   } catch {
-    // Unparseable model args: the panel still renders, just without the command line.
     return undefined
   }
 }
@@ -73,9 +58,6 @@ export class FreddieApprovalFlow extends HTMLElement {
         'div',
         { class: css.card ?? '' },
         h('div', { class: css.strip ?? '' }, h('span', { class: css.dot ?? '' }), t('approval.waiting')),
-        // Tab stop: the region scrolls once the command passes the cap and
-        // holds nothing focusable of its own, so without one a keyboard-only
-        // user cannot reach the command's tail before answering.
         h(
           'div',
           { class: css.body ?? '', 'data-approval-scroll': '', tabindex: '0', role: 'group', 'aria-label': t('approval.detail.aria') },
@@ -116,8 +98,6 @@ export function ApprovalPanel(props) {
     if (root === undefined) return undefined
     return root.callId === approval.callId && !('kind' in root) ? commandOf(root) : undefined
   })
-  // Keyed remount: a stale entry for a different key is dropped so the
-  // one-shot answered latch never leaks to the next pending approval.
   for (const key of approvalFlowByKey.keys()) {
     if (key !== approval.key) approvalFlowByKey.delete(key)
   }

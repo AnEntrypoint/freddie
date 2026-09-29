@@ -10,9 +10,6 @@
  * it until asked again.
  */
 
-// The Client Remote assembly is the one place the two planes meet: it mounts the
-// `dynamicCordisRunner` namespace and re-exports its payload vocabulary, so this
-// package names what it sends without importing a Host package.
 import { DynamicCordisPackageRunner } from './runtime.js'
 import { CordisRunOrchestrator } from './orchestrator.js'
 import { ClientCordisInspectRegistry, provideClientCordisInspect } from './inspect-registry.js'
@@ -82,11 +79,6 @@ export function apply(ctx) {
   provideClientTimer(ctx)
   const inspect = new ClientCordisInspectRegistry({
     sync: async (providers) => {
-      // Tree teardown (a shell remount) disposes the connection, then the
-      // provider effects' cleanup and the connection/reset listener both
-      // publish a final manifest — through a connection the API layer would
-      // reject as absent. A dead connection is a no-op here; a live reconnect
-      // still republishes because `connection` is present then.
       if (ctx.get('connection') === undefined) return
       const answered = await ctx.remote.dynamicCordisRunner.syncInspectManifest(providers)
       if (!answered.ok) throw new Error(`${answered.error.code}: ${answered.error.message}`)
@@ -108,23 +100,13 @@ export function apply(ctx) {
     modules: ctx.get('modules'),
     slots: ctx.get('slots'),
     invoke: async (pluginId, pluginRunId, method, args) => {
-      // Model-authored arguments reach this boundary untyped; the namespace's
-      // generated codec is what validates them as JSON, and its rejection is a
-      // bare field name — this is the only place that still knows which call it
-      // belonged to, so the teaching has to be added here.
       const answered = await ctx.remote.dynamicCordisRunner.invoke(pluginId, pluginRunId, method, args)
         .catch((error) => { throw new Error(wireFailure(pluginId, method, error)) })
-      // Two failure layers, and they teach different things: the carrier's error
-      // branch means the call never reached the host half, while the namespace's
-      // own `ok: false` is that half answering with a refusal.
       if (!answered.ok) throw new Error(wireFailure(pluginId, method, `${answered.error.code}: ${answered.error.message}`))
       const result = answered.value
       if (result.ok) return result.value
       throw invokeError(pluginId, method, result)
     },
-    // Post-settle diagnosis, deliberately fire-and-forget: the run this package
-    // belongs to was answered before it ever rendered, so nothing waits on this
-    // and a failed report must not turn one crash into two.
     reportRenderFailure: (agentId, pluginId, pluginRunId, failure) => {
       void ctx.remote.dynamicCordisRunner.reportRenderFailure(agentId, pluginId, pluginRunId, failure).then((result) => {
         if (!result.ok) {
@@ -147,9 +129,6 @@ export function apply(ctx) {
   const orchestrator = new CordisRunOrchestrator({
     runner,
     host: {
-      // The seam names business payloads only, so a carrier failure is folded
-      // here into whatever each verb already does with one: the short-circuit
-      // message for a start, a throw where the caller has a catch of its own.
       runHostHalf: async (agentId, pluginId, packageId, mode, requestId, approveFutureVersions) => {
         const answered = await ctx.remote.dynamicCordisRunner.runHostHalf(
           agentId, pluginId, packageId, mode, requestId, approveFutureVersions,
@@ -163,8 +142,6 @@ export function apply(ctx) {
       },
       resolveRequestRun: async (requestId, resolution) => {
         const answered = await ctx.remote.dynamicCordisRunner.resolveRequestRun(requestId, resolution)
-        // Thrown rather than returned: `answer` logs and drops a failed answer,
-        // and the host settles the request on its own either way.
         if (!answered.ok) throw new Error(`${answered.error.code}: ${answered.error.message}`)
         return answered.value
       },
@@ -190,8 +167,6 @@ export function apply(ctx) {
   ctx.provide('dynamicCordisRunner', face)
   ctx.effect(() => () => { void runner.dispose() }, 'cordis-client-runner: dynamic package runner')
 
-  // Forwarded Host events: `$on` hands the listener the Host's own argument list,
-  // so these read the request itself rather than a transport envelope.
   ctx.remote.$on('cordis/request-run', (request) => {
     orchestrator.open(request)
   })

@@ -87,7 +87,6 @@ export function parseFileAddress(address) {
       return { scope, sessionId: decodeURIComponent(id), path: segments.map(decodeURIComponent).join('/') }
     }
     if (scope === 'absolute') {
-      // An empty first segment with more behind it is a UNC path's `//`; alone it is no path.
       const unc = rest[0] === '' && rest.length > 1
       const segments = (unc ? rest.slice(1) : rest).map(decodeURIComponent)
       if (segments.length === 0 || segments[0] === '') return undefined
@@ -96,7 +95,6 @@ export function parseFileAddress(address) {
     }
     return undefined
   } catch {
-    // `decodeURIComponent` throws URIError on a malformed escape.
     return undefined
   }
 }

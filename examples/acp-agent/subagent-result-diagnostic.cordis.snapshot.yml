@@ -1,5 +1,3 @@
-# Keyless twin of subagent-result-diagnostic.cordis.yml: keep the same test
-# provider/tool and replace only the external model adapter.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

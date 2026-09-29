@@ -5,12 +5,6 @@
 
 import { randomUUID } from 'node:crypto'
 
-// Minted once per host process. A reconnecting client compares this against
-// the value it saw at its last connect: an unchanged id means the same
-// server process (a network blip), a changed id means the process actually
-// restarted underneath the socket -- the client is now running JS/CSS that
-// may no longer match what the server serves, and must reload rather than
-// silently resync session state onto stale code.
 const PROCESS_INSTANCE_ID = randomUUID()
 import { mkdir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
@@ -45,14 +39,9 @@ import {
   SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS,
   truncateUnicodeCodePoints,
 } from './api/session-search.js'
-// GoalError narrows domain rejections to their stable codes at the wire boundary.
 import { GoalError } from '@freddie/freddie-goal'
-// The settings/credentials seams: brand guards run at this wire boundary; the
-// service reads stay optional (`ctx.get`) so a composition without either
-// provider still serves every other domain.
 import { SettingsConflictError, settingsNamespace } from '@freddie/freddie-settings'
 import { credentialRef } from '@freddie/freddie-credentials'
-// Value edge: the rename impl narrows the title service's validation failure; the import also resolves `ctx.get('sessionTitle')`.
 import { SessionTitleInvalidError } from '@freddie/freddie-session-title'
 import { toApprovalResponsePayload } from './api/approvals.schema.js'
 import { RpcId } from './api/rpc.js'
@@ -96,7 +85,6 @@ async function durablePromptContent(ctx, content) {
   let next = 0
   return content.map(part => part.type === 'text'
     ? { type: 'text', text: part.text }
-    // admitEncodedImages returns one reference per image part in order.
     : { type: 'image', attachment: refs[next++] })
 }
 
@@ -397,8 +385,8 @@ function subscribeSession(queue, session) {
 }
 
 /**
- * Project registry snapshots onto the wire view, dropping the three internal
- * fields {@link JobView} documents as absent.
+ * Project registry snapshots onto the wire view, dropping the internal
+ * fields {@link import('./api/jobs.js').JobView} documents as absent.
  */
 function jobViews(snapshots) {
   return snapshots.map(job => ({
@@ -429,10 +417,6 @@ function applySessionListMetadata(state, event) {
   const lastPromptAt = event.type === 'user/message' && event.data.source.kind === 'user'
     ? event.time
     : state.lastPromptAt
-  // The most recent turn/end's reason is the live signal: a fresh turn/start
-  // clears a stale error (the session moved on) before its own turn/end
-  // resolves the new outcome, so `errored` always reflects the LAST closed
-  // turn, never an earlier one superseded by later successful work.
   const errored = event.type === 'turn/start'
     ? false
     : event.type === 'turn/end'
@@ -457,9 +441,6 @@ function sessionListUpdatedAt(header, metadata) {
 
 /** Shared Session-header projection for list baselines and creation frames. */
 function sessionListFields(header, events = []) {
-  // The preset comes from the log, not the header: a session that switched
-  // while blank ran its turns under the newer composition, and a picker
-  // showing the creation-time value would contradict what the model saw.
   const agentPreset = resolveSessionPreset({ header, events })
   return {
     ...header.parentSession === undefined ? {} : { parentSessionId: header.parentSession },
@@ -477,8 +458,6 @@ function summarize(session, running) {
     updatedAt: sessionListUpdatedAt(session.header, metadata),
     running,
     blank: metadata.blank,
-    // A currently-running turn supersedes a stale error from an earlier
-    // closed turn — a session mid-retry must not still read as errored.
     errored: !running && metadata.errored,
     ...sessionListFields(session.header, session.events),
   }
@@ -526,13 +505,8 @@ async function summarizeCold(ctx, persistence, meta, metadata, blankProbeMaxByte
     updatedAt: sessionListUpdatedAt(meta, probed ?? metadata),
     running: false,
     blank: metadata?.blank === false ? false : probed?.blank ?? false,
-    // Cold sessions cannot run, so the last closed turn's outcome is final;
-    // `errored` prefers the cached projection hint and falls back to the
-    // probed fold, same precedence as `blank` above.
     errored: metadata?.errored ?? probed?.errored ?? false,
-    // Header-only: reading the log for a blank-window preset switch would
-    // defeat the same index read, and attaching the session replaces this row
-    // with `summarize()`, which resolves the switch from the events.
+    agentAvailable: false,
     ...sessionListFields(meta),
   }
 }
@@ -593,11 +567,6 @@ function viewFor(
   ctx,
   event,
   argsFor,
-  // Presenters live with the definitions, and definitions live in the scope
-  // chain: a preset registers its tools into its standing layer. A live agent
-  // is a scope whose chain passes through its preset; a cold read passes the
-  // preset's standing key directly — no agent, no resume. An undefined scope
-  // sees only the global layer, which is the pre-preset deployment shape.
   scope,
 ) {
   try {
@@ -620,8 +589,6 @@ function viewFor(
       return view === undefined ? undefined : { for: 'result', view }
     }
   } catch (error) {
-    // A throwing presenter (or unparseable arguments) must not break delivery;
-    // the event still ships, just without a view.
     console.error(`api-proxy: presenter failed for ${event.type}, falling back to generic: ${String(error)}`)
   }
   return undefined
@@ -642,7 +609,6 @@ function backscanArgs(events, callId) {
     try {
       return { name: data.name, args: JSON.parse(data.arguments) }
     } catch {
-      // Unparseable stored arguments: same soft-fall as a live parse failure.
       return undefined
     }
   }
@@ -682,7 +648,8 @@ function listProjectionsFor(ctx, meta, session) {
     const block = session !== undefined
       ? ctx.get('sessionProjections')?.snapshot(session)
       : ctx.get('sessionProjectionCache')?.cachedSnapshot(meta)
-    return block !== undefined && Object.keys(block.values).length > 0 ? block : undefined
+    if (block === undefined || Object.keys(block.values).length === 0) return undefined
+    return { kind: session !== undefined ? 'sequenced' : 'cached', asOfSeq: block.asOfSeq, values: block.values }
   } catch (error) {
     ctx.logger.warn(`session.list: projection column for "${meta.id}" failed (serving the row without it): ${String(error)}`)
     return undefined
@@ -954,8 +921,6 @@ export function createApiProxy(ctx, defaults) {
     const selection = {
       get current() {
         if (picked !== undefined) return picked
-        // Incrementally folded by the session, so a per-step read costs
-        // O(new events) rather than a rescan.
         const logged = agent.session.requestHeader()?.config
         if (logged === undefined) return defaults.defaultModelSelection()
         return {
@@ -1030,15 +995,6 @@ export function createApiProxy(ctx, defaults) {
   const hasSubagentOwner = (session, agent) => hasApiRemoteSubagentOwner(ctx, session, agent)
   const subagentOwnershipError = (sessionId) => apiRemoteSubagentOwnershipError(sessionId)
   const inspectServable = (sessionId) => inspectApiRemoteSession(ctx, sessionId)
-  // Cold resume composes the preset the session recorded, for the same reason
-  // `session.create` does: its history was produced under that composition.
-  // Every generic entry point — prompt, models, commands — arrives here, so
-  // leaving it out meant a session opened after a restart ran on host tools
-  // and the deployment persona. Resolved from the LOG, not the header: a
-  // session that switched while blank ran its turns under the newer
-  // composition, and the header is written once at creation. Reading the
-  // header here would silently undo the switch on the next restart and
-  // restore that history under the old tool set.
   const agentFor = createApiRemoteAgentResolver(ctx, {
     agentOptions,
     setup: async ({ meta, events }) =>
@@ -1076,45 +1032,22 @@ export function createApiProxy(ctx, defaults) {
     }))
   }
 
-  // Projection change feed → session/projection push frames. The carrier
-  // mints the wire frame (the Service Definition package holds no wire vocabulary); the
-  // child activates only when a projection registry is composed, and the
-  // subscription unwinds with this gateway's fiber.
   ctx.inject(['sessionProjections'], (projectionCtx) => {
     projectionCtx.sessionProjections.onChanged((session, key, value, seq) => {
       broadcast({ type: 'session/projection', sessionId: session.id, key, value, seq })
     })
   })
 
-  // The cache supplies recency and a monotonic non-blank hint. A cached
-  // `blank: true` remains only a prefix fact and is verified on the cold path.
   ctx.inject(['sessionProjections'], (projectionCtx) => {
     projectionCtx.sessionProjections.register({
       key: 'sessionListMetadata',
       init: () => ({ blank: true, lastPromptAt: null, errored: false }),
       apply: applySessionListMetadata,
       wire: { view: state => state },
-      // A stored row from before `errored` existed lacks the field; summarizeCold
-      // falls back through `probed?.errored` rather than trusting an old cache
-      // row's absence as a hard "not errored", so a version bump is unneeded for
-      // correctness, but bumping keeps the persisted shape self-describing.
       stateVersion: 2,
     })
   })
 
-  // The imageLimits projection unit: the attachments config this proxy
-  // enforces at prompt admission, constant per host boot. `apply` keeps the
-  // same state reference for every event, so no change frames are ever
-  // pushed — baselines alone carry the value — and clients pre-check intake
-  // and label upload affordances from it. Registered here, not in the
-  // attachment Service Definition: freddie-llm depends on freddie-attachment, so the
-  // seam package cannot reference the projection registry without a cycle,
-  // and the per-message rules the value describes are this proxy's own
-  // admission checks. The child activates only while both seams are composed.
-  // `view` reading the live service instead of the (null) state is sanctioned
-  // exactly for boot-constant units: the value cannot change within a process
-  // lifetime, so the fold stays observationally pure, and a stale persisted
-  // cache row re-viewing to the current config is the correct outcome.
   ctx.inject(['sessionProjections', 'attachments'], (projectionCtx) => {
     projectionCtx.sessionProjections.register({
       key: 'imageLimits',
@@ -1137,9 +1070,6 @@ export function createApiProxy(ctx, defaults) {
       ...project('next-turn').map(message => ({ id: message.id, placement: 'queued', message })),
       ...project('next-step').map(message => ({
         id: message.id,
-        // Only user-origin messages are steering; injected context (approval
-        // notices, task completion, attached snapshots) is not a user action
-        // and must not render as a pending steering bubble.
         placement: message.source.kind === 'user' ? 'steering' : 'context',
         message,
       })),
@@ -1207,33 +1137,12 @@ export function createApiProxy(ctx, defaults) {
     }
   }, 'api-proxy: user-questions provider')
 
-  // --- Approval pending registry ------------------------------------------
-  // The proxy is the approval channel for every agent this host owns: an ask
-  // through `ctx.approval` becomes an answerable server-request on the mux
-  // stream (stable rpcId), settled by POST /api/respond. The entry survives
-  // client disconnects — mux-open replays still-pending requested frames with
-  // the same rpcId (the refresh-recovery baseline) — and withdraws on the
-  // ask's own abort signal (turn cancel), pushing `cancelled` to subscribers.
   if (ctx.get('approval') !== undefined) {
-    // Teardown parity with the question provider above: a gateway disposed
-    // while approvals are pending settles every entry as 'cancelled' (the
-    // service's fail-closed vocabulary), so no ask promise dangles past the
-    // proxy's lifetime and subscribers see the withdrawal.
     ctx.effect(() => () => {
       for (const pending of [...pendingApprovals.values()]) pending.resolve('cancelled')
     }, 'api-proxy: approval registry teardown')
     ctx.on('approval/request', (req, next) => {
-      // Dispatch rides a microtask behind the service's own signal check: an
-      // abort landing in that window would register the abort listener AFTER
-      // the signal fired — never invoked, entry pending forever, zombie frame
-      // on every mux replay. Settle synchronously instead of publishing.
       if (req.signal?.aborted === true) return Promise.resolve('cancelled')
-      // The audit pair `approval/asked` is already appended by the service
-      // before dispatch, but dispatch rides a microtask: parallel tool calls
-      // can append several asked events before any answerer runs. THIS
-      // request's event is therefore the newest asked event that is still
-      // undecided, unclaimed by another pending entry, and — when the ask
-      // names a call — carries the same callId.
       const events = req.agent.session.events
       const claimed = new Set()
       for (const entry of pendingApprovals.values()) claimed.add(entry.approvalId)
@@ -1245,18 +1154,11 @@ export function createApiProxy(ctx, defaults) {
           decided.add(event.data.id)
         } else if (event.type === 'approval/asked') {
           if (decided.has(event.data.id) || claimed.has(event.data.id)) continue
-          // Symmetric pairing: a callId-bearing ask only takes its own call's
-          // record, and a callId-less ask only takes a callId-less record —
-          // so neither shape can steal the other's audit id under parallel
-          // asks. (Today every producer — the tool executor — passes callId;
-          // the callId-less arm guards any future non-tool asker.)
           if ((req.callId ?? null) !== (event.data.callId ?? null)) continue
           approvalId = event.data.id
           break
         }
       }
-      // No asked event means the request bypassed the service's audit path —
-      // not this channel's question; delegate to the fail-closed default.
       if (approvalId === undefined) return next()
       const id = approvalId
       return new Promise((resolve) => {
@@ -1268,9 +1170,6 @@ export function createApiProxy(ctx, defaults) {
           if (!pendingApprovals.delete(pending.rpcId)) return
           req.signal?.removeEventListener('abort', onAbort)
           broadcast({ type: 'approval/resolved', sessionId: pending.sessionId, approvalId: id, outcome })
-          // A cancelled ask was already settled by the service's own signal
-          // race, which discards this late resolution; resolving is a no-op
-          // there and keeps this promise from dangling forever.
           resolve(outcome)
         }
         const onAbort = () => { settle('cancelled') }
@@ -1325,7 +1224,7 @@ export function createApiProxy(ctx, defaults) {
    * besides ensuring the composition; {@link historyCutOf} takes the cut.
    * @param sessionId - the transcript being read.
    * @returns the attached session, or the inspected detached header and events.
-   * @throws {@link ApiRemoteSessionNotFound} when no project-backed session has that identity.
+   * @throws {@link SessionNotFound} when no project-backed session has that identity.
    */
   async function historySourceFor(sessionId) {
     const attached = ctx.sessions.get(sessionId)
@@ -1385,14 +1284,8 @@ export function createApiProxy(ctx, defaults) {
     const presets = ctx.get('agentPresets')
     if (presets === undefined) return undefined
     try {
-      // An unrecorded preset (a log from before the roster existed) renders
-      // through the DEFAULT preset's standing layer: that is the composition
-      // an unnamed session composes today, and presenters are pure display,
-      // so the worst a mismatch produces is the generic card it had anyway.
       return await presets.standingKeyFor(resolveSessionPreset(session))
     } catch {
-      // Swallows only the unknown/unusable-preset rejection from the roster:
-      // a deleted or broken preset must degrade this read, never fail it.
       return undefined
     }
   }
@@ -1415,23 +1308,14 @@ export function createApiProxy(ctx, defaults) {
           : (await persistence.list()).find(header => header.id === sessionId)
         if (persistence !== undefined && stored !== undefined) {
           const inspected = await persistence.inspect(sessionId)
-          // Ownership first: explicit-id adoption of a session-backed
-          // subagent must answer `agent-busy` regardless of the requested
-          // cwd (the api/commands.ts contract), not a cwd conflict.
           if (hasSubagentOwner({ header: inspected.meta }, undefined)) {
             throw new SubagentSessionOwnership(sessionId)
           }
           if (inspected.meta.cwd !== cwd) {
             throw new SessionCwdConflict(sessionId, cwd, inspected.meta.cwd)
           }
-          // Resolved from the log, not the header: a session that switched
-          // while blank ran every turn under the newer composition.
           const storedPreset = resolveSessionPreset({ header: inspected.meta, events: inspected.events })
           assertPresetUnchanged(sessionId, presetId, storedPreset)
-          // The stored preset wins over anything the request names: a resumed
-          // session's history was produced under that composition, and
-          // rebuilding it differently would replay tool calls the model can no
-          // longer make.
           return (await ctx.agents.resume({
             resumeSessionId: sessionId,
             agentOptions: agentOptions(),
@@ -1455,8 +1339,6 @@ export function createApiProxy(ctx, defaults) {
           setup: composition.setup,
         })).agent
       })().catch((error) => {
-        // Another Host entry path may have published the same identity while
-        // this operation crossed an asynchronous persistence/filesystem step.
         const live = ctx.agents.get(sessionId)
         if (live !== undefined) {
           if (hasSubagentOwner(live.session, live)) throw new SubagentSessionOwnership(sessionId)
@@ -1474,9 +1356,6 @@ export function createApiProxy(ctx, defaults) {
     }
     const agent = await creation
     if (hasSubagentOwner(agent.session, agent)) throw new SubagentSessionOwnership(sessionId)
-    // Beside the cwd check for the same reason, and after the await so it
-    // covers every path that yields a live agent — freshly created, adopted
-    // live, resumed from disk, or recovered by the concurrent-creation catch.
     assertPresetUnchanged(sessionId, presetId, resolveSessionPreset(agent.session))
     if (agent.session.header.cwd !== cwd) {
       throw new SessionCwdConflict(sessionId, cwd, agent.session.header.cwd)
@@ -1507,6 +1386,7 @@ export function createApiProxy(ctx, defaults) {
       const projections = listProjectionsFor(ctx, session.header, session)
       return {
         ...summarize(session, agent?.status === 'running'),
+        agentAvailable: agent?.session === session,
         ...projections === undefined ? {} : { projections },
       }
     }
@@ -1523,8 +1403,6 @@ export function createApiProxy(ctx, defaults) {
         const batch = cold.slice(offset, offset + COLD_SUMMARY_BATCH_SIZE)
         const settled = await Promise.allSettled(
           batch.map(async (meta) => {
-            // Projection hints remain optional. Blank verification may read
-            // this Session's artifact only when it passes the configured size check.
             const projections = listProjectionsFor(ctx, meta, undefined)
             const summary = await summarizeCold(
               ctx,
@@ -1580,6 +1458,7 @@ export function createApiProxy(ctx, defaults) {
               running: false,
               blank: false,
               errored: false,
+              agentAvailable: false,
               readOnly: true,
               extraHome: extra,
               ...sessionListFields(meta),
@@ -1715,7 +1594,6 @@ export function createApiProxy(ctx, defaults) {
   /** Whether this deployment can hand a path to a native opener at all. */
   function canOpenPaths() {
     if (defaults.canOpenPath !== undefined) return defaults.canOpenPath()
-    // An injected opener is by definition usable; otherwise ask the platform.
     return defaults.openPath !== undefined || canOpenNativePath()
   }
 
@@ -1748,8 +1626,6 @@ export function createApiProxy(ctx, defaults) {
     const settings = ctx.get('settings')
     if (settings === undefined) return err(request, settingsAbsent())
     const rejected = (error) => {
-      // A stale writer is its own outcome, not a malformed request: the client
-      // must re-read and re-apply rather than treat the write as invalid.
       if (error instanceof SettingsConflictError) {
         return err(request, {
           code: 'settings-conflict',
@@ -1767,8 +1643,6 @@ export function createApiProxy(ctx, defaults) {
     try {
       branded = settingsNamespace(ns)
     } catch (error) {
-      // A malformed name can address no registration, so it fails exactly as
-      // an unregistered one does.
       return rejected(error)
     }
     try {
@@ -1780,8 +1654,6 @@ export function createApiProxy(ctx, defaults) {
     }
     const descriptor = settings.describe({ redactSecrets: true }).find(candidate => candidate.ns === branded)
     if (descriptor === undefined) {
-      // The write committed but the namespace vanished before this read: only
-      // a concurrent registrant disposal can produce it.
       return err(request, { code: 'internal', message: `settings namespace "${ns}" was disposed after the ${mode}`, details: {} })
     }
     return ok(request, namespaceView(descriptor))
@@ -1789,10 +1661,6 @@ export function createApiProxy(ctx, defaults) {
 
   return {
     sessions: {
-      // Attached sessions summarize from memory; persisted-but-unattached (cold)
-      // sessions merge in from the persistence store so history survives restarts.
-      // Logs without a cwd are not served; every session records its project
-      // at create time.
       async list(request) {
         return ok(request, { items: await listVisibleSessionSummaries() })
       },
@@ -1878,11 +1746,6 @@ export function createApiProxy(ctx, defaults) {
                 `session search provider returned ${providerItemCount} items; maximum is ${requestedPageLimit}`,
               )
             }
-            // Host visibility is the authorization boundary. Consume the
-            // provider's globally ranked results rather than binding every
-            // visible id into one SQLite statement, then require each hit to
-            // name a visible session and a current message from that same
-            // session before emitting its snippet.
             for (const hit of page.items) {
               if (authorized.length > SESSION_SEARCH_RESULT_LIMIT) continue
               if (
@@ -1921,10 +1784,6 @@ export function createApiProxy(ctx, defaults) {
             isAborted(signal)
             || (error instanceof SessionQueryError && error.code === 'SESSION_QUERY_ABORTED')
           ) return cancelled()
-          // A deployment configured with `openAt: 'never'` has no index to
-          // search. That is a supported configuration, not a fault: reporting
-          // it as `internal` tells the client the server broke, so the UI
-          // shows a crash where it should just say search is unavailable.
           if (error instanceof SessionQueryError && error.code === 'SESSION_QUERY_SEARCH_DISABLED') {
             return err(request, {
               code: 'search-unavailable',
@@ -1932,8 +1791,6 @@ export function createApiProxy(ctx, defaults) {
               details: {},
             })
           }
-          // XXX: Redact provider details before exposing this gateway beyond
-          // its current single-user local deployment.
           return err(request, {
             code: 'internal',
             message: `session search failed: ${String(error)}`,
@@ -2021,14 +1878,6 @@ export function createApiProxy(ctx, defaults) {
             })
           }
         }
-        // Echo the composition the session RUNS so a client can label it
-        // without waiting for the next list refresh — the create is the commit
-        // point that knows it (a caller that named none gets the default).
-        // Resolved from the log for the same reason `sessionListFields()` is:
-        // this handler also adopts an already-live session, and one that
-        // switched while blank runs a preset its header no longer names, so
-        // echoing the header would contradict both the adoption this call just
-        // allowed and the row `session.list` serves for the same session.
         const created = ctx.agents.get(sessionId)
         const createdPreset = created === undefined ? undefined : resolveSessionPreset(created.session)
         return ok(request, { sessionId, ...createdPreset === undefined ? {} : { agentPreset: createdPreset } })
@@ -2040,12 +1889,6 @@ export function createApiProxy(ctx, defaults) {
         if (refused !== undefined) return refused
         try {
           const source = await historySourceFor(sessionId)
-          // Both awaits happen BEFORE the cut. Ensuring the recorded
-          // composition's standing mount is what registers its projection
-          // units, so a first cold read would otherwise serve a baseline
-          // missing every preset-owned key; and an attached session keeps
-          // appending, so awaiting between the two reads would pair events cut
-          // at N with a baseline folded to N+1.
           const scope = await presenterScopeFor(sessionId, sourceSession(source))
           const cut = historyCutOf(source, beforeSeq === undefined)
           const page = historyPage(ctx, cut.events, beforeSeq, maxMessages, scope)
@@ -2136,9 +1979,6 @@ export function createApiProxy(ctx, defaults) {
           const accepted = titles.rename(found.agent.session, title)
           return ok(request, { title: accepted.title, seq: accepted.eventSeq })
         } catch (error) {
-          // Only the input's fault maps to title-invalid (the message is
-          // product-user-visible in the rename dialog); liveness and disposal
-          // races are deployment trouble, not a bad title.
           if (error instanceof SessionTitleInvalidError) {
             return err(request, {
               code: 'title-invalid',
@@ -2172,9 +2012,6 @@ export function createApiProxy(ctx, defaults) {
           })
         }
         const events = source.events
-        // An in-log anchor belongs to the turn containing it and must never
-        // clip backward to an earlier completed turn. Omitted and past-end
-        // anchors retain the last-completed-turn shortcut.
         const lastSeq = events.at(-1)?.seq ?? -1
         const anchoredBoundary = atSeq === undefined
           ? undefined
@@ -2192,10 +2029,6 @@ export function createApiProxy(ctx, defaults) {
             details: { sessionId },
           })
         }
-        // Extend the cut through trailing out-of-band appends (session/title,
-        // injections) up to the next turn/start: they are standalone events, so
-        // the seed stays balanced, and the child inherits a title generated
-        // right after the boundary turn.
         let cut = boundary.seq + 1
         while (cut < events.length && events[cut]?.type !== 'turn/start') cut++
         let workspace
@@ -2209,11 +2042,6 @@ export function createApiProxy(ctx, defaults) {
           })
         }
         const childId = `session-${randomUUID()}`
-        // The child inherits the parent's composition for the same reason a
-        // resumed session keeps its own: the seeded history was produced under
-        // those tools, and composing anything else would strand the tool calls
-        // it already carries. Now that no model-facing row sits in the host
-        // plane, composing nothing would leave the child with no tools at all.
         const forkComposition = await composeAgent(resolveSessionPreset(source))
         try {
           await ctx.agents.create({
@@ -2237,9 +2065,6 @@ export function createApiProxy(ctx, defaults) {
             details: {},
           })
         }
-        // An ordinary source keeps its direct Workspace. A subagent source is
-        // not listed there, so its ordinary fork joins the nearest owning
-        // ancestor instead. The child is already published if attach fails.
         if (workspace !== undefined) {
           try {
             await workspace.attachSession(childId)
@@ -2274,7 +2099,6 @@ export function createApiProxy(ctx, defaults) {
         const resolved = await turnAgentFor(request, sessionId)
         if ('refused' in resolved) return resolved.refused
         const agent = resolved.agent
-        // Request identity and optional browser zone ride the exact durable user message.
         const source = {
           kind: 'user',
           rpcId: request.rpcId,
@@ -2446,16 +2270,6 @@ export function createApiProxy(ctx, defaults) {
         if (hasSubagentOwner(agent.session, agent)) {
           return Promise.resolve(err(request, subagentOwnershipError(sessionId)))
         }
-        // This RPC has no notion of which connection is calling: the UI's Stop
-        // button always names the session it is scoped to, so a naive check
-        // would have to treat every legitimate Stop as indistinguishable from
-        // an in-harness agent's own probe/debugging call reaching this same
-        // endpoint (e.g. bash hitting /api) and silently killing its own live
-        // turn mid-tool-call. Rather than guess intent, a cancel that would
-        // abort a currently-running turn requires an explicit `confirm: true`
-        // acknowledgement; the UI's Stop button sets it, so it is unaffected,
-        // while an unconfirmed call against a running turn gets a clear,
-        // named refusal instead of a silent abort.
         if (agent.status === 'running' && confirm !== true) {
           return Promise.resolve(err(request, {
             code: 'session-cancel-requires-confirm',
@@ -2518,9 +2332,6 @@ export function createApiProxy(ctx, defaults) {
           parentSessionId, childSessionId, mode,
         }, signal)
         if (verified.error !== undefined) return err(request, verified.error)
-        // The generic-history data plane: an attached child serves its
-        // in-memory snapshot and the registry's live watermark projections; a
-        // cold child is one persistence inspection plus a detached fold.
         let header
         let events
         let projections
@@ -2624,10 +2435,6 @@ export function createApiProxy(ctx, defaults) {
         }
       },
 
-      // Deliberately no catalog, history, persistence, or parent Agent lookup:
-      // the core primitive alone authorizes the durable address against the
-      // live Activation, which is what keeps a live child interruptible while
-      // its parent Agent is offline. Absent targets are accepted no-ops there.
       interrupt(request) {
         const { parentSessionId, childSessionId } = request.payload ?? {}
         const refused = requireNonEmptyString(request, parentSessionId, 'subagent.interrupt requires payload.parentSessionId as a non-empty string')
@@ -2669,9 +2476,6 @@ export function createApiProxy(ctx, defaults) {
           const { workspace, created } = await ensureWorkspace(path)
           return ok(request, { workspace: workspaceView(workspace), created })
         } catch (error) {
-          // The registry rejects a path that does not resolve to an existing
-          // directory (realpath ENOENT / not-a-directory) — the business
-          // error of the typed-path flow, surfaced as a validation failure.
           return err(request, {
             code: 'workspace-invalid-path',
             message: `cannot create a workspace at "${path}": ${error instanceof Error ? error.message : String(error)}`,
@@ -2688,10 +2492,6 @@ export function createApiProxy(ctx, defaults) {
         const workspace = ctx.workspaceRegistry.get(brandWorkspaceId(payload.workspaceId))
         if (workspace === undefined) return workspaceNotFound(request, payload.workspaceId)
         const title = payload.title.trim()
-        // Uniqueness AND the same-title no-op both ride the create chain so
-        // they observe the state left by earlier queued renames — checked
-        // up front, a queued A→A could report success while an earlier A→B
-        // still lands afterwards.
         const operation = workspaceCreationChain.then(async () => {
           if (title === workspace.title) return
           if (ctx.workspaceRegistry.list().some(other => other.id !== workspace.id && other.title === title)) {
@@ -2752,8 +2552,6 @@ export function createApiProxy(ctx, defaults) {
         try {
           await workspace.insertSessionBefore(payload.sessionId, payload.beforeSessionId)
         } catch (error) {
-          // Only the entity's unaccounted-id rejection is the business code;
-          // storage/durability failures propagate as internal errors.
           if (!(error instanceof WorkspaceMoveInvalidError)) throw error
           return err(request, {
             code: 'workspace-move-invalid',
@@ -2775,8 +2573,6 @@ export function createApiProxy(ctx, defaults) {
         try {
           await ctx.workspaceRegistry.archiveSession(sessionId)
         } catch (error) {
-          // Only the registry's unknown-session rejection is the business
-          // code; storage/durability failures propagate as internal errors.
           if (!(error instanceof WorkspaceUnknownSessionError)) throw error
           return err(request, {
             code: 'session-not-found',
@@ -2790,16 +2586,11 @@ export function createApiProxy(ctx, defaults) {
 
     host: {
       describe(request) {
-        // TODO: version should read apps/cli's package.json; placeholder for now.
         const selection = defaults.defaultModelSelection()
         return Promise.resolve(ok(request, {
           version: '0.0.1',
           instanceId: PROCESS_INSTANCE_ID,
-          // Same source as session.create's fallback: the UI's default project
-          // must match where an unspecified-cwd session actually lands.
           cwd: defaults.cwd,
-          // Read live for the same reason: this is what the NEXT session will
-          // start from, so a saved default has to be what it reports.
           provider: selection.provider,
           model: selection.model,
           attachedSessions: ctx.agents.list().length,
@@ -2846,12 +2637,8 @@ export function createApiProxy(ctx, defaults) {
           })
         }
         try {
-          // The carrier's signal follows the caller: a disconnect or timeout
-          // stops the backend's directory scan instead of outliving it.
           return ok(request, await capability.list(request.payload.path, signal))
         } catch (error) {
-          // An abort is the caller's own timeout/disconnect, not a server
-          // failure — same code pickDirectory and command.execute report.
           if (signal.aborted) {
             return err(request, { code: 'cancelled', message: 'directory listing was aborted', details: {} })
           }
@@ -2890,11 +2677,6 @@ export function createApiProxy(ctx, defaults) {
     },
 
     goals: {
-      // Mutations only — the read side is the 'goal' session projection.
-      // Every verb resolves the session's agent (agentFor: implicit cold
-      // resume, the command.* precedent) and acknowledges with the new CAS
-      // ref; the committed goal/change event carries the whole value to every
-      // client through the projection frames.
       async create(request) {
         const { objective, maxGoalRounds } = request.payload ?? {}
         const refused = requireNonEmptyString(request, objective, 'goal.create requires payload.objective as a non-empty string')
@@ -2952,9 +2734,6 @@ export function createApiProxy(ctx, defaults) {
     },
 
     agentPresets: {
-      // A deployment with no roster answers with an empty list rather than an
-      // error: composing no presets is a valid deployment, and the browser
-      // simply offers no choice.
       async list(request) {
         const presets = ctx.get('agentPresets')
         if (presets === undefined) return ok(request, { presets: [], authorable: false, hasDocument: false })
@@ -2973,9 +2752,6 @@ export function createApiProxy(ctx, defaults) {
         })
       },
 
-      // Recomposing is limited to a blank session because a started
-      // conversation's history was produced under its preset's tools; the
-      // agent and the session survive, only the composition is swapped.
       async select(request) {
         const { sessionId, agentPreset } = request.payload ?? {}
         const refused = requireNonEmptyString(request, sessionId, 'agentPreset.select requires payload.sessionId as a non-empty string')
@@ -2993,8 +2769,6 @@ export function createApiProxy(ctx, defaults) {
         if ('error' in found) return err(request, found.error)
         const { agent } = found
         const swap = async () => {
-          // Re-read inside the queue: an earlier switch may have run, and a
-          // conversation may have started, since this request arrived.
           if (!sessionBlank(agent.session)) {
             return err(request, {
               code: 'agent-preset-locked',
@@ -3004,8 +2778,6 @@ export function createApiProxy(ctx, defaults) {
           }
           try {
             const preset = await presets.recompose(agent.ctx, agentPreset)
-            // Recorded only after the swap committed: the log states what the
-            // agent runs, and a rejected mount leaves the previous composition.
             agent.session.append('agent-preset/selected', { agentPreset: preset.id })
             return ok(request, { agentPreset: preset.id })
           } catch (error) {
@@ -3028,10 +2800,6 @@ export function createApiProxy(ctx, defaults) {
         }
       },
 
-      // Authoring is privileged (see PRIVILEGED_METHODS in freddie-client-connection):
-      // a composition names the plugins a session runs, so reading one is
-      // reconnaissance, and copy/remove/openDocument manage the roster and
-      // drive the host desktop.
       async read(request) {
         const { agentPreset } = request.payload ?? {}
         const refused = requireNonEmptyString(request, agentPreset, 'agentPreset.read requires payload.agentPreset as a non-empty preset id')
@@ -3075,15 +2843,9 @@ export function createApiProxy(ctx, defaults) {
         if (presets === undefined) return err(request, noRoster(agentPreset))
         try {
           const preset = await presets.resolve(agentPreset)
-          // Same line as copy/remove draw: the shipped install is not the
-          // user's to manage, and pointing an editor into it invites edits an
-          // upgrade will silently overwrite.
           if (preset.trust !== 'user') {
             throw new PresetNotWritableError(preset.id, 'it ships with the deployment')
           }
-          // The id resolved against the Host's own roots is what selects the
-          // directory — no browser payload carries a path in either direction
-          // unless the deployment has no opener to hand it to.
           const directory = dirname(preset.path)
           if (!canOpenPaths()) return ok(request, { opened: false, path: directory })
           return await openPath(request, directory, signal)
@@ -3109,9 +2871,6 @@ export function createApiProxy(ctx, defaults) {
     },
 
     skills: {
-      // Skill lookup never creates or resumes an agent: the session address
-      // resolves to a canonical cwd from the host-resident session header, and
-      // the view scope is the live agent or the preset's standing key.
       async list(request) {
         const sessionId = request.payload?.sessionId
         if (typeof sessionId !== 'string' || sessionId.length === 0) {
@@ -3126,29 +2885,16 @@ export function createApiProxy(ctx, defaults) {
           })
         }
         if (session.header.cwd === undefined) {
-          // Every served session records its project at create time; a
-          // cwd-less header is a pre-project legacy log (not served).
           return err(request, { code: 'internal', message: `session "${sessionId}" has no project cwd`, details: {} })
         }
         const cwd = session.header.cwd
-        // The host registry is layered per scope and serves every session. A
-        // composition may still realm-mount its own registry instead; that
-        // instance is invisible to host contexts, so address it through the
-        // live agent (`agents.get` keeps the no-side-effect stance above).
         const live = ctx.agents.get(sessionId)
         const presets = ctx.get('agentPresets')
         const scoped = live === undefined ? undefined : presets?.serviceFor(live, 'skills')
-        // Same stance as the commands domain: a missing service means no
-        // composition mounts freddie-skill, not an empty catalog. `ctx.get` also
-        // keeps this handler independent of the gateway plugin's inject list
-        // (an undeclared `ctx.skills` property read fails the reflect proxy).
         const skillRegistry = scoped ?? ctx.get('skills')
         if (skillRegistry === undefined) {
           return err(request, { code: 'internal', message: 'skill registry is absent: neither this session\'s agent preset nor the host composition mounts @freddie/freddie-skill', details: {} })
         }
-        // The scope presenters resolve in — the live agent, else the recorded
-        // preset's standing key, else the global layer — so a cold session's
-        // '/' popup lists the catalog its composition actually serves.
         const scope = await presenterScopeFor(sessionId, session)
         try {
           const skills = (await skillRegistry.list({ cwd, scope })).filter(isUserInvocable)
@@ -3404,9 +3150,6 @@ export function createApiProxy(ctx, defaults) {
           active: active.has(entry.provider),
           ...entry.declared === undefined ? {} : { declared: entry.declared },
         }))
-        // Routes registered without a directory declaration still appear —
-        // they exist and serve models — just with no settings address. No
-        // adapter claimed them, so nothing can say whether they are shipped.
         for (const provider of registered) {
           if (declared.has(provider.id)) continue
           views.push({
@@ -3438,10 +3181,6 @@ export function createApiProxy(ctx, defaults) {
           })
           return ok(request, { models })
         } catch (error) {
-          // Every failure here is the user's next move, not a transport fault:
-          // a wrong endpoint, a rejected key, or a protocol with no listing all
-          // end at the same place — fill the models in by hand. The details
-          // repeat only what the caller already sent, never the credential.
           return err(request, {
             code: 'model-discovery-failed',
             message: error instanceof Error ? error.message : String(error),
@@ -3467,22 +3206,13 @@ export function createApiProxy(ctx, defaults) {
             },
           })
         }
-        // Refresh recovery: still-pending approval questions replay with their
-        // stable rpcId so a reconnecting client can still answer them.
         for (const pending of pendingApprovals.values()) queue.push(requestedFrame(pending))
-        // Queue snapshot baseline (pendingQuestions precedent): frames replayed
-        // in arrival order per session; a reconnecting client rebuilds its
-        // queue view from these alone.
         for (const session of ctx.sessions.list()) {
           const agent = ctx.agents.get(session.id)
           if (agent?.session === session && agent.inbox.hasPending) {
             queue.push(frame({ type: 'session/queue', sessionId: session.id, items: queueItems(agent) }))
           }
         }
-        // Background-task baseline. `ctx.agents.get` is the non-resuming read:
-        // a session with no live Agent owns no tasks, so it correctly sees only
-        // the unowned ones, and listing never revives a cold session. An empty
-        // set sends nothing — absence is how the client reads "no tasks".
         const jobs = ctx.get('jobs')
         if (jobs !== undefined) {
           for (const session of ctx.sessions.list()) {
@@ -3492,9 +3222,6 @@ export function createApiProxy(ctx, defaults) {
             }
           }
         }
-        // Per-session open-call table for result-view pairing. Bounded by the
-        // per-turn call count: entries clear on turn/end; a table miss (stream
-        // opened mid-turn) backscans the session's in-memory events instead.
         const openCalls = new Map()
         for (const session of ctx.sessions.list()) {
           const agent = ctx.agents.get(session.id)
@@ -3513,7 +3240,6 @@ export function createApiProxy(ctx, defaults) {
                 if (table === undefined) openCalls.set(session.id, table = new Map())
                 table.set(data.callId, { name: data.name, args: JSON.parse(data.arguments) })
               } catch {
-                // Unparseable model arguments: leave the table unset; the result view soft-falls.
               }
             } else if (event.type === 'turn/end') {
               openCalls.delete(session.id)
@@ -3529,10 +3255,6 @@ export function createApiProxy(ctx, defaults) {
             subscribeSession(queue, session)
             const agent = ctx.agents.get(session.id)
             if (agent?.session === session) subscribeTerminal(agent)
-            // The subscribe frame clears the client's task mirror, and a
-            // session born after the stream opened missed the baseline loop.
-            // Unowned tasks are visible to it from birth, so without this it
-            // would show none until the next registry change.
             const views = jobs === undefined ? [] : jobViews(jobs.list(ctx.agents.get(session.id)))
             if (views.length > 0) {
               queue.push(frame({ type: 'session/jobs', sessionId: session.id, jobs: views }))
@@ -3543,14 +3265,9 @@ export function createApiProxy(ctx, defaults) {
           }),
           ...jobs === undefined ? [] : [jobs.onJobsChanged((owner) => {
             if (owner !== undefined) {
-              // The exact owner instance the fence compares against, so the
-              // push stays correct even while that Agent's scope is tearing
-              // down and a lookup by id would already miss.
               queue.push(frame({ type: 'session/jobs', sessionId: owner.id, jobs: jobViews(jobs.list(owner)) }))
               return
             }
-            // An unowned task is visible to every caller, so every subscribed
-            // session's set changed with it.
             for (const session of ctx.sessions.list()) {
               queue.push(frame({
                 type: 'session/jobs',
@@ -3573,19 +3290,13 @@ export function createApiProxy(ctx, defaults) {
           committedWorkspaces.map(workspace => String(workspace.id)),
         )
         let committedWorkspaceOrder = committedWorkspaces.map(workspace => workspace.id)
-        // Frame-dedup baseline, same posture as committedWorkspaceIds: the
-        // stream opens against the current set; workspace.list re-baselines
-        // reconnecting clients, so only later changes need frames.
         let archivedSessionIds = ctx.workspaceRegistry.archivedSessionIds
         const disposers = [
           ctx.on('session/created', (session) => {
             queue.push(frame({
               type: 'host/session-added',
               sessionId: session.id,
-              // Derived at frame time like summarize(); a just-created session
-              // has run no turn yet, so this is constantly true in practice.
               blank: sessionBlank(session),
-              // Including cwd lets the client group the new session without refreshing the list.
               ...sessionListFields(session.header, session.events),
             }))
           }),
@@ -3594,10 +3305,6 @@ export function createApiProxy(ctx, defaults) {
           }),
           ctx.on('agent/status', ({ agent, status }) => {
             const running = status === 'running'
-            // A transition INTO idle is exactly when a turn just closed (or the
-            // session had none in flight); read the session's own live fold so
-            // the sidebar dot flips to error in the same frame as the running
-            // dot clears, instead of waiting for the next full session.list.
             const errored = running ? false : sessionListMetadata(agent.session.events).errored
             queue.push(frame({ type: 'host/session-status', sessionId: agent.id, running, errored }))
           }),
@@ -3648,22 +3355,13 @@ export function createApiProxy(ctx, defaults) {
               return
             }
             if (!committedWorkspaceIds.has(change.key)) return
-            // Existing-entity table writes are complete attach/touch commits.
-            // A new entity's first put waits for the global registry write above.
             queue.push(frame({
               type: 'host/workspace-changed',
               workspace: changedWorkspaceView(change.key, change.value),
             }))
           }),
-          // Allowlisted host events ride one verbatim wrapper frame each. The
-          // allowlist is api-remotes', and `ctx.remote.$on` is the consumer
-          // face; nothing here projects, redacts, or renames.
           ...API_REMOTE_FORWARDED_EVENTS.map(name => ctx.on(
             name,
-            // The allowlist's shape assertion proves each name is a real,
-            // non-scoped, void-returning event, so the rest-parameter handler
-            // satisfies every member of the union `on` accepts here;
-            // assertJsonArgs proves the payload is JSON-safe before it queues.
             ((...args) => {
               queue.push(frame({
                 type: 'host/remote-event',
@@ -3679,9 +3377,6 @@ export function createApiProxy(ctx, defaults) {
 
     downloads: {
       async sessionLog(request, signal) {
-        // Clean error path first: missing services answer 500 and a missing
-        // root artifact 404 before any zip byte is produced. The root content
-        // read here is reused as the first zip entry, so nothing is read twice.
         const deps = sessionLogExportDeps(ctx)
         if (deps.sessionQuery === undefined || deps.sessionPersistence === undefined || deps.attachments === undefined) {
           return new Response(
@@ -3708,8 +3403,6 @@ export function createApiProxy(ctx, defaults) {
           signal.throwIfAborted()
         } catch {
           signal.throwIfAborted()
-          // Root preparation failure: answer 500 without echoing the error,
-          // which may carry absolute host paths into the browser error bar.
           return new Response('session log export failed to prepare the stored artifact', { status: 500 })
         }
         if (root === undefined) {
@@ -3735,14 +3428,10 @@ export function createApiProxy(ctx, defaults) {
     },
 
     respond(message) {
-      // Route by the echoed rpcId (the wire correlation): approvals first,
-      // then questions — the two registries share one id space of UUIDs.
       const approval = pendingApprovals.get(message.rpcId)
       if (approval !== undefined) {
         if (!message.result.ok) return Promise.resolve({ accepted: false, reason: 'bad-response' })
         const parsed = toApprovalResponsePayload(message.result.value)
-        // The payload's audit correlation must match the entry the rpcId routed
-        // to — a mismatched answer is malformed, not merely late.
         if (!parsed || parsed.approvalId !== approval.approvalId || parsed.sessionId !== approval.sessionId) {
           return Promise.resolve({ accepted: false, reason: 'bad-response' })
         }

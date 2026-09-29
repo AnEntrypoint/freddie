@@ -62,9 +62,6 @@ export class HarnessSdkJsonRpcServer {
     }))
     this.disposers.push(ctx.on('subagent/end', function (info) {
       const parent = subagentParentOf(this)
-      // This protocol reports only in-process child sessions. The service
-      // snapshots the provider name and local flag through child disposal;
-      // matching ids or parent lineage alone never establishes locality.
       if (!info.local) return
       const payload = {
         provider: info.provider,
@@ -115,9 +112,6 @@ export class HarnessSdkJsonRpcServer {
    */
   async prompt(params) {
     const rec = await this.getOrCreateSession(params.sessionId)
-    // An agent-loop-only reload disposes the loop's agents while this record
-    // survives; a retained agent accepts followup() silently, so validate the
-    // record against the live registry before delivery (as the ACP bridge does).
     if (this.ctx.agents.get(rec.handle.agent.id) !== rec.handle.agent) {
       throw new Error(`session agent was disposed outside the server: ${params.sessionId}`)
     }
@@ -223,10 +217,6 @@ export class HarnessSdkJsonRpcServer {
   }
 
   async createSession(sessionId) {
-    // No preset composition: this server's compositions keep the model-facing
-    // rows in the host plane, so this agent reads them from the global layer. A
-    // deployment that configures a roster has to join one here first
-    // (@freddie/freddie-agent-presets README, "Composing a child agent").
     const handle = await this.ctx.agents.create({
       sessionId: SessionId(sessionId),
       meta: { cwd: this.cwd },

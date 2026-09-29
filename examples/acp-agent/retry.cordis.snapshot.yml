@@ -1,7 +1,3 @@
-# Keyless replay for the retry overlay: disable the key-requiring DeepSeek
-# adapter, insert `llm-replay`, and give its provider the same deterministic
-# 1 ms zero-jitter retry policy as the live sibling. The app patch still
-# restates its whole config for raw JSONL persistence and the recorded model.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

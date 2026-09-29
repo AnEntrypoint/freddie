@@ -163,23 +163,15 @@ export function apply(ctx, config) {
   const delivery = config.completionDelivery ?? 'wakeup'
   const wakeBudget = config.maxConsecutiveWakes ?? 3
 
-  // Turns this plugin opened on each owner since that owner last consumed
-  // human input. Keyed by the exact Agent, so a same-session replacement
-  // starts with a full budget.
   const spentWakes = new WeakMap()
   if (waitDefault > waitCap) {
     throw new Error(`tool-jobs: waitTimeoutMs (${waitDefault}) exceeds maxWaitTimeoutMs (${waitCap})`)
   }
-  // A budget is a count of turns. `Infinity` would leave the runaway chain this
-  // field exists to bound unbounded, and a fraction never names a turn at all.
   if (!Number.isSafeInteger(wakeBudget)) {
     throw new Error(`tool-jobs: maxConsecutiveWakes (${wakeBudget}) must be a whole number of turns`)
   }
-  // Nothing spends the budget under quiet delivery, so nothing needs to refill it.
   if (delivery === 'wakeup') {
     ctx.on('agent/inbox/claimed', ({ agent, message }) => {
-      // Claiming is the point the human's input actually enters a step; a notice
-      // this plugin itself queued must not refill the budget it just spent.
       if (message.source.kind === 'user') spentWakes.delete(agent)
     })
   }
@@ -195,8 +187,6 @@ export function apply(ctx, config) {
     outputLimits.delete(exec)
     if (maxBytes === undefined) return undefined
     if (exec.name === 'job_output' && !result.isError) {
-      // This definition owns and schema-validates the canonical value. Preserve
-      // its output/status split only while policy left the default rendering intact.
       const value = result.value
       const body = value.text.length > 0 ? value.text : '(no new output)'
       const content = body.endsWith('\n') ? body.slice(0, -1) : body
@@ -211,26 +201,14 @@ export function apply(ctx, config) {
     return boundSingleText(result.content, maxBytes)
   }
 
-  // Producers may start work only while a controller is attached.
   ctx.jobs.attachController('tool-jobs')
 
-  // Cross-call guidance follows the bash section and precedes product sections.
   ctx.systemPrompt.section({
     name: 'tool:jobs',
     order: 106,
     text: 'Track every background job id you start. You are notified in-session when a job finishes — do not busy-poll or sleep on one; keep working on independent steps and do not duplicate a running job\'s work. Before giving a final answer, collect every still-relevant job with job_output (set wait: true only when you are genuinely blocked on it), and job_kill jobs that stopped mattering.',
   })
 
-  // Use the exact lifecycle owner; reusable ids could resolve to a replacement.
-  // A busy owner is injected: the notice waits in its next-step inbox, which
-  // the turn cannot close over, so jobs settling together cost one step. An
-  // idle owner is woken instead, because an unclaimed notice is a completion
-  // the model never learns about. Either way, disposal before the claim
-  // discards it with the owner, and teardown settlements arrive `reported`.
-  //
-  // The registry routes each settlement to the listeners its owner's scope
-  // chain reaches, so a mount under one preset never sees another preset's
-  // agents; this listener owns delivery, not the choice of whom to deliver to.
   ctx.jobs.onJobDone((snapshot, owner) => {
     if (snapshot.reported || owner === undefined) return
     const message = createUserMessage({
@@ -259,8 +237,6 @@ export function apply(ctx, config) {
     description: 'Read a background job. Stream jobs return only output since the previous read; '
       + 'final-output jobs return their result after settlement. Every response ends with '
       + '`[status: ...]`. Reads are non-blocking unless `wait: true`, which waits up to the configured cap.',
-    // A timed-out wait returns job state rather than a TOOL_TIMEOUT error, so
-    // this tool owns its deadline instead of using ToolDefinition.timeoutMs.
     parameters: {
       job_id: { type: 'string', required: true, description: 'Job id returned by the tool that started the background work.' },
       wait: { type: 'boolean', description: 'Block until the job reaches a terminal status or the timeout expires. A timed-out wait returns [status: running] and leaves the job alive.' },
@@ -345,7 +321,6 @@ export function apply(ctx, config) {
     execute(args, exec) {
       const id = validateJobId(args.job_id)
       const result = ctx.jobs.kill(id, exec.agent, args.reason)
-      // A snapshot describes current state without consuming pending output.
       const snapshot = publicJob(ctx.jobs.get(id, exec.agent))
       return Promise.resolve({
         outcome: result === 'already-finished' ? 'already-finished' : 'cancellation-requested',

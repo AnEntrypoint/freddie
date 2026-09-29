@@ -31,21 +31,74 @@ import { snapshotJsonValue } from '@freddie/freddie-session'
  */
 export const SUBAGENT_DESCRIPTOR_VERSION = 2
 
-/** Fields shared by every supported `subagent/descriptor` payload. */
+/**
+ * Fields shared by every supported `subagent/descriptor` payload.
+ * @typedef {object} SubagentDescriptorBase
+ * @property {number} version
+ * @property {'one-shot' | 'continuable'} mode
+ * @property {string} provider
+ * @property {string} [label]
+ */
 
-/** A session-backed subagent that cannot be cold-resumed after its run. */
+/**
+ * A session-backed subagent that cannot be cold-resumed after its run.
+ * @typedef {object} SubagentOneShotDescriptor
+ * @property {number} version
+ * @property {'one-shot'} mode
+ * @property {string} provider
+ * @property {string} [label]
+ */
 
-/** A session-backed subagent whose declared composition supports cold resume. */
+/**
+ * A session-backed subagent whose declared composition supports cold resume.
+ * @typedef {object} SubagentContinuableDescriptor
+ * @property {number} version
+ * @property {'continuable'} mode
+ * @property {string} provider
+ * @property {string} label
+ * @property {string} [agentProvider]
+ * @property {string} [agentModel]
+ * @property {string} [persona]
+ * @property {{ allow?: string[], deny?: string[] }} [toolFilter]
+ */
 
-/** The supported durable subagent identity and optional continuation composition. */
+/**
+ * The supported durable subagent identity and optional continuation composition.
+ * @typedef {SubagentOneShotDescriptor | SubagentContinuableDescriptor} SubagentDescriptor
+ */
 
-/** Fields shared by descriptor snapshot inputs. */
+/**
+ * Fields shared by descriptor snapshot inputs.
+ * @typedef {object} SubagentDescriptorSnapshotInputBase
+ * @property {'one-shot' | 'continuable'} mode
+ * @property {string} provider
+ * @property {string} [label]
+ */
 
-/** Input for a one-shot child's durable identity. */
+/**
+ * Input for a one-shot child's durable identity.
+ * @typedef {object} SubagentOneShotSnapshotInput
+ * @property {'one-shot'} mode
+ * @property {string} provider
+ * @property {string} [label]
+ */
 
-/** Input for a continuable child's durable identity and resumable composition. */
+/**
+ * Input for a continuable child's durable identity and resumable composition.
+ * @typedef {object} SubagentContinuableSnapshotInput
+ * @property {'continuable'} mode
+ * @property {string} provider
+ * @property {string} label
+ * @property {string} [agentProvider]
+ * @property {string} [agentModel]
+ * @property {string} [persona]
+ * @property {{ allow?: string[], deny?: string[] }} [toolFilter]
+ */
 
-/** Inputs {@link snapshotSubagentDescriptor} validates and detaches. */
+/**
+ * Inputs {@link snapshotSubagentDescriptor} validates and detaches.
+ * @typedef {SubagentOneShotSnapshotInput | SubagentContinuableSnapshotInput} SubagentDescriptorSnapshotInput
+ */
 
 const DESCRIPTOR_BASE_KEYS = [
   'version',

@@ -1,8 +1,3 @@
-// JsonBlock: collapsible JSON block (conversation side; independent from the RPC panel's PayloadJson to avoid cross-panel coupling).
-// Converted from a React hooks component to a webjsx custom element: the
-// `open` useState becomes a private field, re-render is an explicit
-// applyDiff(this, vdom) call after each toggle.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './JsonBlock.css.js'
 import { defineElement } from '../define-element.js'
@@ -17,7 +12,6 @@ function defaultTruncatedLabel(total) {
 function bodyText(payload, truncatedLabel) {
   let s
   try {
-    // lib typing hides stringify's undefined arm (undefined/function/symbol payloads).
     // oxlint-disable-next-line typescript/no-unnecessary-condition
     s = JSON.stringify(payload, null, 2) ?? String(payload)
   } catch {
@@ -33,10 +27,6 @@ export class FreddieJsonBlock extends HTMLElement {
 
   setProps(props) {
     this.#props = props
-    // `defaultOpen` seeds state only on the first setProps, matching
-    // React's useState(defaultOpen) (read once, on mount) — a later setProps
-    // call reusing this element (a new render pass with fresh props) must
-    // not collapse an already-toggled-open block back to its default.
     if (!this.#initialized) {
       this.#open = props.defaultOpen ?? false
       this.#initialized = true
@@ -71,6 +61,15 @@ export class FreddieJsonBlock extends HTMLElement {
 }
 
 defineElement('freddie-json-block', FreddieJsonBlock)
+
+/**
+ * @typedef {object} JsonBlockProps
+ * @property {string} [label=''] - the always-visible toggle button's label.
+ * @property {*} [payload] - the JSON-serializable value shown, pretty-printed, once expanded.
+ * @property {boolean} [defaultOpen=false] - initial expanded state; only read the first time `setProps` runs.
+ * @property {function(number): string} [truncatedLabel] - formats the truncation footer from the full
+ *   serialized length; defaults to `"… truncated, {total} characters total"`.
+ */
 
 /**
  * Create (if needed) or update a JsonBlock element in place.

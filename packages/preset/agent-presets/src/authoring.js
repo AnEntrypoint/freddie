@@ -88,8 +88,6 @@ async function occupied(path) {
   try {
     await stat(path)
   } catch {
-    // Every stat failure means the same thing here: nothing usable occupies
-    // the path, so the copy may claim it.
     present = false
   }
   return present
@@ -144,9 +142,6 @@ export async function copyComposition(
 ) {
   if (!PRESET_ID.test(id)) throw new InvalidPresetIdError(id)
   const dir = join(writableRoot(roots), id)
-  // The roster check upstream only sees discovered presets; a directory with
-  // no composition file still occupies the name and deserves a readable
-  // refusal rather than a filesystem error code.
   if (await occupied(dir)) throw new PresetExistsError(id)
   try {
     await cp(dirname(source.path), dir, {
@@ -164,8 +159,6 @@ export async function copyComposition(
       await writeFileAtomic(metadataPath, rendered, { mode: 0o600, dirMode: 0o700 })
     }
   } catch (error) {
-    // A half-copied directory would be invisible to discovery at best and a
-    // mountable-but-incomplete preset at worst; a failed copy leaves nothing.
     await rm(dir, { recursive: true, force: true })
     throw error
   }
@@ -190,8 +183,6 @@ export async function deleteComposition(
     throw new PresetNotWritableError(preset.id, 'it ships with the deployment')
   }
   const dir = join(writableRoot(roots), preset.id)
-  // Belt and braces over the id pattern: the resolved directory must still be
-  // the one the writable root owns, whatever discovery reported.
   if (!isAbsolute(preset.path) || !preset.path.startsWith(dir)) {
     throw new PresetNotWritableError(preset.id, 'it does not live under the writable preset root')
   }

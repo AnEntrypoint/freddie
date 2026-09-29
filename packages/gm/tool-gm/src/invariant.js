@@ -10,9 +10,6 @@ export const name = 'tool-gm-invariant'
 /** Service required before the companion can register. */
 export const inject = ['invariants']
 
-// No runtime invariant: each successful model-tool dispatch appends exactly one
-// log-only `gm/progress` snapshot after the daemon response commits; the session
-// append boundary is authoritative and contains malformed durable payloads.
 const install = () => {}
 
 /**

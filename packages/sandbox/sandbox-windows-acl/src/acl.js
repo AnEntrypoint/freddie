@@ -32,13 +32,13 @@ import * as abi from './win32-abi.js'
  */
 export function buildExplicitAccess(sidPtr, mode, permissions) {
   const entry = Buffer.alloc(abi.EXPLICIT_ACCESS_W_SIZE)
-  entry.writeUInt32LE(permissions, 0) // grfAccessPermissions
-  entry.writeUInt32LE(mode, 4) // grfAccessMode
-  entry.writeUInt32LE(abi.SUB_CONTAINERS_AND_OBJECTS_INHERIT, 8) // grfInheritance: OI|CI
-  entry.writeUInt32LE(abi.NO_MULTIPLE_TRUSTEE, 24) // Trustee.MultipleTrusteeOperation
-  entry.writeUInt32LE(abi.TRUSTEE_IS_SID, 28) // Trustee.TrusteeForm
-  entry.writeUInt32LE(abi.TRUSTEE_IS_UNKNOWN, 32) // Trustee.TrusteeType
-  entry.writeBigUInt64LE(ptrAddress(sidPtr), 40) // Trustee.ptstrName = the capability SID
+  entry.writeUInt32LE(permissions, 0)
+  entry.writeUInt32LE(mode, 4)
+  entry.writeUInt32LE(abi.SUB_CONTAINERS_AND_OBJECTS_INHERIT, 8)
+  entry.writeUInt32LE(abi.NO_MULTIPLE_TRUSTEE, 24)
+  entry.writeUInt32LE(abi.TRUSTEE_IS_SID, 28)
+  entry.writeUInt32LE(abi.TRUSTEE_IS_UNKNOWN, 32)
+  entry.writeBigUInt64LE(ptrAddress(sidPtr), 40)
   return entry
 }
 
@@ -81,10 +81,10 @@ export function withPathLock(api, path, action) {
     null, abi.OPEN_ALWAYS, 0, null,
   )
   if (isInvalidHandle(handle)) throwLastError(api, 'CreateFileW', lockPath)
-  const overlapped = allocOverlapped() // stays zeroed: offset 0, hEvent NULL
+  const overlapped = allocOverlapped()
   if (api.lockFileEx(handle, abi.LOCKFILE_EXCLUSIVE_LOCK, 0, 1, 0, overlapped) === 0) {
     const win32Code = api.getLastError()
-    api.closeHandle(handle) // best-effort on the lock-failure path
+    api.closeHandle(handle)
     throwWin32(api, 'LockFileEx', win32Code, lockPath)
   }
 
@@ -92,15 +92,13 @@ export function withPathLock(api, path, action) {
   try {
     result = action()
   } catch (error) {
-    // Best-effort release on the action-failure path: cleanup failures must
-    // not mask the action's error.
     api.unlockFileEx(handle, 0, 1, 0, overlapped)
     api.closeHandle(handle)
     throw error
   }
   if (api.unlockFileEx(handle, 0, 1, 0, overlapped) === 0) {
     const win32Code = api.getLastError()
-    api.closeHandle(handle) // best-effort on the unlock-failure path
+    api.closeHandle(handle)
     throwWin32(api, 'UnlockFileEx', win32Code, lockPath)
   }
   if (api.closeHandle(handle) === 0) throwLastError(api, 'CloseHandle', `lock file ${lockPath}`)
@@ -155,7 +153,7 @@ function mergeAndApply(
   const newAclSlot = allocPtrSlot()
   const mergeResult = api.setEntriesInAclW(1, entry, oldAcl, newAclSlot)
   if (mergeResult !== abi.ERROR_SUCCESS) {
-    if (descriptor !== null) api.localFree(descriptor) // frees the ACL block too
+    if (descriptor !== null) api.localFree(descriptor)
     throwWin32(api, 'SetEntriesInAclW', mergeResult, `${label}(${path})`)
   }
   const newAcl = decodePtr(newAclSlot)
@@ -164,8 +162,6 @@ function mergeAndApply(
     throwWin32(api, 'SetEntriesInAclW', api.getLastError(), `${label}(${path}): null new ACL`)
   }
 
-  // The descriptor block (oldAcl included) is dead after the merge — free it
-  // before applying, exactly like the POC.
   const freedDescriptor = descriptor !== null ? api.localFree(descriptor) : null
   const applyResult = api.setNamedSecurityInfoW(
     path, abi.SE_FILE_OBJECT, abi.DACL_SECURITY_INFORMATION,
@@ -195,13 +191,11 @@ function mergeAndApply(
 function hasExactGrant(oldAcl, sidPtr) {
   const aclSize = decodeUint16At(oldAcl, 2)
   const aceCount = decodeUint16At(oldAcl, 4)
-  if (aclSize < 8 || aclSize > 1_048_576) return false // implausible: fall back to the merge path
-  let offset = 8 // the first ACE follows the 8-byte ACL header
+  if (aclSize < 8 || aclSize > 1_048_576) return false
+  let offset = 8
   for (let index = 0; index < aceCount; index++) {
-    // ACE_HEADER: AceType@0, AceFlags@1, AceSize@2 (WORD);
-    // ACCESS_ALLOWED_ACE: Mask@4, inline SID@8.
     const aceSize = decodeUint16At(oldAcl, offset + 2)
-    if (aceSize < 8 || offset + aceSize > aclSize) return false // implausible: fall back to the merge path
+    if (aceSize < 8 || offset + aceSize > aclSize) return false
     const exact = decodeUint8At(oldAcl, offset) === abi.ACCESS_ALLOWED_ACE_TYPE
       && decodeUint8At(oldAcl, offset + 1) === abi.SUB_CONTAINERS_AND_OBJECTS_INHERIT
       && decodeUint32At(oldAcl, offset + 4) === abi.GRANT_MASK
@@ -231,7 +225,6 @@ export function grantWrite(api, path, sidPtr) {
   withPathLock(api, path, () => {
     const { oldAcl, descriptor } = readCurrentDacl(api, path)
     if (oldAcl !== null && hasExactGrant(oldAcl, sidPtr)) {
-      // The exact ACE stands: releasing the descriptor is the whole operation.
       if (descriptor !== null) {
         const freed = api.localFree(descriptor)
         if (!isNullPtr(freed)) throwLastError(api, 'LocalFree', `grantWrite(${path}) descriptor`)

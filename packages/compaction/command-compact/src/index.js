@@ -82,15 +82,11 @@ export function apply(ctx) {
     const operation = executeCompact(ctx, invocation)
     active.add(operation)
     const retire = () => { active.delete(operation) }
-    // Both branches retire without rethrowing, so the derived observer promise
-    // cannot become an unhandled mirror of an expected handler rejection.
     void operation.then(retire, retire)
     return operation
   }
 
   ctx.effect(function* () {
-    // Yield drain before registration: composite teardown is LIFO, so no new
-    // invocation can enter while already-started handler promises quiesce.
     yield async () => { await Promise.allSettled(active) }
     yield ctx.commands.register({
       name: 'compact',

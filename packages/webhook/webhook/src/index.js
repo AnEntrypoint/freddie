@@ -11,8 +11,11 @@
  *   The sole runtime action: create and prompt one root Session. `workspacePath` is an existing local
  *   directory to resolve or create as a Workspace; omitting `model` uses the complete current default,
  *   including reasoning effort.
- * @typedef {{ readonly id: import('./brand.js').WebhookRuleId; readonly kind: string; run(delivery: Readonly<VerifiedWebhookDelivery<string>>, signal: AbortSignal): WebhookSessionRequest | null | Promise<WebhookSessionRequest | null> }} WebhookRule
+ * @typedef {object} WebhookRule
  *   Trusted code that optionally creates one Session for a delivery.
+ * @property {import('./brand.js').WebhookRuleId} id
+ * @property {string} kind
+ * @property {function(Readonly<VerifiedWebhookDelivery<string>>, AbortSignal): (WebhookSessionRequest | null | Promise<WebhookSessionRequest | null>)} run
  */
 
 import { Service } from '@freddie/cordis'
@@ -22,7 +25,15 @@ import { createWebhookSession } from './session.js'
 
 export * from './brand.js'
 
-/** One effect-owned rule registration and the invocations that currently use it. */
+/**
+ * One effect-owned rule registration and the invocations that currently use it.
+ * @typedef {object} WebhookRuleRegistration
+ * @property {WebhookRule} rule
+ * @property {AbortController} controller
+ * @property {Set<Promise<void>>} active - contained invocations not yet settled.
+ * @property {boolean} closing
+ * @property {Promise<void>} [disposal] - the memoized teardown, once started.
+ */
 
 /** Validate and detach one delivery before sharing it across arbitrary rules. */
 function snapshotDelivery(delivery) {

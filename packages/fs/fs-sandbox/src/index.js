@@ -117,9 +117,6 @@ export class SandboxedFileSystem extends LocalFileSystem {
     if (mode === 'read-only') {
       throw new FsError(`cannot write "${target.displayPath}": file access denied under read-only mode`, 'FS_SANDBOX_DENIED')
     }
-    // workspace-write: containment on the FRESH canonical path (catches a
-    // symlink ancestor swapped since the tool resolved this target), and the
-    // mutation delegates with THIS fresh target — never the stale one.
     const fresh = await this.resolve(target.displayPath)
     let contained = false
     for (const root of writableRoots(policy)) {

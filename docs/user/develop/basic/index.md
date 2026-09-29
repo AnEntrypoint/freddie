@@ -4,15 +4,15 @@ This tutorial creates a minimal Harness plugin and loads it into the Web UI. Sta
 
 ## Create a local project
 
-From the repository root, create a scratch project for the tutorial:
+From the repository root, create a scratch project for the tutorial. It sits under `examples/` because a plugin's imports resolve by walking up from its own file to `examples/node_modules`, which links the `@freddie/freddie-*` and `@freddie/cordis-plugin-*` packages; the directory is gitignored:
 
 ```sh
-mkdir -p scratch-plugin/src
+mkdir -p examples/scratch-plugin/src
 ```
 
 ## What is a plugin?
 
-In Harness, a plugin is a TypeScript module that exports an `apply` function. The framework calls `apply` when loading the plugin and passes a `ctx` context object through which the plugin registers capabilities:
+In Harness, a plugin is a JavaScript or TypeScript module (Node strips the type annotations itself) that exports an `apply` function. The framework calls `apply` when loading the plugin and passes a `ctx` context object through which the plugin registers capabilities:
 
 ```ts
 import type { Context } from '@freddie/cordis'
@@ -28,7 +28,7 @@ That is the complete configuration.
 
 ## Create the plugin file
 
-Create `scratch-plugin/src/my-plugin.ts`:
+Create `examples/scratch-plugin/src/my-plugin.ts`:
 
 ```ts
 import type { Context } from '@freddie/cordis'
@@ -43,12 +43,12 @@ export function apply(ctx: Context) {
 
 ## Register it in cordis.yml
 
-Run `pwd` from the repository root, then create `scratch-plugin/cordis.yml` as a Web overlay that inserts the local plugin. Replace `/absolute/path/to/freddie` below with the printed path:
+Run `pwd` from the repository root, then create `examples/scratch-plugin/cordis.yml` as a Web overlay that inserts the local plugin. Replace `/absolute/path/to/freddie` below with the printed path:
 
 ```yaml
 - insert:
     - id: hello
-      name: '/absolute/path/to/freddie/scratch-plugin/src/my-plugin.ts'
+      name: '/absolute/path/to/freddie/examples/scratch-plugin/src/my-plugin.ts'
 ```
 
 The plugin path must be absolute. A patch file contributes configuration but does not change the profile directory from which the loader resolves module paths.
@@ -56,7 +56,7 @@ The plugin path must be absolute. A patch file contributes configuration but doe
 Start the Web UI with that overlay:
 
 ```sh
-pnpm freddie web --patch ./scratch-plugin/cordis.yml
+pnpm freddie web --patch ./examples/scratch-plugin/cordis.yml
 ```
 
 Open `http://127.0.0.1:3080`. The terminal prints `[hello-plugin] plugin loaded!` during startup.
@@ -133,7 +133,7 @@ export default class MyService extends Service {
 }
 ```
 
-Function form is sufficient in most cases. Use class form when the plugin provides a service to other plugins; see [services and dependencies](../framework/service.md).
+Function form is sufficient in most cases. Use class form when the plugin provides a service to other plugins; see [services and dependencies](../framework/service.md). Class form imports `Service` from `@freddie/cordis` as a runtime value, which does not resolve from a scratch project under `examples/`; write it inside a workspace package that declares `@freddie/cordis` as a dependency.
 
 ## Next steps
 

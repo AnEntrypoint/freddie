@@ -1,0 +1,12 @@
+# AGENTS.md — authorization
+
+## Rationale
+
+- `AuthorizationService.registerFlow` (`withdrawFlowAndItsAttempt`): a flow leaving mid-attempt cancels that attempt; its runner belongs to a plugin that is going away, and a prompt outliving the fiber that can answer it is unanswerable.
+- `AuthorizationService.begin`: an already-aborted request signal returns `cancelled` only after key/method validation (a caller naming a bad key still hears about it) and before the slot is claimed. Handing an aborted signal to `run()` would rely on every flow checking it before its first await, and one that does not would hang holding the key. `settlesWhenWithdrawn` depends on this: its signal cannot already be aborted.
+- `AuthorizationService.begin`: `settle` fires after `running.delete(key)` so a listener that starts the next attempt is not refused by the one that just finished. `invariant.js` (`keyStillHeld`) asserts exactly this ordering.
+- `AuthorizationService.attempt`: withdrawal settles the attempt even if the flow ignores its signal, because a wedged key is indistinguishable from a busy one. The orphaned run is left to finish; its late rejection is caught (`running.catch`) so it cannot crash the process, and a record it still commits is one the human did authorize.
+- `AuthorizationService.attempt`: commit is confirmed by a `credentials/record-updated` event seen during this attempt (`observed.committed`), never by record presence, since on re-auth the record already exists and a flow that wrote nothing would report the stale credential as fresh. Declines are recorded in the prompt wrapper (`observed.declined`) so a flow that rewraps the rejection cannot hide them. `NOT_COMMITTED` denies rather than reports success, so a caller never sends unauthenticated requests believing a credential is stored.
+- `AuthorizationService.attempt`: a withdrawn attempt or declined prompt settles `cancelled` (the human said no); any other flow failure propagates to the caller with its cause chain. A `notify` the surface cannot render is logged and dropped, never fails the attempt.
+- `invariant.js`: a flow withdrawn during its own attempt settles with nothing left to describe (`describe(key)` is `undefined`); that is the disposer's behavior, not a leak, hence `?.inFlight`.
+- `AuthorizationService.settle` mirrors `CredentialProvider.fanOut` on purpose (`jscpd:ignore` region); extracting a shared helper would couple the two seams' event semantics.

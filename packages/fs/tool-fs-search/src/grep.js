@@ -29,9 +29,27 @@ export const GREP_MAX_MATCHES = 250
  */
 export const GREP_MAX_LINE_BYTES = 2000
 
-/** Resolved grep-tool caps — plugin config after defaulting (see `Config` in index.ts). */
+/**
+ * Resolved grep-tool caps — plugin config after defaulting (see `Config` in
+ * `index.js`).
+ * @typedef {object} GrepCaps
+ * @property {number} maxMatches
+ * @property {number} maxLineBytes
+ * @property {number} maxMetaBytes
+ * @property {number} rawOutputMaxBytes
+ * @property {number} graceMs
+ * @property {number} stderrMaxBytes
+ * @property {number} timeoutMs
+ */
 
-/** Validated `grep` arguments. */
+/**
+ * Validated `grep` arguments: the caller-facing shape after
+ * {@link parseGrepArgs} accepted it.
+ * @typedef {object} GrepInput
+ * @property {string} pattern Non-empty ripgrep regular expression.
+ * @property {string} [path] Non-empty search target, when given.
+ * @property {string} [include] Single positive glob filter, when given.
+ */
 
 /**
  * Reject an `include` that is not ONE positive glob filter: blank strings,
@@ -114,8 +132,6 @@ function parseRecord(line) {
   }
   if (typeof parsed !== 'object' || parsed === null) throw malformedRecord('a record is not an object')
   const record = parsed
-  // Non-match record types (begin/end/context/summary — and any future type)
-  // are transport framing, not results: skipped, not malformed.
   if (record.type !== 'match') return undefined
   if (typeof record.data !== 'object' || record.data === null) throw malformedRecord('a match record has no data')
   const data = record.data
@@ -317,8 +333,6 @@ export function applyGrepTool(ctx, caps) {
     if (value === undefined) return decision
     const matches = value.matches
     if (matches.length <= caps.maxMatches) return decision
-    // The spill artifact holds the COMPLETE result: preview each line, but keep
-    // every match (no inline cap), so the recovery file is the full search.
     const previewedAll = matches.map(match => ({ ...match, line: previewLine(match.line, caps.maxLineBytes) }))
     const spillRef = await trySaveFormattedResult(
       ctx,

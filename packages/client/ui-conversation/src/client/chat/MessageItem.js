@@ -1,12 +1,3 @@
-// MessageItem: simple chat nodes — user and consumed-steering bubbles
-// (right-aligned, with clock + copy IconActions; branch lives only under
-// assistant answers), pending steering (copy only), context injection,
-// compaction marker, retry disclosure, and unknown-surface JSON rows.
-//
-// Converted from React function components (some memo-wrapped, one with
-// useState/useEffect/useMemo for the retry countdown) to plain webjsx
-// functions plus one custom element for ModelRetryItem's timer state.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { MessageText, renderJsonBlock, StateDot, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { ReferenceIcon } from '../reference/ReferenceIcon.js'
@@ -15,19 +6,6 @@ import { renderContextInjectionRow } from './ContextInjectionRow.js'
 import { renderMessageIconActions } from './MessageIconActions.js'
 import css from './MessageItem.css.js'
 
-// MessageIconActions' own one-shot factory (`MessageIconActions(props)`)
-// creates a fresh `freddie-message-icon-actions` DOM element on every call --
-// correct for a genuinely first render, but UserMessageNodeView/
-// PendingSteeringBubble are plain functions webjsx re-invokes on every
-// parent re-render (this file's own doc comment: "Converted from React
-// function components... to plain webjsx functions"), so every call
-// destroyed and recreated the element, losing its in-flight copy-success
-// timer and calendar-day subscription (webjsx's applyDiff routes a raw
-// Node through `parent.replaceChild`, never a props-only update -- see
-// applyDiff.js's own `newVNode instanceof Node` branch). `node` (the
-// keyed chat-node object from ChatNodeSeat's useSession selector) is a
-// stable reference across re-renders for the SAME message, so it is a
-// correct cache key for the element this call would otherwise discard.
 const cachedIconActions = new WeakMap()
 function cachedMessageIconActions(identity, props) {
   const el = renderMessageIconActions(cachedIconActions.get(identity) ?? null, props)
@@ -35,10 +13,6 @@ function cachedMessageIconActions(identity, props) {
   return el
 }
 
-// Same bug, same fix shape as cachedMessageIconActions above: JsonBlock's own
-// one-shot factory recreates its freddie-json-block element (dropping its #open
-// toggle state) on every call, and UserStyleBubble/UnknownNodeView are plain
-// functions re-invoked on every parent re-render.
 const cachedJsonBlocks = new WeakMap()
 function cachedJsonBlockAt(identity, index, props) {
   let perIdentity = cachedJsonBlocks.get(identity)
@@ -87,8 +61,6 @@ export class FreddieModelRetryItem extends HTMLElement {
     const key = `${props.node.delayMs}:${props.node.seq}`
     this.#props = props
     if (key !== this.#deadlineKey) {
-      // Anchor the host-scheduled delay to this browser's first render of the
-      // retry node. Host event time and Date.now() may belong to different clocks.
       this.#deadlineKey = key
       this.#deadline = Date.now() + props.node.delayMs
     }
@@ -235,7 +207,7 @@ function projectUserText(text, sessionLabels) {
     const rawLabel = m[2] ?? ''
     const label = rawLabel.startsWith('@"')
       ? rawLabel
-      : rawLabel.replace(/[.,;:!?，。；：！？]+$/gu, '')
+      : rawLabel.replace(/[.,;:!?\uff0c\u3002\uff1b\uff1a\uff01\uff1f]+$/gu, '')
     if (label.length <= 1) continue
     ranges.push({ start: tokenStart, end: tokenStart + label.length, label, kind: 'plain' })
   }
@@ -358,10 +330,6 @@ export function UserMessageNodeView({
 /** Injected-context keyed Chat renderer. */
 export function ContextMessageNodeView({ node, t }) {
   const data = node.data
-  // The intrinsic tag plus `ref` (not `h(ContextInjectionRow, ...)`) so the
-  // live element is REUSED across renders: the one-shot helper builds a fresh
-  // element every call, and this view re-renders on every store fanout, so the
-  // bare form replaced each row's real DOM node on every keystroke.
   return h('freddie-context-injection-row', {
     ref: (el) => {
       renderContextInjectionRow(el, {

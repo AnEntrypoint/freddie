@@ -34,7 +34,6 @@ export function parseLspArgs(args) {
   return {
     operation: args.operation,
     filePath: args.file_path,
-    // The model counts from 1; the seam (and protocol) count from 0.
     position: { line: line - 1, character: character - 1 },
   }
 }
@@ -122,9 +121,6 @@ export function renderUri(uri, workspaceUri) {
     return uri
   }
   if (workspace.protocol !== 'file:') return uri
-  // A `file:` URI does not carry its world's OS, so a leading `/X:` segment is
-  // read as a Windows drive. A POSIX workspace literally rooted at `/c:/...`
-  // would mis-render (display only; edits and reads use the exact URI).
   const drivePath = /^\/[a-z](?::|%3A)/iu
   const windowsWorld = workspace.hostname.length > 0 || drivePath.test(workspace.pathname)
   const targetWindowsWorld = windowsWorld && (target.hostname.length > 0 || drivePath.test(target.pathname))
@@ -145,7 +141,6 @@ function filePath(url, windows) {
     const path = fileURLToPath(url, { windows })
     return path.includes('\0') ? undefined : path
   } catch {
-    // `fileURLToPath` rejects malformed escapes, authorities, and encoded path separators.
     return undefined
   }
 }

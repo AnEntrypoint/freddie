@@ -122,7 +122,6 @@ export class WebSocketDownlinks {
         try {
           await send(socket, failureFrame(error))
         } catch {
-          // Socket loss won the race; no downstream remains to receive the failure frame.
         }
       }
     } finally {

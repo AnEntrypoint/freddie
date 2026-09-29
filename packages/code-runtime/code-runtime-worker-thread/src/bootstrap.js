@@ -6,7 +6,7 @@
  */
 
 import { inspect } from 'node:util'
-import { jsonStringBytesUpTo, jsonValueBytesUpTo, truncateJsonStringBytes } from './output-json.js'
+import { EMPTY_JSON_ARRAY_BYTES, jsonStringBytesUpTo, jsonValueBytesUpTo, truncateJsonStringBytes } from './output-json.js'
 import { decodeWorkerJson, encodeWorkerJson, snapshotCodeJsonValue } from './worker-json.js'
 
 const CapturedError = Error
@@ -30,12 +30,9 @@ function defineBindingErrorField(error, key, value) {
  * into an explicit `output-limit` run failure.
  */
 export class LogBuffer {
-  bytes = 2 // JSON serialization of the empty logs array: []
+  bytes = EMPTY_JSON_ARRAY_BYTES
   entries = 0
   truncated = false
-  // Explicit fields, not constructor parameter properties: this module loads
-  // under Node's native strip-only mode, which rejects non-erasable syntax —
-  // and parameter properties are non-erasable.
   sink
   onLimit
   maxBytes
@@ -102,6 +99,12 @@ export function makeConsoleShim(logs) {
   return shim
 }
 
+function writeCallbackAmongOptionalArgs(optionalArgs) {
+  return [optionalArgs[0], optionalArgs[1]].find(
+    (arg) => typeof arg === 'function',
+  )
+}
+
 /**
  * Redirect a stream's `write` into the log buffer (the program-visible
  * `process.stdout`/`process.stderr` in the real worker), so raw writes land in emission order
@@ -115,17 +118,11 @@ export function makeConsoleShim(logs) {
  *   worker never needs to).
  */
 export function captureStreamWrites(logs, stream) {
-  // The slot's VALUE is stored for restore and reassigned — never invoked
-  // detached, so the unbound-method concern does not apply.
   // oxlint-disable-next-line typescript/unbound-method
   const original = stream.write
   stream.write = (chunk, ...rest) => {
     logs.push(typeof chunk === 'string' ? chunk : String(chunk))
-    // Node's optional-encoding shape: the callback is whichever of the next
-    // two positions holds a function (a non-function there is the encoding).
-    const callback = [rest[0], rest[1]].find(
-      (arg) => typeof arg === 'function',
-    )
+    const callback = writeCallbackAmongOptionalArgs(rest)
     if (callback) queueMicrotask(() => { callback(null) })
     return true
   }
@@ -316,6 +313,13 @@ export function makeNamespaces(
 }
 
 /**
+ * The single message {@link runWorkerMain} posts to end the run: a completion `value` (the
+ * {@link encodeWorkerJson}-encoded token stream, only when the program returned a lossless-JSON
+ * value), or an `error` naming why the run failed.
+ * @typedef {{ type: 'done', value?: unknown[], error?: { kind: string, message: string } }} DoneMessage
+ */
+
+/**
  * Run one strict async-function body, allowing top-level `await` and `return`, and post exactly
  * one terminal {@link DoneMessage}; a thrown program error becomes its `error` field.
  * @param port - host message port or test double.
@@ -352,8 +356,6 @@ export async function runWorkerMain(port, data, streams) {
 
   let done
   try {
-    // The async function constructor, reached through an instance because
-    // `AsyncFunction` is not a global. The program body is strict-mode.
     /* v8 ignore next -- the arrow exists only to reach the AsyncFunction constructor; it is never invoked. */
     const AsyncFunction = (async () => {}).constructor
     const fn = new AsyncFunction(

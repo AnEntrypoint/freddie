@@ -1,0 +1,51 @@
+{
+  "name": "@freddie/freddie-host-open-in-app",
+  "description": "Host half of open-in-app: resolved application catalog, icons, and the launch endpoint as three webServer routes",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/host/open-in-app"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./shared": {
+      "default": "./src/shared.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/catalog.js",
+    "src/resolver.js",
+    "src/icons.js",
+    "src/shared.js",
+    "src/invariant.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@freddie/freddie-client-connection": "*",
+    "@freddie/freddie-native-command": "*",
+    "@freddie/freddie-subprocess": "*",
+    "@freddie/schemastery": "*"
+  },
+  "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-host-webserver": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-host-webserver": "*"
+  }
+}

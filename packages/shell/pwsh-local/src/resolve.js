@@ -24,14 +24,11 @@ export function candidatePwshPaths(env = process.env) {
   const candidates = [
     join(programFiles, 'PowerShell', '7', 'pwsh.exe'),
   ]
-  // Microsoft Store installs (and any user-added location) live on PATH;
-  // entries may carry surrounding quotes from `setx`-style definitions.
   for (const entry of (env.PATH ?? '').split(';')) {
     const trimmed = entry.trim().replace(/^"|"$/g, '')
     if (trimmed.length === 0) continue
     candidates.push(join(trimmed, 'pwsh.exe'))
   }
-  // Windows PowerShell 5.1 remains the last-resort fallback on legacy hosts.
   candidates.push(join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'))
   return candidates
 }
@@ -48,9 +45,6 @@ function candidateExists(candidate) {
     const stat = lstatSync(candidate)
     return stat.isFile() || stat.isSymbolicLink()
   } catch {
-    // ENOENT (the candidate vanished between listing and probing) is the only
-    // expected failure; any other error names an unspawnable path, so false
-    // is the safe answer for it too.
     return false
   }
 }

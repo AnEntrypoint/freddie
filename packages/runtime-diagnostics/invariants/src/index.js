@@ -98,9 +98,6 @@ export class InvariantRegistry extends Service {
       throw new Error(`invariants: package "${packageName}" is already registered`)
     }
 
-    // Service method tracing binds `this.ctx` to the caller. This explicit
-    // origin keeps registrations and their child fibers owned by the service;
-    // companion disposal is covered independently by the returned disposer.
     const ctx = this.ownerCtx
     const registrations = this.registrations
     registrations.add(packageName)
@@ -147,8 +144,6 @@ export class InvariantRegistry extends Service {
       registrations.delete(packageName)
       throw error
     }
-    // Cordis attaches setup thenability and async teardown to this callable;
-    // the service contract intentionally exposes only the conventional disposer.
     // oxlint-disable-next-line typescript/no-misused-promises -- the extra runtime shape stays private.
     return registration
   }

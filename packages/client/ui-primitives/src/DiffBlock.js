@@ -1,21 +1,3 @@
-// DiffBlock: the inline-diff surface for a file mutation (write/edit) — a copy
-// control over one or more per-file hunks, each a bold path header followed by
-// the removed block (`-`, error color) and the added block (`+`, success
-// color), with a dim `└ +A -R · N file(s)` footer. Unlike the TUI's exact
-// changed-row comparison, this block renders the old and new sides in full.
-// Both front ends share the line-terminator rule and distinct-path file count.
-// Output never soft-wraps — an aligned source line keeps its indentation and
-// scrolls horizontally instead of folding. Colors resolve through --dsw-*
-// tokens; geometry mirrors CodeBlock.
-//
-// Converted from a React hooks component to a webjsx custom element:
-// expanded/copied become instance fields, and copy feedback now uses the
-// createCopyFeedback factory (replacing the old useCallback/useState pair)
-// driven from connectedCallback/disconnectedCallback. Re-render is an
-// explicit applyDiff(this, vdom) call (Toast.tsx's pattern). The buildRows
-// useMemo becomes a plain recompute inside #render guarded by a last-diffs
-// identity check.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { createCopyFeedback } from './use-copy-feedback.js'
@@ -24,12 +6,18 @@ import { defineElement } from './define-element.js'
 
 /**
  * Output lines shown before the height cap collapses the middle. Matches
- * {@link DEFAULT_TERMINAL_MAX_LINES} so a diff card and a terminal card cut a
- * long body at the same place.
+ * {@link import('./TerminalBlock.js').DEFAULT_TERMINAL_MAX_LINES} so a diff
+ * card and a terminal card cut a long body at the same place.
  */
 export const DEFAULT_DIFF_MAX_LINES = 16
 
-/** Local exhaustiveness helper — this package does not depend on `freddie-llm`. */
+/**
+ * Local exhaustiveness helper for the closed diff-row-kind union. Defined
+ * locally, not imported from a shared helper, because this package does not
+ * depend on `freddie-llm`.
+ * @param value - a row kind that should be unreachable.
+ * @returns never returns; always throws.
+ */
 /* v8 ignore next 3 -- closed-union backstop; only reached if a row kind is forged */
 function assertNever(value) {
   throw new Error(`unreachable diff row kind: ${String(value)}`)
@@ -158,8 +146,6 @@ export class FreddieDiffBlock extends HTMLElement {
     const copied = this.#copyFeedback?.copied ?? false
     const hidden = rows.length - maxLines
     const capped = hidden > 0 && !this.#expanded
-    // Same split arithmetic as TerminalBlock and the TUI transcript's collapsed
-    // card, so a body's head and tail slices agree across the front ends.
     const headLines = Math.ceil(maxLines / 2)
     const tailLines = maxLines - headLines
     const head = capped ? rows.slice(0, headLines) : rows
@@ -203,6 +189,15 @@ export class FreddieDiffBlock extends HTMLElement {
 }
 
 defineElement('freddie-diff-block', FreddieDiffBlock)
+
+/**
+ * @typedef {object} DiffBlockProps
+ * @property {Array<{path: string, oldText: (string|null), newText: string}>} [diffs=[]] - the hunks to
+ *   render, in display order; a hunk with `oldText: null` renders as a pure addition.
+ * @property {number} [maxLines] - lines shown before the height cap collapses the middle; defaults to
+ *   {@link DEFAULT_DIFF_MAX_LINES}.
+ * @property {string} [className] - additional class name(s) merged onto the root element.
+ */
 
 /**
  * Create (if needed) or update a DiffBlock element in place.

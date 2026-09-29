@@ -49,9 +49,6 @@ export class LayoutController {
   }
 
   #require() {
-    // Callers are UI gestures, which cannot fire before the root entry
-    // rendered (the inject hook runs in its first render) — reaching this
-    // unwired is a boot-order bug, not a race to tolerate.
     if (this.#panels === undefined) throw new Error('layout: panel actions not wired (root entry not mounted)')
     return this.#panels
   }

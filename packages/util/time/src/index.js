@@ -25,7 +25,6 @@ export function canonicalClientTimeZone(value) {
     if (canonical !== 'UTC' && !IANA_TIME_ZONE.test(canonical)) return undefined
     return canonical
   } catch {
-    // Intl rejects unsupported zone names; the caller maps that parser rejection.
     return undefined
   }
 }

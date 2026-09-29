@@ -92,6 +92,35 @@ export const JOURNAL_EVENT = 'freddie:hmr'
 /** The server emits an observable heartbeat every 15 seconds; three missed beats mean the stream is stale. */
 const STALL_TIMEOUT_MS = 45_000
 
+const AUTO_RELOAD_KEY = 'freddie:hmr-auto-reload'
+
+const AUTO_RELOAD_DELAY_MS = 3000
+
+function autoReloadSpent() {
+  try {
+    return globalThis.sessionStorage.getItem(AUTO_RELOAD_KEY) !== null
+  } catch {
+    return true
+  }
+}
+
+function spendAutoReload() {
+  try {
+    globalThis.sessionStorage.setItem(AUTO_RELOAD_KEY, String(Date.now()))
+    return true
+  } catch {
+    return false
+  }
+}
+
+function refundAutoReload() {
+  try {
+    globalThis.sessionStorage.removeItem(AUTO_RELOAD_KEY)
+  } catch {
+    return
+  }
+}
+
 /** Find the loader entry whose module specifier is `id` (entry tree ids are random; the package name lives in `options.name`). */
 function findEntry(loader, id) {
   for (const entry of loader.entries()) {
@@ -171,30 +200,25 @@ async function swapStylesheet(href) {
  * @param ctx - plugin context with `loader` and `modules` available.
  */
 export function apply(ctx) {
-  // Both are declared injections (typed Context merges: `modules` from the
-  // client module loader package, `loader` from the vendored Loader).
   const modLoader = ctx.modules
   const loader = ctx.loader
-  // The journal outlives this fiber: a self-reload or an in-document shell
-  // remount constructs a new driver in the same window, and the rows that
-  // led there are exactly what a developer reads afterwards.
-  const journal = [...(globalThis.__FREDDIE_HMR__?.events ?? [])]
   const status = { connected: false, lastSequence: undefined, reconnects: 0, lastError: undefined }
+  const debug = globalThis.__FREDDIE_HMR__ ??= { events: [] }
+  debug.events ??= []
+  debug.status = status
+  const journal = debug.events
+  const liveStatus = () => globalThis.__FREDDIE_HMR__.status
   let terminalRecovery = false
   let livenessTimer
-  const publishDebug = () => { globalThis.__FREDDIE_HMR__ = { events: journal.slice(), status: { ...status } } }
+  let reloadTimer
+  let reloadSpent = autoReloadSpent()
   const record = (event) => {
     const row = { ts: Date.now(), ...event }
     journal.push(row)
     if (journal.length > 50) journal.shift()
-    publishDebug()
     globalThis.dispatchEvent(new CustomEvent(JOURNAL_EVENT, { detail: row }))
   }
-  publishDebug()
 
-  // The wire graph the remounted shell boots from: the host's authoritative
-  // copy on connect, patched per rebuilt row, written back to the boot
-  // global before a remount so the new AppWebEntry never boots a stale rev.
   let wireGraph = globalThis.__FREDDIE_BOOT__
   const patchWireGraph = (row, graphRev) => {
     if (wireGraph === undefined) return
@@ -207,6 +231,60 @@ export function apply(ctx) {
   const remountShell = async (rev) => {
     if (wireGraph !== undefined) globalThis.__FREDDIE_BOOT__ = wireGraph
     await remountInDocument(rev)
+  }
+
+  const currentShell = () => {
+    const shell = globalThis.__FREDDIE_SHELL__
+    return typeof shell?.health === 'function' ? shell : undefined
+  }
+
+  const treeRecovered = () => {
+    clearTimeout(reloadTimer)
+    reloadTimer = undefined
+    reloadSpent = false
+    refundAutoReload()
+    liveStatus().treeFailure = undefined
+  }
+
+  const reportTreeFailure = (shell, id, failure) => {
+    if (reloadTimer === undefined && !reloadSpent && spendAutoReload()) {
+      reloadSpent = true
+      reloadTimer = setTimeout(() => { globalThis.location.reload() }, AUTO_RELOAD_DELAY_MS)
+    }
+    const notice = reloadTimer === undefined
+      ? 'Automatic reload was already tried once; press Reload.'
+      : `Reloading automatically in ${String(AUTO_RELOAD_DELAY_MS / 1000)} seconds.`
+    shell.presentFailure(`A rebuild failed: ${id}`, failure, notice)
+    liveStatus().treeFailure = { id, failure }
+    record({ kind: 'rebuild-failed', id, failure, autoReload: reloadTimer !== undefined })
+  }
+
+  async function verifyTree(id, remounted) {
+    let shell = currentShell()
+    if (shell === undefined) return
+    let failure = await shell.health()
+    if (failure === undefined) {
+      treeRecovered()
+      return
+    }
+    console.error(`client-hmr: the client tree is inconsistent after rebuilding "${id}": ${failure}`)
+    record({ kind: 'tree-inconsistent', id, failure })
+    if (!remounted) {
+      try {
+        await remountShell(String(Date.now()))
+      } catch (error) {
+        console.error('client-hmr: shell remount failed', error)
+        record({ kind: 'shell-remount-failed', id })
+      }
+      shell = currentShell() ?? shell
+      failure = await shell.health()
+      if (failure === undefined) {
+        record({ kind: 'tree-recovered', id })
+        treeRecovered()
+        return
+      }
+    }
+    reportTreeFailure(shell, id, failure)
   }
 
   async function reload(frame) {
@@ -227,53 +305,38 @@ export function apply(ctx) {
       return
     }
     patchWireGraph(row, graphRev)
-    // Invalidate first (drop stale factory + record — a live factory makes
-    // prefetch a no-op and re-registration a loud duplicate), then run the
-    // async half while the old fiber still serves: script loading registers
-    // the fresh factory with zero side effects (lazy CJS — module bodies run
-    // at materialization, not execution).
     modLoader.invalidate(id)
     await modLoader.prefetch(id)
 
     const oldFiber = entry.fiber
     if (oldFiber !== undefined) {
-      // Registry-first teardown (see module comment): the runtime record must
-      // be gone before the fiber's disposer emits internal/plugin, or the
-      // Loader flags the entry disabled.
       const runtime = oldFiber.runtime
       if (runtime !== null) entry.ctx.registry.delete(runtime.callback)
-      // Drain the unload: effect disposers (slots, subscriptions) must finish
-      // before the new bundle executes and the new apply re-registers.
       while (oldFiber.inertia !== undefined) await oldFiber.inertia
       delete entry.fiber
     }
-    // Old owned styles go before materialization re-injects them (the CSS
-    // idempotency guard keys on stable tag ids).
     removeOwnedStyles(id)
-    // Re-init through the entry: fiber cleared above, so refresh() re-imports
-    // — materializing the prefetched factory (CSS injects here) — and
-    // re-plugins under the entry context. Import failures are logged by
-    // Entry._init and leave the entry fiberless (retryable).
     await entry.refresh()
-    // Surface apply failures loudly (no rollback, FAILED state stays).
     await entry.fiber?.await()
   }
 
-  // Serialize reloads: frames can arrive faster than a swap completes, and
-  // interleaved dispose/execute chains would corrupt the single-slot handoff.
   let queue = Promise.resolve()
-  const enqueue = (task, failure) => {
+  const enqueue = (task, failure, verifiedSubject) => {
     queue = queue.then(task).catch((error) => {
       ctx.logger.error(`client-hmr: ${failure.kind}`)
       ctx.logger.error(error)
       record(failure)
     })
+    if (verifiedSubject !== undefined) queue = queue.then(() => verifyTree(verifiedSubject, true)).catch(reportVerifyFailure)
+  }
+  const reportVerifyFailure = (error) => {
+    console.error('client-hmr: verifying the client tree failed', error)
+    record({ kind: 'tree-verify-failed' })
   }
   const terminalReload = (event) => {
     if (terminalRecovery) return
     terminalRecovery = true
     status.connected = false
-    publishDebug()
     record(event)
     queue = queue.then(() => { globalThis.location.reload() }).catch((error) => {
       ctx.logger.error('client-hmr: terminal recovery failed')
@@ -302,7 +365,7 @@ export function apply(ctx) {
           if (frame.graph?.rev !== undefined && frame.graph.rev !== modLoader.manifest.rev) {
             wireGraph = frame.graph
             record({ kind: 'legacy-graph-mismatch', rev: frame.graph.rev })
-            enqueue(() => remountShell(frame.graph.rev), { kind: 'legacy-graph-remount-failed', rev: frame.graph.rev })
+            enqueue(() => remountShell(frame.graph.rev), { kind: 'legacy-graph-remount-failed', rev: frame.graph.rev }, 'the module graph')
           }
           return
         default:
@@ -311,40 +374,31 @@ export function apply(ctx) {
     }
     if (previous !== undefined && frame.sequence > previous + 1) {
       status.lastSequence = frame.sequence
-      publishDebug()
       remountForGap(frame, previous + 1)
       return
     }
     if (previous !== undefined && frame.sequence < previous) return
     if (frame.sequence > (previous ?? -1)) status.lastSequence = frame.sequence
-    publishDebug()
     switch (frame.type) {
       case 'rebuilt':
         record({ kind: 'plugin-rebuilt', id: frame.id, rev: frame.rev })
-        // reload() tears down the OLD (working) fiber's effects/styles
-        // BEFORE the new bundle's apply is known to succeed (see the module
-        // comment's documented "no rollback" ordering) -- so a failed reload
-        // leaves NOTHING in place. Remount the shell in this document so
-        // AppWebEntry.run renders the visible failure page.
-        queue = queue.then(() => reload(frame)).catch((error) => {
+        queue = queue.then(() => reload(frame).then(() => false)).catch((error) => {
           ctx.logger.error(`client-hmr: reload of "${frame.id}" failed, remounting shell`)
           ctx.logger.error(error)
           record({ kind: 'plugin-reload-failed', id: frame.id })
-          return remountShell(String(Date.now()))
+          return remountShell(String(Date.now())).then(() => true)
         }).catch((error) => {
           ctx.logger.error('client-hmr: shell remount after failed reload failed')
           ctx.logger.error(error)
           record({ kind: 'shell-remount-failed', id: frame.id })
-        })
+          return true
+        }).then(remounted => verifyTree(frame.id, remounted)).catch(reportVerifyFailure)
         break
       case 'css-rebuilt':
         record({ kind: 'css-rebuilt', rev: frame.rev })
         enqueue(() => swapStylesheet(frame.href), { kind: 'css-swap-failed', rev: frame.rev })
         break
       case 'shell-rebuilt':
-        // Shell code is not a loader entry. The shell's own roots remount in
-        // this document (window identity, boot payload and sockets survive);
-        // a seeded platform package can only be refreshed by a reload.
         if (!REMOUNTABLE_ROOTS.has(frame.root)) {
           ctx.logger.info(`client-hmr: ${frame.root} rebuilt, reloading (seeded through the frozen import map)`)
           terminalReload({ kind: 'shell-rebuilt-reload', rev: frame.rev, root: frame.root })
@@ -352,14 +406,14 @@ export function apply(ctx) {
         }
         ctx.logger.info('client-hmr: shell rebuilt, remounting')
         record({ kind: 'shell-rebuilt', rev: frame.rev, root: frame.root })
-        enqueue(() => remountShell(frame.rev), { kind: 'shell-remount-failed', rev: frame.rev })
+        enqueue(() => remountShell(frame.rev), { kind: 'shell-remount-failed', rev: frame.rev }, frame.root)
         break
       case 'graph':
         if (frame.graph?.rev !== undefined) wireGraph = frame.graph
         if (frame.graph?.rev !== undefined && frame.graph.rev !== modLoader.manifest.rev) {
           ctx.logger.info('client-hmr: graph changed while disconnected, remounting shell')
           record({ kind: 'graph-mismatch', rev: frame.graph.rev })
-          enqueue(() => remountShell(frame.graph.rev), { kind: 'graph-mismatch-remount-failed', rev: frame.graph.rev })
+          enqueue(() => remountShell(frame.graph.rev), { kind: 'graph-mismatch-remount-failed', rev: frame.graph.rev }, 'the module graph')
         }
         break
       case 'host-reloaded':
@@ -371,10 +425,15 @@ export function apply(ctx) {
         })
         break
       default:
-        // Merge-extensible frame union: unknown frame types from newer hosts
-        // are ignored by design.
         break
     }
+  }
+
+  if (reloadSpent) {
+    const shell = currentShell()
+    void shell?.booted.then(() => currentShell()?.health()).then((failure) => {
+      if (failure === undefined) treeRecovered()
+    }).catch(reportVerifyFailure)
   }
 
   ctx.effect(() => {
@@ -409,7 +468,6 @@ export function apply(ctx) {
       try {
         frame = JSON.parse(event.data)
       } catch {
-        // Wire boundary: a malformed dev-channel frame is dropped loudly.
         ctx.logger.warn(`client-hmr: unparseable event frame: ${event.data}`)
         record({ kind: 'unparseable-frame' })
         return
@@ -419,7 +477,6 @@ export function apply(ctx) {
     return () => {
       clearTimeout(livenessTimer)
       status.connected = false
-      publishDebug()
       source.close()
     }
   }, 'client-hmr: event source')

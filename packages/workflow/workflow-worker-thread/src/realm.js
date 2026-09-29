@@ -35,8 +35,6 @@ export function renderThrown(error) {
     if (typeof message === 'string' && message.length > 0) return message
     return String(error)
   } catch {
-    // A throwing accessor/toString on the thrown value — rendering must be
-    // total (drive()'s never-reject contract), so fall back to a fixed label.
     return '[unrenderable thrown value]'
   }
 }
@@ -71,8 +69,6 @@ export function materializeFromRealm(value, root = 'value') {
     return materialize(value, root, new Set())
   } catch (error) {
     if (error instanceof MaterializeError) throw error
-    // A property read ran script code that threw; total-ize it so callers can
-    // keep the narrow MaterializeError contract.
     throw new MaterializeError(root, `reading the value threw: ${renderThrown(error)}`)
   }
 }
@@ -115,8 +111,6 @@ function materializeArray(value, path, seen) {
     if (!(index in value)) throw new MaterializeError(`${path}[${index}]`, 'sparse arrays are not JSON data')
     out.push(materialize(value[index], `${path}[${index}]`, seen))
   }
-  // Own enumerable props beyond the indices (e.g. `arr.total = 3`) would be
-  // silently dropped by JSON — reject them instead.
   for (const key of Object.keys(value)) {
     const index = Number(key)
     if (!Number.isInteger(index) || index < 0 || index >= value.length) {
@@ -137,11 +131,7 @@ function materializeObject(value, path, seen) {
     throw new MaterializeError(path, 'symbol-keyed properties are not plain JSON data')
   }
   const out = {}
-  // Object.keys = own enumerable string keys, matching JSON.stringify's
-  // property selection exactly (non-enumerable props never reach JSON output).
   for (const key of Object.keys(value)) {
-    // defineProperty, never assignment: a "__proto__" key must become an OWN
-    // data property of the copy, not a prototype mutation.
     Object.defineProperty(out, key, {
       value: materialize(value[key], `${path}.${key}`, seen),
       enumerable: true,

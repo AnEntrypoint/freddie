@@ -87,18 +87,12 @@ export class DomainFacility {
           }
           tables.set(table, records)
         }
-        // A null stored global means "never written": serve `initial` without
-        // materializing it — the first `set` writes.
         const globalSpec = spec.global
         const globalValue = globalSpec === undefined
           ? undefined
           : snapshot.global === null
             ? globalSpec.initial
             : snapshot.global
-        // The onClosed hook runs strictly after teardown completes: writes
-        // landing during the drain still emit domain/changed, and the domain
-        // stays resolvable (the package invariant cross-checks each event)
-        // until fully closed — only then does the name free up for reopening.
         const domain = new DomainImpl(this.ctx, spec, unit, tables, globalValue, () => {
           this.domains.delete(spec.name)
           this.reserved.delete(spec.name)
@@ -110,8 +104,6 @@ export class DomainFacility {
         throw error
       }
     } catch (error) {
-      // Any failure means the domain never registered (nothing can throw
-      // after it), so releasing the name reservation is unconditional.
       this.reserved.delete(spec.name)
       throw error
     }
@@ -157,8 +149,6 @@ export function apply(ctx, config) {
     domainCtx.effect(() => {
       const unmount = domainCtx.storage.mount('domain', facility)
       return async () => {
-        // Close leftovers before unmounting: draining writes still emit
-        // domain/changed, whose invariant resolves the facility through the hub.
         await facility.closeAll()
         unmount()
       }

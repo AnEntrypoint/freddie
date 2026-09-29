@@ -7,6 +7,7 @@ import { isAgentLoopRequest } from '@freddie/freddie-llm'
 import { foldRequestHeader } from '@freddie/freddie-session'
 
 const PACKAGE_NAME = '@freddie/freddie-agent-loop'
+const RUN_BEFORE_SHORT_CIRCUITING_LISTENERS = { global: true, prepend: true }
 
 /** Cordis companion plugin name. */
 export const name = 'agent-loop-invariant'
@@ -15,7 +16,6 @@ export const inject = ['invariants']
 
 /** Install the request-reconstruction contribution into its child registration fiber. */
 const install = Object.assign((ctx, fail) => {
-  // Prepend prevents a short-circuiting replay listener from silencing the check.
   ctx.on('llm/stream', (options, next) => {
     if (!isAgentLoopRequest(options)) return next()
     if (!Object.isFrozen(options)) fail('a loop-built request must be frozen')
@@ -49,7 +49,7 @@ const install = Object.assign((ctx, fail) => {
       fail(`llm request for session "${String(session.id)}" diverges from the folded request header`)
     }
     return next()
-  }, { global: true, prepend: true })
+  }, RUN_BEFORE_SHORT_CIRCUITING_LISTENERS)
 }, { inject: ['sessions'] })
 
 /**

@@ -53,8 +53,6 @@ export function attachStructuredRuntime(childCtx, schema) {
     description:
       'Report your final structured result. Call this exactly once, when your answer is complete; '
       + 'the arguments must match this tool\'s parameter schema exactly.',
-    // ToolSchema.parameters is the wire-level JSON Schema object; the
-    // asserted subset type is structurally exactly that.
     parameters: schema,
   }
 
@@ -71,12 +69,7 @@ export function attachStructuredRuntime(childCtx, schema) {
     },
     execute(args, exec) {
       const violations = validateJsonSchemaValue(schema, args)
-      // ToolArgsError → isError result with INVALID_ARGS: the model retries
-      // within the same turn, exactly like a schema-validated defineTool call.
       if (violations.length > 0) throw new ToolArgsError(violations)
-      // Two-phase commit, keyed by THIS execution: later transformable
-      // waterfalls may still turn the success into an error. ToolRuntime has
-      // already frozen model-bound arguments at the actual input boundary.
       staged.set(exec, { value: args })
       exec.concludeTurn()
       return Promise.resolve({ recorded: true })
@@ -89,17 +82,10 @@ export function attachStructuredRuntime(childCtx, schema) {
     text: STRUCTURED_OUTPUT_INSTRUCTION,
   })
 
-  // Terminal WITHIN the step. Guards run after the whole pre-execute
-  // waterfall and compose monotonically (deny or abstain, never allow), so a
-  // later prepended listener cannot resurrect dispatch. Calls that precede
-  // capture in the same response remain untouched.
   childCtx.tools.guard(exec => captured === undefined && pending === undefined
     ? undefined
     : `structured output already recorded: the run is complete, so \`${exec.name}\` is not executed`)
 
-  // The capture COMMIT observes the immutable, authoritative result after the
-  // complete pipeline and outer error normalization. This notification cannot
-  // transform the outcome, so there is no wrapper outside the commit verdict.
   childCtx.on('tools/result', function (exec, result) {
     if (exec.name === STRUCTURED_OUTPUT_TOOL) {
       const entry = staged.get(exec)

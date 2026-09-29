@@ -403,7 +403,6 @@ function buildSummarizationInput(session, shadowedSeqs) {
   const header = session.requestHeader()
   const events = session.events
   const regionMessages = shadowedSeqs
-    // shadowedSeqs are current surface seqs, so each is a valid log index.
     .map(seq => session.deriveEventMessage(events[seq]))
     .filter(message => message !== null)
   return {

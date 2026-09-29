@@ -92,6 +92,7 @@ export class FreddieCordisPanel extends HTMLElement {
   #open = false
   #selected = {}
   #pending = new Set()
+  #recovering = new Set()
   #actionErrors = new Map()
   #visibleRequests = new Set()
   #anchor
@@ -166,9 +167,17 @@ export class FreddieCordisPanel extends HTMLElement {
     if (discovered) this.#setOpen(true)
   }
 
-  #runAction(pluginId, action) {
-    if (this.#pending.has(pluginId)) return
-    this.#pending = new Set(this.#pending).add(pluginId)
+  #mark(pluginId, recovery, on) {
+    const next = new Set(recovery ? this.#recovering : this.#pending)
+    if (on) next.add(pluginId)
+    else next.delete(pluginId)
+    if (recovery) this.#recovering = next
+    else this.#pending = next
+  }
+
+  #runAction(pluginId, action, recovery = false) {
+    if ((recovery ? this.#recovering : this.#pending).has(pluginId)) return
+    this.#mark(pluginId, recovery, true)
     const clearedErrors = new Map(this.#actionErrors)
     clearedErrors.delete(pluginId)
     this.#actionErrors = clearedErrors
@@ -185,9 +194,7 @@ export class FreddieCordisPanel extends HTMLElement {
           error instanceof Error ? error.message : String(error),
         )
       } finally {
-        const next = new Set(this.#pending)
-        next.delete(pluginId)
-        this.#pending = next
+        this.#mark(pluginId, recovery, false)
         this.#props?.onRefresh()
         this.#render()
       }
@@ -362,8 +369,8 @@ export class FreddieCordisPanel extends HTMLElement {
                 {
                   label: t('action.stop'),
                   'data-cordis-switch': 'stop',
-                  disabled: busy,
-                  onclick: () => { this.#runAction(pluginId, () => onStop(listed.agentId, pluginId)) },
+                  disabled: this.#recovering.has(pluginId),
+                  onclick: () => { this.#runAction(pluginId, () => onStop(listed.agentId, pluginId), true) },
                 },
                 h(IconStopFill16, {size: 14}),
               )
@@ -373,8 +380,8 @@ export class FreddieCordisPanel extends HTMLElement {
                 {
                   label: t('action.remove'),
                   'data-cordis-remove': pluginId,
-                  disabled: busy,
-                  onclick: () => { this.#runAction(pluginId, () => onRemove(listed.agentId, pluginId)) },
+                  disabled: this.#recovering.has(pluginId),
+                  onclick: () => { this.#runAction(pluginId, () => onRemove(listed.agentId, pluginId), true) },
                 },
                 h(IconTrashOutline16, {size: 14}),
               )
@@ -436,7 +443,7 @@ export class FreddieCordisPanel extends HTMLElement {
             },
             `${t(RENDER_FAILURE_LABELS[renderFailure.abdicated ? 'abdicated' : 'held'], {
               slot: renderFailure.slot,
-            })} ${renderFailure.message}`,
+            })} ${renderFailure.message}${renderFailure.count > 1 ? ` (x${String(renderFailure.count)})` : ''}`,
           )
         ),
         activePackage !== undefined && activePackage.packageId !== selectedPackageId && (

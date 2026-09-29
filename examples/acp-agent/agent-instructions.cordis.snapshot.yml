@@ -1,6 +1,3 @@
-# Keyless replay counterpart of agent-instructions.cordis.yml. Patches do not
-# compose across includes, so this applies the scenario config and model swap
-# directly to the live tree.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

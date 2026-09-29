@@ -1,0 +1,50 @@
+{
+  "name": "@freddie/freddie-inspector",
+  "description": "Opt-in loopback-only Chrome DevTools inspection of the Host Cordis realm: Console evaluation, Sources and breakpoints, redacted fetch capture, and the Context/Fiber tree in Elements",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/runtime-diagnostics/inspector"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/shared.js",
+    "src/options.js",
+    "src/redact.js",
+    "src/host-source.js",
+    "src/fetch-capture.js",
+    "src/cordis-tree.js",
+    "src/worker.js",
+    "src/ws.js",
+    "src/cdp.js",
+    "src/invariant.js"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-invariants": "*"
+  },
+  "dependencies": {
+    "@freddie/schemastery": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-invariants": "*"
+  }
+}

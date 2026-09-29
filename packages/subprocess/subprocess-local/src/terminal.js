@@ -65,15 +65,12 @@ export class LocalTerminalHandle {
     })
   }
 
-  // node-pty writes synchronously; the seam returns a promise for remote transports.
   // oxlint-disable-next-line typescript/require-await -- Preserve promise rejection semantics at the async provider contract.
   async write(data) {
     if (this.exited) throw new Error('terminal process has exited')
     this.terminal.write(data)
   }
 
-  // node-pty resize is synchronous; preserve the provider's async seam for
-  // remote terminal implementations and reject invalid viewports consistently.
   // oxlint-disable-next-line typescript/require-await -- Preserve promise rejection semantics at the async provider contract.
   async resize(cols, rows) {
     if (this.exited) throw new Error('terminal process has exited')
@@ -83,7 +80,6 @@ export class LocalTerminalHandle {
     this.terminal.resize(cols, rows)
   }
 
-  // Local inspection is synchronous; the seam returns a promise for remote transports.
   // oxlint-disable-next-line typescript/require-await -- Preserve promise rejection semantics at the async provider contract.
   async inspectForeground() {
     this.descendants()
@@ -105,10 +101,6 @@ export class LocalTerminalHandle {
     }
     if (this.platform === 'win32') {
       if (signal === 'SIGINT') {
-        // Windows has no process-group signalling: a `\x03` input write is the
-        // Ctrl-C delivery path conhost turns into a console-wide CTRL_C event
-        // for attached processes. node-pty's signal kills throw on Windows, so
-        // no signal ever reaches the inspector.
         this.terminal.write('\x03')
         return foreground.processGroupId
       }
@@ -144,14 +136,12 @@ export class LocalTerminalHandle {
       try {
         this.inspector.signalProcess(this.rootIdentity, 'SIGKILL')
       } catch (_rootExitedDuringHostExit) {
-        // Exact identity signalling contains both exit races and PID reuse.
       }
       return
     }
     try {
       this.terminal.kill('SIGKILL')
     } catch (_unidentifiedShellExitedDuringHostExit) {
-      // Without a captured identity, node-pty is the only root kill primitive.
     }
   }
 
@@ -160,11 +150,6 @@ export class LocalTerminalHandle {
   }
 
   descendants() {
-    // Adopt newly scanned members only while the numeric root pid provably
-    // still carries the spawned shell's start identity: after the shell dies,
-    // a recycled pid's tree and session must not donate an unrelated
-    // process's children to this session's signalling. Already-adopted
-    // members keep their own start identities, which every signal rechecks.
     const tree = this.inspector.processTree(this.pid)
     const root = tree.find(member => member.pid === this.pid)
     const rootVerified = this.rootIdentity !== undefined
@@ -192,7 +177,6 @@ export class LocalTerminalHandle {
       try {
         this.inspector.signalProcess(member, signal)
       } catch (_alreadyExitedDuringSignal) {
-        // The exact process identity is rechecked; a same-tick exit is success.
       }
     }
   }
@@ -202,7 +186,6 @@ export class LocalTerminalHandle {
     try {
       members = this.descendants()
     } catch (_processTableUnavailableDuringHostExit) {
-      // Preserve already-captured identities when a final process-table scan fails.
     }
     this.signalMembers(members, 'SIGKILL')
   }
@@ -240,7 +223,6 @@ export class LocalTerminalHandle {
       try {
         this.terminal.kill('SIGTERM')
       } catch (_topLevelAlreadyExitedDuringTerm) {
-        // The exit callback is authoritative.
       }
       await Promise.race([this.done.then(() => undefined), delay(this.graceMs)])
     }
@@ -248,7 +230,6 @@ export class LocalTerminalHandle {
       try {
         this.terminal.kill('SIGKILL')
       } catch (_topLevelAlreadyExitedDuringKill) {
-        // The exit callback is authoritative.
       }
       await Promise.race([this.done.then(() => undefined), delay(this.graceMs)])
     }
@@ -256,14 +237,6 @@ export class LocalTerminalHandle {
   }
 
   async stopShellWindows() {
-    // node-pty's Windows kill(signal) throws ("Signals not supported on
-    // windows"), and its bare kill() delegates to a console-list agent that
-    // fails when the parent has no console. taskkill tree escalation is the
-    // teardown path, fenced on the shell's start identity like every
-    // descendant; a root identity miss falls back to the bare kill. taskkill
-    // termination also does not reliably fire node-pty's exit notification
-    // (the same console-list agent), so the tiers verify the shell's absence
-    // through the inspector instead of waiting on `done` alone.
     const shellGone = () =>
       this.exited || (this.rootIdentity !== undefined && !this.inspector.isAlive(this.rootIdentity))
     if (!shellGone() && this.rootIdentity !== undefined) {
@@ -274,7 +247,6 @@ export class LocalTerminalHandle {
       try {
         this.terminal.kill()
       } catch (_topLevelAlreadyExitedDuringKill) {
-        // The exit callback is authoritative.
       }
       await Promise.race([this.done.then(() => undefined), delay(this.graceMs)])
     }
@@ -309,11 +281,6 @@ export class LocalTerminalHandle {
   }
 
   settleExitIfGone() {
-    // An externally taskkilled Windows shell may never fire node-pty's exit
-    // notification (its console-list agent fails without a parent console),
-    // which would leave `done` — and every consumer awaiting it — unsettled
-    // forever. Teardown has just verified the shell's absence through the
-    // inspector, so a missing exit event is itself the outcome.
     if (this.platform !== 'win32') return
     if (this.exited) return
     /* v8 ignore next -- stopShellWindows() verified the shell is gone or threw;

@@ -1,0 +1,53 @@
+{
+  "name": "@freddie/freddie-experimental-browser-use-runtime",
+  "description": "Session-owned browser resource lifecycles and MCP integration for experimental providers",
+  "version": "0.1.1-rc.2",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/experimental/browser-use-runtime"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./mcp": {
+      "default": "./src/mcp.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/**/*.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@freddie/schemastery": "*"
+  },
+  "peerDependencies": {
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-browser-use": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-mcp-client": "*",
+    "@freddie/freddie-scope": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
+  },
+  "devDependencies": {
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-browser-use": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-mcp-client": "*",
+    "@freddie/freddie-scope": "*",
+    "@freddie/freddie-system-prompt": "*",
+    "@freddie/freddie-tools": "*",
+    "@freddie/cordis": "*"
+  }
+}

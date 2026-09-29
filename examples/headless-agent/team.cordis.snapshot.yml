@@ -1,4 +1,3 @@
-# Keyless Agent Teams composition over the real headless app and deterministic fixture adapter.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

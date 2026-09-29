@@ -78,8 +78,6 @@ function isEEXIST(error) {
 
 async function assertDirectory(path) {
   try {
-    // A bare drive root is already short, and Node rejects its extended-length
-    // spelling as EISDIR. Descendants retain the namespace for long-path probes.
     const probe = path === parse(path).root ? path : toNamespacedPath(path)
     const info = await stat(probe)
     if (info.isDirectory()) return true
@@ -129,8 +127,6 @@ export async function ensureDurableDirectoryWin32(target) {
 }
 
 async function createLeafDirectoryWin32(parent, target) {
-  // Keep the staging component independent of the target basename so a legal
-  // 255-byte target component does not make mkdtemp's sibling name too long.
   const staging = await mkdtemp(toNamespacedPath(join(parent, '.freddie-mkdir-')))
   try {
     await publishNewFileWin32(staging, target)

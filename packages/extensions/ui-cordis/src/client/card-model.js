@@ -20,7 +20,6 @@ function parseArgs(argsRaw) {
     const parsed = JSON.parse(argsRaw)
     return typeof parsed === 'object' && parsed !== null ? parsed : null
   } catch {
-    // Running calls can expose a truncated JSON prefix.
     return null
   }
 }

@@ -49,7 +49,6 @@ export function parseCodexConfig(raw) {
         if (type !== 'command') { skipped.push({ event, reason: `unsupported "${type}" hook` }); continue }
         if (hook.async === true) { skipped.push({ event, reason: 'async hook' }); continue }
         if (typeof hook.command !== 'string') continue
-        // Codex accepts `timeout` or the `timeoutSec` alias.
         const timeout = typeof hook.timeout === 'number' ? hook.timeout
           : typeof hook.timeoutSec === 'number' ? hook.timeoutSec : undefined
         commands.push({ command: hook.command, ...timeout !== undefined ? { timeoutSec: timeout } : {} })

@@ -1,9 +1,3 @@
-// Context source projection: the role and the human-facing producer name
-// of one logged non-user `user/message`, read from its durable `source` alone.
-// The client keeps no table of known plugin ids — a renamed or newly mounted
-// producer must never need a client release to stay identifiable, and a resumed
-// or foreign log must project the same way as a live one.
-
 /** One durable source narrowed to the readable-record shape; null for anything else. */
 function asRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -63,21 +57,14 @@ export function contextProvenance(source) {
   const kind = record === null ? null : readString(record, 'kind')
   if (record === null || kind === null) return { role: 'inject', label: null }
   switch (kind) {
-    // Cross-session snapshots are the one durable source that carries another
-    // session's material; its references name the sessions they were read from.
     case 'session-reference':
       return { role: 'recall', label: joined(collect(record, 'references', 'label')) ?? kind }
-    // Workspace instructions name the files they were reconciled from, which
-    // identifies the producer far better than the plugin id would.
     case 'agent-instructions':
       return { role: 'inject', label: joined(collect(record, 'changes', 'path')) ?? kind }
     case 'plugin':
       return { role: 'inject', label: readString(record, 'plugin') ?? kind }
-    // A user-explicit skill invocation names the skill it injected.
     case 'skill-invocation':
       return { role: 'inject', label: readString(record, 'name') ?? kind }
-    // Documented default arm of the merge-extensible source map: an unknown
-    // producer still identifies itself by its own durable kind.
     default:
       return { role: 'inject', label: kind }
   }

@@ -112,9 +112,6 @@ export const CODE_HIGHLIGHT_EXTENSIONS = [...LANGUAGES.keys()]
  * read consumer's test.
  */
 const READ_LANG_BY_EXTENSION = new Map([
-  // The two JSX flavors keep their own suffix; every other persisted value is
-  // the language's short name, or an extension naming itself better than its
-  // language does (`tf` rather than `hcl`, `gradle` rather than `groovy`).
   ['tsx', 'tsx'], ['jsx', 'jsx'],
   ['tf', 'tf'], ['tfvars', 'tfvars'], ['gradle', 'gradle'],
 ])

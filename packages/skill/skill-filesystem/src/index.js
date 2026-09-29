@@ -89,9 +89,6 @@ export class FileSystemSkillProvider {
     this.customSkillDirs = (config.customSkillDirs ?? []).map(root => resolve(root))
     this.watchManager = new SkillWatchManager(ctx, control.invalidate, resolveWatchConfig(config))
     control.signal.addEventListener('abort', () => { void this.dispose() }, { once: true })
-    // The environment bundled root is a default root: an isolated provider
-    // must see only its explicit roots, or every such provider would
-    // re-discover the app's bundled skills under its own provider name.
     const bundledSkillDir = config.bundledSkillDir
       ?? (this.includeDefaultRoots ? process.env.FREDDIE_BUNDLED_SKILL_DIR : undefined)
     this.bundledSkillDir = bundledSkillDir === undefined ? undefined : resolve(bundledSkillDir)
@@ -303,8 +300,6 @@ class SkillWatchManager {
     const watcher = state.watcher
     if (watcher !== undefined && !state.unhealthy) {
       const current = await resolveRootWatchMode(state.root.path, this.config.followSymlinks)
-      // A child unlink can publish an empty catalog before root unlinkDir arrives.
-      // Discovery therefore revalidates the retained handle independently.
       // oxlint-disable-next-line typescript/no-unnecessary-condition -- watcher callbacks can mark unhealthy while the probe awaits
       if (!state.unhealthy && sameWatchMode(watcher.mode, current)) return
     }
@@ -340,8 +335,6 @@ class SkillWatchManager {
     }
   }
 
-  // TODO(file-watch-service): Extract Chokidar and missing-root observation below into a Cordis
-  // service; keep skill filtering and invalidation here.
   async openStableWatcher(state) {
     while (!this.closing && state.owners.size > 0) {
       const mode = await resolveRootWatchMode(state.root.path, this.config.followSymlinks)
@@ -395,8 +388,6 @@ class SkillWatchManager {
 
   async openRootWatcher(state, mode) {
     const watcher = chokidar.watch(mode.anchor, {
-      // Chokidar owns late native fs.watch errors only for persistent watchers;
-      // this provider's effect explicitly closes every handle at teardown.
       persistent: true,
       ignoreInitial: true,
       depth: 1,
@@ -478,7 +469,6 @@ class SkillWatchManager {
       try {
         await this.ensureWatcher(state)
       } catch {
-        // Watch startup logged the retry failure; the next incomplete discovery retries it again.
         return
       }
       this.queueInvalidation()
@@ -510,7 +500,6 @@ async function settleWatcherOpening(opening) {
   try {
     await opening
   } catch {
-    // Watch startup already logged the underlying failure; teardown only contains it.
   }
 }
 
@@ -763,7 +752,6 @@ async function readSkillText(ctx, path, signal, trustedHost = false) {
 }
 
 async function readSkillTextFromFileSystem(ctx, fs, path, signal) {
-  // A missing or temporarily inaccessible skill file is not fatal to discovery.
   signal?.throwIfAborted()
   let target
   try {
@@ -867,13 +855,11 @@ async function pathExistsInFileSystem(path, fs) {
   try {
     target = await fs.resolve(path)
   } catch {
-    // A backend may reject or hide this candidate; continue walking upward.
     return false
   }
   try {
     return await fs.stat(target) !== undefined
   } catch {
-    // Transient stat failures make only this git-root candidate unusable.
     return false
   }
 }
@@ -883,7 +869,6 @@ async function pathExistsInNode(path) {
     await access(path)
     return true
   } catch {
-    // Missing host paths are expected while walking toward the filesystem root.
     return false
   }
 }

@@ -59,9 +59,6 @@ export class FreddieConversationSessionHeader extends HTMLElement {
   connectedCallback() {
     if (this.#props !== null) {
       this.#unsubscribeViews = this.#props.views.subscribe(() => { this.#render() })
-      // The active tab (chat store's `view` field) is written by
-      // actions.setView but `useStore` is a plain non-subscribing reader
-      // (bind.ts) — without this the tab bar never learns a click landed.
       this.#unsubscribeStore = this.#props.subscribeStore(() => { this.#render() })
     }
     this.#render()
@@ -80,9 +77,6 @@ export class FreddieConversationSessionHeader extends HTMLElement {
     const tabs = views.list()
     const selectedId = useStore(s => s.view)
     const active = resolveActiveView(tabs, selectedId)
-    // Custom equality (breadcrumb id+title) dropped: #render is only invoked
-    // on an actual props/subscription change, not on every session-store
-    // tick, so the extra-render guard the comparator existed for is moot here.
     const ancestry = useSessions(s => deriveAncestry(s, sessionId))
     const composerPhase = useSession(s => s.composerPhase)
     const blank = useSession(s => s.blank)
@@ -220,9 +214,6 @@ export class FreddieConversationSession extends HTMLElement {
   connectedCallback() {
     if (this.#props !== null) {
       this.#unsubscribeViews = this.#props.views.subscribe(() => { this.#render() })
-      // See FreddieConversationSessionHeader: useStore never re-renders on its
-      // own, so the active-view content needs its own direct subscription
-      // to hear actions.setView / actions.setInspect mutations.
       this.#unsubscribeStore = this.#props.subscribeStore(() => { this.#render() })
     }
     this.#syncMirror()
@@ -261,7 +252,6 @@ export class FreddieConversationSession extends HTMLElement {
     const active = resolveActiveView(tabs, selectedId)
     const composerPhase = useSession(s => s.composerPhase)
     const blank = useSession(s => s.blank)
-    // `?? null`: persisted snapshots from before the inspect field rehydrate without it.
     const inspect = useStore(s => s.inspect ?? null)
     void sessionId
 

@@ -84,16 +84,8 @@ export function applyEditTool(ctx, sandbox) {
     },
     async execute(args, exec) {
       const input = parseEditArgs(args)
-      // Resolve the per-call sandbox policy (approved mode > session override
-      // > backend default, plus the session cwd root) BEFORE anything executes.
       const sandboxPolicy = await sandbox.resolvePolicy('edit', args, exec)
       const target = await ctx.fs.resolve(input.filePath, sessionResolveOptions(exec, input.filePath, sandboxPolicy?.workspaceRoot))
-      // Single-slot decision: the policy plugin returns { version: vObserved } or
-      // throws FS_NOT_OBSERVED; the bare default is undefined (unconditional edit).
-      // No stat — the bare default never manufactures a version basis. The intent
-      // slot itself can throw FS_NOT_OBSERVED for an unread target, so it sits
-      // inside the try: both that refusal and the provider's guarded-mutation
-      // failure get the model-facing remedy below.
       let outcome
       try {
         const intent = await ctx.waterfall('fs/edit-intent', target, exec, () => undefined)
@@ -105,12 +97,8 @@ export function applyEditTool(ctx, sandbox) {
           sandboxPolicy,
         )
       } catch (error) {
-        // A sandbox denial becomes the shared [sandbox: …] marker (the model
-        // recognizes it from bash); stale/not-observed failures gain their
-        // model-facing remedy; anything else passes through.
         throw remediateFsError(sandbox.mapError(error, sandboxPolicy))
       }
-      // Record the present observation (a no-op when no policy plugin listens).
       ctx.emit('fs/observed', target, { kind: 'present', version: outcome.version }, exec)
       return {
         path: target.displayPath,
@@ -118,9 +106,6 @@ export function applyEditTool(ctx, sandbox) {
         after: outcome.after,
       }
     },
-    // Pure display: a diff card of the literal replacement (old_string → new_string), derived
-    // from the call args. `oldText: old_string || null` matches claude-agent-acp's Edit arm;
-    // new_string is a required arg here, so it maps straight to newText.
     presentCall(args) {
       return {
         card: 'diff',
@@ -129,8 +114,6 @@ export function applyEditTool(ctx, sandbox) {
         locations: [{ path: args.file_path }],
       }
     },
-    // Applied metadata replaces the call-time snippet; errors or malformed replay metadata use
-    // the generic result rendering.
     presentResult(args, result) {
       if (result.isError) return undefined
       const diffs = diffsFromMeta(result.meta)

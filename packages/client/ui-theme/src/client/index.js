@@ -11,7 +11,7 @@ import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import './AppearanceRow.js'
 import { createAppearanceRowStore } from './settings-store.js'
 import { installThemeStyles } from './styles.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 import {
   DEFAULT_PREFERENCE, isThemePreference, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
 } from '../theme-settings.js'
@@ -72,7 +72,6 @@ export class ThemeRuntime {
     this.ctx = ctx
     this.host = host
     this.preference = DEFAULT_PREFERENCE
-    // Non-browser runs (node e2e booting the client tree) have no matchMedia.
     this.media = typeof matchMedia === 'undefined' ? undefined : matchMedia('(prefers-color-scheme: dark)')
     this.snapshot = this.buildSnapshot()
     if (this.media !== undefined) {
@@ -197,8 +196,6 @@ export class ThemeRuntime {
     const resolvedId = this.preference === 'system'
       ? (this.media?.matches === true ? 'dark' : 'light')
       : this.preference
-    // Both built-ins always exist; a registered preference id resolves or has
-    // been reset by its disposer, so the lookup cannot miss.
     const active = this.themes.find(t => t.id === resolvedId)
     /* v8 ignore next 2 -- needs a registry without light/dark, which register()/dispose() cannot produce */
     if (active === undefined) throw new Error(`theme registry lost "${resolvedId}"`)
@@ -291,7 +288,7 @@ export function apply(ctx) {
   const theme = new ThemeRuntime(ctx, host)
   ctx.provide('theme', theme)
 
-  ctx.effect(() => ctx.locale.register(SETTINGS_NS, { zh, en }), 'ui-theme: settings row dictionaries')
+  ctx.effect(() => ctx.locale.register(SETTINGS_NS, { en }), 'ui-theme: settings row dictionaries')
 
   const store = createAppearanceRowStore()
   let bound
@@ -301,8 +298,6 @@ export function apply(ctx) {
   ctx.on('theme/change', sync)
   const injected = (actions) => {
     bound = actions
-    // Re-sync from the getter so no event is lost between registration and
-    // first render (the store's revision guard drops stale duplicates).
     sync(theme.getTheme())
     return {
       setTheme: (id) => { theme.setTheme(id) },

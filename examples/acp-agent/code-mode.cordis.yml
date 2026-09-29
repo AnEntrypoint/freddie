@@ -1,8 +1,3 @@
-# Code Mode adds `ctx.codeRuntime` and changes the registry to one wire tool,
-# `run_code`, plus its generated TypeScript SDK prompt. The app bin selects this
-# overlay for `demo:code-mode` and snapshot recording, and selects the sibling
-# replay overlay for `FREDDIE_SNAPSHOT=replay`. A config patch replaces the whole app
-# config, so unchanged base fields are restated below.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

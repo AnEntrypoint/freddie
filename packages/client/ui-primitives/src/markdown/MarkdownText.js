@@ -91,9 +91,6 @@ class StreamingRenderer {
     }
     const newlyFrozen = frozen.slice(this.frozenCount)
     collectReferenceTargets(newlyFrozen.map(block => block.node), this.frozenTargets)
-    // Targets visible this frame: everything frozen so far plus the current
-    // tail parse — a newly frozen block's references resolved against the
-    // same parse tree its definitions came from.
     const frameTargets = {
       definitions: new Map(this.frozenTargets.definitions),
       footnotes: new Map(this.frozenTargets.footnotes),
@@ -108,8 +105,6 @@ class StreamingRenderer {
         footnoteOrder: this.frozenFootnoteOrder,
         footnoteCounts: this.frozenFootnoteCounts,
       }
-      // Separator newlines are cached alongside the elements so the
-      // assembled children match the settled pipeline's block wrapping.
       const batch = [...this.frozenElements]
       for (const element of renderBlocks(newlyFrozen, frozenContext)) {
         if (batch.length > 0) batch.push('\n')
@@ -156,7 +151,6 @@ export class FreddieMarkdownText extends HTMLElement {
   #streamLabels
   #lastProps = null
   #lastChildren = []
-  // Whether applyDiff has painted this element at least once (see #render).
   #painted = false
 
   setProps(props) {
@@ -169,9 +163,6 @@ export class FreddieMarkdownText extends HTMLElement {
   }
 
   disconnectedCallback() {
-    // A remount must diff again: this element's children may have been moved
-    // or discarded while it was detached, so the "already painted" claim in
-    // #render no longer describes the DOM.
     this.#painted = false
   }
 
@@ -189,17 +180,7 @@ export class FreddieMarkdownText extends HTMLElement {
   }
 
   #render() {
-    // Mirrors the React version's memo (skip on identical props) plus the
-    // inner useMemo (recompute children only when a dependency changed).
     const unchanged = this.#lastProps !== null && propsEqual(this.#lastProps, this.#props)
-    // Equal props AND an already-painted tree means this render cannot produce
-    // a single different node, so the whole diff is dead work. It is not free:
-    // the cached children are real DOM nodes, and webjsx re-walks them (and
-    // every element they contain) on every pass -- with real keyboard input
-    // that showed up as 40 fresh inline `code` elements per keystroke landing
-    // in their `<p>` parents, from renders whose props had not moved at all.
-    // The mounted check keeps the first paint, which must diff, on the normal
-    // path.
     if (unchanged && this.#painted) return
     const children = unchanged ? this.#lastChildren : this.#computeChildren()
     this.#lastProps = this.#props
@@ -211,6 +192,17 @@ export class FreddieMarkdownText extends HTMLElement {
 }
 
 defineElement('freddie-markdown-text', FreddieMarkdownText)
+
+/**
+ * @typedef {object} MarkdownTextProps
+ * @property {string} [text=''] - the accumulated markdown source (the full text so far, even while streaming).
+ * @property {boolean} [streaming=false] - true while `text` keeps growing; only the source tail behind the
+ *   frozen blocks re-parses per chunk instead of the whole document.
+ * @property {{copyLabel: string, copiedLabel: string}} [codeLabels] - fence copy-button labels forwarded to
+ *   each rendered code block.
+ * @property {{resolve: function(string): ({title: string, label: string, open: function(): void}|undefined)}} [fileMentions] -
+ *   resolves an inline-code value to a clickable file-mention button.
+ */
 
 /**
  * Create (if needed) or update a MarkdownText element in place.

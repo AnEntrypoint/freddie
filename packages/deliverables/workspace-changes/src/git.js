@@ -8,6 +8,8 @@ import { canonicalPath, isInside, toPosix } from './paths.js'
 const TERMINATE_GRACE_MS = 2_000
 /** Retained stderr tail for diagnostics. */
 const STDERR_TAIL_BYTES = 16 * 1024
+/** `git add --ignore-errors` skips unreadable files and reports them with this exit code; the index is still complete. */
+const UNREADABLE_FILES_EXIT_CODE = 1
 
 /**
  * @typedef {{ exitCode: number | null; stdout: string; stderr: string; truncated: boolean }} GitRunResult
@@ -52,7 +54,6 @@ export class GitRunner {
       },
       graceMs: TERMINATE_GRACE_MS,
       signal,
-      // The subprocess credential scrub removes ambient GIT_CONFIG_KEY_n entries.
       env: { GIT_CONFIG_COUNT: '0', GIT_TERMINAL_PROMPT: '0', GIT_OPTIONAL_LOCKS: '0', LC_ALL: 'C', ...options.env },
     })
     const outcome = await handle.done
@@ -109,7 +110,6 @@ export async function locateGitWorkspace(git, cwd, scratch, signal) {
   if (found.exitCode === 128 && /not a git repository/i.test(found.stderr)) return null
   const lines = ok(found, 'git rev-parse').stdout.split('\n').map(line => resolve(cwd, line))
   const [root, gitDir, repositoryObjects] = lines
-  // git reports the canonical root; compare the private directory in the same spelling.
   const directory = await canonicalPath(await scratch())
   const objects = join(directory, 'objects')
   await mkdir(objects, { recursive: true })
@@ -133,15 +133,13 @@ export async function snapshotTree(git, workspace, signal) {
   const scratch = await mkdtemp(join(workspace.scratch, 'index-'))
   try {
     const index = join(scratch, 'index')
-    // A repository without an index yet (fresh `git init`) starts from scratch.
     await copyFile(join(workspace.gitDir, 'index'), index).catch((error) => {
       if (!isMissing(error)) throw error
     })
     const env = { ...workspace.env, GIT_INDEX_FILE: index }
-    // `--ignore-errors` skips unreadable files and reports them through exit code 1; the index is still complete.
     const pathspec = workspace.excludes.length === 0 ? [] : ['--', '.', ...workspace.excludes.map(path => `:(exclude)${path}`)]
     const added = await git.run(['add', '--all', '--ignore-errors', ...pathspec], { cwd: workspace.root, env, signal })
-    if (added.exitCode !== 1) ok(added, `git add in ${workspace.root}`)
+    if (added.exitCode !== UNREADABLE_FILES_EXIT_CODE) ok(added, `git add in ${workspace.root}`)
     return ok(await git.run(['write-tree'], { cwd: workspace.root, env, signal }), 'git write-tree').stdout.trim()
   } finally {
     await rm(scratch, { recursive: true, force: true })
@@ -162,7 +160,6 @@ export async function snapshotTree(git, workspace, signal) {
  * @returns {Promise<TreeBlob | null>} the blob, or null when the tree holds nothing at the path or holds a gitlink or tree there.
  */
 export async function treeBlob(git, workspace, tree, path, signal) {
-  // The path is a pathspec; literal matching keeps `*`, `?`, and `[` in a file name from selecting another entry.
   const result = ok(await git.run(['ls-tree', '-z', '-l', tree, '--', path], {
     cwd: workspace.root, env: { ...workspace.env, GIT_LITERAL_PATHSPECS: '1' }, signal,
   }), 'git ls-tree')

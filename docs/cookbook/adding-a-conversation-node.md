@@ -16,107 +16,28 @@ For a review job, the event contract could be:
 | `review/progress` | update | the same `reviewId`, coordinates, replayable progress |
 | `review/end` | update | the same `reviewId`, coordinates, final summary |
 
-Use the producer-owned branded id type across the process boundary. Put the `SessionEventMap` merge and payload types on the producer's type-only export, then import that export for side effects from the client package. Each `(kind, id)` may have at most one start event. A single-event business can use the event's stable identity, such as `event.seq`, as its Definition-local id.
+Describe each payload with JSDoc `@typedef` beside the producer: the tree ships no compiled event map, so the Definition reads only the fields it needs from `event.data` and treats every id as an opaque string. Each `(kind, id)` may have at most one start event. A single-event business can use the event's stable identity, such as `event.seq`, as its Definition-local id.
 
 Incremental events are supported. Prefer whole-value checkpoints when the producer can emit them cheaply, because they remain useful when the start is outside the loaded window. Each delta must carry the stable id and produce deterministic State when replayed in ascending log `seq`; it must not depend on live-only memory. If the current history window contains only updates, the assembler keeps a pending Context and builds no State until an older page supplies the start. If the product must render before the start is loaded, a terminal or checkpoint event must carry enough whole fallback state for the Definition to build that result directly; do not recover it by scanning unrelated events.
 
 ## 2. Implement the Definition and typed Chat payload
 
-The example keeps the producer declarations and client contribution in one block so the complete relationship is visible. In a package family, keep the branded id and `SessionEventMap` declaration with the event producer, and keep the Definition, Chat data merge, and renderer in the client plugin.
+The example is one client plugin file: the Definition, the keyed renderer, and the `apply` that registers both. The events come from a producer package that records them; the Definition depends only on their `event.data` shape. [`ui-goal`](../../packages/client/ui-goal/src/client/index.js) is a small real instance (a Definition in `goal-command-input.js`, a keyed renderer in `GoalCommandInputView.js`).
 
-```ts ignore-check
-import { createElement } from 'react'
-import type { Branded } from '@freddie/freddie-brand'
-import type {
-  ClientContext, ConversationLocation, ConversationNodeContext,
-  ConversationNodeDefinition,
-} from '@freddie/freddie-client-runtime/client'
-import type { ChatNodeViewProps } from '@freddie/freddie-client-ui-conversation/client'
+```js
+import { createElement as h } from '@freddie/webjsx'
 
-type ReviewId = Branded<'ReviewId'>
+const locationOf = context =>
+  context.start?.location ?? context.matches[0]?.location ?? { kind: 'unresolved' }
 
-interface ReviewStartData {
-  readonly reviewId: ReviewId
-  readonly turn: number
-  readonly step: number
-  readonly title: string
-}
+const viewData = state => ({
+  title: state.title,
+  completed: state.completed,
+  status: state.status,
+  ...state.summary === undefined ? {} : { summary: state.summary },
+})
 
-interface ReviewProgressData {
-  readonly reviewId: ReviewId
-  readonly turn: number
-  readonly step: number
-  readonly completed: number
-}
-
-interface ReviewEndData {
-  readonly reviewId: ReviewId
-  readonly turn: number
-  readonly step: number
-  readonly summary: string
-}
-
-declare module '@freddie/freddie-session/types' {
-  interface SessionEventMap {
-    /**
-     * Opens one durable review job.
-     * @mode emit
-     * @param data - stable identity, location, and initial display state.
-     */
-    'review/start': ReviewStartData
-    /**
-     * Records replayable progress for one review job.
-     * @mode emit
-     * @param data - stable identity, location, and latest progress.
-     */
-    'review/progress': ReviewProgressData
-    /**
-     * Closes one review job with its final summary.
-     * @mode emit
-     * @param data - stable identity, location, and final display state.
-     */
-    'review/end': ReviewEndData
-  }
-}
-
-interface ReviewChatData {
-  readonly title: string
-  readonly completed: number
-  readonly status: 'running' | 'completed'
-  readonly summary?: string
-}
-
-declare module '@freddie/freddie-client-ui-conversation/client' {
-  interface ChatNodeDataMap {
-    'review-job': ReviewChatData
-  }
-}
-
-declare module '@freddie/freddie-client-runtime/client' {
-  interface ConversationStepDataMap {
-    'review-job': ReviewChatData
-  }
-}
-
-interface ReviewState extends ReviewChatData {
-  readonly turn: number
-  readonly step: number
-}
-
-function locationOf(context: ConversationNodeContext): ConversationLocation {
-  return context.start?.location ?? context.matches[0]?.location ?? { kind: 'unresolved' }
-}
-
-function viewData(state: ReviewState): ReviewChatData {
-  return {
-    title: state.title,
-    completed: state.completed,
-    status: state.status,
-    ...state.summary === undefined ? {} : { summary: state.summary },
-  }
-}
-
-const reviewDefinition: ConversationNodeDefinition<ReviewState> = {
+const reviewDefinition = {
   kind: 'review-job',
   target: 'chat',
   match: (event) => {
@@ -175,14 +96,12 @@ const reviewDefinition: ConversationNodeDefinition<ReviewState> = {
   },
 }
 
-function ReviewNodeView({ node }: ChatNodeViewProps<'review-job'>) {
-  const text = node.data.summary ?? `${node.data.title}: ${node.data.completed}%`
-  return createElement('p', null, text)
-}
+const ReviewNodeView = ({ node }) =>
+  h('p', {}, node.data.summary ?? `${node.data.title}: ${node.data.completed}%`)
 
 export const inject = ['conversationEvents', 'slots']
 
-export function apply(ctx: ClientContext): void {
+export function apply(ctx) {
   ctx.conversationEvents.register(reviewDefinition)
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
     name: 'conversation.chat.node',
@@ -193,9 +112,9 @@ export function apply(ctx: ClientContext): void {
 
 `match(event)` is an identity extractor, not a fold: it receives only the current event and returns the Definition-local id and lifecycle role. After a match, the assembler locates the Context by `(kind, id)` and calls `start` once or `update` with the current State. Both functions return the State that the engine adopts; returning a new immutable value is preferred, but a function that mutates and returns the same object has the same adoption semantics.
 
-`buildLocationData(context, scope)` optionally publishes Definition-owned data onto an engine-owned Turn or Step. Use declaration merging to give each key a precise value type. Another Node in the same Location can consume that value through its constrained slot hook, such as `useTurnData(key)`, without receiving the Session or scanning `snapshot.chat.nodes`.
+`buildLocationData(context, scope)` optionally publishes Definition-owned data onto an engine-owned Turn or Step. Another Node in the same Location can consume that value through its `useTurnData(key)` prop, without receiving the Session or scanning `snapshot.chat.nodes`.
 
-`target` and `buildViewNode(context)` declare one target-owned rendering contribution and must appear together. Preserve `context.key` as the React-facing identity, choose `anchorSeq` from durable ordering evidence, and return only renderer-ready data. Once a target Node has been published, keep returning the same key; use `visibility: 'hidden'` when it must temporarily leave the visible flow rather than withdrawing it with `null`.
+`target` and `buildViewNode(context)` declare one target-owned rendering contribution and must appear together. Preserve `context.key` as the row's identity, choose `anchorSeq` from durable ordering evidence, and return only renderer-ready data. Once a target Node has been published, keep returning the same key; use `visibility: 'hidden'` when it must temporarily leave the visible flow rather than withdrawing it with `null`.
 
 ## 3. Query an earlier business Context only at start
 
@@ -219,7 +138,7 @@ With `D` registered Definitions, one incoming event performs `D` current-event m
 
 ## 5. Verify replay, pagination, and rendering
 
-Add focused tests that establish these outcomes:
+This repository keeps no test suite. Verify live in real Chrome (the gm `cdp` verb), driving the real assembler with a session whose log carries the events, and confirm these outcomes:
 
 1. A complete window passed through replace produces the expected final State, Location data, Node payload, and `anchorSeq`.
 2. An update-only tail stays pending; prepending the unique start produces the same result as a complete replace.
@@ -228,4 +147,4 @@ Add focused tests that establish these outcomes:
 5. Repeated visible deltas preserve `context.key` and publish at most once per animation frame when requested.
 6. The keyed renderer consumes `node.data` and constrained Location hooks only; it does not scan the Session event window, Contexts, or Chat Nodes.
 
-Use [`packages/client/ui-conversation/src/client/conversation-nodes/assistant.ts`](../../packages/client/ui-conversation/src/client/conversation-nodes/assistant.js) for streaming and interruption, [`inbox.ts`](../../packages/client/ui-conversation/src/client/conversation-nodes/inbox.js) plus [`message.ts`](../../packages/client/ui-conversation/src/client/conversation-nodes/message.js) for predecessor queries, and [`packages/client/ui-deliverables`](../../packages/client/ui-deliverables) for a Definition that publishes Turn data without creating its own Node.
+Use [`packages/client/ui-conversation/src/client/conversation-nodes/assistant.js`](../../packages/client/ui-conversation/src/client/conversation-nodes/assistant.js) for streaming and interruption, [`inbox.js`](../../packages/client/ui-conversation/src/client/conversation-nodes/inbox.js) plus [`message.js`](../../packages/client/ui-conversation/src/client/conversation-nodes/message.js) for predecessor queries, and [`packages/client/ui-deliverables`](../../packages/client/ui-deliverables) for a Definition that publishes Turn data without creating its own Node.

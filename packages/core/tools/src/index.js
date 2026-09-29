@@ -15,22 +15,6 @@ import { renderToolsSdk } from './ts-types.js'
 import { renderToolsSdkPy } from './py-types.js'
 
 /**
- * Language → SDK-section renderer. The registry looks up the loaded
- * `ctx.codeRuntime.language` in this table when assembling the `tools:sdk`
- * section under a non-native mode; a runtime whose language is not a key
- * fails the assembly loudly (same idiom as `toolOrder` violations). Adding a
- * new backend language is three parallel edits — a {@link CodeSdkLanguage}
- * member, an entry here, and a `RUN_CODE_FLAVORS` entry in `code-mode.js` for
- * its `run_code` schema strings — plus the renderer function this table points
- * at. The `satisfies` clause pins this table's key set to that union, which
- * the flavor table is checked against too, so any of the three left out is a
- * typecheck failure. What no check reaches is the prose that names the values
- * instead of deriving them: the seam's `freddie-code-runtime` README pair, its
- * `CodeRuntime.language` JSDoc, and `docs/subsystems/code-runtime.md`
- * with its zh pair, plus this package's own README pair and the
- * {@link Config.mode} JSDoc.
- */
-/**
  * Prompt order of the `code` collapse statement: after the persona and before
  * the 100-199 per-tool guidance band, so the model reads which tools it may
  * call before it reads what each one is for.
@@ -44,6 +28,20 @@ const COLLAPSE_SECTION_ORDER = 99
  */
 const CODE_ONLY_INSTRUCTION = `\`${RUN_CODE_NAME}\` is the only tool you can call directly — a tool call naming any other tool fails. Reach every tool the SDK declares below from inside the program.`
 
+/**
+ * Language → SDK-section renderer. The registry looks up the loaded
+ * `ctx.codeRuntime.language` in this table when assembling the `tools:sdk`
+ * section under a non-native mode; a runtime whose language is not a key
+ * fails the assembly loudly (same idiom as `toolOrder` violations). Adding a
+ * new backend language is three parallel edits — a {@link import('./code-mode.js').CodeSdkLanguage}
+ * member, an entry here, and a `RUN_CODE_FLAVORS` entry in `code-mode.js` for
+ * its `run_code` schema strings — plus the renderer function this table points
+ * at. What no check reaches is the prose that names the values
+ * instead of deriving them: the seam's `freddie-code-runtime` README pair, its
+ * `CodeRuntime.language` JSDoc, and `docs/subsystems/code-runtime.md`,
+ * plus this package's own README and the
+ * {@link ToolRuntime.Config} JSDoc (`mode`).
+ */
 const SDK_RENDERERS = {
   typescript: renderToolsSdk,
   python: renderToolsSdkPy,
@@ -69,8 +67,16 @@ export { jsonSchemaToTs, renderToolsSdk } from './ts-types.js'
 export { jsonSchemaToPy, renderToolsSdkPy } from './py-types.js'
 export { defineContentToolFixture } from './testing.js'
 
-/** Tool-owned canonical output contract used after the body returns a JSON value. */
-// ToolOutputDefinition (schema, render, presentationMeta?) — see JSDoc types in TS history.
+/**
+ * Tool-owned canonical output contract used after the body returns a JSON
+ * value: `schema` validates it, `render` projects it to model-facing content
+ * blocks, and optional `presentationMeta` projects it for a top-level call's
+ * client presentation.
+ * @typedef {object} ToolOutputContract
+ * @property {object} schema - JSON Schema the returned value must satisfy.
+ * @property {function(*, *): *} render - `(args, value) => ContentBlock[]`.
+ * @property {function(*, *): *} [presentationMeta] - `(args, value) => *`.
+ */
 
 /** Convert one projector exception into the canonical invalid-output failure. */
 function projectionError(toolName, projector, error) {
@@ -151,9 +157,6 @@ function errorMessage(error) {
     }
     return String(error)
   } catch {
-    // A hostile thrown value can trap `instanceof`, property access, or string
-    // coercion. Error normalization is the outermost safety boundary, so its
-    // fallback must itself be total.
     return '<unprintable thrown value>'
   }
 }
@@ -304,8 +307,6 @@ export class ToolRuntime extends Service {
 
   constructor(ctx, config = {}) {
     super(ctx, 'tools')
-    // The schema already defaulted an omitted mode; the ?? narrows the
-    // optional-input type for direct (non-Loader) construction in tests.
     this.defaultMode = config.mode ?? 'native'
     this.maxParallelSubCalls = resolveMaxParallelSubCalls(config.maxParallelSubCalls)
     ctx.systemPrompt.tools(context => this.wireSchemas(context.scope))
@@ -335,8 +336,6 @@ export class ToolRuntime extends Service {
     return {
       name: 'tools:code-only',
       order: COLLAPSE_SECTION_ORDER,
-      // The SAME predicate the executor denies by, so the prompt cannot state
-      // a rule the registry does not enforce (see `collapses`).
       text: context => this.modeFor(context.scope) === 'code' ? CODE_ONLY_INSTRUCTION : '',
     }
   }
@@ -355,13 +354,10 @@ export class ToolRuntime extends Service {
     return {
       name: 'tools:sdk',
       order: SDK_SECTION_ORDER,
-      // Regenerate from the calling scope's visible tools in stable order.
       text: (context) => {
         const mode = this.modeFor(context.scope)
         if (mode === 'native') return ''
         const runtime = this.requireCodeRuntime(mode)
-        // Own-property read: a language like `toString`/`constructor` would
-        // otherwise resolve an inherited Object.prototype member as a renderer.
         const render = SDK_RENDERERS[runtime.language]
         /* v8 ignore next -- requireCodeRuntime rejects an unknown language before this runs. */
         if (render === undefined) throw new Error(`freddie-tools: no SDK renderer for ${runtime.language}`)
@@ -409,10 +405,6 @@ export class ToolRuntime extends Service {
    * @returns the resolved presentation mode.
    */
   modeFor(scope) {
-    // Nearest scope wins along the chain: a preset's standing declaration
-    // covers every agent parented under it, and an agent's own (were one ever
-    // declared) would override its preset's. The mode decides what the model
-    // SEES, which is exactly the class of fact the chain inherits.
     const layers = this.layers.chainLayers(scope)
     for (let index = layers.length - 1; index >= 0; index -= 1) {
       const mode = layers[index]?.mode
@@ -433,9 +425,6 @@ export class ToolRuntime extends Service {
   requireCodeTransport() {
     this.codeTransport ??= createRunCodeTool(this, {
       requireRuntime: () => this.requireCodeRuntime(this.defaultMode),
-      // The language-aware description/parameters getters read the runtime
-      // without demanding one, so a native-default process can still project
-      // the transport for an agent that chose code.
       peekRuntime: () => this.ctx.get('codeRuntime'),
       maxParallel: this.maxParallelSubCalls,
       shapeDispatchLog: dispatch => this.shapeDispatchLog(dispatch),
@@ -471,10 +460,6 @@ export class ToolRuntime extends Service {
         },
         { label: 'tools.presentAs()' },
       )
-      // The SDK and collapse sections are per scope for the same reason the
-      // mode is. Under a deployment that already defaults to a code mode this
-      // shadows the global registration with an identical body, which costs
-      // nothing and keeps one rule instead of a case analysis.
       if (mode !== 'native') {
         yield ctx.systemPrompt.section(this.collapseSection())
         yield ctx.systemPrompt.section(this.sdkSection())
@@ -495,11 +480,6 @@ export class ToolRuntime extends Service {
       const schemas = [...view.visible.values()].map(definition => this.schemaOf(definition, false))
       return { schemas, knownNames: [...view.knownNames] }
     }
-    // Validate the runtime language BEFORE projecting schemas: schemaOf reads
-    // run_code's language-aware description/parameters getters, whose own
-    // flavor-table guard would otherwise surface first. This keeps the
-    // renderer-table rejection the canonical assembly-time error for a
-    // language with no SDK renderer.
     this.requireCodeRuntime(mode)
     const schemas = [...view.visible.values()].map(definition => this.schemaOf(definition, false))
     if (mode === 'code') {
@@ -559,9 +539,6 @@ export class ToolRuntime extends Service {
       && (!Number.isFinite(timeoutMs) || timeoutMs <= 0)) {
       throw new TypeError(`tool "${name}" timeoutMs must be a positive finite number`)
     }
-    // Reserved unconditionally: any agent may select a code mode for itself,
-    // so a name free to take under the deployment default would become a
-    // collision the moment a preset mounted.
     if (name === RUN_CODE_NAME) {
       throw new Error(`tool name "${RUN_CODE_NAME}" is reserved for the Code Mode presentation transport and cannot be registered or shadowed`)
     }
@@ -661,14 +638,8 @@ export class ToolRuntime extends Service {
    * @returns the complete derived view for that scope.
    */
   view(scope) {
-    // Scope-chain layers, farthest ancestor first, the exact scope last.
     const layers = this.layers.chainLayers(scope)
-    // Chain-blind on purpose: this is the ONE layer whose registrations the
-    // scope owns rather than inherits, and it is absent until the scope
-    // contributes something.
     const own = this.layers.peek(scope)
-    // Inherited surface, nearest ancestor last: a nearer scope's same-name
-    // entry shadows a farther one, and the global layer is the farthest.
     const inherited = new Map(this.layers.global.tools.entries())
     for (const layer of layers) {
       if (layer === own) continue
@@ -680,23 +651,14 @@ export class ToolRuntime extends Service {
     for (const [name, definition] of inherited) {
       knownNames.add(name)
       restrictableNames.add(name)
-      // Restrictions intersect across the whole chain: any scope on it may
-      // mask an inherited name for everything nested inside it.
       if (layers.every(layer => layer.admits(name))) visible.set(name, definition)
     }
-    // The scope's own registrations last, shadowing an inherited name and
-    // outside the filter above.
     if (own !== undefined) {
       for (const [name, definition] of own.tools.entries()) {
         knownNames.add(name)
         visible.set(name, definition)
       }
     }
-    // Presentation infrastructure is resolved last and outside capability
-    // filtering. Registration rejects this reserved name, so the insertion is
-    // an invariant assertion as well as protection against future layer
-    // changes. Per scope: a native agent must not find `run_code` in its
-    // dispatch table because some other agent in the process presents it.
     if (this.modeFor(scope) !== 'native') {
       visible.set(RUN_CODE_NAME, this.requireCodeTransport())
     }
@@ -881,13 +843,6 @@ export class ToolRuntime extends Service {
     const agent = exec.agent
     const parent = exec.parent
     const signal = exec.signal
-    // Distinguish a mode-collapsed call (visible in the scope, denied only by
-    // the `code` collapse) from a genuinely unknown tool. A collapsed call is
-    // deterministically denied, so it terminates BEFORE the extensible policy
-    // pipeline: pre-execute listeners, approval `ask`, and guards must never
-    // observe — or worse, approve — a call that can only fail. An unknown tool
-    // keeps the historical dispatch-stage `UNKNOWN_TOOL` path so policy
-    // listeners still see every name that reaches the registry.
     const visible = this.get(name, agent)
     const collapsed = visible !== undefined && this.collapses(name, agent, parent !== undefined)
     const concludingExecutions = this.concludingExecutions
@@ -906,16 +861,6 @@ export class ToolRuntime extends Service {
         concludingExecutions.add(this)
       },
     }
-    // Capture the finalizer BEFORE argument materialization: the
-    // `finalizeContent` contract snapshots the callback when the call starts,
-    // and an arguments getter can replace or clear the registered callback
-    // during `snapshotJsonValue`. The collapse only decides whether the
-    // CAPTURED callback is retained: the pre-dispatch abort path keeps it
-    // (the cancellation contract routes aborted results through it — a getter
-    // that aborts mid-materialization before an invalid-args failure lands in
-    // the same retained path), while the `UNKNOWN_TOOL` denial and the
-    // invalid-args failure of a NON-ABORTED collapsed call drop it (the call
-    // could never execute).
     const capturedFinalizer = visible?.finalizeContent?.bind(visible)
     const finalizerFor = () =>
       collapsed && !signal.aborted ? undefined : capturedFinalizer
@@ -932,18 +877,9 @@ export class ToolRuntime extends Service {
         bodyInvoked: false,
       })
       if (collapsed) {
-        // The collapse denies the call before the policy pipeline, but a
-        // pre-dispatch abort still keeps the established cancellation
-        // contract: `prepare`'s caller-cancellation check is skipped for
-        // final-results, so honor the abort here instead of surfacing
-        // `UNKNOWN_TOOL` on an already-cancelled call.
         if (signal.aborted) {
           return { kind: 'final-result', exec: execution, result: toolAbortedBeforeDispatchResult() }
         }
-        // The name IS visible here, so the denial carries the route the model
-        // must take instead. Without it the model reads a bare `unknown tool`
-        // for a tool the prompt just declared and concludes the deployment is
-        // broken rather than correcting itself.
         return {
           kind: 'final-result',
           exec: execution,
@@ -1163,8 +1099,6 @@ export class ToolRuntime extends Service {
 
   /** Notify observers without exposing a mutation or error channel into the outcome. */
   notifyResult(exec, result) {
-    // Freeze the registry's live object before observers receive its readonly
-    // WeakMap-keyable view.
     Object.freeze(exec)
     const { name: toolName, callId } = exec
     const reportFailure = (error) => {
@@ -1233,6 +1167,23 @@ export class ToolRuntime extends Service {
     }
   }
 
+  /**
+   * The `tools/post-execute` waterfall's decision over a dispatched result.
+   * @typedef {PostToolDecisionAccept|PostToolDecisionBlock} PostToolDecision
+   */
+  /**
+   * @typedef {object} PostToolDecisionAccept
+   * @property {'accept'} kind
+   * @property {*} [value] - replaces the tool's returned value (revalidated against its output schema); mutually exclusive with `content`.
+   * @property {readonly *[]} [content] - replaces the rendered content blocks directly.
+   * @property {readonly *[]} [additionalContexts] - extra context messages ferried to the loop's active-batch FIFO.
+   */
+  /**
+   * @typedef {object} PostToolDecisionBlock
+   * @property {'block'} kind
+   * @property {readonly *[]} feedback - corrective content blocks that become the call's `isError` result.
+   * @property {readonly *[]} [additionalContexts]
+   */
   /**
    * Run the `tools/post-execute` waterfall over a dispatched `result` and apply
    * its {@link PostToolDecision}: `accept` keeps the call successful (replacing

@@ -104,11 +104,8 @@ function registryState(name, version) {
  * @param {string} version Package version the tarball declares.
  */
 async function publishTarball(tarball, name, version) {
-  // A prerelease version never takes the latest dist-tag.
   const tagArgs = version.includes('-') ? ['--tag', 'next'] : [];
   for (let tries = 1; tries <= PUBLISH_ATTEMPTS; tries += 1) {
-    // No --access: publishConfig.access in each manifest decides, and a
-    // command-line flag would override it.
     const result = spawnSync('npm', ['publish', tarball, ...tagArgs], { encoding: 'utf8' });
     const output = `${result.stdout}${result.stderr}`;
     if (result.status === 0) return;
@@ -154,8 +151,6 @@ for (const filename of order) {
     skipped += 1;
     continue;
   }
-  // Space out the writes: the gap belongs between publishes, so a run that only
-  // skips does not wait at all.
   if (published > 0) await sleep(PUBLISH_SPACING_MS);
   await publishTarball(tarball, name, version);
   console.log(`landlock publish: ${name}@${version} published`);

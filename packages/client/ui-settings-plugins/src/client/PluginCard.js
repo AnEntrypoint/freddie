@@ -23,6 +23,19 @@ import clsx from 'clsx'
 import { IconChevronDownOutline14, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './PluginCard.css.js'
 
+/**
+ * @typedef {object} PluginCardProps
+ * @property {object} state - the card's form state: `available` (renders nothing when false),
+ * `dirty` (unsaved edits pending), `invalid` (blocks save), `saving` (submit in flight),
+ * `failed` (shows the save-failed message), `writable` (shows the read-only notice when false).
+ * @property {(key: string) => string} t - locale lookup for the card's copy.
+ * @property {string} titleKey - copy key for the card's name, shown in the header.
+ * @property {string} descriptionKey - copy key for the card's description, shown in the header.
+ * @property {*} children - the plugin's own controls, rendered inside the card body when open.
+ * @property {() => void} onDiscard - called when the discard button is pressed.
+ * @property {() => void} onSave - called when the save button is pressed.
+ */
+
 /** One plugin card custom element. See {@link PluginCardProps} for the field-by-field docs. */
 export class FreddiePluginCard extends HTMLElement {
   #props = null

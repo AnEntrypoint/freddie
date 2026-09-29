@@ -29,8 +29,6 @@ function isMissingPathError(error) {
 async function nodeStatFile(path, signal) {
   try {
     signal?.throwIfAborted()
-    // stat (not lstat) follows a final-component symlink so a link to a regular
-    // file loads; a broken link surfaces as ENOENT and is treated as absent below.
     const info = await stat(path)
     signal?.throwIfAborted()
     if (!info.isFile()) return { kind: 'absent' }
@@ -46,9 +44,6 @@ async function fsStatFile(
   fileSystem,
   signal,
 ) {
-  // resolve() follows a final-component symlink to its target's stable identity;
-  // stat then classifies that target. A link to a regular file loads, while a
-  // missing path or non-file target (including a link to a directory) is absent.
   try {
     const target = await fileSystem.resolve(path, signalOptions(signal))
     signal?.throwIfAborted()
@@ -80,8 +75,6 @@ async function existsAsMarker(path, fileSystem, signal) {
       return await fileSystem.stat(target, signal) !== undefined
     } catch {
       signal?.throwIfAborted()
-      // TODO(root-marker-unavailable): preserve provider failure separately from
-      // absence and stop discovery; continuing upward can cross into an ancestor project.
       return false
     }
   }
@@ -182,8 +175,6 @@ async function allExistingInstructionFiles(
       case 'present':
         found.push({ absolutePath: path, displayPath: relativeDisplay(root, path), ...probe.info })
         continue
-      // A missing candidate is skipped; a transient provider failure skips only
-      // that candidate so the remaining independent candidates still load.
       case 'absent':
       case 'unavailable':
         continue
@@ -261,9 +252,6 @@ async function readBounded(
   fileSystem,
   signal,
 ) {
-  // TODO(total-instruction-read-bound): enforce an aggregate source budget
-  // across a complete baseline or reconciliation batch; the render budget is
-  // applied only after every accepted file has been read under this per-file cap.
   signal?.throwIfAborted()
   if (file.size !== undefined && file.size > maxSourceBytes) return undefined
   try {
@@ -282,7 +270,6 @@ async function readBounded(
     return parts.join('')
   } catch {
     signal?.throwIfAborted()
-    // A file may disappear or become unreadable after its metadata probe.
     return undefined
   }
 }
@@ -381,7 +368,7 @@ export async function loadBaselineInstructionSet(
 
 /**
  * Probe the current provider metadata for one per-candidate instruction scope.
- * @param scope - a {@link candidateScopeKey} identifying a directory and candidate file.
+ * @param scope - a {@link import('./state.js').candidateScopeKey} identifying a directory and candidate file.
  * @param projectRoot - project root used to resolve and display project scopes.
  * @param resolved - normalized plugin configuration.
  * @param fileSystem - provider used to resolve and stat scope candidates.
@@ -400,9 +387,6 @@ export async function probeScopeInstruction(
     ? resolved.freddieHome
     : directory === '.' ? projectRoot : join(projectRoot, directory)
   const absolutePath = join(dir, candidateName)
-  // resolve() follows a final-component symlink; stat then classifies the target.
-  // A non-file target (missing, or a link to a directory) is a confirmed absence;
-  // only a provider exception is reported as unavailable.
   let target
   let info
   try {

@@ -1,22 +1,9 @@
-// DetailsPanel: close button + the selected call's args and
-// result — args as JSON, the result raw except for a terminal-card call, whose
-// Output section is the command's terminal card. Reads the
-// selection from the shared chat
-// store (conversation writes, this panel reads — the cross-registration
-// share the store seat exists for) and derives the call material from the
-// session snapshot — no data of its own.
-
 import { createElement as h } from '@freddie/webjsx'
 import { renderCodeBlock } from '@freddie/freddie-client-ui-primitives'
 import { shallowEqual } from '@freddie/freddie-client-runtime/client'
 import { findToolCall } from '../chat/tool-node-reader.js'
 import css from './DetailsPanel.css.js'
 
-// CodeBlock's own one-shot factory recreates its freddie-code-block element
-// (dropping its copy-feedback state) on every call; DetailsPanel is a plain
-// function re-invoked on every store change while a call is selected. Only
-// one call is ever selected at a time, so a size-1 cache (keyed by callId,
-// evicted on selection change) is enough -- no per-session unbounded growth.
 let cachedArgsCallId = null
 let cachedArgsEl = null
 function cachedArgsBlock(callId, props) {
@@ -46,7 +33,6 @@ function pretty(raw) {
   try {
     return JSON.stringify(JSON.parse(raw), null, 2)
   } catch {
-    // Not JSON (streaming fragment or plain text): show verbatim.
     return raw
   }
 }
@@ -63,12 +49,8 @@ export function DetailsPanel(
   { useSession, useSessions, sessionId, useStore, renderSlot, closeDetails, t },
 ) {
   const selection = useStore(s => s.selection)
-  // Session workspace root: an omitted or relative terminal cwd resolves
-  // against it, which the pure presenter cannot see.
   const sessionCwd = useSessions(list => list.byId[sessionId]?.cwd)
   const callId = selection?.callId
-  // materialFor builds a fresh wrapper; shallowEqual short-circuits on its
-  // stable members (result node reference rides the snapshot's structural sharing).
   const material = useSession(
     s => (callId === undefined ? null : materialFor(s, callId)),
     (a, b) => shallowEqual(a, b))
@@ -106,10 +88,6 @@ export function DetailsPanel(
               'section',
               { class: css.section ?? '' },
               h('div', { class: css.sectionLabel ?? '' }, t('details.output')),
-              // Keyed by the selected call: the body owns per-call view
-              // state (the terminal card's expand and copy), so the key
-              // below forces a fresh render subtree on selection change
-              // the way React's Fragment key formerly did.
               h(
                 'div',
                 { key: callId },

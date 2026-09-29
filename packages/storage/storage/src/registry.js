@@ -27,8 +27,6 @@ export class BackendRegistry {
     }
     this.backends.set(name, backend)
     return () => {
-      // Remove only this registration's contribution: after dispose + re-register,
-      // a stale disposer firing again must not remove the successor.
       if (this.backends.get(name) === backend) {
         this.backends.delete(name)
       }

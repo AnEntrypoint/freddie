@@ -1,7 +1,3 @@
-// Converted from a React hooks component to a webjsx custom element: the
-// `open` useState becomes a private field, re-render is an explicit
-// applyDiff(this, vdom) call.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { DisclosureRow, IconBrowseOutline16, renderJsonBlock, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { ReferenceIcon } from '../reference/ReferenceIcon.js'
@@ -46,11 +42,6 @@ export class FreddieContextInjectionRow extends HTMLElement {
     this.#render()
   }
 
-  // JsonBlock's own one-shot factory recreates its freddie-json-block element
-  // (dropping its #open toggle state) on every call; ContextBody's helpers
-  // are plain functions re-invoked on every #render(). `key` is a stable
-  // per-slot label (see ContextBody.js's own `unknown-${index}`/`run-${index}`
-  // keys) unique within one contextBody() call.
   #jsonBlock = (key, props) => {
     const el = renderJsonBlock(this.#jsonBlocks.get(key) ?? null, props)
     this.#jsonBlocks.set(key, el)
@@ -59,8 +50,6 @@ export class FreddieContextInjectionRow extends HTMLElement {
 
   #render() {
     const { content, source, provenance, form, t } = this.#props
-    // Resolved rather than declared: a form whose fields are unreadable renders
-    // the opaque body, and the marker must say what the row actually shows.
     const { rendered, summary, body } = contextBody(form, { content, source, t, jsonBlock: this.#jsonBlock })
 
     const vdom = (
@@ -73,9 +62,6 @@ export class FreddieContextInjectionRow extends HTMLElement {
           chevronClassName: css.chevron ?? '',
           title: t(provenance.role === 'recall' ? 'message.contextRecall' : 'message.contextInjection'),
           ...(provenance.label === null ? {} : {
-            // ToolRow's separator shape: an aria-hidden dot, so the accessible name
-            // stays the two readable parts and the two disclosure rows expose one
-            // name shape. A source that names no producer drops the dot with it.
             collapsedContent: [
               h('span', { class: css.sep ?? '', 'aria-hidden': true }),
               h('span', { class: css.source ?? '', 'data-context-source': '' }, provenance.label),
@@ -101,6 +87,15 @@ export class FreddieContextInjectionRow extends HTMLElement {
 }
 
 defineElement('freddie-context-injection-row', FreddieContextInjectionRow)
+
+/**
+ * @typedef {object} ContextInjectionRowProps
+ * @property {Array<object>} content - the context's model-facing content blocks, in receipt order.
+ * @property {*} source - the durable source record backing this context, or null.
+ * @property {{role: string, label: string|null}} provenance - which role the context played, and the producer label to show beside it.
+ * @property {'instructions'|'catalog'|'snapshot'|'notice'|'relay'|'recall'|null} form - the producer-declared body form (see {@link import('./ContextBody.js').contextBody}), or null for the opaque body.
+ * @property {(key: string, vars?: object) => string} t - localization function.
+ */
 
 /**
  * Create (if needed) or update a ContextInjectionRow element in place.

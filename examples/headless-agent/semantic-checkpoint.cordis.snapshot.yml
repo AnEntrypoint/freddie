@@ -1,7 +1,3 @@
-# Keyless real-Loader composition for the semantic-checkpoint recovery snapshot.
-# The headless driver resumes the seeded interrupted session and emits its next
-# turn over stream-json; the replay adapter supplies the deterministic response.
-
 - id: persistence
   name: '@freddie/freddie-session-persistence-jsonl'
   config:
@@ -17,7 +13,6 @@
     file: !!js process.env.FREDDIE_SNAPSHOT_FILE
     overrideFile: !!js process.env.FREDDIE_SNAPSHOT_OVERRIDE
 
-# Managed child-process groups for the bash executor (spawn/kill/output plumbing).
 - id: subprocess
   name: '@freddie/freddie-subprocess-local'
 
@@ -36,6 +31,5 @@
     toolJobs: false
     goals: false
 
-# Await the persisted resume before the headless driver inspects root agents.
 - id: resumed-agent
   name: './tests/fixtures/semantic-checkpoint-agent.ts'

@@ -130,8 +130,6 @@ export class CssManifest extends Service {
       ? pathname.slice(PREFIX.length, -SUFFIX.length)
       : undefined
     const filePath = id === undefined ? undefined : byId.get(id)
-    // Per-file routes revalidate: no hashed filenames, the shared ETag/304
-    // path keeps a warm load from re-downloading.
     const served = filePath === undefined ? false : await sendFile(req, res, filePath, {
       'content-type': CSS_MIME,
       'cache-control': 'no-cache',
@@ -147,8 +145,6 @@ export class CssManifest extends Service {
     const etag = `"${built.rev}"`
     const headers = {
       'content-type': CSS_MIME,
-      // The rev query IS the content hash, so a URL naming the current rev
-      // never changes meaning; any other rev revalidates.
       'cache-control': rev === built.rev ? IMMUTABLE : 'no-cache',
       'etag': etag,
     }

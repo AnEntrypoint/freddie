@@ -25,6 +25,16 @@ export class JsonRpcResponseError extends Error {
 }
 
 /**
+ * The outbound surface (request/notify) a JSON-RPC peer is typed against —
+ * the subset of {@link JsonRpcLineTransport} that a server class dispatches
+ * requests and notifications through, without depending on its stream
+ * plumbing.
+ * @typedef {object} JsonRpcTransportPeer
+ * @property {function(string, *, AbortSignal=): Promise<*>} request
+ * @property {function(string, *=): void} notify
+ */
+
+/**
  * Line-delimited endpoint over caller-owned streams. {@link start} attaches
  * listeners; {@link close} detaches them and rejects pending requests without
  * destroying the streams. Missing request handlers return `-32601`; handler
@@ -174,7 +184,6 @@ export class JsonRpcLineTransport {
     try {
       message = JSON.parse(line)
     } catch {
-      // Only JSON syntax errors reach this catch; malformed peer lines are ignored.
       return
     }
     if (!message || typeof message !== 'object') return

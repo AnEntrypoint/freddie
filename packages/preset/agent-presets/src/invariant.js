@@ -3,9 +3,6 @@
  * @module @freddie/freddie-agent-presets/invariant
  */
 
-// Imported through the package name, not `./mount.js`: a module shared between
-// the two build entry points becomes a third chunk that the published `files`
-// list does not carry, which `verify-built-package-invariants` rejects.
 import { leakedServices, livePresetMounts } from '@freddie/freddie-agent-presets'
 
 const PACKAGE_NAME = '@freddie/freddie-agent-presets'
@@ -37,20 +34,6 @@ const install = (ctx, fail) => {
     }
   }, { global: true })
 
-  // An agent that joined no preset resolves `tools`, `system-prompt`, and
-  // `skill` against the empty global layer, so the model receives nothing.
-  // `composedPreset()` is the roster's own answer to "did this agent join",
-  // read from the live scope chain — see the [Agent
-  // Note](../../../../.agents/notes/implemented/architecture/2026-08-10-host-plane-ownership-after-presets.md)
-  // for why the warning beside it is advisory while this one fails.
-  //
-  // Two conditions, each load-bearing. `context.agent` is what makes this an
-  // AGENT assembly: a scope-only assembly — a cold read resolving presenters
-  // in a standing key, a diagnostic — is not an agent and must not be judged
-  // on whether it joined anything. And assembly rather than publication is the
-  // moment that matters, because an unjoined agent is legal until it addresses
-  // a model: `recompose` binds a bare agent as its first link, and that agent
-  // is unjoined for its whole life up to the switch.
   ctx.on('system-prompt/assemble', (_assembly, context, next) => {
     const presets = ctx.get('agentPresets')
     const agent = context.agent

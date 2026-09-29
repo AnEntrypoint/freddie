@@ -89,7 +89,6 @@ export class TerminalSanitizer {
         index = end + 1
         continue
       }
-      // Two-byte escape family (save/restore cursor and similar).
       index = escape + 2
     }
     this.pending = this.pending.slice(index)

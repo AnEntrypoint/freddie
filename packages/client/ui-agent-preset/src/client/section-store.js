@@ -44,8 +44,6 @@ const INITIAL = {
 export function draftBlocker(draft, rows) {
   if (draft.id === '') return 'idRequired'
   if (!PRESET_ID.test(draft.id)) return 'idInvalid'
-  // A copy never overwrites: landing on a name already in use would replace
-  // something the user did not open.
   if (rows.some(row => row.id === draft.id)) return 'idTaken'
   return undefined
 }
@@ -92,12 +90,9 @@ export class AgentPresetSectionController {
     if (roster === undefined) return
     const { presets, authorable, hasDocument } = roster
     if (presets.length === 0) {
-      // Nothing to manage leaves nothing to keep a dialog open over.
       this.set({ status: 'unavailable', rows: [], authorable, hasDocument, copy: null, view: null })
       return
     }
-    // A reveal outlives a reload but not its preset: a path for a row the
-    // roster no longer lists would be a claim about a directory that is gone.
     const revealed = this.store.getSnapshot().revealedPaths
     const kept = Object.fromEntries(
       Object.entries(revealed).filter(([id]) => presets.some(preset => preset.id === id)))
@@ -194,8 +189,6 @@ export class AgentPresetSectionController {
       this.set({ copy: null })
       await this.load()
       this.rosterChanged()
-      // A preset is its files from here on (the dialog collected nothing
-      // else), so landing in them is the completion, not a follow-up.
       await this.openLocation(draft.id)
     } catch (error) {
       this.patchCopy({ saving: false, error: messageOf(error) })

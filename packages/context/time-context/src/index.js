@@ -51,7 +51,6 @@ function precedingMessageTime(agent) {
       case 'tool/result':
         return event.time
       default:
-        // Merge-extensible session events: non-surface records are not messages.
         break
     }
   }

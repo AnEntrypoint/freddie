@@ -120,9 +120,6 @@ export class SessionWriteBehind {
       reject(error)
       return
     }
-    // Close admission to this barrier in the same job that observes the empty
-    // queue, before resolving callers. A later enqueue therefore starts its own
-    // automatic window instead of being stranded behind a settled barrier.
     this.barrier = undefined
     resolve()
   }

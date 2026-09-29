@@ -5,4 +5,3 @@
  */
 export { apply, inject } from './apply.js'
 export { ConversationController } from './service.js'
-// Export discipline: packages/client/AGENTS.md.

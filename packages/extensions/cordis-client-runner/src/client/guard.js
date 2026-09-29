@@ -20,6 +20,7 @@ const CTX_VERBS = new Set([
   'effect', 'on', 'once', 'provide', 'timeout', 'interval', 'setTimeout', 'setInterval', 'throttle', 'debounce',
 ])
 const TIMER_VERBS = new Set(['timeout', 'interval', 'setTimeout', 'setInterval', 'throttle', 'debounce'])
+const STRUCTURAL_SLOTS = new Set(['root', 'sidebar'])
 
 /** Reject any service return that is a cordis Context (host guard twin). */
 function denyContext(value, service, env) {
@@ -51,6 +52,32 @@ function guardedService(service, name, env) {
   })
 }
 
+/** The register option that names an entry's cell, per shadowing seat kind (single and chain seats have none). */
+const CELL_FIELD = { keyed: 'key', list: 'id' }
+
+/**
+ * The entry that already holds the cell a registration names, when a different
+ * registrant seated it: built-in entries and other dynamic packages. A package's
+ * own earlier entries never count, so it can still re-seat its own cell.
+ * @param slots - the traced slots service.
+ * @param spec - the target seat's declared spec.
+ * @param options - the registration options after guard rewrites.
+ * @param env - package row and ownership lookup.
+ * @returns the cell field, its value and a description of the holder, or undefined when the cell is free.
+ */
+function heldCell(slots, spec, options, env) {
+  const field = CELL_FIELD[spec?.kind]
+  const cell = field === undefined ? undefined : options[field]
+  if (cell === undefined) return undefined
+  for (const entry of slots.entries(options.name)) {
+    if (entry.options[field] !== cell) continue
+    const ownerId = env.ownerOf(entry.component)
+    if (ownerId === env.pkg.pluginId) continue
+    return { field, cell, owner: ownerId === undefined ? 'a built-in entry' : `the dynamic package "${ownerId}"` }
+  }
+  return undefined
+}
+
 /**
  * The slots seat: automatic shadowing priority and ledger recording around the
  * traced service's own register.
@@ -72,15 +99,27 @@ function guardedSlots(slots, env) {
         if (typeof slot !== 'string' || slot.length === 0) {
           return rejectGuard(env, 'slots.register options need a string `name` (the target slot key)')
         }
+        if (STRUCTURAL_SLOTS.has(slot)) {
+          return rejectGuard(env,
+            `slots.register cannot target "${slot}": it is a single slot, so a registration replaces the application frame `
+            + '(navigation, Settings, and the plugin panel that can stop this package included). Register into a content seat '
+            + 'such as "tool.view.cordis" or "sidebar.footer.action" instead.',
+          )
+        }
         if (slot === 'tool.view.cordis') {
           if (options.key !== 'self') {
             return rejectGuard(env, 'tool.view.cordis only accepts key "self"; the runtime binds it to this Package')
           }
           options.key = `${env.pkg.pluginId}.${env.pkg.packageId}`
         }
-        // Shadowing kinds get a page-local rank. Later registrations sort first;
-        // chain slots keep their own election (select order) untouched.
         const spec = slots.spec(slot)
+        const held = heldCell(slots, spec, options, env)
+        if (held !== undefined) {
+          return rejectGuard(env,
+            `slots.register into "${slot}" cannot take ${held.field} "${held.cell}": ${held.owner} already holds it, and a registration `
+            + `never replaces another registrant's entry. Choose a different ${held.field}; a fresh ${held.field} is added beside the existing entries.`,
+          )
+        }
         let priority = options.priority
         if (spec === undefined || spec.kind !== 'chain') {
           priority = env.allocatePriority()
@@ -89,8 +128,6 @@ function guardedSlots(slots, env) {
         const register = Reflect.get(target, 'register', target)
         const dispose = register.call(target, options, component)
         env.ledger.push({ slot, priority })
-        // After the registry accepted it: a rejected registration seats no entry,
-        // so claiming one would index a component no crash can ever name.
         env.claim(component)
         return dispose
       }
@@ -120,8 +157,6 @@ function guardedTheme(theme, env, ctx) {
         }
       }
       return (source, tokens) => {
-        // Two-argument shape preserved so the facade matches the documented
-        // service signature; the source VALUE is replaced, never trusted.
         if (tokens === undefined && typeof source === 'object' && source !== null) {
           return rejectGuard(env,
             'theme.overrideTokens(source, tokens) takes two arguments; source is replaced with your package id, '
@@ -130,8 +165,6 @@ function guardedTheme(theme, env, ctx) {
         }
         const method = Reflect.get(target, 'overrideTokens', target)
         const dispose = Reflect.apply(method, target, [`${env.pkg.pluginId}.${env.pkg.packageId}`, tokens])
-        // Fiber-owned lifetime; the returned handle stays valid for early
-        // removal (the service disposer is idempotent per layer identity).
         ctx.effect(() => dispose, 'cordis-client-runner: dynamic theme override layer')
         return dispose
       }
@@ -175,7 +208,6 @@ export function dynamicCordisContext(ctx, env) {
     get(_target, prop) {
       if (prop === 'get') return name => readService(name, false)
       if (typeof prop !== 'string') return undefined
-      // Lazy verb forwarder (host twin): resolve ctx[verb] only when called.
       if (CTX_VERBS.has(prop)) {
         return (...args) => {
           if (TIMER_VERBS.has(prop) && !declared.has('timer')) return denyRead('timer')

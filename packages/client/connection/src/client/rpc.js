@@ -6,7 +6,7 @@ import {
 } from '@freddie/freddie-host-apiproxy/api'
 import { randomUuid } from './random-uuid.js'
 
-const INTERNAL_BASE = 'http://dsh.internal'
+const INTERNAL_BASE = 'http://freddie.internal'
 const CHANNEL_PATTERN = /^\/[A-Za-z0-9._~-]+$/
 const ENDPOINT_SEGMENT_PATTERN = /^[A-Za-z0-9_$.-]+$/
 

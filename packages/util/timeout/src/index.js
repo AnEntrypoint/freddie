@@ -56,9 +56,19 @@ export function clampTimeout(
   return Math.min(requested ?? def, max)
 }
 
-/** A deadline signal plus the cleanup that clears its timer (dispose-once). */
+/**
+ * A deadline signal plus the cleanup that clears its timer (dispose-once).
+ * @typedef {Disposable & { signal: AbortSignal }} Deadline
+ */
 
-/** Rearmable timeout around one outstanding async-iterator demand. */
+/**
+ * Rearmable timeout around one outstanding async-iterator demand.
+ * @typedef {Disposable & {
+ *   signal: AbortSignal,
+ *   next: function(AsyncIterator<unknown>): Promise<IteratorResult<unknown>>,
+ *   pulse: function(): void
+ * }} IdleWatchdog
+ */
 
 /**
  * Fuse upstream cancellation with an identifiable timeout. `timeoutMs <= 0` is
@@ -76,8 +86,6 @@ export function deadline(
   code,
 ) {
   if (timeoutMs <= 0) {
-    // No timeout (background work): forward only the upstream signal, or a never-aborting one
-    // when there is no upstream.
     return { signal: upstream ?? new AbortController().signal, [Symbol.dispose]() {} }
   }
 
@@ -86,9 +94,6 @@ export function deadline(
   const timer = new AbortController()
   const id = setTimeout(() => { timer.abort(new TimeoutReason(code, timeoutMs)) }, timeoutMs)
   return {
-    // AbortSignal.any adopts the reason of whichever source aborts FIRST, so a
-    // race resolves to a single cause: timeoutOf() reads TimeoutReason only
-    // when the timeout won, and upstream-wins leaves an ordinary abort reason.
     signal: upstream !== undefined ? AbortSignal.any([upstream, timer.signal]) : timer.signal,
     [Symbol.dispose]() { clearTimeout(id) },
   }

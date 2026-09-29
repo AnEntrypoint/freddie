@@ -1,6 +1,6 @@
 /**
  * Filesystem discovery of agent presets. A preset is a directory holding
- * {@link COMPOSITION_FILE}, optionally beside a {@link METADATA_FILE} carrying
+ * {@link COMPOSITION_FILE}, optionally beside a {@link import('./metadata.js').METADATA_FILE} carrying
  * its display text; the directory name is the preset id. Discovery
  * re-reads the roots on every call so a preset authored while the process is
  * running is visible without a restart.
@@ -92,8 +92,6 @@ async function compositionProblem(path) {
   try {
     content = await readFile(path, 'utf8')
   } catch {
-    // The caller statted this file moments ago; any read failure now —
-    // deleted in between, permissions — is the same answer as unparsable.
     return `the composition file ${COMPOSITION_FILE} cannot be read`
   }
   let rows
@@ -102,8 +100,6 @@ async function compositionProblem(path) {
   } catch (error) {
     /* v8 ignore next -- js-yaml throws YAMLException (an Error) for every parse failure; the fallback keeps a hostile value readable */
     const full = error instanceof Error ? error.message : String(error)
-    // First line only: js-yaml appends a multi-line code-frame snippet, and
-    // the reason is displayed on a roster card, not in a terminal.
     return `the composition is not valid YAML: ${full.replace(/\n[\s\S]*$/, '')}`
   }
   return entryListProblem(rows)
@@ -137,9 +133,6 @@ async function isFile(path) {
   try {
     return (await stat(path)).isFile()
   } catch {
-    // Any stat failure — absent, unreadable, a dangling link — means this
-    // directory does not present a composition, which is not an error: the
-    // directory simply is not a preset.
     return false
   }
 }
@@ -176,16 +169,12 @@ export async function scanRoot(root) {
     const broken = await isFile(path)
       ? await compositionProblem(path)
       : `the composition file ${COMPOSITION_FILE} is missing — the directory still occupies the id; delete it or restore the file`
-    // Display text only, and never fatal: a preset with unreadable metadata
-    // still mounts, it just shows its id.
     const metadata = await readPresetMetadata(directory)
     found.push({
       id: child.name, trust: root.trust, path, ...metadata,
       ...broken === undefined ? {} : { broken },
     })
   }
-  // Declared order first so the shipped set reads by capability; everything
-  // else falls back to the id, which keeps authored presets stable.
   return found.sort((left, right) => {
     const byOrder = (left.order ?? Number.POSITIVE_INFINITY) - (right.order ?? Number.POSITIVE_INFINITY)
     return byOrder === 0 ? left.id.localeCompare(right.id) : byOrder

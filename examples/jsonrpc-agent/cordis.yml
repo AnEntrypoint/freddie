@@ -1,21 +1,14 @@
-# Unattended coding-agent deployment for the bundled freddie-jsonrpc-agent runtime.
-# stdout is reserved for JSON-RPC; do not add a console logger or terminal UI.
-
 - id: sdk-jsonrpc-server
   name: '@freddie/freddie-sdk-jsonrpc-server'
   config:
     maxTokensAsSuccess: !!js "process.env.FREDDIE_MAX_TOKENS_AS_SUCCESS === undefined ? true : JSON.parse(process.env.FREDDIE_MAX_TOKENS_AS_SUCCESS)"
 
-# The DeepSeek adapter. Shipped default: full thinking at max effort on every
-# request; exact-model resolution materializes request defaults before logging.
-# The model arrives per session over JSON-RPC, so it is not pinned here.
 - id: llm-deepseek
   name: '@freddie/freddie-llm-deepseek'
   config:
     thinking: enabled
     reasoningEffort: max
 
-# Managed child-process groups for the bash executor (spawn/kill/output plumbing).
 - id: subprocess
   name: '@freddie/freddie-subprocess-local'
 
@@ -40,7 +33,6 @@
   name: '@freddie/freddie-session-persistence-jsonl'
   config:
     root: !!js process.env.FREDDIE_SESSION_ROOT ?? './.sessions'
-    # Snapshot runs read the raw JSONL back; production keeps zstd frames.
     compression: !!js "process.env.FREDDIE_SNAPSHOT === undefined ? 'zstd' : 'none'"
 
 - id: session-checkpoints

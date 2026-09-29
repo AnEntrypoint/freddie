@@ -19,15 +19,15 @@ import { Service } from '@freddie/cordis'
 export { SpillLocator } from './types.js'
 
 /**
- * Abstract spill storage service. Subclass, implement {@link saveText}, and load
+ * Abstract spill storage service. Subclass, implement {@link SpillStore#saveText}, and load
  * the subclass as a plugin — it registers as `ctx.spillStore` (one
  * implementation per context; loading a second throws, cordis' standard
  * duplicate-service behavior).
  *
  * Semantics every implementation must honor:
- * - {@link saveText} persists the FULL `content` verbatim and returns an opaque
+ * - {@link SpillStore#saveText} persists the FULL `content` verbatim and returns an opaque
  *   locator, exact byte length, and model-facing retrieval guidance.
- * - Storage is scoped by the request's {@link SaveTextSpill.owner} session; the
+ * - Storage is scoped by the request's {@link import('./types.js').SaveTextSpill.owner} session; the
  *   backend chooses a private (not world-readable) location and a collision-free
  *   name derived from — never equal to — the caller's `suggestedName`.
  * - `saveText` REJECTS on a real storage failure (permissions, ENOSPC, backend
@@ -42,7 +42,9 @@ export class SpillStore extends Service {
   /**
    * Persist `input.content` to a session-scoped spill artifact.
    * @param input - the owner, caller-supplied source fields, suggested name, and full text to save.
-   * @returns the saved artifact's {@link SpillRef}; rejects on a storage failure.
+   * @returns the saved artifact's {@link import('./types.js').SpillRef}; rejects on a storage failure.
+   * @name SpillStore#saveText
+   * @function
    */
 }
 

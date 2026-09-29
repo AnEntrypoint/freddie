@@ -66,8 +66,31 @@ const CLSID_FILE_OPEN_DIALOG = guidBytes('dc1c5a9c-e88a-4dde-a5a1-60f82a20aef7')
 const IID_IFILE_OPEN_DIALOG = guidBytes('d57c7288-d4ad-4768-be02-9d969532d960')
 
 /**
+ * The native bindings {@link loadWin32DialogBindings} resolves: DPI/COM lifecycle calls plus one
+ * folder-dialog COM object factory.
+ * @typedef {{
+ *   setThreadDpiAwareness: () => void,
+ *   coInitializeSta: () => number,
+ *   coUninitialize: () => void,
+ *   currentThreadId: () => number,
+ *   createFolderDialog: () => Win32FolderDialog,
+ * }} Win32DialogBindings
+ */
+
+/**
+ * One created IFileOpenDialog COM object's bound methods.
+ * @typedef {{
+ *   setOptions: (options: number) => number,
+ *   setTitle: (title: string) => number,
+ *   show: () => number,
+ *   resultPath: () => { hr: number, path?: string },
+ *   release: () => void,
+ * }} Win32FolderDialog
+ */
+
+/**
  * Load koffi and expose the dialog bindings for this thread.
- * @returns the bindings {@link runFolderDialog} sequences against.
+ * @returns {Win32DialogBindings} the bindings {@link import('./win32-dialog-logic.js').runFolderDialog} sequences against.
  */
 export async function loadWin32DialogBindings() {
   const koffi = (await import('koffi')).default
@@ -75,8 +98,6 @@ export async function loadWin32DialogBindings() {
   const user32 = koffi.load('user32.dll')
   const kernel32 = koffi.load('kernel32.dll')
 
-  // Vtable slots and out-pointers are pointer-width offsets: 8 on x64/arm64,
-  // 4 on ia32 — koffi reports the running process's width.
   const pointerSize = koffi.sizeof('void *')
   const coInitializeEx = ole32.func('__stdcall', 'CoInitializeEx', 'int32', ['void *', 'uint32'])
   const coUninitialize = ole32.func('__stdcall', 'CoUninitialize', 'void', [])
@@ -104,18 +125,11 @@ export async function loadWin32DialogBindings() {
       try {
         setContext = user32.func('__stdcall', 'SetThreadDpiAwarenessContext', 'void *', ['intptr'])
       } catch {
-        // Symbol absent (pre-1607 Windows): no per-thread DPI control exists.
-        // Proceed anyway — the cost is a blurry dialog above 100 % scaling on
-        // museum hosts, and the modern picker still beats dropping to the
-        // legacy 5.1 tree over a cosmetic concern.
         return
       }
       for (const context of DPI_AWARENESS_CONTEXTS) {
         if (setContext(context) !== null) return
       }
-      // Unreachable in practice (SYSTEM_AWARE is accepted wherever the symbol
-      // exists); if a host ever refuses everything, the dialog still works —
-      // just without a DPI opt-in.
     },
     coInitializeSta: () => coInitializeEx(null, COINIT_APARTMENTTHREADED),
     coUninitialize: () => {

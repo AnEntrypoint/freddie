@@ -1,7 +1,4 @@
-// Sessions remain resident after creation so they continue consuming mux frames off-screen.
 
-// Value import from the inline-safe wire layer (not the connection plugin):
-// plugin-to-plugin value imports are a bundle purity error.
 import { transportError } from '@freddie/freddie-host-apiproxy/api'
 import { ConversationNodeAssembler } from './conversation-assembler.js'
 import { EMPTY_CHAT_SNAPSHOT } from './conversation.js'
@@ -15,13 +12,32 @@ import { SessionQueueMirror } from './queue-mirror.js'
 export const PAGE_MESSAGES = 50
 
 /**
+ * The session-facing contract features consume: the ISession verbs
+ * (`prompt`, `cancel`, `rename`, `command`, `updateQueue`, `readAttachment`,
+ * `loadOlder`, `open`) plus the observable snapshot source (`subscribe`/
+ * `getSnapshot`). {@link Session} implements this slice among its wider
+ * manager/runtime surface.
+ * @typedef {object} SessionFace
+ * @property {string} sessionId
+ * @property {Session['prompt']} prompt
+ * @property {Session['cancel']} cancel
+ * @property {Session['rename']} rename
+ * @property {Session['command']} command
+ * @property {Session['updateQueue']} updateQueue
+ * @property {Session['readAttachment']} readAttachment
+ * @property {Session['loadOlder']} loadOlder
+ * @property {Session['open']} open
+ * @property {Session['subscribe']} subscribe
+ * @property {Session['getSnapshot']} getSnapshot
+ */
+
+/**
  * Owns a session's event window, derived conversation state, and observable
  * snapshot. React bindings remain outside this data layer. Features see only
  * the {@link SessionFace} slice (ISession verbs + the snapshot source); the
  * remaining public members are manager/runtime entry points.
  */
 export class Session {
-  // ---- Window and derived state (all private; the snapshot is the only read API) ----
   events = []
   /** Wire views aligned with `events` by index (envelope-level annotations; undefined = no view).
    *  Kept parallel rather than merged so `events` stays the raw log slice (model-visible ⟺ logged). */
@@ -141,7 +157,6 @@ export class Session {
     this.actx = undefined
   }
 
-  // ---- Operations ----
 
   /**
    * Send (queue/steer passed through 1:1); failures land in the snapshot's promptError.
@@ -156,9 +171,6 @@ export class Session {
   ) {
     this.promptError = null
     this.lastAgentError = null
-    // Synchronous, before the first await: the blank → engaging edge must be
-    // visible on the session area's very first frame when a caller sends
-    // ahead of navigation (first-send flow).
     this.promptAttempted = true
     if (this.blankBit) this.firstPromptPendingTurn = true
     this.notifier.markDirty()
@@ -209,14 +221,6 @@ export class Session {
       this.notifier.markDirty()
       return result
     }
-    // Blank flips on ACCEPTANCE, not attempt: an accepted prompt starts the
-    // conversation's first turn on the host (the host criterion — a logged
-    // turn/start — is fact, not optimism; standalone command and projection
-    // events never flip it), while a rejected first prompt must keep the
-    // session blank — the client-side blank mirror only ever lowers, so
-    // flipping early on a failure would surface the session forever and
-    // strip its connectWorkspace reuse eligibility against the host's
-    // authority.
     if (this.blankBit) {
       this.blankBit = false
       this.options.onEngaged?.(this)
@@ -332,7 +336,6 @@ export class Session {
     if (this.openState === 'open') return Promise.resolve()
     if (this.openPromise !== null) return this.openPromise
     const promise = this.doOpen(this.openGeneration).finally(() => {
-      // Identity-guarded: a superseded open must not null out the promise resync just started.
       if (this.openPromise === promise) this.openPromise = null
     })
     this.openPromise = promise
@@ -346,7 +349,7 @@ export class Session {
     this.notifier.markDirty()
     try {
       const { result } = await this.history({ beforeSeq: this.baseSeq, maxMessages: PAGE_MESSAGES })
-      if (!result.ok) return // keep the window as-is; do not overwrite openError (open already succeeded)
+      if (!result.ok) return
       const older = result.value.events
       if (older.length === 0) {
         this.hasMore = result.value.hasMore
@@ -355,7 +358,6 @@ export class Session {
       }
       const tail = older[older.length - 1]
       if (tail === undefined || tail.event.seq + 1 !== this.baseSeq) {
-        // Continuity assertion: on violation drop the page fail-soft rather than render an out-of-order stream.
         console.error(`[web-runtime] history page discontinuous: tail seq ${tail?.event.seq} vs baseSeq ${this.baseSeq}`)
         this.hasMore = false
         this.conversation.prepend([], false)
@@ -380,12 +382,7 @@ export class Session {
    *  in-flight open first — its history request rode the dead connection and must not settle
    *  the fresh generation into 'error'. */
   async resync() {
-    // The queue mirror is NOT cleared here: onConnected (which drives resync)
-    // races the mux frames — the fresh generation's baseline may have landed
-    // already, and the host never resends it. The mirror re-baselines on the
-    // session/subscribed frame instead (same stream as the queue snapshot
-    // that follows it, so ordering is guaranteed).
-    if (this.openState === 'cold') return // never opened: no window to rebuild (doOpen flips to 'loading' synchronously, so cold implies no in-flight open)
+    if (this.openState === 'cold') return
     this.openGeneration++
     this.clearGapRepairRetry()
     this.openPromise = null
@@ -394,20 +391,12 @@ export class Session {
     this.events = []
     this.views = []
     this.baseSeq = 0
-    // Answerable waits re-baseline on session/subscribed, before that stream's
-    // replayed requests arrive. Leaving them intact here avoids deleting a new
-    // replay that reaches this Session before connection readiness completes.
     this.subscribedLastSeq = null
     this.liveBuffer = []
     this.notifier.markDirty()
     const generation = this.openGeneration
     await this.open()
     if (generation !== this.openGeneration) return
-    // A mux drop during retry exhaustion can land `turn/end` on disk after the
-    // first history page. The list snapshot already reports idle (composer
-    // enabled) while the rebuilt window still lacks the error row. Pull the
-    // tail once more whenever the session is idle so a missed terminal event
-    // becomes visible without a manual nudge.
     if (this.openState === 'open' && !this.running) {
       const { result } = await this.history({ maxMessages: PAGE_MESSAGES })
       if (generation !== this.openGeneration) return
@@ -415,7 +404,6 @@ export class Session {
     }
   }
 
-  // ---- Subscription API (useSyncExternalStore direct wiring) ----
 
   /**
    * uSES subscription entry.
@@ -435,7 +423,6 @@ export class Session {
     return this.snapshotCache
   }
 
-  // ---- Manager-only entry points (@internal; never called by the UI) ----
 
   /**
    * Mux frame arrival (the dispatch switch).
@@ -455,18 +442,11 @@ export class Session {
       }
       case 'session/subscribed': {
         this.subscribedLastSeq = frame.lastSeq
-        // The host sends every answerable wait after this same-stream baseline.
-        // Clear only here so a replayed question cannot be erased by the later
-        // history resync that follows connection readiness.
         const pendingReset = this.pending.size > 0
         if (pendingReset) {
           this.pending.clear()
           this.pendingRev++
         }
-        // New mux-generation baseline: the host pushes this session's queue
-        // snapshot AFTER the subscribed frame on the same stream, so the
-        // stale mirror clears here — race-free against onConnected/resync
-        // timing (clearing there could wipe a baseline that already landed).
         if (pendingReset || this.queueMirror.reset()) this.notifier.markDirty()
         return
       }
@@ -496,7 +476,7 @@ export class Session {
         return
       }
       default:
-        return // stream/error never reaches Session (Controller converges it); unknown frames ignored (documented default)
+        return
     }
   }
 
@@ -505,8 +485,6 @@ export class Session {
    * @param running - the new running state.
    */
   handleRunning(running) {
-    // Turn-start conversion: a blank session never runs, so the first
-    // running:true proves another side's first message landed.
     if (running && this.blankBit) {
       this.blankBit = false
       this.notifier.markDirty()
@@ -581,7 +559,6 @@ export class Session {
     this.scheduleConversation(this.conversation.rebuildRegistry())
   }
 
-  // ---- Private ----
 
   /** Requested-frame arrival: the wait enters the pending map under its own key. */
   mint(wait) {
@@ -611,7 +588,6 @@ export class Session {
         return
       }
       this.installWindow(result.value.events, result.value.hasMore, result.value.projections)
-      // Gap detection: baseline past the window tail and liveBuffer did not cover it -> pull the tail page once more.
       const tailSeq = this.windowTailSeq()
       if (this.subscribedLastSeq !== null && tailSeq !== null && this.subscribedLastSeq > tailSeq) {
         result = (await this.history({ maxMessages: PAGE_MESSAGES })).result
@@ -655,7 +631,7 @@ export class Session {
   /** Seq-guarded append shared by stitching and the open-state live path. */
   appendLive(event, view) {
     const tailSeq = this.windowTailSeq()
-    if (tailSeq !== null && event.seq <= tailSeq) return 'none' // replay overlap, drop
+    if (tailSeq !== null && event.seq <= tailSeq) return 'none'
     this.events.push(event)
     this.views.push(view)
     if (event.type === 'turn/start') this.firstPromptPendingTurn = false
@@ -674,7 +650,7 @@ export class Session {
       this.liveBuffer.push({ event, view })
       return
     }
-    if (this.openState !== 'open') return // cold/error: no window upkeep (history fully backfills on open)
+    if (this.openState !== 'open') return
     const tailSeq = this.windowTailSeq()
     if (tailSeq !== null && event.seq > tailSeq + 1) {
       this.liveBuffer.push({ event, view })
@@ -701,7 +677,6 @@ export class Session {
     const generation = this.openGeneration
     try {
       const { result } = await this.history({ maxMessages: PAGE_MESSAGES })
-      // Failure or superseded by a full resync: drop — the resync path rebuilds and clears the buffer itself.
       if (result.ok && generation === this.openGeneration && this.openState === 'open') {
         this.installWindow(result.value.events, result.value.hasMore, result.value.projections)
       }

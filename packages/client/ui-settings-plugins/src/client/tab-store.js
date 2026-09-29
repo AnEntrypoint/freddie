@@ -59,10 +59,6 @@ export class ConfigurablePluginsTabController {
     const namespaces = this.entries().flatMap(entry =>
       entry.options.key !== undefined && served.has(entry.options.key) ? [entry.options.key] : [])
     const previous = this.store.getSnapshot()
-    // Every settings-document commit refreshes the mirror, and most commits
-    // change nothing this section shows. An observable source must keep its
-    // snapshot reference until the fact moves, or each unrelated save
-    // re-renders the whole card list (packages/client/AGENTS.md reactive rule 5).
     if (previous.loaded === loaded
       && previous.namespaces.length === namespaces.length
       && previous.namespaces.every((ns, index) => ns === namespaces[index])) return

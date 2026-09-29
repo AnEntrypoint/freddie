@@ -2,7 +2,7 @@
 
 How a plugin puts its own configuration on the web settings page. Nothing in this path needs a change inside this repository: the Host serves every registered settings namespace, and the **Plugins** section keys its cards on the namespace they edit, so a plugin that registers both halves is paired up automatically.
 
-The two halves live in one package — the Host half under `src/`, the browser half under `src/client/`, exported as `./client` and declared with `dsh.client`. [`packages/client/ui-theme`](../../packages/client/ui-theme) is a worked example of that packaging; the cards this section ships live in [`packages/client/ui-settings-plugins`](../../packages/client/ui-settings-plugins).
+The two halves live in one package — the Host half under `src/`, the browser half under `src/client/`, exported as `./client` and declared with `freddie.client`. [`packages/client/ui-theme`](../../packages/client/ui-theme) is a worked example of that packaging; the cards this section ships live in [`packages/client/ui-settings-plugins`](../../packages/client/ui-settings-plugins).
 
 ## 1. Register the namespace (Host half)
 
@@ -75,24 +75,19 @@ Cards appear in the order they registered into the slot; a keyed entry declares 
 
 ## Packaging
 
-The browser half is served to the page by the [client module system](../../packages/client/modules), which scans the enabled Loader entries for packages declaring `dsh.client` and serves each one's built `./client` export. So the plugin appears on the page as soon as a `cordis.yml` mounts it — no rebuild of the web application.
+The browser half is served to the page by the [client module system](../../packages/client/modules), which scans the enabled Loader entries for packages declaring `freddie.client` and serves each one's `src/` tree as authored. So the plugin appears on the page as soon as a `cordis.yml` mounts it — no build and no rebuild of the web application.
 
 ```jsonc
 {
   "exports": {
-    ".": { "types": "./lib/types/index.d.ts", "default": "./lib/index.js" },
-    "./client": { "types": "./lib/types/client/index.d.ts", "default": "./lib/client.js" }
+    ".": { "default": "./src/index.js" },
+    "./invariant": { "default": "./src/invariant.js" },
+    "./client": { "default": "./src/client/index.js" },
+    "./package.json": "./package.json"
   },
-  "dsh": { "client": { "platform": "web", "inject": ["@freddie/freddie-client-ui-settings-plugins"] } }
+  "freddie": { "client": { "platform": "web", "inject": ["@freddie/freddie-client-ui-settings-plugins"] } },
+  "files": ["src/**/*.js"]
 }
 ```
 
-The bundle must be the loader's lazy-CJS factory artifact. Inside this repository `tsdown.config.ts` is three lines over the shared preset:
-
-```ts ignore-check
-import { clientBundle } from '../tsdown.client.ts'
-
-export default clientBundle('@freddie/freddie-client-my-plugin', ['lib/types/index.js', 'lib/types/invariant.js'])
-```
-
-That preset is not published today, so a package outside this repository has to reproduce the same output format itself. The bundle-purity gate also rejects value imports across plugins, so a card cannot import this section's card chrome or its staged-form model — it renders its own, and owns its own staging and revision fencing. Both limits are recorded under [the section's known limitations](../../packages/client/ui-settings-plugins/README.md#known-limitations-and-deferred-work).
+`./client` must live under `src/`, and `files` must cover every runtime file either half imports (`pnpm run publint`). The section's `/client` exports only `inject` and `apply`, so a card has no card chrome or staged-form model to import as values: it renders its own, and owns its own staging and revision fencing. That limit is recorded under [the section's known limitations](../../packages/client/ui-settings-plugins/README.md#known-limitations-and-deferred-work).

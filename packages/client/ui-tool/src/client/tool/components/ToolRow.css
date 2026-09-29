@@ -1,20 +1,13 @@
-/* Tool summary row (figma 122:9479): 24px single line —
-   [16 leading] gap6 [title 14/24] gap8 [2x2 dot] gap8 [summary FILL truncate]. */
-
 .freddie-toolRow__root {
   display: flex;
   flex-direction: column;
 }
 
 .freddie-toolRow__row {
-  position: relative; /* sweep-glare overlay anchor */
+  position: relative;
   overflow: hidden;
 }
 
-/* Running sweep (deepsuite ShimmerText pattern): a fixed-width glare band —
-   theme background at 60% — glides over the row content from off-left to
-   off-right, washing glyphs and icon toward the background as it passes.
-   ease-out with a 10% end hold gives each pass a beat before the next. */
 .freddie-toolRow__root[data-state='running'] .freddie-toolRow__row::after {
   content: '';
   position: absolute;
@@ -41,8 +34,6 @@
   flex-shrink: 0;
 }
 
-/* Cordis lifecycle tools retain their generic row mechanics while carrying a
-   shared product accent and tool-owned action title. */
 .freddie-toolRow__root[data-tool^='cordis_'] .freddie-toolRow__leading,
 .freddie-toolRow__root[data-tool^='cordis_'] .freddie-toolRow__title {
   color: var(--freddie-alias-state-business-primary);
@@ -84,11 +75,6 @@
   color: var(--freddie-alias-label-tertiary);
 }
 
-/* Trailing summary fragment kept out of .summary's ellipsis, for a count whose
-   whole value is that it survives a narrow row (the todo row's parallel-active
-   `+n`). Repeats .summary's type because it sits beside that text, and its
-   `nowrap` too: `flex: none` stops the box shrinking but not the text wrapping,
-   which would break the one-line row in the narrow case the slot exists for. */
 .freddie-toolRow__summarySuffix {
   flex: none;
   margin-left: 4px;
@@ -98,7 +84,6 @@
   color: var(--freddie-alias-label-tertiary);
 }
 
-/* File-tool path: same geometry as .summary, with a persistent link affordance. */
 .freddie-toolRow__fileLink {
   flex: 1 1 auto;
   min-width: 0;
@@ -125,21 +110,15 @@
   text-decoration-color: currentColor;
 }
 
-/* Error row's collapsed summary: the failure's first line in the error color. */
 .freddie-toolRow__errorSummary {
   color: var(--freddie-alias-state-error-primary);
 }
 
-/* Expanded body + Inspect pill wrapper (sibling of .row: clicks never toggle). */
 .freddie-toolRow__bodyWrap {
   display: flex;
   flex-direction: column;
 }
 
-/* Hover-revealed jump to the trajectory record: a small pill in real flow
-   under the expanded body's bottom-left corner (it reserves its line, so
-   revealing never shifts layout); revealed by hovering anywhere on the tool
-   call — title row included — or by keyboard focus. */
 .freddie-toolRow__inspectButton {
   display: inline-flex;
   align-self: flex-start;
@@ -149,8 +128,6 @@
   padding: 2px 8px;
   border: 1px solid var(--freddie-alias-border-l2);
   border-radius: 999px;
-  /* Base background, not bg-overlay: the overlay token is a raised dark
-     surface and reads too heavy for a quiet in-flow affordance. */
   background: var(--freddie-alias-bg-base);
   color: var(--freddie-alias-label-secondary);
   font-size: 11px;
@@ -165,24 +142,16 @@
   opacity: 1;
 }
 
-/* Solid hover fill (a translucent token would let content bleed through). */
 .freddie-toolRow__inspectButton:hover {
   background: var(--freddie-alias-interactive-bg-hover-solid);
   color: var(--freddie-alias-label-primary);
 }
 
-/* Expanded-body scroll wrapper for the run_code CodeBlock; the IN/OUT card
-   and the terminal card scroll INSIDE their own surface instead, so the
-   scrollbar sits within the rounded card. */
 .freddie-toolRow__bodyScroll {
   max-height: 260px;
   overflow-y: auto;
 }
 
-/* Expanded input/output card (figma 1249:35657): the code-block surface and
-   radius from the TerminalBlock/CodeBlock family. The card itself is a plain
-   column — the padding and the IN/OUT gutter-label grid live on each section
-   so the divider spans the full card width and each section scrolls alone. */
 .freddie-toolRow__ioCard {
   display: flex;
   flex-direction: column;
@@ -193,8 +162,6 @@
   font: var(--dsw-font-markdown-code-block-small);
 }
 
-/* One card section (IN or OUT): the gutter-label grid, capped and scrolling
-   independently so a long input never buries a short output (and vice versa). */
 .freddie-toolRow__ioSection {
   display: grid;
   grid-template-columns: max-content 1fr;
@@ -205,25 +172,16 @@
   overflow-y: auto;
 }
 
-/* Card-internal scrollbar: a 2px transparent border clips the thumb inward so
-   it floats off the rounded card edge instead of hugging it (the terminal
-   card's own output scroller carries the same treatment in TerminalBlock). */
 .freddie-toolRow__ioSection::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 6px;
 }
 
-/* Track end-margins keep the thumb's travel out of the rounded corners. */
 .freddie-toolRow__ioSection::-webkit-scrollbar-track {
   margin: 6px 0;
 }
 
-/* Caption (not tertiary): one step dimmer than the payload text so the
-   gutter labels read as labels, not as part of the content. Sticky against
-   the section's own scroll so the label stays readable while its payload
-   scrolls underneath (top 0 = the section's padding edge inside the
-   scrollport; start-aligned because sticky needs a block-start anchor). */
 .freddie-toolRow__ioLabel {
   position: sticky;
   top: 0;
@@ -231,8 +189,6 @@
   color: var(--freddie-alias-label-caption);
 }
 
-/* l2 hairline between the IN and OUT sections, spanning the full card width
-   (it sits between the padded sections, not inside their grid). */
 .freddie-toolRow__ioDivider {
   flex: none;
   height: 1px;
@@ -246,19 +202,10 @@
   color: var(--freddie-alias-label-secondary);
 }
 
-/* A failed call's OUT text shares the collapsed summary's error color. */
 .freddie-toolRow__ioText[data-error] {
   color: var(--freddie-alias-state-error-primary);
 }
 
-/* The block-shaped expanded bodies: the code variant's run_code program
-   through CodeBlock (shiki-highlighted TypeScript), a terminal card's command
-   output through TerminalBlock, a diff card through DiffBlock, a read card's
-   line-numbered window through ReadBlock, a search card's grouped matches or
-   path list through SearchBlock, and a web card's citation/source list through
-   WebBlock. All are drawn by the shared primitive, so only the row's
-   indentation is this file's concern — the margin also replaces each
-   primitive's own standalone vertical spacing with the flow's row rhythm. */
 .freddie-toolRow__codeBody,
 .freddie-toolRow__terminalBody,
 .freddie-toolRow__diffBody,
@@ -268,9 +215,6 @@
   margin: 4px 0 4px 4px;
 }
 
-/* The recovery footer for a capped search: the result text (its `Full … stored
-   at …` locator) below the card in the muted tone, since the card holds only the
-   retained rows. Same column indent as the card body. */
 .freddie-toolRow__searchRecovery {
   margin: 4px 0 4px 4px;
   white-space: pre-wrap;
@@ -279,15 +223,10 @@
   color: var(--freddie-alias-label-tertiary);
 }
 
-/* In-row code renders at the smaller code size (12/18) via each primitive's
-   rebindable content-font seam; standalone markdown code blocks keep 13/22. */
 .freddie-toolRow__codeBody {
   --dsl-code-block-content-font: var(--dsw-font-markdown-code-block-small);
 }
 
-/* The terminal card scrolls its OUTPUT inside its own surface (same l1
-   hairline as the IN/OUT card): the banner stays pinned and the scrollbar
-   never rides over it. 224px = the 260px card cap minus the ~36px banner. */
 .freddie-toolRow__terminalBody {
   --dsl-terminal-font: var(--dsw-font-markdown-code-block-small);
   --dsl-terminal-line-height: 18px;
@@ -295,9 +234,6 @@
   border: 1px solid var(--freddie-alias-border-l1);
 }
 
-/* Visually hidden run-state label for assistive technology: the StateDot and
-   the running sweep are aria-hidden / colour-only, so the text carries the
-   running/failed/interrupted state to a screen reader. */
 .freddie-toolRow__visuallyHidden {
   position: absolute;
   width: 1px;

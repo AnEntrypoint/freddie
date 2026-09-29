@@ -2,7 +2,7 @@
  * Pure derivation of the web-card props from a frozen call slice: the
  * `card:'web'` render intent the `web_search`/`web_fetch` tools declare at
  * result time arrives on the snapshot as `resultView`, and this is the one
- * place that turns it into what {@link WebBlock} draws. Both conversation
+ * place that turns it into what {@link import('../../../../../ui-primitives/src/WebBlock.js').WebBlock} draws. Both conversation
  * render sites (the chat tool row's resident/expanded body and the details
  * panel's Output section) call this, so the sources and fetch summary they
  * show are derived once.
@@ -35,7 +35,6 @@
  * @returns the web-card props, or null for the generic path.
  */
 export function webCardModel(block) {
-  // Running calls have no result view; the web card is result-only.
   if (!('kind' in block)) return null
   const result = block.resultView
   if (result?.card !== 'web') return null
@@ -52,13 +51,6 @@ export function webCardModel(block) {
       truncated: result.truncated,
     }
   }
-  // Discriminate `fetch` explicitly rather than treating it as the else of
-  // `search`: a `kind` this UI version does not know arrives over the wire from
-  // a newer host, and reading it as a fetch would draw an empty URL and
-  // `HTTP undefined`. It takes the generic path, the same wire-boundary default
-  // an unknown `card` tag takes above. The static union narrows `kind` to
-  // `'fetch'` here, but the runtime value is off the wire, so the guard and its
-  // null fallthrough are load-bearing despite the type.
   // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (result.kind === 'fetch') {
     return {

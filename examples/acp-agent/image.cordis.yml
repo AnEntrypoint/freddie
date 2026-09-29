@@ -1,8 +1,3 @@
-# Image-scenario overlay: adds the durable attachment store the read_image tool
-# commits through. The store resolves its root from $FREDDIE_HOME, which the
-# snapshot harness scopes per run, so the overlay itself carries no paths. The
-# app config is restated to select the shipped vision model because a config
-# patch replaces the whole app config.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

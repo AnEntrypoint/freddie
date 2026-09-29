@@ -75,8 +75,6 @@ export function waitTick(pollMs, signal) {
  * @param signal - `TERM` or `KILL`.
  */
 export async function signalRemoteGroups(sandbox, envs, groups, signal) {
-  // TODO(e2b-pgid-identity): Prefer an atomic identity-bound group signal if E2B adds one;
-  // a userspace identity precheck cannot close the numeric-PGID reuse race.
   try {
     await sandbox.commands.run(
       `kill -${signal} -- ${groups.map(group => `-${group}`).join(' ')}`,

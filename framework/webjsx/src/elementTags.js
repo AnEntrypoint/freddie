@@ -1,4 +1,3 @@
-// Create a Map for faster lookups
 export const KNOWN_ELEMENTS = new Map(Object.entries({
     a: "A",
     abbr: "ABBR",

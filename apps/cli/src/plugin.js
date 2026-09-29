@@ -37,7 +37,7 @@ function exportsPatch(packageName, profileDir) {
   try {
     dir = resolveBundleDir(NAME, packageName, INSTALL_ANCHOR, profileDir)
   } catch {
-    return false // pnpm reported success yet the package is unresolvable — treat as plain
+    return false
   }
   const manifest = readProfileManifest(NAME, dir)
   return manifest.freddie?.bundle?.patch !== undefined
@@ -75,8 +75,6 @@ function reconcilePlugins(before, profileDir) {
   }
   const dependencySet = new Set(dependencies)
   for (const packageName of [...plugins]) {
-    // Only dependency-managed entries are subject to removal; template
-    // bundles (freddie-base and friends) are not dependencies.
     const wasDependency = beforeDeps.has(packageName) || dependencySet.has(packageName)
     const stillBundle = dependencySet.has(packageName) && exportsPatch(packageName, profileDir)
     if (wasDependency && !stillBundle) {
@@ -103,9 +101,6 @@ function reconcilePlugins(before, profileDir) {
 function anchorPathSpec(argument, cwd) {
   const match = /^(?<prefix>(?:file|link):)?(?<path>\.{1,2}(?:[/\\].*)?)$/.exec(argument)
   if (match?.groups?.path === undefined) return argument
-  // A bare path stays bare and a prefixed spec keeps its prefix: pnpm's
-  // link-vs-copy semantics differ between `file:` and a plain directory
-  // path, and the anchor must not change which one the user asked for.
   const prefix = match.groups.prefix ?? ''
   return `${prefix}${resolve(cwd, match.groups.path)}`
 }
@@ -123,8 +118,6 @@ export function runPlugin(profile, args) {
     process.stderr.write(`${NAME}: initialized profile ${profile} at ${dir}\n`)
   }
   const before = readProfileManifest(NAME, dir)
-  // Windows resolves pnpm through its .cmd shim, which spawn() refuses
-  // without a shell since the CVE-2024-27980 hardening.
   const result = spawnSync('pnpm', args.map(argument => anchorPathSpec(argument, process.cwd())), {
     cwd: dir,
     stdio: 'inherit',
@@ -142,9 +135,6 @@ export function runPlugin(profile, args) {
   if (exitCode === 0) {
     reconcilePlugins(before, dir)
   } else {
-    // pnpm's own diagnostics name pnpm-workspace.yaml without saying WHICH
-    // one; the profile owns it, and the commonest failure here is pnpm ≥10
-    // blocking a git dependency's prepare (build) script until allowlisted.
     process.stderr.write(`${NAME}: pnpm failed in profile directory ${dir}\n`)
     if (args.some(argument => /^git\+|^github:|\.git(?:#|$)/.test(argument))) {
       process.stderr.write(

@@ -7,3 +7,13 @@
  * type-erased registration is ruled out. The owner's
  * program picks this merge up transitively through its ui-input-trigger imports.
  */
+
+/**
+ * Per-session props the 'conversation.input.overlay' occupant (MenuView, see
+ * `./MenuView.js`) receives — matching the registration's `inject()` return
+ * in `./index.js`.
+ * @typedef {object} InputTriggerOverlaySlotProps
+ * @property {{getSnapshot: function(): import('../core/contract.js').MenuState, subscribe: function(function(): void): function(): void}} menu - the resolved controller's menu store.
+ * @property {function(string, number): void} onPick - route a clicked candidate back to the controller.
+ * @property {function(): void} onDismiss - close the menu (e.g. outside pointer).
+ */

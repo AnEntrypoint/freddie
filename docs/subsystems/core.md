@@ -15,13 +15,13 @@ A turn flows through the six packages in one loop: the driver in [`agent-loop`](
 | `agent-loop/` | The concrete driver implementing the public `Agent` contract (`ctx.agentLoop`) | this page |
 | `scope/` | The scoped-registration primitive the registries and loop build per-agent scoping on | [scope.md](scope.md) |
 
-`scope/` is the one non-service package: a dependency-free library (`createScope`/`scopeOf`/`scopeTarget`) that sits below `session/` and `system-prompt/` in the module graph precisely so they can consume it without a cycle. `agent-loop` is the one concrete implementation of the public `Agent` contract and lives here because it is the harness's default product loop; it runs each driver inside `ctx.agents.withInitiator()`. Extension plugins depend on `agent` — including when they need the initiating Agent — and never on `agent-loop` directly, so the loop stays swappable. The default composition that wires this spine into a runnable agent is [`examples/agent-spine-demo`](../../packages/examples/agent-spine-demo/README.md).
+`scope/` is the one non-service package: a dependency-free library (`createScope`/`scopeOf`/`scopeTarget`) that sits below `session/` and `system-prompt/` in the module graph precisely so they can consume it without a cycle. `agent-loop` is the one concrete implementation of the public `Agent` contract and lives here because it is the harness's default product loop; it runs each driver inside `ctx.agents.withInitiator()`. Extension plugins depend on `agent` — including when they need the initiating Agent — and never on `agent-loop` directly, so the loop stays swappable. The default composition that wires this spine into a runnable agent is [`packages/examples/agent-spine-demo`](../../packages/examples/agent-spine-demo/README.md).
 
 ## Creation and ownership
 
 Consumers create agents through `ctx.agents` — `create()` builds a fresh session and agent under one caller-supplied `SessionId`, `resume()` loads a persisted session first — or declaratively through the loop's config entries. Programmatic creation returns the owner's handle:
 
-Source: [`packages/core/agent/src/index.ts`](../../packages/core/agent/src/index.js)
+Source: [`packages/core/agent/src/index.js`](../../packages/core/agent/src/index.js)
 
 ```ts type-equiv
 /**
@@ -50,9 +50,9 @@ interface AgentHandle {
 
 ## The agent handle
 
-`Agent` is the surface every plugin (UI, hooks, orchestrators) programs against; `ctx.agents.get(id)` returns it, and the [initiator scope](#initiating-agent) carries it. The concrete implementation is package-internal to dsh-agent-loop; nothing outside the loop depends on it. The unified `send` method exposes target and wakeup routing directly; `followup`, `steer`, and `inject` are fixed-preset aliases.
+`Agent` is the surface every plugin (UI, hooks, orchestrators) programs against; `ctx.agents.get(id)` returns it, and the [initiator scope](#initiating-agent) carries it. The concrete implementation is package-internal to @freddie/freddie-agent-loop; nothing outside the loop depends on it. The unified `send` method exposes target and wakeup routing directly; `followup`, `steer`, and `inject` are fixed-preset aliases.
 
-Source: [`packages/core/agent/src/types.ts`](../../packages/core/agent/src/types.js)
+Source: [`packages/core/agent/src/types.js`](../../packages/core/agent/src/types.js)
 
 ```ts type-equiv
 /** Public live-agent handle. */
@@ -210,7 +210,7 @@ The process-local initiator carried by `ctx.agents` is the exact `Agent` above, 
 
 Pre-step decisions use the same identified `UserMessage` type as durable user-role input. The entered batch is authoritative and preserves every message's `id` and `source`. Hook bridges map their native decision fields onto this typed result.
 
-Source: [`packages/core/agent/src/types.ts`](../../packages/core/agent/src/types.js)
+Source: [`packages/core/agent/src/types.js`](../../packages/core/agent/src/types.js)
 
 `agent/pre-step` receives one payload carrying the exclusive claimed batch (`messages`), the proposed step's coordinates (`turn`, `step`), and the current turn's cancellation `signal`. The initial proposal runs inside an open turn before any step; a tool continuation may submit an empty claimed batch between steps:
 
@@ -282,12 +282,12 @@ Six canonical maps use this pattern; a plugin author extends these:
 
 | Map | Package | Derives | Catalog |
 |---|---|---|---|
-| `ContentBlockMap` | dsh-llm | `ContentBlock` | [llm-streaming.md](llm-streaming.md#content-blocks-and-messages) |
-| `MessageSourceMap` | dsh-llm | `MessageSource` | [llm-streaming.md](llm-streaming.md#content-blocks-and-messages) |
-| `FinishReasonMap` | dsh-llm | `FinishReason` | [llm-streaming.md](llm-streaming.md#the-model-request-and-result) |
-| `TurnTriggerMap` | dsh-session | `TurnTrigger` | [session.md](session.md) |
-| `TurnEndReasonMap` | dsh-session | `TurnEndReason` | [session.md](session.md) |
-| `SessionEventMap` | dsh-session | `SessionEvent` | [session.md](session.md) |
+| `ContentBlockMap` | @freddie/freddie-llm | `ContentBlock` | [llm-streaming.md](llm-streaming.md#content-blocks-and-messages) |
+| `MessageSourceMap` | @freddie/freddie-llm | `MessageSource` | [llm-streaming.md](llm-streaming.md#content-blocks-and-messages) |
+| `FinishReasonMap` | @freddie/freddie-llm | `FinishReason` | [llm-streaming.md](llm-streaming.md#the-model-request-and-result) |
+| `TurnTriggerMap` | @freddie/freddie-session | `TurnTrigger` | [session.md](session.md) |
+| `TurnEndReasonMap` | @freddie/freddie-session | `TurnEndReason` | [session.md](session.md) |
+| `SessionEventMap` | @freddie/freddie-session | `SessionEvent` | [session.md](session.md) |
 
 Two large discriminated unions are the ones consumers `switch` over most: **`StreamChunk`** (the streaming protocol) and **`SessionEvent`** (the log entry). Per the repo convention, `switch` on the tag — don't chain `if`s — so each arm narrows and a typo'd tag fails to compile.
 
@@ -295,24 +295,24 @@ Two large discriminated unions are the ones consumers `switch` over most: **`Str
 
 IDs passed between packages are **branded** — structurally strings, but non-interchangeable at the type level (a `SessionId` cannot be passed where a `CallId` is expected). Construction goes through a per-type factory; comparison, logging, and JSON behave as ordinary strings.
 
-The `Branded<B>` primitive lives in its own type-only package, [dsh-brand](../../packages/util/brand) (no runtime code, no harness-package dependency), so any package can brand the ids it owns without depending on an unrelated capability package.
+The `Branded<B>` primitive lives in its own type-only package, [@freddie/freddie-brand](../../packages/util/brand) (no runtime code, no harness-package dependency), so any package can brand the ids it owns without depending on an unrelated capability package.
 
-Source: [`packages/util/brand/src/index.ts`](../../packages/util/brand/src/index.js)
+Source: [`packages/util/brand/src/index.js`](../../packages/util/brand/src/index.js)
 
 ```ts type-equiv
 /** A string carrying a compile-time-only brand `B`. */
 type Branded<B extends string> = string & { readonly [BRAND]: B }
 ```
 
-The two core IDs are `CallId` (correlates a tool call with its result; dsh-llm) and `SessionId` (the shared live agent and durable session identity; dsh-session). Capability packages brand their own ids too, such as `JobId` in [jobs.md](jobs.md).
+The two core IDs are `CallId` (correlates a tool call with its result; @freddie/freddie-llm) and `SessionId` (the shared live agent and durable session identity; @freddie/freddie-session). Capability packages brand their own ids too, such as `JobId` in [jobs.md](jobs.md).
 
-<!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
+<!-- BEGIN cordis-surface (hand-maintained) -->
 
 <a id="cordis-surface"></a>
 
 ## Cordis API
 
-Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+Originally generated from source by `scripts/gen-cordis-catalog.ts`; that script and its `verify-cordis-catalog` freshness check no longer exist, so this region is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
 <a id="ctxagentdefaultmodel--agentdefaultmodelconfig"></a>
 
@@ -336,7 +336,7 @@ currentSelection(): ModelSelection
 async saveSelection(next: ModelSelection): Promise<void>
 ```
 
-Source: [`packages/core/agent-default-model/src/index.ts`](../../packages/core/agent-default-model/src/index.js)
+Source: [`packages/core/agent-default-model/src/index.js`](../../packages/core/agent-default-model/src/index.js)
 
 <a id="ctxagentloop--agentloop"></a>
 
@@ -375,7 +375,7 @@ async resume(ownerCtx: Context, options: ResumeAgentOptions): Promise<AgentHandl
 
 Types: [SessionHeader](persistence.md)
 
-Source: [`packages/core/agent-loop/src/index.ts`](../../packages/core/agent-loop/src/index.js)
+Source: [`packages/core/agent-loop/src/index.js`](../../packages/core/agent-loop/src/index.js)
 
 <a id="ctxagentpresets--agentpresets"></a>
 
@@ -520,7 +520,7 @@ serviceFor<K extends string & keyof Context>(agent: { ctx: Context }, name: K): 
  * new one is ensured BEFORE the link moves. An unknown or unusable preset
  * therefore throws with the agent exactly as it was — there is no torn-down
  * state to restore. The re-link runs through the binding this roster kept
- * from the agent's mount — dsh-scope's only re-link authority. An agent
+ * from the agent's mount — @freddie/freddie-scope's only re-link authority. An agent
  * that never composed one has nothing to re-link: the switch is then the
  * agent's first bind, exactly a mount.
  * @param agentCtx - the agent's scope context.
@@ -546,7 +546,7 @@ async standingKeyFor(id?: string): Promise<ScopeKey>
 
 Types: [ScopeKey](scope.md)
 
-Source: [`packages/preset/agent-presets/src/index.ts`](../../packages/preset/agent-presets/src/index.js)
+Source: [`packages/preset/agent-presets/src/index.js`](../../packages/preset/agent-presets/src/index.js)
 
 <a id="ctxagents--agentregistry"></a>
 
@@ -718,7 +718,7 @@ list(): Agent[]
 roots(): Agent[]
 ```
 
-Source: [`packages/core/agent/src/index.ts`](../../packages/core/agent/src/index.js)
+Source: [`packages/core/agent/src/index.js`](../../packages/core/agent/src/index.js)
 
 <a id="agent-events"></a>
 
@@ -746,7 +746,7 @@ A fully configured agent and live session were published. Setup is composition-o
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/src/runtime-types.js)
+Source: [`packages/core/agent/src/runtime-types.js`](../../packages/core/agent/src/runtime-types.js)
 
 <a id="agentdisposed--emit"></a>
 
@@ -768,7 +768,7 @@ An agent left the registry; AgentLoop emits this after driver quiescence and sco
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/src/runtime-types.js)
+Source: [`packages/core/agent/src/runtime-types.js`](../../packages/core/agent/src/runtime-types.js)
 
 <a id="agenterror--emit"></a>
 
@@ -792,7 +792,7 @@ A step or turn errored. The machine reports a failure here even when the error h
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/src/runtime-types.js)
+Source: [`packages/core/agent/src/runtime-types.js`](../../packages/core/agent/src/runtime-types.js)
 
 <a id="agentinboxclaimed--emit"></a>
 
@@ -816,7 +816,7 @@ One message left the inbox inside its open turn. If the proposed step is rejecte
 
 Types: [Scoped](scope.md) · [UserMessage](session.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/src/runtime-types.js)
+Source: [`packages/core/agent/src/runtime-types.js`](../../packages/core/agent/src/runtime-types.js)
 
 <a id="agentinboxdiscarded--emit"></a>
 
@@ -837,7 +837,7 @@ One message was discarded from the live inbox.
 
 Types: [Scoped](scope.md) · [UserMessage](session.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/src/runtime-types.js)
+Source: [`packages/core/agent/src/runtime-types.js`](../../packages/core/agent/src/runtime-types.js)
 
 <a id="agentinboxinserted--emit"></a>
 
@@ -858,7 +858,7 @@ One message entered the live inbox.
 
 Types: [Scoped](scope.md) · [UserMessage](session.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/src/runtime-types.js)
+Source: [`packages/core/agent/src/runtime-types.js`](../../packages/core/agent/src/runtime-types.js)
 
 <a id="agentpre-step--waterfall"></a>
 
@@ -883,7 +883,7 @@ Reject a proposed step or replace the messages that enter it. Calling `next()` p
 
 Types: [Scoped](scope.md) · [UserMessage](session.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/src/runtime-types.js)
+Source: [`packages/core/agent/src/runtime-types.js`](../../packages/core/agent/src/runtime-types.js)
 
 <a id="agentrequest--waterfall"></a>
 
@@ -909,7 +909,7 @@ Replace the frozen call configuration. `await next()` yields the config the mach
 
 Types: [LlmCallConfig](llm-streaming.md) · [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/src/runtime-types.js)
+Source: [`packages/core/agent/src/runtime-types.js`](../../packages/core/agent/src/runtime-types.js)
 
 <a id="agentrequest-error--waterfall"></a>
 
@@ -938,7 +938,7 @@ Handle one failed model-request attempt before the loop retries or closes its st
 
 Types: [LlmFailure](llm-streaming.md) · [ResolvedRetryPolicy](llm-streaming.md) · [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/src/runtime-types.js)
+Source: [`packages/core/agent/src/runtime-types.js`](../../packages/core/agent/src/runtime-types.js)
 
 <a id="agentsession-start--emit"></a>
 
@@ -962,7 +962,7 @@ The session lifecycle began, once before the first turn. Use `agent.inject()` to
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/src/runtime-types.js)
+Source: [`packages/core/agent/src/runtime-types.js`](../../packages/core/agent/src/runtime-types.js)
 
 <a id="agentstatus--emit"></a>
 
@@ -985,7 +985,7 @@ Agent status changed (`idle` ⇄ `running`). A waking delivery enters `running` 
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/src/runtime-types.js)
+Source: [`packages/core/agent/src/runtime-types.js`](../../packages/core/agent/src/runtime-types.js)
 
 <a id="agentturn-stopping--serial"></a>
 
@@ -1016,7 +1016,7 @@ The turn is about to close: the model owes no response (no live tool calls, no f
 
 Types: [Scoped](scope.md)
 
-Source: [`packages/core/agent/src/runtime-types.ts`](../../packages/core/agent/src/runtime-types.js)
+Source: [`packages/core/agent/src/runtime-types.js`](../../packages/core/agent/src/runtime-types.js)
 
 <a id="agent-loop-events"></a>
 
@@ -1041,7 +1041,7 @@ A declarative agent entry failed before it could publish a live agent. Consumers
 'agent-loop/config-start-failed'(payload: { sessionId: SessionId; error: unknown }): void
 ```
 
-Source: [`packages/core/agent-loop/src/index.ts`](../../packages/core/agent-loop/src/index.js)
+Source: [`packages/core/agent-loop/src/index.js`](../../packages/core/agent-loop/src/index.js)
 
 <a id="agent-preset-events"></a>
 
@@ -1064,5 +1064,5 @@ One session committed a different agent preset to its durable log. Consumers inv
 'agent-preset/selected'(sessionId: SessionId, agentPreset: string): void
 ```
 
-Source: [`packages/preset/agent-presets/src/types.ts`](../../packages/preset/agent-presets/src/types.js)
-<!-- END GENERATED cordis-surface -->
+Source: [`packages/preset/agent-presets/src/types.js`](../../packages/preset/agent-presets/src/types.js)
+<!-- END cordis-surface -->

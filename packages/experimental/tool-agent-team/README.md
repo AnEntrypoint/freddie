@@ -12,11 +12,11 @@ Scoped model-facing adapter for [`ctx.agentTeams`](../agent-team/README.md). It 
     forkProvider: fork
 ```
 
-`freshProvider` and `forkProvider` select registered continuable-subagent providers. The fixed model policy creates teammates only when the user explicitly asks for Agent Teams or teammates.
+`freshProvider` and `forkProvider` select registered continuable-subagent providers. `excludePresets` (default `[]`) names agent presets whose agents get no Team tools; the shipped Team bundle lists `minimal`, whose complete persona would suppress the policy section while the schemas stayed. The fixed model policy creates teammates only when the user explicitly asks for Agent Teams or teammates.
 
 ## Tools and authority
 
-The generated [tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-experimental-tool-agent-team) owns exact schemas. The adapter supplies teammate creation; quiet and waking peer delivery; roster listing, waiting, and Lead-only interruption; and task create/list/get/compare-and-set update operations.
+The generated [tool catalog](../../../docs/tool-catalog.md#freddie-experimental-tool-agent-team) owns exact schemas. The adapter supplies teammate creation; quiet and waking peer delivery; roster listing, waiting, and Lead-only interruption; and task create/list/get/compare-and-set update operations.
 
 Every tool requires the exact calling `Agent`. `spawn_teammate` and `interrupt_agent` enforce Lead authority inside `ctx.agentTeams`, not only in their descriptions. All members can communicate with any peer and use the task board. Task mutations retain the domain's owner/Lead and revision checks.
 

@@ -47,7 +47,6 @@ function parsePayload(body) {
   try {
     parsed = JSON.parse(body)
   } catch {
-    // JSON.parse is the only statement in the try; no other failure is normalized.
     throw new WebhookHttpError(400, 'request body is not valid JSON')
   }
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -86,7 +85,6 @@ export function createGitHubWebhookHandler(ctx, config) {
       try {
         verified = await new Webhooks({ secret: credential.value }).verify(body, signature)
       } catch {
-        // Octokit verification errors carry no response detail safe or useful to the sender.
       }
       if (!verified) throw new WebhookHttpError(401, 'invalid webhook signature')
       const payload = parsePayload(body)

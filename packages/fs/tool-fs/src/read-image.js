@@ -106,8 +106,6 @@ export function imageRefFromValue(image) {
 export function formatImageReadOutput(displayPath, image) {
   let scaled = ''
   if (image.originalDimensions !== undefined) {
-    // Integer rounding can give the two axes slightly different ratios, so the
-    // advice names one multiplier only when both round to the same value.
     const x = (image.originalDimensions.width / image.width).toFixed(2)
     const y = (image.originalDimensions.height / image.height).toFixed(2)
     const advice = x === y
@@ -163,14 +161,10 @@ export function applyReadImageTool(ctx) {
       },
       render: (_args, value) => imageReadContent(value),
     },
-    // Content-addressed attachment writes are idempotent, so concurrent reads
-    // of the same file cannot conflict.
     isConcurrencySafe: () => true,
     async execute(args, exec) {
       if (args.file_path.trim().length === 0) throw new Error('file_path must be a non-empty string')
 
-      // Every gate runs before any filesystem I/O so a refusal never leaks
-      // partial reads or attachment writes.
       const mediaType = imageMediaTypeForPath(args.file_path)
       if (mediaType === undefined) {
         throw new Error(`cannot read "${args.file_path}": read_image only accepts PNG/JPEG/WebP/GIF paths`)
@@ -186,20 +180,13 @@ export function applyReadImageTool(ctx) {
 
       const { target, info } = await resolveRegularReadTarget(ctx, exec, args.file_path)
 
-      // The tool result is one message carrying one image, so the per-message
-      // aggregate bound applies beside the per-image bound.
       const byteCap = Math.min(attachments.imageLimits.maxImageBytes, attachments.imageLimits.maxMessageImageBytes)
       const data = await ctx.fs.readBytes(target, exec.signal, byteCap)
-      // Persist before returning: the image block must reference a durably
-      // committed object by the time the tool/result event is appended.
       let ref
       try {
         ref = await attachments.saveImage({ data, mediaType, name: basename(target.displayPath) })
       } catch (error) {
         if (!(error instanceof AttachmentError)) throw error
-        // Dimension refusals stay recoverable tool errors: an oversized image
-        // must never enter durable history, where it would ride every later
-        // model request past provider-side dimension rejections.
         if (error.code === 'IMAGE_DIMENSION_TOO_LARGE') {
           throw new Error(
             `cannot read "${target.displayPath}": at least one image side exceeds the ${attachments.imageLimits.maxImageDimension}px limit; downscale the image and read the smaller copy`,
@@ -248,8 +235,6 @@ export function applyReadImageTool(ctx) {
       }
       return value
     },
-    // Pure display: a generic card in the read family with a follow-along
-    // location on the image file.
     presentCall(args) {
       return {
         card: 'generic',

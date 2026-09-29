@@ -1,5 +1,3 @@
-// TrajectoryTurnHeader: sticky per-turn bar with Input/Output/Think/Time labels.
-
 import { createElement as h } from '@freddie/webjsx'
 import css from './TrajectoryTurnHeader.css.js'
 

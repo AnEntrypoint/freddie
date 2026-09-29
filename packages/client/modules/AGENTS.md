@@ -1,0 +1,11 @@
+## Rationale
+
+- `src/index.js` `ClientModuleRegistry.pkgMeta`: negative verdicts (unresolvable specifier such as `cordis:include` or subpath rows, or no web `freddie.client` declaration) are cached as `null` and never expire; plugin-set changes take effect on restart.
+- `src/index.js` constructor: `require` is anchored at `ctx.baseUrl` (the cordis.yml directory, whose package declares every composed plugin); this package's own URL would miss sibling packages under pnpm's isolated `node_modules`.
+- `src/index.js` constructor: the `internal/plugin` subscription is made before seeding so a fiber arriving mid-activation lands in the same dirty set (Set idempotence makes the overlap harmless). The seed, `compose` and flush stay synchronous so nothing async separates them.
+- `src/index.js` `resolveMeta`: `clientRoot` is the package's `src/` dir, not `src/client/`, because client entries legitimately import `../service.js`-style siblings from the host half and those must be servable. It must never widen past `src/`: hashing and serving the package root would recurse into `node_modules`.
+- `src/index.js` `resolveBundlePath`: the target must stay strictly under `clientRoot` (equality is the directory itself, not a servable file); this is the path-traversal guard.
+- `src/index.js` `serveBundle`: a registered but unreadable file answers an explicit 404, since falling through would serve the SPA fallback HTML as JavaScript silently.
+- `src/index.js` `rebuilt`/`notifyGraphChanged`: a throwing subscriber is logged and must not skip later subscribers or escape into the trigger (the HMR watch callback, or whatever caused the flush).
+- `src/index.js` `flush`: in steady state one broken package must not poison the others (errors go to the logger); the activation pass collects them into one loud throw. An unorderable module graph is a property of the whole table, so `compose` failures go through the same `onError` and the last orderable graph stays served.
+- `src/client/system.js` constructor: graph row urls are origin-root-relative; `importModule` strips the leading slash and resolves against `document.baseURI`, so an app mounted under a path prefix (reverse proxy, tunnel) fetches under the prefix. ES module identity is keyed by the resolved URL, so a URL differing from the page-relative one would create a second copy of the module.

@@ -1,14 +1,3 @@
-// Settled-node identity prevents stream-delta updates from rerendering this row.
-// Mounted on 'conversation.composer.dock' so it sticks with the composer in the
-// active conversation scrollport (see ConversationRoot data-conversation-scroll).
-//
-// Converted from a React hooks component to a webjsx custom element:
-// truncated useState and rootRef useRef become private fields, the
-// ResizeObserver useLayoutEffect becomes connectedCallback/
-// disconnectedCallback plus an explicit re-bind after each render, and
-// re-render is an explicit applyDiff(this, vdom) call. Avoid <Fragment> JSX
-// tags — the group list uses a plain array instead.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { renderTooltip, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { formatTokensPerSecond } from './message-chrome.js'
@@ -121,10 +110,6 @@ export function cacheHitPercent(usage) {
   const integerPercent = roundedIntegerPercent(usage.cacheReadTokens, denominator)
   if (integerPercent < 100) return String(integerPercent)
 
-  // At the first distinguishing precision, the rounded result is 100 minus
-  // one to five units in the final decimal place. Scale only while the next
-  // multiplication remains at or below the denominator, then derive that
-  // final digit through exact small-factor comparisons.
   let decimalPlaces = 1
   let scaledDoubleGap = missedInputTokens * 200
   const denominatorTens = Math.floor(denominator / 10)
@@ -212,10 +197,6 @@ export class FreddieStatsLine extends HTMLElement {
 
   #bindSession() {
     this.#unsubscribe?.()
-    // useSession/useProjection are React selector hooks in their original
-    // form; this element re-derives on every setProps call from the owner
-    // (the dock re-renders this element on every store change), so no
-    // separate subscription is needed here beyond that external drive.
     this.#unsubscribe = null
   }
 
@@ -226,12 +207,6 @@ export class FreddieStatsLine extends HTMLElement {
   }
 
   #bindResize(root) {
-    // applyDiff preserves this node's identity across renders whenever the
-    // stats-root structure itself is unchanged (only its text content
-    // changes) -- re-disconnecting and re-observing the SAME element on
-    // every #render() call churns a fresh ResizeObserver needlessly, and
-    // this element re-renders on every session/store change (its own doc
-    // comment above), not only when its size could plausibly have changed.
     if (this.#resizeObserver !== null && this.#resizeRoot === root) return
     this.#unbindResize()
     this.#resizeRoot = root
@@ -251,13 +226,8 @@ export class FreddieStatsLine extends HTMLElement {
     const { useSession, useProjection, t } = this.#props
     const settledNodes = useSession(s => s.chat.legacy.nodes)
     const usage = useProjection('tokenUsage')
-    // Every figure rides the durable sessionStats projection, so paging and
-    // compaction cannot change any of them; an assembly without the unit falls
-    // back to the window-scoped fold wholesale (same field names), paid only
-    // while no projection value is served.
     const projected = useProjection('sessionStats')
     const stats = projected ?? deriveStats(settledNodes)
-    // Pipe-separated groups (figma stats strip); a group with no data drops out whole.
     const groups = []
     if (stats.steps > 0) {
       groups.push(t('stats.counts', { turns: stats.turns, steps: stats.steps }))
@@ -276,12 +246,6 @@ export class FreddieStatsLine extends HTMLElement {
       }
       if (speeds.length > 0) groups.push(speeds.join(' · '))
     }
-    // Context occupancy deliberately lives on the composer's ContextMeter ring,
-    // not here — one home per fact.
-    // Billing rides the durable projection, so these survive paging and
-    // compaction. Gated on actual token activity: a session whose steps all
-    // settled without billing (e.g. every request failed) shows its counts
-    // without a zero-token group.
     if (usage !== undefined
       && (billedInputTokens(usage) > 0 || usage.outputTokens > 0)) {
       const cacheHit = cacheHitPercent(usage)
@@ -299,15 +263,6 @@ export class FreddieStatsLine extends HTMLElement {
       return
     }
 
-    // The row elides with ellipsis when overlong; a delayed hover tooltip carries
-    // the full line, enabled only while content is actually clipped.
-    // h(Tooltip, {...}) calls Tooltip(props) synchronously (webjsx's
-    // function-component branch), Tooltip.js's bare one-shot factory --
-    // document.createElement('freddie-tooltip') fresh every call. This element
-    // re-renders on every session/store change (this file's own doc comment
-    // above #bindResize), so a bare h(Tooltip, ...) call recreated the
-    // freddie-tooltip element (dropping its in-flight #showTimer hover-delay) on
-    // every #render(). renderTooltip(cached, props) reuses the same element.
     this.#tooltipEl = renderTooltip(this.#tooltipEl, {
       label: line, side: 'top', delayMs: 500, disabled: !this.#truncated,
       children: [
@@ -326,6 +281,13 @@ export class FreddieStatsLine extends HTMLElement {
 }
 
 defineElement('freddie-stats-line', FreddieStatsLine)
+
+/**
+ * @typedef {object} StatsLineProps
+ * @property {(selector: (state: object) => *) => *} useSession - the conversation-store selector hook.
+ * @property {(key: string) => *} useProjection - the session-projection read seat; returns undefined until the named projection is known.
+ * @property {(key: string, vars?: object) => string} t - localization function.
+ */
 
 /**
  * Create (if needed) or update a StatsLine element in place.

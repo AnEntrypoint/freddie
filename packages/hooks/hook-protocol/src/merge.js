@@ -12,7 +12,7 @@ function rank(decision) {
     case 'deny': case 'block': return 3
     case 'ask': return 2
     case 'approve': case 'allow': return 1
-    default: return 0 // no decision
+    default: return 0
   }
 }
 
@@ -36,7 +36,6 @@ function decisionForRank(maxRank) {
  */
 export function mergeHookOutputs(outputs) {
   let maxRank = 0
-  // Keep reasons per rank so only objections explaining the winning decision surface.
   const reasonsByRank = new Map()
   let stop = false
   let stopReason

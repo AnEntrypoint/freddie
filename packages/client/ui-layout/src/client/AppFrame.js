@@ -217,9 +217,6 @@ export class FreddieAppFrame extends HTMLElement {
         'data-details-collapsed': cols.details === 0 ? 'true' : null,
         'data-dragging': this.#dragging ? 'true' : null,
       },
-      /* A healthy link is reported by the session header's operations strip;
-         the frame only interrupts for a lost link, as a full-width banner
-         that pushes content instead of covering the header utilities. */
       connectionState === 'reconnecting' || connectionState === 'offline'
         ? h('div', {
           class: css.connectionState ?? '',
@@ -229,21 +226,11 @@ export class FreddieAppFrame extends HTMLElement {
         }, `Connection: ${connectionLabel(connectionState)}`)
         : null,
       h('div', { class: css.sidebarCol ?? '', 'data-sidebar-col': '' },
-        /* Render-site slot call with live concession output: a closed
-           sidebar keeps the mounted slot at the compact-rail width, and the
-           component sees its rendered state as owner params decided here
-           (collapsed follows the resolved rail, so a derived auto-collapse
-           renders the rail UI too). */
         asChild(renderSlot('sidebar', {
           collapsed: sidebarCollapsed,
           width: cols.sidebar,
         })),
       ),
-      /* Both column occupants stay at fixed tree positions from first
-         paint — no loading gate: a bare status line reads worse than
-         the shell's own pending rendering. The conversation
-         is session-maybe; the strict details entry naturally renders
-         empty while no session is current. */
       h('div', { class: css.centerCol ?? '' }, asChild(renderSlot('conversation', {}))),
       h('div', { class: css.detailsCol ?? '' }, asChild(renderSlot('details', {}))),
       h('div', { class: css.overlayLayer ?? '', 'data-shell-overlay': '' },
@@ -257,7 +244,6 @@ export class FreddieAppFrame extends HTMLElement {
     const frame = this.querySelector('[data-sidebar-col]')?.parentElement ?? null
     if (frame !== null) this.#bindResizeObserver(frame)
 
-    // The collapsed rail is fixed-width: no resize handle while closed.
     const sidebarSlot = this.querySelector('[data-sidebar-handle-slot]')
     if (!sidebarCollapsed) {
       this.#sidebarHandle = renderDragHandle(this.#sidebarHandle, {

@@ -37,8 +37,6 @@ export function estimateContent(blocks) {
         tokens += estimateContent(block.content) + BLOCK_OVERHEAD
         break
       default:
-        // ContentBlockMap is merge-extensible; unknown blocks retain a
-        // conservative structural JSON price under the fixed heuristic.
         tokens += BLOCK_OVERHEAD + Math.ceil(JSON.stringify(block).length / CHARS_PER_TOKEN)
     }
   }

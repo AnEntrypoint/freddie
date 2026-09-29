@@ -146,9 +146,6 @@ export class EntryTree {
       return this.ctx.loader.builtins[name.slice(7)]
     }
     return composeError(async (info) => {
-      // ModuleJob.run
-      // onImport.tracePromise.__proto__
-      // internal.import
       info.offset += 3
       if (this.ctx.loader.internal) {
         return await this.ctx.loader.internal.import(name, this.ctx.baseUrl, {})

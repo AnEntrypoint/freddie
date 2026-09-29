@@ -39,7 +39,11 @@ export async function writeAtomic(path, data) {
   }
 }
 
-/** fsync a POSIX directory so a just-renamed entry is crash-durable. */
+/**
+ * fsync a POSIX directory so a just-renamed entry is crash-durable.
+ * @name fsyncDirectory
+ * @function
+ */
 /* v8 ignore start -- Windows rejects O_RDONLY directory opens; POSIX coverage exercises this. */
 async function fsyncDirectory(path) {
   if (process.platform === 'win32') return

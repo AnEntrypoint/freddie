@@ -42,8 +42,6 @@ async function imageMetadata(image) {
   if (mediaType === undefined) {
     throw new AttachmentError('Unsupported or malformed image data.', 'INVALID_IMAGE')
   }
-  // EXIF orientations 5-8 transpose the stored raster; report the perceived
-  // axes so limits, source facts, and coordinate advice all share them.
   const transposed = metadata.orientation !== undefined && metadata.orientation >= 5
   return {
     mediaType,

@@ -48,6 +48,7 @@ export class ApiProxyService extends Service {
     maxMuxBufferedBytes: z.natural().min(1).default(DEFAULT_MAX_MUX_BUFFERED_BYTES),
   })
 
+  coldBlankProbeMaxBytes
   sessions
   subagents
   workspace
@@ -82,6 +83,7 @@ export class ApiProxyService extends Service {
         ? {}
         : { maxMuxBufferedBytes: config.maxMuxBufferedBytes }),
     })
+    this.coldBlankProbeMaxBytes = config.coldBlankProbeMaxBytes
     this.sessions = api.sessions
     this.subagents = api.subagents
     this.terminal = api.terminal
@@ -95,8 +97,6 @@ export class ApiProxyService extends Service {
     this.llm = api.llm
     this.events = api.events
     this.downloads = api.downloads
-    // createApiProxy returns closures (no `this` capture), so the bind is
-    // behavior-neutral.
     this.respond = api.respond.bind(api)
   }
 }

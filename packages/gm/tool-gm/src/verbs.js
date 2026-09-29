@@ -254,8 +254,6 @@ export function buildGmTools(gm, onProgress = () => {}) {
     presentResult: presentTransitionResult,
   })
 
-  // exec_js is plain-text-body (gm-mcp's PLAIN_TEXT_BODY_VERBS) -- dispatch
-  // via gm.call's `rawBody` option instead of jsonTool's JSON-body shape.
   const execJsTool = defineTool({
     name: 'gm_exec_js',
     description: 'Dispatch gm\'s `exec_js` verb: run a JavaScript snippet inside gm\'s own sandboxed execution surface.',

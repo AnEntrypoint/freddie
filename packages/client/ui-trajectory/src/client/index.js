@@ -3,7 +3,7 @@
  * slot without defining a service.
  */
 import { createTrajectoryDurationStore } from './duration-store.js'
-import { en, NS, zh } from './locales.js'
+import { en, NS } from './locales.js'
 import { registerTrajectoryAssistantDefinition } from './trajectory-assistant-definition.js'
 import { registerTrajectoryCompactionDefinitions } from './trajectory-compaction-definition.js'
 import { registerTrajectoryMessageDefinitions } from './trajectory-message-definitions.js'
@@ -21,10 +21,7 @@ export const inject = ['slots', 'conversationEvents', 'conversationViews', 'sess
  * @param ctx - client root context.
  */
 export function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-trajectory: dictionaries')
-  // Registration-time text (the view tab label) reads through the bound
-  // translate as a thunk, so it follows the active locale without
-  // re-registration.
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-trajectory: dictionaries')
   const t = ctx.locale.bind(NS)
   const duration = createTrajectoryDurationStore()
   registerTrajectoryMessageDefinitions(ctx)

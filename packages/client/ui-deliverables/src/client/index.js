@@ -8,7 +8,7 @@
  * the owning view renders an empty chain and inert prose at zero cost.
  */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
-import { en, NS, zh } from './locales.js'
+import { en, NS } from './locales.js'
 import {
   deliverablesDefinition, producedFileMentions, selectProducedFiles,
 } from './turn-deliverables.js'
@@ -26,7 +26,7 @@ export const inject = ['slots', 'locale', 'conversationEvents', 'connection']
 export function apply(ctx) {
   const connection = ctx.get('connection')
   ctx.conversationEvents.register(deliverablesDefinition)
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-deliverables: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-deliverables: dictionaries')
   ctx.slots.inject(
     'conversation.chat.turnTail',
     () => ctx.slots.register({
@@ -39,28 +39,10 @@ export function apply(ctx) {
       }),
     }, webjsxSlot('freddie-produced-files')),
   )
-  // The prose side of the same vocabulary: the chat view reaches this face
-  // via ctx.get, so its absence — this plugin composed out — is the off state.
   const t = ctx.locale.bind(NS)
-  // One resolver per turn, rebuilt only when the produced paths, the closing
-  // node, or the opener actually change. MarkdownText compares `fileMentions`
-  // by IDENTITY (its propsEqual memo guarding #computeChildren), so returning
-  // a fresh object per call made that memo miss unconditionally: every
-  // assistant markdown block re-parsed its whole document on every render,
-  // rebuilding every inline element -- measured live as ~48 fresh `code`
-  // nodes per keystroke, and confirmed by instrumenting propsEqual itself
-  // (5 of 15 setProps calls differed on `fileMentions` alone).
-  //
-  // Keyed on `owner.turn`, NOT on `owner`: the caller builds the owner as a
-  // fresh `{ turn, seq, openFile }` literal on every render (see
-  // AssistantNodeView), so an owner-keyed cache could never hit. `turn` is the
-  // stable per-turn object; `seq` and `openFile` ride along as validators so a
-  // genuine change still yields a new resolver and a real re-render.
   const mentionsCache = new WeakMap()
   const mentions = {
     forClosing(owner) {
-      // Same claim test the turn-tail chain entry runs: no produced files,
-      // no vocabulary — the two surfaces agree by construction.
       const paths = selectProducedFiles(owner)
       if (paths === null) return undefined
       const key = paths.join(' ')

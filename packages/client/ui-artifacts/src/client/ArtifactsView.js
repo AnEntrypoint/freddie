@@ -48,7 +48,6 @@ export class FreddieArtifactsView extends HTMLElement {
       }
     } catch {
       this.#loadedSessionId = null
-      // The projection remains the availability fallback.
     }
   }
 

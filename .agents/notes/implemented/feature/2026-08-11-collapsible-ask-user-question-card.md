@@ -21,7 +21,7 @@ Add a minimize/maximize toggle to the question card header, next to the existing
 
 - Users can shrink the question card to read the conversation, then expand to answer — drafts and position are preserved because the state lives in the flow component, not in the DOM.
 - The minimize action is visually adjacent to dismiss; both share the icon button style, so the header stays balanced.
-- Product copy additions are confined to the `question` locale namespace (`nav.minimize` / `nav.maximize`), paired zh/en per the dictionary contract.
+- Product copy additions are confined to the `question` locale namespace (`nav.minimize` / `nav.maximize`), paired across locales per the dictionary contract.
 
 ## Alternatives considered
 

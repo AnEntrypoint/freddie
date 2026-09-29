@@ -1,5 +1,3 @@
-/* Plugin configuration fields: label, control, override badge, and hint. */
-
 .freddie-fields__field {
   display: flex;
   flex-direction: column;

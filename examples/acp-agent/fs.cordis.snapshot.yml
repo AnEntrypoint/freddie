@@ -1,9 +1,3 @@
-# Keyless filesystem snapshots apply the spill and replay overlays directly
-# because include patches cannot target entries behind a nested include. The
-# sandboxed filesystem stack already lives in the base cordis.yml. This file also
-# re-pins the acp-agent model to `deepseek-v4-flash`: `cordis.yml` ships
-# `deepseek-v4-pro`, but the recorded corpus was captured on flash, and a config
-# patch replaces the whole app config, so the base fields are restated verbatim.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

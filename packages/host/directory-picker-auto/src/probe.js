@@ -21,7 +21,6 @@ export function canExecute(candidate) {
   try {
     accessSync(candidate, constants.X_OK)
   } catch {
-    // Absent or non-executable candidate — the only signals accessSync(X_OK) emits.
     return false
   }
   return true

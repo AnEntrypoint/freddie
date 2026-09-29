@@ -43,8 +43,6 @@ function toStopReason(reason) {
       return 'max-tokens'
     case 'aborted':
       return 'aborted'
-    // A pre-step rejection discarded the claimed prompt: the task was
-    // declined, and the caller must not read the run as done.
     case 'blocked':
       return 'refusal'
     case 'error':
@@ -93,8 +91,6 @@ export async function startInProcessRun(request, options) {
   const seed = options.seed
   const activationBoundary = seed?.length ?? 0
 
-  // Capture before the first await: a later parent switch belongs to the
-  // parent's future.
   const inherited = captureDelegatedPolicyOverrides(parent)
 
   let structured
@@ -147,9 +143,6 @@ function drivePublishedRun(
     child.cancel({ kind: 'parent' })
   }
   signal.addEventListener('abort', onAbort, { once: true })
-  // Agent creation detaches its creation-only listener before returning. The
-  // post-registration check closes that handoff without treating an already
-  // published child as a failed start.
   if (signal.aborted) onAbort()
 
   const result = (async () => {
@@ -178,8 +171,6 @@ function drivePublishedRun(
       flags.cancelled = true
       const settlements = await Promise.allSettled([handle.dispose(), result])
       const disposal = settlements[0]
-      // The result channel owns run faults; disposal reports only failure to
-      // release the published handle after both operations settle.
       if (disposal.status === 'rejected') throw disposal.reason
     },
   }
@@ -193,16 +184,9 @@ function readResult(
   structured,
 ) {
   const own = child.session.events.slice(boundary)
-  // `droppedUnrun` is deliberately unread: a one-shot prompt is claimed by its
-  // awaited first turn almost immediately, and the owner's own teardown is the
-  // `cancelled` flag below. A cancellation with no accounting turn resolves
-  // `error` through `toStopReason(undefined)`, which never overstates success.
   const lastEnd = foldConsumedWork(own).end
-  // The seam's canonical selection rule; a partial answer survives cancel and truncation.
   const output = finalAssistantOutput(own) ?? []
   const recorded = toStopReason(lastEnd?.data.reason)
-  // Disposal can tear the owner down before the loop records its ordinary
-  // `aborted` end, yielding `disposed` instead.
   const stopReason = cancelled && recorded !== 'completed' ? 'aborted' : recorded
   if (structured !== undefined) {
     if (structured.captured !== undefined) {

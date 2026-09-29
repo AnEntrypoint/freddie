@@ -67,9 +67,6 @@ for (const target of targets) {
   const binary = join(target.packageDir, target.binaryPath)
   mkdirSync(dirname(binary), { recursive: true })
 
-  // -static against musl: self-contained, no loader/libc expectations on the
-  // consumer host. -Werror is safe to keep hard: CI pins the builder images,
-  // and a new warning on a toolchain bump deserves a look, not a pass.
   const result = spawnSync('musl-gcc', [
     '-std=c11', '-Os', '-Wall', '-Wextra', '-Werror', '-static', '-s',
     '-o', binary, join(repoRoot, tool.source),

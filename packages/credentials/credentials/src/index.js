@@ -93,8 +93,6 @@ export function parseCredentialKey(value) {
  * @returns the scope segment.
  */
 export function credentialKeyScope(key) {
-  // The brand's only constructors both validate two segments, so the split
-  // cannot come back short here.
   return key.slice(0, key.indexOf('/'))
 }
 

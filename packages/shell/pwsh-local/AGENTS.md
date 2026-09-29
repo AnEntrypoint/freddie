@@ -1,0 +1,8 @@
+## Rationale
+
+- `src/index.js` `resolve.js` re-export: resolution lives in its own dependency-free module so the repository's coverage-gate probe shares the exact definition the suites use.
+- `src/index.js` constructor: Schemastery fills the config fields before construction and the type does not encode that step. `onChange` re-probes the filesystem (the one fact derived from the source); every other field is read through the getter at each command.
+- `src/index.js` `runArgv`: one deadline combines timeout and upstream cancellation and its disposal clears the timer. Only this executor's `BASH_TIMEOUT` reason counts as `timedOut`; outer deadlines count as aborts.
+- `src/index.js` `startArgv`: background runs ignore `timeoutMs` (callers stop them through `kill()` or `spec.signal`). A spawn failure produces no process output, so the note is delivered exactly once through the read path and is mutually exclusive with real stderr text; the failed spawn settles the process as `killed`. Any signal termination counts as `killed`, including a command signaling itself. Sections are joined with a single newline added only when stdout does not already end with one.
+- `src/resolve.js` candidates: Microsoft Store installs and user-added locations live on `PATH`, whose entries may carry surrounding quotes from `setx`-style definitions; Windows PowerShell 5.1 stays the last candidate as the fallback on legacy hosts.
+- `src/resolve.js` probe: `ENOENT` (candidate vanished between listing and probing) is the only expected failure; any other error names an unspawnable path, so `false` is the safe answer for it too.

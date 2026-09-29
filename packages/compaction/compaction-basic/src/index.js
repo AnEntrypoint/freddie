@@ -136,8 +136,6 @@ export class BasicCompactionEngine extends CompactionEngine {
       if (status === 'idle') this.overflowRetries.delete(agent)
     })
 
-    // A successful response starts a fresh overflow-recovery sequence even
-    // when tool calls continue the same turn into another request.
     ctx.on('session/event', (session, event) => {
       if (event.type !== 'assistant/message') return
       const agent = this.overflowAgents.get(session)
@@ -162,9 +160,6 @@ export class BasicCompactionEngine extends CompactionEngine {
         result = await this.compactIfNeeded(agent, 'context-overflow', signal)
       } catch (recoveryError) {
         const message = recoveryError instanceof Error ? recoveryError.message : String(recoveryError)
-        // A model-free prune can land before later summary work fails. That
-        // durable reduction is sufficient retry proof; do not discard it just
-        // because the optional second phase threw. Cancellation still wins.
         if (!signal.aborted && agent.session.surface.replaceGeneration > generation) {
           ctx.logger.warn(
             `context-overflow compaction failed after durable surface progress: ${message}; `
@@ -232,9 +227,6 @@ export class BasicCompactionEngine extends CompactionEngine {
         assertNever(trigger, 'compaction trigger')
     }
 
-    // Pruning is optional so compaction-basic remains independently composable.
-    // Overflow always qualifies; pressure first resolves the routed model's
-    // capacity and checks its target-specific threshold.
     const prune = this.ctx.get('toolResultPruner')
 
     if (trigger === 'context-overflow') {
@@ -260,8 +252,6 @@ export class BasicCompactionEngine extends CompactionEngine {
     const spec = resolveCompactSpec(policy, context.contextWindow)
     if (measurement.totalTokens < spec.thresholdTokens) return null
 
-    // Once pressure qualifies, land the model-free pass before choosing a
-    // summary range, then remeasure through the singleton replay fold.
     if (prune !== undefined) {
       prune.pruneSession(agent.session)
       measurement = meter.measure(agent.session)

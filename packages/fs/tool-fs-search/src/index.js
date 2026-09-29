@@ -79,7 +79,19 @@ export const Config = z.object({
   timeoutMs: z.number().default(SEARCH_TIMEOUT_MS),
 })
 
-/** The shape after schemastery applied the defaults. */
+/**
+ * The shape after schemastery applied the defaults.
+ * @typedef {object} ResolvedSearchConfig
+ * @property {boolean} sampleOverCapGlobResults
+ * @property {number} globMaxResults
+ * @property {number} grepMaxMatches
+ * @property {number} grepMaxLineBytes
+ * @property {number} searchMetaMaxBytes
+ * @property {number} rawOutputMaxBytes
+ * @property {number} graceMs
+ * @property {number} stderrMaxBytes
+ * @property {number} timeoutMs
+ */
 
 /** Every search cap counts items/bytes/milliseconds — a positive integer, or retention and timeout arithmetic misbehaves silently. */
 function assertPositiveInteger(name, value) {
@@ -98,7 +110,6 @@ function assertPositiveInteger(name, value) {
  */
 // oxlint-disable-next-line typescript/require-await -- async keeps a load-time config rejection a rejection, not a synchronous throw
 export async function apply(ctx, config) {
-  // schemastery (Config) has already filled every defaulted field.
   const resolved = config
   assertPositiveInteger('globMaxResults', resolved.globMaxResults)
   assertPositiveInteger('grepMaxMatches', resolved.grepMaxMatches)

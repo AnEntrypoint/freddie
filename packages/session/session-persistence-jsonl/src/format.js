@@ -1,6 +1,6 @@
 /**
  * On-disk format helpers for the JSONL session-persistence backend: path
- * sanitization (a {@link SessionId} is an unvalidated branded string, so it
+ * sanitization (a {@link import('@freddie/freddie-session/types').SessionId} is an unvalidated branded string, so it
  * MUST be encoded before use in a path — no traversal, no collision), the
  * per-project/session directory layout, header-line (de)serialization, and the
  * truncation-repair offset computation.
@@ -22,7 +22,7 @@ export function logSuffix(compression) {
 }
 
 /**
- * Build the header line object from a {@link SessionHeader}.
+ * Build the header line object from a {@link import('@freddie/freddie-session/types').SessionHeader}.
  * @param header - the immutable session metadata to serialize.
  * @returns the `type: 'session'`-tagged line object, absent optional fields omitted (never null).
  */
@@ -42,7 +42,7 @@ export function toHeaderLine(header) {
 }
 
 /**
- * Parse a header line back into a {@link SessionHeader}.
+ * Parse a header line back into a {@link import('@freddie/freddie-session/types').SessionHeader}.
  * @param line - the shape-checked first line of a log (see the `isHeaderLine` guard).
  * @returns the header, absent optional fields omitted.
  */
@@ -85,7 +85,7 @@ function isHeaderLine(value) {
 
 /**
  * Encode an arbitrary string as a single safe path segment, injectively over ALL JS (UTF-16)
- * strings — including lone surrogates. A {@link SessionId} is an unvalidated branded string,
+ * strings — including lone surrogates. A {@link import('@freddie/freddie-session/types').SessionId} is an unvalidated branded string,
  * so this neutralizes `../`, absolute paths, NUL, and separators before any filesystem use.
  * Safe code units remain literal; every other unit, including `~`, becomes
  * `~XXXX`. Operating on code units preserves lone surrogates, while special-
@@ -194,7 +194,11 @@ export function eventLines(events, packChunks) {
   return records.map(record => JSON.stringify(record)).join('\n')
 }
 
-/** Parse one complete header record supplied independently from event rows. */
+/**
+ * Parse one complete header record supplied independently from event rows.
+ * @name parseHeaderRecord
+ * @function
+ */
 /**
  * Refuse a header carrying a format version this build does not read BEFORE
  * validating the current header shape or decoding any event row: a future
@@ -359,7 +363,7 @@ export function scanLog(buffer) {
 }
 
 /**
- * Parse just the header line of a log into a {@link SessionHeader}, or
+ * Parse just the header line of a log into a {@link import('@freddie/freddie-session/types').SessionHeader}, or
  * `undefined` if it is missing/not a header. Used by `list()` to read session
  * metadata WITHOUT parsing the whole log: a session picker scales with the
  * number of sessions, not the total size of every conversation.

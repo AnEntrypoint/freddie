@@ -1,0 +1,31 @@
+/**
+ * Copy for the web-search card. The key's own copy never names a value and
+ * never promises one was stored — only that one is configured.
+ */
+
+/** English copy. */
+export const en = {
+  title: 'Web search',
+  description: "The search provider's endpoint, key, and per-request budget",
+  expand: 'Expand',
+  collapse: 'Collapse',
+  save: 'Save',
+  saving: 'Saving…',
+  discard: 'Discard',
+  unsaved: 'Unsaved',
+  saveFailed: 'The Host refused this change.',
+  readOnly: 'This namespace is read-only.',
+  overridden: 'Overridden',
+  reset: 'Reset to default',
+  endpoint: 'Endpoint',
+  endpointHint: 'An absolute http(s) URL for the provider.',
+  invalidEndpoint: 'Enter an absolute http(s) URL.',
+  budget: 'Maximum searches per request',
+  budgetHint: 'How many times one model request may search.',
+  invalidBudget: 'Enter a whole number of at least 1.',
+  key: 'API key',
+  keyHint: 'Stored as a credential; never shown back.',
+  keyConfigured: 'A key is configured.',
+  keyAbsent: 'No key is configured.',
+  keyReadOnly: 'This credential is not writable here.',
+}

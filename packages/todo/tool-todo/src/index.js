@@ -7,9 +7,6 @@
 
 import z from '@freddie/schemastery'
 import { defineTool } from '@freddie/freddie-tools'
-// The `todos` projection-key declaration lived in src/types.ts (its one home);
-// src/types.js is now a pure-type-dropped module (nothing runtime-visible
-// survives from it) -- kept as a sibling module for import-site stability.
 
 export const name = 'tool-todo'
 export const inject = ['tools']
@@ -98,11 +95,6 @@ function toTodoList(raw, allowParallel) {
  */
 export function apply(ctx, config) {
   const allowParallel = config.allowParallelInProgress
-  // The unit child activates only when a projection registry is composed
-  // (headless assemblies without the seam stay unaffected). Standing-plan fold:
-  // latest whole todo/write list, cleared by the next turn/start (turn/end keeps
-  // the finished checklist visible); null before the first write or after a
-  // later turn begins; every other event returns the same state reference.
   ctx.inject(['sessionProjections'], (projectionCtx) => {
     projectionCtx.sessionProjections.register({
       key: 'todos',
@@ -176,8 +168,6 @@ export function apply(ctx, config) {
     execute(args, exec) {
       const todos = toTodoList(args.todos, allowParallel)
       if (!exec.agent) {
-        // The list is per-agent-session state; a non-agent caller (no owning
-        // session) has nowhere to write it. Reject rather than silently no-op.
         throw new Error('todo_write requires an owning agent session')
       }
       exec.agent.session.append('todo/write', { todos })

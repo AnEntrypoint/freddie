@@ -109,7 +109,6 @@ async function contentParts(blocks, images, message, nextImage) {
         parts.push(...await contentParts(block.content, images, message, nextImage))
         break
       default:
-        // Other merge-extensible blocks are not DeepSeek user-input vocabulary.
         break
     }
   }
@@ -143,20 +142,7 @@ function serializeAssistant(message) {
 
   return {
     role: 'assistant',
-    // Text-less turns send "" — NEVER null. Pure tool-call turns: the
-    // official samples replay message.content verbatim (which is "") and
-    // some gateways reject null outright. Reasoning-ONLY turns (the model
-    // can answer entirely in the reasoning channel, e.g. a v4-flash
-    // greeting): the live API rejects null-content/no-tool_calls assistant
-    // messages with a 400 ("content or tool_calls must be set"), and since
-    // the message sits durably in the session log, a null here bricks every
-    // later turn of that session.
     content: text,
-    // CoT passback on every reasoning-carrying turn. The official rule
-    // (guides/thinking_mode.mdx) requires it on tool-call turns and ignores it
-    // elsewhere; a gateway re-encoding the conversation for another vendor
-    // recovers that turn's upstream thinking signature by hashing this exact
-    // text, which a tool-call-free turn carries nowhere else.
     ...reasoning.length > 0 ? { reasoning_content: reasoning } : {},
     ...toolCalls.length > 0 ? { tool_calls: toolCalls } : {},
   }
@@ -182,8 +168,6 @@ export function serializeMessages(messages) {
       wire.push(serializeAssistant(message))
       continue
     }
-    // user role: tool results ride in user messages in the harness
-    // vocabulary, but DeepSeek wants them as role:'tool' messages.
     const toolResults = message.content.filter(block => block.type === 'tool-result')
     const text = flattenText(message.content)
     if (text.length > 0 || toolResults.length === 0) {
@@ -193,7 +177,6 @@ export function serializeMessages(messages) {
       wire.push({
         role: 'tool',
         tool_call_id: result.toolCallId,
-        // Empty tool output still needs SOME content on the wire.
         content: flattenText(result.content) || '(no output)',
       })
     }

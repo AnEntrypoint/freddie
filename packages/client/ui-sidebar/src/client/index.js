@@ -1,7 +1,7 @@
 /** Registers the sidebar shell into the layout-owned slot. */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import './SidebarRoot.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 
 /** Dictionary namespace owned by this plugin (shell controls copy). */
 const NS = 'sidebar'
@@ -13,11 +13,9 @@ export const inject = ['slots', 'layout', 'sessions', 'workspaces', 'locale']
  * @param ctx - Client root context.
  */
 export function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sidebar: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-sidebar: dictionaries')
 
   const injectProps = () => ({
-    // The shell's New Session button rides the runtime's shared action
-    // (current Session Workspace, then recent Workspace).
     startSession: (workspaceId) => { ctx.workspaces.startSession(workspaceId) },
     toggleSidebar: () => { ctx.layout.toggleSidebar() },
   })
@@ -25,9 +23,6 @@ export function apply(ctx) {
     () => ctx.slots.register({
       name: 'sidebar',
       locale: NS,
-      // The shell owns geometry; ui-workspace registers the whole browsing
-      // region (header, search, session list, workspace dialogs), ui-settings
-      // registers the foot trigger + settings panel.
       children: {
         'sidebar.brand.mark': { kind: 'single', scope: 'root' },
         'sidebar.brand.name': { kind: 'single', scope: 'root' },

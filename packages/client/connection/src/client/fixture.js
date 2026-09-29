@@ -1,10 +1,3 @@
-// FixtureApi: standalone UI development without a server. Real contract shape: unary takes
-// RpcRequest<P> and returns RpcResponse<T> (echoing the rpcId); streams yield RpcRequest<frame>
-// (the fixture IS the fake server, so it mints frame rpcIds); root respond takes ClientResponse
-// and returns RpcReceipt. fx-alpha carries a hand-built history script (74 turns, pageable);
-// prompt triggers a chunked streaming replay; cancel stops the replay; resident pending
-// approval/question requests exercise replay and composer takeover with stable rpcIds.
-
 import {
   createAssistantMessage,
   createToolResultMessage,
@@ -15,6 +8,15 @@ import { CallId } from '@freddie/freddie-llm/brand'
 import { deriveEventMessage, foldSurface } from '@freddie/freddie-session/surface'
 import { AbstractApiClient, RpcId, SESSION_SEARCH_RESULT_LIMIT } from './api.js'
 import { randomUuid } from './random-uuid.js'
+
+/** Context window the fixture's model routes report. */
+const FIXTURE_CONTEXT_WINDOW = 128_000
+
+/** The one edit path that presents as a two-hunk diff. */
+const MULTI_HUNK_EDIT_PATH = 'src/config.ts'
+
+/** A view-less presentation: the tool has no presenter, or its result's call is not on this page. */
+const NO_VIEW = undefined
 
 /** The fake carrier mints like a real one (business code never mints). */
 function rpcRequest(payload) {
@@ -60,7 +62,7 @@ const MARKDOWN_FIXTURE = [
   '```',
 ].join('\n')
 
-const USER_MARKDOWN_LITERAL = '用户字面量：# 不渲染 `code` [link](https://example.com)'
+const USER_MARKDOWN_LITERAL = 'User literal: # not rendered `code` [link](https://example.com)'
 
 /**
  * SGR wrapper for the terminal output sample below: authoring the escapes as
@@ -285,13 +287,13 @@ function fixtureModelGroups() {
         {
           id: 'deepseek-v4-flash',
           name: 'DeepSeek-V4-Flash',
-          description: '快速响应',
+          description: 'Fast responses',
           reasoning: DEEPSEEK_REASONING,
         },
         {
           id: 'deepseek-v4-pro',
           name: 'DeepSeek-V4-Pro',
-          description: '复杂任务',
+          description: 'Complex tasks',
           reasoning: DEEPSEEK_REASONING,
         },
       ],
@@ -348,33 +350,31 @@ function buildAlphaLog() {
     events.push({ seq, time: (time += 800), ...authored })
     return seq
   }
-  // This resident history represents completed model requests, so retain the
-  // route capacity that accompanied them just as the live prompt path does.
   push({
     type: 'request/context',
-    data: { provider: 'deepseek-official', model: 'deepseek-v4-flash', contextWindow: 128_000 },
+    data: { provider: 'deepseek-official', model: 'deepseek-v4-flash', contextWindow: FIXTURE_CONTEXT_WINDOW },
   })
   for (let turn = 0; turn < 60; turn++) {
     push({ type: 'turn/start', data: { turn } })
     const userSeq = push({
       type: 'user/message', surfaceOp: 'append',
-      data: userMessage(text(turn === 59 ? USER_MARKDOWN_LITERAL : `问题 ${turn}：fixture 历史消息，用于翻页与渲染验收。`)),
+      data: userMessage(text(turn === 59 ? USER_MARKDOWN_LITERAL : `Question ${turn}: fixture history message for pagination and render acceptance.`)),
     })
     if (turn === 0) {
       push({
         type: 'session/title',
-        data: { title: 'Fixture 历史会话', messageSeqs: [userSeq], source: { kind: 'fallback' } },
+        data: { title: 'Fixture history session', messageSeqs: [userSeq], source: { kind: 'fallback' } },
       })
     }
     if (turn % 9 === 4) {
-      push({ type: 'user/message', surfaceOp: 'append', data: userMessage(text(`[fixture] 上下文注入（turn ${turn}）`), { kind: 'plugin', plugin: 'fixture' }) })
+      push({ type: 'user/message', surfaceOp: 'append', data: userMessage(text(`[fixture] Context injection (turn ${turn})`), { kind: 'plugin', plugin: 'fixture' }) })
     }
     push({ type: 'step/start', data: { turn, step: 0 } })
     const withTool = turn % 5 === 2
     const withReasoning = turn % 3 === 1
     const blocks = []
-    if (withReasoning) blocks.push({ type: 'reasoning', text: `思考过程 ${turn}：这是一段可折叠的 reasoning 内容。` })
-    blocks.push({ type: 'text', text: turn === 59 ? MARKDOWN_FIXTURE : `回答 ${turn}：这是 fixture 生成的历史回复正文。` })
+    if (withReasoning) blocks.push({ type: 'reasoning', text: `Reasoning ${turn}: this is a collapsible block of reasoning content.` })
+    blocks.push({ type: 'text', text: turn === 59 ? MARKDOWN_FIXTURE : `Answer ${turn}: this is fixture-generated history reply text.` })
     if (withTool) {
       const callId = `fx-call-${turn}`
       blocks.push({ type: 'tool-call', id: callId, name: 'echo', arguments: `{"text":"turn ${turn}"}` })
@@ -383,7 +383,7 @@ function buildAlphaLog() {
       push({ type: 'tool/result', surfaceOp: 'append', data: { turn, step: 0, message: toolResultMessage(callId, text(`ECHO: TURN ${turn}`), turn % 25 === 12) } })
       push({ type: 'step/end', data: { turn, step: 0 } })
       push({ type: 'step/start', data: { turn, step: 1 } })
-      push({ type: 'assistant/message', surfaceOp: 'append', data: { turn, step: 1, message: assistantMessage(text(`工具结果已消化（turn ${turn}）。`)) } })
+      push({ type: 'assistant/message', surfaceOp: 'append', data: { turn, step: 1, message: assistantMessage(text(`Tool result digested (turn ${turn}).`)) } })
       push({ type: 'step/end', data: { turn, step: 1 } })
     } else {
       push({ type: 'assistant/message', surfaceOp: 'append', data: { turn, step: 0, message: assistantMessage(blocks) } })
@@ -391,13 +391,10 @@ function buildAlphaLog() {
     }
     push({ type: 'turn/end', data: { turn, reason: { kind: 'completed' } } })
   }
-  // Three view-sample turns (60-62) cover the built-in card types. The real filesystem names in
-  // turns 62-63 also exercise their dedicated generic-row icon/title/path summaries. `echo` above
-  // stays presenter-less as the unknown fallback.
   const toolTurn = (turn, name, args, resultText) => {
     const callId = `fx-call-${turn}`
     push({ type: 'turn/start', data: { turn } })
-    push({ type: 'user/message', surfaceOp: 'append', data: userMessage(text(`问题 ${turn}：${name} 样本。`)) })
+    push({ type: 'user/message', surfaceOp: 'append', data: userMessage(text(`Question ${turn}: ${name} sample.`)) })
     push({ type: 'step/start', data: { turn, step: 0 } })
     push({
       type: 'assistant/message', surfaceOp: 'append',
@@ -408,25 +405,35 @@ function buildAlphaLog() {
     push({ type: 'step/end', data: { turn, step: 0 } })
     push({ type: 'turn/end', data: { turn, reason: { kind: 'completed' } } })
   }
-  // A two-line command, so the fixture covers the terminal card's one-row-per-
-  // command-line prompt (and that the card still marks the call exactly once).
-  toolTurn(60, 'fx-bash', '{"command":"ls -la\\necho done","cwd":"/tmp/fixture"}', 'total 2\ndrwxr-xr-x fixture\n-rw-r--r-- demo.txt')
-  toolTurn(61, 'fx-write', '{"path":"notes/demo.txt","content":"hello fixture\\n"}', 'wrote notes/demo.txt')
-  toolTurn(62, 'edit', '{"file_path":"notes/demo.txt","old_string":"hello","new_string":"hello fixture"}', '已编辑')
-  toolTurn(63, 'write', '{"file_path":"notes/new-demo.txt","content":"hello fixture\\n"}', '已写入')
-  // Turn 64: a multi-hunk edit — two scattered replacements in one file. Named
-  // `edit` so it lands on the keyed FileMutationRow (the resident diff card the
-  // single-hunk turn 62 also uses), and file_path `src/config.ts` is the marker
-  // the presenter reads to emit the two-hunk sample: the card draws one path
-  // header, the first hunk, a `⋯` gap, then the second (the same-file
-  // second-hunk arm turns 62/63 cannot reach).
-  toolTurn(64, 'edit', '{"file_path":"src/config.ts","old_string":"const timeout = 30","new_string":"const timeout = 60"}', '已编辑')
-  // Turn 65: one run_code turn with three logged sub-dispatches — the Code
-  // Mode acceptance surface (parent code row + nested native-identical rows,
-  // including an isError sub-call and a bash sub-call that must hit the same
-  // keyed registration a top-level bash row uses).
+  const SAMPLE_TURN = Object.freeze({
+    twoLineTerminalFallbackRow: 60,
+    fallbackWrite: 61,
+    singleHunkEdit: 62,
+    newFileWrite: 63,
+    multiHunkEdit: 64,
+    codeModeSubDispatches: 65,
+    richTerminal: 66,
+    grepMatches: 67,
+    globPaths: 68,
+    readWindow: 69,
+    webSearch: 70,
+    webFetch: 71,
+    maxTokens: 72,
+    images: 73,
+    todo: 74,
+  })
+  toolTurn(SAMPLE_TURN.twoLineTerminalFallbackRow, 'fx-bash', '{"command":"ls -la\\necho done","cwd":"/tmp/fixture"}', 'total 2\ndrwxr-xr-x fixture\n-rw-r--r-- demo.txt')
+  toolTurn(SAMPLE_TURN.fallbackWrite, 'fx-write', '{"path":"notes/demo.txt","content":"hello fixture\\n"}', 'wrote notes/demo.txt')
+  toolTurn(SAMPLE_TURN.singleHunkEdit, 'edit', '{"file_path":"notes/demo.txt","old_string":"hello","new_string":"hello fixture"}', 'Edited')
+  toolTurn(SAMPLE_TURN.newFileWrite, 'write', '{"file_path":"notes/new-demo.txt","content":"hello fixture\\n"}', 'Written')
+  toolTurn(
+    SAMPLE_TURN.multiHunkEdit,
+    'edit',
+    JSON.stringify({ file_path: MULTI_HUNK_EDIT_PATH, old_string: 'const timeout = 30', new_string: 'const timeout = 60' }),
+    'Edited',
+  )
   {
-    const turn = 65
+    const turn = SAMPLE_TURN.codeModeSubDispatches
     const callId = `fx-call-${turn}`
     const program = 'const listing = await tools.bash({ command: "ls notes", description: "List notes" })\n'
       + 'const demo = await tools.read({ file_path: "notes/demo.txt" })\n'
@@ -434,7 +441,7 @@ function buildAlphaLog() {
       + 'return { listing, demo }'
     const args = JSON.stringify({ code: program, description: 'Read the notes files and summarize' })
     push({ type: 'turn/start', data: { turn } })
-    push({ type: 'user/message', surfaceOp: 'append', data: userMessage(text(`问题 ${turn}：run_code 样本。`)) })
+    push({ type: 'user/message', surfaceOp: 'append', data: userMessage(text(`Question ${turn}: run_code sample.`)) })
     push({ type: 'step/start', data: { turn, step: 0 } })
     push({
       type: 'assistant/message', surfaceOp: 'append',
@@ -464,117 +471,75 @@ function buildAlphaLog() {
     push({ type: 'step/end', data: { turn, step: 0 } })
     push({ type: 'turn/end', data: { turn, reason: { kind: 'completed' } } })
   }
-  // Turn 74: todo_write sample — the TodoRow toolview in the flow plus the
-  // todo/write snapshot event feeding the TodoPanel plan strip. Two items are
-  // in_progress: this fixture chooses the parallel policy, so both surfaces
-  // must render a parallel plan rather than the first active item alone.
-  const fixtureTodos = [
-    { content: '梳理需求', status: 'completed' },
-    { content: '实现 fixture 样本', status: 'in_progress' },
-    { content: '跑后台构建', status: 'in_progress' },
-    { content: '浏览器验收', status: 'pending' },
+  const parallelPlanTodos = [
+    { content: 'Gather requirements', status: 'completed' },
+    { content: 'Implement fixture samples', status: 'in_progress' },
+    { content: 'Run background build', status: 'in_progress' },
+    { content: 'Browser acceptance', status: 'pending' },
   ]
-  // Turn 66: the terminal sample turn 60's two clean prompt rows cannot cover —
-  // ANSI SGR coloring, output past the terminal card's height cap, a nested cwd
-  // whose prompt label is its last segment, and a non-zero exit authored beside
-  // the sample in TERMINAL_EXIT_STATUS — its body deliberately carries no
-  // `[exit code: N]` marker, since the real presenter consumes that one out of
-  // the body. Named `bash`, so it also covers
-  // the keyed toolview row (turn 60's `fx-bash` covers the render-site fallback
-  // row) — the two chat-row shapes the terminal card renders in.
-  //
-  // Ordered BEFORE the todo turn deliberately: the standing plan retires at the
-  // next `turn/start`, so a turn appended after it would leave the dock's plan
-  // strip empty and take the todo surfaces' own coverage with it.
-  toolTurn(66, 'bash', '{"command":"pnpm run check","cwd":"/tmp/fixture/deep/nested"}', TERMINAL_OUTPUT_FIXTURE)
+  toolTurn(SAMPLE_TURN.richTerminal, 'bash', '{"command":"pnpm run check","cwd":"/tmp/fixture/deep/nested"}', TERMINAL_OUTPUT_FIXTURE)
 
-  // Turns 67-68: the search card's two shapes. `grep` emits a `card: 'search'`
-  // `shape: 'matches'` result view (grouped-by-file matches, truncated with a
-  // larger `total`), `glob` emits `shape: 'paths'` (a flat path list, likewise
-  // truncated). Both ride the keyed SearchRow registration under their own
-  // names; the render-site fallback row is covered by the model derivation
-  // tests, since every fixture search tool has a keyed row. Ordered before the
-  // todo turn for the same standing-plan reason the bash turn is.
-  toolTurn(67, 'grep', '{"pattern":"SEARCH_MAX_LINES","path":"packages/client"}', SEARCH_MATCHES_TEXT)
-  toolTurn(68, 'glob', '{"pattern":"**/SearchBlock*","path":"packages/client"}', SEARCH_PATHS_TEXT)
+  toolTurn(SAMPLE_TURN.grepMatches, 'grep', '{"pattern":"SEARCH_MAX_LINES","path":"packages/client"}', SEARCH_MATCHES_TEXT)
+  toolTurn(SAMPLE_TURN.globPaths, 'glob', '{"pattern":"**/SearchBlock*","path":"packages/client"}', SEARCH_PATHS_TEXT)
 
-  // Turn 69: the read sample — a WINDOW past an offset so the card draws file
-  // line numbers starting above 1 and a "showing N of M" note (the window is
-  // shorter than READ_SAMPLE_TOTAL), with a `ts` language hint the shiki path
-  // highlights. Named `read`, so it exercises the keyed ReadRow registration.
-  // The render-site fallback ROW SHAPE (a read call on the generic flattened
-  // path) is covered by the turn 65 run_code read sub-dispatches, which
-  // session.ts folds with resultView: null; the fallback-row + read-CARD
-  // combination is pinned by the web_fetch case in read-card.spec.tsx, not by
-  // this fixture. The read render intent is result-side only, so its pending
-  // call stays a generic `kind: 'read'` card; presentResult carries the
-  // structured window.
-  toolTurn(69, 'read', `{"file_path":${JSON.stringify(READ_SAMPLE_PATH)},"offset":${READ_SAMPLE_FIRST_LINE}}`, READ_SAMPLE_TEXT)
+  toolTurn(SAMPLE_TURN.readWindow, 'read', `{"file_path":${JSON.stringify(READ_SAMPLE_PATH)},"offset":${READ_SAMPLE_FIRST_LINE}}`, READ_SAMPLE_TEXT)
 
-  // Turns 70-71: the web render intent — a web_search whose result view carries
-  // structured sources plus an answer (the citation list, one source lacking a
-  // title so its hostname labels the link, the capped indicator on), and a
-  // web_fetch whose result view carries the fetched URL and its HTTP status.
-  // Both keep a generic pending call view and add the `web` card only at
-  // result time, which is the contract's result-only web shape. Named after
-  // the real tools so they hit the keyed WebRow registration. Ordered BEFORE
-  // the todo turn for the same reason turn 66 is: the standing plan retires at
-  // the next turn/start, so a turn after it would empty the dock's plan strip.
-  toolTurn(70, 'web_search', '{"queries":["deepseek harness architecture"]}', 'Search results for deepseek harness architecture.')
-  toolTurn(71, 'web_fetch', '{"url":"https://www.deepseek.com/blog/harness-architecture"}', '# Harness architecture\n\nEverything is a plugin.')
+  toolTurn(SAMPLE_TURN.webSearch, 'web_search', '{"queries":["deepseek harness architecture"]}', 'Search results for deepseek harness architecture.')
+  toolTurn(SAMPLE_TURN.webFetch, 'web_fetch', '{"url":"https://www.deepseek.com/blog/harness-architecture"}', '# Harness architecture\n\nEverything is a plugin.')
 
-  // Turn 72: max-tokens sample — the provider ends the turn at its output cap
-  // mid-sentence, so the chat flow must render the turn-max-tokens notice
-  // instead of ending silently. Ordered before the todo turn for the same
-  // standing-plan reason the bash turn is.
-  push({ type: 'turn/start', data: { turn: 72 } })
-  push({ type: 'user/message', surfaceOp: 'append', data: userMessage(text('问题 72：请完整列出全部一百条条目。')) })
-  push({ type: 'step/start', data: { turn: 72, step: 0 } })
-  push({
-    type: 'assistant/message',
-    surfaceOp: 'append',
-    data: { turn: 72, step: 0, message: assistantMessage(text('条目 1：第一条。条目 2：第二条。条目 3：这一条写到一半被')) },
-  })
-  push({ type: 'step/end', data: { turn: 72, step: 0 } })
-  push({ type: 'turn/end', data: { turn: 72, reason: { kind: 'max-tokens' } } })
+  {
+    const turn = SAMPLE_TURN.maxTokens
+    push({ type: 'turn/start', data: { turn } })
+    push({ type: 'user/message', surfaceOp: 'append', data: userMessage(text('Question 72: please list all one hundred items in full.')) })
+    push({ type: 'step/start', data: { turn, step: 0 } })
+    push({
+      type: 'assistant/message',
+      surfaceOp: 'append',
+      data: { turn, step: 0, message: assistantMessage(text('Item 1: the first. Item 2: the second. Item 3: this one is cut off halfway and')) },
+    })
+    push({ type: 'step/end', data: { turn, step: 0 } })
+    push({ type: 'turn/end', data: { turn, reason: { kind: 'max-tokens' } } })
+  }
 
-  // Turn 73: user and assistant images share one durable fixture object.
-  // The todo turn remains last so its standing projection stays visible.
-  push({ type: 'turn/start', data: { turn: 73 } })
-  push({
-    type: 'user/message',
-    surfaceOp: 'append',
-    data: userMessage([{ type: 'image', attachment: FIXTURE_IMAGE_REF }, ...text('历史用户图片')]),
-  })
-  push({ type: 'step/start', data: { turn: 73, step: 0 } })
-  push({
-    type: 'assistant/message',
-    surfaceOp: 'append',
-    data: {
-      turn: 73,
-      step: 0,
-      message: assistantMessage(
-        [...text('结构化模型图片：'), { type: 'image', attachment: FIXTURE_IMAGE_REF }],
-        'fx-vision',
-      ),
-    },
-  })
-  push({ type: 'step/end', data: { turn: 73, step: 0 } })
-  push({ type: 'turn/end', data: { turn: 73, reason: { kind: 'completed' } } })
+  {
+    const turn = SAMPLE_TURN.images
+    push({ type: 'turn/start', data: { turn } })
+    push({
+      type: 'user/message',
+      surfaceOp: 'append',
+      data: userMessage([{ type: 'image', attachment: FIXTURE_IMAGE_REF }, ...text('Historical user image')]),
+    })
+    push({ type: 'step/start', data: { turn, step: 0 } })
+    push({
+      type: 'assistant/message',
+      surfaceOp: 'append',
+      data: {
+        turn,
+        step: 0,
+        message: assistantMessage(
+          [...text('Structured model image: '), { type: 'image', attachment: FIXTURE_IMAGE_REF }],
+          'fx-vision',
+        ),
+      },
+    })
+    push({ type: 'step/end', data: { turn, step: 0 } })
+    push({ type: 'turn/end', data: { turn, reason: { kind: 'completed' } } })
+  }
 
-  const todoArgs = JSON.stringify({ todos: fixtureTodos })
-  toolTurn(74, 'todo_write', todoArgs, 'Updated todo list: 1 pending, 2 in progress, 1 completed.')
-  // The real tool appends the snapshot mid-execution — between tool/call and
-  // tool/result — so the fixture reproduces that exact ordering (the last
-  // toolTurn events run ... tool/call, tool/result, step/end, turn/end).
-  const callIndex = events.length - 4
+  const todoArgs = JSON.stringify({ todos: parallelPlanTodos })
+  toolTurn(SAMPLE_TURN.todo, 'todo_write', todoArgs, 'Updated todo list: 1 pending, 2 in progress, 1 completed.')
+  const TOOL_TURN_TAIL_FROM_CALL = ['tool/call', 'tool/result', 'step/end', 'turn/end'].length
+  const callIndex = events.length - TOOL_TURN_TAIL_FROM_CALL
   const callTime = events[callIndex]?.time
-  events.splice(callIndex + 1, 0, { type: 'todo/write', time: callTime + 400, data: { todos: fixtureTodos } })
+  events.splice(callIndex + 1, 0, { type: 'todo/write', time: callTime + 400, data: { todos: parallelPlanTodos } })
   events.forEach((e, i) => { e.seq = i })
   return events
 }
 
-/** Narrows a parsed-JSON field to string; fixture args are authored in-file, so non-strings only mean a typo here. */
+/**
+ * Narrows a parsed-JSON field to string; fixture args are authored in-file, so non-strings only mean a typo here.
+ * @type {(value: unknown, fallback?: string) => string}
+ */
 /* v8 ignore next -- the fallback arm is the same in-file-typo guard as the JSON.parse catch above. */
 const str = (value, fallback = '') => typeof value === 'string' ? value : fallback
 
@@ -588,26 +553,18 @@ function presentCall(name, argsRaw) {
     return undefined
   }
   switch (name) {
-    // Both names present the same terminal card: `fx-bash` lands on the
-    // render-site fallback row, `bash` on the keyed BashRow registration.
     case 'fx-bash':
     case 'bash':
-      return { card: 'terminal', title: str(args.command), cwd: str(args.cwd, '/tmp/fixture'), description: 'fixture 终端样本' }
+      return { card: 'terminal', title: str(args.command), cwd: str(args.cwd, '/tmp/fixture'), description: 'fixture terminal sample' }
     case 'fx-write':
       return {
         card: 'diff', title: `Write ${str(args.path)}`,
         diffs: [{ path: str(args.path), oldText: null, newText: str(args.content) }],
       }
-    // A read pending call is a GENERIC card (kind: 'read', a follow-along
-    // location): the read render intent is result-side only, because a call
-    // carries no file content until execute returns. The rich read card arrives
-    // in presentResult.
     case 'read':
       return { card: 'generic', title: `Read ${str(args.file_path)}`, kind: 'read', locations: [{ path: str(args.file_path) }] }
     case 'edit':
-      // The multi-hunk sample (turn 64) is keyed on its file_path, so the two
-      // scattered hunks share one path header and the card draws the `⋯` gap.
-      if (str(args.file_path) === 'src/config.ts') {
+      if (str(args.file_path) === MULTI_HUNK_EDIT_PATH) {
         return {
           card: 'diff', title: `Edit ${str(args.file_path)}`,
           diffs: [
@@ -625,16 +582,10 @@ function presentCall(name, argsRaw) {
         card: 'diff', title: `Write ${str(args.file_path)}`,
         diffs: [{ path: str(args.file_path), oldText: null, newText: str(args.content) }],
       }
-    // A search call stays a generic card (kind: 'search'): the structured
-    // matches/paths exist only after execute, so the search card is result-time
-    // only (presentResult builds it). This mirrors the real grep/glob presenters.
     case 'grep':
       return { card: 'generic', title: `Grep ${str(args.pattern)}`, kind: 'search', rawInput: args }
     case 'glob':
       return { card: 'generic', title: `Glob ${str(args.pattern)}`, kind: 'search', rawInput: args }
-    // The web tools keep a GENERIC pending card and add the `web` result card
-    // only at result time (the contract's result-only web shape); their pending
-    // kind matches the result kind so a call and its result read as one category.
     case 'web_search': {
       const queries = Array.isArray(args.queries) ? args.queries.filter((query) => typeof query === 'string' && query !== '') : []
       const title = queries.join(', ')
@@ -643,40 +594,25 @@ function presentCall(name, argsRaw) {
     case 'web_fetch':
       return { card: 'generic', title: `Fetch ${str(args.url)}`, kind: 'fetch', rawInput: args }
     default:
-      return undefined // echo et al: the documented no-view fallback path
+      return NO_VIEW
   }
 }
 
 function presentResult(name, argsRaw, resultText) {
   const call = presentCall(name, argsRaw)
   if (call === undefined) return undefined
-  // Search is result-time only: the call stays a generic search card, and the
-  // result view carries the structured shape the card renders. The view holds no
-  // result text — a UI without a search card falls back to the raw tool/result
-  // content — so the truncation recovery footer rides that raw content (the
-  // `toolTurn` message text), not the view. `total` exceeds the retained count so
-  // the card shows its capped indicator.
   if (name === 'grep') {
     return { card: 'search', shape: 'matches', files: SEARCH_MATCHES_FIXTURE, truncated: true, total: 42 }
   }
   if (name === 'glob') {
     return { card: 'search', shape: 'paths', paths: SEARCH_PATHS_FIXTURE, truncated: true, total: 23 }
   }
-  // The read result is the structured window the tool projects through
-  // `presentationMeta`; the fixture authors it inline (it cannot import the
-  // tool). Keyed on the name because the read pending call is a generic card,
-  // so `call.card` alone does not distinguish it from edit/write.
   if (name === 'read') {
     return {
       card: 'read', path: READ_SAMPLE_PATH, offset: READ_SAMPLE_FIRST_LINE, lines: READ_SAMPLE_LINES,
       totalLines: READ_SAMPLE_TOTAL, lang: 'ts', content: text(resultText),
     }
   }
-  // The web tools keep a generic pending card, so their result card is chosen
-  // by tool name rather than by the pending card tag: the structured `web` card
-  // the frontend consumes. The view carries no `content` copy (per the contract
-  // and the web-result-card note); a capability-less UI falls back to the raw
-  // `tool/result` content, which this fixture emits from `resultText`.
   if (name === 'web_search') {
     return { card: 'web', kind: 'search', ...WEB_SEARCH_RESULT }
   }
@@ -685,15 +621,18 @@ function presentResult(name, argsRaw, resultText) {
   }
   switch (call.card) {
     case 'terminal':
-      // The sample's own exit status, authored beside it: re-parsing the
-      // trailing marker here would duplicate the bash tool's `parseExitStatus`,
-      // which this client-side fixture cannot import.
       return { card: 'terminal', output: resultText, ...(TERMINAL_EXIT_STATUS[resultText] ?? { exitCode: 0 }) }
     case 'diff':
       return { card: 'diff', diffs: call.diffs }
     case 'generic':
       return { card: 'generic', content: text(resultText) }
   }
+}
+
+/** Split a slash-command line into its name and verbatim `args` (separator whitespace included). */
+function splitCommandLine(line) {
+  const match = /^\/(\S+)((?:\s.*)?)$/.exec(line.trim())
+  return { name: match?.[1], args: match?.[2] ?? '' }
 }
 
 /** Host-side viewFor mirror: tool/call presents from its own args; tool/result back-scans the log for the paired call. */
@@ -714,7 +653,7 @@ function viewFor(event, log) {
         return view === undefined ? undefined : { for: 'result', view }
       }
     }
-    return undefined // cross-page unpaired: documented default
+    return NO_VIEW
   }
   return undefined
 }
@@ -756,7 +695,6 @@ function planViewOf(log) {
   return { active: plan.active, pending: plan.pending }
 }
 
-/** Fixture parallel of the host's projection units: whole current values per key over the full log. */
 /** Fixture preset table (the host PermissionPresetService defaults). */
 const PERMISSION_PRESETS = {
   'workspace-write': { sandbox: 'workspace-write', approval: 'ask', description: 'Write inside the workspace and permitted temporary directories; wider retries require approval.' },
@@ -907,6 +845,7 @@ const ROLE_OVERHEAD = 4
 /** Price fixture content with token-meter's fixed-density heuristic. */
 function estimateFixtureContent(blocks) {
   const densityPrice = (value) => Math.ceil(value.length / CHARS_PER_TOKEN)
+  const structuralJsonPrice = (block) => densityPrice(JSON.stringify(block))
   return blocks.reduce((tokens, block) => {
     if (block.type === 'text' || block.type === 'reasoning') {
       return tokens + densityPrice(block.text) + BLOCK_OVERHEAD
@@ -914,13 +853,10 @@ function estimateFixtureContent(blocks) {
     if (block.type === 'tool-call') {
       return tokens + densityPrice(block.name) + densityPrice(block.arguments) + BLOCK_OVERHEAD
     }
-    // ContentBlockMap is merge-extensible: this client graph sees only the
-    // base four members, but fixture turns do carry extended blocks at
-    // runtime, so the structural JSON fallback below is live code.
     if (block.type === 'tool-result') {
       return tokens + estimateFixtureContent(block.content) + BLOCK_OVERHEAD
     }
-    return tokens + densityPrice(JSON.stringify(block)) + BLOCK_OVERHEAD
+    return tokens + structuralJsonPrice(block) + BLOCK_OVERHEAD
   }, 0)
 }
 
@@ -991,27 +927,14 @@ function projectionValuesOf(log) {
   if (titleEvent !== undefined) {
     values['title'] = titleEvent.data.title
   }
-  // Always present (tool-todo unit composed): null when no plan stands.
   values['todos'] = backscanTodos(log) ?? null
-  // Always present (permission service composed): the whole select.
   values['permissions'] = permissionSelectOf(log)
-  // Always present (plan-mode unit composed): the {active, pending} view.
   values['plan'] = planViewOf(log)
-  // Always present (GoalService unit composed): null before create / after clear.
   values['goal'] = backscanGoal(log)
-  // Always present (token-meter composed): full-log provider billing.
   values['tokenUsage'] = tokenUsageOf(log)
-  // Always present (token-meter composed): last request pressure and capacity.
   values['contextPressure'] = contextPressureOf(log)
-  // Always present (token-meter composed): heuristic request composition.
   values['contextBreakdown'] = contextBreakdownOf(log)
-  // Always present (session-stats unit composed): whole-log turn/step counts.
   values['sessionStats'] = sessionStatsOf(log)
-  // Always present (attachment service composed): the deployment image
-  // limits, constant per boot (mirrors the attachment-local defaults).
-  // Deliberate host divergence: the real gateway never pushes an imageLimits
-  // change frame (constant unit), but the fixture's uniform baseline replay
-  // frames every key here, incidentally exercising higher-seq-wins.
   values['imageLimits'] = {
     maxImageBytes: 5 * 1024 * 1024,
     maxImagesPerMessage: 20,
@@ -1027,8 +950,8 @@ function projectionValuesOf(log) {
 function projectionFramesOf(id, log, event) {
   const type = event.type
   const frames = []
-  // One usage sample advances both token-meter units.
-  if (usageSampleOf(event) !== undefined) {
+  const advancesBothTokenMeterUnits = usageSampleOf(event) !== undefined
+  if (advancesBothTokenMeterUnits) {
     frames.push(
       { type: 'session/projection', sessionId: id, key: 'tokenUsage', value: tokenUsageOf(log), seq: event.seq },
       { type: 'session/projection', sessionId: id, key: 'contextPressure', value: contextPressureOf(log), seq: event.seq },
@@ -1055,9 +978,8 @@ function projectionFramesOf(id, log, event) {
       seq: event.seq,
     })
   }
-  // The stats fold's view advances on message assembly and tool settlement
-  // (wall times) and on step close (counts).
-  if (type === 'assistant/message' || type === 'tool/result' || type === 'step/end') {
+  const advancesStatsFold = type === 'assistant/message' || type === 'tool/result' || type === 'step/end'
+  if (advancesStatsFold) {
     frames.push({
       type: 'session/projection',
       sessionId: id,
@@ -1073,12 +995,11 @@ function projectionFramesOf(id, log, event) {
     if (!Object.hasOwn(values, 'title')) return []
     return [{ type: 'session/projection', sessionId: id, key: 'title', value: values['title'], seq: event.seq }]
   }
-  // The goal domain's own durable change advances its projection.
   if (type === 'goal/change') {
     return [{ type: 'session/projection', sessionId: id, key: 'goal', value: backscanGoal(log), seq: event.seq }]
   }
-  // Standing-plan fold: writes replace the list; turn/start clears it (null).
-  if (type === 'todo/write' || type === 'turn/start') {
+  const writesOrRetiresStandingPlan = type === 'todo/write' || type === 'turn/start'
+  if (writesOrRetiresStandingPlan) {
     return [{
       type: 'session/projection',
       sessionId: id,
@@ -1087,8 +1008,8 @@ function projectionFramesOf(id, log, event) {
       seq: event.seq,
     }]
   }
-  // Knob fold: any of the three whole-value knob events advances the select.
-  if (type === 'permission/preset' || type === 'sandbox/mode' || type === 'approval/policy') {
+  const isWholeValueKnobEvent = type === 'permission/preset' || type === 'sandbox/mode' || type === 'approval/policy'
+  if (isWholeValueKnobEvent) {
     return [{
       type: 'session/projection',
       sessionId: id,
@@ -1097,11 +1018,10 @@ function projectionFramesOf(id, log, event) {
       seq: event.seq,
     }]
   }
-  // The plan unit advances on its two folded event kinds when the command
-  // lifecycle contains the input that represents a plan selection.
   const commandData = event
-  if (type === 'plan/mode' || (type === 'command/run'
-    && commandData.data.name === 'plan' && typeof commandData.data.args === 'string')) {
+  const advancesPlanUnit = type === 'plan/mode' || (type === 'command/run'
+    && commandData.data.name === 'plan' && typeof commandData.data.args === 'string')
+  if (advancesPlanUnit) {
     return [{
       type: 'session/projection',
       sessionId: id,
@@ -1298,12 +1218,14 @@ function backscanGoal(log) {
   return null
 }
 
-/** Deterministic fixture branches used by keyless Web assembly tests. */
-
-/** Inbox pump shared by both stream generators (FrameQueue pattern: ONE abort listener hung
- *  outside the loop — a per-iteration {once:true} listener never fires for non-final rounds and
- *  piles up for the stream's lifetime). breakNow force-ends the stream without the
- *  client's signal (timing hook: simulated connection loss). */
+/**
+ * Deterministic fixture branches used by keyless Web assembly tests.
+ *
+ * Inbox pump shared by both stream generators (FrameQueue pattern: ONE abort listener hung
+ * outside the loop — a per-iteration {once:true} listener never fires for non-final rounds and
+ * piles up for the stream's lifetime). breakNow force-ends the stream without the
+ * client's signal (timing hook: simulated connection loss).
+ */
 class FxInbox {
   inbox = []
   wake = null
@@ -1363,7 +1285,6 @@ export function createFixtureFaces(options = {}) {
 
 /** Build the fixture's legacy API and Remote RPC faces over one state graph. */
 function createFixtureWorld(options) {
-  // The resident fixture sessions all carry history, so none of them is blank.
   const sessions = options.empty ? [] : [
     { sessionId: sid('fx-alpha'), updatedAt: Date.now(), running: true, blank: false, cwd: '/tmp/fixture' },
     { sessionId: sid('fx-beta'), updatedAt: Date.now() - 60_000, running: false, blank: false, parentSessionId: sid('fx-alpha'), cwd: '/tmp/fixture' },
@@ -1379,10 +1300,9 @@ function createFixtureWorld(options) {
     { attachment: FIXTURE_IMAGE_REF, data: FIXTURE_IMAGE_DATA },
   ]])
   /** Credential store double: set/unset flip the describe badge, values never read back. */
+  const FIRST_RUN_READINESS_CREDENTIAL = 'DEEPSEEK_API_KEY'
   const fixtureCredentials = new Map([
-    // The assembled fixture represents an already-configured shipped
-    // DeepSeek route so unrelated GUI journeys do not enter first-run setup.
-    ['DEEPSEEK_API_KEY', true],
+    [FIRST_RUN_READINESS_CREDENTIAL, true],
   ])
   /**
    * Preset compositions the fixture serves. Held as state rather than
@@ -1399,11 +1319,10 @@ function createFixtureWorld(options) {
   let nextSession = 1
   let nextRpc = 1
   let attachedSessions = options.empty ? 0 : 1
-  // Workspace entities mirroring the host registry: the fixture sessions all
-  // live under one workspace, whose account carries them in attach order.
   const wid = (raw) => raw
   const fixtureEpoch = new Date(Date.now() - 300_000).toISOString()
   const FIXTURE_HOME = '/home/fixture'
+  const FIXTURE_PROJECT_DIRECTORY = `${FIXTURE_HOME}/Documents/project`
   const workspaces = options.empty ? [] : [{
     workspaceId: wid('fx-ws-fixture'),
     path: '/tmp/fixture',
@@ -1413,21 +1332,15 @@ function createFixtureWorld(options) {
     updatedAt: fixtureEpoch,
   }, {
     workspaceId: wid('fx-ws-home'),
-    path: `${FIXTURE_HOME}/Documents/project`,
+    path: FIXTURE_PROJECT_DIRECTORY,
     title: 'project',
     sessionIds: [],
     createdAt: fixtureEpoch,
     updatedAt: fixtureEpoch,
   }]
   let nextWorkspace = 1
-  // Registry-global archive set mirroring the host: archived sessions keep
-  // their workspace accounting slot and only grouping surfaces hide them.
   const archivedSessionIds = []
 
-  // In-memory browse tree behind the fixture's `browse` picker capability —
-  // deterministic content mirroring the design mock so assembled Web tests
-  // and snapshots can walk it. Leaves are materialized lazily: a child listed
-  // by its parent lists as empty until something is created inside it.
   const directoryTree = new Map([
     ['/', ['home']],
     ['/home', ['fixture']],
@@ -1444,6 +1357,7 @@ function createFixtureWorld(options) {
     const name = path.slice(path.lastIndexOf('/') + 1)
     return directoryTree.get(parent)?.includes(name) === true ? [] : undefined
   }
+  const joinTreePath = (parent, name) => (parent === '/' ? `/${name}` : `${parent}/${name}`)
   const crumbsOf = (path) => {
     const crumbs = [{ name: '/', path: '/', hidden: false }]
     let acc = ''
@@ -1464,33 +1378,33 @@ function createFixtureWorld(options) {
   const fixtureQuestions = [
     {
       id: 'harness-profile',
-      header: '偏好',
-      question: '你现在更想招哪类 Agent/Harness 候选人？',
+      header: 'Profile',
+      question: 'Which kind of Agent/Harness candidate do you want to hire right now?',
       options: [
-        { label: '工程落地型 (Recommended)', description: '更看重能直接做 runtime、tool executor、sandbox、trace 和线上问题排查。' },
-        { label: '研究潜力型', description: '更看重 Agent 理解、训练评测思路和长期成长空间。' },
-        { label: '均衡型', description: '同时要求工程能力和 Agent 认知，但可能筛选门槛更高。' },
+        { label: 'Engineering delivery (Recommended)', description: 'Favors people who can directly build the runtime, tool executor, sandbox, tracing, and production debugging.' },
+        { label: 'Research potential', description: 'Favors agent understanding, training and evaluation thinking, and long-term growth.' },
+        { label: 'Balanced', description: 'Requires both engineering ability and agent understanding, but the screening bar may be higher.' },
       ],
     },
     {
       id: 'work-mode',
-      header: '方式',
-      question: '你希望候选人优先展示哪种工作方式？',
+      header: 'Approach',
+      question: 'Which way of working should candidates show first?',
       options: [
-        { label: '先做小型原型 (Recommended)', description: '用可运行结果尽快验证关键假设。' },
-        { label: '先写完整设计', description: '先收敛边界、协议和风险，再开始实现。' },
+        { label: 'Build a small prototype first (Recommended)', description: 'Validate key assumptions quickly with a working result.' },
+        { label: 'Write the full design first', description: 'Settle boundaries, protocols, and risks before implementing.' },
       ],
     },
     {
       id: 'signals',
-      header: '信号',
-      question: '哪些面试信号最重要？',
-      detail: '按当前招聘目标选择；跳过则视为不设偏好。',
+      header: 'Signals',
+      question: 'Which interview signals matter most?',
+      detail: 'Choose based on the current hiring goal; skipping means no preference.',
       multiSelect: true,
       options: [
-        { label: '系统设计' },
-        { label: '代码质量' },
-        { label: 'Agent 产品判断' },
+        { label: 'System design' },
+        { label: 'Code quality' },
+        { label: 'Agent product judgment' },
       ],
     },
   ]
@@ -1511,6 +1425,8 @@ function createFixtureWorld(options) {
   function err(request, error) {
     return Promise.resolve({ rpcId: request.rpcId, result: { ok: false, error } })
   }
+  const ALL_FIXTURE_ROUTES_SERVE = true
+  const deterministicNativeOpen = request => ok(request, { opened: true })
 
   const summaryOf = (id) => sessions.find(s => s.sessionId === id)
   /** Shared session guard for sessionId-addressed catalog routes: the error
@@ -1541,7 +1457,6 @@ function createFixtureWorld(options) {
     const log = logOf(id)
     const event = { seq: log.length, time: Date.now(), ...e }
     log.push(event)
-    // Emission-time view derivation (mirrors the host's live path).
     const view = viewFor(event, log)
     /* v8 ignore next 3 -- the view-present arm needs a live tool/call emission,
     but the fixture replay produces text-only turns; view vocabulary is
@@ -1549,7 +1464,6 @@ function createFixtureWorld(options) {
     emitMux(view === undefined
       ? { type: 'session/event', sessionId: id, event }
       : { type: 'session/event', sessionId: id, event, view })
-    // Host eager-drive parallel: a unit-advancing event pushes its finished value.
     for (const frame of projectionFramesOf(id, log, event)) emitMux(frame)
   }
 
@@ -1561,6 +1475,25 @@ function createFixtureWorld(options) {
       data: change,
     })
     return backscanGoal(log)
+  }
+
+  /** Commit an outstanding /plan selection as plan/mode, inside the turn just opened. */
+  const commitOutstandingPlanSelection = (id) => {
+    const plan = foldPlan(logOf(id))
+    if (plan.wanted !== null && plan.wanted !== plan.active) {
+      append(id, { type: 'plan/mode', data: { active: plan.wanted } })
+    }
+  }
+
+  /** Log-only route capacity record, appended inside the open turn unless the last one already names this model. */
+  const recordRouteContextOnModelChange = (id) => {
+    const selection = modelSelections.get(id) ?? { provider: 'deepseek', model: 'deepseek-v4-flash' }
+    if (lastRequestContext(logOf(id))?.model !== selection.model) {
+      append(id, {
+        type: 'request/context',
+        data: { provider: selection.provider, model: selection.model, contextWindow: FIXTURE_CONTEXT_WINDOW },
+      })
+    }
   }
 
   const goalFailure = (message) => ({
@@ -1582,8 +1515,8 @@ function createFixtureWorld(options) {
       return {
         ok: true,
         value: [
-          { name: 'compact', description: 'fixture：压缩当前会话上下文' },
-          { name: 'echo', description: 'fixture：回显参数', input: { hint: 'text to echo' } },
+          { name: 'compact', description: 'fixture: compact the current session context' },
+          { name: 'echo', description: 'fixture: echo the arguments', input: { hint: 'text to echo' } },
           { name: 'goal', description: 'set or view the goal for a long-running task', input: { hint: '<objective>', images: true } },
           { name: 'permission', description: 'Switch the permission preset (sandbox mode + approval policy)', input: { hint: '<preset>' } },
           { name: 'plan', description: 'Enter or leave plan mode', input: { hint: '[off|message]', images: true } },
@@ -1593,19 +1526,9 @@ function createFixtureWorld(options) {
     execute(id, line, images = []) {
       const missing = requireGoalSession(id)
       if (missing !== undefined) return missing
-      // Structured split mirroring the Host parser: name + verbatim rawInput
-      // (separator whitespace included) — the run payload carries no line.
-      const match = /^\/(\S+)((?:\s.*)?)$/.exec(line.trim())
-      const name = match?.[1]
-      const args = match?.[2] ?? ''
-      // Mirror the Host image policy AFTER command resolution, matching the
-      // executor's order (an unknown name answers undefined and logs no
-      // lifecycle): the declaration rejection covers every known command
-      // without `input.images`, and the two producer grammar rejections cover
-      // the declaring commands' control-only lines. The fixture stores no
-      // bytes, so an accepted batch is acknowledged and dropped.
-      const known = ['permission', 'goal', 'compact', 'echo', 'plan']
-      if (images.length > 0 && name !== undefined && known.includes(name)) {
+      const { name, args } = splitCommandLine(line)
+      const commandsResolvedByFixture = ['permission', 'goal', 'compact', 'echo', 'plan']
+      if (images.length > 0 && name !== undefined && commandsResolvedByFixture.includes(name)) {
         const rejection = name !== 'goal' && name !== 'plan'
           ? `/${name} does not accept image attachments`
           : name === 'goal' && args.trim() === ''
@@ -1665,7 +1588,7 @@ function createFixtureWorld(options) {
       }
       const running = summaryOf(id)?.running === true
       const outcomes = {
-        compact: 'fixture：已压缩（假动作）',
+        compact: 'fixture: compacted (fake action)',
         echo: args.trim(),
         plan: args.trim() === 'off'
           ? (running ? 'Leaving plan mode (applies from the next step).' : 'Plan mode off.')
@@ -1697,7 +1620,6 @@ function createFixtureWorld(options) {
     activation: projection.goal.phase === 'active' ? 'armed' : 'disarmed',
   })
 
-  /** Canonical fixture implementation of the generated Goal Remote contract. */
   /** Canonical fixture implementation of the generated reference-discovery Remote contracts. */
   const referenceRemotes = {
     files(id, query) {
@@ -1730,13 +1652,14 @@ function createFixtureWorld(options) {
             label,
             ...item.cwd === undefined ? {} : { cwd: item.cwd },
             createdAt: item.updatedAt,
-            mention: `@[${label}](dsh-session:${encoded})`,
+            mention: `@[${label}](freddie-session:${encoded})`,
           }
         })
       return { ok: true, value }
     },
   }
 
+  /** Canonical fixture implementation of the generated Goal Remote contract. */
   const goalRemotes = {
     create(id, request) {
       const missing = requireGoalSession(id)
@@ -1858,10 +1781,6 @@ function createFixtureWorld(options) {
   /** The single opt-in browser stress producer; normal fixture journeys never start it. */
   let activeReasoningChunkStorm = null
 
-  // Timing-acceptance hooks (browser test backdoor): the in-memory fixture is
-  // ideally timed. These let
-  // browser acceptance runs create slow-history, lost-frame, and reconnect
-  // windows a real host produces naturally.
   const timingHooks = {
     setHistoryDelay(ms) {
       historyDelayMs = ms
@@ -1940,7 +1859,7 @@ function createFixtureWorld(options) {
         for (let index = state.emitted; index < end; index++) {
           const chunkText = index === chunkCount - 1
             ? `\n${marker}`
-            : index % 64 === 63 ? '推理\n' : '推理'
+            : index % 64 === 63 ? '💭\n' : '💭'
           append(sessionId, {
             type: 'assistant/chunk',
             data: { turn, step: 0, chunk: { type: 'reasoning-delta', index: 0, text: chunkText } },
@@ -1968,10 +1887,10 @@ function createFixtureWorld(options) {
       retryScenarios.set(sessionId, { turn, stepStarted: true })
       setRunning(sessionId, true)
       append(sessionId, { type: 'turn/start', data: { turn } })
-      append(sessionId, { type: 'user/message', surfaceOp: 'append', data: { content: text('请重试这个请求'), source: { kind: 'user' } } })
+      append(sessionId, { type: 'user/message', surfaceOp: 'append', data: { content: text('Please retry this request'), source: { kind: 'user' } } })
       append(sessionId, { type: 'step/start', data: { turn, step: 1 } })
       append(sessionId, { type: 'assistant/chunk', data: { turn, step: 1, chunk: { type: 'block-start', index: 0, blockType: 'text' } } })
-      append(sessionId, { type: 'assistant/chunk', data: { turn, step: 1, chunk: { type: 'text-delta', index: 0, text: '应撤回的半截回复' } } })
+      append(sessionId, { type: 'assistant/chunk', data: { turn, step: 1, chunk: { type: 'text-delta', index: 0, text: 'Half a reply that should be retracted' } } })
     },
     /** Record one retry decision; the next attempt remains in the same step. */
     scheduleModelRetry(id, retry = 1, delayMs = 450) {
@@ -1980,10 +1899,10 @@ function createFixtureWorld(options) {
       if (scenario === undefined) throw new Error(`fixture: no model retry scenario for ${id}`)
       if (!scenario.stepStarted) {
         append(sessionId, { type: 'assistant/chunk', data: { turn: scenario.turn, step: 1, chunk: { type: 'block-start', index: 0, blockType: 'text' } } })
-        append(sessionId, { type: 'assistant/chunk', data: { turn: scenario.turn, step: 1, chunk: { type: 'text-delta', index: 0, text: `第 ${String(retry)} 次应撤回的回复` } } })
+        append(sessionId, { type: 'assistant/chunk', data: { turn: scenario.turn, step: 1, chunk: { type: 'text-delta', index: 0, text: `Reply number ${String(retry)} that should be retracted` } } })
         scenario.stepStarted = true
       }
-      const failure = { code: 'TRANSPORT', message: '连接被重置' }
+      const failure = { code: 'TRANSPORT', message: 'Connection was reset' }
       append(sessionId, {
         type: 'llm/retry',
         data: {
@@ -1999,7 +1918,7 @@ function createFixtureWorld(options) {
       const sessionId = sid(id)
       const scenario = retryScenarios.get(sessionId)
       if (scenario === undefined) throw new Error(`fixture: no model retry scenario for ${id}`)
-      const failure = { code: 'TRANSPORT', message: '连接被重置' }
+      const failure = { code: 'TRANSPORT', message: 'Connection was reset' }
       append(sessionId, {
         type: 'llm/retry',
         data: {
@@ -2031,7 +1950,7 @@ function createFixtureWorld(options) {
         data: {
           turn: scenario.turn,
           step: 1,
-          message: assistantMessage(text('重试后的完整回复')),
+          message: assistantMessage(text('Complete reply after the retry')),
         },
       })
       append(sessionId, { type: 'step/end', data: { turn: scenario.turn, step: 1 } })
@@ -2068,7 +1987,7 @@ function createFixtureWorld(options) {
         data: {
           turn,
           step,
-          message: assistantMessage(text(aborted ? `${done}（已中断）` : done)),
+          message: assistantMessage(text(aborted ? `${done} (interrupted)` : done)),
           usage: fixtureUsage(turn, step),
         },
       })
@@ -2183,7 +2102,6 @@ function createFixtureWorld(options) {
         modelSelections.set(created.sessionId, { provider: 'deepseek-official', model: 'deepseek-v4-flash' })
         attachedSessions += 1
         const emitSession = () => {
-          // Mirrors the host: the frame fires at creation, so blank is constantly true.
           emitHost({ type: 'host/session-added', sessionId: created.sessionId, blank: true, cwd })
         }
         if (workspace !== undefined && options.failWorkspaceAttach) {
@@ -2212,8 +2130,6 @@ function createFixtureWorld(options) {
             details: { sessionId },
           })
         }
-        // The append emits the session/event and its session/projection frame
-        // (host parallel); the unary response settles the caller first.
         append(sessionId, {
           type: 'session/title',
           data: { title: normalized, messageSeqs: [], source: { kind: 'user' } },
@@ -2273,11 +2189,7 @@ function createFixtureWorld(options) {
       },
       history: async (request) => {
         const log = logs.get(request.payload.sessionId) ?? []
-        // Snapshot at request time, deliver after the transit delay (mirrors a real host under latency).
         const page = pageOf(log, request.payload.beforeSeq, request.payload.maxMessages ?? 50)
-        // Tail page carries the projections block (host parallel: one consistent
-        // cut over the registered units; asOfSeq = window tail seq, -1 on an
-        // empty log — the host's session.seq-1 convention).
         const projections = request.payload.beforeSeq === undefined
           ? { asOfSeq: log.length - 1, values: projectionValuesOf(log) }
           : undefined
@@ -2291,9 +2203,7 @@ function createFixtureWorld(options) {
       models: request => ok(request, {
         current: modelSelections.get(request.payload.sessionId)
           ?? { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
-        // The fixture's routes all serve; a surface exercising the blocked
-        // posture drives it through its own stub.
-        routable: true,
+        routable: ALL_FIXTURE_ROUTES_SERVE,
         groups: fixtureModelGroups(),
         failures: [],
       }),
@@ -2329,7 +2239,6 @@ function createFixtureWorld(options) {
           })
         }
         summary.updatedAt = Date.now()
-        // First accepted prompt appends events: the summary stops being blank.
         summary.blank = false
         const userText = content.map(b => (b.type === 'text' ? b.text : '')).join('')
         const durable = content.map((block) => {
@@ -2349,8 +2258,8 @@ function createFixtureWorld(options) {
           attachments.set(String(attachment.attachmentId), { attachment, data: block.data })
           return { type: 'image', attachment }
         })
-        if (mode === 'steer' && replays.has(id)) {
-          // Steering: the durable user/message lands inside the current turn; the replay continues.
+        const steersRunningReplay = mode === 'steer' && replays.has(id)
+        if (steersRunningReplay) {
           append(id, { type: 'user/message', surfaceOp: 'append', data: userMessage(durable) })
           return ok(request, { accepted: true })
         }
@@ -2358,23 +2267,9 @@ function createFixtureWorld(options) {
         nextTurn.set(id, turn + 1)
         setRunning(id, true)
         append(id, { type: 'turn/start', data: { turn } })
-        // Boundary flush parallel (the host's step/start observer): an outstanding
-        // /plan selection commits as plan/mode inside the opened turn.
-        const plan = foldPlan(logOf(id))
-        if (plan.wanted !== null && plan.wanted !== plan.active) {
-          append(id, { type: 'plan/mode', data: { active: plan.wanted } })
-        }
+        commitOutstandingPlanSelection(id)
         append(id, { type: 'user/message', surfaceOp: 'append', data: userMessage(durable) })
-        // Capacity parallel of the host token-meter's request/context record:
-        // log-only, appended inside the open turn, and deduplicated against the
-        // route already recorded (the fixture never varies contextWindow).
-        const selection = modelSelections.get(id) ?? { provider: 'deepseek', model: 'deepseek-v4-flash' }
-        if (lastRequestContext(logOf(id))?.model !== selection.model) {
-          append(id, {
-            type: 'request/context',
-            data: { provider: selection.provider, model: selection.model, contextWindow: 128_000 },
-          })
-        }
+        recordRouteContextOnModelChange(id)
         startReply(
           id,
           turn,
@@ -2383,10 +2278,10 @@ function createFixtureWorld(options) {
             : userText === 'report model'
               ? (() => {
                 const selection = modelSelections.get(id)
-                return `当前模型：${selection?.provider ?? 'unknown'}/${selection?.model ?? 'unknown'}`
-                  + (selection?.reasoningEffort === undefined ? '' : ` · 推理等级：${selection.reasoningEffort}`)
+                return `Current model: ${selection?.provider ?? 'unknown'}/${selection?.model ?? 'unknown'}`
+                  + (selection?.reasoningEffort === undefined ? '' : ` · Reasoning effort: ${selection.reasoningEffort}`)
               })()
-              : `回声：${userText}。这是 fixture 的流式回复，用于验证打字机增长与定稿切换。`,
+              : `Echo: ${userText}. This is the fixture streaming reply, used to verify typewriter growth and finalization switching.`,
         )
         return ok(request, { accepted: true })
       },
@@ -2445,10 +2340,7 @@ function createFixtureWorld(options) {
       describe: request => ok(request, {
         version: '0.0.0-fixture', cwd: '/tmp/fixture', attachedSessions, home: FIXTURE_HOME, canOpenPath: true,
       }),
-      // Deterministic native pick: the keyless lanes drive the full
-      // pick-then-adopt path without an OS chooser (design-mock content,
-      // same tree the browse primitives serve).
-      pickDirectory: request => ok(request, { path: `${FIXTURE_HOME}/Documents/project` }),
+      pickDirectory: request => ok(request, { path: FIXTURE_PROJECT_DIRECTORY }),
       listDirectory: (request) => {
         const target = request.payload.path ?? FIXTURE_HOME
         const children = childrenOf(target)
@@ -2460,8 +2352,7 @@ function createFixtureWorld(options) {
           home: FIXTURE_HOME,
           crumbs: crumbsOf(target),
           entries: [...children].sort((a, b) => a.localeCompare(b))
-            .map(name => ({ name, path: target === '/' ? `/${name}` : `${target}/${name}`, hidden: name.startsWith('.') })),
-          // The fixture tree is tiny; no level ever reaches a backend bound.
+            .map(name => ({ name, path: joinTreePath(target, name), hidden: name.startsWith('.') })),
           truncated: false,
         })
       },
@@ -2471,9 +2362,7 @@ function createFixtureWorld(options) {
         if (children === undefined) {
           return err(request, { code: 'directory-create-failed', message: `missing parent ${parent}`, details: { path: parent } })
         }
-        // Same root special case as listDirectory's entry paths: a plain join
-        // under '/' would mint '//name' and fork the tree's identity.
-        const target = parent === '/' ? `/${request.payload.name}` : `${parent}/${request.payload.name}`
+        const target = joinTreePath(parent, request.payload.name)
         if (children.includes(request.payload.name)) {
           return err(request, { code: 'directory-exists', message: `${target} already exists`, details: { path: target } })
         }
@@ -2481,7 +2370,7 @@ function createFixtureWorld(options) {
         directoryTree.set(target, [])
         return ok(request, { path: target })
       },
-      openPath: request => ok(request, { opened: true }),
+      openPath: deterministicNativeOpen,
     },
     workspace: {
       list: request => ok(request, {
@@ -2616,8 +2505,6 @@ function createFixtureWorld(options) {
       },
     },
     agentPresets: {
-      // Both trusts appear, because a surface must present a locally authored
-      // preset differently from one the deployment vetted.
       list: request => ok(request, {
         presets: [...fixturePresets].map(([id, preset]) => ({
           id,
@@ -2667,9 +2554,6 @@ function createFixtureWorld(options) {
         fixturePresets.set(agentPreset, { trust: 'user', content: source.content })
         return ok(request, { agentPreset })
       },
-      // Native opens are deterministic no-op successes in this fixture, so the
-      // open-directory affordance renders and the path-text fallback stays a
-      // component-test concern.
       openDocument: (request) => {
         const { agentPreset } = request.payload
         const existing = fixturePresets.get(agentPreset)
@@ -2703,15 +2587,13 @@ function createFixtureWorld(options) {
         if (missing !== undefined) return missing
         return ok(request, {
           skills: [
-            { name: 'fixture-demo', description: 'fixture 技能样本', whenToUse: '仅供 UI 目录渲染验收', modelInvocable: true },
-            { name: 'fixture-user-only', description: 'fixture 仅用户技能样本', modelInvocable: false },
+            { name: 'fixture-demo', description: 'fixture skill sample', whenToUse: 'For UI catalog render acceptance only', modelInvocable: true },
+            { name: 'fixture-user-only', description: 'fixture user-only skill sample', modelInvocable: false },
           ],
         })
       },
     },
     goals: {
-      // Compatibility face only: old API Proxy payloads and acknowledgements
-      // adapt to the canonical fixture Remote implementation above.
       create: request => legacyGoalResponse(
         request,
         mapGoalResult(
@@ -2755,12 +2637,10 @@ function createFixtureWorld(options) {
         muxConns.add(conn)
         const breakNow = () => { conn.breakNow() }
         streamBreakers.add(breakNow)
-        // Open baseline: subscribed sessions + pending interactions replayed with stable rpcIds.
         for (const s of sessions) {
           if (!s.running) continue
           const log = logs.get(s.sessionId) ?? []
           conn.push({ rpcId: mint(), payload: { type: 'session/subscribed', sessionId: s.sessionId, lastSeq: log.length - 1 } })
-          // Post-subscribe projection baseline (host parallel: recomputed unit values ride push frames).
           const values = projectionValuesOf(log)
           for (const key of Object.keys(values)) {
             conn.push({ rpcId: mint(), payload: { type: 'session/projection', sessionId: s.sessionId, key, value: values[key], seq: log.length - 1 } })
@@ -2772,7 +2652,7 @@ function createFixtureWorld(options) {
             payload: {
               type: 'approval/requested', sessionId: sid('fx-alpha'),
               approvalId: pendingApprovalId,
-              toolName: 'dangerous_tool', reason: 'fixture 常驻审批（可答：批准/拒绝后消失）',
+              toolName: 'dangerous_tool', reason: 'fixture persistent approval (answer: disappears after approve/deny)',
             },
           })
         }
@@ -2796,13 +2676,12 @@ function createFixtureWorld(options) {
         hostConns.add(conn)
         const breakNow = () => { conn.breakNow() }
         streamBreakers.add(breakNow)
-        // Periodic material (the RPC-panel acceptance's clear-then-new-frames step depends on it): flip fx-gamma every 5s.
-        // fx-gamma only: never touch fx-alpha's running semantics (the conversation replay drives that).
+        const GAMMA_FLIP_INTERVAL_MS = 5000
         const timer = setInterval(() => {
           const gamma = summaryOf(sid('fx-gamma'))
           /* v8 ignore next -- the undefined arm needs fx-gamma deleted, but the fixture never removes sessions. */
           if (gamma !== undefined) setRunning(gamma.sessionId, !gamma.running)
-        }, 5000)
+        }, GAMMA_FLIP_INTERVAL_MS)
         try {
           yield* conn.drain(signal)
         } finally {
@@ -2813,9 +2692,6 @@ function createFixtureWorld(options) {
       },
     },
     settings: {
-      // Only the resolved DeepSeek address needed by first-run readiness is
-      // represented here. Fixture-backed journeys do not open its Models
-      // editor; real schema-driven forms ride the HTTP transport.
       describe: request => ok(request, {
         writable: true,
         hasDocument: true,
@@ -2828,8 +2704,7 @@ function createFixtureWorld(options) {
           revision: 0,
         }],
       }),
-      // Native opens are deterministic no-op successes in this fixture, as is host.openPath.
-      openDocument: request => ok(request, { opened: true }),
+      openDocument: deterministicNativeOpen,
       update: request => err(request, {
         code: 'settings-rejected',
         message: 'fixture: the minimal readiness settings descriptor is read-only',
@@ -2869,22 +2744,15 @@ function createFixtureWorld(options) {
           { provider: 'deepseek-official', displayName: 'DeepSeek', settingsNs: 'llm-deepseek', settingsPath: [], active: true },
           { provider: 'openai', displayName: 'openai', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'openai'], active: true, declared: false },
           { provider: 'anthropic', displayName: 'anthropic', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'anthropic'], active: false, declared: false },
-          // One hand-declared route, so a surface reading this fixture meets
-          // the tagged shape rather than only the shipped one.
           { provider: 'acme-gateway', displayName: 'Acme Gateway', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'acme-gateway'], active: true, declared: true },
         ],
       }),
       models: request => ok(request, { groups: fixtureModelGroups(), failures: [] }),
-      // The fixture endpoint is imaginary, so the interrogation answers the
-      // catalog it already serves — enough for a surface to exercise adopting
-      // candidates without a reachable provider.
       discoverModels: request => ok(request, {
         models: fixtureModelGroups().flatMap(group => group.models.map(model => ({ id: model.id, name: model.name }))),
       }),
     },
     respond(message) {
-      // Same routing discipline as the host: rpcId first, then the payload's
-      // audit correlation; a settled or unknown id is not-pending.
       if (message.rpcId === pendingApprovalRpcId) {
         if (!approvalPending) return Promise.resolve({ accepted: false, reason: 'not-pending' })
         if (!message.result.ok) return Promise.resolve({ accepted: false, reason: 'bad-response' })
@@ -2907,9 +2775,6 @@ function createFixtureWorld(options) {
       })
       return Promise.resolve({ accepted: true })
     },
-    // Satisfies the ApiProxy contract type only: the browser export button
-    // hands GET /api/session.export to the native download manager, so this
-    // stub is never reached through the fixture's dispatch.
     downloads: {
       sessionLog: () => Promise.resolve(new Response('fixture mode does not serve session export', { status: 404 })),
     },
@@ -3066,8 +2931,6 @@ export class FixtureApiClient extends AbstractApiClient {
     stream,
     onOpen,
   ) {
-    // No HTTP here: the in-memory stream is established the moment iteration starts (mirrors
-    // readSse firing onOpen after response headers, before any frame).
     onOpen?.()
     for await (const envelope of stream) {
       const full = { type: 'server-request', rpcId: envelope.rpcId, method: envelope.payload.type, payload: envelope.payload }

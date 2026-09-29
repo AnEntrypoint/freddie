@@ -18,16 +18,12 @@
   color: var(--freddie-alias-label-tertiary);
 }
 
-/* Cards, not rows: a preset is a thing you pick, and the description is the
-   part that tells them apart — a row would bury it beside the actions. */
 .freddie-agentPresetSection__group {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-/* Group-to-group breathing room: the section's 12px gap plus 20px reads the
-   two rosters as separate blocks (32px total). */
 .freddie-agentPresetSection__group + .freddie-agentPresetSection__group {
   margin-top: 20px;
 }
@@ -47,8 +43,6 @@
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
-  /* Every row the same height, so a short description does not make its card
-     shorter than the one beside it. */
   grid-auto-rows: 1fr;
   gap: 12px;
 }
@@ -67,14 +61,11 @@
   border-color: var(--freddie-alias-label-dimmed);
 }
 
-/* The default preset reads as selected, not merely badged. */
 .freddie-agentPresetSection__cardActive {
   background: var(--freddie-alias-bg-layer-2);
   border-color: var(--freddie-alias-label-primary);
 }
 
-/* A broken preset reads as damaged before anything else: the card cannot be
-   picked, so its border carries the warning the disabled body cannot. */
 .freddie-agentPresetSection__cardBroken {
   border-color: var(--freddie-alias-state-error-primary);
 }
@@ -94,7 +85,6 @@
   color: var(--freddie-alias-bg-layer-3);
 }
 
-/* The discovery-reported reason, verbatim: it names the file and the fix. */
 .freddie-agentPresetSection__cardBrokenReason {
   font-size: 12px;
   line-height: 1.5;
@@ -102,7 +92,6 @@
   overflow-wrap: anywhere;
 }
 
-/* The card body is the control that picks the preset. */
 .freddie-agentPresetSection__cardMain {
   flex: 1;
   appearance: none;
@@ -161,13 +150,6 @@
   color: var(--freddie-alias-bg-layer-3);
 }
 
-/* Bounded to four lines. A preset publishes its own description, so one long
-   one would otherwise stretch every card in its grid row (`.cards` sizes rows
-   1fr). Clamping is CSS alone: the whole text stays in the DOM for assistive
-   tech, and the card offers it on hover when it is actually cut off. The
-   description does not grow to fill the card — `-webkit-line-clamp` on a
-   flex-stretched box leaves the clamp height and the box height disagreeing,
-   so `.cardId` takes the free space with an auto margin instead. */
 .freddie-agentPresetSection__cardDesc {
   font-size: 13px;
   line-height: 1.55;
@@ -177,7 +159,6 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
   overflow: hidden;
-  /* A user-authored description may carry an unbreakable path or URL. */
   overflow-wrap: anywhere;
 }
 
@@ -196,8 +177,6 @@
   border-top: 1px solid var(--freddie-alias-border-l2);
 }
 
-/* Icon-only actions: the label rides `title` so the row stays quiet until
-   someone reaches for it. */
 .freddie-agentPresetSection__iconButton {
   position: relative;
   appearance: none;
@@ -254,8 +233,6 @@
   color: var(--freddie-alias-state-error-primary);
 }
 
-/* Where the host has no desktop opener, the row answers with the directory
-   itself — text to copy, not a control that would spawn into nothing. */
 .freddie-agentPresetSection__revealedPath {
   margin: 0;
   padding: 6px 16px 10px;
@@ -340,7 +317,6 @@
   gap: 12px;
 }
 
-/* A shipped composition can be long; the dialog scrolls it rather than grow. */
 .freddie-agentPresetSection__viewerCode {
   margin: 0;
   padding: 12px;
@@ -378,9 +354,6 @@
   background: var(--freddie-alias-interactive-bg-hover-danger);
 }
 
-/* The conversational authoring entry, after the card grid in the spot the
-   create button vacated. Dashed like the Models page's add affordances: it
-   reads as a place a preset will appear, not a command. */
 .freddie-agentPresetSection__creatorButton {
   box-sizing: border-box;
   align-self: stretch;

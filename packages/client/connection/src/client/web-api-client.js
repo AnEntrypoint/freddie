@@ -1,8 +1,9 @@
 /** Browser API carrier: HTTP upstream plus one WebSocket per downstream event stream. */
 
-import { AbstractApiClient } from './api.js'
+import { AbstractApiClient, RpcId } from './api.js'
 import { serverRequestSchema } from '@freddie/freddie-host-apiproxy/api/rpc.schema'
 import { HOST_EVENTS_PATH, MUX_EVENTS_PATH } from '../api-path.js'
+import { randomUuid } from './random-uuid.js'
 
 const MAX_INBOX_ITEMS = 2048
 
@@ -10,6 +11,10 @@ const MAX_INBOX_ITEMS = 2048
 export class WebApiClient extends AbstractApiClient {
   doFetch(input, init) {
     return globalThis.fetch(input, init)
+  }
+
+  mintRpcId() {
+    return RpcId(randomUuid())
   }
 
   openMux(
@@ -58,8 +63,6 @@ export class WebApiClient extends AbstractApiClient {
         if (typeof event.data !== 'string') throw new Error('binary WebSocket frame')
         full = serverRequestSchema.parse(JSON.parse(event.data))
       } catch (error) {
-        // A malformed server frame makes this stream untrustworthy. End this
-        // generation so ConnectionController rebuilds both subscriptions.
         console.error(`[client-connection] malformed WebSocket frame on ${path}:`, error)
         enqueue({ kind: 'end' })
         socket.close(1002, 'invalid server frame')

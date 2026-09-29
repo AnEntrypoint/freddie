@@ -65,8 +65,6 @@ export function renderTexToVNodes(value, displayMode) {
     try {
       html = katex.renderToString(value, { displayMode, strict: 'ignore', throwOnError: false })
     } catch {
-      // KaTeX renders ParseErrors itself under throwOnError: false; only its
-      // internal errors reach here, so mirror rehype-katex's manual span.
       /* v8 ignore next 8 */
       return [
         h(

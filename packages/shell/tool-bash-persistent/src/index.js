@@ -8,13 +8,10 @@ import z from '@freddie/schemastery'
 import { deadline, timeoutOf } from '@freddie/freddie-timeout'
 import { defineTool } from '@freddie/freddie-tools'
 
-// TODO: Replace the file-search advice; arbitrary command output need not come from a searchable file.
 const TRUNCATED_MESSAGE = '<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with `grep -n` in order to find the line numbers of what you are looking for.</NOTE>'
 const LOST_PREFIX_MESSAGE = '<response clipped><NOTE>The beginning of this command output was dropped by the terminal scrollback limit. The following text is the earliest retained output.</NOTE>\n'
 const SHELL_RESET_MESSAGE = 'The persistent bash shell was reset; the next bash call starts from the workspace with a fresh current directory and environment.'
 const TIMEOUT_CODE = 'PERSISTENT_BASH_TIMEOUT'
-// One page is enough to find a just-emitted completion marker; the full
-// scrollback is assembled only when a command settles or needs partial output.
 const SCROLLBACK_PAGE_LINES = 1_000
 const POLL_INTERVAL_MS = 25
 
@@ -44,9 +41,6 @@ function quoteForBash(value) {
 }
 
 function wrapCommand(command, marker) {
-  // Keep the wrapper on one physical line. An interactive bash prints PS2 for
-  // embedded newlines before executing the buffer, which would leak terminal
-  // prompts and marker source text into the model-facing result.
   return `printf '%s\\n' ${quoteForBash(marker.start)}; eval -- ${quoteForBash(command)}; __dsh_persistent_bash_status=$?; printf '%s%s\\n' ${quoteForBash(marker.end)} "$__dsh_persistent_bash_status"`
 }
 
@@ -204,8 +198,6 @@ function persistentShells(ctx, config) {
             live.delete(owner)
           }, 'tool-bash-persistent owner cache cleanup')
         }
-        // Echo suppression only: the prompt stays the backend's own, so the
-        // backend's prompt-based readiness detection keeps working.
         const setup = ctx.terminals.startSend(owner, spawned.sessionId, {
           text: 'stty -echo',
           submit: true,
@@ -242,9 +234,6 @@ async function executeCommand(ctx, shells, owner, command, config, upstream) {
   let fallbackTruncated = false
 
   while (true) {
-    // The shell may flip to exited between iterations (a fast `exit` can
-    // settle the previous send while its exit event is still in flight);
-    // re-observing status before the next send closes that gap.
     const status = ctx.terminals.list(owner).find(session => session.sessionId === id)?.status
     if (status?.kind === 'exited') {
       return await respondToSessionExit(
@@ -278,7 +267,6 @@ async function executeCommand(ctx, shells, owner, command, config, upstream) {
       )
       await shells.reset(owner, 'persistent bash command timed out')
       return [
-        // TODO: Report a timeout only; this signal does not establish an OOM.
         `Your command timed out after ${Math.round(timedOut.timeoutMs / 1000)} seconds or experienced an OOM error. Below is partial output:`,
         partial,
         SHELL_RESET_MESSAGE,
@@ -297,10 +285,6 @@ async function executeCommand(ctx, shells, owner, command, config, upstream) {
         ctx, shells, owner, id, result.sessionStatus, marker, fallback, fallbackTruncated, config,
       )
     }
-    // The shell reads stdin again (its prompt, or a foreground child's own
-    // read) without having printed the end marker — e.g. `exec`, an interrupt,
-    // or an interactive child. Return what was captured instead of spinning
-    // until the command deadline.
     if (result.waitReason === 'stdin_read') {
       const snapshot = retainedScrollback(ctx, owner, id, latest)
       return renderCaptured(

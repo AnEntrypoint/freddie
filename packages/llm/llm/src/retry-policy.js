@@ -50,8 +50,6 @@ export const RetryPolicySchema = z.union([
 const NORMAL_POLICY_KEYS = new Set([
   'mode', 'maxRetries', 'retryableCodes', 'backoff',
 ])
-// Layered configuration can retain normal-only fields after switching modes;
-// always mode ignores those inactive values while still rejecting unknown keys.
 const ALWAYS_POLICY_KEYS = new Set([
   'mode', 'maxRetries', 'retryableCodes', 'backoff',
 ])

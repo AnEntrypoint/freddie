@@ -105,6 +105,9 @@ importers:
       '@freddie/freddie-cordis-client-runner':
         specifier: '*'
         version: link:../../packages/extensions/cordis-client-runner
+      '@freddie/freddie-dream-rsi':
+        specifier: '*'
+        version: link:../../packages/bundle/dream-rsi
       '@freddie/freddie-fs-local':
         specifier: '*'
         version: link:../../packages/fs/fs-local
@@ -216,6 +219,9 @@ importers:
       '@freddie/freddie-tool-ralph':
         specifier: '*'
         version: link:../../packages/workflow/tool-ralph
+      '@freddie/freddie-tool-session-query':
+        specifier: '*'
+        version: link:../../packages/session-query/tool-session-query
       '@freddie/freddie-tool-skill':
         specifier: '*'
         version: link:../../packages/skill/tool-skill
@@ -854,6 +860,22 @@ importers:
         specifier: '*'
         version: link:../../typert/registry
 
+  packages/api/plugin-manager-controller:
+    dependencies:
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-invariants':
+        specifier: '*'
+        version: link:../../runtime-diagnostics/invariants
+      '@freddie/freddie-typert-protocol':
+        specifier: '*'
+        version: link:../../typert/protocol
+
   packages/api/remote-stream:
     dependencies:
       zod:
@@ -885,6 +907,12 @@ importers:
       '@freddie/freddie-api-gateway':
         specifier: '*'
         version: link:../gateway
+      '@freddie/freddie-api-plugin-manager-controller':
+        specifier: '*'
+        version: link:../plugin-manager-controller
+      '@freddie/freddie-api-workspace-files':
+        specifier: '*'
+        version: link:../workspace-files
       '@freddie/freddie-commands':
         specifier: '*'
         version: link:../../interaction/commands
@@ -967,6 +995,9 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
+      '@freddie/freddie-agent-presets':
+        specifier: '*'
+        version: link:../../preset/agent-presets
       '@freddie/freddie-typert-protocol':
         specifier: '*'
         version: link:../../typert/protocol
@@ -1288,9 +1319,18 @@ importers:
       '@freddie/freddie-attachment-local':
         specifier: '*'
         version: link:../../attachment/attachment-local
+      '@freddie/freddie-authorization':
+        specifier: '*'
+        version: link:../../credentials/authorization
+      '@freddie/freddie-auto-review':
+        specifier: '*'
+        version: link:../../interaction/auto-review
       '@freddie/freddie-bash-sandbox':
         specifier: '*'
         version: link:../../shell/bash-sandbox
+      '@freddie/freddie-browser-use':
+        specifier: '*'
+        version: link:../../browser-use/browser-use
       '@freddie/freddie-command-compact':
         specifier: '*'
         version: link:../../compaction/command-compact
@@ -1306,12 +1346,21 @@ importers:
       '@freddie/freddie-compaction-basic':
         specifier: '*'
         version: link:../../compaction/compaction-basic
+      '@freddie/freddie-compaction-image-offload':
+        specifier: '*'
+        version: link:../../compaction/compaction-image-offload
       '@freddie/freddie-compaction-tool-result-pruner':
         specifier: '*'
         version: link:../../compaction/compaction-tool-result-pruner
+      '@freddie/freddie-computer-use':
+        specifier: '*'
+        version: link:../../computer-use/computer-use
       '@freddie/freddie-credentials-local':
         specifier: '*'
         version: link:../../credentials/credentials-local
+      '@freddie/freddie-experimental-browser-use-chrome-devtools-mcp':
+        specifier: '*'
+        version: link:../../experimental/browser-use-chrome-devtools-mcp
       '@freddie/freddie-fs-local':
         specifier: '*'
         version: link:../../fs/fs-local
@@ -1333,6 +1382,9 @@ importers:
       '@freddie/freddie-goal-round-driver':
         specifier: '*'
         version: link:../../goal/goal-round-driver
+      '@freddie/freddie-inspector':
+        specifier: '*'
+        version: link:../../runtime-diagnostics/inspector
       '@freddie/freddie-jobs-local':
         specifier: '*'
         version: link:../../jobs/jobs-local
@@ -1342,6 +1394,9 @@ importers:
       '@freddie/freddie-llm-deepseek':
         specifier: '*'
         version: link:../../llm/llm-deepseek
+      '@freddie/freddie-llm-pi-ai':
+        specifier: '*'
+        version: link:../../llm/llm-pi-ai
       '@freddie/freddie-llm-retry':
         specifier: '*'
         version: link:../../llm/llm-retry
@@ -1384,9 +1439,15 @@ importers:
       '@freddie/freddie-session-title':
         specifier: '*'
         version: link:../../session/session-title
+      '@freddie/freddie-session-title-all-prompts-llm':
+        specifier: '*'
+        version: link:../../session/session-title-all-prompts-llm
       '@freddie/freddie-session-title-first-prompt-llm':
         specifier: '*'
         version: link:../../session/session-title-first-prompt-llm
+      '@freddie/freddie-session-turn-outline':
+        specifier: '*'
+        version: link:../../session/session-turn-outline
       '@freddie/freddie-settings-file':
         specifier: '*'
         version: link:../../settings/settings-file
@@ -1429,6 +1490,12 @@ importers:
       '@freddie/freddie-terminal-bash':
         specifier: '*'
         version: link:../../terminal/terminal-bash
+      '@freddie/freddie-time-context':
+        specifier: '*'
+        version: link:../../context/time-context
+      '@freddie/freddie-tmux-context':
+        specifier: '*'
+        version: link:../../context/tmux-context
       '@freddie/freddie-token-meter':
         specifier: '*'
         version: link:../../llm/token-meter
@@ -1459,6 +1526,9 @@ importers:
       '@freddie/freddie-tool-ralph':
         specifier: '*'
         version: link:../../workflow/tool-ralph
+      '@freddie/freddie-tool-session-query':
+        specifier: '*'
+        version: link:../../session-query/tool-session-query
       '@freddie/freddie-tool-skill':
         specifier: '*'
         version: link:../../skill/tool-skill
@@ -1501,6 +1571,9 @@ importers:
       '@freddie/freddie-web':
         specifier: '*'
         version: link:../../web/web
+      '@freddie/freddie-web-fetch-http':
+        specifier: '*'
+        version: link:../../web/web-fetch-http
       '@freddie/freddie-web-search-browser':
         specifier: '*'
         version: link:../../web/web-search-browser
@@ -1601,9 +1674,21 @@ importers:
       '@freddie/freddie-agent-presets':
         specifier: '*'
         version: link:../../preset/agent-presets
+      '@freddie/freddie-api-plugin-manager-controller':
+        specifier: '*'
+        version: link:../../api/plugin-manager-controller
       '@freddie/freddie-api-remotes':
         specifier: '*'
         version: link:../../api/remotes
+      '@freddie/freddie-api-settings-controller':
+        specifier: '*'
+        version: link:../../api/settings-controller
+      '@freddie/freddie-api-workspace-controller':
+        specifier: '*'
+        version: link:../../api/workspace-controller
+      '@freddie/freddie-api-workspace-files':
+        specifier: '*'
+        version: link:../../api/workspace-files
       '@freddie/freddie-app-boot':
         specifier: '*'
         version: link:../../boot/app-boot
@@ -1613,6 +1698,9 @@ importers:
       '@freddie/freddie-client-css-manifest':
         specifier: '*'
         version: link:../../client/css-manifest
+      '@freddie/freddie-client-file-upload':
+        specifier: '*'
+        version: link:../../client/file-upload
       '@freddie/freddie-client-hmr':
         specifier: '*'
         version: link:../../client/hmr
@@ -1679,6 +1767,9 @@ importers:
       '@freddie/freddie-client-ui-observability':
         specifier: '*'
         version: link:../../client/ui-observability
+      '@freddie/freddie-client-ui-open-in-app':
+        specifier: '*'
+        version: link:../../client/ui-open-in-app
       '@freddie/freddie-client-ui-permission-presets':
         specifier: '*'
         version: link:../../client/ui-permission-presets
@@ -1739,6 +1830,9 @@ importers:
       '@freddie/freddie-client-ui-workspace':
         specifier: '*'
         version: link:../../client/ui-workspace
+      '@freddie/freddie-client-ui-workspace-files':
+        specifier: '*'
+        version: link:../../client/ui-workspace-files
       '@freddie/freddie-client-vendor-modules':
         specifier: '*'
         version: link:../../client/vendor-modules
@@ -1748,6 +1842,9 @@ importers:
       '@freddie/freddie-code-runtime-worker-thread':
         specifier: '*'
         version: link:../../code-runtime/code-runtime-worker-thread
+      '@freddie/freddie-config-editor':
+        specifier: '*'
+        version: link:../../boot/config-editor
       '@freddie/freddie-cordis-client-runner':
         specifier: '*'
         version: link:../../extensions/cordis-client-runner
@@ -1778,21 +1875,39 @@ importers:
       '@freddie/freddie-host-frontend-static':
         specifier: '*'
         version: link:../../host/frontend-static
+      '@freddie/freddie-host-open-in-app':
+        specifier: '*'
+        version: link:../../host/open-in-app
       '@freddie/freddie-host-plugin-inventory':
         specifier: '*'
         version: link:../../host/plugin-inventory
+      '@freddie/freddie-host-product-telemetry-otel':
+        specifier: '*'
+        version: link:../../host/product-telemetry-otel
       '@freddie/freddie-host-webserver':
         specifier: '*'
         version: link:../../host/webserver
+      '@freddie/freddie-job-controller':
+        specifier: '*'
+        version: link:../../api/job-controller
       '@freddie/freddie-launch-environment':
         specifier: '*'
         version: link:../../util/launch-environment
       '@freddie/freddie-message-feedback':
         specifier: '*'
         version: link:../../feedback/message-feedback
+      '@freddie/freddie-plugin-manager':
+        specifier: '*'
+        version: link:../../boot/plugin-manager
+      '@freddie/freddie-remote-stream':
+        specifier: '*'
+        version: link:../../api/remote-stream
       '@freddie/freddie-session-artifacts':
         specifier: '*'
         version: link:../../session/session-artifacts
+      '@freddie/freddie-session-controller':
+        specifier: '*'
+        version: link:../../api/session-controller
       '@freddie/freddie-session-log-export':
         specifier: '*'
         version: link:../../session-query/session-log-export
@@ -1817,6 +1932,9 @@ importers:
       '@freddie/freddie-subprocess':
         specifier: '*'
         version: link:../../subprocess/subprocess
+      '@freddie/freddie-terminal-controller':
+        specifier: '*'
+        version: link:../../api/terminal-controller
       '@freddie/freddie-web-frontend':
         specifier: '*'
         version: link:../../../apps/web
@@ -1888,6 +2006,9 @@ importers:
       '@freddie/freddie-tools':
         specifier: '*'
         version: link:../../core/tools
+      '@freddie/freddie-values':
+        specifier: '*'
+        version: link:../../util/values
 
   packages/client/css-manifest:
     devDependencies:
@@ -2668,6 +2789,31 @@ importers:
       '@freddie/freddie-client-runtime':
         specifier: '*'
         version: link:../runtime
+      '@freddie/freddie-client-ui-conversation':
+        specifier: '*'
+        version: link:../ui-conversation
+      '@freddie/freddie-client-ui-primitives':
+        specifier: '*'
+        version: link:../ui-primitives
+      '@freddie/freddie-client-ui-slots':
+        specifier: '*'
+        version: link:../ui-slots
+      '@freddie/freddie-invariants':
+        specifier: '*'
+        version: link:../../runtime-diagnostics/invariants
+
+  packages/client/ui-open-in-app:
+    dependencies:
+      '@freddie/webjsx':
+        specifier: '*'
+        version: link:../../../framework/webjsx
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-client-locale':
+        specifier: '*'
+        version: link:../locale
       '@freddie/freddie-client-ui-conversation':
         specifier: '*'
         version: link:../ui-conversation
@@ -3471,6 +3617,34 @@ importers:
       '@freddie/freddie-client-ui-sidebar':
         specifier: '*'
         version: link:../ui-sidebar
+      '@freddie/freddie-client-ui-slots':
+        specifier: '*'
+        version: link:../ui-slots
+      '@freddie/freddie-invariants':
+        specifier: '*'
+        version: link:../../runtime-diagnostics/invariants
+
+  packages/client/ui-workspace-files:
+    dependencies:
+      '@freddie/webjsx':
+        specifier: '*'
+        version: link:../../../framework/webjsx
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-api-remotes':
+        specifier: '*'
+        version: link:../../api/remotes
+      '@freddie/freddie-client-runtime':
+        specifier: '*'
+        version: link:../runtime
+      '@freddie/freddie-client-ui-conversation':
+        specifier: '*'
+        version: link:../ui-conversation
+      '@freddie/freddie-client-ui-primitives':
+        specifier: '*'
+        version: link:../ui-primitives
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
@@ -4610,6 +4784,10 @@ importers:
       '@freddie/freddie-tools':
         specifier: '*'
         version: link:../../core/tools
+    optionalDependencies:
+      chrome-devtools-mcp:
+        specifier: 1.9.0
+        version: 1.9.0
 
   packages/experimental/browser-use-runtime:
     dependencies:
@@ -10157,6 +10335,19 @@ packages:
     resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
     engines: {node: '>=18'}
 
+  chrome-devtools-mcp@1.9.0:
+    resolution: {integrity: sha512-RnzXoJiUQ44hpOihWk90uOhLD/CnwDkDy0ldHMZONJ2nYQ+dWN1fq1luHHqyd+7FuYnyIlCY6uTThbN5ut9kSQ==}
+    engines: {node: ^20.19.0 || ^22.12.0 || >=23}
+    hasBin: true
+    peerDependencies:
+      '@blackwell-systems/gcf': ^2.2.2
+      '@toon-format/toon': ^4.1.0
+    peerDependenciesMeta:
+      '@blackwell-systems/gcf':
+        optional: true
+      '@toon-format/toon':
+        optional: true
+
   ci-info@3.9.0:
     resolution: {integrity: sha512-NIxF55hv4nSqQswkAeiOi1r83xy8JldOFDTWiug55KBu9Jnblncd2U6ViHmYgHf01TPZS77NJBhBMKdWj9HQMQ==}
     engines: {node: '>=8'}
@@ -12245,6 +12436,9 @@ snapshots:
       readdirp: 5.0.0
 
   chownr@3.0.0: {}
+
+  chrome-devtools-mcp@1.9.0:
+    optional: true
 
   ci-info@3.9.0: {}
 

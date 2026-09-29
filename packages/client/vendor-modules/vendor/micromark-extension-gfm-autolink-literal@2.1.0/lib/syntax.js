@@ -75,7 +75,7 @@ text[87] = [emailAutolink, wwwAutolink];
 text[119] = [emailAutolink, wwwAutolink];
 
 // To do: perform email autolink literals on events, afterwards.
-// That’s where `markdown-rs` and `cmark-gfm` perform it.
+// That\u2019s where `markdown-rs` and `cmark-gfm` perform it.
 // It should look for `@`, then for atext backwards, and then for a label
 // forwards.
 // To do: `mailto:`, `xmpp:` protocol as prefix.
@@ -169,9 +169,9 @@ function tokenizeEmailAutolink(effects, ok, nok) {
 
     // To do: `/` if xmpp.
 
-    // Note: normally we’d truncate trailing punctuation from the link.
+    // Note: normally we\u2019d truncate trailing punctuation from the link.
     // However, email autolink literals cannot contain any of those markers,
-    // except for `.`, but that can only occur if it isn’t trailing.
+    // except for `.`, but that can only occur if it isn\u2019t trailing.
     // So we can ignore truncating!
     return emailDomainAfter(code);
   }
@@ -481,8 +481,8 @@ function tokenizeDomain(effects, ok, nok) {
     }
 
     // GH documents that only alphanumerics (other than `-`, `.`, and `_`) can
-    // occur, which sounds like ASCII only, but they also support `www.點看.com`,
-    // so that’s Unicode.
+    // occur, which sounds like ASCII only, but they also support `www.\u9ede\u770b.com`,
+    // so that\u2019s Unicode.
     // Instead of some new production for Unicode alphanumerics, markdown
     // already has that for Unicode punctuation and whitespace, so use those.
     // Source: <https://github.com/github/cmark-gfm/blob/ef1cfcb/extensions/autolink.c#L12>.
@@ -509,7 +509,7 @@ function tokenizeDomain(effects, ok, nok) {
     if (code === 95) {
       underscoreInLastSegment = true;
     }
-    // Otherwise, it’s a `.`: save the last segment underscore in the
+    // Otherwise, it\u2019s a `.`: save the last segment underscore in the
     // penultimate segment slot.
     else {
       underscoreInLastLastSegment = underscoreInLastSegment;
@@ -529,7 +529,7 @@ function tokenizeDomain(effects, ok, nok) {
    *
    * @type {State} */
   function domainAfter(code) {
-    // Note: that’s GH says a dot is needed, but it’s not true:
+    // Note: that\u2019s GH says a dot is needed, but it\u2019s not true:
     // <https://github.com/github/cmark-gfm/issues/279>
     if (underscoreInLastLastSegment || underscoreInLastSegment || !seen) {
       return nok(code);
@@ -573,7 +573,7 @@ function tokenizePath(effects, ok) {
 
     // To do: `markdown-rs` also needs this.
     // If this is a paren, and there are less closings than openings,
-    // we don’t check for a trail.
+    // we don\u2019t check for a trail.
     if (code === 41 && sizeClose < sizeOpen) {
       return pathAtPunctuation(code);
     }
@@ -674,7 +674,7 @@ function tokenizeTrail(effects, ok, nok) {
   /**
    * In trail, after `]`.
    *
-   * > 👉 **Note**: this deviates from `cmark-gfm` to fix a bug.
+   * > \ud83d\udc49 **Note**: this deviates from `cmark-gfm` to fix a bug.
    * > See end of <https://github.com/github/cmark-gfm/issues/278> for more.
    *
    * ```markdown
@@ -704,7 +704,7 @@ function tokenizeTrail(effects, ok, nok) {
    * @type {State}
    */
   function trailCharacterReferenceStart(code) {
-    // When non-alpha, it’s not a trail.
+    // When non-alpha, it\u2019s not a trail.
     return asciiAlpha(code) ? trailCharacterReferenceInside(code) : nok(code);
   }
 
@@ -729,7 +729,7 @@ function tokenizeTrail(effects, ok, nok) {
       return trailCharacterReferenceInside;
     }
 
-    // It’s not a trail.
+    // It\u2019s not a trail.
     return nok(code);
   }
 }
@@ -809,8 +809,8 @@ function previousProtocol(code) {
  * @type {Previous}
  */
 function previousEmail(code) {
-  // Do not allow a slash “inside” atext.
-  // The reference code is a bit weird, but that’s what it results in.
+  // Do not allow a slash \u201cinside\u201d atext.
+  // The reference code is a bit weird, but that\u2019s what it results in.
   // Source: <https://github.com/github/cmark-gfm/blob/ef1cfcb/extensions/autolink.c#L307>.
   // Other than slash, every preceding character is allowed.
   return !(code === 47 || gfmAtext(code));
@@ -838,7 +838,7 @@ function previousUnbalanced(events) {
       break;
     }
 
-    // If we’ve seen this token, and it was marked as not having any unbalanced
+    // If we\u2019ve seen this token, and it was marked as not having any unbalanced
     // bracket before it, we can exit.
     if (token._gfmAutolinkLiteralWalkedInto) {
       result = false;
@@ -846,7 +846,7 @@ function previousUnbalanced(events) {
     }
   }
   if (events.length > 0 && !result) {
-    // Mark the last token as “walked into” w/o finding
+    // Mark the last token as \u201cwalked into\u201d w/o finding
     // anything.
     events[events.length - 1][1]._gfmAutolinkLiteralWalkedInto = true;
   }

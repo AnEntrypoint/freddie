@@ -41,10 +41,6 @@ export class FreddiePopupSelectView extends HTMLElement {
   #prevActive = null
   #focusedSearchForOpen = false
   #onPointerDown = null
-  // Held across renders (renderRiskConfirmation(this.#confirmModal, ...))
-  // instead of the bare <RiskConfirmation ... /> one-shot call, which always
-  // created a brand-new freddie-modal appended to document.body on every
-  // #render() — orphaning the previous one instead of updating it in place.
   #confirmModal = null
 
   /** Set/replace props and re-render; call after creating or updating the element. */
@@ -88,9 +84,6 @@ export class FreddiePopupSelectView extends HTMLElement {
     const { popup, t } = props
     const state = popup.state.getSnapshot()
 
-    // Anchored max-height: (re)start the controller whenever the card
-    // element identity or state changes, mirroring the React version's
-    // effect dependency on [cardRef, MAX_HEIGHT, state].
     this.#anchored?.stop()
     this.#anchored = createAnchoredMaxHeight({
       el: this.#cardEl,
@@ -102,7 +95,6 @@ export class FreddiePopupSelectView extends HTMLElement {
 
     const active = state.open ? state.active : null
 
-    // Outside-pointer dismiss: bind while open and not confirming.
     this.#unbindOutsidePointer()
     if (state.open && state.confirming === null) {
       const onPointerDown = (ev) => {
@@ -124,8 +116,6 @@ export class FreddiePopupSelectView extends HTMLElement {
     const confirmation = state.confirming?.confirmation
 
     const onKeyDown = (ev) => {
-      // ArrowLeft/ArrowRight fall through on purpose: the search input keeps
-      // its native caret movement.
       switch (ev.key) {
         case 'ArrowDown':
           ev.preventDefault()
@@ -185,9 +175,6 @@ export class FreddiePopupSelectView extends HTMLElement {
                   role: 'option',
                   'aria-selected': index === state.active,
                   class: clsx(css.row, index === state.active && css.rowActive),
-                  // mousedown would race the document capture listener; the shell
-                  // owns focus anyway, so a plain click (inside the card → no
-                  // dismiss) works.
                   onclick: () => { void popup.select(index) },
                   onmouseenter: () => { popup.highlight(index) },
                 },
@@ -216,15 +203,11 @@ export class FreddiePopupSelectView extends HTMLElement {
       onConfirm: () => { void popup.confirm() },
     })
 
-    // The search input keeps focus while arrows move a virtual highlight, so
-    // the browser never scrolls the active row into view — do it here.
     if (active !== null && active !== this.#prevActive) {
       this.#cardEl?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' })
     }
     this.#prevActive = active
 
-    // Focus the search input once per open (mirrors the React version's
-    // effect keyed on [state.open, state.confirming]).
     if (state.confirming === null && !this.#focusedSearchForOpen) {
       this.#searchEl?.focus()
       this.#focusedSearchForOpen = true

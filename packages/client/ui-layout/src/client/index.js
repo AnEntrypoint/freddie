@@ -13,11 +13,6 @@ import { createLayoutStore } from './stores.js'
 import { LayoutController } from './service.js'
 import { ThemePresenter } from './theme-presenter.js'
 
-// Contract exports only (export-convergence rule: cross-package consumers
-// keep a symbol exported; test-only/package-internal symbols live off /src).
-// ILayout: the ctx.layout face consumers and test fakes type against.
-// OwnerShare contracts below are the render-side halves registrants compose
-// against; the frame components and the store factory are package-internal.
 export { LayoutController } from './service.js'
 
 /** Required services (cordis fiber inject — the loader passes all module exports as an object plugin). */
@@ -41,32 +36,19 @@ export function apply(ctx) {
         'details': { kind: 'single', scope: 'session' },
         'shell.overlay': { kind: 'list', scope: 'root' },
       },
-      // Exclusive store: the factory itself — the framework instantiates per
-      // entry and delivers useStore/actions to AppFrame as standard props.
       store: createLayoutStore,
-      // The hook's only side effect connects the root store to ctx.layout;
-      // conversation business actions belong to their registrants.
       inject: (actions) => {
         layout.attachPanels(actions)
         return { hooks: { connectionState: ctx.connection.state } }
       },
-      // The webjsxSlot() stub is a bare (props) => null function: it cannot
-      // structurally prove it consumes renderSlot the way RendersCheck wants
-      // (dispatch happens inside the registered custom element itself, off
-      // ui-slots' type-erased entry.component boundary — see webjsxSlot's own
-      // doc). The runtime dispatch is unaffected; only this compile-time
-      // shape check needs the escape hatch.
-      // oxlint-disable-next-line typescript/no-explicit-any -- see comment above
+      // oxlint-disable-next-line typescript/no-explicit-any -- webjsxSlot() is a bare (props) => null stub that cannot prove the RendersCheck shape; dispatch happens inside the registered element
     }, webjsxSlot('freddie-app-frame'))
     return () => {
       disposeRegistration()
-      // provide()'s disposer settles asynchronously; teardown is synchronous fire-and-forget.
       void disposeService()
     }
   }, 'ui-layout: service + root registration')
 
-  // Theme presentation: pure DOM writes from resolved snapshots — initial
-  // state through the getter once, then event-driven only; no React path.
   ctx.effect(() => {
     const presenter = new ThemePresenter()
     presenter.apply(ctx.theme.getTheme())

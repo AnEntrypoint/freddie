@@ -43,12 +43,10 @@ export async function apply(ctx) {
     server.once('error', reject)
     server.listen(PORT, '127.0.0.1', () => resolve(undefined))
   })
-  // The fixture must never hold the process open past protocol shutdown.
   server.unref()
   ctx.effect(() => async () => {
     await new Promise((resolve, reject) => {
       server.close(error => error ? reject(error) : resolve(undefined))
-      // Stop accepting first so a connection cannot arrive after the forced close.
       server.closeAllConnections()
     })
   }, 'web-fetch-fixture-server')

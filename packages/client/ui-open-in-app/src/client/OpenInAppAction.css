@@ -1,0 +1,55 @@
+.freddie-openInApp__split {
+  display: inline-flex;
+  align-items: stretch;
+  box-sizing: border-box;
+  height: 24px;
+  overflow: hidden;
+  border: 0.5px solid var(--freddie-alias-border-l4);
+  border-radius: 9px;
+}
+
+.freddie-openInApp__main,
+.freddie-openInApp__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  color: var(--freddie-alias-label-primary);
+  cursor: pointer;
+}
+
+.freddie-openInApp__main {
+  padding: 3px 6px;
+}
+
+.freddie-openInApp__chevron {
+  padding: 3px 4px 3px 3px;
+  border-left: 0.5px solid var(--freddie-alias-border-l4);
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-openInApp__main:hover,
+.freddie-openInApp__main:focus-visible,
+.freddie-openInApp__chevron:hover,
+.freddie-openInApp__chevron:focus-visible {
+  background: var(--freddie-alias-interactive-bg-hover);
+}
+
+.freddie-openInApp__main[aria-disabled='true'],
+.freddie-openInApp__chevron[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.freddie-openInApp__chevron svg {
+  transition: transform 120ms ease;
+}
+
+.freddie-openInApp__chevronOpen {
+  transform: rotate(180deg);
+}
+
+.freddie-openInApp__appIcon {
+  object-fit: contain;
+}

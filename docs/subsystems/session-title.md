@@ -2,7 +2,7 @@
 
 Durable latest-wins title state and the optional asynchronous provider vocabulary owned by [`@freddie/freddie-session-title`](../../packages/session/session-title). The shared LLM helper owns the exact auxiliary request record. Package READMEs own timing, fallback, failure, and fork behavior; the generated [persistence catalog](../persistence-catalog.md) owns the complete event declarations.
 
-Sources: [`packages/session/session-title/src/index.ts`](../../packages/session/session-title/src/index.js), [`packages/session/session-title-llm/src/index.ts`](../../packages/session/session-title-llm/src/index.js)
+Sources: [`packages/session/session-title/src/index.js`](../../packages/session/session-title/src/index.js), [`packages/session/session-title-llm/src/index.js`](../../packages/session/session-title-llm/src/index.js)
 
 ## Durable title state
 
@@ -143,13 +143,13 @@ interface SessionTitleProvider {
 }
 ```
 
-<!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
+<!-- BEGIN cordis-surface (hand-maintained) -->
 
 <a id="cordis-surface"></a>
 
 ## Cordis API
 
-Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+Originally generated from source by `scripts/gen-cordis-catalog.ts`; that script and its `verify-cordis-catalog` freshness check no longer exist, so this region is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
 <a id="ctxsessiontitle--sessiontitleservice"></a>
 
@@ -198,5 +198,5 @@ register(provider: SessionTitleProvider): () => Promise<void>
 
 Types: [Session](session.md)
 
-Source: [`packages/session/session-title/src/index.ts`](../../packages/session/session-title/src/index.js)
-<!-- END GENERATED cordis-surface -->
+Source: [`packages/session/session-title/src/index.js`](../../packages/session/session-title/src/index.js)
+<!-- END cordis-surface -->

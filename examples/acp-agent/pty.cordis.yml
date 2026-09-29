@@ -1,5 +1,3 @@
-# Opt-in persistent PTY composition for the PTY snapshot scenario. The base
-# deployment already owns the shared sandbox provider and policy.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

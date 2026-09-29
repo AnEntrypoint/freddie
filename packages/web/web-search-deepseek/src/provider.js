@@ -146,9 +146,6 @@ export class DeepSeekSearchProvider {
    * @returns {Promise<import('@freddie/freddie-web').WebSearchResult>}
    */
   async search(request, signal) {
-    // One snapshot for the whole operation: credential resolution awaits, and a
-    // settings write landing inside that await must not send the key resolved
-    // from the old section to the endpoint named by the new one.
     const options = this.resolveOptions()
     const apiKey = await this.apiKey(options, signal)
     throwIfSearchAborted(signal)
@@ -174,8 +171,6 @@ export class DeepSeekSearchProvider {
         method: 'POST',
         redirect: 'error',
         headers: {
-          // Official DeepSeek expects `x-api-key`; an Anthropic-compatible proxy
-          // may expect `Authorization: Bearer` — send both so either resolves.
           'x-api-key': apiKey,
           'authorization': `Bearer ${apiKey}`,
           'anthropic-version': options.apiVersion,
@@ -203,13 +198,7 @@ export class DeepSeekSearchProvider {
         const detail = typeof parsed.error === 'string' ? parsed.error : parsed.error?.message ?? parsed.message
         if (detail !== undefined && detail.length > 0) message += `: ${detail}`
       } catch (error) {
-        // An abort fired mid-body must surface as WEB_ABORTED, not be swallowed
-        // into a generic HTTP-error message — cancellation is not a provider
-        // error (the seam's cancellation contract).
         if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error)
-        // Otherwise: the HTTP status is already captured in `message` above; a
-        // malformed/non-JSON error body (normal for gateway 5xx/429s) can only
-        // cost a richer provider message, never the real error.
       }
       throw searchEndpointError(endpoint, message)
     }

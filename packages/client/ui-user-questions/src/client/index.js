@@ -14,7 +14,7 @@
  */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import './QuestionComposer.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 
 export { PendingQuestion } from './contract/slots.js'
 
@@ -36,7 +36,7 @@ function selectQuestion({ interactions }) {
  * @param ctx - client root context.
  */
 export function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-user-questions: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-user-questions: dictionaries')
 
   ctx.slots.inject('conversation.composer', () => ctx.slots.register(
     { name: 'conversation.composer', select: selectQuestion, locale: NS },

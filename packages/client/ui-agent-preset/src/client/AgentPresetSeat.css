@@ -1,6 +1,3 @@
-/* Agent-preset chip on the new-session screen, beside the workspace picker.
-   Geometry mirrors HeroShell's .workspace so the two read as one row. */
-
 .freddie-agentPresetSeat__seat {
   display: inline-flex;
   align-items: center;
@@ -36,11 +33,6 @@
   color: var(--freddie-alias-label-primary);
 }
 
-/* Introduce cue: the icon eases in on an overshoot-free expo curve (duration
-   matches INTRO_TEXT_DELAY_MS, so the characters start the moment it lands),
-   then the name's characters fade up on a stagger (delays set inline per
-   character). All chars occupy their width from the start, so nothing
-   reflows mid-run. */
 .freddie-agentPresetSeat__introIcon {
   animation: freddie-agentPresetSeat__seat-icon-in 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -57,8 +49,6 @@
   }
 }
 
-/* Wraps the staggered characters into one flex item, so the chip's gap
-   applies around the name as a whole rather than between characters. */
 .freddie-agentPresetSeat__introText {
   display: inline-block;
   white-space: pre;
@@ -96,8 +86,6 @@
   color: var(--freddie-alias-label-caption);
 }
 
-/* Menu rows carry the name over its description: the id alone never said what
-   a preset does, which is why the metadata exists. */
 .freddie-agentPresetSeat__item {
   display: flex;
   flex-direction: column;

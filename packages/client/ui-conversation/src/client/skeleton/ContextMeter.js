@@ -22,7 +22,7 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 /**
  * Marker the localized occupancy sentence is split on, so the panel headline
  * keeps the reading in its own tone while each locale still owns the word
- * order (`45% of context used` / `上下文已用 45%`).
+ * order (`45% of context used`).
  */
 const READING_SLOT = ' '
 
@@ -122,10 +122,6 @@ export class FreddieContextMeter extends HTMLElement {
       : ROWS.map(row => ({ key: row.key, color: row.color, width: percent * breakdown[row.key] / breakdownTotal }))
     const segments = parts.filter(part => part.width > 0)
 
-    // h(Tooltip, {...}) calls Tooltip(props) synchronously (webjsx's
-    // function-component branch), Tooltip.js's bare one-shot factory --
-    // recreating the freddie-tooltip element (dropping its in-flight #showTimer
-    // hover-delay) on every #render(). renderTooltip(cached, props) reuses it.
     this.#tooltipEl = renderTooltip(this.#tooltipEl, {
       label: t('context.aria', { percent: reading }), side: 'top', delayMs: 200, disabled: open,
       children: [
@@ -161,8 +157,6 @@ export class FreddieContextMeter extends HTMLElement {
         open && (
           h('div', { class: css.panel ?? '', role: 'dialog', 'aria-label': t('context.used') },
             h('div', { class: css.header ?? '' },
-              // Empty sides collapse through `.headline:empty` so the locale that
-              // needs no leading (or trailing) text spends no header gap.
               h('span', { class: css.headline ?? '' }, headBefore),
               h('span', { class: css.percent ?? '' }, reading),
               h('span', { class: css.headline ?? '' }, headAfter),

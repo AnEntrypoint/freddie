@@ -23,8 +23,10 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "src/address.js",
     "src/index.js",
     "src/invariant.js",
+    "src/network.js",
     "src/policy.js",
     "src/provider.js"
   ],

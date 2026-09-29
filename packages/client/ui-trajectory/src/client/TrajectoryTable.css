@@ -60,7 +60,6 @@
   padding: 0;
 }
 
-/* The pagination control does not create a trajectory turn boundary. */
 .freddie-trajectoryTable__table tbody .freddie-trajectoryTable__historyLoadRow + tr[data-turn-start='true'] td::before {
   content: none;
 }
@@ -212,7 +211,6 @@
 }
 
 .freddie-trajectoryTable__table tbody tr[data-terminal-request-boundary='true'] td {
-  /* Retain the lower half of the 16px boundary marker at the table's end. */
   height: 9px;
 }
 
@@ -796,8 +794,7 @@
 
 .freddie-trajectoryTable__toolCallNameTypeface {
   color: var(--freddie-alias-label-primary);
-  font: 400 12px/18px Menlo, Consolas, 'Liberation Mono', 'PingFang SC',
-    'Microsoft YaHei';
+  font: 400 12px/18px Menlo, Consolas, 'Liberation Mono';
 }
 
 .freddie-trajectoryTable__toolCallPayload {

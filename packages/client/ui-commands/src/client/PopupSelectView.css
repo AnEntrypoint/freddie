@@ -1,10 +1,4 @@
-/* Official popupSelect shell card: menu-surface tokens (same family as
- * ui-primitives Menu.module.css — figma MenuDropdown r12 / hairline /
- * shadow-lv3), anchored by the conversation.input.overlay slot. */
-
 .freddie-popupSelectView__card {
-  /* The overlay anchor is a zero-height strip on the composer card's top
-     edge; entries float themselves above it (same rule as MenuView). */
   position: absolute;
   bottom: calc(100% + 4px);
   left: 0;
@@ -13,15 +7,9 @@
   display: flex;
   flex-direction: column;
   min-width: min(220px, 100%);
-  /* Never wider than the composer card (the overlay anchor's width): long
-     rows truncate instead of pushing the card past the composer's edge. */
   max-width: 100%;
-  /* Height cap: the 320px design maximum, clamped at runtime to the space
-   * above the composer (inline max-height set in PopupSelectView.tsx). */
   max-height: 320px;
   overflow: hidden;
-  /* Elevated surface: the scrollbar thumb takes the l2 elevation tokens
-     (see ui-theme styles/scrollbar.css for the rebinding contract). */
   --freddie-scrollbar-thumb: var(--freddie-alias-scrollbar-bg-l2);
   --freddie-scrollbar-thumb-hover: var(--freddie-alias-scrollbar-hover-l2);
   border: 1px solid var(--freddie-alias-border-inverted);

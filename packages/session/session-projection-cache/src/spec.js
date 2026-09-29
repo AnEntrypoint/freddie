@@ -1,6 +1,6 @@
 /**
  * The session-projcache domain declaration: one `sessions` table keyed by
- * {@link SessionId}, each record the full projection checkpoint for one
+ * {@link import('@freddie/freddie-session/types').SessionId}, each record the full projection checkpoint for one
  * session (`key → {ver, seq, val}` rows). The spec object
  * is the single source of the domain's identity, version, and record shape;
  * the storage-domain routing decides the medium (the shipped composition's

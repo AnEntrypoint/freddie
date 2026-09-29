@@ -1,0 +1,62 @@
+{
+  "name": "@freddie/freddie-acp-app",
+  "description": "The freddie ACP profile bundle: automation-only ACP stdio and process lifecycle over freddie-base",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/bundle/acp-app"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./startup": {
+      "default": "./src/startup.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "src/startup.js",
+    "cordis.patch.yml"
+  ],
+  "license": "MIT",
+  "freddie": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@freddie/freddie-acp": "*",
+    "@freddie/freddie-cmdline": "*",
+    "commander": "^15.0.0"
+  },
+  "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-user-approval": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-user-approval": "*"
+  }
+}

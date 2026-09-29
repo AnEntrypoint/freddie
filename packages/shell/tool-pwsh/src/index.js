@@ -47,8 +47,6 @@ function validatePwshArgs(args) {
   if (args.timeoutMs !== undefined && (!Number.isFinite(args.timeoutMs) || args.timeoutMs <= 0)) {
     throw new Error(`invalid timeoutMs: expected a positive number, got ${JSON.stringify(args.timeoutMs)}`)
   }
-  // The escalation pairing (sandbox_permissions ⇔ justification, non-empty) is
-  // the shared rule both enforcing families validate identically.
   validateEscalationArgs(args.sandbox_permissions, args.justification)
 }
 /* jscpd:ignore-end */
@@ -86,13 +84,6 @@ function pwshDescription(backgroundEnabled, escalationModes, pwshPath) {
     + 'On Windows a force-killed command settles as `[exit code: 1]` without a signal marker — treat it as an interruption, not a command failure. '
     + background
   if (escalationModes.length === 0) return base
-  // The language-mode and named-pipe contracts below are Windows-restricted-token
-  // behavior, but the gate is 'any confining executor is mounted'
-  // (escalationModes non-empty). The conflation is safe today because every
-  // shipped composition pairing tool-pwsh with a confining executor is
-  // win32-only; a future POSIX pwsh-sandbox composition must gate both
-  // sentences on the platform instead (tracked in the pwsh-tool-and-executor
-  // Agent Note).
   return base + ' Under the Windows sandbox, read-only pwsh runs in PowerShell ConstrainedLanguage mode, while '
     + 'workspace-write stays in FullLanguage unless host policy says otherwise. In read-only, prefer cmdlets and core types (`[string]`, `[datetime]`, `[regex]`, `[guid]`); '
     + '.NET static calls (`[System.IO.*]::`, `[math]::`), `Add-Type`, COM objects, and reflection fail '
@@ -253,9 +244,6 @@ export function apply(ctx, config = {}) {
     },
     /* jscpd:ignore-end */
     output: {
-      // The foreground result wire shape mirrors freddie-tool-bash's by contract —
-      // consumers of one must accept the other (see the pwsh-tool-and-executor
-      // Agent Note).
       /* jscpd:ignore-start -- deliberate result-schema symmetry with freddie-tool-bash. */
       schema: {
         oneOf: [
@@ -319,7 +307,6 @@ export function apply(ctx, config = {}) {
     /* jscpd:ignore-start -- the execute path mirrors freddie-tool-bash's by design (see the pwsh-tool-and-executor Agent Note). */
     async execute(args, exec) {
       validatePwshArgs(args)
-      // Description is display metadata; workdir defaults to the caller's session.
       const standingPolicy = resolveSandboxPolicy(exec)
       const approvedMode = args.sandbox_permissions !== undefined && args.justification !== undefined
         ? await approvePwshEscalation(args.sandbox_permissions, args.justification, exec, standingPolicy)
@@ -336,7 +323,6 @@ export function apply(ctx, config = {}) {
         ...policy !== undefined ? { sandboxPolicy: policy } : {},
       }
       if (args.run_in_background === true) {
-        // Undeclared keys are allowed, so schema omission also needs enforcement.
         if (!backgroundEnabled) {
           throw new Error('run_in_background is disabled for this deployment (enableRunInBackground: false)')
         }
@@ -344,13 +330,11 @@ export function apply(ctx, config = {}) {
         if (jobs === undefined) {
           throw new Error('background jobs unavailable: load @freddie/freddie-jobs and @freddie/freddie-tool-jobs')
         }
-        // The caller owns cancellation until ctx.jobs commits detached ownership.
         if (exec.signal.aborted) {
           const error = new HarnessError('tool call aborted', TOOL_ABORTED)
           error.name = 'AbortError'
           throw error
         }
-        // Task preflight finishes before the starter can spawn a process.
         const id = jobs.start({
           kind: 'pwsh',
           label: args.command,
@@ -380,8 +364,6 @@ export function apply(ctx, config = {}) {
     /* jscpd:ignore-end */
     /* jscpd:ignore-start -- the background call card mirrors presentBashCall's by design (Agent Note). */
     presentCall: (args) => {
-      // Background acknowledgements carry no terminal exit status; the generic
-      // card mirrors the bash tool's background presentation.
       if (args.run_in_background === true) {
         return {
           card: 'generic',
@@ -405,11 +387,9 @@ export function apply(ctx, config = {}) {
       if (block === undefined || block.type !== 'text') return undefined
       const raw = block.text
       const isBackground = typeof args === 'object' && args !== null && args.run_in_background === true
-      // Background acknowledgements and errors have no terminal exit status.
       if (isBackground || result.isError) {
         return { card: 'generic', content: [{ type: 'text', text: `\`\`\`console\n${raw.replace(/\n+$/, '')}\n\`\`\`` }] }
       }
-      // The exit marker becomes the card's exit pill, so it leaves the output body.
       const { body, ...exit } = parseExitStatus(raw)
       return { card: 'terminal', output: body, ...exit }
     },

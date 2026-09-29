@@ -1,7 +1,7 @@
 /**
- * Shared boot glue for the app bins (`dsh`, `freddie-acp-demo`): load the gitignored
+ * Shared boot glue for the app bins (`freddie`, `freddie-acp-demo`): load the gitignored
  * `.env`, install the fail-loud Loader guards, resolve the config path (snapshot-aware), load the
- * optional user patch layers from the Harness home (`~/.dsh`), expose its path resolver to
+ * optional user patch layers from the Harness home (`~/.freddie`), expose its path resolver to
  * config expressions, and drive the Cordis Loader against a leaf `cordis.yml` until the tree settles.
  * @module @freddie/freddie-app-boot
  */
@@ -69,33 +69,38 @@ export function loadEnv(
     if (error?.code !== 'ENOENT') {
       warn(`${binName}: failed to load .env: ${String(error)}\n`)
     }
-    // ENOENT (no .env) is fine — rely on the ambient environment.
   }
 }
 
+const BOOTSTRAP_NAMES_BY_CATEGORY = {
+  processLaunchAndModuleResolution: [
+    'PATH', 'HOME', 'USERPROFILE', 'SHELL',
+    'NODE_OPTIONS', 'NODE_PATH', 'NODE_EXTRA_CA_CERTS',
+    'LD_PRELOAD', 'LD_LIBRARY_PATH', 'LD_AUDIT',
+  ],
+  interpreterStartupHooks: [
+    'BASH_ENV', 'ENV', 'SHELLOPTS', 'BASHOPTS',
+    'PERL5OPT', 'PERL5LIB', 'PYTHONSTARTUP', 'PYTHONPATH', 'RUBYOPT', 'RUBYLIB',
+    'JAVA_TOOL_OPTIONS', '_JAVA_OPTIONS', 'JDK_JAVA_OPTIONS',
+    'PYTHONHOME',
+  ],
+  versionControlHooksConfigRedirectsAndCommandSelectors: [
+    'GIT_SSH', 'GIT_SSH_COMMAND', 'GIT_EXTERNAL_DIFF', 'GIT_PAGER', 'GIT_EDITOR',
+    'GIT_ASKPASS', 'SSH_ASKPASS',
+    'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_COUNT',
+    'EDITOR', 'VISUAL', 'PAGER', 'BROWSER',
+  ],
+  networkReachAndTrust: [
+    'DEEPSEEK_BASE_URL', 'DEEPSEEK_SEARCH_BASE_URL',
+    'SSL_CERT_FILE', 'SSL_CERT_DIR',
+    'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
+    'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE',
+    'NODE_TLS_REJECT_UNAUTHORIZED',
+  ],
+}
+
 /** Exact names no discovered file may set. */
-const BOOTSTRAP_NAMES = new Set([
-  // Process launch and module resolution.
-  'PATH', 'HOME', 'USERPROFILE', 'SHELL',
-  'NODE_OPTIONS', 'NODE_PATH', 'NODE_EXTRA_CA_CERTS',
-  'LD_PRELOAD', 'LD_LIBRARY_PATH', 'LD_AUDIT',
-  // Interpreter startup hooks.
-  'BASH_ENV', 'ENV', 'SHELLOPTS', 'BASHOPTS',
-  'PERL5OPT', 'PERL5LIB', 'PYTHONSTARTUP', 'PYTHONPATH', 'RUBYOPT', 'RUBYLIB',
-  'JAVA_TOOL_OPTIONS', '_JAVA_OPTIONS', 'JDK_JAVA_OPTIONS',
-  'PYTHONHOME',
-  // Version-control hooks, config redirects, and ambient command selectors.
-  'GIT_SSH', 'GIT_SSH_COMMAND', 'GIT_EXTERNAL_DIFF', 'GIT_PAGER', 'GIT_EDITOR',
-  'GIT_ASKPASS', 'SSH_ASKPASS',
-  'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_COUNT',
-  'EDITOR', 'VISUAL', 'PAGER', 'BROWSER',
-  // Network reach and trust.
-  'DEEPSEEK_BASE_URL', 'DEEPSEEK_SEARCH_BASE_URL',
-  'SSL_CERT_FILE', 'SSL_CERT_DIR',
-  'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
-  'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE',
-  'NODE_TLS_REJECT_UNAUTHORIZED',
-])
+const BOOTSTRAP_NAMES = new Set(Object.values(BOOTSTRAP_NAMES_BY_CATEGORY).flat())
 
 /** Name prefixes no discovered file may set. */
 const BOOTSTRAP_PREFIXES = ['FREDDIE_', 'XDG_', 'DYLD_', 'BASH_FUNC_']
@@ -131,10 +136,8 @@ function readEnvLayer(
     if (error?.code !== 'ENOENT') {
       warn(`${binName}: failed to load .env: ${String(error)}\n`)
     }
-    // ENOENT (no .env) is fine — rely on the ambient environment.
     return undefined
   }
-  // Parse once so validation and materialization use exactly the same entries.
   const values = parseEnv(content)
   for (const name of Object.keys(values)) {
     if (!isBootstrapOnly(name)) continue
@@ -164,10 +167,8 @@ export function loadLayeredEnv(
 ) {
   const home = resolveFreddieHome()
   const inherited = { ...process.env }
-  // Parse both layers first: a rejection must not leave one file applied.
   const project = readEnvLayer(binName, cwd, warn)
   const user = home === resolve(cwd) ? undefined : readEnvLayer(binName, home, warn)
-  // Apply the checked values without replacing a higher-ranked name.
   for (const layer of [project, user]) {
     if (layer === undefined) continue
     for (const [name, value] of Object.entries(layer.values)) {
@@ -183,11 +184,8 @@ export function loadLayeredEnv(
 
 const bootstrapIncludes = new WeakMap()
 
-// The include's YAML dialect (`!!js` scalars become expression nodes the
-// Loader interpolates against each entry's injection-ready context), imported
-// from the include itself so patch parsing and config dumping can never drift
-// from what the include mounts. User patch layers share it so they may
-// reference `process.env`.
+const TREE_DISPOSED_WHILE_WATCHER_OPENING = 'INACTIVE_EFFECT'
+
 const userPatchesSchema = entryListSchema
 
 /**
@@ -207,15 +205,12 @@ export async function watchUserPatches(
   const entry = bootstrapIncludes.get(ctx)
   if (entry === undefined) throw new Error(`${binName}: user patch-layer watching requires the root Include entry`)
   const register = hmr.registerConfig(filename, async () => {
-    // Re-read the include's non-patch options per refresh: a writer that
-    // updates the root Include's other options between refreshes (none exists
-    // today) must not have them silently reverted by a user-layer reload.
-    const { patches: _previousPatches, ...includeConfig } = entry.options.config
+    const { patches: _replacedPatches, ...preservedIncludeOptions } = entry.options.config
     const userPatches = loadOptionalPatches(binName, filename) ?? []
     const patches = compose(userPatches)
     await entry.update({
       config: {
-        ...includeConfig,
+        ...preservedIncludeOptions,
         patches,
       },
     })
@@ -223,11 +218,7 @@ export async function watchUserPatches(
   try {
     return await register
   } catch (error) {
-    // A surface can dispose the whole tree while the watcher is still opening;
-    // the HMR effect registration then fails with INACTIVE_EFFECT. That is the
-    // app exiting exactly as asked, not a watch failure, so return a no-op
-    // disposer instead of crashing.
-    if (error?.code === 'INACTIVE_EFFECT') return async () => {}
+    if (error?.code === TREE_DISPOSED_WHILE_WATCHER_OPENING) return async () => {}
     throw error
   }
 }
@@ -358,23 +349,11 @@ export function renderConfigDump(
     throw new Error(`${binName}: config ${absoluteConfigPath} must be a top-level YAML array of entries`)
   }
   const baseLabel = basename(absoluteConfigPath)
-  // YAML parsing yields untyped rows; the include validates each entry
-  // at mount, and the dump prints whatever the file holds, so this
-  // here is structural trust in the same file `boot()` would include.
   const base = parsed
-  // snapshot_k = ONE application of layers 1..k flattened, using the exact
-  // arguments boot passes for that prefix. snapshot_N is the mounted composition.
-  // The patches are cloned per call: applyEntryPatches detaches the entry
-  // list but pushes `insert` rows by reference from the patch list, so
-  // sharing patch objects across snapshot calls would leak a later
-  // snapshot's mutations into an earlier one's result.
   const snapshot = (count, warnings) => {
-    const flattened = structuredClone(layers.slice(0, count).flatMap(layer => layer.patches))
-    return applyEntryPatches(base, flattened, (message, ...args) => {
-      // The include logs through cordis's printf-style logger (`%C` = code); a
-      // dump has no logger, so substitute inline for a plain line.
-      let index = 0
-      warnings.push(message.replace(/%C/g, () => JSON.stringify(args[index++])))
+    const flattenedPatchesDetachedFromLayers = structuredClone(layers.slice(0, count).flatMap(layer => layer.patches))
+    return applyEntryPatches(base, flattenedPatchesDetachedFromLayers, (message, ...args) => {
+      warnings.push(substituteCodePlaceholders(message, args))
     })
   }
   let previous = base
@@ -399,6 +378,12 @@ export function renderConfigDump(
     previousWarnings = warnings
   }
   return groupedDump(composed, provenance)
+}
+
+/** Fill the printf-style `%C` code placeholders the Loader's logger would substitute. */
+function substituteCodePlaceholders(message, args) {
+  let index = 0
+  return message.replace(/%C/g, () => JSON.stringify(args[index++]))
 }
 
 /** Render the composed rows grouped under one source-and-patches comment per contiguous run. */
@@ -432,6 +417,8 @@ function groupedDump(
   return lines.join('\n') + '\n'
 }
 
+const PINNED_BOOTSTRAP_INCLUDE_ID = 'include'
+
 /**
  * Mount and remember the exact root Include entry used by app boot and user patch-layer HMR.
  * @param ctx - context carrying an initialized Loader service.
@@ -462,21 +449,13 @@ export async function mountRootInclude(
         return internal.import(specifier, bareModuleBaseUrl, {})
       }
     }
-  // `cordis:group` alongside it: a group row is how a composition gives one
-  // `isolate` realm to a provider and its consumers together, and an agent
-  // preset living outside this workspace cannot resolve `@freddie/cordis-plugin-group`
-  // by name. Both builtins load through the ambient module pipeline, so neither
-  // depends on the included tree's own specifier resolution.
   ctx.loader.builtins.group = Group
-  // Pinned id: the bootstrap include is app glue, not a config row, and its
-  // id appears in Loader failure chains — a random id would make startup
-  // diagnostics unstable across runs (and snapshot fixtures).
   const includeConfig = {
     path: pathToFileURL(absoluteConfigPath).href,
     ...patches.length > 0 ? { patches: [...patches] } : {},
   }
   const rootInclude = {
-    id: 'include',
+    id: PINNED_BOOTSTRAP_INCLUDE_ID,
     name: 'cordis:include',
     config: includeConfig,
   }
@@ -488,9 +467,6 @@ export async function mountRootInclude(
   return entry
 }
 
-// Loader rc.5 derives and drops a rejected promise after a fiber fails. Keep
-// exact reasons already folded into the boot diagnostic visible through the
-// next process rejection checkpoint so the process guard can coalesce them.
 const assembledActivationRejections = new Map()
 
 function retainAssembledRejection(reason) {
@@ -555,34 +531,25 @@ export function installFailLoud(
   proc = process,
   release,
 ) {
-  let exiting = false
+  let fatalExitInProgress = false
   const handler = (err) => {
     if (assembledActivationRejections.has(err)) return
-    // A release in flight already owns the exit. Swallow later rejections
-    // (teardown's own included) rather than reporting a second failure over the
-    // real one or letting Node kill the process before the terminal is back.
-    if (exiting) return
-    exiting = true
+    if (fatalExitInProgress) return
+    fatalExitInProgress = true
     proc.stderr.write(`${binName}: fatal load failure: ${err instanceof Error ? err.stack ?? err.message : String(err)}\n`)
     if (release === undefined) {
       proc.exit(1)
       return
     }
     void (async () => {
-      // Definitely assigned: the timeout promise's executor runs synchronously
-      // while the race is being constructed, before the first await.
       let timer
-      try {
-        await Promise.race([
-          (async () => release())(),
-          new Promise((resolve) => {
-            timer = setTimeout(resolve, FAIL_LOUD_RELEASE_TIMEOUT_MS)
-          }),
-        ])
-      } catch {
-        // The terminal release failed; the fatal exit below is the outcome that
-        // matters, and no reporter runs after it.
-      }
+      const releaseIgnoringItsFailure = (async () => release())().catch(() => {})
+      await Promise.race([
+        releaseIgnoringItsFailure,
+        new Promise((resolve) => {
+          timer = setTimeout(resolve, FAIL_LOUD_RELEASE_TIMEOUT_MS)
+        }),
+      ])
       clearTimeout(timer)
       proc.exit(1)
     })()
@@ -610,7 +577,7 @@ export function assertEntriesLoaded(ctx, binName) {
 /**
  * Value mirrors used because Cordis's const enum has no runtime object to import.
  * Keep aligned with `packages/extensions/tool-cordis/src/fiber-state.js` and
- * `packages/client/web/src/loader-status.ts`.
+ * `packages/client/web/src/loader-status.js`.
  */
 const FIBER_PENDING = 0
 const FIBER_ACTIVE = 2
@@ -668,20 +635,27 @@ export async function assertEntriesActivated(ctx, binName) {
   }
 }
 
+const HOST_PREPARATION_FAILED = 'host preparation failed'
+const PLUGIN_TREE_FAILED_TO_LOAD = 'plugin tree failed to load'
+
+function deepestCause(error) {
+  let deepest = error
+  while (deepest instanceof Error && deepest.cause !== undefined) deepest = deepest.cause
+  return deepest
+}
+
 /**
  * Boot the Loader against `absoluteConfigPath` and return only after the whole
  * tree settles. Relative entry names resolve against the config directory;
  * bare package names resolve there by default or against an explicit
  * `bareModuleBaseUrl` for closed packaged runtimes. The bootstrap include
  * is statically imported and mounted as the `cordis:include` builtin, loading
- * through the ambient module pipeline (vite/tsx/plain ESM). The package build
- * embeds Include while leaving Loader external, so the built include tree and
- * host share one Loader peer. Loader
+ * through the ambient module pipeline (plain ESM). Loader
  * settlement rejects startup failures, which `boot` wraps after disposing the
  * partial context; a missing fiber or never-activating entry is rejected by
  * the final audit, {@link assertEntriesActivated}, which rethrows a plugin's
  * init rejection with its original stack; later unhandled rejections remain
- * covered by {@link installFailLoud}. Built bins need the Loader's native
+ * covered by {@link installFailLoud}. Bins need the Loader's native
  * helper for bare plugin specifiers; relative specifiers do not.
  * @param binName - the diagnostic prefix for load-failure errors.
  * @param absoluteConfigPath - the config to include; must already be absolute
@@ -706,41 +680,23 @@ export async function boot(
   bareModuleBaseUrl,
 ) {
   const ctx = new Context()
-  // Two failure labels: `prepare` runs before any config-tree entry mounts,
-  // so its failure is host setup, not the plugin tree.
-  let stage = 'host preparation failed'
+  let stage = HOST_PREPARATION_FAILED
   try {
     ctx.baseUrl = pathToFileURL(dirname(absoluteConfigPath)).href + '/'
     ctx.provide('freddieHomePath', freddieHomePath)
     await ctx.plugin(Loader)
     await prepare?.(ctx)
-    stage = 'plugin tree failed to load'
+    stage = PLUGIN_TREE_FAILED_TO_LOAD
     await mountRootInclude(ctx, absoluteConfigPath, patches, bareModuleBaseUrl)
-    // A surface can finish and dispose the whole tree while startup is still
-    // in flight, before the last entry settles. The Loader service goes with
-    // it, and the activation audit describes a live tree — reading `ctx.loader`
-    // past this point would throw a TypeError over an app that exited exactly
-    // as asked. Transactional group updates settle
-    // lifecycle inside the mount, so the teardown can land before it returns;
-    // re-check after every await.
     await ctx.get('loader')?.await()
     if (ctx.get('loader') === undefined) return ctx
     await assertEntriesActivated(ctx, binName)
     return ctx
   } catch (cause) {
-    // Root-fiber disposal contains cleanup failures per observer (Cordis
-    // fiber.ts hardening) and a repeated call returns the settled single-shot
-    // result, so this await cannot reject and replace `cause`.
     await ctx.fiber.dispose()
     const detail = cause instanceof Error ? cause.message : String(cause)
-    // The transactional Loader wraps a failing entry apply in one message per
-    // tree layer; every layer's message is folded into `detail` above, and the
-    // deepest cause is the plugin's own thrown error, whose stack names the
-    // real failure site — append it so the startup diagnostic preserves the
-    // original activation error instead of only the wrap chain.
-    let deepest = cause
-    while (deepest instanceof Error && deepest.cause !== undefined) deepest = deepest.cause
-    const stack = deepest instanceof Error && deepest !== cause ? `\n${deepest.stack ?? deepest.message}` : ''
+    const originalFailure = deepestCause(cause)
+    const stack = originalFailure instanceof Error && originalFailure !== cause ? `\n${originalFailure.stack ?? originalFailure.message}` : ''
     throw new Error(`${binName}: ${stage}: ${detail}${stack}`, { cause })
   }
 }

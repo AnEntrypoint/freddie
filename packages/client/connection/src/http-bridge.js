@@ -24,14 +24,7 @@ export async function bridge(
   maxRequestBodyBytes = DEFAULT_MAX_REQUEST_BODY_BYTES,
 ) {
   const abort = new AbortController()
-  // Client-disconnect detection MUST hang off the response, not the request:
-  // since Node 16, IncomingMessage 'close' fires as soon as the request body is
-  // fully consumed (immediately for a bodyless GET), which would abort every SSE
-  // stream right after open. ServerResponse 'close' fires on connection teardown;
-  // writableEnded distinguishes a normal end() from the client going away.
-  res.on('close', () => {
-    if (!res.writableEnded) abort.abort()
-  })
+  abortWhenConnectionTearsDown(res, abort)
   const declaredLength = req.headers['content-length']
   if (declaredLength !== undefined && Number(declaredLength) > maxRequestBodyBytes) {
     res.writeHead(413, { connection: 'close' })
@@ -54,7 +47,7 @@ export async function bridge(
   }
   /* v8 ignore next 3 -- `??` arms: node:http always sets url/method on server
   requests; the fields are only optional on the client-side IncomingMessage type */
-  const request = new Request(new URL(req.url ?? '/', 'http://dsh.internal'), {
+  const request = new Request(new URL(req.url ?? '/', 'http://freddie.internal'), {
     method: req.method ?? 'GET',
     headers: Object.fromEntries(Object.entries(req.headers).filter(([, v]) => typeof v === 'string')),
     ...chunks.length > 0 ? { body: Buffer.concat(chunks) } : {},
@@ -67,21 +60,28 @@ export async function bridge(
     return
   }
   for await (const chunk of response.body) {
-    // Backpressure: a false return means the socket buffer is full — wait for drain
-    // instead of buffering unboundedly (slow/suspended SSE consumers). 'close' also
-    // resolves so a mid-wait disconnect can't park this loop forever; the close
-    // handler above aborts the handler stream, which then ends the iteration.
-    if (!res.write(chunk)) {
-      await new Promise((resolve) => {
-        const done = () => {
-          res.off('drain', done)
-          res.off('close', done)
-          resolve()
-        }
-        res.once('drain', done)
-        res.once('close', done)
-      })
-    }
+    const socketBufferIsFull = !res.write(chunk)
+    if (socketBufferIsFull) await drainedOrClosed(res)
   }
   res.end()
+}
+
+/** Abort `abort` when the connection ends before the response did (a client going away). */
+function abortWhenConnectionTearsDown(res, abort) {
+  res.on('close', () => {
+    if (!res.writableEnded) abort.abort()
+  })
+}
+
+/** Resolve once the socket buffer drains, or the connection closes mid-wait. */
+function drainedOrClosed(res) {
+  return new Promise((resolve) => {
+    const done = () => {
+      res.off('drain', done)
+      res.off('close', done)
+      resolve()
+    }
+    res.once('drain', done)
+    res.once('close', done)
+  })
 }

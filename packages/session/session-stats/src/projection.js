@@ -55,7 +55,6 @@ export const sessionStatsProjectionDefinition = {
     pendingCalls: {},
   }),
   apply: (state, event) => {
-    // Every uninteresting event returns the same reference (Object.is gates the change feed).
     switch (event.type) {
       case 'step/start':
         return {
@@ -71,8 +70,6 @@ export const sessionStatsProjectionDefinition = {
       case 'assistant/message': {
         const open = state.openStep
         if (open === null || open.turn !== event.data.turn || open.step !== event.data.step) return state
-        // One assembled message per step: closing the boundary means a
-        // defensive duplicate cannot accrue twice.
         const next = {
           ...state,
           llmMs: state.llmMs + Math.max(0, event.time - open.startTime),
@@ -92,10 +89,6 @@ export const sessionStatsProjectionDefinition = {
       case 'tool/call':
         return { ...state, pendingCalls: { ...state.pendingCalls, [event.data.callId]: event.time } }
       case 'tool/result': {
-        // Own-key check: callId is provider-minted (model/tool JSON boundary),
-        // so a prototype property name ('constructor', 'toString') on a result
-        // with no recorded call must read as unmatched, not as an inherited
-        // function that would poison toolMs with NaN.
         const callId = event.data.message.source.callId
         const dispatched = Object.hasOwn(state.pendingCalls, callId) ? state.pendingCalls[callId] : undefined
         if (dispatched === undefined) return state
@@ -113,9 +106,6 @@ export const sessionStatsProjectionDefinition = {
           openStep: null,
         }
       case 'turn/end':
-        // A call whose result never landed belongs to a cancelled or failed
-        // turn; results always land within their turn, so drop the leftovers
-        // instead of growing persisted state forever.
         return Object.keys(state.pendingCalls).length === 0 ? state : { ...state, pendingCalls: {} }
       default:
         return state

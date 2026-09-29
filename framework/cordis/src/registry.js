@@ -106,7 +106,6 @@ export class RegistryService {
    * @returns the callback identifying the plugin, or `undefined` if invalid.
    */
   resolve(plugin) {
-    // plugin.apply may throw
     try {
       if (typeof plugin === 'function') return plugin
       if (isApplicable(plugin)) return plugin.apply

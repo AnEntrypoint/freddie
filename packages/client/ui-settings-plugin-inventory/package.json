@@ -1,6 +1,6 @@
 {
   "name": "@freddie/freddie-client-ui-settings-plugin-inventory",
-  "description": "Read-only Cordis Loader inventory tab in Web Plugins settings",
+  "description": "Cordis Loader inventory tab in Web Plugins settings, with an enable/disable switch per plugin",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
@@ -63,6 +63,7 @@
     "src/invariant.js",
     "src/client/index.js",
     "src/client/locales.js",
+    "src/client/plugin-manager-port.js",
     "src/client/PluginInventorySettingsTab.js",
     "src/client/PluginInventorySettingsTab.css.js"
   ]

@@ -39,6 +39,10 @@ pnpm build:native    # this Linux architecture's binaries (needs musl-tools); fa
 - Builds are native-only: each architecture compiles its own binary on its own runner (CI is the builder of record); no cross toolchain enters the repo.
 - Every tarball is gated at pack time: platform packages refuse to pack without their declared binaries present, executable, and in the right ELF architecture (`verify-launcher-binary.mjs`), and the release pipeline byte-pins installed binaries against the workspace builds (`verify-packed-install.mjs`).
 - Platform tarballs are packed with `npm pack`, never `pnpm pack`: pnpm's pack path strips the executable bit (observed on 11.7.0), shipping a launcher no consumer can spawn. `pack-release.mjs` encodes the split; the rehearsal asserts executability of the installed copy so a regression fails loudly instead of masquerading as a non-enforcing kernel.
+- `launcherPath` (entry `src/index.js`): the unresolvable-platform fallback is an absolute path inside the entry package's own `node_modules`, never cwd-relative: a spawnable relative path would hand the working directory control over which binary confines. It is nonexistent exactly when the platform package is absent, so the probe fails and the consumer falls closed.
+- `scripts/build.js`: `-Werror` stays hard because CI pins the builder images; a new warning on a toolchain bump deserves a look, not a pass.
+- `scripts/pack-release.mjs`: entry packages keep `pnpm pack` because they need its workspace-protocol conversion (platform packages have no dependencies) and carry no executables.
+- `scripts/publish-release.mjs`: `npm publish` passes no `--access`; each manifest's `publishConfig.access` decides and a command-line flag would override it.
 - Generated artifacts stay out of git: `packages/*/bin/`, `packages/*/lib/`, `dist/`, `.release/`, `*.tsbuildinfo`. Ignore rules live in the ROOT `.gitignore` only — a package-nested ignore file can silently drop payload from tarballs.
 
 ## Documentation

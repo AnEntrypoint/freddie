@@ -1,19 +1,19 @@
 # Cookbook: adding an LLM adapter
 
-How to connect a new model provider. Reference implementation: `packages/llm/llm-deepseek` (direct HTTP, SSE framed by `eventsource-parser`). Read the `StreamChunk` doc in `packages/llm/llm/src/types.ts` first — it records the protocol conventions the adapter was verified against.
+How to connect a new model provider. Reference implementation: `packages/llm/llm-deepseek` (direct HTTP, SSE framed by `eventsource-parser`). Read the chunk vocabulary in [`packages/llm/llm/src/message.js`](../../packages/llm/llm/src/message.js) and the assembler that consumes it, [`assembler.js`](../../packages/llm/llm/src/assembler.js), first — they record the protocol conventions the adapter was verified against.
 
 ## The shape
 
-```ts ignore-check
+```js
 class MyAdapter extends LlmAdapter {
-  async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> { … }
+  async * stream(options) { … }
 }
 
 export const name = 'llm-myprovider'
 export const inject = ['llm']
-export const Config: z<Config> = z.object({ apiKey: z.string(), … })
+export const Config = z.object({ apiKey: z.string(), … })
 
-export function apply(ctx: Context, config: Config) {
+export function apply(ctx, config) {
   ctx.llm.registerAdapter(['my-provider'], new MyAdapter(…))
 }
 ```

@@ -1,10 +1,7 @@
 #!/usr/bin/env node
-// Regenerates vendor/ and src/manifest.js from this package's real pnpm
-// resolution graph. Run from the repo root: node
-// packages/client/vendor-modules/scripts/generate-vendor.mjs
 import { createRequire } from 'node:module'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { basename, dirname, extname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -22,12 +19,10 @@ const runtimeRequire = createRequire(join(repoRoot, 'packages', 'client', 'runti
 const uiTrajectoryRequire = createRequire(join(repoRoot, 'packages', 'client', 'ui-trajectory', 'noop.js'))
 const appsWebRequire = createRequire(join(repoRoot, 'apps', 'web', 'noop.js'))
 const clientWebRequire = createRequire(join(repoRoot, 'packages', 'client', 'web', 'noop.js'))
+const goalRequire = createRequire(join(repoRoot, 'packages', 'goal', 'goal', 'noop.js'))
 
-// Entry points actually imported by workspace source, matching
-// vite.config.ts's own VENDOR_PACKAGES plus the subpaths workspace code
-// imports directly. Anything these transitively need is discovered below by
-// the fixed-point bare-specifier scan, not hand-listed here.
 const ENTRY_SPECIFIERS = [
+  'zod',
   '@freddie/webjsx',
   '@freddie/webjsx/jsx-runtime',
   'clsx',
@@ -75,13 +70,6 @@ const ENTRY_SPECIFIERS = [
   'micromark-util-sanitize-uri',
   'micromark-util-symbol',
   'micromark-util-types',
-  // The apps/web boot-kernel closure: main.js's own bare imports, resolved
-  // buildless the same way as every npm package above. These are workspace
-  // packages (some npm-published lib builds, some in-repo vendor/*
-  // packages), never bundled by Vite as workspace source in the old build —
-  // this is new scope the buildless conversion itself introduces, since a
-  // browser cannot resolve any bare specifier, workspace or npm, without an
-  // import map.
   '@freddie/freddie-client-web',
 ]
 
@@ -93,11 +81,9 @@ function packageNameOf(specifier) {
   return specifier.split('/')[0]
 }
 
-// shiki and @shikijs/langs must resolve from ui-primitives' real resolution
-// graph specifically: two shiki majors (2.5.0, 4.3.1) coexist in
-// node_modules/.pnpm, and a bare generic scan could grab either.
 function resolverFor(specifier) {
   const pkg = packageNameOf(specifier)
+  if (pkg === 'zod') return (spec) => goalRequire.resolve(spec, resolveOpts)
   if (pkg === 'immer' || pkg === 'zustand') return (spec) => runtimeRequire.resolve(spec, resolveOpts)
   if (pkg === 'diff' || pkg === '@tanstack/virtual-core') return (spec) => uiTrajectoryRequire.resolve(spec, resolveOpts)
   if (pkg === '@freddie/freddie-client-web') return (spec) => appsWebRequire.resolve(spec, resolveOpts)
@@ -105,11 +91,6 @@ function resolverFor(specifier) {
   return (spec) => uiPrimitivesRequire.resolve(spec, resolveOpts)
 }
 
-// node_modules-nested packages resolve under a `node_modules/<pkg>` segment;
-// pnpm-workspace-linked packages (this repo's own vendor/* and packages/*/*
-// directories) resolve to a real repo path with no such segment at all —
-// their root is instead the nearest ancestor directory holding a
-// package.json whose own "name" matches.
 function packageDirOf(resolvedFile, pkgName) {
   const needle = join('node_modules', ...pkgName.split('/'))
   const idx = resolvedFile.lastIndexOf(needle)
@@ -132,10 +113,6 @@ function readPackageJson(pkgDir) {
 }
 
 const IMPORT_FROM_RE = /\b(?:import|export)(?!\s+type\b)(?:[^'"()]*?)from\s*['"]([^'"]+)['"]/g
-// Anchored to statement start (start-of-file, `;`, `{`, `}`, or a newline,
-// with only whitespace between) so a string literal that happens to read
-// "import" as a function argument (e.g. `updateError("import", ...)`) is
-// never mistaken for the side-effect-import statement form.
 const BARE_SIDE_IMPORT_RE = /(?:^|[;{}]|\r?\n)\s*import\s*['"]([^'"]+)['"]/g
 const DYNAMIC_IMPORT_RE = /[^.\w]import\(\s*['"]([^'"]+)['"]\s*\)/g
 
@@ -162,18 +139,49 @@ function isNodeBuiltin(specifier) {
   return specifier.startsWith('node:')
 }
 
-// anser's lib/index.js has no ESM build and no require() calls of its own —
-// a single trailing `module.exports = Anser;` is the only CJS surface. A
-// browser import map cannot execute CommonJS, so that one line is rewritten
-// to a real ESM export at copy time. This is not a bundle/transform of the
-// package's logic, only its module-boundary syntax; every other vendored
-// file is copied byte-for-byte.
 const CJS_EXPORT_SHIMS = new Map([
   ['anser', { pattern: /module\.exports = Anser;\s*$/, replacement: 'export default Anser;\n' }],
 ])
 
-function copyFile(srcFile, destFile, pkgName) {
-  mkdirSync(dirname(destFile), { recursive: true })
+const SPECIFIER_ALIASES = new Map([['webjsx', '@freddie/webjsx']])
+
+const IMPORT_MAP_PROVIDED_ELSEWHERE = new Set([
+  '@freddie/freddie-client-modules',
+  '@freddie/freddie-client-modules/client',
+])
+
+const LIVE_WORKSPACE_PACKAGES = new Set([
+  '@freddie/freddie-client-web',
+  '@freddie/freddie-client-ui-slots',
+  '@freddie/freddie-client-ui-primitives',
+  '@freddie/webjsx',
+])
+
+const ASIAN_SCRIPT_CHARACTER = /[\u0E00-\u0E7F\u1100-\u11FF\u2E80-\u9FFF\uA960-\uA97F\uAC00-\uD7FF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF]|[\uD840-\uD8BF][\uDC00-\uDFFF]/
+const LOCALE_DIRECTORY_NAMES = new Set(['locales', 'locale', 'i18n'])
+const PERMITTED_LOCALE_STEMS = new Set(['en', 'index'])
+const BINARY_EXTENSIONS = new Set(['.woff', '.woff2', '.ttf'])
+
+function escapeNonAscii(text) {
+  return text.replace(/[^\x00-\x7F]/g, (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`)
+}
+
+function keepEnglishLocaleExport(text) {
+  const englishExport = text.split('\n').find((line) => line === 'export { default as en } from "./en.js";')
+  if (englishExport === undefined) throw new Error('generate-vendor: the zod locales index no longer exports en — update EMITTED_REWRITES')
+  return `${englishExport}\n`
+}
+
+const EMITTED_REWRITES = new Map([
+  ['zod/v4/locales/index.js', keepEnglishLocaleExport],
+  ['@shikijs/langs/dist/html.mjs', escapeNonAscii],
+  ['@shikijs/langs/dist/less.mjs', escapeNonAscii],
+  ['@shikijs/langs/dist/swift.mjs', escapeNonAscii],
+  ['markdown-table/index.js', escapeNonAscii],
+  ['micromark-extension-gfm-autolink-literal/lib/syntax.js', escapeNonAscii],
+])
+
+function emittedContent(srcFile, pkgName, relPath) {
   let content = readFileSync(srcFile)
   const shim = CJS_EXPORT_SHIMS.get(pkgName)
   if (shim !== undefined) {
@@ -182,6 +190,23 @@ function copyFile(srcFile, destFile, pkgName) {
     if (rewritten === text) throw new Error(`generate-vendor: CJS export shim for ${pkgName} found nothing to rewrite in ${srcFile} — package output changed, update CJS_EXPORT_SHIMS`)
     content = Buffer.from(rewritten, 'utf8')
   }
+  const rewriteKey = `${pkgName}/${relPath.split('\\').join('/')}`
+  const rewrite = EMITTED_REWRITES.get(rewriteKey)
+  if (rewrite !== undefined) {
+    const text = content.toString('utf8')
+    const rewritten = rewrite(text)
+    if (rewritten === text) throw new Error(`generate-vendor: emitted rewrite for ${rewriteKey} found nothing to rewrite in ${srcFile} — package output changed, update EMITTED_REWRITES`)
+    content = Buffer.from(rewritten, 'utf8')
+  }
+  return content
+}
+
+function copyFile(srcFile, destFile, pkgName, relPath) {
+  writeEmitted(destFile, emittedContent(srcFile, pkgName, relPath))
+}
+
+function writeEmitted(destFile, content) {
+  mkdirSync(dirname(destFile), { recursive: true })
   if (existsSync(destFile)) {
     const existing = readFileSync(destFile)
     if (!existing.equals(content)) {
@@ -215,24 +240,23 @@ function processPackageFile(pkgName, pkgDir, version, absFile, queue, seenFiles)
   seenFiles.add(absFile)
   const relPath = absFile.slice(pkgDir.length + 1)
   const destFile = join(versionDirFor(pkgName, version), relPath)
-  copyFile(absFile, destFile, pkgName)
+  const content = emittedContent(absFile, pkgName, relPath)
+  if (!LIVE_WORKSPACE_PACKAGES.has(pkgName)) writeEmitted(destFile, content)
   copiedFiles.set(absFile, { pkgName, version, relPath })
 
   const ext = relPath.slice(relPath.lastIndexOf('.'))
   if (ext !== '.js' && ext !== '.mjs' && ext !== '.cjs') return
-  const source = readFileSync(absFile, 'utf8')
+  const source = content.toString('utf8')
   for (const specifier of scanSpecifiers(source)) {
+    if (IMPORT_MAP_PROVIDED_ELSEWHERE.has(specifier)) continue
     if (isRelative(specifier) || isNodeBuiltin(specifier)) {
       if (isRelative(specifier)) {
         const resolvedRelative = resolveRelative(absFile, specifier)
         queue.push({ relativeFrom: { pkgName, pkgDir, version }, absFile: resolvedRelative })
       }
-      // node: builtins never enter the copy/scan queue — node:module is
-      // hand-mapped to a local browser stub below; any other node:
-      // specifier reaching this point in a browser-served file is a real
-      // defect the generated import map cannot paper over.
     } else {
-      queue.push({ specifier, fromDir: dirname(absFile), fromPkgResolver: resolverFor(specifier) })
+      const canonicalSpecifier = SPECIFIER_ALIASES.get(specifier) ?? specifier
+      queue.push({ specifier: canonicalSpecifier, fromDir: dirname(absFile), fromPkgResolver: resolverFor(canonicalSpecifier) })
     }
   }
 }
@@ -278,27 +302,14 @@ while (queue.length > 0) {
 
   processPackageFile(pkgName, pkgDir, version, resolvedFile, queue, seenFiles)
 
-  // Every specifier this loop resolves gets its own import-map entry, not
-  // only the hand-listed ENTRY_SPECIFIERS: a transitively-discovered
-  // package (e.g. @freddie/cosmokit, pulled in only by cordis/loader,
-  // never imported directly by workspace source) still needs to resolve
-  // when cordis's own compiled output does `import ... from
-  // '@freddie/cosmokit'` in the browser. Resolving each specifier
-  // through the same graph traversal that already copied its file, instead
-  // of a separate guess-a-root fallback pass, is what makes this correct —
-  // there is no second resolution attempt that can silently swallow a
-  // missing root and skip the mapping.
   const relPath = resolvedFile.slice(pkgDir.length + 1)
   const url = vendorUrlFor(pkgName, version, relPath)
   importMapExact[specifier] = url
+  for (const [alias, canonical] of SPECIFIER_ALIASES) {
+    if (specifier === canonical) importMapExact[alias] = url
+  }
 }
 
-// katex's stylesheet and font files are static assets, never JS-imported at
-// runtime by any browser-viable mechanism — the removed
-// `import 'katex/dist/katex.min.css'` side effect in MarkdownText.tsx could
-// never have worked buildless. They ride the same vendor tree as katex's JS
-// so the stylesheet's relative `url(fonts/...)` references resolve as-is,
-// and get one <link> HTML row instead of an import-map entry.
 const cssLinks = []
 function copyKatexAssets() {
   const katexVersion = packageVersions.get('katex')
@@ -306,28 +317,16 @@ function copyKatexAssets() {
   const katexEntryFile = [...copiedFiles.keys()].find(f => copiedFiles.get(f).pkgName === 'katex')
   const katexPkgDir = packageDirOf(katexEntryFile, 'katex')
   const cssRel = join('dist', 'katex.min.css')
-  copyFile(join(katexPkgDir, cssRel), join(versionDirFor('katex', katexVersion), cssRel), 'katex-css')
+  copyFile(join(katexPkgDir, cssRel), join(versionDirFor('katex', katexVersion), cssRel), 'katex-css', cssRel)
   const fontsDir = join(katexPkgDir, 'dist', 'fonts')
   for (const fontFile of readdirSync(fontsDir)) {
     const rel = join('dist', 'fonts', fontFile)
-    copyFile(join(katexPkgDir, rel), join(versionDirFor('katex', katexVersion), rel), 'katex-font')
+    copyFile(join(katexPkgDir, rel), join(versionDirFor('katex', katexVersion), rel), 'katex-font', rel)
   }
   cssLinks.push(vendorUrlFor('katex', katexVersion, cssRel))
 }
 copyKatexAssets()
 
-// The buildless shell uses the unscoped Webjsx identity as its shared module
-// table key. Source imports use the scoped workspace identity, so expose both
-// specifiers through the same in-tree module URL.
-if (importMapExact['@freddie/webjsx'] !== undefined) {
-  importMapExact.webjsx = importMapExact['@freddie/webjsx']
-}
-
-// node:module resolves to a browser stub this script writes directly (never
-// hand-maintained under vendor/, so a `rm -rf vendor` regenerate can't lose
-// it) — @freddie/cordis-plugin-loader's only Node import, unreachable in
-// the browser boot path (mirrors apps/web's former Vite alias to the same
-// effect).
 const NODE_MODULE_STUB = `// Browser stand-in for node:module. createRequire is unreachable in the\n// configured loader path (the browser boot never takes that branch) and\n// fails loud if that assumption changes.\nexport const createRequire = () => {\n  throw new Error('node:module is not available in the browser')\n}\n`
 writeFileSync(join(vendorRoot, 'node-module-stub.js'), NODE_MODULE_STUB)
 importMapExact['node:module'] = '/vendor/node-module-stub.js'
@@ -335,6 +334,30 @@ importMapExact['node:module'] = '/vendor/node-module-stub.js'
 mkdirSync(dirname(manifestFile), { recursive: true })
 const manifestBody = `// Generated by scripts/generate-vendor.mjs from the real pnpm resolution\n// graph (fixed-point bare-specifier scan). Regenerate after a vendored\n// dependency version bump or a new bare specifier enters workspace source.\nexport const vendorPackages = ${JSON.stringify([...packageVersions.entries()].map(([name, version]) => ({ name, version })), null, 2)}\n\nexport const importMapExact = ${JSON.stringify(importMapExact, null, 2)}\n\nexport const importMapPrefix = ${JSON.stringify(importMapPrefix, null, 2)}\n\nexport const cssLinks = ${JSON.stringify(cssLinks, null, 2)}\n`
 writeFileSync(manifestFile, manifestBody)
+
+function listFiles(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name)
+    return entry.isDirectory() ? listFiles(path) : [path]
+  })
+}
+
+function asianLanguageViolations() {
+  const violations = []
+  for (const file of [...listFiles(vendorRoot), manifestFile]) {
+    const shown = relative(packageRoot, file)
+    const stem = basename(file, extname(file))
+    if (LOCALE_DIRECTORY_NAMES.has(basename(dirname(file))) && !PERMITTED_LOCALE_STEMS.has(stem)) violations.push(`${shown}: non-English locale file`)
+    if (BINARY_EXTENSIONS.has(extname(file))) continue
+    if (ASIAN_SCRIPT_CHARACTER.test(readFileSync(file, 'utf8'))) violations.push(`${shown}: Asian script characters`)
+  }
+  return violations
+}
+
+const violations = asianLanguageViolations()
+if (violations.length > 0) {
+  throw new Error(`generate-vendor: emitted vendor tree references Asian languages — add an EMITTED_REWRITES entry or delete the stale file:\n${violations.join('\n')}`)
+}
 
 console.log(`generate-vendor: wrote ${String(packageVersions.size)} packages, ${String(copiedFiles.size)} files to ${vendorRoot}`)
 console.log(`generate-vendor: import map: ${String(Object.keys(importMapExact).length)} exact, ${String(Object.keys(importMapPrefix).length)} prefix`)

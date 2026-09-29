@@ -1,13 +1,3 @@
-// GenericCommandCard: the default command row — a stripped-down
-// GenericToolCard rendering the command name and its settlement text.
-// Supplied by the chat view as the keyed commandview slot's render-site
-// fallback (an unregistered command name lands here); registrants may compose
-// it as a base, feeding the same owner payload through.
-//
-// Converted from a React hooks component to a webjsx custom element: the
-// `expanded` useState becomes a private field, re-render is an explicit
-// applyDiff(this, vdom) call.
-
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { DisclosureRow, IconApiOutline14, StateDot, defineElement } from '@freddie/freddie-client-ui-primitives'
 import a11yCss from './accessibility.css.js'
@@ -55,10 +45,6 @@ export class FreddieGenericCommandCard extends HTMLElement {
     const summary = node.outcome === null
       ? runningSummary ?? t('command.running')
       : text ?? (node.outcome.kind === 'error' ? t('command.failed') : t('command.done'))
-    // Title is the bare command name: the row already reads `name · outcome`,
-    // and the dispatched line's own `/` and arguments only restate what the
-    // settlement text says (`permission · preset workspace-write`). A
-    // cross-window node whose run page fell out of the window has no name.
     const title = node.name ?? t('command.title')
     const state = stateOf(node.outcome)
     const body = text !== undefined && text.includes('\n') ? text : null
@@ -96,6 +82,13 @@ export class FreddieGenericCommandCard extends HTMLElement {
 }
 
 defineElement('freddie-generic-command-card', FreddieGenericCommandCard)
+
+/**
+ * @typedef {object} GenericCommandCardProps
+ * @property {{name: string|null, outcome: {kind: string, text?: string}|null}} node - the command node's name and settled outcome.
+ * @property {string} [runningSummary] - collapsed summary shown while the command has not settled.
+ * @property {(key: string, vars?: object) => string} t - localization function.
+ */
 
 /**
  * Create (if needed) or update a GenericCommandCard element in place.

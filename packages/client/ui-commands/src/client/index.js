@@ -7,7 +7,7 @@
  */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { CommandUiRuntime } from './service.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 
 export { CommandUiRuntime } from './service.js'
 export { CommandDirectory } from './directory.js'
@@ -26,7 +26,7 @@ export const inject = ['inputTriggers', 'sessions', 'remote', 'remote.commands',
  * @param ctx - client root context.
  */
 export function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-commands: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-commands: dictionaries')
   ctx.plugin(CommandUiRuntime)
   ctx.inject(['slots', 'commandUi', 'sessions'], (scope) => {
     const command = scope.commandUi

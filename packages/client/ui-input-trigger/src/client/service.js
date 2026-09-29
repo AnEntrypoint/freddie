@@ -38,9 +38,6 @@ export class InputTriggerService extends Service {
       try {
         controller.sourceAdded(src)
       } catch (error) {
-        // Contain faulty source callbacks (warm/subscribeLexicon): the
-        // registration must stand with a usable disposer and the remaining
-        // controllers must still be notified.
         console.error(`[ui-input-trigger] source "${src.trigger}${src.name}" late-registration setup failed:`, error)
       }
     }

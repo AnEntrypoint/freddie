@@ -94,8 +94,6 @@ export function apply(ctx, config = {}) {
       if (!isSkillName(args.name)) {
         throw new Error(`invalid skill name "${args.name}"`)
       }
-      // The agent is its own scope key, so the lookup resolves the layered
-      // registry exactly as this agent's composition sees it.
       const lookup = { cwd: exec.agent?.session.header.cwd, signal: exec.signal, scope: exec.agent }
       const summary = (await ctx.skills.list(lookup)).find(skill => skill.name === args.name)
       if (!summary) {
@@ -126,20 +124,6 @@ export function apply(ctx, config = {}) {
   })
   ctx.tools.register(skillTool)
 
-  // User-explicit skill invocation: a claimed user message whose first line
-  // starts with `/<name>` naming a user-invocable skill is a deterministic
-  // load gesture. The rendered body enters this step as injected
-  // instructions context appended after every other injection — background
-  // first (workspace rules, runtime policy, the catalog), the material the
-  // model must act on last, closest to its answer. Registration order makes
-  // that placement deterministic: this listener registers before the catalog
-  // listener, so the waterfall hands it the catalog-bearing list to extend.
-  // Only `source.kind === 'user'` messages are scanned — external text
-  // cannot forge the gesture — and a token naming no user-invocable skill
-  // stays ordinary prose (the command registry is a different closed
-  // namespace, resolved client-side before a line ever becomes a prompt).
-  // This is the only entry point for `disable-model-invocation` skills; the
-  // catalog and the `skill` tool below never see them.
   ctx.on('agent/pre-step', async (
     { agent, messages, signal },
     next,
@@ -154,10 +138,6 @@ export function apply(ctx, config = {}) {
     for (const name of names) {
       const skill = await ctx.skills.get(name, lookup)
       signal.throwIfAborted()
-      // Unknown names and user-disabled skills stay plain prose: the
-      // gesture was never a claim this boundary recognizes. The check sits
-      // on the loaded definition — the single lookup that produces what is
-      // actually injected.
       if (skill === undefined || !isUserInvocable(skill)) continue
       const source = { kind: 'skill-invocation', name, form: 'instructions' }
       injections.push(createUserMessage({
@@ -169,13 +149,6 @@ export function apply(ctx, config = {}) {
     return { kind: 'enter', messages: [...decision.messages, ...injections] }
   })
 
-  // Register after the tool so reverse teardown removes guidance first. Exact definition
-  // identity prevents a scoped shadow merely named `skill` from inheriting this catalog.
-  //
-  // The comparison is against the definition this plugin registered, not against
-  // a lookup of its own name: `register()` files into the CALLING context's
-  // scope, so a plugin mounted inside an agent preset registers for that agent
-  // alone and an unscoped lookup correctly finds nothing.
   ctx.on('agent/pre-step', async (
     { agent, signal },
     next,
@@ -292,8 +265,6 @@ function renderCatalogEntries(entries) {
  * written for the model and must not decide whether a republish is needed.
  */
 function digestCatalogEntries(entries) {
-  // JSON per entry rather than a separator character: every separator is itself
-  // a legal description character, so only quoting makes the boundary exact.
   const canonical = entries.map(entry => JSON.stringify([entry.name, entry.description])).join('\n')
   return createHash('sha256')
     .update(canonical)
@@ -329,7 +300,6 @@ function catalogHistory(agent) {
   const events = agent.session.events
   let published = false
   for (let index = events.length - 1; index >= 0; index -= 1) {
-    // The loop bounds prove the read-only event view contains this index.
     const event = events[index]
     if (event.type !== 'user/message' || event.data.source.kind !== 'skill-catalog') continue
     const entries = readCatalogEntries(event.data.source)

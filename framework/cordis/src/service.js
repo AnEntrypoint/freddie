@@ -105,7 +105,6 @@ export class Service {
     if (!instance) return false
     let constructor = instance.constructor
     while (constructor) {
-      // constructor may be a proxy
       constructor = constructor.prototype?.constructor
       if (constructor === this) return true
       constructor &&= Object.getPrototypeOf(constructor)

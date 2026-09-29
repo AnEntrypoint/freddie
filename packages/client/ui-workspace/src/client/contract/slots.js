@@ -21,4 +21,5 @@
  * Two holes exist because the two menu surfaces are independent slot entries
  * and a hole has exactly one declaring entry — they carry the same owner
  * contract and the same occupant.
+ * @module @freddie/freddie-client-ui-workspace/src/client/contract/slots.js
  */

@@ -6,10 +6,12 @@ The application-facing Remote stack. `remotes` owns BFF policy and the selected 
 |---|---|---|
 | [`remotes/`](remotes/README.md) | Host Agent/Session lookup policy and Client Remote contribution assembly | no service; configures `ctx.typert` and consumes `ctx.remote` |
 | [`gateway/`](gateway/README.md) | Host Typert dispatcher and Client Remote endpoint | `ctx.typertGateway` / `ctx.remote` |
+| `remote-stream/` | Frame-stream carrier: Host registry turning async generators into pollable `stream` Remote streams, and the Client `remote.$stream` factory | `ctx.remoteStream` / `ctx.remote.stream` and `ctx.remote.$stream` |
 | [`job-controller/`](job-controller/README.md) | Background-job roster mirror and the human kill over `ctx.jobs` | `ctx.jobController` / `ctx.remote.job` |
 | [`session-controller/`](session-controller/README.md) | Session commands, history pages, live control state, and Agent/Session identity policy | `ctx.sessionController` / `ctx.remote.session` |
 | [`terminal-controller/`](terminal-controller/README.md) | Session-owned interactive shells, screen recovery, and browser terminal control | `ctx.terminalController` / `ctx.remote.terminal` |
 | [`settings-controller/`](settings-controller/README.md) | Host settings and credentials Remote namespaces over the composed provider seams | `ctx.settingsController` and `ctx.credentialsController` / `ctx.remote.settings` and `ctx.remote.credentials` |
+| [`plugin-manager-controller/`](plugin-manager-controller/README.md) | Which mounted plugin entries a browser may switch, and the loopback-pinned enable/disable write | `ctx.pluginManagerController` / `ctx.remote.pluginManager` |
 | [`workspace-controller/`](workspace-controller/README.md) | Host workspace and directory-picker Remote namespaces | `ctx.workspaceController` and `ctx.directoryPickerController` / `ctx.remote.workspace` |
 | [`workspace-files/`](workspace-files/README.md) | Bounded, confined workspace file reads and listings | `ctx.workspaceFiles` / `ctx.remote.workspaceFiles` |
 

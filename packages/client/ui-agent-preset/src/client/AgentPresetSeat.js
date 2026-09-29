@@ -17,12 +17,6 @@ import { IconAgentPresetOutline16, IconChevronDownOutline14, renderMenu, defineE
 import { presetDisplayText } from './locales.js'
 import css from './AgentPresetSeat.css.js'
 
-/* Introduce timeline: the icon eases in first (the CSS animation shares this
-   duration); the name's characters start fading up the moment it lands, each
-   taking the fade duration to settle. The cue clears after the last one. The
-   stagger is capped twice: per tick for short CJK names, and by one shared
-   reveal window so a long Latin name finishes in the same time as its CJK
-   counterpart instead of dragging the run out per character. */
 const INTRO_TEXT_DELAY_MS = 150
 const INTRO_CHAR_STAGGER_MS = 40
 const INTRO_TEXT_REVEAL_MS = 200
@@ -70,10 +64,6 @@ export class FreddieAgentPresetSeat extends HTMLElement {
     if (this.#introTimer !== null) { clearTimeout(this.#introTimer); this.#introTimer = null }
   }
 
-  // The introduce cue: the pick was staged from another screen (the settings
-  // creator entry), so the chip announces it — the icon eases in and each
-  // character of the name fades up on a stagger (CSS owns the motion; this
-  // method only arms it and acknowledges the cue once the run is over).
   #maybeArmIntro(state, label, ready) {
     const props = this.#props
     if (props === null) return
@@ -109,15 +99,11 @@ export class FreddieAgentPresetSeat extends HTMLElement {
 
     this.#maybeArmIntro(state, label, ready)
 
-    // Nothing to choose between: the deployment composes no presets and every
-    // session shares the host composition.
     if (!ready) {
       applyDiff(this, h('span', {style: 'display:none'}))
       return
     }
 
-    // One wrapper span: the chip is a flex row with a gap, so loose character
-    // spans would each pick up the gap between them.
     const characters = Array.from(label)
     const stagger = introStaggerMs(characters.length)
     const shownLabel = this.#introducing
@@ -143,8 +129,6 @@ export class FreddieAgentPresetSeat extends HTMLElement {
         const text = presetDisplayText(option, t)
         return {
           id: option.id,
-          // Name and description together: the id alone never says what a
-          // preset does, which is why the roster carries display copy.
           label: (
             h('span', {class: css.item ?? ''},
               h('span', {class: css.itemName ?? ''}, text.name),

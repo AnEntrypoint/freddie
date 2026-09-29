@@ -375,14 +375,6 @@ class FreddieEntryHost extends HTMLElement {
   #tag = ''
   #entryProps = EMPTY_INJECTED_PROPS
   #el = null
-  // JSX attribute declaration order (`tag` before `entryProps`) drives which
-  // setter webjsx's applyDiff invokes first on initial mount — `tag` always
-  // fires first for this element's call sites. Without this flag, `set tag`'s
-  // own #applyProps() call would drive the freshly-created element's
-  // setProps() with the still-default EMPTY_INJECTED_PROPS (no useStore/
-  // actions/etc.), one JS tick before `set entryProps` ever runs. Real props
-  // apply only once `entryProps` has been assigned at least once; `set tag`
-  // just creates the element and waits.
   #propsAssigned = false
 
   set tag(value) {
@@ -470,15 +462,6 @@ function nextIncarnation(state, sessionId) {
 const ANCHOR_STYLE = 'display: contents'
 
 /**
- * Slot outlet custom element — replaces the React `SlotOutlet` function
- * component. `host`/`slotKey`/`ownerProps`/`opts` land as plain instance
- * fields (webjsx property convention, see Toast.tsx's `setProps`); the
- * registration-version and locale-revision `useSyncExternalStore`
- * subscriptions become explicit `host.subscribe`/locale-face `subscribe`
- * calls bound in `connectedCallback` and torn down in
- * `disconnectedCallback`, each re-invoking `#render()` on notification.
- */
-/**
  * Prune stale duplicate `[data-slot]` wrapper children an outlet's applyDiff
  * pass may have left behind (see the callers' comments for the observed
  * webjsx diff-cache desync this guards). Keeps the last child — the wrapper
@@ -563,6 +546,15 @@ class OutletSubscriptions {
   }
 }
 
+/**
+ * Slot outlet custom element — replaces the React `SlotOutlet` function
+ * component. `host`/`slotKey`/`ownerProps`/`opts` land as plain instance
+ * fields (webjsx property convention, see Toast.tsx's `setProps`); the
+ * registration-version and locale-revision `useSyncExternalStore`
+ * subscriptions become explicit `host.subscribe`/locale-face `subscribe`
+ * calls bound in `connectedCallback` and torn down in
+ * `disconnectedCallback`, each re-invoking `#render()` on notification.
+ */
 export class FreddieSlotOutlet extends HTMLElement {
   #host = null
   #slotKey = ''
@@ -570,28 +562,9 @@ export class FreddieSlotOutlet extends HTMLElement {
   #opts
   #subscriptions = new OutletSubscriptions()
   #maybeIncarnation = FIRST_INCARNATION
-  // Sources currently subscribed from the last-rendered sessionInfo.hooks
-  // roster (e.g. the per-session Session object behind useSession) — see
-  // #bindHookSources below for why this exists.
   #hookUnsubscribes = []
   #boundHookSources = []
 
-  // setProps() runs synchronously inside webjsx's own createDOMElement (via
-  // the `ref` callback), i.e. BEFORE this element is inserted into the real
-  // document — connectedCallback fires only afterward, once insertion lands.
-  // Rendering in both places double-renders the very first mount: the
-  // pre-connection render's applyDiff(this, vdom) runs against a detached
-  // node, then connectedCallback's applyDiff runs again immediately after
-  // insertion. webjsx's diff cache (element.__webjsx_childNodes, a plain
-  // instance property, not DOM-derived) should stay consistent across that
-  // sequence, but empirically it does not: the live DOM ends up with two
-  // `[data-slot]` children while the cache reports only one, i.e. the two
-  // back-to-back applyDiff calls around the detach→attach boundary produce a
-  // duplicate node webjsx's own bookkeeping never sees. Skipping the second,
-  // now-redundant render on first connect (setProps already rendered
-  // everything connectedCallback would) removes the double-render window
-  // entirely; later re-renders (subscriptions, setProps updates) are
-  // untouched.
   #renderedOnce = false
 
   setProps(props) {
@@ -605,10 +578,6 @@ export class FreddieSlotOutlet extends HTMLElement {
     this.#render()
   }
 
-  // Required HTMLElement lifecycle hook name; body is unavoidably the same
-  // shape as FreddieRootOutlet's (both delegate to the shared OutletSubscriptions
-  // helper above) since custom-element lifecycle methods cannot be inherited
-  // from a shared base without a larger structural change.
   connectedCallback() {
     this.#subscriptions.connect(
       () => { this.#bindVersion() },
@@ -665,21 +634,8 @@ export class FreddieSlotOutlet extends HTMLElement {
   #render() {
     const host = this.#host
     if (host === null) return
-    // Defensive, BEFORE diffing: webjsx's per-element diff cache
-    // (element.__webjsx_childNodes / __webjsx_props.children) has been
-    // observed to desync from this outlet's live DOM across a burst of
-    // rapid re-renders (e.g. many renders queued in the same tick) —
-    // `applyDiff` then reads a stale "one child" bookkeeping against
-    // whatever the DOM actually holds, and depending on which desynced it
-    // either orphans an extra `[data-slot]` wrapper alongside the current
-    // one (duplicate content) or loses track of the real one entirely
-    // (content vanishes). Resetting the cache to exactly what the live DOM
-    // holds right before diffing gives every render pass a consistent,
-    // correct baseline regardless of how many renders raced before it.
     resyncOutletDiffCache(this)
     const sessionInfo = currentSessionMaybeProvideInfo(host)
-    // Entry elements read their hooks inside applyDiff (setProps runs from
-    // webjsx's ref callback), so the diff is part of the tracked render.
     const { reads } = trackReads(() => {
       const content = renderOutletContent(host, this.#slotKey, this.#ownerProps, this.#opts, sessionInfo, this.#maybeIncarnation, (next) => {
         this.#maybeIncarnation = next
@@ -734,13 +690,6 @@ function renderOutletContent(
   const entries = strictSessionAbsent ? [] : host.entriesOf(slotKey)
   const slotInjected = cachedSlotInject(spec.inject)
 
-  // The outer wrapper is keyed by entry identity (entryKeyValue): a winner
-  // change (re-election, shadowing fallback, HMR re-registration) gets a
-  // DIFFERENT key, so applyDiff creates a fresh subtree instead of updating
-  // the previous winner's DOM in place — the manual equivalent of React's
-  // key-driven remount, since webjsx's own keyed-list diffing (verified
-  // above in applyDiff.js) only reuses a node when the new key matches an
-  // existing one.
   const guarded = (entry, entryKeyValue, owner = ownerProps, matched) => {
     const hasHookContext = opts !== undefined && Object.hasOwn(opts, 'hookContext')
     const hookContext = opts?.hookContext
@@ -777,8 +726,6 @@ function renderOutletContent(
         matched === undefined ? owner : { ...owner, matched }, hookContext, hasHookContext, slotKey)
       return renderEntryVNode(entry, props, entryKeyOf(entry))
     })
-    // Keyed identity wrappers only; `display: contents` keeps them out of
-    // layout so an entry is its slot container's direct flex/grid item.
     return h('div', { key: entryKeyValue, style: ANCHOR_STYLE }, inner)
   }
 
@@ -825,7 +772,6 @@ function renderOutletContent(
     }
     return elected ?? ((opts?.fallback) ?? null)
   }
-  // list: one row per id cell.
   const winners = host.entriesOfSlot(slotKey)
   const rows = winners.map(entry => ({
     entry,
@@ -858,11 +804,6 @@ export class FreddieRootOutlet extends HTMLElement {
   #subscriptions = new OutletSubscriptions()
   #readUnsubscribes = []
   #boundReads = []
-  // See FreddieSlotOutlet's #renderedOnce: setProps() renders synchronously
-  // pre-connection (webjsx's ref callback fires inside createDOMElement,
-  // before insertion); connectedCallback firing #render() again right after
-  // desyncs webjsx's own diff cache from the live DOM and duplicates the
-  // rendered subtree. Skip the redundant first connectedCallback render.
   #renderedOnce = false
 
   setProps(props) {
@@ -884,10 +825,6 @@ export class FreddieRootOutlet extends HTMLElement {
     this.#readUnsubscribes = sources.map(source => source.subscribe(() => { this.#render() }))
   }
 
-  // Required HTMLElement lifecycle hook name; body is unavoidably the same
-  // shape as FreddieSlotOutlet's (both delegate to the shared OutletSubscriptions
-  // helper above) since custom-element lifecycle methods cannot be inherited
-  // from a shared base without a larger structural change.
   // oxlint-disable-next-line sonarjs/no-identical-functions
   connectedCallback() {
     this.#subscriptions.connect(
@@ -919,9 +856,6 @@ export class FreddieRootOutlet extends HTMLElement {
       if (host.entriesOf('root').length > 0) {
         content = h('div', { 'data-slot-error': 'root' })
       } else if (this.#renderedOnce) {
-        // The root registrant is between unregister and re-register (a hot
-        // swap of the plugin that owns 'root'); the next registration
-        // re-renders, so an empty anchor is the honest interim state.
         content = null
       } else {
         throw new SlotAssemblyError("renderSlot('root') before any 'root' registration (boot order)")
@@ -938,13 +872,10 @@ export class FreddieRootOutlet extends HTMLElement {
         return renderEntryVNode(entry, props, entryKeyOf(entry))
       })
     }
-    // The root entry element reads its hooks inside applyDiff (setProps from
-    // webjsx's ref callback), so the diff is the tracked render.
     const { reads } = trackReads(() => {
       applyDiff(this, h('div', { 'data-slot': 'root', style: ANCHOR_STYLE }, content))
     })
     this.#bindReads(reads)
-    // See FreddieSlotOutlet's identical call for why this is needed.
     pruneStaleOutletChildren(this)
     this.#renderedOnce = true
   }

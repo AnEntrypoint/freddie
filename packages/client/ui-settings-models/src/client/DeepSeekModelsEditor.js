@@ -42,8 +42,6 @@ export function parseCapacity(text) {
   const suffix = match[2]?.toLowerCase()
   const scale = suffix === 'k' || suffix === 'm' ? CAPACITY_SCALE[suffix] : 1
   const scaled = Number(match[1]) * scale
-  // A decimal multiple is exact in intent but not in binary floating point
-  // (2.3 * 1e6 lands a few ULPs high), so an integral intent snaps back.
   const rounded = Math.round(scaled)
   return Math.abs(scaled - rounded) < 1e-6 ? rounded : scaled
 }
@@ -81,9 +79,6 @@ export function validateDeepSeekModels(value) {
   const models = modelDrafts(value)
   const seen = new Set()
   for (const [index, model] of models.entries()) {
-    // Compared trimmed: surrounding whitespace is a paste artifact the adapter
-    // would never match, and an untrimmed compare lets `model ` slip past the
-    // duplicate check against its own twin.
     const id = model['id']
     const trimmed = typeof id === 'string' ? id.trim() : undefined
     if (trimmed === undefined || trimmed.length === 0) return { index, key: 'modelIdRequired' }
@@ -125,9 +120,6 @@ const DEFAULT_PROPS = {
  */
 export class FreddieDeepSeekModelsEditor extends HTMLElement {
   #props = DEFAULT_PROPS
-  // Keys carry the row index, so the two operations that move indexes maintain
-  // them: `remove` re-keys around the dropped row, and reset clears them all
-  // because the rows they annotated are gone.
   #editing = new Map()
   #expanded = new Set()
 
@@ -157,7 +149,6 @@ export class FreddieDeepSeekModelsEditor extends HTMLElement {
     for (const [key, text] of this.#editing) {
       const at = rowOf(key)
       if (at === index) continue
-      // Only the row number moves; the field half of the key is untouched.
       nextEditing.set(at > index ? key.replace(/^\d+/, String(at - 1)) : key, text)
     }
     this.#editing = nextEditing
@@ -195,8 +186,6 @@ export class FreddieDeepSeekModelsEditor extends HTMLElement {
     const key = `${String(index)}:${field}`
     const typed = this.#editing.get(key)
     if (typed === undefined) return
-    // Unreadable text stays on screen: the save-time rejection names a row the
-    // user can still see and correct.
     const parsed = parseCapacity(typed)
     if (parsed !== undefined && Number.isNaN(parsed)) return
     const next = new Map(this.#editing)
@@ -263,8 +252,6 @@ export class FreddieDeepSeekModelsEditor extends HTMLElement {
                   disabled: props.disabled,
                   onchange: (event) => { this.#update(index, 'id', event.target.value) },
                   onblur: (event) => {
-                    // Settle a pasted id rather than trimming per keystroke,
-                    // which would stop the user typing an interior space.
                     const value = event.target.value
                     const trimmed = value.trim()
                     if (trimmed !== value) this.#update(index, 'id', trimmed)
@@ -320,6 +307,23 @@ export class FreddieDeepSeekModelsEditor extends HTMLElement {
 }
 
 defineElement('freddie-deepseek-models-editor', FreddieDeepSeekModelsEditor)
+
+/**
+ * @typedef {object} DeepSeekModelsEditorProps
+ * @property {Array<object>} models - effective rows (inherited or user-overridden), each a
+ * plain draft object that may carry `id`, `name`, `contextWindow`, `maxTokens`.
+ * @property {boolean} overridden - whether `models` is a user override rather than the
+ * inherited default; drives the "customized"/"inherited" meta text and the reset button.
+ * @property {number} [defaultContextWindow] - fallback shown as the context-window field's
+ * placeholder when a row leaves it blank.
+ * @property {number} [defaultMaxTokens] - fallback shown as the max-tokens field's
+ * placeholder when a row leaves it blank.
+ * @property {(key: string) => string} t - locale lookup for field labels and copy.
+ * @property {boolean} disabled - disables every input, add, remove, and reset control.
+ * @property {(models: Array<object>) => void} onChange - called with the next full `models`
+ * array on any row edit, add, or remove.
+ * @property {() => void} onReset - called to drop the user override and revert to inherited rows.
+ */
 
 /**
  * Create (if needed) or update a DeepSeekModelsEditor element in place.

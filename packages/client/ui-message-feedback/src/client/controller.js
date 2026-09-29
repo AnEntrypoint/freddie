@@ -11,10 +11,6 @@ import { singleFlight } from '@freddie/freddie-client-runtime/client'
 
 /** Load state of the one list read that seeds every per-message control. */
 
-// `Object.freeze` does not protect a Map: `set`/`delete` write internal slots,
-// not properties. Immutability here is by discipline instead — the view type is
-// ReadonlyMap and every publish hands over a freshly built Map that this class
-// keeps no mutable reference to.
 const EMPTY_ITEMS = new Map()
 
 const INITIAL_VIEW = Object.freeze({
@@ -114,8 +110,6 @@ export class MessageFeedbackController {
    * @returns the settled reload result.
    */
   resync() {
-    // seed: false — this operation *is* the read, so pre-seeding would either
-    // short-circuit it (status already ready) or run it twice.
     return this.mutate(() => this.refresh(), { seed: false })
   }
 
@@ -264,8 +258,6 @@ export class MessageFeedbackController {
       if (options.seed !== false) {
         const loaded = await this.ensure()
         if (!loaded.ok) return loaded
-        // Disposal can land while the seeding read is in flight; without this
-        // second check the fiber would still reach the wire after unloading.
         // oxlint-disable-next-line typescript/no-unnecessary-condition -- dispose() can run during the await.
         if (this.disposed) return DISPOSED
       }
@@ -282,9 +274,6 @@ export class MessageFeedbackController {
       }
     }
     const result = this.operationTail.then(guarded, guarded)
-    // `guarded` settles every carrier and business failure as a
-    // MessageFeedbackActionResult and never rethrows, so this tail cannot reject and
-    // needs no rejection handler.
     this.operationTail = result.then(() => undefined)
     return result
   }

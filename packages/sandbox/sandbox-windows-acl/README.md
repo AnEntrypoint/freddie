@@ -15,7 +15,7 @@ import { join } from 'node:path'
 import { AclSandbox, tempWriteSid, workspaceWriteSid } from '@freddie/freddie-sandbox-windows-acl'
 
 const workspaceRoot = process.cwd()
-const tempDir = mkdtempSync(join(tmpdir(), 'dsh-'))
+const tempDir = mkdtempSync(join(tmpdir(), 'freddie-'))
 
 // mode selects the token's restricting-SID list (see Modes below) and must
 // match the grant shape. workspace-write requires distinct workspace and

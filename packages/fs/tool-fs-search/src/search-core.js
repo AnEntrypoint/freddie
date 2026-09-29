@@ -69,6 +69,7 @@ export const SEARCH_META_MAX_BYTES = 65_536
  * `rawOutputMaxBytes` or stayed truncated after that requested stdout budget;
  * `SEARCH_ABORTED` — the cooperative tool timeout or caller cancellation cut
  * the search short.
+ * @typedef {'SEARCH_INVALID_PATTERN' | 'SEARCH_FAILED' | 'SEARCH_RAW_OUTPUT_OVERFLOW' | 'SEARCH_ABORTED'} SearchErrorCode
  */
 
 /**
@@ -84,7 +85,13 @@ export class SearchError extends HarnessError {
   }
 }
 
-/** The completed acquisition of one `rg` run: complete stdout plus the resolved workdir. */
+/**
+ * The completed acquisition of one `rg` run: complete stdout plus the resolved workdir.
+ * @typedef {object} RipgrepRunResult
+ * @property {string} stdout Complete raw `rg --json`/`--files` stdout.
+ * @property {boolean} noMatches Whether the run exited 1 (success, zero results).
+ * @property {string} workdir The resolved working directory the command ran in.
+ */
 
 /**
  * The retained stderr tail as a diagnostic excerpt, with a truncation note when
@@ -220,11 +227,6 @@ export async function runRipgrep(
       signal: exec.signal,
     })
   } catch (error) {
-    // Node's spawn() throws synchronously for a NUL in argv, and the local
-    // impl can throw synchronously when the signal aborts between the check
-    // above and this call (or when the platform-package resolution rejects).
-    // The static narrowing that proves this re-check "always false" cannot
-    // see AbortSignal state changes.
     // oxlint-disable-next-line typescript/no-unnecessary-condition
     if (exec.signal.aborted) {
       throw new SearchError(`${toolName} was aborted before completion (tool timeout or caller cancellation)`, 'SEARCH_ABORTED')
@@ -242,8 +244,6 @@ export async function runRipgrep(
   if (stdout === undefined || stderr === undefined) {
     throw new SearchError(`${toolName} search command produced no collected output streams`, 'SEARCH_FAILED')
   }
-  // The signal can abort while the spawn is awaited; the static narrowing that
-  // proves this re-check "always false" cannot see AbortSignal state changes.
   // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (exec.signal.aborted) {
     throw new SearchError(`${toolName} was aborted before completion (tool timeout or caller cancellation)`, 'SEARCH_ABORTED')
@@ -278,7 +278,13 @@ export function toWorkdirRelative(path, workdir) {
   return rel
 }
 
-/** One parsed match: the file, the 1-based line number, and the (possibly previewed) line text. */
+/**
+ * One parsed match: the file, the 1-based line number, and the (possibly previewed) line text.
+ * @typedef {object} SearchMatch
+ * @property {string} path
+ * @property {number} lineNumber
+ * @property {string} line
+ */
 
 /**
  * Bound one matched-line preview to `maxBytes` (UTF-8 boundary preserved) and
@@ -372,8 +378,6 @@ export async function trySaveFormattedResult(
   try {
     return await spillStore.saveText(save)
   } catch (error) {
-    // Best-effort: a storage failure must never fail the search or hide the
-    // inline result — the footer reports the unsaved remainder instead.
     ctx.logger.warn(`tool-fs-search: saveText failed for ${exec.name}: ${String(error)}; complete result not saved`)
     return undefined
   }

@@ -1,10 +1,10 @@
 # Build a tool
 
-This tutorial adds a `greet` tool to the Web UI. Complete [Your first plugin](./index.md) first and keep its `scratch-plugin` directory.
+This tutorial adds a `greet` tool to the Web UI. Complete [Your first plugin](./index.md) first and keep its `examples/scratch-plugin` directory.
 
 ## Create the tool plugin
 
-Replace `scratch-plugin/src/my-plugin.ts` with:
+Replace `examples/scratch-plugin/src/my-plugin.ts` with:
 
 ```ts
 import type { Context } from '@freddie/cordis'
@@ -38,7 +38,7 @@ export function apply(ctx: Context) {
 Restart the development command if it is not running:
 
 ```sh
-pnpm freddie web --patch ./scratch-plugin/cordis.yml
+pnpm freddie web --patch ./examples/scratch-plugin/cordis.yml
 ```
 
 Open `http://127.0.0.1:3080` and ask: `Use the greet tool to greet Ada.` The model can call `greet` and receives `Hello, Ada!` as the tool result.

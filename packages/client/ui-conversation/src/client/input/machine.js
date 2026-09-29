@@ -172,8 +172,6 @@ export class InputMachine {
     }
   }
 
-  // ---- transaction plumbing ----
-
   /** Adopt a new draft: bump the revision (the span-CAS invalidation point). */
   adopt(draft) {
     this.draft = draft
@@ -236,13 +234,9 @@ export class InputMachine {
     this.occurrences = [...this.occurrences, ...minted].sort((a, b) => a.offset - b.offset)
   }
 
-  // ---- draft transactions ----
-
   onDraftChanged(draft, editRange) {
     if (draft === this.draft) return []
     const range = editRange ?? diffEdit(this.draft, draft)
-    // Single-char typing coalesces into the open run while contiguous and
-    // inside the merge window; anything else opens its own transaction.
     const typing = range.start === range.end && range.insertedLength === 1
     const at = this.now()
     const run = this.typingRun
@@ -264,8 +258,6 @@ export class InputMachine {
 
   onBeginCommand(claim, span) {
     if (this.phase !== 'plain' && this.phase !== 'claimed') return []
-    // Leading-trigger contract: only whitespace may precede the span; the
-    // whitespace prefix is dropped so the claimed watch (startsWith) holds.
     if (!this.casOk(span) || this.draft.slice(0, span.start).trim() !== '') return []
     this.pushTxn()
     this.typingRun = undefined
@@ -355,8 +347,6 @@ export class InputMachine {
     return []
   }
 
-  // ---- undo / redo ----
-
   onUndo() {
     const entry = this.log.pop()
     if (entry === undefined) return []
@@ -372,7 +362,6 @@ export class InputMachine {
   onRedo() {
     const entry = this.redoStack.pop()
     if (entry === undefined) return []
-    // Manual log push: pushTxn would cut the redo chain being walked.
     this.log.push({ draftBefore: this.draft, occurrencesBefore: this.occurrences })
     if (this.log.length > LOG_LIMIT) this.log.shift()
     this.occurrences = entry.occurrencesBefore
@@ -382,8 +371,6 @@ export class InputMachine {
     this.paste = undefined
     return []
   }
-
-  // ---- paste plane ----
 
   /**
    * Paste as one transaction: the text (reference-placeholder-sanitized) replaces the
@@ -397,8 +384,6 @@ export class InputMachine {
     const text = rawText.replace(REFERENCE_PLACEHOLDER_RE, '')
     this.pushTxn(selection)
     this.typingRun = undefined
-    // Componentize: replace each matched token range (paste-text coordinates,
-    // disjoint by contract) with inline display text while assembling the insert.
     const sorted = [...components].sort((a, b) => a.start - b.start)
     const minted = []
     let inserted = ''
@@ -446,8 +431,6 @@ export class InputMachine {
     return []
   }
 
-  // ---- submit plane ----
-
   /** Mint the next SubmitAttempt and take the in-flight slot. */
   beginAttempt(mode) {
     const controller = new AbortController()
@@ -491,8 +474,6 @@ export class InputMachine {
         args: argsAfter(attempt.draftSnapshot, outcome.claim.token),
       }]
     }
-    // 'handled' (source dealt internally), {insert} (no enter-time span
-    // semantics), or a miss: all land plain; only the miss flows to the sink.
     if (outcome === undefined) {
       this.phase = 'submitting'
       return [{
@@ -511,7 +492,6 @@ export class InputMachine {
     if (this.phase !== 'adjudicating' || this.inflight?.attempt.seq !== attempt.seq) return []
     this.inflight = undefined
     this.phase = 'plain'
-    // Draft retained: warmup failure never silently downgrades to a prompt.
     return [{ type: 'notice', level: 'error', text: message }]
   }
 
@@ -523,14 +503,10 @@ export class InputMachine {
       this.phase = 'plain'
       this.claim = undefined
       this.occurrences = []
-      // Text appended after the sent snapshot during the Host round-trip
-      // survives the commit; edits interleaved with committed content cannot
-      // be separated from it, so only a pure suffix is retained.
       const snapshot = flight.attempt.draftSnapshot
       this.adopt(this.draft !== snapshot && this.draft.startsWith(snapshot)
         ? this.draft.slice(snapshot.length)
         : '')
-      // Committed content is gone for good: undo must not resurrect a sent draft.
       this.log = []
       this.redoStack = []
       this.typingRun = undefined
@@ -540,10 +516,6 @@ export class InputMachine {
         : []
     }
     const text = ev.message ?? ev.outcome?.text
-    // Keep the same command claim only while the live draft still equals the
-    // enter-time draft; user input typed during flight wins.
-    // Claimed re-entry additionally requires the watch to hold — an
-    // enter-path snapshot may carry leading whitespace the token never had.
     if (this.draft === flight.attempt.draftSnapshot
       && this.claim !== undefined && this.draft.startsWith(this.claim.token)) {
       this.phase = 'claimed'

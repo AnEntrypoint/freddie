@@ -17,7 +17,7 @@ import { AgentPresetSeat } from './AgentPresetSeat.js'
 import { AgentPresetSection } from './AgentPresetSection.js'
 import { AgentPresetSeatController } from './seat-store.js'
 import { AgentPresetSectionController } from './section-store.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 import { AGENT_PRESET_SETTINGS_NS, AgentPresetSettingsController } from './settings-store.js'
 
 export { draftBlocker } from './section-store.js'
@@ -33,15 +33,13 @@ export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope
 export function apply(ctx) {
   const { api } = ctx.get('connection')
   const controller = new AgentPresetSettingsController(api, ctx.settingsScope.describe())
-  // One roster, four surfaces. The chip is registered in a later scope, so it
-  // subscribes here rather than being reached from this one.
   const rosterReaders = new Set()
   const section = new AgentPresetSectionController(api, () => {
     void controller.load()
     for (const read of rosterReaders) read()
   })
 
-  ctx.effect(() => ctx.locale.register('settings.agentPreset', { zh, en }), 'ui-agent-preset: settings row dictionaries')
+  ctx.effect(() => ctx.locale.register('settings.agentPreset', { en }), 'ui-agent-preset: settings row dictionaries')
 
   const injected = () => ({
     hooks: { agentPreset: controller.store },
@@ -50,12 +48,8 @@ export function apply(ctx) {
   })
 
   ctx.effect(() => {
-    // The roster is a live directory and the default is a settings field, so
-    // both an external settings edit and a reconnect can move this row.
     const refresh = () => {
       void controller.load()
-      // The section reads the same roster and marks the same default, so a
-      // change made from either surface converges both.
       if (section.store.getSnapshot().status !== 'idle') void section.load()
     }
     const disposers = [
@@ -68,15 +62,8 @@ export function apply(ctx) {
     return () => { for (const dispose of disposers) dispose() }
   }, 'ui-agent-preset: settings refresh')
 
-  // The settings section's conversational authoring entry: stage the
-  // self-referential preset and land a new session on it. Bound inside the
-  // conversation scope below (the seat and the session flow live there) and
-  // unbound with it, so the section's face reads the current binding per
-  // render and simply hides the button while no flow exists.
   let creatorDraft
 
-  // The new-session chip and the header label: one controller, because the
-  // staged choice belongs to the flow rather than to any one session.
   ctx.inject(['slots', 'conversation', 'sessions', 'workspaces'], (scope) => {
     const api = scope.get('connection').api
     const seat = new AgentPresetSeatController(api, () => {
@@ -106,37 +93,17 @@ export function apply(ctx) {
     })
 
     scope.effect(() => {
-      // Connecting a workspace either creates a blank session or reuses one,
-      // and either way the chip's pick predates it — so the stage is applied
-      // when the session arrives, not when it was made.
       const stop = scope.sessions.list.subscribe(() => { void seat.apply() })
-      // The chip opens on the deployment default, so a default changed from
-      // the settings surface moves it too — otherwise the screen that starts
-      // the next session keeps offering the previous default until a reload,
-      // which is exactly the session the setting claims to govern. A staged
-      // pick survives: `load()` prefers it over the refreshed fallback.
       const settingsMoved = scope.remote.$on('settings/document-updated', (ns) => {
         if (ns !== AGENT_PRESET_SETTINGS_NS) return
         void seat.load()
       })
-      // Every tab folds the committed preset into the shared session row; the
-      // initiating tab may already have applied the RPC echo, which is idempotent.
       const presetSelected = scope.remote.$on('agent-preset/selected', (sessionId, agentPreset) => {
         scope.sessions.noteAgentPreset(sessionId, agentPreset)
       })
-      // Authoring writes a FILE, not a setting, so nothing on the wire
-      // announces it — without this the screen that starts the next session
-      // keeps offering the roster as it stood when the chip first loaded, and
-      // a preset authored to be used is missing from the one place it is used.
       const readRoster = () => { void seat.load() }
       rosterReaders.add(readRoster)
-      // Stage WITHOUT applying — the still-current running session would
-      // refuse the swap and drop the stage — then start the session it lands
-      // on: the chip's list-change applier composes the blank session the
-      // workspace connect produces or reuses.
       creatorDraft = () => {
-        // The introduce cue makes the chip announce the pick the user never
-        // made on this screen — the stage happened back in settings.
         seat.stage('cordis', true)
         scope.workspaces.startSession()
       }
@@ -148,7 +115,6 @@ export function apply(ctx) {
       const label = scope.slots.register({
         name: 'conversation.session.header.actions',
         id: 'agent-preset',
-        // Static session context occupies the header's leading negative-order band.
         order: -10,
         locale: 'settings.agentPreset',
         inject: labelInjected,
@@ -189,8 +155,6 @@ export function apply(ctx) {
     locale: 'settings.agentPreset',
     inject: injected,
   }, AgentPresetRow))
-  // Ordered after Models: choosing a model is routine, and composing an
-  // agent is the deployment-shaping act behind it.
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'agent-presets',

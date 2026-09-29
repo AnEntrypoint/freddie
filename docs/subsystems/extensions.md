@@ -2,13 +2,13 @@
 
 The extensions subsystem lets an agent define versioned Cordis packages, run their host and browser halves, and query approved runtime metadata before writing code. Package lifecycle and sandbox behavior belong to the [`packages/extensions`](../../packages/extensions/README.md) package group.
 
-<!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
+<!-- BEGIN cordis-surface (hand-maintained) -->
 
 <a id="cordis-surface"></a>
 
 ## Cordis API
 
-Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+Originally generated from source by `scripts/gen-cordis-catalog.ts`; that script and its `verify-cordis-catalog` freshness check no longer exist, so this region is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
 <a id="ctxcordisinspect--cordisinspectregistryservice"></a>
 
@@ -60,7 +60,7 @@ resolveClientQuery( agent: Agent, requestId: CordisInspectRequestId, resolution:
 
 Types: [Agent](core.md)
 
-Source: [`packages/extensions/cordis-host-runner/src/inspect-registry.ts`](../../packages/extensions/cordis-host-runner/src/inspect-registry.js)
+Source: [`packages/extensions/cordis-host-runner/src/inspect-registry.js`](../../packages/extensions/cordis-host-runner/src/inspect-registry.js)
 
 <a id="ctxdynamiccordisrunner--dynamiccordisrunnerservice"></a>
 
@@ -252,7 +252,7 @@ inspectPackage( agent: Agent, pluginId: CordisDynamicPluginId, packageId: Cordis
 
 Types: [Agent](core.md)
 
-Source: [`packages/extensions/cordis-host-runner/src/index.ts`](../../packages/extensions/cordis-host-runner/src/index.js)
+Source: [`packages/extensions/cordis-host-runner/src/index.js`](../../packages/extensions/cordis-host-runner/src/index.js)
 
 <a id="cordis-events"></a>
 
@@ -273,7 +273,7 @@ One exact Plugin/Package activation is now live in the Host.
 'cordis/dynamic-package'(pkg: DynamicCordisPackage): void
 ```
 
-Source: [`packages/extensions/cordis-host-runner/src/types.ts`](../../packages/extensions/cordis-host-runner/src/types.js)
+Source: [`packages/extensions/cordis-host-runner/src/types.js`](../../packages/extensions/cordis-host-runner/src/types.js)
 
 <a id="cordisdynamic-retract--emit"></a>
 
@@ -290,7 +290,7 @@ One exact activation was withdrawn.
 'cordis/dynamic-retract'(retracted: DynamicCordisRetracted): void
 ```
 
-Source: [`packages/extensions/cordis-host-runner/src/types.ts`](../../packages/extensions/cordis-host-runner/src/types.js)
+Source: [`packages/extensions/cordis-host-runner/src/types.js`](../../packages/extensions/cordis-host-runner/src/types.js)
 
 <a id="cordisinspect-query--emit"></a>
 
@@ -307,7 +307,7 @@ Request a live read-only query from the Client inspect registry.
 'cordis/inspect-query'(request: CordisInspectQueryRequest): void
 ```
 
-Source: [`packages/extensions/cordis-host-runner/src/types.ts`](../../packages/extensions/cordis-host-runner/src/types.js)
+Source: [`packages/extensions/cordis-host-runner/src/types.js`](../../packages/extensions/cordis-host-runner/src/types.js)
 
 <a id="cordisinspect-query-resolved--emit"></a>
 
@@ -324,7 +324,7 @@ Notify every Client that an inspect query has settled or been cancelled.
 'cordis/inspect-query-resolved'(resolved: CordisInspectQueryResolved): void
 ```
 
-Source: [`packages/extensions/cordis-host-runner/src/types.ts`](../../packages/extensions/cordis-host-runner/src/types.js)
+Source: [`packages/extensions/cordis-host-runner/src/types.js`](../../packages/extensions/cordis-host-runner/src/types.js)
 
 <a id="cordisrequest-run--emit"></a>
 
@@ -341,7 +341,7 @@ A Client-bearing activation needs a browser page, and may require a user decisio
 'cordis/request-run'(request: DynamicCordisRunRequest): void
 ```
 
-Source: [`packages/extensions/cordis-host-runner/src/types.ts`](../../packages/extensions/cordis-host-runner/src/types.js)
+Source: [`packages/extensions/cordis-host-runner/src/types.js`](../../packages/extensions/cordis-host-runner/src/types.js)
 
 <a id="cordisrequest-run-resolved--emit"></a>
 
@@ -358,5 +358,5 @@ A pending Client activation request left the answerable state.
 'cordis/request-run-resolved'(resolved: DynamicCordisRequestResolved): void
 ```
 
-Source: [`packages/extensions/cordis-host-runner/src/types.ts`](../../packages/extensions/cordis-host-runner/src/types.js)
-<!-- END GENERATED cordis-surface -->
+Source: [`packages/extensions/cordis-host-runner/src/types.js`](../../packages/extensions/cordis-host-runner/src/types.js)
+<!-- END cordis-surface -->

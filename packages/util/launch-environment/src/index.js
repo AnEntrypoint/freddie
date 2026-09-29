@@ -15,13 +15,22 @@
 /** Layer order, most trusted first. */
 const SOURCE_ORDER = ['process', 'project-env', 'user-env']
 
-/** One resolved variable and the layer it came from. */
+/**
+ * One resolved variable and the layer it came from.
+ * @typedef {object} LaunchEnvironmentResolution
+ * @property {string} value
+ * @property {string} source - the layer name the value came from.
+ * @property {string} [path] - the layer's originating file path, when it has one.
+ */
 
 /**
  * The frozen environment of one launch. Construct through
  * {@link createLaunchEnvironmentSnapshot}; nothing mutates it afterwards, so a
  * later `chdir`, workspace switch, or resumed session observes the same
  * values a consumer resolved at boot.
+ * @typedef {object} LaunchEnvironmentSnapshot
+ * @property {function(string): (LaunchEnvironmentResolution|undefined)} get - resolve one name down the canonical trust order.
+ * @property {function(string, string[]): (LaunchEnvironmentResolution|undefined)} getFrom - resolve one name down a caller-chosen subset/order of layers.
  */
 
 /**
@@ -35,7 +44,13 @@ function lookupKey(name) {
   return process.platform === 'win32' ? name.toUpperCase() : name
 }
 
-/** One layer's raw contents, as {@link createLaunchEnvironmentSnapshot} receives them. */
+/**
+ * One layer's raw contents, as {@link createLaunchEnvironmentSnapshot} receives them.
+ * @typedef {object} LaunchEnvironmentLayer
+ * @property {string} source - the layer name (`process`, `project-env`, `user-env`).
+ * @property {string} [path] - the layer's originating file path, when it has one.
+ * @property {Record<string, string>} values
+ */
 
 /**
  * Build the snapshot from each layer's contents.
@@ -43,8 +58,6 @@ function lookupKey(name) {
  * @returns the immutable snapshot.
  */
 export function createLaunchEnvironmentSnapshot(layers) {
-  // Copy every layer so later mutations cannot change the snapshot. Fold names
-  // on Windows so case variants cannot split precedence; POSIX remains exact.
   const bySource = new Map()
   for (const layer of layers) {
     bySource.set(layer.source, {

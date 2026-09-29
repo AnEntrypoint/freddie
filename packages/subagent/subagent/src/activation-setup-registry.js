@@ -18,15 +18,35 @@ import { SubagentError } from './error.js'
  * One deployment capability installed into a continuable child's unpublished
  * creation context. It composes synchronously before publication and returns
  * the disposer for exactly that installation.
+ * @callback SubagentSetupContribution
  * @param childCtx - the child's unpublished scoped context.
  * @returns the disposer revoking this installation.
  */
 
-/** One contribution's live registration. */
+/**
+ * One contribution's live registration.
+ * @typedef {object} SubagentSetupRegistration
+ * @property {SubagentSetupContribution} contribution - the registered installer.
+ * @property {boolean} removed - whether this registration has been undone.
+ * @property {Set<SubagentSetupInstallation>} installations - live installations of this contribution.
+ */
 
-/** One contribution installed into one child context. */
+/**
+ * One contribution installed into one child context.
+ * @typedef {object} SubagentSetupInstallation
+ * @property {SubagentSetupRegistration} registration - the contribution this installation came from.
+ * @property {object} childCtx - the child's unpublished scoped context.
+ * @property {Function} dispose - the disposer returned by the contribution.
+ * @property {boolean} released - whether this installation has already been released.
+ * @property {SubagentProvisioningBatch|undefined} transaction - the open provisioning batch, while unpublished.
+ */
 
-/** One child's provisioning batch. */
+/**
+ * One child's provisioning batch.
+ * @typedef {object} SubagentProvisioningBatch
+ * @property {SubagentSetupInstallation[]} installations - installations composed during this batch.
+ * @property {boolean} invalidated - whether a revoked contribution invalidated this batch before commit.
+ */
 
 /** Re-read mutable removal state after a contribution may have revoked itself. */
 function isRemoved(registration) {
@@ -54,8 +74,6 @@ export class SubagentActivationSetupRegistry {
     this.registrations.add(registration)
     return () => {
       if (registration.removed) return
-      // Close before disposal so a snapshotted apply() cannot install after
-      // revocation reports completion.
       registration.removed = true
       this.registrations.delete(registration)
       this.releaseAll([...registration.installations], 'contribution removal')
@@ -89,12 +107,9 @@ export class SubagentActivationSetupRegistry {
           this.byChild.set(childCtx, indexed)
         }
         indexed.add(installation)
-        // An installer may revoke itself before its installation record exists.
-        // Dispose that escaped record and invalidate the provisioning batch.
         if (isRemoved(registration)) this.release(installation)
       }
     } catch (error) {
-      // Keep the installer failure authoritative, but attempt every rollback.
       try {
         this.releaseAll([...state.installations], 'setup rollback')
       } catch (releaseFailure) {

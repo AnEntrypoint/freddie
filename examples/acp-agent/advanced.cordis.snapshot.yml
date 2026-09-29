@@ -1,4 +1,3 @@
-# Replay counterpart to advanced.cordis.yml; only the live model is replaced.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

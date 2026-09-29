@@ -16,13 +16,10 @@ export { conversationContextKey } from './contract/conversation.js'
 export { SessionCreateError, SessionRuntime, scopeOf, workspaceTitleOf } from './sessions/service.js'
 export { indexSubagentDescendants } from './sessions/subagent-lineage.js'
 export { TerminalActivityStore } from './sessions/terminal-activity.js'
-// The provide channel is shared with the client test runtime (one
-// materialization/projection implementation; no test-side mirror to drift).
 export { SessionProvideChannel } from './sessions/provide.js'
 export { createScope } from './agents/scope.js'
 export { DirectoryBrowseError, WorkspaceCreateError, WorkspaceRuntime } from './workspaces/service.js'
 export { abbreviateHomePath, resolveWorkspacePath } from './workspaces/path.js'
-// Runtime owns the snapshot store; ui-renderer only binds it to React.
 export { createSnapshotStore, defineStore, shallowEqual, singleFlight } from './contract/store.js'
 export {
   EMPTY_CHAT_SNAPSHOT, EMPTY_CONVERSATION_VIEWS, toAssistantBlock, toAssistantBlocks,
@@ -63,20 +60,10 @@ export function apply(ctx) {
     onHostEnvelope: (envelope) => {
       sessions.handleHostEnvelope(envelope)
       workspaces.handleHostEnvelope(envelope)
-      // Forwarded-event bridge: the session layer ignores registry frames (no
-      // session routing). This plugin owns the frame sink, so it hands the
-      // decoded frame straight to the Remote service, which fans it out to
-      // `ctx.remote.$on` subscribers; no consumer reads a frame.
       const frame = envelope.payload
       if (frame.type === 'host/remote-event') ctx.remote.$dispatch(frame.event, frame.args)
     },
     onConnected: (description) => {
-      // A changed instanceId means the server process actually restarted
-      // underneath this socket (not just a network blip) -- this tab is
-      // still running the JS/CSS bundle from before the restart, which may
-      // no longer match what the server now serves (new markup, new styles,
-      // renamed remote methods). Resyncing session state onto stale code is
-      // worse than a visible reload, so force one instead.
       if (lastInstanceId !== undefined && description.instanceId !== undefined && description.instanceId !== lastInstanceId) {
         window.location.reload()
         return
@@ -87,9 +74,6 @@ export function apply(ctx) {
       ctx.emit('connection/reset')
     },
     onStateChange: (state) => {
-      // Generation death fires before any next-generation frame can arrive
-      // (reconnect replays flow from stream open, ahead of onConnected):
-      // the only safe moment to drop generation-scoped interaction state.
       if (state === 'reconnecting') {
         sessions.handleDisconnected()
       }

@@ -49,7 +49,7 @@ export class PresetMountError extends Error {
  * A preset id a runtime registration cannot claim because the roster already
  * owns it.
  *
- * Separate from {@link authoring.PresetExistsError} because the two name
+ * Separate from {@link import('./authoring.js').PresetExistsError} because the two name
  * different owners and therefore different ways out: a copy refused on an
  * occupied id is told to pick another one, while a registration is told which
  * owner to release first. Registration never displaces — a preset that silently

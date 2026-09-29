@@ -3,13 +3,13 @@
 
 # Plugin Config Catalog
 
-Every `config:` block a `cordis.yml` entry can set: for each loadable harness package, the verbatim config declaration (JSDoc included) its `apply` function or service constructor receives, with every referenced type pasted alongside (package-local types) or linked (everything else). The paste is the plugin's full declared config type — a field the runtime schema deliberately excludes is a runtime-only seam (its own JSDoc says so) and is not settable from `cordis.yml`. This is the **deployment**-axis reference — the wiring a plugin author works against is the generated Cordis API region on each [subsystem page](subsystems/core.md), the model-facing tool schemas are the [tool catalog](tool-catalog.md), and [subsystems/](subsystems/core.md) documents the types these declarations reference.
+Every `config:` block a `cordis.yml` entry can set: for each loadable harness package, the verbatim config declaration (JSDoc included) its `apply` function or service constructor receives, with every referenced type pasted alongside (package-local types) or linked (everything else). The paste is the plugin's full declared config type — a field the runtime schema deliberately excludes is a runtime-only seam (its own JSDoc says so) and is not settable from `cordis.yml`. This is the **deployment**-axis reference — the wiring a plugin author works against is the Cordis API region on each [subsystem page](subsystems/core.md), the model-facing tool schemas are the [tool catalog](tool-catalog.md), and [subsystems/](subsystems/core.md) documents the types these declarations reference.
 
 This file was originally generated from source by `scripts/gen-config-catalog.ts`. That script and its `verify-config-catalog` freshness check no longer exist, so this page is maintained by hand and must be updated alongside the plugins it describes. Declaration blocks use a `ts config-catalog` fence (skipped by doc-typecheck, since a lone declaration referencing imports is not standalone-compilable). Because nothing now cross-checks the runtime schemastery schema against the pasted declaration, a config key added in code will not surface here on its own.
 
 A `Requires:` line lists the service keys the plugin `inject`s: its `cordis.yml` tree must also load providers for those services. Scope is the harness tier (`packages/`); the framework cordis plugins a config tree may also load (`hmr`, the console logger, …) are first-party source under [framework/](../framework/README.md) and not catalogued here.
 
-<a id="deepseek-aidsh-acp"></a>
+<a id="freddie-acp"></a>
 
 ## `@freddie/freddie-acp`
 
@@ -29,9 +29,9 @@ export interface AcpConfig {
 
 Depends on: `Stream` (`@agentclientprotocol/sdk`)
 
-Source: [`packages/acp/acp/src/index.ts:71`](../packages/acp/acp/src/index.js)
+Source: [`packages/acp/acp/src/index.js`](../packages/acp/acp/src/index.js)
 
-<a id="deepseek-aidsh-acp-demo"></a>
+<a id="freddie-acp-demo"></a>
 
 ## `@freddie/freddie-acp-demo`
 
@@ -53,12 +53,12 @@ export interface Config {
   maxParallelToolCalls?: number
   /** Deployment persona (the system-prompt plugin's `persona` config). */
   persona?: string
-  /** Explicit model-facing tool order (the system-prompt plugin's `toolOrder` config; see dsh-system-prompt). */
+  /** Explicit model-facing tool order (the system-prompt plugin's `toolOrder` config; see @freddie/freddie-system-prompt). */
   toolOrder?: string[]
-  /** Tool-registry config — its presentation `mode` (forwarded through agent-spine-demo; see dsh-tools). */
+  /** Tool-registry config — its presentation `mode` (forwarded through agent-spine-demo; see @freddie/freddie-tools). */
   tools?: ToolsConfig
   /** Freddie home directory exposed to bash and used for local skill discovery. */
-  dshHome?: string
+  freddieHome?: string
   /** Fallback session-title limits forwarded through agent-spine-demo. */
   sessionTitle?: NonNullable<agentCore.Config['sessionTitle']>
   /** Directory for JSONL sessions and the derived query index. Defaults to `./.sessions`. */
@@ -82,11 +82,11 @@ export interface Config {
 }
 ```
 
-Depends on: [`agentCore`](../packages/examples/agent-spine-demo/src/index.js) · [`JsonlCompression`](../packages/session/session-persistence-jsonl/src/index.js) · [`ToolsConfig`](#deepseek-aidsh-tools)
+Depends on: [`agentCore`](../packages/examples/agent-spine-demo/src/index.js) · [`JsonlCompression`](../packages/session/session-persistence-jsonl/src/index.js) · [`ToolsConfig`](#freddie-tools)
 
 Source: [`packages/examples/acp-demo/src/index.js:39`](../packages/examples/acp-demo/src/index.js)
 
-<a id="deepseek-aidsh-auto-review"></a>
+<a id="freddie-auto-review"></a>
 
 ## `@freddie/freddie-auto-review`
 
@@ -116,7 +116,7 @@ export interface AutoReviewConfig {
 
 Source: [`packages/interaction/auto-review/src/index.js:74`](../packages/interaction/auto-review/src/index.js)
 
-<a id="deepseek-aidsh-agent-default-model"></a>
+<a id="freddie-agent-default-model"></a>
 
 ## `@freddie/freddie-agent-default-model`
 
@@ -130,17 +130,17 @@ export interface Config {
 }
 ```
 
-Source: [`packages/core/agent-default-model/src/index.ts:41`](../packages/core/agent-default-model/src/index.js)
+Source: [`packages/core/agent-default-model/src/index.js`](../packages/core/agent-default-model/src/index.js)
 
-<a id="deepseek-aidsh-agent-instructions"></a>
+<a id="freddie-agent-instructions"></a>
 
 ## `@freddie/freddie-agent-instructions`
 
 ```ts config-catalog
 /** User-facing workspace instruction loader configuration. */
 export interface Config {
-  /** Harness home containing the fixed user-global `AGENTS.md`; defaults to `$FREDDIE_HOME` or `~/.dsh`. */
-  dshHome?: string
+  /** Harness home containing the fixed user-global `AGENTS.md`; defaults to `$FREDDIE_HOME` or `~/.freddie`. */
+  freddieHome?: string
   /** Directory entries that identify the project root while walking upward from the session cwd. */
   projectRootMarkers?: string[]
   /** UTF-8 byte cap for one rendered baseline or dynamic batch; non-positive or non-finite disables loading. */
@@ -160,9 +160,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/context/agent-instructions/src/config.ts:18`](../packages/context/agent-instructions/src/config.js)
+Source: [`packages/context/agent-instructions/src/config.js`](../packages/context/agent-instructions/src/config.js)
 
-<a id="deepseek-aidsh-agent-loop"></a>
+<a id="freddie-agent-loop"></a>
 
 ## `@freddie/freddie-agent-loop`
 
@@ -192,9 +192,9 @@ export interface Config {
 
 Depends on: [`AgentOptions`](subsystems/core.md) · [`SessionId`](subsystems/core.md)
 
-Source: [`packages/core/agent-loop/src/index.ts:255`](../packages/core/agent-loop/src/index.js)
+Source: [`packages/core/agent-loop/src/index.js`](../packages/core/agent-loop/src/index.js)
 
-<a id="deepseek-aidsh-agent-presets"></a>
+<a id="freddie-agent-presets"></a>
 
 ## `@freddie/freddie-agent-presets`
 
@@ -230,9 +230,9 @@ export interface PresetRoot {
 export type PresetTrust = 'system' | 'user'
 ```
 
-Source: [`packages/preset/agent-presets/src/preset.ts:52`](../packages/preset/agent-presets/src/preset.js)
+Source: [`packages/preset/agent-presets/src/preset.js`](../packages/preset/agent-presets/src/preset.js)
 
-<a id="deepseek-aidsh-agent-spine-demo"></a>
+<a id="freddie-agent-spine-demo"></a>
 
 ## `@freddie/freddie-agent-spine-demo`
 
@@ -244,7 +244,7 @@ Source: [`packages/preset/agent-presets/src/preset.ts:52`](../packages/preset/ag
  * `persona`, and `toolOrder` to the system-prompt plugin (the fixed opener,
  * dynamic-context policy, deployment persona, and explicit model-facing tool
  * order), the `tools` object to the tool registry (its presentation `mode`),
- * `dshHome` to bash environment and local skill discovery, `sessionTitle` to
+ * `freddieHome` to bash environment and local skill discovery, `sessionTitle` to
  * the fallback title service, `skills` to the
  * skill registry/local provider/tool consumer, `workspaceContext` to the
  * agent-instructions loader, `jobs` to the process-local job provider, and
@@ -261,7 +261,7 @@ Source: [`packages/preset/agent-presets/src/preset.ts:52`](../packages/preset/ag
  * `bash` name.
  */
 export interface Config {
-  /** The agent-loop `agents` list (see dsh-agent-loop's `Config`). */
+  /** The agent-loop `agents` list (see @freddie/freddie-agent-loop's `Config`). */
   agents?: AgentLoopConfig['agents']
   /** Agent-loop concurrency cap; `1` is serial. */
   maxParallelToolCalls?: AgentLoopConfig['maxParallelToolCalls']
@@ -269,14 +269,14 @@ export interface Config {
   includeHarnessIdentity?: SystemPromptConfig['includeHarnessIdentity']
   /** Whether model history includes dynamic runtime-context snapshots (default true). */
   includeRuntimeContext?: SystemPromptConfig['includeRuntimeContext']
-  /** The deployment persona (see dsh-system-prompt's `Config`). */
+  /** The deployment persona (see @freddie/freddie-system-prompt's `Config`). */
   persona?: SystemPromptConfig['persona']
-  /** The explicit model-facing tool order (see dsh-system-prompt's `Config`). */
+  /** The explicit model-facing tool order (see @freddie/freddie-system-prompt's `Config`). */
   toolOrder?: SystemPromptConfig['toolOrder']
-  /** The tool registry's config — its presentation `mode` (see dsh-tools' `Config`). */
+  /** The tool registry's config — its presentation `mode` (see @freddie/freddie-tools' `Config`). */
   tools?: ToolsConfig
   /** Freddie home directory shared by shell context and local skill discovery. */
-  dshHome?: string
+  freddieHome?: string
   /** Deterministic fallback and accepted-title limits; omission uses the bundle's example policy. */
   sessionTitle?: SessionTitleConfig
   /** Workspace-context loader controls with an explicit byte budget; set `false` for hermetic prompts. */
@@ -320,11 +320,11 @@ export interface GoalConfig {
 }
 ```
 
-Depends on: [`AgentLoopConfig`](#deepseek-aidsh-agent-loop) · [`GoalDomainConfig`](#deepseek-aidsh-goal) · [`InvariantConfig`](#deepseek-aidsh-invariants) · [`JobsConfig`](#deepseek-aidsh-jobs-local) · [`SessionTitleConfig`](#deepseek-aidsh-session-title) · [`SkillFileSystem`](../packages/skill/skill-filesystem/src/index.js) · [`SkillRegistryConfig`](#deepseek-aidsh-skill) · [`SystemPromptConfig`](#deepseek-aidsh-system-prompt) · [`toolBash`](../packages/shell/tool-bash/src/index.js) · [`toolGoal`](../packages/goal/tool-goal/src/index.js) · [`toolJobs`](../packages/jobs/tool-jobs/src/index.js) · [`ToolsConfig`](#deepseek-aidsh-tools) · [`toolSkill`](../packages/skill/tool-skill/src/index.js) · [`workspaceContext`](../packages/context/agent-instructions/src/index.js)
+Depends on: [`AgentLoopConfig`](#freddie-agent-loop) · [`GoalDomainConfig`](#freddie-goal) · [`InvariantConfig`](#freddie-invariants) · [`JobsConfig`](#freddie-jobs-local) · [`SessionTitleConfig`](#freddie-session-title) · [`SkillFileSystem`](../packages/skill/skill-filesystem/src/index.js) · [`SkillRegistryConfig`](#freddie-skill) · [`SystemPromptConfig`](#freddie-system-prompt) · [`toolBash`](../packages/shell/tool-bash/src/index.js) · [`toolGoal`](../packages/goal/tool-goal/src/index.js) · [`toolJobs`](../packages/jobs/tool-jobs/src/index.js) · [`ToolsConfig`](#freddie-tools) · [`toolSkill`](../packages/skill/tool-skill/src/index.js) · [`workspaceContext`](../packages/context/agent-instructions/src/index.js)
 
-Source: [`packages/examples/agent-spine-demo/src/index.ts:92`](../packages/examples/agent-spine-demo/src/index.js)
+Source: [`packages/examples/agent-spine-demo/src/index.js`](../packages/examples/agent-spine-demo/src/index.js)
 
-<a id="deepseek-aidsh-agent-tool-presentation"></a>
+<a id="freddie-agent-tool-presentation"></a>
 
 ## `@freddie/freddie-agent-tool-presentation`
 
@@ -346,17 +346,17 @@ export interface Config {
 
 Depends on: [`ToolPresentationMode`](subsystems/tools.md)
 
-Source: [`packages/core/agent-tool-presentation/src/index.ts:38`](../packages/core/agent-tool-presentation/src/index.js)
+Source: [`packages/core/agent-tool-presentation/src/index.js`](../packages/core/agent-tool-presentation/src/index.js)
 
-<a id="deepseek-aidsh-attachment-local"></a>
+<a id="freddie-attachment-local"></a>
 
 ## `@freddie/freddie-attachment-local`
 
 ```ts config-catalog
 /** Local attachment backend configuration. */
 export interface Config {
-  /** Explicit harness home; omitted follows `FREDDIE_HOME`, then `~/.dsh`. */
-  dshHome?: string
+  /** Explicit harness home; omitted follows `FREDDIE_HOME`, then `~/.freddie`. */
+  freddieHome?: string
   /** Maximum encoded bytes accepted for one submitted image. Default: 20 MiB. */
   maxImageBytes?: number
   /** Maximum image count accepted in one submitted message. Default: 20. */
@@ -378,7 +378,7 @@ export interface Config {
 
 Source: [`packages/attachment/attachment-local/src/index.js:51`](../packages/attachment/attachment-local/src/index.js)
 
-<a id="deepseek-aidsh-bash-local"></a>
+<a id="freddie-bash-local"></a>
 
 ## `@freddie/freddie-bash-local`
 
@@ -402,9 +402,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/shell/bash-local/src/index.ts:41`](../packages/shell/bash-local/src/index.js)
+Source: [`packages/shell/bash-local/src/index.js`](../packages/shell/bash-local/src/index.js)
 
-<a id="deepseek-aidsh-bash-sandbox"></a>
+<a id="freddie-bash-sandbox"></a>
 
 ## `@freddie/freddie-bash-sandbox`
 
@@ -421,11 +421,11 @@ Requires: `subprocess` · `sandbox` · `sandboxPolicy`
 export type Config = LocalConfig
 ```
 
-Depends on: [`LocalConfig`](#deepseek-aidsh-bash-local)
+Depends on: [`LocalConfig`](#freddie-bash-local)
 
-Source: [`packages/shell/bash-sandbox/src/index.ts:35`](../packages/shell/bash-sandbox/src/index.js)
+Source: [`packages/shell/bash-sandbox/src/index.js`](../packages/shell/bash-sandbox/src/index.js)
 
-<a id="deepseek-aidsh-client-connection"></a>
+<a id="freddie-client-connection"></a>
 
 ## `@freddie/freddie-client-connection`
 
@@ -439,7 +439,7 @@ export interface ConnectionConfig {
    * port-less `host` matching any port. The /api trust fence refuses any
    * request whose Host is neither loopback nor listed here, so a
    * non-loopback (`0.0.0.0`) deployment must declare the names it is reached
-   * by (the dsh CLI derives the machine's LAN IP literals itself). An entry
+   * by (the freddie Web runtime derives the machine's LAN IP literals itself). An entry
    * that is not a bare, canonical authority fails the plugin load.
    */
   trustedHosts?: string[]
@@ -448,9 +448,9 @@ export interface ConnectionConfig {
 }
 ```
 
-Source: [`packages/client/connection/src/index.ts:50`](../packages/client/connection/src/index.js)
+Source: [`packages/client/connection/src/index.js`](../packages/client/connection/src/index.js)
 
-<a id="deepseek-aidsh-client-file-upload"></a>
+<a id="freddie-client-file-upload"></a>
 
 ## `@freddie/freddie-client-file-upload`
 
@@ -468,7 +468,7 @@ export interface FileUploadConfig {
 
 Source: [`packages/client/file-upload/src/index.js`](../packages/client/file-upload/src/index.js)
 
-<a id="deepseek-aidsh-client-hmr"></a>
+<a id="freddie-client-hmr"></a>
 
 ## `@freddie/freddie-client-hmr`
 
@@ -482,9 +482,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/client/hmr/src/index.ts:31`](../packages/client/hmr/src/index.js)
+Source: [`packages/client/hmr/src/index.js`](../packages/client/hmr/src/index.js)
 
-<a id="deepseek-aidsh-client-ui-settings-subagent"></a>
+<a id="freddie-client-ui-settings-subagent"></a>
 
 ## `@freddie/freddie-client-ui-settings-subagent`
 
@@ -502,7 +502,7 @@ The write is durable and validated, but no consumer enforces `subagent` yet — 
 
 Source: [`packages/client/ui-settings-subagent/src/index.js`](../packages/client/ui-settings-subagent/src/index.js)
 
-<a id="deepseek-aidsh-code-runtime-worker-thread"></a>
+<a id="freddie-code-runtime-worker-thread"></a>
 
 ## `@freddie/freddie-code-runtime-worker-thread`
 
@@ -537,9 +537,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/code-runtime/code-runtime-worker-thread/src/index.ts:25`](../packages/code-runtime/code-runtime-worker-thread/src/index.js)
+Source: [`packages/code-runtime/code-runtime-worker-thread/src/index.js`](../packages/code-runtime/code-runtime-worker-thread/src/index.js)
 
-<a id="deepseek-aidsh-compaction-basic"></a>
+<a id="freddie-compaction-basic"></a>
 
 ## `@freddie/freddie-compaction-basic`
 
@@ -583,9 +583,9 @@ export interface ModelCompactPolicyConfig extends CompactionPolicyConfig {
 }
 ```
 
-Source: [`packages/compaction/compaction-basic/src/types.ts:38`](../packages/compaction/compaction-basic/src/types.js)
+Source: [`packages/compaction/compaction-basic/src/types.js`](../packages/compaction/compaction-basic/src/types.js)
 
-<a id="deepseek-aidsh-compaction-tool-result-pruner"></a>
+<a id="freddie-compaction-tool-result-pruner"></a>
 
 ## `@freddie/freddie-compaction-tool-result-pruner`
 
@@ -605,7 +605,7 @@ export interface ToolResultPruneConfig {
 
 Source: [`packages/compaction/compaction-tool-result-pruner/src/index.js:4`](../packages/compaction/compaction-tool-result-pruner/src/index.js)
 
-<a id="deepseek-aidsh-compaction-image-offload"></a>
+<a id="freddie-compaction-image-offload"></a>
 
 ## `@freddie/freddie-compaction-image-offload`
 
@@ -618,7 +618,7 @@ No settable keys: the offload policy is fixed. The schema is an empty object rat
 
 Source: [`packages/compaction/compaction-image-offload/src/index.js`](../packages/compaction/compaction-image-offload/src/index.js)
 
-<a id="deepseek-aidsh-cordis-host-runner"></a>
+<a id="freddie-cordis-host-runner"></a>
 
 ## `@freddie/freddie-cordis-host-runner`
 
@@ -632,9 +632,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/extensions/cordis-host-runner/src/index.ts:88`](../packages/extensions/cordis-host-runner/src/index.js)
+Source: [`packages/extensions/cordis-host-runner/src/index.js`](../packages/extensions/cordis-host-runner/src/index.js)
 
-<a id="deepseek-aidsh-credentials-local"></a>
+<a id="freddie-credentials-local"></a>
 
 ## `@freddie/freddie-credentials-local`
 
@@ -643,8 +643,8 @@ Source: [`packages/extensions/cordis-host-runner/src/index.ts:88`](../packages/e
 export interface Config {
   /** Credentials document path; defaults to `.credentials.yaml` under the harness home. */
   path?: string
-  /** Harness home used when `path` is omitted; defaults to `$FREDDIE_HOME` or `~/.dsh`. */
-  dshHome?: string
+  /** Harness home used when `path` is omitted; defaults to `$FREDDIE_HOME` or `~/.freddie`. */
+  freddieHome?: string
   /** Watch the document and hot-publish external edits; defaults to true. */
   watch?: boolean
   /** Watcher write-settle window in milliseconds; defaults to 100. */
@@ -652,9 +652,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/credentials/credentials-local/src/index.ts:64`](../packages/credentials/credentials-local/src/index.js)
+Source: [`packages/credentials/credentials-local/src/index.js`](../packages/credentials/credentials-local/src/index.js)
 
-<a id="deepseek-aidsh-dream-rsi-context"></a>
+<a id="freddie-dream-rsi-context"></a>
 
 ## `@freddie/freddie-dream-rsi-context`
 
@@ -672,7 +672,7 @@ export interface DreamRsiContextConfig {
 
 Source: [`packages/context/dream-rsi-context/src/index.js`](../packages/context/dream-rsi-context/src/index.js)
 
-<a id="deepseek-aidsh-e2b"></a>
+<a id="freddie-e2b"></a>
 
 ## `@freddie/freddie-e2b`
 
@@ -688,9 +688,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/e2b/e2b/src/index.ts:43`](../packages/e2b/e2b/src/index.js)
+Source: [`packages/e2b/e2b/src/index.js`](../packages/e2b/e2b/src/index.js)
 
-<a id="deepseek-aidsh-experimental-agent-team"></a>
+<a id="freddie-experimental-agent-team"></a>
 
 ## `@freddie/freddie-experimental-agent-team`
 
@@ -712,9 +712,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/experimental/agent-team/src/types.ts:125`](../packages/experimental/agent-team/src/types.js)
+Source: [`packages/experimental/agent-team/src/types.js`](../packages/experimental/agent-team/src/types.js)
 
-<a id="deepseek-aidsh-experimental-browser-use-chrome-devtools-mcp"></a>
+<a id="freddie-experimental-browser-use-chrome-devtools-mcp"></a>
 
 ## `@freddie/freddie-experimental-browser-use-chrome-devtools-mcp`
 
@@ -728,6 +728,8 @@ export type Config = BrowserMcpConfig & BrowserEntryConfig
 export interface BrowserEntryConfig {
   /** Explicit path to the pinned `chrome-devtools-mcp` CLI entry; omission resolves it from the Node module resolution of this package. */
   entryPath?: string
+  /** Agent preset ids whose agents get no MCP server and no browser tools; omission serves every agent. */
+  excludePresets?: string[]
 }
 ```
 
@@ -748,11 +750,11 @@ export type BrowserMcpConfig = {
 }
 ```
 
-Unreleased `experimental/` group. Freddie declares no dependency on the upstream server: `entryPath` — or Node resolution next to this package — supplies `chrome-devtools-mcp@1.9.0`'s `build/src/bin/chrome-devtools-mcp.js` at launch, and activation fails loudly when neither resolves, so no third-party code enters the tree at install time.
+Unreleased `experimental/` group. `chrome-devtools-mcp@1.9.0` is an exact-pinned `optionalDependency`, installed with `--ignore-scripts`: `entryPath` — or Node resolution next to this package — supplies its `build/src/bin/chrome-devtools-mcp.js` at launch. When neither resolves and no `entryPath` was given, activation logs one warning and stays inert; a bad explicit `entryPath` or a malformed config still throws. `excludePresets` (default `[]`) keeps an agent whose composed preset id is listed from getting an MCP server or browser tools at all; the base bundle sets `excludePresets: [minimal]`.
 
 Source: [`packages/experimental/browser-use-chrome-devtools-mcp/src/index.js`](../packages/experimental/browser-use-chrome-devtools-mcp/src/index.js)
 
-<a id="deepseek-aidsh-experimental-tool-agent-team"></a>
+<a id="freddie-experimental-tool-agent-team"></a>
 
 ## `@freddie/freddie-experimental-tool-agent-team`
 
@@ -765,12 +767,14 @@ export interface Config {
   readonly freshProvider?: string
   /** Continuable-subagent provider used for completed-prefix fork teammates. */
   readonly forkProvider?: string
+  /** Preset ids whose agents skip the Team tools; the Agent Teams profile lists `minimal` so its catalog stays small. */
+  readonly excludePresets?: readonly string[]
 }
 ```
 
-Source: [`packages/experimental/tool-agent-team/src/index.ts:17`](../packages/experimental/tool-agent-team/src/index.js)
+Source: [`packages/experimental/tool-agent-team/src/index.js`](../packages/experimental/tool-agent-team/src/index.js)
 
-<a id="deepseek-aidsh-file-reference-local"></a>
+<a id="freddie-file-reference-local"></a>
 
 ## `@freddie/freddie-file-reference-local`
 
@@ -788,9 +792,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/context/file-reference-local/src/index.ts:35`](../packages/context/file-reference-local/src/index.js)
+Source: [`packages/context/file-reference-local/src/index.js`](../packages/context/file-reference-local/src/index.js)
 
-<a id="deepseek-aidsh-fs-local"></a>
+<a id="freddie-fs-local"></a>
 
 ## `@freddie/freddie-fs-local`
 
@@ -809,7 +813,7 @@ export interface Config {
 
 Source: [`packages/fs/fs-local/src/index.js:41`](../packages/fs/fs-local/src/index.js)
 
-<a id="deepseek-aidsh-fs-sandbox"></a>
+<a id="freddie-fs-sandbox"></a>
 
 ## `@freddie/freddie-fs-sandbox`
 
@@ -825,11 +829,11 @@ Requires: `sandboxPolicy`
 export type Config = LocalConfig
 ```
 
-Depends on: [`LocalConfig`](#deepseek-aidsh-fs-local)
+Depends on: [`LocalConfig`](#freddie-fs-local)
 
-Source: [`packages/fs/fs-sandbox/src/index.ts:49`](../packages/fs/fs-sandbox/src/index.js)
+Source: [`packages/fs/fs-sandbox/src/index.js`](../packages/fs/fs-sandbox/src/index.js)
 
-<a id="deepseek-aidsh-goal"></a>
+<a id="freddie-goal"></a>
 
 ## `@freddie/freddie-goal`
 
@@ -843,9 +847,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/goal/goal/src/index.ts:116`](../packages/goal/goal/src/index.js)
+Source: [`packages/goal/goal/src/index.js`](../packages/goal/goal/src/index.js)
 
-<a id="deepseek-aidsh-headless"></a>
+<a id="freddie-headless"></a>
 
 ## `@freddie/freddie-headless`
 
@@ -859,9 +863,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/bundle/headless/src/index.ts:31`](../packages/bundle/headless/src/index.js)
+Source: [`packages/bundle/headless/src/index.js`](../packages/bundle/headless/src/index.js)
 
-<a id="deepseek-aidsh-hooks-claude-code"></a>
+<a id="freddie-hooks-claude-code"></a>
 
 ## `@freddie/freddie-hooks-claude-code`
 
@@ -899,7 +903,7 @@ export interface Config {
 
 Source: `packages/hooks/hooks-claude-code` (package scaffold only, no `src/` implementation present yet)
 
-<a id="deepseek-aidsh-hooks-codex"></a>
+<a id="freddie-hooks-codex"></a>
 
 ## `@freddie/freddie-hooks-codex`
 
@@ -926,7 +930,7 @@ export interface Config {
 
 Source: `packages/hooks/hooks-codex` (package scaffold only, no `src/` implementation present yet)
 
-<a id="deepseek-aidsh-host-apiproxy"></a>
+<a id="freddie-host-apiproxy"></a>
 
 ## `@freddie/freddie-host-apiproxy`
 
@@ -958,9 +962,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/host/apiproxy/src/index.ts:41`](../packages/host/apiproxy/src/index.js)
+Source: [`packages/host/apiproxy/src/index.js`](../packages/host/apiproxy/src/index.js)
 
-<a id="deepseek-aidsh-host-directory-picker-browse"></a>
+<a id="freddie-host-directory-picker-browse"></a>
 
 ## `@freddie/freddie-host-directory-picker-browse`
 
@@ -974,7 +978,7 @@ export interface Config {
 
 Source: [`packages/host/directory-picker-browse/src/index.js:181`](../packages/host/directory-picker-browse/src/index.js)
 
-<a id="deepseek-aidsh-host-frontend-static"></a>
+<a id="freddie-host-frontend-static"></a>
 
 ## `@freddie/freddie-host-frontend-static`
 
@@ -988,9 +992,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/host/frontend-static/src/index.ts:28`](../packages/host/frontend-static/src/index.js)
+Source: [`packages/host/frontend-static/src/index.js`](../packages/host/frontend-static/src/index.js)
 
-<a id="deepseek-aidsh-host-open-in-app"></a>
+<a id="freddie-host-open-in-app"></a>
 
 ## `@freddie/freddie-host-open-in-app`
 
@@ -1010,7 +1014,7 @@ export interface OpenInAppConfig {
 
 Source: [`packages/host/open-in-app/src/index.js`](../packages/host/open-in-app/src/index.js)
 
-<a id="deepseek-aidsh-host-product-telemetry-otel"></a>
+<a id="freddie-host-product-telemetry-otel"></a>
 
 ## `@freddie/freddie-host-product-telemetry-otel`
 
@@ -1042,9 +1046,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/host/product-telemetry-otel/src/index.ts:65`](../packages/host/product-telemetry-otel/src/index.js)
+Source: [`packages/host/product-telemetry-otel/src/index.js`](../packages/host/product-telemetry-otel/src/index.js)
 
-<a id="deepseek-aidsh-host-webserver"></a>
+<a id="freddie-host-webserver"></a>
 
 ## `@freddie/freddie-host-webserver`
 
@@ -1058,9 +1062,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/host/webserver/src/index.ts:59`](../packages/host/webserver/src/index.js)
+Source: [`packages/host/webserver/src/index.js`](../packages/host/webserver/src/index.js)
 
-<a id="deepseek-aidsh-inspector"></a>
+<a id="freddie-inspector"></a>
 
 ## `@freddie/freddie-inspector`
 
@@ -1109,9 +1113,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/runtime-diagnostics/inspector/src/index.ts:54`](../packages/runtime-diagnostics/inspector/src/index.js)
+Source: [`packages/runtime-diagnostics/inspector/src/index.js`](../packages/runtime-diagnostics/inspector/src/index.js)
 
-<a id="deepseek-aidsh-invariants"></a>
+<a id="freddie-invariants"></a>
 
 ## `@freddie/freddie-invariants`
 
@@ -1127,9 +1131,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/runtime-diagnostics/invariants/src/index.ts:15`](../packages/runtime-diagnostics/invariants/src/index.js)
+Source: [`packages/runtime-diagnostics/invariants/src/index.js`](../packages/runtime-diagnostics/invariants/src/index.js)
 
-<a id="deepseek-aidsh-jobs-local"></a>
+<a id="freddie-jobs-local"></a>
 
 ## `@freddie/freddie-jobs-local`
 
@@ -1144,9 +1148,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/jobs/jobs-local/src/index.ts:31`](../packages/jobs/jobs-local/src/index.js)
+Source: [`packages/jobs/jobs-local/src/index.js`](../packages/jobs/jobs-local/src/index.js)
 
-<a id="deepseek-aidsh-llm-deepseek"></a>
+<a id="freddie-llm-deepseek"></a>
 
 ## `@freddie/freddie-llm-deepseek`
 
@@ -1227,9 +1231,9 @@ export interface DeepSeekCatalogModel {
 
 Depends on: [`ModelModality`](../packages/llm/llm/src/index.js) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.js)
 
-Source: [`packages/llm/llm-deepseek/src/index.ts:106`](../packages/llm/llm-deepseek/src/index.js)
+Source: [`packages/llm/llm-deepseek/src/index.js`](../packages/llm/llm-deepseek/src/index.js)
 
-<a id="deepseek-aidsh-llm-pi-ai"></a>
+<a id="freddie-llm-pi-ai"></a>
 
 ## `@freddie/freddie-llm-pi-ai`
 
@@ -1325,7 +1329,7 @@ A changed route set — or a route's registration-captured retry policy — re-r
 
 Source: [`packages/llm/llm-pi-ai/src/config.js`](../packages/llm/llm-pi-ai/src/config.js)
 
-<a id="deepseek-aidsh-llm-replay"></a>
+<a id="freddie-llm-replay"></a>
 
 ## `@freddie/freddie-llm-replay`
 
@@ -1393,7 +1397,7 @@ Depends on: [`ModelModality`](../packages/llm/llm/src/index.js) · [`RetryPolicy
 
 Source: `packages/test-support/llm-replay` (package scaffold only, not yet built)
 
-<a id="deepseek-aidsh-llm-retry"></a>
+<a id="freddie-llm-retry"></a>
 
 ## `@freddie/freddie-llm-retry`
 
@@ -1404,9 +1408,9 @@ Requires: `agents`
 export type Config = Readonly<Record<string, never>>
 ```
 
-Source: [`packages/llm/llm-retry/src/index.ts:24`](../packages/llm/llm-retry/src/index.js)
+Source: [`packages/llm/llm-retry/src/index.js`](../packages/llm/llm-retry/src/index.js)
 
-<a id="deepseek-aidsh-lsp-stdio"></a>
+<a id="freddie-lsp-stdio"></a>
 
 ## `@freddie/freddie-lsp-stdio`
 
@@ -1446,9 +1450,9 @@ export interface LspLocalServerConfig {
 }
 ```
 
-Source: [`packages/lsp/lsp-stdio/src/index.ts:82`](../packages/lsp/lsp-stdio/src/index.js)
+Source: [`packages/lsp/lsp-stdio/src/index.js`](../packages/lsp/lsp-stdio/src/index.js)
 
-<a id="deepseek-aidsh-mcp-client"></a>
+<a id="freddie-mcp-client"></a>
 
 ## `@freddie/freddie-mcp-client`
 
@@ -1519,9 +1523,9 @@ export interface ReconnectConfig {
 }
 ```
 
-Source: [`packages/mcp/mcp-client/src/index.ts:98`](../packages/mcp/mcp-client/src/index.js)
+Source: [`packages/mcp/mcp-client/src/index.js`](../packages/mcp/mcp-client/src/index.js)
 
-<a id="deepseek-aidsh-message-feedback"></a>
+<a id="freddie-message-feedback"></a>
 
 ## `@freddie/freddie-message-feedback`
 
@@ -1535,9 +1539,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/feedback/message-feedback/src/index.ts:49`](../packages/feedback/message-feedback/src/index.js)
+Source: [`packages/feedback/message-feedback/src/index.js`](../packages/feedback/message-feedback/src/index.js)
 
-<a id="deepseek-aidsh-permission-presets"></a>
+<a id="freddie-permission-presets"></a>
 
 ## `@freddie/freddie-permission-presets`
 
@@ -1574,9 +1578,9 @@ export interface PresetSpec {
 
 Depends on: [`ApprovalPolicy`](subsystems/approval.md) · [`SandboxMode`](subsystems/sandbox.md)
 
-Source: [`packages/interaction/permission-presets/src/index.ts:156`](../packages/interaction/permission-presets/src/index.js)
+Source: [`packages/interaction/permission-presets/src/index.js`](../packages/interaction/permission-presets/src/index.js)
 
-<a id="deepseek-aidsh-persona"></a>
+<a id="freddie-persona"></a>
 
 ## `@freddie/freddie-persona`
 
@@ -1598,9 +1602,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/preset/persona/src/index.ts:34`](../packages/preset/persona/src/index.js)
+Source: [`packages/preset/persona/src/index.js`](../packages/preset/persona/src/index.js)
 
-<a id="deepseek-aidsh-plan-mode"></a>
+<a id="freddie-plan-mode"></a>
 
 ## `@freddie/freddie-plan-mode`
 
@@ -1614,9 +1618,9 @@ export interface PlanModeConfig {
 }
 ```
 
-Source: [`packages/plan/plan-mode/src/index.ts:70`](../packages/plan/plan-mode/src/index.js)
+Source: [`packages/plan/plan-mode/src/index.js`](../packages/plan/plan-mode/src/index.js)
 
-<a id="deepseek-aidsh-pwsh-local"></a>
+<a id="freddie-pwsh-local"></a>
 
 ## `@freddie/freddie-pwsh-local`
 
@@ -1647,9 +1651,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/shell/pwsh-local/src/index.ts:58`](../packages/shell/pwsh-local/src/index.js)
+Source: [`packages/shell/pwsh-local/src/index.js`](../packages/shell/pwsh-local/src/index.js)
 
-<a id="deepseek-aidsh-pwsh-sandbox"></a>
+<a id="freddie-pwsh-sandbox"></a>
 
 ## `@freddie/freddie-pwsh-sandbox`
 
@@ -1667,11 +1671,11 @@ Requires: `subprocess` · `sandbox` · `sandboxPolicy`
 export type Config = LocalConfig
 ```
 
-Depends on: [`LocalConfig`](#deepseek-aidsh-pwsh-local)
+Depends on: [`LocalConfig`](#freddie-pwsh-local)
 
-Source: [`packages/shell/pwsh-sandbox/src/index.ts:40`](../packages/shell/pwsh-sandbox/src/index.js)
+Source: [`packages/shell/pwsh-sandbox/src/index.js`](../packages/shell/pwsh-sandbox/src/index.js)
 
-<a id="deepseek-aidsh-repeat-tool-reminder"></a>
+<a id="freddie-repeat-tool-reminder"></a>
 
 ## `@freddie/freddie-repeat-tool-reminder`
 
@@ -1703,9 +1707,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/guard/repeat-tool-reminder/src/index.ts:28`](../packages/guard/repeat-tool-reminder/src/index.js)
+Source: [`packages/guard/repeat-tool-reminder/src/index.js`](../packages/guard/repeat-tool-reminder/src/index.js)
 
-<a id="deepseek-aidsh-sandbox-local"></a>
+<a id="freddie-sandbox-local"></a>
 
 ## `@freddie/freddie-sandbox-local`
 
@@ -1735,9 +1739,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/sandbox/sandbox-local/src/index.ts:44`](../packages/sandbox/sandbox-local/src/index.js)
+Source: [`packages/sandbox/sandbox-local/src/index.js`](../packages/sandbox/sandbox-local/src/index.js)
 
-<a id="deepseek-aidsh-sandbox-policy"></a>
+<a id="freddie-sandbox-policy"></a>
 
 ## `@freddie/freddie-sandbox-policy`
 
@@ -1762,9 +1766,9 @@ export interface Config {
 
 Depends on: [`SandboxMode`](subsystems/sandbox.md)
 
-Source: [`packages/sandbox/sandbox-policy/src/index.ts:67`](../packages/sandbox/sandbox-policy/src/index.js)
+Source: [`packages/sandbox/sandbox-policy/src/index.js`](../packages/sandbox/sandbox-policy/src/index.js)
 
-<a id="deepseek-aidsh-sdk-app"></a>
+<a id="freddie-sdk-app"></a>
 
 ## `@freddie/freddie-sdk-app`
 
@@ -1780,7 +1784,7 @@ export interface Config {
 
 Source: [`packages/bundle/sdk-app/src/startup.js`](../packages/bundle/sdk-app/src/startup.js)
 
-<a id="deepseek-aidsh-sdk-jsonrpc-server"></a>
+<a id="freddie-sdk-jsonrpc-server"></a>
 
 ## `@freddie/freddie-sdk-jsonrpc-server`
 
@@ -1802,9 +1806,9 @@ export interface JsonRpcConfig {
 
 Depends on: `Readable` (`node:stream`) · `Writable` (`node:stream`)
 
-Source: [`packages/sdk/server/src/index.ts:25`](../packages/sdk/server/src/index.js)
+Source: [`packages/sdk/server/src/index.js`](../packages/sdk/server/src/index.js)
 
-<a id="deepseek-aidsh-session-persistence-jsonl"></a>
+<a id="freddie-session-persistence-jsonl"></a>
 
 ## `@freddie/freddie-session-persistence-jsonl`
 
@@ -1841,9 +1845,9 @@ export interface Config {
 export type JsonlCompression = 'zstd' | 'none'
 ```
 
-Source: [`packages/session/session-persistence-jsonl/src/index.ts:60`](../packages/session/session-persistence-jsonl/src/index.js)
+Source: [`packages/session/session-persistence-jsonl/src/index.js`](../packages/session/session-persistence-jsonl/src/index.js)
 
-<a id="deepseek-aidsh-session-persistence-sqlite"></a>
+<a id="freddie-session-persistence-sqlite"></a>
 
 ## `@freddie/freddie-session-persistence-sqlite`
 
@@ -1868,9 +1872,9 @@ export interface Config {
 export type JournalMode = 'wal' | 'delete' | 'truncate' | 'persist'
 ```
 
-Source: [`packages/session/session-persistence-sqlite/src/index.ts:36`](../packages/session/session-persistence-sqlite/src/index.js)
+Source: [`packages/session/session-persistence-sqlite/src/index.js`](../packages/session/session-persistence-sqlite/src/index.js)
 
-<a id="deepseek-aidsh-session-projection-cache"></a>
+<a id="freddie-session-projection-cache"></a>
 
 ## `@freddie/freddie-session-projection-cache`
 
@@ -1891,9 +1895,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/session/session-projection-cache/src/index.ts:42`](../packages/session/session-projection-cache/src/index.js)
+Source: [`packages/session/session-projection-cache/src/index.js`](../packages/session/session-projection-cache/src/index.js)
 
-<a id="deepseek-aidsh-session-query-sqlite"></a>
+<a id="freddie-session-query-sqlite"></a>
 
 ## `@freddie/freddie-session-query-sqlite`
 
@@ -1939,7 +1943,7 @@ Depends on: [`SessionQueryConfig`](../packages/session-query/session-query/src/i
 
 Source: [`packages/session-query/session-query-sqlite/src/index.js:89`](../packages/session-query/session-query-sqlite/src/index.js)
 
-<a id="deepseek-aidsh-session-reference"></a>
+<a id="freddie-session-reference"></a>
 
 ## `@freddie/freddie-session-reference`
 
@@ -1959,7 +1963,7 @@ export interface Config {
 
 Source: [`packages/context/session-reference/src/config.js:11`](../packages/context/session-reference/src/config.js)
 
-<a id="deepseek-aidsh-session-telemetry-otel"></a>
+<a id="freddie-session-telemetry-otel"></a>
 
 ## `@freddie/freddie-session-telemetry-otel`
 
@@ -2003,9 +2007,9 @@ export enum SessionTelemetryMode {
 
 Depends on: `BatchLogRecordProcessorOptions` (`@opentelemetry/sdk-logs`) · `OTLPExporterNodeConfigBase` (`@opentelemetry/otlp-exporter-base`)
 
-Source: [`packages/session/session-telemetry-otel/src/index.ts:91`](../packages/session/session-telemetry-otel/src/index.js)
+Source: [`packages/session/session-telemetry-otel/src/index.js`](../packages/session/session-telemetry-otel/src/index.js)
 
-<a id="deepseek-aidsh-session-title"></a>
+<a id="freddie-session-title"></a>
 
 ## `@freddie/freddie-session-title`
 
@@ -2023,9 +2027,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/session/session-title/src/index.ts:79`](../packages/session/session-title/src/index.js)
+Source: [`packages/session/session-title/src/index.js`](../packages/session/session-title/src/index.js)
 
-<a id="deepseek-aidsh-session-title-all-prompts-llm"></a>
+<a id="freddie-session-title-all-prompts-llm"></a>
 
 ## `@freddie/freddie-session-title-all-prompts-llm`
 
@@ -2038,9 +2042,9 @@ export type Config = SessionTitleLlmConfig
 
 Depends on: [`SessionTitleLlmConfig`](../packages/session/session-title-llm/src/index.js)
 
-Source: [`packages/session/session-title-all-prompts-llm/src/index.ts:14`](../packages/session/session-title-all-prompts-llm/src/index.js)
+Source: [`packages/session/session-title-all-prompts-llm/src/index.js`](../packages/session/session-title-all-prompts-llm/src/index.js)
 
-<a id="deepseek-aidsh-session-title-first-prompt-llm"></a>
+<a id="freddie-session-title-first-prompt-llm"></a>
 
 ## `@freddie/freddie-session-title-first-prompt-llm`
 
@@ -2053,9 +2057,9 @@ export type Config = SessionTitleLlmConfig
 
 Depends on: [`SessionTitleLlmConfig`](../packages/session/session-title-llm/src/index.js)
 
-Source: [`packages/session/session-title-first-prompt-llm/src/index.ts:15`](../packages/session/session-title-first-prompt-llm/src/index.js)
+Source: [`packages/session/session-title-first-prompt-llm/src/index.js`](../packages/session/session-title-first-prompt-llm/src/index.js)
 
-<a id="deepseek-aidsh-settings-file"></a>
+<a id="freddie-settings-file"></a>
 
 ## `@freddie/freddie-settings-file`
 
@@ -2064,8 +2068,8 @@ Source: [`packages/session/session-title-first-prompt-llm/src/index.ts:15`](../p
 export interface Config {
   /** Settings document path; defaults to `settings.yaml` under the harness home. */
   path?: string
-  /** Harness home used when `path` is omitted; defaults to `$FREDDIE_HOME` or `~/.dsh`. */
-  dshHome?: string
+  /** Harness home used when `path` is omitted; defaults to `$FREDDIE_HOME` or `~/.freddie`. */
+  freddieHome?: string
   /** Watch the document and hot-publish external edits; defaults to true. */
   watch?: boolean
   /** Watcher write-settle window in milliseconds; defaults to 100. */
@@ -2073,23 +2077,23 @@ export interface Config {
 }
 ```
 
-Source: [`packages/settings/settings-file/src/index.ts:21`](../packages/settings/settings-file/src/index.js)
+Source: [`packages/settings/settings-file/src/index.js`](../packages/settings/settings-file/src/index.js)
 
-<a id="deepseek-aidsh-shell-env"></a>
+<a id="freddie-shell-env"></a>
 
 ## `@freddie/freddie-shell-env`
 
 ```ts config-catalog
 /** Plugin config (all optional — the built-in facts resolve without defaults). */
 export interface Config {
-  /** Freddie home directory exposed as `FREDDIE_HOME`; defaults to `$FREDDIE_HOME` or `~/.dsh`. */
-  dshHome?: string
+  /** Freddie home directory exposed as `FREDDIE_HOME`; defaults to `$FREDDIE_HOME` or `~/.freddie`. */
+  freddieHome?: string
 }
 ```
 
-Source: [`packages/shell/shell-env/src/index.ts:29`](../packages/shell/shell-env/src/index.js)
+Source: [`packages/shell/shell-env/src/index.js`](../packages/shell/shell-env/src/index.js)
 
-<a id="deepseek-aidsh-skill"></a>
+<a id="freddie-skill"></a>
 
 ## `@freddie/freddie-skill`
 
@@ -2101,9 +2105,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/skill/skill/src/index.ts:279`](../packages/skill/skill/src/index.js)
+Source: [`packages/skill/skill/src/index.js`](../packages/skill/skill/src/index.js)
 
-<a id="deepseek-aidsh-skill-filesystem"></a>
+<a id="freddie-skill-filesystem"></a>
 
 ## `@freddie/freddie-skill-filesystem`
 
@@ -2116,8 +2120,8 @@ export interface Config {
   providerName?: string
   /** Whether project and user roots are included around custom roots. */
   includeDefaultRoots?: boolean
-  /** Freddie config root. Defaults to `$FREDDIE_HOME` or `~/.dsh`. */
-  dshHome?: string
+  /** Freddie config root. Defaults to `$FREDDIE_HOME` or `~/.freddie`. */
+  freddieHome?: string
   /** Shared agent config root. Defaults to `$FREDDIE_AGENTS_HOME` or `~/.agents`. */
   agentsHome?: string
   /** Additional skill roots scanned after project roots and before user roots. */
@@ -2139,9 +2143,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/skill/skill-filesystem/src/index.ts:49`](../packages/skill/skill-filesystem/src/index.js)
+Source: [`packages/skill/skill-filesystem/src/index.js`](../packages/skill/skill-filesystem/src/index.js)
 
-<a id="deepseek-aidsh-spill-local"></a>
+<a id="freddie-spill-local"></a>
 
 ## `@freddie/freddie-spill-local`
 
@@ -2157,9 +2161,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/spill/spill-local/src/index.ts:22`](../packages/spill/spill-local/src/index.js)
+Source: [`packages/spill/spill-local/src/index.js`](../packages/spill/spill-local/src/index.js)
 
-<a id="deepseek-aidsh-spill-policy"></a>
+<a id="freddie-spill-policy"></a>
 
 ## `@freddie/freddie-spill-policy`
 
@@ -2177,9 +2181,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/spill/spill-policy/src/index.ts:60`](../packages/spill/spill-policy/src/index.js)
+Source: [`packages/spill/spill-policy/src/index.js`](../packages/spill/spill-policy/src/index.js)
 
-<a id="deepseek-aidsh-storage-domain"></a>
+<a id="freddie-storage-domain"></a>
 
 ## `@freddie/freddie-storage-domain`
 
@@ -2200,9 +2204,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/storage/storage-domain/src/index.ts:52`](../packages/storage/storage-domain/src/index.js)
+Source: [`packages/storage/storage-domain/src/index.js`](../packages/storage/storage-domain/src/index.js)
 
-<a id="deepseek-aidsh-storage-json"></a>
+<a id="freddie-storage-json"></a>
 
 ## `@freddie/freddie-storage-json`
 
@@ -2221,9 +2225,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/storage/storage-json/src/index.ts:27`](../packages/storage/storage-json/src/index.js)
+Source: [`packages/storage/storage-json/src/index.js`](../packages/storage/storage-json/src/index.js)
 
-<a id="deepseek-aidsh-storage-sqlite"></a>
+<a id="freddie-storage-sqlite"></a>
 
 ## `@freddie/freddie-storage-sqlite`
 
@@ -2261,9 +2265,9 @@ export interface Config {
 export type JournalMode = 'wal' | 'delete' | 'truncate' | 'persist'
 ```
 
-Source: [`packages/storage/storage-sqlite/src/index.ts:24`](../packages/storage/storage-sqlite/src/index.js)
+Source: [`packages/storage/storage-sqlite/src/index.js`](../packages/storage/storage-sqlite/src/index.js)
 
-<a id="deepseek-aidsh-subagent-acp"></a>
+<a id="freddie-subagent-acp"></a>
 
 ## `@freddie/freddie-subagent-acp`
 
@@ -2316,7 +2320,7 @@ export type PermissionPolicy = 'allow' | 'reject'
 
 Source: `packages/subagent/subagent-acp` (package scaffold only, no `src/` implementation present yet)
 
-<a id="deepseek-aidsh-subagent-claude-code"></a>
+<a id="freddie-subagent-claude-code"></a>
 
 ## `@freddie/freddie-subagent-claude-code`
 
@@ -2340,7 +2344,7 @@ export interface ClaudeCodeSubagentConfig {
 
 Source: [`packages/subagent/subagent-claude-code/src/index.js`](../packages/subagent/subagent-claude-code/src/index.js)
 
-<a id="deepseek-aidsh-subagent-codex"></a>
+<a id="freddie-subagent-codex"></a>
 
 ## `@freddie/freddie-subagent-codex`
 
@@ -2364,7 +2368,7 @@ export interface CodexSubagentConfig {
 
 Source: [`packages/subagent/subagent-codex/src/index.js`](../packages/subagent/subagent-codex/src/index.js)
 
-<a id="deepseek-aidsh-subagent-freddie-sdk"></a>
+<a id="freddie-subagent-freddie-sdk"></a>
 
 ## `@freddie/freddie-subagent-freddie-sdk`
 
@@ -2373,7 +2377,7 @@ Requires: `subagents`
 ```ts config-catalog
 /** Config: how to spawn and drive the child SDK runtime process. */
 export interface Config {
-  /** Provider name on `ctx.subagents` (default `dsh-sdk`). */
+  /** Provider name on `ctx.subagents` (default `freddie-sdk`). */
   providerName: string
   /** The executable to spawn for each run (the child runtime bin or packaged exe). */
   command: string
@@ -2417,7 +2421,7 @@ export interface Config {
 
 Source: `packages/subagent/subagent-freddie-sdk` (package scaffold only, no `src/` implementation present yet)
 
-<a id="deepseek-aidsh-subagent-fork-in-process"></a>
+<a id="freddie-subagent-fork-in-process"></a>
 
 ## `@freddie/freddie-subagent-fork-in-process`
 
@@ -2431,9 +2435,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/subagent/subagent-fork-in-process/src/index.ts:31`](../packages/subagent/subagent-fork-in-process/src/index.js)
+Source: [`packages/subagent/subagent-fork-in-process/src/index.js`](../packages/subagent/subagent-fork-in-process/src/index.js)
 
-<a id="deepseek-aidsh-subagent-spawn-in-process"></a>
+<a id="freddie-subagent-spawn-in-process"></a>
 
 ## `@freddie/freddie-subagent-spawn-in-process`
 
@@ -2447,9 +2451,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/subagent/subagent-spawn-in-process/src/index.ts:25`](../packages/subagent/subagent-spawn-in-process/src/index.js)
+Source: [`packages/subagent/subagent-spawn-in-process/src/index.js`](../packages/subagent/subagent-spawn-in-process/src/index.js)
 
-<a id="deepseek-aidsh-subprocess-e2b"></a>
+<a id="freddie-subprocess-e2b"></a>
 
 ## `@freddie/freddie-subprocess-e2b`
 
@@ -2463,9 +2467,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/e2b/subprocess-e2b/src/index.ts:25`](../packages/e2b/subprocess-e2b/src/index.js)
+Source: [`packages/e2b/subprocess-e2b/src/index.js`](../packages/e2b/subprocess-e2b/src/index.js)
 
-<a id="deepseek-aidsh-system-prompt"></a>
+<a id="freddie-system-prompt"></a>
 
 ## `@freddie/freddie-system-prompt`
 
@@ -2490,9 +2494,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/core/system-prompt/src/index.ts:186`](../packages/core/system-prompt/src/index.js)
+Source: [`packages/core/system-prompt/src/index.js`](../packages/core/system-prompt/src/index.js)
 
-<a id="deepseek-aidsh-terminal-bash"></a>
+<a id="freddie-terminal-bash"></a>
 
 ## `@freddie/freddie-terminal-bash`
 
@@ -2540,9 +2544,9 @@ export interface Config {
 export type ShellDialect = 'bash' | 'pwsh'
 ```
 
-Source: [`packages/terminal/terminal-bash/src/config.ts:10`](../packages/terminal/terminal-bash/src/config.js)
+Source: [`packages/terminal/terminal-bash/src/config.js`](../packages/terminal/terminal-bash/src/config.js)
 
-<a id="deepseek-aidsh-time-context"></a>
+<a id="freddie-time-context"></a>
 
 ## `@freddie/freddie-time-context`
 
@@ -2558,9 +2562,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/context/time-context/src/index.ts:27`](../packages/context/time-context/src/index.js)
+Source: [`packages/context/time-context/src/index.js`](../packages/context/time-context/src/index.js)
 
-<a id="deepseek-aidsh-tmux-context"></a>
+<a id="freddie-tmux-context"></a>
 
 ## `@freddie/freddie-tmux-context`
 
@@ -2574,9 +2578,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/context/tmux-context/src/index.ts:34`](../packages/context/tmux-context/src/index.js)
+Source: [`packages/context/tmux-context/src/index.js`](../packages/context/tmux-context/src/index.js)
 
-<a id="deepseek-aidsh-token-meter"></a>
+<a id="freddie-token-meter"></a>
 
 ## `@freddie/freddie-token-meter`
 
@@ -2585,9 +2589,9 @@ Source: [`packages/context/tmux-context/src/index.ts:34`](../packages/context/tm
 export type TokenMeterConfig = Record<string, never>
 ```
 
-Source: [`packages/llm/token-meter/src/types.ts:12`](../packages/llm/token-meter/src/types.js)
+Source: [`packages/llm/token-meter/src/types.js`](../packages/llm/token-meter/src/types.js)
 
-<a id="deepseek-aidsh-tool-bash"></a>
+<a id="freddie-tool-bash"></a>
 
 ## `@freddie/freddie-tool-bash`
 
@@ -2601,9 +2605,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/shell/tool-bash/src/index.ts:34`](../packages/shell/tool-bash/src/index.js)
+Source: [`packages/shell/tool-bash/src/index.js`](../packages/shell/tool-bash/src/index.js)
 
-<a id="deepseek-aidsh-tool-bash-persistent"></a>
+<a id="freddie-tool-bash-persistent"></a>
 
 ## `@freddie/freddie-tool-bash-persistent`
 
@@ -2625,7 +2629,7 @@ export interface Config {
 
 Source: [`packages/shell/tool-bash-persistent/src/index.js`](../packages/shell/tool-bash-persistent/src/index.js)
 
-<a id="deepseek-aidsh-tool-fs"></a>
+<a id="freddie-tool-fs"></a>
 
 ## `@freddie/freddie-tool-fs`
 
@@ -2645,9 +2649,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/fs/tool-fs/src/index.ts:25`](../packages/fs/tool-fs/src/index.js)
+Source: [`packages/fs/tool-fs/src/index.js`](../packages/fs/tool-fs/src/index.js)
 
-<a id="deepseek-aidsh-tool-fs-search"></a>
+<a id="freddie-tool-fs-search"></a>
 
 ## `@freddie/freddie-tool-fs-search`
 
@@ -2680,9 +2684,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/fs/tool-fs-search/src/index.ts:73`](../packages/fs/tool-fs-search/src/index.js)
+Source: [`packages/fs/tool-fs-search/src/index.js`](../packages/fs/tool-fs-search/src/index.js)
 
-<a id="deepseek-aidsh-tool-goal"></a>
+<a id="freddie-tool-goal"></a>
 
 ## `@freddie/freddie-tool-goal`
 
@@ -2696,9 +2700,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/goal/tool-goal/src/index.ts:26`](../packages/goal/tool-goal/src/index.js)
+Source: [`packages/goal/tool-goal/src/index.js`](../packages/goal/tool-goal/src/index.js)
 
-<a id="deepseek-aidsh-tool-jobs"></a>
+<a id="freddie-tool-jobs"></a>
 
 ## `@freddie/freddie-tool-jobs`
 
@@ -2730,9 +2734,9 @@ export interface Config {
 export type CompletionDelivery = 'quiet' | 'wakeup'
 ```
 
-Source: [`packages/jobs/tool-jobs/src/index.ts:32`](../packages/jobs/tool-jobs/src/index.js)
+Source: [`packages/jobs/tool-jobs/src/index.js`](../packages/jobs/tool-jobs/src/index.js)
 
-<a id="deepseek-aidsh-tool-lsp"></a>
+<a id="freddie-tool-lsp"></a>
 
 ## `@freddie/freddie-tool-lsp`
 
@@ -2752,7 +2756,7 @@ export interface Config {
 
 Source: `packages/lsp/tool-lsp` (package scaffold only, no `src/` implementation present yet)
 
-<a id="deepseek-aidsh-tool-present"></a>
+<a id="freddie-tool-present"></a>
 
 ## `@freddie/freddie-tool-present`
 
@@ -2768,7 +2772,7 @@ export interface ToolPresentConfig {
 
 Source: [`packages/deliverables/tool-present/src/index.js`](../packages/deliverables/tool-present/src/index.js)
 
-<a id="deepseek-aidsh-tool-pwsh"></a>
+<a id="freddie-tool-pwsh"></a>
 
 ## `@freddie/freddie-tool-pwsh`
 
@@ -2782,9 +2786,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/shell/tool-pwsh/src/index.ts:52`](../packages/shell/tool-pwsh/src/index.js)
+Source: [`packages/shell/tool-pwsh/src/index.js`](../packages/shell/tool-pwsh/src/index.js)
 
-<a id="deepseek-aidsh-tool-pwsh-persistent"></a>
+<a id="freddie-tool-pwsh-persistent"></a>
 
 ## `@freddie/freddie-tool-pwsh-persistent`
 
@@ -2804,9 +2808,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/shell/tool-pwsh-persistent/src/index.ts:472`](../packages/shell/tool-pwsh-persistent/src/index.js)
+Source: [`packages/shell/tool-pwsh-persistent/src/index.js`](../packages/shell/tool-pwsh-persistent/src/index.js)
 
-<a id="deepseek-aidsh-tool-ralph"></a>
+<a id="freddie-tool-ralph"></a>
 
 ## `@freddie/freddie-tool-ralph`
 
@@ -2826,9 +2830,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/workflow/tool-ralph/src/index.ts:23`](../packages/workflow/tool-ralph/src/index.js)
+Source: [`packages/workflow/tool-ralph/src/index.js`](../packages/workflow/tool-ralph/src/index.js)
 
-<a id="deepseek-aidsh-tool-session-query"></a>
+<a id="freddie-tool-session-query"></a>
 
 ## `@freddie/freddie-tool-session-query`
 
@@ -2844,9 +2848,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/session-query/tool-session-query/src/index.ts:29`](../packages/session-query/tool-session-query/src/index.js)
+Source: [`packages/session-query/tool-session-query/src/index.js`](../packages/session-query/tool-session-query/src/index.js)
 
-<a id="deepseek-aidsh-tool-skill"></a>
+<a id="freddie-tool-skill"></a>
 
 ## `@freddie/freddie-tool-skill`
 
@@ -2860,9 +2864,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/skill/tool-skill/src/index.ts:61`](../packages/skill/tool-skill/src/index.js)
+Source: [`packages/skill/tool-skill/src/index.js`](../packages/skill/tool-skill/src/index.js)
 
-<a id="deepseek-aidsh-tool-str-replace-editor"></a>
+<a id="freddie-tool-str-replace-editor"></a>
 
 ## `@freddie/freddie-tool-str-replace-editor`
 
@@ -2878,9 +2882,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/fs/tool-str-replace-editor/src/index.ts:497`](../packages/fs/tool-str-replace-editor/src/index.js)
+Source: [`packages/fs/tool-str-replace-editor/src/index.js`](../packages/fs/tool-str-replace-editor/src/index.js)
 
-<a id="deepseek-aidsh-tool-subagent"></a>
+<a id="freddie-tool-subagent"></a>
 
 ## `@freddie/freddie-tool-subagent`
 
@@ -2943,9 +2947,9 @@ export interface Config {
 
 Depends on: [`AgentOptions`](subsystems/core.md)
 
-Source: [`packages/subagent/tool-subagent/src/index.ts:29`](../packages/subagent/tool-subagent/src/index.js)
+Source: [`packages/subagent/tool-subagent/src/index.js`](../packages/subagent/tool-subagent/src/index.js)
 
-<a id="deepseek-aidsh-tool-subagent-report"></a>
+<a id="freddie-tool-subagent-report"></a>
 
 ## `@freddie/freddie-tool-subagent-report`
 
@@ -2965,9 +2969,9 @@ export interface Config {
 
 Depends on: [`SubagentReportDelivery`](subsystems/subagent.md)
 
-Source: [`packages/subagent/tool-subagent-report/src/index.ts:27`](../packages/subagent/tool-subagent-report/src/index.js)
+Source: [`packages/subagent/tool-subagent-report/src/index.js`](../packages/subagent/tool-subagent-report/src/index.js)
 
-<a id="deepseek-aidsh-tool-terminal"></a>
+<a id="freddie-tool-terminal"></a>
 
 ## `@freddie/freddie-tool-terminal`
 
@@ -2983,9 +2987,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/terminal/tool-terminal/src/index.ts:35`](../packages/terminal/tool-terminal/src/index.js)
+Source: [`packages/terminal/tool-terminal/src/index.js`](../packages/terminal/tool-terminal/src/index.js)
 
-<a id="deepseek-aidsh-tool-todo"></a>
+<a id="freddie-tool-todo"></a>
 
 ## `@freddie/freddie-tool-todo`
 
@@ -3005,9 +3009,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/todo/tool-todo/src/index.ts:29`](../packages/todo/tool-todo/src/index.js)
+Source: [`packages/todo/tool-todo/src/index.js`](../packages/todo/tool-todo/src/index.js)
 
-<a id="deepseek-aidsh-tool-web"></a>
+<a id="freddie-tool-web"></a>
 
 ## `@freddie/freddie-tool-web`
 
@@ -3033,9 +3037,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/web/tool-web/src/index.ts:37`](../packages/web/tool-web/src/index.js)
+Source: [`packages/web/tool-web/src/index.js`](../packages/web/tool-web/src/index.js)
 
-<a id="deepseek-aidsh-tool-workflow"></a>
+<a id="freddie-tool-workflow"></a>
 
 ## `@freddie/freddie-tool-workflow`
 
@@ -3051,9 +3055,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/workflow/tool-workflow/src/index.ts:33`](../packages/workflow/tool-workflow/src/index.js)
+Source: [`packages/workflow/tool-workflow/src/index.js`](../packages/workflow/tool-workflow/src/index.js)
 
-<a id="deepseek-aidsh-tools"></a>
+<a id="freddie-tools"></a>
 
 ## `@freddie/freddie-tools`
 
@@ -3087,9 +3091,9 @@ export interface Config {
 export type ToolPresentationMode = 'native' | 'code' | 'both'
 ```
 
-Source: [`packages/core/tools/src/index.ts:654`](../packages/core/tools/src/index.js)
+Source: [`packages/core/tools/src/index.js`](../packages/core/tools/src/index.js)
 
-<a id="deepseek-aidsh-typert-loader"></a>
+<a id="freddie-typert-loader"></a>
 
 ## `@freddie/freddie-typert-loader`
 
@@ -3103,9 +3107,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/typert/loader/src/index.ts:47`](../packages/typert/loader/src/index.js)
+Source: [`packages/typert/loader/src/index.js`](../packages/typert/loader/src/index.js)
 
-<a id="deepseek-aidsh-user-approval"></a>
+<a id="freddie-user-approval"></a>
 
 ## `@freddie/freddie-user-approval`
 
@@ -3134,9 +3138,9 @@ export interface Config {
 export type ApprovalPolicy = 'ask' | 'never'
 ```
 
-Source: [`packages/interaction/user-approval/src/index.ts:177`](../packages/interaction/user-approval/src/index.js)
+Source: [`packages/interaction/user-approval/src/index.js`](../packages/interaction/user-approval/src/index.js)
 
-<a id="deepseek-aidsh-web"></a>
+<a id="freddie-web"></a>
 
 ## `@freddie/freddie-web`
 
@@ -3155,9 +3159,9 @@ export interface WebRuntimeConfig {
 }
 ```
 
-Source: [`packages/web/web/src/index.ts:55`](../packages/web/web/src/index.js)
+Source: [`packages/web/web/src/index.js`](../packages/web/web/src/index.js)
 
-<a id="deepseek-aidsh-web-app"></a>
+<a id="freddie-web-app"></a>
 
 ## `@freddie/freddie-web-app`
 
@@ -3182,9 +3186,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/bundle/web-app/src/index.ts:42`](../packages/bundle/web-app/src/index.js)
+Source: [`packages/bundle/web-app/src/index.js`](../packages/bundle/web-app/src/index.js)
 
-<a id="deepseek-aidsh-web-fetch-http"></a>
+<a id="freddie-web-fetch-http"></a>
 
 ## `@freddie/freddie-web-fetch-http`
 
@@ -3208,9 +3212,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/web/web-fetch-http/src/index.ts:34`](../packages/web/web-fetch-http/src/index.js)
+Source: [`packages/web/web-fetch-http/src/index.js`](../packages/web/web-fetch-http/src/index.js)
 
-<a id="deepseek-aidsh-web-search-browser"></a>
+<a id="freddie-web-search-browser"></a>
 
 ## `@freddie/freddie-web-search-browser`
 
@@ -3226,7 +3230,7 @@ export interface WebSearchBrowserConfig {
 
 Source: [`packages/web/web-search-browser/src/index.js`](../packages/web/web-search-browser/src/index.js)
 
-<a id="deepseek-aidsh-web-search-deepseek"></a>
+<a id="freddie-web-search-deepseek"></a>
 
 ## `@freddie/freddie-web-search-deepseek`
 
@@ -3252,9 +3256,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/web/web-search-deepseek/src/index.ts:46`](../packages/web/web-search-deepseek/src/index.js)
+Source: [`packages/web/web-search-deepseek/src/index.js`](../packages/web/web-search-deepseek/src/index.js)
 
-<a id="deepseek-aidsh-web-search-exa"></a>
+<a id="freddie-web-search-exa"></a>
 
 ## `@freddie/freddie-web-search-exa`
 
@@ -3276,9 +3280,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/web/web-search-exa/src/index.ts:38`](../packages/web/web-search-exa/src/index.js)
+Source: [`packages/web/web-search-exa/src/index.js`](../packages/web/web-search-exa/src/index.js)
 
-<a id="deepseek-aidsh-web-search-perplexity"></a>
+<a id="freddie-web-search-perplexity"></a>
 
 ## `@freddie/freddie-web-search-perplexity`
 
@@ -3302,7 +3306,7 @@ export interface Config {
 
 Source: `packages/web/web-search-perplexity` (package scaffold only, no `src/` implementation present yet)
 
-<a id="deepseek-aidsh-webhook-github"></a>
+<a id="freddie-webhook-github"></a>
 
 ## `@freddie/freddie-webhook-github`
 
@@ -3326,7 +3330,7 @@ Every key is required: an unsigned or unbounded webhook endpoint is a refusal at
 
 Source: [`packages/webhook/webhook-github/src/index.js`](../packages/webhook/webhook-github/src/index.js)
 
-<a id="deepseek-aidsh-workflow-worker-thread"></a>
+<a id="freddie-workflow-worker-thread"></a>
 
 ## `@freddie/freddie-workflow-worker-thread`
 
@@ -3354,9 +3358,9 @@ export interface Config {
 }
 ```
 
-Source: [`packages/workflow/workflow-worker-thread/src/index.ts:32`](../packages/workflow/workflow-worker-thread/src/index.js)
+Source: [`packages/workflow/workflow-worker-thread/src/index.js`](../packages/workflow/workflow-worker-thread/src/index.js)
 
-<a id="deepseek-aidsh-workspace-changes"></a>
+<a id="freddie-workspace-changes"></a>
 
 ## `@freddie/freddie-workspace-changes`
 
@@ -3384,97 +3388,97 @@ Source: [`packages/deliverables/workspace-changes/src/index.js`](../packages/del
 
 These load from a `cordis.yml` entry with no `config:` block; they declare no configuration API.
 
-- `@freddie/freddie-agent` ([`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.js))
-- `@freddie/freddie-api-gateway` — requires `typert` ([`packages/api/gateway/src/index.ts`](../packages/api/gateway/src/index.js))
-- `@freddie/freddie-api-remotes` ([`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.js))
-- `@freddie/freddie-authorization` — requires `credentials` ([`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.js))
-- `@freddie/freddie-client-locale` ([`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.js))
-- `@freddie/freddie-client-modules` — requires `webServer` · `loader` ([`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.js))
-- `@freddie/freddie-client-runtime` ([`packages/client/runtime/src/index.ts`](../packages/client/runtime/src/index.js))
-- `@freddie/freddie-client-ui-agent-preset` ([`packages/client/ui-agent-preset/src/index.ts`](../packages/client/ui-agent-preset/src/index.js))
-- `@freddie/freddie-client-ui-attachment` ([`packages/client/ui-attachment/src/index.ts`](../packages/client/ui-attachment/src/index.js))
-- `@freddie/freddie-client-ui-brand-official` ([`packages/client/ui-brand-official/src/index.ts`](../packages/client/ui-brand-official/src/index.js))
-- `@freddie/freddie-client-ui-commands` ([`packages/client/ui-commands/src/index.ts`](../packages/client/ui-commands/src/index.js))
-- `@freddie/freddie-client-ui-conversation` ([`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.js))
-- `@freddie/freddie-client-ui-cordis` ([`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.js))
-- `@freddie/freddie-client-ui-deliverables` — requires `systemPrompt` ([`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.js))
-- `@freddie/freddie-client-ui-directory-picker-browse` ([`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.js))
-- `@freddie/freddie-client-ui-directory-picker-native` ([`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.js))
-- `@freddie/freddie-client-ui-goal` ([`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.js))
-- `@freddie/freddie-client-ui-input-trigger` ([`packages/client/ui-input-trigger/src/index.ts`](../packages/client/ui-input-trigger/src/index.js))
-- `@freddie/freddie-client-ui-jobs` ([`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.js))
+- `@freddie/freddie-agent` ([`packages/core/agent/src/index.js`](../packages/core/agent/src/index.js))
+- `@freddie/freddie-api-gateway` — requires `typert` ([`packages/api/gateway/src/index.js`](../packages/api/gateway/src/index.js))
+- `@freddie/freddie-api-remotes` ([`packages/api/remotes/src/index.js`](../packages/api/remotes/src/index.js))
+- `@freddie/freddie-authorization` — requires `credentials` ([`packages/credentials/authorization/src/index.js`](../packages/credentials/authorization/src/index.js))
+- `@freddie/freddie-client-locale` ([`packages/client/locale/src/index.js`](../packages/client/locale/src/index.js))
+- `@freddie/freddie-client-modules` — requires `webServer` · `loader` ([`packages/client/modules/src/index.js`](../packages/client/modules/src/index.js))
+- `@freddie/freddie-client-runtime` ([`packages/client/runtime/src/index.js`](../packages/client/runtime/src/index.js))
+- `@freddie/freddie-client-ui-agent-preset` ([`packages/client/ui-agent-preset/src/index.js`](../packages/client/ui-agent-preset/src/index.js))
+- `@freddie/freddie-client-ui-attachment` ([`packages/client/ui-attachment/src/index.js`](../packages/client/ui-attachment/src/index.js))
+- `@freddie/freddie-client-ui-brand-official` ([`packages/client/ui-brand-official/src/index.js`](../packages/client/ui-brand-official/src/index.js))
+- `@freddie/freddie-client-ui-commands` ([`packages/client/ui-commands/src/index.js`](../packages/client/ui-commands/src/index.js))
+- `@freddie/freddie-client-ui-conversation` ([`packages/client/ui-conversation/src/index.js`](../packages/client/ui-conversation/src/index.js))
+- `@freddie/freddie-client-ui-cordis` ([`packages/extensions/ui-cordis/src/index.js`](../packages/extensions/ui-cordis/src/index.js))
+- `@freddie/freddie-client-ui-deliverables` — requires `systemPrompt` ([`packages/client/ui-deliverables/src/index.js`](../packages/client/ui-deliverables/src/index.js))
+- `@freddie/freddie-client-ui-directory-picker-browse` ([`packages/client/ui-directory-picker-browse/src/index.js`](../packages/client/ui-directory-picker-browse/src/index.js))
+- `@freddie/freddie-client-ui-directory-picker-native` ([`packages/client/ui-directory-picker-native/src/index.js`](../packages/client/ui-directory-picker-native/src/index.js))
+- `@freddie/freddie-client-ui-goal` ([`packages/client/ui-goal/src/index.js`](../packages/client/ui-goal/src/index.js))
+- `@freddie/freddie-client-ui-input-trigger` ([`packages/client/ui-input-trigger/src/index.js`](../packages/client/ui-input-trigger/src/index.js))
+- `@freddie/freddie-client-ui-jobs` ([`packages/client/ui-jobs/src/index.js`](../packages/client/ui-jobs/src/index.js))
 - `@freddie/freddie-client-ui-layout` ([`packages/client/ui-layout/src/index.js`](../packages/client/ui-layout/src/index.js))
-- `@freddie/freddie-client-ui-message-feedback` ([`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.js))
-- `@freddie/freddie-client-ui-model-selection` ([`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.js))
-- `@freddie/freddie-client-ui-permission-presets` ([`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.js))
-- `@freddie/freddie-client-ui-plan` ([`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.js))
-- `@freddie/freddie-client-ui-reference` ([`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.js))
-- `@freddie/freddie-client-ui-renderer` ([`packages/client/ui-renderer/src/index.ts`](../packages/client/ui-renderer/src/index.js))
-- `@freddie/freddie-client-ui-settings` ([`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.js))
-- `@freddie/freddie-client-ui-settings-general` ([`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.js))
-- `@freddie/freddie-client-ui-settings-models` ([`packages/client/ui-settings-models/src/index.ts`](../packages/client/ui-settings-models/src/index.js))
-- `@freddie/freddie-client-ui-settings-plugin-inventory` ([`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.js))
-- `@freddie/freddie-client-ui-settings-plugins` ([`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.js))
-- `@freddie/freddie-client-ui-sidebar` ([`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.js))
-- `@freddie/freddie-client-ui-skill` ([`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.js))
-- `@freddie/freddie-client-ui-subagent` ([`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.js))
-- `@freddie/freddie-client-ui-theme` ([`packages/client/ui-theme/src/index.ts`](../packages/client/ui-theme/src/index.js))
-- `@freddie/freddie-client-ui-tool` ([`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.js))
-- `@freddie/freddie-client-ui-trajectory` ([`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.js))
-- `@freddie/freddie-client-ui-user-questions` ([`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.js))
-- `@freddie/freddie-client-ui-workflow-run` ([`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.js))
-- `@freddie/freddie-client-ui-workspace` ([`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.js))
-- `@freddie/freddie-command-compact` — requires `commands` · `compaction` ([`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.js))
-- `@freddie/freddie-command-feedback` — requires `commands` ([`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.js))
-- `@freddie/freddie-command-goal` — requires `commands` · `goals` ([`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.js))
-- `@freddie/freddie-commands` ([`packages/interaction/commands/src/index.ts`](../packages/interaction/commands/src/index.js))
-- `@freddie/freddie-cordis-client-runner` ([`packages/extensions/cordis-client-runner/src/index.ts`](../packages/extensions/cordis-client-runner/src/index.js))
-- `@freddie/freddie-fs-e2b` — requires `e2b` ([`packages/e2b/fs-e2b/src/index.ts`](../packages/e2b/fs-e2b/src/index.js))
-- `@freddie/freddie-fs-observation-policy` ([`packages/fs/fs-observation-policy/src/index.ts`](../packages/fs/fs-observation-policy/src/index.js))
+- `@freddie/freddie-client-ui-message-feedback` ([`packages/client/ui-message-feedback/src/index.js`](../packages/client/ui-message-feedback/src/index.js))
+- `@freddie/freddie-client-ui-model-selection` ([`packages/client/ui-model-selection/src/index.js`](../packages/client/ui-model-selection/src/index.js))
+- `@freddie/freddie-client-ui-permission-presets` ([`packages/client/ui-permission-presets/src/index.js`](../packages/client/ui-permission-presets/src/index.js))
+- `@freddie/freddie-client-ui-plan` ([`packages/client/ui-plan/src/index.js`](../packages/client/ui-plan/src/index.js))
+- `@freddie/freddie-client-ui-reference` ([`packages/client/ui-reference/src/index.js`](../packages/client/ui-reference/src/index.js))
+- `@freddie/freddie-client-ui-renderer` ([`packages/client/ui-renderer/src/index.js`](../packages/client/ui-renderer/src/index.js))
+- `@freddie/freddie-client-ui-settings` ([`packages/client/ui-settings/src/index.js`](../packages/client/ui-settings/src/index.js))
+- `@freddie/freddie-client-ui-settings-general` ([`packages/client/ui-settings-general/src/index.js`](../packages/client/ui-settings-general/src/index.js))
+- `@freddie/freddie-client-ui-settings-models` ([`packages/client/ui-settings-models/src/index.js`](../packages/client/ui-settings-models/src/index.js))
+- `@freddie/freddie-client-ui-settings-plugin-inventory` ([`packages/client/ui-settings-plugin-inventory/src/index.js`](../packages/client/ui-settings-plugin-inventory/src/index.js))
+- `@freddie/freddie-client-ui-settings-plugins` ([`packages/client/ui-settings-plugins/src/index.js`](../packages/client/ui-settings-plugins/src/index.js))
+- `@freddie/freddie-client-ui-sidebar` ([`packages/client/ui-sidebar/src/index.js`](../packages/client/ui-sidebar/src/index.js))
+- `@freddie/freddie-client-ui-skill` ([`packages/client/ui-skill/src/index.js`](../packages/client/ui-skill/src/index.js))
+- `@freddie/freddie-client-ui-subagent` ([`packages/client/ui-subagent/src/index.js`](../packages/client/ui-subagent/src/index.js))
+- `@freddie/freddie-client-ui-theme` ([`packages/client/ui-theme/src/index.js`](../packages/client/ui-theme/src/index.js))
+- `@freddie/freddie-client-ui-tool` ([`packages/client/ui-tool/src/index.js`](../packages/client/ui-tool/src/index.js))
+- `@freddie/freddie-client-ui-trajectory` ([`packages/client/ui-trajectory/src/index.js`](../packages/client/ui-trajectory/src/index.js))
+- `@freddie/freddie-client-ui-user-questions` ([`packages/client/ui-user-questions/src/index.js`](../packages/client/ui-user-questions/src/index.js))
+- `@freddie/freddie-client-ui-workflow-run` ([`packages/client/ui-workflow-run/src/index.js`](../packages/client/ui-workflow-run/src/index.js))
+- `@freddie/freddie-client-ui-workspace` ([`packages/client/ui-workspace/src/index.js`](../packages/client/ui-workspace/src/index.js))
+- `@freddie/freddie-command-compact` — requires `commands` · `compaction` ([`packages/compaction/command-compact/src/index.js`](../packages/compaction/command-compact/src/index.js))
+- `@freddie/freddie-command-feedback` — requires `commands` ([`packages/feedback/command-feedback/src/index.js`](../packages/feedback/command-feedback/src/index.js))
+- `@freddie/freddie-command-goal` — requires `commands` · `goals` ([`packages/goal/command-goal/src/index.js`](../packages/goal/command-goal/src/index.js))
+- `@freddie/freddie-commands` ([`packages/interaction/commands/src/index.js`](../packages/interaction/commands/src/index.js))
+- `@freddie/freddie-cordis-client-runner` ([`packages/extensions/cordis-client-runner/src/index.js`](../packages/extensions/cordis-client-runner/src/index.js))
+- `@freddie/freddie-fs-e2b` — requires `e2b` ([`packages/e2b/fs-e2b/src/index.js`](../packages/e2b/fs-e2b/src/index.js))
+- `@freddie/freddie-fs-observation-policy` ([`packages/fs/fs-observation-policy/src/index.js`](../packages/fs/fs-observation-policy/src/index.js))
 - `@freddie/freddie-goal-round-driver` — requires `agents` · `goals` · `sessions` ([`packages/goal/goal-round-driver/src/index.js`](../packages/goal/goal-round-driver/src/index.js))
-- `@freddie/freddie-host-directory-picker-auto` — requires `webServer` · `loader` ([`packages/host/directory-picker-auto/src/index.ts`](../packages/host/directory-picker-auto/src/index.js))
-- `@freddie/freddie-host-directory-picker-native` ([`packages/host/directory-picker-native/src/index.ts`](../packages/host/directory-picker-native/src/index.js))
-- `@freddie/freddie-host-plugin-inventory` — requires `loader` ([`packages/host/plugin-inventory/src/index.ts`](../packages/host/plugin-inventory/src/index.js))
-- `@freddie/freddie-llm` ([`packages/llm/llm/src/index.ts`](../packages/llm/llm/src/index.js))
-- `@freddie/freddie-lsp` ([`packages/lsp/lsp/src/index.ts`](../packages/lsp/lsp/src/index.js))
-- `@freddie/freddie-schedule` — requires `agents` · `sessions` · `tools` · `sessionPersistence` ([`packages/schedule/schedule/src/index.ts`](../packages/schedule/schedule/src/index.js))
-- `@freddie/freddie-session` ([`packages/core/session/src/index.ts`](../packages/core/session/src/index.js))
-- `@freddie/freddie-session-checkpoint-policy` — requires `llm` · `sessionPersistence` · `sessions` · `tools` ([`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.js))
-- `@freddie/freddie-session-log-export` — requires `commands` ([`packages/session-query/session-log-export/src/index.ts`](../packages/session-query/session-log-export/src/index.js))
-- `@freddie/freddie-session-projection` ([`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.js))
-- `@freddie/freddie-session-stats` — requires `sessionProjections` ([`packages/session/session-stats/src/index.ts`](../packages/session/session-stats/src/index.js))
-- `@freddie/freddie-skill-badge` — requires `skills` ([`packages/skill/skill-badge/src/index.ts`](../packages/skill/skill-badge/src/index.js))
-- `@freddie/freddie-storage` ([`packages/storage/storage/src/index.ts`](../packages/storage/storage/src/index.js))
-- `@freddie/freddie-subagent` ([`packages/subagent/subagent/src/index.ts`](../packages/subagent/subagent/src/index.js))
-- `@freddie/freddie-subprocess-local` ([`packages/subprocess/subprocess-local/src/index.ts`](../packages/subprocess/subprocess-local/src/index.js))
-- `@freddie/freddie-terminal` ([`packages/terminal/terminal/src/index.ts`](../packages/terminal/terminal/src/index.js))
-- `@freddie/freddie-tool-ask-user` — requires `tools` · `userQuestions` ([`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.js))
-- `@freddie/freddie-tool-call-timeout-policy` — requires `tools` ([`packages/guard/timeout-policy/src/index.ts`](../packages/guard/timeout-policy/src/index.js))
-- `@freddie/freddie-tool-cordis` — requires `tools` · `systemPrompt` · `dynamicCordisRunner` · `cordisInspect` ([`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.js))
-- `@freddie/freddie-tool-subagent-control` — requires `tools` · `subagents` ([`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.js))
-- `@freddie/freddie-user-questions` ([`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.js))
-- `@freddie/freddie-workspace` — requires `storageDomain` · `sessionPersistence` ([`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.js))
+- `@freddie/freddie-host-directory-picker-auto` — requires `webServer` · `loader` ([`packages/host/directory-picker-auto/src/index.js`](../packages/host/directory-picker-auto/src/index.js))
+- `@freddie/freddie-host-directory-picker-native` ([`packages/host/directory-picker-native/src/index.js`](../packages/host/directory-picker-native/src/index.js))
+- `@freddie/freddie-host-plugin-inventory` — requires `loader` ([`packages/host/plugin-inventory/src/index.js`](../packages/host/plugin-inventory/src/index.js))
+- `@freddie/freddie-llm` ([`packages/llm/llm/src/index.js`](../packages/llm/llm/src/index.js))
+- `@freddie/freddie-lsp` ([`packages/lsp/lsp/src/index.js`](../packages/lsp/lsp/src/index.js))
+- `@freddie/freddie-schedule` — requires `agents` · `sessions` · `tools` · `sessionPersistence` ([`packages/schedule/schedule/src/index.js`](../packages/schedule/schedule/src/index.js))
+- `@freddie/freddie-session` ([`packages/core/session/src/index.js`](../packages/core/session/src/index.js))
+- `@freddie/freddie-session-checkpoint-policy` — requires `llm` · `sessionPersistence` · `sessions` · `tools` ([`packages/session/session-checkpoint-policy/src/index.js`](../packages/session/session-checkpoint-policy/src/index.js))
+- `@freddie/freddie-session-log-export` — requires `commands` ([`packages/session-query/session-log-export/src/index.js`](../packages/session-query/session-log-export/src/index.js))
+- `@freddie/freddie-session-projection` ([`packages/session/session-projection/src/index.js`](../packages/session/session-projection/src/index.js))
+- `@freddie/freddie-session-stats` — requires `sessionProjections` ([`packages/session/session-stats/src/index.js`](../packages/session/session-stats/src/index.js))
+- `@freddie/freddie-skill-badge` — requires `skills` ([`packages/skill/skill-badge/src/index.js`](../packages/skill/skill-badge/src/index.js))
+- `@freddie/freddie-storage` ([`packages/storage/storage/src/index.js`](../packages/storage/storage/src/index.js))
+- `@freddie/freddie-subagent` ([`packages/subagent/subagent/src/index.js`](../packages/subagent/subagent/src/index.js))
+- `@freddie/freddie-subprocess-local` ([`packages/subprocess/subprocess-local/src/index.js`](../packages/subprocess/subprocess-local/src/index.js))
+- `@freddie/freddie-terminal` ([`packages/terminal/terminal/src/index.js`](../packages/terminal/terminal/src/index.js))
+- `@freddie/freddie-tool-ask-user` — requires `tools` · `userQuestions` ([`packages/interaction/tool-ask-user/src/index.js`](../packages/interaction/tool-ask-user/src/index.js))
+- `@freddie/freddie-tool-call-timeout-policy` — requires `tools` ([`packages/guard/timeout-policy/src/index.js`](../packages/guard/timeout-policy/src/index.js))
+- `@freddie/freddie-tool-cordis` — requires `tools` · `systemPrompt` · `dynamicCordisRunner` · `cordisInspect` ([`packages/extensions/tool-cordis/src/index.js`](../packages/extensions/tool-cordis/src/index.js))
+- `@freddie/freddie-tool-subagent-control` — requires `tools` · `subagents` ([`packages/subagent/tool-subagent-control/src/index.js`](../packages/subagent/tool-subagent-control/src/index.js))
+- `@freddie/freddie-user-questions` ([`packages/interaction/user-questions/src/index.js`](../packages/interaction/user-questions/src/index.js))
+- `@freddie/freddie-workspace` — requires `storageDomain` · `sessionPersistence` ([`packages/workspace/workspace/src/index.js`](../packages/workspace/workspace/src/index.js))
 
 ## Seam packages (not directly loadable)
 
 Abstract service classes — a deployment loads a concrete implementation package instead ([capability seams](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md)).
 
-- `@freddie/freddie-attachment` — abstract `AttachmentStore` ([`packages/attachment/attachment/src/index.ts`](../packages/attachment/attachment/src/index.js))
-- `@freddie/freddie-code-runtime` — abstract `CodeRuntime` ([`packages/code-runtime/code-runtime/src/index.ts`](../packages/code-runtime/code-runtime/src/index.js))
-- `@freddie/freddie-compaction` — abstract `CompactionEngine` ([`packages/compaction/compaction/src/index.ts`](../packages/compaction/compaction/src/index.js))
-- `@freddie/freddie-credentials` — abstract `CredentialProvider` ([`packages/credentials/credentials/src/index.ts`](../packages/credentials/credentials/src/index.js))
-- `@freddie/freddie-file-reference` — abstract `FileReferenceService` ([`packages/context/file-reference/src/index.ts`](../packages/context/file-reference/src/index.js))
-- `@freddie/freddie-fs` — abstract `FileSystem` ([`packages/fs/fs/src/index.ts`](../packages/fs/fs/src/index.js))
-- `@freddie/freddie-host-directory-picker` — abstract `DirectoryPicker` ([`packages/host/directory-picker/src/index.ts`](../packages/host/directory-picker/src/index.js))
-- `@freddie/freddie-jobs` — abstract `JobRegistry` ([`packages/jobs/jobs/src/index.ts`](../packages/jobs/jobs/src/index.js))
-- `@freddie/freddie-sandbox` — abstract `SandboxProvider` ([`packages/sandbox/sandbox/src/index.ts`](../packages/sandbox/sandbox/src/index.js))
-- `@freddie/freddie-session-persistence` — abstract `SessionPersistence` ([`packages/session/session-persistence/src/index.ts`](../packages/session/session-persistence/src/index.js))
-- `@freddie/freddie-session-query` — abstract `SessionQueryEngine` ([`packages/session-query/session-query/src/index.ts`](../packages/session-query/session-query/src/index.js))
-- `@freddie/freddie-settings` — abstract `SettingsProvider` ([`packages/settings/settings/src/index.ts`](../packages/settings/settings/src/index.js))
-- `@freddie/freddie-shell` — abstract `ShellExecutor` ([`packages/shell/shell/src/index.ts`](../packages/shell/shell/src/index.js))
-- `@freddie/freddie-spill` — abstract `SpillStore` ([`packages/spill/spill/src/index.ts`](../packages/spill/spill/src/index.js))
-- `@freddie/freddie-subprocess` — abstract `SubprocessRuntime` ([`packages/subprocess/subprocess/src/index.ts`](../packages/subprocess/subprocess/src/index.js))
-- `@freddie/freddie-workflow` — abstract `WorkflowEngine` ([`packages/workflow/workflow/src/index.ts`](../packages/workflow/workflow/src/index.js))
+- `@freddie/freddie-attachment` — abstract `AttachmentStore` ([`packages/attachment/attachment/src/index.js`](../packages/attachment/attachment/src/index.js))
+- `@freddie/freddie-code-runtime` — abstract `CodeRuntime` ([`packages/code-runtime/code-runtime/src/index.js`](../packages/code-runtime/code-runtime/src/index.js))
+- `@freddie/freddie-compaction` — abstract `CompactionEngine` ([`packages/compaction/compaction/src/index.js`](../packages/compaction/compaction/src/index.js))
+- `@freddie/freddie-credentials` — abstract `CredentialProvider` ([`packages/credentials/credentials/src/index.js`](../packages/credentials/credentials/src/index.js))
+- `@freddie/freddie-file-reference` — abstract `FileReferenceService` ([`packages/context/file-reference/src/index.js`](../packages/context/file-reference/src/index.js))
+- `@freddie/freddie-fs` — abstract `FileSystem` ([`packages/fs/fs/src/index.js`](../packages/fs/fs/src/index.js))
+- `@freddie/freddie-host-directory-picker` — abstract `DirectoryPicker` ([`packages/host/directory-picker/src/index.js`](../packages/host/directory-picker/src/index.js))
+- `@freddie/freddie-jobs` — abstract `JobRegistry` ([`packages/jobs/jobs/src/index.js`](../packages/jobs/jobs/src/index.js))
+- `@freddie/freddie-sandbox` — abstract `SandboxProvider` ([`packages/sandbox/sandbox/src/index.js`](../packages/sandbox/sandbox/src/index.js))
+- `@freddie/freddie-session-persistence` — abstract `SessionPersistence` ([`packages/session/session-persistence/src/index.js`](../packages/session/session-persistence/src/index.js))
+- `@freddie/freddie-session-query` — abstract `SessionQueryEngine` ([`packages/session-query/session-query/src/index.js`](../packages/session-query/session-query/src/index.js))
+- `@freddie/freddie-settings` — abstract `SettingsProvider` ([`packages/settings/settings/src/index.js`](../packages/settings/settings/src/index.js))
+- `@freddie/freddie-shell` — abstract `ShellExecutor` ([`packages/shell/shell/src/index.js`](../packages/shell/shell/src/index.js))
+- `@freddie/freddie-spill` — abstract `SpillStore` ([`packages/spill/spill/src/index.js`](../packages/spill/spill/src/index.js))
+- `@freddie/freddie-subprocess` — abstract `SubprocessRuntime` ([`packages/subprocess/subprocess/src/index.js`](../packages/subprocess/subprocess/src/index.js))
+- `@freddie/freddie-workflow` — abstract `WorkflowEngine` ([`packages/workflow/workflow/src/index.js`](../packages/workflow/workflow/src/index.js))
 
 ## Library packages (no plugin entry)
 
@@ -3482,33 +3486,33 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
 
 - `@freddie/freddie-acp-snapshot` (`packages/test-support/acp-snapshot` (package scaffold only, not yet built))
 - `@freddie/freddie-agent-loop-testkit` (`packages/test-support/agent-loop-testkit` (package scaffold only, not yet built))
-- `@freddie/freddie-anonymous-user-id` ([`packages/identity/anonymous-user-id/src/index.ts`](../packages/identity/anonymous-user-id/src/index.js))
-- `@freddie/freddie-app-boot` ([`packages/boot/app-boot/src/index.ts`](../packages/boot/app-boot/src/index.js))
-- `@freddie/freddie-atomic-write` ([`packages/util/atomic-write/src/index.ts`](../packages/util/atomic-write/src/index.js))
-- `@freddie/freddie-base` ([`packages/bundle/base/src/index.ts`](../packages/bundle/base/src/index.js))
-- `@freddie/freddie-brand` ([`packages/util/brand/src/index.ts`](../packages/util/brand/src/index.js))
+- `@freddie/freddie-anonymous-user-id` ([`packages/identity/anonymous-user-id/src/index.js`](../packages/identity/anonymous-user-id/src/index.js))
+- `@freddie/freddie-app-boot` ([`packages/boot/app-boot/src/index.js`](../packages/boot/app-boot/src/index.js))
+- `@freddie/freddie-atomic-write` ([`packages/util/atomic-write/src/index.js`](../packages/util/atomic-write/src/index.js))
+- `@freddie/freddie-base` ([`packages/bundle/base/src/index.js`](../packages/bundle/base/src/index.js))
+- `@freddie/freddie-brand` ([`packages/util/brand/src/index.js`](../packages/util/brand/src/index.js))
 - `@freddie/freddie-client-test-runtime` (`packages/test-support/client-runtime` (package scaffold only, not yet built))
-- `@freddie/freddie-client-ui-primitives` ([`packages/client/ui-primitives/src/index.ts`](../packages/client/ui-primitives/src/index.js))
-- `@freddie/freddie-client-ui-slots` ([`packages/client/ui-slots/src/index.ts`](../packages/client/ui-slots/src/index.js))
-- `@freddie/freddie-client-web` ([`packages/client/web/src/index.ts`](../packages/client/web/src/index.js))
-- `@freddie/freddie-cmdline` ([`packages/boot/cmdline/src/index.ts`](../packages/boot/cmdline/src/index.js))
+- `@freddie/freddie-client-ui-primitives` ([`packages/client/ui-primitives/src/index.js`](../packages/client/ui-primitives/src/index.js))
+- `@freddie/freddie-client-ui-slots` ([`packages/client/ui-slots/src/index.js`](../packages/client/ui-slots/src/index.js))
+- `@freddie/freddie-client-web` ([`packages/client/web/src/index.js`](../packages/client/web/src/index.js))
+- `@freddie/freddie-cmdline` ([`packages/boot/cmdline/src/index.js`](../packages/boot/cmdline/src/index.js))
 - `@freddie/freddie-code-runtime-python` (`packages/code-runtime/code-runtime-python` (package scaffold only, not yet built))
-- `@freddie/freddie-home-paths` ([`packages/util/home-paths/src/index.ts`](../packages/util/home-paths/src/index.js))
-- `@freddie/freddie-hook-protocol` ([`packages/hooks/hook-protocol/src/index.ts`](../packages/hooks/hook-protocol/src/index.js))
-- `@freddie/freddie-launch-environment` ([`packages/util/launch-environment/src/index.ts`](../packages/util/launch-environment/src/index.js))
+- `@freddie/freddie-home-paths` ([`packages/util/home-paths/src/index.js`](../packages/util/home-paths/src/index.js))
+- `@freddie/freddie-hook-protocol` ([`packages/hooks/hook-protocol/src/index.js`](../packages/hooks/hook-protocol/src/index.js))
+- `@freddie/freddie-launch-environment` ([`packages/util/launch-environment/src/index.js`](../packages/util/launch-environment/src/index.js))
 - `@freddie/freddie-llm-mock-server` (`packages/test-support/llm-mock-server` (package scaffold only, not yet built))
 - `@freddie/freddie-loader-smoke` (`packages/test-support/loader-smoke` (package scaffold only, not yet built))
 - `@freddie/freddie-native-command` ([`packages/util/native-command/src/index.js`](../packages/util/native-command/src/index.js))
-- `@freddie/freddie-output-retention` ([`packages/util/output-retention/src/index.ts`](../packages/util/output-retention/src/index.js))
-- `@freddie/freddie-sandbox-windows-acl` ([`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.js))
-- `@freddie/freddie-scope` ([`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.js))
-- `@freddie/freddie-sdk-client` ([`packages/sdk/client/src/index.ts`](../packages/sdk/client/src/index.js))
+- `@freddie/freddie-output-retention` ([`packages/util/output-retention/src/index.js`](../packages/util/output-retention/src/index.js))
+- `@freddie/freddie-sandbox-windows-acl` ([`packages/sandbox/sandbox-windows-acl/src/index.js`](../packages/sandbox/sandbox-windows-acl/src/index.js))
+- `@freddie/freddie-scope` ([`packages/core/scope/src/index.js`](../packages/core/scope/src/index.js))
+- `@freddie/freddie-sdk-client` ([`packages/sdk/client/src/index.js`](../packages/sdk/client/src/index.js))
 - `@freddie/freddie-sdk-jsonrpc-demo` (`packages/examples/jsonrpc-demo` (package scaffold only, not yet built))
-- `@freddie/freddie-sdk-protocol` ([`packages/sdk/protocol/src/index.ts`](../packages/sdk/protocol/src/index.js))
-- `@freddie/freddie-session-telemetry` ([`packages/session/session-telemetry/src/index.ts`](../packages/session/session-telemetry/src/index.js))
-- `@freddie/freddie-session-title-llm` ([`packages/session/session-title-llm/src/index.ts`](../packages/session/session-title-llm/src/index.js))
-- `@freddie/freddie-subagent-in-process-driver` ([`packages/subagent/subagent-in-process-driver/src/index.ts`](../packages/subagent/subagent-in-process-driver/src/index.js))
-- `@freddie/freddie-timeout` ([`packages/util/timeout/src/index.ts`](../packages/util/timeout/src/index.js))
+- `@freddie/freddie-sdk-protocol` ([`packages/sdk/protocol/src/index.js`](../packages/sdk/protocol/src/index.js))
+- `@freddie/freddie-session-telemetry` ([`packages/session/session-telemetry/src/index.js`](../packages/session/session-telemetry/src/index.js))
+- `@freddie/freddie-session-title-llm` ([`packages/session/session-title-llm/src/index.js`](../packages/session/session-title-llm/src/index.js))
+- `@freddie/freddie-subagent-in-process-driver` ([`packages/subagent/subagent-in-process-driver/src/index.js`](../packages/subagent/subagent-in-process-driver/src/index.js))
+- `@freddie/freddie-timeout` ([`packages/util/timeout/src/index.js`](../packages/util/timeout/src/index.js))
 - `@freddie/freddie-typert-generator` (`packages/typert/generator` (package scaffold only, not yet built))
-- `@freddie/freddie-typert-protocol` ([`packages/typert/protocol/src/index.ts`](../packages/typert/protocol/src/index.js))
-- `@freddie/freddie-typert-registry` ([`packages/typert/registry/src/index.ts`](../packages/typert/registry/src/index.js))
+- `@freddie/freddie-typert-protocol` ([`packages/typert/protocol/src/index.js`](../packages/typert/protocol/src/index.js))
+- `@freddie/freddie-typert-registry` ([`packages/typert/registry/src/index.js`](../packages/typert/registry/src/index.js))

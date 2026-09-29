@@ -19,7 +19,7 @@ The composition rows, which fold the surface, dropped by 93%. The ring — the p
 
 `contextPressure` publishes a second numerator, `projectedTokens`: the provider sample plus the heuristic repricing of everything the surface gained or lost since that sample was taken, clamped at zero. The fold carries the priced surface through the shared `surface-fold.ts` and stamps `sampledSurfaceTokens` when a usage sample lands — **before** the same event joins the surface, so an `assistant/message` anchors against the surface its own request actually carried. `stateVersion` moves to 3.
 
-Only the delta is estimated. The anchor stays provider-exact, which keeps the estimator's systematic CJK and JSON-schema underpricing out of the occupancy figure while still letting the number react the moment content lands or a span is shadowed. `contextOccupancy` reads `projectedTokens` and falls back to the bare sample, so a projection restored from a pre-field checkpoint degrades to the old behavior instead of vanishing.
+Only the delta is estimated. The anchor stays provider-exact, which keeps the estimator's systematic non-Latin-text and JSON-schema underpricing out of the occupancy figure while still letting the number react the moment content lands or a span is shadowed. `contextOccupancy` reads `projectedTokens` and falls back to the bare sample, so a projection restored from a pre-field checkpoint degrades to the old behavior instead of vanishing.
 
 This reverses the "the ring, header, and bar length stay provider-exact" half of the [context meter decision](../feature/2026-08-05-composer-context-meter-breakdown.md). What that decision was protecting — not fabricating precision by scaling heuristic rows to a provider total — is preserved: the rows are still unscaled, and the header still does not equal their sum. What changed is the recognition that "provider-exact but describing a request two compactions ago" is not the more truthful figure.
 
@@ -35,7 +35,7 @@ This reverses the "the ring, header, and bar length stay provider-exact" half of
 
 Occupancy now advances with every surface event rather than once per turn, so the ring creeps up as a turn produces tool results instead of jumping at its end — and drops the instant a compaction lands. That is more projection frames on the wire: one per surface event for `contextPressure`, the rate `contextBreakdown` already ran at.
 
-The panel's composition rows still do not sum to the header, and now for one clearly-stated reason instead of two: the rows carry the estimator's error, the header's anchor does not. The remaining lever is estimator accuracy (CJK-aware weighting in `estimate.ts`), which changes no seam.
+The panel's composition rows still do not sum to the header, and now for one clearly-stated reason instead of two: the rows carry the estimator's error, the header's anchor does not. The remaining lever is estimator accuracy (script-aware weighting in `estimate.ts`), which changes no seam.
 
 `sampledSurfaceTokens` assumes nothing joins the surface between a step's request and its usage report. The loop admits steering and context before `buildRequest` and drains tool results after `assistant/message`, so that holds; if it ever stops holding, the error is bounded by one message and self-corrects at the next sample.
 

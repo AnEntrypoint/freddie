@@ -7,4 +7,5 @@
  * goal.get and no wire goal view — responses acknowledge with the new CAS
  * ref and never feed client state (the committed goal/change event reaches
  * every client through the mux stream carrying the same whole value).
+ * @module @freddie/freddie-host-apiproxy/api/goals
  */

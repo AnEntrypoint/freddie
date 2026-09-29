@@ -90,13 +90,8 @@ function registryState(name, version) {
  * @param version - package version the tarball declares.
  */
 async function publishTarball(tarball, name, version) {
-  // A prerelease version never takes the latest dist-tag.
   const tagArgs = version.includes('-') ? ['--tag', 'next'] : []
   for (let tries = 1; tries <= PUBLISH_ATTEMPTS; tries += 1) {
-    // No --access: the sequences do not share one access level, so a
-    // command-line flag could not serve both and would override the manifest
-    // that does. Each packed manifest decides, and
-    // check-workspace-constraints holds every manifest to its sequence's level.
     const result = attemptEchoed('npm', ['publish', tarball, ...tagArgs])
     const output = `${result.stdout}${result.stderr}`
     if (result.status === 0) return
@@ -131,9 +126,6 @@ async function main() {
   const family = releaseFamily(values.family)
   const directory = resolve(process.cwd(), values.from)
 
-  // Every entry in the order settles as either published or already present, so
-  // one counter answers "how far along is this run" for whoever is watching a
-  // release that takes minutes per family.
   const order = readPublishOrder(directory)
   const total = String(order.length)
   let published = 0
@@ -156,8 +148,6 @@ async function main() {
       skipped += 1
       continue
     }
-    // Space out the writes: the gap belongs between publishes, so a run that
-    // only skips does not wait at all.
     if (published > 0) await sleep(PUBLISH_SPACING_MS)
     await publishTarball(tarball, name, version)
     console.log(`release publish: ${progress} ${name}@${version} published`)

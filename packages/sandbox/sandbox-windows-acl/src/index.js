@@ -11,7 +11,7 @@
  * and LOCAL are absent from both lists — see the seam's dual-list contract
  * in `packages/sandbox/sandbox-local` and the package README's Modes section
  * for the complete boundary). The write SID is the per-WORKSPACE identity
- * ({@link workspaceWriteSid}): deterministic from the canonical workspace
+ * ({@link import('./workspace-sid.js').workspaceWriteSid}): deterministic from the canonical workspace
  * path, so the workspace-root ACE materializes once per workspace per
  * machine and every later provision hits the exact-ACE skip — the
  * grant-reuse story the per-session random SID paid a full tree propagation
@@ -175,22 +175,12 @@ export class AclSandbox {
       }
       this.tempDirResolved = tempDir
 
-      // manageDacls: false — the caller (the sandbox seam's grant) already
-      // materialized the ACEs; this instance must neither add nor remove any.
-      // When this instance owns the DACLs, writableDir ACEs are STANDING (the
-      // per-workspace reuse cache — dispose() never revokes them, or the next
-      // provision would re-propagate the whole tree) and the temp ACE is
-      // REVOCABLE (dispose() removes it before the private directory is
-      // deleted; the ambient temp root is never granted).
       if (this.manageDacls) {
         if (this.writeSidPtr !== undefined) {
           for (const path of this.writableDirs) {
             grantWrite(api, path, this.writeSidPtr)
           }
           if (tempDir !== null && this.tempWriteSidPtr !== undefined) {
-            // Record BEFORE granting: grantWrite can throw after a successful
-            // apply (a LocalFree failure), and the fail-closed catch must still
-            // revoke that path (revoking an ungranted path is a no-op merge).
             this.grantedPaths.push({ path: tempDir, sidPtr: this.tempWriteSidPtr })
             grantWrite(api, tempDir, this.tempWriteSidPtr)
           }
@@ -207,27 +197,11 @@ export class AclSandbox {
         this.mode,
       )
       this.token = restrictedToken
-      // The restricted token's default DACL still names only the user's
-      // ambient SIDs — none of the restricting SIDs. Every NEW object the
-      // confined process creates (anonymous stdio pipes, sync objects) takes
-      // its DACL from that default, so the write pass-2 check would deny
-      // pipe creation (ERROR_ACCESS_DENIED; Node EPERM) and break every
-      // piped-stdio grandchild spawn. Merge a full-access ACE for a
-      // restricting SID (the PRIVATE temp SID when present, otherwise the
-      // workspace SID, or Everyone under read-only): new-object creation
-      // stays gated by the parent object's DACL, while the new object's own
-      // DACL passes pass-2. Choosing the temp SID prevents default-DACL
-      // objects in one session's temp tree from acquiring the shared
-      // workspace capability.
       setTokenDefaultDaclGrant(api, restrictedToken, this.tempWriteSidPtr ?? this.writeSidPtr ?? worldSid)
       if (api.closeHandle(currentToken) === 0) throwLastError(api, 'CloseHandle', 'current process token')
       currentTokenOpen = false
       this.api = api
     } catch (error) {
-      // Fail-closed cleanup: never leave a revocable (temp) grant or SID
-      // allocation behind a failed init. Standing workspace ACEs are NOT
-      // revoked — they are the intended end state (the reuse cache), not an
-      // error artifact.
       const cleanupFailures = []
       if (currentTokenOpen && api.closeHandle(currentToken) === 0) {
         cleanupFailures.push(new Win32Error('CloseHandle', api.getLastError(), 'current process token after init failure'))
@@ -297,10 +271,6 @@ export class AclSandbox {
     const native = spawnSandboxed(api, token, { command: options.command, args, cwd })
     const stdout = drainPipe(api, native.stdoutRead)
     const stderr = drainPipe(api, native.stderrRead)
-    // waitForExit is deliberately NOT started here: WaitForSingleObject blocks
-    // the thread and would starve the drains while the child is still running
-    // (pipe-buffer deadlock). The drains resolve only after the child closed
-    // its pipe ends — by then the wait returns immediately.
     let exitCodePromise
     return {
       pid: native.pid,

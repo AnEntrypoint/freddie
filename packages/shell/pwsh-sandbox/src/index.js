@@ -24,14 +24,11 @@ import { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSig
  * resolved policy; direct calls fall back to deployment policy.
  * `result.sandbox` reports the mode, enforcement, and denial facts the tool
  * renders.
+ * @name SandboxPwshExecutor
  */
 /* jscpd:ignore-start -- deliberate call-for-call mirror of bash-sandbox's executor (pwsh-tool-and-executor Agent Note) */
 export class SandboxPwshExecutor extends PwshLocalExecutor {
   static inject = ['subprocess', 'sandbox', 'sandboxPolicy']
-
-  // No own Config: the sandbox default (mode + workspaceRoot) moved to
-  // ctx.sandboxPolicy, so this executor inherits PwshLocalExecutor's Config
-  // verbatim (the config catalog walks the inherited static).
 
   mode
 
@@ -45,8 +42,6 @@ export class SandboxPwshExecutor extends PwshLocalExecutor {
 
   constructor(ctx, config) {
     super(ctx, config)
-    // The default mode is the capability fact used for schema advertisement;
-    // actual tool executions carry their resolved per-call policy.
     this.mode = ctx.sandboxPolicy.defaultMode
   }
 
@@ -76,15 +71,12 @@ export class SandboxPwshExecutor extends PwshLocalExecutor {
     try {
       result = await this.runArgv(spec, confined.argv)
     } catch (error) {
-      // An upstream abort remains cancellation even when it prevents spawn.
       if (spec.signal?.aborted === true) spec.signal.throwIfAborted()
       if (isRunnerSpawnFailure(error, confined.argv[0], spec.workdir)) {
         throw new SandboxUnavailableError(mode, String(error))
       }
       throw error
     }
-    // Runner failure outranks denial because the command did not run. Carry
-    // the matched fatal line, not an informational line that preceded it.
     const runnerFailure = classifyRunnerFailure(result.exitCode, result.stderr.text, confined.runnerFailureRules)
     if (runnerFailure !== undefined) {
       throw new SandboxUnavailableError(mode, runnerFailure.detail)
@@ -96,8 +88,6 @@ export class SandboxPwshExecutor extends PwshLocalExecutor {
     const policy = spec.sandboxPolicy
     const { mode } = policy
     if (mode === 'danger-full-access') return super.start(spec)
-    // Once startArgv returns, install facts synchronously; promise settlement
-    // cannot run before start() returns.
     const confined = this.confine(spec, { ...policy, mode })
     let proc
     try {
@@ -128,8 +118,6 @@ export class SandboxPwshExecutor extends PwshLocalExecutor {
     const facts = this.processFacts.get(proc)
     if (facts !== undefined) {
       this.processFacts.delete(proc)
-      // A rejected spawn never started the confined launch. Otherwise runner
-      // failure outranks denial because its diagnostics may contain denial terms.
       const runnerFailed = spawnFailed
         ? isRunnerSpawnFailure(spawnError, facts.runnerProgram, facts.workdir)
         : classifyRunnerFailure(proc.exitCode, stderr, facts.runnerFailureRules) !== undefined

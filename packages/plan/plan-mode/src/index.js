@@ -99,13 +99,6 @@ export function foldPlanMode(events, end = events.length) {
   return active
 }
 
-/**
- * Projection unit state: the logged mode, the latest successful `/plan`
- * selection not yet resolved by a `plan/mode` commit, and an execution whose
- * paired `command/done` has not settled. Plain JSON (persisted-cache
- * precondition).
- */
-
 /** Whether the log holds an opened turn without its closing `turn/end`. */
 function hasOpenTurn(events) {
   let open = false
@@ -150,10 +143,6 @@ export class PlanModeController extends Service {
     super(ctx, 'planMode')
     this.section = resolveConfig(config).section
     let disposed = false
-    // Pre-step is outside Session.append publication, so it can append the
-    // log-only mode event inside an open turn without re-entering the session.
-    // A failed append remains pending for a later accepted in-turn pre-step,
-    // and policy cannot block the step.
     ctx.on('agent/pre-step', async (
       { agent, signal },
       next,
@@ -184,14 +173,17 @@ export class PlanModeController extends Service {
       },
     })
 
-    // The plan projection unit (session-projection RFC): a pure event fold
-    // serving clients the whole {active, pending} value. `command/run`
-    // records the user's logged /plan selection, its paired `command/done`
-    // keeps only successful selections, and `plan/mode` records that
-    // selection and clears it. Pending is thereby a pure
-    // replay quantity: host restarts, other tabs, and cold reads all recover
-    // it from the log alone. The unit child activates only when a projection
-    // registry is composed (headless assemblies stay unaffected).
+    /**
+     * Projection unit state: the logged mode, the latest successful `/plan`
+     * selection not yet resolved by a `plan/mode` commit, and an execution whose
+     * paired `command/done` has not settled. Plain JSON (persisted-cache
+     * precondition).
+     * @typedef {{
+     *   active: boolean,
+     *   wanted: boolean | null,
+     *   running: { commandId: string, wanted: boolean } | null,
+     * }} PlanProjectionState
+     */
     ctx.inject(['sessionProjections'], (projectionCtx) => {
       projectionCtx.sessionProjections.register({
         key: 'plan',
@@ -223,7 +215,6 @@ export class PlanModeController extends Service {
       })
     })
 
-    // The command child activates only when a command registry is composed.
     ctx.inject(['commands'], (commandCtx) => {
       commandCtx.commands.register({
         name: 'plan',
@@ -243,9 +234,6 @@ export class PlanModeController extends Service {
               case 'cancelled':
                 return { kind: 'success', text: 'Plan mode entry cancelled.' }
               case 'noop':
-                // Repeat the queued wording while an exit still awaits the
-                // next accepted pre-step; only a truly inactive session reads
-                // idempotent.
                 return foldPlanMode(agent.session.events)
                   ? { kind: 'success', text: 'Leaving plan mode (applies from the next step).' }
                   : { kind: 'success', text: 'Plan mode is already inactive.' }
@@ -310,27 +298,17 @@ export class PlanModeController extends Service {
               { label: APPROVE_LABEL, description: 'Leave plan mode; the plan is carried out from the next step.' },
               { label: KEEP_PLANNING_LABEL, description: 'Stay in plan mode; feedback goes back to the model.' },
             ],
-            // Presentation only: a capable UI renders the plan as a review
-            // decision instead of a generic question, and answers with one of
-            // the labels above either way.
             intent: { kind: 'plan-review', approve: APPROVE_LABEL },
           }],
           agent,
           signal: exec.signal,
         }).catch((cause) => {
-          // A dismissed review is not a failed one: the user took the turn back
-          // to say something the two options do not cover. Say so, because the
-          // generic channel message names ask_user_question, which the model
-          // never called. An abort (turn cancel, provider teardown) keeps its
-          // own message — there is no user to wait for.
           if (cause instanceof UserQuestionError && cause.code === 'ASK_CANCELLED') {
             throw new Error('The user dismissed the plan review to speak instead; '
               + 'stay in plan mode, stop here, and wait for their message.')
           }
           throw cause
         })
-        // A review may outlive this plugin fiber. Without its pre-step listener,
-        // an approved selection could never be appended, so fail and keep planning.
         if (disposed) {
           throw new Error('the plan-mode service was reloaded while the plan was under review; present the plan again')
         }
@@ -342,9 +320,6 @@ export class PlanModeController extends Service {
             ? 'The user chose to keep planning; revise the plan and present it again.'
             : `The user chose to keep planning; their feedback: ${feedback}`)
         }
-        // Keep plan guidance for the rest of this assistant tool batch. The
-        // silent selection is appended at the next accepted in-turn pre-step,
-        // before its request assembly.
         this.pendingIntents.set(agent.session, { active: false, narrate: false })
         return { approved: true }
       },
@@ -400,8 +375,6 @@ export class PlanModeController extends Service {
       this.pendingIntents.set(session, { active, narrate: true })
       return foldPlanMode(session.events) === active ? 'cancelled' : 'queued'
     }
-    // No open turn: commit now. Delete only after append succeeds so a
-    // failed durable write leaves the selection retryable, not dropped.
     if (active === foldPlanMode(session.events)) {
       this.pendingIntents.delete(session)
       return 'cancelled'
@@ -423,8 +396,6 @@ export class PlanModeController extends Service {
       return
     }
     session.append('plan/mode', { active: target })
-    // Delete only after append succeeds so a later accepted in-turn pre-step
-    // can retry a failed durable write.
     this.pendingIntents.delete(session)
   }
 
@@ -437,7 +408,6 @@ export class PlanModeController extends Service {
       : 'The user switched this session back to the default mode.'
     return createUserMessage({
       content: [{ type: 'text', text }],
-      // The narration is already one sentence, so it is its own summary.
       source: { kind: 'plugin', plugin: 'plan-mode', form: 'notice', summary: text },
     })
   }

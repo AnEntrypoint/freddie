@@ -211,7 +211,6 @@ export class ConversationController extends Service {
         if (!this.createdImageUrls.delete(url)) return
         revokePreview(url)
       }, () => {
-        // A failed or invalidated load owns no object URL.
       })
     }
   }
@@ -259,8 +258,6 @@ export class ConversationController extends Service {
   }
 
   requireSessions() {
-    // Strict ctx.get, not the injection proxy: the scope-addressed pattern
-    // reads the service off whatever context the tracker rebound.
     const sessions = this.ctx.get('sessions')
     if (sessions === undefined) throw new Error('conversation: sessions service unavailable')
     return sessions

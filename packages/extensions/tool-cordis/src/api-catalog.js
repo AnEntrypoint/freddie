@@ -1976,7 +1976,7 @@ export const SERVICE_API = [
       },
       {
         signature: 'estimateMessage(message: Message): number',
-        description: 'Heuristically price one model-visible message (instance face of the pure `estimateMessage` export from `estimate.ts`).',
+        description: 'Heuristically price one model-visible message (instance face of the pure `estimateMessage` export from `estimate.js`).',
         parameters: [{ name: 'message', description: 'message to price without mutation.' }],
         returns: 'content and role-framing tokens under the fixed service heuristic.',
       },

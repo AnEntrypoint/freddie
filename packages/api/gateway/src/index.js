@@ -133,9 +133,6 @@ export class TypertGatewayService extends Service {
       if (request.signal?.aborted === true) throw new RemoteInvocationCancelled(endpoint, error)
       throw error
     }
-    // A weak descriptor declares no return type, so nothing returned is a void
-    // result and rides the wire as an absent value field. A strict descriptor
-    // keeps its schema: there, undefined has to be a declared result.
     if (result === undefined && descriptor.result.mode !== 'strict') return result
     return decode(descriptor.result, result, 'result-invalid', endpoint, 'result')
   }
@@ -165,9 +162,6 @@ export class TypertGatewayService extends Service {
         args: payload.args,
         signal,
       })
-      // A void or explicitly absent business result carries no `value` field;
-      // JSON has no `undefined`, and the envelope's optional slot is the one
-      // representation of absence that both args and results already use.
       return { ok: true, value }
     } catch (error) {
       return rpcFailure(error)
@@ -349,10 +343,6 @@ export class TypertGatewayService extends Service {
   }
 
   async resolveParameter(parameter, args, endpoint) {
-    // An absent field reached assertExactArguments' allowance, so this parameter
-    // takes undefined; a present-but-undefined field is not JSON-safe input and
-    // still fails decode. Lookup ids are never omissible, so absence here only
-    // ever belongs to a json parameter.
     if (!Object.hasOwn(args, parameter.wire)) return undefined
     const value = decode(parameter.codec, args[parameter.wire], 'input-invalid', endpoint, parameter.wire)
     if (parameter.source === 'json') return value
@@ -520,10 +510,6 @@ function assertExactArguments(args, descriptor, endpoint) {
   if (descriptor.invocation.kind === 'context') expected.add(descriptor.invocation.wire)
   const actual = Reflect.ownKeys(args)
   const extra = actual.filter(key => typeof key !== 'string' || !expected.has(key))
-  // A JSON field may be omitted when the strict descriptor declares absence,
-  // and always under SRC: a weak descriptor reads parameter names from the
-  // JavaScript signature and cannot see which are optional, so LIB is where an
-  // omitted required argument is caught. Lookup ids are never omissible.
   const acceptsMissing = new Set(descriptor.parameters
     .filter(parameter => parameter.source === 'json'
       && (parameter.acceptsUndefined === true || parameter.codec.mode === 'src-json'))

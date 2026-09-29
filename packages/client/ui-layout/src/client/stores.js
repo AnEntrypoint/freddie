@@ -14,19 +14,6 @@ import {
 } from './columns.js'
 
 /**
- * Layout store state: panel width preferences in px (0 = closed), plus the
- * narrow-viewport pair — `narrow` mirrors AppFrame's breakpoint reading
- * (viewport < SIDEBAR_AUTO_COLLAPSE) so toggleSidebar can pick semantics, and
- * `narrowExpanded` is the manual override that re-expands the auto-collapsed
- * sidebar over the squeezed center without rewriting the width preference.
- */
-
-/**
- * Annotation twin of the actions literal below (the export needs a declared
- * return type); drift fails assignability at the defineStore call.
- */
-
-/**
  * Create the layout panel store handle. The preference IS the width, so
  * closing a panel forgets its drag width — reopening restores the contract
  * default. Actions are the complete write set: drag writes clamp
@@ -38,18 +25,41 @@ import {
  */
 export function createLayoutStore() {
   const handle = defineStore({
+    /**
+     * Layout store state: panel width preferences in px (0 = closed), plus
+     * the narrow-viewport pair — `narrow` mirrors AppFrame's breakpoint
+     * reading (viewport < SIDEBAR_AUTO_COLLAPSE) so toggleSidebar can pick
+     * semantics, and `narrowExpanded` is the manual override that
+     * re-expands the auto-collapsed sidebar over the squeezed center
+     * without rewriting the width preference.
+     * @typedef {object} LayoutStoreState
+     * @property {number} sidebar
+     * @property {number} details
+     * @property {boolean} narrow
+     * @property {boolean} narrowExpanded
+     */
+    /** @type {() => LayoutStoreState} */
     init: () => ({ sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false }),
+    /**
+     * Annotation twin of the actions literal below (the store handle's
+     * bound actions need a declared shape); drift fails assignability at
+     * the defineStore call.
+     * @typedef {object} LayoutStoreActions
+     * @property {function(LayoutStoreState, number): void} setSidebar
+     * @property {function(LayoutStoreState, number): void} setDetails
+     * @property {function(LayoutStoreState): void} toggleSidebar
+     * @property {function(LayoutStoreState, boolean): void} setNarrow
+     * @property {function(LayoutStoreState): void} openDetails
+     * @property {function(LayoutStoreState): void} closeDetails
+     */
+    /** @type {LayoutStoreActions} */
     actions: {
       setSidebar: (d, px) => { d.sidebar = clampWidth(px, SIDEBAR_MIN, SIDEBAR_MAX) },
       setDetails: (d, px) => { d.details = clampWidth(px, DETAILS_MIN, DETAILS_MAX) },
-      // Narrow toggles flip only the override: the width preference survives
-      // untouched, so re-widening restores the pre-squeeze layout.
       toggleSidebar: (d) => {
         if (d.narrow) d.narrowExpanded = !d.narrowExpanded
         else d.sidebar = d.sidebar === 0 ? SIDEBAR_DEFAULT : 0
       },
-      // Crossing the breakpoint in either direction drops the override: the
-      // narrow default is auto-collapsed, the wide state is the preference.
       setNarrow: (d, narrow) => {
         if (d.narrow === narrow) return
         d.narrow = narrow

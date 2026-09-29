@@ -13,11 +13,6 @@
  * @returns the outcome for the `ctx.jobs` registration.
  */
 export function processOutcome(proc) {
-  // TODO(background-infrastructure-outcome): widen ShellProcess with an explicit
-  // infrastructure-failure outcome, then map it to task `failed`. Restricted
-  // runner failures expose sandbox.runnerFailed, but unconfined spawn failures
-  // still alias a signal-less kill; real nonzero command exits must remain
-  // `completed`.
   if (proc.status === 'killed') {
     return { status: 'killed', detail: proc.signal !== null ? `signal: ${proc.signal}` : 'killed before exit' }
   }

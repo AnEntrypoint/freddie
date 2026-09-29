@@ -1,0 +1,6 @@
+## Rationale
+
+- `src/index.js` `inheritsParentContext` is `false`: an out-of-process SDK child starts fresh and no parent conversation crosses the process boundary. A relative configured cwd is interpreted once at load against the harness launch directory and a bad directory fails there, not per start.
+- `src/run.js` ids: the run id lives in the parent namespace; the child runtime's session id (`childSessionId`, minted after the handshake, private to the wire) exists only inside the child process.
+- `src/run.js` startup: the child handshake completes before a handle is published; any failure owns the still-private process and reaps it before rejecting. A failed cleanup is preserved as a failed Job (`AggregateError`), because `settleStart` treats only an aborted non-`AggregateError` rejection as a cleanly killed startup. Host diagnostic logging failure cannot replace the child failure.
+- `src/run.js` result and cancel: cancellation settles the result without waiting for a cooperative child; there is no wire-level prompt cancel, so dispose settles locally and the bounded shutdown request + dispose ladder tears the child down. The child's final answer follows the seam's canonical selection rule (`AssistantOutputFold`) and a partial answer survives cancel and error paths; `settleRunResult` flattens failures under the seam's never-reject contract.

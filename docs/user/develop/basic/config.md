@@ -29,7 +29,7 @@ export function apply(ctx: Context, config: Config) {
 }
 ```
 
-Add the configuration to the inserted local plugin row in `scratch-plugin/cordis.yml`:
+Add the configuration to the inserted local plugin row in `examples/scratch-plugin/cordis.yml`:
 
 ```yaml
 - insert:

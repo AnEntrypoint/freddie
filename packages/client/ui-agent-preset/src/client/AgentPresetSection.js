@@ -30,7 +30,6 @@ import css from './AgentPresetSection.css.js'
 /** Agent-presets settings section, as a custom element. */
 export class FreddieAgentPresetSection extends HTMLElement {
   #props = null
-  #loaded = false
   #copyModal = null
   #viewModal = null
   #deleteModal = null
@@ -41,10 +40,6 @@ export class FreddieAgentPresetSection extends HTMLElement {
   /** Set/replace props and re-render; the owning renderer calls this on every update. */
   setProps(props) {
     this.#props = props
-    if (!this.#loaded) {
-      this.#loaded = true
-      void props.load()
-    }
     this.#render()
   }
 
@@ -92,17 +87,12 @@ export class FreddieAgentPresetSection extends HTMLElement {
     const truncated = this.#descriptionTruncated.get(rowId) ?? false
     const existing = this.#descriptionTooltips.get(rowId) ?? null
     const tooltip = renderTooltip(existing, {
-      // Capped near the card's own width: the default half-viewport bubble
-      // would spill a description out of the settings dialog and across the
-      // app behind it.
       label: text,
       side: 'bottom',
       delayMs: 400,
       disabled: !truncated,
       maxWidth: 360,
       children: (
-        // The empty title stops the card body's native tooltip from climbing
-        // to this span: a cut-off description answers with one bubble, not two.
         h('span', {
           class: css.cardDesc ?? '',
           title: '',
@@ -241,9 +231,8 @@ export class FreddieAgentPresetSection extends HTMLElement {
     if (props === null) return
     const { useAgentPresetSection, t } = props
     const state = useAgentPresetSection(snapshot => snapshot)
+    if (state.status === 'idle') void props.load()
 
-    // A deployment that composes no presets has nothing to manage: every
-    // session shares the host composition and the page would be an empty list.
     if (state.status === 'unavailable') {
       applyDiff(this, h('span', {style: 'display:none'}))
       return
@@ -263,11 +252,6 @@ export class FreddieAgentPresetSection extends HTMLElement {
       return
     }
 
-    /* The guided alternative to copying: the self-referential preset can
-       read this very composition and author a new one in conversation.
-       Offered only where that preset is actually on the roster and a
-       session can be landed; without a writable root the draft could
-       never be discovered, so the reason rides the disabled button. */
     const creatorButton = props.startCreatorDraft !== undefined && state.rows.some(row => row.id === 'cordis')
       ? (
         h('button', {
@@ -280,7 +264,6 @@ export class FreddieAgentPresetSection extends HTMLElement {
             props.close()
           },
         },
-          // Same glyph as the Models page's add affordances.
           h(IconPlusOutline16, {size: 14}),
           t('creatorDraft'),
         )
@@ -298,8 +281,6 @@ export class FreddieAgentPresetSection extends HTMLElement {
           const group = state.rows
             .filter(row => row.trust === trust)
             .map(row => ({ row, text: presetDisplayText(row, t) }))
-          // The custom group is where a preset of one's own will appear, so it
-          // stays on screen even while empty: heading plus the creator entry.
           const tail = trust === 'user' ? creatorButton : null
           if (group.length === 0 && tail === null) return null
           return (
@@ -316,19 +297,11 @@ export class FreddieAgentPresetSection extends HTMLElement {
                           ? `${css.card} ${css.cardBroken}`
                           : row.isDefault ? `${css.card} ${css.cardActive}` : css.card,
                       },
-                        // The card body IS the control: picking a preset is the
-                        // common act, so it should not hide behind a small button.
-                        // The action row sits outside it — nesting buttons is
-                        // invalid, and these act on the card rather than select it.
-                        // A broken preset cannot compose a session, so its body is
-                        // disabled and the card says why instead of offering it.
                         h('button', {
                           type: 'button',
                           class: css.cardMain ?? '',
                           'aria-pressed': String(row.isDefault),
                           disabled: row.isDefault || row.broken !== undefined,
-                          // Without this the name is the whole card read aloud —
-                          // title, badge, description, id.
                           'aria-label': `${row.broken !== undefined ? t('brokenBadge') : row.isDefault ? t('inUse') : t('setDefault')}: ${text.name}`,
                           title: row.broken ?? (row.isDefault ? t('inUse') : t('setDefault')),
                           onclick: () => { void props.makeDefault(row.id) },
@@ -350,13 +323,6 @@ export class FreddieAgentPresetSection extends HTMLElement {
                           h('code', {class: css.cardId ?? ''}, row.id),
                         ),
                         h('div', {class: css.cardFoot ?? ''},
-                          // Shipped presets are the compositions a copy starts
-                          // from, so READING one is the point; a custom preset is
-                          // edited in its files instead, which the location action
-                          // leads to. A broken shipped preset has no readable
-                          // composition to offer, so its viewer is withheld; a
-                          // broken custom one keeps the location action — the
-                          // files are where it gets fixed.
                           row.trust === 'system'
                             ? row.broken === undefined
                               ? (
@@ -432,7 +398,6 @@ export class FreddieAgentPresetSection extends HTMLElement {
     )
     applyDiff(this, vdom)
 
-    // Drop tooltip state for rows no longer on the roster.
     for (const rowId of Array.from(this.#descriptionTooltips.keys())) {
       if (seenRowIds.has(rowId)) continue
       this.#descriptionTooltips.delete(rowId)
@@ -441,8 +406,6 @@ export class FreddieAgentPresetSection extends HTMLElement {
       this.#descriptionResizeObservers.delete(rowId)
     }
 
-    // Mount the tooltip-wrapped descriptions (self-rendering custom elements,
-    // never diffed in as vdom children — see the module doc).
     for (const slot of Array.from(this.querySelectorAll('[data-desc-slot]'))) {
       const rowId = slot.getAttribute('data-desc-slot')
       if (rowId === null) continue

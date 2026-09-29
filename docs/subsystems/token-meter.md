@@ -2,7 +2,7 @@
 
 `@freddie/freddie-token-meter` exposes one detached replay snapshot for request pressure and positional surface pricing. `logRevision` is the number of durable events consumed for every field in the measurement.
 
-Source: [`packages/llm/token-meter/src/types.ts`](../../packages/llm/token-meter/src/types.js)
+Source: [`packages/llm/token-meter/src/types.js`](../../packages/llm/token-meter/src/types.js)
 
 ## `TokenMeasurement`
 
@@ -40,13 +40,13 @@ interface TokenSurfaceNode {
 
 Surface order is authoritative; replacement nodes can have higher durable seqs than later positional nodes. The snapshot is immutable and does not grow when the underlying replay fold advances.
 
-<!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
+<!-- BEGIN cordis-surface (hand-maintained) -->
 
 <a id="cordis-surface"></a>
 
 ## Cordis API
 
-Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+Originally generated from source by `scripts/gen-cordis-catalog.ts`; that script and its `verify-cordis-catalog` freshness check no longer exist, so this region is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
 <a id="ctxtokenmeter--tokenmeter"></a>
 
@@ -75,7 +75,7 @@ measure(session: Session, requestHeader?: EpochHeader): TokenMeasurement
 
 /**
  * Heuristically price one model-visible message (instance face of the pure
- * `estimateMessage` export from `estimate.ts`).
+ * `estimateMessage` export from `estimate.js`).
  * @param message - message to price without mutation.
  * @returns content and role-framing tokens under the fixed service heuristic.
  */
@@ -84,5 +84,5 @@ estimateMessage(message: Message): number
 
 Types: [EpochHeader](session.md) · [Message](llm-streaming.md) · [Session](session.md)
 
-Source: [`packages/llm/token-meter/src/index.ts`](../../packages/llm/token-meter/src/index.js)
-<!-- END GENERATED cordis-surface -->
+Source: [`packages/llm/token-meter/src/index.js`](../../packages/llm/token-meter/src/index.js)
+<!-- END cordis-surface -->

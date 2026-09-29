@@ -15,16 +15,6 @@ import css from './OnboardingModal.css.js'
 
 const ignoreImplicitDismiss = () => {}
 
-// Modal's own one-shot factory (Modal(props), the bare h(Modal,...) call
-// this file used to make) creates and appends a NEW freddie-modal element to
-// document.body on every call, with nothing removing the previous one --
-// this function re-runs on every re-render of the onboarding step (the
-// doc comment above: "each time the step calls this function"), which is
-// driven by the step's own store subscription, not a one-shot mount. That
-// leaked a growing stack of duplicate modal masks/dialogs into the DOM.
-// Onboarding shows at most one modal at a time, so a module-level
-// singleton is the right cache shape (same as DetailsPanel.js's
-// size-1 cachedArgsBlock, not a per-identity WeakMap).
 let cachedModalEl = null
 
 /**
@@ -58,9 +48,6 @@ export function OnboardingModal({
       ),
     ],
   })
-  // The application root is inert throughout onboarding. Returning this
-  // body-portaled element would let the parent renderer move it under #root,
-  // making every control inside the dialog inert too.
   return null
 }
 

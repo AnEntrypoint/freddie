@@ -46,9 +46,6 @@ export class InputTriggerController {
 
   constructor(deps) {
     this.deps = deps
-    // Scope-birth prewarm: sessions are always agent-backed, so the one-time
-    // roster warm here replaces the projection-transition watch — there are
-    // no capability steps to react to.
     const projection = this.#project()
     for (const src of deps.roster.all()) {
       src.warm?.(projection)
@@ -323,9 +320,6 @@ export class InputTriggerController {
       try {
         names = src.lexicon(projection)
       } catch (error) {
-        // A faulty source drops silently with a console record (the
-        // candidate-fetch failure policy); the refresh runs inside
-        // notification callbacks, where a throw would starve other consumers.
         console.error(`[ui-input-trigger] source "${src.name}" lexicon failed:`, error)
         continue
       }

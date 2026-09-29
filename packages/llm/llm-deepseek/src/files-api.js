@@ -115,7 +115,6 @@ export class DeepSeekFilesClient {
     try {
       parsed = await response.json()
     } catch {
-      // A status remains sufficient to report the provider failure.
     }
     const { message, detail } = providerErrorDetail(parsed)
     throw new DeepSeekFilesError(

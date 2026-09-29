@@ -72,7 +72,6 @@ export class McpResourceRuntime extends Service {
     const scope = scopeOf(ctx)
     const dispose = ctx.effect(function* () {
       let disposal
-      // Tools disappear synchronously; Cordis owns any pending scoped-fiber teardown.
       yield () => disposal
       yield this.layers.effect(ctx, (layer) => {
         const first = layer.servers.isEmpty()

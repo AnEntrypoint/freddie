@@ -1,6 +1,6 @@
 /**
  * Request-header reconstruction utilities over full `request/header` session
- * events. Anyone holding a session log reconstructs the {@link EpochHeader}
+ * events. Anyone holding a session log reconstructs the {@link import('./types.js').EpochHeader}
  * any request was built under by taking the latest canonical snapshot; the
  * loop uses the same equality helper to avoid logging unchanged headers.
  *
@@ -53,7 +53,7 @@ export function headerEquals(a, b) {
 
 /**
  * Fold the header events of a log (or any prefix) into the
- * {@link EpochHeader} in force after the last snapshot. Non-header events are
+ * {@link import('./types.js').EpochHeader} in force after the last snapshot. Non-header events are
  * skipped. This is the pure offline reconstruction path; the live session
  * tracks the same fold incrementally.
  * @param events - session events in log order.

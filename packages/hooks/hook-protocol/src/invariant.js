@@ -47,7 +47,6 @@ function applyHookTransition(pending, transition) {
 }
 
 /** Install hook invoked/result pairing checks. */
-// Event owners keep precommit staging local so their vocabularies never move into a central helper.
 /* jscpd:ignore-start */
 const install = Object.assign((ctx, fail) => {
   const traces = new WeakMap()

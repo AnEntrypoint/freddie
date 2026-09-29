@@ -37,8 +37,6 @@ function project(agents, entry, position) {
   if (entry.kind === 'diagnostic') {
     return { kind: 'diagnostic', id: entry.id, reason: entry.reason, ...at }
   }
-  // One-shot children cannot be continued by send_message, so the model
-  // never selects them; discovery still traversed them for descendants.
   if (entry.mode !== 'continuable') return undefined
   return {
     kind: 'child',
@@ -113,9 +111,6 @@ export function apply(ctx) {
           text: entries.length === 0
             ? '(no subagents)'
             : entries.map((entry) => {
-              // A descendants row always carries its position; children rows
-              // never render it. String() spans the schema-optional shape
-              // without a dead fallback branch.
               const at = request.scope === 'descendants'
                 ? ` parent=${String(entry.parent)} depth=${String(entry.depth)}`
                 : ''
@@ -129,12 +124,9 @@ export function apply(ctx) {
     async execute(args, exec) {
       const parent = exec.agent
       if (!parent) {
-        // Non-agent callers have no session whose children could be listed.
         throw new Error('list_agents requires a calling agent (exec.agent was undefined)')
       }
       const request = resolveListAgentsRequest(args)
-      // The registry drains started tool bodies, so the scan must observe the
-      // call's signal rather than finish a slow catalog after cancellation.
       switch (request.scope) {
         case 'children': {
           const entries = await ctx.subagents.listChildren(parent.id, exec.signal)

@@ -4,7 +4,7 @@ Domain vocabulary for Freddie uses one canonical term per concept. Terms link to
 
 ## capability-seam
 
-- **seam** — a *swappable capability* with three roles: a **Service Definition** (the Cordis `Service` that owns its `ctx.<key>` and vocabulary types — an abstract class such as `ShellExecutor`, or a concrete registry such as `WebRuntime`, never a TypeScript `interface`), one or more **Service Providers**, and one or more **Consumers** that inject the service. `packages/shell` is the canonical example: `dsh-shell` (Service Definition), `dsh-bash-local` / `dsh-bash-sandbox` (providers), and `dsh-tool-bash` (Consumer). Roles normally occupy separate packages when they evolve independently, but a package may own multiple roles when they are one concern (`dsh-llm` owns its Service Definition and Consumer). The seam is the complete capability, never one role; reserve the term for that meaning and name a constituent by its role, class, service, contract, or extension point.
+- **seam** — a *swappable capability* with three roles: a **Service Definition** (the Cordis `Service` that owns its `ctx.<key>` and vocabulary types — an abstract class such as `ShellExecutor`, or a concrete registry such as `WebRuntime`, never a TypeScript `interface`), one or more **Service Providers**, and one or more **Consumers** that inject the service. `packages/shell` is the canonical example: `@freddie/freddie-shell` (Service Definition), `@freddie/freddie-bash-local` / `@freddie/freddie-bash-sandbox` (providers), and `@freddie/freddie-tool-bash` (Consumer). Roles normally occupy separate packages when they evolve independently, but a package may own multiple roles when they are one concern (`@freddie/freddie-llm` owns its Service Definition and Consumer). The seam is the complete capability, never one role; reserve the term for that meaning and name a constituent by its role, class, service, contract, or extension point.
 
 ## agent-scope
 
@@ -28,7 +28,7 @@ Domain vocabulary for Freddie uses one canonical term per concept. Terms link to
 
 - **human command** — a slash-prefixed instruction interpreted and executed by a human-facing adapter through `ctx.commands`, without becoming a model message. It is distinct from a model-facing tool and from shell command execution through `ctx.shell`.
 - **command plane** — discovery, parsing, dispatch, cancellation, and result rendering owned by UI adapters and command plugins. Command output is UI state unless the handler separately mutates a durable domain.
-- **goal command** — the `/goal` human command contributed by `dsh-command-goal`; it observes or mutates the current goal directly while the goal domain owns every durable, model-visible record.
+- **goal command** — the `/goal` human command contributed by `@freddie/freddie-command-goal`; it observes or mutates the current goal directly while the goal domain owns every durable, model-visible record.
 
 ## loop hierarchy
 

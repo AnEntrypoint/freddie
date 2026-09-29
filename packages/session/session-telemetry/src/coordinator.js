@@ -66,8 +66,6 @@ export class SessionTelemetryCoordinator {
       ctx.on('session/created', (session) => {
         this.#adopt(session)
       })
-      // Capture the shutdown marker at the session's own termination edge,
-      // then retire the only strong reference owned by this coordinator.
       ctx.on('session/disposed', (session) => {
         this.#contain(() => {
           if (!this.#adopted.delete(session)) return
@@ -79,8 +77,6 @@ export class SessionTelemetryCoordinator {
           this.#captureEvent(session, event)
         })
       })
-      // Parallel listeners are awaited by the loop at turn end; returning void
-      // (not the SDK's flush promise) is the turn-latency contract.
       ctx.on('session/flush', (session) => {
         this.#contain(() => {
           this.#hintFlush(session)
@@ -96,8 +92,6 @@ export class SessionTelemetryCoordinator {
       }
     }
     ctx.effect(() => async () => {
-      // Sessions still adopted here are alive through whole-application
-      // teardown, so capture the marker before the backend quiesces.
       for (const session of this.#adopted) {
         this.#contain(() => {
           this.#deliver(session, { record: this.#redact(shutdownRecord(session)) })
@@ -123,8 +117,6 @@ export class SessionTelemetryCoordinator {
    */
   captureSession(session, throughSeq) {
     const cursor = handoffCursor.get(session) ?? session.firstLiveSeq - 1
-    // Containment is PER EVENT: one rejected record is withheld fail-closed
-    // while the rest of the historical replay proceeds.
     for (const event of session.events) {
       if (throughSeq !== undefined && event.seq > throughSeq) break
       this.#contain(() => {
@@ -167,10 +159,6 @@ export class SessionTelemetryCoordinator {
     if (event.type === 'assistant/chunk') {
       const key = `${event.data.turn}:${event.data.step}`
       const seen = this.#seen(session)
-      // Fixed chunk projection: only the first chunk of each (turn, step)
-      // ships — the stream-started signal; content is byte-complete in the
-      // step's assembled assistant/message. Dropped chunks do not advance
-      // the cursor, so re-adoption re-drops them deterministically.
       if (seen.has(key)) return
       seen.add(key)
     }
@@ -180,8 +168,6 @@ export class SessionTelemetryCoordinator {
         time: event.time,
         severity: severityOf(event),
         attributes: identityOf(session, event),
-        // The canonical event object is mutable and the backend serializes
-        // later; append-time validation guarantees this clone cannot throw.
         body: structuredClone(event.data),
       }),
       seq: event.seq,
@@ -275,9 +261,6 @@ function severityOf(event) {
     case 'turn/end':
       return event.data.reason.kind === 'error' ? 'error' : 'info'
     default:
-      // Merge-extensible fall-through (no assertNever): event types this coordinator
-      // does not depend on — including plugin-merged ones it never heard of —
-      // pass through as info; their owners' outcome semantics stay theirs.
       return 'info'
   }
 }
@@ -298,8 +281,6 @@ function identityOf(session, event) {
   const { cwd, parentSession, seedLength } = session.header
   if (cwd !== undefined) attributes['session.cwd'] = cwd
   if (parentSession !== undefined) attributes['session.parent_id'] = String(parentSession)
-  // The durable fork boundary: a forked stream starts here, and its prefix
-  // lives in the parent's stream — receivers stitch on (parent_id, seed_length).
   if (seedLength !== undefined) attributes['session.seed_length'] = seedLength
   return attributes
 }

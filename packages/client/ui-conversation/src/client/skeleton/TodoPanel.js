@@ -1,16 +1,15 @@
-// TodoPanel: plan strip above the composer (the web counterpart of the TUI
-// plan panel). Renders the standing todo/write whole-list snapshot (cleared on
-// the next turn/start) — no data of its own, hidden while the list is empty.
-// Mounted through the 'conversation.input.dock' slot (QueueDock posture): the
-// dock adapter does the selecting, so the panel takes the plain list and stays
-// framework-free. Visual: figma 772:51905 / 772:52972 / 772:53419.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconChecklistOutline14, IconChevronDownOutline14, IconChevronUpOutline14, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { NS } from '../locales.js'
 import css from './TodoPanel.css.js'
 
-/** Local exhaustiveness helper — client packages do not depend on `freddie-llm`. */
+/**
+ * Local exhaustiveness helper — client packages do not depend on `freddie-llm`,
+ * so the closed `TodoItem` status union is re-declared narrowly here instead
+ * of imported.
+ * @param {never} value - a status value the switch above left unhandled.
+ * @returns {never}
+ */
 /* v8 ignore next 3 -- closed-union backstop; only reached if status is forged */
 function assertNever(value) {
   throw new Error(`unreachable todo status: ${String(value)}`)
@@ -67,18 +66,18 @@ function StatusGlyph({ status }) {
   }
 }
 
+const EN_SPACED_SEPARATOR = '\u2002·\u2002'
+
 /** Header summary: "·"-joined per-status counts; zero-count segments are omitted as noise (a non-empty list keeps at least one). */
 function progressLabel(todos, t) {
   const done = todos.filter(item => item.status === 'completed').length
   const active = todos.filter(item => item.status === 'in_progress').length
   const pending = todos.length - done - active
-  // En spaces (U+2002): HTML collapses runs of ASCII spaces, so widening the
-  // separator breathing room needs a literal wide space.
   return [
     ...done > 0 ? [t('todo.progress.done', { done })] : [],
     ...active > 0 ? [t('todo.progress.active', { active })] : [],
     ...pending > 0 ? [t('todo.progress.pending', { pending })] : [],
-  ].join(' · ')
+  ].join(EN_SPACED_SEPARATOR)
 }
 
 /**

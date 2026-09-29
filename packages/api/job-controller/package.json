@@ -1,0 +1,82 @@
+{
+  "name": "@freddie/freddie-job-controller",
+  "description": "Host job Remote owner: the per-session background-job roster and the human kill over ctx.jobs, plus the client jobs service over the job Remote namespace",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/api/job-controller"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./types": {
+      "default": "./src/types.js"
+    },
+    "./rows": {
+      "default": "./src/rows.js"
+    },
+    "./wake": {
+      "default": "./src/wake.js"
+    },
+    "./client": {
+      "default": "./src/client/index.js"
+    },
+    "./typert": {
+      "default": "./src/typert.host.js"
+    },
+    "./remote": {
+      "default": "./src/typert.remote-client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "freddie": {
+    "client": {
+      "inject": [
+        "@freddie/freddie-api-gateway"
+      ],
+      "platform": "web",
+      "external": []
+    }
+  },
+  "files": [
+    "src/*.js",
+    "src/client/*.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@freddie/freddie-typert-protocol": "*",
+    "@freddie/schemastery": "*",
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-api-gateway": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-jobs": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-typert-registry": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-api-gateway": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-jobs": "*",
+    "@freddie/freddie-jobs-local": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-typert-loader": "*",
+    "@freddie/freddie-typert-registry": "*"
+  }
+}

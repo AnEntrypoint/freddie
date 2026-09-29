@@ -263,14 +263,29 @@ export function validateArgs(spec, args) {
 }
 
 /**
+ * A registry-ready tool definition, as built by {@link defineTool} and consumed
+ * by `ToolRuntime` (`./index.js`).
+ * @typedef {object} ToolDefinition
+ * @property {string} name
+ * @property {string} description
+ * @property {object} parameters - JSON Schema for the tool's arguments.
+ * @property {import('./index.js').ToolOutputContract} output - canonical output validation/render/presentation contract.
+ * @property {number} [timeoutMs]
+ * @property {function(*, *): Promise<*>} execute - validates `args` then runs the user body.
+ * @property {function(*, *): *} [finalizeContent] - definition-owned final content transform.
+ * @property {function(*): *} [presentCall]
+ * @property {function(*, *): *} [presentResult]
+ * @property {function(*): boolean} [isConcurrencySafe]
+ */
+
+/**
  * Define a first-party tool with inferred arguments and strict execution
  * validation. Replay-only presenters validate softly and fall back to generic
  * rendering for obsolete logged arguments.
  * @param options - typed definition and optional finalizer and presenters.
- * @returns A registry-ready definition.
+ * @returns {ToolDefinition} A registry-ready definition.
  */
 export function defineTool(options) {
-  // Object-literal methods do not use `this`; retaining references is safe.
   const userExecute = options.execute
   const userFinalizeContent = options.finalizeContent
   const userRender = options.output.render
@@ -309,10 +324,6 @@ export function defineTool(options) {
   if (userFinalizeContent) {
     tool.finalizeContent = (exec, result) => userFinalizeContent(exec, result)
   }
-  // Presentation is display-only and may run on REPLAY of arbitrary logged args
-  // (possibly from an older schema), so it must never throw: validate softly and
-  // fall back to `undefined` (a generic UI presentation) on any mismatch, rather
-  // than the hard `ToolArgsError` the execute path raises.
   if (userPresentCall) {
     tool.presentCall = (args) => {
       if (validate(args).length > 0) return undefined

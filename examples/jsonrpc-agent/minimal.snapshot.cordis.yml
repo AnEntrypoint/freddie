@@ -1,6 +1,3 @@
-# Keyless replay keeps the complete minimal composition intact and replaces
-# only its live DeepSeek adapter with the fixture-backed provider. The replay
-# catalog claims the same route initialized by the SDK.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

@@ -6,7 +6,7 @@ Status: implemented
 
 An API key holding characters no HTTP header value can carry was accepted by every configuration surface and failed only when a request was built, far from the field that caused it.
 
-Pasting a key containing an emoji, CJK text, or a full-width punctuation mark into the web Models page reported a successful save. The first turn then failed with `Cannot convert argument to a ByteString because the character at index 7 has a value of 55357 which is greater than 255` — the index and code point are UTF-16 internals with no action attached, and they disclose the code point of one character of the key. `llm-deepseek` produced this because `fetch` builds the `Bearer` header inside the `try` in [adapter.ts](../../../../packages/llm/llm-deepseek/src/adapter.js), whose `catch` labels every failure `TRANSPORT`; that label is in `DEFAULT_RETRYABLE_CODES`, so a permanent, deterministic fault was also retried three times.
+Pasting a key containing an emoji, non-ASCII text, or a full-width punctuation mark into the web Models page reported a successful save. The first turn then failed with `Cannot convert argument to a ByteString because the character at index 7 has a value of 55357 which is greater than 255` — the index and code point are UTF-16 internals with no action attached, and they disclose the code point of one character of the key. `llm-deepseek` produced this because `fetch` builds the `Bearer` header inside the `try` in [adapter.ts](../../../../packages/llm/llm-deepseek/src/adapter.js), whose `catch` labels every failure `TRANSPORT`; that label is in `DEFAULT_RETRYABLE_CODES`, so a permanent, deterministic fault was also retried three times.
 
 `llm-pi-ai` was worse on the same input. Its discovery probe builds the same header with a bare `fetch` in [discovery.ts](../../../../packages/llm/llm-pi-ai/src/discovery.ts) and wrapped every failure as `could not reach <url>`, so a local key fault was reported as an unreachable network. The probe is reachable from the unsaved draft: `ProviderEditor` puts the typed `keyDraft` into its probe request, so the model-listing button sent an illegal key before anything was stored.
 
@@ -16,7 +16,7 @@ Whitespace passed every check. `ProviderEditor` tested `keyDraft.length`, so a k
 
 One rule defines a legal key: **after trimming, non-empty, and every character within `[\x21-\x7E]`** — printable ASCII, space excluded.
 
-This single predicate covers every reported input: empty, leading and trailing whitespace, interior whitespace, C0 control characters, emoji, CJK text, and full-width punctuation. It is also exactly the constraint that produced the ByteString failure, so the failures share one definition rather than two coincidentally related fixes.
+This single predicate covers every reported input: empty, leading and trailing whitespace, interior whitespace, C0 control characters, emoji, non-ASCII text, and full-width punctuation. It is also exactly the constraint that produced the ByteString failure, so the failures share one definition rather than two coincidentally related fixes.
 
 A second, narrower rule catches a pasted environment line: input matching `^[A-Z][A-Z0-9_]*=[^=]` or wrapped in matching quotes is refused. Restricting the prefix to upper-case keeps real keys clear of it — `sk-` forms break the identifier match at the hyphen — and requiring a non-`=` character after the separator keeps base64 padding clear of it too. It reports the same format failure as an illegal character rather than its own message: the reader's next move is identical either way, so a separate line would name a cause without changing what to do.
 
@@ -90,7 +90,7 @@ The costliest way to get this wrong would have been to treat absence as invalidi
 
 ## Testing
 
-`packages/llm/llm/tests/api-key.spec.ts` drives `normalizeApiKey` and `assertUsableApiKey` over the whole input table — empty, whitespace-only, padded, interior-space, C0 control, emoji, CJK, full-width, latin-1, and the printable-ASCII boundary — and pins that a refusal carries `INVALID_CREDENTIAL` and no part of the key.
+`packages/llm/llm/tests/api-key.spec.ts` drives `normalizeApiKey` and `assertUsableApiKey` over the whole input table — empty, whitespace-only, padded, interior-space, C0 control, emoji, non-ASCII text, full-width, latin-1, and the printable-ASCII boundary — and pins that a refusal carries `INVALID_CREDENTIAL` and no part of the key.
 
 `packages/llm/llm-deepseek/tests/` covers the stored-credential path end to end in `dynamic-config.spec.ts`, through the real credentials seam rather than a stub. `packages/llm/llm-pi-ai/tests/` covers the discovery probe, including that a probe with no key sends no `authorization` header.
 

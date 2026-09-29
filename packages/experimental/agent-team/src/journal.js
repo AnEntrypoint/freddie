@@ -49,9 +49,6 @@ export class TeamJournal {
    * @param data - payload correlated with the event type.
    */
   async appendAndFlush(root, type, data) {
-    // Team events never enter the conversation surface. This narrower local
-    // capability removes Session.append's conditional surface argument while
-    // preserving the event-key/payload correlation.
     const append = root.session.append.bind(root.session)
     append(type, data)
     await this.ctx.sessions.flush(root.session)

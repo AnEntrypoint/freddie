@@ -1,4 +1,3 @@
-# Replay counterpart to cordis.yml for the shipped Ralph-loop snapshot.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

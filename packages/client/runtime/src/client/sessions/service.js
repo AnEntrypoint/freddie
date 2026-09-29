@@ -14,8 +14,6 @@
  * tears its scope down immediately unless it is the staged one, whose scope
  * survives frozen (read-only view) until the stage moves on.
  */
-// Value import from the inline-safe wire layer (not the connection plugin):
-// plugin-to-plugin value imports are a bundle purity error.
 import { SESSION_SEARCH_RESULT_LIMIT } from '@freddie/freddie-host-apiproxy/api'
 import { createSnapshotStore } from '../contract/store.js'
 import { createScope, scopeOf as scopeTagOf } from '../agents/scope.js'
@@ -60,9 +58,6 @@ export class SessionForkError extends Error {
   }
 }
 
-// Scope primitives live in ../agents/scope.js (the client mirror of host
-// freddie-scope, keyed by Agent identity); re-exported here so existing
-// consumers keep their import site.
 export { scopeOf } from '../agents/scope.js'
 
 /**
@@ -103,9 +98,9 @@ function increasedForkTitle(title) {
   if (ascii?.[1] !== undefined && ascii[2] !== undefined) {
     return `${ascii[1]}(${BigInt(ascii[2]) + 1n})`
   }
-  const fullWidth = /^(.*?)（(\d+)）$/u.exec(title)
+  const fullWidth = /^(.*?)\uff08(\d+)\uff09$/u.exec(title)
   if (fullWidth?.[1] !== undefined && fullWidth[2] !== undefined) {
-    return `${fullWidth[1]}（${BigInt(fullWidth[2]) + 1n}）`
+    return `${fullWidth[1]}\uff08${BigInt(fullWidth[2]) + 1n}\uff09`
   }
   return `${title} (1)`
 }
@@ -155,7 +150,7 @@ export class SessionRuntime {
   deferredRemovals = new Set()
 
   /**
-   * @param ctx - client root context (scope fibers mount under it).
+   * @param rootCtx - client root context (scope fibers mount under it).
    * @param api - wire client shared with every Session.
    * @param remote - generated Remote namespaces shared with every Session.
    * @param conversationRuntime - same-pass registry instances, when runtime apply owns them.
@@ -189,16 +184,7 @@ export class SessionRuntime {
       ids: [], byId: {}, current: undefined, phase: 'pending',
       subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
     })
-    // The manager owns wire truth; the store is its projection. Manager
-    // notifications are already microtask-batched.
     this.manager.subscribe(() => { this.projectList() })
-    // Stage follower: every current write (open() and projection alike)
-    // re-evaluates staging, so startup restore (persisted selection validated
-    // by the projection) and reconnect resurfacing open their window with no
-    // dedicated code path. Safe to run synchronously inside the store notify:
-    // the follower writes no list state — session.open()'s synchronous prefix
-    // touches only session-side state and its own microtask-batched notifier.
-    // The current-provide projection follows the same current writes.
     this.list.subscribe(() => {
       this.followCurrent()
       this.provideChannel.publishCurrent()
@@ -245,9 +231,6 @@ export class SessionRuntime {
    * @returns disposer removing the provider (already-materialized bundles keep their members until their scope drops).
    */
   provide(descriptor) {
-    // Scopes may already exist (boot order: the list lands and resolves
-    // scopes before later plugins register) — the channel rebuilds their
-    // bundles through the host hooks so every provider lands by first render.
     return this.provideChannel.provide(descriptor)
   }
 
@@ -416,9 +399,6 @@ export class SessionRuntime {
       : undefined
     const result = await this.manager.fork({
       sessionId: opts.sessionId,
-      // Flooring lands inside the anchor's own turn (every turn opens with a
-      // turn/start), so the host's first-turn/end-at-or-after cut still ends
-      // on that turn — never clipped back to the previous one.
       ...(opts.atSeq === undefined ? {} : { atSeq: Math.floor(opts.atSeq) }),
     })
     if (!result.ok) throw new SessionForkError(result.error, opts.sessionId)
@@ -508,9 +488,6 @@ export class SessionRuntime {
   followCurrent() {
     const snapshot = this.list.getSnapshot()
     const current = snapshot.current
-    // A masked gap (current blanked while the selection's session is
-    // transiently absent) holds the stage: tearing down on the gap would
-    // destroy exactly the frozen scope the mask exists to preserve.
     if (current === undefined || snapshot.byId[current] === undefined || current === this.watched) return
     this.watched = current
     this.sweepDeferred()
@@ -536,8 +513,6 @@ export class SessionRuntime {
     if (!this.eligible(id)) return undefined
     const { fiber, ctx } = createScope(this.rootCtx, id)
     const session = this.manager.get(id)
-    // The Session owns its scoped dispatch point (host Agent.loopCtx mirror);
-    // mint and bind are one step so a live scope record implies a bound actx.
     session.bindScope(ctx)
     const binding = { sessionId: id, session, ctx }
     const record = {
@@ -545,7 +520,6 @@ export class SessionRuntime {
       ctx,
       binding,
       session,
-      // Sources are bare observables; React binds selector hooks at its own boundary.
       provideInfo: this.provideChannel.materializeInfo(binding),
     }
     this.scopes.set(id, record)
@@ -618,8 +592,6 @@ export class SessionRuntime {
       }
     }
     const persisted = this.selection.getSnapshot().sessionId
-    // No current (cleared, or masked gap) wipes the persisted cell — a reload
-    // stays on empty; the in-memory selection still resurfaces a masked id.
     if (current === undefined) {
       if (persisted !== undefined) this.selection.set({})
     } else if (byId[current] !== undefined
@@ -659,11 +631,7 @@ export class SessionRuntime {
    */
   dropScope(id, record) {
     void record.fiber.dispose()
-    // Release the Session's dispatch point with the scope it belongs to (a
-    // surviving instance — the live Intent — rebinds when resolve re-mints).
     record.session.unbindScope()
-    // Optional lookup: slots and sessions are sibling services with no
-    // declared dependency; a slots-less boot (object-layer tests) skips.
     this.rootCtx.get('slots')?.pruneStoreScope(id)
     this.manager.drop(id)
   }
@@ -675,7 +643,6 @@ export class SessionRuntime {
        * stage move sweeps first, so the set cannot contain the id the stage just
        * moved to; kept as a guard against future extra sweep call sites. */
       if (id === this.watched) continue
-      // Eligible again? (A re-added id cancels the deferred teardown.)
       if (this.eligible(id)) {
         this.deferredRemovals.delete(id)
         continue

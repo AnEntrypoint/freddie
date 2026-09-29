@@ -21,6 +21,7 @@ export const inject = ['storage']
  * `root` has NO default on purpose: a `process.cwd()` fallback would scatter
  * unit files wherever the process happens to start; assemblies state the
  * location explicitly.
+ * @name Config
  */
 
 /** Config schema. */
@@ -31,21 +32,16 @@ export const Config = z.object({
 /** JSON backend: owns the file-tree root and serves the `kv` facet. */
 export class JsonStorageBackend {
   open = new Map()
-  // Reserved synchronously at open() entry so a concurrent open of the same
-  // unit fails, and close() can await opens still in flight.
   opening = new Map()
   closed = false
 
   constructor(root) {
     this.root = root
     this.kv = {
-      // The body up to the first await runs synchronously, so the opening-slot
-      // reservation below still excludes a concurrent open of the same unit.
       open: async (descriptor) => {
         if (this.closed) throw new StorageError('closed', 'json backend is closed')
         validateDescriptor(descriptor)
         if (this.open.has(descriptor.name) || this.opening.has(descriptor.name)) {
-          // Double-open is a caller bug, not a medium condition.
           throw new Error(`unit '${descriptor.name}' is already open; a unit has exactly one live handle`)
         }
         const opening = this.openUnit(descriptor)
@@ -60,8 +56,6 @@ export class JsonStorageBackend {
     const path = join(this.root, `${descriptor.name}.json`)
     const unit = await openJsonUnit(descriptor, path, () => this.open.delete(descriptor.name))
     if (this.closed) {
-      // The backend closed while this open was in flight: do not hand out a
-      // live unit past close().
       await unit.close()
       throw new StorageError('closed', 'json backend is closed')
     }

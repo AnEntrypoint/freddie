@@ -14,7 +14,10 @@ import { ApprovalRequestId } from './types.js'
 
 export { ApprovalRequestId } from './types.js'
 
-/** Every {@link ApprovalOutcome}, for runtime normalization of answerer returns. */
+/**
+ * Every {@link ApprovalOutcome}, for runtime normalization of answerer returns.
+ * @typedef {'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'} ApprovalOutcome
+ */
 const OUTCOMES = ['allowed-once', 'rejected', 'cancelled', 'unavailable']
 
 /**
@@ -26,6 +29,7 @@ const OUTCOMES = ['allowed-once', 'rejected', 'cancelled', 'unavailable']
  * - `'never'` — never prompt anyone: every ask resolves `'rejected'`
  *   deterministically. The strict headless stance (CI, unattended runs) and
  *   the policy whose outcome is knowable without asking.
+ * @typedef {'ask' | 'never'} ApprovalPolicy
  */
 
 /** Every {@link ApprovalPolicy}, for option advertisement and runtime validation of untrusted policy strings. */
@@ -84,9 +88,19 @@ export function setApprovalPolicy(session, policy) {
 /**
  * Readonly same-process permission question. `callId` links to an already
  * presented tool call, so arguments are not duplicated here.
+ * @typedef {object} ApprovalRequest
+ * @property {import('@freddie/freddie-agent').Agent} agent - the requesting agent.
+ * @property {string} toolName - resolved tool name behind the ask.
+ * @property {string} [callId] - the already-presented tool call this question answers.
+ * @property {string} [reason] - operator-facing reason for the ask.
+ * @property {AbortSignal} [signal] - live cancellation for the ask.
  */
 
-/** Plugin config. All optional — `static Config` supplies the defaults. */
+/**
+ * Plugin config. All optional — `static Config` supplies the defaults.
+ * @typedef {object} ApprovalServiceConfig
+ * @property {ApprovalPolicy} [policy] - default policy applied when a session has no override.
+ */
 
 /**
  * Approval service that applies session policy before answerers and logs every
@@ -104,15 +118,12 @@ export class ApprovalService extends Service {
 
     const effective = (agent) => this.effectivePolicy(agent.session)
 
-    // The complete current value travels after retained history, so switching
-    // policy does not rewrite the stable system-prompt cache prefix.
     ctx.inject(['systemPrompt'], (scope) => {
       scope.systemPrompt.context({
         name: 'approval:policy',
         order: 115,
         text: (context) => {
           const agent = context.agent
-          // A bare assemble() (tests, diagnostics) has no session to state.
           if (agent === undefined) return ''
           const policy = effective(agent)
           return policy === 'never' ? NEVER_SENTENCE : ASK_SENTENCE
@@ -209,27 +220,14 @@ export class ApprovalService extends Service {
   async decide(req, session) {
     const signal = req.signal
     if (signal?.aborted) return 'cancelled'
-    // The 'never' policy is decided HERE, before any dispatch: a listener
-    // registered with `prepend: true` after this service mounts would sit
-    // ahead of any gate LISTENER, so a listener-shaped gate cannot keep the
-    // documented promise that 'never' rejects deterministically regardless
-    // of registration order — only the service's own request path can.
     if (this.effectivePolicy(session) === 'never') return 'rejected'
-    // Enter the promise chain BEFORE dispatching: a listener that throws
-    // SYNCHRONOUSLY (before its first await) must land in the same rejection
-    // path as an async one — `Promise.resolve(call())` would let it escape
-    // the containment into the caller.
     const answer = Promise.resolve().then(
       () => this.ctx.waterfall(
         scopeTarget(this, req.agent), 'approval/request', req,
         () => Promise.resolve('unavailable'),
       ),
     ).then(
-      // Normalize a rogue (non-vocabulary) answerer return to the fail-closed
-      // outcome instead of leaking it into callers' closed-union switches.
       outcome => OUTCOMES.includes(outcome) ? outcome : 'unavailable',
-      // A throwing answerer must fail the QUESTION closed, not the caller's
-      // tool call open — the seam contains its callbacks.
       () => 'unavailable',
     )
     if (signal === undefined) return answer
@@ -241,8 +239,6 @@ export class ApprovalService extends Service {
       signal.addEventListener('abort', onAbort, { once: true })
       void answer.then((outcome) => {
         signal.removeEventListener('abort', onAbort)
-        // After an abort won the race this resolve is a settled-promise no-op:
-        // the late answer is discarded by construction.
         resolve(outcome)
       })
     })

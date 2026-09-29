@@ -29,9 +29,6 @@ export const RECONNECT_DEFAULTS = Object.freeze({
   maxAttempts: 10,
 })
 
-// The SDK's stdio transport owns two two-second termination grace periods.
-// Keep one additional second for the process-close event that proves the old
-// generation is gone; timing out fails closed instead of overlapping children.
 const GENERATION_CLOSE_TIMEOUT_MS = 5_000
 
 /**
@@ -87,9 +84,6 @@ export function startConnection(ctx, config, policy) {
     serverName: config.serverName,
     toolCallTimeoutMs: config.toolCallTimeoutMs,
   }
-  // The initial sync uses 'throw' when failOnStartupError is configured, so
-  // a registration conflict propagates to the startup-await path. Re-syncs
-  // and reconnect syncs always contain conflicts.
   const startupOpts = config.failOnStartupError
     ? { ...opts, registrationFailure: 'throw' }
     : opts
@@ -124,7 +118,6 @@ export function startConnection(ctx, config, policy) {
       if (!isCurrent(generation)) return
       disposers = await syncTools(generation, ctx, syncOpts, disposers)
     })
-    // The chain tail must survive a failed sync; the enqueuing caller owns reporting.
     syncChain = run.catch(() => {})
     return run
   }
@@ -158,14 +151,10 @@ export function startConnection(ctx, config, policy) {
       ctx.logger.error(`${label}: ${message}`)
       return
     }
-    // A connection that stayed up past the stability window (= maxDelayMs, the
-    // longest backoff spacing) ended the previous outage: start a fresh budget.
     if (connectedAt !== undefined && Date.now() - connectedAt >= policy.maxDelayMs) failedAttempts = 0
     connectedAt = undefined
     failedAttempts += 1
     if (failedAttempts > policy.maxAttempts) {
-      // Enqueue the give-up disposal so it cannot race an in-flight sync's
-      // phase-2 swap (which checks isCurrent inside the queue).
       syncChain = syncChain.then(() => {
         for (const dispose of disposers.values()) dispose()
         disposers = new Map()
@@ -180,7 +169,6 @@ export function startConnection(ctx, config, policy) {
       reconnectTimer = undefined
       settling = connectGeneration(false)
     }, delayMs)
-    // An armed reconnect timer must never hold the process open on its own.
     reconnectTimer.unref()
   }
 
@@ -208,12 +196,8 @@ export function startConnection(ctx, config, policy) {
     generation.onclose = () => {
       closeObserved = true
       closed.resolve()
-      // A failed connect owns its close barrier in the catch path below. An
-      // established generation can transition down directly from this signal.
       if (attemptSettled) generationDown(generation)
     }
-    // Registered before connect so a list change during the initial sync is
-    // queued behind it rather than dropped.
     generation.setNotificationHandler(
       ToolListChangedNotificationSchema,
       async () => {
@@ -222,14 +206,16 @@ export function startConnection(ctx, config, policy) {
         try {
           await enqueueSync(generation)
         } catch (error) {
-          // Fetch-phase failure: the previous generation is still registered
-          // and `disposers` still owns it — keep serving the last good list.
           if (!disposed) ctx.logger.error(`${label}: tool re-sync failed: ${String(error)}`)
         }
       },
     )
     try {
-      await generation.connect(createTransport(config))
+      const transport = createTransport(config)
+      transport.stderr?.on('data', (chunk) => {
+        ctx.logger.debug(`${label}: server stderr: ${String(chunk).trimEnd()}`)
+      })
+      await generation.connect(transport)
       if (hasClosed()) {
         attemptSettled = true
         generationDown(generation)
@@ -238,10 +224,8 @@ export function startConnection(ctx, config, policy) {
       await enqueueSync(generation, startup ? startupOpts : opts)
     } catch (error) {
       if (firstAttemptError === undefined) firstAttemptError = error
-      // Disposal clears current ownership before it closes the generation, so
-      // only a live supervisor reports an attempt failure.
       if (isCurrent(generation)) ctx.logger.warn(`${label}: connection attempt failed: ${String(error)}`)
-      try { await generation.close() } catch { /* transport already gone */ }
+      try { await generation.close() } catch { }
       const quiesced = hasClosed() || await waitForClose(closed.promise)
       attemptSettled = true
       if (!isCurrent(generation)) return
@@ -267,16 +251,7 @@ export function startConnection(ctx, config, policy) {
   /** The in-flight (or last settled) connection attempt; dispose awaits it for quiescence. */
   let settling = connectGeneration(true)
 
-  // The ready promise settles when the first attempt finishes (regardless of
-  // success). If the first attempt fails and reconnect is enabled, the
-  // supervisor is already scheduling a retry — ready just reports the outcome.
   const ready = settling.then(() => {
-    // After settling: if client is set the initial connect+sync succeeded.
-    // If not, the supervisor either scheduled a retry (error logged) or gave
-    // up (error logged). Either way the outcome is reported with the real error.
-    // Note: settling.then() is a microtask; stdio onclose is a macrotask — so
-    // a server that crashes AFTER a successful initial sync cannot flip client
-    // to undefined before this continuation runs.
     if (client !== undefined) return {}
     /* v8 ignore next -- defensive: firstAttemptError is always set when connect/sync fails */
     return { error: firstAttemptError ?? new Error(`${label}: initial connection failed`) }
@@ -295,13 +270,11 @@ export function startConnection(ctx, config, policy) {
       client = undefined
       clientClosed = undefined
       if (current !== undefined) {
-        try { await current.close() } catch { /* transport already gone */ }
+        try { await current.close() } catch { }
         if (currentClosed !== undefined && !await waitForClose(currentClosed)) {
           ctx.logger.error(`${label}: generation did not close within ${GENERATION_CLOSE_TIMEOUT_MS}ms during disposal — server shutdown may be incomplete`)
         }
       }
-      // Quiesce, don't just request it: the in-flight attempt enqueues its
-      // sync before settling, so awaiting both leaves `disposers` final.
       await settling
       await syncChain
       for (const dispose of disposers.values()) dispose()

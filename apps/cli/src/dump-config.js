@@ -46,7 +46,6 @@ export function runDumpConfig(profile, defaultOnly, patches) {
       layers.push({ label: absolute, patches: loadOverlayPatches(NAME, absolute) })
     }
   }
-  // The dump anchors on the same empty root file the boot includes.
   process.stdout.write(renderConfigDump(NAME, join(loaded.dir, PROFILE_ROOT_FILENAME), layers))
 }
 /* v8 ignore stop */

@@ -1,20 +1,3 @@
-// Menu: minimal controlled dropdown (group-by pickers, project selectors).
-// Default: pure CSS positioning relative to the anchor wrapper — no popper.
-// Opt-in `portal` renders the list into document.body, fixed-positioned from
-// the anchor rect, for anchors inside overflow-clipping containers (sidebar).
-// The owner controls `open`; outside-click closing uses one document listener
-// active only while open. Submenus open on hover/focus inside the same root.
-// Entries also cover non-interactive `label` headings and `danger` rows.
-// Lists keep 12px clearance to the viewport's top/bottom edges and scroll
-// internally past that; submenu-bearing menus are exempt (see .scrollable).
-//
-// Converted from a React hooks component to a webjsx custom element:
-// openSubmenuId/fixedPos become instance fields, the placement/outside-click/
-// grace-cancel effects become connectedCallback/disconnectedCallback plus
-// createDismissOnOutsidePointer, and re-render is an explicit
-// applyDiff(this, vdom) call (Toast.tsx's pattern). Portal mode appends the
-// list element to document.body directly (createPortal's webjsx equivalent).
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { IconCheckOutline16 } from './icons/index.js'
@@ -161,11 +144,6 @@ export class FreddieMenu extends HTMLElement {
     document.addEventListener('keydown', onKeyDown)
   }
 
-  // WAI-ARIA menu pattern: ArrowDown/ArrowUp move focus among menuitems
-  // (wrapping at the ends), matching role="menu"'s implied keyboard contract.
-  // Queries the live DOM rather than tracking a parallel focus-index field,
-  // since the rendered item set already reflects open/submenu state and Tab
-  // (real <button> elements) must keep working identically either way.
   #moveFocus(delta) {
     const root = this.#portalList ?? this
     const items = [...root.querySelectorAll('[role="menuitem"]:not(:disabled)')]
@@ -337,6 +315,29 @@ export class FreddieMenu extends HTMLElement {
 }
 
 defineElement('freddie-menu', FreddieMenu)
+
+/**
+ * @typedef {object} MenuProps
+ * @property {boolean} [open=false] - whether the list is open.
+ * @property {*} [anchor] - trigger content rendered before the list (e.g. a button vnode).
+ * @property {Array<object>} [items=[]] - menu entries: item, separator (`type: 'separator'`) or
+ *   label (`type: 'label'`, with `text`) rows. An item row has `id`, `label`, optional `icon`,
+ *   `disabled`, `danger`, and an optional `submenu` (same item shape, nested one level).
+ * @property {function(string): void} [onSelect=() => {}] - called with the selected entry's `id`.
+ * @property {function(): void} [onClose=() => {}] - called on outside click, Escape, or pointer-leave grace expiry.
+ * @property {Array<object>} [footer] - same entry shape as `items`, rendered in a separate footer section.
+ * @property {boolean} [dense=false]
+ * @property {boolean} [compact=false]
+ * @property {boolean} [portal=false] - render the list into a fixed-position node appended to `document.body`.
+ * @property {function(): ({top: number, left: number, right: number, bottom: number}|null)} [getAnchorRect] -
+ *   custom anchor-rect resolver used for portal placement; falls back to the `[data-menu-root]` wrapper's rect.
+ * @property {'top'|'bottom'} [side='bottom'] - portal placement side.
+ * @property {'start'|'end'} [align='start'] - portal placement alignment.
+ * @property {string} [className]
+ * @property {boolean} [closeOnPointerLeave=false] - close after a short grace period once the pointer leaves.
+ * @property {string} [selectedId] - id of the single selected entry, shown with a check mark.
+ * @property {Array<string>} [selectedIds] - ids of multiple selected entries.
+ */
 
 /**
  * Create (if needed) or update a Menu element in place.

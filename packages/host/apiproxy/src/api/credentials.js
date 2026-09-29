@@ -5,4 +5,5 @@
  * value crosses the wire in exactly one direction, inside `credentials.set`.
  * There is no enumeration method by design: clients learn which references
  * exist from settings schemas and values (`apiKeyEnv` fields).
+ * @module @freddie/freddie-host-apiproxy/api/credentials
  */

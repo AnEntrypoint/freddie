@@ -30,6 +30,31 @@
  * @module @freddie/freddie-output-retention
  */
 
+/**
+ * Why some content was left out of a retained result, or that nothing was.
+ * @typedef {{ kind: 'none' } | { kind: 'exact', count: number } | { kind: 'unknown' }} RetentionOmitted
+ */
+
+/**
+ * The result of {@link ItemRetainer.finish}: which logical units were kept
+ * and the exact omission count.
+ * @typedef {object} RetainedItems
+ * @property {Array<unknown>} items - the retained logical units, in push order.
+ * @property {boolean} truncated - whether the retainer omitted otherwise-available content because of a budget.
+ * @property {number} seen - every unit pushed, kept or not.
+ * @property {number} kept - `items.length`.
+ * @property {RetentionOmitted} omitted
+ */
+
+/**
+ * The result of {@link TextRetainer.finish}: the retained prefix/suffix text
+ * and the exact omitted byte count.
+ * @typedef {object} RetainedText
+ * @property {string} text - the retained text, UTF-8 boundary safe.
+ * @property {boolean} truncated - whether the retainer omitted otherwise-available content because of a budget.
+ * @property {RetentionOmitted} omittedBytes
+ */
+
 /** Assert a budget field is a non-negative integer (the retainer request contract). */
 function assertBudget(value, name) {
   if (!Number.isInteger(value) || value < 0) {
@@ -70,8 +95,6 @@ export class ItemRetainer {
   push(item) {
     this.seen++
     if (this.items.length < this.maxItems) {
-      // Reached only below the cap, before any omission (items only grow, the
-      // cap is fixed), so nothing has been dropped yet: truncated is always false.
       this.items.push(item)
       return { kept: true, truncated: false }
     }
@@ -102,7 +125,7 @@ export class ItemRetainer {
 }
 
 const encoder = new TextEncoder()
-const decoder = new TextDecoder() // utf-8, non-fatal: internal malformed bytes → U+FFFD
+const decoder = new TextDecoder()
 
 /**
  * Drop a trailing incomplete UTF-8 sequence so a prefix cut never emits a
@@ -114,13 +137,10 @@ const decoder = new TextDecoder() // utf-8, non-fatal: internal malformed bytes 
  */
 function trimTrailingPartialUtf8(bytes) {
   let i = bytes.length - 1
-  // Continuation bytes are 0b10xxxxxx; scan back at most 3 (max sequence is 4).
-  // Indices are bounds-checked by the loop guard, so the reads are in range.
   while (i >= 0 && (bytes[i] & 0xc0) === 0x80 && bytes.length - i <= 3) i--
   if (i < 0) return bytes
   const lead = bytes[i]
   const expected = lead < 0x80 ? 1 : lead < 0xe0 ? 2 : lead < 0xf0 ? 3 : lead < 0xf8 ? 4 : 0
-  // expected 0 → not a lead byte (stray continuation / invalid): leave it.
   if (expected === 0) return bytes
   return bytes.length - i < expected ? bytes.subarray(0, i) : bytes
 }
@@ -131,7 +151,6 @@ function trimTrailingPartialUtf8(bytes) {
  */
 function trimLeadingContinuationUtf8(bytes) {
   let i = 0
-  // i < length guards the read.
   while (i < bytes.length && (bytes[i] & 0xc0) === 0x80) i++
   return bytes.subarray(i)
 }
@@ -193,7 +212,6 @@ export class TextRetainer {
     const before = this.total
     this.total += bytes.length
 
-    // Prefix: take only up to the cap; the rest of this chunk is "not prefixed".
     const room = this.prefixCap - this.prefixHeld
     const take = Math.max(0, Math.min(room, bytes.length))
     if (take > 0) {
@@ -201,8 +219,6 @@ export class TextRetainer {
       this.prefixHeld += take
     }
 
-    // Suffix: append the whole chunk, then drop whole leading chunks that have
-    // fully slid out of the last `suffixCap` bytes (bounded memory).
     if (this.suffixCap > 0) {
       this.suffixChunks.push(bytes)
       this.suffixHeld += bytes.length
@@ -212,14 +228,6 @@ export class TextRetainer {
         this.suffixHeld -= head.length
         head = this.suffixChunks[0]
       }
-      // The head chunk can still hold leading bytes beyond the last `suffixCap`
-      // — a single chunk LARGER than the window is retained whole by the loop
-      // above (dropping the only chunk would leave < cap). Trim those leading
-      // bytes so the accumulator (and finish()'s concat) stays bounded by
-      // `suffixCap` instead of allocating/copying the full chunk again;
-      // finish() only ever reads the last `suffixLen ≤ suffixCap` bytes, so this
-      // drops nothing it would return. (head.length > excess by the loop
-      // invariant `suffixHeld - head.length < suffixCap`, so the slice is non-empty.)
       if (head !== undefined && this.suffixHeld > this.suffixCap) {
         const excess = this.suffixHeld - this.suffixCap
         this.suffixChunks[0] = head.subarray(excess)
@@ -227,10 +235,6 @@ export class TextRetainer {
       }
     }
 
-    // Dropped = bytes that no side can keep. Compute cumulative omission the
-    // SAME way finish() does (via omittedAt), so push and finish never disagree;
-    // per-push we only need whether THIS chunk pushed the total past what the
-    // two caps hold.
     const droppedThisChunk = this.omittedAt(this.total) > this.omittedAt(before)
     return {
       kept: !droppedThisChunk,
@@ -255,16 +259,9 @@ export class TextRetainer {
     const prefixLen = Math.min(this.total, this.prefixCap)
     const suffixLen = Math.min(this.total - prefixLen, this.suffixCap)
 
-    const prefix = concat(this.prefixChunks) // exactly prefixLen bytes (prefixHeld === prefixLen)
+    const prefix = concat(this.prefixChunks)
     const suffix = concat(this.suffixChunks).subarray(this.suffixHeld - suffixLen)
 
-    // With nothing omitted by budget, prefix and suffix are ADJACENT slices of
-    // one stream (prefixLen + suffixLen === total), so the head|tail split is
-    // artificial: a codepoint may span it. Decode the contiguous whole as one
-    // buffer — trimming or decoding the halves separately here would corrupt a
-    // boundary-spanning codepoint though no content was dropped. Only a real
-    // omitted gap makes each side a true cut: trim each to a UTF-8 boundary and
-    // decode separately so a codepoint is never reconstructed across the gap.
     const budgetOmitted = this.omittedAt(this.total)
     const [keptPrefix, keptSuffix] = budgetOmitted > 0
       ? [trimTrailingPartialUtf8(prefix), trimLeadingContinuationUtf8(suffix)]
@@ -273,10 +270,6 @@ export class TextRetainer {
       ? decoder.decode(keptPrefix) + decoder.decode(keptSuffix)
       : decoder.decode(concat([prefix, suffix]))
 
-    // Report omission against the bytes ACTUALLY returned, not the pre-trim
-    // budget: a boundary trim drops partial-codepoint bytes too, so an exact
-    // count derived from the budget alone would overstate the retained text (and
-    // any "Omitted N bytes" notice built from it would be a lie).
     const omitted = this.total - keptPrefix.length - keptSuffix.length
     const truncated = omitted > 0
 

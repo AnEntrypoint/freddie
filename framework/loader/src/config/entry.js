@@ -36,7 +36,6 @@ export class Entry {
   ctx
   fiber
   parent
-  // safety: call `entry.update()` immediately after creating an entry
   options = {}
   subgroup
   subtree
@@ -70,7 +69,6 @@ export class Entry {
   }
 
   _disabled(options) {
-    // group is always enabled
     if (options.group) return false
     if (this.disabledOf(options)) return true
     let entry = this.parent.ctx.fiber.entry

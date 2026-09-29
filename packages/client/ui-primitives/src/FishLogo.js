@@ -1,7 +1,3 @@
-// Freddie mustache mark. Native 500x220 viewBox, rendered 24x10.56 by
-// default (ratio-locked to the source artwork). Color rides currentColor
-// so it stays legible in both light and dark themes.
-
 import { createElement as h } from '@freddie/webjsx'
 
 /**

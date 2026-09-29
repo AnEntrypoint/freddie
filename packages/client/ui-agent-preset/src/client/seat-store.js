@@ -74,12 +74,6 @@ export class AgentPresetSeatController {
       this.fallback = presets.find(preset => preset.isDefault)?.id ?? presets[0]?.id ?? ''
       this.set({
         options: presetOptions(presets),
-        // Staged pick first, then the composition the current session
-        // already carries, then the deployment default. The middle term is
-        // what keeps a late-landing load from regressing the display after
-        // an applied stage was consumed — the chip mounts (and loads) only
-        // once the flow's session is current, so the reply can arrive after
-        // apply() already composed it.
         current: this.staged ?? this.currentSession()?.agentPreset ?? this.fallback,
         error: null,
       })
@@ -133,10 +127,6 @@ export class AgentPresetSeatController {
     const staged = this.staged
     const session = this.currentSession()
     if (staged === undefined || session === undefined || this.applyingSessionId !== undefined) return
-    // The current session may change more than once while a staged selection
-    // waits for its blank receiver. A nonblank session cannot consume it, but
-    // does not invalidate it: it may be the session that was current when the
-    // creator flow opened.
     if (!session.blank) return
     if (session.agentPreset === staged) {
       this.staged = undefined
@@ -151,7 +141,6 @@ export class AgentPresetSeatController {
         this.set({ busy: false, error: response.result.error.message, current: this.fallback })
         return
       }
-      // Consumed: the next new session opens on the deployment default again.
       this.set({ busy: false, current: response.result.value.agentPreset })
       this.onApplied?.(session.id, response.result.value.agentPreset)
     } catch (error) {

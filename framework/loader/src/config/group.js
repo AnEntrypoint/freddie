@@ -25,10 +25,7 @@ export class EntryGroup {
     const existing = this.tree.store[id]
     const entry = existing ?? (this.tree.store[id] = new Entry(this.ctx.loader))
     const previousParent = entry.parent
-    // Entry may be moved from another group,
-    // so we need to update the parent reference.
     entry.parent = this
-    // Use `create: true` to replace existing entry.options.
     try {
       await entry.update(options, true, true)
     } catch (error) {
@@ -72,9 +69,6 @@ export class EntryGroup {
 
     try {
       const outcomes = await Promise.allSettled(config.map(options => this.create(options)))
-      // Disposal owns termination: sibling starts can still be settling after
-      // the containing tree has gone away, but their failures no longer
-      // describe a live update to roll back.
       if (this.ctx.fiber.uid === null) return
       const failures = outcomes
         .filter((outcome) => outcome.status === 'rejected')

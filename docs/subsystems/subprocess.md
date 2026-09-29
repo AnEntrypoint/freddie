@@ -1,8 +1,8 @@
 # Subprocess
 
-The subprocess seam is split across a Service Definition ([dsh-subprocess](../../packages/subprocess/subprocess), `ctx.subprocess`) and Service Provider ([dsh-subprocess-local](../../packages/subprocess/subprocess-local)); its Consumers are other capability seams and out-of-process backends: the [bash executor family](shell.md) uses collected batch output, LSP uses raw protocol pipes, the PTY backend uses the terminal primitive, and the ACP subagent backend uses piped ndjson plus inherited stderr. This seam owns the managed `FREDDIE_*` environment namespace, the shared credential scrub (`scrubbedParentEnv`), and the `CollectedOutput` shape; [dsh-shell](../../packages/shell/shell) re-exports the vocabulary so bash consumers keep one import root.
+The subprocess seam is split across a Service Definition ([@freddie/freddie-subprocess](../../packages/subprocess/subprocess), `ctx.subprocess`) and Service Provider ([@freddie/freddie-subprocess-local](../../packages/subprocess/subprocess-local)); its Consumers are other capability seams and out-of-process backends: the [bash executor family](shell.md) uses collected batch output, LSP uses raw protocol pipes, the PTY backend uses the terminal primitive, and the ACP subagent backend uses piped ndjson plus inherited stderr. This seam owns the managed `FREDDIE_*` environment namespace, the shared credential scrub (`scrubbedParentEnv`), and the `CollectedOutput` shape; [@freddie/freddie-shell](../../packages/shell/shell) re-exports the vocabulary so bash consumers keep one import root.
 
-Source: [`packages/subprocess/subprocess/src/types.ts`](../../packages/subprocess/subprocess/src/types.js) and [`packages/subprocess/subprocess/src/index.ts`](../../packages/subprocess/subprocess/src/index.js)
+Source: [`packages/subprocess/subprocess/src/types.js`](../../packages/subprocess/subprocess/src/types.js) and [`packages/subprocess/subprocess/src/index.js`](../../packages/subprocess/subprocess/src/index.js)
 
 ## Executable lookup
 
@@ -14,12 +14,12 @@ One provider's spawn working directories, executable paths, ordinary processes, 
 
 ```ts type-equiv
 /** One environment key inside the managed {@link FREDDIE_ENV_PREFIX} namespace. */
-type DshEnvironmentKey = `${typeof FREDDIE_ENV_PREFIX}${string}`
+type FreddieEnvironmentKey = `${typeof FREDDIE_ENV_PREFIX}${string}`
 ```
 
 ```ts type-equiv
 /** Trusted Freddie variables for one child-process execution. */
-type DshEnvironment = Readonly<Record<DshEnvironmentKey, string>>
+type FreddieEnvironment = Readonly<Record<FreddieEnvironmentKey, string>>
 ```
 
 ```ts type-equiv
@@ -92,7 +92,7 @@ The seam applies no defaults: every disposition, limit, and directory is explici
 /**
  * A fully-specified spawn request. This seam applies no defaults: every
  * disposition, limit, and directory is explicit, so the caller's own config —
- * not a hidden subprocess-service default — decides them (the `dsh-shell`
+ * not a hidden subprocess-service default — decides them (the `@freddie/freddie-shell`
  * request/spec split is the owning template).
  */
 interface SubprocessSpawnSpec {
@@ -244,15 +244,15 @@ The terminal spec fully specifies argv, cwd, environment overrides, dimensions, 
 
 ## Service behavior
 
-The abstract [`SubprocessRuntime`](../../packages/subprocess/subprocess/src/index.js) Service Definition specifies execution-world coordinates, executable lookup, ordinary `spawn`, and `spawnTerminal`. [`LocalSubprocessRuntime`](../../packages/subprocess/subprocess-local/src/index.js) provides them with detached process trees, per-disposition wiring, credential scrubbing, `node-pty`, platform process inspection, and terminate-and-join disposal. See [`dsh-subprocess`](../../packages/subprocess/subprocess/README.md) for the Service Definition contract and [`dsh-subprocess-local`](../../packages/subprocess/subprocess-local/README.md) for local mechanics.
+The abstract [`SubprocessRuntime`](../../packages/subprocess/subprocess/src/index.js) Service Definition specifies execution-world coordinates, executable lookup, ordinary `spawn`, and `spawnTerminal`. [`LocalSubprocessRuntime`](../../packages/subprocess/subprocess-local/src/index.js) provides them with detached process trees, per-disposition wiring, credential scrubbing, `node-pty`, platform process inspection, and terminate-and-join disposal. See [`@freddie/freddie-subprocess`](../../packages/subprocess/subprocess/README.md) for the Service Definition contract and [`@freddie/freddie-subprocess-local`](../../packages/subprocess/subprocess-local/README.md) for local mechanics.
 
-<!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
+<!-- BEGIN cordis-surface (hand-maintained) -->
 
 <a id="cordis-surface"></a>
 
 ## Cordis API
 
-Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+Originally generated from source by `scripts/gen-cordis-catalog.ts`; that script and its `verify-cordis-catalog` freshness check no longer exist, so this region is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
 <a id="ctxe2b--e2bruntime"></a>
 
@@ -269,7 +269,7 @@ Creates one lazily consumable E2B SDK handle and deletes the sandbox at timeout 
 async getSandbox(): Promise<Sandbox>
 ```
 
-Source: [`packages/e2b/e2b/src/index.ts`](../../packages/e2b/e2b/src/index.js)
+Source: [`packages/e2b/e2b/src/index.js`](../../packages/e2b/e2b/src/index.js)
 
 <a id="ctxsubprocess--subprocessruntime-abstract-seam"></a>
 
@@ -318,5 +318,5 @@ abstract spawn(spec: SubprocessSpawnSpec): SubprocessHandle
 abstract spawnTerminal(spec: SubprocessTerminalSpawnSpec): Promise<SubprocessTerminalHandle>
 ```
 
-Source: [`packages/subprocess/subprocess/src/index.ts`](../../packages/subprocess/subprocess/src/index.js)
-<!-- END GENERATED cordis-surface -->
+Source: [`packages/subprocess/subprocess/src/index.js`](../../packages/subprocess/subprocess/src/index.js)
+<!-- END cordis-surface -->

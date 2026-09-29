@@ -1,19 +1,3 @@
-// SearchBlock: the search surface for a completed content or path search — a
-// banner (result summary that folds the pre-cap total in when the tool capped
-// the result, plus a copy control), then either grep matches grouped by file
-// (each file a bold
-// path header with its `lineNumber: line` rows, the group collapsible) or a
-// flat glob path list. Both shapes flatten to one list of rows the height cap
-// slices head/tail over, and neither soft-wraps: a long match line or path
-// scrolls horizontally instead of folding. Geometry mirrors CodeBlock and
-// TerminalBlock so a search card reads as one family with them.
-//
-// Converted from a React hooks component to a webjsx custom element:
-// expanded/collapsed become instance fields, and copy feedback now uses the
-// createCopyFeedback factory (replacing the old useCopyFeedback hook) driven
-// from connectedCallback/disconnectedCallback. Re-render is an explicit
-// applyDiff(this, vdom) call (Toast.tsx's pattern).
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { headTailCap } from './head-tail-cap.js'
@@ -23,7 +7,7 @@ import { defineElement } from './define-element.js'
 
 /**
  * Result rows shown before the height cap collapses the middle. Matches
- * {@link DEFAULT_TERMINAL_MAX_LINES} so a search card and a terminal card cut a
+ * {@link import('./TerminalBlock.js').DEFAULT_TERMINAL_MAX_LINES} so a search card and a terminal card cut a
  * long result at the same place.
  */
 export const DEFAULT_SEARCH_MAX_LINES = 16
@@ -195,6 +179,17 @@ export class FreddieSearchBlock extends HTMLElement {
 }
 
 defineElement('freddie-search-block', FreddieSearchBlock)
+
+/**
+ * @typedef {object} SearchBlockProps
+ * @property {'paths'|'files'} [kind='paths'] - `'paths'` for a plain glob-style result list, `'files'` for a grep-style result grouped by file.
+ * @property {Array<string>} [paths=[]] - `kind: 'paths'` only: the matched file paths.
+ * @property {Array<{path: string, matches: Array<{lineNumber: number, line: string}>}>} [files] - `kind: 'files'` only: one entry per matched file, each collapsible.
+ * @property {boolean} [truncated=false] - whether the full result set exceeds what is shown.
+ * @property {number} [total=0] - full result count, shown alongside the visible count when `truncated`.
+ * @property {number} [maxLines=DEFAULT_SEARCH_MAX_LINES] - rows shown before the height cap collapses the middle behind an expand toggle.
+ * @property {string} [className]
+ */
 
 /**
  * Create (if needed) or update a SearchBlock element in place.

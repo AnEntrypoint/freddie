@@ -19,7 +19,6 @@ export function parseNumstat(output) {
   const entries = []
   while (queue.length > 0) {
     const record = queue.shift()
-    // Only the first two tabs separate fields; a file name keeps its own tabs.
     const first = record.indexOf('\t')
     const second = first < 0 ? -1 : record.indexOf('\t', first + 1)
     if (second < 0) throw new Error(`malformed numstat record: ${record}`)

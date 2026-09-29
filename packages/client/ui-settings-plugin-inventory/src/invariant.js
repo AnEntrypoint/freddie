@@ -8,7 +8,7 @@ export const name = 'client-ui-settings-plugin-inventory-invariant'
 /** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** No runtime invariant: this package owns a read-only Settings contribution. */
+/** No runtime invariant: this package owns a Settings contribution whose state is read from the Host on every load. */
 const install = () => {}
 
 /** Register this package's invariant companion. */

@@ -51,8 +51,6 @@ const DEFAULT_GRACE_MS = 3_000
 /** Default per-stream spill cap (the `maxSpillBytes` config). */
 const DEFAULT_MAX_SPILL_BYTES = 64 * 1024 * 1024
 
-// Resolution lives in its own dependency-free module so the repository's
-// coverage-gate probe shares the exact definition the suites use.
 export { candidatePwshPaths, resolvePwshPath } from './resolve.js'
 
 /** Project a settled collect-mode reader into the final CollectedOutput shape. */
@@ -130,7 +128,6 @@ export class PwshLocalExecutor extends ShellExecutor {
 
   constructor(ctx, config) {
     super(ctx)
-    // Schemastery fills these fields before construction; the type does not encode that step.
     const entry = config
     assertServiceablePwshConfig(entry)
     this.source = () => entry
@@ -141,8 +138,6 @@ export class PwshLocalExecutor extends ShellExecutor {
       setSource: (current) => {
         this.source = current
       },
-      // Probing the filesystem is the one fact derived from the source: every
-      // other field is read through the getter at each command.
       onChange: () => {
         const declared = this.source().pwshPath
         if (declared === this.declaredPwshPath) return
@@ -229,12 +224,10 @@ export class PwshLocalExecutor extends ShellExecutor {
 
   /** Foreground run of an exact argv (the confining subclass re-wraps it). */
   async runArgv(spec, argv) {
-    // One deadline combines timeout and upstream cancellation; disposal clears its timer.
     using d = deadline(spec.signal, spec.timeoutMs, 'BASH_TIMEOUT')
     const handle = this.ctx.subprocess.spawn(this.spawnSpec(spec, spec.stdoutMaxBytes, d.signal, argv))
     const outcome = await handle.done
     const collected = PwshLocalExecutor.collected(handle)
-    // Only this executor's timeout reason counts as timedOut; outer deadlines count as aborts.
     const timedOut = timeoutOf(d.signal, 'BASH_TIMEOUT') !== undefined
     const aborted = d.signal.aborted && !timedOut
     return {
@@ -253,12 +246,9 @@ export class PwshLocalExecutor extends ShellExecutor {
 
   /** Background start of an exact argv (the confining subclass re-wraps it). */
   startArgv(spec, argv) {
-    // Background runs ignore timeoutMs; callers stop them through kill() or spec.signal.
     const running = this.ctx.subprocess.spawn(this.spawnSpec(spec, this.config.maxOutputBytes, spec.signal, argv))
     const collected = PwshLocalExecutor.collected(running)
 
-    // A spawn failure produces no process output, so the subprocess service has nothing
-    // to buffer; the note is delivered exactly once through the read path.
     let spawnFailureNote
     const consumeSpawnFailure = () => {
       const note = spawnFailureNote ?? ''
@@ -273,7 +263,6 @@ export class PwshLocalExecutor extends ShellExecutor {
       exitCode: null,
       signal: null,
       done: running.done.then((outcome) => {
-        // Any signal termination is killed, including a command signaling itself.
         if (proc.status === 'running') {
           proc.status = spec.signal?.aborted === true || outcome.signal !== null ? 'killed' : 'completed'
         }
@@ -281,7 +270,6 @@ export class PwshLocalExecutor extends ShellExecutor {
         proc.signal = outcome.signal
         this.onProcessDone(proc, collected.stderr.readFrom(0).text, false)
       }, (error) => {
-        // Background spawn failures settle as killed and surface through the read path.
         proc.status = 'killed'
         spawnFailureNote = `spawn failed: ${String(error)}`
         this.onProcessDone(proc, spawnFailureNote, true, error)
@@ -292,11 +280,7 @@ export class PwshLocalExecutor extends ShellExecutor {
         stdoutOffset = out.nextOffset
         stderrOffset = err.nextOffset
 
-        // A failed spawn never produced process output, so the note and real
-        // stderr text are mutually exclusive.
         const errText = err.text.length > 0 ? err.text : consumeSpawnFailure()
-        // Single newline between sections: stdout chunks usually end with one
-        // already; add it only when missing.
         const separator = out.text.length > 0 && !out.text.endsWith('\n') ? '\n' : ''
         const delta = out.text
           + (errText.length > 0 ? `${separator}[stderr]\n${errText}` : '')

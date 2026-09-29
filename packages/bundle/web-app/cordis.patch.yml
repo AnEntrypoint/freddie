@@ -1,18 +1,3 @@
-# The dsh-web-app bundle patch: the browser surface over the dsh-base layer.
-# Applied after dsh-base's insert; rows here override base rows by id, with
-# the profile's own cordis.patch.yml and any --patch overlays still to come.
-#
-# A patch replaces the targeted row's whole `config`, so each row below
-# restates every key it owns.
-#
-# The web-startup plugin injects `cmdlineArgs` and provides `webStartup` as an
-# ordinary Cordis service. Rows configured from flags inject that service, so
-# Loader resolves their expressions only after it exists. The web runtime then
-# provides bind-dependent `webRuntime` values to the trust fence.
-# `dsh --profile web --help` provides neither service, so no server binds.
-
-# ── surface-specific values the base deliberately omits ─────────────────────
-
 - id: system-prompt
   config:
     persona: >-
@@ -24,28 +9,15 @@
     root: []
     usePolling: true
 
-# Full-text session search is opt-in (the base row's `openAt: never`). This
-# restatement keeps the Web values on one ephemeral in-memory index; a
-# deployment enabling content search overrides `openAt` to `first-search` in a
-# later patch layer, which defers the libsql-plugkit-client WASI instance and
-# in-memory handle to the first search so startup stays quiet.
 - id: session-query-sqlite
   config:
     path: ':memory:'
-    openAt: never
+    openAt: first-search
 
 - id: tools
   config:
-    # TEMPORARY workaround: FREDDIE_TOOLS_MODE (native|code|both) opts a whole dsh
-    # process into Code Mode while per-session tool-presentation selection is being
-    # designed; unset keeps the schema default (native). Remove the env seam
-    # once the web UI owns the choice per session.
     mode: !!js process.env.FREDDIE_TOOLS_MODE
 
-# ── web-only host rows, the transport layer, and the browser roster ─────────
-
-# `freddie.client` rows are the browser roster the modules node half scans into
-# window.__FREDDIE_BOOT__; the modules row is simultaneously a host row.
 - insert:
     - id: code-runtime
       name: '@freddie/freddie-code-runtime-worker-thread'
@@ -68,7 +40,6 @@
       config:
         maxNoteBytes: 8192
 
-    # Browser Session export: `/export` command plus the shared download dialog.
     - id: session-log-download
       name: '@freddie/freddie-session-log-export'
 
@@ -90,90 +61,45 @@
     - id: file-reference-local
       name: '@freddie/freddie-file-reference-local'
 
-    # Whole-log turn/step counts for the chat stats strip (the sessionStats
-    # projection key); the projection registry itself is a base-layer row.
     - id: session-stats
       name: '@freddie/freddie-session-stats'
 
-    # Resolve bind host, SSH launch, and display once at boot, then mount the
-    # matching dual-face directory picker. Mount -native or -browse directly in
-    # an overlay to pin the interaction.
     - id: directory-picker
       name: '@freddie/freddie-host-directory-picker-auto'
 
-    # Read-only projection of current Loader entries for trusted client RPCs.
     - id: plugin-inventory
       name: '@freddie/freddie-host-plugin-inventory'
 
-    # The API gateway: the transport-agnostic dispatch face every client shape
-    # shares. The base layer's agent-default-model service owns the default model.
     - id: api-gateway
       name: '@freddie/freddie-host-apiproxy'
 
-    # ── optional/experimental Host Remote namespaces over the same gateway ────
-    #
-    # Every row below is a Host Typert Remote owner: it registers one namespace
-    # on the gateway already mounted above and adds nothing model-facing (no
-    # tool, prompt, or session event). They are browser surfaces, so they live
-    # on this layer rather than the shared base: a headless or ACP deployment
-    # has no client for a session roster, a workspace list, or a file reader.
-    #
-    # Each namespace degrades rather than fails: `settings` and `credentials`
-    # answer `unavailable` when no provider is composed, `directoryPicker`
-    # answers `unavailable` for a capability the composed backend does not
-    # serve, and `workspaceFiles` refuses a request that can establish no
-    # workspace root. Only `remote-stream`'s own row is owned elsewhere.
+    - id: remote-stream
+      name: '@freddie/freddie-remote-stream'
 
-    # Session reads for a UI: list, search, paged history, projections, the
-    # model catalog, and the Agent/Session identity policy. `follow`/`control`
-    # stay in-process generators — freddie's /api RPC is unary — so the Client
-    # model reports `unsupported` for them instead of faking frames.
     - id: session-controller
       name: '@freddie/freddie-session-controller'
 
-    # Session-owned interactive terminals over the PTY registry: shell
-    # discovery, bounded screen recovery, attachment-scoped input, and typed
-    # control. `retain`/`follow` are unported for the same unary-RPC reason.
     - id: terminal-controller
       name: '@freddie/freddie-terminal-controller'
 
-    # Background jobs: the roster one session can see, plus the human kill.
-    # The roster's stream needs both halves of a streaming Remote; with either
-    # absent the Client keeps no roster rather than showing a stale one.
     - id: job-controller
       name: '@freddie/freddie-job-controller'
 
-    # Deployment configuration and credential references. Both owners resolve
-    # their provider lazily, so a composition with no settings or credential
-    # provider still boots every other namespace. No verb returns a secret
-    # value: a secret path is reported as `{ path, set }` and nothing more.
     - id: settings-controller
       name: '@freddie/freddie-api-settings-controller'
 
-    # Workspace registrations (list/create/rename/reorder/delete) and the host
-    # directory chooser, over `ctx.workspaceRegistry` and `ctx.directoryPicker`.
     - id: workspace-controller
       name: '@freddie/freddie-api-workspace-controller'
 
-    # Read-only workspace file reads and directory listings. Every verb proves
-    # containment in a workspace root before it reads, and cuts what it returns
-    # to its configured bounds; no write verb is served at all.
     - id: workspace-files
       name: '@freddie/freddie-api-workspace-files'
 
     - id: cordis-host-runner
       name: '@freddie/freddie-cordis-host-runner'
 
-    # Ordinary provider for the parsed Web flags. Its plugin-level injection
-    # waits for cmdlineArgs; no launcher metadata or special row kind is needed.
     - id: web-startup
       name: '@freddie/freddie-web-app/startup'
 
-    # ── layer 2: transport/service ──────────────────────────────────────────────
-
-    # Plain route-registration carrier; host and port come from the app's
-    # webStartup provider, with these deployment fallbacks. The dist is served by
-    # the web-runtime row below through the fallback seat.
     - id: webserver
       name: '@freddie/freddie-host-webserver'
       inject: [webStartup]
@@ -181,15 +107,6 @@
         host: !!js ctx.webStartup.host ?? '127.0.0.1'
         port: !!js ctx.webStartup.port ?? 3080
 
-    # Web glue owned by this bundle: resolves the built frontend dist (an
-    # assembly fact of dsh-web-app, never user config), mounts the
-    # frontend-static fallback owner, registers the web-surface prompt
-    # section and the bash runtime variable, prints the URL line, and opens the
-    # canonical local URL after the full tree settles. The webStartup provider
-    # supplies invocation-only values; after the server binds, this row samples
-    # LAN trust once and provides `webRuntime`. A complete agent-preset persona
-    # suppresses the prompt section for that agent while retaining the host-owned
-    # shell variable.
     - id: web-runtime
       name: '@freddie/freddie-web-app'
       inject: [webStartup]
@@ -199,43 +116,43 @@
         surfaceContext: true
         trustedHosts: !!js ctx.webStartup.trustedHosts
 
-    # The client-plugin reload chain is always mounted and stat-polls served
-    # source trees itself; buildless source edits need neither a watcher nor a
-    # bundle rewrite. It is a row rather than a child of web-runtime because
-    # its node half is a client-side package, which a host-side bundle cannot
-    # import.
     - id: client-hmr
       name: '@freddie/freddie-client-hmr'
 
-    # ── browser plugin roster (freddie.client rows; node halves are layer-2 hosts) ──
+    - id: file-upload
+      name: '@freddie/freddie-client-file-upload'
 
-    # Dual-face: the node half scans this tree, composes window.__FREDDIE_BOOT__,
-    # and serves /plugins/<id>/client.js; the browser half is the module table
-    # the shell kernel constructs before cordis exists (adopted as a plugin
-    # entry by the kernel, never fetched).
+    - id: open-in-app
+      name: '@freddie/freddie-host-open-in-app'
+
+    - id: product-telemetry-otel
+      name: '@freddie/freddie-host-product-telemetry-otel'
+      disabled: true
+
+    - id: config-editor
+      name: '@freddie/freddie-config-editor'
+      config:
+        profile: web
+
+    - id: plugin-manager
+      name: '@freddie/freddie-plugin-manager'
+
+    - id: plugin-manager-controller
+      name: '@freddie/freddie-api-plugin-manager-controller'
+
     - id: modules
       name: '@freddie/freddie-client-modules'
 
-    # Static-manifest CSS loader: serves the buildless plain CSS files
-    # (converted off CSS Modules) under /styles and links them into the head.
     - id: css-manifest
       name: '@freddie/freddie-client-css-manifest'
 
-    # Buildless bare-specifier resolution: serves the vendored ESM copy of
-    # every npm and workspace package the client bundle imports under
-    # /vendor, and injects the import map plus the document title.
     - id: vendor-modules
       name: '@freddie/freddie-client-vendor-modules'
 
-    # Owns both ends of the web transport: node half binds the gateway to the
-    # webserver under /api; browser half is the fetch/SSE client.
     - id: connection
       name: '@freddie/freddie-client-connection'
       inject: [webRuntime]
       config:
-        # LAN literals derived from the active bind plus --trusted-host extras.
-        # A deployment adding authorities keeps this expression and concatenates
-        # its literals, for example: ['app.internal', ...ctx.webRuntime.trustedHosts].
         trustedHosts: !!js ctx.webRuntime.trustedHosts
 
     - id: api-remotes
@@ -277,36 +194,27 @@
     - id: ui-conversation
       name: '@freddie/freddie-client-ui-conversation'
 
-    # Official occupants for the generic sidebar and conversation brand slots.
     - id: ui-brand-official
       name: '@freddie/freddie-client-ui-brand-official'
 
     - id: ui-attachment
       name: '@freddie/freddie-client-ui-attachment'
 
-    # Tool call tree, generic fallback, and keyed business Tool views.
     - id: ui-tool
       name: '@freddie/freddie-client-ui-tool'
 
     - id: ui-cordis
       name: '@freddie/freddie-client-ui-cordis'
 
-    # Durable workflow lifecycle as an independent Chat node after the
-    # existing generic workflow tool row.
     - id: ui-workflow-run
       name: '@freddie/freddie-client-ui-workflow-run'
 
-    # Turn tail: the produced-files row under each closing assistant message.
-    # Remove this entry to turn the surface off; the tail hole renders empty.
     - id: ui-deliverables
       name: '@freddie/freddie-client-ui-deliverables'
-
 
     - id: ui-workspace
       name: '@freddie/freddie-client-ui-workspace'
 
-    # Input triggers: the '/' | '@' pipeline (ui-input-trigger), the command surface over
-    # it (ui-commands), and the reference sources (ui-skill / ui-reference).
     - id: ui-input-trigger
       name: '@freddie/freddie-client-ui-input-trigger'
 
@@ -322,54 +230,45 @@
     - id: ui-reference
       name: '@freddie/freddie-client-ui-reference'
 
-    # Background jobs: the session-header list over the jobsBySession mirror.
     - id: ui-jobs
       name: '@freddie/freddie-client-ui-jobs'
 
-    # Goal surface: GoalBar in the input dock over the goal session projection.
+    - id: ui-open-in-app
+      name: '@freddie/freddie-client-ui-open-in-app'
+
     - id: ui-goal
       name: '@freddie/freddie-client-ui-goal'
 
-    # Compact projected GM, workflow, subagent, and terminal status dock.
     - id: ui-observability
       name: '@freddie/freddie-client-ui-observability'
 
     - id: ui-artifacts
       name: '@freddie/freddie-client-ui-artifacts'
 
-    # Per-message feedback: Like/Dislike plus an optional note in the
-    # assistant-message action strip, over the messageFeedback Remote.
+    - id: ui-workspace-files
+      name: '@freddie/freddie-client-ui-workspace-files'
+
     - id: ui-message-feedback
       name: '@freddie/freddie-client-ui-message-feedback'
 
-    # Model selection: the /model popupSelect + composer seat over session.models.
     - id: ui-model-selection
       name: '@freddie/freddie-client-ui-model-selection'
 
     - id: ui-permission
       name: '@freddie/freddie-client-ui-permission-presets'
 
-    # The agent-preset row in General settings: the default preset for
-    # sessions created later. Absent a roster it renders nothing.
     - id: ui-agent-preset
       name: '@freddie/freddie-client-ui-agent-preset'
 
-    # Plugin configuration: the host-plane sections a user owns, as expandable
-    # cards. A namespace this deployment does not expose renders nothing.
     - id: ui-settings-plugins
       name: '@freddie/freddie-client-ui-settings-plugins'
 
-    # Two cards contributed to the Plugin configuration tab by the packages
-    # that own their namespaces: delegation limits (`subagent`) and the search
-    # provider's endpoint, key, and budget (`web-search-deepseek`). Each renders
-    # nothing when the deployment serves no such namespace.
     - id: ui-settings-subagent
       name: '@freddie/freddie-client-ui-settings-subagent'
 
     - id: ui-settings-web-search
       name: '@freddie/freddie-client-ui-settings-web-search'
 
-    # Plan control: the composer plan seat over the plan projection + /plan channel.
     - id: ui-plan
       name: '@freddie/freddie-client-ui-plan'
 
@@ -379,44 +278,14 @@
     - id: ui-trajectory
       name: '@freddie/freddie-client-ui-trajectory'
 
-    # Keyboard commands: the window-local registry plus the searchable reference
-    # that rebinds a command by action, alias, or key. Contributes the
-    # `shortcuts` row to General settings and the reference overlay.
     - id: shortcuts
       name: '@freddie/freddie-client-shortcuts'
-
-# ── the agent plane moves behind agent presets ─────────────────────────────
-#
-# Every row below composes what ONE agent contributes to the host registries:
-# its tools, its prompt sections, its delegation backends. The base keeps them
-# for the TUI, which is single-session and composes its agent process-wide; the
-# Web surface disables them here and lets each session mount a preset instead.
-#
-# Disabling rather than deleting is deliberate: the base is shared, and a row
-# absent from a surface overlay would silently reappear the day someone reorders
-# the composition.
-
-# `shell-env` STAYS in the host plane: `apps/cli/src/web.ts` injects it to
-# publish `FREDDIE_WEB_URL`/`FREDDIE_WEB_MODE`, and a host row that injects a service is
-# the criterion for host-plane ownership — injection resolves before any session
-# exists, so there is no agent to key by. Behind a preset realm those variables
-# would never reach the model's shell at all.
 
 - id: tool-bash
   disabled: true
 
 - id: tool-pwsh
   disabled: true
-
-# The background-job REGISTRY stays on the host plane; only the model-facing
-# `job_*` controls move. Its producers — `tool-bash` here, `tool-terminal` and a
-# non-continuable `tool-subagent` elsewhere — are preset rows that resolve it
-# with `ctx.get`, and an entry-local realm around the registry is invisible to
-# every sibling row outside that realm, so `run_in_background` answered
-# "background jobs unavailable" while the controls sat in the catalog. That is
-# the `goals` criterion read from inside the preset: a Service a row outside its
-# realm READS belongs to the plane both can see. The registry is keyed by owning
-# agent, so one host instance serves every session exactly as before presets.
 
 - id: tool-jobs
   disabled: true
@@ -430,42 +299,17 @@
 - id: tool-str-replace-editor
   disabled: true
 
-# The `skill` REGISTRY stays in the host plane. It is host+per-scope layered
-# (the tools-registry shape): deployment-level providers — repository plugins,
-# a host skill-filesystem row — register into its global layer, while a preset's
-# `skill-filesystem` registers into that preset's layer, and each agent reads the
-# merged catalog its scope chain selects. Only the per-agent rows move behind
-# presets: the base host `skill-filesystem` row is disabled here (presets own local
-# discovery), and `tool-skill` is what a preset mounts to give its agent the
-# catalog and loader at all.
-
 - id: skill-filesystem
   disabled: true
 
 - id: tool-skill
   disabled: true
 
-# The goal SERVICE, its session driver, and the `/goal` command STAY on the
-# host plane; only the model-facing tool moves. The Gateway serves the goal
-# domain as Remote endpoints, and a Remote method picks its receiver Service
-# from a generated descriptor — it resolves `goals` on the host, so a
-# per-session realm would answer `service-unavailable` for every browser call.
-# That is the `shell-env` criterion read from the other side: injection is not
-# the only host relationship a Service can have. The registry is keyed by
-# session, so one host instance serves every session exactly as before presets.
-
 - id: tool-goal
   disabled: true
 
 - id: plan-mode
   disabled: true
-
-# The token METER stays on the host plane; only the compaction backend that
-# reads it moves. It owns the context-meter projection units, and that table is
-# process-wide, so preset ownership would make the meter a function of which
-# presets happen to be mounted rather than a per-session fact. Same criterion as
-# `tasks` and `goals`; the reasoning has one home in
-# `.agents/notes/implemented/architecture/2026-08-10-host-plane-ownership-after-presets.md`.
 
 - id: compaction-basic
   disabled: true
@@ -475,13 +319,6 @@
 
 - id: tool-result-pruner
   disabled: true
-
-# The subagent registry and its backends STAY in the host plane. `subagents` is
-# a process singleton with a cross-session query surface (`listChildren`,
-# `followup`) that the host api-proxy serves to the browser, and a provider
-# registers under a globally unique name, so a per-session copy would both
-# starve that host row and collide on the second session. What a preset
-# chooses is which delegation TOOLS its agent sees, below.
 
 - id: tool-subagent-control
   disabled: true
@@ -494,12 +331,6 @@
 
 - id: tool-subagent-fork
   disabled: true
-
-# `tool-subagent-report` is host-plane for the same reason as the registry, not
-# because a preset may not want it: it registers a CONTINUABLE SETUP on that
-# singleton rather than a tool this agent calls, and the setup list is not
-# scope-aware — one copy per mounted preset means every child gets `report`
-# registered once per live session, which throws on the second.
 
 - id: workflow-worker-thread
   disabled: true
@@ -519,16 +350,15 @@
 - id: tool-web
   disabled: true
 
-# The preset roster. `config/agent-presets/` ships with the deployment and is
-# read-only (its entries carry `system` trust); `$FREDDIE_HOME/.agent-presets` is
-# where a person — or an agent — authors their own, and carries the same trust
-# as shell access because a preset IS a composition.
-#
-# Only the SHIPPED root is an assembly fact: it sits beside the installed app's
-# own config, so `apps/cli`'s `composeProfile` resolves and patches it in — the
-# same treatment `distIndex` gets on the webserver row. The writable root is
-# `dsh-agent-presets`' own default (`includeUserRoot`), so a composition that
-# never reaches that patch still finds a person's presets.
+- id: time-context
+  disabled: true
+
+- id: tmux-context
+  disabled: true
+
+- id: tool-session-query
+  disabled: true
+
 - insert:
     - id: agent-presets
       name: '@freddie/freddie-agent-presets'

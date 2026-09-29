@@ -25,7 +25,6 @@ export async function openJsonUnit(descriptor, path, onClose) {
     text = await readFile(path, 'utf8')
   } catch (error) {
     if (error.code !== 'ENOENT') throw error
-    // Missing file = empty unit; materialization defers to the first write.
   }
   const state =
     text === undefined
@@ -66,8 +65,6 @@ class JsonKvUnit {
     const hadKey = records.has(key)
     const previous = records.get(key)
     records.set(key, value)
-    // Roll back on a failed publish: memory is authoritative, so a rejected
-    // write must not survive in memory (or ride along with the next publish).
     await this.publish().catch((error) => {
       if (hadKey) records.set(key, previous)
       else records.delete(key)
@@ -127,8 +124,6 @@ class JsonKvUnit {
   publish() {
     const write = writeAtomic(this.path, serialize(this.descriptor.name, this.state))
     this.inFlight.add(write)
-    // Swallow only on the tracking branch: the caller still awaits `write`
-    // itself, so rejections stay observed exactly once.
     write.catch(() => {}).finally(() => this.inFlight.delete(write))
     return write
   }

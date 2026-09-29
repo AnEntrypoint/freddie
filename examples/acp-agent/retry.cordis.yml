@@ -1,10 +1,3 @@
-# Retry-scenario overlay: pin the bounded transient retry policy to a
-# deterministic 1 ms zero-jitter delay so the durable `llm/retry` event
-# (`delayMs`) and replay wall time stay reproducible. The overlay changes no
-# tool or prompt composition, so its scenarios share the default header class.
-# Config patches replace whole plugin configs: the provider patch restates its
-# adapter fields around `retryPolicy`, while the app patch re-pins the recorded
-# flash model and restates its base fields.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

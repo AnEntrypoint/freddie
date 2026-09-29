@@ -1,7 +1,3 @@
-# Bounded-task admission overlay: keep the ordinary ACP composition while
-# configuring its task provider to allow one active task per exact owner. The
-# scenario starts a real background Bash process, observes the second producer
-# rejection, and cleans up the first task by its returned id.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

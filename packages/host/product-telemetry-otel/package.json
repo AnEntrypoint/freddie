@@ -1,0 +1,47 @@
+{
+  "name": "@freddie/freddie-host-product-telemetry-otel",
+  "description": "Explicit product usage events exported through OpenTelemetry HTTP logs",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/host/product-telemetry-otel"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./types": {
+      "default": "./src/types.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/*.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@opentelemetry/api-logs": "^0.220.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.220.0",
+    "@opentelemetry/resources": "^2.9.0",
+    "@opentelemetry/sdk-logs": "^0.220.0",
+    "@freddie/schemastery": "*"
+  },
+  "peerDependencies": {
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
+  },
+  "devDependencies": {
+    "@freddie/freddie-invariants": "*",
+    "@freddie/cordis": "*"
+  }
+}

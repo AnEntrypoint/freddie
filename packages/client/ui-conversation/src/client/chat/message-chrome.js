@@ -1,5 +1,3 @@
-// Shared time-label helpers for user/assistant IconActions rows.
-
 function pad2(n) {
   return String(n).padStart(2, '0')
 }

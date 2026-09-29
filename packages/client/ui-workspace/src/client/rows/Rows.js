@@ -23,7 +23,7 @@ function displayTitle(node, t) {
   return node.readOnly === true ? `${node.title} · ${t('session.readOnly')}` : node.title
 }
 
-/** Localized compact relative time ("刚刚"/"5分钟" in zh, "now"/"5min" in en). */
+/** Localized compact relative time ("now"/"5min"). */
 function timeLabel(updatedAt, now, t) {
   const { unit, n } = relativeTime(updatedAt, now)
   return unit === 'now' ? t('time.now') : t(`time.${unit}`, { n })
@@ -92,7 +92,6 @@ export class FreddieProjectRowItem extends HTMLElement {
     if (props === null) return
     const { group, onToggle, onCreate, actions, drag, home, t } = props
     const row = group
-    // The ungrouped bucket has no workspace title: its label is dictionary copy.
     const label = row.workspaceId === undefined ? t('group.ungrouped') : row.label
     const active = group.expanded && group.containsCurrent
     const menuOpen = this.#menuOpen
@@ -133,10 +132,6 @@ export class FreddieProjectRowItem extends HTMLElement {
           h('span', {class: css.title ?? ''}, label),
         ),
         h('span', {class: css.rowActions ?? ''},
-          // Reuse the same freddie-menu instance across renders (see the
-          // #hoverCard comment below for why: this row re-renders every
-          // tick, and a fresh document.createElement('freddie-menu') per render
-          // would leak the same way a fresh HoverCard did).
           actions !== undefined && (
             this.#menu = renderMenu(this.#menu, {
               open: menuOpen,
@@ -144,8 +139,6 @@ export class FreddieProjectRowItem extends HTMLElement {
               items: workspaceMenuItems,
               onSelect: (id) => {
                 this.#menuOpen = false
-                // Unknown ids leave before the dispatch: a future menu row must
-                // not inherit the destructive branch as an else fallback.
                 /* v8 ignore next -- workspaceMenuItems carries exactly these two rows today. */
                 if (id !== 'rename' && id !== 'delete') { this.#render(); return }
                 if (id === 'rename') actions.rename()
@@ -177,22 +170,12 @@ export class FreddieProjectRowItem extends HTMLElement {
         ),
       )
     )
-    // The ungrouped bucket has no backing Workspace: no card to show.
     if (row.createdAt === undefined) {
       this.#hoverCard?.remove()
       this.#hoverCard = null
       applyDiff(this, ownRow)
       return
     }
-    // Reuse the same freddie-hover-card instance across renders (setProps updates
-    // it in place) instead of creating a fresh one every #render() call --
-    // this row re-renders every tick (the live relative-time clock), and a
-    // fresh document.createElement('freddie-hover-card') each time meant a real,
-    // open (mid-hover) card got swapped out from under the pointer before its
-    // own timers/cleanup could run, leaking a detached portal card in
-    // document.body that nothing ever removed (witnessed live: stuck,
-    // stacking "Idle" cards that survived pointerleave, click-away, and even
-    // a hard reload).
     this.#hoverCard = renderHoverCard(this.#hoverCard, {
       anchor: ownRow,
       content: h(WorkspaceHoverContent, {
@@ -254,10 +237,6 @@ function sessionStatuses(node, t) {
     return subagents === undefined ? [primary] : [primary, subagents]
   }
   if (subagents !== undefined) return [subagents]
-  // A session whose most recently closed turn ended in an unrecovered error
-  // (turn/end reason.kind === 'error') is visually distinct from a healthy
-  // completion -- outranks the plain "completed"/"idle" defaults but never a
-  // pending question or live activity above.
   if (node.errored) return [{ state: 'error', label: t('status.errored') }]
   if (node.completed) return [{ state: 'done', label: t('status.completed') }]
   return [{ state: 'done', label: t('status.idle') }]
@@ -279,8 +258,6 @@ function SessionHoverContent({ node, now, t }) {
   return (
     h('div', {class: css.hoverContent ?? ''},
       h('div', {class: css.hoverTitle ?? ''}, displayTitle(node, t)),
-      /* Same placeholder rule as the row's trailing cell: no timestamp
-          before the first prompt. */
       !node.blank && h('div', {class: css.hoverTime ?? ''}, hoverTimeLabel(node.updatedAt, now, t)),
       statuses.map(status => (
         h('div', {class: css.hoverStatus ?? '', key: status.label},
@@ -334,22 +311,6 @@ export function SearchResultItem({ result, currentId, active, onOpen, t }) {
 }
 
 /**
- * One top-level 34px session row: status dot (pending user interaction outranks
- * own or descendant activity), title, relative time, and the row actions menu.
- * @param props.node - derived session node.
- * @param props.currentId - selected session id (row highlight).
- * @param props.now - epoch ms for relative-time formatting.
- * @param props.onOpen - open a session by id.
- * @param props.onRename - open the session rename dialog (id + current title).
- * @param props.onFork - fork a session at its last completed turn.
- * @param props.onArchive - archive a session by id.
- * @param props.drag - optional draggable-row wiring.
- * @param props.flat - omit the empty status slot in the hierarchy-free flat list.
- * @param props.t - the browser root's locale seat.
- * @returns the session row.
- */
-
-/**
  * Session row custom element. Converted from a React function component
  * (useState menuOpen) to a webjsx custom element: menuOpen becomes an
  * instance field, re-render is explicit.
@@ -360,6 +321,21 @@ export class FreddieSessionNodeItem extends HTMLElement {
   #hoverCard = null
   #menu = null
 
+  /**
+   * One top-level 34px session row: status dot (pending user interaction
+   * outranks own or descendant activity), title, relative time, and the row
+   * actions menu.
+   * @param props.node - derived session node.
+   * @param props.currentId - selected session id (row highlight).
+   * @param props.now - epoch ms for relative-time formatting.
+   * @param props.onOpen - open a session by id.
+   * @param props.onRename - open the session rename dialog (id + current title).
+   * @param props.onFork - fork a session at its last completed turn.
+   * @param props.onArchive - archive a session by id.
+   * @param props.drag - optional draggable-row wiring.
+   * @param props.flat - omit the empty status slot in the hierarchy-free flat list.
+   * @param props.t - the browser root's locale seat.
+   */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -380,18 +356,13 @@ export class FreddieSessionNodeItem extends HTMLElement {
     const primaryStatus = statuses[0]
     const showStatus = primaryStatus.state !== 'done' || row.completed
     const menuOpen = this.#menuOpen
-    // Archive hides the row through the registry-global archive set and never
-    // touches the session log, so it is not styled as destructive and needs no
-    // confirmation dialog.
     const sessionMenuItems = node.readOnly === true
       ? []
       : [
         { id: 'rename', label: t('rename'), icon: h(IconEditOutline16) },
         { id: 'fork', label: t('menu.fork'), icon: h(IconBranchOutline16) },
-        // 20-native glyph in the menu's 16px icon slot (Menu.module.css .itemIcon).
         { id: 'archive', label: t('menu.archiveSession'), icon: h(IconArchiveOutline20, {size: 16}) },
       ]
-    // Figma session cell: pad 8, status slot 16, then a 4px title gap.
     const ownRow = (
       h('div', {
         class: clsx(
@@ -434,24 +405,15 @@ export class FreddieSessionNodeItem extends HTMLElement {
             drag.drop(rowHalf(e))
           },
       },
-        /* Pending interaction and own or descendant activity outrank the
-            finished-but-unviewed reminder, which returns after activity stops
-            and is cleared by opening the session. */
         (!flat || showStatus) && (
           h('span', {class: css.slot ?? ''},
             showStatus && SessionStatusDots({ statuses }),
           )
         ),
         h('span', {class: css.title ?? ''}, title),
-        /* A blank New Session row is a provisional placeholder: nothing has
-            happened in it yet, so a "now" timestamp and the row verbs
-            (rename/fork/archive) would all act on content that does not
-            exist — both trailing cells stay off until the first prompt. */
         !row.blank && h('span', {class: css.time ?? ''}, timeLabel(row.updatedAt, now, t)),
         !row.blank && node.readOnly !== true && (
           h('span', {class: css.rowActions ?? ''},
-            // Reuse the same freddie-menu instance across renders -- see the
-            // #hoverCard comment below for why.
             this.#menu = renderMenu(this.#menu, {
               open: menuOpen,
               onClose: () => { this.#menuOpen = false; this.#render() },
@@ -480,12 +442,6 @@ export class FreddieSessionNodeItem extends HTMLElement {
         ),
       )
     )
-    // Reuse the same freddie-hover-card instance across renders -- see
-    // FreddieProjectRowItem's identical comment above for why: this row
-    // re-renders every tick (the live relative-time clock), and a fresh
-    // document.createElement('freddie-hover-card') on every render leaked a
-    // detached, permanently-open portal card whenever the swap landed
-    // mid-hover.
     this.#hoverCard = renderHoverCard(this.#hoverCard, {
       anchor: ownRow,
       content: h(SessionHoverContent, {node, now, t}),

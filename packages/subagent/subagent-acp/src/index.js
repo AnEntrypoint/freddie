@@ -64,9 +64,6 @@ function isDirectory(path) {
     accessSync(path, constants.X_OK)
     return true
   } catch {
-    // statSync/accessSync throw only filesystem access errors here
-    // (ENOENT/EACCES/ENOTDIR/…), and every one of them means the path cannot
-    // serve as the child's cwd.
     return false
   }
 }
@@ -122,7 +119,6 @@ class AcpProvider {
     persona: false,
   }
 
-  // Context contract: an out-of-process ACP child starts fresh — no parent conversation crosses the process boundary.
   inheritsParentContext = false
 
   constructor(name, ctx, config) {
@@ -153,8 +149,6 @@ class AcpProvider {
       disposeGraceMs: this.config.disposeGraceMs,
       spawn: spawnSpec => this.ctx.subprocess.spawn(spawnSpec),
       onError: (error, stopReason) => {
-        // The seam forbids `result` rejecting, so a child-level failure is
-        // flattened to a stop reason — preserve it here rather than losing it.
         this.ctx.logger.warn(`subagent-acp "${this.name}": child run failed (${stopReason}): ${error.message}`)
       },
     }
@@ -170,13 +164,9 @@ class AcpProvider {
 export function apply(ctx, config) {
   assertPositiveFinite('disposeEofGraceMs', config.disposeEofGraceMs)
   assertPositiveFinite('disposeGraceMs', config.disposeGraceMs)
-  // `path.resolve('')` is the process cwd — an empty string would silently
-  // reintroduce the launch-directory fallback this resolution removes.
   if (config.cwd === '') {
     throw new Error('subagent-acp: config cwd must not be empty — omit the key to inherit the parent session cwd')
   }
-  // Interpret a relative configured cwd against the harness launch directory
-  // ONCE, at load, and fail a misconfigured directory here — not per start.
   const validated = config.cwd === undefined
     ? config
     : { ...config, cwd: assertUsableCwd('config cwd', resolve(config.cwd)) }

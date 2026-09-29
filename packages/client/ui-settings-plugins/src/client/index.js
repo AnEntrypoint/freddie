@@ -19,7 +19,7 @@ import { PluginsSettingsSection } from './PluginsSettingsSection.js'
 import { AGENT_LOOP_NS, AgentLoopCardController } from './agent-loop-card-controller.js'
 import { SHELL_NS, BashCardController } from './bash-card-controller.js'
 import { ConfigurablePluginsTabController } from './tab-store.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 
 /** Dictionary namespace owned by this plugin. */
 const NS = 'settings.plugins'
@@ -33,18 +33,14 @@ export const inject = ['slots', 'locale', 'settingsScope']
  */
 export function apply(ctx) {
   const t = ctx.locale.bind(NS)
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-plugins: section dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-settings-plugins: section dictionaries')
 
   const bash = new BashCardController(ctx.settingsScope.bind({ namespace: SHELL_NS }))
   const agentLoop = new AgentLoopCardController(ctx.settingsScope.bind({ namespace: AGENT_LOOP_NS }))
 
-  // Which namespaces the Host serves comes from the shared describe mirror,
-  // whose owning plugin already refreshes it on document commits and
-  // reconnects — the tab only derives.
   const configurable = new ConfigurablePluginsTabController(
     ctx.settingsScope.describe(), () => ctx.slots.entries('settings.plugin.item'))
   ctx.effect(() => () => { configurable.dispose() }, 'ui-settings-plugins: tab directory')
-  // A card registered after the first read joins the list without a wire call.
   ctx.effect(
     () => ctx.slots.subscribe('settings.plugin.item', () => { configurable.refresh() }),
     'ui-settings-plugins: card ledger',
@@ -85,8 +81,6 @@ export function apply(ctx) {
     },
   })
 
-  // This package owns the one Plugins navigation entry and the tab chrome;
-  // feature plugins contribute pages without competing for Settings nav rows.
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'plugins',
@@ -97,8 +91,6 @@ export function apply(ctx) {
     children: { 'settings.plugins.tab': { kind: 'list', scope: 'root' } },
   }, PluginsSettingsSection))
 
-  // The existing configuration page is one ordinary tab. It keeps ownership of
-  // the card slot and the card contributions this package ships below.
   ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({
     name: 'settings.plugins.tab',
     id: 'configurable',

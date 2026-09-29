@@ -35,8 +35,6 @@ function validateBashArgs(args) {
   if (args.timeoutMs !== undefined && (!Number.isFinite(args.timeoutMs) || args.timeoutMs <= 0)) {
     throw new Error(`invalid timeoutMs: expected a positive number, got ${JSON.stringify(args.timeoutMs)}`)
   }
-  // The escalation pairing (sandbox_permissions ⇔ justification, non-empty) is
-  // the shared rule both enforcing families validate identically.
   validateEscalationArgs(args.sandbox_permissions, args.justification)
 }
 
@@ -97,11 +95,9 @@ function presentBashResult(args, result) {
   if (block === undefined || block.type !== 'text') return undefined
   const raw = block.text
   const isBackground = typeof args === 'object' && args !== null && args.run_in_background === true
-  // Background acknowledgements and errors have no terminal exit status.
   if (isBackground || result.isError) {
     return { card: 'generic', content: [{ type: 'text', text: `\`\`\`console\n${raw.replace(/\n+$/, '')}\n\`\`\`` }] }
   }
-  // The exit marker becomes the card's exit pill, so it leaves the output body.
   const { body, ...exit } = parseExitStatus(raw)
   return { card: 'terminal', output: body, ...exit }
 }
@@ -203,7 +199,6 @@ export function apply(ctx, config = {}) {
     )
   }
 
-  // Cross-call guidance belongs in the prompt rather than one-call schema prose.
   ctx.systemPrompt.section({
     name: 'tool:bash',
     order: 105,
@@ -300,7 +295,6 @@ export function apply(ctx, config = {}) {
     },
     async execute(args, exec) {
       validateBashArgs(args)
-      // Description is display metadata; workdir defaults to the caller's session.
       const standingPolicy = resolveSandboxPolicy(exec)
       const approvedMode = args.sandbox_permissions !== undefined && args.justification !== undefined
         ? await approveBashEscalation(args.sandbox_permissions, args.justification, exec, standingPolicy)
@@ -318,7 +312,6 @@ export function apply(ctx, config = {}) {
         ...policy !== undefined ? { sandboxPolicy: policy } : {},
       }
       if (args.run_in_background === true) {
-        // Undeclared keys are allowed, so schema omission also needs enforcement.
         if (!backgroundEnabled) {
           throw new Error('run_in_background is disabled for this deployment (enableRunInBackground: false)')
         }
@@ -326,13 +319,11 @@ export function apply(ctx, config = {}) {
         if (jobs === undefined) {
           throw new Error('background jobs unavailable: load @freddie/freddie-jobs and @freddie/freddie-tool-jobs')
         }
-        // The caller owns cancellation until ctx.jobs commits detached ownership.
         if (exec.signal.aborted) {
           const error = new HarnessError('tool call aborted', TOOL_ABORTED)
           error.name = 'AbortError'
           throw error
         }
-        // Task preflight finishes before the starter can spawn a process.
         const id = jobs.start({
           kind: 'bash',
           label: args.command,

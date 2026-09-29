@@ -97,4 +97,5 @@
  * SettingsOnboardingOwnerProps — owner share of the currently active
  *   settings-backed onboarding step: `stepId: string`, `complete: () => void`,
  *   `openSection: (id: string) => void`.
+ * @module @freddie/freddie-client-ui-settings/src/client/contract/slots.js
  */

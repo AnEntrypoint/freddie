@@ -27,8 +27,6 @@ const install = (ctx, fail) => {
       return
     }
     const slots = ctx.get('slots')
-    // Event payloads carry keys as plain strings; getVersion is statically
-    // keyed, so restore the SlotMap-key type after the runtime string check.
     if (slots !== undefined && slots.getVersion(key) === 0) {
       fail(`'slots/changed' fired for "${key}" before any mutation bumped its version — emission must follow the applied mutation`)
     }

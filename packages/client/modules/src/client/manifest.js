@@ -18,8 +18,8 @@
  *
  * This file is the browser-safe contract face (zero node imports): the
  * `__FREDDIE_BOOT__` wire types, the boot-manifest parser, and the boundaries around
- * {@link ClientModuleSystem}. The package root is the host-side service that
- * composes the wire.
+ * {@link import('./system.js').ClientModuleSystem}. The package root is the
+ * host-side service that composes the wire.
  */
 
 /**
@@ -51,6 +51,20 @@ export function optionalStringArray(subject, field, value) {
 export function stripClientSuffix(spec) {
   return spec.endsWith('/client') ? spec.slice(0, -'/client'.length) : spec
 }
+
+/**
+ * One composed client entry pushed by the host (a raw `window.__FREDDIE_BOOT__`
+ * graph row, before {@link parseBootManifest} splits it into its module and
+ * plugin views). `immediately` marks stage-one prefetch; `inject` is
+ * informational graph metadata; `external` carries module-graph edges.
+ * @typedef {object} WebBootEntry
+ * @property {string} id - entry name == package name.
+ * @property {string} url - entry file URL, `/plugins/<id>/~<rev>/<entry path under src/>`.
+ * @property {string} rev - content hash of the package's `src/` tree (the `~<rev>` URL segment).
+ * @property {string[]} [inject] - package-name dependency edges, informational.
+ * @property {boolean} [immediately] - stage-one prefetch mark.
+ * @property {string[]} [external] - non-baseline module specifiers this row requests.
+ */
 
 /**
  * Parse `window.__FREDDIE_BOOT__` into the two consumer views. Wire boundary:

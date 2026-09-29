@@ -28,13 +28,8 @@ import { tmpdir } from 'node:os'
  */
 export function canonicalPath(path) {
   try {
-    // Node's JavaScript realpath implementation lexically collapses `..`
-    // before resolving a preceding symlink on some platforms. The native
-    // implementation follows the filesystem's component-by-component lookup,
-    // matching chdir/spawn and the enforcement layers this identity feeds.
     return realpathSync.native(path)
   } catch {
-    // realpathSync.native failed: the path (or a prefix) is missing or unreadable.
     return path
   }
 }

@@ -110,7 +110,6 @@ export function adoptSessionEvent(event) {
       deepFreeze(event.data.message)
       break
     default:
-      // SessionEventMap is merge-extensible; plugin-owned events carry no core message.
       break
   }
   return event
@@ -129,7 +128,6 @@ export function snapshotSessionEvent(event) {
 function freezeRestoredObject(value) {
   const pending = [value]
   while (pending.length > 0) {
-    // The non-empty check proves an object remains to visit.
     // oxlint-disable-next-line typescript/no-non-null-assertion
     const current = pending.pop()
     Object.freeze(current)
@@ -322,7 +320,7 @@ function invokeContainedSessionObservers(ctx, name, id, args, callbacks) {
 const attachments = new WeakMap()
 
 /**
- * An event-sourced session: an append-only log of {@link SessionEvent}s.
+ * An event-sourced session: an append-only log of {@link import('./types.js').SessionEvent}s.
  *
  * Plain class (not a Service) — create live instances via
  * `ctx.sessions.create()` and detached instances via {@link create}.
@@ -408,16 +406,7 @@ export class Session {
       ? validateRestoredSessionHeader(id, header)
       : undefined
     if (seed !== undefined) {
-      // Validate the seed to the SAME invariants `append` enforces, so a
-      // replay/fork (`ctx.sessions.create(id, { seed })`) cannot construct a
-      // live log that no persistence backend could store: each event's `data`
-      // must be JSON-serializable, and `seq` must be contiguous from 0 (the
-      // `seq = log.length` contract the whole system relies on). Without this,
-      // a bad seed would surface only later as a backend rejection or a silent
-      // divergence between the live log and disk.
       for (const [index, source] of seed.entries()) {
-        // The seed is a persistence/replay boundary: validate and detach the
-        // complete event in one lossless-JSON pass.
         const snapshot = mode === 'restore' ? source : snapshotJsonValue(source)
         if (snapshot === undefined) {
           throw new Error(`seed event at index ${index} is not losslessly JSON-serializable`)
@@ -427,9 +416,6 @@ export class Session {
         if (snapshot.seq !== index) {
           throw new Error(`seed event at index ${index} has seq ${snapshot.seq} (expected ${index}); seed must be contiguous from 0`)
         }
-        // A seed is accepted incrementally through the same transition as a
-        // live append and a full-log fold. The candidate is planned before it
-        // enters `log`, so a failure cannot partially mutate the surface.
         try {
           this.surfaceManager.validateNext(snapshot)
         } catch (error) {
@@ -440,10 +426,6 @@ export class Session {
     }
     this.firstLiveSeq = this.log.length
     this.header = restoredHeader ?? snapshotSessionHeader(id, header)
-    // Appended here so the marker is already in `events` when a backend
-    // captures the creation seed: no load-time write. Re-marking is skipped
-    // because a cold session is resumed on first touch, so repeatedly opening
-    // one must not grow its log per open.
     if (seed !== undefined && this.log.at(-1)?.type !== 'session/end-seed') {
       this.append('session/end-seed', {})
     }
@@ -476,12 +458,12 @@ export class Session {
    * contained per listener, so they do not change the return value or prevent
    * later listeners from observing the same accepted event.
    *
-   * @param type - The event type (key of {@link SessionEventMap}).
+   * @param type - The event type (key of {@link import('./types.js').SessionEventMap}).
    * @param data - The event payload; must be JSON-serializable.
    * @param opts - Surface metadata: `surfaceOp` controls how the event enters
    *   the ordered surface; `sourceEventSeqs` lists the seq numbers of earlier
    *   events this one derives from. REQUIRED for
-   *   {@link SurfaceEventType} events (every message-producing event must
+   *   {@link import('./types.js').SurfaceEventType} events (every message-producing event must
    *   declare how it joins the surface, the sole source of derived model
    *   history) and
    *   rejected by the compiler for non-surface types like `turn/start` or
@@ -559,7 +541,7 @@ export class Session {
   headerFoldSeq = 0
 
   /**
-   * The {@link EpochHeader} in force after the log's last header event — the
+   * The {@link import('./types.js').EpochHeader} in force after the log's last header event — the
    * header the NEXT request will be compared against — or undefined before
    * the first `request/header` snapshot. The live, incrementally-maintained
    * form of `foldRequestHeader(session.events)`: each header event is folded
@@ -568,10 +550,6 @@ export class Session {
    */
   requestHeader() {
     if (this.headerFoldSeq < this.log.length) {
-      // Frozen on update: the fold is session state exposed by reference — a
-      // consumer mutating it in place (instead of building a replacement)
-      // would desync every later comparison against the log, so mutation
-      // throws instead.
       this.headerFold = deepFreeze(foldRequestHeader(this.log.slice(this.headerFoldSeq), this.headerFold))
       this.headerFoldSeq = this.log.length
     }
@@ -615,7 +593,7 @@ export class Session {
    *
    * CACHED: each surface node is projected exactly once, when first seen — a
    * call costs O(new nodes), and a surface rewrite (a `replace`;
-   * {@link SessionSurface.replaceGeneration}) rebuilds. The returned array is
+   * {@link import('./surface.js').SurfaceManager#replaceGeneration}) rebuilds. The returned array is
    * a fresh snapshot per call (later appends never grow an array a caller
    * already holds); the `Message` objects in it are SHARED and **deep-frozen**.
    * Their content reuses the already frozen durable event data, so the cache
@@ -632,13 +610,8 @@ export class Session {
       this.derivedGeneration = generation
     }
     for (const seq of nodes.slice(this.derivedNodes)) {
-      // Surface sequences are built from this.log — seq is always a valid
-      // index by construction. The non-null assertion expresses that invariant.
       // oxlint-disable-next-line typescript/no-non-null-assertion
       const msg = this.deriveEventMessage(this.log[seq])
-      // A surface node is one of the five message-producing types, but an
-      // empty-content assistant/message (a max-tokens step that hosts only
-      // usage) derives to null and must not enter the transcript.
       if (msg) this.derived.push(msg)
     }
     this.derivedNodes = nodes.length
@@ -702,7 +675,7 @@ export class SessionStore extends Service {
    * populates the session with a copy of those events (replay/fork);
    * `options.meta` attaches creation metadata (validated absolute `cwd`, seed
    * and parent lineage, and delegation depth) as the immutable
-   * {@link SessionHeader} (the store fills `version`/`id`/`createdAt`).
+   * {@link import('./types.js').SessionHeader} (the store fills `version`/`id`/`createdAt`).
    *
    * For an agent whose session must be torn down IN ORDER with its loop (so the
    * loop's final events are published before the store attachment ends), do NOT use this
@@ -719,10 +692,6 @@ export class SessionStore extends Service {
    */
   create(id, options) {
     const session = this.prepare(id, options)
-    // Single effect owned by the calling fiber. Yield the detach BEFORE
-    // announcing so a throwing `session/created` listener rolls the attach back
-    // (the generator effect disposes already-yielded disposers on a throw)
-    // instead of leaking the store entry and its publication hooks.
     this.ctx.effect(function* () {
       yield this.enter(session)
       this.announce(session)
@@ -732,7 +701,7 @@ export class SessionStore extends Service {
 
   /**
    * Build a session WITHOUT entering it into the store — validate the id/cwd and
-   * construct the {@link Session} (with its immutable {@link SessionHeader}).
+   * construct the {@link Session} (with its immutable {@link import('./types.js').SessionHeader}).
    * Pairs with {@link enter} + {@link announce}: a caller that owns a composite
    * `ctx.effect` (the agent factory) folds the session lifecycle into that ONE
    * effect so a fiber unload tears the session + agent down as a single ORDERED
@@ -803,8 +772,6 @@ export class SessionStore extends Service {
   enter(session) {
     const id = session.id
     const carrier = scopeTarget(session, scopeOf(this.ctx))
-    // This is the authoritative collision boundary after arbitrary unpublished
-    // preparation. Only one exact same-id transaction can publish.
     if (this.store.has(id)) throw new Error(`session "${id}" already exists`)
     if (attachments.has(session)) throw new Error(`session "${id}" is already attached to a store`)
     const entry = {
@@ -824,9 +791,6 @@ export class SessionStore extends Service {
     const detach = () => {
       if (!entered) return
       entered = false
-      // A lifecycle listener may own the advanced detach capability. Keep the
-      // entry and its publication hooks live until synchronous creation or append
-      // publication unwinds, then publish the paired disposal edge.
       if (entry.announcing || entry.appending) {
         entry.detachRequested = true
         return
@@ -839,8 +803,6 @@ export class SessionStore extends Service {
   /** Remove one exact entered session and emit its paired disposal when announced. */
   detachEntered(entry) {
     entry.detachRequested = false
-    // A stale capability cannot remove observers or storage belonging to a
-    // later same-id lifecycle.
     /* v8 ignore next -- enter() rejects replacement while this single-shot detach capability is live. */
     if (this.store.get(entry.id) !== entry) return
     this.store.delete(entry.id)
@@ -860,20 +822,12 @@ export class SessionStore extends Service {
     if (entry.announced || entry.announcing) {
       throw new Error(`session "${entry.id}" was already announced`)
     }
-    // Mark before emit: Cordis emit may deliver to earlier listeners and then
-    // throw. Rollback must still pair that partial creation with disposal, and
-    // a listener cannot recursively create a second lifecycle edge.
     entry.announced = true
     const callbackArgs = [session]
     entry.announcing = true
     try {
       const callbacks = collectSessionCallbacks(this.ctx, [entry.carrier, 'session/created', session])
       for (const callback of callbacks) {
-        // Synchronous throws intentionally propagate and veto publication; the
-        // yielded detach then emits the paired disposal edge. An async function
-        // is nevertheless assignable to a void listener, so observe its returned
-        // promise: rejection is too late to roll back and must be logged instead
-        // of becoming unhandled.
         const returned = callback(...callbackArgs)
         void Promise.resolve(returned).catch((error) => {
           this.ctx.logger.warn(`session "${entry.id}": session/created listener rejected: ${String(error)}`)
@@ -917,8 +871,6 @@ export class SessionStore extends Service {
       try {
         return callback(...callbackArgs)
       } catch (error) {
-        // Preserve the listener's exact rejection value; flush is a caller-owned
-        // failure boundary, and Cordis listeners may throw arbitrary values.
         // oxlint-disable-next-line typescript/prefer-promise-reject-errors
         return Promise.reject(error)
       }

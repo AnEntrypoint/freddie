@@ -24,7 +24,6 @@ export function isValidVNode(vnode) {
             typeofVNode === "number" ||
             typeofVNode === "bigint"));
 }
-/* Get Child Nodes Efficiently */
 export function getChildNodes(parent) {
     const nodes = [];
     let current = parent.firstChild;

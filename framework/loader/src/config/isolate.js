@@ -87,13 +87,11 @@ export default function isolate(ctx) {
   })
 
   ctx.on('loader/patch-context', async (entry, next) => {
-    // step 1: generate new isolate map
     const newMap = Object.create(entry.parent.ctx[Context.isolate])
     for (const name of Object.keys(entry.options.isolate ?? {})) {
       newMap[name] = access(entry, name, true)
     }
 
-    // step 2: generate service diff
     const diff = Object.create(null)
     const oldMap = entry.ctx[Context.isolate]
     for (const name in { ...newMap, ...delims }) {
@@ -112,16 +110,13 @@ export default function isolate(ctx) {
       }
     }
 
-    // step 3: set prototype for transferred context
     Object.setPrototypeOf(entry.ctx[Context.isolate], entry.parent.ctx[Context.isolate])
     Object.setPrototypeOf(entry.ctx[Context.intercept], entry.parent.ctx[Context.intercept])
     swap(entry.ctx[Context.isolate], newMap)
     swap(entry.ctx[Context.intercept], entry.options.intercept)
 
-    // step 4: reload fiber
     await next()
 
-    // step 5: replace service impl
     for (const [symbol1, symbol2, flag1, flag2] of Object.values(diff)) {
       if (flag1 === flag2 && entry.ctx.reflect.store[symbol1] && !entry.ctx.reflect.store[symbol2]) {
         entry.ctx.reflect.store[symbol2] = entry.ctx.reflect.store[symbol1]
@@ -129,7 +124,6 @@ export default function isolate(ctx) {
       }
     }
 
-    // step 6: reflect notify
     ctx.reflect.notify(Object.keys(diff), (ctx, name) => {
       const [symbol1, symbol2, flag1, flag2] = diff[name]
       const symbol3 = ctx[Context.isolate][name]
@@ -137,7 +131,6 @@ export default function isolate(ctx) {
       return (symbol1 === symbol3 || symbol2 === symbol3) && (flag1 === flag3) !== (flag1 === flag2)
     })
 
-    // step 7: clean up delimiters
     for (const name in delims) {
       if (!Reflect.ownKeys(newMap).includes(name)) {
         delete entry.ctx[delims[name]]
@@ -152,9 +145,7 @@ export default function isolate(ctx) {
       const realm = realms[label]
       if (!realm) continue
 
-      // realm garbage collection
       for (const entry of ctx.loader.entries()) {
-        // has reference to this realm
         if (entry.options.isolate?.[name] === realm.label) return
       }
       realm.delete(name)

@@ -4,4 +4,5 @@
  * else references RequestPayload<'session.*'> / ResponseValue<'session.*'>.
  *
  * This file is pure types in TS and carries no runtime code.
+ * @module @freddie/freddie-host-apiproxy/api/sessions
  */

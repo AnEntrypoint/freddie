@@ -1,12 +1,3 @@
-// Shared IconActions chrome for user and assistant messages: copy
-// live, optional branch wiring, and an optional date-aware clock.
-//
-// Converted from a React hooks component to a webjsx custom element:
-// copied/copyPending/copyTimer/copyEpoch useState/useRef become private
-// fields, useId becomes a per-instance generated id, useCallback/useEffect
-// become plain methods plus connectedCallback/disconnectedCallback, and
-// re-render is an explicit applyDiff(this, vdom) call.
-
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   IconBranchOutline16, IconCheckOutline16, IconCopyOutline16, renderTooltip, writeClipboard,
@@ -26,8 +17,6 @@ let nextReasonId = 0
 export class FreddieMessageIconActions extends HTMLElement {
   #props = DEFAULT_PROPS
   #reasonId = `message-icon-actions-branch-reason-${(nextReasonId += 1)}`
-  // Same success chrome as CodeBlock: a short check swap after the write,
-  // gated so re-clicks during the window neither re-copy nor stack timers.
   #copied = false
   #copyPending = false
   #copyTimer = null
@@ -77,9 +66,6 @@ export class FreddieMessageIconActions extends HTMLElement {
     } = this.#props
     const copied = this.#copied
     const day = this.#day.day
-    // The dot is decorative and stays hidden, but its margins separate the
-    // readings only on screen: without the flanking spaces a reader hears one
-    // run-on string ("Ran for 13sTTFT 0.2s12 tok/s") instead of three facts.
     const clockEl = time === undefined ? null : (
       h('span', { class: (clock === 'start' ? css.timeStart : css.timeEnd) ?? '' },
         formatMessageClock(time, t, day),
@@ -109,12 +95,6 @@ export class FreddieMessageIconActions extends HTMLElement {
         ),
       )
     )
-    // h(Tooltip, {...}) calls Tooltip(props) synchronously (webjsx's
-    // function-component branch), Tooltip.js's bare one-shot factory --
-    // recreating the freddie-tooltip element (dropping its in-flight #showTimer
-    // hover-delay) on every #render(), which this element itself does on
-    // every copy/branch/clock state change. renderTooltip(cached, props)
-    // reuses the same element instead.
     this.#copyTooltipEl = renderTooltip(this.#copyTooltipEl, {
       label: copied ? t('copied') : t('copy'), side: 'bottom',
       children: [
@@ -127,7 +107,6 @@ export class FreddieMessageIconActions extends HTMLElement {
       this.#branchTooltipEl = renderTooltip(this.#branchTooltipEl, {
         label: branchUnavailable ? t('message.branchUnavailable') : t('message.branch'), side: 'bottom',
         children: [
-          // Native disabled buttons do not deliver the hover/focus events Tooltip needs.
           h('button',
             {
               type: 'button',
@@ -162,6 +141,21 @@ export class FreddieMessageIconActions extends HTMLElement {
 }
 
 defineElement('freddie-message-icon-actions', FreddieMessageIconActions)
+
+/**
+ * @typedef {object} MessageIconActionsProps
+ * @property {string} text - clipboard text for the copy action.
+ * @property {number} [time] - message timestamp shown next to the actions; omitted hides the clock.
+ * @property {number} [runMs] - total run duration to append to the clock, in milliseconds.
+ * @property {number} [ttftMs] - time-to-first-token to append to the clock, in milliseconds.
+ * @property {number} [tokensPerSecond] - decode throughput to append to the clock.
+ * @property {'start'|'end'} clock - which side of the row shows the clock.
+ * @property {() => void} [onBranch] - branch handler; omitted hides the branch action entirely.
+ * @property {boolean} [branchUnavailable] - disables the branch action and shows the unavailable reason.
+ * @property {string} [className] - extra class appended to the row.
+ * @property {*} [extraActions] - additional action elements rendered between copy and branch.
+ * @property {(key: string, vars?: object) => string} t - localization function.
+ */
 
 /**
  * Create (if needed) or update a MessageIconActions element in place.

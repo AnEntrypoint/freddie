@@ -76,7 +76,6 @@ async function configureDatabase(createClient, client, path) {
       try {
         await client.execute(sql('rollback'))
       } catch {
-        // The original database-ownership failure remains actionable.
       }
     }
     throw error

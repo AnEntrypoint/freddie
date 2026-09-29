@@ -31,9 +31,6 @@ export class DeepSeekHarness {
   constructor(options) {
     this.launch = options.launch
     this.clientInstance = new HarnessClient(options.launch)
-    // Absolute before the handshake: the child spawns relative to THIS
-    // process's cwd, but the wire cwd is resolved again inside the child — a
-    // relative value would double-resolve (e.g. `worker` → `worker/worker`).
     this.cwd = resolve(options.cwd ?? options.launch.cwd ?? process.cwd())
     this.provider = options.provider ?? 'deepseek-official'
     this.model = options.model ?? 'deepseek-v4-flash'
@@ -148,9 +145,6 @@ export class HarnessSession {
     const subscription = client.subscribeSessionTree(this.id)
     const collect = (notification) => {
       if (notification.method === 'session.event' && notification.params.sessionId === this.id) {
-        // Wire boundary: the envelope feeds the typed RunResult, so a
-        // malformed runtime surfaces as a protocol error, not as type-invalid
-        // data (or a TypeError out of finalResponse).
         const event = validatedSessionEvent(notification.params.event)
         notifications.push(notification)
         options?.onNotification?.(notification)
@@ -207,9 +201,6 @@ function validatedSessionEvent(value) {
   if (!isRecord(value) || typeof value.type !== 'string') {
     throw new SdkProtocolError(`session.event carried no event envelope: ${JSON.stringify(value)}`)
   }
-  // The one variant this module reads into (finalResponse) must carry
-  // kind-tagged content blocks; other variants pass through under their
-  // envelope shape.
   if (value.type === 'assistant/message') {
     const message = isRecord(value.data) ? value.data.message : undefined
     const content = isRecord(message) ? message.content : undefined

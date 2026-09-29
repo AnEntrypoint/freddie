@@ -1,5 +1,3 @@
-// TrajectoryTurn: sticky Turn header plus the padded Message/Step body.
-
 import { createElement as h } from '@freddie/webjsx'
 import { TrajectoryTurnHeader } from './TrajectoryTurnHeader.js'
 import css from './TrajectoryTurn.css.js'

@@ -1,27 +1,9 @@
-// CodeBlock: one code surface for every consumer — markdown fences, the
-// run_code program body, and the details panel's raw args/output — with
-// shiki highlighting for the registered grammars and an identical-geometry
-// plain fallback for everything else. Chrome (language banner + copy) matches
-// deepsuite `@deepseek/md` code blocks; token colors stay on `--shiki-*`.
-//
-// Converted from a React hooks component to a webjsx custom element: the
-// `copied` useState becomes a private field, the useSyncExternalStore grammar
-// subscription becomes an explicit subscribe/unsubscribe pair in
-// connectedCallback/disconnectedCallback, the useMemo'd highlight becomes a
-// plain recompute inside #render (cheap relative to the DOM diff), and the
-// rootRef becomes `this` itself (the element IS the root).
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { writeClipboard } from '../clipboard.js'
 import css from './CodeBlock.css.js'
 import { defineElement } from '../define-element.js'
 
-// See ReadBlock.js's identical comment: highlight.js's module graph (shiki
-// core + boot grammars + their full mdast/hast-util-to-html transitive
-// tree) was a static top-level import here too, on the critical path of
-// every markdown fence's boot -- moved to a dynamic import for the same
-// measured reason (613ms critical-path chain dominating a 2.65s boot LCP).
 let highlightModule
 let highlightModulePromise
 const highlightModuleListeners = new Set()
@@ -39,13 +21,6 @@ export class FreddieCodeBlock extends HTMLElement {
   #copied = false
   #unsubscribe = null
   #onHighlightModuleReady = null
-  // Highlighting memo: re-tokenizing is the expensive step (a TextMate regex
-  // scan over the whole code string), and a caller streaming a growing tool
-  // call's args re-renders this element on every chunk with a fresh props
-  // object -- without this guard, every keystroke of streamed text re-ran the
-  // full grammar scan from byte 0, compounding into seconds of main-thread
-  // time over a long stream. `lang` is included because it changes which
-  // grammar the same code text would tokenize against.
   #highlightedCode
   #highlightedLang
   #highlightedHtml
@@ -103,10 +78,6 @@ export class FreddieCodeBlock extends HTMLElement {
   #render() {
     const { lang, class: extraClass, copyLabel = 'Copy', copiedLabel = 'Copied' } = this.#props
     const trimmed = this.#trimmed()
-    // See ReadBlock.js's identical comment: an `undefined` result (module or
-    // grammar still loading) must never be memoized, or the eventual
-    // load-completion re-render would hit this same-trimmed/same-lang cache
-    // hit and keep returning the stale `undefined` forever.
     let html
     if (this.#highlightedHtml !== undefined && this.#highlightedCode === trimmed && this.#highlightedLang === lang) {
       html = this.#highlightedHtml
@@ -122,9 +93,6 @@ export class FreddieCodeBlock extends HTMLElement {
       ? (
         h('pre', { class: css.plain ?? '' }, h('code', null, trimmed))
       )
-      // shiki's output is a static span tree it generated from `code` (no user
-      // HTML passes through), the sanctioned innerHTML consumption path per
-      // shiki's own docs.
       : h('div', { dangerouslySetInnerHTML: { __html: html } })
 
     const vdom = h(
@@ -155,6 +123,16 @@ export class FreddieCodeBlock extends HTMLElement {
 }
 
 defineElement('freddie-code-block', FreddieCodeBlock)
+
+/**
+ * @typedef {object} CodeBlockProps
+ * @property {string} [code=''] - the source text to highlight and display.
+ * @property {string} [lang] - language hint (a markdown fence info string, or a file-extension-derived id);
+ *   unresolved or omitted falls back to plain, unhighlighted text.
+ * @property {string} [class] - additional class name(s) merged onto the root element.
+ * @property {string} [copyLabel='Copy'] - copy-button label while idle.
+ * @property {string} [copiedLabel='Copied'] - copy-button label shown after a successful copy.
+ */
 
 /**
  * Create (if needed) or update a CodeBlock element in place.

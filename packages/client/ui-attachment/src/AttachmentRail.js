@@ -25,11 +25,13 @@ import css from './AttachmentRail.css.js'
 /** Approximate pixels per wheel step for `deltaMode` LINE deltas (Firefox
  * notch wheels report lines, not pixels). */
 const WHEEL_LINE_PX = 16
+const WHEEL_TICK_CAP_PX = 60
+const SCROLL_EDGE_SLACK_PX = 1
+const PAGE_CARD_OVERLAP_PX = 64
+const PAGE_MIN_DISTANCE_PX = 200
 
 /** Smooth paging unless the user asked for reduced motion. */
 function pageBehavior() {
-  // jsdom (the unit lane) implements no matchMedia despite lib.dom's
-  // non-optional typing; the optional call keeps that lane on the default.
   // oxlint-disable-next-line typescript/no-unnecessary-condition
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
 }
@@ -87,9 +89,8 @@ export class FreddieAttachmentRail extends HTMLElement {
   #updateEdges = () => {
     const el = this.#railEl
     if (el === null) return
-    // 1px slack: engines report fractional scroll positions at the edges.
-    const left = el.scrollLeft > 1
-    const right = el.scrollLeft < el.scrollWidth - el.clientWidth - 1
+    const left = el.scrollLeft > SCROLL_EDGE_SLACK_PX
+    const right = el.scrollLeft < el.scrollWidth - el.clientWidth - SCROLL_EDGE_SLACK_PX
     if (this.#edges.left === left && this.#edges.right === right) return
     this.#edges = { left, right }
     this.#render()
@@ -116,23 +117,11 @@ export class FreddieAttachmentRail extends HTMLElement {
   }
 
   #bindRail(el) {
-    // The rail's width follows the composer, which resizes with sidebars and
-    // panels, not only the window — observe the element itself. jsdom (the
-    // unit lane) implements no ResizeObserver; every browser gets the
-    // subscription.
     if (typeof ResizeObserver !== 'undefined') {
       const observer = new ResizeObserver(this.#updateEdges)
       observer.observe(el)
       this.#resizeObserver = observer
     }
-    // The rail scrolls horizontally ONLY: any wheel tick with a vertical
-    // component is consumed — without preventDefault it would also scroll the
-    // conversation behind the composer, so this exclusion needs a manually
-    // attached non-passive listener. A diagonal trackpad pan keeps its
-    // horizontal intent; a pure vertical wheel converts to a horizontal step,
-    // with LINE and PAGE deltas (Firefox notch wheels) normalized to pixels
-    // before the per-tick clamp that keeps a fast wheel followable. A purely
-    // horizontal pan stays native.
     const onWheel = (event) => {
       if (event.deltaY === 0) return
       const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE
@@ -142,7 +131,7 @@ export class FreddieAttachmentRail extends HTMLElement {
       el.scrollBy({
         left: event.deltaX !== 0
           ? event.deltaX * scale
-          : Math.sign(event.deltaY) * Math.min(Math.abs(event.deltaY) * scale, 60),
+          : Math.sign(event.deltaY) * Math.min(Math.abs(event.deltaY) * scale, WHEEL_TICK_CAP_PX),
         behavior: 'auto',
       })
     }
@@ -153,9 +142,7 @@ export class FreddieAttachmentRail extends HTMLElement {
   #page(direction) {
     const el = this.#railEl
     if (el === null) return
-    // One viewport minus a card keeps the last visible thumbnail as context;
-    // the floor keeps narrow rails paging a useful distance.
-    el.scrollBy({ left: direction * Math.max(el.clientWidth - 64, 200), behavior: pageBehavior() })
+    el.scrollBy({ left: direction * Math.max(el.clientWidth - PAGE_CARD_OVERLAP_PX, PAGE_MIN_DISTANCE_PX), behavior: pageBehavior() })
   }
 
   #render() {
@@ -218,6 +205,14 @@ export class FreddieAttachmentRail extends HTMLElement {
 }
 
 defineElement('freddie-attachment-rail', FreddieAttachmentRail)
+
+/**
+ * @typedef {object} AttachmentRailProps
+ * @property {Array<{id: string, previewUrl: string, alt: string, removeLabel: string}>} items - draft attachments to show as thumbnails.
+ * @property {{group: string, open: string, scrollLeft: string, scrollRight: string}} labels - rail group/thumbnail-title/arrow accessibility text.
+ * @property {(item: object) => void} onOpen - called with the item whose thumbnail was clicked.
+ * @property {(item: object) => void} onRemove - called with the item whose remove control was clicked.
+ */
 
 /** Create (if needed) and update an AttachmentRail mounted in place.
  * @param el - an existing rail element (from a prior call), or null to create one.

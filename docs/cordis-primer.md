@@ -1,6 +1,6 @@
 # Cordis Primer
 
-Cordis is the plugin framework underneath Freddie. This primer teaches the Cordis ideas a harness plugin author needs before reading the generated service/event reference on the [subsystem pages](subsystems/core.md); the [Cordis tutorial](cordis-tutorial/index.md) walks the same ideas hands-on. The source is first-party and lives in [framework/README.md](../framework/README.md).
+Cordis is the plugin framework underneath Freddie. This primer teaches the Cordis ideas a harness plugin author needs before reading the service/event reference on the [subsystem pages](subsystems/core.md); the [Cordis tutorial](cordis-tutorial/index.md) walks the same ideas hands-on. The source is first-party and lives in [framework/README.md](../framework/README.md).
 
 ## Cordis In Five Ideas
 
@@ -21,7 +21,7 @@ Every event can have one of the following dispatch mode and can only be dispatch
 | `parallel` | Yes | all listeners observe the event in parallel | No |
 | `serial` | Yes | listeners observe in registration order | Yes |
 
-The dispatch mode is part of the event's public contract. New harness events document it with an `@mode` tag so the generated catalog can check declarations against dispatch sites.
+The dispatch mode is part of the event's public contract. New harness events document it with an `@mode` tag in the declaration's JSDoc.
 
 ## Cordis Waterfall Semantics
 

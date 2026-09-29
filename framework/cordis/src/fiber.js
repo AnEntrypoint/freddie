@@ -38,7 +38,6 @@ Object.defineProperty(ValidationError.prototype, kValidationError, {
  */
 export function resolveConfig(runtime, config) {
   if (!runtime.Config) return config
-  // TODO: async validation
   const result = runtime.Config['~standard'].validate(config)
   if ('then' in result) {
     throw new TypeError('Async config validation is not supported')
@@ -50,9 +49,6 @@ export function resolveConfig(runtime, config) {
   }
 }
 
-// Same as `this.ctx`, but with a more specific type.
-// Public effect disposers remain single-shot, but structural owners and outer
-// effects must still be able to join a cleanup that another caller started.
 const effectInertia = new WeakMap()
 
 function runDisposable(dispose) {
@@ -225,22 +221,12 @@ export class Fiber {
             }
           }
           this._setEpoch(INACTIVE)
-          // A PENDING fiber can already own effects registered by an
-          // internal/plugin observer. Its epoch is still INACTIVE, so
-          // _setEpoch() has no transition to drive; explicitly unload that
-          // pre-activation work before reporting disposal complete.
           if (!this.inertia) {
             this._updateState(() => {
               this.inertia = this._unload()
               return FiberState.UNLOADING
             })
           }
-          // `this.inertia` itself should never reject — both `_reload` and
-          // `_unload` swallow their own work errors via `ctx.logger.error`.
-          // If it *does* reject, the only remaining cause is the logger
-          // itself failing, which we can't recover from in this exact spot
-          // (calling the logger again is what just failed). Let the
-          // rejection propagate; process-level crash is the honest outcome.
           while (this.inertia) {
             await this.inertia
           }
@@ -248,20 +234,12 @@ export class Fiber {
       }, 'ctx.plugin()')
 
       try {
-        // Publish only after the parent owns a fully assigned disposer. A
-        // synchronous observer may dispose either this fiber or its parent.
         this.context.emit('internal/plugin', this)
       } catch (error) {
-        // Publication failed synchronously. The disposer removes the child
-        // from both the parent and runtime before control escapes.
         void Promise.resolve(this.dispose()).catch(reason => this.ctx.logger.error(reason))
         throw error
       }
 
-      // Keep the initial notification's historical PENDING view. The loader
-      // may also extend `inject` in that notification, so resolve dependencies
-      // only after publication. A reentrant parent unload makes the child
-      // disposer responsible for draining any PENDING effects instead.
       if (this.uid !== null && parent.fiber.state !== FiberState.UNLOADING) {
         for (const name of Object.keys(this.inject)) {
           this._checkImpl(name)
@@ -318,7 +296,6 @@ export class Fiber {
       if (typeof effect === 'function') {
         return runner.collect(effect)
       } else if (isNullable(effect)) {
-        // return
       } else if (!isObject(effect)) {
         throw new TypeError('Invalid effect')
       } else if ('then' in effect) {
@@ -334,7 +311,6 @@ export class Fiber {
       } else if (Symbol.asyncIterator in effect) {
         const iter = effect[Symbol.asyncIterator]()
         return (async () => {
-          // force async stack trace
           await Promise.resolve()
           info.error = new Error()
           while (true) {
@@ -451,9 +427,6 @@ export class Fiber {
     }
 
     const wrapper = defineProperty(() => {
-      // A synchronous setup failure can race an owner unload that already
-      // captured this wrapper but has not invoked it yet. The failed effect is
-      // never returned publicly, so let that internal caller await rollback.
       if (!runner.epoch) return setupFailed ? inFlight : undefined
       runner.epoch = false
       return finalizeDisposal(() => {
@@ -463,9 +436,6 @@ export class Fiber {
     }, symbols.effect, meta)
     effectInertia.set(wrapper, () => inFlight)
 
-    // Make the effect visible to a reentrant owner unload before execute()
-    // runs any plugin code. Async teardown stays owner-visible until it
-    // settles, allowing an outer effect to join cleanup another caller began.
     removeWrapper = this._disposables.push(wrapper)
     try {
       task = this._execute(runner)
@@ -489,8 +459,6 @@ export class Fiber {
       Promise.resolve(task).then(resolveSetup, rejectSetup)
     }
 
-    // prevent unhandled rejection — both from `task` itself and from the
-    // disposer chain if it fails to settle cleanly.
     task?.catch(() => {
       if (!runner.epoch) return dispose()
       return finalizeDisposal(dispose)
@@ -531,10 +499,8 @@ export class Fiber {
     const oldState = this.state
     this.state = callback() ?? this._getState()
     if (oldState === this.state) return
-    // FIXME internal/fiber-info
     this.context.emit('internal/status', this, oldState)
 
-    // only notify changes between ACTIVE and NON-ACTIVE states
     if (oldState !== FiberState.ACTIVE && this.state !== FiberState.ACTIVE) return
     for (const key of Reflect.ownKeys(this.ctx.reflect.store)) {
       const impl = this.ctx.reflect.store[key]
@@ -597,16 +563,12 @@ export class Fiber {
     const oldEpoch = this._runner.epoch
     try {
       await Promise.resolve()
-      // A disposer queued before this checkpoint may already have invalidated
-      // the load. Do not run plugin code for a stale epoch; the state update
-      // below will drain any effects collected while the fiber was PENDING.
       if (this._runner.epoch === oldEpoch) {
         this.config = this._resolveConfig(this._config)
         await this._execute(this._runner)
         this._error = undefined
       }
     } catch (reason) {
-      // impl guarantees that the error is non-null (?)
       this.ctx.logger.error(reason)
       this._error = reason
       this._runner.epoch = INACTIVE
@@ -686,8 +648,6 @@ export class Fiber {
     this.assertActive()
     this._config = config
     if (this.state !== FiberState.ACTIVE) {
-      // Config resolution may access injected services, so defer it until the
-      // fiber can activate.
       this._error = undefined
       this._setEpoch(INACTIVE)
       this._refresh()

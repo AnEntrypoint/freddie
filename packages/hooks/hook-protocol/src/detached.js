@@ -6,6 +6,14 @@
  */
 
 /**
+ * One bridge's quiescence tracker.
+ * @typedef {object} DetachedRuns
+ * @property {AbortSignal} signal Aborted once {@link DetachedRuns.drain} starts.
+ * @property {(run: Promise<unknown>) => void} track Register one in-flight run for drain to await.
+ * @property {() => Promise<void>} drain Abort the signal, then settle every tracked run.
+ */
+
+/**
  * Create a {@link DetachedRuns} tracker (one per bridge `apply()`); settled
  * runs are pruned so a long-lived session does not accumulate them.
  * @returns the tracker.
@@ -22,8 +30,6 @@ export function createDetachedRuns() {
     },
     async drain() {
       controller.abort(new Error('hook bridge disposed'))
-      // Re-check after each wave: a chain can be tracked while a prior wave is
-      // settling; loop until the registry is observed empty.
       while (inflight.size > 0) {
         await Promise.allSettled([...inflight])
       }

@@ -33,7 +33,6 @@ function assertBodyParses(body, name) {
     throw new WorkflowError('workflow meta rides the `meta` request field, not the script: remove the `export const meta = {...}` statement from the body', 'SCRIPT_PARSE')
   }
   try {
-    // Parse only — the script object is discarded, nothing executes.
     void new vm.Script(`(async () => {\n${body}\n})()`, { filename: `workflow:${name}`, lineOffset: -1 })
   } catch (error) {
     throw new WorkflowError(`workflow script does not parse: ${String(error)}`, 'SCRIPT_PARSE', { cause: error })
@@ -72,7 +71,8 @@ function resolveMaxTotalAgents(requested, ceiling) {
 
 /**
  * The worker-thread engine service. `start()` validates the script up front
- * (meta + a host-side body parse) and returns a {@link WorkflowRun} whose
+ * (meta + a host-side body parse) and returns a
+ * {@link import('@freddie/freddie-workflow/src/runtime-types.js').WorkflowRun} whose
  * `result` never rejects; the `workflow/*` events fire around the run per
  * the seam contract.
  */
@@ -92,8 +92,6 @@ class WorkerThreadWorkflowEngine extends WorkflowEngine {
 
   constructor(ctx, config) {
     super(ctx)
-    // schemastery (static Config) has already filled the defaulted fields;
-    // this assignment records that resolution, not a hidden fallback.
     this.config = config
   }
 
@@ -128,12 +126,6 @@ class WorkerThreadWorkflowEngine extends WorkflowEngine {
       ...request.args !== undefined ? { args: request.args } : {},
       limits,
     }
-    // Capture the dependency while this service call is still traced through
-    // the start() holder. Cordis strips the engine-provider shadow when it
-    // returns the SubagentRuntime handle, so an already-returned run can keep
-    // starting children after an engine HMR unload removes ctx.workflowEngine.
-    // Re-resolving `this.ctx.subagents` later from WorkerRun would instead walk
-    // the now-inactive engine fiber and break the seam's holder-owned lifetime.
     const runCtx = this.ctx
     const subagents = runCtx.subagents
     const workerRun = new WorkerRun(
@@ -155,8 +147,6 @@ class WorkerThreadWorkflowEngine extends WorkflowEngine {
     )
 
     this.emitWorkflowEvent('workflow/start', info)
-    // `workflow/end` fires as the (never-rejecting) result settles, with the
-    // outcome DATA only — the value stays with the run's holder.
     void workerRun.result.then((settled) => {
       this.emitWorkflowEvent('workflow/end', info, {
         stopReason: settled.stopReason,

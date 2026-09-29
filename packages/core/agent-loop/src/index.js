@@ -67,8 +67,6 @@ class FactoryOwnership {
     const wasBusy = this.busyAgents.size > 0
     if (busy) this.busyAgents.add(agent)
     else this.busyAgents.delete(agent)
-    // Announce the busy→idle edge only. A deferred hot reload is waiting on
-    // this to retry the pass it declined; without it the reload never lands.
     if (wasBusy && this.busyAgents.size === 0) this.onIdle?.()
   }
 
@@ -286,22 +284,15 @@ export class AgentLoop extends Service {
     this.config = {
       ...config,
       agents: applyLauncherIdentities(config.agents, ctx.get(CONFIGURED_AGENT_IDENTITIES_KEY)),
-      // Read through on every scheduler decision: `tool-calls.ts` destructures
-      // this at the start of each group, so a committed change caps the next
-      // group without disturbing the one in flight.
       get maxParallelToolCalls() {
         return source().maxParallelToolCalls
       },
     }
     installSettingsSection(ctx, AGENT_LOOP_SETTINGS_NAMESPACE, AGENT_LOOP_SETTINGS_SCHEMA, entry, {
-      // The schema admits any integer above zero; `resolveMaxParallelToolCalls`
-      // owns the whole rule, so refusing here keeps the running scheduler on
-      // its last good cap instead of failing at the next tool group.
       validate: value => void resolveMaxParallelToolCalls(value.maxParallelToolCalls),
       setSource: (current) => {
         source = current
       },
-      // Nothing is derived from the cap: the getter above is the only reader.
       onChange: () => {},
     })
     validateConfiguredAgents(this.config.agents)
@@ -309,10 +300,6 @@ export class AgentLoop extends Service {
     this.runtime = { ctx }
     ctx.effect(() => () => this.ownership.dispose(), 'agentLoop.transactions()')
     ctx.effect(() => ctx.agents.setFactory(this), 'agentLoop.setFactory()')
-    // Hot reload deletes this plugin from the registry, disposing the fiber and
-    // aborting every in-flight tool call: a source edit during a turn ends that
-    // turn with ABORTED_BEFORE_DISPATCH results and the agent stops mid-task.
-    // Vetoing here defers the reload; HMR re-runs it on `hmr/idle`.
     this.ownership.onIdle = () => { ctx.emit('hmr/idle') }
     ctx.effect(() => ctx.on('hmr/before-reload', () => (
       this.ownership.busy
@@ -389,9 +376,6 @@ export class AgentLoop extends Service {
       return
     } catch (error) {
       if (!this.ownership.isActive()) return
-      // A load is the per-id serialization barrier for eager write-behind and
-      // lifecycle retirement. Only a genuinely absent artifact falls back to
-      // first creation; corruption and backend failures stay loud.
       const exists = (await persistence.list()).some(header => header.id === sessionId)
       if (exists) throw error
     }
@@ -400,8 +384,6 @@ export class AgentLoop extends Service {
 
   /** Wait for a draining same-id lifecycle to finish registry teardown. */
   async waitForDrainingConfiguredIdentity(ownerCtx, sessionId) {
-    // Only an id still occupying a registry needs waiting for; a live healthy
-    // occupant is a collision the create/resume below will surface itself.
     if (ownerCtx.agents.get(sessionId) === undefined && ownerCtx.sessions.get(sessionId) === undefined) return
 
     const released = Promise.withResolvers()
@@ -430,9 +412,6 @@ export class AgentLoop extends Service {
   prepare(ownerCtx, id, options, session, callerSignal) {
     assertAgentOptions(options)
     ownerCtx.fiber.assertActive()
-    // Every caller reaches prepare() synchronously from a service method
-    // whose Cordis dispatch already requires the live factory fiber, or
-    // re-checks ownership itself after its awaits (resume's load barrier).
     /* v8 ignore next -- unreachable backstop, see above */
     if (!this.ownership.isActive()) throw new Error('agent loop is not active')
     if (callerSignal?.aborted) {
@@ -442,11 +421,6 @@ export class AgentLoop extends Service {
     }
     const loopCtx = this.runtime.ctx
 
-    // Deactivation fuses three owners, each with its own reason: the caller's
-    // cancellation signal, the owner fiber's unload, and factory teardown.
-    // It is registered BEFORE any resource exists, over mutable slots, so an
-    // unload arriving while the scope is still minting finds a working
-    // disposer instead of a leak.
     const abort = new AbortController()
     const onCallerAbort = () => {
       abort.abort(callerSignal?.reason instanceof Error
@@ -464,17 +438,11 @@ export class AgentLoop extends Service {
     let untrackBusy
     let disposing
     const machineReady = Promise.withResolvers()
-    // Reverse teardown, memoized so every racing owner awaits one quiescence:
-    // stop the machine, leave the registries, unwind the scope, release
-    // bookkeeping.
     const dispose = (ownerTriggered = false) => (disposing ??= (async () => {
       abort.abort(new Error(`agent "${id}" lifecycle disposed`))
       callerSignal?.removeEventListener('abort', onCallerAbort)
       this.ownership.signal.removeEventListener('abort', onFactoryTeardown)
       try {
-        // Disposal IS a disposed-cause cancel followed by quiescence. New work
-        // sent after this point is the sender's bug — the registries are about
-        // to drop the agent, so nothing should still hold it.
         if (machine === undefined) await machineReady.promise
         if (machine !== undefined) {
           machine.cancel({ kind: 'disposed' })
@@ -497,8 +465,6 @@ export class AgentLoop extends Service {
     let unfollowOwner
     try {
       unfollowOwner = ownerCtx.effect(() => () => {
-        // Owner disposal owns the same quiescence boundary. Its teardown skips
-        // unregistering this already-running owner effect from inside itself.
         if (disposing !== undefined) return
         abort.abort(new Error(`agent "${id}" setup aborted: owner disposed during setup`))
         return dispose(true)
@@ -514,17 +480,11 @@ export class AgentLoop extends Service {
 
     const assertLive = () => {
       if (!abort.signal.aborted) return
-      // Every fused abort source carries an Error reason: onCallerAbort and
-      // raceAbort wrap non-Error caller reasons, and the factory/lifecycle
-      // owners abort with constructed Errors.
       /* v8 ignore next -- unreachable String() arm, see above */
       throw abort.signal.reason instanceof Error ? abort.signal.reason : new Error(String(abort.signal.reason))
     }
     try {
       const agent = machine = new ReactLoopAgent(loopCtx, id, options, session)
-      // Hot reload disposes this factory, which aborts every in-flight tool
-      // call. Tracking running/idle here lets HMR defer a reload past a live
-      // turn instead of killing it mid-task (see `hmr/before-reload`).
       this.ownership.markBusy(agent, agent.status === 'running')
       untrackBusy = loopCtx.on('agent/status', (payload) => {
         if (payload.agent === agent) this.ownership.markBusy(agent, payload.status === 'running')
@@ -543,9 +503,6 @@ export class AgentLoop extends Service {
           assertLive()
           loopCtx.agents.announce(agent)
           assertLive()
-          // A synchronous announce/session-start listener may have started
-          // teardown; the machine is already live (delivery works from the
-          // session-start extension point), so only the liveness recheck is owed.
           emitAgentEvent(loopCtx, agent, 'agent/session-start', { source })
           assertLive()
           return { agent, dispose }
@@ -648,9 +605,6 @@ export class AgentLoop extends Service {
   ) {
     const id = options.resumeSessionId
     const published = (async () => {
-      // The load may outlive its owner: race it against caller cancellation,
-      // owner-fiber unload, and factory teardown so a never-settling backend
-      // cannot pin the identity.
       const ownerAbort = new AbortController()
       const unfollowOwner = ownerCtx.effect(() => () => {
         ownerAbort.abort(new Error(`agent "${id}" setup aborted: owner disposed during setup`))

@@ -4,4 +4,5 @@
  * view) — rpcId must be exposed to the business layer, because responses to answerable frames
  * (approval/question requested) echo it; for pure pushes it identifies that one push.
  * signal is a local stream-control parameter, independent of the request (never on the wire).
+ * @module @freddie/freddie-host-apiproxy/api/events
  */

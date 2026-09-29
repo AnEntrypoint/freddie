@@ -1,5 +1,3 @@
-/* Sidebar-foot Cordis action and the fixed list it opens above the footer. */
-
 .freddie-cordisPanel__layer {
   position: relative;
   flex: none;
@@ -78,8 +76,6 @@
   gap: 2px;
 }
 
-/* Fixed so the sidebar's overflow clip cannot cut the 420px surface; the
-   left/bottom offsets are measured from the trigger before paint. */
 .freddie-cordisPanel__panel {
   position: fixed;
   z-index: 30;
@@ -93,7 +89,6 @@
   border-radius: 12px;
   background: var(--dsw-specific-menu);
   box-shadow: var(--dsw-shadow-lv3);
-  /* Only `.body` scrolls; the header remains fixed above it. */
   --freddie-scrollbar-thumb: var(--freddie-alias-scrollbar-bg-l2);
   --freddie-scrollbar-thumb-hover: var(--freddie-alias-scrollbar-hover-l2);
 }
@@ -134,7 +129,6 @@
   color: var(--freddie-alias-state-error-primary);
 }
 
-/* Session headings replace per-row ownership markers. */
 .freddie-cordisPanel__group {
   margin: 8px 0 8px;
   font-size: 11px;
@@ -320,8 +314,6 @@
   line-height: 16px;
 }
 
-/* Matches GoalBar's action controls: compact circular icons whose visible copy
-   lives in a tooltip and accessible name. */
 .freddie-cordisPanel__actionButton {
   display: inline-flex;
   align-items: center;

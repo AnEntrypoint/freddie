@@ -227,9 +227,6 @@ const EMPTY_CONTRIBUTION = {
 
 function legacyContribution(raw) {
   const node = raw
-  // Content-free settled Assistants remain in the finalized compatibility
-  // stream so StatsLine preserves its pre-assembly step counts; hidden running
-  // attempts have no final Node to contribute.
   if (raw.visibility !== 'visible' && node.kind !== 'assistant-step') return EMPTY_CONTRIBUTION
   switch (node.kind) {
     case 'user':

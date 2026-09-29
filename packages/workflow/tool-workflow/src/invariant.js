@@ -153,7 +153,6 @@ const install = Object.assign((ctx, fail) => {
     if (eventName !== 'session/event') return
     const [session, event] = args
     if (!isWorkflowRecordEvent(event)) return
-    // session/event dispatch follows list() or session/created seeding.
     const trace = cloneTraceForEvent(traces.get(session), event, fail)
     applyEvent(trace, event, fail)
     staged.set(event, { session, trace })

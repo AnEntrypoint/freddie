@@ -1,4 +1,14 @@
 /**
+ * The value `defineStore` returns: the registration-side store seat of slot
+ * terminals. `create(scopeKey?)` mints (or reuses) a scoped snapshot-store
+ * instance with the declared init/persist/actions baked in.
+ * @typedef {object} StoreHandle
+ * @property {object} spec - the declaration passed to `defineStore`.
+ * @property {(scopeKey?: string) => object} create - mint or reuse a scoped
+ *   instance: `{actions, getSnapshot, subscribe, store, clearPersisted}`.
+ */
+
+/**
  * Snapshot store engine (hand-rolled state+notify store + rafFlush
  * middleware + opt-in persist + dev freeze) plus the declarative shell over
  * it: {@link defineStore} bakes an init/persist/actions literal into a
@@ -120,8 +130,6 @@ export function deepEqual(a, b) {
 
 /** Batches subscriber notification into one flush per animation frame. */
 function rafBatch(notify) {
-  // Fall back to microtask batching where rAF is absent (node unit tests);
-  // both preserve the N-changes=1-notification contract within a tick.
   const schedule =
     typeof requestAnimationFrame === 'function'
       ? (fn) => { requestAnimationFrame(() => { fn() }) }
@@ -169,12 +177,6 @@ export function createSnapshotStore(init, opts) {
     getSnapshot: () => api.getState(),
     subscribe: fn => subscribe(fn),
     update: (mutator) => {
-      // Immer's produce (not setState's partial-merge path) so scalar and
-      // array roots replace correctly; produce also freezes in dev. A draft
-      // that mutated nothing is dropped: entries write their own store during
-      // render (AppFrame's setNarrow, the session tree's order sync), and an
-      // outlet subscribed to what it reads would otherwise loop on the fresh
-      // but identical clone.
       const previous = api.getState()
       const next = produce(previous, (draft) => { mutator(draft) })
       if (deepEqual(previous, next)) return
@@ -230,9 +232,6 @@ export function singleFlight(fn) {
  * (quota, private mode) only disable persistence, never break the store.
  */
 function attachPersistence(api, name) {
-  // Non-browser runs (node e2e booting the client tree) have no localStorage:
-  // persistence silently disables — same contract as a storage failure, minus
-  // the per-store console noise a ReferenceError would produce.
   if (typeof localStorage === 'undefined') return
   try {
     const raw = localStorage.getItem(name)
@@ -266,7 +265,6 @@ function deepFreeze(value) {
   }
 }
 
-// ui-slots owns the contract; this module supplies the engine implementation.
 
 /**
  * Declare a store: initial state, optional persistence, and the full write
@@ -309,8 +307,6 @@ export function defineStore(decl) {
           try {
             localStorage.removeItem(persistKey)
           } catch {
-            // Storage failures (private mode, quota teardown races) only skip
-            // cleanup — the same non-fatal contract as attachPersistence.
           }
         },
       }

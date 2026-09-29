@@ -26,8 +26,6 @@ export async function startHostHalf(group, plugin, reportGuardFailure) {
   } catch (error) {
     await fiber.dispose()
     const message = error instanceof Error ? error.message : String(error)
-    // The commonest startup collision is running a NEW version of a package
-    // while the old run still holds the name — teach the replace recipe.
     if (message.includes('already registered')) {
       throw new Error(
         `${message} — to REPLACE something an earlier dynamic package registered, first cordis_stop that package's id `

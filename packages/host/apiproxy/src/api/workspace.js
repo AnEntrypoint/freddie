@@ -5,4 +5,5 @@
  * source of truth, same as the sessions domain.
  *
  * This file is pure types in TS and carries no runtime code.
+ * @module @freddie/freddie-host-apiproxy/api/workspace
  */

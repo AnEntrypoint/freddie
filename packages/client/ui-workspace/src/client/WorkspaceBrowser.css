@@ -1,8 +1,3 @@
-/* Workspace browsing region (fills the sidebar shell's hole): section
-   header, search capsule, and the scrolling session list. Wide/rail
-   variants ride the shell's fold state through the `wide` owner prop —
-   rail state renders only the two 36x36 icon controls. */
-
 .freddie-workspaceBrowser__root {
   --freddie-session-list-edge-inset: var(--freddie-sidebar-inline-padding);
   --freddie-session-list-scrollbar-width: 8px;
@@ -38,8 +33,6 @@
   background: var(--freddie-alias-interactive-bg-hover);
 }
 
-/* Section header: title, an inline search control, and the two trailing
-   actions. Expanding search collapses the action cluster and takes its room. */
 .freddie-workspaceBrowser__sectionHeader {
   flex: none;
   display: flex;
@@ -130,8 +123,6 @@
   transition-delay: 0s, 0s, 0s, 180ms;
 }
 
-/* Inline search always fills the room between the title and trailing actions;
-   it grows farther right when the action cluster collapses. */
 .freddie-workspaceBrowser__search {
   flex: none;
   display: flex;
@@ -238,10 +229,6 @@
   background: var(--freddie-alias-interactive-bg-hover);
 }
 
-/* Rail variant (own .rail class from the wide owner prop — the region never
-   reads the shell's class names): the two icon controls stack as 36x36
-   circles matching the shell's rail rhythm. Both use the rail's shared base
-   left anchor so the outer shell can translate the whole region uniformly. */
 .freddie-workspaceBrowser__rail .freddie-workspaceBrowser__sectionHeader {
   gap: 0;
   padding-left: 0;
@@ -279,7 +266,6 @@
   background: var(--freddie-alias-interactive-bg-hover);
 }
 
-/* List seat: always mounted so the shell foot never moves. */
 .freddie-workspaceBrowser__listArea {
   flex: 1;
   min-height: 0;
@@ -288,8 +274,6 @@
   margin-left: -4px;
   margin-right: calc(-1 * var(--freddie-session-list-edge-inset));
   padding-left: 4px;
-  /* The list remains the scroll clip. This seat stays visible so the
-     absolutely positioned first-boundary marker can occupy the header gap. */
   overflow: visible;
 }
 
@@ -299,7 +283,6 @@
   padding-left: 0;
 }
 
-/* Relative for the bottom fade overlay. */
 .freddie-workspaceBrowser__treeBody {
   flex: 1;
   min-height: 0;
@@ -308,8 +291,6 @@
   position: relative;
 }
 
-/* Bottom fade: compact overlay pinned to the visible bottom,
-   transparent -> sidebar fill so it tracks the theme. */
 .freddie-workspaceBrowser__fade {
   position: absolute;
   left: 0;
@@ -320,7 +301,6 @@
   pointer-events: none;
 }
 
-/* Wide-only content fades back in on expand remount (mirrors the shell). */
 .freddie-workspaceBrowser__wide {
   animation: freddie-workspaceBrowser__wide-in 200ms var(--ds-ease-in-out);
 }
@@ -329,10 +309,6 @@
   from { opacity: 0; }
 }
 
-/* List: the only scrolling region. Block children keep their design heights
-   under content overflow. The 2px edge offset, stable 8px themed scrollbar,
-   and remaining padding equal the shell's right inset, with or without
-   overflow, so moving the bar does not move the rows. */
 .freddie-workspaceBrowser__list {
   flex: 1;
   min-height: 0;
@@ -345,8 +321,6 @@
     - var(--freddie-session-list-scrollbar-width)
     - var(--freddie-session-list-scrollbar-offset)
   );
-  /* Clears the compact bottom fade overlay: at scroll end the last row sits
-     above the gradient instead of under it. */
   padding-bottom: 16px;
   scrollbar-gutter: stable;
 }
@@ -369,7 +343,6 @@
   color: var(--freddie-alias-label-secondary);
 }
 
-/* One workspace section: header row + a compact expanded session run. */
 .freddie-workspaceBrowser__groupSection {
   position: relative;
 }
@@ -406,8 +379,6 @@
   pointer-events: none;
 }
 
-/* The first insertion boundary keeps the same -8px coordinate as every
-   Workspace boundary, but lives outside the scrolling clip. */
 .freddie-workspaceBrowser__listTopDropIndicator {
   top: -8px;
   left: 0;
@@ -454,7 +425,6 @@
   font-size: 13px;
 }
 
-/* Rename dialog form (same figma dialog family as the create modals). */
 .freddie-workspaceBrowser__renameInput {
   box-sizing: border-box;
   width: 100%;

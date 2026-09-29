@@ -1,10 +1,3 @@
-// ConversationSnapshot / ConversationNode: the only data shape the logic layer feeds the UI.
-// Publication contract: every change swaps the top-level object; unchanged
-// substructures keep their references (the React.memo premise). Chat node and
-// Location stores are stable live readers, so old snapshots are not time-point
-// views. callId/approvalId stay plain string here (narrow to real brands when
-// convenient).
-
 /**
  * core ContentBlock[] -> AssistantBlock[] (classifier shared by finalized messages and partial block-end).
  * @param content - core content blocks verbatim.

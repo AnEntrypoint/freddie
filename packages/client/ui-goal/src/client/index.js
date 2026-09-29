@@ -11,7 +11,7 @@
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { GoalCommandInputView } from './GoalCommandInputView.js'
 import { goalCommandInputDefinition } from './goal-command-input.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 
 export { GoalBar, GoalDock } from './GoalBar.js'
 
@@ -27,7 +27,7 @@ export const inject = ['slots', 'sessions', 'remote', 'remote.goals', 'locale', 
  */
 export function apply(ctx) {
   ctx.conversationEvents.register(goalCommandInputDefinition)
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-goal: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-goal: dictionaries')
 
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
     name: 'conversation.chat.node',

@@ -37,7 +37,6 @@ export class FreddiePlanChip extends HTMLElement {
     const props = this.#props
     if (props === null) return
     const { exitPlanMode } = props
-    // No leaving/locked guard: both disable the button, so no click arrives.
     this.#leaving = true
     this.#error = null
     this.#render()
@@ -73,13 +72,11 @@ export class FreddiePlanChip extends HTMLElement {
           disabled: locked || this.#leaving,
           onclick: () => { this.#off() },
         },
-          // Design literal, not copy: the chip wordmark stays 'Plan' in every locale.
           'Plan',
           h('span', {class: css.close ?? '', 'aria-hidden': ''},
             h(IconCloseFill14, {size: 12}),
           ),
         ),
-        // Failure copy stays English (error-surface policy: not localized).
         this.#error !== null && h('span', {class: css.error ?? '', role: 'status', title: this.#error}, 'failed to exit plan mode'),
       )
     )

@@ -23,6 +23,9 @@ import { renderCodeBlock } from './CodeBlock.js'
 import { renderTexToVNodes } from './katex.js'
 import css from './MarkdownText.css.js'
 
+const WIDE_TABLE_MIN_COLUMNS = 4
+const HTTP_URL_PREFIX = /^https?:\/\//i
+
 function sanitizeUrl(url) {
   try {
     switch (new URL(url).protocol) {
@@ -34,8 +37,6 @@ function sanitizeUrl(url) {
         return ''
     }
   } catch {
-    // Relative and otherwise unparsable destinations are disallowed alongside
-    // disallowed protocols; new URL() has no other failure mode for strings.
     return ''
   }
 }
@@ -45,10 +46,18 @@ function remoteImageUrl(url) {
     const protocol = new URL(url).protocol
     return protocol === 'http:' || protocol === 'https:' ? url : undefined
   } catch {
-    // Same single failure mode as above: not an absolute URL.
     return undefined
   }
 }
+
+/**
+ * Reference and footnote-reference resolution state accumulated depth-first
+ * across a document (or, while streaming, across the frozen prefix and the
+ * current tail separately). Definitions are looked up by uppercased identifier.
+ * @typedef {object} ReferenceTargets
+ * @property {Map<string, object>} definitions - link/image definition nodes keyed by uppercased identifier.
+ * @property {Map<string, object>} footnotes - footnote definition nodes keyed by uppercased identifier.
+ */
 
 /**
  * Create an empty {@link ReferenceTargets}.
@@ -110,6 +119,14 @@ export function wrapBlockChildren(elements, edges) {
   return wrapped
 }
 
+/**
+ * One block-level entry from a list item or footnote definition body: a
+ * `paragraph` entry carries its already-rendered inline children unwrapped (so
+ * a tight item skips the `<p>` element), while every other block type renders
+ * through {@link renderNode} into a plain `element`.
+ * @typedef {({paragraph: Array<*>} | {element: *})} BlockEntry
+ */
+
 /** Render container children into {@link BlockEntry} values, dropping empty renders. */
 function renderBlockEntries(blocks, context) {
   const entries = []
@@ -150,7 +167,6 @@ function renderNode(node, key, context) {
     case 'thematicBreak':
       return h('hr', { key })
     case 'break':
-      // The replaced pipeline emitted a newline text node after each <br>.
       return [h('br', { key }), '\n']
     case 'strong':
       return h('strong', { key }, renderChildren(node.children, context))
@@ -159,19 +175,11 @@ function renderNode(node, key, context) {
     case 'delete':
       return h('del', { key }, renderChildren(node.children, context))
     case 'inlineCode': {
-      // Parity with mdast-util-to-hast: inline code renders line endings as spaces.
       const value = node.value.replace(/\r?\n|\r/g, ' ')
-      // An inline-code token that is entirely an absolute HTTP(S) URL keeps
-      // its code chrome and gains the same safe external anchor as a link;
-      // commands, partial URLs, and other schemes stay inert. The value is
-      // authored text, not a parsed destination, so no normalizeUri: port,
-      // path, and query render unchanged.
       const href = inlineCodeHttpUrl(value)
       if (href !== undefined) return h('code', { key }, renderSafeLink(href, [value], 'link'))
-      // A token the owner's file-mention vocabulary recognizes opens that
-      // file; the resolver, not this renderer, decides what names a file.
-      // Inside an anchor the token stays inert — a button cannot nest there.
-      const mention = context.inLink === true ? undefined : context.fileMentions?.resolve(value)
+      const buttonCannotNestInAnchor = context.inLink === true
+      const mention = buttonCannotNestInAnchor ? undefined : context.fileMentions?.resolve(value)
       if (mention !== undefined) {
         return (
           h(
@@ -194,7 +202,6 @@ function renderNode(node, key, context) {
       return h('code', { key }, value)
     }
     case 'html':
-      // No HTML parser enters the pipeline: raw HTML stays literal text.
       return node.value
     case 'code':
       return renderCode(node, key, context)
@@ -205,7 +212,6 @@ function renderNode(node, key, context) {
     case 'list':
       return renderList(node, key, context)
     case 'listItem':
-      // Reachable only in hand-built trees: the grammar emits items inside lists.
       return renderListItem(node, listItemLoose(node), key, context)
     case 'table':
       return renderTable(node, key, context)
@@ -221,13 +227,8 @@ function renderNode(node, key, context) {
       return renderFootnoteReference(node, key, context)
     case 'definition':
     case 'footnoteDefinition':
-      // Targets render elsewhere: definitions resolve references in place;
-      // footnote bodies render in the trailing section.
       return null
     default:
-      // Documented default for the merge-extensible union: node types without
-      // a mapping (tableRow/tableCell outside a table, frontmatter, future
-      // grammar contributions) render nothing.
       return null
   }
 }
@@ -235,7 +236,6 @@ function renderNode(node, key, context) {
 function renderCode(node, key, context) {
   const language = node.lang ?? undefined
   if (node.value === '') {
-    // Parity: the replaced pipeline kept the stock <pre> for an empty fence.
     return (
       h(
         'pre',
@@ -244,26 +244,11 @@ function renderCode(node, key, context) {
       )
     )
   }
-  // The replaced pipeline recovered the grammar id from the hast class with
-  // /language-([\w-]+)/, which truncates at the first non-word character.
   const lang = language === undefined ? undefined : /^[\w-]+/.exec(language)?.[0]
   if (!context.streaming && lang === 'math') {
-    // ```math fences render as display TeX once settled (rehype-katex parity);
-    // its text extraction saw the code block's trailing newline.
     return renderTexToVNodes(`${node.value}\n`, true)
   }
-  // CodeBlock is a stateful custom element (copy feedback, lazy grammar
-  // subscription): applyDiff's own VNode shape (a plain {type, tagName,
-  // props} description it creates DOM from) cannot carry an already-built
-  // HTMLElement, so a raw <freddie-code-block> intrinsic host tag stands in the
-  // tree and its `ref` — webjsx's documented Ref<Node> escape hatch, fired on
-  // both create and every subsequent update pass touching this node — is
-  // where CodeBlockProps reach the reused instance via setProps, mirroring
-  // how the CodeBlock React version re-ran with new props on every render.
   const props = {
-    // The replaced hast pipeline appended one synthetic newline that
-    // CodeBlock's display trim removes; feeding the bare value would make
-    // that trim eat a REAL trailing blank line inside the fence instead.
     code: `${node.value}\n`,
     lang: context.streaming ? undefined : lang,
     copyLabel: context.codeLabels?.copyLabel,
@@ -312,10 +297,6 @@ function renderListItem(item, loose, key, context) {
       entries.unshift({ paragraph: [checkbox] })
     }
   }
-  // Newline placement and tight-paragraph unwrapping mirror
-  // mdast-util-to-hast's list-item handler: a newline before every child
-  // except a tight leading paragraph, and after a trailing non-paragraph
-  // (or any trailing child when loose).
   const parts = []
   for (const [index, entry] of entries.entries()) {
     const isParagraph = 'paragraph' in entry
@@ -335,17 +316,8 @@ function renderTable(node, key, context) {
   const align = node.align ?? null
   const [headRow, ...bodyRows] = node.children
   const columns = align === null ? headRow?.children.length ?? 0 : align.length
-  // Four or more columns read as a comparison matrix: the block keeps the
-  // table at natural width and exposes the stable `md-table-wide` hook so a
-  // hosting layout (the chat transcript) can widen it past the message
-  // column. Narrower tables — and any table inside a blockquote — fill the
-  // column and wrap instead (deepsuite chat TableWrapper parity).
-  const wide = columns >= 4 && context.inBlockquote !== true
+  const wide = columns >= WIDE_TABLE_MIN_COLUMNS && context.inBlockquote !== true
   return (
-    // Wide tables rest with overflow-x hidden (the hover-revealed bar in
-    // MarkdownText.module.css), which drops Chromium's implicit scroller
-    // focusability — the explicit tabindex keeps them keyboard-reachable,
-    // and :focus-visible restores scrolling.
     h(
       'div',
       {
@@ -370,18 +342,13 @@ function renderTable(node, key, context) {
 }
 
 function renderTableRow(row, cellTag, align, key, context) {
-  // With column alignment present, every row renders exactly one cell per
-  // column, padding or truncating the row (mdast-util-to-hast parity).
-  const length = align === null ? row.children.length : align.length
+  const cellCount = align === null ? row.children.length : align.length
   const cells = []
-  for (let index = 0; index < length; index++) {
+  for (let index = 0; index < cellCount; index++) {
     const cell = row.children[index]
     const alignValue = align?.[index]
     cells.push(h(
       cellTag,
-      // hast-util-to-jsx-runtime's default tableCellAlignToStyle turned the
-      // deprecated align attribute into an inline style; keep that DOM via a
-      // plain CSS string (webjsx has no style-object prop).
       { key: index, style: alignValue == null ? undefined : `text-align: ${alignValue}` },
       ...(cell === undefined ? [] : renderChildren(cell.children, context)),
     ))
@@ -414,21 +381,11 @@ function renderAnchor(url, children, key) {
  */
 function inlineCodeHttpUrl(value) {
   if (value.trim() !== value) return undefined
-  // Cheap prefix gate before the parse. `new URL()` on a non-URL throws, and
-  // constructing the rejected TypeError (message, stack capture) costs far
-  // more than the parse itself -- paid for EVERY inline code span on every
-  // render, where the overwhelming majority are ordinary identifiers, not
-  // links. This is the same predicate the protocol check below enforces, so
-  // nothing that used to return a href stops doing so.
-  // Case-insensitive: URL schemes are, so `HTTPS://EXAMPLE.COM` is a real
-  // link the old code accepted and a case-sensitive gate would silently drop.
-  if (!/^https?:\/\//i.test(value)) return undefined
+  if (!HTTP_URL_PREFIX.test(value)) return undefined
   try {
     const protocol = new URL(value).protocol
     return protocol === 'http:' || protocol === 'https:' ? value : undefined
   } catch {
-    // A well-formed prefix can still fail to parse (a bare `https://`, a bad
-    // host); those stay inert code.
     return undefined
   }
 }
@@ -461,10 +418,6 @@ function referenceSuffix(node) {
 function renderLinkReference(node, key, context) {
   const definition = context.targets.definitions.get(node.identifier.toUpperCase())
   if (definition === undefined) {
-    // The grammar only emits references whose definitions exist somewhere in
-    // the same parse, but incremental segments and hand-built trees may still
-    // present unresolved ones: revert to the bracketed source text — which is
-    // not an anchor, so mentions inside it stay live.
     return ['[', renderChildren(node.children, context), referenceSuffix(node)]
   }
   return renderAnchor(definition.url, renderChildren(node.children, { ...context, inLink: true }), key)
@@ -481,8 +434,6 @@ function renderFootnoteReference(node, key, context) {
   const seen = context.footnoteCounts.get(id)
   if (seen === undefined) context.footnoteOrder.push(id)
   context.footnoteCounts.set(id, (seen ?? 0) + 1)
-  // The in-page anchor fails the protocol allowlist, so only the numbered
-  // superscript renders (matching the replaced pipeline's unwrapped link).
   return h('sup', { key }, String(context.footnoteOrder.indexOf(id) + 1))
 }
 
@@ -519,8 +470,6 @@ export function renderFootnoteSection(context) {
         )
         : entry.element
     ))
-    // Without a trailing paragraph the back-references join the block list
-    // itself (and pick up the wrap newlines), as in the replaced pipeline.
     if (tail === undefined || !('paragraph' in tail)) body.push(...backrefs)
     items.push(
       h(

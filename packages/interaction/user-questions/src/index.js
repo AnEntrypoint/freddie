@@ -82,13 +82,6 @@ export class UserQuestionService extends Service {
           'DELEGATED_CALLER')
       }
     }
-    // A presentation intent asserts two things the types cannot: that the
-    // named approve label is one of this question's own options, and that a
-    // plan-review carries the plan it is a review of. A UI honouring the
-    // intent answers with that label, and shows that detail as the plan, so
-    // either gap would put a choice the asker never offered — or an approval of
-    // something invisible — in front of the user. Caught at the asker, where
-    // the mistake is, rather than in each UI.
     for (const question of request.questions) {
       const intent = question.intent
       if (intent === undefined) continue

@@ -1,5 +1,3 @@
-// Latency/throughput folds shared by the settled turn footer and StatsLine.
-
 function usageOutputTokens(usage) {
   if (typeof usage !== 'object' || usage === null) return null
   const value = usage.outputTokens

@@ -35,10 +35,6 @@
       "platform": "web"
     }
   },
-  "scripts": {
-    "bundle": "tsdown",
-    "watch": "tsdown --watch"
-  },
   "license": "MIT",
   "dependencies": {
     "@freddie/webjsx": "*"

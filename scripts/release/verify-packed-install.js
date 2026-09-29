@@ -7,7 +7,7 @@
  * verification: the harness packages declare the vendored framework as a peer,
  * those packages live in another release sequence, and this job must not depend
  * on the registry already carrying versions that match — one pull request may
- * bump both families before either publishes — so a dsh verification passes the
+ * bump both families before either publishes — so a freddie verification passes the
  * vendored family's pack output too, while publishing only its own
  * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
  *
@@ -25,6 +25,8 @@ import { releaseFamily } from './families.js'
 import { capture, isEntry } from './process.js'
 import { packedIdentity } from './tarball.js'
 
+const OMIT_LANDLOCK_PLATFORM_PACKAGES = '--omit=optional'
+
 /**
  * Environment for the installed artifact: no host Node hooks, no host DeepSeek
  * Harness home, and no ambient npm user agent that would confuse npm.
@@ -37,7 +39,7 @@ function consumerEnvironment(consumerRoot) {
   delete environment.NPM_CONFIG_USER_AGENT
   delete environment.NODE_OPTIONS
   delete environment.NODE_PATH
-  environment.FREDDIE_HOME = resolve(consumerRoot, '.dsh')
+  environment.FREDDIE_HOME = resolve(consumerRoot, '.freddie')
   environment.FREDDIE_AGENTS_HOME = resolve(consumerRoot, '.agents')
   environment.FREDDIE_TELEMETRY_DISABLED = '1'
   return environment
@@ -99,12 +101,7 @@ function main() {
 
     const environment = consumerEnvironment(consumerRoot)
     console.log(`release verify-packed-install: installing ${String(packed.size)} tarball(s) into ${consumerRoot}`)
-    // Optional dependencies are omitted: the Landlock platform packages behind
-    // them need a musl toolchain and one build per architecture, and a consumer
-    // that cannot install them must still start — which is what optional means
-    // here. Their entry package is a plain dependency of freddie-sandbox-local, so
-    // its tarball is supplied through --from.
-    capture('npm', ['install', '--no-audit', '--no-fund', '--package-lock=false', '--omit=optional'],
+    capture('npm', ['install', '--no-audit', '--no-fund', '--package-lock=false', OMIT_LANDLOCK_PLATFORM_PACKAGES],
       { cwd: consumerRoot, env: environment })
 
     const bin = join(consumerRoot, 'node_modules', ...entry.packageName.split('/'), entry.binPath)

@@ -203,13 +203,6 @@ export class FreddieTrajectoryTimeline extends HTMLElement {
   #animateViewport = false
   #tooltips = new Map()
 
-  // h(Tooltip, {...}) calls Tooltip(props) synchronously (webjsx's
-  // function-component branch), Tooltip.js's bare one-shot factory --
-  // recreating the freddie-tooltip element (dropping its in-flight #showTimer
-  // hover-delay) on every #render(), which fires on every drag/hover/pan
-  // frame. `key` is per-call-site for the earlier-history boundary, or
-  // span.index for the per-span tooltips in the spans .map(). A stale key
-  // from a since-removed span is harmless: it just sits unused in the Map.
   #tooltip(key, props, ...children) {
     const el = renderTooltip(this.#tooltips.get(key) ?? null, { ...props, children })
     this.#tooltips.set(key, el)

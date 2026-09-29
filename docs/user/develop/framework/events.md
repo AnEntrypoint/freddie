@@ -80,7 +80,7 @@ A waterfall listener **must call `next()`**. Omitting it short-circuits the pipe
 
 ## Typed events
 
-Harness uses TypeScript declaration merging for type-safe events:
+A plugin authored in TypeScript can describe its events with declaration merging for its own editor tooling. This checkout ships no Cordis type declarations, so nothing infers event types and Node erases the block when it loads the file:
 
 ```ts
 import '@freddie/cordis'
@@ -92,14 +92,11 @@ declare module '@freddie/cordis' {
     'my-plugin/transform': (input: string, next: () => Promise<string>) => Promise<string>
   }
 }
-
-// ctx.on('my-plugin/ready', ...) and ctx.emit('my-plugin/ready', ...)
-// are now inferred correctly.
 ```
 
 ## Cordis events and session records
 
-Harness Cordis events use `namespace/action` names, including `agent/step`, `agent/request`, `agent/request-error`, `tools/result`, and `session/event`. The generated `cordis-surface` regions on the [subsystem pages](../../../subsystems/core.md) record complete signatures and modes.
+Harness Cordis events use `namespace/action` names, including `agent/step`, `agent/request`, `agent/request-error`, `tools/result`, and `session/event`. The `cordis-surface` regions on the [subsystem pages](../../../subsystems/core.md) record complete signatures and modes.
 
 `turn/*`, `step/*`, `tool/call`, `tool/result`, and `compaction/*` are durable session-event types, not same-named Cordis events. To observe them, listen to `session/event` and inspect `event.type`.
 

@@ -92,8 +92,6 @@ const workflowProjectionDefinition = {
 function createWorkflowRecorder(ctx) {
   const active = new Map()
   const append = (session, type, data) => {
-    // These four package-owned events are all log-only. Narrowing the generic
-    // append face here discharges Session.append's conditional options tuple.
     const appendRecord = session.append.bind(session)
     try {
       appendRecord(type, data)
@@ -212,7 +210,6 @@ function stopReasonError(result) {
 
 /** Render the run's outcome text: the meta name, agent count, and the JSON value (capped). */
 function renderResult(name, agentsStarted, value, maxChars) {
-  // The engine returns JSON data (null for a valueless script), so stringify never yields undefined.
   const rendered = JSON.stringify(value, null, 2)
   const clipped = rendered.length > maxChars
     ? `${rendered.slice(0, maxChars)}\n… [truncated: ${rendered.length - maxChars} more characters]`
@@ -222,12 +219,8 @@ function renderResult(name, agentsStarted, value, maxChars) {
 
 export function apply(ctx, config) {
   ctx.sessionProjections.register(workflowProjectionDefinition)
-  // schemastery (the exported Config schema) has already filled the defaulted
-  // fields; this reads that resolution, not a hidden fallback.
   const { toolName, maxResultChars, enableRunInBackground } = config
   const recorder = createWorkflowRecorder(ctx)
-  // Usage policy ships with the tool (the master convention: tool guidance
-  // lives in tool plugins as prompt sections, not in the deployment persona).
   ctx.systemPrompt.section({
     name: `tool:${toolName}`,
     order: 115,
@@ -312,9 +305,6 @@ export function apply(ctx, config) {
     async execute(args, exec) {
       const parent = exec.agent
       if (!parent) {
-        // The loop sets `exec.agent` for every model-driven call; its absence
-        // means a non-agent caller invoked the tool directly, which has no
-        // parent to attribute the children to. Fail loud rather than guess.
         throw new Error('workflow tool requires a calling agent (exec.agent was undefined)')
       }
 

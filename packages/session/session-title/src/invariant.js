@@ -20,8 +20,6 @@ export const inject = ['invariants']
  * writer produced it.
  */
 const install = Object.assign((ctx, fail) => {
-  // internal/dispatch interception rejects the append before publication
-  // (the session/event listener would only observe the already-committed log).
   ctx.on('internal/dispatch', (_mode, eventName, args) => {
     if (eventName !== 'session/event') return
     const [, event] = args

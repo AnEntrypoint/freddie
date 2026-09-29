@@ -76,7 +76,12 @@ export function sessionFormatVersionRefusal(id, version) {
     : `session "${id}" uses log format v${version}, older than the supported v${SESSION_FORMAT_VERSION}, and this build ships no upgrade path for it`
 }
 
-/** Coordinator policy supplied by a concrete persistence backend. */
+/**
+ * Coordinator policy supplied by a concrete persistence backend.
+ * @typedef {object} PersistenceCoordinatorOptions
+ * @property {number} [preparedSessionCacheSize] - detached session preparations retained (default {@link DEFAULT_PREPARED_SESSION_CACHE_SIZE}).
+ * @property {number} [writeBatchMaxDelayMs] - maximum intentional wait before a live session batch starts writing (default {@link DEFAULT_WRITE_BATCH_MAX_DELAY_MS}).
+ */
 
 /**
  * A stored session's header, valid contiguous event prefix, source-qualified
@@ -84,6 +89,11 @@ export function sessionFormatVersionRefusal(id, version) {
  * exact detached prefix. The coordinator only checks marker presence and
  * returns its value to {@link PersistenceBackend.commitRepair}; each backend
  * owns the marker type.
+ * @typedef {object} StoredPrefix
+ * @property {import('@freddie/freddie-session/types').SessionHeader} meta
+ * @property {import('@freddie/freddie-session/types').SessionEvent[]} events
+ * @property {unknown} revision - opaque source-qualified change token.
+ * @property {unknown} [tornMarker] - opaque torn-tail repair token; backend-owned type.
  */
 
 /**
@@ -91,6 +101,9 @@ export function sessionFormatVersionRefusal(id, version) {
  * return shape of the optional seek-capable
  * {@link PersistenceBackend.loadStoredFrom} hook. Non-mutating reads carry no
  * torn marker: there is nothing to repair.
+ * @typedef {object} StoredSuffix
+ * @property {import('@freddie/freddie-session/types').SessionHeader} meta
+ * @property {import('@freddie/freddie-session/types').SessionEvent[]} events
  */
 
 /**
@@ -102,13 +115,43 @@ export function sessionFormatVersionRefusal(id, version) {
  *
  * @typeParam TornMarker - the backend's opaque torn-tail repair token (see
  * {@link StoredPrefix}). The coordinator treats it as fully opaque.
+ * @typedef {object} PersistenceBackend
+ * @property {string} name - diagnostic label used in error and log text.
+ * @property {(id: string, signal?: AbortSignal) => Promise<StoredPrefix | undefined>} loadStored
+ * @property {(id: string, fromSeq: number, signal?: AbortSignal) => Promise<StoredSuffix | undefined>} [loadStoredFrom]
+ * @property {(meta: import('@freddie/freddie-session/types').SessionHeader, events: import('@freddie/freddie-session/types').SessionEvent[], materialized: boolean) => Promise<void>} appendBatch
+ * @property {(meta: import('@freddie/freddie-session/types').SessionHeader, tornMarker: unknown, closers: import('@freddie/freddie-session/types').SessionEvent[]) => Promise<void>} commitRepair
+ * @property {(id: string, signal?: AbortSignal) => Promise<unknown>} readStoredRevision
+ * @property {(meta: import('@freddie/freddie-session/types').SessionHeader) => (import('./index.js').ArtifactLocation | undefined)} [locate]
+ * @property {() => Promise<void>} [close]
  */
 
-/** Per-session write state held by the coordinator's in-memory bookkeeping. */
+/**
+ * Per-session write state held by the coordinator's in-memory bookkeeping.
+ * @typedef {object} PersistedSessionState
+ * @property {import('@freddie/freddie-session/types').SessionHeader} meta
+ * @property {number} cursor - next expected seq; also the count of durably persisted events.
+ * @property {boolean} materialized - whether the backend has written anything for this id yet.
+ * @property {import('@freddie/freddie-session').Session} [owner] - the live Session currently bound to this state, if any.
+ */
 
-/** One live session's initialization and bounded write-behind controller. */
+/**
+ * One live session's initialization and bounded write-behind controller.
+ * @typedef {object} LiveSessionController
+ * @property {Promise<void>} init - resolves once this session's initial sync with the backend completes.
+ * @property {import('./write-behind.js').SessionWriteBehind} writes - the bounded write-behind batching controller.
+ */
 
-/** One validated cold source and the exact unpublished Session built from it. */
+/**
+ * One validated cold source and the exact unpublished Session built from it.
+ * @typedef {object} PreparedSource
+ * @property {Readonly<{meta: import('@freddie/freddie-session/types').SessionHeader, events: readonly import('@freddie/freddie-session/types').SessionEvent[]}>} inspection
+ * @property {import('@freddie/freddie-session').Session} session - the unpublished Session built from the stored/repaired log.
+ * @property {unknown} revision - the backend revision this source was read at.
+ * @property {number} sessionLength - `session.events.length` at preparation time.
+ * @property {unknown} [tornMarker] - opaque torn-tail repair token, when the tail needed repair.
+ * @property {import('@freddie/freddie-session/types').SessionEvent[]} closers - synthetic closers appended for an interrupted turn.
+ */
 
 /** Collect the rejection reasons from a set of promises (none-throwing). */
 async function settledErrors(promises) {
@@ -423,8 +466,8 @@ function adoptStoredEvents(events, id) {
 
 /**
  * Owns the backend-agnostic session write-path orchestration. A backend
- * constructs one (`new PersistenceCoordinator(ctx, this)`), implements
- * {@link PersistenceBackend}, and delegates its write/read service methods to
+ * constructs one (`new PersistenceCoordinator(ctx, this)`), implements the
+ * {@link PersistenceBackend} contract, and delegates its write/read service methods to
  * the matching coordinator methods.
  *
  * All per-id operations are serialized (a per-id promise chain) so concurrent
@@ -475,14 +518,11 @@ export class PersistenceCoordinator {
     this.installWritePath()
   }
 
-  // --- Public API (the backend's service methods delegate here) ---
-
   /**
    * Register detached session metadata for lazy creation on the first append.
    * @param meta - header to snapshot; duplicate tracked or persisted ids reject.
    */
   create(meta) {
-    // Snapshot before queueing so caller mutation cannot diverge the key and header.
     const snapshot = snapshotJsonValue(meta)
     if (snapshot === undefined) {
       return Promise.reject(new TypeError('session metadata must be losslessly JSON-serializable'))
@@ -494,22 +534,15 @@ export class PersistenceCoordinator {
   }
 
   async createCore(meta) {
-    // Do NOT clobber an existing session: the SessionId IS the identity.
     if (this.states.has(meta.id) || this.preparations.has(meta.id)) {
       throw new Error(`session "${meta.id}" already exists in this backend`)
     }
-    // A persisted artifact under this id (in ANY scope) blocks creation: load/
-    // resume identify a session by id alone, so a second artifact would make
-    // resume nondeterministic.
     if (await this.backend.loadStored(meta.id) !== undefined) {
       throw new Error(`session "${meta.id}" already has a persisted log on disk; load/resume it instead of creating`)
     }
-    // Pure lazy: record intent only. No artifact until the first append.
     this.states.set(meta.id, { meta, cursor: 0, materialized: false })
   }
 
-  // `async` so synchronous materialization failures below reject (not throw) per
-  // the Promise<void> contract — callers use `await expect(...).rejects`.
   /**
    * Durably persist a batch of events. Honors the append-only and contiguous-seq
    * contracts; rejects non-JSON-serializable `event.data`.
@@ -518,11 +551,6 @@ export class PersistenceCoordinator {
    *   as a detached lossless-JSON snapshot at call time.
    */
   async append(id, events) {
-    // Validate and deep-snapshot the complete batch HERE, in one traversal,
-    // before the op waits behind the per-session chain. A check followed by
-    // structuredClone would reread accessors and could sanitize an exotic value
-    // into an apparently valid record; the single-pass materializer makes the
-    // checked value exactly the value persisted.
     const batch = snapshotJsonValue(events)
     if (batch === undefined) {
       throw new TypeError('session event batch is not losslessly JSON-serializable because it contains non-JSON-serializable data')
@@ -531,21 +559,12 @@ export class PersistenceCoordinator {
   }
 
   async appendCore(id, events) {
-    // Every append route converges here: the public service, live write-behind
-    // drains, and HMR seed/suffix adoption. Legacy-shape rejection stays at
-    // this shared boundary so a stale JavaScript plugin cannot persist a
-    // retired shape this backend refuses to load. The unknown-type guard is
-    // deliberately read-side only: an append-time refusal would stall a live
-    // session's durability mid-flight, which costs more than a loud refusal at
-    // the log's next load (trade-off owned by the session-log-version-mechanism
-    // Agent Note).
     assertSupportedEvents(events, id)
     if (events.length === 0) return
     this.preparations.assertWritable(id)
     let state = this.states.get(id)
     if (state === undefined) state = await this.adopt(id)
 
-    // Contiguity contract: each event's seq must continue the stored log.
     for (const [i, event] of events.entries()) {
       if (event.seq !== state.cursor + i) {
         throw new Error(`append seq mismatch for "${id}": expected ${state.cursor + i} at index ${i}, got ${event.seq}`)
@@ -553,8 +572,6 @@ export class PersistenceCoordinator {
     }
 
     await this.backend.appendBatch(state.meta, events, state.materialized)
-    // The durable write is the transaction: mark materialized + advance the
-    // cursor as soon as it commits (uniform across backends).
     state.materialized = true
     state.cursor += events.length
     this.preparations.invalidate(id)
@@ -673,7 +690,7 @@ export class PersistenceCoordinator {
    * Read the stored events from `fromSeq` onward, detached and non-mutating
    * (the read-from-seq primitive behind the service's `readFrom`). Runs on
    * the same per-id chain as writes; a backend with the seek-capable
-   * {@link PersistenceBackend.loadStoredFrom} hook reads only the suffix,
+   * `loadStoredFrom` (see {@link PersistenceBackend}) hook reads only the suffix,
    * every other backend reads its stored prefix and skips forward here.
    * @param id - persisted session to read.
    * @param fromSeq - first event seq to include; a non-negative safe integer.
@@ -712,7 +729,6 @@ export class PersistenceCoordinator {
       return { meta: structuredClone(suffix.meta), events }
     }
     const whole = await this.readStoredPrefix(id, signal)
-    // Sequential fallback: contiguous seqs from 0 make the suffix an index slice.
     return { meta: whole.meta, events: whole.events.slice(fromSeq) }
   }
 
@@ -743,7 +759,6 @@ export class PersistenceCoordinator {
       const storedEvents = adoptStoredEvents(events, id)
       this.assertEventsSupported(meta, storedEvents)
 
-      // Preserve complete interrupted events and synthesize only missing closers.
       const closers = interruptedTurnClosers(storedEvents).map(adoptSessionEvent)
       const balanced = [...storedEvents, ...closers]
       const session = this.ctx.sessions.prepare(id, {
@@ -764,8 +779,6 @@ export class PersistenceCoordinator {
         closers,
       }
     } catch (error) {
-      // An unsupported format is a refusal over an intact log, not damage —
-      // surface it unwrapped so callers can point at the raw artifact.
       if (error instanceof SessionFormatUnsupportedError) throw error
       throw new SessionPersistenceCorruptionError(
         `stored session "${id}" failed validation: ${String(error)}`,
@@ -785,8 +798,6 @@ export class PersistenceCoordinator {
     if (!await this.isPreparedSourceCurrent(source)) return undefined
     if (source.tornMarker !== undefined || source.closers.length > 0) {
       await this.backend.commitRepair(source.inspection.meta, source.tornMarker, source.closers)
-      // The repair changed the durable revision. Reload the exact committed
-      // graph instead of associating the old in-memory view with a newer revision.
       return undefined
     }
     const state = existing ?? {
@@ -836,10 +847,6 @@ export class PersistenceCoordinator {
       : observeQueuedAbort(retired, signal, () => false)
   }
 
-  // Listing is a direct backend read and needs no coordinator state.
-
-  // --- per-id serialization + adoption helpers ---
-
   /**
    * Run `op` after any in-flight operation for the same session id, so writes for
    * one session never interleave. Errors do not poison the chain. NOTE: serialized
@@ -855,12 +862,8 @@ export class PersistenceCoordinator {
       return op()
     }
     const next = prior.then(run, run)
-    // Keep the chain alive but swallow this op's rejection for the NEXT waiter
-    // (the caller still sees the real rejection via `next`).
     const tail = next.then(() => undefined, () => undefined)
     this.chains.set(id, tail)
-    // Settled tails carry no serialization value. Delete only the exact tail
-    // installed above: a later operation may already have replaced it.
     void tail.then(() => {
       if (this.chains.get(id) === tail) this.chains.delete(id)
     })
@@ -869,8 +872,6 @@ export class PersistenceCoordinator {
 
   /** Build a state for a session discovered in storage but not yet in memory. */
   async adopt(id) {
-    // This runs inside the id's serialization chain, so it uses core helpers
-    // instead of re-entering through public prepare/load methods.
     for (;;) {
       const source = this.preparations.takeReady(id) ?? await this.prepareCore(id)
       const committed = await this.commitPrepared(source)
@@ -916,14 +917,9 @@ export class PersistenceCoordinator {
     }
   }
 
-  // --- write path (session/event → flush drain) ---
-
   installWritePath() {
     const ctx = this.ctx
 
-    // Register the disposer BEFORE the listeners. Cordis tears effects down in
-    // reverse registration order, so event admission closes before this final
-    // drain reaches quiescence and closes the backend.
     ctx.effect(() => async () => {
       let disposeError
       try {
@@ -939,9 +935,6 @@ export class PersistenceCoordinator {
         try {
           await this.backend.close?.()
         } catch (closeError) {
-          // A close failure can only add teardown context; keep the already-
-          // captured drain AggregateError as the primary failure rather than
-          // masking it. Only surface the close error if the drain succeeded.
           /* v8 ignore start -- close failure racing disposal is a defensive teardown edge */
           if (disposeError === undefined) throw closeError
           /* v8 ignore stop */
@@ -949,25 +942,19 @@ export class PersistenceCoordinator {
       }
     }, `${this.backend.name} write path`)
 
-    // Capture the header on creation and persist a fork's seed once.
     ctx.on('session/created', (session) => {
       void this.initFor(session)
     })
 
-    // Keep a persistence-owned copy of each frozen event and start its bounded window.
     ctx.on('session/event', (session, event) => {
       const live = this.initFor(session)
       live.writes.enqueue(event)
     })
 
-    // Callers use flush as the immediate durability barrier for buffered writes.
     ctx.on('session/flush', session => this.flush(session))
 
-    // Session disposal is observe-only, so retirement contains its own failure.
     ctx.on('session/disposed', (session) => { this.retire(session) })
 
-    // HMR: a hot reload does not replay session/created, so seed existing live
-    // sessions (mirrors freddie-invariants).
     for (const session of ctx.sessions.list()) void this.initFor(session)
   }
 
@@ -1005,7 +992,6 @@ export class PersistenceCoordinator {
       this.live.set(session, restored)
       return restored
     }
-    // Session owns this stable deep-frozen snapshot; backends only serialize it.
     const seed = session.events
     const live = {
       init: Promise.resolve(),
@@ -1013,7 +999,7 @@ export class PersistenceCoordinator {
     }
     this.live.set(session, live)
     live.init = this.serialize(session.header.id, () => this.onCreated(session, seed))
-    live.init.catch(() => { /* observed by flush/dispose through the controller */ })
+    live.init.catch(() => { })
     return live
   }
 
@@ -1034,7 +1020,7 @@ export class PersistenceCoordinator {
     }
     if (suffix.length > 0) {
       live.init = this.serialize(session.id, () => this.appendCore(session.id, suffix))
-      live.init.catch(() => { /* observed by flush/dispose through the controller */ })
+      live.init.catch(() => { })
     }
     return live
   }
@@ -1070,17 +1056,9 @@ export class PersistenceCoordinator {
     const id = session.header.id
     const tracked = this.states.get(id)
     if (tracked !== undefined) {
-      // case 1: already tracked.
       /* v8 ignore next -- initFor dedupes per session object; same-object re-entry can't occur */
       if (tracked.owner === session) return
       if (tracked.owner === undefined) {
-        // Ownerless state from the public create()/load() API. The FIRST live
-        // session claims it — but ONLY if BOTH the cwd scope and the seed match.
-        // A same-id ownerless artifact at a different cwd is a collision, not a
-        // claim: accepting it would append this live session's events through
-        // the stored header's cwd. The seed guard then ensures the live events
-        // reproduce the persisted prefix; otherwise a fresh session reusing the
-        // id could have its leading events filtered as already written.
         if (tracked.meta.cwd !== session.header.cwd) {
           throw new Error(`session "${id}" is already persisted at a different cwd (persisted: ${String(tracked.meta.cwd)}, live: ${String(session.header.cwd)}) (id collision)`)
         }
@@ -1088,8 +1066,6 @@ export class PersistenceCoordinator {
           throw new Error(`session "${id}" is already persisted with ${tracked.cursor} event(s) that do not match this live session (id collision)`)
         }
         tracked.owner = session
-        // Persist the seed SUFFIX beyond the persisted prefix. Constructor seed
-        // events never emit session/event, so the buffer never sees them.
         const suffix = seed.slice(tracked.cursor)
         if (suffix.length > 0) await this.appendCore(id, suffix)
         return
@@ -1102,23 +1078,14 @@ export class PersistenceCoordinator {
       }
     }
 
-    // case 2/3: resolve the id once across storage, then let adoption reject a
-    // cwd mismatch before repair or state publication.
     const live = await this.backend.loadStored(id)
     if (live !== undefined) {
-      // Do NOT route through cold preparation: that crash-repairs open turns as
-      // interrupted, which is wrong for HMR while the live Session is still the
-      // authority and may append the real step/turn end later.
       await this.adoptLivePrefix(session, seed, live)
       return
     }
 
-    // case 4: a genuinely new session. Register its meta (lazy), then persist its
-    // seed (events present at creation time) once.
     const meta = { ...session.header }
     await this.createCore(meta)
-    // Bind this state to the live session so a later DIFFERENT session reusing
-    // the id is detected as a collision (case 1) rather than silently no-opped.
     const created = this.states.get(id)
     /* v8 ignore next -- create() always sets the state for the id */
     if (created !== undefined) created.owner = session
@@ -1143,7 +1110,6 @@ export class PersistenceCoordinator {
     if (!seedCoversPrefix(seed, storedEvents)) {
       throw new Error(`session "${session.header.id}" already has a persisted log on disk that does not match this live session (id collision)`)
     }
-    // Truncate-only repair (no closers): the open turn is NOT closed here.
     if (tornMarker !== undefined) await this.backend.commitRepair(meta, tornMarker, [])
     this.states.set(session.header.id, {
       meta: { ...meta },
@@ -1161,8 +1127,6 @@ export class PersistenceCoordinator {
     try {
       await live.init
     } catch (error) {
-      // Admission is closed during retirement/teardown, but an ordinary flush
-      // may have raced one last enqueue while initialization was pending.
       live.writes.cancelAutomaticWait()
       throw error
     }

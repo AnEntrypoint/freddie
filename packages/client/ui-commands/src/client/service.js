@@ -18,9 +18,22 @@ function submittedCommandName(line) {
   return (separator === -1 ? trimmed : trimmed.slice(0, separator)).slice(1)
 }
 
-/** Live mutable state in one holder (service methods run behind the caller-ctx tracker). */
+/**
+ * Live mutable state in one holder (service methods run behind the caller-ctx tracker).
+ * @typedef {object} CommandUiLiveState
+ * @property {Map<string, {name: string, description: string, available: (session: object) => boolean, ui: import('./popup.js').PopupSelectSpec}>} contributions - client-owned command contributions by name.
+ * @property {Map<string, {name: string, available: (session: object) => boolean, ui: import('./popup.js').PopupSelectSpec}>} decorations - bare-invocation popup decorations of existing host commands, by name.
+ * @property {Map<string, PopupSelectController>} popups - one popupSelect controller per session id.
+ */
 
-/** One fuzzy match with its stable source position. */
+/**
+ * One fuzzy match with its stable source position.
+ * @typedef {object} FuzzyMatch
+ * @property {{name: string, description: string, hint?: string}} candidate - the ranked candidate row.
+ * @property {number} index - the candidate's original position in the source list, breaking ties among equal scores.
+ * @property {boolean} prefix - whether the candidate's lowercased name starts with the query.
+ * @property {number} score - the fuzzyScore alignment weight.
+ */
 
 /** Extra weight for command-name starts and separator boundaries. */
 function boundaryBonus(name, index) {
@@ -66,6 +79,7 @@ function fuzzyScore(name, query) {
 function fuzzyCandidates(candidates, rawQuery) {
   const query = rawQuery.toLowerCase()
   if (query === '') return candidates
+  /** @type {FuzzyMatch[]} */
   const ranked = []
   candidates.forEach((candidate, index) => {
     const name = candidate.name.toLowerCase()
@@ -81,6 +95,7 @@ function fuzzyCandidates(candidates, rawQuery) {
 export class CommandUiRuntime extends Service {
   static inject = ['inputTriggers', 'sessions', 'remote', 'remote.commands']
 
+  /** @type {CommandUiLiveState} */
   live = { contributions: new Map(), decorations: new Map(), popups: new Map() }
 
   /**
@@ -110,10 +125,6 @@ export class CommandUiRuntime extends Service {
       warm: (session) => { this.directory.warm(session.sessionId) },
     }), 'command: slash source')
     ctx.remote.$on('commands/change', () => { this.directory.invalidateAll() })
-    // A preset switch changes which commands one session's agent resolves and
-    // registers nothing globally, so the registry-wide signal above never
-    // fires for it: repull that key alone, soft, so the old snapshot serves
-    // the menu until the new one lands.
     ctx.remote.$on('agent-preset/selected', (sessionId) => { void this.directory.refresh(sessionId) })
     ctx.on('connection/reset', () => { this.directory.resetConnected() })
   }
@@ -233,18 +244,13 @@ export class CommandUiRuntime extends Service {
       return 'handled'
     }
     const desc = this.directory.resolve(pick.session.sessionId, name)
-    if (desc === undefined) return undefined // snapshot swapped between menu and pick → miss
-    // A decoration replaces the HOST row's bare invocation with its popup;
-    // it decorates only a resolvable host command (checked above), never
-    // manufactures one, and never touches the argument claim below.
+    if (desc === undefined) return undefined
     const decoration = this.live.decorations.get(name)
     if (decoration !== undefined && decoration.available(pick.session)) {
       this.openPopup(name, decoration.ui, pick.session, { via: 'menu', span: pick.span })
       return 'handled'
     }
     if (desc.input !== undefined) return { claim: this.leadingClaim(desc, pick.session) }
-    // Menu-pick execute consumes the trigger span before the detached run
-    // (scoped event; the input owns the CAS guard).
     this.consumeVia(pick.session.sessionId, { via: 'menu', span: pick.span })
     this.runDetached(desc, pick.session, `/${name}`)
     return 'handled'
@@ -254,7 +260,7 @@ export class CommandUiRuntime extends Service {
   matchSpace(session, token) {
     if (!token.startsWith('/')) return undefined
     const name = token.slice(1)
-    if (this.live.contributions.has(name)) return undefined // popup kinds never claim on space
+    if (this.live.contributions.has(name)) return undefined
     const desc = this.directory.resolve(session.sessionId, name)
     if (desc === undefined || desc.input === undefined) return undefined
     return { claim: this.leadingClaim(desc, session) }
@@ -293,8 +299,6 @@ export class CommandUiRuntime extends Service {
     await this.directory.ensureReady(session.sessionId, signal)
     const desc = this.directory.resolve(session.sessionId, name)
     if (desc === undefined) return undefined
-    // Bare enter on a decorated host command opens its popup; an argued line
-    // never consults the decoration (the claim/detached paths below own it).
     if (bare) {
       const decoration = this.live.decorations.get(name)
       if (decoration !== undefined && decoration.available(session)) {
@@ -348,8 +352,6 @@ export class CommandUiRuntime extends Service {
     if (!result.ok) throw new Error(`command.execute failed: ${result.error.code}: ${result.error.message}`)
     if (result.value === undefined) return { kind: 'error', text: `unknown or malformed command: ${line}` }
     this.notifyExecuted(session.sessionId, submittedCommandName(line), result.value.result)
-    // An image-carrying submission consumed its images only on handler
-    // success; an error outcome keeps draft and images in the composer.
     if (images.length > 0 && result.value.result.kind === 'error') {
       return { kind: 'error', text: result.value.result.text }
     }
@@ -390,7 +392,6 @@ export class CommandUiRuntime extends Service {
   runDetached(desc, session, line) {
     void this.execute(session, line).then(
       (outcome) => {
-        // matched:false maps to an error outcome with no logged lifecycle.
         if (outcome.kind === 'error') this.noticeFor(session.sessionId, 'error', outcome.text ?? `/${desc.name} failed`)
       },
       (error) => {

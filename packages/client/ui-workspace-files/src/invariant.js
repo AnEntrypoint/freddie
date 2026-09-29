@@ -1,0 +1,9 @@
+const PACKAGE_NAME = '@freddie/freddie-client-ui-workspace-files'
+
+export const name = 'client-ui-workspace-files-invariant'
+export const inject = ['invariants']
+
+const installNoRuntimeInvariant = () => {}
+
+export const apply = ctx =>
+  Promise.resolve(ctx.invariants.register(PACKAGE_NAME, installNoRuntimeInvariant))

@@ -262,9 +262,6 @@ function bindings() {
   const kernel32 = koffi.load('kernel32.dll')
   const advapi32 = koffi.load('advapi32.dll')
 
-  // Each binding shape is verified by verify/abi-probe.cpp against the real
-  // Windows headers and exercised end-to-end by tests/probe.spec.ts; the
-  // single cast keeps the per-binding noise out of this table.
   const bind = (lib, name, result, args) =>
     lib.func('__stdcall', name, result, args)
 
@@ -288,12 +285,7 @@ function bindings() {
     setNamedSecurityInfoW: bind(advapi32, 'SetNamedSecurityInfoW', 'uint32', ['str16', 'int', 'uint32', PVOID, PVOID, PVOID, PVOID]),
     getNamedSecurityInfoW: bind(advapi32, 'GetNamedSecurityInfoW', 'uint32', ['str16', 'int', 'uint32', PPVOID, PPVOID, PPVOID, PPVOID, PPVOID]),
     getTempPathW: bind(kernel32, 'GetTempPathW', 'uint32', ['uint32', PVOID]),
-    // fileapi.h line ~64: HANDLE CreateFileW(LPCWSTR, DWORD, DWORD,
-    // LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE).
     createFileW: bind(kernel32, 'CreateFileW', PVOID, ['str16', 'uint32', 'uint32', PVOID, 'uint32', 'uint32', PVOID]),
-    // fileapi.h lines ~177/~185: BOOL LockFileEx(HANDLE, DWORD, DWORD, DWORD,
-    // DWORD, LPOVERLAPPED); BOOL UnlockFileEx(HANDLE, DWORD, DWORD, DWORD,
-    // LPOVERLAPPED). lpOverlapped is NULL for synchronous locking.
     lockFileEx: bind(kernel32, 'LockFileEx', 'int', [PVOID, 'uint32', 'uint32', 'uint32', 'uint32', PVOID]),
     unlockFileEx: bind(kernel32, 'UnlockFileEx', 'int', [PVOID, 'uint32', 'uint32', 'uint32', PVOID]),
     createPipe: bind(kernel32, 'CreatePipe', 'int', [PPVOID, PPVOID, PVOID, 'uint32']),

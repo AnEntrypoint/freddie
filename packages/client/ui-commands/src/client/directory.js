@@ -117,7 +117,6 @@ export class CommandDirectory {
       if (entry.state === 'failed') {
         throw new Error(`command directory warmup failed: ${entry.lastError instanceof Error ? entry.lastError.message : String(entry.lastError)}`)
       }
-      // Still pending (the awaited pull was superseded) → wait for the winner.
     }
   }
 

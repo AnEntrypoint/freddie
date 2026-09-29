@@ -39,22 +39,18 @@ export function renderPwshResult(
 
   let body = out
   if (err.length > 0) {
-    // Single newline between sections (stdout usually ends with one already).
     if (body.length > 0 && !body.endsWith('\n')) body += '\n'
     body += `[stderr]\n${err}`
   }
   if (body.length === 0) body = '(no output)'
 
   const markers = []
-  // Keep the exit marker last because parseExitStatus anchors there.
   if (result.sandbox?.denied) {
     markers.push(sandboxDenialMarker(result.sandbox.mode))
-    // Hint only when the composition exposes escalation, before the final exit marker.
     if (escalationModes.length > 0) {
       markers.push(escalationHintMarker('command'))
     }
   }
-  // A command may trap the termination and exit 0 after timeout; still report interruption.
   if (result.timedOut) markers.push(`[timed out after ${result.timeoutMs}ms]`)
   if (result.signal !== null) {
     markers.push(`[killed by signal: ${result.signal}]`)

@@ -2,7 +2,7 @@
 
 Host-backed file discovery plus structured cross-session reference requests and prepared message contexts. The [file-reference contract](../../packages/context/file-reference) owns path-only completion records and grammar; the [session-reference contract](../../packages/context/session-reference) defines canonical URIs, current-surface projection, tag-safe JSON and byte retention, stable errors, and the untrusted model prompt. Host adapters use these types instead of passing their UI mention syntax into the agent core.
 
-Sources: [`packages/context/file-reference/src/types.ts`](../../packages/context/file-reference/src/types.js) · [`packages/context/session-reference/src/types.js`](../../packages/context/session-reference/src/types.js)
+Sources: [`packages/context/file-reference/src/types.js`](../../packages/context/file-reference/src/types.js) · [`packages/context/session-reference/src/types.js`](../../packages/context/session-reference/src/types.js)
 
 ## File candidates
 
@@ -53,7 +53,7 @@ The `sessionReferenceResolver/candidates` Remote method serves the same discover
 ```ts type-equiv
 /** One discovery candidate carrying its canonical prompt mention. */
 interface SessionReferenceMentionCandidate extends SessionReferenceCandidate {
-  /** Canonical `@[label](dsh-session:…)` mention serialized into the prompt draft. */
+  /** Canonical `@[label](freddie-session:…)` mention serialized into the prompt draft. */
   mention: string
 }
 ```
@@ -88,13 +88,13 @@ type SessionReferenceErrorCode =
   | 'SESSION_REFERENCE_CANCELLED'
 ```
 
-<!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
+<!-- BEGIN cordis-surface (hand-maintained) -->
 
 <a id="cordis-surface"></a>
 
 ## Cordis API
 
-Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+Originally generated from source by `scripts/gen-cordis-catalog.ts`; that script and its `verify-cordis-catalog` freshness check no longer exist, so this region is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
 <a id="ctxfilereferences--filereferenceservice-abstract-seam"></a>
 
@@ -125,7 +125,7 @@ abstract list( agent: Agent, query: string, signal: AbortSignal, ): Promise<File
 
 Types: [Agent](core.md)
 
-Source: [`packages/context/file-reference/src/index.ts`](../../packages/context/file-reference/src/index.js)
+Source: [`packages/context/file-reference/src/index.js`](../../packages/context/file-reference/src/index.js)
 
 <a id="ctxsessionreferenceresolver--sessionreferenceresolver"></a>
 
@@ -169,4 +169,4 @@ async prepare( agent: Agent, content: ContentBlock[], references: SessionReferen
 Types: [Agent](core.md) · [ContentBlock](llm-streaming.md)
 
 Source: [`packages/context/session-reference/src/index.js`](../../packages/context/session-reference/src/index.js)
-<!-- END GENERATED cordis-surface -->
+<!-- END cordis-surface -->

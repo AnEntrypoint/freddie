@@ -8,3 +8,8 @@ These rules supplement the repository and package instructions for `packages/sch
 - Runtime owners attach only to future live root Agents while the plugin is loaded. They do not scan persisted Sessions, adopt already-published roots, wake cold Sessions, register global tools, or delete durable records during teardown.
 - Due handling rechecks the wall clock and exact live owner, claims the idle maintenance phase through the public Agent seam, constructs the complete escaped framing before `followup()`, appends dispatch only after synchronous enqueue returns, releases maintenance, and then awaits durability. A synchronous framing/enqueue failure appends no dispatch; a later model failure does not roll one back.
 - Rule math and durable transition logic stay pure and deterministic. Production uses the platform wall clock and segmented timers; tests supply explicit samples or fake timers without adding a production clock service.
+
+## Rationale
+
+- `schedule/src/runtime.js`: `runMaintenance` rejects synchronously only while another agent activity owns the idle phase, so a synchronous rejection means "wait for idle" (`waitForIdle()` when the owner is still live).
+- `schedule/src/tools.js`: tool result rendering `JSON.stringify`s the value directly because the ToolRuntime has already validated it against the lossless-JSON output schema.

@@ -93,8 +93,6 @@ export class FreddieMenuView extends HTMLElement {
     const { onPick, onDismiss, t } = props
     const highlight = state.highlight
 
-    // Dismiss on pointer outside the menu AND outside the composer card
-    // (clicking the textarea or bottom bar must not close the menu).
     this.#unbindOutsidePointer()
     const onPointerDown = (ev) => {
       if (!(ev.target instanceof Node)) return
@@ -118,10 +116,6 @@ export class FreddieMenuView extends HTMLElement {
           state.groups.map(group => (group.status === 'ready' && group.items.length === 0)
             ? null
             : (
-              // Source names key the dictionary open-endedly: the lookup
-              // chain returns an unknown key verbatim, so an unregistered
-              // source shows its raw name — hence the cast past the typed
-              // key union.
               [
                 group.showGroupTitle === false || group.items.some(item => item.section !== undefined)
                   ? null
@@ -140,10 +134,6 @@ export class FreddieMenuView extends HTMLElement {
                         role: 'option',
                         'aria-selected': String(active),
                         class: clsx(css.item, active && css.active),
-                        // mousedown, not click: the textarea keeps focus
-                        // (combobox pattern) — preventing default stops the
-                        // focus steal, and the pick runs before any
-                        // blur-driven teardown.
                         onmousedown: (ev) => {
                           ev.preventDefault()
                           onPick(group.source, index)
@@ -162,18 +152,6 @@ export class FreddieMenuView extends HTMLElement {
     )
     applyDiff(this, vdom)
 
-    // Anchor re-fit: the list is bottom-anchored above the composer; clamp
-    // the design cap to the space above it, re-measured whenever the store
-    // updates (the anchor moves when the composer grows). The controller is
-    // created once and reused across renders -- recreating it here on every
-    // #render() reset its internal maxHeight baseline back to the raw design
-    // cap each time, so the very first fit() after each fresh controller
-    // almost always read as "changed" against that reset baseline, called
-    // onChange, and triggered another #render() that recreated the
-    // controller again: an unconditional infinite render loop (witnessed
-    // live: opening the slash-command/skills menu crashed immediately with
-    // "Maximum call stack size exceeded" in webjsx's applyDiff, so Commands
-    // and Skills never got past their loading rows).
     if (this.#anchored === null) {
       this.#anchored = createAnchoredMaxHeight({
         el: this,
@@ -187,8 +165,6 @@ export class FreddieMenuView extends HTMLElement {
     }
     this.#maxHeight = this.#anchored.value
 
-    // Focus stays in the textarea (combobox pattern), so the browser never
-    // scrolls the active option into view on keyboard moves — do it here.
     const highlightChanged = highlight !== null
       && (this.#lastHighlight === null || this.#lastHighlight.source !== highlight.source || this.#lastHighlight.index !== highlight.index)
     this.#lastHighlight = highlight

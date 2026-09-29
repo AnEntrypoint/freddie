@@ -64,7 +64,6 @@ export class RuntimeContextProjection {
     if (this.retained?.text === snapshot) return
     return createUserMessage({
       content: [{ type: 'text', text: snapshot }],
-      // The cleared marker has no contributions left to attribute.
       source: sections.length === 0
         ? { kind: 'plugin', plugin: SOURCE }
         : { kind: 'plugin', plugin: SOURCE, form: 'snapshot', sections },

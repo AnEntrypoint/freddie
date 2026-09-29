@@ -1,6 +1,6 @@
-# dsh Badge
+# freddie Badge
 
-Add the official “powered by dsh” badge without recreating or restyling it.
+Add the official “powered by freddie” badge without recreating or restyling it.
 
 ## Assets
 
@@ -25,7 +25,7 @@ If attribution should not be linked, use:
 ## Usage rules
 
 - For GitHub or GitLab Markdown, use the Shields.io URL and link it to the project URL unless the user asks for an unlinked image.
-- For Feishu and other systems that import remote images unreliably, upload `freddie-badge.png` from this skill directory instead of generating another badge.
+- For chat systems that import remote images unreliably, upload `freddie-badge.png` from this skill directory instead of generating another badge.
 - Preserve the badge's 121×20 dimensions and aspect ratio.
 - Place the badge at the end of the attributed document or section unless the user specifies another position.
 - Do not substitute another color, logo, label, or project URL.

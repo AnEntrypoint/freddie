@@ -40,9 +40,6 @@ class ClientRemoteService extends Service {
   }
 
   $on(event, listener) {
-    // The table is keyed by the runtime event name, so the argument list this
-    // signature pins per event cannot survive in it; `$deliver` restores it
-    // from the frame the Host emitted for that same name.
     const subscription = { listener }
     const owned = this.ctx.effect(() => {
       const listeners = this.listeners(event)
@@ -58,14 +55,13 @@ class ClientRemoteService extends Service {
 
   /**
    * Deliver one forwarded event in registration order, isolating a listener
-   * that fails either synchronously or by rejecting a returned promise; see
-   * {@link TypertClientRemote.$dispatch} for the caller contract.
+   * that fails either synchronously or by rejecting a returned promise; this
+   * is the caller contract behind the generated `TypertClientRemote.$dispatch`
+   * surface.
    */
   $dispatch(event, args) {
     const listeners = this.subscriptions.get(event)
     if (listeners === undefined) return
-    // Snapshot: a listener may subscribe or dispose during delivery, and this
-    // round's recipients are the ones registered when the frame arrived.
     for (const { listener } of [...listeners]) {
       const report = (error) => {
         console.error(`client api: Remote event ${JSON.stringify(event)} listener threw:`, error)
@@ -203,8 +199,6 @@ class ClientRemoteService extends Service {
           name,
           (direct, scoped, caller, args) => this.invokeMethod(direct, scoped, caller, args),
         )
-        // Same synchronous window as the service registration: a dependent the
-        // new service unparks runs only after the methods exist.
         installed = installMethods(service, descriptors)
       },
     })
@@ -301,8 +295,6 @@ class ClientRemoteService extends Service {
       if (!result.ok) return { ok: false, error: result.error }
       return { ok: true, value: parse(descriptor.result, result.value, endpoint, 'result') }
     } catch (error) {
-      // Carrier throws (offline, abort, a rejected result payload) are outcomes
-      // of the call, not assembly faults, so they join the same error branch.
       return carrierFailure(endpoint, error)
     }
   }

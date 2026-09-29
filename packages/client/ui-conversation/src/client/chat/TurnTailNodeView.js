@@ -3,13 +3,6 @@ import { renderMessageIconActions } from './MessageIconActions.js'
 import { assistantText } from './turn-assistant.js'
 import css from './TurnTailNodeView.css.js'
 
-// Same fix as MessageItem.js's cachedMessageIconActions: TurnTailNodeView is
-// a plain function re-invoked by ChatNodeSeat on every re-render of this
-// turn (including on every streamed assistant chunk while the turn is
-// still open), and MessageIconActions' own one-shot factory would recreate
-// its DOM element -- and reset its copy-success timer / calendar-day
-// subscription -- on each call. `node` is the stable keyed chat-node
-// object for this turn tail across those re-renders.
 const cachedIconActions = new WeakMap()
 function cachedMessageIconActions(identity, props) {
   const el = renderMessageIconActions(cachedIconActions.get(identity) ?? null, props)
@@ -35,8 +28,6 @@ export function TurnTailNodeView({
   const runMs = turn.start === undefined || turn.end === undefined
     ? undefined
     : Math.max(0, turn.end.time - turn.start.time)
-  // Interruption-frozen partials carry no messageId, so they address no
-  // durable message and contribute no per-message actions.
   const messageId = closing.finalNode.messageId
   const assistantActions = messageId === undefined
     ? null

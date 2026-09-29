@@ -3,7 +3,7 @@
  * readable from the repository rather than derived inside CI
  * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
  *
- * The dsh family shares one version across its publishable members, private
+ * The freddie family shares one version across its publishable members, private
  * package manifests, and the workspace root:
  * `major`, `minor`, `patch`, or an explicit `x.y.z` (including a prerelease such
  * as `0.0.1-rc.1`). The vendored family has one version line per package, but
@@ -27,15 +27,14 @@ const ALWAYS_PUBLISHED = ['package.json', 'README*', 'LICENSE*', 'LICENCE*']
 /**
  * Inputs that decide what a built payload contains. A package whose `files`
  * selects `lib/` publishes build output that git does not track, so a change to
- * the sources or the build configuration changes the tarball while no published
- * path appears in the diff.
+ * the sources changes the tarball while no published path appears in the diff.
  */
-const BUILD_INPUTS = ['src/**', 'tsconfig*.json', 'tsdown.config.*', 'build.config.*']
+const BUILD_INPUTS = ['src/**']
 
-/** Release types the dsh family accepts besides an explicit version. */
+/** Release types the freddie family accepts besides an explicit version. */
 const RELEASE_TYPES = ['major', 'minor', 'patch']
 
-/** The workspace root manifest, which carries the dsh family's version. */
+/** The workspace root manifest, which carries the freddie family's version. */
 const ROOT_MANIFEST = 'package.json'
 
 /**
@@ -71,6 +70,18 @@ function prereleaseOf(version) {
   return index === -1 ? undefined : version.slice(index + 1)
 }
 
+const SHORTER_IDENTIFIER_LIST_RANKS_LOWER = -1
+
+/** Order two differing prerelease fields: numerics numerically and below alphanumerics. */
+function comparePrereleaseFields(leftField, rightField) {
+  const leftNumeric = /^\d+$/.test(leftField)
+  const rightNumeric = /^\d+$/.test(rightField)
+  if (leftNumeric && rightNumeric) return Number(leftField) - Number(rightField)
+  const numericRanksBelowAlphanumeric = leftNumeric ? -1 : 1
+  if (leftNumeric !== rightNumeric) return numericRanksBelowAlphanumeric
+  return leftField < rightField ? -1 : 1
+}
+
 /**
  * Order two versions by semver precedence.
  *
@@ -96,22 +107,16 @@ export function compareVersions(left, right) {
   for (let index = 0; index < Math.max(leftFields.length, rightFields.length); index += 1) {
     const leftField = leftFields[index]
     const rightField = rightFields[index]
-    // A shorter identifier list has lower precedence when all its fields match.
-    if (leftField === undefined) return -1
-    if (rightField === undefined) return 1
+    if (leftField === undefined) return SHORTER_IDENTIFIER_LIST_RANKS_LOWER
+    if (rightField === undefined) return -SHORTER_IDENTIFIER_LIST_RANKS_LOWER
     if (leftField === rightField) continue
-    const leftNumeric = /^\d+$/.test(leftField)
-    const rightNumeric = /^\d+$/.test(rightField)
-    if (leftNumeric && rightNumeric) return Number(leftField) - Number(rightField)
-    // Numeric fields have lower precedence than alphanumeric ones.
-    if (leftNumeric !== rightNumeric) return leftNumeric ? -1 : 1
-    return leftField < rightField ? -1 : 1
+    return comparePrereleaseFields(leftField, rightField)
   }
   return 0
 }
 
 /**
- * The next dsh version.
+ * The next freddie version.
  * @param current - the family's current shared version.
  * @param request - `major`, `minor`, `patch`, or an explicit version.
  * @returns The target version.
@@ -119,7 +124,7 @@ export function compareVersions(left, right) {
 function nextSharedVersion(current, request) {
   if (!RELEASE_TYPES.includes(request)) {
     if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(request)) {
-      throw new Error(`usage: release:dsh <major|minor|patch|x.y.z>, got ${request}`)
+      throw new Error(`usage: release:freddie <major|minor|patch|x.y.z>, got ${request}`)
     }
     return request
   }
@@ -154,8 +159,6 @@ export function nextVendorVersion(
   const ahead = taggedOrder !== undefined && taggedOrder > 0
   const baseline = ahead && tagged !== undefined ? tagged : current
   const [major, minor, patch] = releaseNumbers(baseline)
-  // Reuse the numbers when the tagged version that set them is a prerelease
-  // of them; increment when a stable release already holds them.
   const taggedPrerelease = tagged !== undefined && prereleaseOf(tagged) !== undefined
   const sameReleasePrereleases = taggedOrder === 0 && prereleaseOf(current) !== undefined
   const reuse = taggedPrerelease && (ahead || sameReleasePrereleases)
@@ -223,7 +226,7 @@ function rootVersion(root) {
 }
 
 /**
- * Discover private package manifests that share the dsh version without joining
+ * Discover private package manifests that share the freddie version without joining
  * its publish set.
  * @param root - repository root.
  * @returns Private package manifests sorted by path.
@@ -268,11 +271,8 @@ export function planShared(
   const [first] = members
   if (first === undefined) throw new Error(`release family ${family.id} has no members`)
   const version = nextSharedVersion(first.version, request)
-  // The workspace root carries the family version too: the workspace constraint
-  // requires every member's version to equal the root's.
-  const planned = [
-    { manifestPath: ROOT_MANIFEST, label: ROOT_MANIFEST, from: rootVersion(root), to: version, tag: undefined },
-  ]
+  const rootEntry = { manifestPath: ROOT_MANIFEST, label: ROOT_MANIFEST, from: rootVersion(root), to: version, tag: undefined }
+  const planned = [rootEntry]
   for (const member of members) {
     planned.push({
       manifestPath: `${member.directory}/package.json`,

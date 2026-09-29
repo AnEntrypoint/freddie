@@ -7,7 +7,7 @@ import './CordisRunRow.js'
 import './CordisPanel.js'
 import { createCordisInventory } from './inventory.js'
 import { CordisRunCardRegistry } from './run-card-index.js'
-import { en, NS, zh } from './locales.js'
+import { en, NS } from './locales.js'
 
 /** Required services for the two Tool cards, panel, Remote lifecycle, and Slash source. */
 export const inject = [
@@ -16,7 +16,7 @@ export const inject = [
 
 /** Mount every Cordis browser surface over the shared Host inventory. */
 export function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-cordis: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-cordis: dictionaries')
 
   const port = {
     stop: async (sessionId, pluginId) => {

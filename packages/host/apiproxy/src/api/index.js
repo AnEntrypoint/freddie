@@ -4,7 +4,6 @@
  * WebSocket, and in-process SSE are merely physical channels (four-quadrant message model).
  */
 
-// ---- Errors and ids ----
 export { RpcId, transportError } from './rpc.js'
 export {
   clientRequestSchema,
@@ -12,7 +11,6 @@ export {
   serverResponseSchema,
 } from './rpc.schema.js'
 
-// ---- Fixed session-search product bounds ----
 export {
   SESSION_SEARCH_RESULT_LIMIT,
   SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS,

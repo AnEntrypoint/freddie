@@ -1,22 +1,3 @@
-// ToolRow: the single-line tool summary row (figma component set 122:9479) —
-// 16px leading slot (state dot / tool icon, chevron on hover or expanded) + title +
-// separator dot + FILL-truncated summary, drawn through the shared
-// DisclosureRow chrome with the whole row as the expand toggle (click /
-// Enter / Space, icon→chevron hover preview). The collapsed row is always
-// one line; every row with body, output, or a card material (terminal, diff,
-// read, search, web) is expandable; the summary stays inline while open.
-// The expanded body — an IN/OUT gutter-labeled card (figma 1249:35657) for
-// text input/output, the run_code program through CodeBlock, or a card
-// primitive (TerminalBlock, DiffBlock, ReadBlock, SearchBlock, WebBlock) for a
-// call that declared that render intent — lives in a max-height scroll
-// container so a long payload scrolls internally instead of taking over the
-// message flow. Every card kind starts collapsed, so a run of tool calls stays
-// scannable; the details panel is the single-call full-height reading surface.
-// Expand state is component-local view state. File-tool summaries are path
-// links that open through the host (stopPropagation keeps the two gestures
-// independent); an error row's collapsed summary is the failure's first line in
-// the error color.
-
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
@@ -63,28 +44,7 @@ function stateStatus(state, t) {
 export class FreddieToolRow extends HTMLElement {
   #props = null
   #expanded = false
-  // Body construction latch. The card factories below tokenize their content
-  // through shiki (ReadBlock's highlightLines, CodeBlock's highlightToHtml) --
-  // a TextMate regex scan over the whole payload -- and the row rebuilds its
-  // vdom on every render pass, including the ones a keystroke fans out to
-  // every mounted row. Building a CLOSED row's body is pure waste: nothing
-  // renders it. Left ungated, a session's cost grew with its own history --
-  // 40 collapsed rows re-tokenizing on every keystroke measured 493ms
-  // synchronous plus ~3.1s over the following two frames, and
-  // findNextMatchSync dominated the bottom-up flamegraph at ~50x the next
-  // frame. The latch (never cleared) preserves DisclosureRow's
-  // keepContentWhenOpen contract: once opened, the body stays built and keeps
-  // re-rendering exactly as before, so collapsing never drops the block state
-  // (copy feedback, expanded sub-state, settled highlight memo) those
-  // elements hold.
   #everOpened = false
-  // TerminalBlock/DiffBlock/ReadBlock/SearchBlock/CodeBlock's (and WebBlock's
-  // inner MarkdownText, see WebBlock.js) own one-shot factories recreate
-  // their DOM element (dropping copy-feedback/expanded-state/settled-render
-  // memoization) on every call; this row re-renders on every running-tool
-  // state change while the call streams. Cached per-instance since a call
-  // carries at most one card kind at a time (this.#render()'s own doc
-  // comment), so at most one of these is ever non-null.
   #terminalEl = null
   #diffEl = null
   #readEl = null
@@ -119,44 +79,24 @@ export class FreddieToolRow extends HTMLElement {
     const searchBody = search ?? null
     const webBody = web ?? null
     const outputText = output ?? null
-    // A card replaces the text body; a call carries at most one card kind, so the
-    // card props are mutually exclusive. Any of them, or a text body/output,
-    // makes the row expandable.
     const card = terminalBody ?? diffBody ?? readBody ?? searchBody ?? webBody
     const expandable = body !== null || outputText !== null || card !== null
     const open = this.#expanded && expandable
     if (open) this.#everOpened = true
-    // See #everOpened: a row the user has never opened builds no body at all.
     const buildBody = this.#everOpened
-    // The run-state label AT needs: the StateDot and the running sweep are both
-    // aria-hidden / colour-only, so a stopped or running row is otherwise silent.
     const status = stateStatus(state, t)
-    // An error row's collapsed summary IS the failure: the first error line in
-    // the error color outranks both the args summary and a terminal description.
     const failureLine = state === 'error' ? errorSummary ?? null : null
     const summaryText = failureLine ?? summary
-    // The failure line replaces the summary wholesale, so a suffix derived from
-    // the call args has nothing left to sit beside.
     const suffix = failureLine === null ? summarySuffix ?? null : null
-    // The failure line is error prose, not the path: no open-file affordance.
     const fileLink = filePath !== undefined && onOpenFile !== undefined && failureLine === null
     const openFile = (event) => {
       event.stopPropagation()
       if (filePath !== undefined) onOpenFile?.(filePath)
     }
-    // Keep Enter/Space on the focused path link from bubbling to the row's
-    // keydown handler, which would preventDefault() the key and toggle expand
-    // instead of activating the link — the keyboard analogue of openFile's
-    // stopPropagation. The native button still fires its own onClick from the key.
     const fileLinkKeyDown = (event) => {
       if (event.key === 'Enter' || event.key === ' ') event.stopPropagation()
     }
-    // The code variant's program renders through CodeBlock (shiki), so only its
-    // output joins the IN/OUT card; every other variant's input does too.
     const cardBody = variant === 'code' ? null : body
-    // The state substitution rides the idle icon slot, so an expandable error
-    // row keeps DisclosureRow's icon→chevron hover preview (its default) instead
-    // of losing it with the icon.
     const vdom = (
       h('div', {class: css.root ?? '', 'data-variant': variant, 'data-tool': toolName, 'data-state': state},
         status !== null && h('span', {class: css.visuallyHidden ?? ''}, status),
@@ -174,8 +114,6 @@ export class FreddieToolRow extends HTMLElement {
             keepContentWhenOpen: true,
             onToggle: this.#toggleExpand,
             collapsedContent: summaryText !== '' ? (
-              /* An empty summary drops the separator with it (a row that is only
-                 its title shows no trailing dot). */
               [
                 h('span', {class: css.sep ?? '', 'aria-hidden': 'true'}),
                 fileLink ? (
@@ -198,8 +136,6 @@ export class FreddieToolRow extends HTMLElement {
               ]
             ) : null,
           },
-          /* The wrapper (sibling of the header row, so clicks inside never
-              toggle it) carries the expanded body and the Inspect pill below. */
           h('div', {class: css.bodyWrap ?? ''},
             !buildBody
               ? null
@@ -221,8 +157,6 @@ export class FreddieToolRow extends HTMLElement {
                       (this.#searchEl = renderSearchBlock(this.#searchEl, {
                         ...searchBody.card, maxLines: CHAT_SEARCH_MAX_LINES, className: css.searchBody,
                       })),
-                      /* A capped search's recovery locator lives only in the result
-                          text; show it below the card so the dropped rows survive. */
                       searchBody.recovery !== undefined
                         ? h('div', {class: css.searchRecovery ?? ''}, searchBody.recovery)
                         : null,

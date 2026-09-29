@@ -41,10 +41,6 @@
       ]
     }
   },
-  "scripts": {
-    "bundle": "tsdown",
-    "watch": "tsdown --watch"
-  },
   "license": "MIT",
   "dependencies": {
     "clsx": "^2.1.1",

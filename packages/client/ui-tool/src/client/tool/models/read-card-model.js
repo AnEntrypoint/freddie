@@ -2,7 +2,7 @@
  * Pure derivation of the read-card props from a frozen call slice: the
  * `card:'read'` render intent the read tool declares arrives on the snapshot as
  * the settled result node's `resultView`, and this is the one place that turns
- * it into what {@link ReadBlock} draws. Both conversation render sites (the chat
+ * it into what {@link import('../../../../../ui-primitives/src/ReadBlock.js').ReadBlock} draws. Both conversation render sites (the chat
  * tool row's resident body and the details panel's Output section) call this, so
  * the path, lines, total, and language they show are derived once.
  *
@@ -23,7 +23,7 @@ import { relativizeToCwd } from './tool-call-model.js'
  * scannable across many calls, while the details panel is the single-call
  * reading surface. A design constant of this UI's row geometry, not a
  * deployment choice, so it is fixed here rather than a plugin Config field. The
- * same split [`CHAT_TERMINAL_MAX_LINES`](./terminal-card-model.ts) draws for
+ * same split — half of the terminal primitive's default line cap — draws for
  * terminal output.
  */
 export const CHAT_READ_MAX_LINES = 8
@@ -54,12 +54,9 @@ export const CHAT_READ_MAX_LINES = 8
  * @returns the read-card props, or null for the generic path.
  */
 export function readCardModel(block, sessionCwd, home) {
-  // Running has no result view; a read carries no content until execute returns.
   if (!('kind' in block)) return null
   const result = block.resultView?.card === 'read' ? block.resultView : null
   if (result === null) return null
-  // Lines arrive frozen off the snapshot; copy into the primitive's own line
-  // shape so the card never holds a reference into the runtime's cache.
   const lines = result.lines.map(line => ({ number: line.number, text: line.text }))
   return {
     label: result.title ?? abbreviateHomePath(relativizeToCwd(result.path, sessionCwd), home),

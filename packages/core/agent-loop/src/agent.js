@@ -19,6 +19,9 @@ import { joinContextSections, renderContextSections, renderPrompt } from '@fredd
 import { RuntimeContextProjection } from './runtime-context.js'
 import { executeToolCalls } from './tool-calls.js'
 
+/** Reported failures and cancellation end the driver here; each already surfaced on its own channel. */
+function containAtDriverBoundary(_error) {}
+
 /** Remove adapter-derived values before plugins propose the next request config. */
 function requestProposal(header) {
   if (header.adapterDefaults === undefined) return header.config
@@ -83,8 +86,6 @@ export class ReactLoopAgent {
   }
 
   send(message, target, wakeup) {
-    // Waking input cannot join an aborted activity, so it starts the next turn.
-    // Captured before the insertion so a reentrant cancel from a splice observer cannot reclassify it.
     const wakingAfterAbort = wakeup && this.phase.kind !== 'idle' && this.phase.abort.signal.aborted
     const resolvedTarget = wakingAfterAbort ? 'next-turn' : target
     this.inbox.splice(resolvedTarget, Infinity, 0, [message])
@@ -143,9 +144,6 @@ export class ReactLoopAgent {
    */
   wakeDriver(wakeAfterAbort = false) {
     if (this.phase.kind !== 'idle') {
-      // Maintenance and aborted drivers cannot deliver the wake: latch it for
-      // replay at convergence. Live drivers claim queued work themselves;
-      // disposal never latches, so teardown waits on no model turn.
       const reason = this.phase.abort.signal.reason
       if (reason?.kind !== 'disposed' && (this.phase.kind === 'maintenance' || wakeAfterAbort)) {
         this.phase.wakeRequested = true
@@ -182,8 +180,8 @@ export class ReactLoopAgent {
   async kick() {
     try {
       while (await this.turn()) {}
-    } catch (_error) {
-      // Reported failures and cancellation are contained at the driver boundary.
+    } catch (error) {
+      containAtDriverBoundary(error)
     } finally {
       /* v8 ignore next -- kick owns a running phase until this driver boundary */
       if (this.phase.kind === 'running') {
@@ -241,8 +239,6 @@ export class ReactLoopAgent {
           return false
         }
         if (turnEnds && decision.messages.length === 0) break
-        // A removed waking message or an enter decision rewritten to empty
-        // still owns the initial turn boundary, but it spends no model call.
         if (phase.step === 0 && decision.messages.length === 0) {
           turnEnds = { kind: 'completed' }
           return false
@@ -254,11 +250,7 @@ export class ReactLoopAgent {
           for (const message of decision.messages) {
             this.session.append('user/message', message, { surfaceOp: 'append' })
           }
-          // max-tokens is sticky: once any step hits the ceiling, later steps
-          // that complete normally must not downgrade the turn outcome.
           const stepEnd = await this.step(decision.assembly)
-          // max-tokens stays sticky: a later completed step must not
-          // downgrade the turn outcome.
           if (turnEnds === null || turnEnds.kind !== 'max-tokens') turnEnds = stepEnd
         } finally {
           this.session.append('step/end', { turn, step })
@@ -276,8 +268,6 @@ export class ReactLoopAgent {
         turnEnds = { kind: 'aborted', reason: signal.reason }
         throw error
       }
-      // Every failure is structured: an `LlmError` keeps its facts, anything
-      // else flattens to `errorChain` text under the `UNKNOWN` code.
       turnEnds = {
         kind: 'error',
         error: error instanceof LlmError
@@ -294,7 +284,6 @@ export class ReactLoopAgent {
     }
     if (!this.inbox.hasPending) return false
     phase.abort = new AbortController()
-    // A fresh controller makes a latch set on the old one stale: the live driver claims the queue itself.
     phase.wakeRequested = false
     phase.step = 0
     return true
@@ -404,8 +393,6 @@ export class ReactLoopAgent {
   ) {
     const { session } = this
 
-    // A loop instance starts from its declared route, restoring only an explicit
-    // effort owned by that exact model. Later steps re-resolve marked defaults.
     const persistedHeader = session.requestHeader()
     const persistedConfig = persistedHeader?.config
     const route = { provider: this.options.provider ?? '', model: this.options.model ?? '' }
@@ -438,7 +425,6 @@ export class ReactLoopAgent {
       preparedCall = await this.loopCtx.llm.prepareCall(proposedConfig, signal)
       config = preparedCall.config
     } catch (error) {
-      // Middleware may serve an unregistered route; terminal dispatch still requires an adapter.
       if (!(error instanceof LlmError) || error.code !== 'NO_ADAPTER') throw error
       config = proposedConfig
     }

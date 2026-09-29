@@ -112,8 +112,6 @@ export class PermissionPresetSettingsController {
       if (!response.result.ok) throw new Error(response.result.error.message)
       this.saving = false
       if (this.disposed) return
-      // The mirror publish reaches this row's own subscription, so the fold
-      // is also what republishes the accepted value here.
       this.describeFace.acceptView(response.result.value)
     } catch (error) {
       this.saving = false
@@ -133,8 +131,6 @@ export class PermissionPresetSettingsController {
     if (this.disposed || this.saving) return
     const mirrored = this.describeFace.getSnapshot()
     if (mirrored.status === 'unavailable') {
-      // The terminal non-loopback state: settings RPCs are loopback-only, so
-      // the row hides itself exactly like an unserved namespace.
       this.store.update((state) => {
         state.status = 'unavailable'
         state.writable = false
@@ -144,8 +140,6 @@ export class PermissionPresetSettingsController {
       return
     }
     if (mirrored.view === undefined) {
-      // A held failure with no answer is a failed row; without one the read
-      // is still in flight and the row keeps its loading state.
       if (mirrored.error !== null) this.fail(new Error(mirrored.error))
       return
     }

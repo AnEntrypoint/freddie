@@ -73,7 +73,6 @@ export class TurnRecorder {
         const tree = await snapshotTree(repository.git, repository.workspace, signal)
         state.baseline = { ...repository, tree }
       } catch (error) {
-        // A repository whose snapshot failed must not be summarized as if it had none.
         state.baseline = 'failed'
         throw error
       }
@@ -167,7 +166,6 @@ export class TurnRecorder {
       const { hunks, coarse } = compareText(before, after, this.env.diffTimeoutMs)
       return { kind: 'text', path, display, before: before !== null, after: after !== null, hunks, coarse }
     } catch (error) {
-      // Disposal removes the temporary directory under a running read; the Session is gone either way.
       if (this.lifetime.signal.aborted) return undefined
       throw error
     }
@@ -240,7 +238,6 @@ export class TurnRecorder {
     const { baseline } = state
     if (paths === undefined || baseline === 'failed' || state.lastToolResultSeq < 0) return
     state.attemptedAfterSeq = state.lastToolResultSeq
-    // Without a snapshot the working directory itself bounds the workspace.
     const root = baseline?.workspace.root ?? paths.cwd
     const listed = new Map()
     let snapshot
@@ -259,21 +256,17 @@ export class TurnRecorder {
         })
       }
     }
-    // Captured paths the snapshots do not cover are compared from their copies.
     const captured = [...state.captures.keys()].filter(absolute => !listed.has(absolute))
     const workTreePath = absolute => toPosix(relative(root, absolute))
     let inWorkspace = captured.filter(absolute => isInside(root, absolute))
     if (baseline !== null && inWorkspace.length > 0) {
-      // Nested repositories and submodules are gitlinks: their contents never enter the summary.
       const gitlinks = await gitlinkPaths(baseline.git, baseline.workspace, signal)
       inWorkspace = inWorkspace.filter(absolute => ![...gitlinks].some(link => isInside(resolve(root, link), absolute)))
     }
-    // A snapshot covers every workspace file except the ignored ones; without one, every file-tool edit counts.
     const uncoveredInWorkspace = baseline === null
       ? new Set(inWorkspace.map(workTreePath))
       : await ignoredPaths(baseline.git, baseline.workspace, inWorkspace.map(workTreePath), signal)
     for (const absolute of captured) {
-      // Outside the workspace, scratch files under a temporary root stay out.
       const uncovered = isInside(root, absolute)
         ? uncoveredInWorkspace.has(workTreePath(absolute))
         : !isTemporaryPath(absolute, paths.temporaryRoots)
@@ -284,7 +277,6 @@ export class TurnRecorder {
       listed.set(absolute, await this.compared(paths, root, absolute, before, after))
     }
     const sorted = [...listed.values()].sort((a, b) => compareDisplay(a.file, b.file))
-    // An empty list after an earlier in-turn record supersedes that record.
     if (sorted.length === 0 && state.recordedAfterSeq < 0) return
     const event = this.session.append('workspace/changes', { turn: state.turn }, { ignorable: true })
     const kept = sorted.slice(0, this.env.maxFiles)

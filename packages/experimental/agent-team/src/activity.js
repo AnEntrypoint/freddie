@@ -53,7 +53,6 @@ export class TeamActivity {
       waiters.add(waiter)
       const timer = setTimeout(() => { finish(() => { resolve(false) }) }, timeoutMs)
       signal.addEventListener('abort', onAbort, { once: true })
-      // AbortSignal does not replay an abort that wins between the pre-check and listener registration.
       /* v8 ignore next -- requires an abort in the synchronous gap between the pre-check and listener registration. */
       if (signal.aborted) onAbort()
     })

@@ -14,9 +14,6 @@ import { loadLayeredEnv } from '@freddie/freddie-app-boot'
 import { parseDshArgs } from './args.js'
 import { reexecWithExposeInternals } from './expose-internals.js'
 
-// Both the source tree (apps/cli/src) and the bundled bin (apps/cli/lib) sit
-// one directory under apps/cli, so the checked-in manifest resolves with the
-// same relative hop from either artifact.
 /** This app's version, read from its checked-in package.json. */
 function readVersion() {
   const manifest = JSON.parse(
@@ -27,12 +24,6 @@ function readVersion() {
 
 const invocation = parseDshArgs(process.argv.slice(2), readVersion())
 
-// The `web` profile's host-side HMR service (cordis-plugin-hmr) requires
-// Node's internal module loader, which requires --expose-internals at the
-// ORIGINAL process launch -- it cannot be set at runtime. Re-exec once, only
-// for the one profile that needs it, before anything else in this process
-// touches the loader. reexecWithExposeInternals never returns when it
-// re-spawns: the parent exits with the child's exact exit code.
 if (invocation.mode === 'profile' && invocation.profile === 'web') {
   await reexecWithExposeInternals()
 }
@@ -42,8 +33,6 @@ switch (invocation.mode) {
     const { runProfile } = await import('./profile-boot.js')
     const { installProxyFromEnvironment } = await import('@freddie/freddie-http-proxy')
     const environment = loadLayeredEnv('freddie')
-    // Installed before any plugin mounts: LLM adapters, web search, and MCP-over-HTTP all resolve
-    // Node's global fetch, so this is the one place that covers every outbound caller at once.
     await installProxyFromEnvironment(environment, message => void process.stderr.write(`freddie: ${message}\n`))
     await runProfile({
       environment,

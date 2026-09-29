@@ -2,7 +2,7 @@
  * Code Mode codegen — Python flavor. The pure projection from registered tool schemas to the
  * Python SDK text the model programs against under `runtime.language === 'python'`. Sibling of
  * {@link ./ts-types.js | ts-types.js}; the two files are two projections of the same registry
- * store, keyed by the loaded {@link @freddie/freddie-code-runtime#CodeRuntime.language | code
+ * store, keyed by the loaded {@link import('@freddie/freddie-code-runtime').CodeRuntime#language | code
  * runtime's language}.
  *
  * Under `mode: 'code'` the native tool schemas are omitted from the request, so this generated
@@ -27,7 +27,7 @@ const IDENTIFIER = /^[\p{XID_Start}_]\p{XID_Continue}*$/u
  * Whether a name can be emitted as a bare Python identifier rather than
  * routed to the subscript/`dict[str, Any]` path.
  *
- * Python identifiers are not ASCII: `路径` is as legal a field name as `path`,
+ * Python identifiers are not ASCII: `путь` is as legal a field name as `path`,
  * and rejecting it would degrade the whole enclosing object, dropping every
  * field's name, requiredness, and type — information whose only source under
  * `mode: 'code'` is this generated text.
@@ -121,9 +121,6 @@ const RESERVED = new Set([
   'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from', 'global',
   'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise',
   'return', 'try', 'while', 'with', 'yield',
-  // Not a keyword, but CPython refuses to ASSIGN it at compile time
-  // (`SyntaxError: cannot assign to __debug__`), which is what a TypedDict
-  // field, a parameter name, and a keyword argument all are.
   '__debug__',
 ])
 
@@ -233,7 +230,7 @@ function docLines(description, indent) {
  * CamelCase a name into a Python type identifier: non-identifier characters
  * split words, `_` splits too (it is `XID_Continue`, so the split set names it
  * explicitly), and a head that cannot start an identifier takes a `Tool`
- * prefix. Unicode survives, so a `路径` field yields `路径`-based class names
+ * prefix. Unicode survives, so a `путь` field yields `путь`-based class names
  * instead of collapsing to the bare prefix. A character that is not
  * `XID_Continue` splits even when it is a letter, so a name whose NFKC folding
  * would leave the identifier set is not carried through — the split set is the
@@ -358,8 +355,8 @@ function allocateClassName(base, state) {
  * The bounded base plus the collision counter still yields unique names.
  *
  * The join is NFKC-normalized because both sides are separately normalized yet
- * their concatenation need not be: a base ending in a Hangul L jamo or LV
- * syllable composes with a following V or T jamo head (`가` + `ᆨ` gives `각`),
+ * their concatenation need not be: a base ending in a Latin letter composes
+ * with a following combining-mark head (`e` + U+0301 gives U+00E9),
  * so the emitted class name would differ from the symbol CPython compiles, and
  * two byte-distinct names could fold onto one — `usedClassNames` dedupes by the
  * raw bytes, so the collision counter would not see it. Normalizing costs
@@ -465,12 +462,6 @@ function renderType(schema, className, state) {
   const newFrame = (schema, className, listDepth) =>
     ({ schema, className, phase: 'start', listDepth, children: [], childIndex: 0, childTypes: [], entries: [] })
   try {
-    // Validate the WHOLE tree once, then trust it — the same contract the
-    // sibling ts-types renderer follows at a typed same-process boundary. Every
-    // node past this point is a validated JSON-schema node, so the walk reads
-    // its fields without re-checking. An unsupported or malformed schema throws
-    // here (before anything is emitted) and degrades to `Any`, the Python
-    // counterpart of the TS flavor's `unknown`.
     assertSupportedJsonSchema(schema)
     const frames = [newFrame(schema, className, 0)]
     let result
@@ -498,12 +489,6 @@ function renderType(schema, className, state) {
           continue
         }
         if (frame.kind === 'oneOf') {
-          // Concatenate incrementally (template literal, not `Array.join`): V8
-          // builds a lazy ConsString, so a deep oneOf chain materializes once
-          // at the root instead of re-materializing the accumulated string at
-          // every level (which `join` would, making it Θ(depth²)). This matches
-          // the array arm's template-literal laziness and ts-types' composable-
-          // document approach — the whole walk stays linear in schema depth.
           let union = ''
           for (const [index, childType] of frame.childTypes.entries()) {
             union = index === 0 ? childType : `${union} | ${childType}`
@@ -513,14 +498,10 @@ function renderType(schema, className, state) {
         }
         /* jscpd:ignore-end */
         if (frame.kind === 'array') {
-          // `list[A | B]` needs no parentheses in Python. Array frames always
-          // schedule exactly one child, so its type is present.
           /* v8 ignore next -- the ?? arm needs a childless array frame, which start never builds. */
           finish(`list[${frame.childTypes[0] ?? 'Any'}]`)
           continue
         }
-        // typeddict: assemble AFTER the children so any nested class this one
-        // references is already declared (declaration order = reference order).
         const node = frame.node
         const name = frame.allocated
         /* v8 ignore next -- typeddict frames always set node and allocated at start. */
@@ -533,8 +514,6 @@ function renderType(schema, className, state) {
           /* v8 ignore next -- entries and childTypes correspond one-to-one. */
           if (entry === undefined || fieldType === undefined) throw new Error('missing typeddict field type')
           const [field, fieldSchema] = entry
-          // The parent node passed assertSupportedJsonSchema, so every property
-          // value is a validated schema node.
           const description = describe(fieldSchema)
           if (description !== undefined) lines.push(`${pad(1)}# ${description}`)
           if (required.has(field)) {
@@ -544,15 +523,9 @@ function renderType(schema, className, state) {
             lines.push(`${pad(1)}${field}: NotRequired[${fieldType}]`)
           }
         }
-        // TypedDict syntax cannot express openness, so an open object states it
-        // in-band: the annotation is advisory either way, and `mode: 'code'`
-        // omits the native schemas, making this line the model's only signal
-        // that extra keys are accepted.
         if (node.additionalProperties !== false) {
           lines.push(`${pad(1)}# Additional keys beyond those declared are allowed.`)
         }
-        // A closed empty object still needs a class body (`pass`) to be valid
-        // Python; the declared emptiness is the information.
         if (lines.length === 1) lines.push(`${pad(1)}pass`)
         state.classes.push(lines.join('\n'))
         finish(name)
@@ -563,20 +536,6 @@ function renderType(schema, className, state) {
       const node = frame.schema
       if (node.oneOf !== undefined) {
         frame.kind = 'oneOf'
-        // A union renders as `A | B` — no brackets of its own, so the branches
-        // inherit the enclosing depth unchanged.
-        //
-        // Union LENGTH is deliberately uncapped, unlike list nesting. The two
-        // limits are different in kind: >200 open brackets is a SyntaxError
-        // from the tokenizer, so the text is not Python; a long `A | B | …`
-        // chain is grammatically valid at any length and only defeats CPython's
-        // C-recursion when `compile()` walks the left-nested BinOp spine
-        // (measured: 1,000 branches compile, 5,000 raise RecursionError). This
-        // block is prompt text — nothing compiles it — so that limit costs
-        // nothing here, while capping would retire the deep-chain tests that
-        // pin the walk's linear time and the class-name propagation cap. The
-        // standard this renderer holds is grammatical validity, not
-        // compilability under one interpreter's stack.
         frame.children = node.oneOf.map((branch, index) => ({ schema: branch, className: childClassName(frame.className, `${index + 1}`), listDepth: frame.listDepth }))
         continue
       }
@@ -597,49 +556,22 @@ function renderType(schema, className, state) {
             finish('list[Any]')
             break
           }
-          // Past MAX_LIST_NESTING another `list[` would push the annotation
-          // beyond CPython's open-bracket limit and make the whole SDK block
-          // unparseable, so the chain degrades here instead — an unusable
-          // annotation either way, and this one is valid Python.
           if (frame.listDepth >= MAX_LIST_NESTING) {
             state.typing.add('Any')
             finish('Any')
             break
           }
-          // An array of objects names its item type after the array field.
           frame.kind = 'array'
           frame.children = [{ schema: node.items, className: frame.className, listDepth: frame.listDepth + 1 }]
           break
         }
         case 'object': {
-          // A missing `properties` is an empty property map, exactly as the
-          // unified validator and the TS renderer read it — NOT an unknown
-          // shape. The openness of the resulting empty object is decided below,
-          // so a closed empty object still declares an empty TypedDict rather
-          // than a permissive `dict[str, Any]`.
           const entries = Object.entries(node.properties ?? {})
-          // An empty `className` marks the context-free `jsonSchemaToPy` entry:
-          // there is no naming context to declare into, so degrade. This reads
-          // the CALL's className, not `frame.className`: the marker belongs to
-          // the whole walk, and frames propagate a derived name (a `oneOf`
-          // branch of the context-free root gets the index-derived name `1` —
-          // `childClassName` concatenates and caps, it does not go through
-          // `camelCase`), so a per-frame read would declare classes the caller
-          // has no way to receive, under a name that is not even a legal
-          // identifier: `class 1(TypedDict):`. A field
-          // name that is not a legal Python attribute is inexpressible as a
-          // class-syntax `TypedDict` field, so such an object degrades whole.
-          // A leading-double-underscore non-dunder field (`__token`) would be
-          // NAME-MANGLED inside class syntax (`_ClassName__token`), describing a
-          // different JSON key than the registered schema — degrade like any
-          // other inexpressible field name.
           if (className === '' || !entries.every(([name]) => isBareIdentifier(name) && !RESERVED.has(name) && !(name.startsWith('__') && !name.endsWith('__')))) {
             state.typing.add('Any')
             finish('dict[str, Any]')
             break
           }
-          // An OPEN empty object is any dict; a CLOSED empty object declares an
-          // empty TypedDict so "no keys accepted" survives into the SDK.
           if (entries.length === 0 && node.additionalProperties !== false) {
             state.typing.add('Any')
             finish('dict[str, Any]')
@@ -650,10 +582,6 @@ function renderType(schema, className, state) {
           frame.allocated = allocateClassName(frame.className, state)
           state.typing.add('TypedDict')
           frame.entries = entries
-          // A field annotation is its own logical line, so nesting restarts —
-          // at 1, reserving the bracket an optional field's `NotRequired[…]`
-          // wraps around it. frame.allocated was assigned three statements up;
-          // the ?? arm is for the type system only.
           /* v8 ignore next -- allocated is always set before children are built. */
           frame.children = entries.map(([field, child]) => ({ schema: child, className: childClassName(frame.allocated ?? '', camelCase(field)), listDepth: 1 }))
           break
@@ -668,10 +596,6 @@ function renderType(schema, className, state) {
     /* v8 ignore next -- every root frame produces one expression. */
     return result ?? 'Any'
   } catch {
-    // An unsupported or malformed schema failed validation (before any
-    // emission), or an unreachable internal invariant tripped. Either degrades
-    // the node to `Any` rather than crashing prompt assembly — the Python
-    // counterpart of the TS flavor's `unknown` fallback.
     state.typing.add('Any')
     return 'Any'
   }
@@ -690,9 +614,6 @@ function renderType(schema, className, state) {
  * @returns the Python type text.
  */
 export function jsonSchemaToPy(schema) {
-  // A throwaway state whose class collector never escapes: an object with
-  // properties has nowhere to declare its TypedDict and degrades to
-  // dict[str, Any]. renderToolsSdkPy drives the named-TypedDict path.
   return renderType(schema, '', { classes: [], usedClassNames: new Set(), nextClassCounter: new Map(), typing: new Set() })
 }
 
@@ -729,24 +650,12 @@ The available tools:`
 export function renderToolsSdkPy(schemas) {
   const sorted = [...schemas].sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
   const state = { classes: [], usedClassNames: new Set(), nextClassCounter: new Map(), typing: new Set(['Protocol']) }
-  // ONE ordered member stream, matching the documented lexicographic contract
-  // and the TypeScript flavor (which quotes exotic keys in place rather than
-  // partitioning them out). Interleaving is free here: a comment line between
-  // two `async def` lines is not a statement, so it changes nothing about how
-  // the class body parses.
   const members = []
   let statements = 0
   for (const schema of sorted) {
     const argType = renderType(schema.parameters, `${camelCase(schema.name)}Args`, state)
     const outputType = renderType(schema.output, `${camelCase(schema.name)}Output`, state)
     if (isBareIdentifier(schema.name) && !RESERVED.has(schema.name) && !schema.name.startsWith('_')) {
-      // A docstring only documents its method when it is the FIRST statement
-      // of that method's body. Emitted before the `async def` it would instead
-      // become the `Tools` class docstring (for the first tool) or a dead
-      // expression (for every later one), leaving every method undocumented —
-      // and under `mode: 'code'` this SDK is the model's only description of
-      // what a tool does. A docstring is a complete body, so the `...` stub is
-      // only for the description-less case.
       const doc = docLines(schema.description, 2)
       members.push(doc.length > 0
         ? `${pad(1)}async def ${schema.name}(self, args: ${argType}) -> ${outputType}:`
@@ -754,26 +663,11 @@ export function renderToolsSdkPy(schemas) {
       members.push(...doc)
       statements += 1
     } else {
-      // Not reachable as ``tools.name`` — the model reaches it via
-      // ``tools[name]``. Exotic names and hard keywords are not legal
-      // attributes at all; an underscore-leading name (``_foo``) IS a legal
-      // attribute and is routed here anyway, because the forms that break
-      // split three ways — a non-dunder ``__token`` name-mangles at the CALL
-      // site, a dunder that exists on ``object``/``type`` (``__class__``,
-      // ``__doc__``) resolves before ``__getattr__`` ever runs, and implicit
-      // special-method lookup skips the hook entirely — and one rule over the
-      // whole family costs nothing while a per-form rule would have to
-      // enumerate them (see {@link RESERVED}). The stub lists it as a subscript comment
-      // (referencing the named TypedDicts too) so a reader sees what is
-      // accessible; runtime resolution goes through the proxy's __getitem__.
       members.push(`${pad(1)}# tools[${JSON.stringify(schema.name)}](args: ${argType}) -> ${outputType}`)
       const description = describe(schema)
       if (description !== undefined) members.push(`${pad(1)}#   ${description}`)
     }
   }
-  // Subscript entries are COMMENTS, not statements: a class body of only
-  // comments fails to parse, so `pass` is required whenever no method was
-  // emitted — including the subscript-only tool set.
   const bodyLines = statements > 0 ? members : [`${pad(1)}pass`, ...members]
   const body = bodyLines.join('\n')
   const imports = TYPING_ORDER.filter(symbol => state.typing.has(symbol))

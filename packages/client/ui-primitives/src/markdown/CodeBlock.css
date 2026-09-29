@@ -1,6 +1,3 @@
-/* Visual baseline: deepsuite `@deepseek/md` code-block.css. Highlight colors
-   stay on the existing shiki `--shiki-*` sheet (not Prism highlight.css). */
-
 .freddie-codeBlock__block {
   --dsl-code-block-banner-background-color: var(--freddie-alias-markdown-code-block-banner);
   --dsl-code-block-border-radius: 12px;
@@ -74,13 +71,10 @@
   white-space: pre-wrap;
   word-break: break-all;
   background: var(--freddie-alias-markdown-code-block);
-  /* Bottom radii live on <pre>: overflow:hidden on .block would kill the
-     sticky banner, and this opaque fill otherwise squares off the wrapper. */
   border-bottom-left-radius: var(--dsl-code-block-border-radius);
   border-bottom-right-radius: var(--dsl-code-block-border-radius);
 }
 
-/* Shiki inlines its theme background var; route it to the repo token. */
 .freddie-codeBlock__block :where(pre.shiki) {
   background: var(--freddie-alias-markdown-code-block) !important;
 }

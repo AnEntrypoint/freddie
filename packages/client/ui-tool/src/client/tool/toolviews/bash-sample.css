@@ -1,17 +1,8 @@
-/* Bash toolview: same geometry/tokens as ToolRow (figma Bash · description),
-   plus the expand-gated terminal card under the summary line. */
-
-/* Summary line over the terminal card; the summary row keeps its own 24px
-   height, so the card is a column around it rather than a change to it. */
 .freddie-bashSample__card {
   display: flex;
   flex-direction: column;
 }
 
-/* Expanded terminal card, matching ToolRow's terminalBody: 4px indent, l1
-   hairline, and the max-height scroll on the card's own OUTPUT (banner stays
-   pinned; 224px = the 260px card cap minus the ~36px banner); the margin
-   replaces the primitive's standalone vertical margin with the flow's. */
 .freddie-bashSample__terminal {
   --dsl-terminal-font: var(--dsw-font-markdown-code-block-small);
   --dsl-terminal-line-height: 18px;
@@ -20,9 +11,6 @@
   border: 1px solid var(--freddie-alias-border-l1);
 }
 
-/* A bash execution error can settle without terminal-card material (for
-   example, command cancellation). Preserve ToolRow's bounded IN/OUT fallback
-   so the original command and full error remain available from this keyed row. */
 .freddie-bashSample__ioCard {
   display: flex;
   flex-direction: column;
@@ -77,15 +65,12 @@
   color: var(--freddie-alias-state-error-primary);
 }
 
-/* ToolRow's unified expand interaction, replicated per the registrant
-   posture: pointer on the expandable row (the icon→chevron hover preview is
-   the affordance, no row fill). */
 .freddie-bashSample__root[data-expandable] {
   cursor: pointer;
 }
 
 .freddie-bashSample__root {
-  position: relative; /* sweep-glare overlay anchor */
+  position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -93,7 +78,6 @@
   min-width: 0;
 }
 
-/* Running sweep glare — same deepsuite ShimmerText pattern as ToolRow. */
 .freddie-bashSample__root[data-state='running']::after {
   content: '';
   position: absolute;
@@ -117,7 +101,7 @@
 }
 
 .freddie-bashSample__leading {
-  position: relative; /* .chevronHover overlay anchor */
+  position: relative;
   flex: none;
   width: 16px;
   height: 16px;
@@ -132,8 +116,6 @@
   color: var(--freddie-alias-label-secondary);
 }
 
-/* Hover preview on the expandable row: the idle icon crossfades (100ms) into
-   a down chevron before the row is opened — same overlay as ToolRow. */
 .freddie-bashSample__iconIdle {
   display: inline-flex;
   opacity: 1;
@@ -183,15 +165,10 @@
   color: var(--freddie-alias-label-tertiary);
 }
 
-/* Error row's collapsed summary: the failure's first line in the error color. */
 .freddie-bashSample__errorSummary {
   color: var(--freddie-alias-state-error-primary);
 }
 
-/* Hover-revealed Inspect pill under the expanded terminal's bottom-left —
-   ToolRow's .bodyWrap/.inspectButton treatment, replicated per the registrant
-   posture: real flow (it reserves its line), revealed by hovering anywhere on
-   the tool call — title row included — or by keyboard focus. */
 .freddie-bashSample__bodyWrap {
   display: flex;
   flex-direction: column;
@@ -206,7 +183,6 @@
   padding: 2px 8px;
   border: 1px solid var(--freddie-alias-border-l2);
   border-radius: 999px;
-  /* Base background, not bg-overlay: the overlay token reads too heavy. */
   background: var(--freddie-alias-bg-base);
   color: var(--freddie-alias-label-secondary);
   font-size: 11px;
@@ -221,8 +197,6 @@
   opacity: 1;
 }
 
-/* Solid hover fill: the pill floats over terminal output, so a translucent
-   hover token would let the text underneath bleed through. */
 .freddie-bashSample__inspectButton:hover {
   background: var(--freddie-alias-interactive-bg-hover-solid);
   color: var(--freddie-alias-label-primary);

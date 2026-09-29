@@ -16,6 +16,11 @@ const css = {
   cardDetails: 'freddie-pluginInventorySettingsTab__cardDetails',
   entryValue: 'freddie-pluginInventorySettingsTab__entryValue',
   details: 'freddie-pluginInventorySettingsTab__details',
+  notice: 'freddie-pluginInventorySettingsTab__notice',
+  cardControl: 'freddie-pluginInventorySettingsTab__cardControl',
+  switch: 'freddie-pluginInventorySettingsTab__switch',
+  switchThumb: 'freddie-pluginInventorySettingsTab__switchThumb',
+  controlText: 'freddie-pluginInventorySettingsTab__controlText',
   visuallyHidden: 'freddie-pluginInventorySettingsTab__visuallyHidden',
 }
 

@@ -126,9 +126,6 @@ export class ModelsSettingsStore {
     if (refs.length > 0) {
       try {
         const response = await this.api.credentials.describe({ refs })
-        // Credential state is an enrichment for the Models page: neither a
-        // business rejection nor a transport failure fails the load. The
-        // onboarding projection below retains the failure distinction.
         if (response.result.ok) credentials = response.result.value.credentials
         else credentialError = response.result.error.message
       } catch (error) {
@@ -200,8 +197,6 @@ export function onboardingReadiness(state) {
       reason: 'provider-inactive',
     }
   }
-  // Past the usable gate an active route names a reference it has no stored
-  // credential for, so the remaining questions are all about that credential.
   if (state.credentialError !== null || row.credential === undefined) {
     return {
       kind: 'unavailable',

@@ -1,6 +1,3 @@
-/* Sticky turn bar: full-bleed ghost-active fill across the panel; title +
- * metric labels sit in a centered 880 content lane (4×71 + 3×12 = 320). */
-
 .freddie-trajectoryTurnHeader__root {
   position: sticky;
   top: 0;
@@ -35,7 +32,6 @@
   align-items: center;
   width: 320px;
   gap: 12px;
-  /* Match cell padding-right: 8 so Time lines up with the trailing lane. */
   margin-right: 8px;
 }
 

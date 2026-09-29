@@ -1,8 +1,9 @@
 /**
  * Node half of the client module system (`freddie.client` dual-face package): scans
  * the host Loader's entries for packages declaring `freddie.client`, composes the
- * `window.__FREDDIE_BOOT__` entry graph (wire single source: {@link WebBootEntry}
- * in `./client/manifest.js`) in module-graph order, serves every file of a
+ * `window.__FREDDIE_BOOT__` entry graph (wire single source:
+ * {@link import('./client/manifest.js').WebBootEntry} in `./client/manifest.js`)
+ * in module-graph order, serves every file of a
  * row's tree under `/plugins/<id>/~<rev>/<path>` (the rev segment is the
  * cache key: the current rev answers immutable, any other rev revalidates),
  * contributes the boot manifest plus modulepreload hints to the webserver's
@@ -108,6 +109,14 @@ function clientExportOf(pkgName, exportsField) {
   throw new Error(`client-modules: ${pkgName} exports["./client"] must be a string or an object with a string default`)
 }
 
+/** Package-name prefix of a bare specifier: `@scope/name` when scoped, the first segment otherwise. */
+function packageNameOfSpecifier(specifier) {
+  const firstSlash = specifier.indexOf('/')
+  return specifier.startsWith('@') && firstSlash !== -1
+    ? specifier.slice(0, specifier.indexOf('/', firstSlash + 1) === -1 ? specifier.length : specifier.indexOf('/', firstSlash + 1))
+    : (firstSlash === -1 ? specifier : specifier.slice(0, firstSlash))
+}
+
 /** sha1 content hash shortened to 12 hex chars (bundle rev / graph rev). */
 function shortHash(input) {
   return createHash('sha1').update(input).digest('hex').slice(0, 12)
@@ -117,8 +126,8 @@ function shortHash(input) {
  * List every `.js`/`.js.map` file under a directory, recursively, as
  * `{ relPath, absPath }` pairs (`relPath` uses `/` separators — the URL shape
  * {@link serveBundle} matches against). Buildless serving mirrors the whole
- * `src/client/` tree verbatim, so every reachable file needs a route entry,
- * not just the declared entry point.
+ * package `src/` tree (the `clientRoot` callers pass) verbatim, so every
+ * reachable file needs a route entry, not just the declared entry point.
  * @param root - absolute directory to walk.
  * @returns every servable file under root, root-relative and absolute.
  */
@@ -306,9 +315,6 @@ export class ClientModuleRegistry extends Service {
   static inject = ['webServer', 'loader']
 
   table = new Map()
-  // Negative verdicts (unresolvable specifier — builtins like cordis:include,
-  // subpath rows — or a package without a web `freddie.client` declaration) are
-  // cached as null and never expire: plugin-set changes take effect on restart.
   pkgMeta = new Map()
   rebuildListeners = new Set()
   graphListeners = new Set()
@@ -324,10 +330,6 @@ export class ClientModuleRegistry extends Service {
    */
   constructor(ctx) {
     super(ctx, 'clientModules')
-    // Resolution anchor: the config tree's baseUrl (the cordis.yml directory,
-    // whose package declares every composed plugin as a dependency). The
-    // modules package's own URL would miss sibling packages under pnpm's
-    // isolated node_modules.
     if (ctx.baseUrl === undefined) {
       throw new Error('client-modules: ctx.baseUrl is unset — the node half needs the config-tree anchor to resolve plugin packages')
     }
@@ -335,9 +337,6 @@ export class ClientModuleRegistry extends Service {
     this.resolvePkgJson = spec => require.resolve(`${spec}/package.json`)
     this.resolveSpecifier = spec => require.resolve(spec)
 
-    // Subscribe before seeding so a fiber arriving mid-activation lands in the
-    // same dirty set (Set idempotence makes the overlap harmless). An entry-less
-    // fiber is a child plugin or a manual mount — never a loader row; O(1) drop.
     ctx.on('internal/plugin', (fiber) => {
       const entryName = fiber.entry?.options.name
       if (entryName === undefined) return
@@ -350,9 +349,6 @@ export class ClientModuleRegistry extends Service {
       })
     })
 
-    // Activation pass: the initial scan IS the incremental path over the
-    // current entries, flushed synchronously (nothing async between subscribe,
-    // seed, and flush).
     for (const entry of ctx.loader.entries()) this.dirty.add(entry.options.name)
     this.composed = this.compose()
     const failures = []
@@ -435,8 +431,9 @@ export class ClientModuleRegistry extends Service {
   }
 
   /**
-   * Absolute directory served verbatim for an entry (its entry file's own
-   * directory — every file under it is a real reachable route).
+   * Absolute directory served verbatim for an entry (its package's `src/`
+   * directory, which holds the client entry file and the node half beside
+   * it — every `.js`/`.js.map` file under it is a real reachable route).
    * @param id - entry id (package name).
    * @returns the directory, or undefined for an unknown id.
    */
@@ -469,8 +466,6 @@ export class ClientModuleRegistry extends Service {
     record.scripts = scripts
     this.composed = this.compose()
     for (const notify of this.rebuildListeners) {
-      // Containment: rebuilt() runs inside the HMR watch callback — a
-      // throwing subscriber must not kill the poll or skip later subscribers.
       try {
         notify(id, rev)
       } catch (error) {
@@ -514,12 +509,7 @@ export class ClientModuleRegistry extends Service {
     if (!path.endsWith('.js') && !path.endsWith('.js.map') && !path.endsWith('.css')) {
       throw new Error(`client-modules: /workspace resolved "${specifier}" to a non-servable file kind`)
     }
-    // Scoped (@scope/name) vs unscoped (name) package-name prefix of the
-    // specifier -- the same split every real bare-specifier resolver uses.
-    const firstSlash = specifier.indexOf('/')
-    const pkgName = specifier.startsWith('@') && firstSlash !== -1
-      ? specifier.slice(0, specifier.indexOf('/', firstSlash + 1) === -1 ? specifier.length : specifier.indexOf('/', firstSlash + 1))
-      : (firstSlash === -1 ? specifier : specifier.slice(0, firstSlash))
+    const pkgName = packageNameOfSpecifier(specifier)
     let pkgPath
     try {
       pkgPath = this.resolvePkgJson(pkgName)
@@ -561,8 +551,6 @@ export class ClientModuleRegistry extends Service {
 
   notifyGraphChanged() {
     for (const listener of this.graphListeners) {
-      // A throwing subscriber must not skip later subscribers (or escape into
-      // whatever triggered the flush — possibly an fs.watchFile callback).
       try {
         listener()
       } catch (error) {
@@ -578,8 +566,6 @@ export class ClientModuleRegistry extends Service {
     try {
       pkgPath = this.resolvePkgJson(pkgName)
     } catch {
-      // Not a resolvable package root: loader builtins (cordis:include) and
-      // subpath entries (…/gateway) land here — permanently not a client row.
       this.pkgMeta.set(pkgName, null)
       return null
     }
@@ -597,19 +583,6 @@ export class ClientModuleRegistry extends Service {
     if (clientRel === undefined) {
       throw new Error(`client-modules: ${pkgName} declares freddie.client but exports no "./client" entry`)
     }
-    // Buildless serving mirrors the whole package's src/ tree verbatim (not
-    // just src/client/), so a client entry's relative imports resolve as
-    // real sibling-file fetches even when they legitimately reach outside
-    // src/client/ to share code with the package's own host half (e.g.
-    // src/client/index.js importing ../service.js -- a real, common,
-    // deliberate pattern: witnessed live in freddie-typert-registry,
-    // freddie-client-hmr, freddie-client-connection, freddie-client-locale,
-    // freddie-client-ui-settings-models -- every one of these 404s any
-    // browser session bundling the package, since clientRoot previously
-    // stopped at src/client/ itself). clientRoot is the package's src/ dir,
-    // never the package root itself -- widening past src/ would recurse
-    // hashClientTree/serveBundle into node_modules (real perf/hang risk on
-    // a workspace with deeply nested @freddie/* dependency trees).
     const packageRoot = dirname(pkgPath)
     const clientPath = join(packageRoot, clientRel)
     const clientRoot = join(packageRoot, 'src')
@@ -661,8 +634,6 @@ export class ClientModuleRegistry extends Service {
     if (this.table.has(entryName)) return false
     const meta = this.resolveMeta(entryName)
     if (meta === null) return false
-    // The rev rides the row from here on: a fiber restart reuses the row (and
-    // its rev) untouched; only rebuilt() re-reads the bundle.
     const { rev, scripts } = this.initialBundleRevision(entryName, meta.clientRoot)
     this.table.set(entryName, { entry: graphRow(entryName, rev, meta), meta, scripts })
     return true
@@ -675,8 +646,6 @@ export class ClientModuleRegistry extends Service {
       try {
         if (this.processOne(entryName)) changed = true
       } catch (error) {
-        // Steady state: one broken package must not poison the others; the
-        // activation pass aggregates these into a loud throw instead.
         onError(error instanceof Error ? error : new Error(String(error)))
       }
     }
@@ -685,10 +654,6 @@ export class ClientModuleRegistry extends Service {
     try {
       composed = this.compose()
     } catch (error) {
-      // An unorderable module graph is a property of the whole table, not of
-      // the arriving package, so it surfaces here: aggregated into the
-      // activation throw, or warned in steady state while the last orderable
-      // graph stays served.
       onError(error)
       return
     }
@@ -733,10 +698,8 @@ export class ClientModuleRegistry extends Service {
     }
     const clientRoot = best.record.meta.clientRoot
     const target = resolve(normalize(join(clientRoot, ...relPath.split('/'))))
-    // Traversal rejection, same shape as frontend-static's: the target must
-    // stay under clientRoot (never equal to it — that's a directory, not a
-    // servable file).
-    if (!target.startsWith(clientRoot + sep)) return undefined
+    const escapesClientRoot = !target.startsWith(clientRoot + sep)
+    if (escapesClientRoot) return undefined
     return { path: target, immutable }
   }
 
@@ -808,7 +771,6 @@ export class ClientModuleRegistry extends Service {
       'cache-control': resolved.immutable ? IMMUTABLE : 'no-cache',
     })
     if (!served) {
-      // Registered but unreadable: loud 404 beats a silent SPA-fallback HTML page.
       res.writeHead(404)
       res.end()
     }

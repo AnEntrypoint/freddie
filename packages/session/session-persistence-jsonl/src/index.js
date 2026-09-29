@@ -104,11 +104,9 @@ export class JsonlSessionPersistence extends SessionPersistence {
   constructor(ctx, config) {
     super(ctx)
     this.config = config
-    // Resolve once so later process.cwd() changes cannot split one backend across roots.
     this.root = resolve(config.root)
     this.extraRoots = [...new Set((config.extraRoots ?? []).map(root => resolve(root)))]
       .filter(root => root !== this.root)
-    // Programmatic wrappers may construct the backend without Schemastery normalization.
     const preparedSessionCacheSize = config.preparedSessionCacheSize
       ?? DEFAULT_PREPARED_SESSION_CACHE_SIZE
     const writeBatchMaxDelayMs = config.writeBatchMaxDelayMs
@@ -120,9 +118,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
       preparedSessionCacheSize,
       writeBatchMaxDelayMs,
     })
-    // Release the writer lock on teardown so an ordinary restart is not left
-    // reclaiming its own stale lock. A crash skips this; the pid-liveness
-    // check in claimWriterLock() covers that case.
     this.ctx.effect(() => () => {
       if (this.writerLockPath === undefined) return
       const path = this.writerLockPath
@@ -134,10 +129,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
   /** Path of the writer lock this process holds, or `undefined` before it claims one. */
   writerLockPath
 
-  // Each backend keeps the typed service API beside its storage hooks;
-  // extracting these trivial forwards would add an inheritance layer.
   /* jscpd:ignore-start */
-  // --- SessionPersistence service API (delegated to the coordinator) ---
 
   /** Resolve the absolute target path without touching the filesystem. */
   locate(meta) {
@@ -164,17 +156,11 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return this.coordinator.inspect(id, signal)
   }
 
-  // JSONL is sequential media: no loadStoredFrom hook, so the coordinator
-  // parses the stored prefix (both encodings) and skips forward to fromSeq.
   readFrom(id, fromSeq, signal) {
     return this.coordinator.readFrom(id, fromSeq, signal)
   }
 
-  // One method serves both public `list` and the backend hook; delegating it to
-  // the coordinator would call this hook recursively.
-
   /* jscpd:ignore-end */
-  // --- PersistenceBackend hooks (the file-bytes storage primitives) ---
 
   /** Read a stored prefix by id across all project directories when cwd is unknown. */
   async loadStored(id, signal) {
@@ -233,8 +219,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
       if (frames.length === 0) throw new Error('empty or header-less Zstandard session log')
       const decoder = createZstdFrameDecoder()
       const plaintexts = []
-      // The decoder yields views into a reused buffer; copy each frame's
-      // plaintext immediately so a later concat cannot read overwritten memory.
       for (const plaintext of decoder.decode(buffer, frames)) {
         signal?.throwIfAborted()
         plaintexts.push(Buffer.from(plaintext))
@@ -247,8 +231,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     if (meta === undefined || meta.id !== id) {
       throw new Error(`corrupt session log: invalid header line in "${path}"`)
     }
-    // The logical artifact name is `session.jsonl` regardless of the physical
-    // encoding suffix (`.jsonl.zstd` marks compression only).
     return { meta, filename: 'session.jsonl', content }
   }
 
@@ -294,9 +276,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
         }
       }
     } catch (error) {
-      // A parse-time format refusal predates any SessionHeader, so the
-      // coordinator's locate-based enrichment cannot run; attach the artifact
-      // this read actually refused.
       if (error instanceof SessionFormatUnsupportedError && error.location === undefined) {
         throw new SessionFormatUnsupportedError(`${error.message} (raw log: ${path})`, { kind: 'jsonl', path })
       }
@@ -355,8 +334,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
       } catch {
         /* v8 ignore next -- decoder failure plus concurrent abort is timing-dependent */
         if (signal?.aborted) signal.throwIfAborted()
-        // A structurally incomplete final frame may end before Node's decoder can
-        // emit any plaintext; the complete prior frames remain recoverable.
       }
       signal?.throwIfAborted()
       scanner.write(recoveredPlaintext)
@@ -467,13 +444,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
         const pathExists = await this.exists(path)
         signal?.throwIfAborted()
         if (!pathExists) continue
-        // Read only headers so listing scales with session count, not log size.
-        // One unreadable artifact is skipped and reported, never fatal: this
-        // listing runs during the workspace plugin's init, so a single damaged
-        // or foreign file here used to fail the whole plugin tree and leave the
-        // harness unstartable, with a diagnostic naming the plugin rather than
-        // the file. The neighbouring checks already `continue` past an empty
-        // file or a non-session header; a corrupt frame is the same class.
         let first
         try {
           first = this.compression === 'zstd'
@@ -485,9 +455,9 @@ export class JsonlSessionPersistence extends SessionPersistence {
           continue
         }
         signal?.throwIfAborted()
-        if (first === undefined) continue // empty/half-written file
+        if (first === undefined) continue
         const meta = parseHeaderMeta(first)
-        if (meta === undefined) continue // not a session header
+        if (meta === undefined) continue
         await this.assertStoredIdentityAt(root, path, meta, undefined, signal)
         signal?.throwIfAborted()
         if (ids.has(meta.id)) {
@@ -500,8 +470,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     signal?.throwIfAborted()
     return artifacts
   }
-
-  // --- materialization / append / repair (file mechanics) ---
 
   /** Atomically write the header line + first batch (temp-write, fsync, publish). */
   async materialize(meta, events) {
@@ -528,26 +496,15 @@ export class JsonlSessionPersistence extends SessionPersistence {
     await this.syncDirPosix(project)
     await this.rejectExistingLog(finalPath, id)
     const tmp = await this.writeSyncedTempFile(finalPath, content)
-    // Publish via link()+unlink(), NOT rename(): link fails with EEXIST if the
-    // final path already exists, so two processes materializing the same id
-    // concurrently cannot clobber each other. rename() would silently overwrite.
     let linked = false
     try {
       await link(tmp, finalPath)
       linked = true
     } finally {
-      // Remove an unpublished temp on failure. After publication, defer cleanup
-      // until the directory entry is durable so cleanup cannot reject a live log.
       /* v8 ignore next -- link failure is the TOCTOU/IO race guarded above; not reachable in test */
       if (!linked) await rm(tmp, { force: true })
     }
-    // link() succeeded — the log is published. fsync the directory so the new
-    // entry survives a power loss: the new link is not crash-durable until the
-    // parent directory's metadata is synced.
     await this.syncDirPosix(dir)
-    // Best-effort temp cleanup: the log is already published and durable, so a
-    // failure to remove the (now-redundant) temp hard link must NOT reject the
-    // append. Swallow only the rm failure; nothing else of consequence runs here.
     try {
       await rm(tmp, { force: true })
     } catch {
@@ -573,11 +530,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
   /* v8 ignore stop */
 
   async rejectExistingLog(finalPath, id) {
-    // Never publish over an existing committed log: materialize is the first
-    // write of a session the backend believes is new. A file here means a
-    // different session shares this id on disk — reject loudly. (createCore
-    // already guards the create path, so this is unreachable-in-practice TOCTOU
-    // defense.)
     /* v8 ignore next 3 -- createCore guards collisions before materialize; this is a TOCTOU backstop */
     if (await this.exists(finalPath)) {
       throw new Error(`refusing to materialize "${id}": a log already exists on disk (load/resume it instead)`)
@@ -612,7 +564,11 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return this.compression === 'zstd' ? compressZstdFrame(body) : body
   }
 
-  /** fsync a POSIX directory so a just-created/renamed entry is crash-durable. */
+  /**
+   * fsync a POSIX directory so a just-created/renamed entry is crash-durable.
+   * @name JsonlSessionPersistence#syncDirPosix
+   * @function
+   */
   /* v8 ignore start -- Windows uses write-through namespace operations; POSIX coverage exercises directory fsync. */
   async syncDirPosix(dir) {
     const handle = await open(dir, 'r')
@@ -681,8 +637,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  // --- discovery helpers ---
-
   /**
    * Read the first newline-terminated line of a file without loading the whole
    * file. Returns undefined if the file is empty or has no complete first line.
@@ -699,7 +653,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
         signal?.throwIfAborted()
         const { bytesRead } = await handle.read(buf, 0, buf.length, null)
         signal?.throwIfAborted()
-        if (bytesRead === 0) return undefined // EOF with no newline → no complete line
+        if (bytesRead === 0) return undefined
         const slice = buf.subarray(0, bytesRead)
         const nl = slice.indexOf(0x0a)
         if (nl !== -1) {
@@ -839,7 +793,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
       signal?.throwIfAborted()
       return entries.filter(e => e.isDirectory()).map(e => join(root, e.name))
     } catch (error) {
-      // Only an absent root means no sessions; rethrow every other I/O failure.
       if (isENOENT(error)) return []
       throw error
     }
@@ -910,7 +863,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
             + 'Two processes writing one store corrupt its session logs; stop the other one first.',
           )
         }
-        // Stale (holder gone, or the record is unreadable): reclaim and retry once.
         await rm(lockPath, { force: true })
       }
     }
@@ -933,7 +885,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
       process.kill(pid, 0)
       return true
     } catch (error) {
-      // EPERM means it exists but belongs to another user: still alive.
       return error.code === 'EPERM'
     }
   }
@@ -979,10 +930,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
       await handle.close()
       return true
     } catch (error) {
-      // Only ENOENT means absent. A permission/I/O error must surface rather
-      // than letting load or collision checks proceed under false absence.
-      // Windows reports ENOENT, not ENOTDIR, for `regular-file/child`; verify
-      // the immediate parent so a blocked session directory remains a storage fault.
       /* v8 ignore else -- Windows reports file-valued parents as ENOENT; POSIX covers direct ENOTDIR. */
       if (isENOENT(error)) {
         await this.assertLogParentAllowsAbsence(path)

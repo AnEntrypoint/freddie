@@ -11,7 +11,7 @@
 const turnContexts = new WeakMap()
 
 /**
- * Replace the turn context for one agent. Called by {@link HarnessSdkJsonRpcServer#prompt}
+ * Replace the turn context for one agent. Called by {@link import('./server.js').HarnessSdkJsonRpcServer#prompt}
  * when the incoming `session/prompt` carries a `turnContext` value; a call
  * carrying none leaves the agent's existing context (or absence of one)
  * unchanged, so a deployer that sets it once at session creation does not

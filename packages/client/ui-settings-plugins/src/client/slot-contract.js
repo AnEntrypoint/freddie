@@ -12,4 +12,5 @@
  * TYPE HOME RATIONALE: the tab declares this slot at runtime, and a plugin
  * registering its own card already depends on this package for the slot's
  * declaration. The type therefore lives with its declarer.
+ * @module @freddie/freddie-client-ui-settings-plugins/src/client/slot-contract.js
  */

@@ -30,7 +30,6 @@ export function rpcResultSchema(_value) {
   return passthrough()
 }
 
-// ---- The four wire full-form pass-throughs (payload/result.value slots stay wide — business layer does the second parse) ----
 
 /** ClientRequest full form pass-through. */
 export const clientRequestSchema = passthrough()

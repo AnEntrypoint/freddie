@@ -1,5 +1,3 @@
-# Live counterpart for the runner-classification snapshot overlay. It replaces
-# only the sandbox provider; authored scenarios are skipped in record mode.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

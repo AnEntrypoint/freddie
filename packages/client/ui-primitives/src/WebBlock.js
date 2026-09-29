@@ -1,36 +1,8 @@
-// WebBlock: the surface for a completed web retrieval. One component draws both
-// kinds of the `web` render intent, discriminated by `kind`: a `search` shows an
-// optional provider answer above a citation list of sources (each a safe
-// external link labelled by its title, or its hostname when the provider gave
-// none, with the snippet and publication date below it), and a `fetch` shows a
-// compact retrieval summary (the linked final URL and its HTTP status). Both
-// mark a capped retrieval. Every link is a same-origin-safe external anchor:
-// only http(s) URLs become anchors (target/rel set) — the http(s) subset of the
-// allowlist MarkdownText applies to untrusted assistant-authored links (it also
-// permits mailto, excluded here); an unparseable or non-http URL renders as
-// plain text. Geometry, radius, and fonts mirror CodeBlock/TerminalBlock so a
-// web card reads as one family with them; the whole source list renders inside a
-// fixed-height scroll container (its `.sources` max-height), so a long list
-// scrolls in place rather than growing the card — and that container's
-// `padding-left` must stay wide enough for the widest `<li>` marker, since a
-// scroll container clips inline-start overflow irrecoverably. The card draws every source the
-// view carries: the tool already cut the list to its source cap, and `truncated`
-// reports that cut. A content-only transform downstream of the tool — spill-policy
-// replacing an oversized result's text while leaving its presentationMeta whole —
-// can still narrow what the model reads below this list.
-
 import { createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { MarkdownText } from './markdown/MarkdownText.js'
 import css from './WebBlock.css.js'
 
-// MarkdownText's own one-shot factory recreates its freddie-markdown-text
-// element (dropping its settled-render memoization) on every call; WebBlock/
-// WebSearchBlock are plain functions with no owning instance. `markdownText`
-// is an optional caching render function threaded in by the caller (see
-// ToolDetails.js); a caller with no stable identity to key on may omit it,
-// falling back to the bare one-shot factory (correct for a genuine one-off
-// render, e.g. a details pane about to be replaced).
 function renderAnswer(answer, markdownText) {
   return markdownText === undefined ? h(MarkdownText, { text: answer }) : markdownText({ text: answer })
 }
@@ -115,23 +87,37 @@ function SourceItem({ source, ordinal }) {
 }
 
 /**
+ * @typedef {object} WebSource
+ * @property {string} url - the source URL.
+ * @property {string} [title] - provider-supplied title; falls back to the URL's hostname when absent.
+ * @property {string} [snippet] - short excerpt shown under the link.
+ * @property {string} [publishedAt] - publish date/time text shown under the snippet.
+ */
+
+/**
+ * @typedef {object} WebSearchBlockProps
+ * @property {string} [answer] - assistant summary rendered above the source list.
+ * @property {Array<WebSource>} sources - the retrieved sources, numbered in list order.
+ * @property {boolean} [truncated] - whether the source list was cut short by the provider.
+ * @property {string} [className]
+ * @property {function({text: string}): *} [markdownText] - override for rendering `answer`; defaults to {@link import('./markdown/MarkdownText.js').MarkdownText}.
+ */
+
+/**
  * The search card body: the answer over the full source list, which scrolls in
  * place once it exceeds the `.sources` container height.
  * @param props - see {@link WebSearchBlockProps}.
  * @returns the search card element.
  */
 function WebSearchBlock({ answer, sources, truncated, className, markdownText }) {
-  // A provider may legitimately return no answer and no sources; the chat WebRow
-  // does not show the raw result content, so without this the user would see an
-  // empty card. Mirror the backend's `No results found.` render text.
-  const empty = (answer === undefined || answer === '') && sources.length === 0
+  const emptyRetrieval = (answer === undefined || answer === '') && sources.length === 0
   return h(
     'div',
     { class: clsx(css.block, className), 'data-web': 'search' },
     answer !== undefined && answer !== '' && (
       h('div', { class: css.answer ?? '' }, renderAnswer(answer, markdownText))
     ),
-    empty ? (
+    emptyRetrieval ? (
       h('div', { class: css.empty ?? '' }, 'No results found.')
     ) : (
       h(
@@ -143,6 +129,14 @@ function WebSearchBlock({ answer, sources, truncated, className, markdownText })
     truncated && h('div', { class: css.truncated ?? '' }, 'Source list truncated'),
   )
 }
+
+/**
+ * @typedef {object} WebFetchBlockProps
+ * @property {string} url - the fetched URL, rendered as the visible link and its own label.
+ * @property {number|string} statusCode - the HTTP status, shown as "HTTP <statusCode>".
+ * @property {boolean} [truncated] - whether the fetched content was cut short.
+ * @property {string} [className]
+ */
 
 /**
  * The fetch card body: the linked URL and its HTTP status.
@@ -162,6 +156,18 @@ function WebFetchBlock({ url, statusCode, truncated, className }) {
     ),
   )
 }
+
+/**
+ * @typedef {object} WebBlockProps
+ * @property {'search'|'fetch'} kind - selects whether the card renders as {@link WebSearchBlockProps} or {@link WebFetchBlockProps}.
+ * @property {string} [answer] - `kind: 'search'` only; see {@link WebSearchBlockProps}.
+ * @property {Array<WebSource>} [sources] - `kind: 'search'` only; see {@link WebSearchBlockProps}.
+ * @property {function({text: string}): *} [markdownText] - `kind: 'search'` only; see {@link WebSearchBlockProps}.
+ * @property {string} [url] - `kind: 'fetch'` only; see {@link WebFetchBlockProps}.
+ * @property {number|string} [statusCode] - `kind: 'fetch'` only; see {@link WebFetchBlockProps}.
+ * @property {boolean} [truncated] - result list/content was truncated.
+ * @property {string} [className]
+ */
 
 /**
  * Render a completed web retrieval as a structured card.

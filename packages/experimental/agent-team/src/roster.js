@@ -10,7 +10,13 @@ import { requiredText } from './validation.js'
 
 const MEMBER_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u
 
-/** Caller identity inside one implicit Team. */
+/**
+ * Caller identity inside one implicit Team, as resolved by
+ * {@link resolveActiveMember} or {@link TeamRoster#membership}.
+ * @typedef {object} TeamCallerIdentity
+ * @property {import('@freddie/freddie-session').SessionId} id
+ * @property {string} name
+ */
 
 /**
  * Resolve one active Team member by model-facing name, including the Lead pseudo-row.
@@ -76,23 +82,13 @@ export class TeamRoster {
           if (member?.phase === 'active' || member?.phase === 'provisioning') {
             return { root, id: TeamId(root.id), role: 'teammate', name: member.name }
           }
-          // A direct child outside the durable roster is not a teammate. Ordinary
-          // host forks are independent roots; subagent descriptors distinguish
-          // provider-owned workers that must not receive a nested Team identity.
           if (this.subagentDescriptor(agent)) return undefined
           return { root: agent, id: TeamId(agent.id), role: 'lead', name: 'lead' }
         }
       }
-      // A continuation can briefly outlive its parent during child-first teardown.
-      // Do not reinterpret that durable child as a new implicit root Team. A host-
-      // resumed ordinary fork has no descriptor in its own suffix and remains a
-      // valid new root whose inherited Team records fold out by TeamId.
       if (this.subagentDescriptor(agent)) return undefined
       return { root: agent, id: TeamId(agent.id), role: 'lead', name: 'lead' }
     } catch {
-      // This method is used by lifecycle observers and teardown discovery. A
-      // malformed durable stream is surfaced by authoritative Team operations;
-      // the non-throwing probe must not veto unrelated Agent lifecycle edges.
       return undefined
     }
   }
@@ -287,10 +283,6 @@ export class TeamRoster {
       ...member,
       phase: 'active',
     }
-    // Once the continuation accepted its first prompt, it is a real child. If
-    // this checkpoint fails, keep the in-memory active edge instead of inventing
-    // an impossible active -> failed transition; restart reconciliation covers
-    // the provisioning-only durable prefix.
     const settledPhase = await this.settleProvisioning(root, active)
     if (settledPhase === 'failed') {
       const conflict = new TeamError(
@@ -324,8 +316,6 @@ export class TeamRoster {
       }
 
       const progress = Promise.withResolvers()
-      // Abort can win while the durability flush is still pending; mark the
-      // later-awaited rejection handled without changing its eventual result.
       void progress.promise.catch(() => undefined)
       const stopEvent = this.ctx.on('session/event', (candidate) => {
         if (candidate === session) progress.resolve()
@@ -360,8 +350,6 @@ export class TeamRoster {
     const provisioning = [...this.journal.state(root).members.values()].filter(member => member.phase === 'provisioning')
     for (const member of provisioning) {
       signal.throwIfAborted()
-      // A live child means creation is still completing in this process. Its
-      // creator owns the terminal member edge.
       if (this.ctx.agents.get(member.id) !== undefined) continue
       let phase = 'failed'
       let failure = 'provisioning did not leave a resumable child Session'

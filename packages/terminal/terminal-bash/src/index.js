@@ -42,8 +42,6 @@ function ensureSandboxModeFence(ctx, owner) {
 }
 
 function childEnvironment(spec, dialect) {
-  // The subprocess provider supplies its own scrubbed ambient base; these are
-  // deliberate terminal-specific overrides layered after it.
   const common = {
     TERM: 'dumb',
     PAGER: 'cat',
@@ -53,16 +51,11 @@ function childEnvironment(spec, dialect) {
     FREDDIE_PTY_SESSION_ID: spec.sessionId,
   }
   if (dialect === 'pwsh') {
-    // pwsh ignores PS1/PROMPT_COMMAND; its prompt is installed by the startup
-    // bootstrap instead, and NO_COLOR keeps the renderer quiet.
     return { ...common, NO_COLOR: '1' }
   }
   return {
     ...common,
     PS1: CONTROLLED_PROMPT,
-    // Re-asserting PS1 after the marker keeps prompt readiness working when a
-    // command overwrote the shell variable: bash runs PROMPT_COMMAND before
-    // rendering each prompt, so an override never survives to the next prompt.
     PROMPT_COMMAND: `printf "\\033]133;D;%s\\007" "$?"; PS1='${CONTROLLED_PROMPT}'`,
     BASH_SILENCE_DEPRECATION_WARNING: '1',
   }
@@ -84,29 +77,15 @@ function spawnArgv(ctx, config, policy) {
   if (sandbox === undefined) {
     throw new Error(`terminal-bash: sandbox mode "${policy.mode}" requires a ctx.sandbox provider in the execution world`)
   }
-  // Re-state the discriminant because object spread does not preserve its narrowed type.
   return sandbox.confine(argv, { ...policy, mode: policy.mode }).argv
 }
 
-// TODO(pty-initialize-race-home): Fold this outer abort race into
-// LocalPtySession.initialize when the send-state consolidation lands; the
-// session already owns the send lifecycle the race protects.
 async function startupSession(session, dialect, signal) {
   const start = async () => {
     if (dialect === 'bash') {
       await session.initialize(signal)
       return
     }
-    // pwsh cannot install its prompt from the environment: write the prompt
-    // function through the session and wait for the first marker prompt,
-    // which is also the readiness contract of the bash initialize path. The
-    // first send also pins UTF-8 output (the shared pwsh-local preamble)
-    // before anything runs: the session decode path treats PTY bytes as
-    // UTF-8, and an un-pinned console writes its host code page for
-    // non-ASCII output. The banner-to-prompt gap can outlast the silence
-    // bound, so the wait loops over follow-up sends until the controlled
-    // prompt is actually visible (in the viewport or the retained scrollback
-    // when it landed between sends), bounded by the send deadline.
     let viewport = ''
     for (;;) {
       const first = viewport.length === 0

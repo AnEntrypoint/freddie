@@ -39,8 +39,8 @@ export const SERVICE_API = [
   },
   {
     key: 'locale',
-    summary: 'Dictionary registry plus locale preference.',
-    description: 'Dictionary registry plus locale preference. Lookup chain per key: the entry\'s namespace in the active locale -> that namespace\'s en fallback -> the shared common namespace (active, then en) -> the key itself (missing text stays visible, fail loud in the UI rather than blank). Reads go through getLocale; writes only through setLocale; continuous sync through the `locale/change` event, or through the LocaleFace getSnapshot/subscribe pair the render machinery consumes (installed via `ctx.slots.installLocale`).',
+    summary: 'English dictionary registry.',
+    description: 'English dictionary registry. Lookup chain per key: the entry\'s namespace -> the shared common namespace -> the key itself (missing text stays visible, fail loud in the UI rather than blank). Reads go through getLocale; continuous sync through the LocaleFace getSnapshot/subscribe pair the render machinery consumes (installed via `ctx.slots.installLocale`).',
     methods: [
       {
         signature: 'getLocale(): LocaleSnapshot',
@@ -56,18 +56,13 @@ export const SERVICE_API = [
       },
       {
         signature: 'subscribe(fn: () => void): () => void',
-        description: 'LocaleFace subscribe: notified on every snapshot change (locale switch or dictionary registration — registrations bump the revision so already rendered outlets pick up late-arriving dictionaries).',
+        description: 'LocaleFace subscribe: notified on every snapshot change (dictionary registration bumps the revision so already rendered outlets pick up late-arriving dictionaries).',
         parameters: [{ name: 'fn', description: 'change callback.' }],
         returns: 'unsubscribe.',
       },
       {
-        signature: 'setLocale(id: string): void',
-        description: 'Switch the active locale — the only user preference write entry.\n\nThe durable write happens even when the id already matches the active locale, because the active value may be a provisional browser-derived or fallback resolution that nothing has stored yet. Picking the language already on screen is still an explicit choice, and it must survive a different browser sharing the same FREDDIE home. Only the render notification is conditional: republishing an unchanged locale would churn every subscriber for nothing.',
-        parameters: [{ name: 'id', description: 'a registered locale id; unknown ids throw.' }],
-      },
-      {
         signature: 'register<N extends keyof LocaleNamespaceMap & string>(ns: N, dicts: Record<LocaleId, LocaleDictOf<N>>): () => void',
-        description: 'Register a declared namespace\'s dictionaries, all locales in one call — the typed form: each dictionary is checked against the namespace\'s LocaleNamespaceMap key union (a missing or extra key is a compile error), and every shipped locale is required (bilingual balance enforced at registration). Duplicate (ns, locale) throws (single occupant; a namespace\'s texts have one owner). Registration bumps the revision so mounted outlets pick up late-arriving dictionaries.',
+        description: 'Register a declared namespace\'s dictionaries, all locales in one call — the typed form: each dictionary is checked against the namespace\'s LocaleNamespaceMap key union (a missing or extra key is a compile error), and every shipped locale is required. Duplicate (ns, locale) throws (single occupant; a namespace\'s texts have one owner). Registration bumps the revision so mounted outlets pick up late-arriving dictionaries.',
         parameters: [{ name: 'ns', description: 'a namespace merged into LocaleNamespaceMap.' }, { name: 'dicts', description: 'complete dictionaries keyed by locale id.' }],
         returns: 'disposer removing every locale registered by this call (idempotent).',
       },
@@ -312,14 +307,6 @@ export const EVENT_API = [
     parameters: [],
   },
   {
-    name: 'locale/change',
-    mode: 'emit',
-    signature: '\'locale/change\'(snapshot: LocaleSnapshot): void',
-    summary: 'The active locale switched.',
-    description: 'The active locale switched. Dictionary registrations do NOT emit this event (listeners may re-register slots in response, and boot registers one namespace per package); continuous render refresh rides the LocaleFace revision instead.',
-    parameters: [{ name: 'snapshot', description: 'Current immutable locale snapshot.' }],
-  },
-  {
     name: 'slots/changed',
     mode: 'emit',
     signature: '\'slots/changed\'(key: string): void',
@@ -533,7 +520,7 @@ export const TYPE_API = [
   },
   {
     name: 'LocaleId',
-    declaration: 'export type LocaleId = typeof LOCALE_IDS[number];',
+    declaration: 'export type LocaleId = \'en\';',
   },
   {
     name: 'LocaleKeysOf',

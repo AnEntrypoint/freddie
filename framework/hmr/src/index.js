@@ -246,8 +246,6 @@ class Hmr extends Service {
     const match = picomatch(ignored)
     const watchBaseDir = await realpath(this.baseDir)
 
-    // Collect externals before opening the watcher so every post-ready change
-    // is observed by listeners that already have their classification state.
     const mainUrl = pathToFileURL(resolve(process.argv[1])).href
     const mainJob = this.internal.loadCache.get(mainUrl)
     if (mainJob) {
@@ -260,13 +258,6 @@ class Hmr extends Service {
       ...this.config,
       cwd: watchBaseDir,
       ignored: path => match(relative(watchBaseDir, path)),
-      // The initial scan re-announces files the boot just consumed: an `add`
-      // for a config file refreshes an include whose initial apply may still
-      // be in flight, and a failing apply then rolls this plugin back while
-      // the scan-triggered refresh waits on that apply — a teardown deadlock
-      // that strands boot without a diagnostic. Only events after the scan
-      // matter here; `registerConfig` keeps its own initial scan because a
-      // user patch layer present at registration must apply once.
       ignoreInitial: true,
     })
 
@@ -278,7 +269,6 @@ class Hmr extends Service {
       this.ctx.logger.debug('%s detected at %C', kind, path)
       const filename = resolve(watchBaseDir, path)
       const configuredFilename = resolve(this.baseDir, path)
-      // Config reload: the file is a loader config file (e.g. cordis.yml).
       for (const entry of loader.entries()) {
         const include = entry.subtree
         if (include?.filename !== filename && include?.filename !== configuredFilename) continue
@@ -289,9 +279,6 @@ class Hmr extends Service {
       if (kind === 'add' && !loader.internal.loadCache.has(pathToFileURL(filename).href)) return
       const url = pathToFileURL(filename).href
 
-      // Partial reload, including the CLI entry's own dependency tree
-      // (`externals`). Externals stay eligible for cache-bust + plugin reload.
-      // The process does not exit. Divergence log entry 21.
       if (this.externals.has(url) || loader.internal.loadCache.has(url)) {
         this.stashed.add(url)
         this.recordJournal({
@@ -358,9 +345,7 @@ class Hmr extends Service {
     this.refreshTasks.add(task)
   }
 
-  // hide stack trace from HMR
   getOuterStack = () => [
-    // '    at HMR.partialReload (<anonymous>)',
   ]
 
   async getLinked(url) {
@@ -382,8 +367,6 @@ class Hmr extends Service {
     const queued = new Set()
 
     this.accepted = new Set(this.stashed)
-    // Externals reload in-process like any other accepted module; declined is
-    // only the residue of analyzeChanges.
     this.declined = new Set()
 
     const isExcluded = (url) => url.startsWith('node:') || url.includes('/node_modules/')
@@ -446,18 +429,8 @@ class Hmr extends Service {
   }
 
   async partialReload() {
-    // Ask before disposing anything. A reload deletes plugins from the
-    // registry, and cordis disposes their fibers — which aborts whatever the
-    // plugin had in flight. For the agent loop that is a live turn: its
-    // AbortController fires and every pending tool call comes back
-    // ABORTED_BEFORE_DISPATCH, so a source edit silently kills the agent
-    // mid-task. A listener returning a truthy reason defers the pass; the
-    // changed files stay in `stashed`, so nothing is lost and the same reload
-    // runs when the work reports quiescent.
     const busy = await this.ctx.serial('hmr/before-reload')
     if (busy) {
-      // Already waiting: the earlier subscription still covers these changes,
-      // which accumulated in `stashed` behind it.
       if (this.deferredReload !== null) return
       const reason = typeof busy === 'string' ? busy : 'work in flight'
       this.ctx.logger.info('reload deferred: %s', reason)
@@ -476,14 +449,11 @@ class Hmr extends Service {
     const pending = new Map()
     const reloads = new Map()
 
-    // Build a map of plugin names per config tree URL.
-    // Plugin entry files are treated as atomic reload units.
     const nameMap = Object.create(null)
     for (const entry of this.ctx.loader.entries()) {
       (nameMap[entry.parent.tree.ctx.baseUrl] ??= new Set()).add(entry.options.name)
     }
 
-    // Resolve each plugin name to its file URL and check if it needs reload
     for (const baseUrl in nameMap) {
       for (const name of nameMap[baseUrl]) {
         try {
@@ -500,7 +470,6 @@ class Hmr extends Service {
       }
     }
 
-    // Check each pending plugin's dependency tree for accepted files
     for (const [job, plugin] of pending) {
       this.declined.delete(job.url)
       const dependencies = [...await loadDependencies(job, this.declined)]
@@ -535,12 +504,10 @@ class Hmr extends Service {
     const cjsBackup = Object.create(null)
     const require = createRequire(import.meta.url)
     for (const filename of this.accepted) {
-      // Backup and clear ESM loadCache
       const job = Map.prototype.get.call(this.internal.loadCache, filename)
       esmBackup[filename] = job
       Map.prototype.delete.call(this.internal.loadCache, filename)
 
-      // Backup and clear CJS Module._cache
       try {
         const filepath = fileURLToPath(filename)
         if (require.cache[filepath]) {
@@ -548,7 +515,6 @@ class Hmr extends Service {
           delete require.cache[filepath]
         }
       } catch {
-        // filename might not be a file: URL (e.g. node: protocol), ignore
       }
     }
 
@@ -561,7 +527,6 @@ class Hmr extends Service {
       }
     }
 
-    // Attempt to re-import all plugin entry files
     const attempts = {}
     const plugins = [...reloads.values()].map(entry => entry.filename)
     try {
@@ -605,7 +570,6 @@ class Hmr extends Service {
         }
       }
     } catch (e) {
-      // Rollback: restore caches and re-register old plugins
       rollback()
       for (const [plugin, { filename, runtime }] of reloads) {
         if (!runtime) continue
@@ -650,10 +614,6 @@ class Hmr extends Service {
     }
   }
 
-  // No `.i18n({ 'en-US': enUS, 'zh-CN': zhCN })` and no `./locales/*.yml`
-  // imports: those need a runtime YAML import hook (@cordisjs/unyaml) this
-  // project does not carry, and the texts only localized config descriptions.
-  // Divergence log entry 1 in framework/README.md.
   static Config = z.object({
     base: z.string(),
     root: z.array(String).role('table').default(['.']),

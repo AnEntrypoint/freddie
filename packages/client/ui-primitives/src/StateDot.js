@@ -1,8 +1,3 @@
-// StateDot: session state indicator (figma nodes 14:3303/3305/3312, 122:9182).
-// done/warning/error: 10x10 halo (same color, 10% opacity) around a 6x6 solid
-// core. ongoing: a pixel-art chase — the 8 outer cells of a 3x3 matrix light
-// up clockwise with a stepped trail. Colors resolve through --dsw-* tokens only.
-
 import { createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import css from './StateDot.css.js'
@@ -11,6 +6,10 @@ import css from './StateDot.css.js'
 const MATRIX_CELLS = [
   [0, 0], [4, 0], [8, 0], [8, 4], [8, 8], [4, 8], [0, 8], [0, 4],
 ]
+
+const CHASE_STEP_MS = 125
+
+const startedMidChaseDelayMs = index => (index - MATRIX_CELLS.length) * CHASE_STEP_MS
 
 /**
  * Render a state dot.
@@ -39,8 +38,7 @@ export function StateDot({ state, size = 10, className }) {
           y: String(y),
           width: '2',
           height: '2',
-          /* Negative delay phases the chase so every cell animates from mount. */
-          style: `animation-delay: ${(index - MATRIX_CELLS.length) * 125}ms`,
+          style: `animation-delay: ${startedMidChaseDelayMs(index)}ms`,
         })
       )),
     )

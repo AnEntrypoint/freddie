@@ -10,7 +10,7 @@ Freddie is still at an early stage and under active development. We are sorry th
   - Upvote discussions that you would like to bring to the team's attention. We are a very small team and may not be able to reply to every post, but we monitor them and consider them when allocating resources.
 - Contribute to the ecosystem:
   - Create a plugin that excites you and share it with others:
-    - Associate your GitHub project with the `dsh-plugin` topic to help others discover your plugin.
+    - Associate your GitHub project with the `freddie-plugin` topic to help others discover your plugin.
   - Write blog posts and how-to guides about Freddie.
   - Answer questions and help other members of the community.
 

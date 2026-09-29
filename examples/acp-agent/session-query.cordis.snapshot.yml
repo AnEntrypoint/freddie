@@ -1,5 +1,3 @@
-# Keyless counterpart to session-query.cordis.yml: the nested snapshot overlay
-# supplies replay plus deterministic private spill storage and its byte limit.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

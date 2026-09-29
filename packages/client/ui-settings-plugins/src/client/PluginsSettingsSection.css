@@ -1,5 +1,3 @@
-/* Plugins section: compact tabs plus the configurable plugin card list. */
-
 .freddie-pluginsSettingsSection__section {
   display: flex;
   flex-direction: column;

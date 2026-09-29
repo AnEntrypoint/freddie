@@ -137,10 +137,6 @@ export class SessionTitleService extends Service {
       this.work.clear()
     }, 'sessionTitle lifecycle')
 
-    // The title projection unit: pure last-wins fold of session/title events
-    // (the same events foldSessionTitle consumes), serving the plain title
-    // string clients list rows read. The unit child activates only when a
-    // projection registry is composed (headless assemblies stay unaffected).
     ctx.inject(['sessionProjections'], (projectionCtx) => {
       projectionCtx.sessionProjections.register({
         key: 'title',
@@ -234,9 +230,6 @@ export class SessionTitleService extends Service {
     const messages = collectSessionTitleMessages(session.events)
     const latest = messages.at(-1)
     if (registration === undefined || registration.closing || latest === undefined) {
-      // Explicit refresh is the unpin even without a provider: a standing
-      // user title must not short-circuit ensureFallback into a no-op, so
-      // re-derive and append the fallback over it when one is derivable.
       const current = this.get(session)
       const [first] = messages
       if (current?.source.kind === 'user' && first !== undefined) {
@@ -297,7 +290,6 @@ export class SessionTitleService extends Service {
   onUserMessage(session, event) {
     if (!this.serviceActive()) return
     if (event.data.source.kind !== 'user' || collectSessionTitleMessages([event]).length === 0) return
-    // A user rename pins the title: no automatic revision may override it.
     if (this.get(session)?.source.kind === 'user') return
     const registration = this.registration
     if (registration !== undefined && !registration.closing) {

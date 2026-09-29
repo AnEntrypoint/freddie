@@ -19,10 +19,10 @@ function liveImpls(ctx) {
 }
 
 /**
- * A summary as prose. JSDoc may name a symbol with an inline `{@link Foo.bar}`
- * tag, which the generated catalog retains verbatim; a report is read, not
- * compiled, so the link syntax is spent context and the bare symbol says the same
- * thing.
+ * A summary as prose. JSDoc may name a symbol with an inline link tag (for
+ * example, linking `Foo.bar`), which the generated catalog retains verbatim;
+ * a report is read, not compiled, so the link syntax is spent context and the
+ * bare symbol says the same thing.
  */
 function plainSummary(summary) {
   return summary.replace(/\{@link\s+([^}]+)\}/g, '$1')

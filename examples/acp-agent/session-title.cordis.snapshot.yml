@@ -1,6 +1,3 @@
-# Keyless session-title composition. Main-agent chunks derive from session.jsonl;
-# the auxiliary route consumes replay.override.json with pacing so its accepted
-# title commits only after the main turn has closed.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:
@@ -45,7 +42,6 @@
             name: '@freddie/freddie-session-title-first-prompt-llm'
             config:
               targetWords: 5
-              targetCjkCharacters: 10
               maxInputBytes: 4096
               maxOutputTokens: 32
               timeoutMs: 5000

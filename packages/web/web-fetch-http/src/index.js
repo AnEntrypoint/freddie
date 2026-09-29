@@ -18,7 +18,7 @@ export {
 } from './provider.js'
 
 /** Default `User-Agent`: an explicit product agent, never a browser disguise. */
-export const DEFAULT_USER_AGENT = 'freddie/0.0.1 (+https://github.com/deepseek-ai)'
+export const DEFAULT_USER_AGENT = 'freddie/0.0.1 (+https://github.com/lanmower/freddie)'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-fetch-http'
@@ -59,7 +59,6 @@ function assertNonNegativeInteger(name, value) {
 
 /** Register the local HTTP(S) fetch provider with `ctx.web`. */
 export function apply(ctx, config) {
-  // schemastery (Config) has already filled every defaulted field.
   const resolved = config
   assertPositiveFinite('maxUrlLength', resolved.maxUrlLength)
   assertPositiveFinite('maxResponseBytes', resolved.maxResponseBytes)

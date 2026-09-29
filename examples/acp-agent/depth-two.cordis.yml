@@ -1,5 +1,3 @@
-# Depth-limit snapshot overlay: keep the default composition and allow two
-# generations of spawn children before runtime enforcement rejects another.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

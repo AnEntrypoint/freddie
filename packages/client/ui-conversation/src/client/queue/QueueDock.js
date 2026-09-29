@@ -1,14 +1,3 @@
-// Queue dock entry: renders the authoritative transient inbox snapshot and
-// addresses per-row mutations through the session-scoped conversation face.
-//
-// The 'conversation.input.dock' SlotMap declaration lives in
-// ../contract/slots.ts beside the other input-region slots.
-//
-// Converted from a React hooks component to a webjsx custom element:
-// editing/busy/collapsed become instance fields, the auto-collapse effect
-// becomes an explicit sync call inside setProps, and re-render is an
-// explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconCheckOutline16, IconChevronDownOutline14, IconChevronUpOutline14, IconCloseOutline16,
@@ -129,7 +118,6 @@ export class FreddieQueueDock extends HTMLElement {
           listVisible && queue.map(row => h(
             'li',
             { key: row.id, class: css.row ?? '' },
-            // Single-item strip has no count header, so the row itself carries the queue glyph.
             queue.length === 1 && h('span', { class: css.lead ?? '', 'aria-hidden': true }, h(IconQueueOutline14, null)),
             editing?.id === row.id
               ? h('input', {
@@ -201,8 +189,6 @@ export class FreddieQueueDock extends HTMLElement {
                         type: 'button',
                         class: css.action ?? '',
                         'aria-label': t('queue.edit'),
-                        // Disabled buttons fire no hover events, so the
-                        // unsupported hint stays a native title.
                         title: row.text === null ? t('queue.edit.unsupported') : null,
                         disabled: busy !== null || row.text === null,
                         onclick: () => {

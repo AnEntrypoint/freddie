@@ -1,0 +1,7 @@
+# AGENTS.md — server
+
+## Rationale
+
+- `src/index.js`: only the `agents` factory is injected; `initialize` reads the optional LLM seam with `ctx.get()`. `initialize` is the readiness boundary: this plugin can activate before async sibling Loader entries (e.g. an MCP client's initial tool discovery), so it awaits `ctx.get('loader')?.await()` first (a hand-built context without Loader is immediately usable). `shutdown` runs after the handler result is written (`setImmediate`) through one shared exit task, so racing requests dispose the root fiber and exit exactly once; the protocol owns the whole process, so it awaits the root lifecycle (including persistence) before exiting.
+- `src/server.js`: only in-process child sessions are reported; the service snapshots the provider name and local flag through child disposal (matching ids or parent lineage alone never establishes locality). An agent-loop-only reload disposes the loop's agents while the session record survives, and a retained agent accepts `followup()` silently, so the record is validated against the live registry before delivery (as the ACP bridge does).
+- `src/server.js` agents are created with no preset composition: this server keeps model-facing rows in the host plane, so the agent reads them from the global layer; a deployment configuring a roster must join one first (`@freddie/freddie-agent-presets` README, "Composing a child agent").

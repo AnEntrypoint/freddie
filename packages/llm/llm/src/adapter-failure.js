@@ -16,8 +16,6 @@ export function normalizeLlmFailure(value) {
   const error = value instanceof Error
     ? value
     : new HarnessError(thrownMessage(value), 'UNKNOWN', { cause: value })
-  // Cross-package copies preserve own data but not class identity. Trust the
-  // carried facts only when both own properties agree after validation.
   const carried = ownFailureSnapshot(error)
   if (carried !== undefined && carried.code === ownErrorCode(error)) return carried
   return Object.freeze({
@@ -92,7 +90,6 @@ function errorMessage(error) {
     const message = error.message
     if (typeof message === 'string' && message.length > 0) return message
   } catch (_sdkMessageGetter) {
-    // The fallback below preserves a serializable failure beside the original Error.
   }
   return 'LLM adapter failed'
 }

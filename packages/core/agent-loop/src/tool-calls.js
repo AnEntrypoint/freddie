@@ -24,7 +24,14 @@ import { TOOL_ABORTED_BEFORE_DISPATCH, TOOL_RUNTIME_SCHEDULER } from '@freddie/f
  * already-started dispatches, and rejects with the first failure without
  * fabricating tool results.
  * The committed step's AgentLoop driver boundary supplies the initiating Agent
- * that becomes each explicit {@link ToolExecutionInput.agent}.
+ * that becomes each explicit {@link ToolExecutionInput#agent}.
+ *
+ * @typedef {object} ToolExecutionInput
+ * @property {import('@freddie/freddie-llm').CallId} callId - the model-assigned tool-call id.
+ * @property {string} name - the tool name the model called.
+ * @property {*} arguments - parsed JSON arguments (raw text preserved when parsing fails).
+ * @property {import('@freddie/freddie-agent').Agent} agent - the initiating Agent, supplied by the driver boundary.
+ * @property {AbortSignal} signal - abort signal shared by the whole step.
  *
  * @param ctx - loop context that owns the tool registry and carries the initiating Agent.
  * @param turn - current turn number.
@@ -44,7 +51,6 @@ export async function executeToolCalls(
   const agent = ctx.agents.requireInitiator()
   const { session } = agent
 
-  // Inputs are distinct because tools/execute wrappers may replace `exec.signal`.
   const planned = toolCalls.map(block => ({
     block,
     exec: {
@@ -59,7 +65,6 @@ export async function executeToolCalls(
   let next = 0
   let concluded = false
   while (next < planned.length) {
-    // Commit before classifying again so registry changes affect unstarted calls.
     // oxlint-disable-next-line typescript/no-non-null-assertion -- bounded by the loop condition
     const first = planned[next]
     const mode = ctx.tools.executionMode(first.exec).kind
@@ -107,7 +112,6 @@ async function runGroup(
   const { session } = ctx.agents.requireInitiator()
   const { maxParallelToolCalls } = ctx.agentLoop.config
   const slots = group.map(() => undefined)
-  // Started slots retain their `tool/call` seq so the result can cite it.
   const callSeqs = group.map(() => -1)
   let nextToStart = 0
   let committed = 0
@@ -119,7 +123,6 @@ async function runGroup(
     if (schedulerFailure !== undefined) throw schedulerFailure.error
   }
 
-  // `committed` advances only across contiguous model-order slots.
   const commitReady = async () => {
     while (committed < group.length) {
       const slot = slots[committed]
@@ -174,7 +177,6 @@ async function runGroup(
 
   const fillPool = async () => {
     while (!aborted && nextToStart < group.length && inFlight.size < maxParallelToolCalls) {
-      // Re-read later modes after ordered commits so registry changes can create a barrier.
       // oxlint-disable-next-line typescript/no-non-null-assertion -- bounded by the loop condition
       const nextCall = group[nextToStart]
       if (nextToStart > 0 && mode === 'parallel'
@@ -184,14 +186,10 @@ async function runGroup(
       throwSchedulerFailure()
       await commitReady()
       throwSchedulerFailure()
-      // Abort may arrive while pre-execute awaits.
       if (signal.aborted) aborted = true
     }
   }
 
-  // Ordered pre-execute may await; only dispatch/body overlaps. A scheduler
-  // failure stops new dispatches and reaches the turn boundary after every
-  // already-started dispatch settles.
   try {
     await fillPool()
     while (inFlight.size > 0) {
@@ -200,8 +198,6 @@ async function runGroup(
       throwSchedulerFailure()
       await commitReady()
       throwSchedulerFailure()
-      // Abort may arrive while a tool or ordered commit awaits.
-
       if (signal.aborted) aborted = true
       await fillPool()
     }
@@ -212,8 +208,6 @@ async function runGroup(
   }
 
   if (aborted) {
-    // Started calls and accepted context settle first; every remaining model
-    // call then receives an ordered synthetic result before the turn aborts.
     for (const call of group.slice(started)) appendSkippedToolCall(session, turn, step, call.block)
     return { consumed: group.length, aborted: true, concluded }
   }
@@ -259,8 +253,6 @@ function appendToolResult(
     turn, step,
     message,
     ...result.error?.info ? { error: result.error.info } : {},
-    // The tool's private presentation payload (e.g. a result-time diff),
-    // persisted so a UI bridge reproduces the card on replay.
     ...result.meta !== undefined ? { meta: result.meta } : {},
   }, { surfaceOp: 'append', sourceEventSeqs: [callSeq] })
 }

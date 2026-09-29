@@ -2,10 +2,6 @@
 
 import { Service } from '@freddie/cordis'
 
-/*
- * The browser Service preserves the vendored Host TimerService's erased callback tuples and arbitrary
- * async-iterator return and rejection values, so narrowing these positions would change the public API.
- */
 
 /** Browser timer Service with the same public API as the Host Cordis TimerService. */
 export class ClientTimerService extends Service {

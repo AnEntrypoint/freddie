@@ -27,6 +27,66 @@
  */
 
 /**
+ * One matched line within a file's group.
+ * @typedef {object} SearchLineMatch
+ * @property {number} lineNumber
+ * @property {string} line
+ */
+
+/**
+ * One file's retained matches.
+ * @typedef {object} SearchFileMatches
+ * @property {string} path
+ * @property {SearchLineMatch[]} matches
+ */
+
+/**
+ * `grep`-shaped search-card metadata: matches grouped by file.
+ * @typedef {object} SearchMatchesResultView
+ * @property {'search'} card
+ * @property {'matches'} shape
+ * @property {SearchFileMatches[]} files
+ * @property {boolean} truncated
+ * @property {number} total
+ */
+
+/**
+ * `glob`-shaped search-card metadata: a flat path list.
+ * @typedef {object} SearchPathsResultView
+ * @property {'search'} card
+ * @property {'paths'} shape
+ * @property {string[]} paths
+ * @property {boolean} truncated
+ * @property {number} total
+ */
+
+/** @typedef {SearchMatchesResultView | SearchPathsResultView} SearchResultView */
+
+/**
+ * The `grep` variant of {@link SearchMeta}, as returned by {@link grepSearchMeta}.
+ * @typedef {object} SearchMatchesMeta
+ * @property {'matches'} shape
+ * @property {SearchFileMatches[]} files
+ * @property {boolean} truncated
+ * @property {number} total
+ */
+
+/**
+ * The `glob` variant of {@link SearchMeta}, as returned by {@link globSearchMeta}.
+ * @typedef {object} SearchPathsMeta
+ * @property {'paths'} shape
+ * @property {string[]} paths
+ * @property {boolean} truncated
+ * @property {number} total
+ */
+
+/**
+ * The `presentationMeta` a search tool projects: the same shape as its
+ * {@link SearchResultView}, minus the `card` discriminant.
+ * @typedef {SearchMatchesMeta | SearchPathsMeta} SearchMeta
+ */
+
+/**
  * Group flat matches by file (first-seen order) into the structured by-file shape
  * a UI renders as expandable per-file groups. The grouping matches the
  * model-facing text grouping
@@ -77,7 +137,8 @@ function capMetaBytes(meta, maxMetaBytes) {
 
 /**
  * Project the retained `grep` matches into {@link SearchMeta} for the search
- * card. Consumes the same {@link RetainedItems} the model-facing render consumes
+ * card. Consumes the same {@link import('@freddie/freddie-output-retention').RetainedItems}
+ * the model-facing render consumes
  * (preview budget and inline match cap already applied), groups the retained
  * matches by file, reports `total` (every parsed match) and `truncated`, then
  * bounds the serialized meta to `maxMetaBytes`.
@@ -98,7 +159,8 @@ export function grepSearchMeta(retained, maxMetaBytes) {
 
 /**
  * Project the retained `glob` paths into {@link SearchMeta} for the search card.
- * Consumes the same {@link RetainedItems} the model-facing render consumes (inline
+ * Consumes the same {@link import('@freddie/freddie-output-retention').RetainedItems}
+ * the model-facing render consumes (inline
  * path cap already applied), reports `total` (every discovered path) and
  * `truncated`, then bounds the serialized meta to `maxMetaBytes`.
  *

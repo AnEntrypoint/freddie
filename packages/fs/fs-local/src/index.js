@@ -34,10 +34,11 @@ const MAX_DIFF_BASIS_BYTES = Math.min(
 )
 
 /**
- * The host-filesystem backend. Reads resolve relative paths from {@link Config.cwd}
- * (a resolution default, NOT a containment boundary — see the filesystem
- * capability-seam Agent Note); enforce
- * containment with a stricter backend or a `tools/execute` permission plugin.
+ * The host-filesystem backend. Reads resolve relative paths from
+ * {@link LocalFileSystem.Config}'s `cwd` field (a resolution default, NOT a
+ * containment boundary — see the filesystem capability-seam Agent Note);
+ * enforce containment with a stricter backend or a `tools/execute` permission
+ * plugin.
  */
 export class LocalFileSystem extends FileSystem {
   static Config = z.object({
@@ -69,7 +70,6 @@ export class LocalFileSystem extends FileSystem {
   async withLock(targetKey, op) {
     const prior = this.locks.get(targetKey) ?? Promise.resolve()
     const run = prior.then(op, op)
-    // Keep the chain alive but swallow this op's result/throw for the *next* waiter.
     const tail = run.then(() => undefined, () => undefined)
     this.locks.set(targetKey, tail)
     try {
@@ -149,22 +149,14 @@ export class LocalFileSystem extends FileSystem {
       }
 
       if (expected?.kind === 'replaceIfVersion') {
-        // Stale guard: the file must still exist at the version the owner observed.
         if (!existing) throw new FsError(`cannot write "${target.displayPath}": file no longer exists`, 'FS_STALE_VERSION')
         if (existing.version !== expected.version) {
           throw new FsError(`cannot write "${target.displayPath}": file changed since it was read`, 'FS_STALE_VERSION')
         }
       } else if (expected?.kind === 'createIfAbsent' && existing) {
-        // createIfAbsent onto an existing file: a blind overwrite — require a read first.
         throw new FsError(`cannot overwrite existing "${target.displayPath}" without reading it first`, 'FS_NOT_OBSERVED')
       }
-      // No expectation means an unconditional but still atomic write.
 
-      // Capture an optional contextual-diff basis before the write. The bounded
-      // reader checks the opened file itself, so an external replacement after
-      // `probe()` cannot turn this best-effort presentation read into an
-      // unbounded allocation. Either side at/above the configured limit yields
-      // `before: null`; consumers retain their whole-file fallback.
       const diffable = existing !== null
         && Buffer.byteLength(content, 'utf8') < this.config.diffBasisMaxBytes
       const before = diffable
@@ -183,9 +175,6 @@ export class LocalFileSystem extends FileSystem {
         operation: existing ? 'update' : 'create',
         version: this.versionAfterWrite(after, target),
         before,
-        // LF-normalized to share the diff basis with `before` (also LF): a CRLF
-        // overwrite must not read as every line changed. Line-ending restoration
-        // is a storage detail the applied-hunk diff ignores.
         after: normalizeLineEndings(content),
       }
     })
@@ -194,14 +183,8 @@ export class LocalFileSystem extends FileSystem {
   async editText(target, edit, expected, signal) {
     return this.withLock(target.targetKey, async () => {
       const existing = await probe(target.targetKey)
-      // Stale guard before literal matching: an edit based on an old read reports
-      // FS_STALE_VERSION, not FS_EDIT_NOT_FOUND/FS_AMBIGUOUS_EDIT against newer content.
-      // Missing targets use the same stale code on guarded and unconditional edit paths.
       if (!existing) throw new FsError(`cannot edit "${target.displayPath}": file changed since it was read`, 'FS_STALE_VERSION')
       if (existing.type !== 'file') throw new FsError(`cannot edit "${target.displayPath}": not a regular file`, 'FS_NOT_REGULAR_FILE')
-      // expected === undefined: unconditional edit of the current content — no
-      // version guard. Still inside the per-target lock, so the read→match→write
-      // window is serialized and atomic.
       if (expected && existing.version !== expected.version) {
         throw new FsError(`cannot edit "${target.displayPath}": file changed since it was read`, 'FS_STALE_VERSION')
       }
@@ -214,8 +197,6 @@ export class LocalFileSystem extends FileSystem {
       const after = await probe(target.targetKey)
       return {
         version: this.versionAfterWrite(after, target),
-        // The LF-normalized before/after text (the applied-hunk diff basis);
-        // line-ending restoration is a storage detail the diff ignores.
         before: original.content,
         after: edited.content,
       }

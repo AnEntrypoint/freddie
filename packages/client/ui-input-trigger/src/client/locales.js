@@ -4,16 +4,7 @@
  * raw name), the pending row, and the listbox aria label.
  */
 
-/** Simplified Chinese dictionary (the key-set source of truth). */
-export const zh = {
-  'command': '命令',
-  'skill': '技能',
-  'subagent': '子智能体',
-  'loading': '正在加载…',
-  'suggestions.aria': '触发候选建议',
-}
-
-/** English dictionary, checked complete against the zh key set. */
+/** English dictionary. */
 export const en = {
   'command': 'Commands',
   'skill': 'Skills',

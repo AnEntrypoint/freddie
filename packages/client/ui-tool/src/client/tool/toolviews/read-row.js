@@ -1,12 +1,3 @@
-// Read toolview registrant: the keyed toolview hole for the read tool. The row
-// composes the shared ToolRow (chrome, running sweep, whole-row expand) and
-// feeds it the file's line-numbered, syntax-highlighted content as ToolRow's
-// `read` card material, so it renders through ReadBlock in the collapsed-by-
-// default expanded body — the same unified interaction every other card row
-// has. The summary path is an openable host link. A running read (no result
-// yet) and a non-read result render the summary row alone: the read intent is
-// result-side only, so there is no running-state read card to draw.
-
 import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconBrowseOutline16 } from '@freddie/freddie-client-ui-primitives'
 import { readCardModel } from '../models/read-card-model.js'

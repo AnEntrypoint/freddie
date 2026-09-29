@@ -1,5 +1,3 @@
-# Snapshot-only durability-failure overlay. The child turn's ordinary flush
-# succeeds; the provider-owned final confirmation fails deterministically.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

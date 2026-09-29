@@ -177,9 +177,6 @@ export class CodexAppServerWire {
     this.model = model
     this.transport = new JsonRpcLineTransport(input, output)
     this.fatal = Promise.withResolvers()
-    // Fatal protocol state can arrive after the current guarded operation has
-    // already settled. Keep the shared rejection observed without inserting
-    // another promise-adoption hop into active races.
     void this.fatal.promise.catch(() => {})
     this.transport.onRequest((method, params) => this.handleServerRequest(method, params))
     this.transport.onNotification((method, params) => {
@@ -197,9 +194,6 @@ export class CodexAppServerWire {
     }
     this.input.on('error', this.onInputError)
     this.input.on('end', this.onInputEnd)
-    // Pipe errors can race protocol closure and process teardown. Retain both
-    // error listeners for the lifetime of their per-run streams so no late
-    // EPIPE or read failure becomes an unhandled EventEmitter error.
     output.on('error', this.onOutputError)
   }
 

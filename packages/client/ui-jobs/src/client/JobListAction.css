@@ -111,8 +111,6 @@
   line-height: 18px;
 }
 
-/* A failed job's detail is the producer's raw error text, so it has no bound;
-   without this it widens the row past the menu instead of eliding like .label. */
 .freddie-jobListAction__status {
   max-width: 40%;
   overflow: hidden;

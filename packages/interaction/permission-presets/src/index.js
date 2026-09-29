@@ -73,7 +73,6 @@ function foldKnobs(events) {
  * reported as {@link CUSTOM_PRESET}, not an error.
  */
 export class PermissionPresetService extends Service {
-  // Inline schema call: the config catalog walks `static Config` statically.
   static Config = z.object({
     presets: z.dict(z.object({
       sandbox: z.union(SANDBOX_MODES).required(),
@@ -100,7 +99,6 @@ export class PermissionPresetService extends Service {
 
   constructor(ctx, config) {
     super(ctx, 'permissionPresets')
-    // The schema defaulted the table — the cast records that runtime fact.
     this.presets = config.presets
     if (CUSTOM_PRESET in this.presets) {
       throw new Error(`permission: "${CUSTOM_PRESET}" is reserved for the derived not-a-preset state and cannot name a table entry`)
@@ -128,8 +126,6 @@ export class PermissionPresetService extends Service {
       setSource: (current) => {
         this.defaultSettings = current
       },
-      // The source thunk reads the latest scope snapshot at session creation;
-      // no process-level registration needs replacement on change.
       onChange: () => {},
     })
 
@@ -140,10 +136,6 @@ export class PermissionPresetService extends Service {
       this.pinInitialPermission(session)
     }
 
-    // The permissions projection unit: fold the three whole-value knob
-    // events; view derives the select over the composition defaults this
-    // service already owns. The unit child activates only when a projection
-    // registry is composed (headless assemblies stay unaffected).
     ctx.inject(['sessionProjections'], (projectionCtx) => {
       projectionCtx.sessionProjections.register({
         key: 'permissions',
@@ -154,17 +146,11 @@ export class PermissionPresetService extends Service {
       })
     })
 
-    // The /permission command: the one write path a web client uses (the
-    // popup contribution submits the picked preset as this line). The child
-    // activates only when a command registry is composed.
     ctx.inject(['commands'], (commandCtx) => {
       commandCtx.commands.register({
         name: 'permission',
         description: 'Switch the permission preset (sandbox mode + approval policy)',
         input: { hint: '<preset>' },
-        // No settlement text labels its value with this command's own name: a
-        // surface that renders `name · text` (the web command row) would
-        // otherwise read `permission · Permission preset: workspace-write.`
         handler: ({ agent, rawInput }) => {
           const name = rawInput.trim()
           if (name === '') {

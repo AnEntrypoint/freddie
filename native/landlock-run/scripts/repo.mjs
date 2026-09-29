@@ -65,9 +65,6 @@ export function verifyPlatformBinaries(packageDir) {
     try {
       fs.accessSync(file, fs.constants.X_OK);
     } catch {
-      // Only reachable when the mode was mangled somewhere between build and
-      // here (e.g. an archive step that normalized permissions) — the build
-      // itself always produces 755.
       throw new Error(`${manifest.name}: ${binary.path} is not executable — a pack/extract step stripped the mode bit.`);
     }
     const machine = fs.readFileSync(file).readUInt16LE(18);

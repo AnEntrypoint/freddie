@@ -54,27 +54,20 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
       try {
         handle.terminateForHostExit()
       } catch (_ordinaryTreeTerminationFailed) {
-        // Host exit cannot await or report one target; continue with the rest.
       }
     }
     for (const terminal of this.terminals) {
       try {
         terminal.terminateForHostExit()
       } catch (_terminalTerminationFailed) {
-        // One terminal must not prevent final termination of another target.
       }
     }
   }
 
   async disposeManagedProcesses() {
-    // Terminate (escalating), then await WHOLE-TREE exit — not just the
-    // direct child's settlement — so even a TERM-trapping descendant cannot
-    // outlive the fiber. Keep both sets authoritative while these waits are
-    // pending so a shorter process-level exit bound can still force-kill them.
     const pending = []
     for (const handle of this.live) {
       handle.terminate()
-      // Spawn-failure rejections already settled and left the live set.
       pending.push(handle.done.catch(() => {}).then(() => handle.waitForExit()))
     }
     for (const terminal of this.terminals) {
@@ -111,7 +104,6 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
         signal?.throwIfAborted()
         return candidate
       } catch {
-        // Try the next PATH candidate; the final miss receives one stable error.
       }
     }
     signal?.throwIfAborted()
@@ -132,17 +124,12 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
   spawn(spec) {
     const handle = spawnSubprocess(spec, this.internals)
     this.live.add(handle)
-    // Release ownership only once the whole TREE is gone, not at direct-child
-    // settlement — a TERM-trapping helper that outlives the leader must stay
-    // owned so teardown can still escalate it. For the common no-survivor
-    // case waitForExit resolves immediately after settlement.
     const release = () =>
       handle.waitForExit().then(() => { this.live.delete(handle) })
     handle.done.then(release, release)
     return handle
   }
 
-  // Local PTY allocation is synchronous, but the provider contract permits remote asynchronous allocation.
   // oxlint-disable-next-line typescript/require-await -- Preserve promise rejection semantics at the async provider contract.
   async spawnTerminal(spec) {
     const file = spec.argv[0]

@@ -8,6 +8,18 @@
  * consumer `declare module` augmentation merges with declarations lexically in
  * the augmented module, not with re-exports.
  */
+
+/**
+ * @typedef {object} SlotSpec
+ * @property {'single'|'keyed'|'list'|'chain'} kind - shadowing/dispatch discipline for this slot.
+ * @property {string} scope - store-mount scope tag; a shared store handle may only mount under one scope.
+ */
+
+/**
+ * Registry of every declared slot name to its spec, growing as each parent
+ * entry's `children` table declares more child slots at registration time.
+ * @typedef {Object<string, SlotSpec>} SlotMap
+ */
 export * from './store.js'
 export * from './renderer.js'
 
@@ -84,8 +96,6 @@ export class SlotCore {
   mutateListeners = new Set()
   /** Shared-handle scope ledger: handle → the scope it first mounted under + live mount count. */
   handleScopes = new Map()
-  // Dirty records, not keys: records are never removed, so holding the
-  // reference skips a lookup (and an unreachable missing-record branch) at flush.
   dirty = new Set()
   flushScheduled = false
   /**
@@ -99,7 +109,6 @@ export class SlotCore {
   entryErrorListeners = new Set()
 
   constructor() {
-    // The a-priori root hole. No markDirty: nothing can observe construction.
     const root = this.record('root')
     root.spec = { kind: 'single', scope: 'root' }
     root.declaredBy = '(built-in)'
@@ -116,7 +125,8 @@ export class SlotCore {
    * names the first declarer); mounting one shared store handle under slots
    * of different scopes throws. Kind constraints: keyed — missing `key`
    * throws; list — missing `id` throws; chain — missing `select` throws (the
-   * selector is the entry's routing seat, see {@link ChainSelect}).
+   * selector is the entry's routing seat: a pure function of the owner props
+   * whose first non-null return elects that entry).
    *
    * Shadowing (single/keyed/list): entries sharing one cell (single — the
    * slot itself; keyed — same `key`; list — same `id`) coexist at distinct
@@ -134,7 +144,8 @@ export class SlotCore {
    * declaration table, `store` seat, `inject` business-face factory, kind
    * shape fields (keyed `key`; list `id`/`order`/`label`).
    * @param component - component honoring the four-share composed props
-   * contract ({@link ComposedProps}); checked at this call site.
+   * contract (owner props, render-slots face, store face, and inject face);
+   * checked at this call site.
    * @returns disposer removing the registration and its declarations
    * (idempotent; stale disposers after a cascade are no-ops).
    */
@@ -148,9 +159,6 @@ export class SlotCore {
       throw new Error(`slot "${options.name}" is not declared (a parent entry's children table must declare it)`)
     }
     const spec = rec.spec
-    // Kind constraints stay runtime checks for dynamically-composed callers;
-    // typed callers already satisfied KindOptions statically. Cell occupancy
-    // clashes only at the exact priority: a different priority shadows.
     const priority = options.priority ?? 0
     const occupantHint = occupant =>
       `at priority ${priority}${occupant.registrant !== undefined ? ` (registered by ${occupant.registrant})` : ''} — register at a different priority to shadow it (lowest renders)`
@@ -188,8 +196,6 @@ export class SlotCore {
         }
       }
     }
-    // Shared handles pin their scope on first mount; factories are exempt
-    // (the framework creates per-entry instances, no shared identity exists).
     if (options.store !== undefined && typeof options.store !== 'function') {
       const pinned = this.handleScopes.get(options.store)
       if (pinned && pinned.scope !== spec.scope) {
@@ -217,10 +223,6 @@ export class SlotCore {
       ...(options.registrant !== undefined ? { registrant: options.registrant } : {}),
     }
     const next = [...rec.entries, entry]
-    // Stable sorts: priority ascending for every kind, ties keep registration
-    // sequence — a cell's winner is its first occurrence, chain tries lower
-    // priority first. List refines equal priorities by explicit `order` so the
-    // raw ledger keeps its display sequence for priority-less compositions.
     next.sort(spec.kind === 'list'
       ? (a, b) => ((a.options.priority ?? 0) - (b.options.priority ?? 0)) || ((a.options.order ?? 0) - (b.options.order ?? 0))
       : (a, b) => (a.options.priority ?? 0) - (b.options.priority ?? 0))
@@ -236,8 +238,6 @@ export class SlotCore {
         childRec.declarationEpoch += 1
         declarations.push([childKey, childRec])
       }
-      // Synchronous listeners may register into or try to redeclare a sibling;
-      // publish only after the whole children table owns its declarations.
       for (const [childKey, childRec] of declarations) {
         this.markDirty(childKey, childRec)
       }
@@ -300,7 +300,6 @@ export class SlotCore {
     const seenCells = new Set()
     for (const entry of rec.entries) {
       if (this.abdicated.has(entry)) continue
-      // Single-kind entries all share the one undefined cell.
       const cell = kind === 'keyed' ? entry.options.key : kind === 'list' ? entry.options.id : undefined
       if (seenCells.has(cell)) continue
       seenCells.add(cell)
@@ -539,7 +538,6 @@ export class SlotCore {
   }
 
   flush() {
-    // Reset before iterating so a mutation from inside a listener re-schedules.
     this.flushScheduled = false
     const dirty = [...this.dirty]
     this.dirty.clear()

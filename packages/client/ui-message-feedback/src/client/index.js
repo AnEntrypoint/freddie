@@ -10,7 +10,7 @@
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { MessageFeedbackController } from './controller.js'
 export { MessageFeedbackActions } from './MessageFeedbackActions.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 
 /** Dictionary namespace owned by this plugin. */
 const NS = 'feedback'
@@ -24,7 +24,7 @@ export const inject = ['slots', 'remote', 'remote.messageFeedback', 'locale']
  * @param ctx - client root context.
  */
 export function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-message-feedback: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-message-feedback: dictionaries')
 
   const controllers = new Map()
   const controllerFor = (sessionId) => {
@@ -36,8 +36,6 @@ export function apply(ctx) {
     return controller
   }
 
-  // A reconnect can only invalidate what was already read; a cold Session
-  // stays cold until something asks for it.
   ctx.on('connection/reset', () => {
     for (const controller of controllers.values()) {
       if (controller.getSnapshot().status !== 'cold') void controller.resync()

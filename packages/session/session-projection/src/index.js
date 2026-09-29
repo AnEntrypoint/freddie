@@ -294,8 +294,6 @@ export class SessionProjectionRegistry extends Service {
     for (const registration of this.registrations.values()) {
       let cell = registration.cells.get(session)
       if (cell === undefined) {
-        // Late build mid-stream: fold history before this event (seq = log
-        // index, so the prefix slice is exact), then take the normal gate.
         cell = this.buildCell(registration.def, session.events.slice(0, event.seq))
         registration.cells.set(session, cell)
       }

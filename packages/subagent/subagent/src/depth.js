@@ -21,8 +21,6 @@ export function delegationDepthOf(agent) {
   if (runtime !== undefined && (!Number.isSafeInteger(runtime) || runtime < 0 || Object.is(runtime, -0))) {
     throw new TypeError('agent subagentDepth must be a non-negative safe integer')
   }
-  // The header value was validated at the session boundary (creation and
-  // persistence load both construct through the store).
   return Math.max(agent.session.header.delegationDepth ?? 0, runtime ?? 0)
 }
 

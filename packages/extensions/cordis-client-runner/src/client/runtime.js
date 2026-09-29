@@ -22,6 +22,8 @@ function moduleIdOf(id) {
   return `dyn/${id}`
 }
 
+const LOAD_DEADLINE_MS = 15_000
+
 /** The browser-side load engine for dynamic packages. */
 export class DynamicCordisPackageRunner {
   live = new Map()
@@ -51,6 +53,7 @@ export class DynamicCordisPackageRunner {
   owners = new WeakMap()
   /** This page's last render crash per package: what a run surface shows on the row. */
   failures = new Map()
+  cancellers = new Map()
   unwatch
   snapshotCache
   failureCache
@@ -58,23 +61,21 @@ export class DynamicCordisPackageRunner {
   /** @param env - loader/module/slot wiring plus the two host verbs this engine uses. */
   constructor(env) {
     this.env = env
-    // The supervision seam fires for EVERY entry crash on the page, factory UI
-    // included; only the ones this runner seated are ours to report.
     this.unwatch = env.slots.onEntryError((slot, entry, error, info) => {
       const component = entry.component
       const owner = indexable(component) ? this.owners.get(component) : undefined
       if (owner === undefined) return
       const details = errorDetails(error)
+      const previous = this.failures.get(owner.pluginId)
       const failure = {
         slot,
         message: renderFailureMessage(slot, details.message),
         ...details.stack === undefined ? {} : { stack: details.stack },
         abdicated: info.abdicated,
+        count: (previous?.count ?? 0) + 1,
       }
-      // One observation, two outlets with different owners and lifetimes: the host
-      // keeps the last crash ACROSS pages for the model, this map is what THIS page
-      // currently shows. Neither is derived from the other.
-      env.reportRenderFailure(owner.agentId, owner.pluginId, owner.pluginRunId, failure)
+      const repeated = previous !== undefined && previous.slot === failure.slot && previous.message === failure.message
+      if (!repeated) env.reportRenderFailure(owner.agentId, owner.pluginId, owner.pluginRunId, failure)
       this.failures.set(owner.pluginId, failure)
       this.notify()
     })
@@ -135,8 +136,6 @@ export class DynamicCordisPackageRunner {
     return this.enqueue(half.pluginId, async () => {
       const current = this.live.get(half.pluginId)
       if (current !== undefined) {
-        // Already running this activation here: nothing to load, but the caller
-        // still needs an answer (a replayed run must not look unacknowledged).
         if (current.pkg.pluginRunId === half.pluginRunId) return settled(current)
         await this.teardown(current.pkg.pluginId, current.entryId, current.styles)
       }
@@ -153,6 +152,7 @@ export class DynamicCordisPackageRunner {
    * @param pluginRunId - exact activation being retracted; a newer run survives.
    */
   retract(pluginId, pluginRunId) {
+    this.cancellers.get(pluginId)?.('the package was stopped while it was loading')
     void this.enqueue(pluginId, async () => {
       const current = this.live.get(pluginId)
       if (current === undefined || current.pkg.pluginRunId !== pluginRunId) return
@@ -180,25 +180,50 @@ export class DynamicCordisPackageRunner {
   enqueue(id, op) {
     const previous = this.queues.get(id) ?? Promise.resolve()
     const next = previous.then(op)
-    // The queue tail must survive this operation's failure, or one rejection
-    // would wedge every later operation on the same package.
     this.queues.set(id, next.then(() => {}, () => {}))
     return next
   }
 
+  bounded(pluginId, work, stage) {
+    return new Promise((resolve, reject) => {
+      let timer
+      const finish = (settle, value) => {
+        clearTimeout(timer)
+        if (this.cancellers.get(pluginId) === cancel) this.cancellers.delete(pluginId)
+        settle(value)
+      }
+      const cancel = (reason) => { finish(reject, new Error(reason)) }
+      timer = setTimeout(() => { cancel(`${stage} did not finish within ${String(LOAD_DEADLINE_MS / 1000)} seconds`) }, LOAD_DEADLINE_MS)
+      this.cancellers.set(pluginId, cancel)
+      Promise.resolve(work).then(value => { finish(resolve, value) }, (error) => { finish(reject, error) })
+    })
+  }
+
+  abandon(pluginId, styles) {
+    const moduleId = moduleIdOf(pluginId)
+    this.live.delete(pluginId)
+    for (const entry of this.env.loader.entries()) {
+      if (entry.options.name !== moduleId) continue
+      Promise.resolve(this.env.loader.remove(entry.id)).catch((error) => {
+        console.error(`[cordis-client-runner] removing the entry of ${pluginId} failed:`, error)
+      })
+    }
+    this.env.modules.invalidate(moduleId)
+    styles.dispose()
+  }
+
   async mount(half) {
+    this.failures.delete(half.pluginId)
     const styles = new DynamicCordisStyles(half.pluginId)
     const ledger = []
     let plugin
     try {
-      plugin = await evaluateClientHalf(half.pluginId, half.code, {
+      plugin = await this.bounded(half.pluginId, evaluateClientHalf(half.pluginId, half.code, {
         invoke: (method, args) => this.env.invoke(half.pluginId, half.pluginRunId, method, args),
         noteError: (message) => {
-          // A loaded package's own console.error: a page-local diagnostic with
-          // no wire carrier (the run round trip settled long before).
           console.error(`[cordis-client-runner] ${half.pluginId} logged an error:`, message)
         },
-      }, styles)
+      }, styles), 'evaluating the client half')
     } catch (error) {
       styles.dispose()
       return { ok: false, cause: 'evaluate', ...errorDetails(error), error }
@@ -212,32 +237,26 @@ export class DynamicCordisPackageRunner {
     }
     const surface = this.guardedSurface(pkg, half.agentId, plugin, ledger)
     const moduleId = moduleIdOf(half.pluginId)
-    // Invalidate-then-register keeps re-loading legal: the module table throws
-    // loudly on a duplicate registration.
     this.env.modules.invalidate(moduleId)
     this.env.modules.register(moduleId, surface)
 
-    const entryId = await this.env.loader.create({ name: moduleId })
-    const fiber = this.env.loader.resolve(entryId).fiber
-    if (fiber === undefined) {
-      await this.teardown(half.pluginId, entryId, styles)
-      return { ok: false, cause: 'module-import', message: 'module import failed (see the browser console)' }
-    }
+    let entryId
+    let fiber
     try {
-      await fiber.await()
+      entryId = await this.bounded(half.pluginId, this.env.loader.create({ name: moduleId }), 'activating the client half')
+      fiber = this.env.loader.resolve(entryId).fiber
+      if (fiber === undefined) {
+        this.abandon(half.pluginId, styles)
+        return { ok: false, cause: 'module-import', message: 'module import failed (see the browser console)' }
+      }
+      await this.bounded(half.pluginId, fiber.await(), 'activating the client half')
     } catch (error) {
-      await this.teardown(half.pluginId, entryId, styles)
+      this.abandon(half.pluginId, styles)
       return { ok: false, cause: 'activate', ...errorDetails(error), error }
     }
-    // Settled but not active = legal pending on an unsatisfied declaration. The
-    // record is seated only now, so an error mirrored during `apply` cannot
-    // claim the package is already live.
     const waitingFor = Object.keys(fiber.inject).filter(name => this.env.ctx.get(name) === undefined)
     const record = { pkg, entryId, styles, ledger, waitingFor }
     this.live.set(half.pluginId, record)
-    // A fresh load answers for itself: whatever this page last showed as crashed
-    // is no longer true of what is mounted now.
-    this.failures.delete(half.pluginId)
     return settled(record)
   }
 
@@ -254,12 +273,16 @@ export class DynamicCordisPackageRunner {
         this.owners.set(component, { pluginId: pkg.pluginId, pluginRunId: pkg.pluginRunId, agentId })
       }
     }
+    const reported = new Set()
     const guarded = ctx => dynamicCordisContext(ctx, {
       pkg,
       ledger,
       claim,
+      ownerOf: component => indexable(component) ? this.owners.get(component)?.pluginId : undefined,
       allocatePriority: () => --this.nextPriority,
       reportFailure: (error) => {
+        if (reported.has(error.message)) return
+        reported.add(error.message)
         this.env.reportGuardFailure(agentId, pkg.pluginId, pkg.pluginRunId, errorDetails(error))
       },
     })
@@ -279,11 +302,7 @@ export class DynamicCordisPackageRunner {
    */
   async teardown(id, entryId, styles) {
     this.live.delete(id)
-    // Nothing of this package renders here any more, so a crash row would outlive
-    // the thing it described.
     this.failures.delete(id)
-    // Entry removal disposes the fiber (slot entries and facade effects
-    // cascade); the factory invalidation makes a later re-load legal.
     await this.env.loader.remove(entryId)
     this.env.modules.invalidate(moduleIdOf(id))
     styles.dispose()

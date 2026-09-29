@@ -52,7 +52,7 @@ export function isAppendSurfaceEvent(event) {
 /**
  * Narrow an event to a surface replacement: a node that shadowed an existing
  * surface range instead of appending to the tail. The counterpart of
- * {@link isAppendSurfaceEvent} over the two {@link SurfaceOp} variants.
+ * {@link isAppendSurfaceEvent} over the two {@link import('./types.js').SurfaceOp} variants.
  * @param event - event to test.
  * @returns true when the event replaced a surface range.
  */
@@ -74,25 +74,11 @@ export function isReplacementSurfaceEvent(event) {
  * @returns the derived message, or null when the event produces none.
  */
 export function deriveEventMessage(event) {
-  // Intentionally non-exhaustive: only message-producing events derive
-  // history; turn/step boundaries, chunks, usage, and errors are trace/replay
-  // data.
   switch (event.type) {
-    // Ordinary prompts and injected context project in user role: the event's
-    // model-facing content stays verbatim. Do NOT re-add per-type framing
-    // (e.g. `<context>`) here: framing is caller-owned — a producer bakes it
-    // into `content`, as agent-instructions does with `<system-reminder>` — or,
-    // if reintroduced, must be driven by the event `meta` map and a dedicated
-    // renderer, keeping this projection a verbatim pass-through. See the
-    // deferred design note in
-    // ../../../../.agents/notes/implemented/simplification/2026-07-20-unwrap-injected-content-envelopes.md
     case 'user/message': {
       return event.data
     }
     case 'assistant/message': {
-      // Skip an empty-content assistant/message: it exists only to host a
-      // max-tokens step's usage and must not inject a content-less assistant
-      // turn into the provider transcript.
       if (event.data.message.content.length === 0) return null
       return event.data.message
     }
@@ -100,8 +86,6 @@ export function deriveEventMessage(event) {
       return event.data.message
     }
     default:
-      // A non-surface event (boundary, chunk, log-only record) projects to
-      // no message. Merge-extensible union: no assertNever here.
       return null
   }
 }

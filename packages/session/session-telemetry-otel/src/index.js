@@ -28,9 +28,10 @@ import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
 import { SeverityNumber } from '@opentelemetry/api-logs'
 import { resourceFromAttributes } from '@opentelemetry/resources'
 
-// The package's own manifest is the single source of the instrumentation-scope
-// version (same pattern as freddie-llm's attribution identity).
-const { version } = createRequire(import.meta.url)('../package.json')
+const { version: instrumentationScopeVersion } = createRequire(import.meta.url)('../package.json')
+
+/** OTel semantic-convention Resource attribute for the anonymous user. */
+const SEMCONV_USER_ID = 'user.id'
 
 /** Session-sharing policy selected by {@link Config.mode}. */
 export const SessionTelemetryMode = Object.freeze({
@@ -43,6 +44,7 @@ export const SessionTelemetryMode = Object.freeze({
 export const DEFAULT_TELEMETRY_MODE = SessionTelemetryMode.DISABLED
 
 const DISABLED_FEEDBACK_WARNING = 'session telemetry is DISABLED; nothing will be shared and this feedback remains local'
+const ENDPOINT_MISSING_WARNING = requestedMode => `session telemetry mode ${requestedMode} requested but exporter.url is not set; telemetry stays DISABLED and nothing is exported (there is no default collector)`
 const NON_CANONICAL_FEEDBACK_WARNING = 'session telemetry ignored a feedback event absent from the canonical session log'
 const DROP_RECORD = () => {}
 
@@ -78,7 +80,14 @@ function sharingStatusFor(mode) {
 /**
  * Plugin configuration: one sharing policy, two verbatim SDK option objects,
  * and one FREDDIE-owned shutdown bound. Uploading modes validate their endpoint
- * and shutdown deadline at plugin load; `DISABLED` reads neither.
+ * and shutdown deadline at plugin load; `DISABLED` reads neither. An uploading
+ * mode with no `exporter.url` runs as `DISABLED` and logs why: the package has
+ * no default collector, so nothing is exported until an operator names one.
+ * @typedef {object} SessionTelemetryOtelConfig
+ * @property {string} [mode] - one of {@link SessionTelemetryMode}'s values; defaults to {@link DEFAULT_TELEMETRY_MODE}.
+ * @property {unknown} [exporter] - verbatim OpenTelemetry OTLP log-exporter SDK options.
+ * @property {unknown} [processor] - verbatim OpenTelemetry batch log-processor SDK options.
+ * @property {number} [shutdownTimeoutMillis] - outer allowance for the SDK's shutdown sequence.
  */
 
 /**
@@ -98,9 +107,18 @@ export const Config = z.object({
 /** Default outer allowance for the SDK's complete shutdown sequence. */
 export const DEFAULT_SHUTDOWN_TIMEOUT_MILLIS = 3_000
 
-// Node clamps larger timer delays to one millisecond. This is a runtime
-// protocol limit, not a deployment default.
-const MAX_TIMER_DELAY_MILLIS = 2_147_483_647
+const NODE_TIMER_DELAY_CEILING_MILLIS = 2_147_483_647
+
+/**
+ * Refuse a batch size the SDK accepts but cannot drain at shutdown.
+ * @param {unknown} batchSize - `processor.maxExportBatchSize`, when configured.
+ * @throws {Error} when the size is defined and not a positive integer.
+ */
+function assertDrainableBatchSize(batchSize) {
+  if (batchSize !== undefined && (!Number.isInteger(batchSize) || batchSize < 1)) {
+    throw new Error(`session-telemetry-otel: processor.maxExportBatchSize must be a positive integer, got ${String(batchSize)}`)
+  }
+}
 
 /** Severity mapping from the Service Definition's three-level vocabulary to OTel severity numbers. */
 const SEVERITY = {
@@ -125,8 +143,14 @@ export class OpenTelemetrySessionBackend extends SessionTelemetryBackend {
   sharing
 
   constructor(ctx, config) {
-    const mode = resolveMode(config.mode)
+    const requestedMode = resolveMode(config.mode)
+    const url = config.exporter?.url
+    const endpointMissing = url === undefined || url.length === 0
+    const mode = requestedMode !== SessionTelemetryMode.DISABLED && endpointMissing
+      ? SessionTelemetryMode.DISABLED
+      : requestedMode
     super(ctx)
+    if (mode !== requestedMode) ctx.logger.warn(ENDPOINT_MISSING_WARNING(requestedMode))
     this.sharing = sharingStatusFor(mode)
     if (mode === SessionTelemetryMode.DISABLED) {
       this.directEmit = DROP_RECORD
@@ -138,65 +162,42 @@ export class OpenTelemetrySessionBackend extends SessionTelemetryBackend {
       return
     }
 
-    const url = config.exporter?.url
-    if (url === undefined || url.length === 0) {
-      throw new Error('session-telemetry-otel: exporter.url is required (the full OTLP logs endpoint)')
-    }
     let parsed
     try {
       parsed = new URL(url)
     } catch {
-      // Re-thrown as a config error: the only way here is a malformed url string.
       throw new Error(`session-telemetry-otel: exporter.url is not a valid URL: ${JSON.stringify(url)}`)
     }
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
       throw new Error(`session-telemetry-otel: exporter.url must be http(s), got ${parsed.protocol}`)
     }
-    // The one processor field checked beyond the SDK's own validation: the
-    // SDK accepts a non-positive batch size, but its shutdown drain then
-    // splices empty batches without consuming the queue — dispose would hang
-    // forever with records queued. Misconfiguration fails at load instead.
-    const batchSize = config.processor?.maxExportBatchSize
-    if (batchSize !== undefined && (!Number.isInteger(batchSize) || batchSize < 1)) {
-      throw new Error(`session-telemetry-otel: processor.maxExportBatchSize must be a positive integer, got ${String(batchSize)}`)
-    }
+    assertDrainableBatchSize(config.processor?.maxExportBatchSize)
     const shutdownTimeoutMillis = config.shutdownTimeoutMillis ?? DEFAULT_SHUTDOWN_TIMEOUT_MILLIS
-    if (!Number.isFinite(shutdownTimeoutMillis) || shutdownTimeoutMillis <= 0 || shutdownTimeoutMillis > MAX_TIMER_DELAY_MILLIS) {
-      throw new Error(`session-telemetry-otel: shutdownTimeoutMillis must be a positive finite number no greater than ${MAX_TIMER_DELAY_MILLIS}, got ${String(shutdownTimeoutMillis)}`)
+    if (!Number.isFinite(shutdownTimeoutMillis) || shutdownTimeoutMillis <= 0 || shutdownTimeoutMillis > NODE_TIMER_DELAY_CEILING_MILLIS) {
+      throw new Error(`session-telemetry-otel: shutdownTimeoutMillis must be a positive finite number no greater than ${NODE_TIMER_DELAY_CEILING_MILLIS}, got ${String(shutdownTimeoutMillis)}`)
     }
     this.shutdownTimeoutMillis = shutdownTimeoutMillis
     this.provider = new LoggerProvider({
       resource: resourceFromAttributes({
         'service.name': APP_IDENTITY.product,
         'service.version': APP_IDENTITY.version,
-        // OTel semconv's standard user attribute, carried once per export
-        // batch on the Resource rather than per record: the collector
-        // aggregates by Resource, and the id is process-stable anyway.
-        'user.id': getOrCreateAnonymousUserId(),
+        [SEMCONV_USER_ID]: getOrCreateAnonymousUserId(),
       }),
       processors: [
         new BatchLogRecordProcessor({
           ...config.processor,
-          // The complete validated exporter object, verbatim: every SDK
-          // option (`timeoutMillis`, `compression`, `keepAlive`, …) reaches
-          // the exporter — rebuilding selected fields here would silently
-          // ignore the rest. App identity travels in the Resource
-          // (service.name/version); the transport-level user-agent is the
-          // SDK's own, per the axiom.
           exporter: new OTLPLogExporter(config.exporter),
         }),
       ],
     })
-    const ledger = this.provider.getLogger('@freddie/freddie-session-telemetry-otel', version)
-    const ops = this.provider.getLogger('@freddie/freddie-session-telemetry-otel/ops', version)
+    const ledger = this.provider.getLogger('@freddie/freddie-session-telemetry-otel', instrumentationScopeVersion)
+    const ops = this.provider.getLogger('@freddie/freddie-session-telemetry-otel/ops', instrumentationScopeVersion)
     const enqueue = (record) => {
       const logger = record.channel === 'ops' ? ops : ledger
       logger.emit({
         timestamp: record.time,
         observedTimestamp: record.time,
         ...SEVERITY[record.severity],
-        // JSON-serializable by the seam's contract (validated at Session.append),
-        // which is exactly the AnyValue subset.
         body: record.body,
         attributes: record.attributes,
       })
@@ -214,8 +215,8 @@ export class OpenTelemetrySessionBackend extends SessionTelemetryBackend {
     const coordinator = new SessionTelemetryCoordinator(ctx, backend, 'on-demand')
     ctx.on('session/event', (session, event) => {
       if (event.type !== 'feedback/record') return
-      // Consent is the committed record, not an independently emitted bus value.
-      if (session.events[event.seq] !== event) {
+      const isCommittedRecord = session.events[event.seq] === event
+      if (!isCommittedRecord) {
         ctx.logger.warn(NON_CANONICAL_FEEDBACK_WARNING)
         return
       }
@@ -232,15 +233,6 @@ export class OpenTelemetrySessionBackend extends SessionTelemetryBackend {
   emit(record) {
     this.directEmit(record)
   }
-
-  // The Service Definition's optional flush() hint is deliberately NOT implemented. The
-  // batch processor exports on its own cadence (`processor.scheduledDelayMillis`,
-  // the SDK's documented knob), and this backend is the SDK pipeline's only
-  // caller — forwarding the hint to `forceFlush()` would be the sole source of
-  // concurrent flushes, whose undocumented interactions with shutdown's
-  // internal drain (concurrent-flush guard, provider-level flush timeout)
-  // silently drop tail records. Rationale and the revival trigger: the
-  // revival Agent Note.
 
   /**
    * Ask the SDK to drain and quiesce, but reject after the backend-owned

@@ -1,18 +1,9 @@
-// Modal: controlled full-viewport dialog (create-workspace and similar).
-// The overlay portals to this document's body so ancestor stacking contexts
-// cannot leave sticky page controls above the mask. This is still an in-page
-// WebUI dialog; it never creates or targets another browser/native window.
-//
-// Converted from a React hooks component to a webjsx custom element: the
-// Escape-key listener that was useEffect becomes connectedCallback/
-// disconnectedCallback, and re-render is an explicit applyDiff(this, vdom)
-// call (Toast.tsx's pattern) instead of implicit re-render on state change.
-
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { IconCloseOutline16 } from './icons/index.js'
 import css from './Modal.css.js'
 import { defineElement } from './define-element.js'
+import { isTopmostModal } from './modal-stack.js'
 
 /**
  * Centered modal over a blurred page mask, as a custom element. Attaches
@@ -41,34 +32,21 @@ export class FreddieModal extends HTMLElement {
 
   disconnectedCallback() {
     document.removeEventListener('keydown', this.#onKeyDown)
-    // A caller that removes this element directly while it was open (rather
-    // than setProps({open: false}) first, e.g. a shared-singleton cache
-    // torn down on completion) would otherwise skip #syncFocus(false)
-    // entirely, since it only runs from #render()'s own !open branch --
-    // silently dropping the focus-restoration this class exists to provide.
     this.#syncFocus(false)
   }
 
   #onKeyDown = (e) => {
     if (!this.#props.open) return
+    if (!isTopmostModal(this.querySelector('[role="dialog"]'))) return
     if (e.key === 'Escape') { this.#props.onClose(); return }
     if (e.key === 'Tab') this.#trapTab(e)
   }
 
-  // aria-modal="true" declares this dialog traps focus; without this, Tab
-  // silently escapes to the page behind the mask. Queried live rather than
-  // cached, since the dialog's focusable set can change across renders
-  // (a footer button appearing, a field becoming enabled).
   #trapTab(e) {
     const dialog = this.querySelector('[role="dialog"]')
     if (dialog === null) return
     const focusable = [...dialog.querySelectorAll(FOCUSABLE_SELECTOR)]
     if (focusable.length === 0) {
-      // A transient all-disabled state (every footer action shares one
-      // busy flag) leaves nothing #syncFocus's own first-element target
-      // could have landed on either -- keep Tab from escaping the mask by
-      // redirecting into the dialog container itself, the same fallback
-      // #syncFocus already uses for initial focus.
       if (!dialog.contains(document.activeElement)) {
         e.preventDefault()
         dialog.focus()
@@ -88,11 +66,6 @@ export class FreddieModal extends HTMLElement {
     }
   }
 
-  // Initial focus on open (the WAI-ARIA dialog pattern's own recommendation:
-  // the first focusable element, or the dialog itself as a fallback), and
-  // focus restoration to whatever had it before the dialog opened -- both
-  // one-shot transitions, not a per-render effect, so they never fight a
-  // user's own subsequent focus change while the dialog stays open.
   #syncFocus(open) {
     if (open === this.#wasOpen) return
     this.#wasOpen = open
@@ -130,10 +103,6 @@ export class FreddieModal extends HTMLElement {
           role: 'dialog',
           'aria-modal': 'true',
           'aria-label': title,
-          // Programmatically focusable (not in the Tab order) so #syncFocus
-          // and #trapTab's own fallback -- there being no focusable child at
-          // all -- can actually land focus somewhere inside the dialog
-          // instead of .focus() silently no-op'ing on a plain <div>.
           tabindex: '-1',
         },
         headless
@@ -171,6 +140,20 @@ export class FreddieModal extends HTMLElement {
 }
 
 defineElement('freddie-modal', FreddieModal)
+
+/**
+ * @typedef {object} ModalProps
+ * @property {boolean} [open=false] - whether the dialog is visible.
+ * @property {function(): void} [onClose=() => {}] - called on mask click, close button, or Escape.
+ * @property {string} [title=''] - dialog heading; also used as the dialog's `aria-label`.
+ * @property {string} [closeLabel='Close'] - accessible label for the close button.
+ * @property {string} [description] - optional supporting text rendered under the header.
+ * @property {*} [children] - dialog body content, skipped when `headless` is true (the caller then owns everything under `[role="dialog"]`).
+ * @property {*} [footer] - optional content rendered below the body.
+ * @property {string} [className] - class added to the dialog element itself.
+ * @property {string} [contentClassName] - class added to the wrapper around header/description/body.
+ * @property {boolean} [headless=false] - when true, render `children` directly with no header/description/body chrome.
+ */
 
 /**
  * Create (if needed) and update a Modal mounted on `document.body`.

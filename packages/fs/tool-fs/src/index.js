@@ -35,7 +35,6 @@ function assertPositiveInteger(name, value) {
 
 /** Register the full `read`/`write`/`edit` filesystem tool suite, plus `read_image` while `attachments` is mounted. */
 export function apply(ctx, config) {
-  // schemastery (Config) has already filled every defaulted field.
   const resolved = config
   assertPositiveInteger('readLimit', resolved.readLimit)
   assertPositiveInteger('readMaxLineLength', resolved.readMaxLineLength)
@@ -47,15 +46,9 @@ export function apply(ctx, config) {
     maxBytes: resolved.readMaxBytes,
     streamMinSize: resolved.readStreamMinSize,
   })
-  // read_image is composition-conditional: without a mounted attachment store
-  // the deployment cannot durably commit image bytes, so the tool never
-  // registers; the execute body keeps a defensive re-check for direct callers.
   ctx.inject(['attachments'], (imageCtx) => {
     applyReadImageTool(imageCtx)
   })
-  // One escalation API shared by both mutating tools: advertisement gating,
-  // per-call policy resolution, and denial-marker mapping, all keyed off whether
-  // the mounted ctx.fs confines (ctx.fs.sandboxMode).
   const sandbox = new FsSandboxController(ctx)
   applyWriteTool(ctx, sandbox)
   applyEditTool(ctx, sandbox)

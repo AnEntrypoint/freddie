@@ -84,15 +84,11 @@ export async function apply(ctx, config) {
 
   const setupAbort = new AbortController()
   const stopSetupCancellation = ctx.on('internal/plugin', (fiber) => {
-    // An async plugin callback must observe its own disposal before Cordis can
-    // run effect cleanup, because unload otherwise waits for this callback.
     if (fiber === ctx.fiber && fiber.uid === null) {
       setupAbort.abort(new Error('lsp-stdio setup disposed'))
     }
   })
 
-  // Resolve every server-local setting before registration so a bad later command or bound cannot
-  // publish an earlier provider. Registry-level mapping conflicts are rolled back below.
   const providers = await (async () => {
     const lookups = entries.map(async ([providerId, rawConfig]) => {
       if (providerId.trim() === '') throw new Error('lsp-stdio: server ids must be non-empty strings')
@@ -132,7 +128,6 @@ export async function apply(ctx, config) {
       throw error
     }
     return async () => {
-      // Remove every route before process teardown so no new query can enter a draining provider.
       for (const dispose of disposers.reverse()) dispose()
       const results = await Promise.allSettled(providers.map(provider => provider.disposeAll()))
       throwTeardownFailures(results, 'lsp-stdio provider teardown failed')
@@ -142,13 +137,8 @@ export async function apply(ctx, config) {
 
 /** Validate one resolved server entry before any provider in the table is registered. */
 function validateServerConfig(providerId, resolved) {
-  // Teardown budgets feed `deadline()`, whose `<= 0` is the internal no-timeout sentinel; a
-  // nonpositive value would let a server that ignores shutdown hang disposal forever. Fail at load.
   assertTimer(providerId, 'shutdownTimeoutMs', resolved.shutdownTimeoutMs)
   assertTimer(providerId, 'killGraceMs', resolved.killGraceMs)
-  // Byte caps must be positive: a nonpositive stderr cap defeats the retained-tail bound
-  // (`slice(-0)` keeps everything), `maxMessageBytes: 0` makes every response fatal, and a bad
-  // document cap fails later in the read path instead of at load.
   assertPositiveInteger(providerId, 'maxStderrBytes', resolved.maxStderrBytes)
   assertPositiveInteger(providerId, 'maxMessageBytes', resolved.maxMessageBytes)
   assertPositiveInteger(providerId, 'maxDocumentBytes', resolved.maxDocumentBytes)
@@ -211,7 +201,6 @@ class LocalLspProvider {
   }
 
   async query(request, signal) {
-    // Honor an already-aborted signal before provider I/O so a canceled request never starts a server.
     this.assertActive(signal)
     const querySignal = this.querySignal(signal)
     const workspaceResult = canonicalizeWorkspace(this.fs, request.workspaceRoot, querySignal)
@@ -227,18 +216,12 @@ class LocalLspProvider {
     const workspaceKey = workspace.target.targetKey
     return this.enqueue(workspaceKey, querySignal, async () => {
       this.assertActive(querySignal)
-      // Read inside the workspace queue but before spawning: a queued query sees current bytes when
-      // its turn starts, while an invalid source still cannot leave an idle process pooled.
       const source = await readHostSource(this.fs, request.filePath, workspace, this.config.maxDocumentBytes, querySignal)
-      // Disposal may have snapshotted the instance map while host I/O was pending. Re-check before a
-      // synchronous get-or-create so every spawned process remains owned by teardown.
       this.assertActive(querySignal)
       let instance = this.instanceFor(workspaceKey, workspace)
       try {
         return await instance.query(request, source, querySignal)
       } catch (error) {
-        // A selected child can have died while idle or fail during the next write. Queries are
-        // read-only, so replace that transport once and retry transparently.
         if (!instance.isTransportFailure(error)) throw error
         await instance.dispose()
         this.evictIfCurrent(workspaceKey, instance)
@@ -246,7 +229,6 @@ class LocalLspProvider {
         instance = this.instanceFor(workspaceKey, workspace)
         return await instance.query(request, source, querySignal)
       } finally {
-        // Reach quiescence before dropping a dead slot; a replacement must survive this ownership check.
         if (instance.dead) {
           await instance.dispose()
           this.evictIfCurrent(workspaceKey, instance)
@@ -259,8 +241,6 @@ class LocalLspProvider {
   enqueue(workspace, signal, run) {
     const previous = this.queues.get(workspace) ?? Promise.resolve()
     const result = abortable(previous, signal).then(run)
-    // The tail follows the actual prior work even when this caller aborts its wait. It never rejects,
-    // so later callers serialize without inheriting an earlier query's outcome.
     const tail = previous.then(() => result).then(() => undefined, () => undefined)
     this.queues.set(workspace, tail)
     void tail.then(() => {

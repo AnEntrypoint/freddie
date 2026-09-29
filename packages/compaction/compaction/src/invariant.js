@@ -218,7 +218,6 @@ function applyCompactionTransition(
 }
 
 /** Install compaction start/summary/end checks. */
-// Event owners keep precommit staging local so their vocabularies never move into a central helper.
 /* jscpd:ignore-start */
 const install = Object.assign((ctx, fail) => {
   const traces = new WeakMap()
@@ -228,9 +227,6 @@ const install = Object.assign((ctx, fail) => {
     traces.set(session, trace)
     const staleOrphanStartSeqs = inheritedOrphanStartSeqs(session.events)
     for (const event of session.events) {
-      // Constructor-seed repair boundaries can precede the end-seed marker
-      // that proves an inherited orphan stale. Replay that inherited prefix
-      // without letting the soon-to-be-cleared bracket veto its repair.
       if (
         trace.compaction === undefined
         || !staleOrphanStartSeqs.has(trace.compaction.startSeq)

@@ -1,5 +1,3 @@
-# Keyless counterpart to depth-two.cordis.yml: apply the depth patch and replace
-# the live adapter with per-session replay.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:
@@ -25,9 +23,6 @@
           toolName: subagent
           backgroundMode: continuable
           maxDepth: 2
-      # Re-pin the recorded model: cordis.yml ships deepseek-v4-pro, but this
-      # scenario's corpus was captured on flash. A config patch replaces the
-      # whole app config, so the base fields are restated verbatim.
       - id: acp-agent
         name: '@freddie/freddie-acp-demo'
         config:

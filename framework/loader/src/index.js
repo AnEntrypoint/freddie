@@ -56,9 +56,6 @@ export class Loader extends EntryTree {
     ctx.on('internal/config', function (_config, next) {
       const config = next()
       if (!this.entry || this.parent.fiber?.entry === this.entry) return config
-      // Tree carriers (Group, Include) keep their configs literal: their
-      // entry and patch lists hold other rows' configs, whose `!!js`
-      // expressions belong to those rows' own fibers.
       const plugin = this.runtime?.callback
       if (plugin?.[EntryGroup.key]) return config
       return interpolate(this.ctx, config)
@@ -79,41 +76,26 @@ export class Loader extends EntryTree {
     }, { global: true })
 
     ctx.on('internal/plugin', (fiber) => {
-      // 1. set `fiber.entry`
       if (fiber.parent[Entry.key] && !fiber.entry) {
         fiber.entry = fiber.parent[Entry.key]
-        // FIXME merge config
         Inject.resolve(fiber.entry.options.inject, fiber.inject)
       }
 
-      // 2. handle self-dispose
-      // We only care about `ctx.fiber.dispose()`, so we need to filter out other cases.
-
-      // case 1: fiber is created
       if (fiber.uid) return
 
-      // case 2: fiber is not tracked by loader
       if (!fiber.entry) return
 
-      // case 3: fiber is a child plugin under the entry (not the entry's root fiber)
       if (fiber.parent.fiber?.entry === fiber.entry) return
 
-      // case 4: fiber is disposed on behalf of plugin deletion (such as plugin hmr)
-      // self-dispose: ctx.fiber.dispose() -> fiber / runtime dispose -> delete(plugin)
-      // plugin hmr: delete(plugin) -> runtime dispose -> fiber dispose
       if (!ctx.registry.has(fiber.runtime.callback)) return
 
-      // case 5: the entry's tree is being disposed
       const treeOwner = fiber.entry.parent.tree.ctx.fiber
       if (!treeOwner.uid || treeOwner.state === FiberState.UNLOADING) return
 
-      // case 6: Loader is replacing or removing this exact fiber
       if (fiber.entry._disposing) return
 
       this.showLog(fiber.entry, 'unload')
 
-      // case 7: fiber is disposed by loader behavior
-      // such as inject checker, config file update, ancestor group disable
       if (fiber.entry.disabled) return
 
       fiber.entry.options.disabled = true
@@ -124,7 +106,6 @@ export class Loader extends EntryTree {
   }
 
   write() {
-    // Loader's root tree is in-memory; writes are no-ops.
   }
 
   [Service.check]() {
@@ -156,8 +137,6 @@ export class Loader extends EntryTree {
   unwrapExports(exports) {
     if (isNullable(exports)) return exports
     exports = exports.default ?? exports
-    // https://github.com/evanw/esbuild/issues/2623
-    // https://esbuild.github.io/content-types/#default-interop
     if (!exports.__esModule) return exports
     return exports.default ?? exports
   }

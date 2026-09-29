@@ -1,16 +1,3 @@
-// OnboardingSurface: the full-viewport first-run takeover an onboarding step
-// wraps its visible content in. The overlay portals to this document's body
-// (the Modal precedent: ancestor stacking contexts cannot leave sticky page
-// controls above the mask), and the surface holds `#root` inert for exactly
-// its own lifetime — a step that renders null paints nothing and blocks
-// nothing, so "should onboarding show right now" stays a plain render
-// decision inside the step component.
-//
-// Converted from a React hooks component to a webjsx custom element: the
-// inert-toggle that was useEffect becomes connectedCallback/
-// disconnectedCallback, and re-render is an explicit applyDiff(this, vdom)
-// call (Toast.tsx's pattern).
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './OnboardingSurface.css.js'
 import { defineElement } from './define-element.js'

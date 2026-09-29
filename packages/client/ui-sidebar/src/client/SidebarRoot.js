@@ -58,38 +58,18 @@ const SCROLLBAR_LINGER_MS = 2000
 export class FreddieSidebarRoot extends HTMLElement {
   #props = null
 
-  // Wide content stays mounted while the collapse animates (fading via
-  // .collapsed .wide), unmounts at settle, and remounts right away on expand.
   #settled = false
   #settleTimer = null
 
-  // Freeze the content at its expanded width while it fades out (collapsed
-  // && wide): the sliding column then clips it instead of reflowing it. The
-  // rail layout (.collapsed styles) only applies once the fade settles.
   #lastWideWidth = 0
   #tooltips = new Map()
 
-  // Rail-in only crossfades a live collapse: a refresh straight into the
-  // collapsed state renders the rail statically (no delay-hidden icons).
   #everWide = false
 
-  // Scrollbars in the column follow the pointer (.quietBars rebinds them
-  // away): drawn while it is inside, and for SCROLLBAR_LINGER_MS after it
-  // leaves. A pointer that returns within that window cancels the pending
-  // hide rather than restarting from a hidden bar.
   #pointerInside = false
   #lingerTimer = undefined
   #pointerMoveHandler = null
 
-  // See FreddieConversationRoot's identical guard (ui-conversation package): the
-  // webjsxSlot-tagged one-shot mount path calls setProps() synchronously
-  // before this element is inserted into the document, and connectedCallback
-  // then fires again right after insertion. Rendering unconditionally in
-  // both places double-renders the very first mount around that
-  // detach/attach boundary, desyncing webjsx's per-element diff cache from
-  // the live DOM and leaving a duplicate `[data-slot]` subtree (the
-  // `sidebar.workspaces` region rendered twice, one copy behind the other)
-  // instead of updating one in place.
   #renderedOnce = false
 
   /** Set/replace props and re-render; called by the slot renderer's webjsx bridge. */
@@ -156,13 +136,6 @@ export class FreddieSidebarRoot extends HTMLElement {
     this.#lingerTimer = undefined
   }
 
-  // Leaving is decided by the column's BOX, not by DOM containment, and only
-  // while the bars are drawn. ui-settings renders its full-viewport panel as a
-  // fixed-position DESCENDANT of this column, so a pointer moved onto that
-  // panel — or onto the conversation once it closes — fires no `pointerleave`
-  // here, and the bars would stay drawn over a column nobody is pointing at.
-  // The element's own leave stays as the one signal geometry cannot give: a
-  // pointer that leaves the window emits no further moves.
   #bindPointerMove() {
     if (this.#pointerMoveHandler !== null) return
     const onMove = (event) => {
@@ -194,10 +167,6 @@ export class FreddieSidebarRoot extends HTMLElement {
     this.#armLinger()
   }
 
-  // h(Tooltip, {...}) calls Tooltip(props) synchronously (webjsx's
-  // function-component branch), Tooltip.js's bare one-shot factory --
-  // recreating the freddie-tooltip element (dropping its in-flight #showTimer
-  // hover-delay) on every #render(). renderTooltip(cached, props) reuses it.
   #tooltip(key, props) {
     const el = renderTooltip(this.#tooltips.get(key) ?? null, props)
     this.#tooltips.set(key, el)
@@ -221,8 +190,6 @@ export class FreddieSidebarRoot extends HTMLElement {
         onpointerleave: this.#onPointerLeave,
       },
         h('div', {class: css.logoRow ?? ''},
-          // Expanded, the brand doubles as a New Session shortcut; the
-          // collapsed rail's logo is the expand toggle below instead.
           wide && (
             h('button', {
               type: 'button',
@@ -247,8 +214,6 @@ export class FreddieSidebarRoot extends HTMLElement {
               ),
             )
           ),
-          // Rail resting state is the whale mark; hovering swaps in the panel
-          // icon (the expand affordance, figma sidebar-hover flow).
           this.#tooltip('toggle', {label: collapsed ? t('toggle.open') : t('toggle.collapse'), delayMs: 500, children: [
             h('button', {
               type: 'button',
@@ -261,13 +226,11 @@ export class FreddieSidebarRoot extends HTMLElement {
                   asChild(renderSlot('sidebar.brand.mark', { size: 24 }, { fallback: h(FishLogo, {size: 24}) })),
                 )
               ),
-              // Rail icons render at 18 (figma rail spec); expanded keeps the glyph-native sizes.
               h(IconPanelLeftOutline16, {className: css.panelIcon, size: wide ? 16 : 18}),
             ),
           ]}),
         ),
 
-        // Expanded, the button carries its own label — tooltip only on the rail.
         this.#tooltip('newSession', {label: t('session.new.label'), delayMs: 500, disabled: wide, children: [
           h('button', {
             type: 'button',
@@ -280,8 +243,6 @@ export class FreddieSidebarRoot extends HTMLElement {
           ),
         ]}),
 
-        // The browsing region fills the column between the controls and the
-        // foot in both states; its rail icon column rides the same slot.
         h('div', {class: css.regionArea ?? ''},
           asChild(renderSlot('sidebar.workspaces', {
             wide,
@@ -289,7 +250,6 @@ export class FreddieSidebarRoot extends HTMLElement {
           })),
         ),
 
-        // Footer actions stack above Settings in both sidebar widths.
         h('div', {class: css.footArea ?? ''},
           h('div', {class: css.footerActions ?? ''},
             asChild(renderSlot('sidebar.footer.action', { wide })),

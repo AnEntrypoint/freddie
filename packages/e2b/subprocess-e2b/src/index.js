@@ -43,7 +43,6 @@ export class E2BSubprocessRuntime extends SubprocessRuntime {
   /** Create the E2B subprocess service and bind its disposal policy. */
   constructor(ctx, config) {
     super(ctx)
-    // Schemastery fills pollMs before construction; the type does not encode that step.
     const { pollMs } = config
     if (!Number.isSafeInteger(pollMs) || pollMs <= 0) {
       throw new Error('subprocess-e2b: pollMs must be a positive safe integer')
@@ -106,7 +105,6 @@ export class E2BSubprocessRuntime extends SubprocessRuntime {
     if (executable.includes('\n') || (!posix.isAbsolute(executable) && !executable.includes('/'))) {
       throw new Error(`subprocess-e2b: executable ${JSON.stringify(command)} did not resolve to one absolute path`)
     }
-    // A relative result comes from a relative PATH entry; the lookup ran with the shared cwd.
     return posix.resolve(this.ctx.e2b.cwd, executable)
   }
 
@@ -129,7 +127,6 @@ export class E2BSubprocessRuntime extends SubprocessRuntime {
       this.live.delete(handle)
     }
     void handle.done.then(release, release).catch((_automaticReleaseFailure) => {
-      // Retain the handle so service disposal can retry its cleanup transaction.
     })
     return handle
   }
@@ -169,7 +166,6 @@ export class E2BSubprocessRuntime extends SubprocessRuntime {
         this.terminals.delete(terminal)
       }
       void terminal.done.then(release, release).catch((_automaticReleaseFailure) => {
-        // Retain the terminal so service disposal can retry its cleanup transaction.
       })
       return terminal
     } finally {

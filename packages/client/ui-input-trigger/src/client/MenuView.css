@@ -1,25 +1,12 @@
-/* Trigger candidate menu (figma SLASH 39:26572 MenuDropdown): menu surface,
- * r12, hairline border, shadow-lv3, 4px inset padding; anchored to the
- * composer top edge, left-aligned with the input text. Cells follow
- * .Menu_cell (min-h 40, r10, pad 10/8, gap 8, 14/22 primary label) with a
- * trailing dimmed description. */
-
 .freddie-menuView__menu {
   position: absolute;
   bottom: calc(100% + 4px);
   left: 0;
   z-index: 100;
   min-width: min(260px, 100%);
-  /* 537 is the design cap; the 100% clamp keeps the menu inside the composer
-     card when a narrow viewport shrinks the card below the cap (the overlay
-     anchor is exactly the card's width). */
   max-width: min(537px, 100%);
-  /* Height cap: the 320px design maximum, clamped at runtime to the space
-   * above the composer (inline max-height set in MenuView.tsx). */
   max-height: 320px;
   overflow: hidden;
-  /* Elevated surface: the scrollbar thumb takes the l2 elevation tokens
-     (see ui-theme styles/scrollbar.css for the rebinding contract). */
   --freddie-scrollbar-thumb: var(--freddie-alias-scrollbar-bg-l2);
   --freddie-scrollbar-thumb-hover: var(--freddie-alias-scrollbar-hover-l2);
   padding: 4px;
@@ -101,8 +88,6 @@
   color: var(--freddie-alias-label-tertiary);
 }
 
-/* Heading row above a source group: non-interactive small grey text,
- * padding aligned with items (mirrors ui-primitives Menu .label). */
 .freddie-menuView__groupTitle {
   padding: 8px 10px;
   font-size: 12px;
@@ -110,7 +95,6 @@
   color: var(--freddie-alias-label-tertiary);
 }
 
-/* Pending-source row: same cell metrics, dimmed label. */
 .freddie-menuView__loading {
   display: flex;
   align-items: center;

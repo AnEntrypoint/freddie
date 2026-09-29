@@ -18,7 +18,10 @@
  * @module freddie-sandbox-policy/session-mode
  */
 
-/** Every {@link SandboxMode}, for option advertisement and runtime validation of untrusted mode strings. */
+/**
+ * Every {@link SandboxMode}, for option advertisement and runtime validation of untrusted mode strings.
+ * @typedef {'read-only' | 'workspace-write' | 'danger-full-access'} SandboxMode
+ */
 export const SANDBOX_MODES = ['read-only', 'workspace-write', 'danger-full-access']
 
 /**

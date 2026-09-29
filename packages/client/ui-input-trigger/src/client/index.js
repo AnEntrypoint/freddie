@@ -7,7 +7,7 @@
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { InputTriggerService } from './service.js'
 import './MenuView.js'
-import { en, zh } from './locales.js'
+import { en } from './locales.js'
 
 export { InputTriggerService } from './service.js'
 export { InputTriggerController } from './controller.js'
@@ -25,7 +25,7 @@ export const inject = ['sessions', 'locale']
  */
 export function apply(ctx) {
   ctx.plugin(InputTriggerService)
-  ctx.effect(() => ctx.locale.register(MENU_NS, { zh, en }), 'ui-input-trigger: menu dictionaries')
+  ctx.effect(() => ctx.locale.register(MENU_NS, { en }), 'ui-input-trigger: menu dictionaries')
   ctx.inject(['slots', 'inputTriggers', 'sessions'], (scope) => {
     const inputTriggers = scope.inputTriggers
     const sessions = scope.sessions
@@ -35,8 +35,6 @@ export function apply(ctx) {
       order: 0,
       locale: MENU_NS,
       inject: (sessionId) => {
-        // Session-scoped slot: resolve this session's controller (the slot
-        // frame hands ids, not ctx — the registered id→ctx interchange).
         const actx = sessions.scope(sessionId)
         if (actx === undefined) throw new Error(`ui-input-trigger: session "${String(sessionId)}" resolved no scope`)
         const controller = inputTriggers.sessionOf(actx)

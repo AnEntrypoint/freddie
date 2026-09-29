@@ -138,7 +138,6 @@ export function apply(ctx, config) {
   ctx.plugin(LlmRuntime)
   ctx.plugin(SessionStore)
   ctx.plugin(SessionTitleService, config.sessionTitle ?? EXAMPLE_SESSION_TITLE_CONFIG)
-  // Owner schemas resolve defaults; forward toolOrder only when explicitly set.
   ctx.plugin(SystemPrompt, {
     includeHarnessIdentity: config.includeHarnessIdentity ?? true,
     includeRuntimeContext: config.includeRuntimeContext ?? true,
@@ -171,8 +170,6 @@ export function apply(ctx, config) {
   if (config.workspaceContext !== false) {
     ctx.plugin(workspaceContext, config.workspaceContext)
   }
-  // Both plugins prepend session-prefix messages. Registration order is the
-  // rendered order, so workspace instructions must precede the skill catalog.
   if (skillsEnabled) ctx.plugin(toolSkill, config.skills?.tool ?? {})
   if (config.toolJobs !== false) ctx.plugin(toolJobs, config.toolJobs ?? {})
   ctx.plugin(AgentLoop, {

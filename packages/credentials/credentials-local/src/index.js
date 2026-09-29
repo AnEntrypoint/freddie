@@ -9,7 +9,7 @@
  * > $FREDDIE_HOME/.env                   (read-only fallback)
  * ```
  *
- * The inherited environment wins because `DEEPSEEK_API_KEY=… dsh`, a CI
+ * The inherited environment wins because `DEEPSEEK_API_KEY=… freddie`, a CI
  * secret, or a container `-e` is this run's explicit intent; it cannot be
  * edited from inside, so it must be *visibly* read-only rather than silently
  * shadow writes. Everything below it loses to the managed store, so a key the
@@ -65,6 +65,18 @@ export function resolveSpec(config) {
 
 /** Permission bits outside the owner; a credentials document must have none of them. */
 const GROUP_OTHER_BITS = 0o077
+
+/** Directory mode for the harness home, which holds user-private data. */
+const OWNER_ONLY_DIR_MODE = 0o700
+
+/** Write options that keep the credentials document readable by its owner alone. */
+const OWNER_ONLY_WRITE = { mode: 0o600, dirMode: OWNER_ONLY_DIR_MODE }
+
+/** Parse options that make errors carry `linePos`; the parser's own message is never surfaced. */
+const LINE_POSITION_PARSE_OPTIONS = { prettyErrors: true, uniqueKeys: true }
+
+/** A YAML directive or document marker, none of which survives being indented into `refs:`. */
+const DIRECTIVE_OR_DOCUMENT_MARKER = /^(%|---|\.\.\.)/
 
 /**
  * How long a record write waits for the cross-process writer lock. A record
@@ -148,12 +160,7 @@ export const DOCUMENT_VERSION = 1
  * @returns the parsed references and records.
  */
 export function parseCredentialsDocument(text, filename) {
-  // `prettyErrors` is on only for `linePos`; `error.message` is never used,
-  // because the parser quotes the offending source line and in this document
-  // that line is a secret. Only the code and position leave this function, and
-  // the same rule governs every other diagnostic here — a key name is safe to
-  // print, a value is not.
-  const document = parseDocument(text, { prettyErrors: true, uniqueKeys: true })
+  const document = parseDocument(text, LINE_POSITION_PARSE_OPTIONS)
   if (document.errors.length > 0) {
     throw new Error(`credentials-local: invalid document at ${filename}: ${
       document.errors.map(describeYamlError).join('; ')}`)
@@ -164,8 +171,6 @@ export function parseCredentialsDocument(text, filename) {
   }
   const fields = root
   const keys = Object.keys(fields)
-  // An empty (or comment-only) document is the empty store and needs no
-  // version: there is nothing in it a later layout could have meant.
   if (keys.length === 0) return { refs: new Map(), records: new Map() }
   if (!('version' in fields)) {
     throw new Error(
@@ -202,41 +207,37 @@ export function parseCredentialsDocument(text, filename) {
  * @returns the migrated text, or `undefined` when the text is not the recognized flat layout.
  */
 export function renderFlatLayoutMigration(text) {
-  const document = parseDocument(text, { prettyErrors: true, uniqueKeys: true })
+  const document = parseDocument(text, LINE_POSITION_PARSE_OPTIONS)
   if (document.errors.length > 0) return undefined
   const flat = document.contents
   if (!isMap(flat) || flat.items.length === 0) return undefined
   for (const line of text.split('\n')) {
-    // A directive or document marker would not survive being indented into
-    // the `refs:` block; no shipped writer ever emitted one here.
-    if (/^(%|---|\.\.\.)/.test(line)) return undefined
+    if (DIRECTIVE_OR_DOCUMENT_MARKER.test(line)) return undefined
   }
   for (const pair of flat.items) {
     if (!isScalar(pair.key) || typeof pair.key.value !== 'string' || pair.key.value === 'version') return undefined
-    try {
-      credentialRef(pair.key.value)
-    } catch {
-      // Only credentialRef's rejection of a non-POSIX name lands here; the
-      // flat reader refused such a key too, so this is not the recognized
-      // layout and the loud rejection stands.
-      return undefined
-    }
+    if (!isAddressableRefName(pair.key.value)) return undefined
     if (!isScalar(pair.value) || typeof pair.value.value !== 'string' || pair.value.value.length === 0) return undefined
   }
   const body = text.split('\n').map(line => (line.length === 0 ? line : `  ${line}`)).join('\n')
   return `version: ${DOCUMENT_VERSION}\nrefs:\n${body}${text.endsWith('\n') ? '' : '\n'}`
 }
 
+/** Whether `name` is a POSIX identifier, the constraint a stored reference must meet to be addressable through the seam. */
+function isAddressableRefName(name) {
+  try {
+    credentialRef(name)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Admit a `refs` section: POSIX-identifier keys over non-empty string values. */
 function parseRefs(section, filename) {
   const entries = new Map()
   for (const [key, value] of Object.entries(asSection(section, 'refs', filename))) {
-    // credentialRef throws on anything that is not a POSIX identifier, which
-    // is exactly the constraint a stored reference must satisfy to be
-    // addressable through the seam.
     credentialRef(key)
-    // The key name is quoted, never the value: a wrong-typed entry is still a
-    // secret the user meant to store.
     if (typeof value !== 'string') {
       throw new TypeError(`credentials-local: the value for "${key}" in ${filename} must be a string`)
     }
@@ -256,6 +257,17 @@ function parseRecords(section, filename) {
     entries.set(key, parseRecord(key, value, filename))
   }
   return entries
+}
+
+/**
+ * Refuse a record the read path could not admit, before it is rendered, so a
+ * caller never persists a document the next boot rejects.
+ * @param key - the record's credential key, for the failure message.
+ * @param record - the record a mutation returned.
+ */
+function assertStorableRecord(key, record) {
+  if (record.kind === 'grant') assertJsonValue(`record "${key}" payload`, record.payload, new Set())
+  else assertStorableApiKey(key, record)
 }
 
 /**
@@ -385,12 +397,7 @@ function assertJsonValue(where, value, seen) {
  * @returns the tree to edit, carrying this build's version stamp.
  */
 function mutableDocument(text) {
-  // `text` only ever caches content that parsed successfully, so this re-parse
-  // for the mutable comment-preserving tree cannot fail.
   const document = text === undefined ? new Document({}) : parseDocument(text)
-  // Stamped on every edit so a document this provider creates is readable by
-  // the same parser that admitted the one it edits; an existing stamp is
-  // rewritten to the identical value.
   document.setIn(['version'], DOCUMENT_VERSION)
   return document
 }
@@ -473,9 +480,7 @@ function sameJsonValue(left, right) {
 
 /** File-backed credentials provider (`$FREDDIE_HOME/.credentials.yaml`). */
 export class LocalCredentialProvider extends CredentialProvider {
-  /* jscpd:ignore-start -- deliberate config-surface and lifecycle symmetry with
-     settings-file (prefer symmetry for parallel values); extracting the shared
-     shape would couple the two providers' teardown semantics across packages. */
+  /* jscpd:ignore-start */
   static Config = z.object({
     path: z.string(),
     freddieHome: z.string(),
@@ -511,8 +516,6 @@ export class LocalCredentialProvider extends CredentialProvider {
   constructor(ctx, config) {
     super(ctx)
     this.config = config
-    // Programmatic construction may bypass Schemastery normalization; resolve
-    // the same defaults in one explicit step either way.
     this.spec = resolveSpec(config)
   }
 
@@ -534,16 +537,12 @@ export class LocalCredentialProvider extends CredentialProvider {
 
   async* [Service.init]() {
     yield async () => {
-      // Drain: refuse new operations, then settle the queued ones so disposal
-      // completes only once storage is quiescent.
       this.closed = true
       await this.operations
     }
     await this.loadInitial()
     if (!this.spec.watch) return
-    /* jscpd:ignore-start -- same watcher discipline as settings-file by design:
-       the serialized-refresh and quiesce-on-dispose shape is the reviewed
-       lifecycle contract, not accidental repetition. */
+    /* jscpd:ignore-start */
     const watcher = chokidarWatch(await canonicalizeWatchPath(this.spec.filename), {
       ignoreInitial: true,
       awaitWriteFinish: {
@@ -551,24 +550,17 @@ export class LocalCredentialProvider extends CredentialProvider {
         pollInterval: Math.max(1, Math.min(this.spec.debounceMs, 10)),
       },
     })
-    watcher.on('all', () => {
+    const queueRefreshUnlessClosed = () => {
       if (this.closed) return
       this.queueRefresh()
-    })
-    watcher.on('ready', () => {
-      // The initial load raced the watcher's own setup: a change written
-      // between that read and the watcher becoming active never fires an
-      // event. One reconcile at ready closes the gap.
-      if (this.closed) return
-      this.queueRefresh()
-    })
+    }
+    watcher.on('all', queueRefreshUnlessClosed)
+    watcher.on('ready', queueRefreshUnlessClosed)
     watcher.on('error', (error) => {
       this.ctx.logger.warn('credentials-local: watcher error on %s', this.spec.filename)
       this.ctx.logger.warn(error)
     })
     yield async () => {
-      // Quiesce: stop accepting events, close the watcher, then wait out any
-      // queued or in-flight operation so nothing publishes after disposal.
       this.closed = true
       await watcher.close()
       await this.operations
@@ -587,9 +579,6 @@ export class LocalCredentialProvider extends CredentialProvider {
   }
 
   describe(ref) {
-    // Only the inherited environment is unwritable: it is the one layer this
-    // process cannot edit. A user `.env` value is writable in the sense that
-    // matters — storing a key replaces it as the effective one.
     if (this.inherited(ref) !== undefined) {
       return Promise.resolve({ configured: true, source: 'env', writable: false })
     }
@@ -617,17 +606,12 @@ export class LocalCredentialProvider extends CredentialProvider {
 
   describeRecord(key) {
     const stored = this.records.get(key)
-    // Presence is the whole fact here: no layer ranks above this document for
-    // a record, so nothing can shadow one, and an api-key record carrying
-    // neither a key nor environment values is a deliberate statement rather
-    // than a blank.
     if (stored === undefined) return Promise.resolve({ configured: false, writable: true })
     return Promise.resolve({ configured: true, kind: stored.kind, writable: true })
   }
 
   listRecords() {
     return Promise.resolve([...this.records].map(([key, record]) => ({
-      // The parser has already proven every stored key addressable.
       key: parseCredentialKey(key),
       kind: record.kind,
     })))
@@ -639,26 +623,17 @@ export class LocalCredentialProvider extends CredentialProvider {
       if (this.isClosed()) {
         throw new Error(`credentials-local was disposed before the queued "${key}" modify ran`)
       }
-      await mkdir(dirname(this.spec.filename), { recursive: true, mode: 0o700 })
+      await this.ensureLockableDirectory()
       return withFileLock(this.spec.filename, async () => {
-        // Read-modify-write: `mutate` must decide against the record as it
-        // stands now, not as this process last saw it — another process may
-        // have rotated it since.
         await this.reconcileFromDisk()
         const current = this.records.get(key)
         const next = await mutate(current)
         if (next === undefined) return current
-        // Admitted before it is rendered: what the read path would refuse is
-        // refused here first, so a caller can never persist a document the
-        // next boot rejects, and a value refused here has not been stored.
-        if (next.kind === 'grant') assertJsonValue(`record "${key}" payload`, next.payload, new Set())
-        else assertStorableApiKey(key, next)
+        assertStorableRecord(key, next)
         const nextText = renderRecord(this.text, key, next)
-        // 0600: a document holding secrets is never world-readable.
-        await writeFileAtomic(this.spec.filename, nextText, { mode: 0o600, dirMode: 0o700 })
+        await writeFileAtomic(this.spec.filename, nextText, OWNER_ONLY_WRITE)
         this.text = nextText
         this.records.set(key, next)
-        // After the commit, on the same terms as a reference write.
         this.notifyRecordUpdated(key)
         return next
       }, { waitMs: DOCUMENT_LOCK_WAIT_MS })
@@ -671,12 +646,12 @@ export class LocalCredentialProvider extends CredentialProvider {
       if (this.isClosed()) {
         throw new Error(`credentials-local was disposed before the queued "${key}" delete ran`)
       }
-      await mkdir(dirname(this.spec.filename), { recursive: true, mode: 0o700 })
+      await this.ensureLockableDirectory()
       await withFileLock(this.spec.filename, async () => {
         await this.reconcileFromDisk()
         if (!this.records.has(key)) return
         const nextText = renderRecord(this.text, key, undefined)
-        await writeFileAtomic(this.spec.filename, nextText, { mode: 0o600, dirMode: 0o700 })
+        await writeFileAtomic(this.spec.filename, nextText, OWNER_ONLY_WRITE)
         this.text = nextText
         this.records.delete(key)
         this.notifyRecordUpdated(key)
@@ -684,11 +659,7 @@ export class LocalCredentialProvider extends CredentialProvider {
     })
   }
 
-  /* jscpd:ignore-start -- the operation-chain and reload lifecycle is the same
-     reviewed contract as settings-file, deliberately mirrored (prefer symmetry
-     for parallel values); the two providers own different documents and
-     failure policies, so extracting a shared helper would couple their teardown
-     semantics across packages for a handful of lines. */
+  /* jscpd:ignore-start */
   /** Queue one exclusive document operation behind every earlier one. */
   enqueue(operation) {
     const task = this.operations.then(operation)
@@ -699,9 +670,6 @@ export class LocalCredentialProvider extends CredentialProvider {
   /** Queue a reload; only an invariant violation escaping the fan-out can reject it. */
   queueRefresh() {
     void this.enqueue(() => this.refresh()).catch((error) => {
-      // Only an invariant violation escaping the update fan-out can reject a
-      // refresh; keep the operation queue alive and surface it as an error so
-      // one poisoned commit cannot silently end hot reloading forever.
       this.ctx.logger.error('credentials-local: reload commit failed at %s', this.spec.filename)
       this.ctx.logger.error(error)
     })
@@ -719,30 +687,25 @@ export class LocalCredentialProvider extends CredentialProvider {
       if (this.isClosed()) {
         throw new Error(`credentials-local was disposed before the queued "${ref}" ${verb} ran`)
       }
-      // Re-judged at run time: the environment may have changed while queued.
       this.assertUnshadowed(ref, verb)
-      // The writer lock's exclusive create needs the parent to exist; 0700
-      // because the harness home holds user-private data.
-      await mkdir(dirname(this.spec.filename), { recursive: true, mode: 0o700 })
+      await this.ensureLockableDirectory()
       await withFileLock(this.spec.filename, async () => {
-        // Read-modify-write: fold in any on-disk state this process has not
-        // observed yet — an external edit still inside the watcher debounce
-        // window, a change the watcher missed, or another process's write —
-        // so the line edit below can never resurrect a stale document.
         await this.reconcileFromDisk()
         const existing = this.values.get(ref)
         if (value === undefined && existing === undefined) return
         const nextText = renderRef(this.text, ref, value)
-        // 0600: a document holding secrets is never world-readable.
-        await writeFileAtomic(this.spec.filename, nextText, { mode: 0o600, dirMode: 0o700 })
+        await writeFileAtomic(this.spec.filename, nextText, OWNER_ONLY_WRITE)
         this.text = nextText
         if (value === undefined) this.values.delete(ref)
         else this.values.set(ref, value)
-        // After the commit: a broken observer must never make the durable
-        // write look failed (an INVARIANT failure still rethrows).
         this.notifyUpdated(ref)
       }, { waitMs: DOCUMENT_LOCK_WAIT_MS })
     })
+  }
+
+  /** Create the harness home the writer lock needs as a parent, private to the owner. */
+  async ensureLockableDirectory() {
+    await mkdir(dirname(this.spec.filename), { recursive: true, mode: OWNER_ONLY_DIR_MODE })
   }
 
   /**
@@ -754,7 +717,7 @@ export class LocalCredentialProvider extends CredentialProvider {
     if (this.inherited(ref) !== undefined) {
       throw new Error(
         `credentials-local: "${ref}" is supplied read-only by the launching environment, so ${verb} would be`
-        + ' shadowed; unset it in the shell you start dsh from instead',
+        + ' shadowed; unset it in the shell you start freddie from instead',
       )
     }
   }
@@ -803,8 +766,7 @@ export class LocalCredentialProvider extends CredentialProvider {
          through a whole boot (migration.spec drives it best-effort); the
          decision itself is the recognizer's covered versioned-document decline. */
       if (migrated === undefined) return current
-      // 0600: a document holding secrets is never world-readable.
-      await writeFileAtomic(this.spec.filename, migrated, { mode: 0o600, dirMode: 0o700 })
+      await writeFileAtomic(this.spec.filename, migrated, OWNER_ONLY_WRITE)
       this.ctx.logger.info(
         'credentials-local: migrated %s to the version %d layout; values are unchanged',
         this.spec.filename,
@@ -814,9 +776,7 @@ export class LocalCredentialProvider extends CredentialProvider {
     }, { waitMs: DOCUMENT_LOCK_WAIT_MS })
   }
 
-  /* jscpd:ignore-start -- same deliberate mirror of settings-file's reload and
-     reconcile policy: warn-and-keep on a reload, throw on a write, invariant
-     failures propagate. */
+  /* jscpd:ignore-start */
   /**
    * Re-read the document after a watcher event. Unchanged content (including
    * this provider's own writes) is a no-op; an unreadable document keeps the
@@ -843,8 +803,6 @@ export class LocalCredentialProvider extends CredentialProvider {
    * overwriting a document it could not understand.
    */
   async reconcileFromDisk() {
-    // Re-checked on every reload and before every write: an external editor or
-    // a restored backup can loosen the mode after boot.
     await assertOwnerOnly(this.spec.filename)
     let text
     try {

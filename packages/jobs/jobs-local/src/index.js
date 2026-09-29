@@ -21,7 +21,7 @@ export const TASK_WAIT_TIMEOUT = 'TASK_WAIT_TIMEOUT'
 /** Default maximum number of active jobs in one exact-owner bucket. */
 const DEFAULT_MAX_CONCURRENT_TASKS_PER_OWNER = 10
 
-/** True for the three terminal {@link JobStatus} values. */
+/** True for the three terminal {@link import('@freddie/freddie-jobs/src/types.js').JobStatus} values. */
 function isTerminal(status) {
   return status === 'completed' || status === 'killed' || status === 'failed'
 }
@@ -81,7 +81,6 @@ export class LocalJobRegistry extends JobRegistry {
 
   constructor(ctx, config) {
     super(ctx)
-    // Schemastery validates and fills the default before constructing the service.
     this.maxConcurrentJobsPerOwner = config.maxConcurrentJobsPerOwner
     this.selfCtx = ctx
     ctx.effect(() => () => this.disposeAll(), 'jobs teardown')
@@ -137,13 +136,10 @@ export class LocalJobRegistry extends JobRegistry {
     void hooks.done.then(
       (outcome) => { this.settle(job, outcome) },
       (error) => {
-        // Contain a producer contract violation (`done` rejected) so cleanup and waiters cannot hang.
         this.selfCtx.logger.warn(`jobs: job ${job.id} producer done promise rejected (producer contract violation): ${String(error)}`)
         this.settle(job, { status: 'failed', detail: String(error) })
       },
     )
-    // Registration is complete and cannot fail from here, so the visible set
-    // has genuinely changed.
     this.notifyChanged(job.owner)
     return id
   }
@@ -178,7 +174,6 @@ export class LocalJobRegistry extends JobRegistry {
       job.reported = true
       return 'already-finished'
     }
-    // Cancel first so a throw leaves both lifecycle and notice state unchanged.
     job.cancel(reason)
     job.status = 'stopping'
     job.reported = true
@@ -194,8 +189,6 @@ export class LocalJobRegistry extends JobRegistry {
     }
     if (!isTerminal(job.status)) {
       if (signal?.aborted) throw new Error('wait aborted')
-      // Abort removes the waiter synchronously so same-tick settlement cannot
-      // suppress a notice for a wait that will reject.
       job.waiters += 1
       let counted = true
       const uncount = () => {
@@ -204,8 +197,6 @@ export class LocalJobRegistry extends JobRegistry {
         job.waiters -= 1
       }
       try {
-        // The scoped deadline distinguishes a successful wait timeout from
-        // caller cancellation and clears its timer on every exit.
         using d = deadline(signal, timeoutMs, TASK_WAIT_TIMEOUT)
         await new Promise((resolve, reject) => {
           const onSettled = () => {
@@ -215,10 +206,6 @@ export class LocalJobRegistry extends JobRegistry {
           }
           const onAbort = () => {
             job.waitResolvers.delete(onSettled)
-            // A settled job cannot reach here: settlement releases every waiter
-            // before it announces completion, and each released waiter detaches
-            // this listener in the same synchronous span, so nothing that reacts
-            // to a settlement can abort a wait the settlement already owed.
             if (timeoutOf(d.signal, TASK_WAIT_TIMEOUT) !== undefined) {
               resolve()
             } else {
@@ -254,7 +241,6 @@ export class LocalJobRegistry extends JobRegistry {
   }
 
   attachController(name) {
-    // One token per call keeps duplicate labels independently disposable.
     const token = Symbol(name)
     return this.layers.effect(
       this.ctx,
@@ -414,7 +400,6 @@ export class LocalJobRegistry extends JobRegistry {
       throw new Error(`agent "${ownerId}" is not the registered agent instance (background job owner must be live)`)
     }
     if (this.ownerCleanups.has(owner)) return
-    // Record only after attach succeeds; a disposing scope rejects new effects.
     const detach = owner.ctx.effect(() => async () => {
       this.ownerCleanups.delete(owner)
       await this.disposeOwned(owner)
@@ -428,8 +413,6 @@ export class LocalJobRegistry extends JobRegistry {
     this.cancelForTeardown(owned, 'owner disposed')
     await Promise.all(owned.map(job => job.settled))
     for (const job of owned) this.store.delete(job.id)
-    // Removal is the one visible-set change no per-job record carries, so it
-    // must be announced here or an observer keeps the dropped rows forever.
     if (owned.length > 0) this.notifyChanged(owner)
   }
 
@@ -438,21 +421,13 @@ export class LocalJobRegistry extends JobRegistry {
    * effects. Throwing cancels are force-failed to avoid teardown deadlock.
    */
   async disposeAll() {
-    // The flag is the whole guard: each layer entry's undo belongs to the fiber
-    // that registered it, so this service may not drop them on its own way out.
     this.listenersClosed = true
     const all = [...this.store.values()]
     this.cancelForTeardown(all, 'jobs service disposed')
     await Promise.all(all.map(job => job.settled))
-    // Distinct owners whose records just disappeared. A change observer files
-    // into the layer of the context that registered it, so a consumer mounted
-    // outside this service — the api-proxy carrier registers from the mux
-    // stream — is still reachable here. Without this it keeps the rows it last
-    // received after a registry reload.
     const emptied = new Set(all.map(job => job.owner))
     this.store.clear()
     for (const owner of emptied) this.notifyChanged(owner)
-    // Detach cross-fiber owner effects after the shared store is quiescent.
     const ownerCleanups = [...this.ownerCleanups.values()]
     this.ownerCleanups.clear()
     await Promise.all(ownerCleanups.map(cleanup => Promise.resolve(cleanup())))
@@ -466,20 +441,10 @@ export class LocalJobRegistry extends JobRegistry {
   cancelForTeardown(jobs, reason) {
     for (const job of jobs) {
       if (isTerminal(job.status)) continue
-      // Teardown cancellation is a kill without a caller, so it claims the
-      // terminal report the same way `kill()` does. Nothing will read a notice
-      // for a job whose owner or service is being destroyed, and a waking
-      // reporter would spend a model request per teardown layer. This is
-      // decided before the producer runs: the force-failure below settles the
-      // record too, so a throwing cancel must not be the one path that
-      // announces an unreported completion into a disposing owner.
       job.reported = true
       try {
         job.cancel(reason)
         job.status = 'stopping'
-        // Teardown reaches settlement only after the producer releases, which a
-        // slow stop can defer; announcing the transition here is what keeps an
-        // observer from showing `running` for that whole window.
         this.notifyChanged(job.owner)
       } catch (error) {
         const detail = `cancel threw during teardown; work may be orphaned: ${String(error)}`

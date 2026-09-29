@@ -1,0 +1,56 @@
+{
+  "name": "@freddie/freddie-remote-stream",
+  "description": "Frame-stream carrier for Typert Remote endpoints: Host registry turning in-process async generators into pollable streams, plus the Client remote.$stream factory",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/api/remote-stream"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./client": {
+      "default": "./src/client/index.js"
+    },
+    "./typert": {
+      "default": "./src/typert.host.js"
+    },
+    "./remote": {
+      "default": "./src/typert.remote-client.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/**/*.js"
+  ],
+  "freddie": {
+    "client": {
+      "inject": [
+        "@freddie/freddie-api-gateway"
+      ],
+      "platform": "web",
+      "immediately": true,
+      "external": []
+    }
+  },
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-typert-protocol": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-typert-protocol": "*"
+  }
+}

@@ -35,10 +35,6 @@
       "platform": "web"
     }
   },
-  "scripts": {
-    "bundle": "tsdown",
-    "watch": "tsdown --watch"
-  },
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-api-remotes": "*",

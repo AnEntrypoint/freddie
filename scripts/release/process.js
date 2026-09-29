@@ -44,8 +44,6 @@ export function attemptEchoed(command, args, options = {}) {
     cwd: options.cwd,
     env: options.env,
     encoding: 'utf8',
-    // 'inherit' would leave nothing to capture, so the streams are piped and
-    // echoed instead.
     stdio: ['inherit', 'pipe', 'pipe'],
   })
   if (result.error !== undefined) throw result.error

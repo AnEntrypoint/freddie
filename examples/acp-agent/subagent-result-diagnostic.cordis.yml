@@ -1,5 +1,3 @@
-# Test-only product-shaped composition: mount a deterministic provider behind
-# the same one-shot tool schema as the public Codex example.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

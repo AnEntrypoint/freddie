@@ -24,8 +24,6 @@ import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 export function numberField(field) {
   return {
     field,
-    // A section that carries no number for this field renders empty rather
-    // than as a value nobody chose.
     format: value => typeof value === 'number' ? String(value) : '',
     parse: (text) => {
       const trimmed = text.trim()
@@ -223,8 +221,6 @@ export class CardForm {
 
   spec(field) {
     const spec = this.specs.get(field)
-    // Every call site names a field this card declared; a missing one is a
-    // wiring mistake that must not degrade into a silently inert control.
     if (spec === undefined) throw new Error(`plugin card has no field ${field}`)
     return spec
   }

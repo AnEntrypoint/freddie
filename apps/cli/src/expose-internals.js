@@ -23,10 +23,6 @@ export async function reexecWithExposeInternals() {
   )
   const code = await new Promise((resolvePromise) => {
     child.on('exit', (exitCode, signal) => {
-      // A signal-terminated child (SIGINT/SIGTERM forwarded by the shell to
-      // this whole process group) has no numeric code; re-raising the same
-      // signal on this process reproduces the shell's usual 128+n reporting
-      // instead of inventing an exit code that was never really produced.
       if (signal !== null) {
         process.kill(process.pid, signal)
         return

@@ -92,8 +92,6 @@ class NotificationSubscriptionImpl {
   /** Detach from the client; queued items drop and pending waiters reject. */
   close() {
     this.unsubscribe()
-    // The drop is part of this method's contract; a runtime-death fail() keeps
-    // the queue so already-delivered notifications remain drainable.
     this.state.queue.length = 0
     this.fail(new TransportClosedError('notification subscription closed'))
   }
@@ -141,6 +139,16 @@ class NotificationSubscriptionImpl {
 }
 
 /**
+ * Launch spec, complete child environment, and timeouts for {@link HarnessClient}.
+ * @typedef {object} HarnessClientOptions
+ * @property {string} command - the runtime executable to spawn.
+ * @property {readonly string[]} [args]
+ * @property {string} [cwd]
+ * @property {NodeJS.ProcessEnv} [env] - replaces the child environment entirely when given; `undefined` inherits the parent's.
+ * @property {number} [requestTimeoutMs] - default per-request timeout, overridable per call.
+ */
+
+/**
  * JSON-RPC client for the Freddie SDK runtime over subprocess stdio.
  *
  * The subprocess starts lazily on {@link start} and is owned by this instance
@@ -181,14 +189,9 @@ export class HarnessClient {
     this.child = child
     child.once('error', (error) => {
       this.spawnError = error
-      // A spawn failure destroys the pipes without an input 'end' edge, so the
-      // transport's pending requests must be failed here.
       this.transport?.close()
       this.failSubscriptions(this.closedError('Freddie runtime failed to start'))
     })
-    // Writes racing the runtime's death EPIPE on stdin; the exit edge below is
-    // the real signal, so the stream-level error only needs to be non-fatal.
-    // The timing of that race is not deterministically reproducible.
     /* v8 ignore next */
     child.stdin.on('error', () => {})
     let stderrBuffer = ''
@@ -219,9 +222,6 @@ export class HarnessClient {
       this.failSubscriptions(this.closedError('Freddie runtime exited'))
     })
     child.once('close', () => {
-      // All stdio has settled: stdout 'end' already drained every tail frame,
-      // so closing now cannot drop responses — it only fails requests that
-      // will never be answered.
       this.transport?.close()
     })
     const transport = new JsonRpcLineTransport(child.stdout, child.stdin)
@@ -286,8 +286,6 @@ export class HarnessClient {
    */
   async request(method, params, timeoutMs) {
     this.start()
-    // A dead runtime cannot answer; fail with process context instead of
-    // writing into a destroyed pipe and hanging until the timeout.
     if (this.exitCode !== undefined || this.spawnError !== undefined) {
       await this.settleStreams()
       throw this.closedError('Freddie runtime is not running')
@@ -298,9 +296,6 @@ export class HarnessClient {
     const timeout = timeoutMs ?? this.options.requestTimeoutMs
     try {
       if (timeout === undefined) return await transport.request(method, params ?? {})
-      // The abort signal makes the timeout an abandonment: the transport drops
-      // its pending entry, so repeated bounded requests against a hung method
-      // retain no per-call state (the server-side work still runs to close).
       const abandon = new AbortController()
       const timer = setTimeout(() => {
         abandon.abort(new RequestTimeoutError(`${method} timed out after ${timeout}ms waiting for the Freddie runtime`))
@@ -312,7 +307,6 @@ export class HarnessClient {
       }
     } catch (error) {
       if (error instanceof JsonRpcResponseError || error instanceof RequestTimeoutError) throw error
-      // Transport-level failures gain process context: exit code + stderr tail.
       await this.settleStreams()
       throw this.closedError(errorMessage(error))
     }
@@ -374,8 +368,6 @@ export class HarnessClient {
     try {
       await this.request('shutdown', undefined, this.options.shutdownTimeoutMs ?? 1_000)
     } catch (error) {
-      // Diagnostic only: the dispose ladder below is the authoritative teardown
-      // for a runtime that cannot answer shutdown anymore.
       this.appendStderr([`shutdown request failed: ${errorMessage(error)}`])
     }
     await disposeRuntimeProcess(child, {
@@ -410,7 +402,6 @@ export class HarnessClient {
       if (parent === undefined) return false
       current = parent
     }
-    // The parent map only ever extends chains upward, so a cycle cannot form.
     /* v8 ignore next */
     return false
   }

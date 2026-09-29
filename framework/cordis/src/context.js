@@ -12,6 +12,15 @@ import { Fiber } from './fiber.js'
  * while `extend()`, `isolate()`, and `intercept()` create scoped child
  * contexts without mutating their parent.
  */
+/**
+ * One effect's diagnostics tree, as exposed under `disposer[symbols.effect]`:
+ * the effect's own label plus the same tree for every nested effect it
+ * registered before this node was read.
+ * @typedef {object} EffectMeta
+ * @property {string} label - the label passed to `fiber.effect()`, or `'anonymous'`.
+ * @property {EffectMeta[]} children - nested effects registered inside this one.
+ */
+
 export class Context {
   /** Symbol key under which a disposer exposes its {@link EffectMeta} diagnostics tree. */
   static effect = symbols.effect

@@ -1,7 +1,3 @@
-// flattenLineage: summaries -> flat list with lineage indentation (pure function).
-// The input order is authoritative; lineage only makes each child adjacent to its parent.
-// Orphaned lineage degrades to root level; cycles fail soft and emit as roots.
-
 /**
  * Summaries -> flat list with lineage indentation. Root and sibling order
  * follows the established input order; this projection never re-sorts a
@@ -27,7 +23,7 @@ export function flattenLineage(
       list.push(s)
       children.set(s.parentSessionId, list)
     } else {
-      roots.push(s) // root, or an orphan whose parent is absent from summaries (degrade to root, never drop)
+      roots.push(s)
     }
   }
 
@@ -51,7 +47,6 @@ export function flattenLineage(
     for (const kid of kids) walk(kid, depth + 1)
   }
   for (const root of roots) walk(root, 0)
-  // Cycle members (unreachable from any root): emit as roots so no entry is lost.
   for (const s of summaries) {
     if (!visited.has(s.sessionId)) walk(s, 0)
   }

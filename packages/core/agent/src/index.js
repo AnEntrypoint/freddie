@@ -63,12 +63,6 @@ export class AgentRegistry extends Service {
         resolve: sessionId => this.get(sessionId)?.ctx,
       })
     })
-    // The `ctx.agent` DX accessor: default `undefined` on every context, so a
-    // plain plugin context reads cleanly instead of hitting the Cordis
-    // unknown-property throw. Each Agent.ctx shadows it with an own property
-    // (own properties resolve before the context proxy is consulted), so the
-    // accessor body never needs to resolve a scope itself. Effect-scoped:
-    // unwinds with this service's fiber.
     ctx.accessor('agent', { get: () => undefined })
     ctx.on('internal/status', (fiber) => {
       if (fiber.state === FiberState.UNLOADING && this.hasLifecycleAncestor(fiber)) {
@@ -156,17 +150,10 @@ export class AgentRegistry extends Service {
   setFactory(factory) {
     const dispose = this.ctx.effect(() => {
       if (this.factory !== undefined) throw new Error('an agent factory is already registered')
-      // Avoid stacking two Cordis shadow layers when a caller passes a Service
-      // already read through a context. Calls are re-traced through their
-      // actual owner context below.
       const target = factory[symbols.original] ?? factory
       this.factory = { target }
       return () => { this.factory = undefined }
     }, 'agents.setFactory()')
-    // The exact cordis effect disposer (the agents.register() convention): a
-    // caller's composite effect can yield it for in-order teardown; the
-    // loop's constructor effect returns it directly, identity-nesting the
-    // registration under that effect.
     return dispose
   }
 
@@ -187,10 +174,6 @@ export class AgentRegistry extends Service {
    */
   async create(options) {
     const ownerCtx = this.ctx
-    // Re-trace a Service-backed factory through the accessing context
-    // explicitly. This preserves AgentLoop's dependency origin while binding
-    // its effects to ownerCtx; plain factories receive ownerCtx as an explicit
-    // capability and need no Cordis tracker magic.
     const { target } = this.requireFactory()
     const receiver = getTraceable(ownerCtx, target)
     return Reflect.apply(target.createAgent, receiver, [ownerCtx, options])
@@ -257,8 +240,6 @@ export class AgentRegistry extends Service {
       throw new Error(`agent id "${id}" does not match session id "${agent.session.id}"`)
     }
     const carrier = scopeTarget(agent, agent)
-    // This is the authoritative collision boundary. Concurrent create/resume
-    // operations may both prepare, but only one exact entry can publish.
     if (this.store.has(id)) throw new Error(`agent "${id}" is already registered`)
     const entry = {
       id,
@@ -274,11 +255,6 @@ export class AgentRegistry extends Service {
     const detach = () => {
       if (!entered) return
       entered = false
-      // Every callback reached by this creation dispatch must observe the same
-      // live entry, and disposal must follow creation. A listener may own
-      // the advanced detach capability, so make that ordering structural:
-      // visibility and the paired disposal are deferred until announce()'s
-      // synchronous dispatch has unwound.
       if (entry.announcing) {
         entry.detachRequested = true
         return
@@ -291,15 +267,9 @@ export class AgentRegistry extends Service {
   /** Remove one exact entered agent and emit its paired disposal when announced. */
   detachEntered(entry) {
     entry.detachRequested = false
-    // A stale capability can never delete a later same-id lifecycle. The
-    // captured entry identity is the final boundary.
     /* v8 ignore next -- enter() rejects replacement while this single-shot detach capability is live. */
     if (this.store.get(entry.id) !== entry) return
     this.store.delete(entry.id)
-    // An insertion rolled back before announce was never externally created,
-    // so emitting disposed would invent an impossible lifecycle edge. Marking
-    // happens before the created emit: if a later created listener throws,
-    // earlier listeners may already have observed it and must see disposal.
     if (!entry.announced) return
     this.emitDisposed(entry)
   }
@@ -334,16 +304,11 @@ export class AgentRegistry extends Service {
     if (entry.announced || entry.announcing) {
       throw new Error(`agent "${entry.id}" was already announced`)
     }
-    // Mark before dispatch so a listener cannot recursively create a second
-    // lifecycle edge; detach still pairs a partially delivered first edge.
     entry.announcing = true
     entry.announced = true
     const args = [entry.carrier, 'agent/created', { agent: entry.agent }]
     try {
       for (const callback of this.ctx.events.dispatch('emit', args)) {
-        // A synchronous creation failure vetoes publication and rolls back.
-        // Returned-promise rejection happens after this synchronous boundary, so
-        // observe and report it instead of leaking an unhandled rejection.
         const returned = callback(...args)
         void Promise.resolve(returned).catch((error) => {
           this.ctx.logger.warn(`agent "${entry.id}": agent/created listener rejected: ${String(error)}`)
@@ -439,8 +404,6 @@ export class AgentRegistry extends Service {
           () => { this.releaseInitiatorRun(run) },
         )
       } catch {
-        // A branded Promise may expose a failing @@species. Observer setup did
-        // not attach, so preserve the exact return without leaking the run.
         this.releaseInitiatorRun(run)
       }
     } else {

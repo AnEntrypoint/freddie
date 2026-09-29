@@ -61,7 +61,7 @@ function isMissingPathError(error) {
  * True when this project still has a claimed `.inflight` or unclaimed `.txt`
  * spool in-file. A long codesearch holds `.inflight` for minutes; the 3s
  * project ticker then rewrites `.status.json` without `busy_until`, so
- * {@link isDaemonHung} fires while the daemon is still working. Queued
+ * {@link import('./daemon.js').isDaemonHung} fires while the daemon is still working. Queued
  * work licenses waiting until `timeoutMs`/`signal`, never a hung throw.
  * @param cwd - project root containing `.gm/exec-spool`.
  */
@@ -146,18 +146,10 @@ export async function dispatch({
 
   await mkdir(inDir, { recursive: true })
   await mkdir(outDir, { recursive: true })
-  // Defense in depth against a stale response at this exact key -- the
-  // processEpoch already makes a genuine collision implausible, but a
-  // leftover file (e.g. from an aborted prior run using the SAME epoch,
-  // such as a process that crashed and restarted within the same
-  // millisecond, or a filesystem that failed to clean up) must never be
-  // mistaken for this dispatch's real answer.
   await unlink(outPath).catch((error) => {
-    // ENOENT: nothing leftover at this key. Any other syscall is unexpected.
     if (!isMissingPathError(error)) throw error
   })
   await unlink(readyPath).catch((error) => {
-    // ENOENT: nothing leftover at this key. Any other syscall is unexpected.
     if (!isMissingPathError(error)) throw error
   })
   const stagingPath = `${inPath}.tmp`
@@ -301,7 +293,6 @@ function waitForOutOrTimeout(dir, ms, signal) {
       watcher = watch(dir, { persistent: false }, () => finish())
       watcher.on('error', () => finish())
     } catch (error) {
-      // EMFILE / Windows watch failure: poll remains the waiter.
       void error
       watcher = undefined
     }

@@ -19,6 +19,11 @@ export { workspaceDomainState, workspaceRecord, workspaceDomainSpec } from './sp
 export { realpathNormalize } from './paths.js'
 
 /**
+ * Identifies one durable workspace record.
+ * @typedef {string} WorkspaceId
+ */
+
+/**
  * Brand a string as a {@link WorkspaceId}. The brand has no runtime
  * representation — this is an identity passthrough kept for callers of the
  * companion caster.
@@ -130,11 +135,6 @@ export class WorkspaceRegistry extends Service {
    * @param title - Display title used only when a new record is created.
    * @returns the existing or newly durable workspace.
    */
-  // TODO: `title` lost its last production caller when the gateway's
-  // create-by-name branch was deleted
-  // (.agents/notes/implemented/simplification/2026-07-31-one-route-to-add-a-workspace.md);
-  // drop the parameter with its @param clause and the `create(path, title?)`
-  // lines in this package's README pair.
   async create(path, title) {
     const canonical = await realpathNormalize(path)
     if (!(await stat(canonical)).isDirectory()) {
@@ -223,8 +223,6 @@ export class WorkspaceRegistry extends Service {
    */
   archiveSession(sessionId) {
     return this.enqueueOperation(async () => {
-      // The chain slot serializes against every other registry write, so this
-      // check-then-write pair cannot interleave with another archive.
       if (this.requireState().archivedSessionIds.includes(sessionId)) return
       if (!(await this.sessionKnown(sessionId))) {
         throw new WorkspaceUnknownSessionError(sessionId)
@@ -356,9 +354,6 @@ export class WorkspaceRegistry extends Service {
       try {
         await this.setState(state)
       } catch (rollbackError) {
-        // The durable marker still says to finish deletion, so the cache must
-        // agree with that recoverable direction rather than republish a row
-        // absent from the persisted order.
         this.entities.delete(id)
         throw new AggregateError(
           [error, rollbackError],
@@ -370,9 +365,6 @@ export class WorkspaceRegistry extends Service {
     try {
       await this.setState(nextState)
     } catch (error) {
-      // The deletion committed at the table write and was already published
-      // to Host streams. Keep the durable marker for startup recovery rather
-      // than reporting failure after the requested state became true.
       this.ctx.logger.warn(
         `workspace '${id}' was deleted but its pending marker could not be cleared: ${String(error)}`,
       )
@@ -627,8 +619,6 @@ export class WorkspaceRegistry extends Service {
 
   enqueueOperation(operation) {
     const result = this.operationTail.then(async () => {
-      // A committed delete may leave only its marker cleanup pending. Retry
-      // recovery before another create/delete can overwrite that pending operation record.
       await this.recoverPendingMutation()
       return await operation()
     })

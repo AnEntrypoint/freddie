@@ -10,9 +10,6 @@ import z from '@freddie/schemastery'
 import { defineTool } from '@freddie/freddie-tools'
 
 export const name = 'tool-subagent-report'
-// The contribution registers only through childCtx.tools and
-// childCtx.systemPrompt, but declaring both services makes Loader ordering fail
-// at load instead of at the next child materialization.
 export const inject = ['subagents', 'tools', 'systemPrompt']
 
 /** Guidance order after every per-tool section a continuable child can carry. */
@@ -74,8 +71,6 @@ export function installReportTool(childCtx, ctx, delivery) {
       },
       async execute(args, exec) {
         const content = [{ type: 'text', text: args.output }]
-        // Scope-local resolution guarantees an Agent. The service still verifies
-        // its exact live Activation identity at the authority boundary.
         const messageId = await ctx.subagents.reportFrom(exec.agent, content, {
           delivery,
           signal: exec.signal,
@@ -115,8 +110,6 @@ export function installReportTool(childCtx, ctx, delivery) {
  * @param config - deployment scheduling policy.
  */
 export function apply(ctx, config = {}) {
-  // Config() applies the schema default at runtime; the schemastery return
-  // type keeps the input's optional shape, so assert the resolved one.
   const { reportDelivery } = Config(config)
   ctx.subagents.registerContinuableSetup(childCtx =>
     installReportTool(childCtx, ctx, reportDelivery))

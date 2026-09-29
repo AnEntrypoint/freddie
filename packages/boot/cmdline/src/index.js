@@ -1,10 +1,10 @@
 /**
- * @freddie/freddie-cmdline — the command line a dsh launcher hands to the app
+ * @freddie/freddie-cmdline — the command line the freddie launcher hands to the app
  * it boots.
  *
  * The launcher parses only its own flags (`--profile`, `--patch`, the config
  * dumps) and hands everything after them to the tree verbatim through the
- * {@link CmdlineArgs} service, so an app owns its flag family, its `--help`
+ * `cmdlineArgs` service, so an app owns its flag family, its `--help`
  * text, and its parse errors instead of the launcher knowing them.
  *
  * Any app plugin can inject `cmdlineArgs` and call {@link parseCmdline}. A
@@ -18,7 +18,7 @@
 
 /**
  * The invocation's inner arguments: everything after the launcher's own flags,
- * verbatim and in argv order. `dsh --profile tui --resume abc` yields
+ * verbatim and in argv order. `freddie --profile web --resume abc` yields
  * `['--resume', 'abc']`.
  */
 
@@ -97,8 +97,6 @@ export function exitOnStdinEnd(ctx, label) {
  * or when no command in the program declares an action.
  */
 export function parseCmdline(ctx, program) {
-  // Read through the global service store, not the property proxy: appExit is
-  // an optional host value and the plugin only needs to inject cmdlineArgs.
   const args = ctx.get('cmdlineArgs')
   const exit = ctx.get('appExit')
   if (args === undefined || exit === undefined) {
@@ -111,9 +109,6 @@ export function parseCmdline(ctx, program) {
   try {
     program.parse(args.get(), { from: 'user' })
   } catch (error) {
-    // exitOverride turns help, version, a parse error, and the action's own
-    // program.error() into a CommanderError; commander has already written the
-    // text through the output configured above.
     if (!isCommanderError(error)) throw error
     exit(error.exitCode)
   }

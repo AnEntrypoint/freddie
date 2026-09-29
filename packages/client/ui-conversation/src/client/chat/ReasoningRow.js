@@ -92,6 +92,13 @@ export class FreddieReasoningRow extends HTMLElement {
 defineElement('freddie-reasoning-row', FreddieReasoningRow)
 
 /**
+ * @typedef {object} ReasoningRowProps
+ * @property {string} text - the reasoning text accumulated so far.
+ * @property {boolean} running - whether reasoning is still streaming.
+ * @property {(key: string, vars?: object) => string} t - localization function.
+ */
+
+/**
  * Create (if needed) or update a ReasoningRow element in place.
  * @param el - an existing `freddie-reasoning-row` element to update, or null to create one.
  * @param props - see {@link ReasoningRowProps}.

@@ -58,10 +58,6 @@ export class InputHub {
       steerQueue: () => { void this.steerQueue(session, shell) },
       commandImages: {
         serialize: ids => this.conversation().serializeDraftImages(ids),
-        // Asymmetric with serialize on purpose: release settles AFTER the
-        // submit RPC, where session teardown may already have unloaded the
-        // conversation service (the same tolerance as the scope disposer
-        // above); leaked preview URLs then die with the document.
         release: (ids) => {
           const conversation = this.rootCtx.get('conversation')
           for (const imageId of ids) conversation?.releaseDraftImage(imageId)
@@ -72,8 +68,6 @@ export class InputHub {
       },
     })
     this.shells.set(id, shell)
-    // The one teardown axis: listeners, shell, and map entries all ride the
-    // scope fiber (nothing here outlives the scope).
     actx.effect(() => {
       const offs = [
         actx.on('slash/input-begin-command', req =>

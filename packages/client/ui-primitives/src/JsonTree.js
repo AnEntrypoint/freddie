@@ -1,11 +1,3 @@
-// JsonTree: read-only, keyboard-accessible JSON inspector tree with
-// hover-triggered per-row copy controls (value/JSON/path via a right-click
-// or long-press menu). Converted from a React hooks component to a webjsx
-// custom element: every useState becomes an instance field, useEffect
-// mount/cleanup becomes connectedCallback/disconnectedCallback, and
-// re-render is an explicit applyDiff(this, vdom) call (Toast.tsx's
-// pattern). The copy control's Menu is now the class-based FreddieMenu; it is
-// created once and updated via setProps rather than re-mounted every render.
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
@@ -203,7 +195,6 @@ function renderJsonTreeNode(args) {
   const toggle = () => {
     expandState.set(nodeId, !expanded)
     rerender()
-    // Refocus the expander after the diff lands.
     queueMicrotask(() => {
       const el = document.querySelector(`[data-json-expander][data-node-id="${nodeId}"]`)
       if (el !== null) claimFocus(el)
@@ -222,9 +213,6 @@ function renderJsonTreeNode(args) {
       moveFocus(event.currentTarget, event.key === 'ArrowUp' ? -1 : 1)
       return
     }
-    // role="button" implies the same Enter/Space activation a native
-    // <button> auto-synthesizes on keydown -- this is a <span>, so nothing
-    // does that here without an explicit handler.
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
       toggle()
@@ -614,8 +602,6 @@ export class FreddieJsonTree extends HTMLElement {
     )
     applyDiff(this, vdom)
 
-    // The copy menu is a separately-managed portal element (Menu's own
-    // pattern), wired to the just-rendered copy button.
     if (this.#copyTarget !== undefined) {
       const button = this.querySelector('[data-json-copy-button-el]')
       this.#menuEl = renderMenu(this.#menuEl, {
@@ -642,6 +628,18 @@ export class FreddieJsonTree extends HTMLElement {
 }
 
 defineElement('freddie-json-tree', FreddieJsonTree)
+
+/**
+ * @typedef {object} JsonTreeProps
+ * @property {(object|Array<*>)} [data={}] - the JSON-like value to inspect; rendered as an expandable tree.
+ * @property {string} [label='JSON'] - accessible name for the tree's `role="tree"` container.
+ * @property {string} [className] - additional class name(s) merged onto the root element.
+ * @property {boolean} [copyable=true] - shows the hover copy button and its context menu.
+ * @property {boolean} [expandTopLevel=true] - renders the root's own entries already expanded, without a
+ *   collapsible root node.
+ * @property {object} [labels] - label overrides merged over the built-in English defaults (copy actions,
+ *   collapse/expand node labels).
+ */
 
 /**
  * Create (if needed) or update a JsonTree element in place.

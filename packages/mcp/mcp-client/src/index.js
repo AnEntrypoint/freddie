@@ -37,8 +37,6 @@ const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/
  */
 const activeServerNames = new WeakMap()
 
-// ---- Config ----
-
 const Reconnect = z.object({
   enabled: z.boolean().default(RECONNECT_DEFAULTS.enabled),
   initialDelayMs: z.number().min(1).max(MAX_TIMER_DELAY_MS).default(RECONNECT_DEFAULTS.initialDelayMs),
@@ -69,8 +67,6 @@ export const Config = z.union([
   }),
 ])
 
-// ---- Plugin apply ----
-
 /**
  * Connect one MCP server and publish its initial tool generation before activation.
  * This entry remains explicitly `async`: Cordis treats a prototype-bearing
@@ -80,13 +76,8 @@ export const Config = z.union([
  * @returns startup readiness after connection and initial tool discovery settle.
  */
 export async function apply(ctx, config) {
-  // Fail loud at load: reconnect misconfiguration (including programmatic
-  // construction that bypassed Schemastery) rejects THIS instance before any
-  // effect registers.
   const reconnect = resolveReconnectPolicy(config.reconnect, `mcp-client(${config.serverName}): reconnect`)
 
-  // Reserve the namespace next: a duplicate `serverName` fails THIS instance
-  // at load with an actionable error and leaves the earlier instance intact.
   ctx.effect(() => {
     const owner = scopeOf(ctx) ?? ctx.root
     let names = activeServerNames.get(owner)
@@ -103,20 +94,12 @@ export async function apply(ctx, config) {
     return () => void names.delete(config.serverName)
   }, 'mcp-client.serverName')
 
-  // The supervisor owns the client/transport generations, the reconnect
-  // loop, and the live tool registrations; disposal stops reconnection,
-  // quiesces in-flight work, and unregisters the current generation.
   const connection = startConnection(ctx, config, reconnect)
 
   ctx.effect(() => {
     return () => connection.dispose()
   }, 'mcp-client.connection')
 
-  // Block plugin activation on the initial connection + tool discovery so
-  // Cordis consumers observe the tools immediately after the fiber activates.
-  // When failOnStartupError is true, a failed initial attempt rejects the
-  // fiber (Cordis rolls it back); otherwise the error is logged and the
-  // supervisor enters its reconnect loop.
   const outcome = await connection.ready
   if (outcome.error !== undefined && config.failOnStartupError) {
     throw new Error(`mcp-client(${config.serverName}): initial connection or tool synchronization failed`, { cause: outcome.error })

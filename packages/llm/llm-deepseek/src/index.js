@@ -329,9 +329,6 @@ export function apply(ctx, config) {
       lastGood = next
       return next
     } catch (error) {
-      // Static composition resolves before anything registers, so this branch
-      // only sees a live settings snapshot failing a beyond-schema bound:
-      // keep serving the last good facts and say so once per bad snapshot.
       if (lastGood === undefined) throw error
       lastRaw = raw
       ctx.logger.error('llm-deepseek: keeping the last good configuration after an invalid settings section')
@@ -342,16 +339,12 @@ export function apply(ctx, config) {
   options()
 
   const resolveApiKey = async (connection) => {
-    // Every credential fact comes from the caller's snapshot, so a rejected
-    // settings generation cannot leak its key onto the previous endpoint.
     const ref = connection.apiKeyEnv
     const credentials = ctx.get('credentials')
     if (credentials !== undefined) {
       const hit = await credentials.resolve(ref)
       if (hit !== undefined) return assertUsableApiKey(hit.value, 'llm-deepseek', ref)
     } else {
-      // Without the seam there is no managed store to rank against, so the
-      // environment is the whole credential plane.
       const ambient = launchEnvironmentOf(ctx).get(ref)
       if (ambient !== undefined && ambient.value.length > 0) {
         return assertUsableApiKey(ambient.value, 'llm-deepseek', ref)
@@ -420,18 +413,11 @@ export function apply(ctx, config) {
       }]
     })
   })
-  // Route effects bind to this apply fiber via the stable `ctx` reference,
-  // even when a swap runs inside the scoped settings callback below.
   const registration = ctx.llm.registerAdapter([PROVIDER], adapter)
   let registeredPolicy = options().retryPolicy
   const ensureRegistrationFacts = () => {
     const policy = options().retryPolicy
     if (deepEqualJson(policy, registeredPolicy)) return
-    // The registry captures the retry policy at registration, so it is the one
-    // fact per-request resolution cannot refresh. `replace` re-reads it in one
-    // synchronous registry section: disposing and re-registering instead would
-    // publish an empty route set between the two, and an observer that reacted
-    // to it would see this provider disappear and come back.
     registration.replace([PROVIDER])
     registeredPolicy = policy
   }

@@ -245,7 +245,6 @@ export class E2BSubprocessHandle {
           return false
         }
         this.throwTerminationFailure()
-        // Successful pre-publication termination records quiescence; its only other outcome is the failure above.
         return true
       }
     } else {
@@ -377,8 +376,6 @@ export class E2BSubprocessHandle {
     const signal = this.terminationController.signal
     const ambient = await readRemoteEnvironment(sandbox, signal)
     this.controlEnvs = bootstrapEnvironment(ambient)
-    // Own the directory before the request: a cancellation racing a committed
-    // creation must still enter cleanup (removal tolerates an absent path).
     this.stateDirectoryCreated = true
     await sandbox.files.makeDir(this.stateDir, { signal })
     await sandbox.commands.run(
@@ -406,7 +403,6 @@ export class E2BSubprocessHandle {
       await handle.sendStdin(this.spec.stdio.stdin.data)
       await handle.closeStdin()
     } catch (_processClosedItsInput) {
-      // Like the local adapter, batch stdin is best-effort; exit and output remain authoritative.
     }
   }
 
@@ -466,8 +462,6 @@ export class E2BSubprocessHandle {
       () => true,
     )
     while (true) {
-      // TODO(e2b-publication-cancel): Join cancellation to the existing
-      // termination transaction before aborting an in-flight SDK file read.
       const raw = await sandbox.files.read(this.paths.pid)
       const value = raw.trim()
       if (value.length > 0) {
@@ -475,8 +469,6 @@ export class E2BSubprocessHandle {
         if (!/^[1-9][0-9]*$/.test(value) || !Number.isSafeInteger(pid)) {
           throw new Error(`subprocess-e2b: remote wrapper published invalid process-group id ${JSON.stringify(value)}`)
         }
-        // A same-UID sandbox process can rewrite this file; refuse ids whose
-        // negative form addresses every process (`kill -- -1`) or init's group.
         if (pid <= 1) {
           throw new Error(`subprocess-e2b: unsafe published process-group id ${pid}`)
         }
@@ -507,15 +499,11 @@ export class E2BSubprocessHandle {
         this.outputDrainExpired = true
         this.stdoutReader?.invalidateSpill()
         this.stderrReader?.invalidateSpill()
-        // Release inherited-output waits so a callback blocked on host
-        // backpressure cannot keep the disconnected SDK settlement pending.
         this.outputReleased.abort(new Error('subprocess-e2b: output drain grace expired'))
         await handle.disconnect()
         return { exitCode, signal: null }
       }
       if (completed !== undefined) return this.commandOutcome(completed)
-      // TODO(e2b-status-watch): Replace collect/inherit control-plane polling
-      // when E2B can observe direct-command exit independently of descendant-held output.
       completed = await Promise.race([settlement, waitTick(this.pollMs).then(() => undefined)])
     }
   }
@@ -548,10 +536,6 @@ export class E2BSubprocessHandle {
   }
 
   async rollbackUnpublishedGroup(sandbox, handle) {
-    // The bootstrap ends in an exec chain through the scrubbed environment and
-    // `setsid`, so E2B's command PID is the provisional group id even before the
-    // private publication file can be trusted. Kill that group before the SDK-PID
-    // fallback, then prove no group member survived before rejecting startup.
     await this.forceKillGroup(sandbox, handle, handle.pid)
     this.markQuiescent()
   }
@@ -593,7 +577,6 @@ export class E2BSubprocessHandle {
         return
       }
     } catch (_gracefulTerminationFailure) {
-      // Failed TERM delivery or observation cannot prove exit; force cleanup still owns the group.
     }
     this.terminationSignal = 'SIGKILL'
     await this.forceKillGroup(sandbox, handle, processGroupId)
@@ -604,12 +587,10 @@ export class E2BSubprocessHandle {
     try {
       await signalRemoteGroups(sandbox, this.controlEnvs, [processGroupId], 'KILL')
     } catch (_processGroupKillFailure) {
-      // SDK kill and the final liveness probe remain independent cleanup paths.
     }
     try {
       await handle.kill()
     } catch (_sdkKillFailure) {
-      // The final liveness probe, not either transport's self-report, proves cleanup.
     }
     if (await this.waitForGroupExit(sandbox, processGroupId)) return
     throw new Error(`subprocess-e2b: remote process group ${processGroupId} remained live after force termination`)
@@ -644,11 +625,9 @@ export class E2BSubprocessHandle {
     const removals = []
     const collect = (mode, reader, path) => {
       if (!hasSpill(mode)) return
-      // A spill mode is a collect mode, so construction always created its reader.
       const size = reader.size
       if (this.outputDrainExpired || size <= mode.maxBytes || size > mode.spill.maxBytes) {
         removals.push(sandbox.files.remove(path).catch((_adapterPrivateSpillRemovalFailure) => {
-          // The command outcome is authoritative; owner teardown bounds private residue.
         }))
       }
     }

@@ -1,16 +1,3 @@
-// TerminalBlock: the terminal surface for a shell command and its output —
-// prompt line (run-state dot + shortened cwd + command), ANSI-colored output,
-// settled exit status, and a copy control for the raw output. Output never soft-wraps:
-// column-aligned output (ls, tables, box drawing) keeps its alignment and
-// scrolls horizontally instead of folding. Colors resolve through --dsw-*
-// tokens; ANSI parsing lives in ansi.ts.
-//
-// Converted from a React hooks component to a webjsx custom element:
-// expanded becomes an instance field, and copy feedback now uses the
-// createCopyFeedback factory (replacing the old useCopyFeedback hook) driven
-// from connectedCallback/disconnectedCallback. Re-render is an explicit
-// applyDiff(this, vdom) call (Toast.tsx's pattern).
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { parseAnsiLines } from './ansi.js'
@@ -91,8 +78,6 @@ export class FreddieTerminalBlock extends HTMLElement {
   }
 
   connectedCallback() {
-    // The raw output, never the rendered tree: the prompt line and the status
-    // pill are chrome the user did not run.
     this.#copyFeedback = createCopyFeedback(() => this.#props.output ?? '', () => { this.#render() })
     this.#render()
   }
@@ -110,13 +95,11 @@ export class FreddieTerminalBlock extends HTMLElement {
     const copy = labels === undefined ? DEFAULT_LABELS : { ...DEFAULT_LABELS, ...labels }
     const text = output ?? ''
 
-    // A command's output ends with a newline; that terminator is not an extra
-    // blank line to draw or to count against the height cap.
     const parsed = parseAnsiLines(text)
     const last = parsed[parsed.length - 1]
-    const terminated = parsed.length > 1 && last !== undefined
+    const hasTrailingTerminatorLine = parsed.length > 1 && last !== undefined
       && last.every(span => span.text === '')
-    const lines = terminated ? parsed.slice(0, -1) : parsed
+    const lines = hasTrailingTerminatorLine ? parsed.slice(0, -1) : parsed
 
     const copied = this.#copyFeedback?.copied ?? false
 
@@ -193,6 +176,36 @@ export class FreddieTerminalBlock extends HTMLElement {
 }
 
 defineElement('freddie-terminal-block', FreddieTerminalBlock)
+
+/**
+ * @typedef {object} TerminalBlockLabels
+ * @property {function(string|number): string} [signal] - text for a run that ended on a signal.
+ * @property {function(number): string} [exitCode] - text for a run that ended on a non-zero exit code.
+ * @property {string} [running]
+ * @property {string} [failed]
+ * @property {string} [done]
+ * @property {string} [copy]
+ * @property {string} [copied]
+ * @property {string} [noOutput]
+ * @property {string} [collapseAria]
+ * @property {string} [collapse]
+ * @property {function(number): string} [expandAria]
+ * @property {function(number): string} [expand]
+ */
+
+/**
+ * @typedef {object} TerminalBlockProps
+ * @property {string} [command=''] - the shell command, one prompt line per `\n`-separated segment.
+ * @property {string} [cwd] - working directory shown in the prompt (via {@link promptLabel}) when given.
+ * @property {string} [home] - absolute home directory, so `cwd` can render as `~`.
+ * @property {string} [output] - raw ANSI-encoded command output.
+ * @property {number} [exitCode] - non-zero exit code shown as a status pill.
+ * @property {string|number} [signal] - termination signal shown as a status pill in place of `exitCode`.
+ * @property {boolean} [running=false] - hides output/status and shows the "running" state while true.
+ * @property {number} [maxLines=DEFAULT_TERMINAL_MAX_LINES] - output lines shown before the height cap collapses the middle behind an expand toggle.
+ * @property {string} [className]
+ * @property {TerminalBlockLabels} [labels] - partial override merged over the built-in English labels.
+ */
 
 /**
  * Create (if needed) or update a TerminalBlock element in place.

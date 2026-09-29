@@ -127,7 +127,6 @@ function truncateWithNotice(text, maxOutputBytes) {
     const retainer = new TextRetainer({ kind: 'headTail', headBytes, tailBytes })
     retainer.push(text)
     const result = retainer.finish()
-    // The complete source string was pushed before `finish()`, so omission is exact.
     /* v8 ignore next 3 -- complete-string TextRetainer input cannot report a lower bound. */
     if (result.omittedBytes.kind !== 'exact') {
       throw new Error('session-reference retention did not report exact omitted bytes')

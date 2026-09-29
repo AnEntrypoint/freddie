@@ -270,25 +270,15 @@ function requireStrictCodec(pkgName, value, subject) {
  * @param config - explicit package artifacts in addition to Loader entries.
  */
 export async function apply(ctx, config) {
-  // Resolution anchor: the config tree's baseUrl (the cordis.yml directory,
-  // whose package declares every composed plugin as a dependency). This
-  // package's own URL would miss sibling packages under pnpm's isolated
-  // node_modules.
   if (ctx.baseUrl === undefined) {
     throw new Error('typert-loader: ctx.baseUrl is unset — the loader needs the config-tree anchor to resolve plugin packages')
   }
   const require = createRequire(ctx.baseUrl)
   const configured = new Set(config.packages)
 
-  // Registered contributions by entry name; the disposer withdraws the entry's registration.
   const registered = new Map()
-  // In-flight import/register tasks by entry name.
   const pending = new Map()
-  // Artifact paths by package name. Negative verdicts (unresolvable specifier —
-  // loader builtins, subpath rows — or no typert export) are cached as null and
-  // never expire: plugin-set changes take effect on restart.
   const artifactPath = new Map()
-  // Imported+validated manifests by package name (one import per package per process).
   const manifests = new Map()
   const dirty = new Set()
   let flushQueued = false
@@ -313,8 +303,6 @@ export async function apply(ctx, config) {
           { cause },
         )
       }
-      // Not a resolvable package root: loader builtins (cordis:include) and
-      // subpath entries land here — permanently not a typert contributor.
       artifactPath.set(pkgName, null)
       return null
     }
@@ -366,12 +354,10 @@ export async function apply(ctx, config) {
     const path = resolveArtifact(entryName)
     if (path === null) return undefined
     const task = loadManifest(entryName, path).then((manifest) => {
-      // The entry may have unmounted (or already re-registered) while the import was in flight.
       if (!active || !qualifies(entryName) || registered.has(entryName)) return
       registered.set(entryName, ctx.typert.register(manifest))
     })
     pending.set(entryName, task)
-    // Two-armed settle: a bare .finally() would mint a second, unhandled rejection.
     const settle = () => { pending.delete(entryName) }
     void task.then(settle, settle)
     return task
@@ -385,17 +371,12 @@ export async function apply(ctx, config) {
         const task = processOne(entryName)
         if (task !== undefined) tasks.push(task.catch((error) => { onError(toError(error)) }))
       } catch (error) {
-        // Steady state: one broken package must not poison the others; the
-        // activation pass aggregates these into a loud throw instead.
         onError(toError(error))
       }
     }
     return tasks
   }
 
-  // Subscribe before seeding so an entry arriving mid-activation lands in the
-  // same dirty set (Set idempotence makes the overlap harmless). An entry-less
-  // fiber is a child plugin or a manual mount — never a loader row; O(1) drop.
   ctx.on('internal/plugin', (fiber) => {
     const entryName = fiber.entry?.options.name
     if (entryName === undefined) return
@@ -409,9 +390,6 @@ export async function apply(ctx, config) {
     })
   })
 
-  // Activation pass: the initial scan IS the incremental path over the current
-  // entries; a malformed typert contributor among the already-loaded entries
-  // aggregates into one loud throw (FAILED loader fiber; the boot sweep reports it).
   for (const packageName of configured) dirty.add(packageName)
   for (const entry of ctx.loader.entries()) dirty.add(entry.options.name)
   const failures = []

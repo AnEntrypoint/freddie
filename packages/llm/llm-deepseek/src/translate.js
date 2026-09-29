@@ -22,7 +22,6 @@ export function mapFinishReason(reason) {
     case 'tool_calls': return { kind: 'tool-calls' }
     case 'length': return { kind: 'max-tokens' }
     default:
-      // content_filter, insufficient_system_resource, future additions.
       return {
         kind: 'error',
         failure: { message: `model stopped: ${reason}`, code: reason.toUpperCase() },
@@ -66,7 +65,7 @@ function closeBlock(block) {
 /**
  * Consume SSE data payloads (ending with `[DONE]`) and yield StreamChunks.
  * Malformed JSON payloads abort the stream with `MALFORMED_RESPONSE`.
- * @param payloads - SSE data payloads from {@link parseSse}, `[DONE]`-terminated.
+ * @param payloads - SSE data payloads from {@link import('./sse.js').parseSse}, `[DONE]`-terminated.
  * @returns deltas as they arrive; `block-end`s, `usage`, and `finish` are all deferred to the `[DONE]` sentinel.
  *   A `stop` (or absent) finish with no opened blocks is a degenerate provider completion and maps to an
  *   `EMPTY_RESPONSE` error finish instead of a successful empty message.
@@ -115,8 +114,6 @@ export async function* translate(payloads) {
     for (const choice of chunk.choices ?? []) {
       const delta = choice.delta
 
-      // Reasoning first: thinking mode interleaves it before text. The
-      // empty-string first chunk must not open a block.
       const reasoning = delta?.reasoning_content
       if (typeof reasoning === 'string' && reasoning.length > 0) {
         if (!reasoningBlock) {
@@ -162,12 +159,8 @@ export async function* translate(payloads) {
       }
     }
 
-    // Usage may arrive attached to the finish chunk or as a trailing
-    // usage-only chunk — keep the latest.
     if (chunk.usage) pendingUsage = mapUsage(chunk.usage)
   }
 
-  // parseSse guarantees the [DONE] sentinel (or throws); reaching here means
-  // the payload source violated that contract.
   throw new LlmError('SSE payload stream ended without [DONE]', 'STREAM_CLOSED')
 }

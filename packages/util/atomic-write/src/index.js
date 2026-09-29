@@ -33,8 +33,6 @@ export async function writeFileAtomic(filename, content, options) {
     recursive: true,
     ...options.dirMode === undefined ? {} : { mode: options.dirMode },
   })
-  // TODO(settings-atomic-durability): Use a replacement that fsyncs the file
-  // and parent directory and preserves owner-only permissions on Windows.
   const temp = `${filename}.${randomBytes(6).toString('hex')}.tmp`
   try {
     await writeFile(temp, content, { mode: options.mode, flag: 'wx' })
@@ -54,7 +52,6 @@ async function isLockContention(error, lockPath) {
     await lstat(lockPath)
     return true
   } catch {
-    // Keep the original EPERM authoritative when lock existence is unproven.
     return false
   }
 }
@@ -77,6 +74,13 @@ const LOCK_RETRY_MAX_MS = 200
  * alone.
  */
 const DEFAULT_LOCK_WAIT_MS = 2_000
+
+/**
+ * Acquisition options for {@link withFileLock}.
+ * @typedef {object} FileLockOptions
+ * @property {number} [waitMs] - how long to wait for a contended lock before
+ * failing; defaults to {@link DEFAULT_LOCK_WAIT_MS}.
+ */
 
 /**
  * Hold the cross-process writer lock for `filename` around one operation. The

@@ -55,8 +55,13 @@ function summarize(events, firstSeq) {
 
 /** Report an unexpected direct-driver failure and request a failing exit. */
 function fail(io, error) {
-  io.stderr.write(`dsh: ${error instanceof Error ? error.message : String(error)}\n`)
+  io.stderr.write(`freddie: ${error instanceof Error ? error.message : String(error)}\n`)
   io.exit(1)
+}
+
+/** Loader siblings mount concurrently; resolves once the whole application is composed. */
+async function awaitCompleteApplication(ctx) {
+  await ctx.get('loader')?.await()
 }
 
 /**
@@ -66,20 +71,14 @@ function fail(io, error) {
  * @param io - process-facing effects.
  */
 async function run(ctx, task, io) {
-  // Loader siblings mount concurrently. Await the complete application before
-  // creating an Agent so its scoped tools and adapters are not half-composed.
-  await ctx.get('loader')?.await()
+  await awaitCompleteApplication(ctx)
   const agents = ctx.get('agents')
   const defaultModel = ctx.get('agentDefaultModel')
   const sessions = ctx.get('sessions')
-  // Early process shutdown can dispose the tree while settlement is pending.
-  if (agents === undefined || defaultModel === undefined || sessions === undefined) return
+  const treeDisposedWhileSettling = agents === undefined || defaultModel === undefined || sessions === undefined
+  if (treeDisposedWhileSettling) return
 
   const selection = defaultModel.currentSelection()
-  // This bundle composes no preset roster, so the model-facing rows sit in the
-  // host plane and the agent reads them from the global layer. A deployment
-  // that DOES configure one has to join it here first
-  // (@freddie/freddie-agent-presets README, "Composing a child agent").
   const { agent } = await agents.create({
     sessionId: SessionId(`session-${randomUUID()}`),
     meta: { cwd: process.cwd() },
@@ -100,7 +99,7 @@ async function run(ctx, task, io) {
   const outcome = summarize(agent.session.events, firstSeq)
   io.stdout.write(outcome.text + '\n')
   if (outcome.reason?.kind === 'error') {
-    io.stderr.write(`dsh: ${outcome.reason.error.code}: ${outcome.reason.error.message}\n`)
+    io.stderr.write(`freddie: ${outcome.reason.error.code}: ${outcome.reason.error.message}\n`)
   }
   io.exit(outcome.reason?.kind === 'completed' ? 0 : 1)
 }
@@ -111,8 +110,6 @@ async function run(ctx, task, io) {
  * @param config - validated task config.
  */
 export function apply(ctx, config) {
-  // Read through the global service store, not the property proxy: appExit is
-  // an optional host value, never an injected dependency.
   const exit = ctx.get('appExit')
   if (exit === undefined) {
     throw new Error('headless-runner: the launcher must provide ctx.appExit before the tree mounts')

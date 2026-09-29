@@ -1,7 +1,3 @@
-# Keyless replay for the read-image refusal scenario: identical to the
-# image.cordis.snapshot.yml overlay except the replay catalog leaves flash
-# text-only, so the strict read_image gate refuses and no image ever enters
-# the durable log.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

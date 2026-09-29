@@ -99,7 +99,6 @@ export class LocalBashExecutor extends ShellExecutor {
 
   constructor(ctx, config) {
     super(ctx)
-    // Schemastery fills these fields before construction; the type does not encode that step.
     const entry = config
     assertServiceableBashConfig(entry)
     this.source = () => entry
@@ -108,8 +107,6 @@ export class LocalBashExecutor extends ShellExecutor {
       setSource: (current) => {
         this.source = current
       },
-      // Every field is read through the getter at each command, so nothing
-      // derived from the source needs rebuilding when the document changes.
       onChange: () => {},
     })
   }
@@ -136,20 +133,14 @@ export class LocalBashExecutor extends ShellExecutor {
       timeoutMs,
       stdoutMaxBytes,
       ...request.signal ? { signal: request.signal } : {},
-      // Carry stdin/ordinary env/trusted freddieEnv through verbatim — optional,
-      // no config default. The subprocess service owns the scrub and merge order.
       ...request.stdin !== undefined ? { stdin: request.stdin } : {},
       ...request.env !== undefined ? { env: request.env } : {},
       ...request.freddieEnv !== undefined ? { freddieEnv: request.freddieEnv } : {},
-      // Carry a sandbox policy through verbatim: this executor never
-      // confines, so the field is inert here (the seam contract) — a
-      // sandboxing subclass overrides resolve() to stamp its default instead.
       sandboxPolicy: request.sandboxPolicy,
     }
   }
 
   /** Map one resolved bash spec and explicit argv onto a fully-specified subprocess spawn. */
-  // XXX(stateful-shell): evaluate persistent cwd or PTY sessions when workflows require shell state.
   spawnSpec(
     spec,
     argv,
@@ -168,9 +159,6 @@ export class LocalBashExecutor extends ShellExecutor {
       },
       graceMs: this.config.graceMs,
       signal,
-      // One explicit env map for the seam, layered so the trusted freddieEnv
-      // snapshot beats both the caller's env and the terminal overrides; the
-      // subprocess service merges the whole map after its ambient scrub.
       env: { ...ENV_OVERRIDES, ...spec.env, ...spec.freddieEnv },
     }
   }
@@ -199,12 +187,10 @@ export class LocalBashExecutor extends ShellExecutor {
    * @returns the settled foreground result with collected output and cause facts.
    */
   async runArgv(spec, argv) {
-    // One deadline combines timeout and upstream cancellation; disposal clears its timer.
     using d = deadline(spec.signal, spec.timeoutMs, 'BASH_TIMEOUT')
     const handle = this.ctx.subprocess.spawn(this.spawnSpec(spec, argv, spec.stdoutMaxBytes, d.signal))
     const outcome = await handle.done
     const collected = LocalBashExecutor.collected(handle)
-    // Only this executor's timeout reason counts as timedOut; outer deadlines count as aborts.
     const timedOut = timeoutOf(d.signal, 'BASH_TIMEOUT') !== undefined
     const aborted = d.signal.aborted && !timedOut
     return {
@@ -231,12 +217,9 @@ export class LocalBashExecutor extends ShellExecutor {
    * @returns the live background handle; spawn rejection settles it as killed.
    */
   startArgv(spec, argv) {
-    // Background runs ignore timeoutMs; callers stop them through kill() or spec.signal.
     const running = this.ctx.subprocess.spawn(this.spawnSpec(spec, argv, this.config.maxOutputBytes, spec.signal))
     const collected = LocalBashExecutor.collected(running)
 
-    // A spawn failure produces no process output, so the subprocess service has nothing
-    // to buffer; the note is delivered exactly once through the read path.
     let spawnFailureNote
     const consumeSpawnFailure = () => {
       const note = spawnFailureNote ?? ''
@@ -251,7 +234,6 @@ export class LocalBashExecutor extends ShellExecutor {
       exitCode: null,
       signal: null,
       done: running.done.then((outcome) => {
-        // Any signal termination is killed, including a command signaling itself.
         if (proc.status === 'running') {
           proc.status = spec.signal?.aborted === true || outcome.signal !== null ? 'killed' : 'completed'
         }
@@ -259,7 +241,6 @@ export class LocalBashExecutor extends ShellExecutor {
         proc.signal = outcome.signal
         this.onProcessDone(proc, collected.stderr.readFrom(0).text, false)
       }, (error) => {
-        // Background spawn failures settle as killed and surface through the read path.
         proc.status = 'killed'
         spawnFailureNote = `spawn failed: ${String(error)}`
         this.onProcessDone(proc, spawnFailureNote, true, error)
@@ -270,11 +251,7 @@ export class LocalBashExecutor extends ShellExecutor {
         stdoutOffset = out.nextOffset
         stderrOffset = err.nextOffset
 
-        // A failed spawn never produced process output, so the note and real
-        // stderr text are mutually exclusive.
         const errText = err.text.length > 0 ? err.text : consumeSpawnFailure()
-        // Single newline between sections: stdout chunks usually end with one
-        // already; add it only when missing.
         const separator = out.text.length > 0 && !out.text.endsWith('\n') ? '\n' : ''
         const delta = out.text
           + (errText.length > 0 ? `${separator}[stderr]\n${errText}` : '')
@@ -298,7 +275,7 @@ export class LocalBashExecutor extends ShellExecutor {
   /**
    * Settlement hook for subclasses that attach execution facts to a process.
    * Called after exit facts or spawn-failure output are stamped and before
-   * {@link ShellProcess.done} resolves. The base implementation is intentionally
+   * {@link import('@freddie/freddie-shell').ShellProcess.done} resolves. The base implementation is intentionally
    * empty.
    * @param _proc - the settled process handle.
    * @param _stderr - the process's retained stderr tail used by subclasses for settlement classification.

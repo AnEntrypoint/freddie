@@ -1,4 +1,3 @@
-# Keyless context-overflow composition for the assembled compaction snapshot.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

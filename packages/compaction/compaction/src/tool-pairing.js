@@ -36,8 +36,6 @@ function extendCache(
 ) {
   const processed = cache.cutBalanced.length - 1
   const tail = seqs.slice(processed)
-  // Validate the unseen tail before mutating the live cache, so a corrupt
-  // append cannot leave a partially advanced state behind.
   const events = session.events
   const pendingCuts = []
   let inProgressToolCalls = cache.inProgressToolCalls
@@ -63,8 +61,6 @@ function balanceCache(session) {
   const cached = balanceCacheBySession.get(session)
 
   if (cached === undefined || cached.generation !== generation || cached.cutBalanced.length - 1 > seqs.length) {
-    // A rebuild is the same fold started from the empty-surface state, whose
-    // single leading cut is trivially balanced.
     const rebuilt = extendCache(session, {
       generation,
       cutBalanced: [true],

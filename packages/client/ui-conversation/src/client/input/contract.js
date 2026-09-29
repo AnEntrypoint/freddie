@@ -4,4 +4,5 @@
  * InputZone currency; the scoped input events carry the mutation verbs; the
  * conversation wiring layer alone sees the full SessionInput. InputMachine
  * (machine.js) is package-private and never exported.
+ * @module @freddie/freddie-client-ui-conversation/client/input/contract
  */

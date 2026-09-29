@@ -25,8 +25,6 @@ export const TOOL_OUTCOME_UNKNOWN = 'TOOL_OUTCOME_UNKNOWN'
 export function interruptedTurnClosers(events) {
   let openTurn = null
   let openStep = null
-  // Reset at each turn boundary so earlier calls cannot leak into tail repair.
-  // Assistant blocks register calls; later `tool/call` events add their seqs to `sourceEventSeqs`.
   const pendingCalls = new Map()
   for (const event of events) {
     switch (event.type) {
@@ -48,14 +46,11 @@ export function interruptedTurnClosers(events) {
         openStep = null
         break
       case 'assistant/message':
-        // The assistant message carries the tool-call blocks; each is pending
-        // until a tool/result event with the same callId is logged.
         for (const block of event.data.message.content) {
           if (block.type === 'tool-call') pendingCalls.set(block.id, { step: event.data.step })
         }
         break
       case 'tool/call':
-        // Cite the `tool/call` seq from the synthetic result.
         {
           const entry = pendingCalls.get(event.data.callId)
           if (entry) {
@@ -66,26 +61,18 @@ export function interruptedTurnClosers(events) {
       case 'tool/result':
         pendingCalls.delete(event.data.message.source.callId)
         break
-      // Other event types do not move the turn/step boundary cursor.
       default:
         break
     }
   }
 
-  // Balanced log (no crash mid-turn): nothing to close. An open turn implies
-  // `events` is non-empty (its turn/start was logged), so `last` exists.
   const last = events.at(-1)
   if (openTurn === null || last === undefined) return []
 
-  // The last real event supplies the seq base and the timestamp for the
-  // synthetic closers (reusing the last timestamp keeps them deterministic and
-  // never invents a "future" time).
   let seq = last.seq + 1
   const time = last.time
   const closers = []
 
-  // Close calls before their step: providers reject dangling assistant calls,
-  // and Map insertion order preserves their transcript order.
   for (const [callId, { step, callSeq }] of pendingCalls) {
     const started = callSeq !== undefined
     const message = freezeMessage({
@@ -121,8 +108,6 @@ export function interruptedTurnClosers(events) {
     })
   }
 
-  // Close an open step next — a turn/end while a step is open is an invariant
-  // violation, so the step's boundary must be synthesized before the turn's.
   if (openStep !== null) {
     closers.push({ type: 'step/end', seq: seq++, time, data: { turn: openTurn, step: openStep } })
   }

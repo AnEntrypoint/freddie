@@ -10,9 +10,6 @@ import { defineStore } from '@freddie/freddie-client-runtime/client'
  */
 export function createChatStore() {
   return defineStore({
-    // Anchored to the contract shape: consumers read the store through
-    // PropsStore<ChatStore>'s SnapshotSelectorHook<ChatStoreState>, so init
-    // and the contract cannot drift.
     init: () => ({ selection: null, draft: '', view: null, inspect: null }),
     persist: 'dsh.conversation.chat',
     actions: {

@@ -31,7 +31,7 @@ export function openCurrentProcessToken(api) {
   )
   if (opened === 0) {
     const win32Code = api.getLastError()
-    api.closeHandle(processHandle) // best-effort on the error path
+    api.closeHandle(processHandle)
     throwWin32(api, 'OpenProcessToken', win32Code, `pid ${process.pid}`)
   }
   if (api.closeHandle(processHandle) === 0) throwLastError(api, 'CloseHandle', 'OpenProcess process handle')
@@ -50,7 +50,7 @@ export function openCurrentProcessToken(api) {
  */
 export function findLogonSid(api, token) {
   const neededSlot = allocUint32()
-  api.getTokenInformation(token, abi.TokenGroups, null, 0, neededSlot) // expected to fail with ERROR_INSUFFICIENT_BUFFER
+  api.getTokenInformation(token, abi.TokenGroups, null, 0, neededSlot)
   const needed = decodeUint32(neededSlot)
   if (needed === 0) throwLastError(api, 'GetTokenInformation', 'TokenGroups size query')
   if (needed < abi.TOKEN_GROUPS_OFFSET) throwWin32(api, 'GetTokenInformation', api.getLastError(), `implausible TokenGroups size ${needed}`)
@@ -63,7 +63,6 @@ export function findLogonSid(api, token) {
   for (let index = 0; index < groupCount; index++) {
     const sidPtr = decodePtrAt(groups, abi.TOKEN_GROUPS_OFFSET + index * abi.SID_AND_ATTRIBUTES_SIZE)
     const attributes = groups.readUInt32LE(abi.TOKEN_GROUPS_OFFSET + index * abi.SID_AND_ATTRIBUTES_SIZE + 8)
-    // >>> 0: JS bitwise & is signed 32-bit; SE_GROUP_LOGON_ID has bit 31 set.
     const isLogonId = ((attributes & abi.SE_GROUP_LOGON_ID) >>> 0) === (abi.SE_GROUP_LOGON_ID >>> 0)
     if (sidPtr === null || !isLogonId) continue
     const sidLength = api.getLengthSid(sidPtr)
@@ -110,7 +109,7 @@ export function makeWellKnownSid(api, type) {
  */
 export function setTokenDefaultDaclGrant(api, token, sidPtr) {
   const neededSlot = allocUint32()
-  api.getTokenInformation(token, abi.TokenDefaultDacl, null, 0, neededSlot) // expected to fail with ERROR_INSUFFICIENT_BUFFER
+  api.getTokenInformation(token, abi.TokenDefaultDacl, null, 0, neededSlot)
   const needed = decodeUint32(neededSlot)
   if (needed === 0) throwLastError(api, 'GetTokenInformation', 'TokenDefaultDacl size query')
   const buffer = Buffer.alloc(needed)
@@ -131,8 +130,6 @@ export function setTokenDefaultDaclGrant(api, token, sidPtr) {
   if (result !== abi.ERROR_SUCCESS) throwWin32(api, 'SetEntriesInAclW', result, 'default DACL merge')
   const newDacl = decodePtr(newDaclSlot)
   if (newDacl === null) throwWin32(api, 'SetEntriesInAclW', result, 'null merged default DACL')
-  // TOKEN_DEFAULT_DACL { PACL DefaultDacl; } — the struct is exactly the
-  // pointer; SetTokenInformation copies the ACL before returning.
   const info = Buffer.alloc(8)
   info.writeBigUInt64LE(newDacl, 0)
   if (api.setTokenInformation(token, abi.TokenDefaultDacl, info, info.length) === 0) {
@@ -203,8 +200,8 @@ export function createRestrictedToken(
   const created = api.createRestrictedToken(
     currentToken,
     abi.DISABLE_MAX_PRIVILEGE | abi.LUA_TOKEN | abi.WRITE_RESTRICTED,
-    0, null, // no SIDs disabled
-    0, null, // no privileges deleted
+    0, null,
+    0, null,
     restrictingSids.length / abi.SID_AND_ATTRIBUTES_SIZE,
     restrictingSids,
     tokenSlot,

@@ -9,8 +9,6 @@ export class WorkspaceManager {
   items = []
   itemViewsSource = null
   itemViewsCache = []
-  // Full-snapshot state (list response / unary response / changed frame all
-  // carry the complete set), so deltas never merge — installs replace.
   archivedSessionIds = []
   state = 'idle'
   phase = 'pending'
@@ -291,9 +289,6 @@ export class WorkspaceManager {
     if (this.removedIds.has(view.workspaceId)) return
     this.refreshFrames?.push({ type: 'upsert', workspace: view })
     const index = this.items.findIndex(item => item.getSnapshot().view?.workspaceId === view.workspaceId)
-    // Mutation responses and changed frames race (two carriers, no ordering):
-    // reject a snapshot strictly older than the installed projection so a
-    // late unary response cannot roll back a newer frame.
     const installed = index === -1 ? undefined : this.items[index]?.getSnapshot().view
     if (installed !== undefined && Date.parse(view.updatedAt) < Date.parse(installed.updatedAt)) return
     if (!this.committedOrder.includes(view.workspaceId)) {
@@ -320,9 +315,6 @@ export class WorkspaceManager {
     const items = this.items.filter(item =>
       item.getSnapshot().view?.workspaceId !== workspaceId)
     if (items.length === this.items.length) {
-      // The Host frame may have removed the row first but left its batched
-      // notification pending. A successful unary echo still flushes that
-      // committed state before the user action resolves.
       if (direct) this.notifier.notifyNow()
       return
     }

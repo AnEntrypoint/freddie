@@ -1,0 +1,48 @@
+{
+  "name": "@freddie/freddie-api-plugin-manager-controller",
+  "description": "Host pluginManager Remote namespace: which mounted plugin entries a browser may switch, and the guarded on/off write",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/api/plugin-manager-controller"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./remote": {
+      "default": "./src/typert.remote-client.js"
+    },
+    "./src/*": "./src/*",
+    "./typert": {
+      "default": "./src/typert.host.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/**/*.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-typert-protocol": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-typert-protocol": "*"
+  }
+}

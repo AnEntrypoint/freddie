@@ -113,8 +113,6 @@ function errorText(arg) {
   try {
     return JSON.stringify(arg)
   } catch {
-    // A circular or otherwise non-serializable console argument: the mirror
-    // carries the message, and nothing else here can fail.
     return '[unserializable console argument]'
   }
 }
@@ -148,6 +146,9 @@ export function isDynamicCordisPlugin(value) {
     && typeof value.apply === 'function'
 }
 
+/** Node globals bound to `undefined` inside the closure so package code sees a browser and `typeof process` probes stay safe. */
+const NODE_GLOBALS_HIDDEN_FROM_PACKAGES = ['process', 'Buffer']
+
 /**
  * Evaluate one package's browser half and return the (un-guarded) plugin.
  * @param pluginId - stable Plugin ID (console tag and style ownership).
@@ -159,19 +160,14 @@ export function isDynamicCordisPlugin(value) {
  */
 export async function evaluateClientHalf(pluginId, clientCode, env, styles) {
   const traps = closureTraps()
-  const parameters = ['console', 'styles', 'host', 'harness', ...Object.keys(traps), 'process', 'Buffer']
+  const parameters = ['console', 'styles', 'host', 'harness', ...Object.keys(traps), ...NODE_GLOBALS_HIDDEN_FROM_PACKAGES]
   let closure
   try {
-    // The wrapper mirrors the host precheck exactly, so line offsets match.
-    // Evaluating a definition's browser half IS this package's product: the
-    // source arrived from a host process that accepted and prechecked it.
-    // oxlint-disable-next-line typescript/no-implied-eval -- see above
+    // oxlint-disable-next-line typescript/no-implied-eval -- evaluating the prechecked browser half is this package's product
     const factory = new Function(...parameters, `return (async () => {\n${clientCode}\n})()`)
     closure = factory
   } catch (error) {
     if (!(error instanceof SyntaxError)) throw error
-    // Engine-divergence fallback: the host precheck already carried the
-    // line/caret teaching; browsers give only the message.
     throw new Error(
       `client half failed to parse in this browser: ${error.message}\n`
       + 'The browser half is plain JavaScript (no JSX, no TypeScript); build elements with plain object/array JSX trees or DOM APIs.',
@@ -193,8 +189,7 @@ export async function evaluateClientHalf(pluginId, clientCode, env, styles) {
     host,
     harnessTrap(),
     ...Object.values(traps),
-    undefined, // process: undefined keeps `typeof process` probes safe
-    undefined, // Buffer
+    ...NODE_GLOBALS_HIDDEN_FROM_PACKAGES.map(() => undefined),
   )
   if (!isDynamicCordisPlugin(returned)) {
     if (returned === undefined) {

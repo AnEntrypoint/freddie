@@ -1,6 +1,3 @@
-# Keyless replay combines Code Mode with the durable image store and an exact
-# image-capable replay route. The scenario generates its tiny PNG inside the
-# run_code program, then exercises read_image as a nested dispatch.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

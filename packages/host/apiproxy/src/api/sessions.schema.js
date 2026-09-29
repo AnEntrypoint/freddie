@@ -166,8 +166,4 @@ export const sessionCancelRequestSchema = passthrough()
 /** session.cancel response value shape marker (validation removed; passthrough). */
 export const sessionCancelValueSchema = passthrough()
 
-// SESSION_SEARCH_RESULT_LIMIT / SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS / truncateUnicodeCodePoints
-// are re-exported below for callers that previously reached them only via this module's zod
-// refine() closures; kept imported (not used for validation) so downstream consumers relying on
-// side-effect import ordering are unaffected.
 export { SESSION_SEARCH_RESULT_LIMIT, SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS, truncateUnicodeCodePoints }

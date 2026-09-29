@@ -9,19 +9,6 @@ import { Context as CordisContext } from '@freddie/cordis'
 
 export { AnonymousEntries, NamedEntries, ScopedLayers } from './store.js'
 
-// Symbol.for, not a plain Symbol(): this tag must survive a hot-reload of
-// this module. cordis-plugin-hmr re-evaluates ESM modules live; a plain
-// Symbol() mints a NEW identity on every re-evaluation, silently orphaning
-// every already-scoped context tagged with the OLD symbol -- scopeOf() on
-// them then returns undefined forever, exactly matching the framework's own
-// documented convention for every context symbol (framework/cordis/src/
-// utils.js's `symbols` object uses Symbol.for throughout, "avoid public
-// property-name collisions"). Live-witnessed: after this session's long
-// stretch of HMR-driven edits, every session resume in the running Web UI
-// started failing with "agent-presets: refusing to compose an unscoped
-// context" -- a fresh process restart cleared it immediately, consistent
-// with exactly this staleness class, not a logic bug in the resume path
-// itself (the whole call chain was traced and found structurally correct).
 /** Context tag written by {@link createScope}. */
 const kScope = Symbol.for('freddie.scope')
 
@@ -31,7 +18,7 @@ const carrierKeys = new WeakMap()
 /**
  * The enclosing scope of each key. One relation powers both directions of
  * scope nesting: registration views inherit DOWN the chain (a child scope
- * sees its ancestors' layers — {@link ScopedLayers}), and event admission
+ * sees its ancestors' layers — {@link import('./store.js').ScopedLayers}), and event admission
  * extends UP it (a listener tagged with an ancestor receives events dispatched
  * to a descendant key — {@link scopeTarget}).
  */
@@ -52,6 +39,9 @@ function linkScopeParent(key, parent) {
  * scope's ancestry cannot be moved by anyone but the original binder, who
  * alone receives the {@link ScopeParentBinding}. A link that would close a
  * cycle is rejected, because every chain consumer walks parents to the root.
+ *
+ * @typedef {object} ScopeParentBinding
+ * @property {function(*): void} rebind - re-link the bound key to a new parent.
  * @param key - the child scope key.
  * @param parent - its enclosing scope key.
  * @returns the binding that alone may re-link this key.

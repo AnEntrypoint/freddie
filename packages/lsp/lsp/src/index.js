@@ -36,7 +36,6 @@ export function finalExtension(filePath) {
   const lastSlash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'))
   const base = lastSlash >= 0 ? filePath.slice(lastSlash + 1) : filePath
   const dot = base.lastIndexOf('.')
-  // dot <= 0 covers both "no dot" (-1) and a leading-dot dotfile (0): neither has an extension.
   if (dot <= 0) return ''
   return base.slice(dot).toLowerCase()
 }
@@ -57,8 +56,6 @@ export class Lsp extends Service {
   }
 
   registerProvider(provider) {
-    // Validate and conflict-check everything BEFORE any mutation: an invalid or conflicting
-    // registration must publish nothing (fail-loud, all-or-nothing).
     const id = provider.id
     if (id.trim() === '') {
       throw new LspError('an LSP provider id must be a non-empty string', 'LSP_INVALID_PROVIDER')
@@ -72,8 +69,6 @@ export class Lsp extends Service {
       throw new LspError(`LSP provider "${id}" registers no file extensions`, 'LSP_INVALID_PROVIDER')
     }
 
-    // Normalize into this provider's route set, catching intra-provider duplicates (e.g. `.TS` and
-    // `.ts`) before checking cross-provider conflicts.
     const pending = new Map()
     for (const [rawExt, languageId] of entries) {
       const ext = normalizeExtension(rawExt)
@@ -94,8 +89,6 @@ export class Lsp extends Service {
       }
     }
 
-    // All checks passed: reserve id and every extension in one lifecycle controller so disposal
-    // releases them together.
     const dispose = this.ctx.effect(function* () {
       this.providerIds.add(id)
       for (const [ext, route] of pending) this.routes.set(ext, route)
@@ -104,8 +97,6 @@ export class Lsp extends Service {
         for (const ext of pending.keys()) this.routes.delete(ext)
       }
     }.bind(this), 'lsp.registerProvider()')
-    // ctx.effect's disposer returns Promise<void>; our disposer API is synchronous
-    // fire-and-forget — discard the (always-resolved) promise.
     return () => void dispose()
   }
 

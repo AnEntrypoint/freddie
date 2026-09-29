@@ -17,10 +17,6 @@ function diffChildren(parent, newVNodes) {
             return [];
         }
         else {
-            // If the parent
-            // a) never had any nodes
-            // b) OR was managing content via dangerouslySetInnerHTML
-            // we must not set parent.innerHTML = "";
             return [];
         }
     }
@@ -101,16 +97,6 @@ function canUpdateVNodes(newVNode, oldVNode) {
         return true;
     }
     else {
-        // An already-real DOM node (returned by a "one-shot create/update"
-        // helper, e.g. `el.setProps(props); return el`) carries no `.props` —
-        // it always REPLACES the previous node in place (handled by
-        // applyChanges' own `newVNode instanceof Node` branch) rather than
-        // being diffed as a VElement. Critically this must still route
-        // through the "update" change type, not "create": "create" only
-        // inserts, it never removes whatever was already occupying that
-        // position, so treating this pairing as un-updatable orphans the old
-        // real node as an extra sibling instead of swapping it out — the
-        // observed duplicate composer / duplicate slot-outlet content bug.
         if (newVNode instanceof Node) {
             return true;
         }

@@ -63,8 +63,6 @@ export async function removeProviderProfile(
     })
     if (!response.result.ok) return response.result.error.message
   } catch (error) {
-    // The transport rejected rather than answering; the caller must be able
-    // to retry the idempotent operation instead of the row silently staying.
     return messageOf(error)
   }
   await controller.load()
@@ -99,9 +97,6 @@ function targetOf(row) {
     settingsNs: row.entry.settingsNs,
     settingsPath: row.entry.settingsPath,
     ...credentialRef === undefined ? {} : { credentialRef },
-    // Absent is not "shipped": an adapter that answers nothing leaves the
-    // route-level fields only a declared route owns off the card, exactly as
-    // it leaves the custom tag off the row.
     ...row.entry.declared === true ? { declared: true } : {},
   }
 }
@@ -161,9 +156,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
   }
 
   #announceSaved(target) {
-    // Announced only once the refreshed directory is in the snapshot the
-    // notice reads its name from: an apply can rename the route, and the
-    // target captured when the card opened still carries the old name.
     void this.#injected.controller.load().then(() => { this.#savedTarget = target; this.#render() })
   }
 
@@ -240,10 +232,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
       return
     }
 
-    // The saved provider as the directory currently names it. The route id is
-    // what the apply cannot change, so it is what the notice is keyed by; a row
-    // the same apply removed keeps the captured identity, since nothing newer
-    // exists to name it with.
     const savedRow = this.#savedTarget === undefined
       ? undefined
       : state.rows.find(row => row.entry.provider === this.#savedTarget?.provider)
@@ -251,8 +239,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
       ? this.#savedTarget
       : { provider: savedRow.entry.provider, displayName: savedRow.entry.displayName }
 
-    // One fact decides both first-run postures on this page and the onboarding
-    // step: whether the user already has a provider to talk to.
     const anyUsable = state.rows.some(providerUsable)
     const configured = state.rows.filter(row => row.configured)
     const addable = state.rows.filter(row => !row.configured && row.entry.settingsNs !== '')
@@ -274,8 +260,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
           /* v8 ignore next -- the join marks a row configured only when its namespace resolved */
           if (namespace === undefined) return null
           if (needsSetup(row, anyUsable) && !this.#dismissedSetup.has(row.entry.provider)) {
-            // First-run posture: the provider exists but has no key — the
-            // setup card IS its presence on the page, until the user closes it.
             return h('li', { key: row.entry.provider, class: styles['setupCard'] ?? '' },
               renderProviderEditorCard({
                 target,
@@ -297,9 +281,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
             h('div', { class: styles['rowHead'] ?? '' },
               h('span', { class: styles['rowIdentity'] ?? '' },
                 h('span', { class: styles['rowName'] ?? '' }, row.entry.displayName),
-                // Only the adapter can tell a hand-declared route from a
-                // shipped one it also has a stored profile for, so the tag
-                // follows its answer and stays off when it gives none.
                 row.entry.declared === true
                   ? h('span', { class: styles['rowTag'] ?? '' }, t('customTag'))
                   : null,
@@ -413,7 +394,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
                 this.#render()
               },
             },
-            // Same glyph as the composer's attach button.
             h(IconPlusOutline16, { size: 14 }),
             t('add'),
             ),

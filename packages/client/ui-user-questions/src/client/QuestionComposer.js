@@ -1,7 +1,3 @@
-// Converted from a React hooks component to a webjsx custom element. State
-// that was useState/useRef becomes instance fields; explicit applyDiff(this,
-// vdom) replaces implicit re-render on setState.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
@@ -20,17 +16,18 @@ import css from './QuestionComposer.css.js'
  * @returns Display label plus recommendation state.
  */
 export function parseRecommendedLabel(label) {
-  const suffix = /\s*(?:\((?:recommended|推荐)\)|（(?:recommended|推荐)）)\s*$/i
+  const suffix = /\s*(?:\(recommended\)|\uff08recommended\uff09)\s*$/i
   return suffix.test(label)
     ? { label: label.replace(suffix, ''), recommended: true }
     : { label, recommended: false }
 }
 
+const LEGACY_IME_COMPOSITION_KEY_CODE = 229
+
 /** Return whether a text-field key event belongs to an active IME composition. */
 function isComposing(event) {
-  // keyCode 229 is the legacy IME-composition signal engines emit without isComposing.
   // oxlint-disable-next-line typescript/no-deprecated
-  return event.isComposing || event.keyCode === 229
+  return event.isComposing || event.keyCode === LEGACY_IME_COMPOSITION_KEY_CODE
 }
 
 /**
@@ -106,10 +103,6 @@ export class FreddieQuestionComposer extends HTMLElement {
     const question = this.#question
     if (props === null || question === null) return
     const review = planReviewOf(question.questions)
-    // The two shapes are custom elements this package itself registers, not
-    // ordinary intrinsic HTML tags — created directly rather than through JSX
-    // (webjsx's IntrinsicElements table covers built-in DOM tags only) and
-    // reused across re-renders so setProps drives their own applyDiff.
     if (review === undefined) {
       let el = this.#childHost
       if (!(el instanceof FreddieQuestionFlow)) {
@@ -201,13 +194,6 @@ export class FreddieQuestionFlow extends HTMLElement {
     this.#render()
   }
 
-  // WAI-ARIA radio/checkbox group pattern: ArrowUp/ArrowDown/ArrowLeft/
-  // ArrowRight move focus among the group's options (wrapping at the ends).
-  // For a single-select group (role="radio") the native convention also
-  // moves selection with focus -- but #choose's own auto-advance-to-next-
-  // question behavior on selection must NOT fire here, since arrow keys are
-  // navigating within one question's options, not answering and moving on;
-  // this sets the draft directly rather than reusing #choose.
   #onOptionKeyDown(event, question) {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp'
       && event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
@@ -308,10 +294,6 @@ export class FreddieQuestionFlow extends HTMLElement {
     this.#submitDrafts(nextDrafts)
   }
 
-  // MarkdownText's own one-shot factory recreates its freddie-markdown-text
-  // element (dropping its settled-render memoization) on every call; this
-  // flow re-renders on every option toggle/draft edit for the current
-  // question. Keyed by question index within this flow.
   #renderDetail(index, text) {
     const el = renderMarkdownText(this.#detailEls.get(index) ?? null, { text })
     this.#detailEls.set(index, el)
@@ -328,7 +310,6 @@ export class FreddieQuestionFlow extends HTMLElement {
     const busy = this.#busy
     const error = this.#error
     const minimized = this.#minimized
-    // index stays in bounds (every index write clamps) and drafts mirrors questions 1:1.
     // oxlint-disable-next-line typescript/no-non-null-assertion
     const question = questions[index]
     // oxlint-disable-next-line typescript/no-non-null-assertion

@@ -1,0 +1,229 @@
+/* Web-search card: a header naming the provider's configuration, disclosing it in place. */
+
+.freddie-webSearchCard__card {
+  list-style: none;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 12px;
+  background: var(--freddie-alias-bg-layer-3);
+  transition: border-color .16s, background .16s;
+}
+
+.freddie-webSearchCard__card:hover {
+  border-color: var(--freddie-alias-label-dimmed);
+}
+
+.freddie-webSearchCard__cardOpen {
+  background: var(--freddie-alias-bg-layer-2);
+  border-color: var(--freddie-alias-label-dimmed);
+}
+
+.freddie-webSearchCard__header {
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+}
+
+.freddie-webSearchCard__header:focus-visible {
+  outline: 2px solid var(--freddie-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+.freddie-webSearchCard__headText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.freddie-webSearchCard__name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-webSearchCard__description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-webSearchCard__chevron {
+  flex: none;
+  color: var(--freddie-alias-label-tertiary);
+  transition: transform .16s;
+}
+
+.freddie-webSearchCard__chevronOpen {
+  transform: rotate(180deg);
+}
+
+.freddie-webSearchCard__pending {
+  flex: none;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 17px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: var(--freddie-alias-bg-module-platform);
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-webSearchCard__body {
+  border-top: 1px solid var(--freddie-alias-border-l2);
+  margin: 0 16px;
+  padding-bottom: 8px;
+}
+
+.freddie-webSearchCard__readOnly {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-webSearchCard__field {
+  margin-top: 12px;
+}
+
+.freddie-webSearchCard__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.freddie-webSearchCard__label {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-webSearchCard__badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.freddie-webSearchCard__badge {
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 17px;
+  background: var(--freddie-alias-bg-module-platform);
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-webSearchCard__reset {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  line-height: 17px;
+  color: var(--freddie-alias-label-tertiary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.freddie-webSearchCard__input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  border: 1px solid var(--freddie-alias-border-l2);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--freddie-alias-bg-layer-1);
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-webSearchCard__inputInvalid {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  border: 1px solid var(--freddie-alias-label-error);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--freddie-alias-bg-layer-1);
+  color: var(--freddie-alias-label-primary);
+}
+
+.freddie-webSearchCard__hint,
+.freddie-webSearchCard__invalid {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--freddie-alias-label-tertiary);
+}
+
+.freddie-webSearchCard__invalid {
+  color: var(--freddie-alias-label-error);
+}
+
+.freddie-webSearchCard__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--freddie-alias-border-l2);
+}
+
+.freddie-webSearchCard__failed {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--freddie-alias-label-error);
+}
+
+.freddie-webSearchCard__discard,
+.freddie-webSearchCard__save {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 5px 14px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.freddie-webSearchCard__discard {
+  border-color: var(--freddie-alias-border-l2);
+  background: none;
+  color: var(--freddie-alias-label-secondary);
+}
+
+.freddie-webSearchCard__save {
+  background: var(--freddie-alias-label-primary);
+  color: var(--freddie-alias-bg-layer-3);
+}
+
+.freddie-webSearchCard__discard:disabled,
+.freddie-webSearchCard__save:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

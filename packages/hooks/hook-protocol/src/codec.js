@@ -57,26 +57,19 @@ function permissionDecisionOf(value) {
 export function parseHookOutput(exitCode, stdout, stderr, expectedEventName) {
   const trimmedErr = stderr.trim()
   const trimmedOut = stdout.trim()
-  // Plain stdout remains available even when it is not JSON.
   const output = { exitCode, stderr: trimmedErr, stdout: trimmedOut }
 
-  // Both dialects treat exit 2 as a block with stderr as its reason.
   if (exitCode === BLOCKING_EXIT_CODE) {
     output.decision = 'block'
     if (trimmedErr.length > 0) output.reason = trimmedErr
   }
 
-  // Structured stdout is valid only for a clean exit.
   if (exitCode === 0) {
-    // Only attempt JSON when stdout looks like a JSON object — matches the
-    // reference engines, which treat other stdout as plain text, not an error.
     if (trimmedOut.startsWith('{')) {
       let parsed
       try {
         parsed = obj(JSON.parse(trimmedOut))
       } catch {
-        // Malformed JSON on a clean exit = no structured output (lenient, as the
-        // reference engines are). The plain stdout remains the bridge's to use.
         parsed = undefined
       }
       if (parsed) applyStructured(output, parsed, expectedEventName)
@@ -100,23 +93,15 @@ function applyStructured(output, parsed, expectedEventName) {
   const sysMsg = str(parsed, 'systemMessage')
   if (sysMsg !== undefined) output.systemMessage = sysMsg
 
-  // Top-level legacy `decision` (approve/block ONLY — allow/deny/ask there are
-  // invalid per both schemas) + its `reason`.
   const topDecision = topLevelDecisionOf(str(parsed, 'decision'))
   if (topDecision !== undefined) output.decision = topDecision
   const topReason = str(parsed, 'reason')
   if (topReason !== undefined) output.reason = topReason
 
-  // hookSpecificOutput: the per-event channel, keyed by `hookEventName`. The
-  // permissionDecision (allow/deny/ask) OVERRIDES the legacy top-level decision;
-  // additionalContext and updatedInput live here too.
   const hso = obj(parsed.hookSpecificOutput)
   if (hso) {
     const eventName = str(hso, 'hookEventName')
-    // Always surface the discriminator (for the log/diagnostics), even on a
-    // mismatch — the record should show what the malformed block claimed.
     if (eventName !== undefined) output.hookEventName = eventName
-    // A missing or mismatched discriminator cannot affect the firing event.
     if (expectedEventName !== undefined && eventName !== expectedEventName) {
       return
     }

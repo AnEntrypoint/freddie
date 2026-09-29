@@ -1,10 +1,3 @@
-// Toast: transient top-center banner, converted from a React hooks component
-// to a webjsx custom element. State/effects that were useState/useEffect/
-// useLayoutEffect become instance fields plus connectedCallback/
-// disconnectedCallback; re-render is an explicit applyDiff(this, vdom) call
-// (webjsx's documented Counter-component pattern) instead of implicit
-// re-render on setState.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { writeClipboard } from './clipboard.js'
 import css from './Toast.css.js'
@@ -30,14 +23,7 @@ export class FreddieToast extends HTMLElement {
   #doneTimer = null
   #left = null
   #resizeHandler = null
-  // Click-to-copy state. An error banner is the one place the user most needs
-  // the exact text (a code, a path, a host message) and least wants to retype
-  // it, so the whole banner copies on click.
   #copied = false
-  // Hovering holds the banner open: the auto-dismiss is 4s total, which is
-  // easy to lose a message to mid-read and far too short to aim a click at.
-  // The pointer entering restarts the clock on leave, so a reader always gets
-  // a full hold after they look away.
   #hovered = false
 
   /** Set/replace props and re-render; call after creating or updating the element. */
@@ -49,9 +35,6 @@ export class FreddieToast extends HTMLElement {
   }
 
   connectedCallback() {
-    // Anchor-centered placement re-measures on window resizes; the banner
-    // lives four seconds, so sub-window layout drift within that span stays
-    // out of scope.
     this.#bindAnchor()
     this.#startDismiss()
     this.#render()
@@ -74,17 +57,12 @@ export class FreddieToast extends HTMLElement {
 
   #onPointerEnter = () => {
     this.#hovered = true
-    // Cancel the unmount AND the CSS fade (the `hovered` class clears the
-    // animation), so a banner the user is reading cannot dim out from under
-    // them or vanish between aiming and clicking.
     this.#stopDismiss()
     this.#render()
   }
 
   #onPointerLeave = () => {
     this.#hovered = false
-    // A fresh full cycle, not the remainder of the old one: the reader just
-    // looked away, so the banner restarts its animation from full opacity.
     this.#copied = false
     this.#startDismiss()
     this.#render()
@@ -94,9 +72,6 @@ export class FreddieToast extends HTMLElement {
     const { text } = this.#props
     if (typeof text !== 'string' || text === '') return
     void writeClipboard(text).then((ok) => {
-      // A refused write (insecure context, denied permission) leaves the
-      // banner exactly as it was rather than claiming a copy that never
-      // happened.
       if (!ok) return
       this.#copied = true
       this.#render()
@@ -133,10 +108,6 @@ export class FreddieToast extends HTMLElement {
       copyable ? css.copyable ?? '' : '',
     ].filter(Boolean).join(' ')
     const style = this.#left === null ? '' : `left: ${this.#left}px`
-    // A real <button> when the text can be copied: keyboard focus, Enter and
-    // Space, and an announced action come free, where a click handler on the
-    // <div> would reach pointer users only. Non-copyable banners keep the
-    // plain div so nothing focusable appears with no action behind it.
     const vdom = copyable
       ? h(
         'button',
@@ -155,8 +126,6 @@ export class FreddieToast extends HTMLElement {
         },
         icon != null && h('span', { class: css.icon ?? '', 'aria-hidden': '' }, icon),
         h('span', { class: css.text ?? '' }, text),
-        // Reserved-width hint rather than a swap of the message itself: the
-        // error text stays fully readable at the moment it is copied.
         h('span', { class: css.hint ?? '', 'aria-hidden': '' }, this.#copied ? copiedLabel : copyLabel),
       )
       : h(

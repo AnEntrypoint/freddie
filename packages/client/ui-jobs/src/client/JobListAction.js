@@ -11,8 +11,13 @@ function isLive(job) {
   return job.status === 'running' || job.status === 'stopping'
 }
 
-/** Closed-union exhaustiveness fence for the wire status set. */
-/* v8 ignore next 3 -- closed-union backstop; only reached if a status is forged */
+/**
+ * Closed-union exhaustiveness fence for the wire status set: reached only if
+ * a status value outside `'running'|'stopping'|'completed'|'killed'|'failed'`
+ * is forged past the caller's own switch.
+ * @param {never} value
+ * @returns {never}
+ */
 function assertNever(value) {
   throw new Error(`unhandled job status: ${JSON.stringify(value)}`)
 }
@@ -28,7 +33,6 @@ function dotState(status) {
     case 'completed': return 'done'
     case 'killed': return 'warning'
     case 'failed': return 'error'
-    /* v8 ignore next -- closed wire status union */
     default: return assertNever(status)
   }
 }
@@ -41,7 +45,6 @@ function statusLabel(status, t) {
     case 'completed': return t('status.completed')
     case 'killed': return t('status.killed')
     case 'failed': return t('status.failed')
-    /* v8 ignore next -- closed wire status union */
     default: return assertNever(status)
   }
 }
@@ -150,8 +153,6 @@ export class FreddieJobListAction extends HTMLElement {
     const { sessionId, useSessions, t } = props
     const jobs = useSessions(state => state.jobsBySession[sessionId]) ?? NO_TASKS
 
-    // The last job disappearing removes this control; close first so focus
-    // does not vanish from an unmounting node.
     if (jobs.length === 0 && this.#open) {
       this.#open = false
       this.#dismiss.stop()
@@ -185,10 +186,6 @@ export class FreddieJobListAction extends HTMLElement {
           'aria-expanded': String(open),
           'aria-label': countLabel,
           onclick: () => {
-            // Sample the clock in the same commit that opens the list: the
-            // mount-time value predates every job, so the first painted frame
-            // would otherwise clamp a long-running row to zero until the
-            // open effect corrects it a frame later.
             this.#now = Date.now()
             this.#setOpen(!open)
           },

@@ -1,14 +1,3 @@
-// The copy-to-clipboard-with-feedback controller shared by the block
-// primitives (TerminalBlock, SearchBlock): write the given text, and on
-// success flip a transient `copied` flag that the caller renders as a
-// "Copied" label for one second. A refused write leaves the flag untouched,
-// so the control never claims a copy the host declined.
-//
-// Converted from a React hook (useState/useCallback) to a plain closure:
-// create with `createCopyFeedback(getText, onChange)`, call `.onCopy()` from
-// the click handler, read `.copied` for the current flag, and call `.stop()`
-// in `disconnectedCallback` to clear any pending timeout.
-
 import { writeClipboard } from './clipboard.js'
 
 /** How long the `copied` flag stays true after a successful write, in ms. */

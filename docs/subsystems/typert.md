@@ -1,6 +1,6 @@
 # Typert remote calls
 
-Types shared by generated Remote artifacts, the Host Gateway, and consumer API assemblies. The [Typert Gateway Agent Note](../../.agents/notes/implemented/architecture/2026-08-02-typert-remote-method-calls.md) owns the architecture and transport decisions; this page records the literal public contracts from [`dsh-typert-protocol`](../../packages/typert/protocol) and [`dsh-api-gateway`](../../packages/api/gateway/src/index.js).
+Types shared by generated Remote artifacts, the Host Gateway, and consumer API assemblies. The [Typert Gateway Agent Note](../../.agents/notes/implemented/architecture/2026-08-02-typert-remote-method-calls.md) owns the architecture and transport decisions; this page records the literal public contracts from [`@freddie/freddie-typert-protocol`](../../packages/typert/protocol) and [`@freddie/freddie-api-gateway`](../../packages/api/gateway/src/index.js).
 
 ## Lookup and Context declarations
 
@@ -223,13 +223,13 @@ interface TypertClientRemote extends TypertRemoteNamespaceMap {
 }
 ```
 
-<!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
+<!-- BEGIN cordis-surface (hand-maintained) -->
 
 <a id="cordis-surface"></a>
 
 ## Cordis API
 
-Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+Originally generated from source by `scripts/gen-cordis-catalog.ts`; that script and its `verify-cordis-catalog` freshness check no longer exist, so this region is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
 <a id="ctxapiproxy--apiproxy"></a>
 
@@ -246,7 +246,7 @@ Root interface of the unified API. New client-request domain = one new file pair
 respond(message: ClientResponse): Promise<RpcReceipt>
 ```
 
-Source: [`packages/host/apiproxy/src/api/index.ts`](../../packages/host/apiproxy/src/api/index.js)
+Source: [`packages/host/apiproxy/src/api/index.js`](../../packages/host/apiproxy/src/api/index.js)
 
 <a id="ctxtypert--typertregistry"></a>
 
@@ -312,7 +312,7 @@ toJSONSchema(key: string, params?: z.core.ToJSONSchemaParams): z.core.JSONSchema
 
 Types: [TypertContribution](invariants.md) · [TypertFace](invariants.md) · [TypertPackageFilter](invariants.md) · [TypertPackageRecord](invariants.md) · [TypertSchemaFilter](invariants.md) · [TypertSchemaRecord](invariants.md)
 
-Source: [`packages/typert/registry/src/service.ts`](../../packages/typert/registry/src/service.js)
+Source: [`packages/typert/registry/src/service.js`](../../packages/typert/registry/src/service.js)
 
 <a id="ctxtypertgateway--typertgatewayservice"></a>
 
@@ -330,5 +330,5 @@ Resolve strict generated definitions or conservative SRC markers against current
 async invoke(request: InvokeRemoteRequest): Promise<unknown>
 ```
 
-Source: [`packages/api/gateway/src/index.ts`](../../packages/api/gateway/src/index.js)
-<!-- END GENERATED cordis-surface -->
+Source: [`packages/api/gateway/src/index.js`](../../packages/api/gateway/src/index.js)
+<!-- END cordis-surface -->

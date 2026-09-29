@@ -1,8 +1,3 @@
-# Web-fetch composition for the web-fetch snapshot scenario: the web seam, the
-# real local HTTP fetch provider, the model-facing web tools (fetch only, so
-# the pinned header carries exactly the surface under test), and the loopback
-# fixture server the scenario prompt fetches — deterministic content, no
-# external network, in recording and replay alike.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

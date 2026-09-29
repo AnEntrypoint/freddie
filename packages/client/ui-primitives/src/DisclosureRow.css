@@ -1,5 +1,3 @@
-/* Shared disclosure header: [16px leading] gap 6 [title 14/24]. */
-
 .freddie-disclosureRow__root {
   display: flex;
   flex-direction: column;

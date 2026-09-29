@@ -24,11 +24,16 @@ function header(headers, name) {
 /** Normalized URL of a Host-header authority (hostname lowercased, default port stripped, IPv6 bracketed), or undefined when unparsable. */
 function parseAuthority(authority) {
   try {
-    // http: is a WHATWG "special scheme": parsing yields a non-empty hostname or throws.
     return new URL(`http://${authority}`)
   } catch {
     return undefined
   }
+}
+
+/** A Host header is an authority alone; userinfo, a path, a query or a fragment means the parse read a different host than the one named. */
+function isBareAuthority(url) {
+  return url.username === '' && url.password === ''
+    && url.pathname === '/' && url.search === '' && url.hash === ''
 }
 
 /**
@@ -59,7 +64,6 @@ export function assertTrustedAuthority(entry) {
  * shapes like `host:port ` as port-less.
  */
 function canonicalAuthority(entry, entryUrl) {
-  // An authority that parsed under http cannot fail under https.
   const port = entryUrl.port !== '' ? entryUrl.port : new URL(`https://${entry}`).port
   return port === '' ? entryUrl.hostname : `${entryUrl.hostname}:${port}`
 }
@@ -81,32 +85,24 @@ function isTrustedAuthority(hostUrl, trustedHosts) {
   })
 }
 
-/**
- * Decide whether one /api request may reach the RPC bridge.
- * @param request - Node HTTP or Fetch request facts (headers).
- * @param trustedHosts - non-loopback authorities this deployment serves: exact `host:port`, or port-less `host` matching any port.
- * @returns true when the Host is ours (loopback or trusted) and any attached browser markers are same-origin.
- */
-export function isTrustedApiRequest(request, trustedHosts) {
-  // Host fence (DNS-rebinding defense), applied to every request: the browser
-  // fills Host from the URL it believes it is talking to, so a rebound page
-  // carries the attacker's domain here even though the socket lands on this
-  // server. There is no marker shortcut — a browser read over plain HTTP
-  // (images and navigations) arrives with neither Origin nor
-  // Fetch-Metadata, indistinguishable from curl, and its response is readable
-  // by the rebound page.
+/** The Host header parsed as a bare authority; undefined when absent, unparsable or carrying more than an authority. */
+function requestAuthority(request) {
   const host = header(request.headers, 'host')
-  if (host === undefined) return false
+  if (host === undefined) return undefined
   const hostUrl = parseAuthority(host)
-  if (hostUrl === undefined) return false
-  if (!isLoopbackHostname(hostUrl.hostname) && !isTrustedAuthority(hostUrl, trustedHosts)) return false
-  // Cross-site fence: modern browsers label the initiator relationship on
-  // every fetch; an explicit cross-site marker is refused regardless of Origin.
-  if (header(request.headers, 'sec-fetch-site') === 'cross-site') return false
-  // Origin fence: when a browser attaches an Origin it must be exactly this
-  // authority (compared through the same normalization as the Host). Absent
-  // Origin is fine — the Host fence above already bound the request. The
-  // literal "null" (sandboxed iframes, file: pages) is an opaque origin, refused.
+  return hostUrl !== undefined && isBareAuthority(hostUrl) ? hostUrl : undefined
+}
+
+function isOurAuthority(hostUrl, trustedHosts) {
+  return isLoopbackHostname(hostUrl.hostname) || isTrustedAuthority(hostUrl, trustedHosts)
+}
+
+function isMarkedCrossSite(request) {
+  return header(request.headers, 'sec-fetch-site') === 'cross-site'
+}
+
+/** An absent Origin passes, since the Host fence already bound the request; the opaque origin "null" and any other authority fail. */
+function originMatchesAuthority(request, hostUrl) {
   const origin = header(request.headers, 'origin')
   if (origin === undefined) return true
   try {
@@ -114,4 +110,18 @@ export function isTrustedApiRequest(request, trustedHosts) {
   } catch {
     return false
   }
+}
+
+/**
+ * Decide whether one /api request may reach the RPC bridge.
+ * @param request - Node HTTP or Fetch request facts (headers).
+ * @param trustedHosts - non-loopback authorities this deployment serves: exact `host:port`, or port-less `host` matching any port.
+ * @returns true when the Host is ours (loopback or trusted) and any attached browser markers are same-origin.
+ */
+export function isTrustedApiRequest(request, trustedHosts) {
+  const hostUrl = requestAuthority(request)
+  if (hostUrl === undefined) return false
+  if (!isOurAuthority(hostUrl, trustedHosts)) return false
+  if (isMarkedCrossSite(request)) return false
+  return originMatchesAuthority(request, hostUrl)
 }

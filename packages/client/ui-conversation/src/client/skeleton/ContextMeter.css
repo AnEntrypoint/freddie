@@ -1,12 +1,8 @@
-/* Context-occupancy ring beside the send button plus its click-open breakdown
-   panel (menu surface: r12, inverted hairline, shadow-lv3). */
-
 .freddie-contextMeter__root {
   position: relative;
   display: inline-flex;
 }
 
-/* Same 28px circular hit target family as the composer's attach button. */
 .freddie-contextMeter__trigger {
   display: grid;
   place-items: center;
@@ -77,8 +73,6 @@
   color: var(--freddie-alias-label-tertiary);
 }
 
-/* The headline brackets the reading, so the side a locale leaves empty must
-   drop out of the flex row rather than spend a gap. */
 .freddie-contextMeter__headline:empty {
   display: none;
 }
@@ -116,7 +110,6 @@
 }
 
 .freddie-contextMeter__colorTools {
-  /* The design platform ships no purple static token; violet-400 literal. */
   --meter-tint: rgb(167, 139, 250);
 }
 

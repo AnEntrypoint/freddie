@@ -64,6 +64,12 @@ function serializedCharacterBytes(character) {
   return byteLength(character)
 }
 
+/** Serialized size of an empty JSON array, `[]`: where every logs-array byte count starts. */
+export const EMPTY_JSON_ARRAY_BYTES = 2
+
+/** Serialized size of the double quotes around a JSON string. */
+export const JSON_STRING_QUOTES_BYTES = 2
+
 /**
  * Measure one JSON string without materializing its complete escaped form.
  * @param text - the candidate string.

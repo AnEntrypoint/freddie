@@ -11,6 +11,24 @@
 import { stat } from 'node:fs/promises'
 import { realpathNormalize } from './paths.js'
 
+/**
+ * The public workspace interface the registry hands to consumers: a durable
+ * record view plus its session-membership operations. Implemented by
+ * {@link WorkspaceEntity}; consumers depend on this narrower shape rather
+ * than the entity class itself.
+ * @typedef {object} Workspace
+ * @property {string} path - the `fs.realpath` canon stamped at create.
+ * @property {string} title
+ * @property {string} createdAt - ISO-8601 timestamp.
+ * @property {string} updatedAt - ISO-8601 timestamp.
+ * @property {string[]} sessionIds - the ordered, path-validated ownership account.
+ * @property {function(string): Promise<void>} setTitle
+ * @property {function(string): Promise<void>} attachSession
+ * @property {function(string, string=): Promise<void>} insertSessionBefore
+ * @property {function(string): Promise<void>} detachSession
+ * @property {function(): Promise<'ok' | 'missing-dir'>} status
+ */
+
 /** An insertSessionBefore request named a session or anchor not on the account (storage failures stay plain errors). */
 export class WorkspaceMoveInvalidError extends Error {
   /**
@@ -65,10 +83,6 @@ export class WorkspaceEntity {
   }
 
   async attachSession(sessionId) {
-    // Validation is skipped when the settled snapshot already accounts the
-    // id: the cwd fact was checked when it first attached and both inputs
-    // (stored header cwd, workspace path) are immutable. Membership itself is
-    // decided on the write chain inside `mutate`, never on this snapshot.
     if (!this.record.sessionIds.includes(sessionId)) {
       const header = await this.host.readSessionHeader(sessionId)
       if (header.cwd === undefined) {
@@ -139,8 +153,6 @@ export class WorkspaceEntity {
     try {
       return (await stat(this.record.path)).isDirectory() ? 'ok' : 'missing-dir'
     } catch {
-      // Any stat failure (ENOENT, dangling parent, permission loss) means the
-      // directory is not usable right now; the record itself never mutates.
       return 'missing-dir'
     }
   }

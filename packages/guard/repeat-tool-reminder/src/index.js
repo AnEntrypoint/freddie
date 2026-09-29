@@ -127,7 +127,12 @@ function prependContext(ours, theirs) {
   return [ours, ...theirs ?? []]
 }
 
-/** One agent's consecutive-repeat chain: the last tracked call's identity key and its run length. */
+/**
+ * One agent's consecutive-repeat chain: the last tracked call's identity key and its run length.
+ * @typedef {object} RepeatChain
+ * @property {string} key `JSON.stringify([toolName, canonicalizedArguments])`.
+ * @property {number} count Consecutive-attempt run length for `key`.
+ */
 
 /**
  * Install the guard's listeners.
@@ -135,7 +140,6 @@ function prependContext(ours, theirs) {
  * @param config - validated {@link Config}; `thresholds` is re-checked fail-loud here.
  */
 export function apply(ctx, config) {
-  // schemastery's .default() guarantees the fields are set after validation.
   const thresholds = validateThresholds(config.thresholds)
   const thresholdSet = new Set(thresholds)
   const includePatterns = config.include.map(wildcardToRegExp)
@@ -162,8 +166,6 @@ export function apply(ctx, config) {
    * worth breaking.
    */
   function observe(exec) {
-    // A direct `ctx.tools.execute()` caller has no model to remind and no id
-    // to key on; only agent-loop calls participate.
     if (!exec.agent) return undefined
     if (!tracked(exec.name)) return undefined
     const canonical = canonicalize(exec.arguments)
@@ -181,10 +183,6 @@ export function apply(ctx, config) {
     })
   }
 
-  // Observe-and-enrich, never veto: count first (state advances regardless of
-  // the downstream outcome), DELEGATE so a later listener can still block or
-  // replace, then fold the reminder onto whatever came back — additionalContexts
-  // rides both decision variants, so a blocked call still gets the nudge.
   ctx.on('tools/post-execute', async (exec, _result, next) => {
     const reminder = observe(exec)
     const downstream = await next()
@@ -198,9 +196,6 @@ export function apply(ctx, config) {
     }
   })
 
-  // A user interjection changes the context; repetition across it is not a
-  // loop. Pure reset hook: always delegates (attaching nothing, vetoing
-  // nothing).
   ctx.on('agent/pre-step', ({ agent, messages }, next) => {
     if (messages.some(message => message.source.kind === 'user')) chains.delete(agent)
     return next()

@@ -1,19 +1,3 @@
-// HoverCard: delayed hover-preview card portaled to document.body.
-// Same portal mechanics as Menu: the wrapper span supplies the anchor rect,
-// the card is fixed-positioned at its right edge and repositions on
-// scroll/resize while open. The card is reachable: it takes pointer events,
-// and leaving the anchor only arms a grace-delayed close, so the pointer can
-// cross the 8px gap and settle on the card to read a clipped path or title.
-//
-// Converted from a React hooks component to a webjsx custom element: open/
-// pos/copied state become instance fields, the placement/grace/copy effects
-// become connectedCallback/disconnectedCallback plus explicit timers, and
-// re-render is an explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
-// The card is appended to document.body directly (createPortal's webjsx
-// equivalent) rather than being a DOM child of the wrapper, so its pointer
-// events are wired independently instead of riding React's enter/leave
-// tree traversal.
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { writeClipboard } from './clipboard.js'
 import css from './HoverCard.css.js'
@@ -225,6 +209,18 @@ export class FreddieHoverCard extends HTMLElement {
 }
 
 defineElement('freddie-hover-card', FreddieHoverCard)
+
+/**
+ * @typedef {object} HoverCardProps
+ * @property {*} [anchor=''] - the always-visible trigger content the card is anchored to.
+ * @property {*} [content=''] - the popover content shown while the card is open.
+ * @property {number} [openDelayMs=500] - hover delay before the card opens, in ms.
+ * @property {boolean} [disabled=false] - closes and suppresses the card while true.
+ * @property {string} [copyText] - text copied to the clipboard when the open card is clicked; omitting it
+ *   disables the copy affordance.
+ * @property {string} [copyLabel='Copy'] - accessible label shown while idle.
+ * @property {string} [copiedLabel='Copied'] - label and status text shown after a successful copy.
+ */
 
 /**
  * Create (if needed) or update a HoverCard element in place.

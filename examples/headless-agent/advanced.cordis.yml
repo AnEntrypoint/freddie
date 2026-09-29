@@ -1,4 +1,3 @@
-# Add Code Mode and Cordis tools to the headless spawn/workflow stack.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

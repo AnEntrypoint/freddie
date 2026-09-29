@@ -36,7 +36,6 @@ Local relative imports/exports in the converted JS source use explicit `.js` spe
 | File | Change |
 |---|---|
 | `framework/README.md` | add a package table row (dir, npm name, what it descended from, version, ancestor repo, fork point) and log the conversion in the divergence log |
-| `tsdown-resolver-paths.json` | add `"<npm-name>": ["./framework/<dir>/src"]` if any `packages/*` consumer needs this package resolvable for that build's own resolver-path facade |
 
 Covered automatically by the `framework/*` glob in `pnpm-workspace.yaml`'s `packages` list — no edit needed there for a new directory.
 

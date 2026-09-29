@@ -10,17 +10,17 @@ When a capability is general enough to need replaceable providers, such as Bash 
 
 The Bash execution capability consists of:
 
-- **Service Definition** (`dsh-shell`) — defines the Cordis service and Bash request and result types
-- **Service Provider** (`dsh-bash-local`) — executes commands on the local machine
-- **Consumer** (`dsh-tool-bash`) — exposes the capability as a model-callable tool
+- **Service Definition** (`@freddie/freddie-shell`) — defines the Cordis service and Bash request and result types
+- **Service Provider** (`@freddie/freddie-bash-local`) — executes commands on the local machine
+- **Consumer** (`@freddie/freddie-tool-bash`) — exposes the capability as a model-callable tool
 
 ```
-┌─────────────┐     ┌──────────────────┐     ┌──────────────┐
-│  dsh-shell   │────▶│  dsh-bash-local  │     │ dsh-tool-bash│
-│(definition) │     │    (provider)     │     │(consumer/tool)│
-└─────────────┘     └──────────────────┘     └──────────────┘
-       ▲                                            │
-       └────────────────────────────────────────────┘
+┌───────────────┐   ┌────────────────────┐   ┌───────────────────┐
+│ freddie-shell │──▶│ freddie-bash-local │   │ freddie-tool-bash │
+│ (definition)  │   │     (provider)     │   │  (consumer/tool)  │
+└───────────────┘   └────────────────────┘   └───────────────────┘
+        ▲                                              │
+        └──────────────────────────────────────────────┘
                     inject: ['shell']
 ```
 
@@ -57,43 +57,44 @@ The [capability-seam reference](../../../capability-seams.md) owns the current b
 
 ### Step 1: write the Service Definition
 
-```ts ignore-check
-// packages/my-cap/my-cap/src/index.ts
-import { Service, type Context } from '@freddie/cordis'
+```js
+// packages/my-cap/my-cap/src/index.js
+import { Service } from '@freddie/cordis'
 
-declare module '@freddie/cordis' {
-  interface Context {
-    myCap: MyCapService
-  }
-}
+/**
+ * @typedef {object} MyCapRequest
+ * @property {string} input
+ */
 
-export abstract class MyCapService extends Service {
-  constructor(ctx: Context) {
+/**
+ * @typedef {object} MyCapResult
+ * @property {string} output
+ */
+
+export class MyCapService extends Service {
+  constructor(ctx) {
     super(ctx, 'myCap')
   }
 
-  /** Execute the capability. */
-  abstract execute(request: MyCapRequest): Promise<MyCapResult>
-}
-
-export interface MyCapRequest {
-  input: string
-}
-
-export interface MyCapResult {
-  output: string
+  /**
+   * Execute the capability.
+   * @param {MyCapRequest} request
+   * @returns {Promise<MyCapResult>}
+   */
+  execute(request) {
+    throw new Error('MyCapService.execute is not implemented')
+  }
 }
 ```
 
 ### Step 2: write a Service Provider
 
-```ts ignore-check
-// packages/my-cap/my-cap-local/src/index.ts
-import type { Context } from '@freddie/cordis'
-import { MyCapService, type MyCapRequest, type MyCapResult } from '@freddie/freddie-my-cap'
+```js
+// packages/my-cap/my-cap-local/src/index.js
+import { MyCapService } from '@freddie/freddie-my-cap'
 
 class MyCapLocal extends MyCapService {
-  async execute(request: MyCapRequest): Promise<MyCapResult> {
+  async execute(request) {
     // Local provider behavior.
     return { output: request.input.toUpperCase() }
   }
@@ -101,22 +102,21 @@ class MyCapLocal extends MyCapService {
 
 export const name = 'my-cap-local'
 
-export function apply(ctx: Context) {
+export function apply(ctx) {
   ctx.plugin(MyCapLocal)
 }
 ```
 
 ### Step 3: write a consumer
 
-```ts ignore-check
-// packages/my-cap/tool-my-cap/src/index.ts
-import type { Context } from '@freddie/cordis'
+```js
+// packages/my-cap/tool-my-cap/src/index.js
 import { defineTool } from '@freddie/freddie-tools'
 
 export const name = 'tool-my-cap'
 export const inject = ['tools', 'myCap']
 
-export function apply(ctx: Context) {
+export function apply(ctx) {
   ctx.tools.register(defineTool({
     name: 'my_cap',
     description: 'Execute my capability.',

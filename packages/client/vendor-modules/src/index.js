@@ -102,18 +102,7 @@ const serveVendor = async (req, res) => {
     res.end()
     return
   }
-  // Versioned URLs make long-lived caching safe for published npm
-  // packages -- the version segment IS the whole cache key. Three
-  // classes of path are not a published pin and stay on `no-cache`
-  // (revalidate every request through the shared ETag/304 path, matching
-  // `/plugins/` and `/workspace/`): `@freddie/` workspace packages (no
-  // publish step bumps the version on a local edit), `webjsx@` (this
-  // repo's pnpm patch edits the vendored copy under an unchanged 0.0.73
-  // URL), and unversioned stubs such as `node-module-stub.js`. Everything
-  // else is a real pinned release and gets `immutable`, so a cold boot
-  // does not revalidate ~200 third-party modules.
   const revalidate = relPath.startsWith('@freddie/')
-    || relPath.startsWith('webjsx@')
     || !relPath.includes('@')
   const served = await sendFile(req, res, filePath, {
     'content-type': contentTypeFor(relPath),
@@ -136,17 +125,6 @@ function escapeHtmlAttribute(value) {
 /** Prefix reserved for build/runtime values a browser client may read from `process.env`. */
 const CLIENT_BUILD_ENV_PREFIX = 'FREDDIE_CLIENT_'
 
-// @freddie/cordis-plugin-loader (vendored, host-oriented) reads
-// `process.env.CORDIS_SHARED`, `process.execArgv`, and
-// `process.versions.node` unconditionally in module-level or
-// field-initializer code, even on the browser boot path that never actually
-// takes their Node-only branches — a minimal process stand-in, not a general
-// Node polyfill. Buildless serving means no bundler `define` step bakes
-// FREDDIE_CLIENT_* values (title, build profile, commit hash — read directly
-// by packages/client/ui-brand-official, ui-renderer/DocumentTitle,
-// ui-sidebar/SidebarRoot) into served source, so the real values are handed
-// to this same runtime process.env shim instead — the server already has
-// them in its own real process.env.
 function renderProcessShim() {
   const env = {}
   for (const [name, value] of Object.entries(process.env)) {

@@ -10,9 +10,6 @@ export const name = 'gm-client-invariant'
 /** Service required before the companion can register. */
 export const inject = ['invariants']
 
-// No runtime invariant: gm-client is a spool dispatcher over `.gm/exec-spool/`;
-// it mounts `ctx.gm` and owns no session events or durable logged relation to
-// check. Dispatch counters are process-local, not a reconstructable stream.
 const install = () => {}
 
 /**

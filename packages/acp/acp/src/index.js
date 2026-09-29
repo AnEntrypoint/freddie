@@ -49,8 +49,6 @@ export const Config = Schema.object({
  * @param config - Initial provider/model selection and optional test transport.
  */
 export function apply(ctx, config) {
-  // ACP handlers execute outside this plugin's injection scope, so capture the
-  // injected service during apply rather than reading it lazily in a callback.
   const agents = ctx.agents
   const logger = ctx.logger
   const sessions = new Map()
@@ -106,8 +104,6 @@ export function apply(ctx, config) {
       await inflight.admissionDone
       if (inflight.messageQueued) {
         await record.agent.whenIdle()
-        // session/event enqueues synchronously before the agent becomes idle;
-        // reading the live tail here includes every committed output task.
         await record.outputTail
       }
       /* v8 ignore next -- this prompt owns the slot until this exact settlement clears it. */
@@ -131,8 +127,6 @@ export function apply(ctx, config) {
       } else if (end.kind === 'error') {
         rejectFromError(inflight, end)
       } else {
-        // Token-limit and other non-terminal endings are not prompt-level stop
-        // reasons; ordinary quiescence reports end_turn.
         inflight.resolve(end.kind === 'max-tokens' ? 'end_turn' : turnEndToStopReason(end))
       }
     })()
@@ -145,10 +139,6 @@ export function apply(ctx, config) {
     /* v8 ignore stop */
   }
 
-  // Emit only committed assistant text/images. Raw chunks, reasoning, tools,
-  // plans, titles, and retry markers are presentation or trace data and stay
-  // off the automation wire. One per-session chain preserves block/message
-  // order across asynchronous attachment reads.
   ctx.on('session/event', (session, event) => {
     const record = sessions.get(session.header.id)
     if (record === undefined || record.agent.session !== session) return
@@ -167,7 +157,6 @@ export function apply(ctx, config) {
           }
         })
         record.outputTail = delivery.catch((error) => {
-          // assistantBlockToAcp owns conversion failures and always throws Error.
           const failure = error
           if (inflight !== undefined) inflight.outputError ??= failure
           logger.warn(`acp: assistant output conversion failed: ${errorChain(error)}`)
@@ -195,9 +184,6 @@ export function apply(ctx, config) {
     settleAfterQuiescence(record, inflight)
   })
 
-  // Permission requests are a machine policy channel for ACP clients such as
-  // freddie-subagent-acp. The bridge offers one-shot choices only and never infers a
-  // durable grant from an unknown client response.
   ctx.on('approval/request', (request, next) => {
     const record = ownedRecord(request.agent)
     if (record === undefined || request.callId === undefined) return next()
@@ -218,8 +204,6 @@ export function apply(ctx, config) {
     conn = connection
     return {
       async initialize(_params) {
-        // Single-version agent: the spec's "same version if supported, else
-        // the latest supported" both resolve to this server's one version.
         imagePromptEnabled = await supportsAcpImagePrompts(ctx, config.provider, config.model)
         return {
           protocolVersion: PROTOCOL_VERSION,
@@ -239,10 +223,6 @@ export function apply(ctx, config) {
         assertOpen()
         validateSessionParams(params)
         const sessionId = SessionId(randomUUID())
-        // No preset composition: the ACP bundle keeps the model-facing rows in
-        // the host plane, so this agent reads them from the global layer. A
-        // deployment that configures a roster has to join one here first
-        // (@freddie/freddie-agent-presets README, "Composing a child agent").
         const handle = await agents.create({
           sessionId,
           meta: { cwd: params.cwd },
@@ -286,16 +266,11 @@ export function apply(ctx, config) {
           outputError: undefined,
           agentError: undefined,
         }
-        // Reserve the one-prompt slot before the first asynchronous route or
-        // attachment operation so concurrent prompts and cancellation observe
-        // admission as genuinely in flight.
         record.inflight = inflight
 
         let admissionFailed = false
         let admissionFailure
         try {
-          // Do not persist rich content for a retired destination. Re-check
-          // after admission too because an agent-loop reload may race storage.
           if (ctx.agents.get(record.agent.id) !== record.agent) {
             throw internalError('prompt was not queued: the agent was disposed outside the bridge')
           }
@@ -306,8 +281,6 @@ export function apply(ctx, config) {
             imagePromptEnabled,
             admissionController.signal,
           )
-          // No await may separate this final abort check from followup: a
-          // cancellation that wins admission must never enqueue a late turn.
           admissionController.signal.throwIfAborted()
           if (ctx.agents.get(record.agent.id) !== record.agent) {
             throw internalError('prompt was not queued: the agent was disposed outside the bridge')
@@ -318,8 +291,6 @@ export function apply(ctx, config) {
           try {
             record.agent.followup(message)
           } catch (error) {
-            // The typed same-process seam may fail synchronously before durable
-            // inbox receipt; restore the pre-operation boundary for mapping.
             inflight.messageQueued = false
             throw error
           }
@@ -342,7 +313,6 @@ export function apply(ctx, config) {
               : internalError(admissionFailure.message)
           }
           if (admissionFailure instanceof RequestError) throw admissionFailure
-          // The admission codec and same-process agent seam throw Error values.
           const detail = admissionFailure.message
           throw internalError(`prompt was not queued: ${detail}`)
         }
@@ -361,9 +331,6 @@ export function apply(ctx, config) {
           inflight.admissionController.abort(new Error('ACP prompt cancelled'))
           settleAfterQuiescence(record, inflight)
         }
-        // Admission is not Agent work. Preserve unrelated producers until this
-        // prompt has entered the durable inbox; without a prompt, cancellation
-        // continues to target autonomous work on the addressed Agent.
         if (inflight === undefined || inflight.messageQueued) record.agent.cancel({ kind: 'user' })
         return Promise.resolve()
       },
@@ -383,9 +350,6 @@ export function apply(ctx, config) {
     closed = true
     const records = [...sessions.values()]
     sessions.clear()
-    // Stop the bridge's own work before any await: a descendant drain can block
-    // on persistence or scoped cleanup, and the top-level agents must not keep
-    // running model and tool calls for its whole duration.
     for (const record of records) {
       const inflight = record.inflight
       if (inflight !== undefined) {
@@ -396,22 +360,11 @@ export function apply(ctx, config) {
       record.agent.cancel({ kind: 'user' })
     }
     quiescing = (async () => {
-      // Preserve the same prompt boundary during connection teardown: a rich
-      // admission already writing must stop before its slot settles, and every
-      // committed output conversion must drain while attachment services remain
-      // available. session/event enqueues output synchronously before idle.
       await Promise.all(records.map(async (record) => {
         await record.inflight?.admissionDone
         await record.agent.whenIdle()
         await record.outputTail
       }))
-      // Continuable subagents outlive the turn that started them, and their
-      // Activations own descendant teardown. Drain only these sessions' forests
-      // child-first BEFORE disposing the top-level agents, so no descendant is
-      // left holding a runtime its owner already released and another frontend
-      // sharing this Context remains live.
-      // Read the one teardown method structurally: the bridge needs no other
-      // part of the subagent seam, so it does not depend on that package.
       const subagents = ctx.get('subagents')
       if (subagents !== undefined) {
         try {
@@ -426,9 +379,6 @@ export function apply(ctx, config) {
         if (result.status === 'rejected') failures.push(result.reason)
       }
       if (failures.length > 0) {
-        // The production consumer logs this AggregateError through `String`,
-        // which renders only its message. Embed every per-session diagnostic,
-        // including nested causes and aggregate members, in that message.
         const detail = failures.map(failure => errorChain(failure)).join('; ')
         throw new AggregateError(
           failures,

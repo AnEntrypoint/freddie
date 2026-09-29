@@ -111,10 +111,6 @@ export class WebServer extends Service {
   /** Listen; resolves once the socket is bound (rejection = FAILED fiber). */
   async [Service.init]() {
     const handle = async (req, res) => {
-      // node:http always sets url on server requests; `?? '/'` guards the
-      // client-side IncomingMessage type only. Rewrite `/__hmr/<rev>/...` to
-      // the unprefixed path so named routes AND the fallback owner see the
-      // same tree — the prefix exists only as a browser module-cache key.
       const incoming = req.url ?? '/'
       const parsed = new URL(incoming, 'http://x')
       const rawPath = stripHmrPrefix(parsed.pathname)
@@ -132,10 +128,6 @@ export class WebServer extends Service {
       }
       await fallback(req, res)
     }
-    // Last-resort guard: handle() rejecting would otherwise be an unhandled
-    // rejection killing the process on one malformed request (bad %-escape,
-    // client dropping mid-body). Per-request failures log and answer 400 —
-    // never a process exit.
     this.server = createServer((req, res) => {
       handle(req, res).catch((err) => {
         this.ctx.logger.warn(err instanceof Error ? err : new Error(String(err)))
@@ -191,8 +183,6 @@ export class WebServer extends Service {
       })
     })
 
-    // Node does not include upgraded sockets in closeAllConnections(). The service
-    // owns them with the other connections, so it tracks and destroys them explicitly.
     this.ctx.effect(() => async () => {
       const serverClosed = new Promise((resolve) => {
         this.server.close(() => { resolve() })

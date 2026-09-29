@@ -46,44 +46,32 @@ export class FreddieGoalBar extends HTMLElement {
   #pendingFlag = false
   #actionError = null
   #clearedGoalId = null
-  #tooltips = new Map()
+  #tooltipByCallSite = new Map()
 
-  // h(Tooltip, {...}) calls Tooltip(props) synchronously (webjsx's function-
-  // component branch in createElement), which is Tooltip.js's bare one-shot
-  // factory -- document.createElement('freddie-tooltip') fresh every call. This
-  // element re-renders on every goal/session snapshot change (its own doc
-  // comment above), so every h(Tooltip, ...) call site was recreating its
-  // freddie-tooltip element (dropping its in-flight #showTimer hover-delay) on
-  // every #render(). `key` is a stable per-call-site label -- there is no
-  // natural object identity per tooltip here, unlike MessageIconActions'
-  // node-keyed cache.
-  #tooltip(key, props, ...children) {
-    const el = renderTooltip(this.#tooltips.get(key) ?? null, { ...props, children })
-    this.#tooltips.set(key, el)
+  #persistentTooltip(key, props, ...children) {
+    const el = renderTooltip(this.#tooltipByCallSite.get(key) ?? null, { ...props, children })
+    this.#tooltipByCallSite.set(key, el)
     return el
   }
 
   setProps(props) {
     const prevGoalId = this.#props.goal?.id
     this.#props = props
-    // A new goal identity (cleared/completed/replaced externally) invalidates
-    // local edit state: without the reset a surviving draft's Enter would
-    // write over the NEW goal.
-    if (props.goal?.id !== prevGoalId) {
-      this.#editing = false
-      this.#actionError = null
-      this.#clearedGoalId = null
-    }
+    if (props.goal?.id !== prevGoalId) this.#discardStateOfPreviousGoal()
     this.#render()
+  }
+
+  #discardStateOfPreviousGoal() {
+    this.#editing = false
+    this.#actionError = null
+    this.#clearedGoalId = null
   }
 
   connectedCallback() {
     this.#render()
   }
 
-  disconnectedCallback() {
-    // No pending timers/listeners to release.
-  }
+  disconnectedCallback() {}
 
   async #runAction(action) {
     if (this.#pendingFlag) return undefined
@@ -113,7 +101,6 @@ export class FreddieGoalBar extends HTMLElement {
   #render() {
     const { goal, onPause, onResume, t } = this.#props
 
-    // Loading, absent, and complete goals have no strip at all.
     if (goal === undefined || goal === null || goal.phase === 'complete' || goal.id === this.#clearedGoalId) {
       applyDiff(this, [])
       return
@@ -139,7 +126,7 @@ export class FreddieGoalBar extends HTMLElement {
             }),
             this.#actionError !== null && h('span', {class: css.error ?? '', role: 'alert'}, this.#actionError),
             h('div', {class: css.actions ?? ''},
-              this.#tooltip('save', {label: t('action.save'), side: 'bottom', delayMs: 500},
+              this.#persistentTooltip('save', {label: t('action.save'), side: 'bottom', delayMs: 500},
                 h('button', {
                   type: 'button',
                   class: css.iconBtn ?? '',
@@ -150,7 +137,7 @@ export class FreddieGoalBar extends HTMLElement {
                   h(IconCheckOutline16, {size: 14}),
                 ),
               ),
-              this.#tooltip('cancel', {label: t('action.cancel'), side: 'bottom', delayMs: 500},
+              this.#persistentTooltip('cancel', {label: t('action.cancel'), side: 'bottom', delayMs: 500},
                 h('button', {
                   type: 'button',
                   class: css.iconBtn ?? '',
@@ -179,20 +166,20 @@ export class FreddieGoalBar extends HTMLElement {
           this.#actionError !== null && h('span', {class: css.error ?? '', role: 'alert'}, this.#actionError),
           h('div', {class: css.actions ?? ''},
             goal.phase === 'active' && (
-              this.#tooltip('pause', {label: t('action.pause'), side: 'bottom', delayMs: 500},
+              this.#persistentTooltip('pause', {label: t('action.pause'), side: 'bottom', delayMs: 500},
                 h('button', {type: 'button', class: css.iconBtn ?? '', disabled: this.#pending, onclick: () => { void this.#runAction(onPause) }, 'aria-label': t('action.pause')},
                   h(IconPauseOutline16, {size: 14}),
                 ),
               )
             ),
             goal.phase === 'paused' && (
-              this.#tooltip('resume', {label: t('action.resume'), side: 'bottom', delayMs: 500},
+              this.#persistentTooltip('resume', {label: t('action.resume'), side: 'bottom', delayMs: 500},
                 h('button', {type: 'button', class: css.iconBtn ?? '', disabled: this.#pending, onclick: () => { void this.#runAction(onResume) }, 'aria-label': t('action.resume')},
                   h(IconPlayOutline16, {size: 14}),
                 ),
               )
             ),
-            this.#tooltip('edit', {label: t('action.edit'), side: 'bottom', delayMs: 500},
+            this.#persistentTooltip('edit', {label: t('action.edit'), side: 'bottom', delayMs: 500},
               h('button', {
                 type: 'button',
                 class: css.iconBtn ?? '',
@@ -203,7 +190,7 @@ export class FreddieGoalBar extends HTMLElement {
                 h(IconEditOutline16, {size: 14}),
               ),
             ),
-            this.#tooltip('clear', {label: t('action.clear'), side: 'bottom', delayMs: 500},
+            this.#persistentTooltip('clear', {label: t('action.clear'), side: 'bottom', delayMs: 500},
               h('button', {type: 'button', class: css.iconBtn ?? '', disabled: this.#pending, onclick: () => { void this.#handleClear(goal.id) }, 'aria-label': t('action.clear')},
                 h(IconTrashOutline16, {size: 14}),
               ),
@@ -240,9 +227,7 @@ export class FreddieGoalDock extends HTMLElement {
     this.#render()
   }
 
-  disconnectedCallback() {
-    // No pending timers/listeners to release.
-  }
+  disconnectedCallback() {}
 
   #render() {
     const props = this.#props
@@ -262,6 +247,35 @@ export class FreddieGoalDock extends HTMLElement {
 defineElement('freddie-goal-dock', FreddieGoalDock)
 
 /**
+ * One goal, as FreddieGoalBar reads it: identity for reset/clear tracking,
+ * the visible phase, the objective text, and the blocked-phase reason shown
+ * as the strip's title.
+ * @typedef {object} GoalBarGoal
+ * @property {string} id
+ * @property {'active'|'paused'|'blocked'|'complete'} phase
+ * @property {string} objective
+ * @property {{message: string}} [blockedReason]
+ */
+
+/**
+ * Outcome of a goal action call (edit/pause/resume/clear).
+ * @typedef {object} GoalBarActionResult
+ * @property {boolean} ok
+ * @property {{code: string, message: string, details: object}} [error]
+ */
+
+/**
+ * Props for the standalone `freddie-goal-bar` element.
+ * @typedef {object} GoalBarFullProps
+ * @property {GoalBarGoal|null} [goal] - undefined while loading, null when there is no current goal.
+ * @property {function(string): Promise<GoalBarActionResult>} onEdit - persist an edited objective.
+ * @property {function(): Promise<GoalBarActionResult>} onPause - pause the active goal.
+ * @property {function(): Promise<GoalBarActionResult>} onResume - resume a paused goal.
+ * @property {function(): Promise<GoalBarActionResult>} onClear - clear the current goal.
+ * @property {function(string): string} t - label lookup by key.
+ */
+
+/**
  * Create and mount (or update) a GoalBar element for a given goal snapshot.
  * @param el - an existing `freddie-goal-bar` element to update, or null to create one.
  * @param props - see {@link GoalBarFullProps}.
@@ -277,6 +291,19 @@ export function renderGoalBar(el, props) {
 export function GoalBar(props) {
   return renderGoalBar(null, props)
 }
+
+/**
+ * Props for the `freddie-goal-dock` adapter element: a `goal` projection
+ * reader plus the same action/label callbacks GoalBarFullProps takes, passed
+ * straight through to the hosted `freddie-goal-bar`.
+ * @typedef {object} GoalDockProps
+ * @property {function(string): ({goal: GoalBarGoal|null}|null|undefined)} useProjection - reads the named host projection; undefined while loading.
+ * @property {function(string): Promise<GoalBarActionResult>} onEdit
+ * @property {function(): Promise<GoalBarActionResult>} onPause
+ * @property {function(): Promise<GoalBarActionResult>} onResume
+ * @property {function(): Promise<GoalBarActionResult>} onClear
+ * @property {function(string): string} t
+ */
 
 /**
  * Create and mount (or update) a GoalDock element.

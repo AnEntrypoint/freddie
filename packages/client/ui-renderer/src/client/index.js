@@ -49,10 +49,18 @@ export function apply(ctx) {
   ctx.reflect.provide('uiRenderer', {
     mount: (container) => {
       const { render, dispose } = buildRenderApp({ ctx })
-      mountApp(container, render)
+      let mounted = false
+      const mountWhenRooted = () => {
+        if (mounted || ctx.slots.entries('root').length === 0) return
+        mounted = true
+        mountApp(container, render)
+      }
+      const unsubscribe = ctx.slots.subscribe('root', mountWhenRooted)
+      mountWhenRooted()
       return () => {
+        unsubscribe()
         dispose()
-        applyDiff(container, [])
+        if (mounted) applyDiff(container, [])
       }
     },
   })

@@ -33,14 +33,6 @@ const FiberState = { PENDING: 0, LOADING: 1, ACTIVE: 2, FAILED: 3, DISPOSED: 4, 
 /** Shipped agent-preset root: beside this app's own config, in both source and built layouts. */
 const SHIPPED_PRESET_ROOT = fileURLToPath(new URL('../config/agent-presets/', import.meta.url))
 
-// The monorepo checkout's own root, two hops up from apps/cli -- present only
-// when this app is running from source inside the workspace (an installed
-// `freddie` package has no `packages/` sibling two levels up). cordis-plugin-hmr's
-// own `root`/`base` config resolves relative to the PROFILE directory
-// (~/.freddie/profiles/<name>/), which shares no files with a dev checkout's
-// packages/ tree at all -- pointing it there instead is what makes host-side
-// HMR watch source edits a developer actually makes, rather than a directory
-// nothing ever writes to.
 const WORKSPACE_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 const WORKSPACE_PACKAGES_DIR = join(WORKSPACE_ROOT, 'packages')
 const WORKSPACE_FRAMEWORK_DIR = join(WORKSPACE_ROOT, 'framework')
@@ -182,10 +174,6 @@ function composeProfile(name, patchFiles) {
     if (typeof row.id === 'string') rows.set(row.id, row)
   }
   const composedOverlays = [...overlays]
-  // The SHIPPED root is the part of the roster only this app can resolve: it
-  // sits beside this app's own config, in both the source and built layouts.
-  // The writable root the roster appends is `freddie-agent-presets`' own, so a
-  // launcher that never reaches this patch still finds a person's presets.
   if (rows.has('agent-presets')) {
     composedOverlays.push({
       id: 'agent-presets',
@@ -197,11 +185,6 @@ function composeProfile(name, patchFiles) {
   }
   const telemetryPatch = resolveTelemetryPatch(process.env.FREDDIE_TELEMETRY_DISABLED, rows.has(TELEMETRY_ROW_ID))
   if (telemetryPatch !== undefined) composedOverlays.push(telemetryPatch)
-  // Point the shared `hmr` row (when present and not disabled) at the actual
-  // workspace source instead of its config-relative default: see
-  // WORKSPACE_ROOT's own doc comment for why the default watches nothing a
-  // developer edits. The base bundle nests its rows under one `insert`, while
-  // a later overlay may expose a top-level replacement, so inspect both forms.
   const hmrRow = rows.get('hmr') ?? findComposedRow(bundlePatches, 'hmr')
   if (hmrRow !== undefined && hmrRow.disabled !== true && existsSync(WORKSPACE_PACKAGES_DIR)) {
     const srcDirs = [
@@ -211,20 +194,9 @@ function composeProfile(name, patchFiles) {
     ].map(dir => relative(WORKSPACE_ROOT, dir).split('\\').join('/'))
     const config = {
       ...(hmrRow.config ?? {}),
-      // `base` resolves as `new URL(config.base, ctx.baseUrl)` inside the
-      // hmr plugin -- a bare filesystem path there throws
-      // ERR_INVALID_URL_SCHEME (only a URL or a same-scheme relative
-      // reference is valid), so this must be the file:// form, not the raw
-      // path WORKSPACE_ROOT holds.
       base: pathToFileURL(WORKSPACE_ROOT).href,
-      // Explicit src/ roots, not the whole packages/+apps/ tree: see
-      // findSrcDirs' own doc comment for the measured 30s+ hang a glob
-      // ignore over this checkout's 224+ nested node_modules produces.
       root: srcDirs,
     }
-    // A base-bundle row is nested in `insert`, so an id patch cannot address it
-    // until composition applies that insert. Extend the same bundle layer with
-    // an ordered second patch; later profile and user layers still win.
     if (rows.has('hmr')) composedOverlays.push({ id: 'hmr', config })
     else bundlePatches.push({ id: 'hmr', config })
   }
@@ -262,11 +234,6 @@ export async function runProfile(options) {
     signalShutdown.abort()
     shutdown.interrupt(code)
   }
-  // Signals own teardown throughout the startup window, not only after boot()
-  // settles: an inserted provider can publish before sibling rows finish mounting.
-  // SIGTERM is a supervisor's ordinary stop request and exits 0 on every
-  // surface — the launcher does not know whether the app considered its work
-  // complete; SIGINT is a user interrupt and reports 130.
   process.on('SIGTERM', () => { interrupt(0) })
   process.on('SIGINT', () => { interrupt(130) })
   installFailLoud(NAME, process, async () => {
@@ -274,60 +241,23 @@ export async function runProfile(options) {
   })
 
   const rootConfig = join(composed.profile.dir, PROFILE_ROOT_FILENAME)
-  // Recomposition for the live layers: bundle layers below, then the profile
-  // and home user layers, overlays on top, so a user edit can never displace
-  // them. Parsed app arguments are not in here at all — they live in
-  // app-provided services that survive a recomposition. EVERY layer
-  // (bundles included, not just the two user files) is re-read fresh per
-  // generation: the HMR watcher hands us only the changed file's own patches,
-  // which this full re-read duplicates deliberately — one shared recompute
-  // keeps every watcher (bundle, profile, home) from stitching in another
-  // watcher's stale copy of a layer it didn't itself change. Bundle layers
-  // were frozen at `composed.bundlePatches` (boot-time only) until this fix;
-  // live-witnessed: editing a bundle's own cordis.patch.yml (e.g. swapping
-  // which plugin a row mounts) never took effect on a running process, only
-  // a full restart did, because nothing re-read bundle files past boot.
-  // Fresh clones per generation: the include pushes `insert` rows into the
-  // mounted tree BY REFERENCE and later id-targeted patches mutate those
-  // objects in place. Reusing one parsed patch object across applications
-  // would bake a user override into the bundle's in-memory insert row, so
-  // removing the override could never revert the row to the bundle default.
   const composeLive = () => structuredClone([
     ...composed.profile.layers.flatMap(layer => loadOptionalPatches(NAME, layer.patchPath) ?? []),
     ...loadOptionalPatches(NAME, composed.profile.patchPath) ?? [],
     ...loadOptionalPatches(NAME, homePatchPath()) ?? [],
     ...composed.overlays,
   ])
-  // Cloned for the same insert-aliasing reason as composeLive: the boot
-  // application must not mutate the objects later reloads recompose from.
   const ctx = await boot(NAME, rootConfig, structuredClone(allPatches(composed)), (hostCtx) => {
     app.current = hostCtx
-    // Before any config-tree entry mounts, so plugins resolve all launch-time
-    // environment values from the same immutable provenance snapshot.
     hostCtx.provide(FREDDIE_LAUNCH_ENVIRONMENT_KEY, options.environment)
-    // The command line and bounded exit request are launcher facts available
-    // to every app plugin that injects the argument snapshot.
     provideCmdline(hostCtx, {
       args: options.args,
       exit: code => void shutdown.shutdown(code),
     })
   })
   app.current = ctx
-  // Framework HMR delegates its full-reload branch to Loader.exit(). The CLI
-  // owns process lifetime, so dispose the complete tree and exit with the
-  // conventional temporary-failure code a development supervisor restarts.
-  // A plain source launch still exits loudly instead of retaining stale code.
-  // `--help` boots no loader: the startup plugin prints and requests exit
-  // before any config tree mounts, so there is nothing to hook.
   const loader = ctx.get('loader')
   if (loader !== undefined) loader.exit = () => { void shutdown.interrupt(75) }
-  // A surface can dispose the whole tree while boot or this post-boot watcher
-  // setup is still in flight — a signal, or a fast one-shot's appExit. Loader
-  // presence and fiber state own liveness; the initial check skips a tree
-  // that already exited, and the catch below re-checks for an exit that
-  // landed mid-setup. Watching is unconditional: a one-shot surface exits
-  // through its bounded shutdown, which disposes the watchers before the
-  // loop drains.
   if (!signalShutdown.signal.aborted
     && ctx.fiber.state === FiberState.ACTIVE
     && ctx.get('loader') !== undefined) {

@@ -78,8 +78,6 @@ export class WebRuntime extends Service {
       store.set(provider.id, provider)
       yield () => store.delete(provider.id)
     }, 'web.registerProvider()')
-    // ctx.effect's disposer returns Promise<void>; our disposer API is
-    // synchronous fire-and-forget — discard the (always-resolved) promise.
     return () => void dispose()
   }
 

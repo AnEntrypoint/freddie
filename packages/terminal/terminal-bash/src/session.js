@@ -115,9 +115,6 @@ class LocalSendOperation {
   }
 
   acceptsStdinWait(pgid, waiting) {
-    // The same group may still expose the wait that existed before terminal.write.
-    // Observe every poll so a departure before the exact-settlement threshold
-    // still makes a later return to that wait post-write evidence.
     if (pgid !== this.initialForegroundPgid) return waiting
     if (!waiting) this.initialForegroundLeftWait = true
     return waiting && this.initialForegroundLeftWait
@@ -140,11 +137,6 @@ export class LocalPtySession {
   outputEnded = Promise.withResolvers()
   completion
   statusValue = { kind: 'running' }
-  // TODO(pty-send-state-consolidation): Fold the per-send fields below
-  // (active/activeTimer/activeDeadlineTimer/activeAbort/interrupting/
-  // activeWrite/pollingReady/polling) into one send-lifecycle owner; the
-  // cancellation/readiness interplay now has enough pinned tests to carry
-  // that refactor safely.
   active
   activeTimer
   activeDeadlineTimer
@@ -242,12 +234,6 @@ export class LocalPtySession {
     try {
       foreground = await this.terminal.inspectForeground()
     } catch (error) {
-      // A pre-write inspection failure while cancellation owns the slot must not
-      // release it: interruptOnce's in-flight foreground signal could land on a
-      // successor's foreground group. The interrupt path's post-signal tail
-      // resumes polling, whose guarded catch propagates a persistent failure.
-      // A retained settled operation implies that same in-flight interrupt, so
-      // this guard admits only an unsettled active send.
       if (this.active === operation && !this.closing && this.interrupting !== operation) {
         this.failActive(error)
       }
@@ -267,13 +253,11 @@ export class LocalPtySession {
           this.activeWrite = undefined
         }
       }
-      // Cancellation owns post-write signalling and reservation release.
       if (operation.cancelRequested) return
       if (this.active === operation && operation.settled) {
         this.clearActive()
         return
       }
-      // Closing can race the awaited provider write even though static analysis sees only local assignments.
       if (this.active === operation && !this.closing) {
         this.pollingReady = operation
         this.schedulePoll(operation)
@@ -357,8 +341,6 @@ export class LocalPtySession {
       try {
         listener(activity)
       } catch {
-        // Local listeners are an optional observation path; output processing and
-        // terminal teardown continue when an observer fails.
       }
     }
   }
@@ -395,11 +377,6 @@ export class LocalPtySession {
     const sanitized = this.sanitizer.push(data)
     this.appendOutput(sanitized.text)
     if (sanitized.prompt) {
-      // TODO(pty-delayed-signal-prompt): With a reproducer, define a marker-generation boundary
-      // before attributing a signal-delayed prompt to a later send.
-      // Bash can print PROMPT_COMMAND before the kernel publishes its return
-      // to the foreground process group. Retain the marker; polling below is
-      // the authority that accepts it only after bash owns the foreground.
       this.promptSeen = true
       this.promptTail = ''
       this.lastOutputAt = Date.now()
@@ -473,10 +450,6 @@ export class LocalPtySession {
         this.settleActive('stdin_read')
         return
       }
-      // A prompt candidate can race bash's foreground handoff, but an interactive
-      // child also inherits PROMPT_COMMAND. Silence therefore remains the bound
-      // on waiting for shell ownership instead of letting a child marker suppress
-      // readiness until the absolute timeout.
       const handoffGrace = this.promptSeen ? this.config.handoffGraceMs : 0
       if (startupHasOutput && idleFor >= this.config.idleSilenceMs + handoffGrace) {
         this.settleActive('inferred_idle')
@@ -486,7 +459,6 @@ export class LocalPtySession {
     } finally {
       this.polling = false
       const active = this.active
-      // Awaited provider inspection can clear or replace the active send despite static analysis.
       if (active !== undefined && this.pollingReady === active) this.schedulePoll(active)
     }
   }
@@ -561,16 +533,12 @@ export class LocalPtySession {
   }
 
   async closeOnce(reason) {
-    // Stop readiness polling but retain the active operation: teardown settles
-    // it as session_exit below, so an in-flight send is never mis-settled as
-    // stdin_read/inferred_idle/timeout during the grace period.
     this.stopPolling()
     try {
       await this.terminal.terminate()
     } catch (error) {
       throw new Error(`PTY cleanup failed (${reason})`, { cause: error })
     }
-    // Quiescence is the active send's terminal outcome.
     this.settleActive('session_exit')
     await this.completion
     this.terminal.output.off('data', this.onTerminalData)

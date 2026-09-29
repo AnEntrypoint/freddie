@@ -80,7 +80,6 @@ class SharedRequest {
       }, (error) => {
         signal.removeEventListener('abort', abort)
         release(false)
-        // CompressionLimiter normalizes task rejections before this handler.
         // oxlint-disable-next-line typescript/prefer-promise-reject-errors
         reject(error)
       })

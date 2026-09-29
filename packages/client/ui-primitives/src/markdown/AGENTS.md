@@ -1,0 +1,6 @@
+# AGENTS.md — ui-primitives/src/markdown
+
+## CSS rationale
+
+- `markdown/MarkdownText.css`: wide tables toggle `overflow-x` on hover/focus because Chromium never repaints state-conditioned scrollbar styles (neither hover-conditioned `::-webkit-scrollbar*` rules nor a `:hover` `scrollbar-color` change reaches the painted bar); the resting padding matches the themed bar's height so the appearing bar replaces it without shifting content. Link color uses the blue business-primary alias because design-platform's `brand-text` is near-black here. Inline file mentions underline only on hover/focus because an underline at rest collides with monospace descenders and the code chip's background. `MessageText.css`: font metrics inherit from the consumer's container (bubble 16/24, assistant flow 16/28) because a generic text primitive that pins its size breaks every consumer's line grid.
+- `markdown/CodeBlock.css`: bottom radii live on `<pre>` because `overflow: hidden` on `.block` would kill the sticky banner; shiki inlines its theme background variable, which is routed to the repo token. `StateDot.css`: the ongoing blue has no alias token (`state-business-primary` is the 500 step, not 450), so a component-level variable is pinned to the static scale.

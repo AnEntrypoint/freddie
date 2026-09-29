@@ -122,7 +122,6 @@ export async function disposeCodexChild(wire, child) {
   try {
     child.stdin?.end()
   } catch {
-    // A concurrently closed stdin does not change range ownership below.
   }
   child.terminate()
   try {
@@ -162,24 +161,17 @@ export async function startCodexRun(request, spec) {
   const onStderr = (chunk) => {
     const bytes = typeof chunk === 'string' ? Buffer.from(chunk) : chunk
     try {
-      // Synchronous fd forwarding preserves byte order without owning a
-      // backpressure queue. A slow host sink can block this event-loop turn.
       writeFileSync(process.stderr.fd, bytes)
     } catch {
-      // Host stderr is an observation sink, not a child-run failure authority.
     }
   }
   const onStderrError = () => {
-    // Stderr observation is auxiliary. JSON-RPC and child.done remain the
-    // only terminal authorities if the diagnostic stream itself fails.
   }
   child.stderr?.on('data', onStderr)
   child.stderr?.on('error', onStderrError)
   const disposeProcess = async () => {
     try {
       await disposeCodexChild(wire, child)
-      // Let stderr already queued by the process close reach the Host before
-      // its forwarding listeners are detached.
       await new Promise((resolveTick) => { setImmediate(resolveTick) })
     } finally {
       child.stderr?.off('data', onStderr)
@@ -198,8 +190,6 @@ export async function startCodexRun(request, spec) {
       throw new CodexRunFailure(processFailureFacts, thrown(error))
     },
   )
-  // A normal post-result dispose also closes the process. Keep its expected
-  // late rejection observed when the terminal result settles first.
   processFailure.catch(() => {})
 
   const runAbort = new AbortController()
@@ -221,8 +211,6 @@ export async function startCodexRun(request, spec) {
     request.signal.removeEventListener('abort', onAbort)
     const cancelledBeforeCleanup = runAbort.signal.aborted
     if (!(error instanceof CodexRunFailure) && !cancelledBeforeCleanup) {
-      // Node reports stdout EOF before the child close that owns its outcome.
-      // Let an already-exiting process publish those facts before rollback.
       await new Promise((resolveTick) => { setImmediate(resolveTick) })
     }
     const failure = new CodexRunFailure({
@@ -260,8 +248,6 @@ export async function startCodexRun(request, spec) {
     return outcome === undefined ? facts : { ...facts, outcome }
   }
   const publishedProcessFailure = processFailure.catch(async (error) => {
-    // Frames already queued by the exiting app-server remain authoritative.
-    // One I/O turn lets them settle before process exit ends the run.
     await new Promise((resolveTick) => { setImmediate(resolveTick) })
     throw error
   })
@@ -273,14 +259,10 @@ export async function startCodexRun(request, spec) {
           publishedProcessFailure,
         ])
         if (terminal.stopReason === 'completed') return terminal
-        // Let stderr already queued with the terminal frame reach the Host
-        // before the non-completed result settles.
         await new Promise((resolveTick) => { setImmediate(resolveTick) })
         const facts = withProcessOutcome(wire.collectFailure())
         return { ...terminal, diagnostic: recordFailureDiagnostic(facts) }
       } catch (error) {
-        // Give stderr data already queued in Node one turn to reach the Host
-        // before error settlement.
         await new Promise((resolveTick) => { setImmediate(resolveTick) })
         const endedBeforeTerminal = wire.endedBeforeTerminal()
         if (endedBeforeTerminal && processFailureFacts === undefined && !runAbort.signal.aborted) {
@@ -288,7 +270,6 @@ export async function startCodexRun(request, spec) {
             const exited = await child.waitForExit(AbortSignal.timeout(Math.ceil(spec.disposeGraceMs)))
             if (exited) await child.done
           } catch {
-            // The wire failure remains authoritative when exit observation fails.
           }
         }
         const facts = error instanceof CodexRunFailure

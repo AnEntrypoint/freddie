@@ -13,7 +13,6 @@ import { gfmFromMarkdown } from 'mdast-util-gfm'
 import { mathFromMarkdown } from 'mdast-util-math'
 import { gfm } from 'micromark-extension-gfm'
 import { math } from 'micromark-extension-math'
-import { cjkFriendlyStrong } from './cjkFriendlyStrong.js'
 import { mathCompatibility } from './mathCompatibility.js'
 
 /**
@@ -24,7 +23,7 @@ import { mathCompatibility } from './mathCompatibility.js'
  */
 export function parseGfm(text) {
   return fromMarkdown(text, {
-    extensions: [gfm(), cjkFriendlyStrong()],
+    extensions: [gfm()],
     mdastExtensions: [gfmFromMarkdown()],
   })
 }
@@ -37,7 +36,7 @@ export function parseGfm(text) {
  */
 export function parseGfmWithMath(text) {
   return fromMarkdown(text, {
-    extensions: [gfm(), cjkFriendlyStrong(), mathCompatibility(), math()],
+    extensions: [gfm(), mathCompatibility(), math()],
     mdastExtensions: [gfmFromMarkdown(), mathFromMarkdown()],
   })
 }

@@ -37,7 +37,8 @@
         "@freddie/freddie-host-apiproxy/client",
         "@freddie/freddie-llm/brand",
         "@freddie/freddie-llm/message",
-        "@freddie/freddie-session/surface"
+        "@freddie/freddie-session/surface",
+        "@freddie/freddie-values"
       ]
     }
   },
@@ -59,7 +60,8 @@
     "@freddie/freddie-commands": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
-    "@freddie/freddie-tools": "*"
+    "@freddie/freddie-tools": "*",
+    "@freddie/freddie-values": "*"
   },
   "devDependencies": {
     "@freddie/freddie-host-webserver": "*",
@@ -71,6 +73,7 @@
     "@freddie/freddie-commands": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
-    "@freddie/freddie-tools": "*"
+    "@freddie/freddie-tools": "*",
+    "@freddie/freddie-values": "*"
   }
 }

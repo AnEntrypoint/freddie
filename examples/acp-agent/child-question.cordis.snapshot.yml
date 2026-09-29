@@ -1,6 +1,3 @@
-# Keyless counterpart to child-question.cordis.yml: keep the real interaction
-# seam, model-facing tool, and tripwire provider while replacing DeepSeek with
-# per-session replay.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

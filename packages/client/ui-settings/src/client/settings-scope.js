@@ -73,8 +73,8 @@ export class SettingsScopeController {
   }
 
   /**
-   * Queue one field write; see {@link SettingsScope.set} for the ordering,
-   * revision, and recovery contract.
+   * Queue one field write; see {@link SettingsScopeController#write} for the
+   * ordering, revision, and recovery contract.
    * @param field - scalar field inside the namespace section.
    * @param value - JSON-shaped value selected by the user.
    * @returns settlement after the write and any latest-write recovery read.
@@ -84,8 +84,8 @@ export class SettingsScopeController {
   }
 
   /**
-   * Queue one field clear; see {@link SettingsScope.unset} for the ordering,
-   * revision, and recovery contract.
+   * Queue one field clear; see {@link SettingsScopeController#write} for the
+   * ordering, revision, and recovery contract.
    * @param field - scalar field inside the namespace section.
    * @returns settlement after the clear and any latest-write recovery read.
    */
@@ -147,8 +147,6 @@ export class SettingsScopeController {
       if (this.disposed) return
       await operation()
     })
-    // The returned task carries its own settlement to the caller; the queue
-    // tail is kept fulfilled so one failed subscriber cannot strand later operations.
     this.tail = task.catch(() => {})
     return task
   }
@@ -180,15 +178,11 @@ export class SettingsScopeController {
 
   decode(view) {
     if (this.spec.decode !== undefined) return this.spec.decode(view.value)
-    // Sections are plain objects by construction; schemastery alone would
-    // resolve null or an array through object defaults instead of refusing.
     if (typeof view.value !== 'object' || view.value === null || Array.isArray(view.value)) return undefined
     let failure
     try {
       failure = this.schema.validate(this.schema.rehydrate(view.schema), view.value)
     } catch (_malformedSchemaEnvelope) {
-      // A schema envelope this client cannot rehydrate vouches for no section;
-      // the value is treated exactly like a schema-invalid one.
       return undefined
     }
     return failure === undefined ? view.value : undefined

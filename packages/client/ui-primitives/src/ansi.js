@@ -1,10 +1,3 @@
-// ANSI model behind TerminalBlock: anser splits the SGR runs, this module
-// resolves each run's colors and decorations into a plain style record and
-// folds the runs into per-line span arrays so a height cap can slice whole
-// lines. Sequences anser does not turn into color (OSC, cursor movement,
-// other C0 controls) are removed before parsing so they never reach the DOM
-// as literal characters.
-
 import Anser from 'anser'
 
 /**
@@ -41,10 +34,6 @@ const STYLE_BY_DECORATION = {
   bold: 'font-weight: 700',
   dim: 'opacity: 0.7',
   italic: 'font-style: italic',
-  // Underline and strikethrough share text-decoration, so in a run declaring
-  // both, iterating chunk.decorations and letting the later one win (see
-  // resolveStyle below) still matches the object-merge behavior this
-  // replaces: later declarations override earlier ones for the same property.
   underline: 'text-decoration: underline',
   strikethrough: 'text-decoration: line-through',
   hidden: 'visibility: hidden',
@@ -84,26 +73,42 @@ const TAB_WIDTH = 8
  */
 const ZERO_WIDTH = /^[\p{Mn}\p{Me}\p{Cf}\u200b-\u200f\u2060]$/u
 
+/** Code point ranges of the ideographic and syllabic scripts a terminal draws two columns wide. */
+const WIDE_SCRIPT_RANGES = [
+  [0x1100, 0x11ff], [0x2e80, 0x2e99], [0x2e9b, 0x2ef3], [0x2f00, 0x2fd5],
+  [0x3005, 0x3005], [0x3007, 0x3007], [0x3021, 0x3029], [0x302e, 0x302f],
+  [0x3038, 0x303b], [0x3041, 0x3096], [0x309d, 0x309f], [0x30a1, 0x30fa],
+  [0x30fd, 0x30ff], [0x3131, 0x318e], [0x31f0, 0x321e], [0x3260, 0x327e],
+  [0x32d0, 0x32fe], [0x3300, 0x3357], [0x3400, 0x4dbf], [0x4e00, 0x9fff],
+  [0xa960, 0xa97c], [0xac00, 0xd7a3], [0xd7b0, 0xd7c6], [0xd7cb, 0xd7fb],
+  [0xf900, 0xfa6d], [0xfa70, 0xfad9], [0xff66, 0xff6f], [0xff71, 0xff9d],
+  [0xffa0, 0xffbe], [0xffc2, 0xffc7], [0xffca, 0xffcf], [0xffd2, 0xffd7],
+  [0xffda, 0xffdc], [0x16fe2, 0x16fe3], [0x16ff0, 0x16ff6], [0x1aff0, 0x1aff3],
+  [0x1aff5, 0x1affb], [0x1affd, 0x1affe], [0x1b000, 0x1b122], [0x1b132, 0x1b132],
+  [0x1b150, 0x1b152], [0x1b155, 0x1b155], [0x1b164, 0x1b167], [0x1f200, 0x1f200],
+  [0x20000, 0x2a6df], [0x2a700, 0x2b81d], [0x2b820, 0x2cead], [0x2ceb0, 0x2ebe0],
+  [0x2ebf0, 0x2ee5d], [0x2f800, 0x2fa1d], [0x30000, 0x3134a], [0x31350, 0x33479],
+]
+
+const rangeClass = ranges =>
+  ranges.map(([low, high]) => `\\u{${low.toString(16)}}-\\u{${high.toString(16)}}`).join('')
+
 /**
- * Characters a terminal advances two columns for: CJK scripts, fullwidth forms,
- * CJK punctuation, and characters with emoji presentation. Text-presentation
- * symbols (`\u2713`, `\u26a0` and the rest of U+2600-U+27BF) are ONE column and
- * must stay out of this set.
+ * Characters a terminal advances two columns for: ideographic and syllabic
+ * scripts, fullwidth forms, wide punctuation, and characters with emoji
+ * presentation. Text-presentation symbols (`\u2713`, `\u26a0` and the rest of
+ * U+2600-U+27BF) are ONE column and must stay out of this set.
  */
 const WIDE_CHAR = new RegExp(
-  '\\p{Script=Han}|\\p{Script=Hiragana}|\\p{Script=Katakana}|\\p{Script=Hangul}'
-  // Emoji presentation only: the U+2600-U+27BF symbol block is mostly SINGLE
-  // width — `\u2713` (the check every progress line writes, this fixture
-  // included) advances one column, verified against a real terminal, so taking
-  // the whole block as wide misaligned exactly the output this card exists for.
+  `[${rangeClass(WIDE_SCRIPT_RANGES)}]`
   + '|\\p{Emoji_Presentation}'
   + '|[\\uff01-\\uff60\\u3000-\\u303e]',
   'u',
 )
 
 /**
- * Whether a character occupies two terminal columns (CJK, fullwidth forms,
- * emoji). Covers the ranges a command's output realistically carries; a
+ * Whether a character occupies two terminal columns (ideographs, syllabaries,
+ * fullwidth forms, emoji). Covers the ranges a command's output realistically carries; a
  * narrower guess would misalign the columns this card exists to preserve.
  * @param char - one character from the output.
  * @returns true when the terminal advances two columns for it.
@@ -122,6 +127,10 @@ function isWide(char) {
  * (3200 such cells produced 25 MB and eventually a `RangeError`). It also makes
  * the attribute closers every chalk-based tool writes — `39`, `49`, `22`, `23`,
  * `24`, `27`, `29` — actually close their attribute instead of appending to it.
+ * @typedef {object} SgrState
+ * @property {string} fg - foreground SGR parameter code in force, or '' for none.
+ * @property {string} bg - background SGR parameter code in force, or '' for none.
+ * @property {string[]} attrs - open attribute SGR parameter codes, in first-opened order.
  */
 
 /** The default state: no color, no attributes. */
@@ -144,14 +153,12 @@ function foldSgr(state, params) {
   for (let index = 0; index < codes.length; index++) {
     const code = String(codes[index])
     if (code === '' || code === '0') { next = SGR_NONE; continue }
-    // Extended color: `38;5;N` / `38;2;R;G;B` and the `48` background pair
-    // consume their own arguments, so they are taken whole.
     if (code === '38' || code === '48') {
-      const kind = codes[index + 1] ?? ''
-      const span = kind === '2' ? 4 : kind === '5' ? 2 : 0
-      const value = codes.slice(index, index + span + 1).join(';')
+      const colorMode = codes[index + 1] ?? ''
+      const argumentCount = colorMode === '2' ? 4 : colorMode === '5' ? 2 : 0
+      const value = codes.slice(index, index + argumentCount + 1).join(';')
       next = code === '38' ? { ...next, fg: value } : { ...next, bg: value }
-      index += span
+      index += argumentCount
       continue
     }
     const closes = ATTR_CLOSERS[code]
@@ -210,15 +217,10 @@ function sameSgr(a, b) {
  *   SGR state at its end for the next line to enter with.
  */
 function replayLine(line, entrySgr) {
-  // Same shape anser splits on, so a sequence is one unit here as well.
-  const csi = /\u001b\[([\u0030-\u003f]*)[\u0020-\u002f]*([\u0040-\u007e])/g
+  const anserCsiSequence = /\u001b\[([\u0030-\u003f]*)[\u0020-\u002f]*([\u0040-\u007e])/g
   /** Per column: the state in force when it was written, and its character. */
   const columns = []
   let cursor = 0
-  // State is tracked exactly as a terminal tracks it: each cell is stamped with
-  // whatever was in force at the moment of the write, so a later redraw cannot
-  // restyle the cells it does not reach. It enters carrying the previous line's
-  // state, since a newline does not reset it.
   let sgr = entrySgr
   let at = 0
 
@@ -237,65 +239,38 @@ function replayLine(line, entrySgr) {
       if (char === '\r') { cursor = 0; continue }
       if (char === '\u0008') { cursor = Math.max(0, cursor - 1); continue }
       if (char === '\t') {
-        // A tab advances to the next 8-column stop, leaving the cells it skips
-        // as they were — which is how a redraw can leave a tabbed column
-        // standing. Column alignment is the whole point of this card.
-        const stop = cursor + TAB_WIDTH - (cursor % TAB_WIDTH)
-        for (; cursor < stop; cursor++) columns[cursor] ??= { sgr, char: ' ' }
+        const nextTabStop = cursor + TAB_WIDTH - (cursor % TAB_WIDTH)
+        for (; cursor < nextTabStop; cursor++) columns[cursor] ??= { sgr, char: ' ' }
         continue
       }
       if (ZERO_WIDTH.test(char)) {
-        // No column of its own: it attaches to the cell already written, so a
-        // redraw that covers that cell covers the mark with it. With no cell to
-        // attach to (line start, or straight after a redraw to column 0) a
-        // terminal shows nothing rather than a lone accent.
-        const base = cursor > 0 ? columns[cursor - 1] : undefined
-        if (base !== undefined) columns[cursor - 1] = { sgr: base.sgr, char: base.char + char }
+        const hostCell = cursor > 0 ? columns[cursor - 1] : undefined
+        if (hostCell !== undefined) columns[cursor - 1] = { sgr: hostCell.sgr, char: hostCell.char + char }
         continue
       }
-      // Writing over either half of a wide pair blanks the other half, since a
-      // terminal cannot leave one cell of a two-cell glyph standing.
       clear(cursor, ' ')
       columns[cursor] = { sgr, char }
       cursor++
-      // A wide character occupies two columns; the trailing one is a spacer,
-      // marked so that overwriting the lead cell leaves a blank behind instead
-      // of closing the gap and shifting everything after it left.
       if (isWide(char)) { columns[cursor] = { sgr, char: '', spacer: true }; cursor++ }
     }
   }
 
-  for (const match of line.matchAll(csi)) {
+  for (const match of line.matchAll(anserCsiSequence)) {
     consume(line.slice(at, match.index))
     at = match.index + match[0].length
-    // Both groups are mandatory in the pattern, so destructuring types them as
-    // strings without a fallback that could never run.
     const params = String(match[1])
     const final = String(match[2])
     if (final === 'K') {
-      // Erase in line: the fixed companion of `\r` in every spinner and progress
-      // bar. Without it a shorter redraw leaves the previous frame's tail
-      // standing, which is text the terminal never showed. `1` blanks from the
-      // line start THROUGH the cursor column (inclusive, per the CSI spec)
-      // rather than dropping those cells, since the cursor does not move and a
-      // later write can still land past them. Only the FIRST parameter selects
-      // the mode; a terminal ignores the rest (`1;2K` erases exactly as `1K`).
-      const mode = String(params.split(';')[0])
-      if (mode === '1') for (let index = 0; index <= cursor; index++) clear(index, ' ')
-      else columns.length = mode === '2' ? 0 : cursor
+      const eraseMode = String(params.split(';')[0])
+      if (eraseMode === '1') for (let index = 0; index <= cursor; index++) clear(index, ' ')
+      else columns.length = eraseMode === '2' ? 0 : cursor
       continue
     }
-    // Only SGR carries graphic state; every other final byte is a cursor or
-    // erase action that must not affect a cell's style.
     if (final !== 'm') continue
     sgr = foldSgr(sgr, params)
   }
   consume(line.slice(at))
 
-  // Re-emit the columns, opening a run only where its state changes, so anser
-  // sees the same styling a terminal shows. Each boundary emits ONE canonical
-  // sequence for the state it opens, which is what keeps the output linear in
-  // the number of cells however the state was reached.
   let out = ''
   let active = entrySgr
   for (let index = 0; index < columns.length; index++) {
@@ -305,17 +280,9 @@ function replayLine(line, entrySgr) {
       out += openSgr(column.sgr)
       active = column.sgr
     }
-    // A spacer still holds its column. While its lead cell survives, the wide
-    // glyph spans both and the spacer emits nothing; once a later write replaced
-    // that lead, the terminal blanks the spacer instead of closing the gap, so
-    // emitting nothing would shift everything after it one column left.
     const leadIntact = index > 0 && isWide(columns[index - 1]?.char ?? '')
     out += column.spacer === true && !leadIntact ? ' ' : column.char
   }
-  // Converge to the state the SCAN ended in, not the last written cell's: a
-  // sequence after the final write (the `\x1b[0m` closing a colored line) changes
-  // no cell yet still ends the run, and it has to reach both the DOM and the
-  // next line. Without this a line ending in a reset leaked its color onward.
   if (!sameSgr(active, sgr)) {
     if (!sameSgr(active, SGR_NONE)) out += '\u001b[0m'
     out += openSgr(sgr)
@@ -342,10 +309,6 @@ function applyCursorMovements(text) {
       sgr = result.sgr
       continue
     }
-    // No cursor movement: the line needs no column buffer, and painting one
-    // would allocate a cell per character of output this card never redraws —
-    // an `ls -R` or a 5k-line log. Only its own SGR has to be folded, so a later
-    // line that DOES replay enters with the right state.
     replayed.push(line)
     for (const match of line.matchAll(SGR_SEQUENCE)) sgr = foldSgr(sgr, String(match[1]))
   }
@@ -371,20 +334,15 @@ function sanitize(text) {
  * @returns the run's inline style, or undefined when it carries no SGR state.
  */
 function resolveStyle(chunk) {
-  // Ordered CSS-property-name -> value pairs so a later decoration's
-  // text-decoration overrides an earlier one, matching the prior
-  // Object.assign-onto-a-style-object merge order.
   const declarations = new Map()
   const background = chunk.bg === null ? undefined : `rgb(${chunk.bg})`
   if (background !== undefined) declarations.set('background-color', background)
   if (chunk.fg !== null) {
     const literal = `rgb(${chunk.fg})`
-    // A run that paints its own background keeps anser's literal pair so the
-    // authored foreground/background contrast survives; a foreground-only run
-    // maps onto a theme token, which adapts to light and dark surfaces.
-    declarations.set('color', background === undefined
-      ? TOKEN_BY_BASIC_RGB[chunk.fg.replace(/\s+/g, '')] ?? literal
-      : literal)
+    const paintsOwnBackground = background !== undefined
+    declarations.set('color', paintsOwnBackground
+      ? literal
+      : TOKEN_BY_BASIC_RGB[chunk.fg.replace(/\s+/g, '')] ?? literal)
   }
   for (const decoration of chunk.decorations) {
     const rule = STYLE_BY_DECORATION[decoration]

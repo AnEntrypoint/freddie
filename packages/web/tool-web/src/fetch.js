@@ -56,8 +56,6 @@ turndown.addRule('tableCellWithoutSpanExpansion', {
   replacement(content, node) {
     const cell = node
     const row = cell.parentNode
-    // GFM cannot represent spanning cells. Ignoring colspan keeps conversion
-    // work and output proportional to the source instead of the numeric attribute.
     return renderTableCell(content, Array.prototype.indexOf.call(row.childNodes, cell))
   },
 })
@@ -219,9 +217,6 @@ function renderBody(body, maxInputChars) {
       try {
         return { text: turndown.turndown(content), sourceTruncated }
       } catch {
-        // turndown's DOM walk recurses per element; malformed markup the lexical
-        // guard cannot model can still throw RangeError. Provider errors stay
-        // structured WebErrors upstream; conversion failure downgrades to raw HTML.
         return { text: content, sourceTruncated }
       }
     case 'text':
@@ -234,6 +229,14 @@ function renderBody(body, maxInputChars) {
 
 /** The truncation notice appended when the provider or the output cap cut content. */
 const TRUNCATION_FOOTER = '\n\n(Content truncated. Fetch a more specific URL or section for the full text.)'
+
+/**
+ * The bounded model-facing render of one fetch result: complete text and
+ * whether the provider, a source cut, or the output cap truncated it.
+ * @typedef {object} RenderedFetch
+ * @property {string} text
+ * @property {boolean} truncated
+ */
 
 /**
  * Render a fetch result to its bounded model-facing text and effective
@@ -325,6 +328,10 @@ export function presentFetchCall(args) {
  * reflects, which a client cannot recompute (it does not know the deployment's
  * `fetchMaxOutputChars`); this is why fetch meta is carried, not derived from the
  * header line (see the web-result-card Agent Note).
+ * @typedef {object} WebFetchMeta
+ * @property {string} url
+ * @property {number} statusCode
+ * @property {boolean} truncated - the effective truncation the render text reflects.
  */
 
 /**
@@ -442,7 +449,6 @@ export function applyWebFetchTool(ctx, timeoutMs, maxOutputChars) {
       presentationMeta: (_args, value) => fetchMetaFromValue(value, maxOutputChars),
     },
     timeoutMs,
-    // Provider reads do not mutate parent-agent state.
     isConcurrencySafe: () => true,
     async execute(args, exec) {
       const input = parseFetchArgs(args)

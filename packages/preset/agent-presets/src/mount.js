@@ -127,9 +127,6 @@ class PresetTree extends Include {
  */
 class InlinePresetTree extends EntryTree {
   static inject = ['loader']
-  // Tree-carrier marker, as `Include` and `Group` declare: this config carries an
-  // entry list, so the Loader's `internal/config` interpolation keeps it literal
-  // — a `!!js` expression inside a row belongs to that row's fiber.
   static [EntryGroup.key] = true
 
   config
@@ -387,22 +384,12 @@ export async function mountPreset(agentCtx, preset) {
       + 'its registrations would apply to every agent in the process',
     )
   }
-  // Detached from the definition on purpose: `EntryGroup.update()` mints an
-  // `id` into every row that names none, so mounting a plugin's own array would
-  // bake those ids back into the object it still holds and re-export — the same
-  // reason `applyEntryPatches` clones a parsed file before patching it.
   const inline = preset.rows !== undefined
   const config = inline
     ? { rows: structuredClone(preset.rows), baseUrl: preset.baseUrl }
     : { path: pathToFileURL(preset.path).href }
-  // Captured before the subtree exists: the standing scope context still
-  // carries the host composition's base, which is inside the installed
-  // harness and is therefore where a row's package name has to resolve from.
   /* v8 ignore next -- the Loader sets `baseUrl` on the root before any scoped context derives from it */
   if (agentCtx.baseUrl !== undefined) harnessBase.set(config, agentCtx.baseUrl)
-  // Before the record this mount is about to add: standing mounts are one per
-  // preset and live until whole-tree teardown, so pruning here only sweeps
-  // records of torn-down runtimes (tests; an HMR reload of the roster).
   pruneDisposedMounts()
   const handle = agentCtx.plugin(inline ? InlinePresetTree : PresetTree, config)
   try {
@@ -430,8 +417,6 @@ export async function mountPreset(agentCtx, preset) {
        observed failure mode; the guard exists so a teardown error cannot
        replace the mount diagnostic the caller needs. */
     } catch {
-      // Swallows only this subtree's teardown failure. The mount error below is
-      // the actionable one, and the discarded fiber is unreachable either way.
     }
     throw new PresetMountError(preset.id, `${mountDetail(error)} (${preset.path})`, { cause: error })
   }

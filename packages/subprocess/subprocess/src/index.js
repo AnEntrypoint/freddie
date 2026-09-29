@@ -29,9 +29,9 @@ export const SENSITIVE_ENV_PATTERN = /KEY|PASSWORD|SECRET|TOKEN/i
  * harness identity never leaks implicitly (a deliberately forwarded
  * credential or current `FREDDIE_*` fact goes through the spec's explicit `env`,
  * which merges after this scrub). Both scrubs match case-insensitively:
- * Windows environment names are case-insensitive, so a parent `dsh_*` entry
+ * Windows environment names are case-insensitive, so a parent `freddie_*` entry
  * would otherwise survive and read back as `$env:FREDDIE_*` in the child;
- * deliberate lowercase `dsh_*` names on POSIX are implausible. Exported as a plain function so spawners
+ * deliberate lowercase `freddie_*` names on POSIX are implausible. Exported as a plain function so spawners
  * that cannot route through the service (node-pty backends, SDK-managed
  * transports) share the one scrub definition.
  * @returns a fresh environment object safe to hand to a child spawn.
@@ -59,9 +59,9 @@ export function scrubbedParentEnv() {
  *   readers never consume one another's output; lossy reads report truncation
  *   and the spill file holding the complete stream when one exists. Piped
  *   streams are handed to the caller raw and never buffered here.
- * - {@link SubprocessHandle.terminate} (and the spec's abort signal) escalates
+ * - {@link import('./types.js').SubprocessHandle.terminate} (and the spec's abort signal) escalates
  *   SIGTERM→grace→SIGKILL — the only termination verb — tree-scoped on every
- *   platform. {@link SubprocessHandle.waitForExit} observes whole-tree
+ *   platform. {@link import('./types.js').SubprocessHandle.waitForExit} observes whole-tree
  *   liveness, so a consumer-owned teardown ladder can hold each tier on real
  *   quiescence.
  * - Disposal of the service terminates all still-running managed processes

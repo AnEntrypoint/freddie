@@ -1,4 +1,3 @@
-# Keyless provider-retry composition for the headless stream-json snapshot.
 - id: base
   name: '@freddie/cordis-plugin-include'
   config:

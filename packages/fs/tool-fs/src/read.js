@@ -94,9 +94,6 @@ export function applyReadTool(ctx, caps) {
           }),
         }]
       },
-      // Project the structured window into persisted `meta` so a UI's read card
-      // survives replay: the raw canonical output object is not on the wire, only
-      // the model-facing text, from which the line/lang data cannot be recovered.
       presentationMeta: (_args, value) => {
         const lang = langFromPath(value.path)
         return {
@@ -108,16 +105,11 @@ export function applyReadTool(ctx, caps) {
         }
       },
     },
-    // Observation races fail closed because guarded mutations re-check the version in-lock.
     isConcurrencySafe: () => true,
     async execute(args, exec) {
       const input = parseReadArgs(args, caps.limit)
-      // One stat: absence observation OR type check + size routing + present version.
-      // A concurrent write can only make a later guarded mutation fail stale and require reread.
       const { target, info } = await resolveRegularReadTarget(ctx, exec, input.filePath)
 
-      // Stream when the file is large OR size is unknown, so a size-less backend
-      // never buffers an arbitrarily large file.
       const chunks = info.size === undefined || info.size >= caps.streamMinSize
         ? await ctx.fs.streamText(target, exec.signal)
         : [await ctx.fs.readText(target, exec.signal)]
@@ -133,19 +125,9 @@ export function applyReadTool(ctx, caps) {
         lines: window.lines,
         totalLines: window.totalLines,
       }
-      // Record the present observation (a no-op when no policy plugin listens). The
-      // read already succeeded; an fs/observed listener is contractually a
-      // synchronous, side-effect-only recorder.
       ctx.emit('fs/observed', target, { kind: 'present', version: info.version }, exec)
       return outcome
     },
-    // Result-time display: a `read` card carrying the structured line window a
-    // capable UI renders as a line-numbered, syntax-highlighted view. The
-    // structured data is narrowed from the persisted `meta` (replay-safe); the
-    // envelope-stripped model-facing text rides along as `content` so a UI without
-    // the read capability still shows the file text. A malformed or absent meta,
-    // or a result whose text is not the read envelope, declines to `undefined`
-    // (the generic fallback), never throwing on replay of obsolete logged output.
     presentResult(_args, result) {
       if (result.isError) return undefined
       const meta = readMetaFromMeta(result.meta)
@@ -153,7 +135,6 @@ export function applyReadTool(ctx, caps) {
       const only = result.content.length === 1 ? result.content[0] : undefined
       const text = only?.type === 'text' ? only.text : undefined
       if (text === undefined) return undefined
-      // Group 1 always captures (possibly empty) when the envelope matches.
       const body = /^<path>[^\n]*<\/path>\n<type>file<\/type>\n<content>\n([\s\S]*)\n<\/content>$/u.exec(text)?.[1]
       if (body === undefined) return undefined
       return {
@@ -166,10 +147,6 @@ export function applyReadTool(ctx, caps) {
         content: [{ type: 'text', text: body }],
       }
     },
-    // Pure display: a generic card titled by the file with the read window appended (`Read
-    // foo.txt (5 - 8)`), `read` kind (icon), and a follow-along location whose line is the
-    // read's offset (defaulting to 1). The window reflects raw args, so an omitted limit keeps
-    // the title bare instead of smuggling config into this pure presenter.
     presentCall(args) {
       const { offset, limit } = args
       const window = limit !== undefined && limit > 0

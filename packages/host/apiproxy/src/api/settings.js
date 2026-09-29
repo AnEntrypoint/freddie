@@ -6,4 +6,5 @@
  * how a form learns a write-only field exists and whether it is configured.
  *
  * This file is pure types in TS and carries no runtime code.
+ * @module @freddie/freddie-host-apiproxy/api/settings
  */

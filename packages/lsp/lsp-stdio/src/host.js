@@ -65,8 +65,6 @@ export async function readHostSource(fs, filePath, workspace, maxDocumentBytes, 
   const chunks = []
   let bytes = 0
   try {
-    // XXX(lsp-source-replacement): Revisit stable-handle identity only if a real query observes
-    // replacement between canonical containment and the provider opening this stream.
     const stream = await fs.streamText(target, signal)
     for await (const chunk of stream) {
       throwIfAborted(signal)

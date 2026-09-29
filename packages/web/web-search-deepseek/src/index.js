@@ -64,7 +64,6 @@ export const WebSearchSettings = z.object({
 
 /** Plugin config (all optional — `apply` fills env-var and constant defaults). */
 export const Config = z.object({
-  // Prefer apiKeyEnv (a credential reference) so no secret enters configuration files.
   apiKey: z.string().role('secret'),
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV),
   baseURL: z.string(),
@@ -111,7 +110,6 @@ function resolveOptions(ctx, config) {
     resolveApiKey: async () => {
       const credentials = ctx.get('credentials')
       if (credentials !== undefined) return (await credentials.resolve(apiKeyEnv))?.value
-      // Without the seam the environment is the whole credential plane.
       const ambient = launchEnvironmentOf(ctx).get(apiKeyEnv)
       return ambient !== undefined && ambient.value.length > 0 ? ambient.value : undefined
     },

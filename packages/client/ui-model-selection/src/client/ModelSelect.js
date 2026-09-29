@@ -52,15 +52,8 @@ export class FreddieModelSelect extends HTMLElement {
     this.#props = props
     if (prevDirectory !== props.directory) {
       this.#bindStore()
-      // A directory swap (session switch) needs its own fresh load, same as
-      // first mount -- #loadedOnce previously only ever cleared at construction,
-      // so a switch back to an already-visited session's directory instance
-      // never reloaded, and a genuinely new directory shared its "already
-      // loaded" flag with whichever directory happened to load first.
       this.#loadedOnce = false
     }
-    // Mount-time load resolves the trigger label; this fires once per
-    // directory identity (mirrors the original's [available, load] effect).
     if (!this.#loadedOnce && props.available) {
       this.#loadedOnce = true
       props.load()
@@ -139,7 +132,6 @@ export class FreddieModelSelect extends HTMLElement {
   #onRootKeyDown(event) {
     if (event.key === 'Escape' && this.#open) {
       event.preventDefault()
-      // Escape backs out of a drilled pane first, then closes.
       if (this.#pane !== 'root') { this.#pane = 'root'; this.#render() } else this.#close(true)
       return
     }

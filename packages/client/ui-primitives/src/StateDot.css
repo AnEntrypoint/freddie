@@ -1,12 +1,8 @@
-/* Ongoing blue has no alias token (state-business-primary is the 500 step,
- * not this 450) — component-level var pinned to the static scale instead. */
 .freddie-stateDot__dot,
 .freddie-stateDot__matrix {
   --freddie-state-ongoing: var(--dsw-static-deepseek-450);
 }
 
-/* Solid states: same-color halo via a 0.10-opacity outer layer (::before)
- * with a 6/10-scale solid core. Layer color rides currentColor set per state. */
 .freddie-stateDot__dot {
   position: relative;
   display: inline-block;
@@ -42,10 +38,6 @@
   color: var(--freddie-alias-state-error-primary);
 }
 
-/* Pixel chase: each outer cell holds a discrete brightness step (flat keyframe
- * holds, no tweening — the retro feel), peaking when the chase hits it and
- * decaying over the next three cells. Phase offsets come from per-rect
- * animation-delay (index * -125ms) set inline by the component. */
 .freddie-stateDot__matrix {
   flex: none;
   color: var(--freddie-state-ongoing);

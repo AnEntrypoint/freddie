@@ -4,9 +4,9 @@ Status: implemented
 
 ## Problem
 
-The Web GUI could already collect answers through the `QuestionComposer` composer takeover, but the transcript around it was wrong on three counts. A pending question rendered twice: once as the composer takeover and once as the read-only `PendingCard` placeholder that predates the takeover. A settled `ask_user_question` call rendered as the generic "Tool call" row dumping raw args JSON, so the two composer verdicts — the user dismissing the whole set (`ASK_CANCELLED`) and a turn interrupt landing while the question was pending (`ASK_ABORTED`) — both read as anonymous red-dot failures. And the composer's own chrome copy (pager, buttons, placeholders, validation feedback) was hardcoded Chinese while the surrounding client is bilingual through `dsh-client-locale`.
+The Web GUI could already collect answers through the `QuestionComposer` composer takeover, but the transcript around it was wrong on three counts. A pending question rendered twice: once as the composer takeover and once as the read-only `PendingCard` placeholder that predates the takeover. A settled `ask_user_question` call rendered as the generic "Tool call" row dumping raw args JSON, so the two composer verdicts — the user dismissing the whole set (`ASK_CANCELLED`) and a turn interrupt landing while the question was pending (`ASK_ABORTED`) — both read as anonymous red-dot failures. And the composer's own chrome copy (pager, buttons, placeholders, validation feedback) was hardcoded in a single language while the surrounding client is localized through `dsh-client-locale`.
 
-Separately, the composer visuals had drifted from the current design: an expand-to-open custom answer entry, no multi-select affordance beyond a trailing check, header-mounted paging, and a `（可多选）` title-suffix convention parsed out of model text.
+Separately, the composer visuals had drifted from the current design: an expand-to-open custom answer entry, no multi-select affordance beyond a trailing check, header-mounted paging, and a multi-select title-suffix convention parsed out of model text.
 
 ## Decision
 
@@ -14,7 +14,7 @@ A pending question owns exactly two surfaces: the composer takeover collects the
 
 The composer redesign moves paging into the footer next to the actions, renders multi-select options with explicit checkboxes, keeps single-select numbered rows, and replaces the expand-to-open custom entry with an always-visible custom input row (textarea for optionless questions). The `parseQuestionTitle` multi-select suffix convention is deleted; `multi_select` is already structured metadata, so the title renders verbatim.
 
-Composer chrome copy becomes bilingual: the plugin registers zh/en dictionaries under the `question` namespace of `dsh-client-locale` and hands the entry a namespace-bound translator plus the locale snapshot as a hooks-compartment source through the slot inject face, so a locale flip re-renders a mounted composer. Validation feedback is stored as a dictionary key and re-translated on flip; carrier failure messages and all model-authored question/option text render verbatim.
+Composer chrome copy becomes bilingual: the plugin registers per-locale dictionaries under the `question` namespace of `dsh-client-locale` and hands the entry a namespace-bound translator plus the locale snapshot as a hooks-compartment source through the slot inject face, so a locale flip re-renders a mounted composer. Validation feedback is stored as a dictionary key and re-translated on flip; carrier failure messages and all model-authored question/option text render verbatim.
 
 Two adjacent fixes ride along. All generic toolview leading icons (and the hover chevron) now inherit the single tertiary label color — the others-variant secondary override and the separate chevron color rule are deleted, leaving only the intentional cordis business-primary accent. And the client dev-watch bundler registers each CSS module with `addWatchFile`, because the virtual-module indirection previously hid css-only edits from the watcher.
 
@@ -26,9 +26,9 @@ Two adjacent fixes ride along. All generic toolview leading icons (and the hover
 
 **Render `ASK_CANCELLED`/`ASK_ABORTED` through the generic error shape.** Rejected: dismissal is the user's own deliberate action and an interrupt is the shared stop gesture; both are expected outcomes, not tool failures. Naming the verdict (and keeping amber stopped semantics for the abort) matches how interrupted tool calls read elsewhere.
 
-**Translate the row verdicts now.** Deferred by explicit product decision: the row's `waiting`/`answered`/`cancelled`/`interrupted` strings stay English for this change; the composer chrome i18n landed because its Chinese-only copy was already wrong for the en locale.
+**Translate the row verdicts now.** Deferred by explicit product decision: the row's `waiting`/`answered`/`cancelled`/`interrupted` strings stay English for this change; the composer chrome i18n landed because its single-language copy was already wrong for the en locale.
 
-**Keep the title-suffix multi-select convention.** Rejected: `multi_select` is structured request metadata and the checkbox affordance now carries the signal, so parsing `（可多选）` out of model text was a fragile duplicate channel.
+**Keep the title-suffix multi-select convention.** Rejected: `multi_select` is structured request metadata and the checkbox affordance now carries the signal, so parsing that suffix out of model text was a fragile duplicate channel.
 
 ## Consequences
 

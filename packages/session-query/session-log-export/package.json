@@ -28,10 +28,6 @@
   "files": [
     "src/**/*.js"
   ],
-  "scripts": {
-    "bundle": "tsdown",
-    "watch": "tsdown --watch"
-  },
   "license": "MIT",
   "peerDependencies": {
     "@freddie/cordis": "*",

@@ -56,7 +56,6 @@ export function apply(ctx) {
     async execute(args, exec) {
       const parent = exec.agent
       if (!parent) {
-        // Parent authority requires an exact live calling agent.
         throw new Error('send_message requires a calling agent (exec.agent was undefined)')
       }
       const message = [{ type: 'text', text: args.message }]
@@ -105,11 +104,8 @@ export function apply(ctx) {
     execute(args, exec) {
       const caller = exec.agent
       if (!caller) {
-        // Ancestor authority requires an exact live calling agent.
         throw new Error('interrupt_agent requires a calling agent (exec.agent was undefined)')
       }
-      // The service authorizes the exact live caller against the target's
-      // recorded lineage; the tool adds no authority of its own.
       ctx.subagents.interrupt(SessionId(args.agent_id), { kind: 'ancestor', agent: caller })
       return Promise.resolve({ accepted: true })
     },

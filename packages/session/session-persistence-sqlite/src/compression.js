@@ -213,7 +213,6 @@ export function scanRows(rows, base = 0) {
         break
       }
     } catch {
-      // A malformed row cannot prove that an earlier physical prefix committed.
     }
   }
 
@@ -225,7 +224,6 @@ export function scanRows(rows, base = 0) {
     try {
       logicalEvents = decodeRow(physical)
     } catch {
-      // The committed-prefix rule below owns whether this invalid row is fatal or repairable.
     }
     if (logicalEvents === undefined) {
       if (rowIndex <= lastTurnEndRow) {

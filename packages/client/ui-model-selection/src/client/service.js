@@ -31,8 +31,6 @@ export class ModelDirectoryResolver extends Service {
     ctx.on('connection/reset', () => {
       for (const directory of this.live.directories.values()) directory.resetConnected()
     })
-    // Either source can change the directory: registry topology commits and
-    // settings documents that carry provider catalogs or default selection.
     const refresh = () => {
       for (const directory of this.live.directories.values()) {
         directory.load().catch(() => undefined)
@@ -62,11 +60,6 @@ export class ModelDirectoryResolver extends Service {
       () => sessions.subagentAddress(sessionId) === undefined,
     )
     live.directories.set(sessionId, directory)
-    // The composer cannot read this plugin (the dependency runs one way), so
-    // the block is pushed: the Host says whether an adapter serves the
-    // session's route, and only a definite `false` makes the input inert.
-    // `null` — before the first load, or after one failed — must not, or a
-    // slow or unreachable Host would lock a working composer.
     const conversation = this.ctx.get('conversation')
     if (conversation !== undefined) {
       const publish = () => {

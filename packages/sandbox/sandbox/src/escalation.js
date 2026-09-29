@@ -21,6 +21,14 @@
 import { assertNever } from '@freddie/freddie-llm'
 
 /**
+ * The minimal structural shape this package needs from an approval service —
+ * just the one method {@link approveEscalation} calls — declared here rather
+ * than imported so this package never depends on `@freddie/freddie-user-approval`.
+ * @typedef {object} EscalationAsk
+ * @property {(req: {agent: unknown, toolName: string, callId?: string, reason?: string, signal?: AbortSignal}) => Promise<'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'>} request
+ */
+
+/**
  * The strictly-wider table: what a call whose effective mode is the key may
  * escalate TO. Checked at EXECUTION, never baked into a tool schema — the
  * schema's enum is {@link ESCALATION_TARGETS}, because schemas are
@@ -87,6 +95,25 @@ export function escalationHintMarker(subject) {
 }
 
 /**
+ * The escalation to judge, destructured by {@link approveEscalation}.
+ * @typedef {object} EscalationRequest
+ * @property {string} requestedMode - the `sandbox_permissions` argument the model sent.
+ * @property {string} effectiveMode - the call's standing mode before escalation.
+ * @property {string} justification - the model-supplied reason, paired with `requestedMode`.
+ * @property {string} subject - the family's noun for the denied action (see {@link escalationHintMarker}).
+ */
+
+/**
+ * The approval ingredients the calling tool holds, passed to {@link approveEscalation}.
+ * @typedef {object} EscalationApproval
+ * @property {EscalationAsk} [approver] - the composed approval service, when one is mounted.
+ * @property {unknown} [agent] - the requesting agent that owns and routes the ask.
+ * @property {string} toolName - resolved tool name behind the ask.
+ * @property {string} [callId] - the already-presented tool call this question answers.
+ * @property {AbortSignal} [signal] - live cancellation for the ask.
+ */
+
+/**
  * Resolve a sandbox-escalation request BEFORE anything executes: check strict
  * widening against the call's effective mode, then resolve the approval
  * channel, then map every outcome — the ordered fail-closed sequence both
@@ -102,9 +129,6 @@ export function escalationHintMarker(subject) {
  */
 export async function approveEscalation(request, approval) {
   const { requestedMode: mode, effectiveMode, justification, subject } = request
-  // The schema advertises all target modes because the effective mode is
-  // per-call truth. A request that cannot widen this call needs no approval:
-  // its standing policy already grants at least that access.
   if (!(WIDER_MODES[effectiveMode] ?? []).includes(mode)) {
     return effectiveMode
   }
@@ -114,8 +138,6 @@ export async function approveEscalation(request, approval) {
   if (approval.agent === undefined) {
     throw new Error(`sandbox escalation to "${mode}" requires approval, but the call has no agent to route it through`)
   }
-  // Self-contained for the audit trail: approval/asked stores this reason,
-  // and the target mode is part of the grant's identity.
   const outcome = await approval.approver.request({
     agent: approval.agent,
     toolName: approval.toolName,
@@ -124,8 +146,6 @@ export async function approveEscalation(request, approval) {
     ...approval.signal ? { signal: approval.signal } : {},
   })
   switch (outcome) {
-    // The schema enum already pinned `mode` to the closed target vocabulary;
-    // the check above proved it is strictly wider.
     case 'allowed-once': return mode
     case 'rejected': throw new Error(`the user rejected escalating this ${subject} to "${mode}"`)
     case 'cancelled': throw new Error(`approval for escalating to "${mode}" was cancelled`)

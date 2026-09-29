@@ -9,8 +9,18 @@
 /** Process-local identities of request objects assembled by freddie-agent-loop. */
 const AGENT_LOOP_REQUESTS = new WeakSet()
 
-// TODO(call-config-shape): Revisit which fields are epoch-level for cache reuse
-// and where provider-specific request options belong.
+/**
+ * Provider routing, model, reasoning effort, and sampling request-header
+ * state — the subset of {@link import('./types.js').GenerateOptions} that
+ * can affect cache reuse and is compared for a real change.
+ * @typedef {object} LlmCallConfig
+ * @property {string} provider
+ * @property {string} model
+ * @property {import('./brand.js').ReasoningEffortId} [reasoningEffort]
+ * @property {number} [temperature]
+ * @property {number} [maxTokens]
+ * @property {readonly string[]} [stop]
+ */
 
 /**
  * Field-wise equality over {@link LlmCallConfig} — the comparison a caller

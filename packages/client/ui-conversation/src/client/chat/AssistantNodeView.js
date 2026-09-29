@@ -1,20 +1,6 @@
 import { createElement as h } from '@freddie/webjsx'
 import { AssistantMarkdown } from './AssistantMarkdown.js'
 
-// The mentions resolver, memoized per chat node. MarkdownText compares
-// `fileMentions` by IDENTITY (its propsEqual memo guarding #computeChildren),
-// so handing it a new object per render made that memo miss unconditionally
-// and re-parsed the whole markdown document -- rebuilding every inline
-// element on every keystroke. Measured live by instrumenting propsEqual: the
-// closing block saw 4 distinct resolvers across 5 renders.
-//
-// `node` is the cache key because it is the only identity here that is
-// genuinely stable across re-renders of the same message (ChatNodeSeat keys
-// its seat on it, and AssistantMarkdown already takes it as `identity`).
-// `owner` cannot be: it is a fresh literal below. `turn` cannot either: it
-// rides `node.location`, which the session snapshot rebuilds. The recorded
-// seq and openFile are validators, so a genuine change still yields a new
-// resolver and a real re-render.
 const mentionsByNode = new WeakMap()
 function cachedMentions(node, fileMentions, owner) {
   const cached = mentionsByNode.get(node)

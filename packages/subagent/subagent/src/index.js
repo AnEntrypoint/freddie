@@ -16,7 +16,8 @@
  * Public operations express caller intent: `start` returns one published owned
  * one-shot run, `startContinuable` establishes a durable continuable child, and
  * `followup` delivers later content without exposing whether the child is
- * resident. Continuable children never become a {@link SubagentRun}: the
+ * resident. Continuable children never become a
+ * {@link import('./out-of-process.js').SubagentRun}: the
  * continuation manager holds their `AgentHandle` directly and orders every turn
  * through the child's own inbox, so providers contribute only the detached
  * creation spec and see no handle, turn, or teardown. Child and descendant
@@ -192,7 +193,6 @@ export class SubagentRuntime extends Service {
    */
   async drainContinuableDescendants(parents) {
     const manager = this.continuations
-    // Absent continuation services means nothing was ever materialized.
     if (manager === undefined) return
     await manager.drainDescendants(parents)
   }
@@ -283,8 +283,6 @@ export class SubagentRuntime extends Service {
         this.providers.delete(name)
         this.emitLifecycle('subagent/provider-removed', name)
       }
-      // A throwing added-listener unwinds the yielded rollback, matching the
-      // repository's fail-loud registration semantics.
       this.ctx.emit('subagent/provider-added', provider)
     }.bind(this), 'subagents.registerProvider()')
   }

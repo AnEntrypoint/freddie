@@ -1,5 +1,3 @@
-/* Agent-preset row: title/description plus the preset selector pill. */
-
 .freddie-agentPresetRow__row {
   display: flex;
   align-items: center;

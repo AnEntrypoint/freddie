@@ -1,8 +1,3 @@
-/* Tree rows: project 34px, session 32px, radius 8, indent step 22px
-   (16px slot + 6px gap). Hover swaps
-   are pure CSS: project folder -> chevron + action buttons; session time ->
-   ellipsis button. */
-
 .freddie-rows__projectRow,
 .freddie-rows__sessionRow {
   display: flex;
@@ -93,7 +88,6 @@
   color: var(--freddie-alias-label-secondary);
 }
 
-/* Compact one-line Workspace row after removing the session-count subtitle. */
 .freddie-rows__projectRow {
   height: 34px;
   align-items: center;
@@ -104,12 +98,9 @@
   height: 20px;
 }
 
-/* Session cell (figma): pad 8, a 16px status slot, then a 4px title gap. */
 .freddie-rows__sessionRow {
   height: 32px;
   gap: 0;
-  /* Mount fade: session rows appear by unfolding a group (or the tree
-     mounting). Stable row keys keep already-visible rows from replaying it. */
   animation: freddie-rows__row-in 150ms var(--ds-ease-in-out);
 }
 
@@ -149,12 +140,10 @@
 }
 
 
-/* Project leading slot: folder by default, expand arrow on row hover. */
 .freddie-rows__projectRow .freddie-rows__chevron { display: none; }
 .freddie-rows__projectRow:hover .freddie-rows__chevron { display: inline-flex; }
 .freddie-rows__projectRow:hover .freddie-rows__folder { display: none; }
 
-/* Expand arrow (filled triangle): points right closed, rotates to point down open. */
 .freddie-rows__arrow {
   transition: transform 150ms var(--ds-ease-in-out);
 }
@@ -216,8 +205,6 @@
   flex: none;
 }
 
-/* Trailing action buttons surface on hover only (figma 27:4668 / 27:4656):
-   bare 16px glyphs, gap 12, tertiary grey. */
 .freddie-rows__rowActions {
   flex: none;
   display: none;
@@ -237,15 +224,11 @@
   display: none;
 }
 
-/* An open row menu pins the hover affordances (figma: the row keeps its
-   hover fill while its dropdown is up). */
 .freddie-rows__projectRow.freddie-rows__menuOpen,
 .freddie-rows__sessionRow.freddie-rows__menuOpen {
   background: var(--freddie-alias-interactive-bg-hover);
 }
 
-/* Session drag insert marker: a leading chevron and 2px rule between rows,
-   absolutely positioned so it neither resembles a row border nor changes layout. */
 .freddie-rows__sessionRow.freddie-rows__dropBefore,
 .freddie-rows__sessionRow.freddie-rows__dropAfter {
   position: relative;
@@ -286,7 +269,6 @@
   bottom: -7px;
 }
 
-/* Hover-card body (figma 169:16903): dark surface, fixed colors both themes. */
 .freddie-rows__hoverContent {
   display: flex;
   flex-direction: column;
@@ -341,8 +323,6 @@
   color: var(--freddie-alias-label-primary);
 }
 
-/* Chevrons ride the caption grey (#ADB2B8); the folder glyph stays one step
-   darker (tertiary, #81858C) per the cell spec. */
 .freddie-rows__chevron {
   color: var(--freddie-alias-label-caption);
 }

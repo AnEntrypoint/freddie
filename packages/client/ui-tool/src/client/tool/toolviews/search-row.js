@@ -1,16 +1,3 @@
-// Search toolview registrant: the keyed toolview hole for the `grep` and `glob`
-// tools. One SearchRow component registered under both, since both declare the
-// same `card: 'search'` render intent and render as one visual object; the
-// derived model's `kind` decides the card shape (grouped matches or a path
-// list). The row composes the shared ToolRow (chrome, running sweep, whole-row
-// expand) and feeds it the completed search as ToolRow's `search` card
-// material, so it renders through SearchBlock in the collapsed-by-default
-// expanded body — with a capped search's recovery footer below the card. A
-// search declares its render intent result-time only, so a running row is the
-// summary line alone; a settled call with no search card (an errored search, a
-// nested run_code sub-dispatch, a legacy generic result) surfaces its
-// model-facing text through ToolRow's Output section instead.
-
 import { createElement as h, Fragment } from '@freddie/webjsx'
 import { IconSearchOutline16 } from '@freddie/freddie-client-ui-primitives'
 import { searchCardModel } from '../models/search-card-model.js'
@@ -42,16 +29,8 @@ export function SearchRow({ toolName, block, inspect, t }) {
       toolName: toolName,
       icon: h(IconSearchOutline16, {size: 14}),
       title: SEARCH_TITLES[toolName] ?? model.title,
-      // The result view's replacement title outranks the args-derived summary,
-      // matching the terminal card's description precedence.
       summary: search?.title ?? model.summary,
       body: null,
-      // A settled call with no search card (errored search, nested run_code
-      // sub-dispatch, legacy generic result) has its text nowhere else to go;
-      // ToolRow's Output section carries it, and errorSummary its first line.
-      // When a card is present ToolRow renders it instead of the output, so
-      // model.output passes unconditionally and the four card rows stay
-      // symmetric.
       output: model.output,
       errorSummary: model.errorSummary,
       search: search,

@@ -6,7 +6,7 @@
  * @module @freddie/freddie-client-ui-reference/client
  */
 import { formatFileMention } from '@freddie/freddie-file-reference/grammar'
-import { en, NS, zh } from './locales.js'
+import { en, NS } from './locales.js'
 
 /** Required services: the trigger registry, the Remote namespaces, and the copy. */
 export const inject = [
@@ -18,7 +18,7 @@ export const inject = [
  * @param ctx - client root context.
  */
 export function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-reference: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-reference: dictionaries')
   const t = ctx.locale.bind(NS)
   const source = {
     trigger: '@',

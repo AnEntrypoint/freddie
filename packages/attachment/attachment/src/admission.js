@@ -24,7 +24,8 @@ function saveInput(image) {
 /**
  * Admit one wire image batch: enforce canonical base64 on every member, then
  * delegate batch admission — count and aggregate-byte limits, media-type and
- * per-image validation, ordered commit — to {@link AttachmentStore.saveImages}.
+ * per-image validation, ordered commit — to
+ * {@link import('./index.js').AttachmentStore.saveImages}.
  * The shared entry for every RPC endpoint accepting browser uploads.
  * @param attachments - the deployment attachment store owning batch policy.
  * @param images - base64-encoded uploads in caller order.

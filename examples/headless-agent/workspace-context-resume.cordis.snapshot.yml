@@ -1,7 +1,3 @@
-# Keyless real-Loader composition for workspace-instruction resume
-# reconciliation. The test seeds one persisted baseline, changes AGENTS.md
-# while the session is offline, then resumes through the public agent service.
-
 - id: persistence
   name: '@freddie/freddie-session-persistence-jsonl'
   config:
@@ -32,6 +28,5 @@
     toolJobs: false
     goals: false
 
-# Await the persisted resume before the headless driver inspects root agents.
 - id: resumed-agent
   name: './tests/fixtures/workspace-context-resume-agent.ts'

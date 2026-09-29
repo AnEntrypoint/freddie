@@ -26,6 +26,13 @@ export function storageBackendServiceKey(name) {
 }
 
 /**
+ * The merge-extensible map of mountable storage-form facilities, keyed by
+ * form name. Each data-form package (the domain layer first) extends this map
+ * by declaration merging and owns one key.
+ * @typedef {Record<string, unknown>} StorageForms
+ */
+
+/**
  * The storage hub service. Backends register under `backend`; data forms
  * mount under their `StorageForms` key and are reached as `ctx.storage.<form>`.
  */
@@ -52,7 +59,6 @@ export class Storage extends Service {
     }
     this.forms.set(form, facility)
     return () => {
-      // Same stale-disposer guard as BackendRegistry.register.
       if (this.forms.get(form) === facility) {
         this.forms.delete(form)
       }
@@ -77,7 +83,4 @@ export class Storage extends Service {
   }
 }
 
-// Service packages default-export their service class and nothing else
-// plugin-shaped (packages/AGENTS.md): mixing a default export with a
-// function-plugin `apply` makes the Loader drop the plugin namespace.
 export default Storage

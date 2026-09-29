@@ -6,7 +6,7 @@ A Cordis plugin can be unloaded by a config edit, hot reload, explicit disposal,
 
 For a resource Cordis does not already manage — a timer, a connection, a watcher — wrap it in `ctx.effect()` and return a disposer:
 
-Create `lifecycle.ts` in `tmp/cordis-tutorial`:
+Create `lifecycle.ts` in `examples/cordis-tutorial`:
 
 ```ts
 import type { Context } from '@freddie/cordis'
@@ -46,7 +46,7 @@ Point `cordis.yml` at it:
 - name: './lifecycle.ts'
 ```
 
-Run (`node --import tsx ../../framework/cordis/bin.js`) and you get:
+Run (`node ../../framework/cordis/bin.js`) and you get:
 
 ```
 heartbeat plugin loading
@@ -93,4 +93,4 @@ One ordering caveat: disposers start in reverse registration order, but multiple
 
 Next: [Services](03-services.md) — how plugins share capabilities.
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)
+[![](https://img.shields.io/badge/powered_by-freddie-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)

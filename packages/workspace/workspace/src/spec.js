@@ -34,7 +34,7 @@ export const workspaceDomainState = passthroughSchema()
 
 /**
  * The workspace domain spec: one `workspaces` table keyed by
- * {@link WorkspaceId} plus the bootstrap/order singleton. The registry opens
+ * {@link import('./index.js').WorkspaceId} plus the bootstrap/order singleton. The registry opens
  * this through `ctx.storage.domain`; the spec object is the single source of
  * the domain's identity and version.
  */

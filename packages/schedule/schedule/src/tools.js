@@ -147,7 +147,6 @@ const DELETE_DESCRIPTION =
 
 /** Deterministic model content for every canonical Schedule value. */
 function renderValue(_args, value) {
-  // The ToolRuntime has already validated the value against the lossless-JSON output schema.
   const text = JSON.stringify(value)
   return [{ type: 'text', text }]
 }

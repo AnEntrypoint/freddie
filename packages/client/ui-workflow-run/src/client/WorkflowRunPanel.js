@@ -228,12 +228,6 @@ function MemberRow({ member, navigable, openSession, t }) {
     )
   )
   if (!navigable) {
-    // The original React version rendered a focusable-but-inert button while
-    // keyboard focus lingered on a member that stopped being navigable
-    // (member.status flipped away from 'running' mid-focus). webjsx has no
-    // React-style focus-tracking state hook; instead the DOM's native
-    // :focus-within-adjacent behavior is unaffected by dropping that local
-    // affordance, since a blur naturally moves focus off a removed control.
     return h('div', { class: css.memberRow ?? '', 'data-member-status': member.status }, content)
   }
   return (
@@ -322,9 +316,7 @@ export class FreddieWorkflowRunPanel extends HTMLElement {
     this.#render()
   }
 
-  disconnectedCallback() {
-    // No pending timers/listeners to release.
-  }
+  disconnectedCallback() {}
 
   #settleDisclosures(phaseFacts, runFacts) {
     const current = this.#disclosures ?? {
@@ -478,6 +470,15 @@ export class FreddieWorkflowRunPanel extends HTMLElement {
 }
 
 defineElement('freddie-workflow-run-panel', FreddieWorkflowRunPanel)
+
+/**
+ * @typedef {object} WorkflowRunPanelProps
+ * @property {{data: {name: string, status: ('running'|'completed'|'failed'|'cancelled'|'interrupted'), currentPhase?: string, declaredPhases?: Array<{title: string, detail?: string}>, logs: Array<{seq: number, message: string}>, phases: Array<{key: string, phase: (string|null), members: Array<{seq: number, childId: string, label: string, status: string}>}>}}} node - the workflow-run node off the snapshot cache.
+ * @property {string} sessionId - the parent session id a running member must belong to in order to be navigable.
+ * @property {function(function(object): *, function(*, *): boolean=): *} useSessions - the session-store selector hook, used here to derive which running members are navigable subagent sessions.
+ * @property {function(string): void} openSession - opens a member's session by child id.
+ * @property {function(string, object=): string} t - conversation locale seat.
+ */
 
 /**
  * Create (if needed) or update a WorkflowRunPanel element in place.

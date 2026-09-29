@@ -1,7 +1,7 @@
 /**
  * The ACP automation server app: the default agent spine
- * ({@link @freddie/freddie-agent-spine-demo}), JSONL session persistence, and
- * the {@link @freddie/freddie-acp} bridge. The app owns those plugins through one
+ * ({@link module:@freddie/freddie-agent-spine-demo}), JSONL session persistence, and
+ * the {@link module:@freddie/freddie-acp} bridge. The app owns those plugins through one
  * ordered lifecycle so ACP sessions quiesce before persistence detaches. It
  * writes nothing to stdout.
  * It pre-creates no agents and leaves adapters, executors, and optional tools to
@@ -26,17 +26,12 @@ import SqliteSessionQueryEngine from '@freddie/freddie-session-query-sqlite'
 export const name = 'acp-demo'
 const DEFAULT_PERSISTENCE_ROOT = './.sessions'
 
-// Each entry point owns a complete, directly readable config schema; extracting
-// the common fields would make two small app contracts depend on a new facade.
 /* jscpd:ignore-start */
 export const Config = z.object({
   provider: z.string().required(),
   model: z.string().required(),
   maxParallelToolCalls: z.number().step(1).min(1),
   persona: z.string(),
-  // The array default is forced to undefined: ABSENT means "lexicographic
-  // order" (the owning freddie-system-prompt schema does the same), while
-  // schemastery's native [] default would read as an invalid configured list.
   toolOrder: z.array(z.string()).default(undefined),
   tools: ToolRuntime.Config,
   freddieHome: z.string(),
@@ -70,8 +65,6 @@ export async function apply(ctx, config) {
     const spine = ctx.plugin(agentCore, { ...agentCore.pickSpineConfig(config), goals })
     await spine
     yield spine.dispose
-    // Same rationale as the Config schema above: each entry point forwards its own
-    // persistence passthroughs rather than sharing a facade with stdio-demo.
     /* jscpd:ignore-start */
     const persistence = ctx.plugin(JsonlSessionPersistence, {
       root: persistenceRoot,

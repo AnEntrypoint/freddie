@@ -128,7 +128,6 @@ export async function syncTools(
   opts,
   previous,
 ) {
-  // Phase 1: fetch and build the next generation without touching the registry.
   const definitions = new Map()
   let cursor
   do {
@@ -155,7 +154,6 @@ export async function syncTools(
     cursor = response.nextCursor
   } while (cursor)
 
-  // Phase 2: swap generations.
   for (const dispose of previous.values()) dispose()
   const disposers = new Map()
   try {
@@ -163,9 +161,6 @@ export async function syncTools(
       disposers.set(publicName, ctx.tools.register(definition))
     }
   } catch (error) {
-    // A conflict on an `mcp__<serverName>__`-qualified name means a foreign
-    // registration occupies this server's namespace. Roll back so the model
-    // sees either the full generation or none of it — never a partial set.
     for (const dispose of disposers.values()) dispose()
     ctx.logger.error(`mcp-client(${opts.serverName}): tool registration failed, no tools registered: ${String(error)}`)
     if (opts.registrationFailure === 'throw') throw error
@@ -269,14 +264,9 @@ function createExecutor(
     if (taskRequired) {
       throw new Error(`Tool "${rawName}" requires task-based execution, which this bridge does not support`)
     }
-    // The agent loop passes `JSON.parse(model_arguments)` which is usually an
-    // object, but can be any JSON value if the model misbehaves (outputs a bare
-    // string/number/null). Fallback to {} lets the MCP server produce a
-    // specific "missing required param" error the model can learn from.
     const argsObj = (typeof args === 'object' && args !== null ? args : {})
     const result = await callToolUncached(client, rawName, argsObj, exec, opts)
 
-    // The SDK may return a legacy `toolResult` shape; normalize to content array.
     if (!Array.isArray(result.content)) {
       const rendered = 'toolResult' in result
         ? JSON.stringify(result.toolResult)
@@ -291,13 +281,9 @@ function createExecutor(
       }
     }
 
-    // Trust boundary: the SDK's return type erases to `any[]` due to the
-    // union of CallToolResult | CompatibilityCallToolResult; extractText
-    // validates each element.
     const content = result.content
     const text = extractText(content, rawName)
 
-    // MCP isError → throw so ToolRuntime produces an isError result for the model.
     if (result.isError === true) {
       throw new Error(text)
     }
@@ -402,7 +388,6 @@ async function prepareImageProjection(
     try {
       decoded.push(decodeImage(value))
     } catch (error) {
-      // decodeImage owns every throw above and always produces Error.
       validationErrors.set(index, error.message)
     }
   }
@@ -420,7 +405,6 @@ async function prepareImageProjection(
   try {
     attachments = await resolveImageAdmission(ctx, exec)
   } catch (error) {
-    // resolveImageAdmission contains provider failures and throws Error only.
     const reason = error.message
     return projectContent(content, toolName, block => ({ type: 'text', text: imageDiagnostic(block, reason) }))
   }
@@ -453,8 +437,6 @@ async function prepareImageProjection(
  */
 function extractText(mcpContent, toolName) {
   const content = projectContent(mcpContent, toolName)
-  // The default image projector below also returns text, so this local call
-  // cannot produce a core image block.
   return content.map(block => block.text).join('\n')
 }
 

@@ -44,18 +44,12 @@ export async function runHook(bash, hook, options, now) {
 
   try {
     const result = await bash.run(bash.resolve(request))
-    // ShellRunResult.exitCode is `number | null` (null = died by signal); the
-    // protocol's exit-code contract is numeric, so a signal death maps to
-    // `undefined` (a non-blocking error — no clean exit code to act on).
     const exitCode = result.exitCode ?? undefined
     return {
       output: parseHookOutput(exitCode, result.stdout.text, result.stderr.text, options.expectedEventName),
       durationMs: now() - started,
     }
   } catch (error) {
-    // The executor rejects only on infrastructure faults (unusable workdir,
-    // missing shell). A hook that cannot run is a non-blocking error: no exit
-    // code, the failure on stderr for the record. The turn proceeds.
     const message = error instanceof Error ? error.message : String(error)
     return {
       output: parseHookOutput(undefined, '', message),

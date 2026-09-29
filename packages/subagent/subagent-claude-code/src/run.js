@@ -162,9 +162,15 @@ export async function consumeClaudeQuery(query, onPermissionDenied, onResult) {
 }
 
 /**
+ * The minimal official SDK query surface this module depends on.
+ * @typedef {object} ClaudeCodeQueryHandle
+ * @property {function(): void} close
+ */
+
+/**
  * Close the official query, terminate the managed range, and wait for the
  * subprocess owner to prove it is quiescent.
- * @param {{ close(): void } | undefined} query - official SDK query, when creation reached that point.
+ * @param {ClaudeCodeQueryHandle | undefined} query - official SDK query, when creation reached that point.
  * @param {import('@freddie/freddie-subprocess').SubprocessHandle} child - shared-service handle that owns the CLI managed range, including
  *   a published handle whose direct result later rejects.
  */
@@ -286,7 +292,6 @@ export async function startClaudeCodeRun(request, spec) {
     try {
       spec.onError?.(error, 'error')
     } catch {
-      // Host diagnostic logging cannot replace the product failure.
     }
   }
 
@@ -329,7 +334,6 @@ export async function startClaudeCodeRun(request, spec) {
   } catch (error) {
     request.signal.removeEventListener('abort', onAbort)
     const cancelledBeforeCleanup = controller.signal.aborted
-    // Let child.done publish a concurrently observed exit before classification.
     await Promise.resolve()
     const startupOutcome = managedProcess?.outcome
     const startupFacts = { stage: 'query-start', category: 'unknown', outcome: startupOutcome }
@@ -401,7 +405,6 @@ export async function startClaudeCodeRun(request, spec) {
           facts = { stage: 'query-run', category: 'unknown', outcome: processOutcome }
         }
         prependFailureDiagnostic(facts)
-        // Keep the SDK category and cause; the diagnostic adds later process facts.
         throw error instanceof ClaudeCodeFailure ? error : new ClaudeCodeFailure(facts, thrown(error))
       }
     },

@@ -1,0 +1,47 @@
+{
+  "name": "@freddie/freddie-agent-team-profile",
+  "description": "The Agent Teams profile bundle, on by default in every shipped profile template: the Team service and Team-scoped tools over freddie-base, with legacy global subagent delegation off",
+  "version": "0.1.1-rc.2",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/bundle/agent-team-profile"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./invariant": {
+      "default": "./src/invariant.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/invariant.js",
+    "cordis.patch.yml"
+  ],
+  "license": "MIT",
+  "freddie": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@freddie/freddie-experimental-agent-team": "*",
+    "@freddie/freddie-experimental-tool-agent-team": "*"
+  },
+  "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-invariants": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-invariants": "*"
+  }
+}

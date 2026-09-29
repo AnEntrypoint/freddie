@@ -8,28 +8,7 @@
  * model".
  */
 
-/** Simplified Chinese dictionary (the key-set source of truth). */
-export const zh = {
-  'command.description': '选择本会话使用的模型',
-  'option.loadError': '目录加载失败：{message}',
-  'trigger.fallback': '选择模型',
-  'trigger.selectAria': '选择模型',
-  'trigger.aria': '选择模型，当前 {model}',
-  'trigger.ariaEffort': '选择模型，当前 {model}，推理等级 {effort}',
-  'menu.aria': '模型与推理等级',
-  'menu.model': '模型',
-  'menu.effort': '推理等级',
-  'effort.providerDefault': 'Default',
-  'status.loading': '正在刷新模型列表…',
-  'error.action': '模型操作失败：{message}',
-  'action.reload': '重新加载',
-  'warning.groupLoad': '{name} 加载失败：{message}',
-  'empty.models': '没有可用的模型。',
-  'blocked.composer': '当前模型不可用，请先选择模型',
-  'empty.efforts': '当前模型未提供推理等级。',
-}
-
-/** English dictionary, checked complete against the zh key set. */
+/** English dictionary. */
 export const en = {
   'command.description': 'Select the model for this conversation',
   'option.loadError': 'Catalog failed to load: {message}',

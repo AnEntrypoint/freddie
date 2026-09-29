@@ -14,7 +14,7 @@ function guardOf(phase) {
   switch (phase) {
     case 'plain': return 'plain'
     case 'claimed': return 'claimed'
-    default: return 'frozen' // adjudicating / submitting
+    default: return 'frozen'
   }
 }
 
@@ -31,9 +31,6 @@ export class SessionInputShell {
   constructor(deps) {
     this.deps = deps
 
-    // Real wall clock: the typing-run merge window must actually expire in
-    // production (the machine's no-clock default is a constant for pure tests).
-    // Constructed before compose()'s first call below, which reads this.core.state.
     this.core = new InputMachine({ now: () => Date.now() })
     this.noticeSeq = 0
     this.lastMirroredDraft = ''
@@ -82,8 +79,6 @@ export class SessionInputShell {
 
     deps.queue?.subscribe(() => { this.publish() })
   }
-
-  // ---- SessionInput face ----
 
   /**
    * Single draft write path (all mutation rides machine events).
@@ -195,10 +190,6 @@ export class SessionInputShell {
       }
       return
     }
-    // Claimed pre-gate: a claim that does not declare image acceptance never
-    // submits while images are attached — one notice, everything retained.
-    // Enter-time adjudication applies the same policy for unclaimed lines
-    // inside the command source itself.
     const before = this.snapshot
     if (before.phase === 'claimed' && this.imageIds.length > 0 && before.claim?.images !== true) {
       this.notify('error', this.deps.commandImages.unsupportedNotice(before.claim?.token ?? before.draft))
@@ -250,9 +241,6 @@ export class SessionInputShell {
     const inputTriggers = this.deps.inputTriggers?.()
     if (inputTriggers === undefined) return false
     const consumed = inputTriggers.onSpace()
-    // Machine-driven draft replacement never passes through onChange, so
-    // re-track: the caret lands after the token, where detection sees
-    // whitespace and closes the menu.
     if (consumed) {
       const next = this.snapshot
       inputTriggers.track(next.draft, next.draft.length, { tier: guardOf(next.phase) }, next.draftRev)
@@ -328,8 +316,6 @@ export class SessionInputShell {
     const draft = snapshot.draft
     this.setDraft(draft.slice(0, span.start) + text + draft.slice(span.end))
     if (keepCompleting) {
-      // Machine-driven draft replacement never passes through onChange, so
-      // re-track at the caret inside the still-open token (see space()).
       const next = this.snapshot
       this.deps.inputTriggers?.()?.track(next.draft, span.start + text.length, { tier: guardOf(next.phase) }, next.draftRev)
     }
@@ -345,8 +331,6 @@ export class SessionInputShell {
     this.noticeSeq += 1
     this.notices.set({ level, text, seq: this.noticeSeq })
   }
-
-  // ---- wiring-layer extras (not on the frozen SessionInput face) ----
 
   /** Teardown: abort any in-flight attempt and stop accepting async settlements. */
   dispose() {
@@ -374,8 +358,6 @@ export class SessionInputShell {
     }
   }
 
-  // ---- effect executor ----
-
   run(effects) {
     for (const fx of effects) this.execute(fx)
     this.publish()
@@ -401,7 +383,7 @@ export class SessionInputShell {
         return
       }
       default:
-        return // machine-internal effects (mirror rides publish)
+        return
     }
   }
 
@@ -431,8 +413,6 @@ export class SessionInputShell {
     })).then(
       (parts) => {
         if (this.disposed) return
-        // Splice model forms over their display ranges (offsets are draft-time;
-        // parts arrive offset-sorted since the table is).
         let out = ''
         let cursor = 0
         for (const part of parts) {
@@ -483,7 +463,6 @@ export class SessionInputShell {
   adjudicate(attempt, draft) {
     const inputTriggers = this.deps.inputTriggers?.()
     if (inputTriggers === undefined) {
-      // No pipeline mounted: the '/' line is an ordinary message.
       this.run(this.core.dispatch({ type: 'adjudicated', attempt, outcome: undefined }))
       return
     }
@@ -512,8 +491,6 @@ export class SessionInputShell {
     Promise.resolve()
       .then(async () => {
         const images = imageIds.length > 0 ? await this.deps.commandImages.serialize(imageIds) : []
-        // Serialization may outlive the attempt (large files, session
-        // teardown); a dead attempt must not reach the Host executor.
         if (this.dead(attempt)) return undefined
         return claim.submit(args, this.deps.actx, images)
       })

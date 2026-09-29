@@ -168,8 +168,6 @@ function readDraft(listing, draft, scanned) {
  */
 function visibleEntries(entries, selectedPath, showHidden, filterPrefix) {
   const needle = filterPrefix === null ? '' : filterPrefix.toLowerCase()
-  // A dot-led prefix names hidden entries explicitly, so matching ones
-  // surface even while the toggle keeps the rest hidden.
   const displayable = (entry) => showHidden || !entry.hidden || needle.startsWith('.')
   const matches = (entry) => displayable(entry) && entry.name.toLowerCase().startsWith(needle)
   const narrowing = needle !== '' && entries.some(matches)
@@ -188,23 +186,13 @@ function LevelColumn({ entries, selectedPath, busy, onPick, showHidden, filterPr
       visible.map((entry) => {
         const selected = entry.path === selectedPath
         return (
-          // The wrapper carries the list semantics; the row keeps its NATIVE
-          // button role so assistive technology exposes an actionable control.
           h('span', {role: 'listitem', class: css.rowSeat ?? ''},
             h('button', {
               type: 'button',
               'aria-current': selected ? 'true' : null,
               class: clsx(css.row, selected && css.rowSelected),
               disabled: busy,
-              // While the path editor is open, keep focus in it: a focus
-              // steal on mousedown would blur the editor and (in engines
-              // where the blur lands before our guards) drop this click.
-              // Outside editing, rows keep native focus behavior.
               onmousedown: pathEditing ? (event) => { event.preventDefault() } : null,
-              // Editing-time focus parking happens after commit (the
-              // DirectoryBrowser refocus effect): a right-pane pick replaces
-              // this very column, so focusing the clicked node here would
-              // still fall to body.
               onclick: () => { onPick(entry) },
             },
               selected
@@ -230,54 +218,30 @@ export class FreddieDirectoryBrowser extends HTMLElement {
   #props = null
   #wasOpen = false
 
-  // Miller state: the listed level, the selected row in it, and the selected
-  // folder's own listing (the right column; null while nothing is selected).
   #parent = null
   #selected = null
   #child = null
   #loading = false
-  // Derived from `loading` and `scanWindow` by the slow-scan timer below:
-  // true only once the current listing call has been in flight for
-  // SLOW_SCAN_DELAY_MS, so fast listings never render the indicator at all.
   #slowScan = false
   #slowScanTimer = null
   #error = null
-  // Path-edit state: null = breadcrumb mode; a string = the draft being typed.
   #pathDraft = null
-  // Show-hidden toggle state (pure client-side filter, reset on each open).
   #showHidden = false
-  // Create-folder state: null = closed; a string = the nested dialog's draft.
   #folderDraft = null
   #creatingFolder = false
   #createError = null
   #requestSeq = 0
-  // The in-flight listing's controller: superseding intent aborts the wire
-  // request too — the Host stops scanning — instead of only discarding the
-  // eventual result while the scan keeps consuming host resources.
   #scanController = null
-  // Bumped on every open/close edge: settlements from a previous open (a
-  // pending creation included) must never mutate a reopened dialog.
   #openGeneration = 0
   #composing = false
-  // What the last draft-following scan asked for and what came back.
   #scanned = null
-  // IME confirmation (Enter selecting a candidate) must not submit the
-  // navigate's own commit while a submitted navigation is bounded.
   #previewSuspended = false
   #draftDebounceTimer = null
 
-  // Editor-close focus parking, consumed after each render: a pick parks on
-  // the selection's row, Enter and an input-focused Escape park on the crumb
-  // edit zone that replaces the input. Pointer-out cancels never set (or
-  // clear) these — yanking focus back from wherever the user clicked would be
-  // worse than the fall.
   #refocusPick = false
   #refocusEditZone = false
   #refocusPathInput = false
 
-  // Persistent freddie-modal elements (self-mounted to document.body by
-  // renderModal): held across renders and updated via setProps rather than
-  // recreated, so the dialog's own DOM subtree survives every #render() call.
   #outerModal = null
   #createModal = null
 
@@ -292,8 +256,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
   }
 
   disconnectedCallback() {
-    // HMR/unmount invalidation: a completion from a disposed flow must not
-    // update state or issue follow-up requests from a dead component.
     this.#requestSeq += 1
     this.#openGeneration += 1
     this.#scanController?.abort()
@@ -391,8 +353,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
     this.#loading = true
     if (options.announce) this.#error = null
     this.#render()
-    // What every landing does once its panes are committed, whichever shape
-    // committed them.
     const settle = () => {
       this.#loading = false
       if (options.closeEditor) {
@@ -404,13 +364,7 @@ export class FreddieDirectoryBrowser extends HTMLElement {
     }
     scan.then((target) => {
       if (seq !== this.#requestSeq) return
-      // The level the panes will present as current answers this exact
-      // directory text, however the host respelled it (`..`, a Windows
-      // forward slash): the tail filters, and the same text asks for no
-      // second scan.
       if (!options.closeEditor && path !== undefined) this.#scanned = { directory: path, landed: target.path }
-      // The single-pane landing; `landed` makes it first-commit-only, while
-      // the two-pane commit below may still upgrade an already-landed view.
       let landed = false
       const landSingle = () => {
         if (landed || seq !== this.#requestSeq) return
@@ -421,15 +375,12 @@ export class FreddieDirectoryBrowser extends HTMLElement {
         settle()
         this.#render()
       }
-      // Arity is label-independent: only the collapsed chain's depth decides.
       if (displayCrumbs(target, '').length < 2) { landSingle(); return }
       const parentCrumb = target.crumbs.at(-2)
       /* v8 ignore next -- narrowing: a two-deep display chain implies a parent crumb (root-to-target inclusive). */
       if (parentCrumb === undefined) { landSingle(); return }
       this.#continueScan(parentCrumb.path).then((parentLevel) => {
         if (seq !== this.#requestSeq) return
-        // Windows resolves a typed path preserving its case; anchor on the
-        // parent level's actual entry so selection comparisons hold.
         const sep = separatorOf(parentLevel)
         const fold = (value) => (sep === '\\' ? value.toLowerCase() : value)
         const match = parentLevel.entries.find((entry) => fold(entry.path) === fold(target.path))
@@ -438,19 +389,11 @@ export class FreddieDirectoryBrowser extends HTMLElement {
         this.#parent = parentLevel
         this.#selected = match
         this.#child = target
-        // Idempotent on a late upgrade of a timed-out landing: reopening the
-        // editor or starting a newer scan supersedes this seq, so reaching
-        // here means the settlement is still this landing's own.
         settle()
         this.#render()
       }, () => {
-        // The parent-leg failure (its abort included) never surfaces: the
-        // target listed fine, and nobody asked to see the parent level.
         landSingle()
       })
-      // Only a submitted navigation is bounded: the walk waits both legs out
-      // (see the contract above), and a keystroke aborts it if the operator
-      // moves on first.
       if (options.closeEditor) window.setTimeout(landSingle, PARENT_LEG_WAIT_MS)
     }, (reason) => {
       if (seq !== this.#requestSeq) return
@@ -476,9 +419,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
    */
   #select(entry) {
     const { seq, scan } = this.#launchListing(entry.path)
-    // A pick while the path editor is open adopts the (filtered) row and
-    // closes the editor — the draft served its purpose. Focus re-parks on
-    // the selection after commit (see the refocus effect below).
     if (this.#pathDraft !== null) this.#refocusPick = true
     this.#pathDraft = null
     this.#selected = entry
@@ -495,12 +435,7 @@ export class FreddieDirectoryBrowser extends HTMLElement {
       if (seq !== this.#requestSeq) return
       this.#loading = false
       this.#error = failureText(reason)
-      // An unreadable selection cannot be the committing target while the
-      // breadcrumb still names the level: fall back to the single pane.
       this.#selected = null
-      // Clearing the selection can unmount the very row the pick parked
-      // focus on (a dot-revealed hidden row re-hides); the refocus effect
-      // re-parks on the edit zone only if focus actually fell to body.
       this.#refocusEditZone = true
       this.#render()
     })
@@ -519,20 +454,11 @@ export class FreddieDirectoryBrowser extends HTMLElement {
 
   /** Abandon path editing (Escape or clicking away) and restore the crumb view. */
   #cancelPathEdit() {
-    // Cancel also withdraws a navigation the editor already launched: its
-    // late success must not jump to the cancelled path, so the pending
-    // request is superseded and the view leaves the loading state.
     this.#supersede()
     this.#loading = false
     this.#pathDraft = null
     this.#error = null
-    // Editing may have superseded the selection's preview request; a
-    // selection with no preview would render a half-empty two-pane view, so
-    // cancel falls back to the single-pane level.
     if (this.#child === null) this.#selected = null
-    // With no level listed yet (the editor superseded the initial home
-    // listing), plain cancellation would leave a permanently blank picker:
-    // restart the home listing.
     if (this.#parent === null) { this.#navigate(); return }
     this.#render()
   }
@@ -549,9 +475,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
     /* v8 ignore next -- reentry fence: the nested dialog only renders with a target and disables while creating. */
     const targetPath = this.#selected?.path ?? this.#parent?.path ?? null
     if (targetPath === null || this.#folderDraft === null || this.#creatingFolder) return
-    // Trim only rejects an all-whitespace draft; the Host gets the original
-    // spelling — the backend accepts any non-blank single segment verbatim,
-    // and trimming here would create (and select) a different sibling.
     const name = this.#folderDraft
     if (name.trim() === '') return
     const createDirectory = this.#props?.createDirectory
@@ -562,18 +485,11 @@ export class FreddieDirectoryBrowser extends HTMLElement {
     this.#render()
     const generation = this.#openGeneration
     createDirectory(targetPath, name).then((createdPath) => {
-      // A settlement from a closed (possibly reopened) flow must not touch
-      // the fresh dialog or issue a relist against the stale target.
       if (generation !== this.#openGeneration) return
       this.#creatingFolder = false
       this.#folderDraft = null
-      // Land like a right-column pick (figma 802:57446 → 813:23278 flow): the
-      // create target becomes the listed level and the new folder its selection.
       const { seq, scan } = this.#launchListing(targetPath)
       this.#loading = true
-      // Symmetric with navigate/select: a launched scan clears the stale
-      // failure text (and keeps the floating indicator's corner the only
-      // occupant of the content's right edge while it shows).
       this.#error = null
       this.#render()
       scan.then((level) => {
@@ -610,17 +526,11 @@ export class FreddieDirectoryBrowser extends HTMLElement {
       return
     }
     this.#supersede()
-    // Closing mid-scan leaves nothing to load: without this edge the
-    // slow-scan timer keeps arming while hidden and the reopened dialog
-    // would show the indicator on its first frame instead of waiting out a
-    // fresh silence window (reopen's navigate() produces no loading edge).
     this.#loading = false
     this.#error = null
     this.#pathDraft = null
     this.#folderDraft = null
     this.#createError = null
-    // A close mid-flight (failed Enter, then Cancel) may leave refocus
-    // flags armed; retire them so a later render cannot consume them.
     this.#refocusPick = false
     this.#refocusEditZone = false
   }
@@ -631,8 +541,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
     if (this.#pathDraft === null) return
     this.#draftDebounceTimer = window.setTimeout(() => {
       if (this.#previewSuspended) return
-      // The level the panes present as current: it alone may answer the
-      // draft, so anything else it names is a level to walk to.
       const current = this.#child ?? this.#parent
       if (current === null || this.#pathDraft === null) return
       const { directory, tail } = readDraft(current, this.#pathDraft, this.#scanned)
@@ -652,9 +560,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
     }
 
     if (!open) {
-      // The browser itself is only the owner of the body-portaled dialogs.
-      // Hiding this custom element does not affect those portal siblings, so
-      // close both before returning or their masks keep intercepting clicks.
       if (this.#outerModal !== null) this.#outerModal = renderModal(this.#outerModal, {open: false})
       if (this.#createModal !== null) this.#createModal = renderModal(this.#createModal, {open: false})
       applyDiff(this, h('span', {style: 'display:none'}))
@@ -673,21 +578,10 @@ export class FreddieDirectoryBrowser extends HTMLElement {
     const creatingFolder = this.#creatingFolder
     const createError = this.#createError
     const twoPane = selected !== null
-    // The nested create dialog owns the interaction while open: Modal has no
-    // focus trap, so every parent control goes inert (Shift-Tab or AT must not
-    // close, adopt, or retarget underneath the child).
     const parentInert = busy || folderDraft !== null
-    // An uncommitted path draft makes targetPath stale relative to the header:
-    // committing actions must not act on the previous selection/listing while
-    // a different path is displayed.
     const draftPending = pathDraft !== null
 
-    // The panes follow the draft: every keystroke re-arms the debounce below
-    // (via #armDraftDebounce, called from the input's onchange), read here
-    // only to decide the crumb-scope class bindings and typedPrefix.
     const crumbSource = child ?? parent
-    // The draft's tail filters the level it names, which by the pane invariant
-    // is the LAST pane — never a pane the draft has already walked away from.
     const typedPrefix = crumbSource === null || pathDraft === null
       ? null
       : readDraft(crumbSource, pathDraft, this.#scanned).tail
@@ -702,35 +596,14 @@ export class FreddieDirectoryBrowser extends HTMLElement {
     const compositionOff = () => { this.#composing = false }
 
     const outerBody = (
-    /* Path-edit cancellation is observed at the card scope, not the
-          * input: once Tab parks focus on a filtered row the input is off the
-          * event path, yet Escape must still collapse the editor (not the
-          * dialog) and a further focus move out of the card must still
-          * cancel. display:contents keeps header/content/footer as direct
-          * flex children of the Modal card. */
       h('div', {
         class: css.editorScope ?? '',
         onkeydown: (event) => {
           if (event.key !== 'Escape' || this.#pathDraft === null) return
-          // stopPropagation keeps the card-scope Escape from the Modal's
-          // document listener.
           event.stopPropagation()
-          // Escape while the input holds focus is about to unmount it; with
-          // focus already parked on a row, that row survives the cancel and
-          // keeps focus naturally. Assignment (not a conditional set) also
-          // retires a stale flag a failed or still-upgrading Enter left.
           this.#refocusEditZone = document.activeElement === this.querySelector('[data-path-input]')
           this.#cancelPathEdit()
         },
-        // Focus leaving THIS dialog card while editing cancels like Escape.
-        // Guarded non-cancel paths: window/tab focus loss (document no
-        // longer focused); a focus move that stays inside the card (Tab
-        // onto the filtered rows or the footer toggle); and pointer paths,
-        // where rows and the toggle suppress focus steal on mousedown while
-        // editing so their click lands first. Enter keeps focus in the
-        // input while its navigation is in flight, so a submitted path is
-        // never withdrawn here. Anchored to this card via closest, not any
-        // [role="dialog"], so focus escaping into a sibling overlay cancels.
         onblur: (event) => {
           if (this.#pathDraft === null) return
           if (!document.hasFocus()) return
@@ -740,9 +613,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
           if (card === null) return
           const related = event.relatedTarget
           if (related instanceof Node && card.contains(related)) return
-          // The user moved focus out of the card themselves: cancel without
-          // re-parking (a lingering Enter-failure flag must not yank focus
-          // back either).
           this.#refocusEditZone = false
           this.#cancelPathEdit()
         },
@@ -767,33 +637,17 @@ export class FreddieDirectoryBrowser extends HTMLElement {
                     )
                   )),
                 ),
-                /* The empty zone right of the crumbs is the path-edit
-                     * affordance: the whole remainder of the bar clicks into
-                     * the editor, and the pencil glyph parked at its right
-                     * edge (with the same tooltip) is what says so — an
-                     * invisible target the operator must guess at is the one
-                     * way into typing a path. */
                 h('button', {
                   type: 'button',
                   class: css.crumbEditZone ?? '',
                   'aria-label': t('browser.editPath'),
                   title: t('browser.editPath'),
-                  // Stays available with no listed level: when the home
-                  // listing itself fails, typing an absolute path is the one
-                  // remaining way forward.
                   disabled: parentInert,
                   'data-edit-zone': '',
                   onclick: () => {
-                    // Opening the editor supersedes any pending listing: a
-                    // settlement landing before the first keystroke would
-                    // otherwise close the editor via navigate's draft reset.
                     this.#supersede()
                     this.#loading = false
                     this.#previewSuspended = false
-                    // Seed with a trailing separator so typing immediately
-                    // continues into child names (and prefix-filters below).
-                    // No listed level means nothing to seed from (the editor
-                    // is the recovery path for a failed home listing).
                     if (this.#parent === null) {
                       this.#pathDraft = ''
                       this.#render()
@@ -819,36 +673,18 @@ export class FreddieDirectoryBrowser extends HTMLElement {
                   oncompositionstart: compositionOn,
                   oncompositionend: compositionOff,
                   oninput: (event) => {
-                    // Editing the draft supersedes any in-flight navigation:
-                    // its completion must neither clear the newer text nor
-                    // repopulate the view with the older path.
                     this.#supersede()
                     this.#loading = false
-                    // A fresh edit releases the submission hold: the panes
-                    // may follow the new text wherever it points.
                     this.#previewSuspended = false
                     this.#pathDraft = event.target.value
                     this.#armDraftDebounce()
                     this.#render()
                   },
-                  // Escape and focus-leave cancellation live on the card-scope
-                  // wrapper above (they must work after focus Tabs onto the
-                  // rows); this handler owns only submission.
                   onkeydown: (event) => {
                     if (event.key === 'Enter' && !this.#composing) {
                       event.preventDefault()
-                      // Trim only detects a blank draft; the Host gets the
-                      // original text — a real directory name may end in
-                      // whitespace, and trimming would list its sibling.
                       if (this.#pathDraft !== null && this.#pathDraft.trim() !== '') {
-                        // Success will unmount the still-focused input; park
-                        // focus on the returning crumb edit zone (a failure
-                        // keeps the editor, so the flag waits until close).
                         this.#refocusEditZone = true
-                        // The submitted path owns the view now: a debounce
-                        // timer still pending from these keystrokes would
-                        // otherwise supersede this navigation and land the
-                        // draft's parent directory instead.
                         this.#previewSuspended = true
                         this.#navigate(this.#pathDraft)
                       }
@@ -886,12 +722,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
           ),
           loading && slowScan
               && h('div', {class: clsx(css.status, css.loadingFloat)}, t('browser.loading')),
-          /* The backend bounds a level at its complete-result limit; say so
-              * whenever a visible pane was cut instead of letting the tail of a
-              * huge directory go silently missing. The note describes the panes
-              * on screen, so an in-flight scan leaves it alone — hiding it while
-              * the stale view still shows the cut level would shift the columns
-              * on every navigation away from it. */
           (parent?.truncated === true || child?.truncated === true)
               && h('div', {class: css.status ?? '', role: 'status'}, t('browser.truncated')),
           error !== null && h('div', {class: css.error ?? '', role: 'alert'}, error),
@@ -914,16 +744,10 @@ export class FreddieDirectoryBrowser extends HTMLElement {
             class: clsx(css.showHiddenToggle, showHidden && css.showHiddenToggleActive),
             'aria-pressed': String(showHidden),
             disabled: parentInert,
-            // The toggle composes with the path editor (dot-led prefixes and
-            // this filter interleave): while editing, don't steal focus, so
-            // toggling never blur-cancels a draft mid-thought. Outside editing
-            // it keeps native focus behavior.
             onmousedown: draftPending ? (event) => { event.preventDefault() } : null,
             onclick: () => { this.#showHidden = !this.#showHidden; this.#render() },
           },
             t('browser.showHidden'),
-            /* Trailing check (Menu's selected vocabulary): the label never
-                * shifts when the pressed state toggles. */
             showHidden && h(IconCheckOutline16, {size: 14}),
           ),
           h('span', {class: css.footerGap ?? ''}),
@@ -940,7 +764,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
         ),
       )
     )
-    /* Nested create dialog (figma 813:23278): names one folder inside the target. */
     const createBody = (
       h('div', {class: css.createBody ?? ''},
         h('h3', {class: css.createTitle ?? ''}, t('browser.newFolder')),
@@ -980,10 +803,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
       )
     )
 
-    // Both freddie-modal elements self-mount to document.body (Toast/Modal's
-    // pattern) and own their subtree; #render() never diffs into `this`
-    // directly for this component. Held refs mean the same two elements get
-    // updated in place across renders rather than recreated.
     this.#outerModal = renderModal(this.#outerModal, {
       open,
       onClose: () => { if (folderDraft === null && !busy) onClose() },
@@ -1003,27 +822,14 @@ export class FreddieDirectoryBrowser extends HTMLElement {
     applyDiff(this, h('span', {style: 'display:none'}))
 
     const outerModal = this.#outerModal
-    // Deep ancestry overflows the trail; keep its tail (the current directory
-    // and the edit zone beside it) in view whenever the chain changes.
     const trail = outerModal.querySelector('[data-crumb-trail]')
     if (trail !== null) trail.scrollLeft = trail.scrollWidth
-    // On viewports too narrow for both fixed panes the Miller row scrolls;
-    // whenever a child preview lands, pin it into view the way the crumb tail
-    // pins — otherwise descent is unreachable on a phone-width window.
     if (child !== null) {
       const row = outerModal.querySelector('[data-miller-row]')
       if (row !== null) row.scrollLeft = row.scrollWidth
     }
-    // Every editor exit that would drop focus to body re-parks it after
-    // commit, so keyboard traversal stays inside the dialog (the Modal has no
-    // focus trap): a pick lands on the selection's row — aria-current in the
-    // freshly rendered left pane, which survives even a right-pane advance
-    // replacing the picked button's column — while Enter and an input-focused
-    // Escape land on the crumb edit zone that replaces the input.
     if (this.#refocusPathInput) {
       this.#refocusPathInput = false
-      // Only when the swap actually dropped focus to body: focus the operator
-      // still holds (the input itself, a surviving row) stays theirs.
       if (document.activeElement === document.body) outerModal.querySelector('[data-path-input]')?.focus()
     }
     if (pathDraft === null) {
@@ -1039,8 +845,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
         }
       } else if (this.#refocusEditZone) {
         this.#refocusEditZone = false
-        // Re-park only when the close actually dropped focus to body; focus
-        // the user parked elsewhere (a surviving row) stays theirs.
         if (document.activeElement === document.body) {
           outerModal.querySelector('[data-edit-zone]')?.focus()
         }

@@ -77,7 +77,6 @@ function resolveSdkRoute(config, requested) {
  */
 class SdkSubagentProvider {
   capabilities = SDK_START_CAPABILITIES
-  // Context contract: an out-of-process SDK child starts fresh — no parent conversation crosses the process boundary.
   inheritsParentContext = false
 
   constructor(name, ctx, config) {
@@ -127,8 +126,6 @@ export function apply(ctx, config) {
   if (config.maxTokens !== undefined && (!Number.isSafeInteger(config.maxTokens) || config.maxTokens <= 0)) {
     throw new TypeError('subagent-freddie-sdk maxTokens must be a positive safe integer')
   }
-  // Interpret a relative configured cwd against the harness launch directory
-  // ONCE, at load, and fail a misconfigured directory here — not per start.
   const configuredCwd = validateConfiguredCwd('subagent-freddie-sdk', config.cwd)
   const validated = {
     ...config,

@@ -1,16 +1,6 @@
-/* Plan-review takeover: the waiting-approval card language (amber strip on a
-   floating capsule, right-aligned actions) applied to a reviewed plan. Kept as
-   its own module rather than shared with ui-conversation's ApprovalPanel: the
-   two takeovers agree on tokens and geometry, not on content — this one's body
-   is scrollable markdown, that one's is a headline plus a command line. Warn
-   semantics ride the alias state tokens; no hardcoded colors. */
-
-/* Mirrors the question card's frame so the takeover is a content swap. */
 .freddie-planReviewPanel__frame {
   display: flex;
   justify-content: center;
-  /* Sides = clearance + 16px: the card lands on the shared content width
-     (input card - 32) at every viewport. */
   padding: 6px calc(var(--freddie-composer-side-clearance) + 16px) 10px;
 }
 
@@ -20,18 +10,12 @@
   flex-direction: column;
   width: 100%;
   max-width: var(--freddie-chat-content-width);
-  /* Composer seat sits in a fixed-height conversation column (overflow
-     hidden): cap the card against the viewport and scroll the plan, so the
-     strip and the decision row stay reachable on a long plan. */
   max-height: min(60vh, 520px);
   border: 1px solid var(--freddie-alias-state-warn-secondary);
   border-radius: 20px;
   background: var(--dsw-specific-input-major);
   box-shadow: var(--dsw-shadow-lv2);
   color: var(--freddie-alias-label-primary);
-  /* Elevated surface in dark: the plan body inside scrolls once the card hits
-     the cap above, so the thumb takes the l2 pair (see ui-theme
-     styles/scrollbar.css for the rebinding contract). */
   --freddie-scrollbar-thumb: var(--freddie-alias-scrollbar-bg-l2);
   --freddie-scrollbar-thumb-hover: var(--freddie-alias-scrollbar-hover-l2);
 }
@@ -41,7 +25,6 @@
   box-sizing: border-box;
 }
 
-/* Tinted full-width header band, as on the approval takeover. */
 .freddie-planReviewPanel__strip {
   display: flex;
   align-items: center;
@@ -61,7 +44,6 @@
   background: var(--freddie-alias-state-warn-primary);
 }
 
-/* The plan is the panel's message: it takes the whole body and the scroll. */
 .freddie-planReviewPanel__body {
   flex: 1 1 auto;
   min-height: 0;
@@ -95,9 +77,6 @@
   gap: 8px;
 }
 
-/* The discuss verb stays a quiet text button beside the two decision
-   capsules: 14px glyph against the 14px label with a slightly wider gap, so
-   the icon reads as a prefix rather than a peer-sized control. */
 .freddie-planReviewPanel__discuss {
   gap: 6px;
   color: var(--freddie-alias-label-secondary);

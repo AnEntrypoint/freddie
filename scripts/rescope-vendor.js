@@ -35,9 +35,15 @@ import { fileURLToPath } from 'node:url'
 
 const root = resolve(import.meta.dirname, '..')
 
-/** One vendored package's directory, upstream npm name, and rescoped name. */
+/**
+ * One vendored package's directory, upstream npm name, and rescoped name.
+ * @typedef {{ directory: string, upstream: string, scoped: string }} VendorRename
+ */
 
-/** The mapping this codemod applies; `framework/README.md` carries the same table. */
+/**
+ * The mapping this codemod applies; `framework/README.md` carries the same table.
+ * @type {VendorRename[]}
+ */
 const RENAMES = [
   { directory: 'cordis', upstream: 'cordis', scoped: '@freddie/cordis' },
   { directory: 'cosmokit', upstream: 'cosmokit', scoped: '@freddie/cosmokit' },
@@ -52,7 +58,10 @@ const RENAMES = [
 
 const EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs', '.tpl', '.json', '.yml', '.yaml', '.md']
 
-/** An exact-string edit the token rule cannot express, with its required hit count. */
+/**
+ * An exact-string edit the token rule cannot express, with its required hit count.
+ * @typedef {{ id: string, file: string, find: string, replace: string, expect: number }} ExactEdit
+ */
 
 /**
  * A file where an upstream name also appears as a vendor DIRECTORY name or an
@@ -61,20 +70,10 @@ const EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs', '.tpl', '.json', '.yml
  */
 
 const GENERIC_SKIPS = [
-  // `Symbol.for('schemastery')` and the `vendor:` metadata field are upstream identifiers.
   { file: 'framework/schemastery/src/index.js', upstream: ['schemastery'] },
-  // `cordis` is also an agent-preset id — the directory name under
-  // apps/cli/config/agent-presets/ — so in these files the bare name is
-  // product data, not a package reference. Renaming it changed which preset
-  // the creator flow stages and which id the roster reports.
   { file: 'packages/client/ui-agent-preset/src/client/AgentPresetSection.js', upstream: ['cordis'] },
   { file: 'packages/client/ui-agent-preset/src/client/index.js', upstream: ['cordis'] },
-  // The preset's own composition: its header comment and its system prompt name
-  // the preset a model mounts, so the scoped name would send the model after an
-  // id no roster reports.
   { file: 'apps/cli/config/agent-presets/cordis/agent.cordis.yml', upstream: ['cordis'] },
-  // `cordis/*` is the extensions event domain, not a package subpath. The
-  // generated catalogs and every producer/consumer must preserve that wire id.
   { file: 'docs/event-producer-consumer.md', upstream: ['cordis'] },
   { file: 'docs/subsystems/extensions.md', upstream: ['cordis'] },
   { file: 'packages/api/remotes/src/remote-events.js', upstream: ['cordis'] },
@@ -83,14 +82,11 @@ const GENERIC_SKIPS = [
   { file: 'packages/extensions/cordis-host-runner/src/index.js', upstream: ['cordis'] },
   { file: 'packages/extensions/cordis-host-runner/src/inspect-registry.js', upstream: ['cordis'] },
   { file: 'packages/extensions/cordis-host-runner/src/types.js', upstream: ['cordis'] },
-  // Generated typert descriptors mirror the same cordis/* wire event ids
-  // as the hand-written host-runner source above.
   { file: 'packages/extensions/cordis-host-runner/src/typert.host.js', upstream: ['cordis'] },
   { file: 'packages/extensions/tool-cordis/src/api-catalog.js', upstream: ['cordis'] },
   { file: 'packages/extensions/tool-cordis/src/providers.js', upstream: ['cordis'] },
   { file: 'packages/extensions/ui-cordis/src/client/index.js', upstream: ['cordis'] },
   { file: 'packages/extensions/ui-cordis/src/client/inventory.js', upstream: ['cordis'] },
-  // The UI locale namespace and input-trigger source id are product keys.
   { file: 'packages/client/ui-settings-plugin-inventory/src/client/PluginInventorySettingsTab.js', upstream: ['cordis'] },
   { file: 'packages/extensions/ui-cordis/src/client/CordisActionRow.js', upstream: ['cordis'] },
   { file: 'packages/extensions/ui-cordis/src/client/CordisDefineRow.js', upstream: ['cordis'] },
@@ -104,11 +100,9 @@ const GENERIC_SKIPS = [
 const POSTCONDITIONS = [
   { file: 'framework/cordis/package.json', text: '"name": "@freddie/cordis"', count: 1 },
   { file: 'framework/hmr/package.json', text: '"name": "@freddie/cordis-plugin-hmr"', count: 1 },
-  // The framework README's divergence log owns this entry; reject its deletion or duplication.
   { file: 'framework/README.md', text: '17. **`@freddie` scope**', count: 1 },
   { file: 'pnpm-workspace.yaml', text: 'cordis@4.0.0-rc.7', count: 0 },
-  // The preset id the shipped composition documents to its own model.
-  { file: 'apps/cli/config/agent-presets/cordis/agent.cordis.yml', text: 'The `cordis` agent preset', count: 1 },
+  { file: 'apps/cli/config/agent-presets/cordis/agent.cordis.yml', text: 'a plugin row in a `cordis.yml`', count: 1 },
   { file: 'apps/cli/config/agent-presets/cordis/agent.cordis.yml', text: 'corrupting the `cordis` preset', count: 1 },
 ]
 
@@ -116,10 +110,10 @@ const POSTCONDITIONS = [
  * Every exact edit, in application order. Each `find` is written against the
  * PRE-rename text because these run before the generic pass, so no `find` may
  * quote a neighbouring line the generic pass would rewrite.
+ * @type {ExactEdit[]}
  */
 const EXACT_EDITS = [
   {
-    // Rescoped packages are never fetched from a registry, so the exclusion is dead config.
     id: 'pnpm-release-age',
     file: 'pnpm-workspace.yaml',
     find: `minimumReleaseAgeExclude:
@@ -135,9 +129,7 @@ const EXACT_EDITS = [
     id: 'publication-set-scope-assertion',
     file: 'scripts/publish-npm-baseline.js',
     find: '      if (!isVendored && !name.startsWith(\'@freddie/\')) {',
-    replace: `      // Vendored packages are rescoped too (vendor/README.md), so publication
-      // never carries an upstream name that would squat it on the registry.
-      if (!name.startsWith('@freddie/')) {`,
+    replace: "      if (!name.startsWith('@freddie/')) {",
     expect: 1,
   },
   {
@@ -148,7 +140,6 @@ const EXACT_EDITS = [
     expect: 1,
   },
   {
-    // A plain fence listing the bundle's mounted tree: a bare token, no quotes.
     id: 'agent-spine-demo-mounted-tree',
     file: 'packages/examples/agent-spine-demo/README.md',
     find: '@cordisjs/plugin-timer            timer service',
@@ -156,7 +147,6 @@ const EXACT_EDITS = [
     expect: 1,
   },
   {
-    // The root contract claimed vendored packages keep their upstream names.
     id: 'root-agents-vendored-name-contract',
     file: 'AGENTS.md',
     find: '`framework/` packages keep upstream names and publish alongside the harness (`publishConfig.access: public`). `cordis` is a peerDependency (+ dev) of every harness package.',
@@ -164,8 +154,6 @@ const EXACT_EDITS = [
     expect: 1,
   },
   {
-    // The step-1 file tree told the reader to keep the upstream name, one
-    // paragraph above the invariant that says to rescope it.
     id: 'vendoring-cookbook-tree-comment',
     file: 'docs/cookbook/adding-a-framework-package.md',
     find: '  package.json     # set "private": true, keep name/exports/type',
@@ -206,7 +194,6 @@ const EXACT_EDITS = [
 \${vendored.map(row => \`| \\\`\${row.npmName}\\\` | \\\`\${row.upstreamName}\\\` | [\${row.upstream.replace('https://', '')}](\${row.upstream}) | MIT |\`).join('\\n')}`,
     expect: 1,
   },
-  // The manifest table's name column plus the new upstream-name column, one edit per row.
   ...RENAMES.map(rename => ({
     id: `vendor-readme-row-${rename.directory}`,
     file: 'framework/README.md',
@@ -218,17 +205,11 @@ const EXACT_EDITS = [
 
 /** Files the rescope must never rewrite. */
 function excluded(file) {
-  if (file === 'scripts/rescope-vendor.js') return true // the mapping itself
-  if (file.startsWith('.agents/notes/')) return true // notes record what was true when written
-  // Recorded model payloads quote documentation verbatim, so they must mirror the
-  // sources on disk — including the notes this rescope leaves alone.
+  if (file === 'scripts/rescope-vendor.js') return true
+  if (file.startsWith('.agents/notes/')) return true
   if (file.startsWith('scripts/snapshots/')) return true
-  // The mapping document states both names on purpose.
   if (file === 'docs/rescope.md') return true
-  if (file === 'pnpm-lock.yaml') return true // regenerated by pnpm install
-  // LICENSE files are preserved verbatim as legal artifacts. The package
-  // READMEs used to be excluded alongside them as untouched upstream copies;
-  // they are ours now and carry the scoped names, so they follow the rename.
+  if (file === 'pnpm-lock.yaml') return true
   if (/^framework\/[^/]+\/LICENSE$/.test(file)) return true
   return !EXTENSIONS.some(extension => file.endsWith(extension))
 }
@@ -313,6 +294,7 @@ function classify(file) {
  * form is present and the target form absent; `applied` means the reverse;
  * anything else — a partial application, a moved site, or a DUPLICATED
  * insertion — is `invalid`, so it fails the run instead of being applied again.
+ * @typedef {'pending' | 'applied' | 'invalid'} ExactEditState
  */
 
 /**
@@ -325,7 +307,7 @@ function classify(file) {
  * @param find - the source form, already oriented for the running direction.
  * @param replace - the target form, already oriented for the running direction.
  * @param expect - how many occurrences one complete application produces.
- * @returns Whether the edit is pending, already applied, or invalid.
+ * @returns {ExactEditState} Whether the edit is pending, already applied, or invalid.
  */
 export function exactEditState(text, find, replace, expect) {
   const hits = text.split(find).length - 1
@@ -349,15 +331,12 @@ function main() {
   const all = patterns(reverse)
   const files = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
     .split('\0')
-    .filter(file => file !== '' && !excluded(file))
+    .filter(file => file !== '' && !excluded(file) && existsSync(resolve(root, file)))
 
   const counts = new Map()
   const failures = []
   const outstanding = []
 
-  // Classify every exact edit before writing anything: a single invalid site
-  // means the mapping and the tree disagree, and a half-applied tree is worse
-  // than an untouched one.
   const planned = []
   for (const edit of EXACT_EDITS) {
     const path = resolve(root, edit.file)
@@ -382,8 +361,6 @@ function main() {
     return
   }
   if (mode === 'apply') {
-    // Re-read per edit: two edits can target one file, and a stale snapshot
-    // would let the second write discard the first.
     for (const { path, find, replace } of planned) {
       writeFileSync(path, readFileSync(path, 'utf8').split(find).join(replace))
     }
@@ -416,8 +393,6 @@ function main() {
         failures.push(`postcondition: ${check.file} has ${String(hits)} occurrence(s) of ${JSON.stringify(check.text)}, expected ${String(check.count)}`)
       }
     }
-    // The generic pass above already told us which files would still change,
-    // which in check mode is exactly the residue-and-idempotency signal.
     if (mode === 'check') {
       for (const file of outstanding) failures.push(`residue: ${file} still carries a pre-rescope name token`)
     }
@@ -434,7 +409,5 @@ function main() {
   }
 }
 
-// Importing this module for its exported classifier must not run the codemod.
-if (process.argv[1] !== undefined && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
-  main()
-}
+const runsAsScript = process.argv[1] !== undefined && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+if (runsAsScript) main()

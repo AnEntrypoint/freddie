@@ -20,10 +20,6 @@ import {
   GoalId,
 } from './runtime.js'
 
-// The pure payload outlet (./types.js, ONE home of the `goal` projection-key
-// declaration) re-exported onto the package root keeps the module edge in
-// the emitted index, so aggregate programs consuming the declarations
-// still receive the SessionProjectionMap merge.
 export * from './types.js'
 export * from './domain.js'
 export { GOAL_CHANGE_VERSION, GoalError, GoalId } from './runtime.js'
@@ -121,9 +117,6 @@ export class GoalService extends TypertRemoteService {
     ctx.on('agent/session-start', ({ agent }) => {
       this.cache(agent.session).activation = 'disarmed'
     })
-    // The `goal` projection unit: last-wins fold of goal/change whole values
-    // (see applyGoalProjection). The unit child activates only when a
-    // projection registry is composed (headless assemblies stay unaffected).
     ctx.inject(['sessionProjections'], (projectionCtx) => {
       projectionCtx.sessionProjections.register({
         key: 'goal',

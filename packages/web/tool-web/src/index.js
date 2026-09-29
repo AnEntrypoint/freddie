@@ -58,7 +58,6 @@ function assertPositiveInteger(name, value) {
  * teardown is needed.
  */
 export function apply(ctx, config) {
-  // schemastery (Config) has already filled every defaulted field.
   const resolved = config
   assertPositiveInteger('searchMaxResults', resolved.searchMaxResults)
   assertPositiveInteger('searchMaxQueries', resolved.searchMaxQueries)

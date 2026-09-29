@@ -10,14 +10,17 @@ import { dirname, resolve, sep } from 'node:path'
 
 const SCOPE = '@freddie/freddie-'
 
-/** One harness package and its in-repo peer-dependency edges. */
+/**
+ * One harness package and its in-repo peer-dependency edges.
+ * @typedef {{ short: string, name: string, group: string, rel: string, deps: string[] }} PackageGraphNode
+ */
 
 /**
  * Read every harness package manifest and return dependency-safe graph nodes.
  * @param root - absolute repository root.
  * @param groupOrder - caller-specific tiebreak order for packages in the same dependency layer.
  * @param gate - command name used in structural error messages.
- * @returns package nodes ordered after all of their in-repo dependencies.
+ * @returns {PackageGraphNode[]} package nodes ordered after all of their in-repo dependencies.
  */
 export function collectPackageGraph(root, groupOrder, gate) {
   const packages = []

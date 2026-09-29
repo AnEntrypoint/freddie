@@ -21,7 +21,7 @@ import clsx from 'clsx'
 import {
   IconAgentPresetOutline16, IconCloseOutline16, IconDataOutline16,
   IconPersonalizationOutline16, IconSettingsOutline16,
-  defineElement,
+  defineElement, isTopmostModal,
 } from '@freddie/freddie-client-ui-primitives'
 import css from './SettingsRoot.css.js'
 
@@ -78,6 +78,7 @@ export class FreddieSettingsRoot extends HTMLElement {
   #bindEscape() {
     if (this.#escapeHandler !== null) return
     this.#escapeHandler = (e) => {
+      if (!isTopmostModal(this.querySelector('[role="dialog"]'))) return
       if (e.key === 'Escape') { this.#close(); return }
       if (e.key === 'Tab') this.#trapTab(e)
     }
@@ -90,9 +91,6 @@ export class FreddieSettingsRoot extends HTMLElement {
     this.#escapeHandler = null
   }
 
-  // aria-modal="true" declares this panel traps focus; without this, Tab
-  // silently escaped to the page behind the mask (same fix class as
-  // Modal.js's #trapTab).
   #trapTab(e) {
     const dialog = this.querySelector('[role="dialog"]')
     if (dialog === null) return
@@ -120,7 +118,7 @@ export class FreddieSettingsRoot extends HTMLElement {
     return (
       h('div', {class: css.overlay ?? '', role: 'presentation'},
         h('div', {class: css.mask ?? '', 'aria-hidden': 'true', onclick: this.#close}),
-        h('div', {class: css.panel ?? '', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId},
+        h('div', {class: css.panel ?? '', role: 'dialog', 'aria-modal': 'true', 'data-shortcut-modal': 'settings', 'aria-labelledby': titleId},
           h('nav', {class: css.nav ?? ''},
             h('div', {class: css.navTitle ?? '', id: titleId}, asChild(renderSlot('settings.header', {}))),
             h('div', {class: css.navList ?? ''},

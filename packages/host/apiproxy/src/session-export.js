@@ -263,8 +263,6 @@ async function pushArtifactChunks(deflate, content, controller, capacity, signal
     signal.throwIfAborted()
     let end = Math.min(offset + PUSH_CHUNK_CODE_UNITS, content.length)
     if (end < content.length && end - offset > 1) {
-      // Back off one code unit when the boundary lands inside a surrogate
-      // pair: the pair then starts the next chunk whole.
       const last = content.charCodeAt(end - 1)
       if (last >= 0xd800 && last <= 0xdbff) end -= 1
     }
@@ -296,10 +294,6 @@ export function streamSessionLogZip(deps, root, sessionId, includeDescendants, c
   }
   return new ReadableStream({
     start(controller) {
-      // fflate invokes the callback synchronously per compressed chunk, so a
-      // single push can enqueue ahead of a slow consumer; the capacity gate
-      // waits for pull between pushes once the byte queue is full, bounding
-      // accumulation to the queue high-water mark plus one synchronous push.
       const archive = new Zip((error, data, final) => {
         /* v8 ignore next 3 -- fflate reports only internal zip failures, unreachable for valid inputs */
         if (error) {
@@ -324,8 +318,6 @@ export function streamSessionLogZip(deps, root, sessionId, includeDescendants, c
           }
           archive.end()
         } catch (error) {
-          // A mid-stream failure (missing descendant, cancellation, read
-          // error) must fail the download rather than ship a truncated archive.
           /* v8 ignore next -- typed backends reject with Error, and DOMException is one in Node */
           terminateZip()
           controller.error(error instanceof Error ? error : new Error(String(error)))

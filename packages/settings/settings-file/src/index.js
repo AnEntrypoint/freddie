@@ -106,8 +106,6 @@ export class FileSettingsProvider extends SettingsProvider {
   constructor(ctx, config) {
     super(ctx)
     this.config = config
-    // Programmatic construction may bypass Schemastery normalization; resolve
-    // the same defaults in one explicit step either way.
     this.spec = resolveSpec(config)
   }
 
@@ -154,10 +152,6 @@ export class FileSettingsProvider extends SettingsProvider {
   }
 
   persist(ns, section) {
-    // One document backs every namespace, so writes from different namespace
-    // queues serialize with each other and with watcher reloads on the one
-    // operation chain: each render must see the text the previous operation
-    // committed, or a sibling section silently vanishes from disk.
     return this.enqueue(() => this.persistSection(ns, section))
   }
 
@@ -171,40 +165,24 @@ export class FileSettingsProvider extends SettingsProvider {
   /** Queue a reload; only an invariant violation escaping a commit can reject it. */
   queueRefresh() {
     void this.enqueue(() => this.refresh()).catch((error) => {
-      // Only an invariant violation escaping the commit path can reject a
-      // refresh; keep the operation queue alive and surface it as an error so
-      // one poisoned commit cannot silently end hot reloading forever.
       this.ctx.logger.error('settings-file: reload commit failed at %s', this.spec.filename)
       this.ctx.logger.error(error)
     })
   }
 
   async persistSection(ns, section) {
-    // The writer lock's exclusive create needs the parent to exist before
-    // writeFileAtomic gets its own chance to create it.
-    // 0700: the harness home holds user-private documents.
     await mkdir(dirname(this.spec.filename), { recursive: true, mode: 0o700 })
     await withFileLock(this.spec.filename, async () => {
-      // Read-modify-write: fold in any on-disk state this process has not
-      // observed yet — an external edit still inside the watcher debounce
-      // window, a change the watcher missed, or another process's write — so
-      // the render below can never resurrect a stale document. An unparsable
-      // on-disk document fails the write loud instead of silently overwriting
-      // a user's manual edit.
       await this.reconcileFromDisk()
       const output = this.spec.format === 'yaml'
         ? this.renderYaml(ns, section)
         : this.renderJson(ns, section)
-      // 0600: a document that may hold personal values is never world-readable.
       await writeFileAtomic(this.spec.filename, output, { mode: 0o600, dirMode: 0o700 })
       this.text = output
     })
   }
 
   async* [Service.init]() {
-    // The base init loads and publishes; a parse failure there is a boot
-    // failure: an existing-but-invalid document must fail loud, never be
-    // silently ignored or overwritten.
     yield* super[Service.init]()
     const watcher = this.spec.watch
       ? chokidarWatch(await canonicalizeWatchPath(this.spec.filename), {
@@ -221,9 +199,6 @@ export class FileSettingsProvider extends SettingsProvider {
         this.queueRefresh()
       })
       watcher.on('ready', () => {
-        // The base init's load raced the watcher's own setup: a change written
-        // between that read and the watcher becoming active never fires an
-        // event. One reconcile at ready closes the gap.
         if (this.closed) return
         this.queueRefresh()
       })
@@ -233,7 +208,6 @@ export class FileSettingsProvider extends SettingsProvider {
       })
     }
     yield async () => {
-      // Quiesce every operation chain, even when no watcher is configured.
       this.closed = true
       await watcher?.close()
       await this.operations
@@ -244,9 +218,6 @@ export class FileSettingsProvider extends SettingsProvider {
   parse(text) {
     let root
     if (this.spec.format === 'yaml') {
-      // `prettyErrors` is on only for `linePos`; `error.message` is never
-      // used, because the parser quotes the offending source line and a
-      // settings document can hold a `role('secret')` value.
       const document = parseDocument(text, { prettyErrors: true })
       if (document.errors.length > 0) {
         throw new Error(`settings-file: invalid document at ${this.spec.filename}: ${
@@ -320,9 +291,6 @@ export class FileSettingsProvider extends SettingsProvider {
     if (this.text === undefined) {
       return new Document({ [ns]: section }).toString()
     }
-    // this.text only ever caches content that parsed successfully, so this
-    // re-parse (for the mutable comment-preserving tree) cannot fail, and
-    // parse() already rejected any non-map root.
     const document = parseDocument(this.text)
     const root = document.toJS()
     patchNode(document, [ns], isMapLike(root) ? root[ns] : undefined, section)

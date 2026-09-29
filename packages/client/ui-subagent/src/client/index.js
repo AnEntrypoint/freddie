@@ -3,7 +3,7 @@ import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import {
   SubagentReadOnlyComposer,
 } from './SubagentReadOnlyComposer.js'
-import { en, NS, zh } from './locales.js'
+import { en, NS } from './locales.js'
 
 /** Required services for conversation slots and session navigation. */
 export const inject = ['sessions', 'slots', 'locale']
@@ -14,10 +14,8 @@ function selectReadOnlySubagent(owner) {
   if (subagent === undefined || subagent === null) return null
   if (subagent.address.mode === 'one-shot') return { reason: 'one-shot' }
   if (subagent.parentAvailable) return null
-  // A RUNNING parent-offline continuable child keeps the default composer:
-  // its input is disabled there, but the same primary Stop stays available so
-  // the child can be interrupted. Once it stops, this takeover returns.
-  return owner.session?.running === true ? null : { reason: 'parent-unavailable' }
+  const runningChildKeepsDefaultComposerForStop = owner.session?.running === true
+  return runningChildKeepsDefaultComposerForStop ? null : { reason: 'parent-unavailable' }
 }
 
 /**
@@ -25,7 +23,7 @@ function selectReadOnlySubagent(owner) {
  * @param ctx - client root context.
  */
 export function apply(ctx) {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-subagent: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-subagent: dictionaries')
   const sessions = ctx.sessions
   const catalogActions = (_parentSessionId) => ({
     openChild(address) {

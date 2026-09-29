@@ -27,8 +27,6 @@ export function ConfigurablePluginsTab(props) {
     return (
       h('ul', {class: css.cards ?? ''},
         namespaces.map(ns =>
-          // One dispatch per namespace, so the list identity is the namespace
-          // rather than a position that shifts as cards arrive.
           asChild(renderSlot('settings.plugin.item', {}, { entryKey: ns }))),
       )
     )

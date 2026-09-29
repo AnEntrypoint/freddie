@@ -14,6 +14,7 @@ import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import z from '@freddie/schemastery'
 import { EVENTS_ENDPOINT } from './events.js'
+import { handleLedgerOf } from './handles.js'
 
 export { EVENTS_ENDPOINT } from './events.js'
 
@@ -97,8 +98,23 @@ function sseData(frame) {
 export function apply(ctx, config) {
   const pollIntervalMs = config.pollIntervalMs
   const scanDebounceMs = config.scanDebounceMs
-  // --- bundle watch: buildless serving mirrors each complete src/client/
-  // tree, so a dirty root is scanned before its graph row is rebuilt. --------
+  const handles = handleLedgerOf(ctx.fiber)
+  const openWatcher = (dir, listener) => {
+    const watcher = watchFs(dir, listener)
+    handles.watchers.add(watcher)
+    watcher.once('close', () => { handles.watchers.delete(watcher) })
+    return watcher
+  }
+  const startInterval = (task, intervalMs) => {
+    const timer = setInterval(task, intervalMs)
+    timer.unref()
+    handles.timers.add(timer)
+    return timer
+  }
+  const stopInterval = (timer) => {
+    clearInterval(timer)
+    handles.timers.delete(timer)
+  }
   const watchedRoots = new Map()
   let dynamicPollTimer
   let dynamicPollQueued = false
@@ -119,8 +135,6 @@ export function apply(ctx, config) {
 
   const rehash = (id, root) => {
     try {
-      // rebuilt() re-hashes the whole tree; an unchanged hash stays silent
-      // (clientModuleHost fires onRebuilt only on a real rev change).
       ctx.clientModules.rebuilt(id)
     } catch (error) {
       if (error.code !== 'ENOENT') ctx.logger.warn(error)
@@ -194,7 +208,7 @@ export function apply(ctx, config) {
       for (const dir of dirs) {
         if (watchers.has(dir)) continue
         try {
-          const watcher = watchFs(dir, (event) => {
+          const watcher = openWatcher(dir, (event) => {
             markDirty()
             if (event === 'rename') armTree()
           })
@@ -241,9 +255,6 @@ export function apply(ctx, config) {
       scheduleDynamicPoll()
     })
     watchedRoots.set(id, watch)
-    // The module host hashed before publishing the graph. Re-hash immediately
-    // after capturing this baseline so a write in between cannot become an
-    // already-current baseline paired with a stale graph rev.
     watch.dirty = rehash(id, root) || watch.dirty
   }
 
@@ -290,8 +301,6 @@ export function apply(ctx, config) {
     }
   }
 
-  // Diff the watch set against the current graph: drop watches for removed
-  // rows (or rows whose served root moved), add watches for new rows.
   const syncWatches = () => {
     const rows = new Map()
     for (const row of ctx.clientModules.graph().entries) {
@@ -309,16 +318,12 @@ export function apply(ctx, config) {
   }
 
   ctx.effect(() => {
-    // Initial sync covers rows already in the graph; the subscription covers
-    // rows arriving later (boot-window activations, including this plugin's
-    // own row â€” no self-exemption, a modules/hmr rebuild rides the same chain).
     syncWatches()
     const unsubscribe = ctx.clientModules.onGraphChanged(syncWatches)
-    const fallbackTimer = setInterval(() => pollWatches(true), pollIntervalMs)
-    fallbackTimer.unref()
+    const fallbackTimer = startInterval(() => pollWatches(true), pollIntervalMs)
     return () => {
       unsubscribe()
-      clearInterval(fallbackTimer)
+      stopInterval(fallbackTimer)
       if (dynamicPollTimer !== undefined) clearTimeout(dynamicPollTimer)
       for (const watch of watchedRoots.values()) watch.watcher?.close()
       watchedRoots.clear()
@@ -376,10 +381,9 @@ export function apply(ctx, config) {
 
   if (staticWatches.size > 0) {
     ctx.effect(() => {
-      const fallbackTimer = setInterval(() => pollStaticWatches(true), pollIntervalMs)
-      fallbackTimer.unref()
+      const fallbackTimer = startInterval(() => pollStaticWatches(true), pollIntervalMs)
       return () => {
-        clearInterval(fallbackTimer)
+        stopInterval(fallbackTimer)
         if (staticPollTimer !== undefined) clearTimeout(staticPollTimer)
         for (const watch of staticWatches.values()) watch.watcher?.close()
         staticWatches.clear()
@@ -387,7 +391,6 @@ export function apply(ctx, config) {
     }, 'client-hmr: static source watches')
   }
 
-  // --- /plugins/events SSE channel ----------------------------------------
   const connections = new Set()
   let frameSequence = 0
 
@@ -433,8 +436,6 @@ export function apply(ctx, config) {
       kind: 'exact',
       path: EVENTS_ENDPOINT,
       handler: (req, res) => {
-        // Named routes match ahead of the carrier's method gate; keep the old
-        // global 405 semantics for non-GET hits on this endpoint.
         if (req.method === 'HEAD') {
           res.writeHead(200, SSE_HEADERS)
           res.end()
@@ -464,9 +465,6 @@ export function apply(ctx, config) {
     })
     const shellListener = (rev, root) => { publish({ type: 'shell-rebuilt', rev, root }) }
     shellRebuiltListeners.add(shellListener)
-    // The css-manifest service owns the one stylesheet link's rev; a
-    // composition without it (no `/styles/app.css` to swap) keeps the shell
-    // reload the stylesheet change used to take.
     const cssListener = () => {
       const manifest = ctx.get('cssManifest')
       if (manifest === undefined) {
@@ -476,9 +474,6 @@ export function apply(ctx, config) {
       publish({ type: 'css-rebuilt', rev: manifest.revision(), href: manifest.href() })
     }
     cssRebuiltListeners.add(cssListener)
-    // Host HMR journal relay: `hmr/journal` is emitted by framework/hmr for
-    // every reload decision; only the decisions a developer acts on are
-    // forwarded, with workspace-relative plugin paths.
     const offJournal = ctx.on('hmr/journal', (row) => {
       if (!HOST_JOURNAL_KINDS.has(row.kind)) return
       publish({
@@ -488,16 +483,15 @@ export function apply(ctx, config) {
         ...row.reason === undefined ? {} : { reason: row.reason },
       })
     })
-    const heartbeat = setInterval(() => {
+    const heartbeat = startInterval(() => {
       publish({ type: 'heartbeat' })
     }, config.heartbeatIntervalMs)
-    heartbeat.unref()
     return () => {
       unsubscribe()
       offJournal()
       shellRebuiltListeners.delete(shellListener)
       cssRebuiltListeners.delete(cssListener)
-      clearInterval(heartbeat)
+      stopInterval(heartbeat)
       disposeRoute()
       for (const res of connections) res.destroy()
       connections.clear()

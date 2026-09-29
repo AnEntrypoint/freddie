@@ -9,11 +9,13 @@ import {
 export const name = 'session-title-first-prompt-llm'
 export const inject = ['sessionTitle', 'llm', 'sessions']
 
-/** Loader schema shared with the all-messages provider. */
+/**
+ * Loader schema shared with the all-messages provider.
+ * @name Config
+ */
 /* jscpd:ignore-start -- Loader requires each plugin to export its own statically walkable schema; the field validators remain shared. */
 export const Config = z.object({
   targetWords: SessionTitleLlmConfigFields.targetWords,
-  targetCjkCharacters: SessionTitleLlmConfigFields.targetCjkCharacters,
   maxInputBytes: SessionTitleLlmConfigFields.maxInputBytes,
   maxOutputTokens: SessionTitleLlmConfigFields.maxOutputTokens,
   timeoutMs: SessionTitleLlmConfigFields.timeoutMs,

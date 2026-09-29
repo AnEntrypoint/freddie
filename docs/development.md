@@ -8,7 +8,7 @@ The setup tutorial takes a new contributor from prerequisites to a checked check
 
 - Node.js supports 22.19+ and 24+. CI covers 22.19, 24, and 26; see the [Node engine floor Agent Note](../.agents/notes/implemented/process/2026-07-06-node-engine-floor.md).
 - Corepack-enabled pnpm. The repo pins `pnpm@11.7.0` in `package.json`; run `corepack enable` if `pnpm --version` does not resolve through Corepack.
-- Optional: a DeepSeek API key for the Web, headless, and ACP automation demos and real-API e2e tests.
+- Optional: a DeepSeek API key for the Web, headless, and ACP automation demos.
 
 ### First-time setup
 
@@ -37,7 +37,7 @@ DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://... # optional
 ```
 
-`DEEPSEEK_BASE_URL` is optional and defaults to the public API. Never commit real credentials. The real-API e2e suites self-skip when `DEEPSEEK_API_KEY` is not set.
+`DEEPSEEK_BASE_URL` is optional and defaults to the public API. Never commit real credentials.
 
 ### Git integrations
 
@@ -79,12 +79,6 @@ Pick the tag that matches the urgency so anyone scanning the code can tell a rel
 
 ### Documenting types verbatim (`ts type-equiv`)
 
-The [subsystems](subsystems/README.md) pages paste source-equivalent declarations together with their original JSDoc so a reader sees the exact type definition and source contract. To keep a paste from drifting when source changes, fence it as ` ```ts type-equiv ` (instead of ` ```ts `) and register it in `scripts/type-equiv.manifest.json` with the source file and symbol it mirrors:
+The [subsystems](subsystems/README.md) pages paste source-equivalent declarations together with their original JSDoc so a reader sees the exact type definition and source contract. Fence such a paste as ` ```ts type-equiv ` (instead of ` ```ts `). For a class whose implementation bodies do not belong in the catalog, use ` ```ts public-api ` and keep only the public fields, constructor, accessors, methods, and original class/member JSDoc, omitting bodies and private or protected members. When you change a documented declaration or its JSDoc, update the matching paste by hand.
 
-```json
-{ "doc": "docs/subsystems/session.md", "symbol": "SessionEvent", "source": "packages/core/session/src/types.ts" }
-```
-
-For a class whose implementation bodies do not belong in the catalog, use ` ```ts public-api ` and set `"projection": "public-api"`; the checked projection retains the public fields, constructor, accessors, methods, and original class/member JSDoc while omitting bodies and private or protected members. When you change a documented declaration or its JSDoc, update the matching paste by hand; when you add or remove a block, update the manifest in the same change.
-
-There is no automated verifier for this manifest currently wired up — treat the subsystem pages and `scripts/type-equiv.manifest.json` as a manually maintained correspondence until one exists.
+No verifier compares a paste with its source, and no script reads a manifest of them; keep each documented declaration and its JSDoc in sync with source by hand.

@@ -1,6 +1,3 @@
-/* Turn-tail produced-files summary: one measured chip lane plus an optional
-   native-folder action below it. */
-
 .freddie-producedFiles__root {
   position: relative;
   display: grid;
@@ -30,8 +27,6 @@
   overflow: hidden;
 }
 
-/* One produced file. A link by behavior (it opens the file), a chip by shape:
-   full paths are long, while the measured lane stays on one row. */
 .freddie-producedFiles__file {
   flex: 0 0 auto;
   max-width: 320px;
@@ -59,7 +54,6 @@
   box-shadow: inset 0 0 0 2px var(--freddie-alias-border-l3);
 }
 
-/* Overflow count: the row never silently drops files it did not show. */
 .freddie-producedFiles__more {
   flex: 0 0 auto;
   white-space: nowrap;
@@ -86,8 +80,6 @@
   text-decoration: underline;
 }
 
-/* Exact browser-native probes for every candidate shown count. They share the
-   visible styles but never affect layout, accessibility, or scroll width. */
 .freddie-producedFiles__measure {
   position: absolute;
   width: 0;

@@ -4,7 +4,7 @@ A **service** is a named capability one plugin provides and other plugins consum
 
 ## Provide a service
 
-Create `greeter.ts` in `tmp/cordis-tutorial`:
+Create `greeter.ts` in `examples/cordis-tutorial` — or, since this chapter imports `Service` as a runtime value, in `packages/llm/llm-retry/.scratch-<name>/` instead (see the [setup resolution note](index.md#setup)):
 
 ```ts
 import { Service, type Context } from '@freddie/cordis'
@@ -35,7 +35,7 @@ export function apply(ctx: Context) {
 Two pieces work together:
 
 - **Runtime**: `super(ctx, 'greeter')` registers the instance under the name `greeter`. From then on, any plugin can reach it as `ctx.greeter`. The registration is an effect — unloading the provider removes the service.
-- **Compile time**: the `declare module '@freddie/cordis'` block is TypeScript declaration merging. It adds `greeter` to the `Context` interface so `ctx.greeter` typechecks everywhere. It generates no code; without it the service still works at runtime, but consumers lose type safety.
+- **Compile time**: the `declare module '@freddie/cordis'` block is TypeScript declaration merging that describes `greeter` on the `Context` interface for your editor. This checkout ships no Cordis type declarations, so nothing checks it and Node erases it; the service works the same without it.
 
 A `Service` subclass is itself a plugin (the class form from chapter 1), so `ctx.plugin(GreeterService)` mounts it like any other.
 
@@ -73,7 +73,7 @@ Swap the two lines in `cordis.yml` and rerun: same output. Try removing `./greet
 
 `inject` is not a one-shot boot check. If a required service disappears while the app runs — its provider was unloaded or hot-replaced — every dependent plugin is unloaded too, and loads again when the service returns. Combined with effects ([chapter 2](02-lifecycle-and-effects.md)), this prevents a running consumer from retaining a reference to an unavailable service: its own registrations are unwound when the dependency disappears.
 
-This is also why service replacement works in config: unload the `dsh-bash-local` entry, mount a different `shell` provider, and every plugin injecting `'shell'` cleanly restarts against the new implementation.
+This is also why service replacement works in config: unload the `@freddie/freddie-bash-local` entry, mount a different `shell` provider, and every plugin injecting `'shell'` cleanly restarts against the new implementation.
 
 ## Optional dependencies
 
@@ -89,8 +89,8 @@ export function apply(ctx: Context) {
 
 ## Naming
 
-Service names live in one flat namespace per application. Prefix or namespace your own services distinctively (the harness claims plain names like `tools` and `llm`); the generated `cordis-surface` regions on the [subsystem pages](../subsystems/core.md) list every name the harness registers.
+Service names live in one flat namespace per application. Prefix or namespace your own services distinctively (the harness claims plain names like `tools` and `llm`); the `cordis-surface` regions on the [subsystem pages](../subsystems/core.md) list every name the harness registers.
 
 Next: [Events](04-events.md) — communication without a shared service.
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)
+[![](https://img.shields.io/badge/powered_by-freddie-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)

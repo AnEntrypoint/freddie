@@ -120,7 +120,6 @@ function reportFailure(spec, error) {
   try {
     spec.onError?.(toError(error), 'error')
   } catch {
-    // Host diagnostic logging cannot replace the child failure.
   }
 }
 
@@ -156,8 +155,6 @@ function sdkStartupFailure(spec, error) {
  */
 export async function startSdkRun(request, spec) {
   if (request.signal.aborted) throw new Error('subagent request was aborted before the SDK child started')
-  // The run id lives in the parent namespace; the child runtime's session id
-  // (minted below, private to the wire) exists only inside the child process.
   const id = SessionId(randomUUID())
 
   const harness = internals.createHarness({
@@ -171,7 +168,6 @@ export async function startSdkRun(request, spec) {
     disposeGraceMs: spec.disposeGraceMs,
   })
 
-  // Cancellation settles the result without waiting for a cooperative child.
   const flags = { cancelled: false }
   let signalCancelSettled
   const cancelSettled = new Promise((resolve) => { signalCancelSettled = resolve })
@@ -184,8 +180,6 @@ export async function startSdkRun(request, spec) {
   request.signal.addEventListener('abort', onAbort, { once: true })
   const cancelledStartup = new Error('subagent cancelled before the SDK child initialized')
 
-  // Establish the child handshake before publishing a handle. Any failure
-  // owns the still-private process and reaps it before rejecting.
   try {
     await Promise.race([
       harness.start(),
@@ -202,16 +196,12 @@ export async function startSdkRun(request, spec) {
     } catch (cleanupError) {
       reportFailure(spec, cleanupError)
       const cleanupFailure = new SdkRunFailure({ stage: 'shutdown', category: 'unknown' }, cleanupError)
-      // Preserve failed cleanup as a failed Job; settleStart treats only an
-      // aborted non-AggregateError rejection as a cleanly killed startup.
       throw new AggregateError([cleanupFailure], cleanupFailure.message)
     }
     throw new Error('subagent request was aborted before the SDK child started')
   }
 
   const childSessionId = `session-${randomUUID().replaceAll('-', '')}`
-  // The child's final answer under the seam's canonical selection rule
-  // (`AssistantOutputFold`); a partial answer survives cancel and error paths.
   const fold = new AssistantOutputFold()
   const observe = (notification) => {
     if (notification.method !== 'session.event' || notification.params.sessionId !== childSessionId) return
@@ -227,8 +217,6 @@ export async function startSdkRun(request, spec) {
     }
   }
 
-  // Race the child turn against local cancellation; the shared settlement
-  // flattens failures under the seam's never-reject contract.
   let diagnostic
   const result = settleRunResult({
     attempt: async () => {
@@ -258,8 +246,6 @@ export async function startSdkRun(request, spec) {
     onAbort,
   })
 
-  // There is no wire-level prompt cancel: dispose settles the result locally,
-  // then the bounded shutdown request + dispose ladder tears the child down.
   return subprocessRunHandle({
     id,
     result,

@@ -1,7 +1,7 @@
 /**
  * ClientModuleSystem — the implementation behind the {@link ClientModuleLoader}
- * contract. The conceptual contract (resolution branch order) is documented on
- * the public interfaces in `./manifest.js`; this file owns state the browser's
+ * contract. The resolution branch order is documented on `parseBootManifest`
+ * and the `WebBootEntry` row shape in `./manifest.js`; this file owns state the browser's
  * own ESM module cache does not: the seed table (platform-singleton statics)
  * and the graph-row lookup a dynamic `import()` needs before it can run.
  *
@@ -42,6 +42,18 @@ const claimStyles = (id) => {
 }
 
 /**
+ * The browser module-loading contract {@link ClientModuleSystem} implements:
+ * resolve a specifier to its exports (seed word, materialized record, or a
+ * graph-row import), prefetch a row ahead of use, drop a row's materialized
+ * record, and seat an already-evaluated module with no URL to import from.
+ * @typedef {object} ClientModuleLoader
+ * @property {(specifier: string) => Promise<unknown>} import - resolve a specifier to its exports.
+ * @property {(id: string) => Promise<void>} prefetch - import a graph row's module ahead of use.
+ * @property {(id: string) => void} invalidate - drop a materialized/in-flight record.
+ * @property {(id: string, exports: unknown) => void} register - seat an already-evaluated module.
+ */
+
+/**
  * The client module system: the seed table, the graph-row lookup, and the
  * thin bookkeeping around native `import()` implementing
  * {@link ClientModuleLoader} (whose members carry the contract documentation).
@@ -65,18 +77,6 @@ export class ClientModuleSystem {
   constructor(options) {
     this.manifest = options.manifest
     this.seed = new Map(Object.entries(options.staticModules))
-    // A graph row's url is origin-root-relative ("/plugins/<id>/~<rev>/client/index.js"),
-    // which resolves against the origin regardless of what path the app is
-    // actually mounted under — fine when served from the origin root, but a
-    // reverse proxy serving the app from a path prefix (e.g. a tunnel) makes
-    // this resolve to a DIFFERENT URL than the same package's import-map
-    // entry (which correctly resolves relative to the document). Since ES
-    // module identity is keyed by the literal resolved URL, that mismatch
-    // silently creates two independent copies of a module rather than one
-    // shared instance. Stripping the leading slash and resolving against
-    // document.baseURI makes both paths agree: identical to today's origin
-    // URL when served from the root (baseURI carries no extra path), and
-    // correctly prefixed when mounted under a subpath.
     this.importModule = options.importModule
       ?? (url => import(/* @vite-ignore */ new URL(url.replace(/^\/+/, ''), document.baseURI).href))
 

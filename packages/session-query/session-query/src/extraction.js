@@ -32,8 +32,6 @@ export function extractSessionEventText(event) {
     case 'assistant/chunk':
     case 'request/header':
       return ''
-    // SessionEventMap is merge-extensible. Unknown events remain
-    // non-searchable until a concrete first-party consumer defines semantics.
     default:
       return ''
   }
@@ -50,8 +48,6 @@ function turnEndText(reason) {
       return reason.kind
     case 'completed':
       return ''
-    // TurnEndReasonMap is merge-extensible. Unknown outcomes stay out until
-    // their owner defines which detail is semantic rather than structural.
     default:
       return ''
   }
@@ -71,8 +67,6 @@ function blockText(block) {
       return [block.name, block.arguments]
     case 'tool-result':
       return block.content.flatMap(blockText)
-    // ContentBlockMap is merge-extensible. Unknown blocks do not become
-    // searchable merely because their payload happens to contain strings.
     default:
       return []
   }

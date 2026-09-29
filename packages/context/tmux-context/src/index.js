@@ -1,5 +1,5 @@
 /**
- * Opt-in request-preparation tmux-location context. Eligible step attempts
+ * Request-preparation tmux-location context. Eligible step attempts
  * append durable, source-attributed context naming the tmux session, window,
  * and pane this agent process runs in, plus the window's pane-tree layout.
  *
@@ -11,9 +11,13 @@
  * (e.g. a VS Code integrated terminal) reads as "not in tmux". It re-injects
  * only when the rendered tmux state changes since the last injection (a moved,
  * renamed, or re-laid-out pane), with an optional `refreshIntervalMs` floor
- * between injections. Absent tmux environment, an inherited-only environment,
- * absent `ctx.shell`, or a failed query is a no-op, never an error: an executor
- * rejection is contained and logged as a warning so the turn continues.
+ * between injections. A win32 host or a process whose environment carries no
+ * well-formed `$TMUX_PANE` mounts no listener and never spawns; an
+ * inherited-only environment, absent `ctx.shell`, or a failed query is a no-op,
+ * never an error: the first definitive negative (nonzero exit, missing binary,
+ * executor rejection) stops every later query for the life of the process, and
+ * an executor rejection is contained and logged once as a warning so the turn
+ * continues.
  *
  * @module @freddie/freddie-tmux-context
  */
@@ -48,6 +52,15 @@ const TMUX_FIELDS = [
   '#{window_layout}',
 ]
 
+/** tmux pane identifiers are `%` followed by digits; anything else is not a pane this plugin may address. */
+const PANE_ID = /^%\d+$/u
+
+/** Definitive negative: no tmux pane owns this process, so the query is never repeated. */
+const ABSENT = Object.freeze({ kind: 'absent' })
+
+/** Malformed reading: skipped this turn, retried on a later one. */
+const UNREADABLE = Object.freeze({ kind: 'unreadable' })
+
 /** Prefix marking the volatile turn/step preamble line of a rendered reading. */
 const READING_PREFIX = 'tmux location (turn '
 
@@ -81,7 +94,9 @@ const FIELD_SEP = '\\t'
  * @param logger - receives a warning when the executor rejects the query.
  * @param processId - this agent process's pid, whose controlling tty must match the pane.
  * @param signal - abort signal forwarded to the executor.
- * @returns the parsed location, or `undefined` when not in a real pane or on any failure.
+ * @returns `{ kind: 'located', location }` for a real pane, `{ kind: 'absent' }` when the
+ *   query definitively found no pane (nonzero exit, missing binary, executor rejection),
+ *   or `{ kind: 'unreadable' }` for a malformed reading that a later turn may retry.
  */
 async function queryTmuxLocation(bash, logger, processId, signal) {
   const format = TMUX_FIELDS.join(FIELD_SEP)
@@ -98,13 +113,14 @@ async function queryTmuxLocation(bash, logger, processId, signal) {
     result = await bash.run(bash.resolve({ command, signal }))
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    logger.warn(`tmux location query failed: ${message}; injecting no location this turn`)
-    return undefined
+    logger.warn(`tmux location query failed: ${message}; injecting no tmux location for the rest of this process`)
+    return ABSENT
   }
-  if (result.exitCode !== 0) return undefined
+  if (result.timedOut || result.aborted || result.exitCode === null) return UNREADABLE
+  if (result.exitCode !== 0) return ABSENT
   const line = result.stdout.text.split('\n', 1)[0]
   const parts = line.split(FIELD_SEP)
-  if (parts.length !== TMUX_FIELDS.length) return undefined
+  if (parts.length !== TMUX_FIELDS.length) return UNREADABLE
   const [
     sessionName,
     windowIndex,
@@ -115,16 +131,19 @@ async function queryTmuxLocation(bash, logger, processId, signal) {
     paneActive,
     windowLayout,
   ] = parts
-  if (paneId.length === 0) return undefined
+  if (paneId.length === 0) return UNREADABLE
   return {
-    sessionName,
-    windowIndex,
-    windowName,
-    paneIndex,
-    paneId,
-    windowActive,
-    paneActive,
-    windowLayout,
+    kind: 'located',
+    location: {
+      sessionName,
+      windowIndex,
+      windowName,
+      paneIndex,
+      paneId,
+      windowActive,
+      paneActive,
+      windowLayout,
+    },
   }
 }
 
@@ -188,13 +207,15 @@ function validateRefreshInterval(refreshIntervalMs) {
 export function apply(ctx, config) {
   const refreshIntervalMs = config.refreshIntervalMs
   validateRefreshInterval(refreshIntervalMs)
+  if (process.platform === 'win32' || !PANE_ID.test(process.env.TMUX_PANE ?? '')) return
+  let paneAbsent = false
 
   ctx.on('agent/pre-step', async (
     { agent, turn, step, signal },
     next,
   ) => {
     const decision = await next()
-    if (decision.kind === 'reject' || signal.aborted || step !== 1) return decision
+    if (decision.kind === 'reject' || signal.aborted || step !== 1 || paneAbsent) return decision
     const bash = ctx.get('shell')
     if (bash === undefined) return decision
     const previous = latestInjectedState(agent)
@@ -202,8 +223,10 @@ export function apply(ctx, config) {
       const now = Date.now()
       if (now >= previous.time && now - previous.time < refreshIntervalMs) return decision
     }
-    const location = await queryTmuxLocation(bash, ctx.logger, process.pid, signal)
-    if (location === undefined) return decision
+    const outcome = await queryTmuxLocation(bash, ctx.logger, process.pid, signal)
+    if (outcome.kind === 'absent') paneAbsent = true
+    if (outcome.kind !== 'located') return decision
+    const { location } = outcome
     const state = renderState(location)
     if (previous !== undefined && previous.state === state) return decision
     const text = renderReading(location, turn)

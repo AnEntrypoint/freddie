@@ -78,8 +78,6 @@ export class PerplexitySearchProvider {
     this.options = options
   }
 
-  // Availability checks stay beside each provider's distinct config contract;
-  // a shared base class would obscure which fields make this backend usable.
   available() {
     return this.options.apiKey.length > 0
       && URL.canParse(this.options.baseURL)
@@ -124,13 +122,7 @@ export class PerplexitySearchProvider {
         const detail = typeof parsed.error === 'string' ? parsed.error : parsed.error?.message ?? parsed.message
         if (detail !== undefined && detail.length > 0) message = detail
       } catch (error) {
-        // An abort fired mid-body must surface as WEB_ABORTED, not be swallowed
-        // into a generic HTTP-error message — cancellation is not a provider
-        // error (the seam's cancellation contract).
         if (isAbortError(error)) throw new WebError('Perplexity search aborted', 'WEB_ABORTED', { cause: error })
-        // Otherwise: the HTTP status is already captured in `message` above; a
-        // malformed/non-JSON error body (normal for gateway 5xx/429s) can only
-        // cost a richer provider message, never the real error.
       }
       throw new WebError(message, 'WEB_PROVIDER_ERROR')
     }

@@ -75,8 +75,6 @@ export function classifyRunnerFailure(exitCode, stderr, rules) {
   for (const rule of rules) {
     if (rule.allowedExitCodes !== undefined && !rule.allowedExitCodes.includes(exitCode)) continue
     const informationalLines = new Set((rule.informationalLines ?? []).map(line => line.toLowerCase()))
-    // An empty or whitespace-only substring is not meaningful runner evidence.
-    // Ignore it while keeping any valid signatures beside it active.
     const fatalSignatures = rule.fatalSignatures
       .filter(signature => signature.trim().length > 0)
       .map(signature => signature.toLowerCase())

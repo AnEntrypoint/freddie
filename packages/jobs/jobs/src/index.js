@@ -39,9 +39,6 @@ export { JobId } from './types.js'
  */
 export class JobRegistry extends Service {
   constructor(ctx) {
-    // `abstract` erases at runtime, so a composition row naming this package
-    // would register a ctx.jobs with no method implementations and fail far
-    // from the misconfiguration. Fail loud at load instead.
     if (new.target === JobRegistry) {
       throw new Error('@freddie/freddie-jobs is the abstract job registry seam; load an implementation such as @freddie/freddie-jobs-local instead')
     }

@@ -18,8 +18,10 @@ export function TerminalSessionId(value) {
   return value
 }
 
-/** Machine-routable PTY service failures. */
-// DUPLICATE_BACKEND | DUPLICATE_NAME | FOREIGN_SESSION | NO_BACKEND | NO_SESSION | OWNER_NOT_LIVE | SEND_ACTIVE | SERVICE_DISPOSING
+/**
+ * Machine-routable PTY service failures.
+ * @typedef {'DUPLICATE_BACKEND' | 'DUPLICATE_NAME' | 'FOREIGN_SESSION' | 'NO_BACKEND' | 'NO_SESSION' | 'OWNER_NOT_LIVE' | 'SEND_ACTIVE' | 'SERVICE_DISPOSING'} TerminalErrorCode
+ */
 
 /** Error carrying a stable {@link TerminalErrorCode}. */
 export class TerminalError extends Error {
@@ -401,7 +403,6 @@ export class TerminalSessionService extends Service {
     try {
       listener(activity)
     } catch {
-      // Observers cannot interrupt registry lifecycle or terminal mechanics.
     }
   }
 
@@ -447,9 +448,6 @@ export class TerminalSessionService extends Service {
 
   async disposeAll() {
     this.disposing = true
-    // Teardown is best-effort: a close failure still clears registries and runs
-    // owner cleanups before the aggregated error propagates, so one stuck
-    // session cannot orphan backends, reservations, or owner detachers.
     try {
       await this.abortAndClose(
         undefined,
@@ -476,7 +474,6 @@ export class TerminalSessionService extends Service {
         this.unpublish(record)
         this.notify(record.owner, { type: 'closed', snapshot: this.snapshot(record) })
       } catch (error) {
-        // A concurrent retry may already own a newer fence; never clear it.
         if (record.closing === closing) record.closing = undefined
         throw error
       }

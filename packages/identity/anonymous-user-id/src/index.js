@@ -2,7 +2,7 @@
  * Per-harness-home anonymous user id shared by telemetry and feedback.
  *
  * The id is a random UUID persisted as a bare line in `.anonymous-user-id` inside the
- * harness home resolved by {@link resolveFreddieHome} (`$FREDDIE_HOME` > `~/.dsh`),
+ * harness home resolved by {@link resolveFreddieHome} (`$FREDDIE_HOME` > `~/.freddie`),
  * and never derived from the hostname, network address, git remote, or any
  * other identifying source. It is scoped to the harness home, not the
  * machine: every process sharing one `$FREDDIE_HOME` reports the same id, and
@@ -35,11 +35,21 @@ function readPersistedId(file) {
   try {
     text = readFileSync(file, 'utf8')
   } catch {
-    // Absent or unreadable: the caller mints and persists a fresh id.
     return undefined
   }
   const value = text.trim()
   return UUID_PATTERN.test(value) ? value : undefined
+}
+
+function createExclusively(file, id) {
+  mkdirSync(dirname(file), { recursive: true })
+  writeFileSync(file, `${id}\n`, { encoding: 'utf8', flag: 'wx' })
+}
+
+function overwriteBestEffort(file, id) {
+  try {
+    writeFileSync(file, `${id}\n`, 'utf8')
+  } catch {}
 }
 
 /**
@@ -63,22 +73,12 @@ export function getOrCreateAnonymousUserId(options = {}) {
     const generate = options.randomUUID ?? randomUUID
     const created = generate()
     try {
-      mkdirSync(dirname(file), { recursive: true })
-      writeFileSync(file, `${created}\n`, { encoding: 'utf8', flag: 'wx' })
+      createExclusively(file, created)
       id = created
     } catch {
-      // A wx refusal (EEXIST) covers both a concurrent winner and a
-      // pre-existing corrupt file: the reread adopts a valid winner, and an
-      // invalid reread falls through to the overwrite path. Non-EEXIST
-      // failures (read-only home) land there too, accepted best-effort below.
       id = readPersistedId(file)
       if (id === undefined) {
-        try {
-          writeFileSync(file, `${created}\n`, 'utf8')
-        } catch {
-          // Best-effort persistence: keep the fresh id in memory even when the
-          // home is unwritable, so this run still reports a consistent id.
-        }
+        overwriteBestEffort(file, created)
         id = created
       }
     }

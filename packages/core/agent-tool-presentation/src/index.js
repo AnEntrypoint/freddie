@@ -41,15 +41,10 @@ export const Config = z.object({
  * @param config - the selected presentation.
  */
 export function apply(ctx, config) {
-  // `presentAs` is itself the effect — it registers through the calling
-  // context and hands back that exact disposer — so the declaration unwinds
-  // with this row without a second wrapper owning it.
   if (config.mode === 'native') {
     ctx.tools.presentAs('native')
     return
   }
-  // The wait is the loud failure: an entry still pending on `codeRuntime` is
-  // what `freddie-agent-presets` reports as an unusable row, naming this id.
   ctx.inject(['codeRuntime'], (runtimeCtx) => {
     runtimeCtx.tools.presentAs(config.mode)
   })

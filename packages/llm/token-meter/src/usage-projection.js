@@ -93,7 +93,14 @@ export const tokenUsageProjectionDefinition = {
  * numerator, the newest `request/context` record the denominator. Both are
  * whole values, so replay order alone decides the result and no cross-field
  * consistency is claimed — the pair is explicitly not one atomic request
- * observation (see {@link ContextPressureProjection}).
+ * observation (see {@link ContextPressureProjectionState}).
+ *
+ * @typedef {object} ContextPressureProjectionState
+ * @property {number} surfaceTokens - running signed surface-shadow-price total since the last usage sample.
+ * @property {*} [claim] - in-flight `foldSurfaceProjection` claim, when a claimed compaction is pending.
+ * @property {number} [contextWindow] - denominator from the latest `request/context` event.
+ * @property {number} [pressureTokens] - prompt-side numerator from the latest usage sample.
+ * @property {number} [sampledSurfaceTokens] - `surfaceTokens` value at the moment `pressureTokens` was sampled.
  *
  * `pressureTokens` is prompt-side only, so it holds still while a turn streams
  * and steps forward once the next request reports its usage. Because nothing
@@ -135,8 +142,6 @@ export const contextPressureProjectionDefinition = {
     if (fold.deltaTokens !== 0) {
       next = { ...next, surfaceTokens: next.surfaceTokens + fold.deltaTokens }
     }
-    // A defined fold.claim is always freshly built, so presence decides claim
-    // bookkeeping: no claim before or after this event leaves `next` as is.
     if (state.claim === undefined && fold.claim === undefined) return next
     const { claim: _expired, ...withoutClaim } = next
     return fold.claim === undefined ? withoutClaim : { ...withoutClaim, claim: fold.claim }

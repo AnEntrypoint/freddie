@@ -4,13 +4,11 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     exclude-paths:
-      # First-party framework sources are maintained in-tree, not tracked against
-      # a registry release; see framework/README.md.
       - "framework/**"
     schedule:
       interval: "cron"
       cronjob: "0 4 * * *"
-      timezone: "Asia/Shanghai"
+      timezone: "UTC"
     cooldown:
       default-days: 30
     labels:
@@ -22,7 +20,7 @@ updates:
     schedule:
       interval: "cron"
       cronjob: "0 4 * * *"
-      timezone: "Asia/Shanghai"
+      timezone: "UTC"
     cooldown:
       default-days: 30
     labels:
@@ -34,7 +32,7 @@ updates:
     schedule:
       interval: "cron"
       cronjob: "0 4 * * *"
-      timezone: "Asia/Shanghai"
+      timezone: "UTC"
     cooldown:
       default-days: 30
     labels:

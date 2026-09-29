@@ -25,8 +25,6 @@ export const VARIANT_TITLES = {
  */
 const TOOL_VARIANTS = {
   bash: 'bash',
-  // The PowerShell twin is a shell tool: the bash row family (icon, colors)
-  // with its own title from TOOL_TITLES, not the generic `others` row.
   pwsh: 'bash',
   read: 'read',
   web_fetch: 'read',
@@ -39,10 +37,6 @@ const TOOL_VARIANTS = {
   run_code: 'code',
   cordis_package_inspect: 'read',
   cordis_runtime_inspect: 'read',
-  // The three run-control verbs take one package id and produce a receipt, so
-  // the generic row is the decided intent, not an unclassified default: there is
-  // no program to show (that is `cordis_define`'s card) and no file to open. The
-  // id lands in the summary slot, and the titles below name the act.
   cordis_run: 'others',
   cordis_stop: 'others',
   cordis_undefine: 'others',
@@ -108,7 +102,6 @@ function parseArgs(argsRaw) {
   try {
     parsed = JSON.parse(argsRaw)
   } catch {
-    // Non-JSON args (mid-stream truncation): summary/body fall back to the raw string.
     parsed = undefined
   }
   lastArgsRaw = argsRaw
@@ -187,8 +180,6 @@ function deriveBody(variant, argsRaw) {
   if (argsRaw === '') return null
   const parsed = parseArgs(argsRaw)
   if (parsed === undefined) return argsRaw
-  // The code row's expanded body IS the program (monospace via the row's
-  // variant styling), not the args JSON envelope around it.
   if (variant === 'code' && typeof parsed === 'object' && parsed !== null) {
     const code = parsed.code
     if (typeof code === 'string' && code !== '') return code
@@ -215,14 +206,9 @@ export function toolRowModel(toolName, block, cwd, home) {
     ? block.callId
     : abbreviateHomePath(relativizeToCwd(deriveSummary(variant, argsRaw), cwd), home)
   const toolTitle = TOOL_TITLES[toolName]
-  // Others keeps the static "Tool call" title (figma literal); the real tool
-  // name rides the mutable summary slot unless the tool owns a specific title.
   const summary = variant === 'others' && toolName !== '' && toolTitle === undefined
     ? `${toolName} · ${base}`
     : base
-  // The empty string is "no text" for both derived result fields: a settled
-  // call with blank content has nothing to expand, and a blank first line
-  // would erase the collapsed error row's summary slot.
   const output = done ? (resultText(block) || null) : null
   const errorSummary = state === 'error' && output !== null ? firstLine(output) : null
   return {

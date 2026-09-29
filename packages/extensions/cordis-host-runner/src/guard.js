@@ -97,9 +97,6 @@ function cloneJson(value, path) {
     })
   }
   const reject = (at) => {
-    // Naming the executable next step matters more than naming the rule: the
-    // usual cause is a handler that returns whatever its last call produced,
-    // and the fix is one keyword.
     throw new Error(`${at} must be lossless JSON data (objects, arrays, strings, numbers, booleans, null) — `
       + 'not a class instance, function, Map/Set, Date, or undefined. Return a plain object built from the '
       + 'values you need, or `return null` when the caller needs no value back.')
@@ -456,8 +453,6 @@ const RETURN_PREVIEW_LIMIT = 120
  * {@link RETURN_PREVIEW_LIMIT}.
  */
 function describeReturn(value) {
-  // The caller has already crossed cloneJson, so this value is lossless JSON
-  // and serialization cannot produce undefined.
   const json = JSON.stringify(value)
   return json.length > RETURN_PREVIEW_LIMIT ? `${json.slice(0, RETURN_PREVIEW_LIMIT)}…` : json
 }
@@ -582,7 +577,6 @@ const TIMER_VERBS = new Set(['timeout', 'interval', 'setTimeout', 'setInterval',
  * name/description/parameters view as `schemas()`, and nothing invocable.
  */
 function sandboxTools(ctx) {
-  // Resolve reads and writes through the package's own scope.
   return {
     register: tool => sandboxRegisterTool(ctx, tool),
     schemas: () => ctx.tools.schemas(scopeOf(ctx)),
@@ -596,11 +590,6 @@ function sandboxTools(ctx) {
  * fresh, unguarded handle back into the runtime — the exact escape the façade
  * exists to close — so it fails loud instead of reaching sandbox code.
  */
-// Twinned with the browser half's guard for the same reason as the ctx façade
-// below: this is the rule "a service must never hand sandboxed code a Context",
-// and each half must test against the Context class of ITS OWN face. Moving the
-// rule into a shared package would move a security invariant out of the halves
-// that enforce it, which is a design decision rather than a duplication fix.
 /* jscpd:ignore-start */
 function denyContext(value, service, reportFailure) {
   if (value instanceof Context) {
@@ -654,8 +643,6 @@ function declaredInjects(ctx) {
 function sandboxContext(ctx, reportFailure) {
   const tools = sandboxTools(ctx)
   const declared = declaredInjects(ctx)
-  // A framework member or an undeclared service — distinguish the two so the
-  // error teaches the right fix (declare it in inject vs it is withheld).
   const denyRead = (prop) => {
     if (ctx.get(prop) !== undefined) {
       return rejectGuard(reportFailure,
@@ -669,8 +656,6 @@ function sandboxContext(ctx, reportFailure) {
       + 'Framework internals (root, fiber, registry, extend, plugin, …) are withheld by design.',
     )
   }
-  // `get` is optional lookup; property access requires a declaration. `tools`
-  // is the façade's own API on either path.
   const readService = (name, requireDeclaration) => {
     if (name === 'tools') return tools
     if (requireDeclaration && !declared.has(name)) return denyRead(name)
@@ -679,20 +664,12 @@ function sandboxContext(ctx, reportFailure) {
     return guardedService(service, name, reportFailure)
   }
   const get = name => readService(name, false)
-  // The browser half builds the same façade over its own Context
-  // (`@freddie/freddie-cordis-client-runner`, whose CTX_VERBS names this one its
-  // twin), and the sameness is the point: a package author meets ONE contract on
-  // both halves. Folding them together is not available — the two halves compile
-  // in separate programs where `Context` merges different service keys — so the
-  // duplication is declared here instead of hidden behind a config exception.
   /* jscpd:ignore-start */
   return new Proxy({}, {
     get(_target, prop) {
       if (prop === 'tools') return tools
       if (prop === 'get') return get
       if (typeof prop !== 'string') return undefined
-      // Lazy verb forwarder — reads `ctx[verb]` only when called. Timer mixins
-      // additionally require the Service declaration before Cordis resolves them.
       if (CTX_VERBS.has(prop)) {
         return (...args) => {
           if (TIMER_VERBS.has(prop) && !declared.has('timer')) return denyRead('timer')
@@ -702,13 +679,9 @@ function sandboxContext(ctx, reportFailure) {
       }
       return readService(prop, true)
     },
-    // A façade is not the real ctx; block writes rather than let package code
-    // stash state on a throwaway object and think it persisted.
     set(_target, prop) {
       return rejectGuard(reportFailure, `sandbox ctx is read-only; cannot assign "${String(prop)}"`)
     },
-    // `in` reflects reachability: the façade API plus DECLARED services
-    // (whether or not currently live). Does not resolve/wrap — no throw.
     has: (_target, prop) => prop === 'tools' || prop === 'get'
       || (typeof prop === 'string'
         && ((CTX_VERBS.has(prop) && (!TIMER_VERBS.has(prop) || declared.has('timer'))) || declared.has(prop))),

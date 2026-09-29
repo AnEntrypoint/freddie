@@ -102,7 +102,6 @@ export class FreddieMessageFeedbackActions extends HTMLElement {
   }
 
   #closeNote() {
-    // Ends the editing session, so any save still in flight becomes stale.
     this.#noteGeneration += 1
     this.#noteOpen = false
     this.#syncNotePosition()
@@ -115,15 +114,10 @@ export class FreddieMessageFeedbackActions extends HTMLElement {
     const messageId = props.messageId
     this.#pending = true
     this.#rowFailure = null
-    // The controller decides retract-vs-replace from the committed item, so a
-    // click that lands before the first list read still toggles the stored
-    // value instead of this render's empty view.
     this.#closeNote()
     void props.toggle(messageId, next).then((result) => { this.#settleRating(result) })
   }
 
-  // The rating is a parameter because only the note editor's render site can
-  // prove one is recorded; that removes an unreachable undefined guard here.
   #onSaveNote(item, current) {
     const props = this.#props
     if (props === null) return
@@ -132,26 +126,15 @@ export class FreddieMessageFeedbackActions extends HTMLElement {
     this.#pending = true
     this.#noteFailure = null
     this.#render()
-    // A save belongs to the editing session that started it. Closing and
-    // reopening the panel begins a new one, and a late reply from the old
-    // session must not act on it: a stale success would shut the panel the
-    // human just opened, and a stale failure would describe a draft this
-    // session never sent.
     const generation = this.#noteGeneration
-    // What a session reopened before this save commits would be seeded with.
     const staleSeed = item?.note ?? ''
-    // An emptied editor removes the note explicitly; `rate` alone preserves a
-    // stored note, so it cannot express deletion.
     const settled = trimmed.length === 0
       ? props.clearNote(messageId)
       : props.rate(messageId, current, trimmed)
     void settled.then((result) => {
       if (!this.#alive) return
-      // `pending` tracks the request in flight, not the editing session, so it
-      // is released either way.
       this.#pending = false
       if (result.ok) {
-        // Only the session that is still open may act on a success.
         if (generation === this.#noteGeneration) {
           this.#noteFailure = null
           this.#noteOpen = false
@@ -159,17 +142,10 @@ export class FreddieMessageFeedbackActions extends HTMLElement {
           this.#render()
           return
         }
-        // A newer session is open, seeded from the note as it read before this
-        // save committed. Resync it so the editor shows what is stored and the
-        // next save cannot overwrite the text that just landed. An edited draft
-        // is the human's, so it is left alone.
         if (this.#draft === staleSeed) this.#draft = trimmed
         this.#render()
         return
       }
-      // A failure from the session still on screen belongs in its panel. One
-      // from an abandoned session is reported only when no new session has
-      // taken over.
       if (generation === this.#noteGeneration || !this.#noteOpen) {
         this.#noteFailure = this.#errorCopy(result)
       }
@@ -177,8 +153,6 @@ export class FreddieMessageFeedbackActions extends HTMLElement {
     })
   }
 
-  // The trigger toggles: while closed it opens the popover (seeding the draft
-  // with the recorded note), while open it closes it.
   #toggleNote(item) {
     if (this.#noteOpen) {
       this.#closeNote()
@@ -239,12 +213,6 @@ export class FreddieMessageFeedbackActions extends HTMLElement {
     const props = this.#props
     if (props === null) { applyDiff(this, []); return }
     const { messageId, useFeedback, t } = props
-    // NOTE: useFeedback is the framework standard-kit's React-hook binding
-    // (InjectFace synthesizes it from the registered HostObservable); this
-    // custom element calls it outside a React render as a best-effort bridge
-    // — the raw observable itself is not threaded onto composed props. See
-    // batch report: cross-package blocker in ui-slots/ui-renderer, out of
-    // this package's scope.
     const view = useFeedback(v => v)
     const item = view.items.get(messageId)
     const loadFailed = view.status === 'error'
@@ -255,8 +223,6 @@ export class FreddieMessageFeedbackActions extends HTMLElement {
     const likeLabel = rating === 'positive' ? t('action.likeActive') : t('action.like')
     const dislikeLabel = rating === 'negative' ? t('action.dislikeActive') : t('action.dislike')
 
-    // Return focus to the trigger only when the panel actually closes, not on
-    // the initial mount.
     if (this.#noteOpen) {
       this.#wasOpen = true
     } else if (this.#wasOpen) {
@@ -315,10 +281,6 @@ export class FreddieMessageFeedbackActions extends HTMLElement {
       this.#portalEl = null
     }
 
-    // h(Tooltip, {...}) calls Tooltip(props) synchronously (webjsx's
-    // function-component branch), Tooltip.js's bare one-shot factory --
-    // recreating the freddie-tooltip element (dropping its in-flight #showTimer
-    // hover-delay) on every #render(). renderTooltip(cached, props) reuses it.
     this.#likeTooltipEl = renderTooltip(this.#likeTooltipEl, {
       label: likeLabel, side: 'bottom',
       children: [
@@ -375,8 +337,6 @@ export class FreddieMessageFeedbackActions extends HTMLElement {
         h('span', { class: css.failure ?? '', role: 'status' }, t('error.load'))
       ),
       this.#rowFailure !== null && h('span', { class: css.failure ?? '', role: 'status' }, this.#rowFailure),
-      // A note-save failure normally lives inside the panel. Whenever the
-      // panel is not on screen it falls back to the row instead.
       !(rating !== undefined && this.#noteOpen) && this.#noteFailure !== null && (
         h('span', { class: css.failure ?? '', role: 'status' }, this.#noteFailure)
       ),

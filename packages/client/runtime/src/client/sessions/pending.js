@@ -1,7 +1,3 @@
-// PendingWait: the carrier-protocol half of a pending host interaction. The runtime owns only
-// envelope knowledge (rpcId backfill into a client-response); domain result encoding belongs to
-// the interaction's consumer package.
-
 /** Key prefixes, one per kind (the key doubles as the Session pending-map key). */
 const KEY_PREFIX = { approval: 'a', question: 'q' }
 

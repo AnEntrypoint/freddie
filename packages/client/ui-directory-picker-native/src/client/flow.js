@@ -23,11 +23,6 @@ import { defineElement } from '@freddie/freddie-client-ui-primitives'
 export class FreddieNativeDirectoryFlow extends HTMLElement {
   #props = null
   #armed = false
-  // Unmount (HMR replacing the occupant) discards settlements wholesale: the
-  // dead instance must neither adopt a path nor drive the owner's error
-  // surface. The wire carries no per-request abort, so the host-side chooser
-  // survives until answered — its answer just lands nowhere; the replacement
-  // instance re-arms under the owner's still-open request.
   #alive = false
 
   /** Set/replace props; call after creating or updating the element. */
@@ -58,17 +53,15 @@ export class FreddieNativeDirectoryFlow extends HTMLElement {
     pick().then(
       (path) => {
         if (!this.#alive) return
-        // Report through the latest props (setProps may have replaced the
-        // owner's handlers since the pick started).
-        const current = this.#props
-        if (current === null) return
-        if (path === null) current.onCancel(); else current.onPicked(path)
+        const latestProps = this.#props
+        if (latestProps === null) return
+        if (path === null) latestProps.onCancel(); else latestProps.onPicked(path)
       },
       (reason) => {
         if (!this.#alive) return
-        const current = this.#props
-        if (current === null) return
-        current.onError(reason instanceof Error ? reason.message : String(reason))
+        const latestProps = this.#props
+        if (latestProps === null) return
+        latestProps.onError(reason instanceof Error ? reason.message : String(reason))
       },
     )
   }

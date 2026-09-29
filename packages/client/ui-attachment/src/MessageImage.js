@@ -1,10 +1,3 @@
-// MessageImage: compact history renderer with retryable async loading and
-// click-to-open preview, converted from a React hooks component to a webjsx
-// custom element. State (src/error/open/attempt) becomes instance fields,
-// the async load effect becomes an explicit #load() call guarded by a
-// liveness epoch (mirrors the original useEffect's cleanup flag), and
-// re-render is an explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { renderImageLightbox } from './ImageLightbox.js'
 import css from './MessageImage.css.js'
@@ -123,6 +116,14 @@ export class FreddieMessageImage extends HTMLElement {
 }
 
 defineElement('freddie-message-image', FreddieMessageImage)
+
+/**
+ * @typedef {object} MessageImageProps
+ * @property {{width: number, height: number, name?: string}} attachment - the image attachment to display.
+ * @property {(attachment: object) => Promise<string>} load - resolves the attachment to a displayable object URL.
+ * @property {'single'|'tile'} variant - 'single' sizes the frame via singleFit; 'tile' renders a fixed 64px square.
+ * @property {{image: string, loading: string, loadFailed: string, open: string, openNamed: (label: string) => string, lightbox: {dialog: string, close: string}}} labels - display and accessibility text, including the nested lightbox labels.
+ */
 
 /** Create (if needed) and update a MessageImage element in place.
  * @param el - an existing `freddie-message-image` element to update, or null to create one.

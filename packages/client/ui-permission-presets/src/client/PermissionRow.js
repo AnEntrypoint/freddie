@@ -27,12 +27,6 @@ export class FreddiePermissionRow extends HTMLElement {
   #lastWritable = null
   #lastStatus = null
   #loaded = false
-  // Held across renders (renderMenu(this.#menu, ...) / renderRiskConfirmation
-  // (this.#confirmModal, ...)) instead of the bare Menu(...)/RiskConfirmation
-  // (...) one-shot calls: those always create a brand-new freddie-menu/freddie-modal,
-  // so calling them fresh on every #render() replaced the live element (and
-  // its bound listeners) — or, for the modal, orphaned a fresh freddie-modal
-  // onto document.body — on every state change.
   #menu = null
   #confirmModal = null
 
@@ -56,17 +50,10 @@ export class FreddiePermissionRow extends HTMLElement {
     const props = this.#props
     if (props === null) { applyDiff(this, []); return }
     const { select, t, usePermission } = props
-    // NOTE: usePermission is the framework standard-kit's React-hook binding
-    // (InjectFace synthesizes it from the registered SnapshotStore); this
-    // custom element calls it outside a React render as a best-effort bridge
-    // — the raw observable itself is not threaded onto composed props. See
-    // batch report: cross-package blocker in ui-slots/ui-renderer, out of
-    // this package's scope.
     const state = usePermission(snapshot => snapshot)
 
-    if (state.writable && state.status !== 'unavailable') {
-      // no-op: keep current open/confirm state
-    } else if (this.#lastWritable !== state.writable || this.#lastStatus !== state.status) {
+    const stillWritable = state.writable && state.status !== 'unavailable'
+    if (!stillWritable && (this.#lastWritable !== state.writable || this.#lastStatus !== state.status)) {
       this.#open = false
       this.#acknowledged = false
       this.#confirmingFullAccess = false

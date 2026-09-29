@@ -83,24 +83,15 @@ export function applyWriteTool(ctx, sandbox) {
     },
     async execute(args, exec) {
       const input = parseWriteArgs(args)
-      // Resolve the per-call sandbox policy (approved mode > session override
-      // > backend default, plus the session cwd root) BEFORE anything executes;
-      // an escalating call throws its distinct text on any non-grant.
       const sandboxPolicy = await sandbox.resolvePolicy('write', args, exec)
       const target = await ctx.fs.resolve(input.filePath, sessionResolveOptions(exec, input.filePath, sandboxPolicy?.workspaceRoot))
-      // Single-slot decision: the policy plugin produces createIfAbsent/
-      // replaceIfVersion; the bare default is undefined (unconditional). No stat.
       const intent = await ctx.waterfall('fs/write-intent', target, exec, () => undefined)
       let outcome
       try {
         outcome = await ctx.fs.writeText(target, input.content, intent, exec.signal, sandboxPolicy)
       } catch (error) {
-        // A sandbox denial becomes the shared [sandbox: …] marker (the model
-        // recognizes it from bash); stale/not-observed failures gain their
-        // model-facing remedy; anything else passes through.
         throw remediateFsError(sandbox.mapError(error, sandboxPolicy))
       }
-      // Record the present observation (a no-op when no policy plugin listens).
       ctx.emit('fs/observed', target, { kind: 'present', version: outcome.version }, exec)
       return {
         path: target.displayPath,
@@ -109,8 +100,6 @@ export function applyWriteTool(ctx, sandbox) {
         after: outcome.after,
       }
     },
-    // Pure display: a diff card. A call-time presenter has no access to prior
-    // file content, so `oldText: null` also represents an overwrite here.
     presentCall(args) {
       return {
         card: 'diff',
@@ -119,9 +108,6 @@ export function applyWriteTool(ctx, sandbox) {
         locations: [{ path: args.file_path }],
       }
     },
-    // Result-time display repeats the diff because completed views replace the
-    // pending view. Overwrites use applied metadata; creates and identical
-    // overwrites use the replay-safe args fallback.
     presentResult(args, result) {
       if (result.isError) return undefined
       const diffs = diffsFromMeta(result.meta)

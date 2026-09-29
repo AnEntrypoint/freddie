@@ -61,10 +61,6 @@ export async function openSearchDatabase(path, journalMode) {
       assertDerivedUserTables(actual, userTables)
       if (version !== SESSION_QUERY_SQLITE_SCHEMA_VERSION) await resetDerivedSchema(db, userTables)
     }
-    // Apply mutating pragmas only after refusing foreign or canonical files.
-    // journalMode is a validated closed union, not caller-controlled SQL.
-    // libsql's wasm32-wasi VFS has no shared memory, so WAL is silently
-    // declined and the mode stays 'delete'; the request remains best-effort.
     await db.exec(`PRAGMA journal_mode = ${journalMode.toUpperCase()}`)
     await ensurePersistentSchema(db)
     await ensureTemporarySchema(db)

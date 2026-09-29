@@ -15,6 +15,8 @@ import { StorageError } from '@freddie/freddie-storage'
  * @param client - shared libsql-plugkit-client connection.
  * @param onClose - backend callback releasing the unit's open-slot.
  * @returns the opened unit.
+ * @name openSqliteUnit
+ * @function
  */
 // eslint-disable-next-line require-await -- keeps open() async-shaped like the JSON backend's unit.open
 export async function openSqliteUnit(descriptor, client, onClose) {

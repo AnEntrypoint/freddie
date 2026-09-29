@@ -2,7 +2,7 @@
  * Pure derivation of the terminal-card props from a frozen call slice: the
  * `card:'terminal'` render intent the shell tools declare arrives on the
  * snapshot as `callView`/`resultView`, and this is the one place that turns
- * that pair into what {@link TerminalBlock} draws. Both conversation render
+ * that pair into what {@link import('../../../../../ui-primitives/src/TerminalBlock.js').TerminalBlock} draws. Both conversation render
  * sites (the chat tool row's expanded body and the details panel's Output
  * section) call this, so the command, cwd, output and exit status they show
  * are derived once.
@@ -16,7 +16,7 @@ import { resolveWorkspacePath } from '@freddie/freddie-client-runtime/client'
  * dictionary, shared by every terminal render site (chat row, bash row,
  * details panel).
  * @param t - the render site's conversation locale seat.
- * @returns the full label set for {@link TerminalBlockProps}'s `labels`.
+ * @returns the full label set for {@link import('../../../../../ui-primitives/src/TerminalBlock.js').TerminalBlockProps}'s `labels`.
  */
 export function terminalBlockLabels(t) {
   return {
@@ -81,18 +81,10 @@ function resolveTerminalCwd(viewCwd, sessionCwd) {
  */
 function normalizeSegments(path) {
   if (!/(?:^|[/\\])\.\.?(?:[/\\]|$)/.test(path)) return path
-  // A UNC path is `\\\\server\\share\\...`: the server and share form the root,
-  // so they are split off here and neither is a segment `..` may pop. Its
-  // separator is fixed to a backslash, since a joined relative part may have
-  // introduced a forward slash that UNC syntax does not use.
   const unc = /^[/\\]{2}([^/\\]+)[/\\]+([^/\\]+)/.exec(path)
   if (unc !== null) {
-    // Both groups are mandatory in the pattern, so destructuring types them as
-    // strings without an assertion.
     const [matched, server, share] = unc
     const root = `\\\\${String(server)}\\${String(share)}`
-    // Rooted: what follows the share hangs off it, so a `..` at the top is
-    // dropped rather than kept — Windows cannot climb above a share.
     const rest = collapse(path.slice(matched.length), true)
     return rest === '' ? root : `${root}\\${rest}`
   }
@@ -157,7 +149,6 @@ function collapse(body, rooted, separator = '/') {
 export function terminalCardModel(block, sessionCwd) {
   const call = block.callView?.card === 'terminal' ? block.callView : null
   if (!('kind' in block)) {
-    // Running: the call view exists, the result view does not yet.
     return call === null ? null : {
       description: call.description,
       card: {
@@ -175,15 +166,7 @@ export function terminalCardModel(block, sessionCwd) {
   return {
     description: call?.description,
     card: {
-      // The result's title REPLACES the pending one when the tool supplies it
-      // (the presentation contract's replacement-title rule); the call title is
-      // what a result without one keeps.
       command: result.title ?? call?.title ?? '',
-      // Only a PRESENT call view can mean "omitted the cwd, so use the
-      // workspace". When the window dropped the call head there is no cwd
-      // anywhere — the result view carries none — and the original call may
-      // well have used an explicit workdir, so the prompt draws a bare `$`
-      // rather than naming a directory this card cannot know.
       cwd: call === null ? undefined : resolveTerminalCwd(call.cwd, sessionCwd),
       output: result.output,
       exitCode: result.exitCode,

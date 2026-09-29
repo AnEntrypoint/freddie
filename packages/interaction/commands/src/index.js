@@ -215,7 +215,6 @@ export class CommandRuntime extends TypertRemoteService {
   list(agent) {
     return Object.freeze([...this.view(agent).values()]
       .map(command => command.descriptor)
-      // Names are unique in the effective view, so equality is impossible.
       .sort((left, right) => left.name < right.name ? -1 : 1))
   }
 
@@ -302,10 +301,6 @@ export class CommandRuntime extends TypertRemoteService {
         this.settleThrown(agent.session, parsed.name, commandId, error)
         throw error
       }
-      // Cancellation must be honored BEFORE the handler runs: admission may
-      // await slow storage, and a handler entered after the caller cancelled
-      // would mutate state the retrying caller then duplicates. (The committed
-      // image objects stay unreferenced and are deferred-GC territory.)
       const cancelledDuringAdmission = cancellationOf(signal)
       if (cancelledDuringAdmission !== undefined) {
         this.settleThrown(agent.session, parsed.name, commandId, cancelledDuringAdmission)
@@ -349,9 +344,6 @@ export class CommandRuntime extends TypertRemoteService {
    * standalone plugin event.
    */
   appendLifecycle(session, type, data) {
-    // Both admitted types are log-only (non-surface), but TypeScript does not
-    // reduce Session.append's conditional rest parameter through a generic
-    // type parameter. Preserve the proven two-argument call shape.
     const appendLogOnly = session.append.bind(session)
     return appendLogOnly(type, data)
   }
@@ -363,9 +355,6 @@ export class CommandRuntime extends TypertRemoteService {
 
   /** Notify every registry observer without making UI refresh load-bearing. */
   notifyChange() {
-    // Cordis emit uses Array.map: one synchronous throw starves later listeners,
-    // and returned promises are discarded. Registry notifications are
-    // non-vetoing, so contain each callback independently.
     for (const callback of this.ctx.events.dispatch('emit', ['commands/change'])) {
       try {
         const returned = callback()

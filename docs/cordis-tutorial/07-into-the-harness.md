@@ -4,7 +4,7 @@ This chapter registers a model-callable tool with the harness's `tools` service,
 
 ## A tool plugin
 
-Create `greet-tool.ts` in `tmp/cordis-tutorial`:
+Create `greet-tool.ts` in `examples/cordis-tutorial`:
 
 ```ts
 import type { Context } from '@freddie/cordis'
@@ -67,7 +67,7 @@ export function apply(ctx: Context) {
 }
 ```
 
-The `import type {} from '@freddie/freddie-tools'` line pulls in the package's declaration merges so `'tools/result'` and its payload are typed — the same move as chapter 4's `stats.ts` import, at package scale.
+The `import type {} from '@freddie/freddie-tools'` line imports nothing at runtime; it is the editor-side marker chapter 4's `stats.ts` uses for declaration merges, and this checkout ships no type declarations for it to pull in.
 
 ## Compose and run
 
@@ -81,7 +81,7 @@ The `import type {} from '@freddie/freddie-tools'` line pulls in the package's d
 `@freddie/freddie-tools` injects the `systemPrompt` service because tools contribute schemas to the system prompt, so the composition lists its provider too. Without it, the tools plugin remains PENDING as described in [chapter 6](06-composition-and-hmr.md).
 
 ```sh
-node --import tsx ../../framework/cordis/bin.js
+node ../../framework/cordis/bin.js
 ```
 
 ```
@@ -99,7 +99,7 @@ Where to go next:
 
 - [Build a tool](../user/develop/basic/tool.md) — more of `defineTool`, including presentation and richer schemas.
 - [Three-layer capability design](../user/develop/practice/index.md) — how the harness structures replaceable capabilities.
-- The generated `cordis-surface` regions on the [subsystem pages](../subsystems/core.md) — everything you can inject and listen to, each on its owning page.
+- The `cordis-surface` regions on the [subsystem pages](../subsystems/core.md) — everything you can inject and listen to, each on its owning page.
 - [Architecture](../architecture.md) — the system map these plugins live in.
 
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)
+[![](https://img.shields.io/badge/powered_by-freddie-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/lanmower/freddie)

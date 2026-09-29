@@ -81,8 +81,6 @@ function commandOpts(signal) {
 
 async function openReadStream(sandbox, target, signal) {
   try {
-    // The pinned SDK's stream overload lies for empty files: content-length 0
-    // returns '' instead of a ReadableStream.
     const read = await sandbox.files.read(String(target.targetKey), { format: 'stream', ...signalOpts(signal) })
     return typeof read === 'string'
       ? new ReadableStream({ start(controller) { controller.close() } })
@@ -245,8 +243,6 @@ export class E2BFileSystem extends FileSystem {
         assertNotAborted(signal, 'read')
         const next = await reader.read()
         if (next.done) break
-        // The stat preflight covers the at-rest case; this streamed bound stops
-        // a post-stat grower without transferring past the first overflowing chunk.
         bytes += next.value.byteLength
         if (bytes > maxBytes) {
           throw new FsError(`cannot read "${target.displayPath}": content exceeds the ${maxBytes}-byte limit`, 'FS_TOO_LARGE')
@@ -261,8 +257,6 @@ export class E2BFileSystem extends FileSystem {
         try {
           await reader.cancel()
         } catch (_streamCancellationFailure) {
-          // The read already failed; a cancellation failure on the abandoned
-          // remote stream adds nothing actionable for the caller.
         }
       }
       reader.releaseLock()
@@ -318,7 +312,6 @@ export class E2BFileSystem extends FileSystem {
             try {
               await reader.cancel()
             } catch (_streamCancellationFailure) {
-              // The primary read outcome owns the result; cancellation is best-effort after early stop.
             }
           }
           reader.releaseLock()
@@ -531,7 +524,6 @@ export class E2BFileSystem extends FileSystem {
       try {
         await sandbox.files.remove(stagingDirectory)
       } catch (_committedStagingCleanupFailure) {
-        // The target is already committed; an empty private directory cannot turn that write into a failure.
       }
       return entryVersion(committed)
     } catch (error) {
@@ -539,7 +531,6 @@ export class E2BFileSystem extends FileSystem {
         try {
           await sandbox.files.remove(stagingDirectory)
         } catch (_stagingDirectoryAlreadyAbsentOrCleanupFailed) {
-          // Only the private staging directory is swallowed; the original failure owns the operation.
         }
       }
       throw mapError(error, 'write', target.displayPath, signal)

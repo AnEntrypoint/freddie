@@ -182,7 +182,6 @@ export class EventsService {
       options = { prepend: options }
     }
 
-    // handle special events
     this.ctx.fiber.assertActive()
     listener = this.ctx.reflect.bind(listener)
     const result = this.bail(this.ctx, 'internal/listener', name, listener, options)

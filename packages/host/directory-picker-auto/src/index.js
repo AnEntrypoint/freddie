@@ -61,18 +61,10 @@ export async function apply(ctx) {
     linuxChooser: hasLinuxChooserBinary(process.env.PATH, canExecute),
   })
   await ctx.effect(async () => {
-    // Root-tree create: the Loader root is in-memory (write() is a no-op), so
-    // the mounted rows can never be persisted back into a config file. The
-    // backend lands first: the surface's browser half drives the capability
-    // the backend registers.
     const ids = []
     const unmount = async () => {
       for (const id of [...ids].reverse()) {
-        // Tree teardown (group.stop) can have removed the entry already;
-        // nothing is left to unmount or await then.
         if (ctx.loader.store[id] === undefined) continue
-        // remove() disposes the entry transactionally, so the chooser's unload
-        // signals completion only after that face quiesced.
         await ctx.loader.remove(id)
       }
     }
@@ -81,9 +73,6 @@ export async function apply(ctx) {
         ids.push(await ctx.loader.create({ name }))
       }
     } catch (cause) {
-      // Setup owns the entries it created until it returns the disposer: leaving
-      // the backend mounted would make a retry collide with its own
-      // directoryPicker registration.
       await unmount()
       throw cause
     }

@@ -23,14 +23,12 @@ export const Config = z.object({
   toolName: z.string().default('subagent'),
   enableRunInBackground: z.boolean().default(true),
   backgroundMode: z.union(['one-shot', 'continuable']).default('one-shot'),
-  // Prevent Schemastery from materializing omitted agentOptions as `{}`.
   agentOptions: z.object({
     provider: z.string(),
     model: z.string(),
     maxTokens: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER),
   }).default(undefined),
   persona: z.string(),
-  // Preserve omission; Schemastery's `{ allow: [] }` default would deny every tool.
   toolFilter: z.object({
     allow: z.array(z.string()).default(undefined),
     deny: z.array(z.string()).default(undefined),
@@ -53,8 +51,6 @@ async function settleStart(start, signal) {
   try {
     return await settleRun(await start)
   } catch (error) {
-    // Product providers aggregate startup and rollback failures. Cancellation
-    // must not turn a failed cleanup into a cleanly killed Job.
     return signal.aborted && !(error instanceof AggregateError)
       ? { status: 'killed' }
       : { status: 'failed', detail: String(error) }
@@ -74,8 +70,6 @@ function stopReasonError(result) {
       return 'subagent run hit its token limit before finishing'
     case 'refusal':
       return 'subagent declined the task'
-    // Merge-extensible union: a backend may add stop reasons. Treat an unknown
-    // terminal reason as a failure rather than reporting partial output as success.
     default:
       return `subagent run ended abnormally (${String(result.stopReason)})`
   }
@@ -112,15 +106,11 @@ async function settleForegroundRun(run) {
     run.result.then((result) => {
       const error = stopReasonError(result)
       if (error !== undefined) {
-        // The registry converts this throw to isError; partial output is not
-        // success, but the preserved partial answer still reaches the parent.
         throw new Error(withDiagnosticAndPartialText(error, result))
       }
       return {
         kind: 'foreground',
         runId: run.id,
-        // Content blocks already cross durable JSON boundaries elsewhere;
-        // the registry performs the authoritative lossless snapshot here.
         output: result.output,
       }
     }),
@@ -141,7 +131,7 @@ async function settleForegroundRun(run) {
 
 /**
  * Model-facing wording from the provider's conversation-history descriptor
- * ({@link SubagentProvider.inheritsParentContext}).
+ * ({@link import('@freddie/freddie-subagent/src/types.js').SubagentProvider.inheritsParentContext}).
  * A fresh child needs a standalone prompt; a forked child already sees the
  * conversation's completed turns — telling the model to restate everything
  * (or, worse, that the child "does not see this conversation") would be false
@@ -181,39 +171,26 @@ function providerWording(inheritsConversation) {
 /** Resolve the model's optional scheduling request into one execution route. */
 function resolveDelegationRun(request, options) {
   if (!options.backgroundEnabled) {
-    // The validator permits undeclared keys, so schema omission also needs
-    // execution-time enforcement.
     if (request.run_in_background === true) {
       throw new Error('run_in_background is disabled for this tool instance (enableRunInBackground: false)')
     }
     return { runInBackground: false }
   }
   return {
-    // Continuable work is independently scheduled unless the caller explicitly
-    // needs the result before its next action. One-shot policy keeps its existing
-    // foreground default because its background result requires Task collection.
     runInBackground: request.run_in_background ?? options.continuable,
   }
 }
 
 export function apply(ctx, config) {
-  // Direct apply() bypasses Schemastery's numeric constraints. A direct-apply
-  // omission stays capless (the schema default only runs through the loader).
   if (config.maxDepth !== 'provider-managed') assertSubagentMaxDepth(config.maxDepth)
-  // Reject an empty explicit filter at load instead of failing every delegation.
   if (config.toolFilter !== undefined && config.toolFilter.allow === undefined && config.toolFilter.deny === undefined) {
     throw new Error('tool-subagent: `toolFilter` is configured but names neither `allow` nor `deny` — remove the key or fill the filter')
   }
   const backgroundEnabled = config.enableRunInBackground !== false
   const continuable = (config.backgroundMode ?? 'one-shot') === 'continuable'
   const toolName = config.toolName ?? 'subagent'
-  // Mirror provider lifecycle because sibling load order and HMR replacement
-  // can change provider availability while this fiber remains active.
   let disposeTool
   const mount = (provider) => {
-    // A numeric cap the provider cannot enforce is a misconfiguration — fail at
-    // mount (the earliest point the provider's capabilities are known), not on
-    // the first delegation.
     if (typeof config.maxDepth === 'number' && !provider.capabilities.depthLimit) {
       throw new Error(
         `tool-subagent: provider "${provider.name}" cannot enforce maxDepth (no depthLimit capability) — `
@@ -229,9 +206,6 @@ export function apply(ctx, config) {
     disposeTool = ctx.tools.register(defineTool({
       name: toolName,
       description: wording.description + (backgroundEnabled
-        // The completion notice is the continuation service's own behavior, not
-        // a separately installed capability, so this promise holds whenever the
-        // continuable background path is reachable at all.
         ? continuable
           ? ' This tool runs in the background by default, immediately returns a durable subagent id, and keeps the child conversation available for later turns. When that run settles, the runtime sends the parent a notice containing its outcome and any final assistant message; `send_message` starts a later turn in the same child conversation. Set `run_in_background: false` only when your next action depends on receiving the result.'
           : ' This call waits for the result by default. Set `run_in_background: true` to return a job id; collect with `job_output` and stop with `job_kill`.'
@@ -295,13 +269,10 @@ export function apply(ctx, config) {
               : outputValueText(value.output),
         }],
       },
-      // Children never mutate the parent session; the one parent-owned write
-      // (tasks.start) is a synchronous commutative insertion.
       isConcurrencySafe: () => true,
       async execute(args, exec) {
         const parent = exec.agent
         if (!parent) {
-          // Non-agent callers provide no parent for delegation ownership.
           throw new Error('subagent tool requires a calling agent (exec.agent was undefined)')
         }
 
@@ -319,8 +290,6 @@ export function apply(ctx, config) {
         const runSpec = resolveDelegationRun(args, { backgroundEnabled, continuable })
         if (runSpec.runInBackground) {
           if (continuable) {
-            // Resolves at inbox acceptance: the child owns its own turns from
-            // there, so this call neither waits for nor collects a result.
             const started = await ctx.subagents.startContinuable({
               provider: config.provider,
               label: args.description,
@@ -333,8 +302,6 @@ export function apply(ctx, config) {
           if (jobs === undefined) {
             throw new Error('background jobs unavailable: load @freddie/freddie-jobs and @freddie/freddie-tool-jobs')
           }
-          // One-shot background child: job preflight finishes before the
-          // starter can spawn, and the task-owned signal covers startup.
           const id = jobs.start({
             kind: 'subagent',
             label: args.description,
@@ -347,7 +314,6 @@ export function apply(ctx, config) {
                   controller.abort(reason ?? 'background subagent task killed')
                 },
                 done: settleStart(start, controller.signal),
-                // No readOutput: the child session owns intermediate detail.
               }
             },
           })
@@ -363,12 +329,6 @@ export function apply(ctx, config) {
     }))
   }
 
-  // Register listeners before checking presence so no synchronous change is missed.
-  // TODO(subagent-dup-toolname): two waiting one-shot fibers configured with the
-  // same toolName collide when their provider appears, and the duplicate-name
-  // throw rolls back the provider registration. Continuable instances reserve
-  // their prompt-section name during apply() and fail earlier. Add an intent
-  // registry if the late one-shot collision occurs in a shipped composition.
   ctx.on('subagent/provider-added', (provider) => {
     if (provider.name === config.provider && disposeTool === undefined) mount(provider)
   })
@@ -381,13 +341,9 @@ export function apply(ctx, config) {
   if (present !== undefined) {
     mount(present)
   } else {
-    // A backend fiber may activate later; a misspelled provider remains visible in this log.
     ctx.logger.info(`subagent provider "${config.provider}" not registered yet; the "${config.toolName ?? 'subagent'}" tool will register when it appears`)
   }
   if (backgroundEnabled && continuable) {
-    // The section follows provider availability without its own manual
-    // lifecycle: empty text is omitted from rendered prompts while the tool is
-    // absent, and the registration itself stays owned by this plugin fiber.
     ctx.systemPrompt.section({
       name: `tool:${toolName}`,
       order: SUBAGENT_SECTION_ORDER,
