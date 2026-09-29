@@ -1,46 +1,14 @@
-/**
- * Plan mode is logged per-agent collaboration state: while active, a
- * deployment-owned guidance section is included in each model request, and
- * `exit_plan_mode` presents the completed plan for user review, while the
- * `/plan off` command lets a user leave directly. Sandbox mode and approval
- * policy enforce restrictions independently and do not read or write plan
- * state.
- *
- * The state in force is folded from the session log (`plan/mode`, last one
- * wins), so resume and fork restore it without a live mirror. User selections
- * remain pending until the next accepted in-turn pre-step. The service includes
- * the selected state in the proposed step assembly, then appends `plan/mode`
- * from `agent/pre-step` only when the step is accepted. Same-step request
- * retries reuse their assembly.
- *
- * The exit tool remains registered while plan mode is inactive, so entering
- * or leaving plan mode changes only the prompt section, not the request tool
- * catalog.
- *
- * Agent Note:
- * - .agents/notes/implemented/simplification/2026-07-22-plan-specific-collaboration-state.md
- *
- * @module @freddie/freddie-plan-mode
- */
-
 import { Service } from '@freddie/cordis'
 import { createUserMessage } from '@freddie/freddie-llm'
 import { defineTool } from '@freddie/freddie-tools'
 import { UserQuestionError } from '@freddie/freddie-user-questions'
 
-/**
- * The model-facing exit tool's name. It stays registered while plan mode is
- * inactive so the request tool catalog is stable across transitions.
- */
 export const EXIT_PLAN_MODE = 'exit_plan_mode'
 
-/** The review question's id, echoed in the answer this tool reads. */
 const REVIEW_ID = 'plan-review'
 
-/** The review question's approve option label. */
 const APPROVE_LABEL = 'Approve'
 
-/** The review question's keep-planning option label. */
 const KEEP_PLANNING_LABEL = 'Keep planning'
 
 const EXIT_DESCRIPTION
@@ -49,7 +17,6 @@ const EXIT_DESCRIPTION
   + 'The user may approve (carry out the plan from your next step) or keep '
   + 'planning — their feedback comes back in the tool result; revise and present again.'
 
-/** The plan's first markdown heading (any level), or `undefined` when it has none. */
 function firstHeading(plan) {
   for (const line of plan.split('\n')) {
     const match = /^#{1,6}\s+(.+?)\s*$/.exec(line)
@@ -58,13 +25,6 @@ function firstHeading(plan) {
   return undefined
 }
 
-/**
- * Validate deployment-owned plan guidance. Missing, blank, non-string, or
- * unknown fields fail at plugin load rather than being ignored.
- *
- * @param config Raw plugin config.
- * @returns A detached validated config.
- */
 export function resolveConfig(config) {
   const section = config.section
   if (typeof section !== 'string') {
@@ -80,14 +40,6 @@ export function resolveConfig(config) {
   return { section }
 }
 
-/**
- * Whether plan mode is active after the first `end` events. The last
- * `plan/mode` wins; a prefix with none is inactive.
- *
- * @param events The session log or any prefix of it.
- * @param end Fold `events[0, end)`; defaults to the whole log.
- * @returns Whether plan mode is active.
- */
 export function foldPlanMode(events, end = events.length) {
   let active = false
   let index = 0
@@ -99,7 +51,6 @@ export function foldPlanMode(events, end = events.length) {
   return active
 }
 
-/** Whether the log holds an opened turn without its closing `turn/end`. */
 function hasOpenTurn(events) {
   let open = false
   for (const event of events) {
@@ -109,7 +60,6 @@ function hasOpenTurn(events) {
   return open
 }
 
-/** Plan state at the last logged request header, or `undefined` before the first header. */
 function planModeAtLastHeader(events) {
   let lastHeader = -1
   let index = 0
@@ -121,22 +71,11 @@ function planModeAtLastHeader(events) {
   return foldPlanMode(events, lastHeader + 1)
 }
 
-/**
- * `ctx.planMode`: owns logged plan state, applies and narrates selected state at step start,
- * the `plan:policy` section, the `/plan` command, and the stable exit tool.
- * UIs observe committed flips through `session/event`; there is no live mirror.
- */
 export class PlanModeController extends Service {
   static inject = ['tools', 'systemPrompt']
 
-  /** Validated deployment-owned guidance. */
   section
 
-  /**
-   * Latest selection per session awaiting the next accepted in-turn pre-step.
-   * `narrate` is true for user selections and false for the exit tool, whose
-   * result already narrates the transition.
-   */
   pendingIntents = new WeakMap()
 
   constructor(ctx, config = { section: '' }) {
@@ -173,17 +112,6 @@ export class PlanModeController extends Service {
       },
     })
 
-    /**
-     * Projection unit state: the logged mode, the latest successful `/plan`
-     * selection not yet resolved by a `plan/mode` commit, and an execution whose
-     * paired `command/done` has not settled. Plain JSON (persisted-cache
-     * precondition).
-     * @typedef {{
-     *   active: boolean,
-     *   wanted: boolean | null,
-     *   running: { commandId: string, wanted: boolean } | null,
-     * }} PlanProjectionState
-     */
     ctx.inject(['sessionProjections'], (projectionCtx) => {
       projectionCtx.sessionProjections.register({
         key: 'plan',
@@ -337,35 +265,12 @@ export class PlanModeController extends Service {
     }))
   }
 
-  /**
-   * Read the logged plan state and any selected state awaiting the next
-   * accepted in-turn pre-step.
-   *
-   * @param agent The agent to read.
-   * @returns Current logged state plus a pending selection, when present.
-   */
   get(agent) {
     const active = foldPlanMode(agent.session.events)
     const pending = this.pendingIntents.get(agent.session)
     return pending === undefined ? { active } : { active, pending: pending.active }
   }
 
-  /**
-   * Select whether plan mode should be active. Between turns the method
-   * appends the change immediately because no in-turn pre-step will run until
-   * another prompt starts a turn. The open-turn fold is the idle signal:
-   * agent status stays `running` through post-turn checkpointing, when no
-   * further in-turn pre-step runs. During an open turn the selection remains
-   * pending until the next accepted in-turn pre-step. Repeated selection of
-   * the current or already-pending state is a no-op.
-   *
-   * @param agent The agent to switch.
-   * @param active Whether plan mode should be active.
-   * @returns what happened: `committed` (logged now), `queued` (awaiting the
-   * next accepted in-turn pre-step), `cancelled` (an opposite pending selection
-   * was cleared; the logged state already matches), or `noop` (already in that
-   * state).
-   */
   set(agent, active) {
     const session = agent.session
     const pending = this.pendingIntents.get(session)
@@ -386,7 +291,6 @@ export class PlanModeController extends Service {
     return 'committed'
   }
 
-  /** Append one pending selection before the next request assembly. */
   onBoundary(session) {
     const pending = this.pendingIntents.get(session)
     if (pending === undefined) return
@@ -399,7 +303,6 @@ export class PlanModeController extends Service {
     this.pendingIntents.delete(session)
   }
 
-  /** Build a user-switch notice when the last logged header described the other mode. */
   narration(session, target) {
     const told = planModeAtLastHeader(session.events)
     if (told === undefined || told === target) return
