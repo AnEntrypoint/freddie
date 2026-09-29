@@ -1,17 +1,3 @@
-/**
- * Copying, reading, and deleting locally authored presets.
- *
- * Authoring is confined to a `user` root: the shipped `.system` set is part of
- * the deployment, and letting a browser rewrite it would turn "reset to a known
- * preset" into something the same caller could have broken first.
- *
- * The only authoring write is a whole-directory copy of an existing preset.
- * No caller supplies composition text: the inputs are ids the host resolves
- * against its own roots plus an optional display name, so authoring grants no
- * capability the copied preset did not already carry.
- * @module @freddie/freddie-agent-presets/authoring
- */
-
 import { chmod, cp, readdir, readFile, rm, stat } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { writeFileAtomic } from '@freddie/freddie-atomic-write'
@@ -19,10 +5,8 @@ import { expandHomePath } from '@freddie/freddie-home-paths'
 import { METADATA_FILE, renderPresetMetadata } from './metadata.js'
 import { PRESET_ID } from './preset.js'
 
-/** A preset id that cannot be used as a directory name under a root. */
 export class InvalidPresetIdError extends Error {
   constructor(
-    /** The rejected id. */
     presetId,
   ) {
     super(
@@ -33,10 +17,8 @@ export class InvalidPresetIdError extends Error {
   }
 }
 
-/** A copy target that is already occupied — a copy never overwrites. */
 export class PresetExistsError extends Error {
   constructor(
-    /** The id that is already taken. */
     presetId,
   ) {
     super(
@@ -47,10 +29,8 @@ export class PresetExistsError extends Error {
   }
 }
 
-/** Authoring was attempted where the deployment allows none. */
 export class PresetNotWritableError extends Error {
   constructor(
-    /** What the caller tried to change, for the diagnostic. */
     presetId,
     reason,
   ) {
@@ -59,12 +39,6 @@ export class PresetNotWritableError extends Error {
   }
 }
 
-/**
- * The root locally authored presets are written to.
- * @param roots - the configured roots in precedence order.
- * @returns the absolute path of the first `user` root.
- * @throws when the deployment configured no writable root.
- */
 export function writableRoot(roots) {
   const root = roots.find(candidate => candidate.trust === 'user')
   if (root === undefined) {
@@ -73,16 +47,10 @@ export function writableRoot(roots) {
   return resolve(expandHomePath(root.path))
 }
 
-/**
- * Read one preset's composition text.
- * @param preset - the resolved preset.
- * @returns the file's contents.
- */
 export async function readComposition(preset) {
   return await readFile(preset.path, 'utf8')
 }
 
-/** Whether anything occupies the path (cp's own errorOnExist backstops races). */
 async function occupied(path) {
   let present = true
   try {
@@ -93,12 +61,6 @@ async function occupied(path) {
   return present
 }
 
-/**
- * Re-tighten a copied tree to owner-only. A shipped preset is world-readable
- * in its install and `cp` preserves that; the copy carries the same weight as
- * the settings document beside it, so group/other access is stripped. A
- * file's owner-execute bit survives — a preset may ship runnable helpers.
- */
 async function tightenModes(dir) {
   await chmod(dir, 0o700)
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -106,34 +68,12 @@ async function tightenModes(dir) {
     if (entry.isDirectory()) {
       await tightenModes(target)
     } else {
-      /* v8 ignore next -- Windows exposes no POSIX owner-execute bit; the POSIX lane covers both file modes. */
+      /* v8 ignore next */
       await chmod(target, ((await stat(target)).mode & 0o100) === 0 ? 0o600 : 0o700)
     }
   }
 }
 
-/**
- * Create a preset by copying an existing one's whole directory.
- *
- * The copy carries everything the source directory holds — composition,
- * metadata, skill directories, assets — because a preset is its directory,
- * not one file. Symlinks are dereferenced so the copy is self-contained
- * rather than a set of links back into the install it was copied from.
- *
- * The copied metadata is then rewritten: the source's description is kept
- * (the file is the author's to edit afterwards), but its name and roster
- * `order` are not — a copy presenting itself identically to its source, or
- * sorted into the shipped set's declared order, would make the roster stop
- * distinguishing them. With no name given and no description to keep, the
- * file is removed so the copy publishes nothing rather than a blank.
- * @param roots - the configured roots; the first `user` one receives the copy.
- * @param source - the resolved preset the copy starts from.
- * @param id - the new preset's id, which becomes its directory name.
- * @param name - display name for the copy; omitted falls back to the id.
- * @returns the absolute path of the new preset directory.
- * @throws when the id is unusable or already occupied on disk, or the
- * deployment configures no writable root.
- */
 export async function copyComposition(
   roots,
   source,
@@ -165,16 +105,6 @@ export async function copyComposition(
   return dir
 }
 
-/**
- * Delete a locally authored preset.
- *
- * A shipped preset is refused: it belongs to the deployment. A preset a live
- * session mounted is NOT refused — the composition was read at creation and is
- * never re-read, so that session keeps running exactly as it was.
- * @param roots - the configured roots.
- * @param preset - the resolved preset to remove.
- * @throws when the preset ships with the deployment or lies outside the writable root.
- */
 export async function deleteComposition(
   roots,
   preset,
