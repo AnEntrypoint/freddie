@@ -1,28 +1,10 @@
-/**
- * The configurable-plugins tab's card list.
- *
- * The tab dispatches its slot by settings namespace, so what it renders is
- * the intersection of two ledgers: the namespaces the Host serves and the
- * cards registered into `settings.plugin.item`. A served namespace no card
- * claims renders nothing — another surface owns it, or this deployment ships
- * no browser half for it — and a card whose namespace the Host does not serve
- * is never dispatched, so a plugin this deployment did not compose leaves no
- * trace and does not count toward the empty line.
- */
-
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 
-/** Derives the served namespaces from the shared describe mirror and pairs them with the cards that claim them. */
 export class ConfigurablePluginsTabController {
   store = createSnapshotStore({ loaded: false, namespaces: [] })
   disposed = false
   unsubscribe
 
-  /**
-   * @param describeFace - the shared mirror's describe face; its refreshes
-   * (document commits, reconnects) are what keep the served set current.
-   * @param entries - reads the cards currently registered into the section's slot.
-   */
   constructor(describeFace, entries) {
     this.describeFace = describeFace
     this.entries = entries
@@ -31,22 +13,16 @@ export class ConfigurablePluginsTabController {
     this.publish()
   }
 
-  /** Republish after the slot ledger changed; a card registered late joins here. */
   refresh() {
     if (this.disposed) return
     this.publish()
   }
 
-  /** Stop publishing and stop following the mirror. */
   dispose() {
     this.disposed = true
     this.unsubscribe()
   }
 
-  /**
-   * Build the face the tab's slot registration injects.
-   * @returns the tab's snapshot source.
-   */
   inject() {
     return { hooks: { configurablePlugins: this.store } }
   }

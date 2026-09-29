@@ -1,16 +1,3 @@
-/**
- * Plugins settings surface, browser half — one section whose feature-owned
- * tabs include configurable Host plugin cards and read-only inventory.
- *
- * The section declares `settings.plugins.tab`; its own `configurable` tab then
- * declares `settings.plugin.item` and renders whatever cards were registered
- * into it. The three cards this package ships are the host-plane sections the
- * deployment already exposes; each binds its namespace through the client
- * settings scope, which keeps them unaware of one another and of other tabs.
- * The subagent and web-search cards live in the packages that own those
- * namespaces and register themselves into this tab the same way.
- */
-
 import { resolveSlotLabel } from '@freddie/freddie-client-ui-slots'
 import { AgentLoopCard } from './AgentLoopCard.js'
 import { BashCard } from './BashCard.js'
@@ -21,16 +8,10 @@ import { SHELL_NS, BashCardController } from './bash-card-controller.js'
 import { ConfigurablePluginsTabController } from './tab-store.js'
 import { en } from './locales.js'
 
-/** Dictionary namespace owned by this plugin. */
 const NS = 'settings.plugins'
 
-/** Required services (cordis fiber inject). */
 export const inject = ['slots', 'locale', 'settingsScope']
 
-/**
- * Mount the plugin configuration section and the cards this package ships.
- * @param ctx - the browser plugin context.
- */
 export function apply(ctx) {
   const t = ctx.locale.bind(NS)
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-settings-plugins: section dictionaries')

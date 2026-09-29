@@ -1,6 +1,3 @@
-/** Locale bundles for the plugin configuration section and its plugin cards. */
-
-/** English copy. */
 export const en = {
   nav: 'Plugins',
   title: 'Plugins',

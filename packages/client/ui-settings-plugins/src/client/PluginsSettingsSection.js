@@ -1,33 +1,19 @@
-/**
- * Plugins settings section: localized tabs around feature-owned pages.
- *
- * Converted from a React hooks component (useState/useEffect/useRef/useId) to
- * a webjsx custom element: activeId/visitedIds become instance fields, the
- * visited-set effect becomes an inline update inside #render, tab button refs
- * become a direct querySelector lookup by index, and re-render is an explicit
- * applyDiff(this, vdom) call (Toast.tsx's pattern). useId's stable id becomes
- * a per-instance counter assigned in the constructor.
- */
-
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import css from './PluginsSettingsSection.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-/** Cast a renderSlot() RenderOutput result into a webjsx-embeddable child. */
 function asChild(node) {
   return node
 }
 
 let idCounter = 0
 
-/** Plugins section custom element: tabs whose contents arrive from feature-owned tabs. */
 export class FreddiePluginsSettingsSection extends HTMLElement {
   #props = null
   #tabsId = `freddie-plugins-tabs-${String(idCounter++)}`
   #activeId
   #visitedIds = new Set()
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -122,7 +108,6 @@ export class FreddiePluginsSettingsSection extends HTMLElement {
 
 defineElement('freddie-plugins-settings-section', FreddiePluginsSettingsSection)
 
-/** Render one Plugins page whose contents arrive from feature-owned tabs. */
 export function PluginsSettingsSection(props) {
   const el = document.createElement('freddie-plugins-settings-section')
   el.setProps(props)

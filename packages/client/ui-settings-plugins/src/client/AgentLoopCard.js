@@ -1,14 +1,7 @@
-/** The agent loop's card: how many tool calls one step may run at once. */
-
 import { createElement as h, Fragment } from '@freddie/webjsx'
 import { ValueField } from './fields.js'
 import { PluginCard } from './PluginCard.js'
 
-/**
- * Render the agent-loop card.
- * @param props - locale copy, the card snapshot, and its form actions.
- * @returns the card.
- */
 export function AgentLoopCard(props) {
   const { t } = props
   const state = props.useAgentLoopCard(snapshot => snapshot)

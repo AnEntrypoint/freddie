@@ -1,47 +1,12 @@
-/**
- * One plugin's card: a header naming the plugin and what its settings govern,
- * disclosing that plugin's controls in place, with the save that writes them.
- *
- * The header is its own button rather than a shared disclosure row because a
- * card stacks its name over its description, while that row lays the two side
- * by side — the layout, not the behavior, is what differs. Disclosure is
- * card-local state: which card a user has open is a reading gesture, not
- * something the Host or the section has any stake in. Staged edits outlive
- * collapsing, so the header marks a card holding unsaved edits.
- *
- * A card renders nothing while its namespace is unavailable: a deployment that
- * does not compose the owning plugin should show no trace of it, rather than a
- * disabled card the user cannot act on.
- *
- * Converted from a React hooks component (useState) to a webjsx custom
- * element: `open` becomes an instance field, and re-render is an explicit
- * applyDiff(this, vdom) call (Toast.tsx's pattern).
- */
-
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { IconChevronDownOutline14, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './PluginCard.css.js'
 
-/**
- * @typedef {object} PluginCardProps
- * @property {object} state - the card's form state: `available` (renders nothing when false),
- * `dirty` (unsaved edits pending), `invalid` (blocks save), `saving` (submit in flight),
- * `failed` (shows the save-failed message), `writable` (shows the read-only notice when false).
- * @property {(key: string) => string} t - locale lookup for the card's copy.
- * @property {string} titleKey - copy key for the card's name, shown in the header.
- * @property {string} descriptionKey - copy key for the card's description, shown in the header.
- * @property {*} children - the plugin's own controls, rendered inside the card body when open.
- * @property {() => void} onDiscard - called when the discard button is pressed.
- * @property {() => void} onSave - called when the save button is pressed.
- */
-
-/** One plugin card custom element. See {@link PluginCardProps} for the field-by-field docs. */
 export class FreddiePluginCard extends HTMLElement {
   #props = null
   #open = false
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -111,11 +76,6 @@ export class FreddiePluginCard extends HTMLElement {
 
 defineElement('freddie-plugin-card', FreddiePluginCard)
 
-/**
- * Render one plugin card.
- * @param props - the plugin's copy keys, its form state, and its controls.
- * @returns the card; renders nothing when the namespace is unavailable.
- */
 export function PluginCard(props) {
   const el = document.createElement('freddie-plugin-card')
   el.setProps(props)

@@ -1,26 +1,5 @@
-/**
- * Shared form model behind every plugin card.
- *
- * A card stages what the user types and writes it only when they save. Each
- * settings write is a durable, revision-fenced document mutation, so a control
- * that committed as it settled turned one edit into a write the user never
- * asked for and could not preview; staged text makes what is on screen exactly
- * what a save would store.
- *
- * A field shows its effective value — the user layer over the composition
- * layer over the schema default — and whether the user layer carries it. That
- * presence, not a value comparison, is what marks a field overridden: an
- * override equal to the composition default is still an override.
- */
-
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 
-/**
- * A whole-number field. An empty draft clears the field; any other draft that
- * is not a finite number blocks the save.
- * @param field - field name inside the namespace section.
- * @returns the field's conversion spec.
- */
 export function numberField(field) {
   return {
     field,
@@ -34,12 +13,6 @@ export function numberField(field) {
   }
 }
 
-/**
- * A free-text field. An empty draft clears the field, so emptying the control
- * and saving is the same gesture as resetting it.
- * @param field - field name inside the namespace section.
- * @returns the field's conversion spec.
- */
 export function textField(field) {
   return {
     field,
@@ -51,13 +24,6 @@ export function textField(field) {
   }
 }
 
-/**
- * Stages one card's edits over one settings namespace and writes them on save.
- *
- * The form publishes through a snapshot store because slot components read
- * through a snapshot selector, while both the scope and the local drafts
- * change underneath; every projection is rebuilt from the two together.
- */
 export class CardForm {
   specs
   secretSpecs
@@ -66,11 +32,6 @@ export class CardForm {
   saving = false
   failed = false
 
-  /**
-   * @param scope - the bound settings scope for this card's namespace.
-   * @param specs - the section fields this card edits.
-   * @param secrets - the card's write-only controls, written outside the section.
-   */
   constructor(scope, specs, secrets = []) {
     this.scope = scope
     this.specs = new Map(specs.map(spec => [spec.field, spec]))
@@ -78,21 +39,12 @@ export class CardForm {
     scope.subscribe(() => { this.publish() })
   }
 
-  /**
-   * Publish a projection of this form, rebuilt whenever the scope or a draft changes.
-   * @param project - build the card's state from the form's current reads.
-   * @returns the store the card's component reads through its bound selector.
-   */
   bind(project) {
     const store = createSnapshotStore(project())
     this.listeners.add(() => { store.set(project()) })
     return store
   }
 
-  /**
-   * Read the card-level state: what the Host serves, and what a save would do.
-   * @returns the form state every card shares.
-   */
   shell() {
     const snapshot = this.scope.getSnapshot()
     const plan = this.plan()
@@ -106,11 +58,6 @@ export class CardForm {
     }
   }
 
-  /**
-   * Read one control's state.
-   * @param field - field name of a section field or of a write-only control.
-   * @returns the draft text, whether a save would leave an override, and whether it is invalid.
-   */
   field(field) {
     const staged = this.staged.get(field)
     if (this.secretSpecs.has(field)) {
@@ -128,10 +75,6 @@ export class CardForm {
     }
   }
 
-  /**
-   * Build the edit, reset, save, and discard actions bound to this form.
-   * @returns the actions a card's slot entry injects.
-   */
   actions() {
     return {
       edit: (field, text) => { this.stage(field, { text, clear: false }) },
@@ -148,15 +91,6 @@ export class CardForm {
     }
   }
 
-  /**
-   * Write every staged edit, then re-seed from what the Host accepted.
-   *
-   * The Host is the only authority on whether a value was accepted — its
-   * validators own the constraints no schema can express — so the outcome is
-   * read back from the section rather than predicted here. A save that did not
-   * land keeps its drafts, so the user can correct them instead of retyping.
-   * @returns settlement after every write and the read-back.
-   */
   async save() {
     const plan = this.plan()
     const writes = plan.flatMap(item => item.run === undefined ? [] : [item.run])
@@ -174,12 +108,6 @@ export class CardForm {
     this.publish()
   }
 
-  /**
-   * Every staged edit a save would write. An entry whose draft is not a value
-   * its field accepts carries no write: the form is still dirty, and the save
-   * refuses rather than dropping the edit.
-   * @returns the planned writes, in the order the fields were staged.
-   */
   plan() {
     const plan = []
     for (const [field, staged] of this.staged) {
