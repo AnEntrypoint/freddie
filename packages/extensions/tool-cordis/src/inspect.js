@@ -1,16 +1,6 @@
-/**
- * Text renderers for `cordis_runtime_inspect`. Live facts come from the service store and
- * the plugin registry; what each service CAN DO comes from the generated
- * `api-catalog.js`. This module owns the join of the two plus presentation: which
- * lines a section prints, how compact the default report stays, and what an exact
- * `name` adds.
- * @module @freddie/freddie-tool-cordis/inspect
- */
-
 import { EVENT_API, INHERITED_CTX_API, SERVICE_API, TYPE_API } from './api-catalog.js'
 import { FiberState, STATE_LABELS } from './fiber-state.js'
 
-/** The live service registrations, read from the reflect store. */
 function liveImpls(ctx) {
   const store = ctx.reflect.store
   return Object.getOwnPropertySymbols(store)
@@ -18,22 +8,10 @@ function liveImpls(ctx) {
     .filter(impl => impl !== undefined)
 }
 
-/**
- * A summary as prose. JSDoc may name a symbol with an inline link tag (for
- * example, linking `Foo.bar`), which the generated catalog retains verbatim;
- * a report is read, not compiled, so the link syntax is spent context and the
- * bare symbol says the same thing.
- */
 function plainSummary(summary) {
   return summary.replace(/\{@link\s+([^}]+)\}/g, '$1')
 }
 
-/**
- * Every service this process provides, joined with the generated catalog: what is
- * RUNNING comes from the store, what each service CAN DO comes from the catalog,
- * and a live service the catalog does not cover stays in the list as reachable
- * with no signatures rather than being dropped.
- */
 function liveServices(ctx, api) {
   const catalogued = new Map(api.map(entry => [entry.key, entry]))
   return liveImpls(ctx)
@@ -51,18 +29,11 @@ function liveServices(ctx, api) {
     .sort((left, right) => left.name.localeCompare(right.name))
 }
 
-/** Catalogued services with no live provider: loadable in principle, absent here. */
 function absentServices(ctx, api) {
   const live = new Set(liveImpls(ctx).map(impl => impl.name))
   return api.filter(entry => !live.has(entry.key)).map(entry => entry.key).sort()
 }
 
-/**
- * Whether a fiber is `root` itself or mounted anywhere inside `root`'s subtree.
- * @param fiber - the fiber to locate.
- * @param root - the subtree root to test against.
- * @returns true when `fiber` belongs to that subtree.
- */
 export function withinFiber(fiber, root) {
   let current = fiber
   while (true) {
@@ -73,12 +44,6 @@ export function withinFiber(fiber, root) {
   }
 }
 
-/**
- * Service names provided by one mount's fiber subtree.
- * @param ctx - the runtime whose service registrations are inspected.
- * @param fiber - the root of the mounted fiber subtree.
- * @returns the provided service names in lexical order.
- */
 export function providedServices(ctx, fiber) {
   return liveImpls(ctx)
     .filter(impl => withinFiber(impl.fiber, fiber))
@@ -86,26 +51,10 @@ export function providedServices(ctx, fiber) {
     .sort()
 }
 
-/**
- * Services a fiber declared in `inject` that do not exist yet — a settled fiber
- * that is not active is waiting on exactly these (legal cordis semantics: it
- * activates when the service appears).
- * @param ctx - the context to resolve service existence against.
- * @param fiber - the fiber whose `inject` declarations are checked.
- * @returns the missing service names, in declaration order.
- */
 export function missingServices(ctx, fiber) {
   return Object.keys(fiber.inject).filter(service => ctx.get(service) === undefined)
 }
 
-/**
- * The `services` section: every live ctx service with its owning fiber and, when
- * the generated catalog covers it, a one-line summary. The `api` section is the
- * one that carries signatures; this one answers what exists and who provides it.
- * @param ctx - the runtime to enumerate.
- * @param api - the generated service entries whose summaries annotate the live ones.
- * @returns one line per service, or a single placeholder line when none are provided.
- */
 export function describeServices(ctx, api = SERVICE_API) {
   const live = liveServices(ctx, api)
   if (live.length === 0) return ['(no services provided)']
@@ -116,14 +65,6 @@ export function describeServices(ctx, api = SERVICE_API) {
   })
 }
 
-/**
- * The `plugins` section: a flat list of every fiber the registry knows, one line
- * per fiber with its lifecycle state, sorted by plugin name (a plugin mounted
- * more than once repeats — one line per instance). Temporary plugins are listed
- * like any other plugin; their ids live in the `temporary` section.
- * @param ctx - the runtime whose registry is enumerated.
- * @returns one line per loaded plugin fiber.
- */
 export function describePlugins(ctx) {
   const fibers = []
   for (const runtime of ctx.registry.values()) {
@@ -134,27 +75,10 @@ export function describePlugins(ctx) {
     .map(fiber => `- ${fiber.name} [${STATE_LABELS[fiber.state]}]`)
 }
 
-/**
- * The `tools` section: the model-facing tool names the CALLING agent can see
- * (its scoped layer shadowing/joining the restricted global tool set) — the
- * honest answer to the tool description's "what you can call".
- * @param ctx - the runtime whose tool registry is read.
- * @param scope - the calling agent (the viewing scope); omitted = global view.
- * @returns one line per visible tool.
- */
 export function describeTools(ctx, scope) {
   return ctx.tools.schemas(scope).map(schema => `- ${schema.name}`)
 }
 
-/**
- * The `temporary` section: one line per dynamic package this session defined,
- * with its metadata, which halves exist, the host half's lifecycle state and
- * provides/waits, the invoke methods it registered, and the last browser-half
- * load report. Session-scoped like every runner verb.
- * @param ctx - the runtime the packages live in.
- * @param agent - the calling agent; without one there is no definition space to report.
- * @returns one line per package, or a single placeholder line when none exist.
- */
 export function describeDynamic(ctx, agent) {
   const rows = agent === undefined ? [] : ctx.dynamicCordisRunner.snapshot(agent)
   if (rows.length === 0) {
@@ -186,11 +110,6 @@ export function describeDynamic(ctx, agent) {
   })
 }
 
-/**
- * The transitive closure of catalogued type shapes referenced (word-bounded)
- * by the seed texts — the runtime scoping that keeps the `api` section to the
- * shapes the LIVE signatures actually mention.
- */
 function typeClosure(seeds, types) {
   const included = new Map()
   let frontier = seeds
@@ -209,7 +128,6 @@ function typeClosure(seeds, types) {
   return [...included.values()].sort((left, right) => left.name.localeCompare(right.name))
 }
 
-/** Render one live catalogued service; `documented` is non-empty only for an exact-name report. */
 function serviceLines(service, documented) {
   const lines = [`- ${service.name} — ${service.summary}`]
   for (const signature of service.methods) {
@@ -225,17 +143,6 @@ function serviceLines(service, documented) {
   return lines
 }
 
-/**
- * Render the generated catalog against the live runtime: live catalogued services with methods,
- * uncatalogued live services with owners, absent loadable services, referenced type shapes, and
- * inherited Context APIs.
- * @param ctx - the runtime to intersect the catalog with.
- * @param api - generated service entries, replaceable in tests.
- * @param name - exact live service key whose methods should include structured contracts; omitted for the compact catalog.
- * @param inherited - inherited `ctx` entries, replaceable in tests.
- * @param types - public type shapes, replaceable in tests.
- * @returns the section lines.
- */
 export function describeApi(
   ctx,
   api = SERVICE_API,
@@ -279,13 +186,6 @@ export function describeApi(
   return lines
 }
 
-/**
- * The `events` section: every harness event with its dispatch mode, one-line
- * summary, and exact signature, closed by the waterfall caution.
- * @param events - the event catalog (the generated one by default; injectable for tests).
- * @param name - exact event name whose signature should include its structured contract; omitted for the compact catalog.
- * @returns the section lines.
- */
 export function describeEvents(events = EVENT_API, name) {
   let selected = events
   if (name !== undefined) {

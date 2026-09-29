@@ -1,8 +1,3 @@
-/**
- * Model-facing Cordis runtime/package inspection, define, run, stop, and remove tools.
- * @module @freddie/freddie-tool-cordis
- */
-
 import {
   CordisDynamicPackageId, CordisDynamicPluginId,
 } from '@freddie/freddie-cordis-host-runner'
@@ -24,7 +19,6 @@ function requireAgent(exec) {
   return exec.agent
 }
 
-/** Register the Cordis tools and explicit `@pluginId` context injection. */
 export function apply(ctx) {
   ctx.systemPrompt.section({ name: 'tool:cordis', order: 115, text: CORDIS_SYSTEM_PROMPT })
   for (const provider of hostInspectProviders()) {

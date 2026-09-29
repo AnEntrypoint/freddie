@@ -1,5 +1,3 @@
-/** First-party Host inspect providers registered by the Cordis tool package. */
-
 import { HOST_BUILTIN_INSPECTION } from '@freddie/freddie-cordis-host-runner'
 import { EVENT_API, queryEventApi, queryServiceApi } from './api-catalog.js'
 
@@ -15,10 +13,6 @@ const EVENT_OUTPUT = {
 }
 const HOST_EVENTS = EVENT_API.filter(event => !event.name.startsWith('cordis/'))
 
-/**
- * Construct Host providers over generated catalogs and the requesting Agent tool scope.
- * @returns registrations for static catalogs and live Host capabilities.
- */
 export function hostInspectProviders() {
   return [
     registration(
