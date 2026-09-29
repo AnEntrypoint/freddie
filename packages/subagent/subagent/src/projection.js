@@ -1,10 +1,3 @@
-/**
- * Pure session projections for subagent identity (mode/label) and active-turn
- * duration.
- *
- * @module @freddie/freddie-subagent/projection
- */
-
 import { foldSubagentDescriptor } from './descriptor.js'
 
 /**
@@ -16,14 +9,6 @@ import { foldSubagentDescriptor } from './descriptor.js'
  * @property {{ since: number, through: number }} [active] - the in-progress active span, if any.
  */
 
-/**
- * Fold turn boundaries around the child's own durable descriptor.
- *
- * A fork seed may contain an ancestor descriptor and completed turns. Every
- * descriptor therefore resets the accumulated state; the healthy catalog
- * admits only a child with exactly one descriptor in its own suffix, making
- * the final reset the child's authoritative timing origin.
- */
 export const subagentTimingProjectionDefinition = {
   key: 'subagentTiming',
   init: () => ({ descriptorSeen: false, settledMs: 0 }),
@@ -73,7 +58,6 @@ export const subagentTimingProjectionDefinition = {
  * @typedef {{ mode: 'one-shot', label?: string, seq: number } | { mode: 'continuable', label: string, seq: number }} SubagentDescriptorIdentity
  */
 
-/** Interpret one `subagent/descriptor` event's identity; no value when the payload cannot be trusted. */
 function descriptorIdentity(event) {
   let descriptor
   try {
@@ -91,17 +75,6 @@ function descriptorIdentity(event) {
     : { mode: 'continuable', label: descriptor.label, seq: event.seq }
 }
 
-/**
- * Fold the durable mode/label identity from `subagent/descriptor` events,
- * last-wins: a fork seed may replay an ancestor's descriptor, and the child's
- * own descriptor must override it — the same reset discipline as
- * {@link subagentTimingProjectionDefinition}. A malformed or unknown-version
- * payload resets to the `null` sentinel instead of throwing, so a fork of a
- * healthy ancestor never inherits an identity its own descriptor failed to
- * establish — and the reset survives every JSON push frame, so a consumer
- * holding the earlier identity replaces it instead of keeping it stale;
- * `null` ⟺ no valid descriptor, with the causes deliberately undistinguished.
- */
 export const subagentIdentityProjectionDefinition = {
   key: 'subagent',
   init: () => ({}),

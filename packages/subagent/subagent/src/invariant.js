@@ -1,20 +1,14 @@
-/** Package-owned subagent registry and lifecycle invariants. @module @freddie/freddie-subagent/invariant */
-
 const PACKAGE_NAME = '@freddie/freddie-subagent'
 
-/** Cordis companion plugin name. */
 export const name = 'subagent-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Assert that a terminal lifecycle payload matches its start identity. */
 function validateRunEnd(start, end, fail) {
   if (start.provider !== end.provider || start.id !== end.id || start.local !== end.local) {
     fail(`subagent/end identity diverges from subagent/start for run ${JSON.stringify(end.runId)}`)
   }
 }
 
-/** Install provider-registry and start/end pairing checks. */
 const install = Object.assign((ctx, fail) => {
   const providers = new Set(ctx.subagents.list())
   const runs = new Map()
@@ -76,10 +70,5 @@ const install = Object.assign((ctx, fail) => {
   }, { global: true })
 }, { inject: ['subagents'] })
 
-/**
- * Register the subagent invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

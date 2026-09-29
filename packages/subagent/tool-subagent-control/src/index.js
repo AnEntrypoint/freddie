@@ -1,24 +1,9 @@
-/**
- * The globally named `send_message` and `interrupt_agent` tools: thin
- * model-facing adapters over `ctx.subagents.followup()` and
- * `ctx.subagents.interrupt()`. They perform no lifecycle routing of their own —
- * residency, cold resume, and interrupt authorization belong to the subagent
- * service — and they live apart from the provider-bound
- * `@freddie/freddie-tool-subagent` instances so multiple delegation tools share
- * one control API.
- * @module @freddie/freddie-tool-subagent-control
- */
-
 import { defineTool } from '@freddie/freddie-tools'
 import { SessionId } from '@freddie/freddie-session'
 
 export const name = 'tool-subagent-control'
 export const inject = ['tools', 'subagents']
 
-/**
- * Register the `send_message` and `interrupt_agent` tools.
- * @param ctx - context carrying the tool registry and subagent service.
- */
 export function apply(ctx) {
   ctx.tools.register(defineTool({
     name: 'send_message',

@@ -1,10 +1,3 @@
-/**
- * Out-of-process ACP subagent backend. Each child has its own process,
- * session, model, and tools, so it shares no Cordis context and advertises no
- * parent-enforced start capabilities; the ONE thing it reads off
- * `request.parent` is the session's workspace cwd.
- */
-
 import { accessSync, constants, statSync } from 'node:fs'
 import { isAbsolute, resolve } from 'node:path'
 import z from '@freddie/schemastery'
@@ -46,18 +39,12 @@ export const Config = z.object({
   disposeGraceMs: z.number().default(DEFAULT_DISPOSE_GRACE_MS),
 })
 
-/** A process grace must fit every Node timer that observes or terminates the child. */
 function assertPositiveFinite(name, value) {
   if (!Number.isFinite(value) || value <= 0 || value > MAX_TIMER_DELAY_MS) {
     throw new Error(`subagent-acp: ${name} must be a positive finite number no greater than ${MAX_TIMER_DELAY_MS}`)
   }
 }
 
-/**
- * Whether `path` names an existing directory the harness can ENTER. The
- * search-permission probe matters: `statSync().isDirectory()` is true for a
- * mode-600 directory, but a subprocess cwd needs `X_OK` or spawn fails EACCES.
- */
 function isDirectory(path) {
   try {
     if (!statSync(path).isDirectory()) return false
@@ -68,15 +55,6 @@ function isDirectory(path) {
   }
 }
 
-/**
- * Assert `cwd` can actually host the child: absolute (it doubles as the ACP
- * session workspace, and a relative path would be re-anchored to the server
- * process's launch directory) and an existing directory (fail here, before
- * the process boundary, instead of as an ambiguous spawn ENOENT).
- * @param label - which source supplied the value, for the diagnostic.
- * @param cwd - the candidate working directory.
- * @returns `cwd`, validated.
- */
 function assertUsableCwd(label, cwd) {
   if (!isAbsolute(cwd)) {
     throw new Error(`subagent-acp: ${label} must be an absolute path: ${cwd}`)
@@ -87,15 +65,6 @@ function assertUsableCwd(label, cwd) {
   return cwd
 }
 
-/**
- * Resolve the child's working directory: the deployment `cwd` override when
- * configured (already validated at load), else the parent session's
- * workspace cwd (validated here, its earliest resolvable point). Fails loud
- * when neither exists — falling back to the harness process cwd would
- * silently bind the child to the server's launch directory instead of the
- * delegating session's workspace (one server process serves many sessions,
- * each with its own cwd).
- */
 function resolveCwd(configured, request) {
   if (configured !== undefined) return configured
   const parentCwd = request.parent.session.header.cwd
@@ -105,11 +74,6 @@ function resolveCwd(configured, request) {
   return assertUsableCwd('parent session cwd', parentCwd)
 }
 
-/**
- * The ACP provider. Advertises NO start-time capabilities: an out-of-process
- * child cannot honor `agentOptions`/`outputSchema`/`maxDepth`/`toolFilter`/
- * `persona` (the service rejects a request needing any before `start` runs).
- */
 class AcpProvider {
   capabilities = {
     agentOptions: false,

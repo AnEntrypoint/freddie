@@ -1,16 +1,3 @@
-/**
- * Shared driver for in-process ONE-SHOT subagent providers. The agent factory's
- * creation transaction owns unpublished setup and rollback; after publication
- * the returned AgentHandle is the one quiescent lifecycle owner held by the
- * provider's caller.
- *
- * Continuable children never come through here: the continuation manager
- * composes and drives them directly, so this driver owns exactly one turn with
- * one result.
- *
- * @module @freddie/freddie-subagent-in-process-driver
- */
-
 import { randomUUID } from 'node:crypto'
 import { foldConsumedWork } from '@freddie/freddie-agent'
 import { SessionId } from '@freddie/freddie-session'
@@ -34,7 +21,6 @@ export {
   STRUCTURED_OUTPUT_INSTRUCTION,
 } from './structured.js'
 
-/** Map a session turn outcome to the subagent seam's terminal vocabulary. */
 function toStopReason(reason) {
   switch (reason?.kind) {
     case 'completed':
@@ -52,12 +38,10 @@ function toStopReason(reason) {
   }
 }
 
-/** Error used when cancellation wins before the child publication boundary. */
 function prePublicationAbort() {
   return new Error('subagent request was aborted before child publication')
 }
 
-/** Append one one-shot descriptor inside the child's initial turn before its first request. */
 function attachDescriptorAppend(childCtx, descriptor) {
   let appended = false
   childCtx.on('agent/pre-step', async ({ agent }, next) => {
@@ -70,17 +54,6 @@ function attachDescriptorAppend(childCtx, descriptor) {
   })
 }
 
-/**
- * Establish and drive one in-process one-shot child. Fulfillment means the agent
- * is already published in the registry and transfers its turn, cancellation,
- * and disposal work through the returned run. Rejection means the agent
- * factory's unpublished creation transaction reached quiescence without
- * publishing a child. Every start appends its resolved descriptor inside the
- * child's initial turn.
- * @param request - the trusted typed start request, including its required signal.
- * @param options - the optional fork seed.
- * @returns a published holder-owned run.
- */
 export async function startInProcessRun(request, options) {
   assertSubagentMaxDepth(request.maxDepth)
   if (request.signal.aborted) throw prePublicationAbort()
@@ -124,10 +97,6 @@ export async function startInProcessRun(request, options) {
   )
 }
 
-/**
- * Wrap a published child in the single run lifecycle that owns signal handoff,
- * one turn, result settlement, and quiescent disposal.
- */
 function drivePublishedRun(
   handle,
   signal,
@@ -176,7 +145,6 @@ function drivePublishedRun(
   }
 }
 
-/** Read one settled child's result from events after its activation boundary. */
 function readResult(
   child,
   boundary,

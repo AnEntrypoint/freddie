@@ -1,13 +1,3 @@
-/**
- * Fresh-process SDK subagent client. Drives one child Freddie runtime over
- * stdio JSON-RPC through `@freddie/freddie-sdk-client` and owns cancellation
- * and quiescent disposal. It publishes after the child handshake, maps child
- * failures to stop reasons, and tears down to quiescence. The SDK client
- * spawns the child rather than using `ctx.subprocess` — the subprocess seam's
- * documented exception for SDK-managed transports — so this driver applies
- * the seam's shared env scrub.
- */
-
 import { randomUUID } from 'node:crypto'
 import {
   DeepSeekHarness,
@@ -19,16 +9,12 @@ import { SessionId } from '@freddie/freddie-session'
 import { AssistantOutputFold, settleRunResult, subprocessRunHandle } from '@freddie/freddie-subagent'
 import { scrubbedParentEnv } from '@freddie/freddie-subprocess'
 
-/** EOF grace for child flush and nested-process teardown; wider than the signal grace below. */
 export const DEFAULT_DISPOSE_EOF_GRACE_MS = 6_000
 
-/** Default POSIX grace between SIGTERM and SIGKILL on dispose (the `disposeGraceMs` config). */
 export const DEFAULT_DISPOSE_GRACE_MS = 3_000
 
-/** Default bound on the protocol `shutdown` exchange during dispose. */
 export const DEFAULT_SHUTDOWN_TIMEOUT_MS = 1_000
 
-/** Fixed safe failure text derived only from provider-owned structured facts. */
 function failureDiagnostic(facts) {
   const fields = [
     'provider: Freddie SDK',
@@ -46,21 +32,14 @@ class SdkRunFailure extends Error {
   }
 }
 
-/** Runtime constructor seam replaced only by package-local fake-runtime tests. */
 export const internals = {
   createHarness: options => new DeepSeekHarness(options),
 }
 
-/**
- * Hide a pre-spawn workspace/configuration failure behind fixed safe facts.
- * @param cause - original Host failure retained on the Error cause chain.
- * @returns an Error whose message contains only the fixed Freddie SDK failure line.
- */
 export function sdkConfigurationFailure(cause) {
   return new SdkRunFailure({ stage: 'initialize', category: 'configuration' }, cause)
 }
 
-/** Classify one SDK rejection without reading its message or stderr tail. */
 function sdkFailure(error, stage) {
   const facts = error instanceof TransportClosedError
     ? { stage, category: 'transport' }
@@ -70,12 +49,6 @@ function sdkFailure(error, stage) {
   return new SdkRunFailure(facts, error)
 }
 
-/**
- * Map one child terminal reason to its complete shared result outcome.
- * @param reason - the owned child run's final durable turn reason, or
- * `undefined` when it settled without running a turn.
- * @returns the shared stop reason and any additional safe diagnostic.
- */
 export function sdkChildOutcome(reason) {
   switch (reason?.kind) {
     case 'completed':
@@ -115,7 +88,6 @@ function toError(value) {
   return value instanceof Error ? value : new Error(String(value))
 }
 
-/** Report an original Host failure without letting the observation sink replace it. */
 function reportFailure(spec, error) {
   try {
     spec.onError?.(toError(error), 'error')
@@ -123,7 +95,6 @@ function reportFailure(spec, error) {
   }
 }
 
-/** Map an SDK-owned failed-start aggregate into safe initialize/shutdown lines. */
 function sdkStartupFailure(spec, error) {
   if (!(error instanceof AggregateError) || error.errors.length < 2) {
     reportFailure(spec, error)
@@ -141,18 +112,6 @@ function sdkStartupFailure(spec, error) {
   )
 }
 
-/**
- * Start and publish one SDK runtime child after its `initialize` handshake.
- * Child failures resolve through the run result. Startup rejects with fixed
- * safe facts after SDK-owned cleanup; successful cleanup proves process reap.
- * Cleanup failure preserves initialize plus shutdown for an ordinary failure,
- * or shutdown alone after cancellation, without claiming quiescence. Disposal
- * shuts the runtime down and reaps it.
- * @param request - the start request; its signal is the cancellation channel.
- * @param spec - the resolved spawn spec: launch/cwd, the child's provider/model
- * route, output cap, env, timeouts, and the optional error sink.
- * @returns the ready run handle for the child subprocess.
- */
 export async function startSdkRun(request, spec) {
   if (request.signal.aborted) throw new Error('subagent request was aborted before the SDK child started')
   const id = SessionId(randomUUID())

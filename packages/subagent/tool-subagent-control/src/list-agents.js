@@ -1,37 +1,19 @@
-/**
- * The globally named `list_agents` tool: a thin model-facing adapter over
- * the continuable projection of `ctx.subagents.listChildren()` and, for the
- * `descendants` scope, `ctx.subagents.listDescendants()`. It stays separately
- * loadable from the root `send_message` plugin so a deployment can register
- * continuation delivery without exposing discovery.
- * @module @freddie/freddie-tool-subagent-control/list-agents
- */
-
 import { defineTool } from '@freddie/freddie-tools'
 import { assertNever } from '@freddie/freddie-llm'
 
 export const name = 'tool-subagent-list-agents'
 export const inject = ['tools', 'subagents', 'agents']
 
-/** Resolve the optional model request into an internal required-scope spec. */
 function resolveListAgentsRequest(request) {
   return { scope: request.scope ?? 'children' }
 }
 
-/**
- * Refine one candidate's status through the live Agent registry: `running`
- * for an active driver, `idle` for a resident Agent between turns (possibly
- * waiting on agents it started), and `ready` when no live Agent remains.
- * `ready` preserves resumability without presenting an inactive conversation
- * as a terminal result to collect.
- */
 function statusOf(agents, id) {
   const agent = agents.get(id)
   if (agent === undefined) return 'ready'
   return agent.status === 'running' ? 'running' : 'idle'
 }
 
-/** Project one service row into the model-facing entry, or omit a one-shot child. */
 function project(agents, entry, position) {
   const at = position === undefined ? {} : { parent: position.parentId, depth: position.depth }
   if (entry.kind === 'diagnostic') {
@@ -47,10 +29,6 @@ function project(agents, entry, position) {
   }
 }
 
-/**
- * Register the `list_agents` tool.
- * @param ctx - context carrying the tool registry, subagent service, and live Agent registry.
- */
 export function apply(ctx) {
   ctx.tools.register(defineTool({
     name: 'list_agents',

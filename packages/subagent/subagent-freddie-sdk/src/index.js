@@ -1,12 +1,3 @@
-/**
- * Out-of-process SDK subagent backend. Each child is a complete Freddie
- * runtime in its own process — own composition, session, model route, and
- * tools — driven over stdio JSON-RPC through the TypeScript SDK client, so it
- * shares no Cordis context. It accepts the provider/model/maxTokens subset of
- * `agentOptions`; other start features remain unsupported. The ONE thing it
- * reads off `request.parent` is the session's workspace cwd.
- */
-
 import z from '@freddie/schemastery'
 import { assertPositiveFinite, NO_START_CAPABILITIES, resolveChildCwd, validateConfiguredCwd } from '@freddie/freddie-subagent'
 import {
@@ -54,13 +45,11 @@ export const Config = z.object({
   disposeGraceMs: z.number().default(DEFAULT_DISPOSE_GRACE_MS),
 })
 
-/** Freddie SDK can apply Agent route options while the other start features remain child-owned. */
 const SDK_START_CAPABILITIES = Object.freeze({
   ...NO_START_CAPABILITIES,
   agentOptions: true,
 })
 
-/** Merge the request's supported route fields over this provider instance's defaults. */
 function resolveSdkRoute(config, requested) {
   const maxTokens = requested?.maxTokens ?? config.maxTokens
   return {
@@ -70,11 +59,6 @@ function resolveSdkRoute(config, requested) {
   }
 }
 
-/**
- * The SDK provider. It resolves Agent route options into the child runtime's
- * process-wide handshake; output schema, depth, tool filter, and persona stay
- * unsupported because their ownership does not cross this process boundary.
- */
 class SdkSubagentProvider {
   capabilities = SDK_START_CAPABILITIES
   inheritsParentContext = false

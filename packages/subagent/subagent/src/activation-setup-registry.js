@@ -1,16 +1,3 @@
-/**
- * Internal registry of deployment capabilities composed into every continuable
- * child's unpublished creation context.
- *
- * A contribution grants a child-scoped capability without teaching the
- * continuation manager which capabilities exist. The manager owns residency;
- * this registry owns the join between plugin lifetime, unpublished setup, and
- * Activation disposal, so no installation outlives either owner and no removed
- * contribution can be installed after revocation reports completion.
- *
- * @module @freddie/freddie-subagent/activation-setup-registry
- */
-
 import { errorChain } from '@freddie/freddie-llm'
 import { SubagentError } from './error.js'
 
@@ -48,27 +35,14 @@ import { SubagentError } from './error.js'
  * @property {boolean} invalidated - whether a revoked contribution invalidated this batch before commit.
  */
 
-/** Re-read mutable removal state after a contribution may have revoked itself. */
 function isRemoved(registration) {
   return registration.removed
 }
 
-/**
- * Owns continuable-child setup registrations, installations, rollback, child
- * cleanup, and immediate live revocation.
- */
 export class SubagentActivationSetupRegistry {
-  /** Live contributions in installation order. */
   registrations = new Set()
-  /** Child context to its live installations. */
   byChild = new Map()
 
-  /**
-   * Register one contribution.
-   * @param contribution - synchronous child-scope installer.
-   * @returns an idempotent registration undo.
-   * @throws after attempting every installation when any disposer fails.
-   */
   register(contribution) {
     const registration = { contribution, removed: false, installations: new Set() }
     this.registrations.add(registration)
@@ -80,11 +54,6 @@ export class SubagentActivationSetupRegistry {
     }
   }
 
-  /**
-   * Install every live contribution into one unpublished child context.
-   * @param childCtx - the child's unpublished scoped context.
-   * @returns the provisioning commit consumed at Agent publication.
-   */
   apply(childCtx) {
     const state = { installations: [], invalidated: false }
     try {
@@ -133,17 +102,11 @@ export class SubagentActivationSetupRegistry {
     }
   }
 
-  /** Release every remaining installation owned by one disposed child scope. */
   releaseChild(childCtx) {
     const indexed = this.byChild.get(childCtx) ?? []
     this.releaseAll([...indexed], 'child scope disposal')
   }
 
-  /**
-   * Release a batch completely before reporting disposer failures.
-   * @param installations - records to release.
-   * @param during - operation name for diagnostics.
-   */
   releaseAll(installations, during) {
     const failures = []
     for (const installation of installations) {
@@ -161,7 +124,6 @@ export class SubagentActivationSetupRegistry {
     )
   }
 
-  /** Drop one installation from both indices and dispose it exactly once. */
   release(installation) {
     if (installation.released) return
     installation.released = true

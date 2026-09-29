@@ -1,28 +1,5 @@
-/**
- * Read-only enumeration of durable subagent children and descendant trees
- * straight from the live session store and optional session persistence — no
- * query service. Candidates come from one live-preferred corpus; each child's
- * mode/label is the registered `subagent` projection unit's value, resolved
- * down a three-rung ladder: the registry's watermark cache for a live child,
- * a durable projection-cache row when it serves an own-suffix identity (the
- * seq gate), and one persistence inspection folded through the registry
- * otherwise, validated against the enumerated lifecycle. The projection fold
- * is the single classification authority — this module parses no descriptor
- * itself. Absent persistence, enumeration is live-only: a cold child is
- * unreachable for resume anyway, so its absence is capability absence, not an
- * error. The module owns no catalog state and does not consult Activation,
- * Agent-registry, continuation-manager, or provider state.
- *
- * @module @freddie/freddie-subagent
- */
-
 import { SubagentError } from './error.js'
 
-/**
- * Concurrent cold inspections per listing; a constant because it bounds one
- * read-only scan of local media, not deployment behavior. Should a networked
- * persistence backend appear, promote it to a validated `Config` field.
- */
 const COLD_READ_CONCURRENCY = 4
 
 /**
@@ -64,23 +41,6 @@ const COLD_READ_CONCURRENCY = 4
  * @typedef {(SubagentChildRow | SubagentChildDiagnostic) & { parentId: string, depth: number }} SubagentDescendantEntry
  */
 
-/**
- * Enumerate one parent's origin-classified direct children from the
- * live-preferred merge of `ctx.sessions` and optional session persistence,
- * serving each identity from the `subagent` projection unit: the registry's
- * watermark snapshot for a live child; for a cold one, a durable
- * projection-cache row when it serves an own-suffix identity (the seq gate),
- * else one bounded-concurrency persistence inspection folded through the
- * registry.
- * @see SubagentRuntime.listChildren for the public cancellation and failure contract.
- * @param ctx - context carrying the session store, the projection registry,
- *   optional persistence, and the optional projection cache.
- * @param parentSessionId - parent session whose direct children are listed.
- * @param signal - caller-owned cancellation observed around every persistence read.
- * @returns children and per-child diagnostics ordered by `createdAt`, then id.
- * @throws {@link SubagentError} when the projection registry or the session
- *   store is not mounted, or the caller cancels the listing.
- */
 export async function listChildren(ctx, parentSessionId, signal) {
   const listing = await prepareListing(ctx, signal)
   const candidates = [...listing.corpus.values()]
@@ -91,19 +51,6 @@ export async function listChildren(ctx, parentSessionId, signal) {
   return rows.filter(row => row !== undefined)
 }
 
-/**
- * Enumerate every session-backed subagent below one root in stable pre-order.
- * Ordinary sessions and one-shot children remain traversal nodes, so a
- * continuable child below either is still discovered. Classification uses the
- * same projection-backed runtime as {@link listChildren}; no Agent is loaded or
- * resumed.
- * @see SubagentRuntime.listDescendants for the public cancellation and failure contract.
- * @param ctx - context carrying the session store, projection registry, and optional persistence/cache.
- * @param rootSessionId - session whose complete descendant tree is listed.
- * @param signal - caller-owned cancellation observed around every persistence read.
- * @returns interpreted subagents with durable direct-parent and root-relative depth.
- * @throws {@link SubagentError} under the same conditions as {@link listChildren}.
- */
 export async function listDescendants(ctx, rootSessionId, signal) {
   const listing = await prepareListing(ctx, signal)
   const positioned = descendantCandidates(listing.corpus, rootSessionId)
@@ -122,7 +69,6 @@ export async function listDescendants(ctx, rootSessionId, signal) {
   return entries
 }
 
-/** Resolve listing services once and build one live-preferred session corpus. */
 async function prepareListing(ctx, signal) {
   const projections = ctx.get('sessionProjections')
   if (projections === undefined) {
@@ -165,7 +111,6 @@ async function prepareListing(ctx, signal) {
   return { projections, persistence, cache, corpus, subagentParents }
 }
 
-/** Resolve projection-backed rows for aligned candidates with bounded cold reads. */
 async function resolveCandidateRows(candidates, listing, signal) {
   const { projections, persistence, cache, subagentParents } = listing
   const rows = Array.from({ length: candidates.length })
@@ -205,7 +150,6 @@ async function resolveCandidateRows(candidates, listing, signal) {
   return rows
 }
 
-/** Build origin-classified candidates from the complete tree without recursion. */
 function descendantCandidates(corpus, rootSessionId) {
   const children = new Map()
   for (const record of corpus.values()) {
@@ -237,21 +181,10 @@ function descendantCandidates(corpus, rootSessionId) {
   return positioned
 }
 
-/** Compare siblings by durable creation time, then id. */
 function compareCorpusRecords(a, b) {
   return a.header.createdAt - b.header.createdAt || a.header.id.localeCompare(b.header.id)
 }
 
-/**
- * Resolve one cold candidate down the remaining ladder: a durable
- * projection-cache row when it serves an own-suffix identity (the seq gate),
- * otherwise one persistence inspection folded through the projection
- * registry (the same detached recipe the API proxy uses for detached session
- * projections). A failed inspection is one transient `unavailable` row
- * retried on the next listing; an inspection naming another lifecycle, and a
- * settled log the fold cannot identify — or that makes any registered unit
- * throw — are final, so they report `corrupt`.
- */
 async function resolveColdIdentity(persistence, projections, cache, header, hasChildren, signal) {
   const childId = header.id
   if (cache !== undefined) {
@@ -289,7 +222,6 @@ async function resolveColdIdentity(persistence, projections, cache, header, hasC
   return childRow(childId, identity, 'inactive', hasChildren)
 }
 
-/** Materialize one served identity as its child row. */
 function childRow(id, identity, activity, hasChildren) {
   return identity.mode === 'one-shot'
     ? {
@@ -310,17 +242,14 @@ function childRow(id, identity, activity, hasChildren) {
     }
 }
 
-/** Immutable header fields that distinguish one session lifecycle from another under the same id. */
 const LIFECYCLE_WITNESS_KEYS = [
   'version', 'id', 'createdAt', 'cwd', 'parentSession', 'seedLength', 'delegationDepth',
 ]
 
-/** Whether an inspected log still belongs to the enumerated lifecycle. */
 function sameLifecycle(meta, expected) {
   return LIFECYCLE_WITNESS_KEYS.every(key => meta[key] === expected[key])
 }
 
-/** Stop a listing at its next cancellation checkpoint. */
 function assertListingNotCancelled(signal) {
   if (signal?.aborted) {
     throw new SubagentError('subagent listing was cancelled', 'CANCELLED')

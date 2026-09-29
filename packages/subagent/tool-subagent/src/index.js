@@ -1,13 +1,3 @@
-/**
- * Model-facing delegation through one configured `ctx.subagents` provider.
- * Provider lifecycle controls tool registration and context-sensitive schema
- * wording. Foreground calls always dispose the run after collection.
- * Background policy is selected by this plugin's configuration: one-shot
- * calls own a plain Task, while continuable calls use
- * `ctx.subagents.startContinuable()`.
- * @module @freddie/freddie-tool-subagent
- */
-
 import z from '@freddie/schemastery'
 import { defineTool } from '@freddie/freddie-tools'
 import { assertSubagentMaxDepth, settleRun } from '@freddie/freddie-subagent'
@@ -15,7 +5,6 @@ import { assertSubagentMaxDepth, settleRun } from '@freddie/freddie-subagent'
 export const name = 'tool-subagent'
 export const inject = ['tools', 'subagents', 'systemPrompt']
 
-/** Prompt order after bounded delegation policy and before child reporting. */
 const SUBAGENT_SECTION_ORDER = 116.5
 
 export const Config = z.object({
@@ -36,7 +25,6 @@ export const Config = z.object({
   maxDepth: z.union([z.natural().max(Number.MAX_SAFE_INTEGER), z.const('provider-managed')]).default(3),
 })
 
-/** Render text blocks from the canonical JSON block array without trusting arbitrary values. */
 function outputValueText(values) {
   return values
     .filter(value =>
@@ -46,7 +34,6 @@ function outputValueText(values) {
     .join('')
 }
 
-/** Settle pending startup without rejecting the task producer contract. */
 async function settleStart(start, signal) {
   try {
     return await settleRun(await start)
@@ -57,7 +44,6 @@ async function settleStart(start, signal) {
   }
 }
 
-/** A non-`completed` stop reason means the child did not finish cleanly. */
 function stopReasonError(result) {
   switch (result.stopReason) {
     case 'completed':
@@ -75,14 +61,6 @@ function stopReasonError(result) {
   }
 }
 
-/**
- * Append provider-authored failure detail and the child's preserved partial
- * answer to a stop-reason error, keeping diagnostic text separate from the
- * child's assistant output.
- * @param error - the stop-reason headline.
- * @param result - the child's terminal result.
- * @returns the headline, diagnostic, and partial text that are present.
- */
 function withDiagnosticAndPartialText(error, result) {
   const diagnostic = result.diagnostic === undefined
     ? ''
@@ -97,10 +75,6 @@ function withDiagnosticAndPartialText(error, result) {
   return `${error}${diagnostic}${partial}`
 }
 
-/**
- * Collect and release one foreground run without letting disposal replace an
- * independent result failure.
- */
 async function settleForegroundRun(run) {
   const [execution] = await Promise.allSettled([
     run.result.then((result) => {
@@ -129,18 +103,6 @@ async function settleForegroundRun(run) {
   return execution.value
 }
 
-/**
- * Model-facing wording from the provider's conversation-history descriptor
- * ({@link import('@freddie/freddie-subagent/src/types.js').SubagentProvider.inheritsParentContext}).
- * A fresh child needs a standalone prompt; a forked child already sees the
- * conversation's completed turns — telling the model to restate everything
- * (or, worse, that the child "does not see this conversation") would be false
- * for a fork.
- * @param inheritsConversation - whether the child's conversation is seeded
- *   with the parent's completed turns; this says nothing about tool, service,
- *   scope, or authority inheritance.
- * @returns the tool `description` and the `prompt` parameter description.
- */
 function providerWording(inheritsConversation) {
   if (inheritsConversation) {
     return {
@@ -168,7 +130,6 @@ function providerWording(inheritsConversation) {
   }
 }
 
-/** Resolve the model's optional scheduling request into one execution route. */
 function resolveDelegationRun(request, options) {
   if (!options.backgroundEnabled) {
     if (request.run_in_background === true) {

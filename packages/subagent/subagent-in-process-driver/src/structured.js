@@ -1,50 +1,14 @@
-/**
- * Child-scoped structured-output tool, prompt instruction, terminal guard, and authoritative
- * result capture for in-process subagents. Each child registers its real schema on its own
- * scope, so concurrent runs do not interact and disposal leaves no global residue. The prompt
- * contribution is ordinary reconstructed request state.
- *
- * Capture commits only after the authoritative `tools/result` succeeds; Code Mode capture also
- * waits for the enclosing `run_code` result. The terminal result marker and monotonic tool
- * guard prevent later calls from reopening a completed structured run.
- * @module @freddie/freddie-subagent-in-process-driver/structured
- */
-
 import { ToolArgsError, validateJsonSchemaValue } from '@freddie/freddie-tools'
 
-/** The model-facing tool name a structured child must call to finish. */
 export const STRUCTURED_OUTPUT_TOOL = 'structured_output'
 
-/**
- * The instruction registered as the child's trailing (order-190, the end of
- * the tool-guidance band) scoped prompt section: the demand travels with the
- * tool, as ordinary prompt state of exactly one agent.
- */
 export const STRUCTURED_OUTPUT_INSTRUCTION
   = 'When you have your final answer, you MUST report it by calling the '
     + `\`${STRUCTURED_OUTPUT_TOOL}\` tool with arguments matching its parameter schema exactly. `
     + 'Do not finish with a plain text answer: only the tool call counts as your result.'
 
-/**
- * Attach the scoped capture tool, instruction, and enforcement to a child during
- * its creation window. Child disposal removes every registration.
- * @param childCtx - the child agent's scope context (`setup`'s argument).
- * @param schema - the trusted, already-asserted schema subset to enforce (see
- *   `assertObjectJsonSchema` in freddie-tools).
- * @returns the attachment handle (read `captured()` after the child settles).
- */
 export function attachStructuredRuntime(childCtx, schema) {
-  /**
-   * Validated values staged by the capture tool body, awaiting THEIR OWN
-   * authoritative `tools/result` notification. The execution object's identity
-   * uniquely identifies a trip through the pipeline: adapter call ids may
-   * repeat across steps, but another execution can never reach this WeakMap
-   * entry. This is distinct from the opaque `ToolExecutionToken` used to
-   * correlate nested transports. The final notification always deletes its own
-   * stage, whether the result succeeded or failed.
-   */
   const staged = new WeakMap()
-  /** Successful nested capture waiting for its enclosing transport to commit. */
   let pending
   let captured
 

@@ -1,16 +1,3 @@
-/**
- * Provider-side vocabulary for OUT-OF-PROCESS subagent backends — the pieces
- * that enforce this seam's own contracts around a child in another process:
- * the no-capabilities advertisement, timing-bound validation, child
- * working-directory resolution (config override, else the delegating parent
- * session's workspace), the never-reject result settlement, and the standard
- * run-handle publication. Backends compose these with their own wire drivers;
- * the process machinery itself (spawn, env scrub, tree-scoped teardown)
- * belongs to the `freddie-subprocess` seam.
- *
- * @module @freddie/freddie-subagent/out-of-process
- */
-
 import { accessSync, constants, statSync } from 'node:fs'
 import { isAbsolute, resolve } from 'node:path'
 
@@ -42,18 +29,12 @@ import { isAbsolute, resolve } from 'node:path'
  * @property {function(): Promise<void>} dispose - idempotent teardown.
  */
 
-/** Maximum UTF-8 size of {@link SubagentResult.diagnostic}. */
 const MAX_SUBAGENT_DIAGNOSTIC_BYTES = 4_096
 
 const DIAGNOSTIC_TRUNCATION_SUFFIX = '\n[diagnostic truncated]'
 const utf8Encoder = new TextEncoder()
 const utf8Decoder = new TextDecoder()
 
-/**
- * Limit provider-authored failure detail without splitting a UTF-8 sequence.
- * @param diagnostic - safe diagnostic text produced by the provider.
- * @returns the original text, or a visibly truncated value within the limit.
- */
 function limitSubagentDiagnostic(diagnostic) {
   const bytes = utf8Encoder.encode(diagnostic)
   if (bytes.byteLength <= MAX_SUBAGENT_DIAGNOSTIC_BYTES) return diagnostic
@@ -67,12 +48,6 @@ function limitSubagentDiagnostic(diagnostic) {
     + DIAGNOSTIC_TRUNCATION_SUFFIX
 }
 
-/**
- * The capability advertisement of an out-of-process backend: NONE. A child in
- * another process cannot honor parent-enforced start features
- * (`outputSchema`/`maxDepth`/`toolFilter`/`persona`), so the service rejects a
- * request needing any of them before `start` runs — never accepted-then-ignored.
- */
 export const NO_START_CAPABILITIES = Object.freeze({
   outputSchema: false,
   depthLimit: false,
@@ -80,24 +55,12 @@ export const NO_START_CAPABILITIES = Object.freeze({
   persona: false,
 })
 
-/**
- * Assert a configured timing bound is a positive finite number (it bounds a
- * teardown or shutdown wait; zero, negative, or NaN would skip or wedge it).
- * @param prefix - the consuming plugin's diagnostic prefix (e.g. `subagent-acp`).
- * @param name - the config field name, for the diagnostic.
- * @param value - the configured value.
- */
 export function assertPositiveFinite(prefix, name, value) {
   if (!Number.isFinite(value) || value <= 0) {
     throw new Error(`${prefix}: ${name} must be a positive finite number`)
   }
 }
 
-/**
- * Whether `path` names an existing directory the harness can ENTER. The
- * search-permission probe matters: `statSync().isDirectory()` is true for a
- * mode-600 directory, but a subprocess cwd needs `X_OK` or spawn fails EACCES.
- */
 function isEnterableDirectory(path) {
   try {
     if (!statSync(path).isDirectory()) return false
@@ -108,16 +71,6 @@ function isEnterableDirectory(path) {
   }
 }
 
-/**
- * Assert `cwd` can actually host the child: absolute (it doubles as the
- * child's workspace identity, and a relative path would be re-anchored to the
- * server process's launch directory) and an existing directory (fail here,
- * before the process boundary, instead of as an ambiguous spawn ENOENT).
- * @param prefix - the consuming plugin's diagnostic prefix.
- * @param label - which source supplied the value, for the diagnostic.
- * @param cwd - the candidate working directory.
- * @returns `cwd`, validated.
- */
 export function assertUsableCwd(prefix, label, cwd) {
   if (!isAbsolute(cwd)) {
     throw new Error(`${prefix}: ${label} must be an absolute path: ${cwd}`)
@@ -128,16 +81,6 @@ export function assertUsableCwd(prefix, label, cwd) {
   return cwd
 }
 
-/**
- * Validate a configured `cwd` override ONCE, at plugin load: reject the empty
- * string (`path.resolve('')` is the process cwd — it would silently
- * reintroduce the launch-directory fallback this resolution removes),
- * interpret a relative path against the harness launch directory, and require
- * an enterable directory.
- * @param prefix - the consuming plugin's diagnostic prefix.
- * @param cwd - the configured override, or `undefined` when the config omits it.
- * @returns the validated absolute override, or `undefined` when omitted.
- */
 export function validateConfiguredCwd(prefix, cwd) {
   if (cwd === undefined) return undefined
   if (cwd === '') {
@@ -146,19 +89,6 @@ export function validateConfiguredCwd(prefix, cwd) {
   return assertUsableCwd(prefix, 'config cwd', resolve(cwd))
 }
 
-/**
- * Resolve the child's working directory at start: the deployment override
- * when configured (already validated at load), else the parent session's
- * workspace cwd (validated here, its earliest resolvable point). Fails loud
- * when neither exists — falling back to the harness process cwd would
- * silently bind the child to the server's launch directory instead of the
- * delegating session's workspace (one server process serves many sessions,
- * each with its own cwd).
- * @param prefix - the consuming plugin's diagnostic prefix.
- * @param configured - the load-validated override, or `undefined`.
- * @param parentCwd - the delegating parent session's workspace cwd, if any.
- * @returns the absolute child working directory.
- */
 export function resolveChildCwd(prefix, configured, parentCwd) {
   if (configured !== undefined) return configured
   if (parentCwd === undefined) {
@@ -167,7 +97,6 @@ export function resolveChildCwd(prefix, configured, parentCwd) {
   return assertUsableCwd(prefix, 'parent session cwd', parentCwd)
 }
 
-/** Normalize an unknown thrown value to an Error (the catch binding is `unknown`). */
 function toError(value) {
   /* v8 ignore next */
   return value instanceof Error ? value : new Error(String(value))
@@ -186,15 +115,6 @@ function toError(value) {
  * @property {function} onAbort - the listener removed on every settlement path.
  */
 
-/**
- * Settle an out-of-process run result under the seam contract: `result` never
- * rejects after publication. A normally completed or rejected attempt resolves
- * as `aborted` when cancellation already settled locally; another rejection is
- * flattened to `stopReason: 'error'` through the contained diagnostic sink.
- * The abort listener is removed on every path.
- * @param parts - the attempt, output snapshot, cancellation state, sink, and signal wiring.
- * @returns the terminal result (never a rejection).
- */
 export async function settleRunResult(parts) {
   try {
     const result = await parts.attempt()
@@ -232,14 +152,6 @@ export async function settleRunResult(parts) {
  * @property {function(): Promise<void>} teardown - await the backend to actual exit.
  */
 
-/**
- * Publish the seam run handle for an out-of-process child. `dispose()` is
- * idempotent (one memoized teardown): it removes the abort listener, settles
- * local cancellation — there is no assumption the child cooperates — and then
- * awaits the backend's teardown to actual exit.
- * @param parts - the run identity, result, cancellation wiring, and teardown.
- * @returns the seam run handle (`localAgent` is `undefined` for remote runs).
- */
 export function subprocessRunHandle(parts) {
   let disposal
   return {

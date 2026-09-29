@@ -1,9 +1,3 @@
-/**
- * One-shot Claude Code lifecycle: invoke the official Agent SDK, place its
- * real CLI process under the shared subprocess owner, map only strict SDK
- * success to completion, and dispose to whole-range quiescence.
- */
-
 import { randomUUID } from 'node:crypto'
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk'
 import { SessionId } from '@freddie/freddie-session'
@@ -11,10 +5,8 @@ import { settleRunResult, subprocessRunHandle } from '@freddie/freddie-subagent'
 import { scrubbedParentEnv } from '@freddie/freddie-subprocess'
 import { claudeSpawnSpec, ManagedClaudeCodeProcess } from './process.js'
 
-/** Default POSIX grace between subprocess termination tiers. */
 export const DEFAULT_DISPOSE_GRACE_MS = 3_000
 
-/** Claude Code permission modes that cannot wait for a human response. */
 export const CLAUDE_CODE_PERMISSION_MODES = [
   'dontAsk',
   'acceptEdits',
@@ -23,7 +15,6 @@ export const CLAUDE_CODE_PERMISSION_MODES = [
   'bypassPermissions',
 ]
 
-/** Safe default for unattended Claude Code runs. */
 export const DEFAULT_CLAUDE_CODE_PERMISSION_MODE = 'dontAsk'
 
 const SUPPORTED_UNATTENDED_DIALOG_KINDS = ['refusal_fallback_prompt']
@@ -86,7 +77,6 @@ function thrown(value) {
   return value instanceof Error ? value : new Error(String(value))
 }
 
-/** Read live request cancellation across awaited startup cleanup. */
 function isAborted(signal) {
   return signal.aborted
 }

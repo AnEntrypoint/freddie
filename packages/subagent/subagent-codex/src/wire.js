@@ -1,10 +1,3 @@
-/**
- * Minimal Codex app-server 0.153.4 protocol adapter. The shared JSON-RPC
- * transport owns framing and request correlation; this module owns only the
- * product methods, current thread/turn association, unattended approval
- * responses, and terminal-answer selection.
- */
-
 import { JsonRpcLineTransport } from '@freddie/freddie-sdk-protocol'
 
 const THREAD_PERMISSION_PARAMS = {
@@ -148,12 +141,6 @@ async function raceAbort(pending, signal) {
   }
 }
 
-/**
- * One app-server connection and its single ephemeral thread/turn.
- *
- * Deliberately exposes no generic request surface. Supporting another
- * product method must first become part of the provider contract.
- */
 export class CodexAppServerWire {
   threadId
   turnId
@@ -197,17 +184,14 @@ export class CodexAppServerWire {
     output.on('error', this.onOutputError)
   }
 
-  /** Start reading app-server frames. */
   start() {
     this.transport.start()
   }
 
-  /** Whether protocol output ended before a terminal turn notification. */
   endedBeforeTerminal() {
     return this.inputEnded && !this.terminalObserved
   }
 
-  /** Perform the required app-server initialize/initialized handshake. */
   async initialize(signal) {
     object(await this.guarded(this.transport.request('initialize', {
       clientInfo: {
@@ -224,7 +208,6 @@ export class CodexAppServerWire {
     await this.guarded(this.transport.flush(), signal)
   }
 
-  /** Create the run's private ephemeral thread and retain its identity. */
   async startThread(cwd, signal) {
     const response = object(await this.guarded(this.transport.request('thread/start', {
       cwd,
@@ -240,10 +223,6 @@ export class CodexAppServerWire {
     this.threadId = id
   }
 
-  /**
-   * Submit the one text-only task and wait for this thread/turn's
-   * authoritative terminal notification.
-   */
   async runTurn(texts, signal) {
     const completion = Promise.withResolvers()
     this.turnCompleted = completion
@@ -297,10 +276,6 @@ export class CodexAppServerWire {
     return { output, stopReason: 'completed' }
   }
 
-  /**
-   * Best-effort remote cancellation. Local settlement and process teardown
-   * remain authoritative when the child no longer accepts protocol requests.
-   */
   interrupt() {
     if (this.threadId === undefined || this.turnId === undefined || this.closed) return
     void this.transport.request('turn/interrupt', {
@@ -309,7 +284,6 @@ export class CodexAppServerWire {
     }).catch(() => {})
   }
 
-  /** The best non-commentary answer observed so far, preserving exact bytes. */
   collectOutput() {
     const selected = this.lastFinalAnswer ?? this.lastUnphasedAnswer
     return selected !== undefined && selected.trim().length > 0
@@ -317,20 +291,14 @@ export class CodexAppServerWire {
       : []
   }
 
-  /** The latest safe unattended permission fact observed for this run. */
   collectDiagnostic() {
     return this.diagnostic
   }
 
-  /**
-   * The structured failure fact observed for this published turn. Call only
-   * after a non-completed return or rejection from {@link runTurn}.
-   */
   collectFailure() {
     return this.failure
   }
 
-  /** Detach JSON-RPC listeners and reject outstanding requests. Idempotent. */
   close() {
     if (this.closed) return
     this.closed = true
@@ -378,11 +346,6 @@ export class CodexAppServerWire {
     }
   }
 
-  /**
-   * Validate the request's thread and turn association.
-   * @returns `true` when the matching turn is still provisional, so the
-   * caller defers its diagnostic until `commitTurnId()`.
-   */
   validateRunIds(params, nullableTurn = false) {
     if (params.threadId !== this.threadId) {
       throw new Error('subagent-codex: app-server request referenced another thread')

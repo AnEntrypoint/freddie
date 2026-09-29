@@ -1,8 +1,3 @@
-/**
- * Fresh-process ACP subagent client. Drives one child session and owns
- * cancellation and quiescent disposal.
- */
-
 import { randomUUID } from 'node:crypto'
 import { Readable as NodeReadable, Writable as NodeWritable } from 'node:stream'
 import {
@@ -14,10 +9,8 @@ import {
 import { SessionId } from '@freddie/freddie-session'
 import { AssistantOutputFold, settleRunResult, subprocessRunHandle } from '@freddie/freddie-subagent'
 
-/** EOF grace for child flush and nested-process teardown; wider than the signal grace below. */
 export const DEFAULT_DISPOSE_EOF_GRACE_MS = 6_000
 
-/** Default POSIX grace between SIGTERM and SIGKILL on dispose (the `disposeGraceMs` config). */
 export const DEFAULT_DISPOSE_GRACE_MS = 3_000
 
 const ACP_TOOL_KINDS = new Set([
@@ -33,7 +26,6 @@ const PIPED_PROTOCOL_WITH_INHERITED_DIAGNOSTICS = Object.freeze({ stdin: 'pipe',
 
 const neverSettles = () => new Promise(() => {})
 
-/** Fixed safe failure text derived only from provider-owned structured facts. */
 function failureDiagnostic(facts) {
   const fields = [
     'provider: ACP',
@@ -50,12 +42,10 @@ function failureDiagnostic(facts) {
   return `Subagent failure (${fields.join('; ')})`
 }
 
-/** Fixed permission fact; ACP tool titles and option text never enter it. */
 function permissionDiagnostic(permission) {
   return `ACP unattended decision (policy: ${permission.policy}; request: ${permission.request}; decision: ${permission.decision})`
 }
 
-/** Put the operation failure first, followed by the latest permission decision. */
 function diagnosticText(facts, permission) {
   const failure = failureDiagnostic(facts)
   return permission === undefined ? failure : `${failure}\n${permissionDiagnostic(permission)}`
@@ -69,22 +59,15 @@ class AcpRunFailure extends Error {
   }
 }
 
-/**
- * Hide a pre-spawn workspace/configuration failure behind fixed safe facts.
- * @param cause - original Host failure retained on the Error cause chain.
- * @returns an Error whose message contains only the fixed ACP failure line.
- */
 export function acpConfigurationFailure(cause) {
   return new AcpRunFailure({ stage: 'initialize', category: 'configuration' }, cause)
 }
 
-/** Keep only the closed ACP tool-kind vocabulary; future values use a fixed fallback. */
 function permissionRequestKind(kind) {
   const candidate = kind ?? 'unknown'
   return ACP_TOOL_KINDS.has(candidate) ? candidate : 'unknown'
 }
 
-/** Bounded managed-range exit wait: observes the handle's range until it is empty or `ms` elapses. */
 async function rangeExitsWithin(child, ms) {
   const controller = new AbortController()
   const timer = setTimeout(() => { controller.abort() }, ms)
@@ -95,15 +78,6 @@ async function rangeExitsWithin(child, ms) {
   }
 }
 
-/**
- * Cooperative teardown ladder for an out-of-process agent, over the seam's
- * public verbs; resolves only at whole-range quiescence: stdin EOF (the
- * child's window to flush persistence and reap its own descendants), then the
- * terminate() escalation (SIGTERM → spec grace → SIGKILL) and its whole-range
- * exit proof.
- * @param child - the spawned ACP child's handle.
- * @param eofGraceMs - tier-1 window after stdin EOF.
- */
 export async function disposeAcpChild(child, eofGraceMs) {
   const failures = []
   child.stdin?.end()
@@ -124,12 +98,6 @@ export async function disposeAcpChild(child, eofGraceMs) {
   if (failures.length > 1) throw new AggregateError(failures, 'ACP subprocess teardown failed')
 }
 
-/**
- * Map an ACP StopReason to a harness SubagentStopReason.
- * @param reason - the terminal reason from the child's `session/prompt` response.
- * @returns the harness equivalent; `max_turn_requests` and any unknown future
- * variant map to `error`, so an unclean stop is never reported as `completed`.
- */
 export function acpStopReason(reason) {
   switch (reason) {
     case 'end_turn':
@@ -147,20 +115,10 @@ export function acpStopReason(reason) {
   }
 }
 
-/**
- * Collect the text of an ACP content block (non-text blocks contribute nothing).
- * @param content - the content block off a streamed `agent_message_chunk`.
- * @returns the block's text, or `''` for a non-text block.
- */
 export function acpContentText(content) {
   return content.type === 'text' ? content.text : ''
 }
 
-/**
- * Translate the harness prompt blocks into ACP prompt blocks (text only).
- * @param prompt - the harness prompt; non-text blocks are dropped.
- * @returns the ACP text blocks, in order.
- */
 export function toAcpPrompt(prompt) {
   const blocks = []
   for (const block of prompt) {
@@ -173,14 +131,12 @@ function toError(value) {
   return value instanceof Error ? value : new Error(String(value))
 }
 
-/** Report an original Host failure without letting the observation sink replace it. */
 function reportFailure(spec, error) {
   try {
     spec.onError?.(toError(error), 'error')
   } catch {}
 }
 
-/** Classify an unpublished failure from the active protocol operation and observed process facts. */
 function startupFailure(error, stage, outcome) {
   return new AcpRunFailure(
     outcome === undefined
@@ -190,7 +146,6 @@ function startupFailure(error, stage, outcome) {
   )
 }
 
-/** Map one remote terminal reason to the optional safe failure line it needs. */
 function terminalFailure(reason, permission) {
   switch (reason) {
     case 'end_turn':
@@ -210,19 +165,6 @@ function terminalFailure(reason, permission) {
   }
 }
 
-/**
- * Start and publish one ACP child after initialization and session creation.
- * Child failures resolve through the run result. Startup rejects with fixed
- * safe facts after provider-owned cleanup; successful cleanup proves managed
- * range quiescence. Cleanup failure preserves startup plus teardown facts for
- * an ordinary failure, or teardown alone after cancellation, without claiming
- * quiescence. Disposal cancels, terminates, and settles the child's managed
- * range.
- * @param request - the start request; its signal is the cancellation channel.
- * @param spec - the resolved spawn spec: command/args/cwd, env, permission
- * policy, dispose graces, and the optional error sink.
- * @returns the ready run handle for the child subprocess.
- */
 export async function startAcpRun(request, spec) {
   if (request.signal.aborted) throw new Error('subagent request was aborted before the ACP child started')
   const parentNamespaceLifecycleId = SessionId(randomUUID())

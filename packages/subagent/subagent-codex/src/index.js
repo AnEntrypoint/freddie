@@ -1,9 +1,3 @@
-/**
- * Profile-named Codex one-shot subagent provider. Every accepted run starts a
- * fresh official package-local Codex wrapper with `app-server --stdio` in the
- * delegating Session's workspace and publishes only after an ephemeral thread exists.
- */
-
 import z from '@freddie/schemastery'
 import { MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
 import {

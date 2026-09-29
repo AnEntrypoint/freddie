@@ -1,33 +1,15 @@
-/**
- * The child-scoped `report` tool and its usage guidance, installed into every
- * continuable in-process child's unpublished context. Roots, one-shot children,
- * remote providers, and agentless executions never see the registration.
- *
- * @module @freddie/freddie-tool-subagent-report
- */
-
 import z from '@freddie/schemastery'
 import { defineTool } from '@freddie/freddie-tools'
 
 export const name = 'tool-subagent-report'
 export const inject = ['subagents', 'tools', 'systemPrompt']
 
-/** Guidance order after every per-tool section a continuable child can carry. */
 const REPORT_SECTION_ORDER = 117
 
 export const Config = z.object({
   reportDelivery: z.union(['quiet', 'next-step']).default('next-step'),
 })
 
-/**
- * Install `report` and its usage guidance into one continuable child's scope.
- * Both registrations are owned by that scope and are therefore invisible to the
- * child's parent and siblings.
- * @param childCtx - child-scoped context receiving the tool and the guidance.
- * @param ctx - service context used for delivery.
- * @param delivery - resolved deployment scheduling policy.
- * @returns disposer that attempts both child registrations before reporting cleanup failures.
- */
 export function installReportTool(childCtx, ctx, delivery) {
   const disposeSection = childCtx.systemPrompt.section({
     name: 'tool:report',
@@ -104,11 +86,6 @@ export function installReportTool(childCtx, ctx, delivery) {
   }
 }
 
-/**
- * Register the continuable-child contribution.
- * @param ctx - context carrying tools, the system prompt, and the subagent service.
- * @param config - deployment scheduling policy.
- */
 export function apply(ctx, config = {}) {
   const { reportDelivery } = Config(config)
   ctx.subagents.registerContinuableSetup(childCtx =>

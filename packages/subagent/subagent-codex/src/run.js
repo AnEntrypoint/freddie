@@ -1,10 +1,3 @@
-/**
- * One-shot Codex child lifecycle: spawn the real app-server through the
- * subprocess seam, publish only after initialization and ephemeral thread
- * creation, flatten post-publication failures, and dispose to whole-range
- * quiescence.
- */
-
 import { randomUUID } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -16,23 +9,19 @@ import {
 } from '@freddie/freddie-subagent'
 import { CodexAppServerWire } from './wire.js'
 
-/** Default POSIX grace between subprocess termination tiers. */
 export const DEFAULT_DISPOSE_GRACE_MS = 3_000
 
 const codexPackageJsonPath = createRequire(import.meta.url).resolve('@openai/codex/package.json')
 const codexPackageManifest = createRequire(import.meta.url)('@openai/codex/package.json')
 
-/** Absolute package-local JavaScript wrapper selected by the package manifest. */
 const CODEX_PACKAGE_BIN = resolve(dirname(codexPackageJsonPath), codexPackageManifest.bin.codex)
 
-/** Profile-selectable non-interactive Codex permission mode. */
 export const CODEX_PERMISSION_MODES = [
   'never',
   'approve-for-me',
   'dangerously-bypass-approvals-and-sandbox',
 ]
 
-/** Safe default for unattended Codex runs. */
 export const DEFAULT_CODEX_PERMISSION_MODE = 'never'
 
 function failureDiagnostic(facts) {
@@ -62,19 +51,10 @@ class CodexRunFailure extends Error {
   }
 }
 
-/**
- * Hide an unpublished Host failure behind fixed safe startup facts.
- * @param cause - original Host failure retained for internal diagnostics.
- * @returns a startup failure whose message contains only fixed safe facts.
- */
 export function codexStartupFailure(cause) {
   return new CodexRunFailure({ stage: 'initialize', category: 'unknown' }, cause)
 }
 
-/**
- * Fixed package-local app-server command, independent of the host `PATH`.
- * @returns Node, the official wrapper, and the fixed app-server arguments.
- */
 export function codexAppServerArgv() {
   return [process.execPath, CODEX_PACKAGE_BIN, 'app-server', '--stdio']
 }
@@ -83,11 +63,6 @@ function thrown(value) {
   return value instanceof Error ? value : new Error(String(value))
 }
 
-/**
- * Validate and preserve the one-shot task before crossing the process boundary.
- * @param prompt - task content accepted from the shared subagent service.
- * @returns the exact non-empty text block sequence.
- */
 export function textTask(prompt) {
   if (prompt.length === 0) {
     throw new Error('subagent-codex: the one-shot task must contain only text blocks')
@@ -105,12 +80,6 @@ export function textTask(prompt) {
   return texts
 }
 
-/**
- * Close the private wire, terminate the managed range, and wait for the
- * subprocess owner to prove it is quiescent.
- * @param wire - private app-server protocol connection.
- * @param child - shared-service handle that owns the managed range.
- */
 export async function disposeCodexChild(wire, child) {
   wire.close()
 
@@ -132,12 +101,6 @@ export async function disposeCodexChild(wire, child) {
   await child.done.catch(() => {})
 }
 
-/**
- * Start the real `codex app-server --stdio` child and publish its one-shot run.
- * @param request - resolved shared subagent request.
- * @param spec - workspace, environment, process service, and diagnostic policy.
- * @returns the published run after initialization and ephemeral thread creation.
- */
 export async function startCodexRun(request, spec) {
   const texts = textTask(request.prompt)
   if (request.signal.aborted) {

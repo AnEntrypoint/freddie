@@ -1,8 +1,3 @@
-/**
- * Projection from the shared managed-process handle to the official Claude
- * Agent SDK's custom-spawn process interface.
- */
-
 import { EventEmitter } from 'node:events'
 import { scrubbedParentEnv } from '@freddie/freddie-subprocess'
 
@@ -43,11 +38,6 @@ export function claudeSpawnSpec(options, graceMs) {
   }
 }
 
-/**
- * SDK-facing view of one shared managed process. Protocol transport remains
- * in the official SDK; this adapter only projects streams and exit events.
- * @implements {import('@anthropic-ai/claude-agent-sdk').SpawnedProcess}
- */
 export class ManagedClaudeCodeProcess {
   /**
    * Project a managed process with piped stdin and stdout.
@@ -72,22 +62,18 @@ export class ManagedClaudeCodeProcess {
     )
   }
 
-  /** Whether the SDK has requested managed-range termination. */
   get killed() {
     return this.killRequested
   }
 
-  /** Direct-child exit code, or null while running or after signal exit. */
   get exitCode() {
     return this.outcomeValue?.exitCode ?? null
   }
 
-  /** Direct-child terminating signal, if any. */
   get signalCode() {
     return this.outcomeValue?.signal ?? null
   }
 
-  /** Exact managed-process outcome after exit, or undefined while running. */
   get outcome() {
     return this.outcomeValue
   }
@@ -106,17 +92,14 @@ export class ManagedClaudeCodeProcess {
     return true
   }
 
-  /** Register a persistent process lifecycle listener. */
   on(event, listener) {
     this.events.on(event, listener)
   }
 
-  /** Register a one-shot process lifecycle listener. */
   once(event, listener) {
     this.events.once(event, listener)
   }
 
-  /** Remove a process lifecycle listener. */
   off(event, listener) {
     this.events.off(event, listener)
   }

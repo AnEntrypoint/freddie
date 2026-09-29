@@ -1,12 +1,3 @@
-/**
- * Settlement of one ONE-SHOT subagent run into a background-Task outcome. Only
- * the one-shot background path uses Jobs; continuable children have no Task,
- * no per-message result, and no Task cancellation.
- *
- * @module @freddie/freddie-subagent/run-settlement
- */
-
-/** Flatten a child's final output blocks to the task's final text. */
 function finalText(blocks) {
   return blocks
     .filter(block => block.type === 'text')
@@ -14,7 +5,6 @@ function finalText(blocks) {
     .join('')
 }
 
-/** Render a failed stop reason with optional provider-authored detail. */
 function failureDetail(result) {
   const stopReason = result.stopReason
   return result.diagnostic === undefined
@@ -22,12 +12,6 @@ function failureDetail(result) {
     : `${stopReason}; diagnostic: ${result.diagnostic}`
 }
 
-/**
- * Map a child result to the task outcome: completed carries final text,
- * aborted is killed, and every other reason is failed without partial output.
- * @param result - child terminal result.
- * @returns outcome for the `ctx.jobs` registration.
- */
 function runOutcome(result) {
   switch (result.stopReason) {
     case 'completed':
@@ -43,12 +27,6 @@ function runOutcome(result) {
   }
 }
 
-/**
- * Await the child result, dispose the run, then return its task outcome. Result
- * and disposal failures become `failed`; when both fail, both details survive.
- * @param run - live run to settle and release.
- * @returns outcome after child resources are released.
- */
 export async function settleRun(run) {
   let outcome
   try {
