@@ -1,8 +1,3 @@
-/**
- * Human-facing `/goal` command over the persisted same-session goal domain.
- * @module @freddie/freddie-command-goal
- */
-
 import { GoalError } from '@freddie/freddie-goal'
 import { createUserMessage } from '@freddie/freddie-llm'
 
@@ -11,14 +6,12 @@ export const inject = ['commands', 'goals']
 
 const USAGE = 'Usage: /goal [<objective>|clear|edit <objective>|pause|resume]'
 
-/** Fail loudly if a locally closed union gains an unhandled member. */
 /* v8 ignore start -- closed-union backstop is unreachable without violating the TypeScript contract */
 function assertNever(value, label) {
   throw new TypeError(`unknown ${label}: ${String(value)}`)
 }
 /* v8 ignore stop */
 
-/** Parse only the grammar owned by `/goal`; arbitrary other input is an objective. */
 function parseGoalCommand(rawInput) {
   const input = rawInput.trim()
   if (input.length === 0) return { kind: 'show' }
@@ -31,7 +24,6 @@ function parseGoalCommand(rawInput) {
   return { kind: 'create', objective: input }
 }
 
-/** Human label for one durable goal phase. */
 function phaseLabel(phase) {
   switch (phase) {
     case 'active': return 'active'
@@ -43,7 +35,6 @@ function phaseLabel(phase) {
   }
 }
 
-/** Commands that are meaningful from one exact live state. */
 function commandHint(goal) {
   if (goal.phase === 'active') {
     return goal.activation === 'armed'
@@ -61,7 +52,6 @@ function commandHint(goal) {
   }
 }
 
-/** Render direct UI output without exposing compare-and-set internals. */
 function renderGoal(title, goal) {
   const reason = goal.phase === 'blocked' ? goal.blockedReason : undefined
   /* v8 ignore next -- durable replay guarantees every blocked goal carries its validated reason */
@@ -82,12 +72,10 @@ function renderGoal(title, goal) {
   }
 }
 
-/** Exact current compare-and-set ref. */
 function goalRef(goal) {
   return { id: goal.id, revision: goal.revision }
 }
 
-/** Direct error for an operation that requires a current goal. */
 function missingGoal(action) {
   return {
     kind: 'error',
@@ -95,12 +83,6 @@ function missingGoal(action) {
   }
 }
 
-/**
- * Submit the invocation's admitted composer images as one model-visible user
- * message ahead of the goal's next round. The images precede a fixed text
- * block naming their role, so a later goal round reads them from ordinary
- * session history without the goal domain storing attachment state.
- */
 function submitObjectiveAttachments(invocation) {
   if (invocation.attachments.length === 0) return
   invocation.agent.followup(createUserMessage({
@@ -109,7 +91,6 @@ function submitObjectiveAttachments(invocation) {
   }))
 }
 
-/** Execute one parsed human command through the domain that owns persistence. */
 function executeGoalCommand(ctx, invocation) {
   const command = parseGoalCommand(invocation.rawInput)
   if (invocation.attachments.length > 0 && command.kind !== 'create' && command.kind !== 'edit') {
@@ -173,7 +154,6 @@ function executeGoalCommand(ctx, invocation) {
   }
 }
 
-/** Register the Codex-shaped `/goal` command for every composed command adapter. */
 export function apply(ctx) {
   ctx.commands.register({
     name: 'goal',
