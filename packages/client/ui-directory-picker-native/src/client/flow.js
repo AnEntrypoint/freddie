@@ -1,31 +1,11 @@
-/**
- * The native picking occupant (package-internal; the `./client` surface
- * exposes only the Loader exports). Same-package tests exercise it directly
- * through this module.
- *
- * Converted from a React renderless hooks component to a webjsx custom
- * element with no rendered DOM: useRef fields become private instance
- * fields, and the mount/unmount useEffect becomes connectedCallback/
- * disconnectedCallback. setProps replaces the re-render-on-prop-change path;
- * the arm-once-per-open-edge logic is unchanged.
- */
 
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-/**
- * Renderless flow occupant custom element: each rising `open` edge runs
- * exactly one pick and reports exactly one outcome; `#armed` arms once per
- * open so repeated setProps calls (and an adoption keeping `open` true while
- * `busy`) never launch a second chooser. The owner withdrawing `open` re-arms
- * the next request. Renders no DOM — the native chooser opens on the host
- * display.
- */
 export class FreddieNativeDirectoryFlow extends HTMLElement {
   #props = null
   #armed = false
   #alive = false
 
-  /** Set/replace props; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     this.#sync()
