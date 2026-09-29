@@ -15,6 +15,18 @@
 - `models/tool-call-model.js` `toolRowModel`: `resultText(block) || null` makes blank content mean "no text", since a blank first line would erase the collapsed error row's summary and blank content has nothing to expand.
 - `toolviews/ask-question-row.js` `AskQuestionRow`: apiproxy settles composer verdicts as `UserQuestionError` codes. `ASK_CANCELLED` is the user dismissing the set; `ASK_ABORTED` is a turn interrupt while pending and keeps the shared stopped (amber) state. Both name their verdict instead of the generic failed shape.
 
+- `components/ToolRow.js`: the leading slot yields the tool icon to the terminal state (error red, interrupted amber halo); running keeps the icon and the CSS row sweep signals in-flight. `renderToolRow` (held element, create-or-reuse) is the only correct call for re-rendering callers; the one-shot `ToolRow` factory builds a new element per call and resets expanded/latched state (measured ~185 fresh rows per keystroke in a 30-row session).
+
+- `models/*-card-model.js`: chat-row body caps (diff, read, search, terminal) are half the primitive's own default line/row cap, a fixed design constant of the row geometry, not a plugin Config field; the details panel keeps the full default. Card models return null (generic path) for running calls, unknown `card` values and unusable wire payloads. `diffCardModel` drops the view's `title`; the row supplies `Edit`/`Write · path`.
+
+- `models/tool-call-model.js`: `cordis_define` is deliberately absent from the variant table (ui-cordis registers a keyed toolview that replaces the generic row). Summary keys are path keys only, never `url` (web_fetch lands on the read variant). Row titles and variant icons are Figma literals, not translatable copy. `parseArgs` memoizes the last raw string because a model calls it up to three times per render of every row (unmemoized: 84ms self time per keystroke).
+
+- `toolviews/plan-summary.js`: several plan items may be `in_progress` (parallel work); the summary names the first and counts the rest, and shares nothing with the plan strip header.
+
+- `toolviews/search-row.js`/`web-row.js`: one component registers under both tool names (`grep`/`glob`, `web_search`/`web_fetch`), discriminated by the result view.
+
+- `invariant.js`: no runtime invariant; Tool composition is browser-only, slot ownership is checked by ui-slots.
+
 ## CSS rationale
 
 - `ToolRow.css`: the trailing summary fragment (the todo row's parallel-active `+n`) is `flex: none` and `nowrap` outside `.summary`'s ellipsis, because `flex: none` stops the box shrinking but not the text wrapping, which would break the one-line row in the narrow case the slot exists for. The Inspect pill sits in real flow under the expanded body's bottom-left (it reserves its line, so revealing never shifts layout), is revealed by hovering anywhere on the tool call or by keyboard focus, uses the base background (`bg-overlay` reads too heavy) and a solid hover fill (a translucent token would let content bleed through). Expanded IN/OUT and terminal cards scroll INSIDE their own surface so the scrollbar sits within the rounded card; the terminal output cap is 224px (260px card cap minus the ~36px banner), and the running-state label is visually hidden text because the `StateDot` and sweep are aria-hidden and color-only. The block-shaped bodies (run_code `CodeBlock`, terminal, diff, read, search and web cards) are drawn by the shared primitives, so this file owns only their indentation and replaces each primitive's standalone vertical margin with the row rhythm.

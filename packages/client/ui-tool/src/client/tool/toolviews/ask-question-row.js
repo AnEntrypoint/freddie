@@ -8,8 +8,6 @@ function isAnswer(value) {
   return typeof value === 'object' && value !== null
 }
 
-/** Answered-count summary from the result JSON (a skipped question has
- *  empty `selected` and no `custom`); null when answer fields are invalid. */
 function answeredSummary(text, t) {
   let parsed
   try {
@@ -26,8 +24,6 @@ function answeredSummary(text, t) {
   return t('ask.answered', { answered, total: answers.length })
 }
 
-/** One-line question-interaction row (the whole row toggles the call's
- *  Input/Output sections, ToolRow's unified expand). */
 export function AskQuestionRow({ toolName, block, inspect, t }) {
   const model = toolRowModel(toolName, block)
   const code = 'kind' in block ? block.error?.code : undefined
@@ -61,17 +57,9 @@ export function AskQuestionRow({ toolName, block, inspect, t }) {
   )
 }
 
-/**
- * The ask-question row as a plain registrant plugin following the chat
- * toolview declaration across independent activation and reload lifetimes.
- */
 export const askQuestionToolview = {
   name: 'ask-question-toolview',
   inject: ['slots'],
-  /**
-   * Register the ask-question row into the Tool-owned keyed view slot.
-   * @param ctx - registrant context (disposal rides ctx.effect inside slots.register).
-   */
   apply(ctx) {
     ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
       name: 'tool.call.toolview', key: 'ask_user_question', locale: NS,

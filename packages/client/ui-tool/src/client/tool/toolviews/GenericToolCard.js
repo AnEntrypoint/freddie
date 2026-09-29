@@ -10,7 +10,6 @@ import { webCardModel } from '../models/web-card-model.js'
 import { toolRowModel } from '../models/tool-call-model.js'
 import { renderToolRow } from '../components/ToolRow.js'
 
-/** Variant leading icons (figma table); all glyphs render at 14 inside the 16px leading box. */
 const VARIANT_ICONS = {
   search: h(IconSearchOutline16, {size: 14}),
   read: h(IconBrowseOutline16, {size: 14}),

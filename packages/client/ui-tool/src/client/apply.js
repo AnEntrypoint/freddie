@@ -1,4 +1,3 @@
-/** Register the Tool call tree, details renderer, and built-in atomic views. */
 import { ToolCallTree } from './tool/ToolCallTree.js'
 import { ToolDetails } from './tool/ToolDetails.js'
 import { CONVERSATION_NS as NS } from './locale.js'
@@ -10,13 +9,8 @@ import { searchToolview } from './tool/toolviews/search-row.js'
 import { todoToolview } from './tool/toolviews/todo-row.js'
 import { webToolview } from './tool/toolviews/web-row.js'
 
-/** Required services: the slot registry and the Host description used for POSIX `~`. */
 export const inject = ['slots', 'connection']
 
-/**
- * Mount the whole-Tool renderers and built-in atomic Tool registrations.
- * @param ctx - Client root context.
- */
 export function apply(ctx) {
   const connection = ctx.get('connection')
   const toolInject = () => ({ hooks: { hostDescription: connection.hostDescription } })

@@ -5,11 +5,6 @@ import { toolRowModel } from '../models/tool-call-model.js'
 import { renderToolRow } from '../components/ToolRow.js'
 import { CONVERSATION_NS as NS } from '../../locale.js'
 
-/**
- * Read row: icon + Read · {path} in the shared ToolRow chrome, with the file's
- * read card as the row's collapsed-by-default card body. The summary path is an
- * openable host link when the row names a single file.
- */
 export function ReadRow({ toolName, block, cwd, home, openFile, inspect, t }) {
   const model = toolRowModel(toolName, block, cwd, home)
   const read = readCardModel(block, cwd, home)
@@ -34,17 +29,9 @@ export function ReadRow({ toolName, block, cwd, home, openFile, inspect, t }) {
   )
 }
 
-/**
- * The read row as a plain registrant plugin following the atomic Tool-view
- * declaration across independent activation and reload lifetimes.
- */
 export const readToolview = {
   name: 'read-toolview',
   inject: ['slots'],
-  /**
-   * Register the read row into the Tool-owned keyed view slot.
-   * @param ctx - registrant context (disposal rides ctx.effect inside slots.register).
-   */
   apply(ctx) {
     ctx.slots.inject('tool.call.toolview', () =>
       ctx.slots.register({ name: 'tool.call.toolview', key: 'read', locale: NS }, ReadRow))

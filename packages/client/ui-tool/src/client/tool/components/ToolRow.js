@@ -11,9 +11,6 @@ import { CHAT_SEARCH_MAX_LINES } from '../models/search-card-model.js'
 import { terminalBlockLabels } from '../models/terminal-card-model.js'
 import css from './ToolRow.css.js'
 
-/** Leading-slot state substitution: the tool icon yields to the terminal state
- *  semantic (error = red, interrupted = amber halo). Running keeps the icon —
- *  the row sweep (CSS on data-state) carries the in-flight signal. */
 function leadingFor(state, icon) {
   switch (state) {
     case 'error': return h(StateDot, {state: 'error'})
@@ -22,10 +19,6 @@ function leadingFor(state, icon) {
   }
 }
 
-/** Visually hidden run-state label: the StateDot and the CSS sweep are both
- *  aria-hidden / colour-only, so assistive technology needs this text to know a
- *  row is running, failed, or interrupted. null in the ok state (the icon and
- *  summary already describe a settled row). */
 function stateStatus(state, t) {
   switch (state) {
     case 'running': return t('row.running')
@@ -35,12 +28,6 @@ function stateStatus(state, t) {
   }
 }
 
-/**
- * The single-line tool summary row, converted from a React hooks component
- * (`expanded` was `useState`) to a webjsx custom element: `expanded` is an
- * instance field, re-render is an explicit `#render()` calling
- * `applyDiff(this, vdom)`.
- */
 export class FreddieToolRow extends HTMLElement {
   #props = null
   #expanded = false
@@ -216,34 +203,12 @@ export class FreddieToolRow extends HTMLElement {
 
 defineElement('freddie-tool-row', FreddieToolRow)
 
-/**
- * Create (if needed) or update a ToolRow element in place -- the same
- * create-or-reuse shape `renderCodeBlock`/`renderReadBlock` expose, and the
- * one every caller should reach for.
- * @param el - an existing `freddie-tool-row` to update, or null to create one.
- * @param props - see the class's own prop set.
- * @returns the element; keep it and pass it back in to update.
- */
 export function renderToolRow(el, props) {
   const target = el ?? document.createElement('freddie-tool-row')
   target.setProps(props)
   return target
 }
 
-/**
- * One-shot creation helper preserving the original function-component call
- * shape.
- *
- * Every call builds a NEW element, so `h(ToolRow, props)` in a re-rendered
- * tree discards the live row and its whole subtree each pass -- the row's
- * expanded/latched state resets and applyDiff replaces the real node instead
- * of patching it. Measured live with a MutationObserver: one keystroke in a
- * 30-row session created ~185 fresh `freddie-tool-row` elements (306 elements
- * total), and `setAttribute`/`replaceChild`/`createElement` dominated the
- * bottom-up profile. Callers that re-render MUST use {@link renderToolRow}
- * with a held element (the webjsx `ref` escape hatch) instead; this stays for
- * genuine one-shot construction.
- */
 export function ToolRow(props) {
   return renderToolRow(null, props)
 }

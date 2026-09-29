@@ -27,10 +27,6 @@ function summarize(argsRaw, t) {
   }
 }
 
-/** One-line plan update row (the whole row toggles the call's Input/Output
- *  sections, ToolRow's unified expand). Non-ok execution states keep the
- *  shared row's dot semantics — a cancelled call wrote no todo/write, so it
- *  must not read as a completed update. */
 export function TodoRow({ toolName, block, inspect, t }) {
   const model = toolRowModel(toolName, block)
   const argsRaw = ('kind' in block ? block.call?.argsRaw : block.argsRaw) ?? ''
@@ -54,17 +50,9 @@ export function TodoRow({ toolName, block, inspect, t }) {
   )
 }
 
-/**
- * The todo row as a plain registrant plugin following the atomic Tool-view
- * declaration across independent activation and reload lifetimes.
- */
 export const todoToolview = {
   name: 'todo-toolview',
   inject: ['slots'],
-  /**
-   * Register the todo row into the Tool-owned keyed view slot.
-   * @param ctx - registrant context (disposal rides ctx.effect inside slots.register).
-   */
   apply(ctx) {
     ctx.slots.inject('tool.call.toolview', () =>
       ctx.slots.register({ name: 'tool.call.toolview', key: 'todo_write', locale: NS }, TodoRow))

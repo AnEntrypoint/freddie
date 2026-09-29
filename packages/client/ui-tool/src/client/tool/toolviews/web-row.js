@@ -5,17 +5,11 @@ import { toolRowModel } from '../models/tool-call-model.js'
 import { renderToolRow } from '../components/ToolRow.js'
 import { CONVERSATION_NS as NS } from '../../locale.js'
 
-/** web_fetch reads one URL; web_search queries. Titles are figma literals. */
 const WEB_TITLES = {
   web_search: 'Search',
   web_fetch: 'Fetch',
 }
 
-/**
- * Web row: icon + Search/Fetch · {summary} in the shared ToolRow chrome, with
- * the completed retrieval's web card as the row's collapsed-by-default card
- * body. The row discriminates on `toolName` only to pick its icon and title.
- */
 export function WebRow({ toolName, block, inspect, t }) {
   const model = toolRowModel(toolName, block)
   const web = webCardModel(block)
@@ -39,17 +33,9 @@ export function WebRow({ toolName, block, inspect, t }) {
   )
 }
 
-/**
- * The web rows follow the atomic Tool-view declaration across activation and
- * reload. One WebRow component registers under both web tool names.
- */
 export const webToolview = {
   name: 'web-toolview',
   inject: ['slots'],
-  /**
-   * Register the web row under both web tool names' keyed toolview holes.
-   * @param ctx - registrant context (disposal rides ctx.effect inside slots.register).
-   */
   apply(ctx) {
     ctx.slots.inject('tool.call.toolview', function* () {
       yield ctx.slots.register({ name: 'tool.call.toolview', key: 'web_search', locale: NS }, WebRow)

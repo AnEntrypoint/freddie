@@ -1,28 +1,10 @@
-/**
- * Pure row-model derivation for tool summary rows: variant classification,
- * one-line summary, expanded-body text, and flattened result output from the
- * frozen call slice. Input material comes from the call ARGUMENTS; output and
- * error material from the settled result node. A call whose render intent is
- * a terminal card gets its expanded body from the views instead, through
- * `terminalCardModel` in terminal-card-model.ts.
- */
 import { abbreviateHomePath } from '@freddie/freddie-client-runtime/client'
 
-/** Figma row titles per variant (design literals, not translatable copy). */
 export const VARIANT_TITLES = {
   search: 'Search', read: 'Read', bash: 'Bash',
   write: 'Write', edit: 'Edit', code: 'Code', others: 'Tool call',
 }
 
-/**
- * Known tool name -> variant.
- *
- * `cordis_define` is deliberately absent: ui-cordis registers a keyed
- * `tool.call.toolview` entry for it, and a keyed hit REPLACES the generic row
- * (this table is only reached through GenericToolCard, the dispatch fallback in
- * ToolCallTree). An entry here would be unreachable, and a second title for the
- * same call would be a second answer to a question the card already owns.
- */
 const TOOL_VARIANTS = {
   bash: 'bash',
   pwsh: 'bash',
@@ -42,7 +24,6 @@ const TOOL_VARIANTS = {
   cordis_undefine: 'others',
 }
 
-/** Tool-owned titles that refine a generic row variant without replacing it. */
 const TOOL_TITLES = {
   cordis_package_inspect: 'Inspect',
   cordis_runtime_inspect: 'Inspect',
@@ -52,22 +33,10 @@ const TOOL_TITLES = {
   pwsh: 'Pwsh',
 }
 
-/**
- * Classify a tool name into its row variant.
- * @param toolName - wire tool name.
- * @returns matching variant, others when unknown.
- */
 export function classifyTool(toolName) {
   return TOOL_VARIANTS[toolName] ?? 'others'
 }
 
-/**
- * Flatten a settled result's content blocks to display text: text blocks
- * verbatim, other block shapes as pretty JSON. Empty content on a failed call
- * falls back to the structured error's `name: code` line.
- * @param node - the settled result node.
- * @returns the flattened result text (may be empty).
- */
 export function resultText(node) {
   const parts = []
   for (const block of node.content) {
@@ -80,19 +49,6 @@ export function resultText(node) {
   return parts.join('\n')
 }
 
-/**
- * Last parse, keyed by the exact raw string. `toolRowModel` calls `parseArgs`
- * up to three times for one model (summary, file path, body) and runs on every
- * render of every tool row, so an unmemoized JSON.parse re-parsed every
- * settled call's whole args envelope on every keystroke -- 84ms of self time
- * in a real-keyboard flamegraph across ~30 rows. A single-entry cache is
- * enough for the three-in-a-row pattern and keeps no row's payload alive after
- * the next row parses.
- *
- * Keyed on the raw string by value, so a changed (still-streaming) args string
- * misses and re-parses, exactly as before. The parsed value is handed out by
- * reference: every caller here only reads from it.
- */
 let lastArgsRaw
 let lastArgsParsed
 
@@ -122,7 +78,6 @@ function pickString(args, keys) {
   return undefined
 }
 
-/** Summary key preference per variant (args-derived; result-derived summaries are a ledger item). */
 const SUMMARY_KEYS = {
   bash: ['description', 'command'],
   read: ['path', 'file_path', 'url'],
@@ -133,12 +88,6 @@ const SUMMARY_KEYS = {
   others: [],
 }
 
-/**
- * Strip the workspace root from a workspace-rooted absolute path (display only).
- * @param text - the path to shorten.
- * @param cwd - session workspace root; absent or empty leaves the path unchanged.
- * @returns the path relative to the workspace root, or unchanged when it is not rooted there.
- */
 export function relativizeToCwd(text, cwd) {
   if (cwd === undefined || cwd === '') return text
   const root = cwd.replace(/[/\\]+$/, '')
@@ -162,10 +111,8 @@ function deriveSummary(variant, argsRaw) {
   return firstLine(argsRaw)
 }
 
-/** Path keys only — never `url` (web_fetch lands on the read variant). */
 const FILE_PATH_KEYS = ['path', 'file_path']
 
-/** File-tool variants whose summary may be an openable workspace path. */
 const FILE_PATH_VARIANTS = new Set(['read', 'write', 'edit'])
 
 function deriveFilePath(variant, argsRaw) {
@@ -187,14 +134,6 @@ function deriveBody(variant, argsRaw) {
   return JSON.stringify(parsed, null, 2)
 }
 
-/**
- * Derive the full row model from a frozen call slice.
- * @param toolName - wire tool name (dispatch-supplied; survives windowless results).
- * @param block - RunningToolCall or ToolResultNode off the snapshot caches.
- * @param cwd - session workspace root; workspace-rooted path summaries display relative to it.
- * @param home - host account home; a leftover POSIX home path displays as `~`.
- * @returns the row model.
- */
 export function toolRowModel(toolName, block, cwd, home) {
   const variant = classifyTool(toolName)
   const done = 'kind' in block

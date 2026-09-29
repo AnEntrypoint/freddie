@@ -17,7 +17,6 @@ function leadingFor(state) {
   }
 }
 
-/** Visually hidden status — StateDot is aria-hidden; AT needs a text label. */
 function stateStatus(state, t) {
   switch (state) {
     case 'running': return t('bash.running')
@@ -27,15 +26,6 @@ function stateStatus(state, t) {
   }
 }
 
-/**
- * Bash row: icon + Bash · {description} in the shared ToolRow chrome, the
- * whole row toggling the command's terminal or generic error card (ToolRow's unified
- * expand interaction, replicated locally per the registrant posture).
- *
- * Converted from a React hooks component (`expanded` was `useState`) to a
- * webjsx custom element: `expanded` is an instance field, re-render is an
- * explicit `#render()` calling `applyDiff(this, vdom)`.
- */
 export class FreddieBashRow extends HTMLElement {
   #props = null
   #expanded = false
@@ -158,24 +148,15 @@ export class FreddieBashRow extends HTMLElement {
 
 defineElement('freddie-bash-row', FreddieBashRow)
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function BashRow(props) {
   const el = document.createElement('freddie-bash-row')
   el.setProps(props)
   return el
 }
 
-/**
- * The sample as a plain registrant plugin. Slot injection follows the chat
- * toolview declaration across independent activation and reload lifetimes.
- */
 export const bashToolviewSample = {
   name: 'bash-toolview-sample',
   inject: ['slots'],
-  /**
-   * Register the bash row into the Tool-owned keyed view slot.
-   * @param ctx - registrant context (disposal rides ctx.effect inside slots.register).
-   */
   apply(ctx) {
     ctx.slots.inject('tool.call.toolview', () =>
       ctx.slots.register({ name: 'tool.call.toolview', key: 'bash', locale: NS }, BashRow))
