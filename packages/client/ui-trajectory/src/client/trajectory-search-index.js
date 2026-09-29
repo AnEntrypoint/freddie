@@ -1,4 +1,3 @@
-/** Incremental full-text index for the trajectory ledger. */
 
 import { trajectoryRecordId } from './trajectory-record.js'
 import { trajectoryPreviewText } from './trajectory-preview.js'
@@ -65,16 +64,10 @@ function recordSources(
   ]
 }
 
-/** Session-view-local index that reparses Markdown only when one record's source changes. */
 export class TrajectorySearchIndex {
   entries = new Map()
   layouts
 
-  /**
-   * Incrementally synchronize one or more current trajectory layout slices.
-   * @param layouts - Finalized and optional streaming layouts from the same view.
-   * @returns Whether the indexed layout version changed.
-   */
   update(layouts) {
     if (this.layouts === layouts) return false
     this.layouts = layouts
@@ -109,11 +102,6 @@ export class TrajectorySearchIndex {
     return true
   }
 
-  /**
-   * Match a query against the latest committed index version.
-   * @param query - Space-separated case-insensitive search terms.
-   * @returns Matching stable record identities, or `null` without a query.
-   */
   search(query) {
     const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean)
     if (terms.length === 0) return null

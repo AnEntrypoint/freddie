@@ -3,9 +3,7 @@ import {
 } from '@freddie/freddie-client-runtime/client'
 import { trajectoryNode } from './trajectory-definition-common.js'
 
-/* jscpd:ignore-start -- Target-owned Definitions intentionally keep their event
- * state machines independent; see ../../../../../.agents/notes/implemented/
- * architecture/2026-08-09-client-conversation-node-assembly.md. */
+/* jscpd:ignore-start */
 function applySplice(
   previous,
   splice,
@@ -87,11 +85,6 @@ const trajectoryMessageDefinition = {
 }
 /* jscpd:ignore-end */
 
-/**
- * Register Trajectory-owned inbox classification and message records.
- *
- * @param ctx - Plugin context receiving the Definitions.
- */
 export function registerTrajectoryMessageDefinitions(ctx) {
   ctx.conversationEvents.register(trajectoryInboxDefinition)
   ctx.conversationEvents.register(trajectoryMessageDefinition)

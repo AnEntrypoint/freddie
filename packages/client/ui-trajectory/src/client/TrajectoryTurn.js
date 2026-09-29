@@ -2,11 +2,6 @@ import { createElement as h } from '@freddie/webjsx'
 import { TrajectoryTurnHeader } from './TrajectoryTurnHeader.js'
 import css from './TrajectoryTurn.css.js'
 
-/**
- * Render one turn section (sticky header + body).
- * @param props - turn index and body children.
- * @returns the turn section element.
- */
 export function TrajectoryTurn({ turn, children }) {
   return (
     h('section', {class: css.root ?? '', 'data-turn': turn},

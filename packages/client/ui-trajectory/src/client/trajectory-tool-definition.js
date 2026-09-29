@@ -1,8 +1,6 @@
 import { trajectoryNode } from './trajectory-definition-common.js'
 
-/* jscpd:ignore-start -- Target-owned Definitions intentionally keep their event
- * state machines independent; see ../../../../../.agents/notes/implemented/
- * architecture/2026-08-09-client-conversation-node-assembly.md. */
+/* jscpd:ignore-start */
 const MAX_DEPTH = 256
 
 function rootCall(match) {
@@ -193,7 +191,6 @@ function fallbackState(context) {
   return state
 }
 
-/** Trajectory-owned root Tool lifecycle with nested Code Dispatch calls. */
 const trajectoryToolDefinition = {
   kind: 'trajectory-tool-call',
   target: 'trajectory',
@@ -241,11 +238,6 @@ const trajectoryToolDefinition = {
 }
 /* jscpd:ignore-end */
 
-/**
- * Register the Trajectory Tool lifecycle.
- *
- * @param ctx - Plugin context receiving the Definition.
- */
 export function registerTrajectoryToolDefinition(ctx) {
   ctx.conversationEvents.register(trajectoryToolDefinition)
 }

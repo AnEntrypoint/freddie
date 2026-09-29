@@ -4,9 +4,7 @@ import {
 } from '@freddie/freddie-client-runtime/client'
 import { trajectoryNode } from './trajectory-definition-common.js'
 
-/* jscpd:ignore-start -- Target-owned Definitions intentionally keep their event
- * state machines independent; see ../../../../../.agents/notes/implemented/
- * architecture/2026-08-09-client-conversation-node-assembly.md. */
+/* jscpd:ignore-start */
 function initialState(
   turn,
   step,
@@ -238,7 +236,6 @@ function assistantRequest(
   }
 }
 
-/** Trajectory-owned Assistant streaming, settlement, and request lifecycle. */
 const trajectoryAssistantDefinition = {
   kind: 'trajectory-assistant-step',
   target: 'trajectory',
@@ -352,11 +349,6 @@ const trajectoryTurnEndDefinition = {
 }
 /* jscpd:ignore-end */
 
-/**
- * Register the Trajectory Assistant lifecycle.
- *
- * @param ctx - Plugin context receiving the Definitions.
- */
 export function registerTrajectoryAssistantDefinition(ctx) {
   ctx.conversationEvents.register(trajectoryAssistantDefinition)
   ctx.conversationEvents.register(trajectoryTurnEndDefinition)

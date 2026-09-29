@@ -111,11 +111,6 @@ const trajectorySessionEndDefinition = {
     }),
 }
 
-/**
- * Register Trajectory compaction requests and session boundaries.
- *
- * @param ctx - Plugin context receiving the Definitions.
- */
 export function registerTrajectoryCompactionDefinitions(ctx) {
   ctx.conversationEvents.register(trajectoryCompactionDefinition)
   ctx.conversationEvents.register(trajectorySessionEndDefinition)

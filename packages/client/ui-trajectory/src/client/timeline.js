@@ -1,12 +1,6 @@
-/** Operation-sequence and recorded-time projections for the trajectory overview. */
 
 import { formatDurationMillis } from './trajectory-record.js'
 
-/**
- * Format a timeline duration as an integer-millisecond label.
- * @param milliseconds - Non-negative duration in milliseconds.
- * @returns Millisecond label with thousands separators.
- */
 export function formatTimelineOffset(milliseconds) {
   return formatDurationMillis(milliseconds)
 }
@@ -29,12 +23,6 @@ function cellRange(cell) {
   return { start: cell.startedAt, end: cell.startedAt + durationMs }
 }
 
-/**
- * Project every visible record into a stable three-lane timeline.
- * @param turns - Unfiltered trajectory layout.
- * @param mode - Independent equal/recorded duration and compressed/complete time projection.
- * @returns Timeline model, or `null` when no record is visible.
- */
 export function deriveTrajectoryTimeline(
   turns,
   mode = 'sequence',
@@ -147,13 +135,6 @@ function deriveTimedTimeline(
   }
 }
 
-/**
- * Identify records active at any point inside an inclusive selected interval.
- * @param turns - Unfiltered trajectory layout.
- * @param range - Selected interval in the active projection.
- * @param mode - Independent equal/recorded duration and compressed/complete time projection.
- * @returns Record indexes inside the focus interval.
- */
 export function trajectoryTimelineFocusIndexes(
   turns,
   range,

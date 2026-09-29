@@ -1,14 +1,8 @@
-/** Trajectory toolbar: timeline and ledger fold controls. */
 
 import { createElement as h } from '@freddie/webjsx'
 import { IconSearchOutline16 } from '@freddie/freddie-client-ui-primitives'
 import css from './TrajectoryToolbar.css.js'
 
-/**
- * Render the sticky trajectory toolbar.
- * @param props - rendered counts and whole-list fold state.
- * @returns the toolbar element.
- */
 export function TrajectoryToolbar({
   actualDuration,
   onActualDurationChange,

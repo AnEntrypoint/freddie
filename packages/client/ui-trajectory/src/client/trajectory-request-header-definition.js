@@ -64,11 +64,6 @@ const trajectoryRequestHeaderDefinition = {
     }),
 }
 
-/**
- * Register Trajectory request-header facts.
- *
- * @param ctx - Plugin context receiving the Definition.
- */
 export function registerTrajectoryRequestHeaderDefinition(ctx) {
   ctx.conversationEvents.register(trajectoryRequestHeaderDefinition)
 }

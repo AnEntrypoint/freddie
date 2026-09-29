@@ -1,9 +1,6 @@
-/** `trajectory` namespace dictionaries (view tab label + toolbar strings). */
 
-/** Dictionary namespace owned by this plugin. */
 export const NS = 'trajectory'
 
-/** English dictionary. */
 export const en = {
   'view.trajectory': 'Trajectory',
   'toolbar.aria': 'Trajectory toolbar',

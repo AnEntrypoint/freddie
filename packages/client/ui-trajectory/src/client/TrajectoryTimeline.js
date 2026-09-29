@@ -1,4 +1,3 @@
-/** Chrome-Network-style overview timeline for focusing the trajectory ledger. */
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { renderTooltip, defineElement } from '@freddie/freddie-client-ui-primitives'
@@ -184,7 +183,6 @@ function cssVarStyle(vars) {
     .join('; ')
 }
 
-/** Overview renderer with drag ranges, click-sized focus, and Escape reset — a custom element. */
 export class FreddieTrajectoryTimeline extends HTMLElement {
   #props = {
     turns: [], mode: 'sequence', range: null, onRangeChange: () => {},
@@ -746,7 +744,6 @@ export class FreddieTrajectoryTimeline extends HTMLElement {
 
 defineElement('freddie-trajectory-timeline', FreddieTrajectoryTimeline)
 
-/** Create and mount a TrajectoryTimeline element in place of the old function-component call. */
 export function TrajectoryTimeline(props) {
   const el = document.createElement('freddie-trajectory-timeline')
   el.setProps(props)

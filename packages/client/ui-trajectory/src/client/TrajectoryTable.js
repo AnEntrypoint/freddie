@@ -1,4 +1,3 @@
-/** Turn-aware trajectory event ledger with a local record inspector. */
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { Virtualizer } from '@tanstack/virtual-core'
@@ -184,7 +183,6 @@ function formatStartedAt(timestamp) {
   return `${day} ${time}`
 }
 
-/** Whether a click lands on an active text selection and should keep it. */
 function clickSelectsText(target) {
   const selection = window.getSelection()
   return selection !== null
@@ -1426,13 +1424,6 @@ function OverviewSection({
   )
 }
 
-/**
- * Render trajectory events as a dense ledger with turn and step separators.
- * Clicking ledger whitespace clears the active record or request selection.
- * A stateful HTMLElement custom element: virtualizer lifecycle, local
- * inspector selection, resize-drag, and scroll-follow state all live as
- * private fields, re-rendered through an explicit `applyDiff` call.
- */
 export class FreddieTrajectoryTable extends HTMLElement {
   #props = {
     turns: [], collapsedTurns: new Set(), onToggleTurn: () => {},
@@ -1587,9 +1578,6 @@ export class FreddieTrajectoryTable extends HTMLElement {
     if (target !== undefined) this.#openRecordSummary(target)
   }
 
-  /** Cross-view inspect handoff: resolve requested call to its record, open
-   * its summary, remember the row to scroll once rendered. Runs once per
-   * distinct `inspectCallId` (mirrors the React version's effect + ref ack). */
   #syncInspectRequest() {
     const { inspectCallId = null, onInspectApplied, recordSelection = null, recordFocus = null } = this.#props
     if (inspectCallId !== null) {
@@ -2786,7 +2774,6 @@ export class FreddieTrajectoryTable extends HTMLElement {
 
 defineElement('freddie-trajectory-table', FreddieTrajectoryTable)
 
-/** Create and mount a TrajectoryTable element in place of the old function-component call. */
 export function TrajectoryTable(props) {
   const el = document.createElement('freddie-trajectory-table')
   el.setProps(props)

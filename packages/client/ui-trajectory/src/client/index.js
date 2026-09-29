@@ -1,7 +1,3 @@
-/**
- * Browser trajectory plugin contributing one entry to the conversation view
- * slot without defining a service.
- */
 import { createTrajectoryDurationStore } from './duration-store.js'
 import { en, NS } from './locales.js'
 import { registerTrajectoryAssistantDefinition } from './trajectory-assistant-definition.js'
@@ -12,14 +8,8 @@ import { registerTrajectoryConversationView } from './trajectory-snapshot-builde
 import { registerTrajectoryToolDefinition } from './trajectory-tool-definition.js'
 import { TrajectoryView } from './TrajectoryView.js'
 
-/** Required services: the conversation slot, registries, ordinary Session paging, and the locale service. */
 export const inject = ['slots', 'conversationEvents', 'conversationViews', 'sessions', 'locale']
 
-/**
- * Client plugin body: register the trajectory view tab. The registration
- * rides the slot service's effect wrapper, so plugin unload removes the tab.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-trajectory: dictionaries')
   const t = ctx.locale.bind(NS)

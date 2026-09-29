@@ -1,11 +1,3 @@
-/**
- * Wrap one contribution in the Engine-owned target envelope.
- *
- * @param context - Context that owns the contribution identity.
- * @param anchorSeq - Sequence used to order the contribution.
- * @param data - Trajectory-specific contribution payload.
- * @returns The contribution wrapped as a Trajectory view node.
- */
 export function trajectoryNode(
   context,
   anchorSeq,

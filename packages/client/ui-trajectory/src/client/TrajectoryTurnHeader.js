@@ -3,11 +3,6 @@ import css from './TrajectoryTurnHeader.css.js'
 
 const COLUMN_LABELS = ['Input', 'Output', 'Think', 'Time']
 
-/**
- * Render the sticky turn header row.
- * @param props.turn - turn index.
- * @returns the sticky header element.
- */
 export function TrajectoryTurnHeader({ turn }) {
   return (
     h('div', {class: css.root ?? ''},

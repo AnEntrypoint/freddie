@@ -1,4 +1,3 @@
-/** Trajectory view: compact summary over a turn-aware event ledger. */
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
@@ -177,14 +176,6 @@ function requestNumbersFrom(
   return numbered
 }
 
-/**
- * Trajectory view custom element: derives layout/search/timeline state from
- * session snapshots on every `setProps`, then re-renders through
- * `applyDiff`. Session-derived state (collapsed turns/assistants, timeline
- * selection, search query, search index) lives as private fields in place of
- * the React version's useState; one-shot cross-view record focus/select
- * requests are plain fields instead of refs guarding a useEffect.
- */
 export class FreddieTrajectoryView extends HTMLElement {
   #props = null
 
@@ -460,7 +451,6 @@ export class FreddieTrajectoryView extends HTMLElement {
 
 defineElement('freddie-trajectory-view', FreddieTrajectoryView)
 
-/** Create and mount a TrajectoryView element in place of the old function-component call. */
 export function TrajectoryView(props) {
   const el = document.createElement('freddie-trajectory-view')
   el.setProps(props)
