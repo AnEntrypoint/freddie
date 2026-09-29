@@ -1,9 +1,3 @@
-/**
- * Windows security-descriptor helpers for atomic local-file replacement. Koffi loads lazily so
- * non-Windows processes never open Win32 libraries.
- * @module @freddie/freddie-fs-local/win32
- */
-
 import { toNamespacedPath } from 'node:path'
 
 const DACL_SECURITY_INFORMATION = 0x00000004
@@ -51,11 +45,6 @@ function win32Error(syscall, win32Code, path) {
   return error
 }
 
-/**
- * Read a file's self-relative DACL security descriptor.
- * @param path - existing file whose DACL is read.
- * @returns a descriptor buffer accepted by `SetFileSecurityW`.
- */
 export async function readFileDaclWin32(path) {
   const api = await win32()
   const nativePath = toNamespacedPath(path)
@@ -70,12 +59,6 @@ export async function readFileDaclWin32(path) {
   return descriptor.subarray(0, needed[0])
 }
 
-/**
- * Copy an existing file's DACL onto another file and protect it from staging-parent inheritance.
- * The destination must still be empty when confidentiality depends on this call.
- * @param source - existing file whose DACL is copied.
- * @param destination - existing file that receives the protected DACL.
- */
 export async function copyFileDaclWin32(source, destination) {
   const descriptor = await readFileDaclWin32(source)
   const api = await win32()
@@ -85,11 +68,6 @@ export async function copyFileDaclWin32(source, destination) {
   }
 }
 
-/**
- * Replace a Windows file while preserving the replaced file's ACL and other replace metadata.
- * @param replaced - existing destination file.
- * @param replacement - closed staging file on the same volume.
- */
 export async function replaceFileWin32(replaced, replacement) {
   const api = await win32()
   if (api.replaceFileW(

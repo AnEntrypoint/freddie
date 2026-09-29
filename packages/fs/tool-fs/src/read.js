@@ -1,20 +1,9 @@
-/**
- * Model-facing UTF-8 read. It performs one provider stat for type, routing, and observed version,
- * streams large or size-unknown files, renders a bounded window, then emits the observation.
- * @module @freddie/freddie-tool-fs/src/read
- */
-
 import { defineTool } from '@freddie/freddie-tools'
 import { buildWindow, formatReadOutput, langFromPath, readMetaFromMeta } from './read-render.js'
 import { resolveRegularReadTarget } from './read-target.js'
 
-/** Default and maximum number of lines returned by one `read` call (the `readLimit` config). */
 export const READ_LIMIT = 2000
 
-/**
- * Default streaming threshold (the `readStreamMinSize` config): files at or
- * above this size stream; smaller files read whole into memory.
- */
 export const STREAM_MIN_SIZE = 10 * 1024 * 1024
 
 function parsePositiveInteger(value, name) {
@@ -24,12 +13,6 @@ function parsePositiveInteger(value, name) {
   return value
 }
 
-/**
- * Validate value constraints the schema DSL can't express. `maxLimit` is the deployment's line cap.
- * @param args - the schema-validated raw tool arguments; `offset`/`limit` must be positive integers when given.
- * @param maxLimit - the configured line cap: both the default `limit` and the largest one accepted.
- * @returns the validated input with `offset` defaulted to 1 and `limit` to `maxLimit`.
- */
 export function parseReadArgs(args, maxLimit) {
   if (args.file_path.trim().length === 0) throw new Error('file_path must be a non-empty string')
   const offset = args.offset === undefined ? 1 : parsePositiveInteger(args.offset, 'offset')
@@ -38,11 +21,6 @@ export function parseReadArgs(args, maxLimit) {
   return { filePath: args.file_path, offset, limit }
 }
 
-/**
- * Register the `read` tool and its system-prompt guidance.
- * @param ctx - the plugin context; registrations are effects scoped to it, and execution uses its `fs` service.
- * @param caps - the deployment's resolved read caps (plugin config after defaulting).
- */
 export function applyReadTool(ctx, caps) {
   ctx.systemPrompt.section({
     name: 'tool:read',

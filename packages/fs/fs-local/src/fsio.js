@@ -1,10 +1,3 @@
-/**
- * Cordis-free local filesystem mechanics. This provider layer returns validated UTF-8 text,
- * streams large files, and rejects binary data; line windows belong to `freddie-tool-fs`. Writes
- * stage an exclusive owner-only file in a private sibling directory and atomically publish it.
- * @module @freddie/freddie-fs-local/fsio
- */
-
 import { randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { chmod, link, lstat, mkdir, open, readFile, realpath, readdir, rename, rm, stat } from 'node:fs/promises'
@@ -24,12 +17,6 @@ function isEEXIST(error) {
   return error instanceof Error && 'code' in error && error.code === 'EEXIST'
 }
 
-/**
- * A path component that is expected to be a directory is a regular file (e.g.
- * resolving `afile/child.txt` when `afile` is a file). Like `ENOENT`, the target
- * cannot exist — so the resolution/probe paths treat it as "absent" rather than
- * letting a raw Node error escape without the structured `FsError` taxonomy.
- */
 function isENOTDIR(error) {
   return error instanceof Error && 'code' in error && error.code === 'ENOTDIR'
 }
@@ -52,12 +39,6 @@ function throwIfAborted(signal, verb) {
   if (signal?.aborted) throw new FsError(`${verb} aborted`, 'FS_ABORTED')
 }
 
-/**
- * `readFile` with the supplied signal, translating a mid-read `AbortError` into
- * the seam's structured `FsError('FS_ABORTED')` (Node rejects an aborted
- * `readFile` with a bare `AbortError`, which would otherwise escape the seam's
- * error taxonomy — the streaming/write paths translate it the same way).
- */
 async function readFileAbortable(absolutePath, verb, signal) {
   try {
     return await readFile(absolutePath, signal ? { signal } : {})
@@ -68,69 +49,15 @@ async function readFileAbortable(absolutePath, verb, signal) {
   }
 }
 
-/** Opaque version token from high-resolution identity and freshness metadata. */
 function versionOf(info) {
   return FsVersion(`${info.dev}:${info.ino}:${info.size}:${info.mtimeNs}:${info.ctimeNs}`)
 }
 
-/**
- * Test hook: lets specs pin the atomic-write temp names (to prove exclusive-open behavior without
- * a name race), override native boundaries, and observe the staged temp file before publication.
- * @typedef {object} FsIoInternals
- * @property {(absolutePath: string) => string} [tempDirName] Override the staging directory name.
- * @property {(absolutePath: string) => string} [tempName] Override the staged temp file name.
- * @property {string} [platform] Override `process.platform` for the Windows-replacement branch.
- * @property {(absolutePath: string, tempPath: string) => Promise<void>} [copyFileDacl] Override the Windows DACL copy.
- * @property {(absolutePath: string, tempPath: string) => Promise<void>} [replaceFile] Override the Windows replace primitive.
- * @property {(tempPath: string, absolutePath: string) => Promise<void>} [linkFile] Override the hard-link no-replace primitive.
- * @property {(path: string) => Promise<unknown>} [inspectPublicationTarget] Override the post-link-failure `lstat`.
- * @property {(path: string) => Promise<void>} [removeStagingDir] Override staging-directory cleanup.
- * @property {(staged: { stagingDir: string, tempPath: string }) => void | Promise<void>} [inspectTemp] Observe the staged temp file before publication.
- */
 
-/**
- * A resolved local path: the absolute path shown to callers and its realpath identity.
- * @typedef {object} ResolvedLocalPath
- * @property {string} displayPath
- * @property {import('@freddie/freddie-fs').FsTargetKey} targetKey
- */
 
-/**
- * Result of probing a path: null when it does not exist.
- * @typedef {object} LocalProbeResult
- * @property {import('@freddie/freddie-fs').FsVersion} version
- * @property {number} mode
- * @property {'file' | 'directory' | 'other'} type
- * @property {number} size
- */
 
-/**
- * Result of probing a path without following the final symlink component.
- * @typedef {object} LocalProbeNoFollowResult
- * @property {import('@freddie/freddie-fs').FsVersion} version
- * @property {number} mode
- * @property {'file' | 'directory' | 'other' | 'symlink'} type
- * @property {number} size
- */
 
-/**
- * One local directory child with a resolved target and cheap metadata.
- * @typedef {object} LocalDirChild
- * @property {string} name
- * @property {'file' | 'directory' | 'other'} type
- * @property {ResolvedLocalPath} target
- * @property {import('@freddie/freddie-fs').FsVersion} [version]
- * @property {number} [size] Present only when `type` is `file`.
- */
 
-/**
- * Resolve a path to its absolute display path and realpath identity. For a missing target,
- * realpath the nearest existing ancestor and append the missing suffix, preserving identity
- * across symlinked ancestors before and after creation.
- * @param cwd - base directory a relative `path` resolves against.
- * @param path - absolute or relative path; empty/whitespace-only throws `FS_NOT_FOUND`.
- * @returns the absolute display path plus the realpath-derived stable target key.
- */
 export async function resolveLocalTarget(cwd, path) {
   if (path.trim().length === 0) throw new FsError('file_path must be a non-empty string', 'FS_NOT_FOUND')
   const displayPath = resolve(cwd, path)
@@ -193,11 +120,6 @@ async function probeStats(absolutePath, readStats) {
   }
 }
 
-/**
- * Probe a path for its version, mode, type, and size. Null if absent.
- * @param absolutePath - the path to stat (typically a target key; symlinks are followed).
- * @returns the metadata, or null when the path — or a parent segment — does not exist.
- */
 export async function probe(absolutePath) {
   const info = await probeStats(absolutePath, path => stat(path, { bigint: true }))
   if (!info) return null
@@ -209,11 +131,6 @@ export async function probe(absolutePath) {
   }
 }
 
-/**
- * Probe a path without following the final symlink component.
- * @param absolutePath - the path entry to inspect with `lstat` semantics.
- * @returns path-entry metadata, or null when the entry is absent.
- */
 export async function probeNoFollow(absolutePath) {
   const info = await probeStats(absolutePath, path => lstat(path, { bigint: true }))
   if (!info) return null
@@ -241,14 +158,6 @@ async function resolveListedChildTarget(parent, name) {
   return { displayPath: join(parent.displayPath, name), targetKey: identity.targetKey }
 }
 
-/**
- * List direct children of a directory in stable name order. Each child includes
- * a resolved target plus stat metadata when still available; file contents are
- * never read.
- * @param target - the resolved directory to list; a missing or non-directory target throws.
- * @param signal - aborts the listing, checked between children (`FS_ABORTED`).
- * @returns one entry per direct child, sorted by name.
- */
 export async function listDirectory(target, signal) {
   throwIfAborted(signal, 'list')
   let info
@@ -329,13 +238,6 @@ async function statRegularFile(target, verb, signal) {
   return info
 }
 
-/**
- * Read a whole regular UTF-8 text file into a single decoded string. Rejects
- * non-regular files, invalid UTF-8, and NUL-byte binary samples.
- * @param target - the resolved file to read.
- * @param signal - aborts the read (`FS_ABORTED`).
- * @returns the full decoded text, byte-for-byte (no normalization).
- */
 export async function readWholeText(target, signal) {
   await statRegularFile(target, 'read', signal)
   const raw = await readFileAbortable(target.targetKey, 'read', signal)
@@ -346,17 +248,6 @@ export async function readWholeText(target, signal) {
   return decodeUtf8(raw, 'read', target.displayPath)
 }
 
-/**
- * Read a whole regular file as raw bytes with no decoding or binary rejection.
- * `maxBytes` bounds the complete content: the stat size short-circuits an
- * oversized file before any content I/O, and the stream reads at most one byte
- * beyond the cap so a file growing after stat cannot cause unbounded buffering.
- * @param target - the resolved file to read.
- * @param signal - aborts the read (`FS_ABORTED`).
- * @param maxBytes - inclusive byte cap on the complete content (`FS_TOO_LARGE`).
- * @param internals - test seam for a deterministic post-stat growth race.
- * @returns the full raw content, at most `maxBytes` long.
- */
 export async function readWholeBytes(target, signal, maxBytes, internals = {}) {
   const info = await statRegularFile(target, 'read', signal)
   if (info.size > maxBytes) {
@@ -385,14 +276,6 @@ export async function readWholeBytes(target, signal, maxBytes, internals = {}) {
   return Buffer.concat(chunks, bytes)
 }
 
-/**
- * Stream a whole regular UTF-8 text file as decoded text chunks. Same text
- * semantics as {@link readWholeText} (regular-file check, binary/NUL rejection,
- * cross-chunk UTF-8 decoding), but never holds the whole file in memory.
- * @param target - the resolved file to stream.
- * @param signal - aborts the stream, including between chunks (`FS_ABORTED`).
- * @returns decoded text chunks in file order; chunk boundaries carry no meaning.
- */
 export async function* streamWholeText(target, signal) {
   await statRegularFile(target, 'read', signal)
   const stream = createReadStream(target.targetKey, signal ? { signal } : {})
@@ -462,21 +345,6 @@ async function throwGuardedCreateFailure(error, absolutePath, displayPath, inspe
   throw new FsError(`cannot write "${displayPath}": ${errorMessage(error)}`, 'FS_IO_ERROR', { cause: error })
 }
 
-/**
- * Atomically replace a file through a private, synced staging file in the same directory.
- * POSIX protects the staging directory and file with `0o700` and `0o600`. A new Windows file
- * inherits the destination directory's DACL; a replacement copies the existing target's DACL
- * onto the empty temp before writing and preserves the target descriptor at publication.
- * @param absolutePath - destination; missing parent directories are created.
- * @param content - the full UTF-8 text to write.
- * @param mode - existing destination's POSIX mode to preserve, or `undefined` for a new file;
- * inert as a mode on Windows but identifies replacement security semantics.
- * @param signal - cancellation checked before final publication.
- * @param internals - Test hook for pinning temp names and observing the staged file.
- * @param createIfAbsent - when provided, publish with a hard-link no-replace
- * primitive; a concurrent creator's file is preserved and this write is
- * rejected with `FS_NOT_OBSERVED` using the supplied display path.
- */
 export async function writeFileAtomic(absolutePath, content, mode, signal, internals = {}, createIfAbsent) {
   throwIfAborted(signal, 'write')
   const directory = dirname(absolutePath)
@@ -552,17 +420,7 @@ export async function writeFileAtomic(absolutePath, content, mode, signal, inter
 }
 
 
-/**
- * Line ending style detected before LF normalization.
- * @typedef {'CRLF' | 'LF'} LineEndingStyle
- */
 
-/**
- * Collapse CRLF to LF — the canonical in-memory form every edit/diff basis
- * uses. Lone `\r` bytes (not followed by `\n`) are left untouched.
- * @param content - decoded text in whatever line-ending style the file had.
- * @returns the text with every `\r\n` pair replaced by `\n`.
- */
 function normalizeLineEndings(content) {
   return content.replaceAll('\r\n', '\n')
 }
@@ -574,14 +432,6 @@ function detectLineEndings(raw) {
   return crlfCount > lfCount ? 'CRLF' : 'LF'
 }
 
-/**
- * Convert LF-normalized content back to the line-ending style detected at read
- * time, for write-back. `LF` returns the content unchanged; `CRLF` re-normalizes
- * first so an already-CRLF sequence is never doubled to `\r\r\n`.
- * @param content - the LF-normalized (edited) text.
- * @param lineEndings - the original file's style, as detected by {@link readForEdit}.
- * @returns the text in the original file's line-ending style.
- */
 function restoreLineEndings(content, lineEndings) {
   return lineEndings === 'LF' ? content : normalizeLineEndings(content).split('\n').join('\r\n')
 }
@@ -597,14 +447,6 @@ function countOccurrences(content, needle) {
   }
 }
 
-/**
- * Read and decode a file for editing: rejects binaries, returns LF-normalized
- * content plus the original line-ending style for write-back.
- * @param absolutePath - the file to read (typically a target key).
- * @param displayPath - the caller-facing path used in error messages.
- * @param signal - aborts the read (`FS_ABORTED`).
- * @returns the LF-normalized content and the detected style to restore on write-back.
- */
 export async function readForEdit(absolutePath, displayPath, signal) {
   throwIfAborted(signal, 'edit')
   const buffer = await readFileAbortable(absolutePath, 'edit', signal)
@@ -614,18 +456,6 @@ export async function readForEdit(absolutePath, displayPath, signal) {
   return { content: normalizeLineEndings(raw), lineEndings: detectLineEndings(raw) }
 }
 
-/**
- * Best-effort overwrite diff basis. Binary, invalid UTF-8, a file at/above the byte limit,
- * or a file deleted/made unreadable after the caller's preflight returns `null` so the write
- * still succeeds and presentation falls back to a whole-file diff. The bound is enforced on
- * the opened descriptor rather than a prior path stat, so concurrent external replacement or
- * size changes cannot make this helper buffer more than `maxBytes`.
- * @param absolutePath - the file to read (typically a target key).
- * @param maxBytes - exclusive upper bound for bytes held as the contextual-diff basis.
- * @param signal - aborts the read (`FS_ABORTED`); cancellation propagates, unlike I/O failure.
- * @returns the LF-normalized text, or null for a non-regular, at/above-limit, binary, non-UTF-8,
- * descriptor-size-changed, or unreadable file.
- */
 export async function readTextForDiff(absolutePath, maxBytes, signal) {
   throwIfAborted(signal, 'read')
   try {
@@ -670,17 +500,6 @@ export async function readTextForDiff(absolutePath, maxBytes, signal) {
   }
 }
 
-/**
- * Apply a literal replacement to LF-normalized content. Empty or missing search text throws
- * `FS_EDIT_NOT_FOUND`; multiple matches throw `FS_AMBIGUOUS_EDIT` unless `replaceAll` is true.
- * @param content - the current file content, already LF-normalized.
- * @param oldString - literal text to find; CRLF inside it is normalized to LF before
- *   matching.
- * @param newString - literal replacement text, normalized the same way.
- * @param replaceAll - replace every match instead of requiring exactly one.
- * @param displayPath - the caller-facing path used in error messages.
- * @returns the edited LF-normalized content plus how many occurrences were replaced.
- */
 export function applyLiteralEdit(content, oldString, newString, replaceAll, displayPath) {
   const oldNorm = normalizeLineEndings(oldString)
   if (oldNorm.length === 0) {

@@ -1,16 +1,7 @@
-/**
- * Pure read presentation: turn provider-decoded text into a bounded, line-numbered window and
- * model-facing envelope. Chunk scanning caps the current line, so even one newline-free giant
- * line cannot grow memory without bound.
- * @module @freddie/freddie-tool-fs/read-render
- */
-
 import { FsError } from '@freddie/freddie-fs'
 
-/** Default maximum characters returned for a single line (the `readMaxLineLength` config). */
 export const READ_MAX_LINE_LENGTH = 2000
 
-/** Default maximum bytes returned for selected file lines (the `readMaxBytes` config). */
 export const READ_MAX_BYTES = 50 * 1024
 
 function newAccumulator() {
@@ -50,15 +41,6 @@ function finish(acc, request, displayPath) {
   return { lines: acc.lines, totalLines: acc.totalLines, truncatedByBytes: acc.truncatedByBytes }
 }
 
-/**
- * Build one window from streamed or whole-file chunks, enforcing line and byte caps while still
- * scanning to an exact total line count, and throwing `FS_NOT_FOUND` when the requested offset is
- * past EOF.
- * @param chunks - decoded text chunks in file order; chunk boundaries carry no meaning.
- * @param request - the resolved window; the caller has already applied its defaults and caps.
- * @param displayPath - the caller-facing path used in the offset-out-of-range error.
- * @returns the numbered window lines, the total line count seen, and the byte-cap truncation flag.
- */
 export async function buildWindow(chunks, request, displayPath) {
   const acc = newAccumulator()
   const lineBufferCap = request.maxLineLength + 1
@@ -89,12 +71,6 @@ export async function buildWindow(chunks, request, displayPath) {
   return finish(acc, request, displayPath)
 }
 
-/**
- * Format a read outcome as one OpenCode-style line-numbered text block body.
- * @param displayPath - the backend-resolved path rendered in the envelope's `<path>` element.
- * @param outcome - the windowed read to render.
- * @returns the model-facing envelope: numbered lines plus a continuation or end-of-file footer.
- */
 export function formatReadOutput(displayPath, outcome) {
   const endLine = outcome.lines.at(-1)?.number ?? Math.max(0, outcome.offset - 1)
   let footer
@@ -115,12 +91,6 @@ ${body}
 </content>`
 }
 
-/**
- * Lowercased file-extension to syntax-highlighting language hint. Keys are the
- * extension without its dot; a UI treats an absent key as plain text. The map is
- * intentionally small — common source, config, and markup extensions a
- * line-numbered code view benefits from highlighting — not an exhaustive registry.
- */
 const LANG_BY_EXTENSION = {
   ts: 'ts', tsx: 'tsx', mts: 'ts', cts: 'ts',
   js: 'js', jsx: 'jsx', mjs: 'js', cjs: 'js',
@@ -135,13 +105,6 @@ const LANG_BY_EXTENSION = {
   sql: 'sql', xml: 'xml', lua: 'lua',
 }
 
-/**
- * Derive a syntax-highlighting language hint from a read path's file extension.
- * Pure and case-insensitive on the extension; a dotfile with no extension
- * (`.gitignore`) and an unknown extension both yield `undefined`.
- * @param path - the model-facing path the read reported.
- * @returns the language hint for {@link LANG_BY_EXTENSION}, or `undefined` when the extension maps to none.
- */
 export function langFromPath(path) {
   const base = path.slice(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1)
   const dot = base.lastIndexOf('.')
@@ -150,31 +113,12 @@ export function langFromPath(path) {
   return Object.hasOwn(LANG_BY_EXTENSION, ext) ? LANG_BY_EXTENSION[ext] : undefined
 }
 
-/**
- * Whether `value` is a valid FileTextLine (defensive narrowing from
- * opaque `meta`). `number` must be a 1-based integer line number, since a card
- * rendered from a zero, fractional, or non-finite line number would violate the
- * 1-based numbering contract the read window promises.
- */
 function isFileTextLine(value) {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
   const { number, text } = value
   return typeof number === 'number' && Number.isInteger(number) && number >= 1 && typeof text === 'string'
 }
 
-/**
- * Narrow opaque live or replayed result metadata to a structured read window.
- * Malformed metadata returns `undefined` so presentation can fall back to the
- * generic text card instead of throwing during replay. Beyond shape, the
- * semantic contract of a read window is enforced against replayed JSON that is
- * well-typed but out of range: `offset` must be a 1-based integer, `totalLines`
- * must be a non-negative integer, each line number must be a 1-based integer no
- * less than `offset`, the line numbers must strictly increase, and no line number
- * may exceed `totalLines`. Any violation declines to the generic fallback rather
- * than emitting a card that misnumbers or overcounts.
- * @param meta - result metadata.
- * @returns the validated read window, or `undefined` for absent, malformed, or semantically invalid data.
- */
 export function readMetaFromMeta(meta) {
   if (typeof meta !== 'object' || meta === null || Array.isArray(meta)) return undefined
   const { path, offset, lines, totalLines, lang } = meta

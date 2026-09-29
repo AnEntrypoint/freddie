@@ -1,19 +1,8 @@
-/**
- * The model-facing `read_image` tool commits a PNG/JPEG/WebP/GIF file.
- *
- * The route gate is deliberately stricter than the host upload preflight. An
- * image-reading tool is useful only when the exact calling route can inspect
- * its result, so unknown capability refuses instead of relying on an adapter
- * failure after filesystem and attachment work.
- * @module @freddie/freddie-tool-fs/src/read-image
- */
-
 import { basename, extname } from 'node:path'
 import { AttachmentError, AttachmentId } from '@freddie/freddie-attachment'
 import { defineTool } from '@freddie/freddie-tools'
 import { resolveRegularReadTarget } from './read-target.js'
 
-/** Extensions `read_image` accepts; magic-byte validation at the attachment service stays authoritative. */
 const IMAGE_EXTENSIONS = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -44,23 +33,10 @@ const IMAGE_VALUE_SCHEMA = {
   },
 }
 
-/**
- * Map a model-supplied path to its declared image media type by extension.
- * @param filePath - the raw `file_path` argument (not yet resolved).
- * @returns the declared media type, or undefined when the path does not claim an image.
- */
 export function imageMediaTypeForPath(filePath) {
   return IMAGE_EXTENSIONS[extname(filePath).toLowerCase()]
 }
 
-/**
- * Enforce the strict image-capability gate for the calling route. Resolves the
- * session's latest routed provider/model (request header config, then agent
- * options) and requires the exact resolved route to declare `image` input explicitly.
- * @param ctx - the plugin context used to resolve the optional `llm` service.
- * @param exec - the tool-execution context supplying the calling agent.
- * @param requestedPath - the raw, not-yet-resolved path rendered in refusal messages.
- */
 export async function assertImageCapableRoute(ctx, exec, requestedPath) {
   const routed = exec.agent?.session.requestHeader()?.config
   const provider = routed?.provider ?? exec.agent?.options.provider
@@ -75,12 +51,6 @@ export async function assertImageCapableRoute(ctx, exec, requestedPath) {
   }
 }
 
-/**
- * Re-brand a structured image outcome into the durable attachment reference an
- * `ImageBlock` carries.
- * @param image - the image metadata from the output schema.
- * @returns the branded attachment reference.
- */
 export function imageRefFromValue(image) {
   return {
     attachmentId: AttachmentId(image.attachmentId),
@@ -95,14 +65,6 @@ export function imageRefFromValue(image) {
   }
 }
 
-/**
- * Format an image read as the model-facing envelope beside its image block.
- * A downscaled read names the on-disk dimensions and the multiplier that maps
- * coordinates measured on the attached image back onto the original file.
- * @param displayPath - the backend-resolved path rendered in the envelope's `<path>` element.
- * @param image - the image metadata to summarize.
- * @returns the model-facing envelope; the image itself rides the adjacent image block.
- */
 export function formatImageReadOutput(displayPath, image) {
   let scaled = ''
   if (image.originalDimensions !== undefined) {
@@ -120,11 +82,6 @@ ${image.mediaType} image, ${image.width}x${image.height} px, ${image.bytes} byte
 </content>`
 }
 
-/**
- * Project one structured image read into its model-facing envelope and image.
- * @param value - the image-read outcome.
- * @returns the two content blocks used by native and nested dispatches.
- */
 function imageReadContent(value) {
   return [
     { type: 'text', text: formatImageReadOutput(value.path, value.image) },
@@ -132,15 +89,6 @@ function imageReadContent(value) {
   ]
 }
 
-/**
- * Register the `read_image` tool into the given context. The composing plugin
- * owns the attachments gate: `src/index.js` calls this inside
- * `ctx.inject(['attachments'], …)` so the tool exists only while a durable
- * store is mounted. Execution still re-checks `ctx.get('attachments')` for
- * direct callers and gates on the calling route's declared image input.
- * @param ctx - the registration scope; execution uses its `fs` service plus
- *   the optional `attachments`/`llm` services.
- */
 export function applyReadImageTool(ctx) {
   ctx.tools.register(defineTool({
     name: 'read_image',

@@ -1,19 +1,13 @@
-/** Package-owned filesystem event-data invariants. @module @freddie/freddie-fs/invariant */
-
 const PACKAGE_NAME = '@freddie/freddie-fs'
 
-/** Cordis companion plugin name. */
 export const name = 'fs-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Assert that an event carries a usable opaque target identity. */
 function validateTarget(target, fail) {
   if (target.targetKey.length === 0) fail('filesystem event targetKey must be non-empty')
   if (target.displayPath.length === 0) fail('filesystem event displayPath must be non-empty')
 }
 
-/** Install checks over the filesystem decision and observation event stream. */
 const install = (ctx, fail) => {
   ctx.on('internal/dispatch', (_mode, eventName, args) => {
     if (eventName !== 'fs/write-intent'
@@ -35,10 +29,5 @@ const install = (ctx, fail) => {
   }, { global: true })
 }
 
-/**
- * Register the filesystem invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

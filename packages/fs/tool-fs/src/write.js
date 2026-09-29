@@ -1,32 +1,13 @@
-/**
- * Model-facing full-file write. It obtains an optional intent from the single policy slot, calls
- * `ctx.fs.writeText` without a stat, then records the resulting version; no policy means an
- * unconditional atomic create-or-overwrite.
- * @module @freddie/freddie-tool-fs/src/write
- */
-
 import { defineTool } from '@freddie/freddie-tools'
 import { computeHunkDiffs, diffsFromMeta } from './diff.js'
 import { remediateFsError } from './error.js'
 import { sessionResolveOptions } from './session-cwd.js'
 
-/**
- * Validate value constraints the schema DSL can't express: only a non-blank
- * `file_path` — an empty `content` is legitimate (it writes an empty file).
- * @param args - the schema-validated raw tool arguments.
- * @returns the camelCased input; `content` passes through untouched.
- */
 export function parseWriteArgs(args) {
   if (args.file_path.trim().length === 0) throw new Error('file_path must be a non-empty string')
   return { filePath: args.file_path, content: args.content }
 }
 
-/**
- * Format a write outcome as one model-facing text block body.
- * @param displayPath - the backend-resolved path rendered in the envelope's `<path>` element.
- * @param outcome - the write outcome; its `operation` selects the Created/Updated wording.
- * @returns the model-facing confirmation envelope (no file content is echoed back).
- */
 export function formatWriteOutput(displayPath, outcome) {
   const verb = outcome.operation === 'create' ? 'Created' : 'Updated'
   return `<path>${displayPath}</path>
@@ -36,11 +17,6 @@ ${verb} file
 </content>`
 }
 
-/**
- * Register the `write` tool and its system-prompt guidance.
- * @param ctx - the plugin context; registrations are effects scoped to it, and execution uses its `fs` service.
- * @param sandbox - the shared sandbox-escalation API (advertisement, mode stamping, denial mapping).
- */
 export function applyWriteTool(ctx, sandbox) {
   ctx.systemPrompt.section({
     name: 'tool:write',

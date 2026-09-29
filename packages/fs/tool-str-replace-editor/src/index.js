@@ -1,8 +1,3 @@
-/**
- * Model-facing `str_replace_editor` over the Harness filesystem seam.
- * @module @freddie/freddie-tool-str-replace-editor
- */
-
 import { isAbsolute } from 'node:path'
 import z from '@freddie/schemastery'
 import { FsError } from '@freddie/freddie-fs'
@@ -349,7 +344,6 @@ function presentEditorCall(args) {
   }
 }
 
-/** Register the model-facing `str_replace_editor` tool. */
 function registerStrReplaceEditor(ctx, config) {
   const policy = new MutationPolicy(ctx)
   ctx.tools.register(defineTool({
@@ -426,13 +420,11 @@ function registerStrReplaceEditor(ctx, config) {
 export const name = 'tool-str-replace-editor'
 export const inject = ['tools', 'fs']
 
-/** Runtime configuration schema for the string-replacement editor tool. */
 export const Config = z.object({
   maxOutputChars: z.number().default(16_000),
   description: z.string().default(DEFAULT_DESCRIPTION),
 })
 
-/** Register one `str_replace_editor` tool over `ctx.fs`. */
 export function apply(ctx, config) {
   const resolved = {
     maxOutputChars: config.maxOutputChars ?? 16_000,

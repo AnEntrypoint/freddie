@@ -1,9 +1,3 @@
-/**
- * Host-filesystem implementation of `ctx.fs`. Realpath-derived target identity makes aliases
- * share stale guards, and writes through a symlink update its target without replacing the link.
- * @module @freddie/freddie-fs-local
- */
-
 import { constants as bufferConstants } from 'node:buffer'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -25,7 +19,6 @@ import {
   writeFileAtomic,
 } from './fsio.js'
 
-/** Configuration for the local filesystem backend. */
 
 const DEFAULT_DIFF_BASIS_MAX_BYTES = 10 * 1024 * 1024
 const MAX_DIFF_BASIS_BYTES = Math.min(
@@ -33,26 +26,14 @@ const MAX_DIFF_BASIS_BYTES = Math.min(
   bufferConstants.MAX_STRING_LENGTH,
 )
 
-/**
- * The host-filesystem backend. Reads resolve relative paths from
- * {@link LocalFileSystem.Config}'s `cwd` field (a resolution default, NOT a
- * containment boundary — see the filesystem capability-seam Agent Note);
- * enforce containment with a stricter backend or a `tools/execute` permission
- * plugin.
- */
 export class LocalFileSystem extends FileSystem {
   static Config = z.object({
     cwd: z.string().default(process.cwd()),
     diffBasisMaxBytes: z.number().default(DEFAULT_DIFF_BASIS_MAX_BYTES),
   })
 
-  /** Validated config (schemastery applied the defaults before construction). */
   config
-  /** Test hook forwarded to fsio for atomic-publication boundaries. */
   internals = {}
-  /** Per-targetKey tail promise: serializes mutating ops so the read→guard→write
-   * window can't interleave, making concurrent writes/edits deterministically
-   * ordered (one wins, the rest see the new version and reject as stale). */
   locks = new Map()
 
   constructor(ctx, config) {
@@ -66,7 +47,6 @@ export class LocalFileSystem extends FileSystem {
     this.config = resolved
   }
 
-  /** Run `op` with exclusive access to `targetKey` (FIFO per key). */
   async withLock(targetKey, op) {
     const prior = this.locks.get(targetKey) ?? Promise.resolve()
     const run = prior.then(op, op)

@@ -1,31 +1,3 @@
-/**
- * The model-facing filesystem discovery tool suite (`glob`, `grep`) over the
- * packaged ripgrep binary (`@vscode/ripgrep`). This single plugin registers
- * both tools; the binary ships inside the npm dependency, so no system `rg`
- * install and no shell layer is involved.
- *
- * ## Spawn-backed, not a `ctx.fs` provider method
- *
- * Local workspace discovery is a process-backed `rg` workflow, so these tools
- * execute through `ctx.subprocess.spawn()` with fixed ripgrep argv templates —
- * never `ctx.shell`, never `ctx.shell.start()`, never a model-visible background
- * task. The tool layer owns schemas, argument validation, argv construction
- * ({@link module:@freddie/freddie-tool-fs-search/glob} /
- * {@link module:@freddie/freddie-tool-fs-search/grep}), result parsing,
- * retention, formatted-result spill, and timeout declaration; the subprocess
- * seam owns spawn execution, process-tree termination, environment scrubbing,
- * and raw output capture. The package injects `tools`, `systemPrompt`, and
- * `subprocess` — deliberately NOT `fs`, and `ctx.spillStore` is read
- * opportunistically with `ctx.get()` because formatted-result spill is optional.
- *
- * Returned paths are displayed relative to the resolved workdir and are
- * follow-up-readable only in co-located deployments where the workdir and the
- * filesystem `read` root are the same workspace — a documented v1 deployment
- * requirement, not runtime-validated.
- *
- * @module @freddie/freddie-tool-fs-search
- */
-
 import z from '@freddie/schemastery'
 import { MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
 import { GLOB_MAX_RESULTS, applyGlobTool } from './glob.js'
@@ -59,13 +31,10 @@ export {
   trySaveFormattedResult,
 } from './search-core.js'
 
-/** Cordis plugin name used by loader diagnostics. */
 export const name = 'tool-fs-search'
 
-/** Services required by the search tool suite (`spillStore` is optional, read via `ctx.get()`). */
 export const inject = ['tools', 'systemPrompt', 'subprocess']
 
-/** Plugin config; over-cap glob sampling is an explicit deployment choice and the remaining fields have defaults. */
 
 export const Config = z.object({
   sampleOverCapGlobResults: z.boolean().required(),
@@ -79,35 +48,13 @@ export const Config = z.object({
   timeoutMs: z.number().default(SEARCH_TIMEOUT_MS),
 })
 
-/**
- * The shape after schemastery applied the defaults.
- * @typedef {object} ResolvedSearchConfig
- * @property {boolean} sampleOverCapGlobResults
- * @property {number} globMaxResults
- * @property {number} grepMaxMatches
- * @property {number} grepMaxLineBytes
- * @property {number} searchMetaMaxBytes
- * @property {number} rawOutputMaxBytes
- * @property {number} graceMs
- * @property {number} stderrMaxBytes
- * @property {number} timeoutMs
- */
 
-/** Every search cap counts items/bytes/milliseconds — a positive integer, or retention and timeout arithmetic misbehaves silently. */
 function assertPositiveInteger(name, value) {
   if (!Number.isInteger(value) || value < 1) {
     throw new Error(`tool-fs-search: ${name} must be a positive integer`)
   }
 }
 
-/**
- * Register the `glob`/`grep` filesystem discovery tool suite. The packaged
- * ripgrep binary is always available (an npm dependency), so registration is
- * unconditional.
- *
- * @param ctx - plugin context; registrations are effects scoped to this plugin.
- * @param config - resolved plugin configuration from schemastery.
- */
 // oxlint-disable-next-line typescript/require-await -- async keeps a load-time config rejection a rejection, not a synchronous throw
 export async function apply(ctx, config) {
   const resolved = config
