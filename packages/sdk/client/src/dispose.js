@@ -1,18 +1,3 @@
-/**
- * Private teardown ladder for the runtime subprocess: stdin EOF (cooperative
- * quiesce), then SIGTERM, then SIGKILL, resolving only after the process has
- * actually exited. The SDK client runs OUTSIDE any harness context, so it
- * cannot ride the `freddie-subprocess` service — this module is the seam's
- * documented exception for SDK-managed transports.
- *
- * @module @freddie/freddie-sdk-client/dispose
- */
-
-/**
- * Race the child's exit against a timer. Neither outcome leaves anything
- * behind on the child: the exit listener is removed on timeout and the timer
- * is cleared on exit, so the ladder's tiers never accumulate listeners.
- */
 function exitsWithin(child, ms) {
   if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve(true)
   return new Promise((resolve) => {
@@ -28,7 +13,6 @@ function exitsWithin(child, ms) {
   })
 }
 
-/** Force-terminate the runtime and reject if no exit edge arrives within the grace. */
 function forceTerminateWithin(child, ms) {
   if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve()
   return new Promise((resolve, reject) => {
@@ -64,18 +48,6 @@ function forceTerminateWithin(child, ms) {
   })
 }
 
-/**
- * Tear the runtime down to quiescence, resolving only after exit: close stdin
- * and allow cooperative flush, then use the host's graceful and forced
- * termination semantics. POSIX sends `SIGTERM` before `SIGKILL`; Windows
- * skips directly to forced termination because Node maps both signals to
- * `TerminateProcess`.
- * @param child - the runtime child process to tear down.
- * @param graces - the EOF and termination-confirmation windows (ms).
- * @param platform - the host platform, injectable for unit coverage.
- * @throws When forced termination errors or the child does not report exit
- * within `disposeGraceMs`.
- */
 export async function disposeRuntimeProcess(
   child,
   graces,

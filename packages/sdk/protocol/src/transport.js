@@ -1,21 +1,7 @@
-/**
- * Newline-delimited JSON-RPC 2.0 over byte streams. Frames with `id` and
- * `method` are requests, `id` alone is a response, and `method` alone is a
- * notification. Malformed lines are ignored; handler failures become error frames.
- *
- * @module @freddie/freddie-sdk-protocol/transport
- */
-
 import { randomUUID } from 'node:crypto'
 import { StringDecoder } from 'node:string_decoder'
 
-/** A JSON-RPC error response, preserving the wire `code` and optional `data`. */
 export class JsonRpcResponseError extends Error {
-  /**
-   * @param code - the wire error code, or `undefined` when the peer sent none.
-   * @param message - the wire error message.
-   * @param data - the optional structured error payload, verbatim.
-   */
   constructor(code, message, data) {
     super(message)
     this.name = 'JsonRpcResponseError'
@@ -24,22 +10,6 @@ export class JsonRpcResponseError extends Error {
   }
 }
 
-/**
- * The outbound surface (request/notify) a JSON-RPC peer is typed against —
- * the subset of {@link JsonRpcLineTransport} that a server class dispatches
- * requests and notifications through, without depending on its stream
- * plumbing.
- * @typedef {object} JsonRpcTransportPeer
- * @property {function(string, *, AbortSignal=): Promise<*>} request
- * @property {function(string, *=): void} notify
- */
-
-/**
- * Line-delimited endpoint over caller-owned streams. {@link start} attaches
- * listeners; {@link close} detaches them and rejects pending requests without
- * destroying the streams. Missing request handlers return `-32601`; handler
- * failures return `-32603`. Notifications without a handler are dropped.
- */
 export class JsonRpcLineTransport {
   buffer = ''
   decoder = new StringDecoder('utf8')
@@ -53,7 +23,6 @@ export class JsonRpcLineTransport {
     this.output = output
   }
 
-  /** Attach the input listeners and begin reading frames. Idempotent. */
   start() {
     if (this.started) return
     this.started = true
@@ -62,9 +31,6 @@ export class JsonRpcLineTransport {
     this.input.on('end', this.onInputEnd)
   }
 
-  /**
-   * Detach listeners and reject pending requests. Safe before {@link start}.
-   */
   close() {
     this.input.off('data', this.onData)
     this.input.off('error', this.onInputError)
@@ -72,33 +38,14 @@ export class JsonRpcLineTransport {
     this.failPending(new Error('JSON-RPC transport closed'))
   }
 
-  /**
-   * Install the request handler, replacing any prior handler.
-   * @param handler - resolves to the response `result`; a rejection becomes a
-   * `-32603` error response carrying the message.
-   */
   onRequest(handler) {
     this.requestHandler = handler
   }
 
-  /**
-   * Install the notification handler, replacing any prior handler.
-   * @param handler - invoked per notification with the method and normalized
-   * params object.
-   */
   onNotification(handler) {
     this.notificationHandler = handler
   }
 
-  /**
-   * Send a request and await its response.
-   * @param method - the JSON-RPC method name.
-   * @param params - the request parameters object.
-   * @param signal - optional abandonment signal: aborting removes the pending
-   * entry (no state is retained for a response that may never come) and
-   * rejects with the signal's reason.
-   * @returns the result; rejects per {@link JsonRpcTransportPeer.request}.
-   */
   request(method, params, signal) {
     const id = `req_${randomUUID().replaceAll('-', '')}`
     const message = { jsonrpc: '2.0', id, method, params }
@@ -140,10 +87,6 @@ export class JsonRpcLineTransport {
     this.write(params === undefined ? { jsonrpc: '2.0', method } : { jsonrpc: '2.0', method, params })
   }
 
-  /**
-   * Wait for prior frame write callbacks. The empty barrier emits no bytes.
-   * @returns a promise that settles with the output write callback.
-   */
   flush() {
     return new Promise((resolve, reject) => {
       this.output.write('', (error) => {
@@ -248,12 +191,10 @@ export class JsonRpcLineTransport {
   }
 }
 
-/** Normalize JSON-RPC `params` to a plain object (arrays and scalars collapse to `{}`). */
 function objectParams(params) {
   return params && typeof params === 'object' && !Array.isArray(params) ? params : {}
 }
 
-/** Normalize an abort reason into the rejection Error (a non-Error reason is stringified). */
 function abortError(reason) {
   return reason instanceof Error ? reason : new Error(`JSON-RPC request aborted: ${String(reason)}`)
 }

@@ -1,10 +1,3 @@
-/**
- * JSON-RPC methods and notifications for out-of-process harness SDKs.
- * The surrounding context owns plugins, persistence, and configured adapters.
- *
- * @module @freddie/freddie-sdk-jsonrpc-server/server
- */
-
 import { resolve } from 'node:path'
 import { createUserMessage } from '@freddie/freddie-llm'
 import { carrierKeyOf } from '@freddie/freddie-scope'
@@ -12,7 +5,6 @@ import { SessionId } from '@freddie/freddie-session'
 import * as LlmDeepSeek from '@freddie/freddie-llm-deepseek'
 import { setTurnContext } from './turn-context.js'
 
-/** Recover the delegating parent from the service-owned scoped carrier. */
 function subagentParentOf(carrier) {
   return carrierKeyOf(carrier)
 }
@@ -22,11 +14,6 @@ function successStatus(reason, options) {
   return reason === 'max-tokens' && options.maxTokensAsSuccess === true ? 'ok' : 'error'
 }
 
-/**
- * SDK server over one booted harness context and transport peer. Construction
- * subscribes to session, agent, and subagent lifecycle events until shutdown;
- * reinitialization is unsupported.
- */
 export class HarnessSdkJsonRpcServer {
   cwd = process.cwd()
   provider = 'deepseek-official'
@@ -76,11 +63,6 @@ export class HarnessSdkJsonRpcServer {
     }))
   }
 
-  /**
-   * Configure the SDK route, mounting the DeepSeek fallback only when unowned.
-   * @param params - SDK handshake parameters.
-   * @returns server identity for the handshake.
-   */
   async initialize(params) {
     if (params.maxTokens !== undefined
       && (!Number.isSafeInteger(params.maxTokens) || params.maxTokens <= 0)) {
@@ -97,19 +79,6 @@ export class HarnessSdkJsonRpcServer {
     return { serverInfo: { name: 'freddie-sdk-runtime', version: '0.0.1' } }
   }
 
-  /**
-   * Queue one identified prompt without assigning later activity to it.
-   * @param params - target session, user content, and optional per-turn
-   *   scoping: `enabledTools`/`disabledTools` (tool-name allow/deny lists —
-   *   see `ctx.tools.restrict()` in `@freddie/freddie-tools`; a given list
-   *   REPLACES this session's current scope from this turn onward, omitting
-   *   both leaves the existing scope unchanged) and `turnContext` (an opaque
-   *   deployer-defined value a tool package reads via
-   *   `turnContextFor(exec.agent)`, see `./turn-context.js`; a call carrying
-   *   it REPLACES the session's context, omitting it leaves the existing
-   *   context — or absence of one — unchanged).
-   * @returns the durable message identity.
-   */
   async prompt(params) {
     const rec = await this.getOrCreateSession(params.sessionId)
     if (this.ctx.agents.get(rec.handle.agent.id) !== rec.handle.agent) {
@@ -122,16 +91,6 @@ export class HarnessSdkJsonRpcServer {
     return { messageId: message.id }
   }
 
-  /**
-   * Replace this session's tool-visibility restriction for the caller-given
-   * `enabledTools`/`disabledTools`. A fresh disposer replaces the prior one on
-   * every call carrying either list, so a later turn's scope always wins over
-   * an earlier one rather than stacking indefinitely; a call carrying neither
-   * key is a no-op (the session's existing scope, or the deployment default
-   * with no restriction at all, stays in effect).
-   * @param rec - this session's record (created by {@link createSession}).
-   * @param params - the incoming `session/prompt` params.
-   */
   applyToolScope(rec, params) {
     const allow = params.enabledTools
     const deny = params.disabledTools
@@ -143,11 +102,6 @@ export class HarnessSdkJsonRpcServer {
     })
   }
 
-  /**
-   * Dispose server-owned agents, adapter, and subscriptions to quiescence.
-   * The surrounding context remains running.
-   * @returns empty JSON-RPC result.
-   */
   shutdown() {
     this.shutdownTask ??= this.performShutdown()
     return this.shutdownTask
@@ -181,13 +135,6 @@ export class HarnessSdkJsonRpcServer {
     return {}
   }
 
-  /**
-   * Dispatch one incoming JSON-RPC request to its typed handler. Throws (→ a
-   * JSON-RPC error response) on an unknown method.
-   * @param method - the JSON-RPC method name.
-   * @param params - the raw params object from the wire.
-   * @returns the handler's result, to be serialized as the response.
-   */
   async handleRequest(method, params) {
     switch (method) {
       case 'initialize':

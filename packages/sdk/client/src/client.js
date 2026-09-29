@@ -1,17 +1,3 @@
-/**
- * Low-level JSON-RPC client for a Freddie SDK runtime subprocess.
- * {@link HarnessClient} owns the child process: it spawns the runtime, speaks
- * the `@freddie/freddie-sdk-protocol` wire over the child's stdio, fans
- * server notifications out to subscriptions, and tears the child down to
- * quiescence through a private EOF → SIGTERM → SIGKILL ladder. The design
- * twin is the Python SDK's `HarnessClient` (`python/sdk`); both drive the
- * same runtime protocol. This client runs OUTSIDE any harness context, so it
- * spawns directly rather than through the `freddie-subprocess` service — the
- * seam's documented exception for SDK-managed transports.
- *
- * @module @freddie/freddie-sdk-client/client
- */
-
 import { spawn } from 'node:child_process'
 import {
   JsonRpcLineTransport,
@@ -19,59 +5,37 @@ import {
 } from '@freddie/freddie-sdk-protocol'
 import { disposeRuntimeProcess } from './dispose.js'
 
-/** Retained stderr lines used to diagnose an unexpected runtime death. */
 const STDERR_TAIL_LIMIT = 400
 
-/** Grace for the runtime's stdio streams to settle after its exit edge. */
 const STREAM_SETTLE_MS = 100
 
-/**
- * The runtime subprocess is gone or unusable: it exited, its stdio closed, or
- * it was never launchable. The message carries the exit code and a stderr
- * tail when available.
- */
 export class TransportClosedError extends Error {
-  /** @param message - the failure description, including any stderr tail. */
   constructor(message) {
     super(message)
     this.name = 'TransportClosedError'
   }
 }
 
-/** A request exceeded {@link HarnessClientOptions.requestTimeoutMs}. */
 export class RequestTimeoutError extends Error {
-  /** @param message - which method timed out. */
   constructor(message) {
     super(message)
     this.name = 'RequestTimeoutError'
   }
 }
 
-/**
- * The runtime answered outside its documented protocol (for example a
- * `session/prompt` response without `accepted: true`).
- */
 export class SdkProtocolError extends Error {
-  /** @param message - the protocol violation description. */
   constructor(message) {
     super(message)
     this.name = 'SdkProtocolError'
   }
 }
 
-/** Internal producer side of a public notification subscription. */
 class NotificationSubscriptionImpl {
   constructor(state, unsubscribe) {
     this.state = state
     this.unsubscribe = unsubscribe
   }
 
-  /**
-   * Await the next matching notification.
-   * @returns the notification; after the runtime died, drains what was
-   * already delivered and then rejects; after {@link close}, rejects
-   * immediately (the queue is dropped).
-   */
   next() {
     const queued = this.state.queue.shift()
     if (queued !== undefined) return Promise.resolve(queued)
@@ -81,38 +45,21 @@ class NotificationSubscriptionImpl {
     })
   }
 
-  /**
-   * Drain one already-delivered notification without waiting.
-   * @returns the next queued notification, or `undefined` when none is queued.
-   */
   tryNext() {
     return this.state.queue.shift()
   }
 
-  /** Detach from the client; queued items drop and pending waiters reject. */
   close() {
     this.unsubscribe()
     this.state.queue.length = 0
     this.fail(new TransportClosedError('notification subscription closed'))
   }
 
-  /**
-   * Reject pending and future waits (delivery stops; the first failure wins).
-   * Already-queued notifications remain drainable via {@link next}/{@link tryNext}.
-   * @param error - the terminal failure delivered to waiters.
-   */
   fail(error) {
     this.state.failure ??= error
     for (const waiter of this.state.waiters.splice(0)) waiter.reject(this.state.failure)
   }
 
-  /**
-   * Deliver one notification to a waiter or the queue when the filter
-   * matches. A throwing filter fails only THIS subscription (detached, the
-   * throw becomes its terminal error) — it never disturbs sibling
-   * subscriptions or the transport's read loop, mirroring the Python client.
-   * @param notification - the wire notification to deliver.
-   */
   push(notification) {
     let matches
     try {
@@ -128,35 +75,11 @@ class NotificationSubscriptionImpl {
     else this.state.queue.push(notification)
   }
 
-  /**
-   * Iterate notifications until the subscription or runtime closes (the
-   * terminating rejection propagates).
-   * @returns an async iterator over {@link next} results.
-   */
   async * [Symbol.asyncIterator]() {
     for (;;) yield await this.next()
   }
 }
 
-/**
- * Launch spec, complete child environment, and timeouts for {@link HarnessClient}.
- * @typedef {object} HarnessClientOptions
- * @property {string} command - the runtime executable to spawn.
- * @property {readonly string[]} [args]
- * @property {string} [cwd]
- * @property {NodeJS.ProcessEnv} [env] - replaces the child environment entirely when given; `undefined` inherits the parent's.
- * @property {number} [requestTimeoutMs] - default per-request timeout, overridable per call.
- */
-
-/**
- * JSON-RPC client for the Freddie SDK runtime over subprocess stdio.
- *
- * The subprocess starts lazily on {@link start} and is owned by this instance
- * until {@link close}, which requests protocol `shutdown` and then walks the
- * shared EOF → SIGTERM → SIGKILL dispose ladder to quiescence. There is no
- * wire-level cancel: a timed-out request stays running server-side until the
- * runtime is closed.
- */
 export class HarnessClient {
   child
   transport
@@ -169,15 +92,10 @@ export class HarnessClient {
   streamsSettled = Promise.resolve()
   closeTask
 
-  /** @param options - launch spec, complete child environment, and timeouts. */
   constructor(options) {
     this.options = options
   }
 
-  /**
-   * Spawn the runtime subprocess and start reading frames. Idempotent while
-   * the process is live; rejects reuse after {@link close}.
-   */
   start() {
     if (this.closeTask !== undefined) throw new TransportClosedError('Freddie runtime client is closed')
     if (this.child !== undefined) return
@@ -230,11 +148,6 @@ export class HarnessClient {
     this.transport = transport
   }
 
-  /**
-   * Perform the process-wide handshake.
-   * @param params - workspace cwd plus the provider/model route.
-   * @returns the runtime's wire identity.
-   */
   async initialize(params) {
     const result = await this.request('initialize', { ...params })
     if (!isRecord(result) || !isRecord(result.serverInfo)
@@ -244,22 +157,6 @@ export class HarnessClient {
     return { serverInfo: { name: result.serverInfo.name, version: result.serverInfo.version } }
   }
 
-  /**
-   * Queue one prompt and return its durable inbox identity.
-   * @param sessionId - target session; an unknown id creates it.
-   * @param contentBlocks - the user message, sent verbatim.
-   * @param options - optional per-turn tool scoping and context.
-   * @param options.enabledTools - allow-list of tool names visible to this
-   *   turn (and every later turn on this session, until overridden); omitted
-   *   leaves the session's current scope unchanged.
-   * @param options.disabledTools - deny-list of tool names hidden from this
-   *   turn onward; composes with `enabledTools` (both may be given together).
-   * @param options.turnContext - opaque deployer-defined value a server-side
-   *   tool package reads via `turnContextFor(exec.agent)`
-   *   (`@freddie/freddie-sdk-jsonrpc-server`); replaces the session's current
-   *   context, and stays in effect on every later turn until overridden.
-   * @returns the queued message id.
-   */
   async prompt(sessionId, contentBlocks, options) {
     const params = {
       sessionId,
@@ -275,15 +172,6 @@ export class HarnessClient {
     return result.messageId
   }
 
-  /**
-   * Send one JSON-RPC request and await its result.
-   * @param method - the wire method name.
-   * @param params - the params object; omitted params send `{}`.
-   * @param timeoutMs - per-call override of {@link HarnessClientOptions.requestTimeoutMs}.
-   * @returns the raw result; rejects with {@link JsonRpcResponseError} on a
-   * protocol error response, {@link RequestTimeoutError} on timeout, and
-   * {@link TransportClosedError} when the runtime is gone.
-   */
   async request(method, params, timeoutMs) {
     this.start()
     if (this.exitCode !== undefined || this.spawnError !== undefined) {
@@ -291,7 +179,7 @@ export class HarnessClient {
       throw this.closedError('Freddie runtime is not running')
     }
     const transport = this.transport
-    /* v8 ignore next -- start() either sets the transport or throws */
+    /* v8 ignore next */
     if (transport === undefined) throw new TransportClosedError('Freddie runtime is not running')
     const timeout = timeoutMs ?? this.options.requestTimeoutMs
     try {
@@ -312,13 +200,6 @@ export class HarnessClient {
     }
   }
 
-  /**
-   * Subscribe to server notifications.
-   * @param filter - optional predicate; omitted means every notification.
-   * @returns the subscription handle; close it to stop delivery. After
-   * {@link close} or runtime death the handle is born failed — there is no
-   * producer left, so `next()` rejects instead of waiting forever.
-   */
   subscribe(filter) {
     const id = String(this.subscriptionSerial++)
     const state = { queue: [], waiters: [], filter, failure: undefined }
@@ -331,13 +212,6 @@ export class HarnessClient {
     return subscription
   }
 
-  /**
-   * Subscribe to one session and the descendants discovered from
-   * `subagent.started` lineage edges (the runtime notifies for every session
-   * in its context; scoping is client-side, mirroring the Python SDK).
-   * @param sessionId - the root session id.
-   * @returns the filtered subscription handle.
-   */
   subscribeSessionTree(sessionId) {
     return this.subscribe((notification) => {
       const params = notification.params
@@ -351,12 +225,6 @@ export class HarnessClient {
     })
   }
 
-  /**
-   * Shut the runtime down and reap it: a best-effort protocol `shutdown`
-   * bounded by `shutdownTimeoutMs`, then the shared stdin-EOF → SIGTERM →
-   * SIGKILL ladder until the process actually exited. Idempotent.
-   * @returns settlement of the complete teardown.
-   */
   close() {
     this.closeTask ??= this.performClose()
     return this.closeTask
@@ -434,17 +302,11 @@ export class HarnessClient {
   }
 }
 
-/**
- * Whether `value` is a plain JSON object (the wire-boundary shape probe).
- * @param value - the wire value to probe.
- * @returns `true` iff `value` is a non-null, non-array object.
- */
 export function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/** The message of a thrown value (the transport only throws `Error`s; `String` covers the rest). */
 function errorMessage(error) {
-  /* v8 ignore next -- the transport and dispose ladder reject only with Errors */
+  /* v8 ignore next */
   return error instanceof Error ? error.message : String(error)
 }
