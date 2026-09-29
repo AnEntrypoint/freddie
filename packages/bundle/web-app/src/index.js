@@ -1,15 +1,3 @@
-/**
- * @freddie/freddie-web-app — the browser-surface bundle's runtime glue plugin
- * plus the bundle patch (`cordis.patch.yml`, declared by the `freddie.bundle.patch`
- * manifest field). The plugin owns the browser-surface glue: it resolves
- * the built frontend dist (workspace knowledge of this bundle, never user
- * config), mounts the `frontend-static` fallback owner over it, registers the
- * harness-source and web-surface prompt sections, the bash-visible web runtime
- * variable, the URL line, and the default-browser handoff. App command-line
- * values arrive through the `webStartup` service expressions in the bundle
- * patch.
- * @module @freddie/freddie-web-app
- */
 
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -21,28 +9,13 @@ import * as FrontendStatic from '@freddie/freddie-host-frontend-static'
 import { launchEnvironmentOf } from '@freddie/freddie-launch-environment'
 import { scrubbedParentEnv } from '@freddie/freddie-subprocess'
 
-/** Stable Cordis plugin name. */
 export const name = 'web-app'
 
-/** This freddie installation's root, from either this package's source or built entry. */
 const SOURCE_ROOT = fileURLToPath(new URL('../../../..', import.meta.url))
 
-/** Runtime service that releases Web rows after bind-dependent values resolve. */
 const WEB_RUNTIME_SERVICE = 'webRuntime'
 
-/** Services required before the web runtime can mount. */
 export const inject = ['webServer']
-
-/** Plugin config: composed deployment settings plus per-invocation command-line values.
- * @typedef {object} Config
- * @property {boolean} openBrowser - Permit default-browser handoff after the Loader tree settles; an SSH launch suppresses it.
- * @property {boolean} printUrl - Print the URL line on activation; a non-interactive layer can turn it off.
- * @property {boolean} surfaceContext - Register the model-visible surface context (the `app:web-surface` prompt
- * section and the `FREDDIE_WEB_URL` bash variable). A one-shot non-interactive
- * layer can turn it off when its user is not in the GUI, so the
- * orientation text would be false.
- * @property {string[]} trustedHosts - Explicit `--trusted-host` authorities from this invocation.
- */
 
 export const Config = z.object({
   openBrowser: z.boolean().default(true),
@@ -51,20 +24,11 @@ export const Config = z.object({
   trustedHosts: z.array(String).default([]),
 })
 
-/** Bind-dependent Web values shared by the trust fence and URL display.
- * @typedef {object} WebRuntimeValues
- * @property {string[]} lanAddresses - LAN IPv4 literals sampled once when the server binds all interfaces.
- * @property {string[]} trustedHosts - LAN literals followed by explicit invocation authorities.
- */
-
-/** Environment variable naming the canonical local URL of this Web GUI. */
 const FREDDIE_WEB_URL = 'FREDDIE_WEB_URL'
 
 const DISPLAYED_LOOPBACK_HOST = '127.0.0.1'
-/** The webserver schema's all-interfaces bind literal. */
 const ALL_INTERFACES_HOST = '0.0.0.0'
 
-/** Whether this process was launched through SSH, including a forwarded-port session. */
 function launchedThroughSsh(ctx) {
   const environment = launchEnvironmentOf(ctx)
   return ['SSH_CONNECTION', 'SSH_TTY'].some((name) => {
@@ -73,7 +37,6 @@ function launchedThroughSsh(ctx) {
   })
 }
 
-/** Whether the loopback URL is reachable from the operator's own browser, which SSH forwarding is not. */
 function browserSharesThisHost(ctx) {
   return !launchedThroughSsh(ctx)
 }
@@ -107,16 +70,6 @@ try {
 }
 `
 
-/**
- * Resolve one LAN-trust snapshot from the active server bind.
- *
- * Derived entries are port-less IP literals: DNS rebinding needs an
- * attacker-controlled name, while an IP-literal Host is safe on any port and
- * an OS-assigned port is unknowable before bind.
- * @param bindHost - the active webserver bind host.
- * @param extra - explicit `--trusted-host` values, in argument order.
- * @returns the LAN display addresses and invocation-derived fence authorities.
- */
 export function resolveLanTrust(bindHost, extra) {
   const lanAddresses = bindHost === ALL_INTERFACES_HOST
     ? Object.values(networkInterfaces()).flat()
@@ -126,7 +79,6 @@ export function resolveLanTrust(bindHost, extra) {
   return { lanAddresses, trustedHosts: [...lanAddresses, ...extra] }
 }
 
-/** Model-visible orientation and acceptance boundary for sessions created through `freddie web`. */
 function webSurfacePrompt(webUrl) {
   const updateContract = 'Client-plugin changes reload without a refresh automatically: every package is served unbundled '
     + 'straight from its own source tree, and the HMR receiver reloads a plugin the moment its served files change — no '
@@ -142,19 +94,12 @@ function webSurfacePrompt(webUrl) {
     + 'Do not start a replacement server unless the user asks; if one is needed, use a managed background job and verify its exact URL.'
 }
 
-/** Resolve the canonical loopback URL from the active Web server. */
 function localWebUrl(ctx) {
   const port = ctx.get('webServer')?.port
   if (port === undefined) throw new Error('web-app: webServer service missing while resolving Web runtime')
   return `http://${DISPLAYED_LOOPBACK_HOST}:${String(port)}`
 }
 
-/**
- * apps/web is served buildless: its own index.html plus everything under
- * apps/web/src/*.js rides frontend-static's fully generic distRoot/distIndex
- * serving directly, with no build-output directory or build step at all.
- * Workspace knowledge of this bundle, never user config.
- */
 function resolveDistIndex() {
   const require = createRequire(import.meta.url)
   try {
@@ -165,7 +110,6 @@ function resolveDistIndex() {
   }
 }
 
-/** Start the maintained platform opener without forwarding Harness credentials. */
 function spawnBrowserLauncher(url) {
   return spawn(process.execPath, [
     '--input-type=module',
@@ -177,7 +121,6 @@ function spawnBrowserLauncher(url) {
   })
 }
 
-/** Hand one URL to the operating system's default browser. */
 async function openBrowser(url) {
   const launcher = spawnBrowserLauncher(url)
   let launcherStderr = ''
@@ -208,7 +151,6 @@ async function openBrowser(url) {
 
 const stayQuietBecauseLoaderReportsFailedBoot = () => {}
 
-/** Run `announce` once the Loader tree has settled, or at once in a hand-built tree without a Loader. */
 function announceWhenTreeSettled(ctx, announce) {
   const settled = ctx.get('loader')?.await()
   if (settled === undefined) {
@@ -221,15 +163,8 @@ function announceWhenTreeSettled(ctx, announce) {
   }, stayQuietBecauseLoaderReportsFailedBoot)
 }
 
-/** Test hooks for the built dist and native browser handoff; production never mutates them. */
 export const internals = { resolveDistIndex, openBrowser }
 
-/**
- * Mount the Web runtime: dist serving, surface prompt, the bash runtime
- * variable, the URL line, and the default-browser handoff.
- * @param ctx - plugin context carrying the webServer service.
- * @param config - validated {@link Config}.
- */
 export function apply(ctx, config) {
   const runtime = resolveLanTrust(ctx.webServer.host, config.trustedHosts)
   const handoffBrowser = config.openBrowser && browserSharesThisHost(ctx)
