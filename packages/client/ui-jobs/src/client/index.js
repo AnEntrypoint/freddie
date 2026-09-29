@@ -1,20 +1,9 @@
-/**
- * Background-job plugin, browser half: contributes one session-header action
- * that renders this session's `ctx.jobs` records. The data arrives entirely
- * through the `jobsBySession` list mirror, so the plugin issues no RPC and
- * holds no state of its own beyond popover visibility.
- */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import './JobListAction.js'
 import { en, NS } from './locales.js'
 
-/** Required services for locale registration and header-slot contribution. */
 export const inject = ['sessions', 'slots', 'locale']
 
-/**
- * Client plugin body: register the dictionaries and the header action.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-job: dictionaries')
   ctx.slots.inject(

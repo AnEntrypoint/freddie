@@ -1,9 +1,5 @@
-/** `job` namespace dictionaries. */
-
-/** Dictionary namespace owned by this plugin. */
 export const NS = 'job'
 
-/** English dictionary. */
 export const en = {
   'count.live.one': '{count} background job running',
   'count.live.other': '{count} background jobs running',

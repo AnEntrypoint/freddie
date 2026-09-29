@@ -3,29 +3,16 @@ import { IconChevronDownOutline14, StateDot, createDismissOnOutsidePointer, defi
 import { NS } from './locales.js'
 import css from './JobListAction.css.js'
 
-/** Stable empty list so a session with no jobs keeps one array identity. */
 const NO_TASKS = []
 
-/** A job the registry still holds open, and whose duration therefore ticks. */
 function isLive(job) {
   return job.status === 'running' || job.status === 'stopping'
 }
 
-/**
- * Closed-union exhaustiveness fence for the wire status set: reached only if
- * a status value outside `'running'|'stopping'|'completed'|'killed'|'failed'`
- * is forged past the caller's own switch.
- * @param {never} value
- * @returns {never}
- */
 function assertNever(value) {
   throw new Error(`unhandled job status: ${JSON.stringify(value)}`)
 }
 
-/**
- * Status marker semantics. `stopping` and `killed` share the attention color:
- * both mean the work ended (or is ending) on request rather than on its own.
- */
 function dotState(status) {
   switch (status) {
     case 'running': return 'ongoing'
@@ -37,7 +24,6 @@ function dotState(status) {
   }
 }
 
-/** Human status word for the row and its accessible name. */
 function statusLabel(status, t) {
   switch (status) {
     case 'running': return t('status.running')
@@ -49,12 +35,6 @@ function statusLabel(status, t) {
   }
 }
 
-/**
- * Elapsed time in at most two adjacent units. A background job that outlives
- * an hour is already exceptional, so hours is the widest unit — beyond that the
- * figure stays in hours rather than growing a day/month vocabulary no producer
- * currently reaches.
- */
 function formatDuration(elapsedMs, t) {
   const total = Math.max(0, Math.floor(elapsedMs / 1_000))
   const seconds = total % 60
@@ -65,11 +45,6 @@ function formatDuration(elapsedMs, t) {
   return t('duration.seconds', { seconds })
 }
 
-/**
- * Live rows first in start order, then settled rows newest-first. Two jobs
- * that settled in the same millisecond fall back to start order, so the sort
- * never depends on the host's map iteration.
- */
 function ordered(jobs) {
   return [...jobs].sort((left, right) => {
     const liveLeft = isLive(left)
@@ -80,18 +55,6 @@ function ordered(jobs) {
   })
 }
 
-/**
- * Session-header entry point for this session's background jobs custom
- * element (see module doc). Renders nothing at all until the session has at
- * least one job, so an ordinary conversation never grows a control for a
- * capability it is not using.
- *
- * Converted from a React hooks component to a webjsx custom element: `open`/
- * `now` become private fields, the dismiss-on-outside-pointer effect and the
- * live-duration ticker become connectedCallback/disconnectedCallback-managed
- * controllers/timers, and re-render is an explicit applyDiff(this, vdom) call
- * (Toast.tsx's pattern) instead of implicit re-render on setState.
- */
 export class FreddieJobListAction extends HTMLElement {
   #props = null
   #open = false
@@ -99,7 +62,6 @@ export class FreddieJobListAction extends HTMLElement {
   #tickTimer = null
   #dismiss = createDismissOnOutsidePointer({ root: this, onDismiss: () => { this.#setOpen(false) } })
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     this.#render()
