@@ -1,5 +1,3 @@
-/** Strict replay fold for Agent Teams log-only events. */
-
 import { SessionId } from '@freddie/freddie-session'
 import {
   TeamId as toTeamId,
@@ -10,24 +8,7 @@ import { assertTaskGraphCandidate } from './task-graph.js'
 
 const numericTaskIdPattern = /^task-(\d+)$/u
 
-/**
- * Mutable internal replay state, as built by {@link emptyTeamFoldState} and
- * folded forward by {@link applyTeamEvent}.
- * @typedef {object} TeamFoldState
- * @property {import('./types.js').TeamId} id
- * @property {Map<import('@freddie/freddie-session').SessionId, import('./types.js').TeammateRecord>} members
- * @property {Map<string, import('@freddie/freddie-session').SessionId>} memberIdsByName
- * @property {Map<import('./types.js').TeamTaskId, import('./types.js').TeamTask>} tasks
- * @property {Map<import('./types.js').TeamMessageId, import('./types.js').TeamMessageRecord>} messages
- * @property {Set<import('./types.js').TeamMessageId>} delivered
- * @property {number} nextTaskNumber
- */
 
-/**
- * Construct an empty Team fold for one root Session.
- * @param rootId - Session whose TeamId selects applicable records.
- * @returns mutable empty replay state.
- */
 export function emptyTeamFoldState(rootId) {
   return {
     id: toTeamId(rootId),
@@ -40,18 +21,7 @@ export function emptyTeamFoldState(rootId) {
   }
 }
 
-/**
- * One event owned by the Team domain.
- * @typedef {object} TeamEvent
- * @property {'team/member' | 'team/task' | 'team/message/queued' | 'team/message/delivered'} type
- * @property {object} data
- */
 
-/**
- * Test whether a Session event belongs to the Team domain.
- * @param event - candidate Session event.
- * @returns whether the event has a Team-owned type.
- */
 export function isTeamEvent(event) {
   return event.type === 'team/member'
     || event.type === 'team/task'
@@ -59,12 +29,10 @@ export function isTeamEvent(event) {
     || event.type === 'team/message/delivered'
 }
 
-/** Reshape one persisted member snapshot, converting id fields to their typed form. */
 function reshapeMember(member) {
   return { ...member, id: SessionId(member.id) }
 }
 
-/** Reshape one persisted task snapshot, converting id fields to their typed form. */
 function reshapeTask(task) {
   return {
     ...task,
@@ -74,7 +42,6 @@ function reshapeTask(task) {
   }
 }
 
-/** Reshape one persisted message snapshot, converting id fields to their typed form. */
 function reshapeMessage(message) {
   return {
     ...message,
@@ -84,7 +51,6 @@ function reshapeMessage(message) {
   }
 }
 
-/** Decode the complete current-version payload selected by one Team event type. */
 function parseCurrentTeamEvent(event) {
   switch (event.type) {
     case 'team/member':
@@ -109,11 +75,6 @@ function parseCurrentTeamEvent(event) {
   }
 }
 
-/**
- * Apply one event, ignoring Team records inherited by a different root fork.
- * @param state - mutable Team replay state.
- * @param event - next contiguous Session event.
- */
 export function applyTeamEvent(state, event) {
   if (!isTeamEvent(event)) return
   const selector = event.data
@@ -187,12 +148,6 @@ export function applyTeamEvent(state, event) {
   }
 }
 
-/**
- * Replay one root Session into its current Team state.
- * @param rootId - root Session identity selecting Team-owned records.
- * @param events - complete contiguous Session log.
- * @returns mutable replay state at the end of the log.
- */
 export function foldTeam(rootId, events) {
   const state = emptyTeamFoldState(rootId)
   for (const event of events) applyTeamEvent(state, event)

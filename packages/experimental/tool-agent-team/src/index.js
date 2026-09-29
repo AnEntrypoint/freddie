@@ -1,22 +1,16 @@
-/** Scoped model-facing tools for the opt-in Agent Teams runtime. */
-
 import z from '@freddie/schemastery'
 import { TeamTaskId } from '@freddie/freddie-experimental-agent-team'
 import { defineTool } from '@freddie/freddie-tools'
 
-/** Cordis plugin name. */
 export const name = 'tool-agent-team'
-/** Services required by the Team tool plugin. */
 export const inject = ['agents', 'agentTeams', 'tools', 'systemPrompt']
 
-/** Loader schema for the opt-in Team tool plugin. */
 export const Config = z.object({
   freshProvider: z.string().default('spawn'),
   forkProvider: z.string().default('fork'),
   excludePresets: z.array(z.string()).default([]),
 })
 
-/** Model-facing collaboration guidance shared by Lead and teammates. */
 const POLICY = `Agent Teams is available in this session, but create teammates only when the user explicitly asks to use Agent Teams or teammates.
 
 The Team Lead and all teammates share the same working directory and filesystem. Edits are immediately visible to every member. Split write work into disjoint scopes, record expected write scopes on shared tasks, and use task dependencies when work must be ordered. Write-scope overlap is advisory, not a lock.
@@ -28,11 +22,6 @@ Use send_message for quiet information that must not start an idle teammate. Use
 const ACTIVE_WAIT_STATUSES = new Set(['running', 'provisioning'])
 const NO_ACTIVE_PEER_MESSAGE = 'No other Team member is running or provisioning. wait_agent cannot make progress or wake inactive teammates. Re-list with list_agents and team_task_list, then use followup_task to wake each required inactive teammate before waiting again.'
 
-/**
- * One roster row, matching `TeamMemberView`. The Lead pseudo-row omits the
- * teammate-only provisioning fields, so only identity, role, status, and
- * diagnostics are required.
- */
 const MEMBER_VIEW_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -49,7 +38,6 @@ const MEMBER_VIEW_SCHEMA = {
   },
 }
 
-/** One shared task, matching the public `TeamTaskView`. */
 const TASK_VIEW_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -86,7 +74,6 @@ const SEND_VALUE_SCHEMA = {
   },
 }
 
-/** `noProgress` is present only on the model-only shortcut that skips the wait. */
 const WAIT_VALUE_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -120,13 +107,6 @@ const TASK_LIST_VALUE_SCHEMA = {
   },
 }
 
-/**
- * Declare one canonical output schema with compact model-facing JSON. Every
- * Team result is a fixed record, so the declared schema is what makes the
- * compiler check `execute` against the value the model is promised.
- * @param schema - canonical value schema for one tool.
- * @returns the `output` declaration accepted by {@link defineTool}.
- */
 function jsonOutput(schema) {
   return {
     schema,
@@ -134,14 +114,12 @@ function jsonOutput(schema) {
   }
 }
 
-/** Recover the exact caller guaranteed by Agent-scoped tool discovery. */
 function callingAgent(agent, toolName) {
   /* v8 ignore next 2 -- Team tools are registered only in an exact Agent scope, so discovery supplies this carrier. */
   if (agent === undefined) throw new Error(`${toolName} requires a calling Agent`)
   return agent
 }
 
-/** Register the complete Team tool set in one exact Agent scope. */
 function install(agent, ctx, config) {
   const scoped = agent.ctx
   const disposers = []
@@ -376,7 +354,6 @@ function install(agent, ctx, config) {
   }
 }
 
-/** Install Team tools in every live or subsequently published Team member scope. */
 export function apply(ctx, config = {}) {
   const resolved = {
     freshProvider: config.freshProvider ?? 'spawn',

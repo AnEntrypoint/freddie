@@ -1,5 +1,3 @@
-/** Durable Team mailbox admission, target-local dispatch, acknowledgement, and recovery. */
-
 import { randomUUID } from 'node:crypto'
 import { createUserMessage } from '@freddie/freddie-llm'
 import { SessionId } from '@freddie/freddie-session'
@@ -8,21 +6,12 @@ import { resolveActiveMember } from './roster.js'
 import { messageAccepted } from './session-message.js'
 import { TeamId, TeamMessageId } from './types.js'
 
-/** Owns every process-local state transition for the durable Team mailbox. */
 export class TeamMailbox {
   dispatchTails = new Map()
   activeDispatches = new Map()
   inFlightMessages = new Set()
   inFlightDispatches = new Set()
 
-  /**
-   * @param ctx - Team service context with Agent, Session, persistence, and subagent services.
-   * @param journal - authoritative Lead-log transaction owner.
-   * @param roster - Team membership and member-name resolver.
-   * @param lifecycle - shared Team runtime admission cutoff.
-   * @param maxPendingMessagesPerMember - per-target queued-minus-delivered limit.
-   * @param maxMessageBytes - maximum complete sender-framed delivery size.
-   */
   constructor(ctx, journal, roster, lifecycle, maxPendingMessagesPerMember, maxMessageBytes) {
     this.ctx = ctx
     this.journal = journal
@@ -32,12 +21,6 @@ export class TeamMailbox {
     this.maxMessageBytes = maxMessageBytes
   }
 
-  /**
-   * Queue one durable peer message, then attempt immediate delivery.
-   * @param caller - exact live sending Team member.
-   * @param request - target name, content, scheduling mode, and pre-queue cancellation.
-   * @returns durable message identity and immediate-delivery observation.
-   */
   async send(caller, request) {
     if (this.lifecycle.disposed) throw new TeamError('Agent Teams service is disposing', 'TEAM_DISPOSED')
     const operation = this.sendAdmitted(caller, {
@@ -47,11 +30,6 @@ export class TeamMailbox {
     return await this.trackDispatch(operation)
   }
 
-  /**
-   * Observe target-side durable receipts and checkpoint their Lead-log acknowledgement.
-   * @param session - exact target Session receiving the event.
-   * @param event - newly appended Session event.
-   */
   observeSessionEvent(session, event) {
     if (this.lifecycle.disposed || event.type !== 'user/message' || event.data.source.kind !== 'team-message') return
     const source = event.data.source
@@ -64,11 +42,6 @@ export class TeamMailbox {
     void this.trackDispatch(acknowledgement)
   }
 
-  /**
-   * Retry durable pending messages relevant to one started Team member.
-   * @param agent - newly started exact live Agent.
-   * @param signal - shared runtime cancellation.
-   */
   async recoverFor(agent, signal) {
     signal.throwIfAborted()
     const membership = this.roster.tryMembership(agent)
@@ -85,15 +58,10 @@ export class TeamMailbox {
     }
   }
 
-  /**
-   * Return admitted dispatch and acknowledgement operations captured for disposal.
-   * @returns detached snapshot ordered only by Set insertion.
-   */
   pendingDispatches() {
     return [...this.inFlightDispatches]
   }
 
-  /** Queue and dispatch one mailbox item admitted before the disposal cutoff. */
   async sendAdmitted(caller, request) {
     const membership = this.roster.membership(caller)
     request.signal.throwIfAborted()
@@ -134,7 +102,6 @@ export class TeamMailbox {
     return { messageId: queued.message.id, status: accepted ? 'accepted' : 'queued' }
   }
 
-  /** Attempt one queued message exactly once in this process at a time. */
   tryDispatch(root, message, signal) {
     if (this.lifecycle.disposed) return Promise.resolve(false)
     if (this.inFlightMessages.has(message.id)) return Promise.resolve(false)
@@ -153,7 +120,6 @@ export class TeamMailbox {
     return operation
   }
 
-  /** Track one dispatch transaction through delivery admission or contained failure. */
   trackDispatch(operation) {
     this.inFlightDispatches.add(operation)
     void operation.then(() => {
@@ -164,7 +130,6 @@ export class TeamMailbox {
     return operation
   }
 
-  /** Attempt one queued message admitted before the service lifecycle cutoff. */
   async tryDispatchAdmitted(root, message, signal) {
     const active = this.activeDispatches.get(message.targetId)
     const live = message.targetId === root.id ? root : this.ctx.agents.get(message.targetId)
@@ -175,7 +140,6 @@ export class TeamMailbox {
     return await this.serializeDispatch(message, () => this.dispatchOnce(root, message, signal))
   }
 
-  /** Serialize delivery admission for one durable target in queued order. */
   async serializeDispatch(message, operation) {
     const targetId = message.targetId
     const prior = this.dispatchTails.get(targetId) ?? Promise.resolve()
@@ -199,7 +163,6 @@ export class TeamMailbox {
     }
   }
 
-  /** Attempt one queued delivery after target-local ordering admits it. */
   async dispatchOnce(root, message, signal) {
     try {
       const target = message.targetId === root.id ? root : this.ctx.agents.get(message.targetId)
@@ -246,13 +209,11 @@ export class TeamMailbox {
     }
   }
 
-  /** Whether `left` was durably queued before `right` in one Lead log. */
   messagePrecedes(root, left, right) {
     const ids = [...this.journal.state(root).messages.keys()]
     return ids.indexOf(left) < ids.indexOf(right)
   }
 
-  /** Flush one live target receipt before the Lead records its delivered edge. */
   async checkpointDelivered(root, target, messageId) {
     await this.ctx.sessions.flush(target)
     if (!this.targetRecorded(target, messageId)) return false
@@ -260,7 +221,6 @@ export class TeamMailbox {
     return true
   }
 
-  /** Record delivery unless the acknowledgement already exists. */
   async markDelivered(root, messageId, targetId) {
     await this.journal.transact(root.id, async () => {
       const state = this.journal.state(root)
@@ -276,14 +236,12 @@ export class TeamMailbox {
     })
   }
 
-  /** Whether a target Session already contains the durable message identity. */
   targetRecorded(session, messageId) {
     const suffix = session.events.slice(session.header.seedLength ?? 0)
     return messageAccepted(suffix, message => message.source.kind === 'team-message'
       && message.source.messageId === messageId)
   }
 
-  /** Frame peer content with stable sender and message identity for the receiving model. */
   deliveryContent(message) {
     return [
       { type: 'text', text: `Team message ${message.id} from ${message.senderName}:` },
@@ -291,7 +249,6 @@ export class TeamMailbox {
     ]
   }
 
-  /** Inspect an inactive target before cold resume; uncertainty keeps the mailbox queued. */
   async persistedTargetRecorded(targetId, messageId, signal) {
     try {
       const stored = await this.ctx.sessionPersistence.inspect(targetId, signal)

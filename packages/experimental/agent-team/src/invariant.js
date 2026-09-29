@@ -1,15 +1,10 @@
-/** Package-owned relational checks for Agent Teams durable records. */
-
 import { applyTeamEvent, foldTeam, isTeamEvent } from './fold.js'
 
 const PACKAGE_NAME = '@freddie/freddie-experimental-agent-team'
 
-/** Cordis companion plugin name. */
 export const name = 'team-invariant'
-/** Invariant registry required by the companion. */
 export const inject = ['invariants']
 
-/** Validate candidate Team events against the committed prefix before append. */
 const install = Object.assign((ctx, fail) => {
   ctx.on('internal/dispatch', (_mode, eventName, args) => {
     if (eventName !== 'session/event') return
@@ -26,6 +21,5 @@ const install = Object.assign((ctx, fail) => {
   }, { global: true })
 }, { inject: ['sessions'] })
 
-/** Register the package invariant companion. */
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

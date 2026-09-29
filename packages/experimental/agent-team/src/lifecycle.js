@@ -1,35 +1,25 @@
-/** Shared admission cutoff and bounded settlement for the Team runtime. */
-
 import { TeamError } from './error.js'
 
-/** Owns the single Team runtime cancellation fact and disposal timeout. */
 export class TeamRuntimeLifecycle {
   controller = new AbortController()
 
-  /**
-   * @param disposalTimeoutMs - maximum wait for one disposal settlement operation.
-   */
   constructor(disposalTimeoutMs) {
     this.disposalTimeoutMs = disposalTimeoutMs
   }
 
-  /** Signal aborted exactly when Team runtime admission closes. */
   get signal() {
     return this.controller.signal
   }
 
-  /** Whether Team runtime admission is closed. */
   get disposed() {
     return this.signal.aborted
   }
 
-  /** The exact cancellation reason used to distinguish expected disposal rejection. */
   get reason() {
     const reason = this.signal.reason
     return reason
   }
 
-  /** Whether a rejection is the runtime cancellation, directly or through an Error cause chain. */
   isCancellation(reason) {
     const seen = new Set()
     let current = reason
@@ -43,16 +33,10 @@ export class TeamRuntimeLifecycle {
     return false
   }
 
-  /** Close Team runtime admission and cancel admitted interruptible work. */
   close() {
     this.controller.abort(new TeamError('Agent Teams service disposed', 'TEAM_DISPOSED'))
   }
 
-  /**
-   * Await admitted operations and retain failures other than runtime cancellation.
-   * @param operations - admitted operations captured after the admission cutoff.
-   * @param failures - aggregate destination for unexpected rejection or timeout.
-   */
   async settle(operations, failures) {
     if (operations.length === 0) return
     try {
@@ -65,11 +49,6 @@ export class TeamRuntimeLifecycle {
     }
   }
 
-  /**
-   * Bound one runtime settlement operation.
-   * @param operation - settlement that may otherwise block HMR or process shutdown.
-   * @returns the operation result.
-   */
   async withTimeout(operation) {
     let timer
     const timeout = new Promise((_resolve, reject) => {

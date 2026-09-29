@@ -1,69 +1,14 @@
-/**
- * Session-owned MCP browser processes and provider catalog activation.
- * @module @freddie/freddie-experimental-browser-use-runtime/mcp
- */
-
 import Schema from '@freddie/schemastery'
 import { BrowserUseProviderName } from '@freddie/freddie-browser-use/brand'
 import * as McpClient from '@freddie/freddie-mcp-client'
 import { createScope } from '@freddie/freddie-scope'
 import { SessionResources } from './index.js'
 
-/**
- * Browser launch settings shared by the MCP integrations.
- * @typedef {object} BrowserMcpLaunchConfig
- * @property {'launch'} mode - launch a new isolated Chromium browser for each
- *   live Session.
- * @property {boolean} headless - whether Chromium runs without a visible window.
- * @property {string} [executablePath] - Chromium executable; omission uses the
- *   upstream server's installation discovery.
- * @property {number} [toolCallTimeoutMs] - per-call timeout override in
- *   milliseconds; omission uses the MCP client default.
- */
 
-/**
- * Attachment to an externally owned Chromium browser.
- * @typedef {object} BrowserMcpAttachConfig
- * @property {'attach'} mode - exclusively attach one live Session to the
- *   configured browser.
- * @property {string} endpoint - HTTP(S) debugging URL or WS(S) browser
- *   debugging endpoint.
- * @property {number} [toolCallTimeoutMs] - per-call timeout override in
- *   milliseconds; omission uses the MCP client default.
- */
 
-/** Fixed launch or attachment choice for one MCP browser provider. */
-/** @typedef {BrowserMcpLaunchConfig | BrowserMcpAttachConfig} BrowserMcpConfig */
 
-/**
- * Provider-owned connection options for one live Session.
- * @typedef {object} SessionMcpOptions
- * @property {string} name - provider identity and MCP tool namespace.
- * @property {boolean} exclusive - whether another live Session must wait for
- *   the attached browser to be released.
- * @property {string} command - executable used to start the installed MCP server.
- * @property {string[]} args - arguments passed directly without a shell.
- * @property {Record<string, string>} [env] - explicit overrides merged into the
- *   MCP client's scrubbed child environment.
- * @property {number} [toolCallTimeoutMs] - per-call timeout override; omission
- *   retains the MCP client default.
- * @property {(agent: import('@freddie/freddie-agent').Agent) => boolean} [excludeAgent] -
- *   answers true for an Agent that must get no MCP server, no browser tools, and
- *   no attachment slot; omission serves every Agent.
- */
 
-/**
- * One live Agent's browser-connection state for this provider.
- * @typedef {object} SessionMcpClientState
- * @property {'pending' | 'ready' | 'blocked' | 'failed'} status - whether this
- *   activation owns, is acquiring, was refused, or lost a connection.
- * @property {Promise<void>} [discovery] - the acquisition wait for `pending`.
- * @property {import('@freddie/freddie-scope').Scope} [mask] - tool-mask scope
- *   denying inherited browser tools for a `blocked` activation.
- * @property {unknown} [error] - acquisition failure retained for later callers.
- */
 
-/** Validate the browser mode before the provider reserves browser use. */
 export const BrowserMcpConfig = Schema.union([
   Schema.object({
     mode: Schema.const('launch').required(),
@@ -78,12 +23,6 @@ export const BrowserMcpConfig = Schema.union([
   }),
 ])
 
-/**
- * Reject an invalid debugging endpoint before acquiring provider or browser
- * resources.
- * @param {BrowserMcpConfig} config - schema-validated browser selection.
- * @returns {void}
- */
 export function validateBrowserMcpConfig(config) {
   if (config.mode !== 'attach') return
   let endpoint
@@ -97,12 +36,6 @@ export function validateBrowserMcpConfig(config) {
   }
 }
 
-/**
- * Wait for `discovery`, or for `signal` to abort, whichever comes first.
- * @param {Promise<void>} discovery - the acquisition wait, which never rejects.
- * @param {AbortSignal} signal - cancellation of the surrounding maintenance task.
- * @returns {Promise<void>} settles when either side settles.
- */
 function untilDiscoveredOrAborted(discovery, signal) {
   return new Promise((resolve) => {
     if (signal.aborted) return resolve()
@@ -111,26 +44,8 @@ function untilDiscoveredOrAborted(discovery, signal) {
   })
 }
 
-/**
- * Await one MCP client for each future Agent. Discovery starts inside
- * `agent/created`. freddie's emitter does not await listener promises and
- * prompt assembly snapshots the tool catalog before any assembly listener runs,
- * so the helper holds the new Agent in a maintenance phase until discovery
- * settles: a waking message sent meanwhile stays in the inbox, and the first
- * model request already carries the complete catalog. A busy attachment leaves
- * that activation without browser tools; its other turns continue. Calls are
- * serialized per Session; unload closes every server before releasing
- * registration.
- * @param {import('@freddie/cordis').Context} ctx - provider context supplying
- *   browser use, Agents, and tools.
- * @param {SessionMcpOptions} options - provider identity, attachment
- *   exclusivity, and executable configuration.
- * @returns {void}
- */
 export function mountSessionMcp(ctx, options) {
-  /** @type {SessionResources<import('@freddie/freddie-scope').Scope>} */
   let resources
-  /** @type {Map<import('@freddie/freddie-agent').Agent, SessionMcpClientState>} */
   const clients = new Map()
   const toolPrefix = `mcp__${options.name}__`
   const resourceTools = new Set(['list_mcp_resources', 'list_mcp_resource_templates', 'read_mcp_resource'])
@@ -160,7 +75,6 @@ export function mountSessionMcp(ctx, options) {
       exclusive: options.exclusive,
       async open(agent, signal) {
         const scope = createScope(ctx, agent)
-        /** @type {Promise<void> | undefined} */
         let cancellation
         const cancel = () => {
           cancellation = scope.dispose()
@@ -212,7 +126,6 @@ export function mountSessionMcp(ctx, options) {
 
   ctx.on('agent/created', async ({ agent }) => {
     if (options.excludeAgent?.(agent) === true) return
-    /** @type {SessionMcpClientState} */
     const state = { status: resources.available(agent) ? 'pending' : 'blocked' }
     agent.ctx.effect(() => async () => {
       clients.delete(agent)

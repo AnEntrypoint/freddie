@@ -1,9 +1,6 @@
-/** Typed Agent Teams failures. */
-
 import { inspect } from 'node:util'
 import { HarnessError } from '@freddie/freddie-llm'
 
-/** Stable failure raised by the Team domain. */
 export class TeamError extends HarnessError {
   constructor(message, code, options) {
     super(message, code, options)
@@ -11,11 +8,6 @@ export class TeamError extends HarnessError {
   }
 }
 
-/**
- * Render an arbitrary thrown value without replacing the original rejection.
- * @param error - caught value used in a diagnostic or durable failure record.
- * @returns one bounded single-line description.
- */
 export function errorMessage(error) {
   if (error instanceof Error) return error.message
   if (typeof error === 'string') return error

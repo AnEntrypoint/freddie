@@ -1,5 +1,3 @@
-/** Team membership, continuable-child provisioning, and roster-owned teardown. */
-
 import { randomUUID } from 'node:crypto'
 import { SessionId } from '@freddie/freddie-session'
 import { foldSubagentDescriptor } from '@freddie/freddie-subagent'
@@ -10,21 +8,7 @@ import { requiredText } from './validation.js'
 
 const MEMBER_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u
 
-/**
- * Caller identity inside one implicit Team, as resolved by
- * {@link resolveActiveMember} or {@link TeamRoster#membership}.
- * @typedef {object} TeamCallerIdentity
- * @property {import('@freddie/freddie-session').SessionId} id
- * @property {string} name
- */
 
-/**
- * Resolve one active Team member by model-facing name, including the Lead pseudo-row.
- * @param root - exact live Team Lead.
- * @param state - current Team fold.
- * @param rawName - candidate member name.
- * @returns resolved durable id and normalized name.
- */
 export function resolveActiveMember(root, state, rawName) {
   const name = rawName.trim()
   if (name === 'lead') return { id: root.id, name }
@@ -36,16 +20,9 @@ export function resolveActiveMember(root, state, rawName) {
   return { id: member.id, name }
 }
 
-/** Owns Team identities and the lifecycle of rostered continuable children. */
 export class TeamRoster {
   inFlightCreations = new Set()
 
-  /**
-   * @param ctx - Team service context with Agent, Session, persistence, and subagent services.
-   * @param journal - authoritative Lead-log transaction owner.
-   * @param lifecycle - shared Team runtime admission cutoff.
-   * @param maxMembers - maximum immutable roster entries per Team.
-   */
   constructor(ctx, journal, lifecycle, maxMembers) {
     this.ctx = ctx
     this.journal = journal
@@ -53,11 +30,6 @@ export class TeamRoster {
     this.maxMembers = maxMembers
   }
 
-  /**
-   * Resolve one exact live Agent's Team role.
-   * @param agent - exact live Agent used as the authority credential.
-   * @returns its root, Team identity, role, and model-facing name.
-   */
   membership(agent) {
     const membership = this.tryMembership(agent)
     if (membership === undefined) {
@@ -66,11 +38,6 @@ export class TeamRoster {
     return membership
   }
 
-  /**
-   * Resolve a caller without throwing for scoped installation and lifecycle observers.
-   * @param agent - candidate exact live Agent.
-   * @returns Team membership, or undefined for non-Team subagents and stale identities.
-   */
   tryMembership(agent) {
     if (this.ctx.agents.get(agent.id) !== agent) return undefined
     try {
@@ -93,11 +60,6 @@ export class TeamRoster {
     }
   }
 
-  /**
-   * List the runtime-enriched roster visible to one Team member.
-   * @param membership - exact caller membership resolved by this roster.
-   * @returns Lead and teammate rows in creation order.
-   */
   list(membership) {
     const { root } = membership
     const state = this.journal.state(root)
@@ -131,12 +93,6 @@ export class TeamRoster {
     return result
   }
 
-  /**
-   * Create one named, continuable direct child of the Team Lead.
-   * @param caller - exact live Lead Agent.
-   * @param request - immutable name, description, prompt, context mode, provider, and cancellation.
-   * @returns the active roster row.
-   */
   async spawn(caller, request) {
     if (this.lifecycle.disposed) throw new TeamError('Agent Teams service is disposing', 'TEAM_DISPOSED')
     const operation = this.spawnAdmitted(caller, request)
@@ -148,31 +104,16 @@ export class TeamRoster {
     }
   }
 
-  /**
-   * Return admitted creation operations captured for ordered disposal.
-   * @returns detached snapshot ordered only by Set insertion.
-   */
   pendingCreations() {
     return [...this.inFlightCreations]
   }
 
-  /**
-   * Reconcile provisioning state when one Team member Session starts.
-   * @param agent - newly started exact live Agent.
-   * @param signal - shared runtime cancellation.
-   */
   async recoverFor(agent, signal) {
     signal.throwIfAborted()
     const membership = this.tryMembership(agent)
     if (membership?.role === 'lead') await this.reconcileProvisioning(membership.root, signal)
   }
 
-  /**
-   * Interrupt one live teammate turn without clearing its pending inbox.
-   * @param caller - exact live Lead Agent.
-   * @param targetName - durable teammate name.
-   * @returns the target status sampled before cancellation.
-   */
   interrupt(caller, targetName) {
     const membership = this.membership(caller)
     if (membership.role !== 'lead') throw new TeamError('only the Team Lead can interrupt teammates', 'TEAM_LEAD_REQUIRED')
@@ -186,10 +127,6 @@ export class TeamRoster {
     return { previousStatus }
   }
 
-  /**
-   * Group exact live roster children by their current Lead for runtime teardown.
-   * @returns each live Lead and the roster child ids currently in the Agent registry.
-   */
   liveChildrenByRoot() {
     const teams = new Map()
     for (const agent of this.ctx.agents.list()) {
@@ -204,16 +141,10 @@ export class TeamRoster {
     return teams
   }
 
-  /**
-   * Release exact teammate Activations through the continuation lifecycle owner.
-   * @param root - exact live Team Lead authorizing release.
-   * @param childIds - selected roster child ids.
-   */
   async stopTeammates(root, childIds) {
     await this.lifecycle.withTimeout(this.ctx.subagents.drainContinuableChildren(root, childIds))
   }
 
-  /** Perform one creation admitted before the Team runtime disposal cutoff. */
   async spawnAdmitted(caller, request) {
     const membership = this.membership(caller)
     if (membership.role !== 'lead') {
@@ -300,7 +231,6 @@ export class TeamRoster {
     return { member: this.memberView(active) }
   }
 
-  /** Flush the accepted initial inbox item before the Lead can commit `active`. */
   async checkpointInitialPrompt(childId, messageId, signal) {
     while (true) {
       signal.throwIfAborted()
@@ -345,7 +275,6 @@ export class TeamRoster {
     }
   }
 
-  /** Settle provisioning-only members from their independently durable child Sessions. */
   async reconcileProvisioning(root, signal) {
     const provisioning = [...this.journal.state(root).members.values()].filter(member => member.phase === 'provisioning')
     for (const member of provisioning) {
@@ -388,7 +317,6 @@ export class TeamRoster {
     }
   }
 
-  /** Build one runtime member row after successful creation. */
   memberView(member) {
     const live = this.ctx.agents.get(member.id)
     return {
@@ -404,7 +332,6 @@ export class TeamRoster {
     }
   }
 
-  /** Validate a never-reused model-facing teammate name. */
   memberName(value) {
     if (!MEMBER_NAME.test(value) || value.length > 64 || value === 'lead') {
       throw new TeamError(
@@ -415,7 +342,6 @@ export class TeamRoster {
     return value
   }
 
-  /** Append one terminal provisioning edge unless recovery already settled it. */
   async settleProvisioning(root, terminal) {
     return this.journal.transact(root.id, async () => {
       const current = this.journal.state(root).members.get(terminal.id)
@@ -433,7 +359,6 @@ export class TeamRoster {
     })
   }
 
-  /** Whether a Session's own suffix identifies a provider-owned subagent child. */
   subagentDescriptor(agent) {
     return foldSubagentDescriptor(agent.session.events.slice(agent.session.header.seedLength ?? 0)) !== undefined
   }

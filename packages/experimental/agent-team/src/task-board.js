@@ -1,12 +1,9 @@
-/** Shared Team task DAG commands and runtime-enriched views. */
-
 import { TeamError } from './error.js'
 import { resolveActiveMember } from './roster.js'
 import { assertTaskGraphCandidate, TeamTaskGraphError } from './task-graph.js'
 import { TeamId, TeamTaskId } from './types.js'
 import { requiredText, writeScope } from './validation.js'
 
-/** Whether two normalized file or directory prefixes overlap on path components. */
 function scopesOverlap(left, right) {
   return left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`)
 }
@@ -17,23 +14,12 @@ const TASK_GRAPH_ERROR_CODES = {
   cycle: 'TEAM_TASK_DEPENDENCY_CYCLE',
 }
 
-/** Owns Team task limits, authorization, transitions, and derived views. */
 export class TeamTaskBoard {
-  /**
-   * @param journal - authoritative Lead-log transaction owner.
-   * @param maxTasks - maximum non-deleted tasks retained by one Team.
-   */
   constructor(journal, maxTasks) {
     this.journal = journal
     this.maxTasks = maxTasks
   }
 
-  /**
-   * Create one unowned pending task in the Team Lead log.
-   * @param membership - exact caller membership resolved by the Team roster.
-   * @param request - task text, blockers, and advisory write scopes.
-   * @returns the revision-one task view.
-   */
   async create(membership, request) {
     const { root } = membership
     return this.journal.transact(root.id, async () => {
@@ -61,12 +47,6 @@ export class TeamTaskBoard {
     })
   }
 
-  /**
-   * Return one task, including a deleted tombstone.
-   * @param membership - exact caller membership resolved by the Team roster.
-   * @param id - Team-local task identity.
-   * @returns the latest task value and derived readiness diagnostics.
-   */
   get(membership, id) {
     const { root } = membership
     const state = this.journal.state(root)
@@ -75,11 +55,6 @@ export class TeamTaskBoard {
     return this.taskView(root, state, task)
   }
 
-  /**
-   * List current non-deleted tasks in numeric creation order.
-   * @param membership - exact caller membership resolved by the Team roster.
-   * @returns detached current task views.
-   */
   list(membership) {
     const { root } = membership
     const state = this.journal.state(root)
@@ -88,13 +63,6 @@ export class TeamTaskBoard {
       .map(task => this.taskView(root, state, task))
   }
 
-  /**
-   * Compare-and-set one authorized task transition.
-   * @param caller - exact live Team member authorizing the mutation.
-   * @param membership - caller role and exact live Lead.
-   * @param request - task identity, expected revision, action, and action fields.
-   * @returns the committed next task revision.
-   */
   async update(caller, membership, request) {
     const root = membership.root
     return this.journal.transact(root.id, async () => {
@@ -199,7 +167,6 @@ export class TeamTaskBoard {
     })
   }
 
-  /** Validate and de-duplicate dependency ids against the current task graph. */
   dependencies(values, state, self) {
     const seen = new Set()
     const result = []
@@ -216,12 +183,10 @@ export class TeamTaskBoard {
     return result
   }
 
-  /** Normalize and de-duplicate task write scopes. */
   writeScopes(values) {
     return [...new Set(values.map(writeScope))]
   }
 
-  /** Map shared task-graph validation onto stable command error codes. */
   assertTaskGraph(state, candidate) {
     try {
       assertTaskGraphCandidate(state.tasks, candidate)
@@ -232,23 +197,15 @@ export class TeamTaskBoard {
     }
   }
 
-  /** Whether all current blockers completed. */
   taskReady(state, task) {
     return task.blockedBy.every(id => state.tasks.get(id)?.status === 'completed')
   }
 
-  /** Remove an optional owner field under exactOptionalPropertyTypes. */
   withoutOwner(task) {
     const { ownerId: _ownerId, ...without } = task
     return without
   }
 
-  /**
-   * Build one task view with owner name, readiness, and advisory write overlaps.
-   * A committing caller may pass its pre-append fold because `task` supplies the
-   * new value explicitly; owner names, blocker readiness, and other task scopes
-   * do not change when that snapshot is appended.
-   */
   taskView(root, state, task) {
     const ownerName = task.ownerId === undefined
       ? undefined

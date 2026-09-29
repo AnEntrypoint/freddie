@@ -1,19 +1,9 @@
-/** One-shot Team change waiters independent of durable state projection. */
-
 import { errorMessage, TeamError } from './error.js'
 
-/** Owns current Team change waiters and releases each at most once. */
 export class TeamActivity {
   waiters = new Map()
   closed = false
 
-  /**
-   * Wait for one later Team-domain or member-status change.
-   * @param id - Team whose next edge wakes the caller.
-   * @param timeoutMs - bounded wait duration from ten seconds through one hour.
-   * @param signal - caller cancellation for this wait only.
-   * @returns whether the wait ended by timeout.
-   */
   async wait(id, timeoutMs, signal) {
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 10_000 || timeoutMs > 3_600_000) {
       throw new TeamError('timeoutMs must be an integer from 10000 through 3600000', 'TEAM_INVALID_TIMEOUT')
@@ -59,10 +49,6 @@ export class TeamActivity {
     return { timedOut: !changed }
   }
 
-  /**
-   * Wake and remove every current waiter for one Team.
-   * @param id - Team whose current waiters observe the change.
-   */
   notify(id) {
     const waiters = this.waiters.get(id)
     if (waiters === undefined) return
@@ -70,7 +56,6 @@ export class TeamActivity {
     for (const waiter of waiters) waiter.resolve()
   }
 
-  /** Close admission and wake every current waiter during runtime disposal. */
   close() {
     this.closed = true
     for (const waiters of this.waiters.values()) {

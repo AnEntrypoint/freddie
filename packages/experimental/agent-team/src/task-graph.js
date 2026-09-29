@@ -1,13 +1,4 @@
-/** Complete dependency validation for current Team task snapshots. */
-
-/** Task dependency relation rejected by the shared graph validator. */
-
-/** Package-private task dependency failure retained for command error mapping. */
 export class TeamTaskGraphError extends Error {
-  /**
-   * @param message - concrete invalid dependency relation.
-   * @param violation - stable relation category used by Team commands.
-   */
   constructor(message, violation) {
     super(message)
     this.name = 'TeamTaskGraphError'
@@ -15,12 +6,6 @@ export class TeamTaskGraphError extends Error {
   }
 }
 
-/**
- * Validate the complete active task graph after replacing one candidate snapshot.
- * @param current - current task snapshots before the candidate event.
- * @param candidate - new or next-revision task snapshot.
- * @throws {TeamTaskGraphError} when an active dependency is missing, duplicated, self-referential, or cyclic.
- */
 export function assertTaskGraphCandidate(current, candidate) {
   const tasks = new Map(current)
   tasks.set(candidate.id, candidate)

@@ -1,35 +1,17 @@
-/** Serialized Team transactions over the exact live Lead Session log. */
-
 import { foldTeam } from './fold.js'
 
-/** Owns per-Lead transaction order and committed Team event publication. */
 export class TeamJournal {
   tails = new Map()
 
-  /**
-   * @param ctx - Team service context with the injected Session service.
-   * @param onCommit - synchronous notification after the Team event flush succeeds.
-   */
   constructor(ctx, onCommit) {
     this.ctx = ctx
     this.onCommit = onCommit
   }
 
-  /**
-   * Fold authoritative Team state for one exact live Lead.
-   * @param root - exact live Team Lead.
-   * @returns current replay state selected by the Lead Team id.
-   */
   state(root) {
     return foldTeam(root.id, root.session.events)
   }
 
-  /**
-   * Serialize one Lead's asynchronous mutation operation.
-   * @param rootId - Lead Session identity selecting the transaction queue.
-   * @param operation - complete read-check-append operation.
-   * @returns the operation result.
-   */
   async transact(rootId, operation) {
     const prior = this.tails.get(rootId) ?? Promise.resolve()
     const run = prior.then(operation, operation)
@@ -42,12 +24,6 @@ export class TeamJournal {
     }
   }
 
-  /**
-   * Append and checkpoint one root-owned Team event before publication.
-   * @param root - exact live Lead whose Session owns the event.
-   * @param type - Team event discriminant.
-   * @param data - payload correlated with the event type.
-   */
   async appendAndFlush(root, type, data) {
     const append = root.session.append.bind(root.session)
     append(type, data)
