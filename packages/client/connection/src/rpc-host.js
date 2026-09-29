@@ -1,5 +1,3 @@
-/** Host registry and HTTP adapter for generic Connection RPC channels. */
-
 import { Service } from '@freddie/cordis'
 import {
   clientRequestSchema,
@@ -13,21 +11,14 @@ const INVALID_REQUEST_RPC_ID = RpcId('invalid-request')
 const CHANNEL_PATTERN = /^\/[A-Za-z0-9._~-]+$/
 const ENDPOINT_SEGMENT_PATTERN = /^[A-Za-z0-9_$.-]+$/
 
-/** Host Connection service whose channel registrations belong to the caller fiber. */
 export class HostConnectionService extends Service {
   interceptors = new Map()
 
-  /**
-   * Provide the Host half over the active HTTP server.
-   * @param ctx - owning Connection plugin context.
-   * @param trustedHosts - deployment authorities accepted by trusted-host channels.
-   */
   constructor(ctx, trustedHosts) {
     super(ctx, 'connection')
     this.trustedHosts = trustedHosts
   }
 
-  /** Generic channel registry scoped to the Context reading this service. */
   get rpc() {
     const owner = this.ctx
     return {
@@ -37,12 +28,6 @@ export class HostConnectionService extends Service {
     }
   }
 
-  /**
-   * Compose one shared-channel Fetch handler from its interceptor and fallback.
-   * @param channel - shared channel mounted by Connection.
-   * @param fallback - handler for endpoints not claimed by the interceptor.
-   * @returns Fetch handler that selects exactly one target for each request.
-   */
   createSharedFetchHandler(
     channel,
     fallback,

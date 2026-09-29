@@ -9,16 +9,12 @@ import { deriveEventMessage, foldSurface } from '@freddie/freddie-session/surfac
 import { AbstractApiClient, RpcId, SESSION_SEARCH_RESULT_LIMIT } from './api.js'
 import { randomUuid } from './random-uuid.js'
 
-/** Context window the fixture's model routes report. */
 const FIXTURE_CONTEXT_WINDOW = 128_000
 
-/** The one edit path that presents as a two-hunk diff. */
 const MULTI_HUNK_EDIT_PATH = 'src/config.ts'
 
-/** A view-less presentation: the tool has no presenter, or its result's call is not on this page. */
 const NO_VIEW = undefined
 
-/** The fake carrier mints like a real one (business code never mints). */
 function rpcRequest(payload) {
   return { rpcId: RpcId(randomUuid()), payload }
 }
@@ -64,29 +60,10 @@ const MARKDOWN_FIXTURE = [
 
 const USER_MARKDOWN_LITERAL = 'User literal: # not rendered `code` [link](https://example.com)'
 
-/**
- * SGR wrapper for the terminal output sample below: authoring the escapes as
- * `` keeps literal control bytes out of this source file.
- * @param code - the SGR parameter (an ANSI color or attribute number).
- * @param body - the text the attribute applies to.
- * @returns the body wrapped in the attribute and a reset.
- */
 function sgr(code, body) {
   return `[${code}m${body}[0m`
 }
 
-/**
- * Terminal output sample for fixture turn 66, authored to carry every feature
- * the terminal card draws that turn 60's two prompt rows cannot reach:
- * basic-16 SGR foreground runs (green, red, bright-black) that must resolve to
- * `--dsw-*` tokens, a bold run, column-aligned table rows that must scroll
- * rather than fold, more than DEFAULT_TERMINAL_MAX_LINES (16) lines so the
- * height cap collapses the middle. The exit status is authored separately in
- * TERMINAL_EXIT_STATUS and deliberately absent from this text: the real bash
- * presenter CONSUMES its `[exit code: N]` marker out of the body, because a
- * terminal card shows the exit as its own pill and leaving the marker in would
- * render it twice (packages/shell/tool-bash/src/render.js).
- */
 const TERMINAL_OUTPUT_FIXTURE = [
   sgr(1, 'Running 4 checks'),
   `${sgr(32, '✓')} typecheck                                          1.82s`,
@@ -111,22 +88,10 @@ const TERMINAL_OUTPUT_FIXTURE = [
   sgr(31, '1 of 4 checks failed'),
 ].join('\n')
 
-/**
- * Exit status for each terminal sample, keyed by its output text. Authored
- * alongside the sample rather than parsed back out of its trailing marker,
- * which is the bash tool's own job and not something to reimplement here.
- */
 const TERMINAL_EXIT_STATUS = {
   [TERMINAL_OUTPUT_FIXTURE]: { exitCode: 1 },
 }
 
-/**
- * Structured grep result for the search sample (turn 67): matches grouped by
- * file, authored inline because the client-side fixture cannot import the tool
- * that produces the canonical value. `truncated` with a larger `total` than the
- * retained match count exercises the search card's capped indicator; the file
- * with more than CHAT_SEARCH_MAX_LINES rows exercises its head/tail height cap.
- */
 const SEARCH_MATCHES_FIXTURE = [
   {
     path: 'packages/client/ui-primitives/src/SearchBlock.tsx',
@@ -154,13 +119,6 @@ const SEARCH_MATCHES_FIXTURE = [
   },
 ]
 
-/**
- * The model-facing grep render text for the sample — what a UI without a search
- * card shows, attached as the view's `content`. Mirrors the real grep
- * presenter's shape (see formatGrepOutput in freddie-tool-fs-search): a
- * `Found X of Y matches` header, the matches grouped under file headers with
- * `Line N:` rows, then a spill-recovery footer.
- */
 const SEARCH_MATCHES_TEXT = [
   'Found 9 of 42 matches',
   '',
@@ -170,10 +128,6 @@ const SEARCH_MATCHES_TEXT = [
   '(Full grep result stored at: fixture://spill/grep-66. Read it to see every match.)',
 ].join('\n')
 
-/**
- * Structured glob result for the search sample (turn 68): a flat path list,
- * truncated with a larger `total` so the path card shows its capped indicator.
- */
 const SEARCH_PATHS_FIXTURE = [
   'packages/client/ui-primitives/src/SearchBlock.tsx',
   'packages/client/ui-primitives/src/SearchBlock.module.css',
@@ -182,25 +136,12 @@ const SEARCH_PATHS_FIXTURE = [
   'packages/client/ui-tool/tests/search-card.client.spec.tsx',
 ]
 
-/**
- * The model-facing glob render text — the newline-joined path list plus a
- * spill-recovery footer, mirroring the real glob presenter's shape (see
- * formatGlobOutput in freddie-tool-fs-search).
- */
 const SEARCH_PATHS_TEXT = [
   ...SEARCH_PATHS_FIXTURE,
   '',
   '(Showing 5 of 23 paths. Full sorted result stored at: fixture://spill/glob-67. Read it to see every path.)',
 ].join('\n')
 
-/**
- * Read-card sample for the read turn: a WINDOW past an offset, so the line
- * numbers start above 1 (the card's gutter keeps the file's own numbering) and
- * `totalLines` exceeds the window (the card shows a "showing N of M" note). The
- * fixture is client-side and cannot import the read tool, so the structured
- * window is authored inline exactly as the tool would project it through
- * `presentationMeta`. `lang` is a `ts` hint so the shiki path highlights it.
- */
 const READ_SAMPLE_FIRST_LINE = 41
 const READ_SAMPLE_SOURCE = [
   'export interface ReadBlockProps {',
@@ -220,15 +161,6 @@ const READ_SAMPLE_PATH = 'packages/client/ui-primitives/src/ReadBlock.tsx'
 const READ_SAMPLE_TOTAL = 180
 const READ_SAMPLE_TEXT = READ_SAMPLE_SOURCE.map((text, index) => `${READ_SAMPLE_FIRST_LINE + index}: ${text}`).join('\n')
 
-/**
- * The structured `web_search` result view for the web-search turn, authored inline
- * because this client-side fixture cannot import the web tool that projects it.
- * The sources exercise the citation list's features: a titled source with a
- * snippet and a date, a source with no title (its hostname labels the link) and
- * a snippet but no date, and a source with a title and a date but no snippet.
- * `truncated` marks the capped indicator. The shape is the contract's own
- * search view minus its wire discriminants.
- */
 const WEB_SEARCH_RESULT = {
   answer: 'Freddie is a plugin-based agent harness on vendored Cordis where **every capability is a plugin**.',
   sources: [
@@ -251,7 +183,6 @@ const WEB_SEARCH_RESULT = {
   truncated: true,
 }
 
-/** The `web_fetch` result view for the web-fetch turn, authored inline for the same reason. */
 const WEB_FETCH_RESULT = {
   url: 'https://www.deepseek.com/blog/harness-architecture',
   statusCode: 200,
@@ -277,7 +208,6 @@ const OPENAI_REASONING = {
   defaultEffort: 'medium',
 }
 
-/** Catalog served by `session.models` and `llm.models` alike (fresh copies per call). */
 function fixtureModelGroups() {
   return [
     {
@@ -320,7 +250,6 @@ const FIXTURE_IMAGE_REF = {
   name: 'fixture-image.png',
 }
 
-/** Deterministic provider billing attached to fixture assistant messages. */
 function fixtureUsage(turn, step) {
   return {
     inputTokens: 20 + turn % 5,
@@ -330,8 +259,6 @@ function fixtureUsage(turn, step) {
   }
 }
 
-/** fx-alpha history script: 75 turns (~150+ messages -> 4 pages at PAGE_MESSAGES=50),
- *  mixing reasoning blocks / tool call+result / context. */
 function buildAlphaLog() {
   const events = []
   let time = Date.now() - 3_600_000
@@ -536,20 +463,15 @@ function buildAlphaLog() {
   return events
 }
 
-/**
- * Narrows a parsed-JSON field to string; fixture args are authored in-file, so non-strings only mean a typo here.
- * @type {(value: unknown, fallback?: string) => string}
- */
-/* v8 ignore next -- the fallback arm is the same in-file-typo guard as the JSON.parse catch above. */
+/* v8 ignore next */
 const str = (value, fallback = '') => typeof value === 'string' ? value : fallback
 
-/** Fixture presenter registry (mirrors host viewFor): pure derivation, undefined = no view. */
 function presentCall(name, argsRaw) {
   let args
   try {
     args = JSON.parse(argsRaw)
   } catch {
-    /* v8 ignore next 2 -- defensive: fixture args are authored in-file as valid JSON; only an in-file typo could reach the catch. */
+    /* v8 ignore next 2 */
     return undefined
   }
   switch (name) {
@@ -629,13 +551,11 @@ function presentResult(name, argsRaw, resultText) {
   }
 }
 
-/** Split a slash-command line into its name and verbatim `args` (separator whitespace included). */
 function splitCommandLine(line) {
   const match = /^\/(\S+)((?:\s.*)?)$/.exec(line.trim())
   return { name: match?.[1], args: match?.[2] ?? '' }
 }
 
-/** Host-side viewFor mirror: tool/call presents from its own args; tool/result back-scans the log for the paired call. */
 function viewFor(event, log) {
   if (event.type === 'tool/call') {
     const view = presentCall(event.data.name, event.data.arguments)
@@ -645,8 +565,7 @@ function viewFor(event, log) {
     const callId = String(event.data.message.source.callId)
     for (let i = log.length - 1; i >= 0; i--) {
       const candidate = log[i]
-      /* v8 ignore next -- dense-array guard: i stays within [0, log.length),
-      so the undefined arm needs a sparse log no code path builds. */
+      /* v8 ignore next */
       if (candidate !== undefined && candidate.type === 'tool/call' && String(candidate.data.callId) === callId) {
         const resultText = event.data.message.content[0].content.map(b => (b.type === 'text' ? b.text : '')).join('')
         const view = presentResult(candidate.data.name, candidate.data.arguments, resultText)
@@ -658,12 +577,6 @@ function viewFor(event, log) {
   return undefined
 }
 
-/**
- * Fixture parallel of the plan unit's lifecycle fold. The paired
- * `command/done` retains successful plan selections and drops failures;
- * `plan/mode` commits one. `wanted` is exposed for the prompt boundary (the
- * fixture's step/start parallel).
- */
 function foldPlan(log) {
   let active = false
   let wanted = null
@@ -689,19 +602,16 @@ function foldPlan(log) {
   return { active, pending: selected !== null && selected !== active, wanted: selected }
 }
 
-/** The plan projection's wire view over the full log. */
 function planViewOf(log) {
   const plan = foldPlan(log)
   return { active: plan.active, pending: plan.pending }
 }
 
-/** Fixture preset table (the host PermissionPresetService defaults). */
 const PERMISSION_PRESETS = {
   'workspace-write': { sandbox: 'workspace-write', approval: 'ask', description: 'Write inside the workspace and permitted temporary directories; wider retries require approval.' },
   'danger-full-access': { sandbox: 'danger-full-access', approval: 'never', description: 'Full file access without approval prompts.' },
 }
 
-/** Host permissions-unit parallel: fold the three knob events, derive the select over the fixture defaults. */
 function permissionSelectOf(
   log,
 ) {
@@ -733,7 +643,6 @@ function permissionSelectOf(
   }
 }
 
-/** Read one provider usage sample from either durable carrier. */
 function usageSampleOf(event) {
   const item = event
   const usage = item.type === 'assistant/chunk' && item.data.chunk?.type === 'usage'
@@ -746,7 +655,6 @@ function usageSampleOf(event) {
     : { turn: item.data.turn, step: item.data.step, usage }
 }
 
-/** Fixture parallel of token-meter's last-sample-replacing usage projection. */
 function tokenUsageOf(log) {
   const totals = {
     uncachedInputTokens: 0,
@@ -776,7 +684,6 @@ function tokenUsageOf(log) {
   return totals
 }
 
-/** Fixture parallel of session-stats' whole-log counting and wall-time fold. */
 function sessionStatsOf(log) {
   const value = { turns: 0, steps: 0, llmMs: 0, toolMs: 0, ttftMs: 0, ttftSteps: 0, decodeMs: 0, decodeTokens: 0 }
   let lastTurn = null
@@ -837,12 +744,10 @@ function sessionStatsOf(log) {
   return value
 }
 
-/** Fixed token-meter heuristic constants mirrored by this client-only fixture. */
 const CHARS_PER_TOKEN = 4
 const BLOCK_OVERHEAD = 4
 const ROLE_OVERHEAD = 4
 
-/** Price fixture content with token-meter's fixed-density heuristic. */
 function estimateFixtureContent(blocks) {
   const densityPrice = (value) => Math.ceil(value.length / CHARS_PER_TOKEN)
   const structuralJsonPrice = (block) => densityPrice(JSON.stringify(block))
@@ -860,7 +765,6 @@ function estimateFixtureContent(blocks) {
   }, 0)
 }
 
-/** Fixture parallel of token-meter's heuristic context-composition projection. */
 function contextBreakdownOf(log) {
   const headerEvent = log.findLast(event => event.type === 'request/header')
   const header = headerEvent === undefined
@@ -884,7 +788,6 @@ function contextBreakdownOf(log) {
   }
 }
 
-/** Latest log-only route context, or undefined before any request ran. */
 function lastRequestContext(
   log,
 ) {
@@ -894,15 +797,6 @@ function lastRequestContext(
     : event.data
 }
 
-/**
- * Fixture parallel of token-meter's request-pressure projection: the last
- * provider-reported prompt size paired with the last recorded capacity. The
- * two need not come from one request — see the token-meter README. The host's
- * `projectedTokens` is deliberately absent: reproducing it would mean
- * reimplementing the estimator client-side, and every consumer falls back to
- * the bare sample, so a fixture-driven view simply lags a compaction the way
- * the projection did before that field existed.
- */
 function contextPressureOf(
   log,
 ) {
@@ -946,7 +840,6 @@ function projectionValuesOf(log) {
   return values
 }
 
-/** Host push-frame parallel: emit one session/projection frame per key the given event advanced. */
 function projectionFramesOf(id, log, event) {
   const type = event.type
   const frames = []
@@ -991,7 +884,7 @@ function projectionFramesOf(id, log, event) {
   if (frames.length > 0) return frames
   if (type === 'session/title') {
     const values = projectionValuesOf(log)
-    /* v8 ignore next -- the advancing title event is in the log, so the key is present. */
+    /* v8 ignore next */
     if (!Object.hasOwn(values, 'title')) return []
     return [{ type: 'session/projection', sessionId: id, key: 'title', value: values['title'], seq: event.seq }]
   }
@@ -1033,12 +926,6 @@ function projectionFramesOf(id, log, event) {
   return []
 }
 
-/**
- * Message-boundary paging (mirrors the host's paging contract): count
- * maxMessages messages
- *  backwards from end, cut at a turn/start boundary.
- Entries carry pagination-time views
- *  (the host analogue computes viewFor per entry at page time). */
 function pageOf(
   log,
   beforeSeq,
@@ -1049,7 +936,7 @@ function pageOf(
   let messages = 0
   for (let i = end - 1; i >= 0; i--) {
     const event = log[i]
-    /* v8 ignore next -- dense-array guard: log seqs are array indexes, i stays within [0, end). */
+    /* v8 ignore next */
     if (event === undefined) break
     if (event.type === 'user/message' || event.type === 'assistant/message') messages++
     if (event.type === 'turn/start' && messages >= maxMessages) {
@@ -1064,7 +951,6 @@ function pageOf(
   return { events, hasMore: start > 0 }
 }
 
-/** Fixture mirror of host session-scoped attachment authorization. */
 function logReferencesAttachment(log, attachmentId) {
   const visit = (value) => {
     if (Array.isArray(value)) return value.some(visit)
@@ -1076,7 +962,6 @@ function logReferencesAttachment(log, attachmentId) {
   return log.some(event => visit(event.data))
 }
 
-/** Fixture mirror of first-party message extraction used by session-query. */
 function searchBlockText(block) {
   switch (block.type) {
     case 'text':
@@ -1092,7 +977,6 @@ function searchBlockText(block) {
   }
 }
 
-/** One current-surface user/assistant document, if searchable. */
 function searchEventText(event) {
   const content = event.type === 'user/message'
     ? event.data.content
@@ -1103,11 +987,6 @@ function searchEventText(event) {
   return content.flatMap(searchBlockText).map(part => part.trim()).filter(Boolean).join('\n')
 }
 
-/**
- * Browser-safe approximation of SQLite FTS5 unicode61 token boundaries.
- * Keeping phrase matching token-based prevents the development fixture from
- * promising arbitrary within-token substring behavior that production lacks.
- */
 function searchTokenSpans(value) {
   const text = value.replace(/\s+/gu, ' ').trim()
   const characters = Array.from(text)
@@ -1140,7 +1019,6 @@ function searchTokenSpans(value) {
   return { text, tokens }
 }
 
-/** Count exact contiguous token-phrase occurrences and retain the first display span. */
 function phraseMatch(document, phrase) {
   if (phrase.length === 0 || phrase.length > document.length) return { count: 0, start: 0, end: 0 }
   let count = 0
@@ -1157,7 +1035,6 @@ function phraseMatch(document, phrase) {
   return { count, start: firstStart, end: firstEnd }
 }
 
-/** Match-centered fixture excerpt, bounded by Unicode code points for the sidebar. */
 function searchSnippet(value, matchStart, matchEnd) {
   const characters = Array.from(value)
   if (characters.length <= 120) return value
@@ -1180,7 +1057,6 @@ function searchSnippet(value, matchStart, matchEnd) {
   return `${start > 0 ? '…' : ''}${characters.slice(start, end).join('')}${end < characters.length ? '…' : ''}`
 }
 
-/** Mirrors `packages/session-query/session-query-sqlite/src/index.js`; update both together. */
 function compareSearchCandidates(a, b) {
   if (a.matchCount !== b.matchCount) return b.matchCount - a.matchCount
   if (a.documentLength !== b.documentLength) return a.documentLength - b.documentLength
@@ -1189,10 +1065,6 @@ function compareSearchCandidates(a, b) {
   return b.seq - a.seq
 }
 
-/**
- * Current plan projection over the full log (host parallel: latest todo/write
- * with no later turn/start; a new turn retires the previous plan).
- */
 function backscanTodos(log) {
   for (let i = log.length - 1; i >= 0; i--) {
     const event = log[i]
@@ -1203,10 +1075,6 @@ function backscanTodos(log) {
   return undefined
 }
 
-/**
- * Current goal projection over the full log (host parallel: the GoalService
- * unit's last-wins fold of goal/change whole values; clear returns null).
- */
 function backscanGoal(log) {
   for (let i = log.length - 1; i >= 0; i--) {
     const event = log[i]
@@ -1218,14 +1086,6 @@ function backscanGoal(log) {
   return null
 }
 
-/**
- * Deterministic fixture branches used by keyless Web assembly tests.
- *
- * Inbox pump shared by both stream generators (FrameQueue pattern: ONE abort listener hung
- * outside the loop — a per-iteration {once:true} listener never fires for non-final rounds and
- * piles up for the stream's lifetime). breakNow force-ends the stream without the
- * client's signal (timing hook: simulated connection loss).
- */
 class FxInbox {
   inbox = []
   wake = null
@@ -1241,7 +1101,6 @@ class FxInbox {
     this.wake?.()
   }
 
-  /** Read through a method: breakNow()/abort flip state across yields, so narrowing from the loop condition must not stick. */
   isLive(signal) {
     return !signal.aborted && !this.broken
   }
@@ -1264,26 +1123,14 @@ class FxInbox {
   }
 }
 
-/**
- * In-memory fake host: fx-alpha carries history and replay scripts; fx-beta is fx-alpha's child session (lineage indent material).
- * @param options - fixture branches for empty state and failure timing.
- * @returns an ApiProxy backed entirely by in-memory state — no host process, no network.
- */
 export function createFixtureApi(options = {}) {
   return createFixtureWorld(options).api
 }
 
-/**
- * Build both fixture faces so a caller can drive the Remote endpoints and the
- * legacy API against one in-memory state graph.
- * @param options - fixture branches for empty state and failure timing.
- * @returns the legacy API face and the Remote RPC face.
- */
 export function createFixtureFaces(options = {}) {
   return createFixtureWorld(options)
 }
 
-/** Build the fixture's legacy API and Remote RPC faces over one state graph. */
 function createFixtureWorld(options) {
   const sessions = options.empty ? [] : [
     { sessionId: sid('fx-alpha'), updatedAt: Date.now(), running: true, blank: false, cwd: '/tmp/fixture' },
@@ -1299,16 +1146,10 @@ function createFixtureWorld(options) {
     String(FIXTURE_IMAGE_REF.attachmentId),
     { attachment: FIXTURE_IMAGE_REF, data: FIXTURE_IMAGE_DATA },
   ]])
-  /** Credential store double: set/unset flip the describe badge, values never read back. */
   const FIRST_RUN_READINESS_CREDENTIAL = 'DEEPSEEK_API_KEY'
   const fixtureCredentials = new Map([
     [FIRST_RUN_READINESS_CREDENTIAL, true],
   ])
-  /**
-   * Preset compositions the fixture serves. Held as state rather than
-   * constants so the settings editor's save and delete are exercisable: the
-   * roster a GUI journey sees after writing is the text it wrote.
-   */
   const fixturePresets = new Map([
     ['standard', { trust: 'system', content: "- id: tool-bash\n  name: '@freddie/freddie-tool-bash'\n" }],
     ['minimal', { trust: 'system', content: "- id: tool-web-search\n  name: '@freddie/freddie-tool-web-search'\n" }],
@@ -1368,10 +1209,8 @@ function createFixtureWorld(options) {
     return crumbs
   }
   const mint = () => RpcId(`fx-rpc-${nextRpc++}`)
-  /** Resident pending approval (stable rpcId: every mux open replays the same id while unanswered, matching host replay semantics). */
   const pendingApprovalRpcId = mint()
   const pendingApprovalId = 'fx-approval-1'
-  /** Cleared once answered through respond; replay stops and approval/resolved is broadcast. */
   let approvalPending = true
   const pendingQuestionRpcId = mint()
   let questionPending = true
@@ -1418,7 +1257,6 @@ function createFixtureWorld(options) {
     for (const conn of hostConns) conn.push({ rpcId: mint(), payload: frame })
   }
 
-  /** OK response echoing the caller's rpcId (contract: responses always backfill, never mint). */
   function ok(request, value) {
     return Promise.resolve({ rpcId: request.rpcId, result: { ok: true, value } })
   }
@@ -1429,8 +1267,6 @@ function createFixtureWorld(options) {
   const deterministicNativeOpen = request => ok(request, { opened: true })
 
   const summaryOf = (id) => sessions.find(s => s.sessionId === id)
-  /** Shared session guard for sessionId-addressed catalog routes: the error
-   *  response when the session is unknown, undefined when it exists. */
   const requireSession = (request) => {
     if (summaryOf(request.payload.sessionId) !== undefined) return undefined
     return err(request, {
@@ -1458,16 +1294,13 @@ function createFixtureWorld(options) {
     const event = { seq: log.length, time: Date.now(), ...e }
     log.push(event)
     const view = viewFor(event, log)
-    /* v8 ignore next 3 -- the view-present arm needs a live tool/call emission,
-    but the fixture replay produces text-only turns; view vocabulary is
-    exercised through the history samples (turns 60-62). */
+    /* v8 ignore next 3 */
     emitMux(view === undefined
       ? { type: 'session/event', sessionId: id, event }
       : { type: 'session/event', sessionId: id, event, view })
     for (const frame of projectionFramesOf(id, log, event)) emitMux(frame)
   }
 
-  /** Append one durable goal/change (host GoalService parallel). */
   const appendGoalChange = (id, change) => {
     const log = logOf(id)
     append(id, {
@@ -1477,7 +1310,6 @@ function createFixtureWorld(options) {
     return backscanGoal(log)
   }
 
-  /** Commit an outstanding /plan selection as plan/mode, inside the turn just opened. */
   const commitOutstandingPlanSelection = (id) => {
     const plan = foldPlan(logOf(id))
     if (plan.wanted !== null && plan.wanted !== plan.active) {
@@ -1485,7 +1317,6 @@ function createFixtureWorld(options) {
     }
   }
 
-  /** Log-only route capacity record, appended inside the open turn unless the last one already names this model. */
   const recordRouteContextOnModelChange = (id) => {
     const selection = modelSelections.get(id) ?? { provider: 'deepseek', model: 'deepseek-v4-flash' }
     if (lastRequestContext(logOf(id))?.model !== selection.model) {
@@ -1507,7 +1338,6 @@ function createFixtureWorld(options) {
       : undefined
   )
 
-  /** Canonical fixture implementation of the generated Commands Remote contract. */
   const commandRemotes = {
     list(id) {
       const missing = requireGoalSession(id)
@@ -1620,7 +1450,6 @@ function createFixtureWorld(options) {
     activation: projection.goal.phase === 'active' ? 'armed' : 'disarmed',
   })
 
-  /** Canonical fixture implementation of the generated reference-discovery Remote contracts. */
   const referenceRemotes = {
     files(id, query) {
       const missing = requireGoalSession(id)
@@ -1659,7 +1488,6 @@ function createFixtureWorld(options) {
     },
   }
 
-  /** Canonical fixture implementation of the generated Goal Remote contract. */
   const goalRemotes = {
     create(id, request) {
       const missing = requireGoalSession(id)
@@ -1723,7 +1551,6 @@ function createFixtureWorld(options) {
     },
   }
 
-  /** Resolve one current goal revision for a canonical Remote mutation. */
   function resolveGoal(id, ref) {
     const missing = requireGoalSession(id)
     if (missing !== undefined) return missing
@@ -1734,7 +1561,6 @@ function createFixtureWorld(options) {
     return { ok: true, value: current }
   }
 
-  /** Shared CAS mutation path behind the canonical Remote verbs. */
   function mutateGoal(
     id,
     ref,
@@ -1767,39 +1593,29 @@ function createFixtureWorld(options) {
     Promise.resolve({ rpcId: request.rpcId, result })
   )
 
-  /** At most one in-flight replay per session; cancel clears it. */
   const replays = new Map()
 
-  /** history transit delay (timing hooks below); the page snapshot is taken at request time, like a real host. */
   let historyDelayMs = 0
-  /** One-shot history failure (timing hook: a pre-disconnect history request already doomed when reconnect lands). */
   let failNextHistory = false
-  /** Force-enders for currently open stream generators (timing hook: simulated connection loss). */
   const streamBreakers = new Set()
-  /** Retry scenarios opened by timing hooks and completed in a later browser assertion phase. */
   const retryScenarios = new Map()
-  /** The single opt-in browser stress producer; normal fixture journeys never start it. */
   let activeReasoningChunkStorm = null
 
   const timingHooks = {
     setHistoryDelay(ms) {
       historyDelayMs = ms
     },
-    /** Fail the NEXT history call (after its transit delay) with a transport-level throw. */
     failNextHistory() {
       failNextHistory = true
     },
-    /** Log append + mux emit (the normal live path). */
     appendUser(id, msg) {
       append(sid(id), { type: 'user/message', surfaceOp: 'append', data: userMessage(text(msg)) })
     },
-    /** Append a later durable title revision through the normal raw-event + control-frame path. */
     appendTitle(id, title) {
       const log = logOf(sid(id))
       const messageSeqs = log.filter(event => event.type === 'user/message').map(event => event.seq)
       append(sid(id), { type: 'session/title', data: { title, messageSeqs, source: { kind: 'provider', provider: 'fixture' } } })
     },
-    /** Start an externally paced reasoning stream for the opt-in browser stress lane. */
     startReasoningChunkStorm(
       id,
       chunkCount,
@@ -1875,11 +1691,9 @@ function createFixtureWorld(options) {
       setTimeout(pump, 0)
       return marker
     },
-    /** Return a copy so browser probes cannot mutate the active producer. */
     reasoningChunkStormState() {
       return activeReasoningChunkStorm === null ? null : { ...activeReasoningChunkStorm }
     },
-    /** Open one failed model step whose partial remains visible until llm/retry arrives. */
     beginModelRetry(id) {
       const sessionId = sid(id)
       const turn = nextTurn.get(sessionId) ?? 0
@@ -1892,7 +1706,6 @@ function createFixtureWorld(options) {
       append(sessionId, { type: 'assistant/chunk', data: { turn, step: 1, chunk: { type: 'block-start', index: 0, blockType: 'text' } } })
       append(sessionId, { type: 'assistant/chunk', data: { turn, step: 1, chunk: { type: 'text-delta', index: 0, text: 'Half a reply that should be retracted' } } })
     },
-    /** Record one retry decision; the next attempt remains in the same step. */
     scheduleModelRetry(id, retry = 1, delayMs = 450) {
       const sessionId = sid(id)
       const scenario = retryScenarios.get(sessionId)
@@ -1913,7 +1726,6 @@ function createFixtureWorld(options) {
       })
       scenario.stepStarted = false
     },
-    /** Record one retry decision, then cancel its source turn before the retry starts. */
     cancelModelRetryDuringBackoff(id, delayMs = 450) {
       const sessionId = sid(id)
       const scenario = retryScenarios.get(sessionId)
@@ -1933,7 +1745,6 @@ function createFixtureWorld(options) {
       retryScenarios.delete(sessionId)
       setRunning(sessionId, false)
     },
-    /** Finish the timing-hook retry with a finalized response in the open step. */
     completeModelRetry(id) {
       const sessionId = sid(id)
       const scenario = retryScenarios.get(sessionId)
@@ -1957,24 +1768,21 @@ function createFixtureWorld(options) {
       append(sessionId, { type: 'turn/end', data: { turn: scenario.turn, reason: { kind: 'completed' } } })
       setRunning(sessionId, false)
     },
-    /** Log append WITHOUT the mux emit: a frame lost in transit — history still serves it, the client must repull. */
     appendSilent(id, msg) {
       const log = logOf(sid(id))
       log.push({ type: 'user/message', surfaceOp: 'append', seq: log.length, time: Date.now(), data: userMessage(text(msg)) })
     },
-    /** End every open stream generator (client sees both streams close -> reconnect + resync path). */
     breakStreams() {
       for (const breakNow of [...streamBreakers]) breakNow()
     },
   }
   ;(globalThis).__fxTiming = timingHooks
 
-  /** Prompt replay: chunk typewriter (80ms/frame) -> assistant/message finalize -> turn/end + running flip. */
   const startReply = (id, turn, replyText) => {
     const step = 0
     append(id, { type: 'step/start', data: { turn, step } })
     append(id, { type: 'assistant/chunk', data: { turn, step, chunk: { type: 'block-start', index: 0, blockType: 'text' } } })
-    /* v8 ignore next -- the ?? arm needs a null match, but every fixture reply is non-empty. */
+    /* v8 ignore next */
     const pieces = replyText.match(/[\s\S]{1,6}/gu) ?? [replyText]
     let i = 0
     const finish = (aborted) => {
@@ -2064,7 +1872,7 @@ function createFixtureWorld(options) {
         const cwd = workspace?.path ?? request.payload.cwd ?? '/tmp/fixture'
         const requestedId = request.payload.sessionId
         const attachWorkspace = (sessionId) => {
-          /* v8 ignore next -- callers enter only when a target Workspace exists. */
+          /* v8 ignore next */
           if (workspace === undefined || workspace.sessionIds.includes(sessionId)) return
           workspace.sessionIds = [sessionId, ...workspace.sessionIds]
           workspace.updatedAt = new Date().toISOString()
@@ -2450,7 +2258,7 @@ function createFixtureWorld(options) {
         if (beforeWorkspaceId !== workspaceId) {
           const previousOrder = workspaces.map(candidate => candidate.workspaceId)
           const [workspace] = workspaces.splice(source, 1)
-          /* v8 ignore next -- source was resolved from the same array immediately above. */
+          /* v8 ignore next */
           if (workspace === undefined) throw new Error(`fixture lost workspace ${workspaceId}`)
           const at = beforeWorkspaceId === undefined
             ? workspaces.length
@@ -2679,7 +2487,7 @@ function createFixtureWorld(options) {
         const GAMMA_FLIP_INTERVAL_MS = 5000
         const timer = setInterval(() => {
           const gamma = summaryOf(sid('fx-gamma'))
-          /* v8 ignore next -- the undefined arm needs fx-gamma deleted, but the fixture never removes sessions. */
+          /* v8 ignore next */
           if (gamma !== undefined) setRunning(gamma.sessionId, !gamma.running)
         }, GAMMA_FLIP_INTERVAL_MS)
         try {
@@ -2809,15 +2617,7 @@ function createFixtureWorld(options) {
   return { api, rpc }
 }
 
-/**
- * Fixture platform subclass: there is no HTTP at all, so instead of a doFetch transport it
- * overrides the protocol-level virtuals (callUnary/openMux/openHost/respond) to dispatch
- * straight into the in-memory ApiProxy — while still minting rpcIds, fabricating the four
- * named full forms, and feeding the same tap as a real carrier. TODO: delete when the fixture
- * moves to the isomorphic pipeline (InProcessApiClient over toFetchHandler(fixtureImpl)).
- */
 export class FixtureApiClient extends AbstractApiClient {
-  /** Generic Remote caller backed by the same in-memory state as the legacy fixture API. */
   rpc
 
   constructor() {
@@ -2849,7 +2649,6 @@ export class FixtureApiClient extends AbstractApiClient {
     return response
   }
 
-  /** Method-key dispatch into the in-memory contract impl (a real carrier routes by URL path instead). */
   dispatch(
     method,
     request,
@@ -2939,19 +2738,12 @@ export class FixtureApiClient extends AbstractApiClient {
     }
   }
 
-  /**
-   * Deliver a client response to the in-memory contract impl (no HTTP POST),
-   * echoing the envelope to the observation tap like every other path.
-   * @param message - the client-response envelope answering a server request.
-   * @returns the carrier receipt from the fixture impl.
-   */
   async respond(message) {
     this.onEnvelope(message)
     return this.api.respond(message)
   }
 }
 
-/** Browser query mapping; direct unit callers pass FixtureOptions explicitly. */
 function fixtureOptionsFromLocation() {
   if (typeof location === 'undefined') return {}
   const query = new URLSearchParams(location.search)

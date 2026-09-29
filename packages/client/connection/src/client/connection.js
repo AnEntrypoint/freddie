@@ -17,13 +17,6 @@ function sleep(ms, signal) {
   })
 }
 
-/**
- * Opens both streams and keeps iterating (pull mode: nothing reads the socket and the tap
- * never fires unless someone for-awaits), reconnecting with exponential backoff on loss.
- * State (generation/attempt) is instance-private, never in the store.
- * The pump body feeds each frame to a sink (sink exceptions must
- * not kill the pump — a broken business layer must not drag down the connection layer).
- */
 export class ConnectionController {
   generation = 0
   attempt = 0
@@ -42,14 +35,12 @@ export class ConnectionController {
     this.config = { ...CONNECTION_DEFAULTS, ...config }
   }
 
-  /** Idempotent: begin the connect/pump/reconnect loop. */
   start() {
     if (this.running) return
     this.running = true
     void this.loop()
   }
 
-  /** Stop the loop and abort the current generation's streams and reconnect delay. */
   stop() {
     this.running = false
     this.current?.abort()
@@ -64,12 +55,10 @@ export class ConnectionController {
     return cap / 2 + Math.random() * (cap / 2)
   }
 
-  /** Read through a method: stop() flips the flag across awaits, so narrowing from the loop condition must not stick. */
   isRunning() {
     return this.running
   }
 
-  /** Re-read both mutable liveness guards after a potentially reentrant sink. */
   isGenerationActive(controller) {
     return this.isRunning() && !controller.signal.aborted
   }
@@ -80,10 +69,9 @@ export class ConnectionController {
       const ac = new AbortController()
       this.current = ac
 
-      /* v8 ignore next -- initializer placeholder: the Promise executor
-       * below runs synchronously and replaces it before anyone can call it. */
+      /* v8 ignore next */
       let muxOpened = () => {}
-      /* v8 ignore next -- same placeholder pattern as muxOpened. */
+      /* v8 ignore next */
       let hostOpened = () => {}
       const streamsOpen = Promise.all([
         new Promise((resolve) => { muxOpened = resolve }),
@@ -140,7 +128,6 @@ export class ConnectionController {
     }
   }
 
-  /** Deduplicated state emission (sink isolation applies). */
   emitState(state) {
     if (this.lastState === state) return
     this.lastState = state
@@ -162,7 +149,6 @@ export class ConnectionController {
     onEnd()
   }
 
-  /** Sink exception isolation: a business-layer throw is logged only, never affecting pump or reconnect semantics. */
   callSink(fn) {
     try {
       fn()

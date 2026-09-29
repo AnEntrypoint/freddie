@@ -1,8 +1,3 @@
-/**
- * Browser wire client. The plugin selects fixture or HTTP transport, provides
- * the shared API client, and lets the runtime object layer start the stream
- * controller with its sinks.
- */
 import { ConnectionController } from './connection.js'
 import { FixtureApiClient } from './fixture.js'
 import { WebApiClient } from './web-api-client.js'
@@ -15,13 +10,8 @@ export {
   transportError,
 } from './api.js'
 
-/** Required services (none — this is the wire root). */
 export const inject = []
 
-/**
- * Client plugin body: pick the api by page mode and provide ctx.connection.
- * @param ctx - client cordis context.
- */
 export function apply(ctx) {
   const pageLocation = typeof location === 'undefined' ? undefined : location
   const fixture = pageLocation !== undefined && new URLSearchParams(pageLocation.search).has('fixture')

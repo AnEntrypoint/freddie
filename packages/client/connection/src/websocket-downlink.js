@@ -1,5 +1,3 @@
-/** Host-side WebSocket carrier for the two server-to-browser event streams. */
-
 import { randomUUID } from 'node:crypto'
 import WebSocket, { WebSocketServer } from 'ws'
 import { RpcId } from '@freddie/freddie-host-apiproxy/api'
@@ -36,26 +34,14 @@ function failureFrame(error) {
   }
 }
 
-/**
- * Owns WebSocket negotiation and frame pumping for the connection plugin's
- * two downlinks. Client messages are a protocol violation: upstream traffic
- * remains on HTTP.
- */
 export class WebSocketDownlinks {
   server = new WebSocketServer({ noServer: true })
   pumps = new Set()
 
-  /** @param api - host API supplying the typed event streams. */
   constructor(api) {
     this.api = api
   }
 
-  /**
-   * Upgrade one socket and pump the mux stream until either side closes.
-   * @param req - HTTP upgrade request.
-   * @param socket - Raw socket transferred by the HTTP server.
-   * @param head - Bytes already read after the upgrade headers.
-   */
   handleMux(req, socket, head) {
     this.upgrade(req, socket, head, signal => this.api.events.mux({
       rpcId: RpcId(randomUUID()),
@@ -63,12 +49,6 @@ export class WebSocketDownlinks {
     }, signal))
   }
 
-  /**
-   * Upgrade one socket and pump the host stream until either side closes.
-   * @param req - HTTP upgrade request.
-   * @param socket - Raw socket transferred by the HTTP server.
-   * @param head - Bytes already read after the upgrade headers.
-   */
   handleHost(req, socket, head) {
     this.upgrade(req, socket, head, signal => this.api.events.host({
       rpcId: RpcId(randomUUID()),
@@ -76,10 +56,6 @@ export class WebSocketDownlinks {
     }, signal))
   }
 
-  /**
-   * Terminate owned sockets and await the no-server acceptor plus frame pumps.
-   * @returns A promise resolving after every socket and source iterator stops.
-   */
   async close() {
     for (const socket of this.server.clients) socket.terminate()
     await new Promise((resolve, reject) => {
@@ -131,10 +107,6 @@ export class WebSocketDownlinks {
   }
 }
 
-/**
- * Reject an untrusted upgrade before protocol negotiation.
- * @param socket - Raw HTTP socket that remains owned by the caller.
- */
 export function rejectWebSocketUpgrade(socket) {
   socket.end([
     'HTTP/1.1 403 Forbidden',

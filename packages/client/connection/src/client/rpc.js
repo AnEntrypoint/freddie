@@ -1,5 +1,3 @@
-/** Browser caller for generic Connection unary RPC channels. */
-
 import {
   RpcId,
   serverResponseSchema,
@@ -10,11 +8,6 @@ const INTERNAL_BASE = 'http://freddie.internal'
 const CHANNEL_PATTERN = /^\/[A-Za-z0-9._~-]+$/
 const ENDPOINT_SEGMENT_PATTERN = /^[A-Za-z0-9_$.-]+$/
 
-/**
- * Create the browser-backed generic RPC caller.
- * @param doFetch - transport override; defaults to the page's global fetch.
- * @returns caller that owns request correlation and response-envelope validation.
- */
 export function createWebConnectionRpc(doFetch) {
   const send = doFetch ?? ((input, init) => globalThis.fetch(input, init))
   return {

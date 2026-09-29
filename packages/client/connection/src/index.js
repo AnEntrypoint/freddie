@@ -1,4 +1,3 @@
-/** Host HTTP bridge for browser-client RPC. */
 import z from '@freddie/schemastery'
 import { toFetchHandler } from '@freddie/freddie-host-apiproxy'
 import { API_PATH, HOST_EVENTS_PATH, MUX_EVENTS_PATH } from './api-path.js'
@@ -11,10 +10,8 @@ export { HostConnectionService } from './rpc-host.js'
 
 export { API_PATH, HOST_EVENTS_PATH, MUX_EVENTS_PATH } from './api-path.js'
 
-/** Stable Cordis plugin name. */
 export const name = 'client-connection'
 
-/** Headroom for RPC JSON fields around aggregate base64 image payloads. */
 const REQUEST_ENVELOPE_HEADROOM_BYTES = 1024 * 1024
 
 function assertImageBodyCapacity(ctx, maxRequestBodyBytes) {
@@ -31,7 +28,6 @@ function assertImageBodyCapacity(ctx, maxRequestBodyBytes) {
   }
 }
 
-/** Services required before providing Connection; API Proxy is an optional `/api` fallback. */
 export const inject = ['webServer']
 
 export const Config = z.object({
@@ -133,13 +129,6 @@ const CROSS_SESSION_DISCLOSURE = [
   'sessionReferenceResolver.candidates',
 ]
 
-/**
- * Methods gated to loopback even on a trusted-host deployment. `trustedHosts` is
- * a DNS-rebinding fence, not authentication, so reading or changing deployment
- * configuration, secrets, the host filesystem or host processes stays
- * loopback-only. Every group above is one capability; the reasoning is in this
- * package's AGENTS.md.
- */
 const PRIVILEGED_METHODS = new Set([
   ...AGENT_PRESET_ROSTER_MANAGEMENT,
   ...HOST_DESKTOP_AND_FILESYSTEM_ACCESS,
@@ -153,11 +142,6 @@ const PRIVILEGED_METHODS = new Set([
   ...CROSS_SESSION_DISCLOSURE,
 ])
 
-/**
- * Methods left reachable from a trusted host because the browser client is the
- * caller, or because each is confined to the calling session. Listed so that an
- * omission from {@link PRIVILEGED_METHODS} reads as a decision.
- */
 export const UNPINNED_BY_DECISION = Object.freeze([
   'session.list',
   'session.search',
@@ -199,43 +183,19 @@ for (const method of UNPINNED_BY_DECISION) {
   }
 }
 
-/**
- * Fail the load on a `trustedHosts` entry that is not a bare authority, rather than authorizing its hostname prefix at request time.
- * @param trustedHosts - configured non-loopback authorities.
- */
 function refuseMalformedTrustedHosts(trustedHosts) {
   for (const entry of trustedHosts) assertTrustedAuthority(entry)
 }
 
-/**
- * The `/api` endpoint a request addresses.
- * @param request - inbound HTTP request.
- * @returns the endpoint text following the `/api/` prefix; undefined outside it.
- */
 function apiMethodOf(request) {
   const pathname = new URL(request.url).pathname
   return pathname.startsWith(`${API_PATH}/`) ? pathname.slice(API_PATH.length + 1) : undefined
 }
 
-/**
- * The canonical spelling of one endpoint name, so the privilege list is
- * authoritative for the legacy dotted routes and the namespaced ones alike.
- * @param method - an endpoint as it appears after the `/api/` prefix.
- * @returns the dotted spelling.
- */
 function canonicalMethodName(method) {
   return method.replace(/\//g, '.')
 }
 
-/**
- * Mounts the API gateway under the browser transport prefix. Every request on
- * the prefix passes the browser-trust fence first (DNS-rebinding and
- * cross-site defense — [api-request-trust](./api-request-trust.js));
- * privileged methods additionally pass it with an empty trust list, which
- * pins them to loopback.
- * @param ctx - Host plugin context.
- * @param config - resolved plugin config (schema defaults applied).
- */
 export function apply(ctx, config) {
   const { trustedHosts = [], maxRequestBodyBytes = DEFAULT_MAX_REQUEST_BODY_BYTES } = config ?? {}
   refuseMalformedTrustedHosts(trustedHosts)

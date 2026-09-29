@@ -1,22 +1,5 @@
-/**
- * node:http ↔ WHATWG fetch bridge for the /api transport (host side of the
- * web carrier; the fetch-shaped handler itself is transport-agnostic).
- */
-
-/** Default carrier cap for all HTTP RPC bodies: sized for the default
- * aggregate image limit (200 MiB) after base64 expansion plus envelope
- * headroom (~267.7 MiB required), rounded up for slack. The bridge buffers
- * each body in memory, so this cap is also the per-request resident bound. */
 export const DEFAULT_MAX_REQUEST_BODY_BYTES = 300 * 1024 * 1024
 
-/**
- * Bridge one node:http request to the fetch-shaped handler (client close
- * aborts; SSE bodies stream out chunk by chunk).
- * @param req - incoming node:http request (fully read before dispatch).
- * @param res - node:http response the bridge writes and owns to completion.
- * @param apiHandler - fetch-shaped API carrier the request is dispatched to.
- * @param maxRequestBodyBytes - maximum body bytes buffered before dispatch.
- */
 export async function bridge(
   req,
   res,
@@ -45,8 +28,7 @@ export async function bridge(
     }
     chunks.push(buffer)
   }
-  /* v8 ignore next 3 -- `??` arms: node:http always sets url/method on server
-  requests; the fields are only optional on the client-side IncomingMessage type */
+  /* v8 ignore next 3 */
   const request = new Request(new URL(req.url ?? '/', 'http://freddie.internal'), {
     method: req.method ?? 'GET',
     headers: Object.fromEntries(Object.entries(req.headers).filter(([, v]) => typeof v === 'string')),
@@ -66,14 +48,12 @@ export async function bridge(
   res.end()
 }
 
-/** Abort `abort` when the connection ends before the response did (a client going away). */
 function abortWhenConnectionTearsDown(res, abort) {
   res.on('close', () => {
     if (!res.writableEnded) abort.abort()
   })
 }
 
-/** Resolve once the socket buffer drains, or the connection closes mid-wait. */
 function drainedOrClosed(res) {
   return new Promise((resolve) => {
     const done = () => {

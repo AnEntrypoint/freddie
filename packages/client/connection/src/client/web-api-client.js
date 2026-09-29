@@ -1,5 +1,3 @@
-/** Browser API carrier: HTTP upstream plus one WebSocket per downstream event stream. */
-
 import { AbstractApiClient, RpcId } from './api.js'
 import { serverRequestSchema } from '@freddie/freddie-host-apiproxy/api/rpc.schema'
 import { HOST_EVENTS_PATH, MUX_EVENTS_PATH } from '../api-path.js'
@@ -7,7 +5,6 @@ import { randomUuid } from './random-uuid.js'
 
 const MAX_INBOX_ITEMS = 2048
 
-/** Browser platform subclass: unary/respond use fetch; mux/host use downlink-only WebSockets. */
 export class WebApiClient extends AbstractApiClient {
   doFetch(input, init) {
     return globalThis.fetch(input, init)
