@@ -1,32 +1,11 @@
-/**
- * Parse Codex's five-event hook subset into shared `MatcherGroup`s. Only synchronous command
- * hooks run; other types and `async: true` commands are recorded as skipped. Codex performs no
- * command substitution.
- *
- * @typedef {import('@freddie/freddie-hook-protocol').MatcherGroup} MatcherGroup
- * @typedef {Record<string, MatcherGroup[]>} CodexHookConfig A parsed Codex config: event name → its matcher groups (command hooks only).
- * @typedef {{ event: string; reason: string }} SkippedHook A skipped non-command (or async) hook, surfaced so the bridge can warn.
- * @typedef {{ config: CodexHookConfig; skipped: SkippedHook[] }} ParsedCodexConfig The outcome of parsing one Codex config file.
- */
-
 import { matcherDiagnostic } from '@freddie/freddie-hook-protocol'
 
-/** The five Codex hook points this bridge supports. */
 export const CODEX_EVENTS = ['PreToolUse', 'PostToolUse', 'SessionStart', 'UserPromptSubmit', 'Stop']
 
 function asObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value) ? value : undefined
 }
 
-/**
- * Parse a wrapped or bare Codex event map. Unknown events and malformed entries are ignored rather
- * than failing boot; unsupported or asynchronous hooks are returned in `skipped`. Matcher fields on
- * UserPromptSubmit and Stop are discarded because those events have no matcher subject. A
- * matcher-bearing runnable group with an invalid regex throws a `SyntaxError`, allowing the bridge
- * to reject the complete config before listener registration.
- * @param {unknown} raw - the parsed JSON config: a `{ hooks: … }` wrapper or the bare event map.
- * @returns {ParsedCodexConfig} the runnable per-event groups plus the skipped hooks with their reasons.
- */
 export function parseCodexConfig(raw) {
   const config = {}
   const skipped = []

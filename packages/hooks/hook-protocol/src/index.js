@@ -1,11 +1,3 @@
-/**
- * Shared, non-plugin hook protocol library: matching, command execution and
- * decoding, restrictive outcome merging, durable event helpers, and detached
- * run quiescence. Claude Code and Codex bridges own their distinct payloads,
- * environment rules, matcher mode, and typed extension-point mappings.
- * @module @freddie/freddie-hook-protocol
- */
-
 export { matcherDiagnostic, matchesMatcher } from './matcher.js'
 export { parseHookOutput } from './codec.js'
 export { DEFAULT_HOOK_TIMEOUT_MS, runHook } from './runner.js'

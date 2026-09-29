@@ -1,12 +1,3 @@
-/**
- * Merge matched hooks into one most-restrictive outcome. Permission precedence
- * is `deny > ask > allow`; the first `continue:false` stop is sticky; reasons
- * for the winning rank are joined; and context and system messages accumulate
- * in hook order.
- * @module @freddie/freddie-hook-protocol/merge
- */
-
-/** Rank a single hook's decision for the deny>ask>allow precedence (higher = stricter). */
 function rank(decision) {
   switch (decision) {
     case 'deny': case 'block': return 3
@@ -16,7 +7,6 @@ function rank(decision) {
   }
 }
 
-/** Collapse a ranked decision back to the merged enum. */
 function decisionForRank(maxRank) {
   switch (maxRank) {
     case 3: return 'deny'
@@ -26,14 +16,6 @@ function decisionForRank(maxRank) {
   }
 }
 
-/**
- * Fold `outputs` (the results of every hook that matched a point, in hook order)
- * into one merged outcome by the precedence rules above. An empty list
- * yields a neutral outcome (`decision: 'none'`, no stop, empty context) — the
- * caller treats that as "no hook had anything to say".
- * @param outputs - every matched hook's decoded output, in hook order.
- * @returns the single folded outcome the bridge maps onto its extension point.
- */
 export function mergeHookOutputs(outputs) {
   let maxRank = 0
   const reasonsByRank = new Map()

@@ -1,18 +1,12 @@
-/** Package-owned hook invocation/result stream invariants. @module @freddie/freddie-hook-protocol/invariant */
-
 const PACKAGE_NAME = '@freddie/freddie-hook-protocol'
 
-/** Cordis companion plugin name. */
 export const name = 'hook-protocol-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Correlation key shared by an invoked/result pair. */
 function hookKey(data) {
   return `${data.turn}\0${data.point}\0${data.handlerId}`
 }
 
-/** Validate one hook event against committed pending invocations. */
 function validateHookEvent(trace, event, fail) {
   if (event.type !== 'hook/invoked' && event.type !== 'hook/result') return undefined
   if (trace.openTurn === null) fail(`${event.type} appended outside any open turn`)
@@ -39,14 +33,12 @@ function validateHookEvent(trace, event, fail) {
   return { key, delta: -1 }
 }
 
-/** Apply one committed hook-pair transition. */
 function applyHookTransition(pending, transition) {
   const next = (pending.get(transition.key) ?? 0) + transition.delta
   if (next === 0) pending.delete(transition.key)
   else pending.set(transition.key, next)
 }
 
-/** Install hook invoked/result pairing checks. */
 /* jscpd:ignore-start */
 const install = Object.assign((ctx, fail) => {
   const traces = new WeakMap()
@@ -92,10 +84,5 @@ const install = Object.assign((ctx, fail) => {
 }, { inject: ['sessions'] })
 /* jscpd:ignore-end */
 
-/**
- * Register the hook-protocol invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

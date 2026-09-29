@@ -1,33 +1,7 @@
-/**
- * Execute command hooks through `ctx.shell`, using its credential scrub,
- * process-group cancellation, and timeout machinery. The bridge supplies the
- * trusted stdin payload and dialect environment, then this module decodes the
- * captured outcome.
- * @module @freddie/freddie-hook-protocol/runner
- */
-
 import { parseHookOutput } from './codec.js'
 
-/**
- * The reference default per-hook timeout, in ms (10 minutes) — the value both
- * Claude Code and Codex apply to a hook whose config sets no `timeout`. It
- * lives here, once, as the protocol's default; the bridges' `defaultTimeoutMs`
- * config defaults to it, and a per-hook `CommandHook.timeoutSec` is the
- * override API.
- */
 export const DEFAULT_HOOK_TIMEOUT_MS = 600_000
 
-/**
- * Run `hook` with serialized stdin and decode its outcome. A hook-specific
- * timeout in seconds overrides the default; trusted environment entries merge
- * after the executor scrub. Infrastructure rejection becomes an outcome with
- * no exit code, so this function never throws or crashes the calling turn.
- * @param bash - The executor service the command runs through.
- * @param hook - the configured command; its `timeoutSec` (wire unit: seconds) overrides the default timeout.
- * @param options - the invocation's payload, env, cwd, signal, stdin framing, and default timeout.
- * @param now - millisecond clock used for the reported duration.
- * @returns the decoded output plus the run's wall-clock duration.
- */
 export async function runHook(bash, hook, options, now) {
   const started = now()
   const timeoutMs = hook.timeoutSec !== undefined ? hook.timeoutSec * 1000 : options.defaultTimeoutMs

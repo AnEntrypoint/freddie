@@ -1,21 +1,9 @@
-/**
- * Matcher shared by both hook dialects. Claude treats alphanumeric/underscore/
- * pipe patterns as literal alternatives and other patterns as regex; Codex
- * treats every non-empty pattern as an unanchored regex. Missing, empty, and
- * `*` match all. Runtime matching contains invalid regexes as non-matches;
- * config parsers use {@link matcherDiagnostic} to reject them with a diagnostic.
- * @module @freddie/freddie-hook-protocol/matcher
- */
-
-/** True for an absent / empty / `'*'` pattern — the match-all sentinels. */
 function isMatchAll(matcher) {
   return matcher === undefined || matcher === '' || matcher === '*'
 }
 
-/** A Claude-literal pattern is purely word chars + `|` (the regex-vs-literal discriminator). */
 const CLAUDE_LITERAL = /^[A-Za-z0-9_|]+$/
 
-/** Compile an unanchored matcher regex; invalid patterns return `undefined`. */
 function compileRegex(pattern) {
   try {
     return new RegExp(pattern)
@@ -24,12 +12,6 @@ function compileRegex(pattern) {
   }
 }
 
-/**
- * Validate one matcher before a bridge accepts its config group.
- * @param matcher - configured pattern; match-all sentinels are valid.
- * @param mode - dialect deciding whether a word-and-pipe pattern is literal.
- * @returns `undefined` for a valid matcher, otherwise a stable diagnostic.
- */
 export function matcherDiagnostic(matcher, mode) {
   if (isMatchAll(matcher)) return undefined
   const pattern = matcher
@@ -39,17 +21,6 @@ export function matcherDiagnostic(matcher, mode) {
     : undefined
 }
 
-/**
- * Whether `matcher` selects `query` under the given dialect. Claude literal
- * patterns exact-match pipe-separated alternatives; all other patterns are
- * unanchored regexes. Invalid regexes return `false` rather than throwing;
- * bridge config parsers surface them through {@link matcherDiagnostic} before use.
- * @param matcher - the configured pattern; absent/empty/`'*'` are the match-all sentinels.
- * @param query - the candidate value (a tool name, a session source, …).
- * @param mode - the dialect deciding literal-vs-regex interpretation of the pattern.
- * @returns `true` when the pattern selects the query; `false` on a non-match or an invalid
- *   regex.
- */
 export function matchesMatcher(matcher, query, mode) {
   if (isMatchAll(matcher)) return true
   const pattern = matcher

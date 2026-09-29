@@ -1,12 +1,3 @@
-/**
- * Bridge for unmodified Claude Code command hooks on harness interception
- * extension points. It supports SessionStart, prompt/tool pre/post, Stop, and subagent
- * start/stop. It owns Claude payloads, environment, substitution, and decision
- * mapping; shared execution and parsing live in `@freddie/freddie-hook-protocol`.
- * `updatedInput` is logged and warned but not honored. Bespoke behavior should
- * use typed native plugins on the same extension points.
- */
-
 import { readFileSync } from 'node:fs'
 import z from '@freddie/schemastery'
 import { createUserMessage } from '@freddie/freddie-llm'
@@ -25,18 +16,6 @@ import { parseClaudeCodeConfig } from './config.js'
 export const name = 'hooks-claude-code'
 export const inject = ['shell']
 
-/**
- * @typedef {object} Config
- * @property {string} configPath - Path to a `hooks.json` or a settings file whose `hooks` key holds
- *   the config. Process-level: read once at load, a relative path resolves against the process
- *   launch cwd, so one config applies to the whole process.
- * @property {string} [pluginRoot] - Replaces `${CLAUDE_PLUGIN_ROOT}` in command strings (the plugin's root dir).
- * @property {string} [projectDir] - Replaces `${CLAUDE_PROJECT_DIR}` in command strings AND is exported as the
- *   `CLAUDE_PROJECT_DIR` env var for hook processes. When omitted, the env var defaults per-run to
- *   the agent's session workspace (`session.header.cwd`, the same dir the hook runs in).
- * @property {number} [defaultTimeoutMs] - Default per-hook timeout in ms when a hook sets none (CC default: 600000).
- * @property {number} [stderrSummaryMaxChars] - Character cap for the `hook/result` event's persisted stderr summary.
- */
 
 export const Config = z.object({
   configPath: z.string().required(),
@@ -46,41 +25,25 @@ export const Config = z.object({
   stderrSummaryMaxChars: z.number().default(DEFAULT_STDERR_SUMMARY_MAX_CHARS),
 })
 
-/** A stable per-handler id so an invoked/result pair correlates in the log. */
 let handlerCounter = 0
 function nextHandlerId(point) {
   return `claude-code:${point}:${++handlerCounter}`
 }
 
-/** The `{kind:'plugin', plugin:'hooks-claude-code'}` producer source stamped on every context this bridge injects. */
 const CONTEXT_SOURCE = { kind: 'plugin', plugin: 'hooks-claude-code' }
 
-/** The summary cap bounds a persisted event field — a positive integer or the slice misbehaves silently. */
 function assertPositiveInteger(name, value) {
   if (!Number.isInteger(value) || value < 1) {
     throw new Error(`hooks-claude-code: ${name} must be a positive integer`)
   }
 }
 
-/**
- * The last open turn number in the session's log, or 0 without one — read
- * directly from `session.events` rather than a registered `sessionProjections`
- * `turnBoundary` unit, which freddie has no counterpart for (matching how
- * `@freddie/freddie-tool-present` and `@freddie/freddie-agent-loop` itself
- * derive the same fact).
- * @param {import('@freddie/freddie-agent').Agent | undefined} agent
- * @returns {number}
- */
 function lastTurn(agent) {
   if (!agent) return 0
   const start = agent.session.events.findLast(event => event.type === 'turn/start')
   return start?.data.turn ?? 0
 }
 
-/**
- * @param {import('@freddie/cordis').Context} ctx - host context with `shell`.
- * @param {{ configPath: string; pluginRoot?: string; projectDir?: string; defaultTimeoutMs: number; stderrSummaryMaxChars: number }} config
- */
 export function apply(ctx, config) {
   const stderrSummaryMaxChars = config.stderrSummaryMaxChars ?? DEFAULT_STDERR_SUMMARY_MAX_CHARS
   assertPositiveInteger('stderrSummaryMaxChars', stderrSummaryMaxChars)
@@ -105,15 +68,6 @@ export function apply(ctx, config) {
   const subagentChildren = new Map()
   ctx.effect(() => () => detached.drain(), 'hooks-claude-code: drain detached hook runs')
 
-  /**
-   * Run every command hook configured for `point` whose matcher selects
-   * `matchQuery`, with the per-event `payload` on stdin, and fold the results.
-   * Writes a `hook/invoked`/`hook/result` pair per hook when `opts.turn` names
-   * an open turn. Detached lifecycle points omit the pair. Returns the merged outcome (a neutral,
-   * already-most-restrictive view) for the caller to map onto its extension point
-   * decision. `matchQuery` is the event's matcher subject (tool name, session
-   * source, …); `''` for events that ignore matchers.
-   */
   async function runPoint(point, matchQuery, payload, opts) {
     const groups = parsed[point] ?? []
     const outputs = []
@@ -155,14 +109,12 @@ export function apply(ctx, config) {
     return mergeHookOutputs(outputs)
   }
 
-  /** Build additional model context from hook output, or return undefined when empty. */
   function contextFrom(merged) {
     if (merged.additionalContext.length === 0) return undefined
     const content = merged.additionalContext.map(text => ({ type: 'text', text }))
     return createUserMessage({ content, source: CONTEXT_SOURCE })
   }
 
-  /** Prepend one context without flattening source fields or other downstream metadata. */
   function prependContext(ours, theirs) {
     return [ours, ...theirs ?? []]
   }
@@ -249,16 +201,9 @@ export function apply(ctx, config) {
   })
 }
 
-/**
- * The `agent_type` value the bridge reports for SubagentStart/Stop. The harness
- * subagent seam carries no per-kind label, so the bridge uses Claude Code's own
- * Task-tool default — a hooks.json with a default/`*`/empty `agent_type` matcher
- * fires; a config matching a specific kind (e.g. `code-reviewer`) does not.
- */
 const SUBAGENT_TYPE = 'general-purpose'
 
 
-/** Flatten content blocks to the text a hook payload carries (the common case). */
 function blocksToText(content) {
   return content.filter(b => b.type === 'text').map(b => b.text).join('')
 }
@@ -287,12 +232,6 @@ function postToolPayload(exec, result) {
 function stopPayload(agent) {
   return { ...base(agent, 'Stop'), stop_hook_active: false }
 }
-/**
- * Build a SubagentStart/SubagentStop payload from the CC base (the child's
- * `session_id`/`cwd` when the child agent is available) plus the subagent-hook
- * fields. `agent_type` is the CC-default {@link SUBAGENT_TYPE}; `stop_hook_active`
- * is present on SubagentStop only (the loop-guard flag, always false).
- */
 function subagentPayload(event, info, child) {
   return {
     ...base(child, event),
