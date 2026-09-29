@@ -1,28 +1,9 @@
-/**
- * A JSON-RPC endpoint over one language server spawned through the subprocess
- * capability. Owns id correlation, outbound requests/notifications, and inbound
- * server→client requests: it answers `workspace/configuration` from static
- * config, and rejects `workspace/applyEdit` (this host never applies edits or
- * runs commands). It caps stderr, surfaces framing/decoder failures as a
- * fatal close, and exposes tree-scoped termination through the handle so the
- * instance owns teardown; group/tree mechanics live in the subprocess
- * Service Provider.
- * @module @freddie/freddie-lsp-stdio/connection
- */
-
 import { encodeMessage, MessageDecoder } from './framing.js'
 
-/**
- * Write one JSON-RPC message to the child stdin.
- * @param stdin - the spawned server stdin.
- * @param message - the unencoded JSON-RPC message.
- * @param done - callback that reports asynchronous stream settlement.
- */
 const writeConnectionMessage = (stdin, message, done) => {
   stdin.write(encodeMessage(message), done)
 }
 
-/** A live JSON-RPC endpoint bound to one child process. */
 export class LspConnection {
   handle
   stdin
@@ -30,15 +11,8 @@ export class LspConnection {
   pending = new Map()
   nextId = 1
   closeReason
-  /** Set once the process has fully exited; the instance awaits it during teardown. */
   closed
 
-  /**
-   * @param spec - how to launch the server and answer its config requests.
-   * @param spawner - the subprocess seam's spawn (the provider passes `ctx.subprocess.spawn`).
-   * @param onServerRequest - answers a server→client request; rejects to send an error response.
-   * @param writer - message writer; tests inject callback failures without relying on OS pipe races.
-   */
   constructor(spec, spawner, onServerRequest, writer = writeConnectionMessage) {
     this.onServerRequest = onServerRequest
     this.writer = writer
@@ -54,7 +28,7 @@ export class LspConnection {
       graceMs: spec.killGraceMs,
       env: spec.env,
     })
-    /* v8 ignore start -- 'pipe' dispositions expose both streams by the seam contract; defensive. */
+    /* v8 ignore start */
     if (this.handle.stdin === undefined || this.handle.stdout === undefined) {
       throw new Error('lsp-stdio: subprocess implementation dropped a piped protocol stream')
     }
@@ -76,37 +50,23 @@ export class LspConnection {
     this.handle.stdout.on('data', (chunk) => { this.onStdout(chunk) })
   }
 
-  /** The child's pid, or `-1` when the spawn produced no pid (so signalling is a no-op). */
   get pid() {
     return this.handle.pid
   }
 
-  /** The retained stderr tail, for diagnostics on a failed server. */
   get stderrTail() {
-    /* v8 ignore next -- the collect disposition always exposes a stderr reader; defensive. */
+    /* v8 ignore next */
     return this.handle.collected.stderr?.readFrom(0).text ?? ''
   }
 
-  /** Whether the transport has failed even if the child close event has not arrived yet. */
   get failed() {
     return this.closeReason !== undefined
   }
 
-  /**
-   * Test whether a caught error is this connection's retained fatal transport cause.
-   * @param error - error caught by the instance or provider.
-   * @returns `true` only when this connection produced that exact failure.
-   */
   failedWith(error) {
     return this.closeReason === error
   }
 
-  /**
-   * Send a request and await its result.
-   * @param method - the JSON-RPC method.
-   * @param params - the request params.
-   * @returns the response result; rejects on an error response, write failure, or close.
-   */
   request(method, params) {
     const id = this.nextId++
     const promise = new Promise((resolve, reject) => {
@@ -121,42 +81,22 @@ export class LspConnection {
     return promise
   }
 
-  /**
-   * Send a notification (no id, no response).
-   * @param method - the JSON-RPC method.
-   * @param params - the notification params.
-   * @returns a promise that settles when the framed notification has been written.
-   */
   notify(method, params) {
     return this.write({ jsonrpc: '2.0', method, params })
   }
 
-  /**
-   * Send a `$/cancelRequest` for an in-flight request id (best-effort; ignores write failure).
-   * @param requestId - the numeric id of the request to cancel.
-   */
   cancel(requestId) {
     void this.write({ jsonrpc: '2.0', method: '$/cancelRequest', params: { id: requestId } }).catch(() => {})
   }
 
-  /**
-   * The id the NEXT `request()` will use, so the instance can pre-arm a cancel.
-   * @returns the numeric id the next request will be assigned.
-   */
   peekNextId() {
     return this.nextId
   }
 
-  /** Terminate the server's process tree (the seam's SIGTERM→grace→SIGKILL escalation; idempotent). */
   terminate() {
     this.handle.terminate()
   }
 
-  /**
-   * Wait until the owned process tree has exited.
-   * @param signal - optional bound for the wait.
-   * @returns `true` when the tree exited, or `false` when the signal aborted first.
-   */
   async waitForProcessTreeExit(signal) {
     return await this.handle.waitForExit(signal)
   }
@@ -179,8 +119,7 @@ export class LspConnection {
     const id = frame.id
     const method = frame.method
     if (typeof method === 'string' && (typeof id === 'number' || typeof id === 'string')) {
-      /* v8 ignore next -- protocol tests exercise response writes; only a simultaneous connection
-         failure makes this consumption handler run. */
+      /* v8 ignore next */
       void this.handleServerRequest(id, method, frame.params).catch(() => {})
       return
     }
@@ -225,8 +164,7 @@ export class LspConnection {
       }
       try {
         this.writer(this.stdin, message, done)
-      /* v8 ignore start -- Node stream write failures are callback-delivered; this guards a
-         nonconforming Writable implementation throwing synchronously. */
+      /* v8 ignore start */
       } catch (error) {
         const failure = asError(error)
         this.fail(failure)
@@ -236,14 +174,13 @@ export class LspConnection {
     })
   }
 
-  /** The exit-close error message, appending the retained stderr tail when the server wrote any. */
   exitMessage() {
     const tail = this.stderrTail.trim()
     return tail === '' ? 'language server exited' : `language server exited; stderr: ${tail}`
   }
 
   fail(error) {
-    /* v8 ignore next -- the second arm (closeReason already set) needs two fail() calls before close; defensive. */
+    /* v8 ignore next */
     if (this.closeReason === undefined) this.closeReason = error
     this.failAll(error)
   }
@@ -255,8 +192,7 @@ export class LspConnection {
   }
 }
 
-/** Coerce an unknown thrown value to an `Error`. */
 function asError(value) {
-  /* v8 ignore next -- the non-Error branch guards against a non-Error throw, which our paths never produce. */
+  /* v8 ignore next */
   return value instanceof Error ? value : new Error(String(value))
 }

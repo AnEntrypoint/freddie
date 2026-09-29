@@ -1,14 +1,3 @@
-/**
- * Model-facing `lsp` tool over `ctx.lsp`. One read-only tool with four operations
- * (`goToDefinition`/`findReferences`/`goToImplementation`/`hover`); it converts one-based UTF-16
- * cursor coordinates to the seam's zero-based positions, requires the session workspace with no
- * fallback, caps and renders results, and attaches a configurable timeout budget for
- * `freddie-tool-call-timeout-policy` to enforce.
- *
- * Namespace plugin (named exports, no default export).
- * @module @freddie/freddie-tool-lsp
- */
-
 import z from '@freddie/schemastery'
 import { defineTool } from '@freddie/freddie-tools'
 import { LspError } from '@freddie/freddie-lsp'
@@ -37,20 +26,15 @@ export {
 } from './render.js'
 export { sessionCwd } from './session-cwd.js'
 
-/** Cordis plugin name for loader diagnostics. */
 export const name = 'tool-lsp'
 
-/** Services required by this plugin. */
 export const inject = ['tools', 'lsp', 'systemPrompt']
 
-/** Default tool-call timeout budget (ms), covering the queued open/query/close lifecycle. */
 export const DEFAULT_LSP_TOOL_TIMEOUT_MS = 60_000
 
-/** The stable system-prompt guidance positioning LSP as a precision aid. */
 export const LSP_PROMPT_TEXT =
   'Use search/read for ordinary navigation. Use lsp when textual matches are ambiguous or before a change requires precise definitions, implementations, or references. Positions are one-based line and character (UTF-16) at the cursor; an off-symbol position may return no results. findReferences always includes the declaration.'
 
-/** Plugin configuration: result caps and the timeout budget. */
 export const Config = z.object({
   maxLocations: z.number().default(DEFAULT_MAX_LOCATIONS),
   maxResultChars: z.number().default(DEFAULT_MAX_RESULT_CHARS),
@@ -75,11 +59,6 @@ const LSP_RANGE_OUTPUT_SCHEMA = {
   },
 }
 
-/**
- * Register the `lsp` tool and its system-prompt guidance.
- * @param {import('@freddie/cordis').Context} ctx - the plugin context (must inject `tools`, `lsp`, `systemPrompt`).
- * @param {{ maxLocations: number; maxResultChars: number; timeoutMs: number }} config - the resolved plugin configuration.
- */
 export function apply(ctx, config) {
   const resolved = {
     maxLocations: config.maxLocations ?? DEFAULT_MAX_LOCATIONS,
@@ -219,14 +198,12 @@ export function apply(ctx, config) {
   }))
 }
 
-/** Reject a non-positive-integer config value at load, so misconfiguration fails loud. */
 function assertPositiveInteger(name, value) {
   if (!Number.isInteger(value) || value < 1) {
     throw new Error(`tool-lsp: ${name} must be a positive integer`)
   }
 }
 
-/** Reject a timer value Node would clamp instead of scheduling as configured. */
 function assertTimer(name, value) {
   if (!Number.isInteger(value) || value < 1 || value > MAX_TIMER_DELAY_MS) {
     throw new Error(`tool-lsp: ${name} must be a positive integer no greater than ${MAX_TIMER_DELAY_MS}`)

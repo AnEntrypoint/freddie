@@ -1,49 +1,21 @@
-/**
- * LSP base-protocol framing: `Content-Length`-delimited JSON-RPC over a byte stream. The encoder
- * produces one framed buffer; the decoder buffers incoming bytes and yields complete message bodies,
- * bounding the header and total message size so a hostile or broken server cannot exhaust memory.
- * @module @freddie/freddie-lsp-stdio/framing
- */
-
-/** The header/body separator in the LSP base protocol. */
 const HEADER_SEPARATOR = '\r\n\r\n'
 
-/** Cap on the header section so a server that never sends the separator cannot grow the buffer forever. */
 const MAX_HEADER_BYTES = 1 << 16
 
-/**
- * Encode one JSON-RPC message as a framed LSP buffer (`Content-Length: N\r\n\r\n<utf-8 json>`).
- * @param message - the JSON-RPC message object to serialize.
- * @returns the framed bytes ready to write to the server's stdin.
- */
 export function encodeMessage(message) {
   const body = Buffer.from(JSON.stringify(message), 'utf8')
   const header = Buffer.from(`Content-Length: ${body.length}\r\n\r\n`, 'ascii')
   return Buffer.concat([header, body])
 }
 
-/**
- * A streaming decoder for `Content-Length`-framed JSON-RPC. Feed it stdout chunks; it returns any
- * whole message bodies that completed. It parses only the `Content-Length` header and ignores other
- * headers (e.g. `Content-Type`), matching the base protocol.
- */
 export class MessageDecoder {
   buffer = Buffer.alloc(0)
   maxMessageBytes
 
-  /**
-   * @param maxMessageBytes - reject any single framed body larger than this (guards memory).
-   */
   constructor(maxMessageBytes) {
     this.maxMessageBytes = maxMessageBytes
   }
 
-  /**
-   * Append a chunk and return every message body that is now complete.
-   * @param chunk - raw bytes from the server's stdout.
-   * @returns the parsed JSON bodies, in arrival order (possibly empty).
-   * @throws Error when a header is malformed or a body exceeds `maxMessageBytes`.
-   */
   push(chunk) {
     this.buffer = this.buffer.length === 0 ? chunk : Buffer.concat([this.buffer, chunk])
     const messages = []
@@ -55,7 +27,6 @@ export class MessageDecoder {
     return messages
   }
 
-  /** Parse and consume the next complete message, or report that more bytes are needed. */
   next() {
     const separator = this.buffer.indexOf(HEADER_SEPARATOR)
     if (separator < 0) {
@@ -80,13 +51,12 @@ export class MessageDecoder {
     try {
       return { ready: true, message: JSON.parse(body) }
     } catch (error) {
-      /* v8 ignore next -- JSON.parse throws a SyntaxError (an Error); the String() fallback is defensive. */
+      /* v8 ignore next */
       throw new Error(`LSP message body was not valid JSON: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 }
 
-/** Read the `Content-Length` header value (case-insensitive), rejecting a missing or non-numeric one. */
 function parseContentLength(headerText) {
   for (const line of headerText.split('\r\n')) {
     const colon = line.indexOf(':')

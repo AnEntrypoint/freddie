@@ -1,15 +1,5 @@
-/**
- * Shared cancellation helpers for the local LSP provider's host-I/O, queue, and protocol phases.
- * @module @freddie/freddie-lsp-stdio/abort
- */
-
 import { timeoutOf } from '@freddie/freddie-timeout'
 
-/**
- * Build an abort Error carrying the signal's reason and preserving timeout classification.
- * @param signal - the aborted signal whose reason to surface.
- * @returns the timeout reason if present, else the Error reason, else a generic aborted Error.
- */
 export function abortError(signal) {
   const timeout = timeoutOf(signal)
   if (timeout !== undefined) return timeout
@@ -18,21 +8,10 @@ export function abortError(signal) {
   return new Error('LSP query aborted')
 }
 
-/**
- * Throw the signal's classified abort error when it has already fired.
- * @param signal - the optional query cancellation signal.
- */
 export function throwIfAborted(signal) {
   if (signal?.aborted) throw abortError(signal)
 }
 
-/**
- * Await work while allowing a query signal to abandon its wait; the underlying work keeps its own
- * handlers and continues to its owner-defined quiescence boundary.
- * @param work - the owned asynchronous work.
- * @param signal - optional query cancellation.
- * @returns the work result, or a rejection carrying the classified abort reason.
- */
 export function abortable(work, signal) {
   if (signal === undefined) return work
   if (signal.aborted) return Promise.reject(abortError(signal))
@@ -40,7 +19,7 @@ export function abortable(work, signal) {
   const onAbort = () => { canceled.reject(abortError(signal)) }
   signal.addEventListener('abort', onAbort, { once: true })
   const normalized = work.catch((error) => {
-    /* v8 ignore next -- owned LSP promises reject with Error; coercion defends the generic helper. */
+    /* v8 ignore next */
     throw error instanceof Error ? error : new Error(String(error))
   })
   return Promise.race([normalized, canceled.promise])

@@ -1,16 +1,3 @@
-/**
- * Generic stdio language-server backend for `ctx.lsp`. One plugin instance configures a named table
- * of server commands and registers one isolated provider for each entry. Every provider lazily
- * single-flights one server process per canonical workspace target, serves transient-open queries
- * through it, and replaces a selected transport that fails before or during the next read-only
- * query. Providers read sources through `ctx.fs` and launch servers through
- * `ctx.subprocess`, so both local and remote implementations share one host.
- *
- * Namespace plugin (named exports, no default export). Lifecycle is effect-scoped: disposal
- * unregisters from `ctx.lsp` and tears down every live server.
- * @module @freddie/freddie-lsp-stdio
- */
-
 import z from '@freddie/schemastery'
 import { LspError, LspProviderId } from '@freddie/freddie-lsp'
 import { MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
@@ -31,10 +18,8 @@ export {
 export { LspInstance } from './instance.js'
 export { LspConnection } from './connection.js'
 
-/** Cordis plugin name for loader diagnostics. */
 export const name = 'lsp-stdio'
 
-/** Services required by this plugin. */
 export const inject = ['fs', 'lsp', 'subprocess']
 
 const DEFAULT_MAX_MESSAGE_BYTES = 16_000_000
@@ -61,7 +46,6 @@ export const Config = z.object({
   servers: z.dict(LspLocalServerConfig).required(),
 })
 
-/** Propagate teardown failures only after every sibling has settled. */
 function throwTeardownFailures(results, message) {
   const failures = []
   for (const result of results) {
@@ -71,13 +55,6 @@ function throwTeardownFailures(results, message) {
   if (failures.length > 1) throw new AggregateError(failures, message)
 }
 
-/**
- * Register the configured stdio LSP providers. Resolves every executable at load (after credential
- * scrubbing) before publishing any provider; each process launches lazily on its first matching
- * query.
- * @param ctx - the plugin context carrying `fs`, `lsp`, and `subprocess`.
- * @param config - the resolved plugin configuration (schemastery has filled every default).
- */
 export async function apply(ctx, config) {
   const entries = Object.entries(config.servers)
   if (entries.length === 0) throw new Error('lsp-stdio: servers must contain at least one server')
@@ -135,7 +112,6 @@ export async function apply(ctx, config) {
   }, 'lsp-stdio.registerProviders')
 }
 
-/** Validate one resolved server entry before any provider in the table is registered. */
 function validateServerConfig(providerId, resolved) {
   assertTimer(providerId, 'shutdownTimeoutMs', resolved.shutdownTimeoutMs)
   assertTimer(providerId, 'killGraceMs', resolved.killGraceMs)
@@ -144,29 +120,23 @@ function validateServerConfig(providerId, resolved) {
   assertPositiveInteger(providerId, 'maxDocumentBytes', resolved.maxDocumentBytes)
 }
 
-/** Reject a timer value Node would clamp instead of scheduling as configured. */
 function assertTimer(providerId, name, value) {
   if (!Number.isInteger(value) || value < 1 || value > MAX_TIMER_DELAY_MS) {
     throw new Error(`lsp-stdio: servers.${providerId}.${name} must be a positive integer no greater than ${MAX_TIMER_DELAY_MS}`)
   }
 }
 
-/** Reject a nonpositive or non-integer config value at load, so misconfiguration fails loud. */
 function assertPositiveInteger(providerId, name, value) {
   if (!Number.isInteger(value) || value < 1) {
     throw new Error(`lsp-stdio: servers.${providerId}.${name} must be a positive integer`)
   }
 }
 
-/** A pooled generic provider: one server process per canonical workspace, created on demand. */
 class LocalLspProvider {
   id
   extensionToLanguage
-  /** One live instance per stable canonical workspace identity. */
   instances = new Map()
-  /** One complete source-read→open→query→close serialization tail per canonical workspace. */
   queues = new Map()
-  /** Workspace canonicalizations that have not entered a provider-owned queue yet. */
   workspaceLookups = new Set()
   lifetime = new AbortController()
   disposed = false
@@ -180,20 +150,16 @@ class LocalLspProvider {
     this.extensionToLanguage = config.extensionToLanguage
   }
 
-  /** Read the disposed flag through a method so a `query()` await cannot narrow it to a literal. */
   isDisposed() {
     return this.disposed
   }
 
-  /** Reject work that cannot publish or use a provider-owned instance. */
   assertActive(signal) {
-    /* v8 ignore next -- the seam unregisters this provider before disposal; direct in-flight calls
-       exercise the post-await check instead. */
+    /* v8 ignore next */
     if (this.isDisposed()) throw new LspError('lsp-stdio provider is disposed', 'LSP_DISPOSED')
     if (signal?.aborted) throw abortError(signal)
   }
 
-  /** Fuse caller cancellation with provider disposal for every filesystem and protocol await. */
   querySignal(signal) {
     return signal === undefined
       ? this.lifetime.signal
@@ -237,7 +203,6 @@ class LocalLspProvider {
     })
   }
 
-  /** Serialize one complete query lifecycle for a canonical workspace. */
   enqueue(workspace, signal, run) {
     const previous = this.queues.get(workspace) ?? Promise.resolve()
     const result = abortable(previous, signal).then(run)
@@ -249,7 +214,6 @@ class LocalLspProvider {
     return result
   }
 
-  /** Return or synchronously publish the one instance for a canonical workspace. */
   instanceFor(workspaceKey, workspace) {
     this.assertActive()
     const existing = this.instances.get(workspaceKey)
@@ -259,9 +223,8 @@ class LocalLspProvider {
     return created
   }
 
-  /** Drop the slot iff it still contains this instance. */
   evictIfCurrent(workspace, instance) {
-    /* v8 ignore next -- mismatch requires another query to replace the slot before this finally runs. */
+    /* v8 ignore next */
     if (this.instances.get(workspace) === instance) this.instances.delete(workspace)
   }
 
@@ -282,7 +245,6 @@ class LocalLspProvider {
     return new LspInstance(spec, this.spawner)
   }
 
-  /** Dispose every live instance and block further queries. */
   async disposeAll() {
     this.disposed = true
     this.lifetime.abort(new LspError('lsp-stdio provider is disposed', 'LSP_DISPOSED'))
