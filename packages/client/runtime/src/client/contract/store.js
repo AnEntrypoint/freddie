@@ -1,31 +1,5 @@
-/**
- * The value `defineStore` returns: the registration-side store seat of slot
- * terminals. `create(scopeKey?)` mints (or reuses) a scoped snapshot-store
- * instance with the declared init/persist/actions baked in.
- * @typedef {object} StoreHandle
- * @property {object} spec - the declaration passed to `defineStore`.
- * @property {(scopeKey?: string) => object} create - mint or reuse a scoped
- *   instance: `{actions, getSnapshot, subscribe, store, clearPersisted}`.
- */
 
-/**
- * Snapshot store engine (hand-rolled state+notify store + rafFlush
- * middleware + opt-in persist + dev freeze) plus the declarative shell over
- * it: {@link defineStore} bakes an init/persist/actions literal into a
- * {@link StoreHandle}, the registration-side store seat of slot terminals.
- * Lives in the React-free runtime (the data layer owns its engine;
- * ui-renderer is shell-only React glue): engine products are bare
- * observables — subscribe/getSnapshot/update/set, NO selector hook. Hook
- * synthesis is ui-renderer's (the one uSES bridge, cached per source at the
- * binding site).
- *
- * No zustand/immer dependency: the store surface this file needs is a
- * three-method observable (getState/setState/subscribe with plain listeners,
- * no selector overload — every call site here subscribes with a plain
- * function) plus a draft-mutation helper, both small enough to own directly.
- */
 
-/** Minimal observable store: state + notify, mirrors zustand/vanilla's createStore(). */
 function createStore(init) {
   let state = init
   const listeners = new Set()
@@ -47,29 +21,12 @@ function createStore(init) {
   }
 }
 
-/**
- * Minimal immer replacement: clone the current state, hand the clone to the
- * mutator as a plain writable draft, freeze it in dev (mirrors immer's own
- * dev-mode freeze), and return it. No Proxy-based change tracking — every
- * action in this codebase writes plain property assignments, never relies on
- * immer's unchanged-reference short-circuit, so a clone-then-mutate draft is
- * behaviorally equivalent for this store engine's actual usage.
- */
 function produce(base, mutator) {
   const draft = structuredClone(base)
   mutator(draft)
   return devFreeze(draft)
 }
 
-/**
- * Shallow equality for selector slices (matches zustand/shallow semantics —
- * Map/Set size+entry comparison, else own-key Object.is comparison — so
- * existing callers see identical results). Travels with the engine so hook
- * consumers need no zustand dependency.
- * @param a - left value.
- * @param b - right value.
- * @returns whether the values are shallowly equal.
- */
 export function shallowEqual(a, b) {
   if (Object.is(a, b)) return true
   if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return false
@@ -95,13 +52,6 @@ export function shallowEqual(a, b) {
   return true
 }
 
-/**
- * Structural equality over the plain data a store holds (primitives, arrays,
- * objects, Map, Set — the shapes structuredClone reproduces).
- * @param a - left value.
- * @param b - right value.
- * @returns whether the values are structurally equal.
- */
 export function deepEqual(a, b) {
   if (Object.is(a, b)) return true
   if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return false
@@ -128,7 +78,6 @@ export function deepEqual(a, b) {
   return keysA.every(key => Object.prototype.hasOwnProperty.call(b, key) && deepEqual(a[key], b[key]))
 }
 
-/** Batches subscriber notification into one flush per animation frame. */
 function rafBatch(notify) {
   const schedule =
     typeof requestAnimationFrame === 'function'
@@ -145,19 +94,6 @@ function rafBatch(notify) {
   }
 }
 
-/**
- * Create a snapshot store.
- *
- * Flush default is 'sync' (controlled inputs need same-tick echo); frame-driven
- * stores opt into 'raf', where a frame's worth of updates coalesces into one
- * notification. Known raf-mode tradeoff: a component mounting mid-frame reads
- * fresh state while existing subscribers hear it next flush — transient
- * frame-level skew, same nature as the object layer's microtask batching.
- *
- * @param init - initial state.
- * @param opts - flush mode and opt-in persistence (localStorage, keyed by name).
- * @returns the store.
- */
 export function createSnapshotStore(init, opts) {
   const api = createStore(init)
   if (opts?.persist) attachPersistence(api, opts.persist.name)
@@ -188,26 +124,6 @@ export function createSnapshotStore(init, opts) {
   }
 }
 
-/**
- * Wrap an async `load()`-shaped method so overlapping calls collapse into
- * one in-flight request instead of each firing its own. A controller's
- * `load()` typically has several independent triggers (mount, a settings/
- * document-updated echo, a connection/reset, a broadcast fan-out set) that
- * can each fire in the same short window — without this, N triggers means N
- * concurrent identical wire calls. Live-witnessed: ~40 concurrent
- * `agentPreset.list` calls in one window from exactly this fan-out, in a
- * controller whose `load()` had no guard, right next to a sibling
- * controller whose equivalent read already guarded itself by hand
- * (`beginRosterRead` in `ui-agent-preset/settings-store.js`) — the same
- * fix, reinvented once, missed once. This gives every controller the
- * guarded shape by default instead of leaving each author to remember it.
- *
- * A call arriving while one is already in flight returns the SAME pending
- * promise (not a fresh no-op) — every caller still gets the real settled
- * result, they just share the one live request instead of issuing another.
- * @param fn - the async function to guard; typically a controller's `load`.
- * @returns a wrapped function with the identical signature, single-flighted.
- */
 export function singleFlight(fn) {
   let inFlight
   return function singleFlighted(...args) {
@@ -223,14 +139,6 @@ export function singleFlight(fn) {
   }
 }
 
-/**
- * Whole-value JSON persistence to localStorage. Hand-rolled instead of the
- * zustand persist middleware: its write path spreads state into an object
- * (`partialize({ ...get() })`), exploding primitive state (a persisted string
- * draft becomes {0:'h',1:'e',...}) — not fixable via merge/deserialize options
- * because the corruption happens before serialization. Storage failures
- * (quota, private mode) only disable persistence, never break the store.
- */
 function attachPersistence(api, name) {
   if (typeof localStorage === 'undefined') return
   try {
@@ -250,7 +158,6 @@ function attachPersistence(api, name) {
   })
 }
 
-/** Deep-freeze wholesale-set state outside production: set() bypasses produce()'s freeze. */
 function devFreeze(value) {
   if ((typeof import.meta.env === 'object' && import.meta.env?.MODE) === 'production') return value
   deepFreeze(value)
@@ -265,23 +172,6 @@ function deepFreeze(value) {
   }
 }
 
-
-/**
- * Declare a store: initial state, optional persistence, and the full write
- * set as pure draft mutators. The returned handle is the registration
- * currency of the store seat — its identity keys instance sharing. Satisfies
- * ui-slots' DefineStore contract (the handle/instance are the engine-extended
- * subtypes).
- *
- * The `A & ActionsDecl<T>` actions position is load-bearing: T resolves from
- * `init` in the first inference round, and the intersection then contextually
- * types each mutator's draft parameter (context-sensitive functions defer),
- * so call sites write `(d, x: X) => { ... }` with no draft annotation. If a
- * future TS version breaks this single-literal inference, the design's
- * documented fallback is currying (`defineStore(init).actions({...})`).
- * @param decl - init lambda (fresh state per instance), optional persist key, actions table.
- * @returns the store handle.
- */
 export function defineStore(decl) {
   return {
     spec: decl,

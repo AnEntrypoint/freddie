@@ -1,13 +1,7 @@
-/** React-free Workspace entity with a client-local materialization lifecycle. */
 
 import { transportError } from '@freddie/freddie-host-apiproxy/api'
 import { Notifier } from '../sessions/notifier.js'
 
-/**
- * Observable Workspace object whose identity survives Host materialization.
- * Local instances retain their create input and failure state; materialized
- * instances expose the latest Host view.
- */
 export class Workspace {
   view
   intent
@@ -17,10 +11,6 @@ export class Workspace {
     this.snapshotCache = this.buildSnapshot()
   })
 
-  /**
-   * @param api - shared wire client.
-   * @param source - local create input or an existing Host Workspace view.
-   */
   constructor(api, source) {
     this.api = api
     if ('workspaceId' in source) {
@@ -34,11 +24,6 @@ export class Workspace {
     this.snapshotCache = this.buildSnapshot()
   }
 
-  /**
-   * Materialize this local Workspace through the Host create API.
-   * Re-entry shares the in-flight completion; a materialized instance returns undefined.
-   * @returns the Host result, or undefined when this Workspace is already materialized.
-   */
   materialize() {
     if (this.materialization !== null) return this.materialization
     const intent = this.intent
@@ -52,11 +37,6 @@ export class Workspace {
     return completion
   }
 
-  /**
-   * Adopt a Host view without replacing this Workspace object.
-   * An existing materialized identity accepts updates only for the same Workspace id.
-   * @param view - latest Host projection.
-   */
   adopt(view) {
     if (this.view !== undefined && this.view.workspaceId !== view.workspaceId) {
       throw new Error('cannot adopt a different Workspace id')
@@ -66,19 +46,10 @@ export class Workspace {
     this.notifier.markDirty()
   }
 
-  /**
-   * Subscribe to Workspace snapshot invalidation.
-   * @param listener - snapshot invalidation callback.
-   * @returns unsubscribe function.
-   */
   subscribe(listener) {
     return this.notifier.subscribe(listener)
   }
 
-  /**
-   * Read the cached Workspace snapshot after flushing pending notifications.
-   * @returns the cached Workspace snapshot.
-   */
   getSnapshot() {
     this.notifier.ensureFresh()
     return this.snapshotCache

@@ -1,13 +1,3 @@
-/**
- * Merge an authoritative baseline without moving identities already visible to
- * the client. Baseline-only identities are inserted relative to the nearest
- * following known identity; identities absent from the baseline are removed.
- *
- * @param current - the established client order.
- * @param baseline - the latest authoritative rows.
- * @param keyOf - stable identity selector.
- * @returns baseline-valued rows with the established relative order retained.
- */
 export function mergeOrderedBaseline(current, baseline, keyOf) {
   const baselineByKey = new Map()
   for (const value of baseline) baselineByKey.set(keyOf(value), value)
@@ -19,12 +9,12 @@ export function mergeOrderedBaseline(current, baseline, keyOf) {
 
   for (let index = 0; index < baseline.length; index++) {
     const value = baseline[index]
-    /* v8 ignore next -- dense-array guard: index is bounded by baseline.length. */
+    /* v8 ignore next */
     if (value === undefined || mergedKeys.has(keyOf(value))) continue
     let insertion = merged.length
     for (let following = index + 1; following < baseline.length; following++) {
       const candidate = baseline[following]
-      /* v8 ignore next -- dense-array guard: following is bounded by baseline.length. */
+      /* v8 ignore next */
       if (candidate === undefined) continue
       const known = merged.findIndex(item => keyOf(item) === keyOf(candidate))
       if (known !== -1) {

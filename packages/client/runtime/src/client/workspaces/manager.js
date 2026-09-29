@@ -1,10 +1,8 @@
-/** Workspace baseline, incremental-frame, and unary-action owner. */
 
 import { transportError } from '@freddie/freddie-host-apiproxy/api'
 import { Notifier } from '../sessions/notifier.js'
 import { Workspace } from './workspace.js'
 
-/** Workspace object cluster driven by one list baseline and changed-frame upserts. */
 export class WorkspaceManager {
   items = []
   itemViewsSource = null
@@ -15,46 +13,21 @@ export class WorkspaceManager {
   error = null
   inflight = null
   refreshFrames = null
-  /**
-   * True once a frame or unary echo installed the archive set while a list
-   * request was in flight: that install is newer than the pending baseline,
-   * so the baseline's (older) set must not roll it back — the archive
-   * mirror of replaying refreshFrames over the item baseline.
-   */
   archivedSupersedesRefresh = false
-  /** Latest local reorder request; only its unary echo may install order. */
   orderRequestGeneration = 0
-  /** Increments on order frames so a later remote commit outranks an older unary echo. */
   orderFrameGeneration = 0
-  /** Last complete order accepted from a Host baseline, frame, or current unary echo. */
   committedOrder = []
-  /**
-   * Ids this process has seen removed, kept for the connection's lifetime so
-   * a late changed frame or a stale baseline row cannot resurrect a deleted
-   * row. Correctness rests on Host ids never being reused (the registry mints
-   * a fresh `randomUUID` per record, including when the same directory is
-   * registered again) — a path-derived id scheme would turn these entries
-   * into permanent blindfolds and must clear them instead.
-   */
   removedIds = new Set()
   snapshotCache
   notifier = new Notifier(() => {
     this.snapshotCache = this.buildSnapshot()
   })
 
-  /** @param api - shared wire client. */
   constructor(api) {
     this.api = api
     this.snapshotCache = this.buildSnapshot()
   }
 
-  /**
-   * Refresh from workspace.list. The first successful response establishes
-   * Host order; later responses re-establish the durable order so reconnects
-   * adopt reorders committed while this client was offline. Frames arriving
-   * during the RPC are replayed over its response.
-   * @returns the shared in-flight refresh.
-   */
   refresh() {
     if (this.inflight !== null) return this.inflight
     this.state = 'loading'
@@ -80,7 +53,7 @@ export class WorkspaceManager {
       } catch (error) {
         this.state = 'error'
         const folded = transportError(error)
-        /* v8 ignore next -- transportError always returns the failure branch. */
+        /* v8 ignore next */
         this.error = folded.ok ? null : folded.error
       } finally {
         this.refreshFrames = null
@@ -92,12 +65,6 @@ export class WorkspaceManager {
     return this.inflight
   }
 
-  /**
-   * Create or resolve a real Workspace, then publish its returned snapshot
-   * without waiting for the changed frame.
-   * @param input - the existing absolute path to adopt.
-   * @returns the wire result.
-   */
   async create(input) {
     const workspace = new Workspace(this.api, input)
     const completion = workspace.materialize()
@@ -107,38 +74,18 @@ export class WorkspaceManager {
     return result
   }
 
-  /**
-   * Rename a Workspace, then publish its returned snapshot without waiting
-   * for the changed frame.
-   * @param workspaceId - target workspace.
-   * @param title - new display title.
-   * @returns the wire result.
-   */
   async rename(workspaceId, title) {
     const { result } = await this.api.workspace.rename({ workspaceId, title })
     if (result.ok) this.upsert(result.value.workspace)
     return result
   }
 
-  /**
-   * Delete a Workspace registration and remove its local projection from the
-   * unary response without waiting for the Host frame.
-   * @param workspaceId - target workspace.
-   * @returns the wire result.
-   */
   async delete(workspaceId) {
     const { result } = await this.api.workspace.delete({ workspaceId })
     if (result.ok) this.remove(workspaceId, true)
     return result
   }
 
-  /**
-   * Move a Workspace within the registry display order and install the full
-   * returned order without waiting for the Host frame.
-   * @param workspaceId - Workspace to move.
-   * @param beforeWorkspaceId - Anchor workspace; omitted appends.
-   * @returns the wire result.
-   */
   async insertBefore(
     workspaceId,
     beforeWorkspaceId,
@@ -170,14 +117,6 @@ export class WorkspaceManager {
     return result
   }
 
-  /**
-   * Move a session within its Workspace's manual order, then publish the
-   * returned snapshot without waiting for the changed frame.
-   * @param workspaceId - owning workspace.
-   * @param sessionId - accounted session to move.
-   * @param beforeSessionId - accounted anchor to insert before; omitted appends.
-   * @returns the wire result.
-   */
   async insertSessionBefore(
     workspaceId,
     sessionId,
@@ -191,23 +130,12 @@ export class WorkspaceManager {
     return result
   }
 
-  /**
-   * Archive one session in the registry-global set, then install the
-   * returned full set without waiting for the changed frame.
-   * @param sessionId - session to archive.
-   * @returns the wire result.
-   */
   async archiveSession(sessionId) {
     const { result } = await this.api.workspace.archiveSession({ sessionId })
     if (result.ok) this.installArchived(result.value.archivedSessionIds)
     return result
   }
 
-  /**
-   * Host-frame entry. Non-workspace frames are ignored so the runtime can
-   * fan one host stream out to both object managers.
-   * @param envelope - host stream envelope.
-   */
   handleHostEnvelope(envelope) {
     if (envelope.payload.type === 'host/workspace-changed') this.upsert(envelope.payload.workspace)
     else if (envelope.payload.type === 'host/workspace-removed') this.remove(envelope.payload.workspaceId)
@@ -220,24 +148,14 @@ export class WorkspaceManager {
     }
   }
 
-  /** Re-pull the baseline after each connection generation. */
   handleConnected() {
     void this.refresh()
   }
 
-  /**
-   * Subscribe to workspace snapshot invalidation.
-   * @param listener - snapshot invalidation callback.
-   * @returns unsubscribe function.
-   */
   subscribe(listener) {
     return this.notifier.subscribe(listener)
   }
 
-  /**
-   * Read the cached workspace snapshot after flushing pending notifications.
-   * @returns the cached workspace snapshot.
-   */
   getSnapshot() {
     this.notifier.ensureFresh()
     return this.snapshotCache
@@ -253,11 +171,6 @@ export class WorkspaceManager {
     }
   }
 
-  /**
-   * Replace the archive set when membership actually changed (array identity
-   * backs Object.is short-circuits). Host snapshots are append-ordered, so
-   * positional comparison is exact, not merely heuristic.
-   */
   installArchived(archivedSessionIds) {
     if (this.refreshFrames !== null) this.archivedSupersedesRefresh = true
     if (archivedSessionIds.length === this.archivedSessionIds.length
@@ -266,7 +179,6 @@ export class WorkspaceManager {
     this.notifier.markDirty()
   }
 
-  /** Reorder known Workspace objects, optionally recording a Host-committed sequence. */
   installOrder(workspaceIds, committed = false) {
     if (committed) {
       this.refreshFrames?.push({ type: 'order', workspaceIds })
@@ -284,7 +196,6 @@ export class WorkspaceManager {
     this.notifier.markDirty()
   }
 
-  /** Upsert one Host view, optionally retaining the local object that materialized it. */
   upsert(view, identity) {
     if (this.removedIds.has(view.workspaceId)) return
     this.refreshFrames?.push({ type: 'upsert', workspace: view })
@@ -307,7 +218,6 @@ export class WorkspaceManager {
     this.notifier.markDirty()
   }
 
-  /** Remove one id idempotently and retain a tombstone against late echoes. */
   remove(workspaceId, direct = false) {
     this.refreshFrames?.push({ type: 'remove', workspaceId })
     this.removedIds.add(workspaceId)
@@ -356,7 +266,6 @@ export class WorkspaceManager {
   }
 }
 
-/** Known ids retain their position; a newly created Workspace enters first. */
 function upsertWorkspace(items, workspace) {
   const index = items.findIndex(item => item.workspaceId === workspace.workspaceId)
   return index === -1
@@ -364,7 +273,6 @@ function upsertWorkspace(items, workspace) {
     : items.map((item, position) => position === index ? workspace : item)
 }
 
-/** Replay one ordered delta over a baseline: upsert in place, or drop the removed id. */
 function applyWorkspaceDelta(items, delta) {
   if (delta.type === 'upsert') return upsertWorkspace(items, delta.workspace)
   if (delta.type === 'remove') {
@@ -376,7 +284,6 @@ function applyWorkspaceDelta(items, delta) {
     - (rank.get(right.workspaceId) ?? Number.MAX_SAFE_INTEGER))
 }
 
-/** Move one known id before an optional anchor; unknown ids leave the order unchanged. */
 function insertIdBefore(
   ids,
   id,

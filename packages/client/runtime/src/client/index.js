@@ -1,4 +1,3 @@
-/** Browser runtime services for slots, sessions, workspaces, and connection-stream delivery. */
 import { SlotRegistry } from './slots.js'
 import { SessionRuntime } from './sessions/service.js'
 import { WorkspaceRuntime } from './workspaces/service.js'
@@ -30,12 +29,8 @@ export { contextForm, contextProvenance, sessionRecallLabels } from './sessions/
 export { displayFailureMessage } from './sessions/failure-display.js'
 export { PendingWait } from './sessions/pending.js'
 
-/** Required services: the wire handle and Client Typert registry. */
 export const inject = ['connection', 'typert', 'remote', 'remote.commands']
 
-/** Mounts the browser runtime services and connection stream.
- * @param ctx - Client Cordis context.
- */
 export function apply(ctx) {
   ctx.plugin(SlotRegistry)
   const conversation = {

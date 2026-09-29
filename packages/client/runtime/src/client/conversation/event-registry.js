@@ -1,19 +1,12 @@
 import { ConversationDefinitionRegistry } from './definition-registry.js'
 
-/** Runtime registry of independently owned Conversation business Definitions. */
 export class ConversationEventRegistry extends ConversationDefinitionRegistry {
   fallback
 
-  /** @param ctx - owning Client Runtime context. */
   constructor(ctx) {
     super(ctx, 'conversationEvents')
   }
 
-  /**
-   * Register a uniquely named business Definition for the caller's lifetime.
-   * @param definition - Definition contribution.
-   * @returns idempotent disposer.
-   */
   register(definition) {
     assertDefinitionTarget(definition)
     return this.registerDefinition(
@@ -24,11 +17,6 @@ export class ConversationEventRegistry extends ConversationDefinitionRegistry {
     )
   }
 
-  /**
-   * Register the sole fallback used only when no ordinary Definition matches.
-   * @param definition - fallback Definition.
-   * @returns idempotent disposer.
-   */
   registerFallback(definition) {
     assertDefinitionTarget(definition)
     const target = definition.target
@@ -47,10 +35,6 @@ export class ConversationEventRegistry extends ConversationDefinitionRegistry {
     return () => { void dispose() }
   }
 
-  /**
-   * Return the current unmatched-event fallback.
-   * @returns installed fallback, when present.
-   */
   fallbackEntry() {
     return this.fallback
   }
