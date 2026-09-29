@@ -1,16 +1,3 @@
-/**
- * Model selection plugin, browser half — TWO entries over ONE per-session
- * directory owned by ModelDirectoryResolver (`ctx.modelDirectories`). The /model popupSelect
- * contribution and the composer's named `conversation.input.model` seat both
- * load the session's provider-grouped advisory directory (`session.models`)
- * and submit through `session.selectModel` via the same directory instance,
- * so the host-reported current selection is the single fact both surfaces echo
- * — a switch made in either entry is what the other shows next. Failures
- * ride each entry's own retry surface (popup shell error/retry; seat menu
- * inline error) without forking the state. Addressed subagent sessions expose
- * neither entry because those Agent-bound RPCs would activate persisted
- * history outside the direct-parent continuation path.
- */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { ModelDirectoryResolver } from './service.js'
 export { ModelSelect } from './ModelSelect.js'
@@ -19,12 +6,10 @@ import { en } from './locales.js'
 export { ModelDirectory } from './directory.js'
 export { ModelDirectoryResolver } from './service.js'
 
-/** One selectable row's id: an opaque row key (resolved by lookup, never parsed). */
 function rowId(providerId, modelId) {
   return `${providerId}/${modelId}`
 }
 
-/** Flatten the directory into popup rows; failure rows are listed for visibility but never selectable. */
 function optionsOf(directory, t) {
   const rows = []
   for (const group of directory.groups) {
@@ -48,13 +33,6 @@ function optionsOf(directory, t) {
   return rows
 }
 
-/**
- * Resolve a picked row back to its model selection by matching against the loaded
- * groups (the same data the rows were built from — ids stay opaque).
- * @param state - the session's directory snapshot.
- * @param id - the picked row id.
- * @returns the row's model selection, or undefined for failure rows / stale ids.
- */
 function selectionOf(state, id) {
   for (const group of state.groups) {
     for (const model of group.models) {
@@ -73,18 +51,10 @@ function selectionOf(state, id) {
   return undefined
 }
 
-/** Dictionary namespace owned by this plugin. */
 const NS = 'model'
 
-/** Required services: the contribution registry, the seat's slot registry, locale, and the service's own faces. */
 export const inject = ['commandUi', 'connection', 'locale', 'sessions', 'slots', 'remote']
 
-/**
- * Client plugin body: mount ModelDirectoryResolver, register the `model` dictionaries,
- * then register the /model popup contribution and the composer model seat
- * over the service.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-model-selection: dictionaries')
 

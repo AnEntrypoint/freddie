@@ -1,23 +1,3 @@
-/**
- * ModelSelect: the composer's named model seat (`conversation.input.model`).
- * Two-level selection per figma 496:26454's MenuDropdown: the root menu is
- * the Model / Effort row pair (label + current value + a right chevron),
- * each drilling into its own list — the provider-grouped model list over
- * the shared directory, and the effort levels. The trigger (313:14108's
- * ToggleButton) shows both: model name + effort in the caption tone.
- * Data and submission ride the SAME per-session ModelDirectory as the
- * /model popup; exact-model reasoning metadata and the selected effort come
- * from the Host rather than a client-owned vocabulary. A rejected selection
- * announces through the shared transient Toast anchored to the composer
- * card; the in-menu strip with Retry remains the catalog-load surface.
- *
- * Converted from a React hooks component to a webjsx custom element: every
- * useState/useRef becomes a private instance field, useSyncExternalStore
- * over `directory` becomes a direct store subscription bound in
- * connectedCallback, the outside-click useEffect becomes bind/unbind helpers
- * called from connectedCallback/disconnectedCallback, and re-render is an
- * explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
- */
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
@@ -29,7 +9,6 @@ import css from './ModelSelect.css.js'
 
 let nextId = 0
 
-/** Render the composer model seat as a custom element. */
 export class FreddieModelSelect extends HTMLElement {
   #props = null
   #open = false
@@ -46,7 +25,6 @@ export class FreddieModelSelect extends HTMLElement {
   #outsideHandler = null
   #loadedOnce = false
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     const prevDirectory = this.#props?.directory
     this.#props = props
@@ -423,7 +401,6 @@ export class FreddieModelSelect extends HTMLElement {
 
 defineElement('freddie-model-select', FreddieModelSelect)
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function ModelSelect(props) {
   const el = document.createElement('freddie-model-select')
   el.setProps(props)

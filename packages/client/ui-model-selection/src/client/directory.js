@@ -1,39 +1,19 @@
-/**
- * Per-session model directory: the ONE state both selection entries share.
- * The /model popup and the composer-seat selector load through the same
- * controller and submit through the same selectModel call, so the host stays
- * the single fact source and the store is one shared echo — a switch made in
- * either entry is what the other shows next.
- */
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 
-/** One session's shared directory controller; disposed with the session scope. */
 export class ModelDirectory {
-  /** The shared snapshot both entries render from (uSES-safe store). */
   store = createSnapshotStore({
     current: null, routable: null, groups: [], failures: [], status: 'idle', error: null,
   })
 
-  /** Latest operation wins; an older response never overwrites a newer one. */
   generation = 0
   disposed = false
 
-  /**
-   * @param sessions - the session wire face (captured from the plugin's root connection).
-   * @param sessionId - the owning session.
-   * @param available - whether this session may use Agent-bound model RPCs.
-   */
   constructor(sessions, sessionId, available) {
     this.sessions = sessions
     this.sessionId = sessionId
     this.available = available
   }
 
-  /**
-   * Refresh the advisory directory (both entries call this on open).
-   * Failure preserves the last good groups and current selection.
-   * @returns the fresh directory value.
-   */
   async load() {
     this.assertAvailable()
     const generation = ++this.generation
@@ -59,12 +39,6 @@ export class ModelDirectory {
     return result.value
   }
 
-  /**
-   * Select the complete provider/model/reasoning selection (both entries submit through here). Success
-   * updates the shared current; failure surfaces on the store and throws so
-   * each entry's own retry surface engages.
-   * @param selection - provider, provider-owned model id, and optional adapter-owned effort.
- */
   async select(selection) {
     this.assertAvailable()
     const generation = ++this.generation
@@ -93,11 +67,6 @@ export class ModelDirectory {
     })
   }
 
-  /**
-   * Drop the previous Host generation's projection and repull it. Clearing
-   * first prevents an unconsumed process-local selection from being displayed
-   * while the restarted Host has restored the last logged model selection.
-   */
   resetConnected() {
     if (this.disposed) return
     ++this.generation
@@ -113,7 +82,6 @@ export class ModelDirectory {
     void this.load().catch(() => {})
   }
 
-  /** Scope teardown: late settlements lose write access to the store. */
   dispose() {
     this.disposed = true
   }
