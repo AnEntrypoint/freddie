@@ -1,4 +1,3 @@
-/** Deterministic provider-independent image normalization. */
 
 import sharp from 'sharp'
 import { AttachmentError } from '@freddie/freddie-attachment'
@@ -10,7 +9,6 @@ const LOW_COLOUR_SAMPLE_EDGE = 128
 const LOW_COLOUR_LIMIT = 256
 const MIN_SCALE_STEP = 0.9
 
-/** Encode one prepared pipeline and report exact output facts. */
 async function encode(pipeline, mediaType, quality, palette = true) {
   const encoded = mediaType === 'image/png'
     ? pipeline.png({ compressionLevel: 9, palette })
@@ -21,13 +19,6 @@ async function encode(pipeline, mediaType, quality, palette = true) {
   return { data: new Uint8Array(data), mediaType, width: info.width, height: info.height }
 }
 
-/**
- * Whether bytes already satisfy the normalization requirements.
- * @param detected - fully decoded source facts.
- * @param bytes - encoded source length.
- * @param policy - resolved normalization limits.
- * @returns whether the source can pass through byte-identically.
- */
 export function canPassThroughNormalization(detected, bytes, policy) {
   return detected.mediaType !== 'image/gif'
     && !detected.animated
@@ -38,11 +29,6 @@ export function canPassThroughNormalization(detected, bytes, policy) {
     && Math.max(detected.width, detected.height) <= policy.maxDimension
 }
 
-/**
- * Classify a bounded pixel sample without assuming that a PNG source is a screenshot.
- * @param pipeline - oriented sRGB source pipeline before output resizing.
- * @returns whether the nearest-neighbour sample stays within the low-color threshold.
- */
 export async function hasLowColourCount(pipeline) {
   const { data, info } = await pipeline.clone().resize({
     width: LOW_COLOUR_SAMPLE_EDGE,
@@ -64,7 +50,6 @@ export async function hasLowColourCount(pipeline) {
   return true
 }
 
-/** Assert that a normalized output is an 8-bit sRGB/sRGBA single-frame image with matching facts. */
 async function verifyNormalizedImage(image, expectedAlpha) {
   const detected = await detectImage(image.data)
   if (detected.mediaType !== image.mediaType
@@ -83,7 +68,6 @@ async function verifyNormalizedImage(image, expectedAlpha) {
   return image
 }
 
-/** Build one fixed-size, oriented, metadata-free sRGB pipeline from submitted bytes. */
 function preparedPipeline(data, width, height) {
   return sharp(data, { failOn: 'error', limitInputPixels: false })
     .rotate()
@@ -91,7 +75,6 @@ function preparedPipeline(data, width, height) {
     .resize({ width, height, fit: 'inside', withoutEnlargement: true })
 }
 
-/** Dimensions after the long edge is capped without changing aspect ratio. */
 function initialDimensions(detected, maxDimension) {
   const scale = Math.min(1, maxDimension / Math.max(detected.width, detected.height))
   return {
@@ -100,7 +83,6 @@ function initialDimensions(detected, maxDimension) {
   }
 }
 
-/** Lazy encoding order for one size, separated by sampled colour complexity and alpha. */
 function encodingAttemptsAtSize(data, width, height, hasAlpha, lowColour) {
   const prepared = preparedPipeline(data, width, height)
   const webp = NORMALIZATION_QUALITIES.map(quality => (
@@ -115,16 +97,6 @@ function encodingAttemptsAtSize(data, width, height, hasAlpha, lowColour) {
   ))
 }
 
-/**
- * Produce the persisted provider-independent normalized version of one fully decoded source.
- * The source is passed through only when it is already clean, single-frame, 8-bit sRGB/sRGBA,
- * and inside both normalization limits. Re-encoding never removes transparency. After the fixed
- * quality floor is reached, dimensions continue shrinking until the independent byte cap holds.
- * @param data - complete admitted source bytes.
- * @param detected - fully decoded source facts.
- * @param policy - resolved independent normalization limits.
- * @returns verified provider-independent normalized bytes and metadata.
- */
 export async function normalizeImage(data, detected, policy) {
   if (canPassThroughNormalization(detected, data.byteLength, policy)) {
     return { data, mediaType: detected.mediaType, width: detected.width, height: detected.height }

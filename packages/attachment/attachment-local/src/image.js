@@ -1,17 +1,7 @@
-/** Raster inspection: full decode at admission, header-only probe on verified reads. */
 
 import sharp from 'sharp'
 import { AttachmentError } from '@freddie/freddie-attachment'
 
-/**
- * Check alpha metadata for bytes produced by this package's encoders.
- * Sharp/libvips may omit an all-opaque alpha plane from WebP output; every
- * other addition or removal indicates that the encoded result is incompatible
- * with its source facts.
- * @param sourceHasAlpha - whether the source bytes declare an alpha plane, or undefined when the source frame is unspecified.
- * @param output - decoded media type and alpha metadata from the encoded result.
- * @returns whether the output alpha metadata is compatible with the source.
- */
 export function encodedAlphaIsCompatible(sourceHasAlpha, output) {
   return sourceHasAlpha === undefined
     || output.hasAlpha === sourceHasAlpha
@@ -55,14 +45,6 @@ async function imageMetadata(image) {
   }
 }
 
-/**
- * Parse a supported raster's header and return its intrinsic metadata without
- * decoding pixels. Digest-verified reads use this: admission already proved
- * that these exact bytes decode completely, so the read path only re-derives
- * the reference fields instead of paying the full-raster decode again.
- * @param data - complete encoded image bytes.
- * @returns verified format and dimensions.
- */
 export async function probeImage(data) {
   try {
     return await imageMetadata(sharp(data, { failOn: 'error', limitInputPixels: false }))
@@ -72,12 +54,6 @@ export async function probeImage(data) {
   }
 }
 
-/**
- * Fully decode a supported raster and return its intrinsic metadata.
- * @param data - complete encoded image bytes.
- * @param limits - intrinsic-dimension admission limits.
- * @returns verified format and dimensions.
- */
 export async function detectImage(data, limits) {
   try {
     const image = sharp(data, { failOn: 'error', limitInputPixels: false })

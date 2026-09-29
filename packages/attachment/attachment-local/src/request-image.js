@@ -1,4 +1,3 @@
-/** Deterministic cached image versions for model requests. */
 
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
@@ -9,22 +8,13 @@ import { hasLowColourCount } from './normalization.js'
 import { encodeFirstWithinLimit, isExhaustedEncoding } from './encoding.js'
 import { detectImage, encodedAlphaIsCompatible, probeImage } from './image.js'
 
-/** Transform version included in every cache and upload-index identity. */
 export const REQUEST_IMAGE_TRANSFORM_VERSION = 'request-image-v4'
-/** DeepSeek request versions normally fit at these two preferred qualities. */
 export const REQUEST_IMAGE_QUALITIES = [85, 80]
 
 function digest(value) {
   return createHash('sha256').update(value).digest('hex')
 }
 
-/**
- * Compute aspect-preserving integer dimensions within a hard total-pixel budget.
- * @param width - positive source width.
- * @param height - positive source height.
- * @param maxPixels - positive width-times-height cap.
- * @returns inward-rounded dimensions; small images are not enlarged.
- */
 export function requestImageDimensions(width, height, maxPixels) {
   const scale = Math.min(1, Math.sqrt(maxPixels / (width * height)))
   if (scale === 1) return { width, height }
@@ -74,12 +64,6 @@ function descriptor(attachment, policy) {
   })
 }
 
-/**
- * Complete deterministic identity for one attachment and route-owned request policy.
- * @param attachment - provider-independent durable normalized attachment reference.
- * @param policy - route-owned pixel and byte policy.
- * @returns branded digest over every request transform input.
- */
 export function requestImageVariantId(attachment, policy) {
   return ImageVariantId(`sha256:${digest(descriptor(attachment, policy))}`)
 }
@@ -188,14 +172,6 @@ async function writeCached(path, data) {
   }
 }
 
-/**
- * Generate or reuse one request image below the local attachment root.
- * @param root - absolute versioned attachment storage root.
- * @param attachment - verified normalized attachment bytes and reference.
- * @param policy - exact route request-image policy.
- * @param signal - optional cancellation for cache I/O and image transformation.
- * @returns verified request bytes and deterministic variant identity.
- */
 export async function readRequestImageFile(root, attachment, policy, signal) {
   signal?.throwIfAborted()
   validatePolicy(policy)

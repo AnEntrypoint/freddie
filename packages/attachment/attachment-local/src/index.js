@@ -1,4 +1,3 @@
-/** Local durable attachment backend rooted below `FREDDIE_HOME`. @module @freddie/freddie-attachment-local */
 
 import { join, resolve } from 'node:path'
 import z from '@freddie/schemastery'
@@ -12,27 +11,14 @@ export { canPassThroughNormalization, normalizeImage } from './normalization.js'
 export { commitPreparedImageFile, prepareImageFile, readImageFile, saveImageFile, validateImageFile } from './store.js'
 export { readRequestImageFile, requestImageDimensions, requestImageVariantId } from './request-image.js'
 
-/** Default maximum encoded bytes for one submitted image; oversized sources are refused, not shrunk. */
 export const DEFAULT_MAX_IMAGE_BYTES = 20 * 1024 * 1024
-/** Default maximum images in one prompt. */
 export const DEFAULT_MAX_IMAGES_PER_MESSAGE = 20
-/** Default maximum aggregate image bytes in one prompt. */
 export const DEFAULT_MAX_MESSAGE_IMAGE_BYTES = 200 * 1024 * 1024
-/** Default maximum intrinsic pixels for one submitted image. */
 export const DEFAULT_MAX_IMAGE_PIXELS = 64_000_000
-/** Default per-side pixel cap for one submitted image. */
 export const DEFAULT_MAX_IMAGE_DIMENSION = 8192
-/**
- * Default long-edge target of the stored normalized image. A larger source
- * is admitted and downscaled to this edge, so admission bounds what rides
- * every later model request without refusing ordinary large sources.
- */
 export const DEFAULT_NORMALIZED_IMAGE_MAX_DIMENSION = 2048
-/** Default independent safety cap for one stored normalized image. */
 export const DEFAULT_NORMALIZED_IMAGE_MAX_BYTES = 4 * 1024 * 1024
-/** Conservative default number of simultaneous native image transformations per store. */
 export const DEFAULT_IMAGE_COMPRESSION_CONCURRENCY = 2
-/** Maximum configurable native image transformations per store. */
 export const MAX_IMAGE_COMPRESSION_CONCURRENCY = 8
 
 function abortReason(signal) {
@@ -94,7 +80,6 @@ class SharedRequest {
   }
 }
 
-/** Persistent content-addressed local attachment store. */
 export class LocalAttachmentStore extends AttachmentStore {
   static Config = z.object({
     freddieHome: z.string(),

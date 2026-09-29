@@ -1,9 +1,7 @@
-/** Wire-form admission of base64-encoded image uploads. @module @freddie/freddie-attachment/admission */
 
 import { Buffer } from 'node:buffer'
 import { AttachmentError } from './error.js'
 
-/** Decode one upload payload while rejecting non-canonical base64 forms. */
 function decodeBase64(data) {
   const decoded = Buffer.from(data, 'base64')
   if (data.length === 0 || decoded.toString('base64') !== data) {
@@ -12,7 +10,6 @@ function decodeBase64(data) {
   return new Uint8Array(decoded)
 }
 
-/** Store input for one decoded upload. */
 function saveInput(image) {
   return {
     data: decodeBase64(image.data),
@@ -21,17 +18,6 @@ function saveInput(image) {
   }
 }
 
-/**
- * Admit one wire image batch: enforce canonical base64 on every member, then
- * delegate batch admission — count and aggregate-byte limits, media-type and
- * per-image validation, ordered commit — to
- * {@link import('./index.js').AttachmentStore.saveImages}.
- * The shared entry for every RPC endpoint accepting browser uploads.
- * @param attachments - the deployment attachment store owning batch policy.
- * @param images - base64-encoded uploads in caller order.
- * @returns durable references in the same order as `images`.
- * @throws AttachmentError on a non-canonical payload or a refused batch.
- */
 export async function admitEncodedImages(attachments, images) {
   return attachments.saveImages(images.map(saveInput))
 }

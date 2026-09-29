@@ -1,19 +1,8 @@
-/** Attachment identifier brand. @module @freddie/freddie-attachment/brand */
 
-/**
- * Brand a validated storage identifier.
- * @param value - backend-produced opaque identifier.
- * @returns the branded identifier.
- */
 export function AttachmentId(value) {
   return value
 }
 
-/**
- * Brand a validated request-image transformation identifier.
- * @param value - attachment-provider-produced opaque identifier.
- * @returns the branded identifier.
- */
 export function ImageVariantId(value) {
   return value
 }

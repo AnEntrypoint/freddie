@@ -1,4 +1,3 @@
-/** Content-addressed, owner-private local attachment storage. */
 
 import { createHash, randomUUID } from 'node:crypto'
 import { constants } from 'node:fs'
@@ -42,26 +41,10 @@ async function inspectMetadata(data, declaredMediaType, limits) {
   return detected
 }
 
-/**
- * Run the full admission policy for one image without touching storage,
- * including normalization: a batch whose members all validate cannot later
- * be refused by the normalized image byte cap during publication.
- * @param input - encoded bytes and declared metadata.
- * @param limits - resolved source admission policy.
- * @param policy - resolved normalization policy.
- * @returns completion after the raster has been decoded and its normalized version proven to fit.
- */
 export async function validateImageFile(input, limits, policy) {
   await prepareImageFile(input, limits, policy)
 }
 
-/**
- * Decode, normalize, and verify one submitted image without touching storage.
- * @param input - submitted encoded bytes and declared media type.
- * @param limits - source admission policy.
- * @param policy - independent normalization policy.
- * @returns immutable reference facts beside bytes ready for atomic publication.
- */
 export async function prepareImageFile(input, limits, policy) {
   if (input.data.byteLength > limits.maxImageBytes) {
     throw new AttachmentError('Image exceeds the configured byte limit.', 'IMAGE_TOO_LARGE')
@@ -85,12 +68,6 @@ export async function prepareImageFile(input, limits, policy) {
   }
 }
 
-/**
- * Make a directory's entries durable (fsync on a read-only directory handle).
- * A synced file alone does not survive a crash when its directory entry never
- * reached storage, so the publication directory is synced before a durable
- * reference is reported.
- */
 async function syncDirectory(path) {
   /* v8 ignore next -- Windows cannot open directory handles; NTFS metadata journaling owns entry durability there. */
   if (process.platform === 'win32') return
@@ -104,17 +81,6 @@ async function syncDirectory(path) {
   /* v8 ignore stop */
 }
 
-/**
- * Create one private directory tree and persist every ancestor entry up to a
- * caller-vouched durable boundary. The walk deliberately ignores what mkdir
- * reports as newly created: a concurrent first save can create a level this
- * process then merely observes, so "already existed" is not "already durable"
- * — the entry may still be unsynced in the creator, and a crash would drop a
- * directory the session checkpoint already references. Re-syncing a durable
- * entry is harmless; skipping an unsynced one is not.
- * @param path - absolute directory to create.
- * @param boundary - absolute ancestor the caller vouches is already durable.
- */
 async function ensureDurableDirectory(path, boundary) {
   const target = resolve(path)
   const stop = resolve(boundary)
@@ -130,11 +96,6 @@ async function ensureDurableDirectory(path, boundary) {
   }
 }
 
-/**
- * Establish this process's proof that one FREDDIE_HOME entry and every ancestor
- * below the filesystem root are durable. Mere existence is insufficient: a
- * concurrent process may have created the directory but not synced its parent.
- */
 async function ensureDurableHome(path) {
   const home = resolve(path)
   if (!durableHomes.has(home)) {
@@ -144,12 +105,6 @@ async function ensureDurableHome(path) {
   return home
 }
 
-/**
- * Publish one already verified normalized image below a versioned attachment root.
- * @param root - absolute `FREDDIE_HOME/attachments/v1` root.
- * @param prepared - deterministic normalized bytes and reference.
- * @returns durable content-addressed normalized image reference.
- */
 export async function commitPreparedImageFile(root, prepared) {
   const normalized = prepared.data
   const sha256 = ensureReference(prepared.ref)
@@ -200,26 +155,10 @@ export async function commitPreparedImageFile(root, prepared) {
   return prepared.ref
 }
 
-/**
- * Decode and normalize one image once, then publish the prepared object.
- * @param root - absolute `FREDDIE_HOME/attachments/v1` root.
- * @param input - submitted encoded bytes and declared media type.
- * @param limits - resolved source admission policy.
- * @param policy - resolved normalization policy.
- * @returns durable content-addressed normalized image reference.
- */
 export async function saveImageFile(root, input, limits, policy) {
   return commitPreparedImageFile(root, await prepareImageFile(input, limits, policy))
 }
 
-/**
- * Read and verify one content-addressed image.
- * @param root - absolute `FREDDIE_HOME/attachments/v1` root.
- * @param ref - reference recorded in the session log.
- * @param signal - optional cancellation for filesystem and verification work.
- * @returns verified bytes and reference.
- * @throws the signal reason when aborted, or an AttachmentError when verification fails.
- */
 export async function readImageFile(root, ref, signal) {
   signal?.throwIfAborted()
   const sha256 = ensureReference(ref)
