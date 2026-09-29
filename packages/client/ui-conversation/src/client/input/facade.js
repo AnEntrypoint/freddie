@@ -1,16 +1,7 @@
-/**
- * SessionInput shell over the pure input machine: the sole machine caller
- * and effect executor. Owns the InputState store (machine state + the queue
- * overlay), the notice channel, and the submit transaction plumbing
- * (adjudicate via the session's InputTriggerController; claim.submit; default
- * sink). Package-private; the hub alone constructs it and wires the scoped
- * event listeners onto it.
- */
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 import { InputMachine, projectClipboard } from './machine.js'
 import { PromptHistoryNavigator } from './prompt-history.js'
 
-/** Guard tier from the machine phase. */
 function guardOf(phase) {
   switch (phase) {
     case 'plain': return 'plain'
@@ -21,13 +12,8 @@ function guardOf(phase) {
 
 const EMPTY_QUEUE = []
 
-/** No-pipeline lexicon: zero text-ref decorations. */
 const EMPTY_LEXICON = new Map()
 
-/**
- * The per-session input facade: scoped-event application verbs +
- * setDraft/submit + the published InputState store.
- */
 export class SessionInputShell {
   constructor(deps) {
     this.deps = deps
@@ -37,21 +23,8 @@ export class SessionInputShell {
     this.lastMirroredDraft = ''
     this.imageIds = []
 
-    /**
-     * Published machine state + queue overlay (the InputZone currency source).
-     * `raf`-batched: every session-scoped slot outlet subscribes to this same
-     * store (see scoped-slots.js's `#bindHookSources`), so a long session with
-     * many rendered nodes can carry hundreds of subscribers — InputBar itself
-     * re-renders synchronously from `#onChange` right after `setDraft`/`track`
-     * (its own controlled-value echo never depends on this subscription), so
-     * deferring every OTHER outlet's re-render to the next frame turns one
-     * keystroke's cascade of hundreds of synchronous renders into one batched
-     * pass per frame instead.
-     */
     this.state = createSnapshotStore(this.compose(), { flush: 'raf' })
-    /** Latest surfaced notice (null after clear); the bar renders errors as banners and information inline. */
     this.notices = createSnapshotStore(null)
-    /** The public provide-channel action face (one stable identity per session). */
     this.actions = {
       setDraft: (text) => { this.setDraft(text) },
       addImages: ids => this.addImages(ids),
@@ -60,34 +33,18 @@ export class SessionInputShell {
       submit: () => { this.submit('queue') },
     }
 
-    /**
-     * Hot plain-text reference lexicon source for the decoration scan
-     * (the plain-text-reference decision;
-     * see .agents/notes/implemented/architecture/2026-07-25-web-input-machine-and-slash-pipeline.md):
-     * delegates to the controller's aggregated store. Stable
-     * identity per shell; without a pipeline the snapshot is the empty Map and
-     * subscribers never fire.
-     */
     this.lexicon = {
       getSnapshot: () => this.deps.inputTriggers?.()?.lexicon.getSnapshot() ?? EMPTY_LEXICON,
       subscribe: fn => this.deps.inputTriggers?.()?.lexicon.subscribe(fn) ?? (() => {}),
     }
-    /** One image-only send at a time: Enter during the Host round-trip is a no-op. */
     this.imageSendInFlight = false
     this.disposed = false
     this.history = deps.promptHistory === undefined ? undefined : new PromptHistoryNavigator(deps.promptHistory)
-    /** Draft persistence mirror (chat store write; receives the clipboard projection, never display-only ranges). */
     this.mirrorFn = undefined
 
     deps.queue?.subscribe(() => { this.publish() })
   }
 
-  /**
-   * Single draft write path (all mutation rides machine events).
-   * @param text - the full next draft.
-   * @param editRange - the DOM-observed edit shape, when the caller knows it
-   * (narrows the machine's occurrence math; absent → diff scan).
-   */
   setDraft(text, editRange) {
     this.run(this.core.dispatch({ type: 'draft-changed', draft: text, ...(editRange !== undefined ? { editRange } : {}) }))
     if (this.history !== undefined && text !== this.history.echo) this.history.reset()
@@ -106,7 +63,6 @@ export class SessionInputShell {
     })
   }
 
-  /** Append ordered image ids unless an admission transaction is locked. */
   addImages(ids) {
     if (this.snapshot.phase === 'adjudicating' || this.snapshot.phase === 'submitting') return false
     if (ids.length === 0) return true
@@ -115,11 +71,6 @@ export class SessionInputShell {
     return true
   }
 
-  /**
-   * Remove one image id from this draft. Busy admission phases refuse, like
-   * {@link addImages}: a removal landing while a command submit serializes
-   * would otherwise vanish from the rail yet still ride the in-flight send.
-   */
   removeImage(id) {
     if (this.snapshot.phase === 'adjudicating' || this.snapshot.phase === 'submitting') return
     const next = this.imageIds.filter(candidate => candidate !== id)
@@ -128,10 +79,6 @@ export class SessionInputShell {
     this.publish()
   }
 
-  /**
-   * Keep only image ids that still resolve in the browser attachment registry.
-   * @param available - live registry ids.
-   */
   pruneImages(available) {
     const keep = new Set(available)
     const next = this.imageIds.filter(id => keep.has(id))
@@ -140,12 +87,6 @@ export class SessionInputShell {
     this.publish()
   }
 
-  /**
-   * Clear the draft as a successful-send commit: no undo unit is recorded and
-   * the undo history is cut, so Ctrl/Cmd-Z cannot resurrect sent content
-   * (the command path gets the same discipline from submit-settled success).
-   * @param imageIds - admitted image ids to remove from this draft.
-   */
   commitSend(imageIds) {
     const submitted = new Set(imageIds)
     this.imageIds = this.imageIds.filter(id => !submitted.has(id))
@@ -153,24 +94,14 @@ export class SessionInputShell {
     this.run(this.core.dispatch({ type: 'send-committed' }))
   }
 
-  /** Undo the latest transaction (InputBar intercepts the platform chord). */
   undo() {
     this.run(this.core.dispatch({ type: 'undo' }))
   }
 
-  /** Redo the latest undone transaction. */
   redo() {
     this.run(this.core.dispatch({ type: 'redo' }))
   }
 
-  /**
-   * Paste text over the selection in one transaction, with any hot-snapshot
-   * sync matches componentized inside it.
-   * @param text - pasted plain text.
-   * @param selection - replaced selection in draft coordinates.
-   * @param components - sync-matched reference components (disjoint, inside `text`).
-   * @param generation - projection generation for late async-upgrade guards.
-   */
   pasteBegin(text, selection, components, generation) {
     this.history?.reset()
     this.run(this.core.dispatch({
@@ -180,17 +111,10 @@ export class SessionInputShell {
     }))
   }
 
-  /** End the live paste-match attempt (caret/selection ops and Slash updates the machine cannot see). */
   invalidatePaste() {
     this.run(this.core.dispatch({ type: 'invalidate-paste' }))
   }
 
-  /**
-   * Enter adjudication + submit transaction + default sink. Effects fan out
-   * from the machine; this method only feeds the event. Lock entry
-   * (adjudicating/submitting) force-closes the transient layers: the popup
-   * dismisses and the menu tracks frozen.
-   */
   submit(mode = 'queue') {
     if (this.snapshot.draft.trim() === '' && this.imageIds.length > 0) {
       if (this.snapshot.phase === 'plain' && !this.imageSendInFlight) {
@@ -221,40 +145,18 @@ export class SessionInputShell {
     }
   }
 
-  /**
-   * Feed a draft/caret change through trigger detection (guard derived from
-   * the machine phase).
-   * @param draft - live draft text.
-   * @param caret - caret position in draft coordinates.
-   */
   track(draft, caret) {
     this.deps.inputTriggers?.()?.track(draft, caret, { tier: guardOf(this.snapshot.phase) }, this.snapshot.draftRev)
   }
 
-  /**
-   * Keyboard arbitration while the menu is open.
-   * @param key - the intercepted key.
-   * @param composing - IME composition guard state.
-   * @returns the menu's verdict; 'pass' when no pipeline is mounted.
-   */
   arbitrate(key, composing) {
     return this.deps.inputTriggers?.()?.arbitrate(key, composing) ?? 'pass'
   }
 
-  /**
-   * Steer every still-pending queued message into the running turn (the
-   * empty-draft accelerated-Enter gesture). Execution belongs to the hub's
-   * queue choreography; absent dep = the gesture falls back to the machine's
-   * empty-draft no-op.
-   */
   steerQueue() {
     this.deps.steerQueue?.()
   }
 
-  /**
-   * Space adjudication over the controller's hot state.
-   * @returns true = a claim/insert was applied — the caller preventDefaults.
-   */
   space() {
     const inputTriggers = this.deps.inputTriggers?.()
     if (inputTriggers === undefined) return false
@@ -266,42 +168,22 @@ export class SessionInputShell {
     return consumed
   }
 
-  /** Dismiss the popupSelect shell (any interaction outside the box). */
   dismissPopup() {
     this.deps.popup?.()?.dismiss()
   }
 
-  /**
-   * Apply one command claim (scoped begin-command event listener body).
-   * @param claim - the command claim from the pick path.
-   * @param span - pick-time span snapshot.
-   * @returns whether the machine accepted (phase + span CAS passed and the draft mutated).
-   */
   beginCommand(claim, span) {
     const before = this.core.state.draftRev
     this.run(this.core.dispatch({ type: 'begin-command', claim, span }))
     return this.core.state.phase === 'claimed' && this.core.state.draftRev !== before
   }
 
-  /**
-   * Apply one reference insertion (scoped insert-reference event listener body).
-   * @param ref - the reference insertion from the pick path.
-   * @param span - pick-time span snapshot.
-   * @returns whether the machine accepted.
-   */
   insertReference(ref, span) {
     const before = this.core.state.draftRev
     this.run(this.core.dispatch({ type: 'insert-ref', reference: ref, span }))
     return this.core.state.draftRev !== before
   }
 
-  /**
-   * Consume one command token after business success (scoped consume-token
-   * event listener body). Span guard: revision CAS then splice; bare-token
-   * guard: trimmed-draft equality then clear.
-   * @param guard - exact span or bare-token guard.
-   * @returns whether the token was consumed.
-   */
   consumeToken(guard) {
     const snapshot = this.core.state
     if (guard.kind === 'span') {
@@ -315,19 +197,6 @@ export class SessionInputShell {
     return true
   }
 
-  /**
-   * Insert plain reference text over the pick-time span (scoped insert-text
-   * event listener body; plain-text-reference decision, web-input-machine
-   * note). Same CAS-then-splice shape as the
-   * consume-token span branch: the machine sees an ordinary draft-changed
-   * transaction (one undo step), no occurrence is minted — the chip look is
-   * a scan-derived decoration, never state.
-   * @param text - the plain reference text to splice in (e.g. `/name `).
-   * @param span - pick-time span snapshot (draftRev CAS).
-   * @param keepCompleting - re-track at the caret after the splice so an open
-   * token (a directory pick's trailing slash) reopens the menu.
-   * @returns whether the text was applied.
-   */
   insertText(text, span, keepCompleting = false) {
     const snapshot = this.core.state
     if (span.draftRev !== snapshot.draftRev) return false
@@ -340,35 +209,20 @@ export class SessionInputShell {
     return true
   }
 
-  /**
-   * Surface a notice from outside the machine (detached command results).
-   * @param level - severity tier.
-   * @param text - notice body.
-   */
   notify(level, text) {
     this.noticeSeq += 1
     this.notices.set({ level, text, seq: this.noticeSeq })
   }
 
-  /** Teardown: abort any in-flight attempt and stop accepting async settlements. */
   dispose() {
     this.disposed = true
     this.run(this.core.dispatch({ type: 'release' }))
   }
 
-  /** Read the live machine state (guard derivation reads here). */
   get snapshot() {
     return this.state.getSnapshot()
   }
 
-  /**
-   * Bind the draft persistence mirror (chat store write). Adopt-on-bind: the
-   * store draft may hold a persisted value from a previous mount; the caller
-   * seeds it via setDraft BEFORE binding, and afterwards every machine-adopted
-   * draft mirrors out.
-   * @param write - store draft write.
-   * @returns the unbind disposer.
-   */
   bindMirror(write) {
     this.mirrorFn = write
     return () => {
@@ -405,13 +259,6 @@ export class SessionInputShell {
     }
   }
 
-  /**
-   * Prompt serialization before the sink: expand each
-   * inline reference range to its owner's model form via the session controller's
-   * codec routing. Owner missing / serialize failure / disposal blocks the
-   * send — notice + draft and chips retained, never a silent downgrade to
-   * the clipboard text. Chip-free drafts skip the async detour.
-   */
   sinkSerialized(attempt, draft, mode) {
     const imageIds = [...this.imageIds]
     const occurrences = this.core.state.occurrences
@@ -449,7 +296,6 @@ export class SessionInputShell {
     )
   }
 
-  /** Settle one admission attempt; successful sends consume only their captured images. */
   settleSubmit(attempt, pending, imageIds = []) {
     pending.then(
       (outcome) => {
@@ -477,7 +323,6 @@ export class SessionInputShell {
     )
   }
 
-  /** Enter adjudication: poll the session controller; failure = notice + draft retained (never a silent downgrade). */
   adjudicate(attempt, draft) {
     const inputTriggers = this.deps.inputTriggers?.()
     if (inputTriggers === undefined) {
@@ -497,13 +342,6 @@ export class SessionInputShell {
     )
   }
 
-  /**
-   * The submit transaction: claim.submit against the session scope; ok maps
-   * from the outcome kind. An accepting claim receives the serialized draft
-   * images, which are cleared and released only on a success outcome; a
-   * failure (serialize, transport, or handler error) keeps draft and images
-   * for correction.
-   */
   beginSubmit(attempt, claim, args) {
     const imageIds = claim.images === true ? [...this.imageIds] : []
     Promise.resolve()
@@ -533,7 +371,6 @@ export class SessionInputShell {
       )
   }
 
-  /** Late-settlement guard: superseded attempts and disposed facades drop silently. */
   dead(attempt) {
     return this.disposed || attempt.signal.aborted
   }

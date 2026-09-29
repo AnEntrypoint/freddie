@@ -1,52 +1,19 @@
-/**
- * InputMachine: the pure per-session input state machine.
- * Events in, effects out; zero React / DOM / cordis / ambient
- * clock. Package-private — the SessionInput shell is the only caller and the
- * sole executor of the returned effects.
- *
- * Draft truth: the draft string holds each reference's complete inline display
- * text; the occurrence table carries identity, range, and the owner's cached projections. Every
- * draft mutation is one transaction — draft edit, occurrence reconciliation,
- * and undo-log push are atomic inside dispatch() — and bumps draftRev, which
- * is what lets span CAS reduce to a revision-equality check: equal rev ⟹
- * identical draft ⟹ identical span content. Callers observe mutation success
- * as a draftRev advance (begin-command / insert-ref / consume-token /
- * paste-upgrade all answer their bail events this way).
- */
-
-/** Legacy fixed-width object replacement character rejected from pasted text. */
 export const PLACEHOLDER = '￼'
 
 const REFERENCE_PLACEHOLDER_RE = /[-￼]/gu
 
-/**
- * Build the inline draft text whose leading marker is decorated as the
- * reference icon in the backdrop.
- * @param reference - reference insertion with its cached display projection.
- * @returns display text with one marker glyph followed by the complete label.
- */
 export function referenceDraftText(reference) {
   return `@${reference.label}`
 }
 
-/** The machine never writes the queue; the wiring layer overlays the queue store's projection. */
 const EMPTY_QUEUE = []
 
-/** Undo ring depth (bounded self-managed transaction log). */
 const LOG_LIMIT = 100
 
-/** Exhaustiveness backstop for the closed InputEvent / guard unions. */
 function unreachable(value) {
   throw new Error(`unreachable input event: ${JSON.stringify(value)}`)
 }
 
-/**
- * Strip the claim token off a draft to yield submit args. Leading whitespace
- * (incl. newlines — leading-trigger trim) is tolerated; a bare `/name`
- * missing the token's trailing separator yields empty args. Exactly one
- * separator char is consumed; the remainder — newlines included — stays
- * verbatim (`/goal x\ny` → `x\ny`).
- */
 function argsAfter(draft, token) {
   const s = draft.trimStart()
   if (s.startsWith(token)) return s.slice(token.length)
@@ -58,10 +25,6 @@ function argsAfter(draft, token) {
   return ''
 }
 
-/**
- * Prefix/suffix common-scan recovering the edit range between two drafts
- * (used when the wiring layer cannot supply one from the DOM event).
- */
 function diffEdit(prev, next) {
   let p = 0
   const maxCommon = Math.min(prev.length, next.length)
@@ -72,13 +35,6 @@ function diffEdit(prev, next) {
   return { start: p, end: prev.length - s, insertedLength: next.length - s - p }
 }
 
-/**
- * Expand the draft's reference ranges into their occurrences' clipboard text
- * for persistence and clipboard projection. Table order is offset order, so
- * one linear walk pairs ranges with entries.
- * @param state - published input state.
- * @returns the plain-text projection of the draft.
- */
 export function projectClipboard(state) {
   const { draft, occurrences } = state
   if (occurrences.length === 0) return draft
@@ -91,14 +47,6 @@ export function projectClipboard(state) {
   return out + draft.slice(cursor)
 }
 
-/**
- * Pure input machine, one instance per session (per-session isolation is by
- * construction). The machine constructs one AbortController per SubmitAttempt
- * at enter time and aborts it itself on release; the shell never aborts, it
- * only observes attempt.signal on its adjudicate/submit promises. Stale
- * attempts (any adjudicated / adjudication-failed / submit-settled whose seq
- * is not the in-flight one) are dropped: same state, zero effects.
- */
 export class InputMachine {
   constructor(options = {}) {
     this.draft = ''
@@ -111,7 +59,6 @@ export class InputMachine {
     this.inflight = undefined
     this.log = []
     this.redoStack = []
-    /** Open single-char typing run: the next contiguous char within the window coalesces. */
     this.typingRun = undefined
     this.paste = undefined
     this.pasteSeq = 0
@@ -119,7 +66,6 @@ export class InputMachine {
     this.now = options.now ?? (() => 0)
   }
 
-  /** Read-only snapshot of the machine state (queue always empty at this tier). */
   get state() {
     const c = this.claim
     return {
@@ -142,11 +88,6 @@ export class InputMachine {
     }
   }
 
-  /**
-   * Feed one event through the machine.
-   * @param ev - Input event; the single write path for all input state.
-   * @returns Effects for the shell to execute in order; empty on no-ops, locks, and dropped stale events.
-   */
   dispatch(ev) {
     switch (ev.type) {
       case 'draft-changed': return this.onDraftChanged(ev.draft, ev.editRange)
@@ -172,13 +113,11 @@ export class InputMachine {
     }
   }
 
-  /** Adopt a new draft: bump the revision (the span-CAS invalidation point). */
   adopt(draft) {
     this.draft = draft
     this.draftRev += 1
   }
 
-  /** Push one undo unit (before-state), trim the ring, and cut the redo chain. */
   pushTxn(selectionBefore) {
     this.log.push({
       draftBefore: this.draft,
@@ -189,12 +128,6 @@ export class InputMachine {
     this.redoStack = []
   }
 
-  /**
-   * Reconcile the occurrence table with one edit (old-draft coordinates):
-   * entries past the range shift by the length delta; an edit that intersects
-   * a reference range removes its structured occurrence and leaves the edited
-   * characters as ordinary draft text.
-   */
   reconcile(range) {
     const delta = range.insertedLength - (range.end - range.start)
     const kept = []
@@ -205,7 +138,6 @@ export class InputMachine {
     this.occurrences = kept
   }
 
-  /** Claimed integrity watch: any mutation that breaks the token prefix releases the claim. */
   watchClaim() {
     if (this.phase === 'claimed' && this.claim !== undefined && !this.draft.startsWith(this.claim.token)) {
       this.phase = 'plain'
@@ -213,7 +145,6 @@ export class InputMachine {
     }
   }
 
-  /** Mint one occurrence at a draft offset. */
   mint(reference, offset, length) {
     this.occurrenceSeq += 1
     return {
@@ -228,7 +159,6 @@ export class InputMachine {
     }
   }
 
-  /** Splice minted entries into the offset-sorted table. */
   withMinted(minted) {
     if (minted.length === 0) return
     this.occurrences = [...this.occurrences, ...minted].sort((a, b) => a.offset - b.offset)
@@ -250,7 +180,6 @@ export class InputMachine {
     return []
   }
 
-  /** Span CAS: revision equality (content identity follows) plus bounds sanity. */
   casOk(span) {
     return span.draftRev === this.draftRev
       && span.start >= 0 && span.start <= span.end && span.end <= this.draft.length
@@ -277,12 +206,6 @@ export class InputMachine {
     return []
   }
 
-  /**
-   * Shared reference-insertion transaction: replace [span) with one inline
-   * occurrence (insert-ref and paste-upgrade both land here). A separating
-   * space follows the reference unless one is already next.
-   * @returns the inserted length (display text plus optional gap).
-   */
   replaceSpanWithChip(reference, span) {
     this.pushTxn()
     this.typingRun = undefined
@@ -297,11 +220,6 @@ export class InputMachine {
     return inserted.length
   }
 
-  /**
-   * Guarded token deletion after business success (popup settle / menu-pick
-   * execute). No effect signals success: the caller reads the draftRev
-   * advance off the published state (same currency as the other bail verbs).
-   */
   onConsumeToken(guard) {
     if (this.phase !== 'plain' && this.phase !== 'claimed') return []
     switch (guard.kind) {
@@ -330,11 +248,6 @@ export class InputMachine {
     }
   }
 
-  /**
-   * Owner-resolution style bits: exactly the listed occurrences render
-   * invalid. Not a transaction — the draft, revision, and undo log are
-   * untouched (invalidation never deletes or rewrites chips).
-   */
   onSetInvalid(invalidIds) {
     const ids = new Set(invalidIds)
     if (!this.occurrences.some(o => (o.invalid === true) !== ids.has(o.occurrenceId))) return []
@@ -372,12 +285,6 @@ export class InputMachine {
     return []
   }
 
-  /**
-   * Paste as one transaction: the text (reference-placeholder-sanitized) replaces the
-   * selection; hot-snapshot sync matches componentize inside the SAME
-   * transaction (one undo returns to pre-paste); a match attempt opens for
-   * the async remainder while the phase still accepts reference mutations.
-   */
   onPasteBegin(rawText, selection, components = [], generation = 0) {
     const { start, end } = selection
     if (start < 0 || start > end || end > this.draft.length) return []
@@ -413,11 +320,6 @@ export class InputMachine {
     return []
   }
 
-  /**
-   * Async match landed: upgrade one pasted token to a chip as an INDEPENDENT
-   * transaction (undo #1 → the token text, undo #2 → pre-paste). The attempt
-   * stays current — later tokens re-CAS against the advanced draftRev.
-   */
   onPasteUpgrade(attemptId, span, reference) {
     const attempt = this.paste
     if (attempt === undefined || attempt.attemptId !== attemptId) return []
@@ -431,7 +333,6 @@ export class InputMachine {
     return []
   }
 
-  /** Mint the next SubmitAttempt and take the in-flight slot. */
   beginAttempt(mode) {
     const controller = new AbortController()
     this.seq += 1
@@ -526,7 +427,6 @@ export class InputMachine {
     return text === undefined ? [] : [{ type: 'notice', level: 'error', text }]
   }
 
-  /** Cut undo state after an accepted image-only send. */
   onSendCommitted() {
     if (this.phase !== 'plain') return []
     this.claim = undefined

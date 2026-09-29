@@ -1,23 +1,7 @@
-/**
- * InputHub: the SessionInputResolver implementation (`ctx.conversation.input`) — one
- * SessionInputShell per session, created inside the sessions provide
- * materialization (the 'input' standard-kit entry IS the
- * creation trigger) and torn down by the scope disposer (instance-and-scope
- * share one lifecycle). The hub registers the three scoped input-mutation
- * listeners on each session's actx (the sole consumer side of the ui-input-trigger
- * bail events) and owns the default-sink choreography: every session is a
- * real host entity, so the sink is one unconditional prompt path.
- */
 import { queueReadFaceOf } from '../queue/store.js'
 import { SessionInputShell } from './facade.js'
 
-/** Session-addressed input facade registry (SessionInputResolver face + composer-layer extras). */
 export class InputHub {
-  /**
-   * @param sessions - injected root sessions service, retained across slot rendering.
-   * @param rootCtx - client root context for optional conversation-adjacent services.
-   * @param t - conversation-namespace translate thunk (reads the active locale at call time).
-   */
   constructor(sessions, rootCtx, t) {
     this.sessionService = sessions
     this.rootCtx = rootCtx
@@ -25,11 +9,6 @@ export class InputHub {
     this.shells = new Map()
   }
 
-  /**
-   * Resolve the facade for one session-scope ctx (SessionInputResolver face).
-   * @param actx - session-scope context.
-   * @returns the resident per-session facade.
-   */
   for(actx) {
     const sessions = this.sessions()
     const id = sessions.scopeOf(actx)
@@ -37,14 +16,6 @@ export class InputHub {
     return this.shell(id)
   }
 
-  /**
-   * Resident shell for one session binding — the provide-channel entry
-   * (called during scope materialization, BEFORE the scope record is
-   * queryable, hence binding-fed and hence the thunked slash/popup deps).
-   * Wires the scoped event listeners + teardown into the session scope.
-   * @param binding - session assembly handle.
-   * @returns the shell.
-   */
   shellFor(binding) {
     const existing = this.shells.get(binding.sessionId)
     if (existing !== undefined) return existing
@@ -92,12 +63,6 @@ export class InputHub {
     return shell
   }
 
-  /**
-   * Resident shell by session id (service-face path; the provide channel has
-   * normally created it already — this covers direct id-addressed access).
-   * @param id - session id.
-   * @returns the shell.
-   */
   shell(id) {
     const existing = this.shells.get(id)
     if (existing !== undefined) return existing
@@ -106,51 +71,20 @@ export class InputHub {
     return this.shellFor(binding)
   }
 
-  /**
-   * The InputBar-exclusive keyboard command face: the shell
-   * satisfies it structurally; package-internal — handed through the
-   * composer-bar entry's inject, never across a plugin boundary.
-   * @param id - session id.
-   * @returns the shell as the keyboard face.
-   */
   keyboard(id) {
     return this.shell(id)
   }
 
-  /**
-   * Resolve the optional slash controller for composer chrome that launches
-   * the shared candidate menu without typing a trigger.
-   * @param id - session id.
-   * @returns the resident controller, or undefined when ui-input-trigger is absent.
-   */
   inputTriggers(id) {
     const actx = this.sessions().scope(id)
     return actx === undefined ? undefined : this.controller(actx)
   }
 
-  /**
-   * Default sink: optimistic clear + prompt. The session is always a real
-   * host entity (materialized when its workspace was picked), so there is
-   * exactly one path; a failed first prompt is an ordinary prompt failure
-   * (banner via promptError, draft restored only while untouched).
-   */
   sink(session, text, imageIds, mode, signal) {
     if (text === '' && imageIds.length === 0) return Promise.resolve({ kind: 'success' })
     return this.conversation().sendSession(session, text, imageIds, mode, signal)
   }
 
-  /**
-   * Steer every still-pending queued message into the running turn, in FIFO
-   * order — the same strict-steer operation as the queue dock's per-row
-   * button. A turn closing mid-way (`steer-unavailable`) or a row already
-   * claimed by the agent (`queue-item-not-found`) converges silently, while a
-   * genuine failure surfaces as one composer notice. Repeated triggers
-   * (e.g. two rapid empty-draft chords) rely on that `queue-item-not-found`
-   * convergence: the snapshot may still list a row the host already steered,
-   * and the duplicate strict steer is a silent no-op.
-   * @param session - the addressed host session.
-   * @param shell - the resident shell (notice outlet).
-   */
   async steerQueue(session, shell) {
     const queued = session.getSnapshot().queue.filter(item => item.placement === 'queued')
     if (queued.length === 0) return
