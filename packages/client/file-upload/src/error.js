@@ -1,18 +1,4 @@
-/**
- * Domain errors raised by the file-upload host half. Every one carries the
- * wire code the route answers with, so the browser sees a stable reason and
- * never a stack.
- * @module @freddie/freddie-client-file-upload/error
- */
-
-/** One refused or failed upload operation. */
 export class UploadError extends Error {
-  /**
-   * @param code - stable wire code.
-   * @param message - human-readable reason; never carries upload bytes.
-   * @param status - HTTP status the route answers with.
-   * @param options - optional `cause`.
-   */
   constructor(code, message, status = 400, options) {
     super(message, options)
     this.name = 'UploadError'
@@ -21,7 +7,6 @@ export class UploadError extends Error {
   }
 }
 
-/** Session id is absent, malformed, or names no session attached to this host. */
 export function sessionNotAttached(sessionId) {
   return new UploadError(
     'session/not-attached',
@@ -30,12 +15,10 @@ export function sessionNotAttached(sessionId) {
   )
 }
 
-/** A receipt was presented that this session never staged. */
 export function fileNotStaged() {
   return new UploadError('upload/not-staged', 'File was not uploaded for this session.', 400)
 }
 
-/** A staged upload exists but freddie's prompt content cannot carry it. */
 export function notAnImage(mediaType) {
   return new UploadError(
     'upload/not-an-image',
@@ -44,7 +27,6 @@ export function notAnImage(mediaType) {
   )
 }
 
-/** Bytes exceeded the configured ceiling. */
 export function tooLarge(maxBytes) {
   return new UploadError(
     'upload/too-large',

@@ -1,14 +1,3 @@
-/**
- * Host half: the authenticated streaming upload route, the staged-upload tree,
- * and the session-scoped receipt lifecycle.
- *
- * A receipt is authority to reuse bytes this session already sent, not a path
- * and not a promise about a file the caller named. It is minted only after the
- * bytes are committed, it resolves only under the session id that uploaded
- * them, and it is retired when the prompt that consumed it is observed.
- * @module @freddie/freddie-client-file-upload
- */
-
 import { createHash, randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -28,37 +17,20 @@ export { UploadError } from './error.js'
 export { FILE_UPLOAD_PATH, FILE_UPLOAD_ROUTE } from './shared.js'
 export { UploadStaging } from './staging.js'
 
-/** Default per-upload ceiling: 64 MiB, comfortably above one normalized image and far below RAM. */
 export const DEFAULT_MAX_UPLOAD_BYTES = 64 * 1024 * 1024
 
-/** Staged-upload tree below the harness home. */
 export const STAGING_SUBPATH = join('uploads', 'v1')
 
-/** Cordis plugin name. */
 export const name = 'client-file-upload'
 
-/** The route carrier; the trust fence is imported, not injected, because it is a pure request predicate. */
 export const inject = ['webServer']
 
-/** Host upload configuration. */
 export const Config = z.object({
-  /** Harness home holding the staged-upload tree; defaults to {@link resolveFreddieHome}. */
   freddieHome: z.string(),
-  /** Hard per-upload byte ceiling; the intake stops and discards past it. */
   maxUploadBytes: z.number().step(1).min(1).max(2 * 1024 * 1024 * 1024).default(DEFAULT_MAX_UPLOAD_BYTES),
 })
 
-/**
- * Prompt receipt binding that restores its previous owners unless delivery
- * commits it.
- * @typedef {object} PromptFileBinding
- * @property {() => void} commit - keep the bindings until a prompt observation retires them.
- * @property {() => void} dispose - restore every previous binding.
- */
-
-/** One receipt bound into one prompt; disposal restores what it replaced. */
 class PromptFileBindingGuard {
-  /** @param bound - receipt entries and the request ids they held before. */
   constructor(bound) {
     this.bound = bound
     this.settled = false
@@ -82,21 +54,16 @@ class PromptFileBindingGuard {
   }
 }
 
-/**
- * Host storage and staged-receipt service for browser file uploads.
- */
 export class FileUploads extends Service {
   static inject = inject
 
   static Config = Config
 
-  /** @param ctx - host context carrying the web server. */
   constructor(ctx, config) {
     super(ctx, 'fileUploads')
     this.root = resolve(join(resolveFreddieHome(config?.freddieHome), STAGING_SUBPATH))
     this.maxUploadBytes = config?.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES
     this.staging = new UploadStaging(this.root)
-    /** @type {Map<string, Map<string, object>>} */
     this.staged = new Map()
 
     ctx.effect(
@@ -115,16 +82,6 @@ export class FileUploads extends Service {
     })
   }
 
-  /**
-   * Persist raw chunks for one session without aggregating the upload.
-   *
-   * The session is authorized twice: once before intake starts, and again
-   * after it finishes, because the intake can outlive the session it was
-   * addressed to. A session that disappears mid-upload loses its staged bytes.
-   *
-   * @param request - session identity, ordered bytes, cancellation, and optional display name.
-   * @returns the staged receipt and the durable file description.
-   */
   async uploadStream(request) {
     const sessionId = request.sessionId
     this.requireSession(sessionId)
@@ -165,23 +122,11 @@ export class FileUploads extends Service {
     }
   }
 
-  /**
-   * Look up one staged entry inside the session that uploaded it.
-   * @param sessionId - session that owns the receipt.
-   * @param receiptId - opaque receipt minted for one completed upload.
-   * @returns the mutable entry, or undefined for an unknown or foreign receipt.
-   */
   entry(sessionId, receiptId) {
     if (typeof receiptId !== 'string') return undefined
     return this.staged.get(sessionId)?.get(receiptId)
   }
 
-  /**
-   * Resolve one staged receipt inside the session that uploaded it.
-   * @param sessionId - session that owns the receipt.
-   * @param receiptId - opaque receipt minted for one completed upload.
-   * @returns an immutable description, or undefined for an unknown or foreign receipt.
-   */
   resolve(sessionId, receiptId) {
     const entry = this.entry(sessionId, receiptId)
     if (entry === undefined) return undefined
@@ -194,13 +139,6 @@ export class FileUploads extends Service {
     })
   }
 
-  /**
-   * Read one staged upload back and verify it still matches its own digest.
-   * @param sessionId - session that owns the receipt.
-   * @param receiptId - opaque receipt minted for one completed upload.
-   * @param signal - optional cancellation.
-   * @returns the exact staged bytes.
-   */
   async readBytes(sessionId, receiptId, signal) {
     const entry = this.entry(sessionId, receiptId)
     if (entry === undefined) throw fileNotStaged()
@@ -216,16 +154,6 @@ export class FileUploads extends Service {
     return new Uint8Array(bytes)
   }
 
-  /**
-   * Bind receipts while one prompt enters a session inbox.
-   * Disposal restores every prior binding unless the caller commits successful
-   * delivery, so a prompt that fails admission leaves no receipt claimed.
-   * @param sessionId - session that owns the receipts.
-   * @param receiptIds - distinct staged receipts referenced by the prompt.
-   * @param requestId - prompt identity later observed in queue or history.
-   * @returns binding kept after commit until a prompt observation retires it.
-   * @throws UploadError when any receipt is not staged for this session.
-   */
   bindPrompt(sessionId, receiptIds, requestId) {
     const table = this.staged.get(sessionId)
     const bound = receiptIds.map((receiptId) => {
@@ -237,11 +165,6 @@ export class FileUploads extends Service {
     return new PromptFileBindingGuard(bound)
   }
 
-  /**
-   * Retire every receipt accepted by one removed queue occurrence.
-   * @param sessionId - session that owns the receipts.
-   * @param requestId - prompt identity carried by the queue occurrence.
-   */
   retirePrompt(sessionId, requestId) {
     const table = this.staged.get(sessionId)
     if (table === undefined) return
@@ -251,21 +174,6 @@ export class FileUploads extends Service {
     if (table.size === 0) this.staged.delete(sessionId)
   }
 
-  /**
-   * Turn staged receipts back into the wire form freddie's prompt admission
-   * already accepts, so a later prompt reuses bytes rather than re-sending
-   * them.
-   *
-   * This is the seam prompt admission calls: the returned objects are exactly
-   * `EncodedImageAttachment` rows, the shape `admitEncodedImages` consumes.
-   * A staged upload whose sniffed type is not an accepted image is refused,
-   * because freddie's prompt content is image-only today.
-   *
-   * @param sessionId - session that owns the receipts.
-   * @param receiptIds - staged receipts referenced by the prompt, in prompt order.
-   * @returns encoded attachments in the same order as `receiptIds`.
-   * @throws UploadError for an unstaged receipt or a non-image staged file.
-   */
   async admitPromptReceipts(sessionId, receiptIds) {
     const out = []
     for (const receiptId of receiptIds) {
@@ -284,12 +192,6 @@ export class FileUploads extends Service {
     return out
   }
 
-  /**
-   * Authorize one upload target. Fails safe: a composition with no session
-   * store, an unknown session id, or a subagent session is all refusal.
-   * @param sessionId - session the upload is addressed to.
-   * @returns the live session object, or undefined when the upload must be refused.
-   */
   authorize(sessionId) {
     const sessions = this.ctx.get('sessions')
     if (sessions === undefined || typeof sessions.get !== 'function') return undefined
@@ -305,22 +207,15 @@ export class FileUploads extends Service {
     return session
   }
 
-  /** Throw the refusal for an unauthorized session. */
   requireSession(sessionId) {
     if (this.authorize(sessionId) === undefined) throw sessionNotAttached(sessionId)
   }
 
-  /** Drop every receipt one disposed session held. */
   dropSession(sessionId) {
     this.staged.delete(sessionId)
   }
 }
 
-/**
- * Mount the host half.
- * @param ctx - host plugin context.
- * @param config - resolved plugin config (schema defaults applied).
- */
 export function apply(ctx, config) {
   new FileUploads(ctx, config)
 }

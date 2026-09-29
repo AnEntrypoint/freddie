@@ -1,22 +1,10 @@
-/**
- * Browser background-upload service (`ctx.fileUpload`).
- *
- * One carrier is chosen once, before Cordis boots: a page that owns its Host
- * transport installs `__FREDDIE_FILE_UPLOAD__` and supplies a Fetch-shaped
- * carrier; every other page gets a short-lived dedicated Worker, released
- * after completion, failure, or cancellation.
- * @module @freddie/freddie-client-file-upload/client
- */
-
 import { Service } from '@freddie/cordis'
 import { progressStream } from './progress.js'
 import { FILE_UPLOAD_ROUTE, displayName } from '../shared.js'
 import { fileUploadWorker } from './worker.js'
 
-/** Name of the pre-Cordis hook a page owning the Host transport installs. */
 export const FILE_UPLOAD_HOOK = '__FREDDIE_FILE_UPLOAD__'
 
-/** Carrier installed by a page that owns its Host transport. */
 function customTransport(customFetch) {
   return {
     async post(request) {
@@ -33,7 +21,6 @@ function customTransport(customFetch) {
   }
 }
 
-/** Carrier owning one dedicated Worker per upload operation. */
 function workerTransport() {
   return {
     post(request) {
@@ -98,22 +85,16 @@ function workerTransport() {
   }
 }
 
-/** Absolute URL of a route path, resolved against the page. */
 function absoluteUrlForBlobWorker(path) {
   return new URL(path, document.baseURI).href
 }
 
-/** Post the message, transferring a stream body to the Worker. */
 function postTransferringStreamBody(worker, message) {
   if (message.body instanceof ReadableStream) worker.postMessage(message, [message.body])
   else worker.postMessage(message)
 }
 
-/**
- * Session-addressed browser upload service.
- */
 export class FileUploadRuntime extends Service {
-  /** @param ctx - browser plugin context. */
   constructor(ctx) {
     super(ctx, 'fileUpload')
     const hook = globalThis[FILE_UPLOAD_HOOK]
@@ -122,31 +103,10 @@ export class FileUploadRuntime extends Service {
       : workerTransport()
   }
 
-  /**
-   * Post one body with the carrier selected before Cordis boot.
-   * @param request - target, body, cancellation, and progress observer.
-   * @returns the response status and text body.
-   */
   post(request) {
     return this.transport.post(request)
   }
 
-  /**
-   * Store one file for a Session.
-   *
-   * A `Blob` reports browser upload progress (with a total when the browser
-   * provides one); a `ReadableStream` reports consumed bytes with no total,
-   * because the stream API carries no length. Exact bytes are sent the same
-   * way — this port has no base64 Remote fallback, so nothing expands by 4/3
-   * on the way out.
-   *
-   * @param sessionId - Session that owns the staged receipt.
-   * @param data - browser Blob, exact bytes, or a one-shot byte stream.
-   * @param name - optional display name; sanitized and never used as a path.
-   * @param signal - optional cancellation for the active upload.
-   * @param onProgress - optional byte-progress observer.
-   * @returns the staged receipt and durable file description, or a business error.
-   */
   async upload(sessionId, data, name, signal, onProgress) {
     const query = new URLSearchParams({ sessionId })
     const display = displayName(name)
@@ -171,19 +131,16 @@ export class FileUploadRuntime extends Service {
   }
 }
 
-/** The cancellation the caller asked for when its signal aborted, otherwise the transport error. */
 function cancellationOverTransportError(error, signal) {
   return signal?.aborted === true ? new DOMException('The file upload was cancelled.', 'AbortError') : error
 }
 
-/** Normalize one caller body and attach the shared progress tap to a stream. */
 function sendableBody(data, onProgress) {
   const body = data instanceof Uint8Array ? new Blob([data]) : data
   if (!(body instanceof ReadableStream) || onProgress === undefined) return body
   return progressStream(body, onProgress)
 }
 
-/** Decode one route result, or throw the business error it carries. */
 function parseFileUploadResult(text) {
   let value
   try {
