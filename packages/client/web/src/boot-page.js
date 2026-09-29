@@ -1,11 +1,5 @@
-/**
- * Framework-free boot page and failure report. It remains available when a
- * client plugin fails because React arrives only with the UI renderer.
- * @module @freddie/freddie-client-web/src/boot-page
- */
 import css from './boot-page.css.js'
 
-/** Create a div with one module class and optional text. */
 function div(className, text, tagName = 'div') {
   const el = document.createElement(tagName)
   el.className = className ?? ''
@@ -13,7 +7,6 @@ function div(className, text, tagName = 'div') {
   return el
 }
 
-/** Kernel-owned page mounted below the application's root element. */
 export class BootPage {
   root
   card
@@ -35,10 +28,6 @@ export class BootPage {
   failureTitle = 'Could not start Freddie'
   failureAction = 'Retry'
 
-  /**
-   * Build and attach the boot page.
-   * @param container - Application mount point.
-   */
   constructor(container) {
     this.root = div(css.boot)
     this.root.dataset.freddieBoot = ''
@@ -66,20 +55,11 @@ export class BootPage {
     this.render()
   }
 
-  /**
-   * Set the number of loader entries represented by the progress arc.
-   * @param total - Complete boot roster size.
-   */
   setTotal(total) {
     this.total = total
     this.scheduleRender()
   }
 
-  /**
-   * Project one loader entry's fiber state.
-   * @param id - Loader entry name.
-   * @param state - Projected fiber state.
-   */
   setState(id, state) {
     this.states.set(id, state)
     if (state === 'active') this.active.add(id)
@@ -87,13 +67,11 @@ export class BootPage {
     this.scheduleRender()
   }
 
-  /** Name the entry currently being prepared by the loader. */
   setCurrent(id) {
     this.currentId = id
     this.scheduleRender()
   }
 
-  /** Coalesce synchronous Loader status bursts into one visual update. */
   scheduleRender() {
     if (this.renderFrame !== undefined) return
     this.renderFrame = requestAnimationFrame(() => {
@@ -102,7 +80,6 @@ export class BootPage {
     })
   }
 
-  /** Run one recovery action from the failure report. */
   action(label, onClick) {
     const button = document.createElement('button')
     button.type = 'button'
@@ -112,11 +89,6 @@ export class BootPage {
     return button
   }
 
-  /**
-   * Display the boot failure report.
-   * @param message - Failure report text.
-   * @param options - Optional headline and reload button label.
-   */
   fail(message, options = {}) {
     this.failure = message
     this.failureTitle = options.title ?? 'Could not start Freddie'
@@ -134,14 +106,12 @@ export class BootPage {
     this.render()
   }
 
-  /** Detach the page before or after the UI renderer takes the mount point. */
   dispose() {
     if (this.renderFrame !== undefined) cancelAnimationFrame(this.renderFrame)
     clearInterval(this.elapsedTimer)
     this.root.remove()
   }
 
-  /** Redraw the state-dependent content below the wordmark. */
   render() {
     this.updateProgress()
     const failed = [...this.states].filter(([, state]) => state === 'failed').map(([id]) => id)
@@ -164,7 +134,6 @@ export class BootPage {
     this.card.replaceChildren(this.wordmark, report)
   }
 
-  /** Grow the rotating arc and derive readiness from the Loader state map. */
   updateProgress() {
     const pending = [...this.states].filter(([, state]) => state === 'pending').map(([id]) => id)
     const failed = [...this.states].filter(([, state]) => state === 'failed').map(([id]) => id)
@@ -202,7 +171,6 @@ export class BootPage {
     )
   }
 
-  /** Build one compact readiness cell from Loader-derived facts. */
   statusItem(label, value, detail, state) {
     const item = div(css.statusItem)
     item.dataset.state = state

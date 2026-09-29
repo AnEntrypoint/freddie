@@ -1,16 +1,9 @@
-/**
- * Web boot kernel. It owns only the module system, Cordis loader, and a
- * framework-free boot page. The dynamic UI renderer receives the mount
- * point after every client entry activates.
- * @module @freddie/freddie-client-web/src/boot
- */
 import { Context, Logger } from '@freddie/cordis'
 import Loader from '@freddie/cordis-plugin-loader'
 import { BootPage } from './boot-page.js'
 import { getStaticModules } from './seed.js'
 import { FIBER_STATE, STATE_LABELS } from './loader-status.js'
 
-/** The page-injected `ClientTransportHooks`, read structurally so this package takes no edge on the connection package. */
 function preinjectedTransport() {
   return globalThis.__FREDDIE_TRANSPORT__
 }
@@ -35,7 +28,6 @@ function exportLoggerToConsole(ctx) {
   ctx.logger.exporter(exporter)
 }
 
-/** Browser boot entry consumed by `apps/web`. */
 export class AppWebEntry {
   container
   seams
@@ -47,11 +39,6 @@ export class AppWebEntry {
   booted
   bootFailure
 
-  /**
-   * Draw the boot page; {@link run} starts the loader.
-   * @param container - Application mount point.
-   * @param seams - Optional module transport replacement. `staticModules` replaces the shell-seeded table (used by a `/__hmr/<rev>/` remount to hand in cache-busted live workspace packages).
-   */
   constructor(container, seams) {
     this.container = container
     this.seams = seams
@@ -59,11 +46,6 @@ export class AppWebEntry {
     this.booted = new Promise((resolve) => { this.markBooted = resolve })
   }
 
-  /**
-   * Load and activate every client entry, then hand the mount point to the
-   * UI renderer. Plugin failures remain visible on the boot page.
-   * @returns Resolves after application mount or failure rendering.
-   */
   async run() {
     try {
       const win = globalThis
@@ -95,11 +77,6 @@ export class AppWebEntry {
     }
   }
 
-  /**
-   * Dispose the client plugin tree and whichever page owns the mount point.
-   * The container element itself is left in place so a later AppWebEntry can
-   * remount into the same #root after a shell-rebuilt frame.
-   */
   async dispose() {
     const ctx = this.ctx
     this.ctx = undefined
@@ -108,7 +85,6 @@ export class AppWebEntry {
     this.container.replaceChildren()
   }
 
-  /** Mount through a dependency fiber so replacing uiRenderer remounts the application. */
   async mountApp(ctx) {
     this.mounted = ctx.inject(['uiRenderer'], (scope) => {
       try {
@@ -170,7 +146,6 @@ export class AppWebEntry {
     return undefined
   }
 
-  /** Prefetch stage-one bundles; their import path owns any eventual failure. */
   async prefetchImmediateTier() {
     const transportOwnsBundleBytes = preinjectedTransport()?.loadBundle !== undefined
     if (transportOwnsBundleBytes) return
@@ -179,7 +154,6 @@ export class AppWebEntry {
       .map(row => this.modules.prefetch(row.id).catch(leavePrefetchFailureToLoaderImport)))
   }
 
-  /** Mount the Loader, create all graph entries, await quiescence, and audit activation. */
   async runPluginBoot(ctx, prefetching) {
     await ctx.plugin(Loader)
     const loader = ctx.loader
@@ -207,7 +181,6 @@ export class AppWebEntry {
     this.assertEntriesActive(ctx)
   }
 
-  /** Reject entries that failed import/apply or still wait on missing services. */
   assertEntriesActive(ctx) {
     const failures = this.entryFailures(ctx)
     if (failures.length > 0) throw new Error(this.describeFailures(failures))
