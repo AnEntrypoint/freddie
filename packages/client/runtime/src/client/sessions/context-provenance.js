@@ -59,6 +59,8 @@ export function contextProvenance(source) {
   switch (kind) {
     case 'session-reference':
       return { role: 'recall', label: joined(collect(record, 'references', 'label')) ?? kind }
+    case 'memory-capture':
+      return { role: 'recall', label: joined(collect(record, 'captures', 'name')) ?? kind }
     case 'agent-instructions':
       return { role: 'inject', label: joined(collect(record, 'changes', 'path')) ?? kind }
     case 'plugin':

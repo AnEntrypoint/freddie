@@ -7020,6 +7020,9 @@ importers:
       '@freddie/freddie-invariants':
         specifier: '*'
         version: link:../../runtime-diagnostics/invariants
+      '@freddie/freddie-llm':
+        specifier: '*'
+        version: link:../../llm/llm
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session

@@ -27,6 +27,7 @@
   "peerDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-session-projection": "*",
@@ -36,6 +37,7 @@
   "devDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-invariants": "*",
+    "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-session-projection": "*",

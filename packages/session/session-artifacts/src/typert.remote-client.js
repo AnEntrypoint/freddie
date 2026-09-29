@@ -10,10 +10,11 @@ const artifact = z.object({
     sourceProvenance: z.object({ sessionId: z.string(), sourceSeq: z.number().nullable(), actor: z.string() }),
   }).optional(),
 })
-const view = z.object({ revision: z.number(), items: z.array(artifact) })
+const auditEntry = z.object({ at: z.number(), op: z.string(), itemId: z.string(), target: z.string().optional(), actor: z.string().optional() })
+const view = z.object({ revision: z.number(), items: z.array(artifact), audit: z.array(auditEntry).optional() })
 const result = z.union([z.object({ ok: z.literal(true), value: view }), z.object({ ok: z.literal(false), error: z.object({ code: z.string() }).passthrough() })])
 const list = z.object({ sessionId })
-const put = z.object({ sessionId, id: z.string().optional(), name: z.string(), kind: z.string(), content: z.string(), ifRevision: z.number(), sourceSeq: z.number().optional(), actor: z.string().optional() })
+const put = z.object({ sessionId, id: z.string().optional(), name: z.string(), kind: z.string(), content: z.string(), ifRevision: z.number(), sourceSeq: z.number().optional(), actor: z.string().optional(), status: z.enum(['active', 'forgotten']).optional() })
 const remove = z.object({ sessionId, id: z.string(), ifRevision: z.number() })
 const share = z.object({ sessionId, id: z.string(), targetSessionId: z.string(), grant: z.boolean(), ifRevision: z.number() })
 

@@ -20,6 +20,7 @@ One page per subsystem of the Freddie: what it is, the data structures it moves,
 | [feedback.md](feedback.md) | lifecycle-bound per-message feedback records, optimistic versions, sidecar persistence, and the Host Remote contract |
 | [session-title.md](session-title.md) | durable title snapshots, cited source-message seqs, and the asynchronous provider contract |
 | [session-reference.md](session-reference.md) | structured cross-session references: `SessionReferenceInput`/`Candidate`, prepared message contexts, the stable error taxonomy |
+| [conversation-artifacts.md](conversation-artifacts.md) | durable conversation artifacts and memory: the item and sidecar-row shape, the four Remote operations, session-bound revisions, and pre-step memory capture |
 | [system-prompt.md](system-prompt.md) | per-assembly context, tool-provider results, prompt sections, and cooperative assembly |
 | [tools.md](tools.md) | `ToolDefinition` full fields, the schema DSL, `ToolExecution`/`ToolResult`, tool-presentation UI types, and the guarded execution pipeline |
 | [user-questions.md](user-questions.md) | the UI-backed human question/answer seam: `AskUserQuestionRequest`, answer/options vocabulary, provider API, error taxonomy |

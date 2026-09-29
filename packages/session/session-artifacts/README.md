@@ -5,11 +5,13 @@
 ## Service API
 
 - `list({ sessionId })` returns the receiver's session-bound revision, owned content, and every live source item that explicitly grants that session access. Shared records carry immutable `sharedFrom` source session/item/revision/provenance attribution and are read-only in the receiver.
-- `put({ sessionId, id?, name, kind, content, ifRevision, sourceSeq?, actor? })` creates or revises an owned `artifact`, `memory`, `decision`, `evidence`, or `plan` item. It rejects invalid names, kinds, content limits, item limits, missing revisions, and CAS conflicts.
-- `remove({ sessionId, id, ifRevision })` removes an owned item at its observed session revision.
-- `share({ sessionId, id, targetSessionId, grant, ifRevision })` adds or removes an explicit target-session grant. A grant exposes the source item to its receiver on the next list read; revocation removes that receiver view without deleting the source. Neither operation injects content into a model request.
+- `put({ sessionId, id?, name, kind, content, status?, ifRevision, sourceSeq?, actor? })` creates or revises an owned `artifact`, `memory`, `decision`, `evidence`, or `plan` item; `status: 'forgotten'` withdraws a memory from retrieval and receiver views, `'active'` restores it. It rejects invalid names, kinds, statuses, content and session-total limits, item limits, missing revisions, and CAS conflicts.
+- `deleteArtifact({ sessionId, id, ifRevision })` removes an owned item at its observed session revision.
+- `share({ sessionId, id, targetSessionId, grant, ifRevision })` adds or removes an explicit target-session grant; a grant requires an existing target session and is bounded per item. A grant exposes the source item to its receiver on the next list read; revocation removes that receiver view without deleting the source. Neither operation injects content into a model request.
 
-Each mutation serializes behind the owning session, persists the complete sidecar row before publishing it, and appends the current metadata-only view as an ignorable `session-artifacts/changed` event when that session is live. The `artifacts` projection makes that event durable, replayable, cached, and realtime through the standard session-projection transport.
+`list` also returns the owner's bounded `audit` of create, revise, forget, delete, grant, and revoke entries, so ownership history survives revocation. Full reference: [conversation artifacts](../../../docs/subsystems/conversation-artifacts.md).
+
+Each mutation serializes behind the owning session, persists the complete sidecar row before publishing it, and appends the current metadata-only view as an ignorable `session-artifacts/changed` event to the owner and every affected grantee that is live. The `artifacts` projection makes that event durable, replayable, cached, and realtime through the standard session-projection transport.
 
 ## Configuration
 
@@ -17,6 +19,10 @@ Each mutation serializes behind the owning session, persists the complete sideca
 |---|---:|---|
 | `maxArtifactBytes` | 65,536 | Maximum UTF-8 content size for one item. |
 | `maxArtifactsPerSession` | 256 | Maximum retained items for one session lifecycle. |
+| `maxSessionBytes` | 1,048,576 | Maximum total content bytes retained for one session. |
+| `maxSharesPerItem` | 16 | Maximum grantees for one item. |
+| `maxMemoryCaptures` | 8 | Maximum memory records captured into one model step. |
+| `maxMemoryCaptureBytes` | 16,384 | Maximum total content bytes captured into one model step. |
 
 ## Browser use
 
@@ -28,18 +34,18 @@ The Web bundle mounts `@freddie/freddie-client-ui-artifacts` as the **Artifacts*
 
 #### What the model sees
 
-Nothing automatically. This package neither registers a model-facing tool nor injects memory into a request. A later scoped retrieval consumer must record an explicit, bounded, sourced capture event before any artifact reaches the model.
+Nothing from artifacts, decisions, evidence, or plans. Active `memory` records that the session owns or was granted are captured before a step as one logged, untrusted user message tagged `memory-capture` with each record's id, version, owner, and provenance.
 
 #### Token effect
 
-Zero.
+Bounded by `maxMemoryCaptureBytes` per capture; zero when no active memory exists or the capture set is unchanged since the last capture.
 
 #### KV Cache effect
 
-None.
+A capture is appended after the current input and repeats only when the selected set or a version changes.
 
 ## Known Limitations and Deferred Work
 
-- Sharing records grants intent and audit state; a pre-step retrieval consumer has not yet been added to turn grants into bounded, model-visible memory captures.
+- Retrieval selects by recency; semantic ranking is a separate capability.
 - The initial provider is a storage-domain sidecar, so it works with both JSONL and SQLite session persistence without assuming a physical per-session directory. A folder-backed export provider may later materialize the same records under JSONL's reserved session directory.
 - Semantic search, expiry review, and external/team principals require separate retrieval, retention, and authenticated-principal capability seams; the sidecar remains the authoritative local record.

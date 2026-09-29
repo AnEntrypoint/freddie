@@ -16,9 +16,11 @@ export class FreddieArtifactsView extends HTMLElement {
   #draft = { name: '', kind: 'memory', content: '' }
   #loadedItems = []
   #loadedRevision = 0
+  #loadedAudit = []
   #loadedSessionId = null
   #error = null
   #busy = false
+  #projectionSignature = ''
 
   setProps(props) {
     const changedSession = this.#props?.sessionId !== props.sessionId
@@ -28,8 +30,10 @@ export class FreddieArtifactsView extends HTMLElement {
       this.#loadedRevision = 0
       this.#loadedSessionId = null
       this.#selected = null
+      this.#projectionSignature = ''
     }
     this.#load()
+    this.#syncProjection()
     this.#render()
   }
   connectedCallback() { this.#load(); this.#render() }
@@ -44,11 +48,24 @@ export class FreddieArtifactsView extends HTMLElement {
       if (result?.ok === true) {
         this.#loadedItems = result.value.items
         this.#loadedRevision = typeof result.value.revision === 'number' ? result.value.revision : 0
+        this.#loadedAudit = Array.isArray(result.value.audit) ? result.value.audit : this.#loadedAudit
         this.#render()
       }
     } catch {
       this.#loadedSessionId = null
     }
+  }
+
+  #syncProjection() {
+    const projection = this.#props?.useProjection?.('artifacts')
+    if (projection === undefined || projection === null || this.#loadedSessionId !== this.#props?.sessionId) return
+    const signature = `${projection.revision}|${(projection.items ?? []).map(item => `${item.id}@${item.revision}:${item.status}`).join(',')}`
+    if (signature === this.#projectionSignature) return
+    const first = this.#projectionSignature === ''
+    this.#projectionSignature = signature
+    if (first) return
+    this.#loadedSessionId = null
+    void this.#load()
   }
 
   #artifacts() {
@@ -73,6 +90,7 @@ export class FreddieArtifactsView extends HTMLElement {
         if (result?.ok === true) {
           this.#loadedItems = result.value.items
           this.#loadedRevision = typeof result.value.revision === 'number' ? result.value.revision : 0
+        this.#loadedAudit = Array.isArray(result.value.audit) ? result.value.audit : this.#loadedAudit
           const loaded = result.value.items.find(candidate => candidate.id === item.id)
           if (loaded !== undefined) this.#draft = { name: loaded.name, kind: loaded.kind, content: loaded.content, shareTarget: '' }
         }
@@ -96,7 +114,10 @@ export class FreddieArtifactsView extends HTMLElement {
       else {
         this.#loadedItems = result.value.items
         this.#loadedRevision = typeof result.value.revision === 'number' ? result.value.revision : 0
+        this.#loadedAudit = Array.isArray(result.value.audit) ? result.value.audit : this.#loadedAudit
         this.#draft = { name: '', kind: 'memory', content: '' }
+        this.#loadedSessionId = null
+        void this.#load()
       }
     } catch (error) {
       this.#error = error instanceof Error ? error.message : String(error)
@@ -118,8 +139,9 @@ export class FreddieArtifactsView extends HTMLElement {
     )
     return h('aside', { class: css.editor ?? '', 'aria-label': 'Artifact editor' },
       h('h2', null, selected === undefined ? 'New artifact' : `${readOnly ? 'Shared' : 'Edit'} ${selected.name}`),
-      readOnly ? h('p', { class: css.shared ?? '' }, `Shared from ${selected.sharedFrom.sessionId} · source revision ${selected.sharedFrom.sourceRevision}`) : null,
-      this.#error === null ? null : h('p', { class: css.error ?? '', role: 'alert' }, this.#error),
+      readOnly ? h('p', { key: 'shared-from', class: css.shared ?? '' }, `Shared from ${selected.sharedFrom.sessionId} · source revision ${selected.sharedFrom.sourceRevision}`) : null,
+      selected === undefined || readOnly || selected.sharedWith.length === 0 ? null : h('p', { key: 'grants', class: css.shared ?? '', 'data-share-grants': '' }, `Shared with ${selected.sharedWith.join(', ')}`),
+      this.#error === null ? null : h('p', { key: 'error', class: css.error ?? '', role: 'alert' }, this.#error),
       field('Name', 'input', 'name', { disabled: readOnly }),
       h('label', { class: css.field ?? '' }, h('span', null, 'Type'), h('select', {
         value: kind(draft.kind), disabled: readOnly, oninput: event => this.#patch({ kind: event.target.value }),
@@ -134,6 +156,7 @@ export class FreddieArtifactsView extends HTMLElement {
           ifRevision: this.#revision(),
         })) }, selected === undefined ? 'Save artifact' : 'Save revision'),
         selected === undefined ? null : h('button', { type: 'button', disabled: this.#busy, onclick: () => void this.#run(() => this.#props.remove({ id: selected.id, ifRevision: this.#revision() })) }, 'Delete'),
+        selected === undefined || selected.kind !== 'memory' ? null : h('button', { type: 'button', disabled: this.#busy, onclick: () => void this.#run(() => this.#props.put({ id: selected.id, name: selected.name, kind: selected.kind, content: selected.content, status: selected.status === 'forgotten' ? 'active' : 'forgotten', ifRevision: this.#revision() })) }, selected.status === 'forgotten' ? 'Restore memory' : 'Forget memory'),
         selected === undefined ? null : h('input', { placeholder: 'Session ID to share with', value: draft.shareTarget, oninput: event => this.#patch({ shareTarget: event.target.value }) }),
         selected === undefined ? null : h('button', { type: 'button', disabled: this.#busy || draft.shareTarget.trim() === '', onclick: () => void this.#run(() => this.#props.share({ id: selected.id, targetSessionId: draft.shareTarget.trim(), grant: true, ifRevision: this.#revision() })) }, 'Share'),
         selected === undefined ? null : h('button', { type: 'button', disabled: this.#busy || draft.shareTarget.trim() === '', onclick: () => void this.#run(() => this.#props.share({ id: selected.id, targetSessionId: draft.shareTarget.trim(), grant: false, ifRevision: this.#revision() })) }, 'Revoke'),
@@ -160,12 +183,16 @@ export class FreddieArtifactsView extends HTMLElement {
       ),
       h('div', { class: css.workspace ?? '' },
         h('section', { class: css.list ?? '', 'aria-label': 'Conversation artifacts' },
-          artifacts.length === 0 ? h('p', { class: css.empty ?? '' }, 'No artifacts yet. Save a memory, decision, plan, or evidence item for this conversation.') : artifacts.map(item => h('button', {
+          artifacts.length === 0 ? h('p', { key: 'empty', class: css.empty ?? '' }, 'No artifacts yet. Save a memory, decision, plan, or evidence item for this conversation.') : artifacts.map(item => h('button', {
             type: 'button', key: item.id, class: css.item ?? '', 'data-selected': item.id === this.#selected ? '' : undefined,
             onclick: () => { void this.#select(item) },
-          }, h('strong', null, item.name), h('span', null, `${item.sharedFrom === undefined ? item.kind : `shared ${item.kind}`} · ${item.bytes} bytes · v${item.revision}`))),
+          }, h('strong', null, item.name), h('span', null, `${item.sharedFrom === undefined ? item.kind : `shared ${item.kind}`}${item.status === 'forgotten' ? ' · forgotten' : ''} · ${item.bytes} bytes · v${item.revision}`))),
         ),
         this.#editor(),
+      ),
+      this.#loadedAudit.length === 0 ? null : h('section', { key: 'audit', class: css.list ?? '', 'aria-label': 'Ownership history', 'data-artifact-audit': '' },
+        h('h2', null, 'Ownership history'),
+        this.#loadedAudit.slice(-10).reverse().map(entry => h('p', { key: `${entry.at}:${entry.itemId}:${entry.op}` }, `${new Date(entry.at).toISOString()} · ${entry.op} ${entry.itemId}${entry.target === undefined ? '' : ` → ${entry.target}`}`)),
       ),
     ))
   }
