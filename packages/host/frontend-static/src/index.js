@@ -1,26 +1,10 @@
-/**
- * @freddie/freddie-host-frontend-static — SPA dist server over the webserver
- * fallback seat: serves the built frontend directory with explicit index
- * entry points. A readable index renders at the dist root and configured index
- * path; missing paths return 404, traversal outside the dist root is 403,
- * unknown extensions ship as octet-stream, and non-GET/HEAD is 405. HEAD
- * carries the same headers as GET and no entity body. Every index
- * response runs through the webserver's index render (structured
- * injection rows, then raw taps). The dist location is workspace knowledge of
- * the composing application, so `distIndex` is typically supplied through a
- * `!!js` expression, never hardcoded by a deployment.
- * @module @freddie/freddie-host-frontend-static
- */
-
 import { readFile } from 'node:fs/promises'
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
 import { sendFile } from '@freddie/freddie-host-webserver'
 import z from '@freddie/schemastery'
 
-/** Stable Cordis plugin name. */
 export const name = 'frontend-static'
 
-/** Service required before the fallback seat can be claimed. */
 export const inject = ['webServer']
 
 export const Config = z.object({
@@ -45,16 +29,6 @@ const STATIC_MISS_CODES = new Set([
   'ENOTDIR',
 ])
 
-/**
- * Serve one GET/HEAD static request from the dist root.
- * @param pathname - decoded URL pathname of the request.
- * @param req - the node:http request (method plus If-Modified-Since).
- * @param res - the node:http response to write. HEAD ends with no body.
- * @param distRoot - absolute dist root directory (resolved by the caller).
- * @param distIndex - absolute path of index.html inside distRoot.
- * @param renderIndex - produces the index.html body (structured injection
- * rendering) for the dist root and configured index path.
- */
 export async function serveStatic(pathname, req, res, distRoot, distIndex, renderIndex) {
   const target = resolve(normalize(join(distRoot, pathname)))
   if (target !== distRoot && !target.startsWith(distRoot + sep)) {
@@ -86,11 +60,6 @@ export async function serveStatic(pathname, req, res, distRoot, distIndex, rende
   res.end(req.method === 'HEAD' ? undefined : body)
 }
 
-/**
- * Claim the webserver fallback seat and serve the dist.
- * @param ctx - plugin context carrying the webServer service.
- * @param config - validated Config.
- */
 export function apply(ctx, config) {
   const distIndex = config.distIndex
   const distRoot = dirname(distIndex)
