@@ -10,11 +10,6 @@ import { PendingQuestion, planReviewOf } from './contract/slots.js'
 import { FreddiePlanReviewPanel } from './PlanReviewPanel.js'
 import css from './QuestionComposer.css.js'
 
-/**
- * Split the conventional recommendation suffix without changing the answer value.
- * @param label - Original option label returned if selected.
- * @returns Display label plus recommendation state.
- */
 export function parseRecommendedLabel(label) {
   const suffix = /\s*(?:\(recommended\)|\uff08recommended\uff09)\s*$/i
   return suffix.test(label)
@@ -24,28 +19,11 @@ export function parseRecommendedLabel(label) {
 
 const LEGACY_IME_COMPOSITION_KEY_CODE = 229
 
-/** Return whether a text-field key event belongs to an active IME composition. */
 function isComposing(event) {
   // oxlint-disable-next-line typescript/no-deprecated
   return event.isComposing || event.keyCode === LEGACY_IME_COMPOSITION_KEY_CODE
 }
 
-/**
- * Auto-growing free-text answer: a textarea, so a long answer soft-wraps and
- * Shift+Enter breaks a line, over a hidden mirror that owns the height.
- *
- * The mirror renders the draft plus a trailing newline in normal flow and so
- * sizes the grid row (counting rows by '\n' cannot see soft wraps); the
- * textarea shares that one cell and stretches to it, and `rows={1}` keeps the
- * control's own intrinsic height out of the row sizing so the mirror alone
- * decides. Past the mirror's cap the textarea scrolls itself — it is the only
- * scrollport in the stack, there being no second glyph layer to keep aligned.
- * Mirror and textarea MUST share font, line-height, padding and wrapping rules
- * or the two heights diverge.
- *
- * @param props - field shape, draft text, and the field's event handlers.
- * @returns The mirrored auto-growing field.
- */
 function AnswerField(props) {
   return (
     h('div', {class: clsx(css.field, props.variant === 'inline' ? css.customInline : css.customBlock)},
@@ -65,21 +43,6 @@ function AnswerField(props) {
   )
 }
 
-/**
- * Composer takeover boundary; the carrier key keys local drafts, so a
- * same-request replay (same key, new carrier object) preserves them.
- *
- * One takeover, two shapes: a request that declares a presentation intent this
- * package renders takes that shape (a plan review is one decision over one
- * plan, not a question set), and every other request takes the generic flow.
- * The routing lives here, at the one entry that owns the composer seat, so
- * neither shape can claim a request the other is already rendering.
- *
- * Converted to a webjsx custom element: the domain-face mint (previously
- * useMemo) rides the carrier's stable identity via a cached field, and the
- * routing decision re-renders the child custom element (either the generic
- * question flow or the plan-review panel) via setProps.
- */
 export class FreddieQuestionComposer extends HTMLElement {
   #props = null
   #question = null
@@ -127,12 +90,6 @@ export class FreddieQuestionComposer extends HTMLElement {
 
 defineElement('freddie-question-composer', FreddieQuestionComposer)
 
-/**
- * The generic question flow custom element: pager, numbered options, skip and
- * custom-answer affordances over a request's whole question batch. Converted
- * from a React hooks component — every useState becomes an instance field,
- * useRef(Set) becomes a plain instance field, and re-render is explicit.
- */
 export class FreddieQuestionFlow extends HTMLElement {
   #props = null
   #index = 0

@@ -1,6 +1,3 @@
-/** `question` namespace dictionaries. */
-
-/** English dictionary. */
 export const en = {
   'error.incomplete': 'Please complete this question first.',
   'error.unanswered': 'Please select an option or enter a custom answer.',

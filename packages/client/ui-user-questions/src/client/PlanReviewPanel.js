@@ -2,32 +2,16 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { Button, IconEditOutline16, renderMarkdownText, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './PlanReviewPanel.css.js'
 
-/**
- * Optional-prop spread for a decision button's tooltip: `title` is optional on
- * the DOM props, and exactOptionalPropertyTypes rejects an explicit undefined.
- *
- * @param description - the asker's option description, when it carries one.
- * @returns The `title` prop to spread, or nothing.
- */
 function tooltip(description) {
   return description === undefined ? {} : { title: description }
 }
 
-/**
- * Plan-review decision card custom element: approve/decline/discuss over one
- * plan under review. One-shot latch shaped like the approval takeover's: the
- * panel leaves only when the host's resolved frame lands, so until then a
- * second click must not re-fire. A failed send (rejected receipt / transport)
- * re-arms it and shows why, since nothing else would tell the user the click
- * was lost.
- */
 export class FreddiePlanReviewPanel extends HTMLElement {
   #props = null
   #busy = false
   #error = null
   #planEl = null
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     this.#render()
