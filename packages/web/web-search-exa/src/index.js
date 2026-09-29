@@ -1,13 +1,3 @@
-/**
- * `@freddie/freddie-web-search-exa`: registers an Exa-backed `WebSearchProvider`
- * with `ctx.web`. A function/namespace plugin (NOT a default-export service):
- * a search provider does not own the `ctx.web` key — it registers INTO the
- * seam's provider registry, exactly as `@freddie/freddie-llm-deepseek`
- * registers an adapter into `ctx.llm`. The key is owned by `@freddie/freddie-web`.
- *
- * @module @freddie/freddie-web-search-exa
- */
-
 import { launchEnvironmentOf } from '@freddie/freddie-launch-environment'
 import z from '@freddie/schemastery'
 import {
@@ -25,10 +15,8 @@ export {
   ExaSearchProvider,
 } from './provider.js'
 
-/** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-search-exa'
 
-/** The web seam this provider registers into. */
 export const inject = ['web']
 
 export const Config = z.object({
@@ -39,7 +27,6 @@ export const Config = z.object({
   highlightsPerResult: z.number().step(1).min(1),
 })
 
-/** Register the Exa search provider with `ctx.web`. */
 export function apply(ctx, config) {
   ctx.web.registerSearchProvider(new ExaSearchProvider({
     apiKey: config.apiKey ?? launchEnvironmentOf(ctx).get('EXA_API_KEY')?.value ?? '',

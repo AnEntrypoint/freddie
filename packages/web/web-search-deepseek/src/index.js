@@ -1,13 +1,3 @@
-/**
- * Register a DeepSeek-backed provider in `ctx.web`. It calls the Anthropic-compatible Messages API
- * with native `web_search_20250305`. The provider reuses `DEEPSEEK_API_KEY` but not
- * `DEEPSEEK_BASE_URL`; auxiliary search has its own endpoint configuration.
- *
- * A function/namespace plugin (NOT a default-export service): a search provider does not own the
- * `ctx.web` key — it registers INTO the seam's provider registry, exactly as
- * `@freddie/freddie-llm-deepseek` registers an adapter into `ctx.llm` and
- * `@freddie/freddie-web-search-exa` registers its own provider. The key is owned by `@freddie/freddie-web`.
- */
 import { credentialRef } from '@freddie/freddie-credentials'
 import { installSettingsSection, settingsNamespace } from '@freddie/freddie-settings'
 import { launchEnvironmentOf } from '@freddie/freddie-launch-environment'
@@ -31,38 +21,24 @@ export {
   DEEPSEEK_PROVIDER_ID,
 } from './provider.js'
 
-/** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-search-deepseek'
 
-/** The web seam this provider registers into. */
 export const inject = ['web']
 
 const DEFAULT_API_KEY_ENV = 'DEEPSEEK_API_KEY'
 
-/**
- * Auxiliary-search endpoint, independent of the conversation adapter's
- * `$DEEPSEEK_BASE_URL` and selected protocol.
- */
 const SEARCH_BASE_URL_ENV = 'DEEPSEEK_SEARCH_BASE_URL'
 
-/** The settings namespace this provider's own configuration is edited through. */
 export const WEB_SEARCH_SETTINGS_NS = 'web-search-deepseek'
 
-/** The namespace, branded the way the settings service addresses one. */
 export const WEB_SEARCH_SETTINGS_NAMESPACE = settingsNamespace(WEB_SEARCH_SETTINGS_NS)
 
-/**
- * The section this provider serves, deliberately narrower than {@link Config}:
- * `apiKey` is absent from it, so a literal key has no path into the settings
- * document and travels only through the credentials domain.
- */
 export const WebSearchSettings = z.object({
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV),
   baseURL: z.string(),
   maxUses: z.number().step(1).min(1).default(DEEPSEEK_DEFAULT_MAX_USES),
 })
 
-/** Plugin config (all optional — `apply` fills env-var and constant defaults). */
 export const Config = z.object({
   apiKey: z.string().role('secret'),
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV),
@@ -88,7 +64,6 @@ function sectionOf(config) {
   }
 }
 
-/** Drop keys a resolved section answered with nothing, so a merge cannot erase a layer beneath. */
 function definedOf(section) {
   return Object.fromEntries(Object.entries(section ?? {}).filter(([, value]) => value !== undefined))
 }

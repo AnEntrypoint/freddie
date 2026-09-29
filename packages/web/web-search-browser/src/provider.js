@@ -1,52 +1,15 @@
-/**
- * Google search through gm's own `browser` verb (`ctx.gm`, dispatched
- * in-process against the shared agentplug daemon's lightpanda/CDP engine --
- * no Chrome process, no new dependency, no API key). Replaces
- * `@freddie/freddie-web-search-deepseek`, which required a paid DeepSeek
- * Anthropic-compatible key purely to reach the native `web_search` server
- * tool; this provider needs no credential at all.
- *
- * Google was tried directly (not DuckDuckGo, per explicit direction) and
- * works cleanly through this same `browser` verb -- no CAPTCHA, no consent
- * wall, live-verified across several dispatches. If that ever stops holding
- * (a CAPTCHA/consent/"unusual traffic" page instead of real results), `search`
- * throws a distinctly-coded `WEB_PROVIDER_BLOCKED` error naming the page's own
- * text rather than silently returning zero results -- the documented signal
- * to escalate this provider to a stealth engine (camoufox), not a silent
- * degrade.
- * @module @freddie/freddie-web-search-browser/provider
- */
-
 import { WebError } from '@freddie/freddie-web'
 
-/** Stable id this provider registers under. */
 export const BROWSER_PROVIDER_ID = 'browser-google'
 
-/** Google's search results endpoint. */
 export const SEARCH_BASE_URL = 'https://www.google.com/search'
 
-/** Upper bound on DOM rows extracted before `ctx.web`'s own `maxResults` cap applies. */
 export const MAX_EXTRACTED_ROWS = 20
 
-/** Per-result redirect-resolution timeout (ms); a slow/failed resolve keeps the wrapper URL, never blocks the search. */
 const RESOLVE_TIMEOUT_MS = 4_000
 
-/** Phrases Google's own anti-automation interstitials use; any hit means blocked, not zero-results. */
 const BLOCK_MARKERS = ['unusual traffic', 'not a robot', 'consent.google.com', 'before you continue to google search']
 
-/**
- * Build the in-page extraction script. Google's organic-result markup churns
- * (class names rotate across deploys), so this keys off the one stable
- * structural fact instead: every organic result's title lives in an `<h3>`
- * inside its own result link. The snippet is heuristically the first
- * long-enough text block in the result's ancestor container -- best-effort,
- * omitted rather than guessed wrong when none qualifies. Each link's `href`
- * is Google's own `/url?q=...`/`/goto?url=...` tracking redirect, not the
- * destination -- resolved server-side after this script returns (see
- * `resolveDestination`), never inside the sandboxed page context.
- * @param maxRows - cap on extracted rows (pre-`ctx.web` truncation).
- * @returns the bare-JS body to evaluate after navigation.
- */
 function extractionScript(maxRows) {
   return `(() => {
     const rows = Array.from(document.querySelectorAll('a > h3')).slice(0, ${maxRows}).map(h3 => {
@@ -63,18 +26,6 @@ function extractionScript(maxRows) {
   })()`
 }
 
-/**
- * Resolve one Google tracking-redirect URL to its real destination by reading
- * the `Location` header directly, no session/cookies needed. Must be GET,
- * not HEAD -- live-verified: Google's `/goto` responds 200 with no redirect
- * at all to a HEAD request, only firing the real 302 for GET. `redirect:
- * 'manual'` stops fetch from itself following that 302 and downloading the
- * destination page's body, which this call never needs. Best-effort: any
- * failure, timeout, or non-redirect response keeps the original wrapper URL
- * rather than dropping the result.
- * @param url - the raw `href` extracted from the results page.
- * @returns the resolved destination, or `url` unchanged if resolution failed.
- */
 async function resolveDestination(url) {
   if (!/^https:\/\/(www\.)?google\.[^/]+\/(url|goto)\?/.test(url)) return url
   const controller = new AbortController()
@@ -90,20 +41,14 @@ async function resolveDestination(url) {
   }
 }
 
-/** The Google-via-browser-automation search provider. Needs no credential. */
 export class BrowserSearchProvider {
   id = BROWSER_PROVIDER_ID
 
-  /**
-   * @param gm - `ctx.gm` (the native gm-client service); dispatches the `browser` verb.
-   * @param options.timeoutMs - per-search dispatch timeout (default 30000, matching tool-web's own search budget).
-   */
   constructor(gm, options = {}) {
     this.gm = gm
     this.timeoutMs = options.timeoutMs ?? 30_000
   }
 
-  /** No credential to check; the provider is ready whenever it is registered. */
   available() {
     return true
   }
@@ -163,12 +108,10 @@ export class BrowserSearchProvider {
   }
 }
 
-/** True for a fetch/`AbortSignal` abort, matching the sibling DeepSeek provider's contract. */
 function isAbortError(error) {
   return error instanceof DOMException && error.name === 'AbortError'
 }
 
-/** Build the provider's stable cancellation error while retaining the caller's reason. */
 function searchAborted(signal, fallback) {
   return new WebError('browser search aborted', 'WEB_ABORTED', {
     cause: signal?.aborted === true ? signal.reason : fallback,

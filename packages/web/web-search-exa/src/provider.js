@@ -1,37 +1,15 @@
-/**
- * `ExaSearchProvider`: a `WebSearchProvider` backed by the Exa search API (`POST /search` with
- * highlight contents). It maps the first non-blank highlight to `snippet`, maps
- * `publishedDate` to `publishedAt`, drops entries without a snippet, and omits `content`
- * because Exa returns no generated answer.
- * @module @freddie/freddie-web-search-exa/provider
- */
-
 import { WebError } from '@freddie/freddie-web'
 
-/** Stable id this provider registers under. */
 export const EXA_PROVIDER_ID = 'exa'
 
-/** Default Exa search endpoint; `/search` is the operation. */
 export const EXA_DEFAULT_BASE_URL = 'https://api.exa.ai'
 
-/** Default retrieval mode: let Exa pick between keyword and neural search. */
 export const EXA_DEFAULT_SEARCH_TYPE = 'auto'
 
-/** Default number of highlight sentences requested per result. */
 export const EXA_DEFAULT_HIGHLIGHTS_PER_RESULT = 1
 
-/** Attribution header sent on every request. Bump with the package version. */
 const USER_AGENT = 'freddie/0.0.1'
 
-/**
- * Map one Exa result to a normalized source, or `undefined` when it carries no
- * portable snippet (an entry with no highlight is dropped — the seam has no
- * other field to derive a snippet from, and inventing one would lie).
- *
- * @param result - one entry of Exa's `results[]`.
- * @returns the normalized source, or `undefined` when the entry has no
- *   non-blank highlight.
- */
 export function mapExaResult(result) {
   const snippet = result.highlights?.find(highlight => highlight.trim().length > 0)
   if (snippet === undefined) return undefined
@@ -43,13 +21,6 @@ export function mapExaResult(result) {
   }
 }
 
-/**
- * Map an Exa response envelope to a normalized search result.
- *
- * @param response - the parsed `POST /search` response body.
- * @returns the normalized result; snippet-less entries are dropped
- *   ({@link mapExaResult}).
- */
 export function mapExaResponse(response) {
   const sources = (response.results ?? [])
     .map(mapExaResult)
@@ -57,7 +28,6 @@ export function mapExaResponse(response) {
   return { sources, truncated: false }
 }
 
-/** The Exa-backed search provider; HTTP redirects fail as `WEB_PROVIDER_ERROR`. */
 export class ExaSearchProvider {
   id = EXA_PROVIDER_ID
 
@@ -121,17 +91,14 @@ export class ExaSearchProvider {
   }
 }
 
-/** True when `baseURL` parses as an absolute URL (a cheap local config check). */
 function isValidBaseUrl(baseURL) {
   return URL.canParse(baseURL)
 }
 
-/** True for a request limit that can be sent to Exa (a positive whole number). */
 function isPositiveInteger(value) {
   return Number.isInteger(value) && value > 0
 }
 
-/** True for a fetch/`AbortSignal` abort, surfaced as `WEB_ABORTED`. */
 function isAbortError(error) {
   return error instanceof DOMException && error.name === 'AbortError'
 }

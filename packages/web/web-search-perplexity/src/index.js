@@ -1,8 +1,3 @@
-/**
- * Perplexity-backed `WebSearchProvider` plugin. It contributes to the
- * `ctx.web` registry without owning the service.
- */
-
 import { launchEnvironmentOf } from '@freddie/freddie-launch-environment'
 import z from '@freddie/schemastery'
 import { PerplexitySearchProvider, PERPLEXITY_DEFAULT_BASE_URL, PERPLEXITY_DEFAULT_MAX_TOKENS, PERPLEXITY_DEFAULT_MODEL } from './provider.js'
@@ -15,10 +10,8 @@ export {
   PerplexitySearchProvider,
 } from './provider.js'
 
-/** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-search-perplexity'
 
-/** The web seam this provider registers into. */
 export const inject = ['web']
 
 /**

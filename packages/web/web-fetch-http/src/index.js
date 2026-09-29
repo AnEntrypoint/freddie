@@ -1,12 +1,3 @@
-/**
- * `@freddie/freddie-web-fetch-http`: registers an anonymous public HTTP(S)
- * `WebFetchProvider` with `ctx.web`. A function/namespace plugin (NOT a
- * default-export service): it registers INTO the seam's fetch registry, like the
- * search providers register into the search registry.
- *
- * @module @freddie/freddie-web-fetch-http
- */
-
 import z from '@freddie/schemastery'
 import { HttpFetchProvider } from './provider.js'
 
@@ -17,13 +8,10 @@ export {
   HttpFetchProvider,
 } from './provider.js'
 
-/** Default `User-Agent`: an explicit product agent, never a browser disguise. */
 export const DEFAULT_USER_AGENT = 'freddie/0.0.1 (+https://github.com/lanmower/freddie)'
 
-/** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-fetch-http'
 
-/** The web seam this provider registers into. */
 export const inject = ['web']
 
 export const Config = z.object({
@@ -35,14 +23,12 @@ export const Config = z.object({
   userAgent: z.string().default(DEFAULT_USER_AGENT),
 })
 
-/** A resource limit (byte/char/length/timeout cap) must be a positive finite number. */
 function assertPositiveFinite(name, value) {
   if (!Number.isFinite(value) || value <= 0) {
     throw new Error(`web-fetch-http: ${name} must be a positive finite number`)
   }
 }
 
-/** Node coerces larger timer delays to 1 ms, so reject them at configuration time. */
 function assertTimeoutMs(value) {
   assertPositiveFinite('timeoutMs', value)
   if (value > MAX_NODE_TIMER_DELAY_MS) {
@@ -50,14 +36,12 @@ function assertTimeoutMs(value) {
   }
 }
 
-/** The redirect hop cap must be a non-negative integer (0 follows no redirects). */
 function assertNonNegativeInteger(name, value) {
   if (!Number.isInteger(value) || value < 0) {
     throw new Error(`web-fetch-http: ${name} must be a non-negative integer`)
   }
 }
 
-/** Register the local HTTP(S) fetch provider with `ctx.web`. */
 export function apply(ctx, config) {
   const resolved = config
   assertPositiveFinite('maxUrlLength', resolved.maxUrlLength)

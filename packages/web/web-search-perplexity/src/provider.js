@@ -19,19 +19,14 @@
 
 import { WebError } from '@freddie/freddie-web'
 
-/** Stable id this provider registers under. */
 export const PERPLEXITY_PROVIDER_ID = 'perplexity'
 
-/** Default Perplexity endpoint; `/chat/completions` is the operation. */
 export const PERPLEXITY_DEFAULT_BASE_URL = 'https://api.perplexity.ai'
 
-/** Default search model. */
 export const PERPLEXITY_DEFAULT_MODEL = 'sonar'
 
-/** Default upper bound on generated answer tokens. */
 export const PERPLEXITY_DEFAULT_MAX_TOKENS = 1024
 
-/** Attribution header sent on every request. Bump with the package version. */
 const USER_AGENT = 'freddie/0.0.1'
 
 /**
@@ -69,7 +64,6 @@ export function mapPerplexityResponse(response) {
   }
 }
 
-/** The Perplexity-backed search provider; HTTP redirects fail as `WEB_PROVIDER_ERROR`. */
 export class PerplexitySearchProvider {
   id = PERPLEXITY_PROVIDER_ID
 
@@ -137,12 +131,10 @@ export class PerplexitySearchProvider {
   }
 }
 
-/** True for a fetch/`AbortSignal` abort, surfaced as `WEB_ABORTED`. */
 function isAbortError(error) {
   return error instanceof DOMException && error.name === 'AbortError'
 }
 
-/** True for a request limit that can be sent to Perplexity (a positive whole number). */
 function isPositiveInteger(value) {
   return Number.isInteger(value) && value > 0
 }

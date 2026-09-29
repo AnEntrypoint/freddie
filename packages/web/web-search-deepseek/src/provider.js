@@ -29,29 +29,18 @@
 
 import { WebError } from '@freddie/freddie-web'
 
-/** Stable id this provider registers under. */
 export const DEEPSEEK_PROVIDER_ID = 'deepseek-official'
 
-/**
- * Default auxiliary-search endpoint, including `/v1`; `/messages` is appended.
- * `$DEEPSEEK_SEARCH_BASE_URL` overrides it independently of the conversation
- * adapter's endpoint. Both providers share the API key.
- */
 export const DEEPSEEK_DEFAULT_BASE_URL = 'https://api.deepseek.com/anthropic/v1'
 
-/** Default Anthropic-format model name (aligned with the repo's DeepSeek model vocabulary). */
 export const DEEPSEEK_DEFAULT_MODEL = 'deepseek-v4-flash'
 
-/** Default `anthropic-version` header value. */
 export const DEEPSEEK_DEFAULT_API_VERSION = '2023-06-01'
 
-/** Default upper bound on generated tokens for the Messages request. */
 export const DEEPSEEK_DEFAULT_MAX_TOKENS = 4096
 
-/** Default maximum `web_search` server-tool uses per request. */
 export const DEEPSEEK_DEFAULT_MAX_USES = 5
 
-/** Attribution header sent on every request. Bump with the package version. */
 const USER_AGENT = 'freddie/0.0.1'
 
 /**
@@ -116,10 +105,6 @@ export function mapAnthropicResponse(response) {
   return { sources, truncated: false }
 }
 
-/**
- * The DeepSeek-backed search provider. HTTP redirects fail as `WEB_PROVIDER_ERROR`;
- * failures after dispatch name the endpoint and tell the model how the user can configure it.
- */
 export class DeepSeekSearchProvider {
   id = DEEPSEEK_PROVIDER_ID
 
@@ -246,7 +231,6 @@ export class DeepSeekSearchProvider {
   }
 }
 
-/** Add endpoint recovery instructions to failures that occur after request dispatch begins. */
 function searchEndpointError(endpoint, message, cause) {
   return new WebError(
     `${message}\n\nThe web search request used endpoint ${JSON.stringify(endpoint)}. `
@@ -260,11 +244,6 @@ function searchEndpointError(endpoint, message, cause) {
   )
 }
 
-/**
- * Race a same-process asynchronous preflight against caller cancellation. The
- * attached settlement handlers keep observing an uncooperative operation after
- * abort so a later rejection cannot become unhandled.
- */
 function abortable(operation, signal) {
   if (signal === undefined) return operation
   if (signal.aborted) return Promise.reject(searchAborted(signal))
@@ -284,24 +263,20 @@ function abortable(operation, signal) {
   })
 }
 
-/** Throw the provider's stable cancellation error when the caller already aborted. */
 function throwIfSearchAborted(signal) {
   if (signal?.aborted === true) throw searchAborted(signal)
 }
 
-/** Build the provider's stable cancellation error while retaining the caller's reason. */
 function searchAborted(signal, fallback) {
   return new WebError('DeepSeek search aborted', 'WEB_ABORTED', {
     cause: signal?.aborted === true ? signal.reason : fallback,
   })
 }
 
-/** True for a fetch/`AbortSignal` abort, surfaced as `WEB_ABORTED`. */
 function isAbortError(error) {
   return error instanceof DOMException && error.name === 'AbortError'
 }
 
-/** True for DeepSeek request limits that can be sent to the Messages API. */
 function isPositiveInteger(value) {
   return Number.isInteger(value) && value > 0
 }
