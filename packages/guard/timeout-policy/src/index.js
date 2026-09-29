@@ -1,41 +1,11 @@
-/**
- * Cooperative tool-call timeout enforcer. A tool declares `timeoutMs` and
- * promises to honor `exec.signal`; this wrapper arms that deadline and maps its
- * own expiry to `TOOL_TIMEOUT` without racing or abandoning the tool promise.
- *
- * FIXME: settle the intended `@freddie/freddie-timeout-guard` rename before the
- * first tagged release — suggestion only, aligning the name with its `guard/`
- * home; decide at resolution time
- * ([regrouping Agent Note](../../../../.agents/notes/implemented/architecture/2026-07-29-package-regrouping.md)).
- *
- * @module @freddie/freddie-tool-call-timeout-policy
- */
-
 import { deadline, timeoutOf } from '@freddie/freddie-timeout'
 
-/**
- * The code owned by this plugin, used BOTH as the internal {@link deadline}
- * classification code AND as the structured error `code` on the replacement
- * tool result. Scoping {@link timeoutOf} to it keeps a nested outer deadline
- * (another `tools/execute` wrapper's timer that fired first) from being misread
- * as this plugin's own timeout — it reads as an ordinary upstream cancel.
- */
 export const TOOL_TIMEOUT = 'TOOL_TIMEOUT'
 
-/** Cordis plugin name used by loader diagnostics. */
 export const name = 'timeout-policy'
 
-/** The tool registry service this plugin wraps (`tools/execute`) and reads (`get`). */
 export const inject = ['tools']
 
-/**
- * The structured result substituted when this plugin's deadline wins. `content`
- * is the model-facing message; `error.code` is the same {@link TOOL_TIMEOUT}
- * this plugin owns, so a retry/sandbox plugin (and replay) can route on it.
- *
- * @param timeoutMs - the elapsed budget, rendered into the model-facing message.
- * @returns the `isError` ToolExecutionResult with a `TOOL_TIMEOUT` error.
- */
 function toolTimeoutResult(timeoutMs) {
   const message = `tool call timed out after ${timeoutMs}ms`
   return {
@@ -45,11 +15,6 @@ function toolTimeoutResult(timeoutMs) {
   }
 }
 
-/**
- * Register the timeout wrapper. It resolves the caller-visible tool definition,
- * temporarily replaces `exec.signal`, delegates, restores the upstream signal,
- * and replaces the result only when this wrapper's own timer fired.
- */
 export function apply(ctx) {
   ctx.on('tools/execute', async (exec, next) => {
     const timeoutMs = ctx.tools.get(exec.name, exec.agent)?.timeoutMs

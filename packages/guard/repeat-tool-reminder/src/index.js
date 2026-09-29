@@ -1,25 +1,8 @@
-/**
- * Advisory per-agent repeat-call detector. It enriches post-execute decisions
- * with logged model context without vetoing or rewriting calls. Configuration
- * and chain semantics live in the package README; rationale lives in the
- * repeat-tool-reminder Agent Note.
- * @module @freddie/freddie-repeat-tool-reminder
- */
-
 import z from '@freddie/schemastery'
 import { createUserMessage } from '@freddie/freddie-llm'
 
 export const name = 'repeat-tool-reminder'
 
-/**
- * Plugin config, validated by the same-named schemastery schema plus the
- * load-time checks in `apply` (misconfiguration fails loud: an empty
- * `thresholds` list, a non-integer, a value below 2, or a duplicate throws at
- * plugin load, never a silent fall-back). `include`/`exclude` entries are
- * `*`-wildcard predicates over tool names at call time, not references to
- * registry entries — a pattern matching no currently registered tool is valid
- * (`exclude: [mcp_*]` must stay legal in a deployment that loads no MCP tools).
- */
 
 export const Config = z.object({
   thresholds: z.array(z.number()).default([3, 5, 8]),
@@ -28,24 +11,14 @@ export const Config = z.object({
   argumentsPreviewChars: z.number().default(500),
 })
 
-/**
- * The `{kind:'plugin'}` source stamped on every reminder this guard injects —
- * the label is load-bearing (an unlabeled context would render as a user
- * prompt in derived history).
- */
 const PLUGIN_SOURCE = { kind: 'plugin', plugin: 'repeat-tool-reminder' }
 
-/**
- * The gentle first-threshold reminder. Keyed to `thresholds[0]`, not a literal
- * count, so a custom first threshold keeps the gentle-then-detailed escalation.
- */
 const GENTLE_REMINDER =
   'You are repeating the exact same tool call with identical arguments. '
   + 'Carefully analyze the previous result before calling again: if the task is '
   + 'not complete, try a different approach or different arguments instead of '
   + 'repeating the call.'
 
-/** The detailed later-threshold reminder naming the tool, the run length, and the canonical arguments. */
 function detailedReminder(toolName, count, canonicalArguments) {
   return 'Repeated tool call detected:\n'
     + `- tool: ${toolName}\n`
@@ -57,14 +30,6 @@ function detailedReminder(toolName, count, canonicalArguments) {
     + 'evidence has been gathered.'
 }
 
-/**
- * Deep key-sort of a parsed-JSON value so two argument objects that differ
- * only in property order canonicalize identically. Arguments reach the guard
- * as the loop's `JSON.parse` output (or its raw-string fallback for malformed
- * argument JSON), so JSON's value domain is the whole input domain — no
- * bigint, cycle, or `undefined` handling exists because no input path can
- * produce them.
- */
 function sortJsonValue(value) {
   if (Array.isArray(value)) return value.map(sortJsonValue)
   if (value !== null && typeof value === 'object') {
@@ -78,32 +43,20 @@ function sortJsonValue(value) {
   return value
 }
 
-/** Canonical string form of a call's arguments: deep key-sort, then stringify. */
 function canonicalize(argumentsValue) {
   return JSON.stringify(sortJsonValue(argumentsValue))
 }
 
-/** Compile one `*`-wildcard pattern to an anchored RegExp (every other regex metacharacter is matched literally). */
 function wildcardToRegExp(pattern) {
   const escaped = pattern.replace(/[|\\{}()[\]^$+?.]/g, String.raw`\$&`)
   return new RegExp(`^${escaped.replaceAll('*', '.*')}$`)
 }
 
-/**
- * Head-truncate the canonical arguments for quoting in the detailed reminder,
- * marking how much was omitted. Bounds only the model-visible text — the
- * chain key always uses the full canonical string.
- */
 function previewArguments(canonical, cap) {
   if (canonical.length <= cap) return canonical
   return `${canonical.slice(0, cap)}… (+${canonical.length - cap} more chars)`
 }
 
-/**
- * Validate `thresholds` per the fail-loud contract and return them sorted
- * ascending (the escalation rule reads `thresholds[0]` as the gentle tier, so
- * order is normalized here, once).
- */
 function validateThresholds(values) {
   if (values.length === 0) {
     throw new Error('repeat-tool-reminder: `thresholds` must not be empty')
@@ -119,26 +72,11 @@ function validateThresholds(values) {
   return [...values].sort((a, b) => a - b)
 }
 
-/**
- * Prepend the guard's reminder while preserving every downstream context's
- * source and metadata.
- */
 function prependContext(ours, theirs) {
   return [ours, ...theirs ?? []]
 }
 
-/**
- * One agent's consecutive-repeat chain: the last tracked call's identity key and its run length.
- * @typedef {object} RepeatChain
- * @property {string} key `JSON.stringify([toolName, canonicalizedArguments])`.
- * @property {number} count Consecutive-attempt run length for `key`.
- */
 
-/**
- * Install the guard's listeners.
- * @param ctx - plugin context; listeners are scoped to it and disposed with it.
- * @param config - validated {@link Config}; `thresholds` is re-checked fail-loud here.
- */
 export function apply(ctx, config) {
   const thresholds = validateThresholds(config.thresholds)
   const thresholdSet = new Set(thresholds)
@@ -151,20 +89,11 @@ export function apply(ctx, config) {
 
   const chains = new WeakMap()
 
-  /** Whether a tool participates in the chain (untracked calls are transparent: they neither count nor reset). */
   function tracked(toolName) {
     if (includePatterns.length > 0 && !includePatterns.some(pattern => pattern.test(toolName))) return false
     return !excludePatterns.some(pattern => pattern.test(toolName))
   }
 
-  /**
-   * Advance the calling agent's chain for one attempt and return the reminder
-   * to deliver, if this attempt's run length hits a configured threshold.
-   * Counting happens here — in post-execute — because denied calls also flow
-   * through this waterfall (`ToolRuntime.execute` routes a deny through the
-   * same pipeline), and a model hammering a denied call is exactly the loop
-   * worth breaking.
-   */
   function observe(exec) {
     if (!exec.agent) return undefined
     if (!tracked(exec.name)) return undefined
