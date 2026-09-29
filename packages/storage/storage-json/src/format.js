@@ -1,18 +1,5 @@
-/**
- * On-disk JSON unit format: the file is always the current net state, kept
- * human-readable (pretty-printed, stable key order from insertion) — that
- * legibility is this backend's reason to exist.
- * @module @freddie/freddie-storage-json/src/format
- */
-
 import { StorageError } from '@freddie/freddie-storage'
 
-/**
- * Serialize a unit state to file content.
- * @param name - Unit name, stamped into the header.
- * @param state - Authoritative in-memory state.
- * @returns pretty-printed JSON document with a trailing newline.
- */
 export function serialize(name, state) {
   const tables = {}
   for (const [table, records] of state.tables) {
@@ -26,12 +13,6 @@ export function serialize(name, state) {
   return `${JSON.stringify(document, null, 2)}\n`
 }
 
-/**
- * Parse file content into unit state, validating shape and version.
- * @param text - Raw file content.
- * @param descriptor - Expected identity; version mismatch rejects.
- * @returns the parsed state.
- */
 export function parse(text, descriptor) {
   let document
   try {

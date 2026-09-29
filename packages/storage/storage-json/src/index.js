@@ -1,35 +1,16 @@
-/**
- * JSON storage backend: one human-readable file per unit under a configured
- * root, published by atomic whole-file rewrite. Registers as backend `json`
- * on the storage hub.
- * @module @freddie/freddie-storage-json
- */
-
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import z from '@freddie/schemastery'
 import { StorageError, UNIT_NAME_RE, storageBackendServiceKey } from '@freddie/freddie-storage'
 import { openJsonUnit } from './unit.js'
 
-/** Cordis plugin name. */
 export const name = 'storage-json'
-/** The hub must exist before the backend can register. */
 export const inject = ['storage']
 
-/**
- * Plugin configuration.
- * `root` has NO default on purpose: a `process.cwd()` fallback would scatter
- * unit files wherever the process happens to start; assemblies state the
- * location explicitly.
- * @name Config
- */
-
-/** Config schema. */
 export const Config = z.object({
   root: z.string().required(),
 })
 
-/** JSON backend: owns the file-tree root and serves the `kv` facet. */
 export class JsonStorageBackend {
   open = new Map()
   opening = new Map()
@@ -85,11 +66,6 @@ function validateDescriptor(descriptor) {
   }
 }
 
-/**
- * Register the `json` backend on the storage hub.
- * @param ctx - Plugin context.
- * @param config - Validated configuration.
- */
 export function apply(ctx, config) {
   const backend = new JsonStorageBackend(config.root)
   ctx.effect(() => {

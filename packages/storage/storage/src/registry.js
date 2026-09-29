@@ -1,26 +1,8 @@
-/**
- * Named backend registry of the storage hub.
- * @module @freddie/freddie-storage/src/registry
- */
-
 import { StorageError } from './error.js'
 
-/**
- * Mutable name → backend table. Multiple backends stay mounted side by side;
- * which backend serves which consumer is the consumer's configuration
- * (e.g. the domain layer's route table), never a hub-global choice.
- */
 export class BackendRegistry {
   backends = new Map()
 
-  /**
-   * Register a named backend. Registration is an effect: the returned
-   * disposer removes the name. Disposal does NOT close the backend — the
-   * owning plugin closes it after unregistering.
-   * @param name - Backend name, e.g. `json` or `sqlite`.
-   * @param backend - The backend instance.
-   * @returns the disposer that unregisters the name.
-   */
   register(name, backend) {
     if (this.backends.has(name)) {
       throw new StorageError('duplicate-backend', `storage backend '${name}' is already registered`)
@@ -33,11 +15,6 @@ export class BackendRegistry {
     }
   }
 
-  /**
-   * Resolve a backend by name.
-   * @param name - Registered backend name.
-   * @returns the backend.
-   */
   get(name) {
     const backend = this.backends.get(name)
     if (!backend) {
@@ -49,10 +26,6 @@ export class BackendRegistry {
     return backend
   }
 
-  /**
-   * Registered backend names, for diagnostics.
-   * @returns a snapshot array of names.
-   */
   names() {
     return [...this.backends.keys()]
   }

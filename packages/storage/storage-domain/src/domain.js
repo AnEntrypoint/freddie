@@ -1,51 +1,19 @@
-/**
- * Runtime of one open domain: authoritative in-memory state, the single
- * per-domain write chain, and change-event emission. Reads are synchronous
- * from memory; every write queues on the chain, awaits backend durability
- * FIRST, then mutates memory, then emits `domain/changed` — a rejected
- * backend write leaves memory untouched (no divergence between reads and the
- * medium), and events carry values that equal the in-memory state at
- * emission, in write order.
- * @module @freddie/freddie-storage-domain/src/domain
- */
-
 import { DomainError } from './error.js'
 
 const noop = () => {}
 
-/**
- * The single domain implementation returned to consumers as their open domain
- * handle. The facility constructs it from a validated `loadAll` snapshot;
- * nothing outside this package constructs one.
- */
 export class DomainImpl {
-  /** Domain name from the spec. */
   name
 
   tables = new Map()
   globalValue
   globalHandle
 
-  /** Tail of the write chain; every link settles (rejections are observed by the caller's slice). */
   chain = Promise.resolve()
-  /** Set when close begins: new writes reject while already-queued writes drain. */
   disposing = false
-  /** Set when close finishes (chain drained, unit closed): reads reject from here on. */
   closed = false
   disposal
 
-  /**
-   * @param ctx - Context that carries `domain/changed` emissions.
-   * @param spec - The domain declaration.
-   * @param unit - The opened backend unit; this instance owns its lifecycle.
-   * @param records - Validated records from the unit's `loadAll`, one entry
-   * per declared table (empty maps included) — the facility builds it from
-   * the spec, so the entry set IS the table set.
-   * @param globalValue - Validated stored global, or the spec's `initial`
-   * when the medium held none; `undefined` when the spec declares no global.
-   * @param onClosed - Facility hook run once after teardown completes; frees
-   * the domain name for a later open.
-   */
   constructor(ctx, spec, unit, records, globalValue, onClosed) {
     this.ctx = ctx
     this.unit = unit
@@ -77,7 +45,6 @@ export class DomainImpl {
     }
   }
 
-  /** Global singleton handle; accessing it on a spec that declares no global is a caller bug and throws. */
   get global() {
     if (this.globalHandle === undefined) {
       throw new Error(`domain '${this.name}' declares no global`)
@@ -85,12 +52,6 @@ export class DomainImpl {
     return this.globalHandle
   }
 
-  /**
-   * Resolve one declared table handle; an undeclared name is a caller bug
-   * and throws.
-   * @param name - Declared table name.
-   * @returns the stable table handle.
-   */
   table(name) {
     const table = this.tables.get(name)
     if (table === undefined) {
@@ -99,12 +60,6 @@ export class DomainImpl {
     return table
   }
 
-  /**
-   * Close this domain: reject new writes immediately, drain already-queued
-   * writes (their events still emit), close the unit, then free the name via
-   * the facility hook. Idempotent — repeated calls share one teardown.
-   * @returns resolution after the unit is released.
-   */
   close() {
     this.disposal ??= this.runClose()
     return this.disposal
@@ -118,11 +73,6 @@ export class DomainImpl {
     this.onClosed()
   }
 
-  /**
-   * Dispatch one post-durability change notification, containing observer
-   * failures: the write is already committed (medium and memory both hold
-   * the new state), so a throwing listener must not retroactively reject it.
-   */
   emitChanged(change) {
     try {
       this.ctx.emit('domain/changed', change)
@@ -147,7 +97,6 @@ export class DomainImpl {
   }
 }
 
-/** Table handle bound to one in-memory record map and its domain's write chain. */
 class KvTableImpl {
   constructor(host, tableName, records) {
     this.host = host

@@ -1,23 +1,5 @@
-/**
- * One opened sqlite unit. Every write primitive is a single durable
- * statement against the shared connection's `storage_units` table — unlike
- * the JSON backend, there is no in-memory authoritative copy: libsql's own
- * debounced whole-database snapshot (fired ~1.5s after the last write) is
- * the persistence boundary, so a read always issues a fresh query.
- * @module @freddie/freddie-storage-sqlite/src/unit
- */
-
 import { StorageError } from '@freddie/freddie-storage'
 
-/**
- * Open (or lazily create) one unit against the shared connection.
- * @param descriptor - static identity and shape of the unit.
- * @param client - shared libsql-plugkit-client connection.
- * @param onClose - backend callback releasing the unit's open-slot.
- * @returns the opened unit.
- * @name openSqliteUnit
- * @function
- */
 // eslint-disable-next-line require-await -- keeps open() async-shaped like the JSON backend's unit.open
 export async function openSqliteUnit(descriptor, client, onClose) {
   return new SqliteKvUnit(descriptor, client, onClose)
@@ -82,15 +64,6 @@ class SqliteKvUnit {
     })
   }
 
-  /**
-   * Store one 384-dim embedding (`bert`'s fixed output width, matching gm's
-   * own embedder) against a key. Callers compute the embedding themselves
-   * (e.g. via `ctx.gm.embed(text)`) — this unit stores vectors, it never
-   * calls out to an embedding service itself.
-   * @param table - table name the vector logically belongs to.
-   * @param key - vector's key, unique within `(unit, table)`.
-   * @param embedding - a 384-length array of floats.
-   */
   async putVector(table, key, embedding) {
     this.assertOpen()
     this.assertTable(table)
@@ -103,13 +76,6 @@ class SqliteKvUnit {
     })
   }
 
-  /**
-   * Find the `limit` closest stored vectors to `embedding` by cosine distance.
-   * @param table - table name to search within.
-   * @param embedding - a 384-length array of floats, the query vector.
-   * @param limit - maximum results (default 10).
-   * @returns `{key, distance}` rows ordered nearest-first.
-   */
   async searchVectors(table, embedding, limit = 10) {
     this.assertOpen()
     this.assertTable(table)
@@ -123,11 +89,6 @@ class SqliteKvUnit {
     return rows.map(([key, distance]) => ({ key, distance }))
   }
 
-  /**
-   * Delete one stored vector.
-   * @param table - table name the vector belongs to.
-   * @param key - vector's key.
-   */
   async deleteVector(table, key) {
     this.assertOpen()
     this.assertTable(table)

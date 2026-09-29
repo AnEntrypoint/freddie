@@ -1,17 +1,5 @@
-/**
- * libsql schema for the sqlite storage backend: one shared database per
- * backend root, units partitioned by name inside it.
- * @module @freddie/freddie-storage-sqlite/schema
- */
-
-/** Current schema version; an incompatible on-disk version throws rather than silently resetting. */
 export const SCHEMA_VERSION = 1
 
-/**
- * Create the backend's tables if this is a fresh database, and validate an
- * existing database's version.
- * @param client - open libsql-plugkit-client connection.
- */
 export async function ensureSchema(client) {
   await client.execute('CREATE TABLE IF NOT EXISTS storage_meta (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), version INTEGER NOT NULL)')
   const { rows } = await client.execute('SELECT version FROM storage_meta WHERE singleton = 1')

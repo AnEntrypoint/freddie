@@ -1,24 +1,8 @@
-/**
- * One opened JSON unit. The in-memory state is authoritative; every write
- * primitive mutates it and republishes the whole file atomically. Writes are
- * NOT queued here — per the backend contract, write ordering belongs to the
- * caller (the domain layer's write chain); this unit only guarantees that
- * each single call publishes a complete, durable file.
- * @module @freddie/freddie-storage-json/src/unit
- */
-
 import { readFile } from 'node:fs/promises'
 import { StorageError } from '@freddie/freddie-storage'
 import { writeAtomic } from './atomic.js'
 import { parse, serialize } from './format.js'
 
-/**
- * Open (load or lazily create) one unit backed by `path`.
- * @param descriptor - Static identity and shape of the unit.
- * @param path - Absolute unit file path under the backend root.
- * @param onClose - Backend callback releasing the unit's open-slot.
- * @returns the opened unit.
- */
 export async function openJsonUnit(descriptor, path, onClose) {
   let text
   try {
@@ -39,7 +23,6 @@ export async function openJsonUnit(descriptor, path, onClose) {
 
 class JsonKvUnit {
   closed = false
-  /** In-flight publishes; close() drains them before releasing the unit. */
   inFlight = new Set()
 
   constructor(descriptor, path, state, onClose) {

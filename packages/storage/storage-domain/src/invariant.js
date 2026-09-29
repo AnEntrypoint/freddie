@@ -1,22 +1,8 @@
-/**
- * Package-owned invariant companion for `@freddie/freddie-storage-domain`: every
- * `domain/changed` event must agree with the emitting domain's authoritative
- * in-memory state (the owned event-stream ↔ mutable-data relationship of this
- * package). Writes emit strictly after mutating memory and the write chain
- * serializes them, so at emission time the event's snapshot equals the
- * current read — any divergence means a write path skipped the chain or
- * emitted a stale value.
- * @module @freddie/freddie-storage-domain/invariant
- */
-
 const PACKAGE_NAME = '@freddie/freddie-storage-domain'
 
-/** Cordis companion plugin name. */
 export const name = 'storage-domain-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Install the change-event ↔ memory-state agreement check. */
 const install = Object.assign((ctx, fail) => {
   ctx.on('domain/changed', (change) => {
     const domain = ctx.storage.form('domain').get(change.domain)
@@ -53,10 +39,5 @@ const install = Object.assign((ctx, fail) => {
   }, { global: true })
 }, { inject: ['storage'] })
 
-/**
- * Register this package's invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
