@@ -1,8 +1,3 @@
-/**
- * Agent-scoped durable one-shot and fixed-rate reminders over the session event log.
- * @module @freddie/freddie-schedule
- */
-
 import { ScheduleRuntime } from './runtime.js'
 import { registerScheduleTools } from './tools.js'
 
@@ -25,12 +20,9 @@ export {
 } from './domain.js'
 export { registerScheduleTools } from './tools.js'
 
-/** Cordis function-plugin name. */
 export const name = 'schedule'
-/** Services required before future root agents can receive Schedule. */
 export const inject = ['agents', 'sessions', 'tools', 'sessionPersistence']
 
-/** Install Schedule only for root agents published after this plugin loads. */
 export function apply(ctx) {
   const runtimes = new Map()
   let stopping = false

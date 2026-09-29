@@ -1,8 +1,3 @@
-/**
- * Agent-scoped Schedule management tools over the durable session fold.
- * @module @freddie/freddie-schedule
- */
-
 import { defineTool } from '@freddie/freddie-tools'
 import {
   allocateScheduleId,
@@ -58,7 +53,6 @@ const EVERY_VIEW_SCHEMA = {
 
 const VIEW_SCHEMA = { oneOf: [AFTER_VIEW_SCHEMA, AT_VIEW_SCHEMA, EVERY_VIEW_SCHEMA] }
 
-/** Build one exact two-field error schema while preserving its literal code. */
 function basicErrorSchema(code) {
   return {
     type: 'object',
@@ -145,28 +139,23 @@ const DELETE_DESCRIPTION =
   'Delete one active reminder in the current session by the exact id returned by schedule_create '
   + 'or schedule_list. Unknown or already-finished ids return deleted false.'
 
-/** Deterministic model content for every canonical Schedule value. */
 function renderValue(_args, value) {
   const text = JSON.stringify(value)
   return [{ type: 'text', text }]
 }
 
-/** Pure generic pending card. */
 function present(title, kind, rawInput) {
   return { card: 'generic', title, kind, ...rawInput === undefined ? {} : { rawInput } }
 }
 
-/** Stable error for failures not safe to expose. */
 function internalError() {
   return { code: 'internal_error', message: 'The schedule operation failed.' }
 }
 
-/** Placeholder the registry replaces with its canonical ABORTED result after body quiescence. */
 function cancellationPlaceholder(signal) {
   return signal.aborted ? internalError() : undefined
 }
 
-/** Serialize one operation, stopping a body whose caller cancelled before its FIFO turn. */
 function runCancellableScheduleTransaction(agent, signal, task) {
   return runScheduleTransaction(agent, async () => {
     const cancelled = cancellationPlaceholder(signal)
@@ -174,12 +163,10 @@ function runCancellableScheduleTransaction(agent, signal, task) {
   })
 }
 
-/** Stable durable-log failure. */
 function corruptLogError() {
   return { code: 'corrupt_schedule_log', message: 'The session schedule log is corrupt.' }
 }
 
-/** Stable persistence uncertainty with the known operation identity. */
 function persistenceError(operation, id) {
   return {
     code: 'persistence_uncertain',
@@ -189,12 +176,10 @@ function persistenceError(operation, id) {
   }
 }
 
-/** Translate one contained input failure to the closed tool union. */
 function inputError(error) {
   return { code: error.code, message: error.message }
 }
 
-/** Fold only after a successful preflight, mapping corruption to a stable value. */
 function foldForTool(agent) {
   try {
     return foldScheduleEvents(agent.session.events, agent.session.header.seedLength ?? 0)
@@ -203,12 +188,10 @@ function foldForTool(agent) {
   }
 }
 
-/** Whether a fold attempt produced an error rather than replay state. */
 function isToolError(value) {
   return 'code' in value
 }
 
-/** Require one persistence checkpoint without leaking the backend failure. */
 async function preflight(rootCtx, agent, operation, id) {
   try {
     await flushSchedulePersistence(rootCtx, agent.session)
@@ -218,7 +201,6 @@ async function preflight(rootCtx, agent, operation, id) {
   }
 }
 
-/** Validate the v1 selector constraints that the open parameter root cannot express. */
 function validateCreateArgs(args) {
   const keys = Object.keys(args)
   if (keys.some(key => key !== 'prompt'
@@ -252,18 +234,9 @@ function validateCreateArgs(args) {
   return undefined
 }
 
-/**
- * Register all three Schedule tools in one exact agent scope.
- * @param rootCtx - Global service context owning sessions and durability.
- * @param toolCtx - Exact agent-scoped context receiving the definitions.
- * @param agent - Exact live owner whose session the tools mutate.
- * @param onDurableChange - Called after every successful preflight and again after a create or actual delete barrier succeeds.
- * @returns Idempotent aggregate disposer for the three registrations.
- */
 export function registerScheduleTools(rootCtx, toolCtx, agent, onDurableChange) {
   const disposers = []
 
-  /** A projection observer cannot reverse a completed durability barrier. */
   const notifyDurableChange = () => {
     try {
       onDurableChange()

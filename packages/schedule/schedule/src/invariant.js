@@ -1,30 +1,21 @@
-/**
- * Package-owned strict Schedule stream invariant.
- * @module @freddie/freddie-schedule/invariant
- */
-
 import { foldScheduleEvents, ScheduleLogError } from './domain.js'
 
 const PACKAGE_NAME = '@freddie/freddie-schedule'
 
-/** Cordis invariant-companion plugin name. */
 export const name = 'tool-schedule-invariant'
-/** Service required before reserving this package's invariant ownership. */
 export const inject = ['invariants']
 
-/** Validate a complete exact-session stream under its fork suffix policy. */
 function validate(events, seedLength, fail) {
   try {
     foldScheduleEvents(events, seedLength)
   } catch (error) {
-    /* v8 ignore next -- foldScheduleEvents normalizes every rejected stream to ScheduleLogError. */
+    /* v8 ignore next */
     if (!(error instanceof ScheduleLogError)) throw error
     fail(error.message)
   }
 }
 
-/* jscpd:ignore-start -- package companions share replay and dispatch plumbing */
-/** Install replay and pre-append validation for the owned event stream. */
+/* jscpd:ignore-start */
 const install = Object.assign((ctx, fail) => {
   for (const session of ctx.sessions.list()) {
     validate(session.events, session.header.seedLength ?? 0, fail)
@@ -41,10 +32,5 @@ const install = Object.assign((ctx, fail) => {
 }, { inject: ['sessions'] })
 /* jscpd:ignore-end */
 
-/**
- * Register the package-owned invariant companion.
- * @param ctx - Cordis context carrying the invariant registry.
- * @returns Exact registration disposer after child setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

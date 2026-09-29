@@ -1,8 +1,3 @@
-/**
- * Disposable live timer projection for one exact root agent.
- * @module @freddie/freddie-schedule
- */
-
 import { createUserMessage } from '@freddie/freddie-llm'
 import {
   foldScheduleEvents,
@@ -14,10 +9,8 @@ import {
 import { flushSchedulePersistence } from './persistence.js'
 import { runScheduleTransaction } from './transaction.js'
 
-/** Largest delay that Node timers represent without clamping. */
 export const MAX_TIMER_DELAY_MS = 2_147_483_647
 
-/** Select one due one-shot, one complete fixed-rate batch, or the next wake. */
 function dueDecision(folded, now) {
   const indexed = folded.active.map((record, index) => ({ record, index }))
   const byTargetThenCreate = (left, right) =>
@@ -50,12 +43,10 @@ function dueDecision(folded, now) {
   return { kind: 'wait', ...(target === undefined ? {} : { target }) }
 }
 
-/** Render an unknown value for process-local diagnostics only. */
 function renderThrown(value) {
   return value instanceof Error ? value.message : String(value)
 }
 
-/** One process-local, disposable projection of an exact agent's durable schedules. */
 export class ScheduleRuntime {
   stop = Promise.withResolvers()
   timer
@@ -66,22 +57,15 @@ export class ScheduleRuntime {
   faulted = false
   disposal
 
-  /**
-   * Construct an inactive runtime; {@link start} begins the first preflight.
-   * @param ctx - Global service context.
-   * @param agent - Exact live root agent.
-   */
   constructor(ctx, agent) {
     this.ctx = ctx
     this.agent = agent
   }
 
-  /** Begin the initial durability preflight and timer derivation. */
   start() {
     this.requestDrive()
   }
 
-  /** Recompute the live projection after a committed mutation or idle transition. */
   requestDrive() {
     if (this.stopping || this.faulted) return
     this.clearTimer()
@@ -109,7 +93,6 @@ export class ScheduleRuntime {
     )
   }
 
-  /** Stop future work, cancel timers, and await every outstanding runtime promise. */
   dispose() {
     return (this.disposal ??= (async () => {
       this.stopping = true
@@ -121,7 +104,6 @@ export class ScheduleRuntime {
     })())
   }
 
-  /** Drain coalesced triggers serially. */
   async runRequested() {
     while (this.requested && !this.stopping && !this.faulted) {
       this.requested = false
@@ -129,34 +111,29 @@ export class ScheduleRuntime {
     }
   }
 
-  /** Retire one exact run and honor a trigger that landed during its final microtask. */
   retire(run) {
-    /* v8 ignore next -- only the exact stored run installs this callback. */
+    /* v8 ignore next */
     if (this.run !== run) return
     this.run = undefined
-    /* v8 ignore next -- covers a trigger in the promise-settlement microtask gap. */
+    /* v8 ignore next */
     if (this.requested && !this.stopping && !this.faulted) this.requestDrive()
   }
 
-  /** Whether this exact root lifecycle remains authoritative. */
   isLive() {
     return this.ctx.agents.get(this.agent.id) === this.agent
       && this.ctx.agents.roots().includes(this.agent)
   }
 
-  /** Whether this runtime may start or continue Schedule work. */
   isRunnable() {
     return !this.stopping && this.isLive()
   }
 
-  /** Cancel the currently armed timer, if any. */
   clearTimer() {
     if (this.timer === undefined) return
     clearTimeout(this.timer)
     this.timer = undefined
   }
 
-  /** Arm one bounded timer segment; every wake rechecks the wall clock. */
   arm(target, now) {
     const delay = Math.min(target - now, MAX_TIMER_DELAY_MS)
     this.timer = setTimeout(() => {
@@ -165,7 +142,6 @@ export class ScheduleRuntime {
     }, delay)
   }
 
-  /** Await one public idle boundary without holding admission or creating a retry timer. */
   waitForIdle() {
     if (this.idleWait !== undefined) return
     const wait = Promise.race([this.agent.whenIdle(), this.stop.promise])
@@ -184,7 +160,6 @@ export class ScheduleRuntime {
     )
   }
 
-  /** Fold the current exact runtime suffix and contain a corrupt durable stream. */
   readFolded() {
     try {
       return foldScheduleEvents(
@@ -199,7 +174,6 @@ export class ScheduleRuntime {
     }
   }
 
-  /** Contain an invalid wall-clock decision without permanently faulting this runtime. */
   decide(folded, now) {
     try {
       return dueDecision(folded, now)
@@ -209,7 +183,6 @@ export class ScheduleRuntime {
     }
   }
 
-  /** Preflight, fold, arm, or dispatch the next one-shot or fixed-rate batch. */
   async driveOnce() {
     this.clearTimer()
     if (!this.isRunnable()) return

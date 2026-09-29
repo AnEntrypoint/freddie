@@ -1,12 +1,5 @@
-/**
- * Strict Schedule decoding, replay, time validation, and framing.
- * @module @freddie/freddie-schedule
- */
-
-/** Durable Schedule protocol version implemented by this package. */
 export const SCHEDULE_CHANGE_VERSION = 1
 
-/** Fixed v1 lower bound for a fixed-rate reminder. */
 export const MIN_EVERY_INTERVAL_SECONDS = 300
 
 const MIN_FOUR_DIGIT_YEAR_MS = Date.parse('0001-01-01T00:00:00.000Z')
@@ -23,32 +16,18 @@ const LOCAL_TIME = /^(?<hour>\d{2}):(?<minute>\d{2}):(?<second>\d{2})(?:\.(?<fra
 const IANA_ZONE = /^[A-Za-z][A-Za-z0-9_+.-]*(?:\/[A-Za-z0-9_+.-]+)+$/
 const OFFSET_NAME = /^GMT(?:(?<sign>[+-])(?<hour>\d{2}):(?<minute>\d{2})(?::(?<second>\d{2}))?)?$/
 
-/** Error from malformed or transition-invalid durable Schedule data. */
 export class ScheduleLogError extends Error {
-  /** Stable machine-readable error code. */
   code = 'corrupt_schedule_log'
 
-  /**
-   * Construct a durable-log failure.
-   * @param message - Package-specific violated invariant.
-   */
   constructor(message) {
     super(message)
     this.name = 'ScheduleLogError'
   }
 }
 
-/** Error from a model-supplied Schedule rule that cannot become a record. */
 export class ScheduleInputError extends Error {
-  /** Stable public Schedule input code. */
   code
 
-  /**
-   * Construct a stable input failure.
-   * @param code - Public Schedule error discriminator.
-   * @param message - Stable public diagnostic.
-   * @param options - Optional contained implementation cause.
-   */
   constructor(code, message, options) {
     super(message, options)
     this.name = 'ScheduleInputError'
@@ -56,28 +35,20 @@ export class ScheduleInputError extends Error {
   }
 }
 
-/**
- * Brand a raw session-local id without changing its runtime value.
- * @param value - Raw session-local id.
- * @returns The same string with the Schedule brand.
- */
 export function ScheduleId(value) {
   return value
 }
 
-/** Whether an unknown value is a non-array object. */
 function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/** Require exactly the named durable object keys. */
 function hasExactKeys(value, expected) {
   const keys = Object.keys(value).sort()
   const wanted = [...expected].sort()
   return keys.length === wanted.length && keys.every((key, index) => key === wanted[index])
 }
 
-/** Validate one stable session-local id at the durable boundary. */
 function decodeId(value) {
   if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
     throw new ScheduleLogError('schedule id must be a non-empty string without surrounding whitespace')
@@ -85,7 +56,6 @@ function decodeId(value) {
   return ScheduleId(value)
 }
 
-/** Validate one canonical four-digit-year UTC instant. */
 function decodeInstant(value) {
   if (typeof value !== 'string' || !UTC_INSTANT.test(value)) {
     throw new ScheduleLogError('scheduledAt must be a canonical four-digit-year RFC 3339 UTC instant')
@@ -97,15 +67,13 @@ function decodeInstant(value) {
   return value
 }
 
-/** Read one required named regular-expression group as a number. */
 function groupNumber(groups, name) {
   const value = groups[name]
-  /* v8 ignore next -- successful fixed regexes always provide every requested group. */
+  /* v8 ignore next */
   if (value === undefined) throw new ScheduleInputError('invalid_rule', 'The at value has an invalid shape.')
   return Number(value)
 }
 
-/** Convert exact calendar fields to a UTC-shaped epoch while rejecting normalization. */
 function calendarEpoch(parts) {
   const value = new Date(0)
   value.setUTCHours(0, 0, 0, 0)
@@ -125,12 +93,10 @@ function calendarEpoch(parts) {
   return epoch
 }
 
-/** Normalize an optional one-to-three digit fractional second to milliseconds. */
 function milliseconds(value) {
   return value === undefined ? 0 : Number(value.padEnd(3, '0'))
 }
 
-/** Require a safe, representable, strictly future UTC target. */
 function futureInstant(epoch, now) {
   if (!Number.isSafeInteger(now) || !Number.isSafeInteger(epoch)
     || epoch < MIN_FOUR_DIGIT_YEAR_MS || epoch > MAX_FOUR_DIGIT_YEAR_MS) {
@@ -143,7 +109,7 @@ function futureInstant(epoch, now) {
     throw new ScheduleInputError('not_future', 'The scheduled time must be strictly in the future.')
   }
   const instant = new Date(epoch).toISOString()
-  /* v8 ignore next -- an in-range integral Date always formats as the canonical UTC profile. */
+  /* v8 ignore next */
   if (!UTC_INSTANT.test(instant)) {
     throw new ScheduleInputError(
       'time_out_of_range',
@@ -153,7 +119,6 @@ function futureInstant(epoch, now) {
   return instant
 }
 
-/** Parse a strict RFC 3339 instant whose numeric offset is part of the input. */
 function parseOffsetInstant(value) {
   const match = OFFSET_INSTANT.exec(value)
   const groups = match?.groups
@@ -187,11 +152,6 @@ function parseOffsetInstant(value) {
   return localEpoch - direction * (offsetHour * 60 + offsetMinute) * 60_000
 }
 
-/**
- * Validate and canonicalize one raw IANA time-zone selector.
- * @param value - Candidate `UTC` or IANA Area/Location name.
- * @returns The runtime's canonical IANA name.
- */
 export function canonicalizeTimeZone(value) {
   if (value.length === 0 || value.trim() !== value || (value !== 'UTC' && !IANA_ZONE.test(value))) {
     throw new ScheduleInputError('invalid_time_zone', 'time_zone must be UTC or a valid IANA Area/Location name.')
@@ -206,14 +166,13 @@ export function canonicalizeTimeZone(value) {
       { cause: error },
     )
   }
-  /* v8 ignore next -- Intl returns the requested canonical zone or an IANA canonical alias. */
+  /* v8 ignore next */
   if (canonical !== 'UTC' && !IANA_ZONE.test(canonical)) {
     throw new ScheduleInputError('invalid_time_zone', 'time_zone must resolve to UTC or an IANA Area/Location name.')
   }
   return canonical
 }
 
-/** Parse strict local calendar fields without consulting a process time zone. */
 function parseLocalAt(value) {
   const dateMatch = LOCAL_DATE.exec(value.date)
   const timeMatch = LOCAL_TIME.exec(value.time)
@@ -241,19 +200,18 @@ function parseLocalAt(value) {
   return parts
 }
 
-/** Format one epoch into exact local fields and the zone offset that produced them. */
 function localProjection(formatter, epoch) {
   const values = Object.fromEntries(formatter.formatToParts(epoch).map(part => [part.type, part.value]))
   const zoneName = values['timeZoneName']
-  /* v8 ignore next -- a formatter configured with longOffset always emits this part. */
+  /* v8 ignore next */
   const offsetMatch = typeof zoneName === 'string' ? OFFSET_NAME.exec(zoneName) : null
   const offsetGroups = offsetMatch?.groups
-  /* v8 ignore next -- the formatter requested longOffset, whose part is defined by Intl. */
+  /* v8 ignore next */
   if (offsetMatch === null || offsetGroups === undefined) {
     throw new ScheduleInputError('invalid_time_zone', 'time_zone did not expose a usable UTC offset.')
   }
   const direction = offsetGroups['sign'] === '-' ? -1 : 1
-  /* v8 ignore next -- some Intl builds spell UTC as bare GMT instead of GMT+00:00. */
+  /* v8 ignore next */
   const offset = offsetGroups['sign'] === undefined
     ? 0
     : direction * (
@@ -273,7 +231,6 @@ function localProjection(formatter, epoch) {
   }
 }
 
-/** Resolve a local wall-clock value, choosing the first instant in an overlap and rejecting a gap. */
 function resolveLocalInstant(parts, timeZone) {
   const localEpoch = calendarEpoch(parts)
   const formatter = new Intl.DateTimeFormat('en-US-u-ca-iso8601-nu-latn', {
@@ -325,7 +282,6 @@ function resolveLocalInstant(parts, timeZone) {
   return first
 }
 
-/** Decode the exact v1 after record shape. */
 function decodeAfterRecord(value) {
   if (!isRecord(value) || !hasExactKeys(value, ['id', 'kind', 'prompt', 'afterSeconds', 'scheduledAt'])) {
     throw new ScheduleLogError('after schedule must contain exactly id, kind, prompt, afterSeconds, and scheduledAt')
@@ -347,7 +303,6 @@ function decodeAfterRecord(value) {
   })
 }
 
-/** Decode the exact v1 absolute one-shot record shape. */
 function decodeAtRecord(value) {
   if (!isRecord(value) || !hasExactKeys(value, ['id', 'kind', 'prompt', 'scheduledAt'])) {
     throw new ScheduleLogError('at schedule must contain exactly id, kind, prompt, and scheduledAt')
@@ -364,7 +319,6 @@ function decodeAtRecord(value) {
   })
 }
 
-/** Decode the exact v1 fixed-rate record shape. */
 function decodeEveryRecord(value) {
   if (!isRecord(value)
     || !hasExactKeys(value, ['id', 'kind', 'prompt', 'everySeconds', 'scheduledAt'])) {
@@ -390,7 +344,6 @@ function decodeEveryRecord(value) {
   })
 }
 
-/** Decode one current durable record variant by its exact discriminator. */
 function decodeScheduleRecord(value) {
   if (!isRecord(value)) throw new ScheduleLogError('schedule record must be an object')
   switch (value['kind']) {
@@ -401,11 +354,6 @@ function decodeScheduleRecord(value) {
   }
 }
 
-/**
- * Decode one strict version-1 `schedule/change` payload.
- * @param value - Untrusted durable JSON value.
- * @returns Detached, frozen Schedule change.
- */
 export function decodeScheduleChange(value) {
   if (!isRecord(value)) throw new ScheduleLogError('schedule/change payload must be an object')
   if (value['version'] !== SCHEDULE_CHANGE_VERSION) {
@@ -454,12 +402,6 @@ export function decodeScheduleChange(value) {
   }
 }
 
-/**
- * Resolve one fixed-rate decision without enumerating missed occurrences.
- * @param record - Active record whose target is the earliest unaccepted occurrence.
- * @param acceptedAt - Wall-clock decision time in epoch milliseconds.
- * @returns The latest due occurrence and first strictly future target, if representable.
- */
 export function resolveEveryOccurrence(record, acceptedAt) {
   const target = Date.parse(record.scheduledAt)
   const interval = record.everySeconds * 1_000
@@ -476,7 +418,7 @@ export function resolveEveryOccurrence(record, acceptedAt) {
   }
   const steps = Math.floor((acceptedAt - target) / interval)
   const occurrence = target + steps * interval
-  /* v8 ignore next -- bounded operands and a quotient-derived product stay safe. */
+  /* v8 ignore next */
   if (!Number.isSafeInteger(occurrence) || occurrence < target || occurrence > acceptedAt) {
     throw new ScheduleLogError('every occurrence arithmetic must stay within the accepted interval')
   }
@@ -491,7 +433,6 @@ export function resolveEveryOccurrence(record, acceptedAt) {
   })
 }
 
-/** Apply one decoded dispatch to its exact active record. */
 function dispatchedRecord(record, change) {
   const hasAcceptedAt = 'acceptedAt' in change
   if (record.kind !== 'every') {
@@ -505,12 +446,6 @@ function dispatchedRecord(record, change) {
     : Object.freeze({ ...record, scheduledAt: occurrence.nextScheduledAt })
 }
 
-/**
- * Fold the package-owned stream after the durable fork seed boundary.
- * @param events - Complete ordered session log or candidate-extended log.
- * @param seedLength - Inherited prefix length excluded from child ownership.
- * @returns Active records and all previously used ids.
- */
 export function foldScheduleEvents(events, seedLength = 0) {
   if (!Number.isSafeInteger(seedLength) || seedLength < 0 || seedLength > events.length) {
     throw new ScheduleLogError('schedule seedLength must be within the supplied event log')
@@ -543,7 +478,7 @@ export function foldScheduleEvents(events, seedLength = 0) {
         else active.set(change.id, next)
         break
       }
-      /* v8 ignore next 3 -- decodeScheduleChange returns a closed operation union. */
+      /* v8 ignore next 3 */
       default: {
         const unreachable = change
         throw new ScheduleLogError(`unknown decoded schedule change ${String(unreachable)}`)
@@ -556,11 +491,6 @@ export function foldScheduleEvents(events, seedLength = 0) {
   })
 }
 
-/**
- * Allocate the next readable id without reusing any prior session-local id.
- * @param folded - Fold containing every previously created id.
- * @returns A fresh `schedule-N` identity.
- */
 export function allocateScheduleId(folded) {
   const seen = new Set(folded.seenIds)
   let sequence = seen.size + 1
@@ -572,14 +502,6 @@ export function allocateScheduleId(folded) {
   return candidate
 }
 
-/**
- * Validate a model after rule and compute its durable target.
- * @param id - Already allocated session-local id.
- * @param prompt - Reminder content supplied at creation.
- * @param afterSeconds - Requested positive delay.
- * @param now - Single creation-time wall-clock sample in epoch milliseconds.
- * @returns Frozen durable after record.
- */
 export function createAfterScheduleRecord(id, prompt, afterSeconds, now) {
   const normalizedPrompt = prompt.trim()
   if (normalizedPrompt.length === 0) {
@@ -599,14 +521,6 @@ export function createAfterScheduleRecord(id, prompt, afterSeconds, now) {
   })
 }
 
-/**
- * Validate an absolute selector and compute its sole durable UTC target.
- * @param id - Already allocated session-local id.
- * @param prompt - Reminder content supplied at creation.
- * @param at - Explicit-offset instant or structured local calendar value.
- * @param now - Single creation-time wall-clock sample in epoch milliseconds.
- * @returns Frozen durable absolute one-shot record.
- */
 export function createAtScheduleRecord(id, prompt, at, now) {
   const normalizedPrompt = prompt.trim()
   if (normalizedPrompt.length === 0) {
@@ -645,14 +559,6 @@ export function createAtScheduleRecord(id, prompt, at, now) {
   })
 }
 
-/**
- * Validate a fixed-rate selector and compute its first creation-aligned target.
- * @param id - Already allocated session-local id.
- * @param prompt - Reminder content supplied at creation.
- * @param everySeconds - Requested fixed safe-integer interval.
- * @param now - Single creation-time wall-clock sample in epoch milliseconds.
- * @returns Frozen durable fixed-rate record.
- */
 export function createEveryScheduleRecord(id, prompt, everySeconds, now) {
   const normalizedPrompt = prompt.trim()
   if (normalizedPrompt.length === 0) {
@@ -678,12 +584,6 @@ export function createEveryScheduleRecord(id, prompt, everySeconds, now) {
   })
 }
 
-/**
- * Derive one execution-local management view.
- * @param record - Active durable record.
- * @param now - Wall-clock sample used for its timing state.
- * @returns Complete session-local view.
- */
 export function scheduleView(record, now) {
   return Object.freeze({
     ...record,
@@ -692,11 +592,6 @@ export function scheduleView(record, now) {
   })
 }
 
-/**
- * Render the fixed injection-resistant model framing for a due reminder.
- * @param record - Due active record.
- * @returns Stable model-visible text with JSON-escaped dynamic fields.
- */
 export function renderReminderFraming(record) {
   return [
     '[SCHEDULE REMINDER]',
@@ -707,11 +602,6 @@ export function renderReminderFraming(record) {
   ].join('\n')
 }
 
-/**
- * Render one injection-resistant fixed-rate batch in target and create order.
- * @param reminders - Complete admitted batch with one latest occurrence per record.
- * @returns Stable model-visible text whose dynamic payload is canonical JSON.
- */
 export function renderEveryReminderBatchFraming(reminders) {
   const payload = reminders.map(({ record, occurrenceAt }) => ({
     schedule_id: record.id,
