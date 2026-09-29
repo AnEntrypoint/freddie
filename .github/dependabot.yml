@@ -5,18 +5,8 @@ updates:
     directory: "/"
     exclude-paths:
       - "framework/**"
-    schedule:
-      interval: "cron"
-      cronjob: "0 4 * * *"
-      timezone: "UTC"
-    cooldown:
-      default-days: 30
-    labels:
-      - "kind/dependency"
-      - "area/infra"
-
-  - package-ecosystem: "uv"
-    directory: "/python/sdk"
+    ignore:
+      - dependency-name: "libsql-plugkit-client"
     schedule:
       interval: "cron"
       cronjob: "0 4 * * *"

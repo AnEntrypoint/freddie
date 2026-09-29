@@ -93,6 +93,7 @@ const GENERIC_SKIPS = [
   { file: 'packages/extensions/ui-cordis/src/client/CordisPanel.js', upstream: ['cordis'] },
   { file: 'packages/extensions/ui-cordis/src/client/CordisRunRow.js', upstream: ['cordis'] },
   { file: 'packages/extensions/ui-cordis/src/client/locales.js', upstream: ['cordis'] },
+  { file: 'packages/runtime-diagnostics/inspector/src/shared.js', upstream: ['cordis'] },
 ]
 
 /** A string that must appear exactly `count` times once the rescope has run. */

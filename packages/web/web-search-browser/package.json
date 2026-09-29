@@ -1,7 +1,7 @@
 {
   "name": "@freddie/freddie-web-search-browser",
   "description": "DuckDuckGo-via-browser-automation search provider (no API key) for the Freddie web capability seam (ctx.web), driven through ctx.gm's browser verb",
-  "version": "0.1.0",
+  "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
