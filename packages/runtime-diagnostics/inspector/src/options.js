@@ -1,25 +1,5 @@
-/**
- * Resolution and validation of the Inspector's deployment-varying choices, and
- * the one security decision that is not a choice.
- * @module @freddie/freddie-inspector/options
- */
-
 import { DEFAULT_PORT, INSPECTOR_HOST, LOOPBACK_HOSTS } from './shared.js'
 
-/**
- * Refuse any bind address that is not loopback.
- *
- * The CDP target grants arbitrary code execution in the Host realm through
- * `Runtime.evaluate`, and Host Debugger operations add pause and resume control.
- * A non-loopback bind is a remote-code-execution hole, so this runs on the Host
- * before the Worker spawns and again inside the Worker before it listens: the
- * worker boundary is a validation boundary.
- *
- * @param {unknown} host - caller-supplied bind address.
- * @param {string} [label] - prefix of the thrown message.
- * @returns {string} the accepted loopback address.
- * @throws {Error} when `host` is not one of {@link LOOPBACK_HOSTS}.
- */
 export function assertLoopback(host, label = 'inspector') {
   if (typeof host !== 'string' || !LOOPBACK_HOSTS.includes(host)) {
     throw new Error(
@@ -30,23 +10,12 @@ export function assertLoopback(host, label = 'inspector') {
   return host
 }
 
-/**
- * Whether an address the operating system reported back is loopback.
- *
- * {@link assertLoopback} runs before the bind; this runs after it, because the
- * bound address is what the socket actually holds. A bind that somehow resolved
- * to a non-loopback interface fails the endpoint instead of serving it.
- *
- * @param {unknown} address - the address from `server.address()`.
- * @returns {boolean} true only for loopback.
- */
 export function isLoopbackAddress(address) {
   if (typeof address !== 'string') return false
   if (address === 'localhost' || address === '::1') return true
   return /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(address)
 }
 
-/** Default memory bounds; every one is a Config field, never a literal in a call site. */
 export const DEFAULT_MAX_BODY_BYTES = 64 * 1024
 export const DEFAULT_MAX_JOURNAL_BYTES = 64 * 1024 * 1024
 export const DEFAULT_MAX_RETAINED_REQUESTS = 2_000
@@ -67,19 +36,6 @@ function natural(value, name, { zero = false, min = zero ? 0 : 1, max = Number.M
   return value
 }
 
-/**
- * Resolve and validate every deployment-varying Inspector choice into one
- * immutable spec. The bind address is resolved here but is asserted, not
- * chosen: {@link assertLoopback} rejects anything but loopback.
- *
- * @param {object} [options] - partial caller configuration.
- * @returns {Readonly<{
- *   host: string, port: number, captureFetch: boolean, captureBodies: boolean,
- *   maxBodyBytes: number, maxJournalBytes: number, maxRetainedRequests: number,
- *   maxQueuedRecords: number, maxQueuedBytes: number, maxFrameBytes: number,
- *   maxCordisNodes: number, cordisIntervalMs: number, startupTimeoutMs: number, stopTimeoutMs: number
- * }>} the complete spec.
- */
 export function resolveInspectorOptions(options = {}) {
   const spec = {
     host: assertLoopback(options.host ?? INSPECTOR_HOST),
@@ -104,7 +60,6 @@ export function resolveInspectorOptions(options = {}) {
   return Object.freeze(spec)
 }
 
-/** Reject a spec whose largest base64 body chunk could not ride one transport frame. */
 function assertOneBodyChunkFitsOneFrameNowRatherThanOnTheWire(spec) {
   const largestEncodedChunk = Math.ceil(spec.maxBodyBytes / 3) * 4 + 1_024
   if (largestEncodedChunk > spec.maxFrameBytes) {

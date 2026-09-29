@@ -1,19 +1,5 @@
-/**
- * The Worker's Chrome DevTools Protocol hub.
- *
- * Every DevTools connection owns ONE V8 inspector session attached to the Host
- * main thread with `Session.prototype.connectToMainThread()`, which is what
- * makes Host Console evaluation, Sources, and breakpoints available while the
- * Inspector's own state lives in this Worker: a session created here would
- * otherwise attach to the Worker's own isolate. Network nodes come from the
- * Worker's retained fetch journal and Elements nodes from the Worker's Cordis
- * snapshot — neither is re-derived from live Host objects.
- * @module @freddie/freddie-inspector/cdp
- */
-
 import { Session } from 'node:inspector'
 
-/** Inspector methods forwarded verbatim to the Host main thread's V8 inspector. */
 const FORWARDED_METHODS = new Set([
   'Runtime.enable', 'Runtime.disable', 'Runtime.getProperties',
   'Runtime.callFunctionOn', 'Runtime.releaseObject', 'Runtime.releaseObjectGroup',
@@ -28,7 +14,6 @@ const FORWARDED_METHODS = new Set([
   'Debugger.setVariableValue', 'Debugger.setReturnValue',
 ])
 
-/** Inspector events relayed to the connected DevTools frontend. */
 const FORWARDED_EVENTS = [
   'Runtime.executionContextCreated', 'Runtime.executionContextDestroyed',
   'Runtime.consoleAPICalled', 'Runtime.exceptionThrown', 'Runtime.inspectRequested',
@@ -36,12 +21,6 @@ const FORWARDED_EVENTS = [
   'Debugger.breakpointResolved', 'Log.entryAdded',
 ]
 
-/**
- * The only `Runtime.evaluate` parameters forwarded to V8; `#dispatch` drops every
- * other key, `contextId` included, so the expression always runs in the Host's
- * default context. `Runtime.evaluate` is deliberately absent from
- * {@link FORWARDED_METHODS}: listing it there would make the narrowing unreachable.
- */
 const EVALUATE_PARAMETERS = [
   'expression', 'objectGroup', 'includeCommandLineAPI', 'silent', 'returnByValue',
   'generatePreview', 'userGesture', 'awaitPromise', 'throwOnSideEffect', 'timeout',
@@ -51,9 +30,6 @@ const EVALUATE_PARAMETERS = [
 const NODE_TYPE_ELEMENT = 1
 const NODE_TYPE_DOCUMENT = 9
 
-/**
- * One DevTools connection's CDP surface.
- */
 export class CdpHub {
   #send
   #targetId
@@ -63,16 +39,6 @@ export class CdpHub {
   #close
   #unsubscribes = []
 
-  /**
-   * @param {object} args - hub inputs.
-   * @param {(payload: object) => void} args.send - write one CDP envelope.
-   * @param {() => void} args.close - drop the connection.
-   * @param {string} args.targetId - the single Host target id.
-   * @param {{ list: () => object[], get: (requestId: string) => object | undefined }} args.network -
-   *   the Worker's retained fetch journal.
-   * @param {{ snapshot: () => object | undefined, subscribe: (listener: () => void) => () => void }} args.elements -
-   *   the Worker's Cordis snapshot store.
-   */
   constructor({ send, close, targetId, network, elements }) {
     this.#send = send
     this.#targetId = targetId
@@ -91,21 +57,14 @@ export class CdpHub {
     }))
   }
 
-  /** Send one CDP event. */
   event(method, params) {
     this.#send({ method, params })
   }
 
-  /** Drop the underlying connection. */
   close() {
     this.#close()
   }
 
-  /**
-   * Handle one decoded CDP request frame.
-   * @param {unknown} message - parsed JSON envelope.
-   * @returns {Promise<void>} settles once the response has been written.
-   */
   async receive(message) {
     if (message === null || typeof message !== 'object') return
     const id = typeof message.id === 'number' ? message.id : undefined
@@ -124,7 +83,6 @@ export class CdpHub {
     }
   }
 
-  /** Release the V8 session and every subscription. */
   dispose() {
     for (const unsubscribe of this.#unsubscribes.splice(0)) {
       try {
@@ -256,16 +214,6 @@ export class CdpHub {
   }
 }
 
-/**
- * The Elements projection of the Cordis snapshot: a fixed `<inspector>`
- * document holding `<host>` and `<clients>`, one `<client>` per Client realm
- * once one exists.
- *
- * Node ids are per-connection; backend ids are derived from the node path so a
- * rebuilt snapshot keeps stable identities. A changed snapshot emits
- * `DOM.documentUpdated` and DevTools re-reads the document, which is coarser
- * than upstream's node-level diffing and is documented as deferred work.
- */
 export class ElementsBackend {
   #snapshot
   #rendered = ''
@@ -279,7 +227,6 @@ export class ElementsBackend {
 
   #read
 
-  /** Install the latest snapshot, notifying subscribers only when it changed. */
   refresh() {
     const snapshot = this.#read()
     this.#snapshot = snapshot
@@ -289,26 +236,15 @@ export class ElementsBackend {
     for (const listener of this.#listeners) listener()
   }
 
-  /**
-   * Subscribe to snapshot replacement.
-   * @param {() => void} listener - called after every refresh.
-   * @returns {() => void} disposer.
-   */
   subscribe(listener) {
     this.#listeners.add(listener)
     return () => { this.#listeners.delete(listener) }
   }
 
-  /** Latest snapshot, or `undefined` before the Host publishes one. */
   snapshot() {
     return this.#snapshot
   }
 
-  /**
-   * Build the Elements document to the requested depth.
-   * @param {number} depth - levels to expand; `-1` expands everything.
-   * @returns {object} the `#document` CDP node.
-   */
   document(depth) {
     this.#nodes = new Map()
     const host = this.#element('host', this.#snapshot?.nodes ?? [], depth, 2)
@@ -325,21 +261,11 @@ export class ElementsBackend {
     }
   }
 
-  /**
-   * Children of an already-built node, for `DOM.requestChildNodes`.
-   * @param {number} nodeId - connection-local node id.
-   * @returns {object[] | undefined} children, or `undefined` for an unknown id.
-   */
   children(nodeId) {
     const node = this.#nodes.get(nodeId)
     return node === undefined ? undefined : (node.children ?? [])
   }
 
-  /**
-   * Render one node as HTML for `DOM.getOuterHTML`.
-   * @param {number} nodeId - connection-local node id.
-   * @returns {string} the element's opening tag, or an empty string.
-   */
   outerHtml(nodeId) {
     const node = this.#nodes.get(nodeId)
     if (node === undefined) return ''
@@ -395,7 +321,6 @@ export class ElementsBackend {
   }
 }
 
-/** Stable 31-bit backend id for a snapshot path. */
 function hashPath(path) {
   let hash = 2166136261
   for (let index = 0; index < path.length; index += 1) {

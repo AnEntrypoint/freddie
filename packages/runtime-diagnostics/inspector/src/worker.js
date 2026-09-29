@@ -1,18 +1,3 @@
-/**
- * Inspector Worker entry: one loopback HTTP/DevTools endpoint, the retained
- * fetch journal, and the Cordis snapshot store.
- *
- * The Worker never touches live Host objects. The Host projects its Cordis graph
- * and its fetch observations into JSON records; this thread validates them,
- * owns retention, and translates them to CDP.
- *
- * The bind is the security boundary: `Runtime.evaluate` on this target is
- * arbitrary code execution in the Host realm, so the address is asserted before
- * the listen and verified again from the bound socket. A bind that cannot be
- * made loopback fails the endpoint — it never falls back to a wider one.
- * @module @freddie/freddie-inspector/worker
- */
-
 import { randomUUID } from 'node:crypto'
 import { createServer } from 'node:http'
 import { parentPort, workerData } from 'node:worker_threads'
@@ -56,10 +41,6 @@ bind().then(
   },
 )
 
-/**
- * Listen on loopback, advancing past an occupied port.
- * @returns {Promise<void>} resolves once the socket is bound and verified.
- */
 async function bind() {
   for (;;) {
     const attempt = port
@@ -165,11 +146,6 @@ function handleUpgrade(request, socket, head) {
   connections.add(connection)
 }
 
-/**
- * Apply one Host observation frame.
- * @param {unknown} value - message from the Host source port.
- * @returns {void}
- */
 function receiveHostFrame(value) {
   if (value === null || typeof value !== 'object' || value.t !== FRAME.records) return
   for (const record of value.items ?? []) {
@@ -197,13 +173,6 @@ function receiveHostFrame(value) {
   }
 }
 
-/**
- * Retained fetch journal: fixed request count and fixed body-byte budget, oldest
- * first. Retention is process memory; nothing here is written to disk, a log, or
- * a mirror.
- * @param {object} limits - `maxRetainedRequests` and `maxJournalBytes`.
- * @returns {object} the store.
- */
 function createNetworkStore(limits) {
   const order = []
   const records = new Map()

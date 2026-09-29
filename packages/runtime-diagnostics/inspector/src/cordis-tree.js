@@ -1,26 +1,3 @@
-/**
- * Cordis topology projection for the Elements panel.
- *
- * The Worker never touches live Cordis objects: this runs on the Host and emits
- * a plain JSON snapshot the Worker stores and projects. Upstream includes the
- * Context-only `extend()`/`isolate()`/`intercept()` layers as direct Context
- * descendants; freddie's `framework/cordis` keeps no child-Context registry, so
- * only fiber-backed contexts appear (see the README's deferred work).
- * @module @freddie/freddie-inspector/cordis-tree
- */
-
-/**
- * Project the reachable Context/Fiber graph into a JSON snapshot.
- *
- * Cordis tracks fibers, not child contexts: every loaded plugin owns a `Fiber`
- * whose `parent` is the Context it was loaded from and whose `ctx` is its own
- * Context. Grouping fibers by `parent` therefore reconstructs the tree, with the
- * root fiber omitted exactly as upstream omits it.
- *
- * @param {import('@freddie/cordis').Context} root - the Host root context.
- * @param {number} maxNodes - Context and Fiber nodes admitted before truncation.
- * @returns {{ realm: 'host', truncated: boolean, nodes: object[] }} one detached snapshot.
- */
 export function collectCordisTree(root, maxNodes) {
   const childrenOf = new Map()
   for (const runtime of root.registry.values()) {

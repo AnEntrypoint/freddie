@@ -1,25 +1,6 @@
-/**
- * `globalThis.fetch` capture that publishes redacted observations without
- * delaying response delivery.
- *
- * The wrapper hands the caller the ORIGINAL `Response` as soon as the original
- * fetch resolves; body capture reads clones and is fire-and-forget, so capture
- * can neither change nor hold up an application request. Bodies are clones read
- * only when the composition asked for them, and even then they pass through
- * `redactText` before they are queued. Nothing here writes to disk, a log, or a
- * mirror — the Worker's retained journal is process memory and dies with it.
- * @module @freddie/freddie-inspector/fetch-capture
- */
-
 import { TOPIC } from './shared.js'
 import { redactHeaders, redactText, redactUrl } from './redact.js'
 
-/**
- * Install fetch capture.
- * @param {{ publish: (topic: string, payload: unknown) => void }} publisher - Host observation source.
- * @param {{ captureBodies: boolean, maxBodyBytes: number }} options - resolved capture bounds.
- * @returns {{ stop: () => Promise<void> }} owner that restores `fetch` and settles pending reads.
- */
 export function installFetchObserver(publisher, options) {
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'fetch')
   const original = globalThis.fetch
@@ -116,12 +97,6 @@ export function installFetchObserver(publisher, options) {
   }
 }
 
-/**
- * Read at most `limit` bytes of a cloned body as redacted text.
- * @param {Response | Request} source - cloned original.
- * @param {number} limit - byte ceiling for one body.
- * @returns {Promise<{ text: string | null, truncated: boolean }>} the redacted prefix.
- */
 async function readBounded(source, limit) {
   try {
     const raw = await source.text()

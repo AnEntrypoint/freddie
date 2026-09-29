@@ -1,17 +1,5 @@
-/**
- * Minimal RFC 6455 WebSocket server for the Inspector endpoint.
- *
- * Upstream depends on `ws`. freddie's port adds no npm dependency, so the
- * handshake and framing this endpoint needs are owned here: one upgrade
- * response, text frames with continuation and masking, ping/pong, and the close
- * handshake, with a hard payload ceiling. Binary frames are refused — CDP is
- * text.
- * @module @freddie/freddie-inspector/ws
- */
-
 import { createHash } from 'node:crypto'
 
-/** RFC 6455 §4.2.2 / §1.3 handshake digest constant. */
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 
 const OPCODE_CONTINUATION = 0x0
@@ -21,20 +9,10 @@ const OPCODE_CLOSE = 0x8
 const OPCODE_PING = 0x9
 const OPCODE_PONG = 0xa
 
-/**
- * Compute the `Sec-WebSocket-Accept` value for one client key.
- * @param {string} key - the request's `Sec-WebSocket-Key`.
- * @returns {string} base64 accept token.
- */
 export function acceptToken(key) {
   return createHash('sha1').update(`${key}${GUID}`).digest('base64')
 }
 
-/**
- * Whether an upgrade request is a WebSocket opening handshake this server accepts.
- * @param {import('node:http').IncomingMessage} request - upgrade request.
- * @returns {boolean} true when the handshake may proceed.
- */
 export function isWebSocketUpgrade(request) {
   if (request.method !== 'GET') return false
   const upgrade = String(request.headers.upgrade ?? '').toLowerCase()
@@ -43,18 +21,6 @@ export function isWebSocketUpgrade(request) {
   return typeof request.headers['sec-websocket-key'] === 'string'
 }
 
-/**
- * Complete the handshake over a raw socket and return the framed connection.
- *
- * @param {object} args - connection inputs.
- * @param {import('node:http').IncomingMessage} args.request - upgrade request.
- * @param {import('node:net').Socket} args.socket - the raw TCP socket.
- * @param {Buffer} args.head - bytes already read after the request head.
- * @param {number} args.maxPayload - payload ceiling; exceeding it closes the connection.
- * @param {(text: string) => void} args.onMessage - one complete text message.
- * @param {() => void} args.onClose - the connection is gone, in either direction.
- * @returns {{ send: (text: string) => void, close: (code: number, reason: string) => void }} the connection.
- */
 export function acceptWebSocket({ request, socket, head, maxPayload, onMessage, onClose }) {
   const key = String(request.headers['sec-websocket-key'])
   socket.write(
@@ -69,9 +35,6 @@ export function acceptWebSocket({ request, socket, head, maxPayload, onMessage, 
   return connection
 }
 
-/**
- * One framed WebSocket connection over an already-upgraded socket.
- */
 class WebSocketConnection {
   #socket
   #maxPayload
@@ -92,7 +55,6 @@ class WebSocketConnection {
     socket.on('close', () => { this.#finish() })
   }
 
-  /** Consume raw bytes, dispatching every complete message. */
   receive(chunk) {
     if (this.#closed) return
     let buffer = this.#chunks.length > 0 ? Buffer.concat([...this.#chunks, chunk]) : chunk
@@ -110,11 +72,6 @@ class WebSocketConnection {
     if (buffer.length > 0) this.#chunks.push(buffer)
   }
 
-  /**
-   * Apply one parsed frame.
-   * @param {{ fin: boolean, opcode: number, payload: Buffer }} frame - parsed frame.
-   * @returns {boolean} false once the connection must stop reading.
-   */
   #dispatch(frame) {
     if (frame.opcode === OPCODE_CLOSE) {
       const code = frame.payload.length >= 2 ? frame.payload.readUInt16BE(0) : 1000
@@ -175,22 +132,11 @@ class WebSocketConnection {
     }
   }
 
-  /**
-   * Send one text frame.
-   * @param {string} text - payload, UTF-8.
-   * @returns {void}
-   */
   send(text) {
     if (this.#closed) return
     this.#writeFrame(OPCODE_TEXT, Buffer.from(text, 'utf8'))
   }
 
-  /**
-   * Close the connection, writing the close frame when the socket is writable.
-   * @param {number} code - WebSocket close code.
-   * @param {string} reason - short reason; truncated to the protocol's 123 bytes.
-   * @returns {void}
-   */
   close(code, reason) {
     if (this.#closed) return
     this.#closed = true
@@ -230,13 +176,6 @@ class WebSocketConnection {
   }
 }
 
-/**
- * Parse the first complete frame of a buffer.
- * @param {Buffer} buffer - unread bytes.
- * @param {number} maxPayload - payload ceiling.
- * @returns {{ fin: boolean, opcode: number, payload: Buffer, rest: Buffer, tooBig?: boolean } | null}
- *   the frame and the unread remainder, or `null` when the frame is incomplete.
- */
 function readFrame(buffer, maxPayload) {
   if (buffer.length < 2) return null
   const first = buffer[0]

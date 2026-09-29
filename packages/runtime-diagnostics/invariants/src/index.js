@@ -1,26 +1,10 @@
-/**
- * Configurable registry for package-owned runtime invariant contributions.
- * Every workspace package registers checks from a `./invariant` companion;
- * ordinary package entrypoints stay independent of diagnostics.
- *
- * @module @freddie/freddie-invariants
- */
-
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 
-/** Thrown when a package-owned runtime invariant is violated. */
 export class InvariantError extends Error {
-  /** Stable machine-readable invariant failure code. */
   code = 'INVARIANT'
-  /** Full npm package name that owns the violated invariant. */
   packageName
 
-  /**
-   * Construct a package-attributed invariant failure.
-   * @param packageName - full npm package name that registered the check.
-   * @param message - violated contract, without the standard error prefix.
-   */
   constructor(packageName, message) {
     super(`invariant violated by "${packageName}": ${message}`)
     this.name = 'InvariantError'
@@ -28,7 +12,6 @@ export class InvariantError extends Error {
   }
 }
 
-/** Compile and validate one package-filter list. */
 function compilePatterns(field, values) {
   const seen = new Set()
   return values.map((value) => {
@@ -47,7 +30,6 @@ function compilePatterns(field, values) {
   })
 }
 
-/** Package-owned invariant registry with global and regex-based selection. */
 export class InvariantRegistry extends Service {
   static Config = z.object({
     enabled: z.boolean().default(true),
@@ -61,11 +43,6 @@ export class InvariantRegistry extends Service {
   packageBlocklist
   registrations = new Set()
 
-  /**
-   * Create and install the invariant registry.
-   * @param ctx - Cordis context that owns the service.
-   * @param config - global enablement and package-name regex filters.
-   */
   constructor(ctx, config = {}) {
     super(ctx, 'invariants')
     this.ownerCtx = ctx
@@ -74,7 +51,6 @@ export class InvariantRegistry extends Service {
     this.packageBlocklist = compilePatterns('package_blocklist', config.package_blocklist ?? [])
   }
 
-  /** Return whether one full package name passes the configured filters. */
   selected(packageName) {
     if (!this.enabled) return false
     if (this.packageAllowlist.length > 0
@@ -82,14 +58,6 @@ export class InvariantRegistry extends Service {
     return !this.packageBlocklist.some(pattern => pattern.test(packageName))
   }
 
-  /**
-   * Register one package's invariant installer. The package name is reserved
-   * even when filtering disables its checks. Enabled installers run in a child
-   * fiber; failure disposes that fiber and releases the reservation.
-   * @param packageName - full npm package name that owns the contribution.
-   * @param installer - listener or startup-check installer for the child context.
-   * @returns an effect-scoped disposer for the registration.
-   */
   register(packageName, installer) {
     if (packageName.length === 0 || packageName.trim() !== packageName || /\s/.test(packageName)) {
       throw new Error('invariants: packageName must be non-blank and contain no whitespace')
@@ -144,7 +112,7 @@ export class InvariantRegistry extends Service {
       registrations.delete(packageName)
       throw error
     }
-    // oxlint-disable-next-line typescript/no-misused-promises -- the extra runtime shape stays private.
+    // oxlint-disable-next-line typescript/no-misused-promises
     return registration
   }
 }
