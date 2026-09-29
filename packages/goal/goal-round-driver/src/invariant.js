@@ -1,17 +1,12 @@
-/** Package-owned goal-round prompt invariants. @module @freddie/freddie-goal-round-driver/invariant */
-
 import { isDeepStrictEqual } from 'node:util'
 import { foldGoal } from '@freddie/freddie-goal'
 import { renderGoalRoundPrompt } from './prompt.js'
 
 const PACKAGE_NAME = '@freddie/freddie-goal-round-driver'
 
-/** Cordis companion plugin name. */
 export const name = 'goal-round-driver-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Attribute strict goal-fold failures to this companion's reconstruction. */
 function foldChecked(events, fail) {
   try {
     return foldGoal(events)
@@ -22,7 +17,6 @@ function foldChecked(events, fail) {
   }
 }
 
-/** Recreate the live-shaped view consumed by the package's pure prompt renderer. */
 function goalView(folded, source, fail) {
   const goal = folded.goal
   if (goal === undefined || folded.createdAt === undefined || folded.updatedAt === undefined
@@ -39,7 +33,6 @@ function goalView(folded, source, fail) {
   }
 }
 
-/** Validate one package-owned continuation message against its durable prefix. */
 function validateEvent(prior, event, fail) {
   if (event.type !== 'user/message') return
   const source = event.data.source
@@ -50,7 +43,6 @@ function validateEvent(prior, event, fail) {
   }
 }
 
-/** Check existing sessions and every candidate event before Session publishes it. */
 const install = Object.assign((ctx, fail) => {
   for (const session of ctx.sessions.list()) {
     const prior = []
@@ -67,11 +59,6 @@ const install = Object.assign((ctx, fail) => {
   }, { global: true })
 }, { inject: ['sessions'] })
 
-/**
- * Register the goal-round-driver invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
 /* jscpd:ignore-end */

@@ -1,13 +1,7 @@
-/**
- * Same-session goal-round driver over public agent, session, and goal services.
- * @module @freddie/freddie-goal-round-driver
- */
-
 import { isDeepStrictEqual } from 'node:util'
 import { createUserMessage } from '@freddie/freddie-llm'
 import { renderGoalRoundPrompt } from './prompt.js'
 
-/** Runtime mirror: FiberState is a cross-package const enum, erased at compile time by cordis's own build. */
 const FiberState = { PENDING: 0, LOADING: 1, ACTIVE: 2, FAILED: 3, DISPOSED: 4, UNLOADING: 5 }
 
 export { renderGoalRoundPrompt } from './prompt.js'
@@ -15,38 +9,31 @@ export { renderGoalRoundPrompt } from './prompt.js'
 export const name = 'goal-round-driver'
 export const inject = ['agents', 'goals', 'sessions']
 
-/** Whether a source identifies an automatic, positive-numbered goal round. */
 function isGoalRoundSource(source) {
   return source.kind === 'goal' && source.round > 0
 }
 
-/** Compare a source to one reserved identity. */
 function sameRound(source, round) {
   return source.goalId === round.goalId
     && source.revision === round.revision
     && source.round === round.round
 }
 
-/** Compare the complete queued record to the driver's reservation. */
 function sameQueued(content, source, attempt) {
   return isGoalRoundSource(source) && sameRound(source, attempt) && isDeepStrictEqual(content, attempt.content)
 }
 
-/** Exact current ref for a view. */
 function goalRef(goal) {
   return { id: goal.id, revision: goal.revision }
 }
 
-/** Human-readable unexpected values for logs. */
 function renderThrown(value) {
   return value instanceof Error ? value.message : String(value)
 }
 
-/** Install automatic same-session continuation and its race fences. */
 export function apply(ctx) {
   const states = new Map()
 
-  /** Create state for an exact currently live agent. */
   function stateFor(agent) {
     const existing = states.get(agent)
     if (existing !== undefined) return existing
@@ -63,13 +50,11 @@ export function apply(ctx) {
     return state
   }
 
-  /** Read only when the exact Agent remains live. */
   function currentGoal(state) {
     if (ctx.agents.get(state.agent.id) !== state.agent) return undefined
     return ctx.goals.get(state.agent)
   }
 
-  /** Whether this exact lifecycle is quiescent with no competing prompt. */
   function readyToDrive(state) {
     return ctx.fiber.state === FiberState.ACTIVE
       && !state.stopping
@@ -78,12 +63,10 @@ export function apply(ctx) {
       && !state.competingQueued
   }
 
-  /** Recheck every condition that an awaited checkpoint may have changed. */
   function readyAfterCheckpoint(state) {
     return readyToDrive(state) && !state.needsCheckpoint
   }
 
-  /** Remove automatic authority while preserving the durable phase. */
   function disarm(state) {
     try {
       const goal = currentGoal(state)
@@ -93,7 +76,6 @@ export function apply(ctx) {
     }
   }
 
-  /** Preserve claimed step context when this driver drops only its own round. */
   function restoreOtherClaimed(agent, messages, messageId) {
     const retained = messages.filter(message => message.id !== messageId
       && !(message.source.kind === 'goal' && message.source.round === 0))
@@ -104,7 +86,6 @@ export function apply(ctx) {
     }
   }
 
-  /** Process admitted work at quiescence, then reserve at most one next round. */
   async function drive(state) {
     const { agent } = state
     if (!readyToDrive(state)) return
@@ -172,7 +153,6 @@ export function apply(ctx) {
     }
   }
 
-  /** Coalesce triggers onto one agent-local serialized driver. */
   function requestDrive(state) {
     /* v8 ignore next -- teardown may race a final trigger after synchronously closing the step fence */
     if (state.stopping) return
@@ -296,7 +276,6 @@ export function apply(ctx) {
       }
     })
 
-    /** Fail closed unless the queued prompt still owns the exact live revision. */
     function validReservation(state, content, source) {
       const attempt = state.attempt
       const goal = currentGoal(state)

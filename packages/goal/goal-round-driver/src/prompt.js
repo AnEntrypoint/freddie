@@ -1,11 +1,3 @@
-/** Model-visible continuation prompt for one same-session goal round. */
-
-/**
- * Render the complete goal-round instruction retained in session history.
- * @param goal - exact active goal revision being admitted.
- * @param round - next positive round number.
- * @returns a fresh one-block prompt for `Agent.followup()`.
- */
 export function renderGoalRoundPrompt(goal, round) {
   return [{
     type: 'text',
