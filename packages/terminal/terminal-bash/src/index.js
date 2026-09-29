@@ -1,9 +1,3 @@
-/**
- * Persistent shell PTY backend over the subprocess terminal primitive, shared
- * sandbox policy, bounded output, and provider-owned session cleanup.
- * @module @freddie/freddie-terminal-bash
- */
-
 import { TerminalBackendCleanupError } from '@freddie/freddie-terminal'
 import { effectiveSandboxMode } from '@freddie/freddie-sandbox-policy'
 import { ENCODING_PREAMBLE } from '@freddie/freddie-pwsh-local'
@@ -13,9 +7,7 @@ import { CONTROLLED_PROMPT } from './sanitize.js'
 
 export { Config } from './config.js'
 
-/** Cordis plugin name. */
 export const name = 'terminal-bash'
-/** Required services: PTY registry, shared confinement policy, and process substrate. */
 export const inject = ['terminals', 'sandboxPolicy', 'subprocess']
 
 const sandboxModeFences = new WeakMap()
@@ -61,12 +53,6 @@ function childEnvironment(spec, dialect) {
   }
 }
 
-/**
- * The pwsh prompt function that emits the shared OSC `133;D;` + BEL marker
- * before every prompt, mirroring bash's PROMPT_COMMAND. `[char]27`/`[char]7`
- * build the control bytes at runtime because raw ESC characters in submitted
- * input are unreliable under PSReadLine.
- */
 export const PWSH_PROMPT_SETUP =
   "function prompt { [Console]::Write([char]27 + ']133;D;' + [int]$LASTEXITCODE + [char]7); '" + CONTROLLED_PROMPT + "' }"
 
@@ -118,7 +104,6 @@ async function startupSession(session, dialect, signal) {
   }
 }
 
-/** Local shell backend registered under the configured type. */
 export class BashTerminalBackend {
   type
 
@@ -165,7 +150,6 @@ export class BashTerminalBackend {
   }
 }
 
-/** Register the local PTY backend. */
 export function apply(ctx, config) {
   const resolved = resolveConfig(config)
   validateConfig(resolved)

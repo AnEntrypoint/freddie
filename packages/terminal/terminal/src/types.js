@@ -1,14 +1,3 @@
-/**
- * Types shared by PTY backends, the owner-scoped registry, and tool consumers.
- * Runtime service code lives in `./index.js`.
- * @module @freddie/freddie-terminal/types
- */
-
-/**
- * Backend-reported failure to clean partial resources after unpublished setup failed.
- * @param spawnError - original setup or cancellation failure.
- * @param cleanupError - failure that may leave backend-owned resources alive.
- */
 export class TerminalBackendCleanupError extends AggregateError {
   constructor(spawnError, cleanupError) {
     super([spawnError, cleanupError], 'PTY backend startup and cleanup both failed')

@@ -1,25 +1,14 @@
-/**
- * Seven model-facing persistent terminal tools. Owner identity comes from the exact
- * tool execution Agent; generic `ctx.jobs` owns background ids and collection.
- * @module @freddie/freddie-tool-terminal
- */
-
 import z from '@freddie/schemastery'
 import { TerminalSessionId } from '@freddie/freddie-terminal'
 import { defineTool } from '@freddie/freddie-tools'
 import { boundTerminalText, renderList, renderRead, renderSend, renderSendRead, renderSpawn } from './render.js'
 
-/** Cordis plugin name. */
 export const name = 'tool-terminal'
-/** Required capability, registry, and prompt services. */
 export const inject = ['terminals', 'tools', 'systemPrompt']
 
-/** Default cap for one complete model-facing terminal result. */
 export const DEFAULT_MAX_RESULT_BYTES = 256 * 1024
-/** Smallest cap that preserves every counter-backed PTY and job id in its creation acknowledgement. */
 export const MIN_MAX_RESULT_BYTES = 64
 
-/** Schemastery configuration for the terminal tool consumer. */
 export const Config = z.object({
   enableRunInBackground: z.boolean().default(true),
   maxResultBytes: z.number().step(1).min(MIN_MAX_RESULT_BYTES).max(Number.MAX_SAFE_INTEGER).default(DEFAULT_MAX_RESULT_BYTES),
@@ -105,7 +94,6 @@ function sendDetail(result) {
     : `session exited: ${result.sessionStatus.exitCode ?? result.sessionStatus.signal ?? 'unknown'}`
 }
 
-/** Register all terminal tools and the minimal usage guidance. */
 export function apply(ctx, config = {}) {
   const enableRunInBackground = config.enableRunInBackground ?? true
   const maxResultBytes = config.maxResultBytes ?? DEFAULT_MAX_RESULT_BYTES

@@ -1,19 +1,8 @@
-/**
- * Owner-scoped persistent PTY registry. Backends own terminal mechanics while
- * this service owns ids, publication, authorization, and awaited cleanup.
- * @module @freddie/freddie-terminal
- */
-
 import { Service } from '@freddie/cordis'
 import { TerminalBackendCleanupError } from './types.js'
 
 export { TerminalBackendCleanupError } from './types.js'
 
-/**
- * Brand one registry-minted string as a {@link TerminalSessionId}.
- * @param value - raw registry-issued id.
- * @returns Same string with the PTY session brand.
- */
 export function TerminalSessionId(value) {
   return value
 }
@@ -23,7 +12,6 @@ export function TerminalSessionId(value) {
  * @typedef {'DUPLICATE_BACKEND' | 'DUPLICATE_NAME' | 'FOREIGN_SESSION' | 'NO_BACKEND' | 'NO_SESSION' | 'OWNER_NOT_LIVE' | 'SEND_ACTIVE' | 'SERVICE_DISPOSING'} TerminalErrorCode
  */
 
-/** Error carrying a stable {@link TerminalErrorCode}. */
 export class TerminalError extends Error {
   constructor(message, code) {
     super(message)
@@ -32,7 +20,6 @@ export class TerminalError extends Error {
   }
 }
 
-/** In-process registry for replaceable PTY backends and exact-Agent sessions. */
 export class TerminalSessionService extends Service {
   backends = new Map()
   sessions = new Map()
@@ -49,11 +36,6 @@ export class TerminalSessionService extends Service {
     ctx.effect(() => () => this.disposeAll(), 'pty teardown')
   }
 
-  /**
-   * Register one backend type for this effect scope.
-   * @param backend - provider with a non-empty unique type.
-   * @returns disposer that removes exactly this contribution.
-   */
   registerBackend(backend) {
     if (backend.type.length === 0) throw new Error('pty backend type must be non-empty')
     if (this.backends.has(backend.type)) {
@@ -68,21 +50,10 @@ export class TerminalSessionService extends Service {
     return () => void dispose()
   }
 
-  /**
-   * List registered backend types in registration order.
-   * @returns fresh backend type names.
-   */
   listBackends() {
     return [...this.backends.keys()]
   }
 
-  /**
-   * Create and publish one owner-scoped session after backend setup succeeds.
-   * @param owner - exact registered Agent that owns access and cleanup.
-   * @param request - backend type plus optional owner-local name and cwd.
-   * @param signal - cancellation of unpublished setup.
-   * @returns published identity, metadata, status, and MOTD.
-   */
   async spawn(owner, request, signal) {
     this.assertActive()
     signal?.throwIfAborted()
@@ -159,23 +130,11 @@ export class TerminalSessionService extends Service {
     }
   }
 
-  /**
-   * Test whether an exact owner has a published session or unpublished spawn.
-   * @param owner - exact live owner to inspect.
-   * @returns true across the entire spawn-to-close interval, with no publication gap.
-   */
   hasOwnerActivity(owner) {
     return (this.pendingSpawns.get(owner)?.size ?? 0) > 0
       || [...this.sessions.values()].some(record => record.owner === owner)
   }
 
-  /**
-   * Start one exclusive interactive send.
-   * @param owner - exact session owner.
-   * @param id - target PTY identity.
-   * @param request - explicit text, submit behavior, and cancellation.
-   * @returns live operation handle for foreground await or task registration.
-   */
   startSend(owner, id, request) {
     const record = this.expectOwned(owner, id)
     if (record.closing !== undefined) throw new Error(`PTY session ${id} is closing`)
@@ -189,7 +148,6 @@ export class TerminalSessionService extends Service {
     return operation
   }
 
-  /** Write immediate UTF-8 input without starting a terminal send lifecycle. */
   write(owner, id, data) {
     const record = this.expectOwned(owner, id)
     if (record.closing !== undefined) throw new Error(`PTY session ${id} is closing`)
@@ -197,15 +155,6 @@ export class TerminalSessionService extends Service {
     return record.session.write(data)
   }
 
-  /**
-   * Subscribe one owner to its terminal snapshots and output activity.
-   * The listener receives a fresh snapshot for each already-published owned
-   * session before later activity. It never receives another owner's sessions,
-   * and its disposer stops future delivery immediately.
-   * @param owner - exact owner whose sessions are observable.
-   * @param listener - synchronous activity receiver.
-   * @returns disposer that removes exactly this listener.
-   */
   subscribe(owner, listener) {
     if (!this.isLiveOwner(owner)) {
       throw new TerminalError(`agent "${owner.id}" is not the registered PTY owner`, 'OWNER_NOT_LIVE')
@@ -225,48 +174,18 @@ export class TerminalSessionService extends Service {
     return () => void dispose()
   }
 
-  /**
-   * Read one bounded scrollback page from an owned session.
-   * @param owner - exact session owner.
-   * @param id - target PTY identity.
-   * @param request - optional newest-relative offset and line count.
-   * @returns bounded retained text and pagination metadata.
-   */
   read(owner, id, request = {}) {
     return this.expectOwned(owner, id).session.read(request)
   }
 
-  /**
-   * Deliver an allowed signal through an owned backend session.
-   * @param owner - exact session owner.
-   * @param id - target PTY identity.
-   * @param signal - allowed POSIX signal name.
-   * @returns delivered foreground process-group identity.
-   */
   signal(owner, id, signal) {
     return this.expectOwned(owner, id).session.signal(signal)
   }
 
-  /**
-   * Resize one owned PTY viewport. Backends retain the most recently accepted
-   * dimensions so reconnecting visual clients can synchronize their view.
-   * @param owner - exact session owner.
-   * @param id - target PTY identity.
-   * @param cols - visible column count.
-   * @param rows - visible row count.
-   * @returns accepted dimensions.
-   */
   resize(owner, id, cols, rows) {
     return this.expectOwned(owner, id).session.resize(cols, rows)
   }
 
-  /**
-   * Close one owned session and remove it only after quiescent backend cleanup.
-   * @param owner - exact session owner.
-   * @param id - target PTY identity.
-   * @param reason - diagnostic cleanup reason.
-   * @returns true for a newly closed session, false when the same close is already in flight.
-   */
   async kill(owner, id, reason = 'model request') {
     const record = this.expectOwned(owner, id)
     if (record.closing !== undefined) {
@@ -286,11 +205,6 @@ export class TerminalSessionService extends Service {
     }
   }
 
-  /**
-   * List fresh snapshots for exactly one owner.
-   * @param owner - exact owner whose sessions are visible.
-   * @returns owner-visible snapshots in publication order.
-   */
   list(owner) {
     return [...this.sessions.values()]
       .filter(record => record.owner === owner)

@@ -1,5 +1,3 @@
-/** Model and UI rendering for persistent terminal tool results. */
-
 import { TextRetainer } from '@freddie/freddie-output-retention'
 
 const encoder = new TextEncoder()
@@ -40,12 +38,6 @@ function boundBodyWithSuffix(
   return fitWithSuffix(content, `${metadata}${TRUNCATED}`, maxBytes)
 }
 
-/**
- * Bound one complete terminal acknowledgement while preserving UTF-8 cuts.
- * @param text - complete acknowledgement text.
- * @param maxBytes - positive final result cap.
- * @returns bounded text with a truncation marker when it fits.
- */
 export function boundTerminalText(text, maxBytes) {
   if (byteLength(text) <= maxBytes) return text
   const markerBytes = byteLength(TRUNCATED)
@@ -53,12 +45,6 @@ export function boundTerminalText(text, maxBytes) {
   return `${retain(text, maxBytes - markerBytes, 'head')}${TRUNCATED}`
 }
 
-/**
- * Render one created session and its bounded MOTD.
- * @param result - published spawn result.
- * @param maxBytes - complete UTF-8 result cap.
- * @returns Model-facing session acknowledgement.
- */
 export function renderSpawn(result, maxBytes) {
   const label = result.name === undefined ? result.sessionId : `${result.sessionId} (${result.name})`
   const prefix = `started terminal session ${label} [type: ${result.type}]\n`
@@ -67,12 +53,6 @@ export function renderSpawn(result, maxBytes) {
   return byteLength(complete) <= maxBytes ? complete : fitWithPrefix(prefix, motd, maxBytes)
 }
 
-/**
- * Render one settled interactive send.
- * @param result - settled send outcome.
- * @param maxBytes - complete UTF-8 result cap.
- * @returns Terminal output plus wait/session markers.
- */
 export function renderSend(result, maxBytes) {
   const output = result.viewport || '(no new output)'
   const status = result.sessionStatus.kind === 'running'
@@ -86,23 +66,11 @@ export function renderSend(result, maxBytes) {
   )
 }
 
-/**
- * Render one incremental background operation read.
- * @param read - consuming operation delta.
- * @returns Delta plus its upstream truncation marker. The generic task control
- *   applies the producer's complete-result cap after adding job status.
- */
 export function renderSendRead(read) {
   const separator = read.delta.endsWith('\n') || read.delta.length === 0 ? '' : '\n'
   return `${read.delta}${read.truncated ? `${separator}[output truncated]` : ''}`
 }
 
-/**
- * Render one bounded historical page.
- * @param result - retained scrollback page.
- * @param maxBytes - complete UTF-8 result cap.
- * @returns Page text plus pagination and truncation markers.
- */
 export function renderRead(result, maxBytes) {
   const output = result.text || '(no retained output)'
   return boundBodyWithSuffix(
@@ -113,12 +81,6 @@ export function renderRead(result, maxBytes) {
   )
 }
 
-/**
- * Render owner-visible live sessions.
- * @param sessions - fresh owner-scoped snapshots.
- * @param maxBytes - complete UTF-8 result cap.
- * @returns One line per session or the empty marker.
- */
 export function renderList(sessions, maxBytes) {
   if (sessions.length === 0) return '(no terminal sessions)'
   const text = sessions.map((session) => {

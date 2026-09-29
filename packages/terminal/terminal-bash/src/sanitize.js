@@ -1,18 +1,9 @@
-/** Streaming terminal-control sanitizer for the line-oriented first release. */
-
 import { Buffer } from 'node:buffer'
 
-/** OSC marker emitted by the controlled bash before each prompt. */
 export const PROMPT_MARKER_PREFIX = '133;D;'
 
-/** Exact printable prompt emitted after the private marker. */
 export const CONTROLLED_PROMPT = 'dsh> '
 
-/**
- * Remove CSI/OSC/short escape sequences while preserving split-sequence carry.
- * Full terminal emulation is deliberately deferred; ordinary line output and
- * the private prompt marker are the supported contract.
- */
 export class TerminalSanitizer {
   pending = ''
   discardMode
@@ -24,11 +15,6 @@ export class TerminalSanitizer {
     this.maxPendingBytes = maxPendingBytes
   }
 
-  /**
-   * Consume one decoded `node-pty` data chunk.
-   * @param chunk - decoded terminal data.
-   * @returns Printable text and whether the private prompt marker completed.
-   */
   push(chunk) {
     this.pending += this.discardPrefix(chunk)
     let text = ''
@@ -100,10 +86,6 @@ export class TerminalSanitizer {
     }
   }
 
-  /**
-   * Flush a trailing printable fragment when the PTY exits.
-   * @returns Remaining printable text; incomplete escapes are discarded.
-   */
   flush() {
     const text = this.pending.startsWith('\x1b') ? '' : this.pending
     this.pending = ''
@@ -171,11 +153,6 @@ export class TerminalSanitizer {
   }
 }
 
-/**
- * Normalize CRLF and standalone carriage returns for line-oriented rendering.
- * @param text - sanitized terminal text.
- * @returns Line-normalized text with BEL removed.
- */
 export function normalizeTerminalText(text) {
   return text.replaceAll('\r\n', '\n').replaceAll('\r', '\n').replaceAll('\x07', '')
 }

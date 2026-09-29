@@ -1,5 +1,3 @@
-/** Persistent PTY session over the subprocess seam's terminal primitive. */
-
 import { Buffer } from 'node:buffer'
 import { TerminalError } from '@freddie/freddie-terminal'
 import { CONTROLLED_PROMPT, TerminalSanitizer } from './sanitize.js'
@@ -128,7 +126,6 @@ class LocalSendOperation {
   }
 }
 
-/** Backend session wrapping one provider-owned terminal process. */
 export class LocalPtySession {
   motd = ''
   decoder = new TextDecoder()
@@ -173,11 +170,6 @@ export class LocalPtySession {
     )
   }
 
-  /**
-   * Capture startup output through the same readiness contract as later sends.
-   * @param signal - optional cancellation while the shell reaches its first prompt.
-   * @returns Resolves after startup readiness; rejects on exit or readiness timeout.
-   */
   async initialize(signal) {
     this.initializing = true
     try {
@@ -277,11 +269,6 @@ export class LocalPtySession {
     this.promptTail = ''
   }
 
-  /**
-   * Subscribe to local PTY output and lifecycle activity.
-   * @param listener - synchronous receiver for sanitized activity.
-   * @returns disposer that prevents future delivery to this listener.
-   */
   subscribe(listener) {
     this.listeners.add(listener)
     return () => { this.listeners.delete(listener) }
