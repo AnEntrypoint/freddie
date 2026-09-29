@@ -1,14 +1,3 @@
-/**
- * @freddie/freddie-client-css-manifest — serves the buildless plain CSS files
- * (converted off CSS Modules) that {@link cssManifest} lists: one concatenated
- * `/styles/app.css?rev=<content hash>` stylesheet in manifest order (the one
- * link the page carries), plus every file on its own `/styles/<id>.css`
- * route for debugging. Provides `ctx.cssManifest` so the HMR node half can
- * publish the new rev after a stylesheet edit, and the browser swaps the
- * one link in place.
- * @module @freddie/freddie-client-css-manifest
- */
-
 import { createHash } from 'node:crypto'
 import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -39,12 +28,6 @@ function escapeHtmlAttribute(value) {
     .replaceAll('>', '&gt;')
 }
 
-/**
- * The concatenated stylesheet and its serving state. Rebuilt only when a
- * manifest file's size or mtime moved since the last build (one `statSync`
- * per file per check — the index render and every bundle request check, a
- * stylesheet edit rebuilds).
- */
 export class CssManifest extends Service {
   static inject = ['webServer']
 
@@ -62,19 +45,10 @@ export class CssManifest extends Service {
     })
   }
 
-  /**
-   * Current bundle revision: a hash over every manifest file's content in
-   * manifest order.
-   * @returns the 12-hex-char rev.
-   */
   revision() {
     return this.build().rev
   }
 
-  /**
-   * The one stylesheet URL the page links (and the HMR swap re-links).
-   * @returns `/styles/app.css?rev=<current rev>`.
-   */
   href() {
     return `${BUNDLE_PATH}?rev=${this.revision()}`
   }
