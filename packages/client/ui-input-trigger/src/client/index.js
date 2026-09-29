@@ -1,9 +1,3 @@
-/**
- * Slash trigger plugin, browser half: the InputTriggerService (`ctx.inputTriggers`) owning
- * trigger detection, the candidate menu, and the pick pipeline; MenuView
- * self-registers into the conversation.input.overlay slot. Frozen pipeline
- * contract in ./contract.js; sources register through ctx.inputTriggers alone.
- */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { InputTriggerService } from './service.js'
 import './MenuView.js'
@@ -12,17 +6,10 @@ import { en } from './locales.js'
 export { InputTriggerService } from './service.js'
 export { InputTriggerController } from './controller.js'
 
-/** Namespace owning the candidate-menu copy. */
 const MENU_NS = 'slash.menu'
 
-/** Required services: controller resolution reads the session scope tree; the menu copy is localized. */
 export const inject = ['sessions', 'locale']
 
-/**
- * Client plugin body: mount the service, then register MenuView into the
- * input overlay once its declarer is up.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   ctx.plugin(InputTriggerService)
   ctx.effect(() => ctx.locale.register(MENU_NS, { en }), 'ui-input-trigger: menu dictionaries')

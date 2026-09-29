@@ -1,33 +1,15 @@
-/**
- * InputTriggerService (`ctx.inputTriggers`): the root half of the trigger pipeline — the
- * stateless source registry plus the per-session controller map. Every piece
- * of mutable interaction state (hit, menu, fetch) lives on the
- * {@link InputTriggerController}; the service only registers sources, resolves
- * controllers by session scope, and relays roster changes.
- */
 import { Service } from '@freddie/cordis'
 import { InputTriggerController } from './controller.js'
 
-/** The `ctx.inputTriggers` trigger pipeline service (root registry + controller resolution). */
 export class InputTriggerService extends Service {
   static inject = ['sessions']
 
   live = { sources: [], controllers: new Map() }
 
-  /**
-   * @param ctx - owning root context (the service registers itself as `slash`).
-   */
   constructor(ctx) {
     super(ctx, 'inputTriggers')
   }
 
-  /**
-   * Register one trigger source. Live session controllers are notified so a
-   * source arriving after scope birth still warms and joins the lexicon.
-   * @param src - the source; (trigger, name) must be unique — duplicates throw.
-   * @returns the disposer (callers wrap registration in ctx.effect). Disposal
-   * while a controller shows the source's menu group drops that group.
-   */
   registerSource(src) {
     const { live } = this
     if (live.sources.some(s => s.trigger === src.trigger && s.name === src.name)) {
@@ -49,14 +31,6 @@ export class InputTriggerService extends Service {
     }
   }
 
-  /**
-   * Resolve the per-session controller for one session scope (lazy; the
-   * scope disposer removes and disposes it). Construction warms the source
-   * roster once — sessions are always agent-backed, so scope birth is the
-   * single prewarm moment.
-   * @param actx - session-scope ctx.
-   * @returns the resident controller.
-   */
   sessionOf(actx) {
     const sessions = this.sessions()
     const id = sessions.scopeOf(actx)

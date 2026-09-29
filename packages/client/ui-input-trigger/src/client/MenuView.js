@@ -1,33 +1,14 @@
-/**
- * Trigger candidate menu: renders the InputTriggerService menu store into the
- * conversation.input.overlay anchor. Closed state renders null (the overlay
- * slot stays mounted); groups render in roster order under localized title
- * rows, pending groups as a loading row; pointer picks route back through
- * the service (combobox pattern — focus never leaves the textarea, so rows
- * are mousedown-handled and the highlight is exposed via
- * aria-activedescendant on the listbox).
- *
- * Converted from a React hooks component to a webjsx custom element: the
- * menu-store subscription that was useSyncExternalStore becomes a
- * connectedCallback/disconnectedCallback-managed subscribe, the
- * scrollIntoView and pointer-dismiss effects become explicit re-arm-on-render
- * bookkeeping, and re-render is an explicit applyDiff(this, vdom) call
- * (Toast.tsx's pattern) instead of implicit re-render on state change.
- */
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import { createAnchoredMaxHeight, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './MenuView.css.js'
 
-/** Design cap on the list height (figma SLASH 39:26572 MenuDropdown). */
 const MAX_HEIGHT = 320
 
-/** DOM id of one option row (the aria-activedescendant target). */
 function optionId(source, index) {
   return `freddie-slash-option-${source}-${index}`
 }
 
-/** Render the candidate menu overlay entry custom element (see module doc). */
 export class FreddieMenuView extends HTMLElement {
   #props = null
   #state = null
@@ -37,7 +18,6 @@ export class FreddieMenuView extends HTMLElement {
   #lastHighlight = null
   #outsidePointer = null
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     const menuChanged = this.#props?.menu !== props.menu
     this.#props = props
