@@ -1,10 +1,3 @@
-/**
- * Workspace entity registry (`ctx.workspaceRegistry`): durable workspace records,
- * stable registry order, and header-validated session membership over the
- * domain data form.
- * @module @freddie/freddie-workspace
- */
-
 import { randomUUID } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 import { basename } from 'node:path'
@@ -23,25 +16,11 @@ export { realpathNormalize } from './paths.js'
  * @typedef {string} WorkspaceId
  */
 
-/**
- * Brand a string as a {@link WorkspaceId}. The brand has no runtime
- * representation — this is an identity passthrough kept for callers of the
- * companion caster.
- * @param id - Raw workspace id string.
- * @returns the same string.
- */
 export function WorkspaceId(id) {
   return id
 }
 
-/**
- * An archiveSession request named a session neither live nor in session
- * persistence — a definite miss only; storage faults propagate as themselves.
- */
 export class WorkspaceUnknownSessionError extends Error {
-  /**
-   * @param sessionId - The unknown session id.
-   */
   constructor(sessionId) {
     super(`cannot archive session '${sessionId}': live sessions and session persistence hold no such session`)
     this.name = 'WorkspaceUnknownSessionError'
@@ -49,11 +28,7 @@ export class WorkspaceUnknownSessionError extends Error {
   }
 }
 
-/** A workspace reorder named a source or anchor absent from the durable registry order. */
 export class WorkspaceOrderInvalidError extends Error {
-  /**
-   * @param workspaceId - Missing source or anchor id.
-   */
   constructor(workspaceId) {
     super(`cannot reorder unknown workspace '${workspaceId}'`)
     this.name = 'WorkspaceOrderInvalidError'
@@ -67,13 +42,6 @@ const sameIds = (left, right) =>
 const compareHeaders = (left, right) =>
   right.createdAt - left.createdAt || String(left.id).localeCompare(String(right.id))
 
-/**
- * Durable workspace registry. Startup waits for `sessionPersistence`, builds
- * one canonical-cwd header index, and completes the one-time history
- * bootstrap before the service becomes active. The persistence dependency is
- * mandatory so an unavailable peer can never be mistaken for an empty
- * history and commit the initialized marker.
- */
 export class WorkspaceRegistry extends Service {
   static inject = ['storageDomain', 'sessionPersistence']
 
@@ -100,7 +68,6 @@ export class WorkspaceRegistry extends Service {
     super(ctx, 'workspaceRegistry')
   }
 
-  /** Open the domain, finish bootstrap when required, and rebuild the ordered cache. */
   async [Service.init]() {
     const domain = await this.ctx.storageDomain.open(workspaceDomainSpec)
     this.ctx.effect(() => () => domain.close(), 'workspace.domainClose')
@@ -124,17 +91,6 @@ export class WorkspaceRegistry extends Service {
     this.reportFilteredCandidates()
   }
 
-  /**
-   * Create or reuse a workspace for an existing directory. The path is
-   * canonicalized through `fs.realpath`; a nonexistent path rejects with the
-   * original error and a non-directory rejects. Repeated calls for the same
-   * canonical path return the existing entity without changing its title.
-   * A newly created workspace is prepended to the durable registry order.
-   * Different canonical paths may share a display title.
-   * @param path - Existing directory to own, in any path spelling.
-   * @param title - Display title used only when a new record is created.
-   * @returns the existing or newly durable workspace.
-   */
   async create(path, title) {
     const canonical = await realpathNormalize(path)
     if (!(await stat(canonical)).isDirectory()) {
@@ -143,21 +99,10 @@ export class WorkspaceRegistry extends Service {
     return await this.enqueueOperation(() => this.createCanonical(canonical, title))
   }
 
-  /**
-   * Look up a workspace by id.
-   * @param id - Workspace id.
-   * @returns the workspace, or `undefined` when unknown.
-   */
   get(id) {
     return this.entities.get(id)
   }
 
-  /**
-   * Synchronous workspace projection in durable registry order. Every
-   * entity's `sessionIds` getter is already filtered by the startup/live
-   * canonical-cwd header index; this method performs no persistence reads.
-   * @returns a fresh ordered array of workspace entities.
-   */
   list() {
     return this.requireState().workspaceIds.map((id) => {
       const entity = this.entities.get(id)
@@ -168,25 +113,10 @@ export class WorkspaceRegistry extends Service {
     })
   }
 
-  /**
-   * Delete one workspace registration while retaining its directory and every
-   * session log. The durable order is updated before the table deletion; a
-   * failed table write restores the prior order and keeps the entity
-   * published. Unknown ids are an idempotent no-op for domain callers.
-   * @param id - Workspace registration to remove.
-   * @returns `true` when a record was deleted, `false` when it was unknown.
-   */
   delete(id) {
     return this.enqueueOperation(() => this.deleteKnown(id))
   }
 
-  /**
-   * Move one workspace within the durable display order, DOM-insertBefore-like.
-   * With an anchor it lands before that workspace; without one it appends.
-   * @param id - Workspace to move.
-   * @param beforeId - Workspace anchor; omitted appends.
-   * @returns the complete committed workspace order.
-   */
   insertBefore(id, beforeId) {
     return this.enqueueOperation(async () => {
       const state = this.requireState()
@@ -204,23 +134,10 @@ export class WorkspaceRegistry extends Service {
     })
   }
 
-  /**
-   * The registry-global archive set: sessions hidden from every grouping
-   * surface. Archiving never touches workspace accounting — an archived
-   * session keeps its `sessionIds` slot so unarchiving restores its position.
-   * @returns the archived session ids in archive order.
-   */
   get archivedSessionIds() {
     return this.requireState().archivedSessionIds
   }
 
-  /**
-   * Archive one session durably. The session must exist (live or in session
-   * persistence); its workspace accounting — or lack of one — is irrelevant.
-   * An already archived id resolves without writing.
-   * @param sessionId - The session to archive.
-   * @returns resolution after durability.
-   */
   archiveSession(sessionId) {
     return this.enqueueOperation(async () => {
       if (this.requireState().archivedSessionIds.includes(sessionId)) return
@@ -232,12 +149,6 @@ export class WorkspaceRegistry extends Service {
     })
   }
 
-  /**
-   * Whether a session is live, header-indexed, or present in a fresh
-   * persistence listing. Only a definite miss returns false — a failing
-   * `sessionPersistence.list()` propagates so storage faults never
-   * masquerade as an unknown session.
-   */
   async sessionKnown(id) {
     if (this.ctx.get('sessions')?.get(id) !== undefined) return true
     if (this.headers.has(id)) return true
@@ -245,13 +156,6 @@ export class WorkspaceRegistry extends Service {
     return this.headers.has(id)
   }
 
-  /**
-   * Resolve by canonical directory path without creating or mutating a
-   * workspace. A missing path rejects during `realpath`; an existing unowned
-   * directory returns `undefined`.
-   * @param path - Existing directory path in any spelling.
-   * @returns the workspace owning the canonical path, when one exists.
-   */
   async resolveByPath(path) {
     const canonical = await realpathNormalize(path)
     for (const entity of this.entities.values()) {
@@ -372,11 +276,6 @@ export class WorkspaceRegistry extends Service {
     return true
   }
 
-  /**
-   * Complete the one mutation explicitly named by durable state. Unexplained
-   * order/table divergence still reaches {@link validateStoredState} and
-   * fails loud; this path never guesses which operation created a row from its shape alone.
-   */
   async recoverPendingMutation() {
     const state = this.requireState()
     const pending = state.pendingMutation

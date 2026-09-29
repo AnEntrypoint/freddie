@@ -1,13 +1,3 @@
-/**
- * Package-private workspace entity: the single {@link Workspace}
- * implementation. Holds a record snapshot that is swapped in place after each
- * durable mutation; every write funnels through the private `mutate` so
- * `updatedAt` stamping and invalid-account pruning happen exactly once.
- * Not re-exported from the package entrypoint — consumers see only the
- * `Workspace` interface.
- * @module @freddie/freddie-workspace/src/entity
- */
-
 import { stat } from 'node:fs/promises'
 import { realpathNormalize } from './paths.js'
 
@@ -29,29 +19,18 @@ import { realpathNormalize } from './paths.js'
  * @property {function(): Promise<'ok' | 'missing-dir'>} status
  */
 
-/** An insertSessionBefore request named a session or anchor not on the account (storage failures stay plain errors). */
 export class WorkspaceMoveInvalidError extends Error {
-  /**
-   * @param message - Which id was unaccounted and where.
-   */
   constructor(message) {
     super(message)
     this.name = 'WorkspaceMoveInvalidError'
   }
 }
 
-/** Chain-slot abort sentinel thrown by the update fn when the record needs no change; only `mutate` observes it. */
 const unchangedSentinel = new Error('workspace record unchanged (internal sentinel)')
 
-/** The single {@link Workspace} implementation; constructed only by the registry. */
 export class WorkspaceEntity {
   record
 
-  /**
-   * @param host - Registry-owned table, session-path index, and header reads.
-   * @param id - The record's stable id.
-   * @param record - The validated record snapshot loaded or just written.
-   */
   constructor(host, id, record) {
     this.host = host
     this.id = id
@@ -157,18 +136,6 @@ export class WorkspaceEntity {
     }
   }
 
-  /**
-   * The single write path: run `fn` on the domain write chain via
-   * `table.update`, stamping `updatedAt` and pruning candidates that no
-   * longer pass the id-plus-canonical-cwd membership check, then swap the
-   * snapshot.
-   *
-   * `fn` sees the value current at its chain slot, so membership decisions
-   * (attach/detach idempotence) are race-free against queued writes; a fn
-   * signalling no change by returning `current` verbatim aborts the slot
-   * through the sentinel when pruning also finds nothing, so a no-op neither
-   * rewrites the medium nor emits a change event.
-   */
   async mutate(fn) {
     let next
     try {
