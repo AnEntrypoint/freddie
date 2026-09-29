@@ -1,6 +1,3 @@
-/** Copy dictionaries for the plugin inventory Settings section. */
-
-/** English dictionary. */
 export const en = {
   tab: 'Plugin list',
   loading: 'Reading plugins…',

@@ -23,12 +23,10 @@ const LOCK_KEYS = {
 
 const CONTROL_ABSENT = { kind: 'unavailable', locks: new Map() }
 
-/** Localized accessible label for one root Fiber phase. */
 function phaseLabel(phase, t) {
   return phase === null ? t('unobserved') : t(PHASE_KEYS[phase])
 }
 
-/** Compact a module specifier without guessing whether its Loader id was generated. */
 function moduleShortName(moduleName) {
   const unscoped = moduleName.startsWith('@') ? moduleName.slice(moduleName.indexOf('/') + 1) : moduleName
   return unscoped
@@ -37,14 +35,12 @@ function moduleShortName(moduleName) {
     .replace(/^freddie-(?:host-|client-)?/, '')
 }
 
-/** Whether an inventory row matches the local catalog query. */
 function matches(entry, normalizedQuery) {
   if (normalizedQuery.length === 0) return true
   return [entry.moduleName, entry.entryId]
     .some(value => value.toLocaleLowerCase().includes(normalizedQuery))
 }
 
-/** What `describe` answered, reduced to the verdict the switches follow. */
 function controlOf(outcome) {
   if (outcome.kind === 'ok') {
     return { kind: 'ready', locks: new Map(outcome.value.entries.map(view => [view.entryId, view.lock])) }
@@ -53,7 +49,6 @@ function controlOf(outcome) {
   return CONTROL_ABSENT
 }
 
-/** The note a refused or failed switch leaves on its card. */
 function noteOf(outcome) {
   if (outcome.kind === 'refused' && outcome.lock !== undefined) return { kind: 'locked', lock: outcome.lock }
   if (outcome.kind === 'refused' && outcome.code === 'plugin-manager/unknown-entry') return { kind: 'gone' }
@@ -62,11 +57,6 @@ function noteOf(outcome) {
 
 let nextCatalogId = 0
 
-/**
- * Loader inventory tab custom element with one enable/disable switch per
- * plugin. Registered as `freddie-plugin-inventory-settings-tab` via `webjsxSlot`
- * at the slot's register call site (see index.js).
- */
 export class FreddiePluginInventorySettingsTab extends HTMLElement {
   #props = null
   #catalogId = `plugin-inventory-${nextCatalogId++}`
@@ -79,7 +69,6 @@ export class FreddiePluginInventorySettingsTab extends HTMLElement {
   #notes = new Map()
   #refreshFailed = false
 
-  /** Set/replace props and re-render; called by the slot renderer's webjsx bridge. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -167,7 +156,6 @@ export class FreddiePluginInventorySettingsTab extends HTMLElement {
     this.#render()
   }
 
-  /** The reason a card's switch cannot be used, or undefined when it can. */
   #inertReason(entry, control, t) {
     if (control.kind === 'forbidden') return t('needsHost')
     if (control.kind === 'unavailable') return t('controlUnavailable')
