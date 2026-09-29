@@ -1,30 +1,10 @@
-/**
- * Client mirror of the Host settings document: the one `settings.describe`
- * reader in the browser. Every settings consumer derives from this store —
- * per-namespace scopes through `SettingsScopeBinder.bind`, cross-namespace
- * surfaces through the binder's shared describe face — so startup cost and
- * freshness are properties of this class, not of how many features own a
- * preference. The Host stays the fact source: the mirror re-reads on the
- * invalidations its owning plugin subscribes to and folds write answers in
- * through {@link SettingsDescribeMirror.acceptView}.
- */
-
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 
-/**
- * Serializes every Host `settings.describe` read behind one snapshot store.
- * Concurrent {@link load} calls fold into the in-flight read plus one rerun,
- * so an invalidation arriving mid-read is never lost and never duplicated.
- */
 export class SettingsDescribeMirror {
   inFlight
   rerun = false
   generation = 0
 
-  /**
-   * @param api - settings wire face.
-   * @param persistence - remote browsers stay process-local because settings RPCs are loopback-only.
-   */
   constructor(api, persistence = 'host') {
     this.api = api
     this.persistence = persistence
@@ -35,25 +15,14 @@ export class SettingsDescribeMirror {
     })
   }
 
-  /** @returns the current sync snapshot (stable reference until the next change). */
   getSnapshot() {
     return this.store.getSnapshot()
   }
 
-  /**
-   * Observe snapshot replacements.
-   * @param listener - invoked after each snapshot change.
-   * @returns the disposer removing this listener.
-   */
   subscribe(listener) {
     return this.store.subscribe(listener)
   }
 
-  /**
-   * Refresh from the Host. A call during an in-flight read marks one rerun
-   * after it settles instead of racing a second wire read.
-   * @returns settlement after this call's freshness is reflected.
-   */
   load() {
     if (this.persistence === 'memory') return Promise.resolve()
     if (this.inFlight !== undefined) {
@@ -65,12 +34,6 @@ export class SettingsDescribeMirror {
     return run
   }
 
-  /**
-   * Resolve once an answer is held (or the mirror is terminally unavailable),
-   * reading only from `idle`. The cheap idempotent entry for surfaces that
-   * render on first use.
-   * @returns settlement of the current or newly started read, if any.
-   */
   ensure() {
     if (this.persistence === 'memory') return Promise.resolve()
     if (this.inFlight !== undefined) return this.inFlight
@@ -78,13 +41,6 @@ export class SettingsDescribeMirror {
     return Promise.resolve()
   }
 
-  /**
-   * Fold one write answer's namespace view into the held view without a wire
-   * read, and invalidate any read still in flight. With no held document, the
-   * answer is not published as a partial document; an in-flight read reruns so
-   * it cannot publish a document fetched before the write committed.
-   * @param view - the namespace view a settings write answered with.
-   */
   acceptView(view) {
     const before = this.store.getSnapshot()
     this.generation += 1
@@ -96,11 +52,6 @@ export class SettingsDescribeMirror {
     this.store.set({ ...before, view: { ...before.view, namespaces } })
   }
 
-  /**
-   * Convenience row lookup on the held view.
-   * @param ns - namespace identity.
-   * @returns the namespace view, or undefined while unanswered or unregistered.
-   */
   namespace(ns) {
     return this.store.getSnapshot().view?.namespaces.find(row => row.ns === ns)
   }
