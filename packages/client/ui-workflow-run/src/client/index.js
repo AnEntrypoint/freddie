@@ -1,13 +1,9 @@
-/** Browser plugin for durable workflow-run Conversation Nodes. */
-
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { en, NS } from './locales.js'
 import { workflowRunDefinition } from './workflow-definition.js'
 
-/** Required services for Definition, keyed renderer, navigation, and copy. */
 export const inject = ['conversationEvents', 'slots', 'sessions', 'locale']
 
-/** Register the workflow Definition, dictionary, and keyed Chat renderer. */
 export function apply(ctx) {
   ctx.conversationEvents.register(workflowRunDefinition)
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-workflow-run: dictionaries')

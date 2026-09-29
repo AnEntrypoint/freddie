@@ -1,9 +1,5 @@
-/** `workflowRun` namespace dictionaries. */
-
-/** Dictionary namespace owned by this plugin. */
 export const NS = 'workflowRun'
 
-/** English dictionary. */
 export const en = {
   'run.title': '{name}',
   'run.members.one': '{count} member',

@@ -21,7 +21,7 @@ function dotState(status) {
     case 'failed': return 'error'
     case 'cancelled':
     case 'interrupted': return 'warning'
-    /* v8 ignore next -- WorkflowRunStatus is closed and every variant is handled above. */
+    /* v8 ignore next */
     default: return status
   }
 }
@@ -114,14 +114,14 @@ function existingPhaseState(
   key,
 ) {
   const phase = phases.get(key)
-  /* v8 ignore next -- mounted phase callbacks are created from this owner map. */
+  /* v8 ignore next */
   if (phase === undefined) throw new Error(`Missing disclosure state for phase ${key}`)
   return phase
 }
 
 function preventPendingHeaderFocus(event) {
   const header = (event.currentTarget).querySelector('[data-disclosure-row]')
-  /* v8 ignore next -- DisclosureRow always renders its header before the content. */
+  /* v8 ignore next */
   if (header === null) throw new Error('Missing disclosure header')
   if (header.contains(event.target)) event.preventDefault()
 }
@@ -287,20 +287,6 @@ function PhaseSection({
   )
 }
 
-/**
- * Render one durable workflow run with status-driven run and phase
- * disclosure, as a webjsx custom element.
- *
- * Converted from a React hooks component (useState/useMemo/useRef/
- * useLayoutEffect) to a webjsx custom element: `disclosures` state becomes an
- * instance field, the derived phaseFacts/runFacts/navigable memos become
- * plain per-render recomputation (no framework memoization needed at this
- * scale), the outer-hiding useLayoutEffect that settles deferred collapses
- * becomes an explicit call at the top of `#render()` before building vdom,
- * and the content refs (blur tracking for collapse deferral) are read from
- * the live DOM via querySelector after each applyDiff, since ref callbacks
- * are not part of webjsx's contract the way they are in React.
- */
 export class FreddieWorkflowRunPanel extends HTMLElement {
   #props = null
   #disclosures = null
@@ -471,28 +457,12 @@ export class FreddieWorkflowRunPanel extends HTMLElement {
 
 defineElement('freddie-workflow-run-panel', FreddieWorkflowRunPanel)
 
-/**
- * @typedef {object} WorkflowRunPanelProps
- * @property {{data: {name: string, status: ('running'|'completed'|'failed'|'cancelled'|'interrupted'), currentPhase?: string, declaredPhases?: Array<{title: string, detail?: string}>, logs: Array<{seq: number, message: string}>, phases: Array<{key: string, phase: (string|null), members: Array<{seq: number, childId: string, label: string, status: string}>}>}}} node - the workflow-run node off the snapshot cache.
- * @property {string} sessionId - the parent session id a running member must belong to in order to be navigable.
- * @property {function(function(object): *, function(*, *): boolean=): *} useSessions - the session-store selector hook, used here to derive which running members are navigable subagent sessions.
- * @property {function(string): void} openSession - opens a member's session by child id.
- * @property {function(string, object=): string} t - conversation locale seat.
- */
-
-/**
- * Create (if needed) or update a WorkflowRunPanel element in place.
- * @param el - an existing `freddie-workflow-run-panel` element to update, or null to create one.
- * @param props - see {@link WorkflowRunPanelProps}.
- * @returns the `freddie-workflow-run-panel` element; keep it and pass it back in to update.
- */
 export function renderWorkflowRunPanel(el, props) {
   const target = el ?? document.createElement('freddie-workflow-run-panel')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function WorkflowRunPanel(props) {
   return renderWorkflowRunPanel(null, props)
 }
